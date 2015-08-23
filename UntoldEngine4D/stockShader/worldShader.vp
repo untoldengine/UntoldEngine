@@ -1,0 +1,30 @@
+attribute vec4 Vertex;
+
+uniform mat4 MVPMatrix;
+
+varying mediump vec4 axisColor;
+
+void main(void) 
+{
+
+    if(vec3(Vertex)==vec3(-5,0,0) || vec3(Vertex)==vec3(5,0,0) ){
+    
+    axisColor=vec4(1.0,0.0,0.0,1.0);
+    
+    }else if(vec3(Vertex)==vec3(0,0,5) || vec3(Vertex)==vec3(0,0,-5) ){
+    
+    axisColor=vec4(0.0,0.0,1.0,1.0);
+
+    }else if(vec3(Vertex)==vec3(0,2,0) || vec3(Vertex)==vec3(0,-2,0) ){
+    
+    axisColor=vec4(0.0,1.0,0.0,0.5);
+
+    }else{
+
+    axisColor=vec4(1.0,1.0,1.0,1.0);
+
+    }
+
+    gl_Position = MVPMatrix*Vertex;
+    
+}

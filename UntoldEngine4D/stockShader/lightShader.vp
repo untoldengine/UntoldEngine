@@ -1,0 +1,10 @@
+attribute vec4 Vertex;
+
+uniform mat4 MVPMatrix;
+
+void main(void) 
+{
+
+    gl_Position = MVPMatrix*Vertex;
+    
+}

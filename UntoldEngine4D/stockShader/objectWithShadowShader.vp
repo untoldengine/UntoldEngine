@@ -1,0 +1,24 @@
+attribute vec4 Vertex;
+attribute vec3 Normal;
+attribute vec2 TextureCoord;
+
+uniform mat3 NormalMatrix;
+uniform mat4 MVMatrix;
+uniform mat4 MVPMatrix;
+
+uniform mat4 DepthMVPMatrix;
+
+mat4 biasMatrix=mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0,0.5, 0.5, 0.5, 1.0);
+
+varying vec4 shadowCoord;
+
+void main(void) 
+    {
+
+    gl_Position = MVPMatrix*Vertex;
+  
+    mat4 depthBiasMVP=biasMatrix*DepthMVPMatrix;
+    
+    shadowCoord=DepthMVPMatrix*Vertex;
+
+    }

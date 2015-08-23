@@ -1,0 +1,17 @@
+attribute vec4 Vertex;
+attribute vec3 Normal;
+attribute vec2 TextureCoord;
+
+varying vec4 vVaryingColor;
+uniform mat4 MVPMatrix;
+uniform mat3 NormalMatrix;
+varying mediump vec2 vVaryingTexCoords;
+uniform vec2 offset;
+
+void main(void) 
+    { 
+
+    vVaryingTexCoords=vec2(TextureCoord.x+offset.x,TextureCoord.y+offset.y);
+    gl_Position = MVPMatrix*Vertex;
+    
+    }

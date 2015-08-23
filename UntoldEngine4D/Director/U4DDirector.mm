@@ -1,0 +1,169 @@
+//
+//  God.cpp
+//  MVCTemplate
+//
+//  Created by Harold Serrano on 4/23/13.
+//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//
+
+#include "U4DDirector.h"
+#include "U4DScheduler.h"
+
+#include "U4DWorld.h"
+#include "U4DScene.h"
+#include "U4DGameModelInterface.h"
+#include "U4DControllerInterface.h"
+#include "U4DLights.h"
+#include "CommonProtocols.h"
+#import <GLKit/GLKit.h>
+
+namespace U4DEngine {
+    
+U4DDirector* U4DDirector::instance=0;
+
+U4DDirector* U4DDirector::sharedInstance(){
+    
+    if (instance==0) {
+        instance=new U4DDirector();
+    }
+    
+    return instance;
+}
+
+
+void U4DDirector::draw(){
+    
+    //draw the view
+    scene->draw();
+    
+}
+
+void U4DDirector::update(double dt){
+    
+    //update the scheduler
+    U4DScheduler *scheduler=U4DScheduler::sharedInstance();
+    scheduler->tick(dt);
+    
+    scene->update(dt);
+}
+
+void U4DDirector::loadShaders(){
+   
+    //initialize the shaders available
+    
+    int arrayLength=sizeof(shaderManager.shaders)/sizeof(*shaderManager.shaders);
+    
+    for (int i=0; i<arrayLength; i++) {
+        
+        std::string vertexShaderString=shaderManager.shaders[i]+".vp";
+        std::string fragmentShaderString=shaderManager.shaders[i]+".fp";
+        
+        const char *vertexShaderName=vertexShaderString.c_str();
+        const char *fragmentShaderName=fragmentShaderString.c_str();
+        
+        GLuint shaderID=shaderManager.loadShaderPair(vertexShaderName, fragmentShaderName);
+        
+        addShaderProgram(shaderID);
+
+    }
+        
+}
+
+void U4DDirector::init(){
+    
+}
+
+
+
+void U4DDirector::setScene(U4DScene *uScene){
+    
+    //initialize the Universe
+    scene=uScene;
+    
+}
+
+void U4DDirector::addShaderProgram(GLuint uShaderValue){
+    
+    shaderProgram.push_back(uShaderValue);
+}
+
+
+GLuint U4DDirector::getShaderProgram(std::string uShader){
+
+    int shaderIndex=0;
+    
+    int arrayLength=sizeof(shaderManager.shaders)/sizeof(*shaderManager.shaders);
+    
+    const char *uShaderName=uShader.c_str();
+    
+    for (int i=0; i<arrayLength; i++) {
+
+        if (uShaderName==shaderManager.shaders[i]) {
+            
+            shaderIndex=i;
+        }
+    }
+    
+    return shaderProgram.at(shaderIndex);
+}
+
+void U4DDirector::setDisplayWidthHeight(float uWidth,float uHeight){
+    
+    displayHeight=uHeight;
+    displayWidth=uWidth;
+}
+
+float U4DDirector::getDisplayHeight(){
+    
+    return displayHeight;
+
+}
+
+float U4DDirector::getDisplayWidth(){
+    
+    return displayWidth;
+    
+}
+
+
+
+U4DVector2n U4DDirector::pointToOpenGL(float xPoint,float yPoint){
+    
+    xPoint=(xPoint-displayWidth/2)/(displayWidth/2);
+    yPoint=(displayHeight/2-yPoint)/(displayHeight/2);
+    
+    U4DVector2n point(xPoint,yPoint);
+    
+    return point;
+    
+}
+
+void U4DDirector::touchBegan(const U4DTouches &touches){
+    
+    scene->touchBegan(touches);
+    
+}
+
+void U4DDirector::touchEnded(const U4DTouches &touches){
+    
+    scene->touchEnded(touches);
+}
+
+void U4DDirector::touchMoved(const U4DTouches &touches){
+    
+    scene->touchMoved(touches);
+}
+
+void U4DDirector::loadLight(U4DLights* uLight){
+    
+    mainLight=uLight;
+    
+}
+
+U4DLights* U4DDirector::getLight(){
+    
+    return mainLight;
+    
+}
+
+}
