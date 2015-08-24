@@ -20,7 +20,7 @@ class U4DCollisionAlgorithm{
 public:
     
     virtual bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt)=0;
-    virtual void determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, std::vector<float> uBarycentricCoordinates)=0;
+    virtual void determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2)=0;
     
     
     ~U4DCollisionAlgorithm(){};

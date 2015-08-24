@@ -58,7 +58,7 @@ public:
     bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt);
     
     
-    void determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, std::vector<float> uBarycentricCoordinates);
+    void determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2);
     
     /*!
      @brief  Method to calculate the support points (most extreme points) in a particular direction.
@@ -99,9 +99,6 @@ public:
     
     std::vector<float> determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin, int uNumberOfSimplexInContainer);
     
-    void determineCollisionProperties(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2);
-    
-    U4DPoint3n getClosestMinkowskiPointToPoint(U4DPoint3n& uPoint);
 };
     
 }

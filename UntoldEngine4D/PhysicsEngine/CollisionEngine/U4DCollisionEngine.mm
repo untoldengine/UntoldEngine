@@ -40,6 +40,7 @@ void U4DCollisionEngine::detectCollisions(float dt){
     
     if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
         
+        std::cout<<"Collision Occurred"<<std::endl;
           
     }
     
