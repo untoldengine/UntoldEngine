@@ -68,7 +68,7 @@ namespace U4DEngine {
                 
                 //if intersecting, determine collision properies before returning
                 
-                determineCollisionProperties(uModel1, uModel2);
+                determineCollisionPoints(uModel1, uModel2);
                 
                 return true;
             }
@@ -111,91 +111,34 @@ namespace U4DEngine {
         return false;
     }
 
-    void U4DGJKAlgorithm::determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, std::vector<float> uBarycentricCoordinates){
+    void U4DGJKAlgorithm::determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2){
         
-        U4DVector3n aClosestCollisionPoint(0,0,0);
+        U4DVector3n model1ContactPoint(0,0,0);
         
-        U4DVector3n bClosestCollisionPoint(0,0,0);
-        
-        
-        if (uBarycentricCoordinates.size()==2) {
-            
-            U4DVector3n sa0=Q.at(0).sa.toVector();
-            U4DVector3n sa1=Q.at(1).sa.toVector();
-            
-            U4DVector3n sb0=Q.at(0).sb.toVector();
-            U4DVector3n sb1=Q.at(1).sb.toVector();
-            
-            float u=uBarycentricCoordinates.at(0);
-            float v=uBarycentricCoordinates.at(1);
-            
-            aClosestCollisionPoint=sa0*u+sa1*v;
-            
-            bClosestCollisionPoint=sb0*u+sb1*v;
-            
-            
-        }else if(uBarycentricCoordinates.size()==3){
-            
-            U4DVector3n sa0=Q.at(0).sa.toVector();
-            U4DVector3n sa1=Q.at(1).sa.toVector();
-            U4DVector3n sa2=Q.at(2).sa.toVector();
-            
-            U4DVector3n sb0=Q.at(0).sb.toVector();
-            U4DVector3n sb1=Q.at(1).sb.toVector();
-            U4DVector3n sb2=Q.at(2).sb.toVector();
-            
-            
-            float u=uBarycentricCoordinates.at(0);
-            float v=uBarycentricCoordinates.at(1);
-            float w=uBarycentricCoordinates.at(2);
-            
-            aClosestCollisionPoint=sa0*u+sa1*v+sa2*w;
-            
-            bClosestCollisionPoint=sb0*u+sb1*v+sb2*w;
-            
-        }else if(uBarycentricCoordinates.size()==4){
-            
-            U4DVector3n sa0=Q.at(0).sa.toVector();
-            U4DVector3n sa1=Q.at(1).sa.toVector();
-            U4DVector3n sa2=Q.at(2).sa.toVector();
-            U4DVector3n sa3=Q.at(3).sa.toVector();
-            
-            U4DVector3n sb0=Q.at(0).sb.toVector();
-            U4DVector3n sb1=Q.at(1).sb.toVector();
-            U4DVector3n sb2=Q.at(2).sb.toVector();
-            U4DVector3n sb3=Q.at(3).sb.toVector();
-            
-            
-            float u=uBarycentricCoordinates.at(0);
-            float v=uBarycentricCoordinates.at(1);
-            float w=uBarycentricCoordinates.at(2);
-            float x=uBarycentricCoordinates.at(3);
-            
-            aClosestCollisionPoint=sa0*u+sa1*v+sa2*w+sa3*x;
-            
-            bClosestCollisionPoint=sb0*u+sb1*v+sb2*w+sb3*x;
-            
-        }
-        
-        uModel1->collisionProperties.collisionInformation.contactPoint=aClosestCollisionPoint;
-        uModel2->collisionProperties.collisionInformation.contactPoint=bClosestCollisionPoint;
-    
-    }
-    
-    void U4DGJKAlgorithm::determineCollisionProperties(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2){
+        U4DVector3n model2ContactPoint(0,0,0);
         
         U4DPoint3n origin(0,0,0);
-        U4DPoint3n closestMinkowskiVertexToOrigin=getClosestMinkowskiPointToPoint(origin);
+        
         std::vector<float> barycentricCoordinates;
         
         //determine barycentric coordinates
-        barycentricCoordinates=determineBarycentricCoordinatesInSimplex(closestMinkowskiVertexToOrigin, Q.size());
+        barycentricCoordinates=determineBarycentricCoordinatesInSimplex(origin, Q.size());
         
-        //determine closest points in collision for both models
-        determineCollisionPoints(uModel1, uModel2, barycentricCoordinates);
+        //aclosestpoint=sa0*u+sa1*v+sa2*w+sa3*x
+        //bclosestpoint=sb0*u+sb1*v+sb2*w+sb3*x
+        for (int i=0; i<Q.size();i++) {
+            
+            model1ContactPoint+=Q.at(i).sa.toVector()*barycentricCoordinates.at(i);
+            
+            model2ContactPoint+=Q.at(i).sb.toVector()*barycentricCoordinates.at(i);
+        }
         
         
+        uModel1->collisionProperties.collisionInformation.contactPoint=model1ContactPoint;
+        uModel2->collisionProperties.collisionInformation.contactPoint=model2ContactPoint;
+    
     }
+    
 
     U4DSimplexStruct U4DGJKAlgorithm::calculateSupportPointInDirection(U4DOBB *uOBB1, U4DOBB* uOBB2, U4DVector3n& uDirection){
         
@@ -507,34 +450,10 @@ namespace U4DEngine {
             barycentricCoordinates.push_back(uBarycentricW);
             barycentricCoordinates.push_back(uBarycentricX);
             
-            
-            
         }
         
         return barycentricCoordinates;
         
-    }
-    
-    U4DPoint3n U4DGJKAlgorithm::getClosestMinkowskiPointToPoint(U4DPoint3n& uPoint){
-        
-        U4DPoint3n closestPoint;
-        float minDistance=FLT_MAX;
-        
-        for (int i=0; i<Q.size(); i++) {
-            
-            //get distance between point
-            float pointDistance=Q.at(i).minkowskiPoint.distanceBetweenPoints(uPoint);
-            
-            if (pointDistance<=minDistance) {
-                
-                minDistance=pointDistance;
-                closestPoint=Q.at(i).minkowskiPoint;
-                closestPoint.show();
-            }
-            
-        }
-        
-        return closestPoint;
     }
     
 }

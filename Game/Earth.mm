@@ -57,7 +57,7 @@ void Earth::init(){
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     camera->translateBy(0.0, 0.0, -7.0);
-    camera->rotateBy(30.0, 30.0, 0.0);
+    camera->rotateBy(30.0, 0.0, 0.0);
     
     setName("earth");
     
@@ -74,8 +74,8 @@ void Earth::init(){
     
     
     cube2=new Town();
-    cube2->init("Cube",3.5,0,0);
-    //cube2->rotateBy(0,45,0);
+    cube2->init("Cube",3.5,1.5,1.0);
+    cube2->rotateBy(0,15,15);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
     cube2->applyCollision(true);
