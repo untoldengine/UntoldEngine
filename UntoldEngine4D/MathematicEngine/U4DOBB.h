@@ -96,8 +96,6 @@ public:
     std::vector<U4DVector3n> computeVertexIntersectingPlane(U4DPlane& uPlane);
 
     
-    U4DPoint3n getSupportPointInDirection(U4DVector3n& uDirection);
-    
 };
     
 }

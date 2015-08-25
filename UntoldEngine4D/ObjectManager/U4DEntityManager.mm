@@ -122,8 +122,8 @@ void U4DEntityManager::update(float dt){
                 U4DVector3n modelPosition=model->getAbsolutePosition();
                 
                 //provide orientation and position for OBB
-                model->obbBoundingVolume->center=modelPosition;
-                model->obbBoundingVolume->orientation=modelOrientation;
+                model->narrowPhaseBoundingVolume->center=modelPosition;
+                model->narrowPhaseBoundingVolume->orientation=modelOrientation;
                 
                 //add child to collision tree
                 collisionEngine->addToCollisionContainer((U4DDynamicModel*)child);

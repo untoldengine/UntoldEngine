@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DDynamicModel.h"
-
 #include "U4DCollisionAlgorithm.h"
 #include "U4DPoint3n.h"
 
@@ -69,7 +68,7 @@ public:
      
      @return returns the support point of the Minkowski difference
      */
-    U4DSimplexStruct calculateSupportPointInDirection(U4DOBB *uOBB1, U4DOBB* uOBB2, U4DVector3n& uDirection);
+    U4DSimplexStruct calculateSupportPointInDirection(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, U4DVector3n& uDirection);
     
     /*!
      @brief  Reduce Q to the smallest subset Q' of Q such that P is in CH(Q'). That is, remove
