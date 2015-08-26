@@ -10,7 +10,7 @@
 #include "U4DSegment.h"
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
-#include "U4DOBB.h"
+#include "U4DConvexPolygon.h"
 #include "U4DDynamicModel.h"
 #include "U4DVector3n.h"
 
@@ -26,8 +26,9 @@ namespace U4DEngine {
         U4DPoint3n originPoint(0,0,0);
         U4DPoint3n tempV; //variable to store previous value of v
         
-        U4DOBB *obbBox1=uModel1->obbBoundingVolume;
-        U4DOBB *obbBox2=uModel2->obbBoundingVolume;
+        U4DConvexPolygon *boundingVolume1=uModel1->narrowPhaseBoundingVolume;
+        U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
+        
         
         int iterationSteps=0; //to avoid infinite loop
         
@@ -39,12 +40,12 @@ namespace U4DEngine {
         
         U4DVector3n dir(1,1,1);
        
-        U4DSimplexStruct c=calculateSupportPointInDirection(obbBox1, obbBox2, dir);
+        U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         dir=c.minkowskiPoint.toVector();
         dir.negate();
         
-        U4DSimplexStruct b=calculateSupportPointInDirection(obbBox1, obbBox2, dir);
+        U4DSimplexStruct b=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         if (b.minkowskiPoint.toVector().dot(dir)<0) {
             return false;
@@ -84,7 +85,7 @@ namespace U4DEngine {
             
             dir=closestPtToOrigin.toVector();
             
-            U4DSimplexStruct v=calculateSupportPointInDirection(obbBox1, obbBox2, dir);
+            U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
             /*
              6. If V is no more extremal in direction -P than P itself, stop and return A and B as not
@@ -140,15 +141,15 @@ namespace U4DEngine {
     }
     
 
-    U4DSimplexStruct U4DGJKAlgorithm::calculateSupportPointInDirection(U4DOBB *uOBB1, U4DOBB* uOBB2, U4DVector3n& uDirection){
+    U4DSimplexStruct U4DGJKAlgorithm::calculateSupportPointInDirection(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, U4DVector3n& uDirection){
         
         //V=Sb(-p)-sa(p)
         
-        U4DPoint3n sa=uOBB1->getSupportPointInDirection(uDirection);
+        U4DPoint3n sa=uBoundingVolume1->getSupportPointInDirection(uDirection);
         
         uDirection.negate();
         
-        U4DPoint3n sb=uOBB2->getSupportPointInDirection(uDirection);
+        U4DPoint3n sb=uBoundingVolume2->getSupportPointInDirection(uDirection);
         
         //sb - sa
         U4DPoint3n sab=(sa-sb).toPoint();

@@ -19,8 +19,9 @@
 #include "U4DArmatureData.h"
 #include "U4DAnimation.h"
 #include "CommonProtocols.h"
-#include "U4DBoundingVolume.h"
-#include "U4DOBB.h"
+//#include "U4DBoundingVolume.h"
+//#include "U4DOBB.h"
+#include "U4DConvexPolygon.h"
 
 namespace U4DEngine {
     
@@ -50,8 +51,10 @@ public:
     
     std::vector<U4DMatrix4n> armatureBoneMatrix;
     
-    U4DOBB *obbBoundingVolume;
-   
+    //U4DOBB *obbBoundingVolume;
+    U4DConvexPolygon *narrowPhaseBoundingVolume;
+    
+    
     U4DModel(){
         
         hasMaterial=false;
@@ -67,10 +70,6 @@ public:
         
         affectedByPhysics=false;
         affectedByCollision=false;
-        
-        //create the bounding volume
-        U4DVector3n halfwidth(1.0,1.0,1.0);
-        obbBoundingVolume=new U4DOBB(halfwidth);
         
     };
     
@@ -107,6 +106,8 @@ public:
     virtual void setAwake(bool uValue){};
     
     virtual bool getAwake(){};
+    
+    void setBoundingVolume(U4DConvexPolygon* uConvexPolygon);
  
 };
     

@@ -22,48 +22,54 @@
 
 namespace U4DEngine {
     
-#pragma mark-draw
-void U4DModel::draw(){
-    openGlManager->draw();
-}
+    #pragma mark-draw
+    void U4DModel::draw(){
+        openGlManager->draw();
+    }
 
-void U4DModel::drawDepthOnFrameBuffer(){
-    
-    openGlManager->drawDepthOnFrameBuffer();
-}
+    void U4DModel::drawDepthOnFrameBuffer(){
+        
+        openGlManager->drawDepthOnFrameBuffer();
+    }
 
-void U4DModel::setShader(std::string uShader){
-    
-    openGlManager->setShader(uShader);
-}
+    void U4DModel::setShader(std::string uShader){
+        
+        openGlManager->setShader(uShader);
+    }
 
-void U4DModel::receiveShadows(){
-    
-    setShader("shadowShader");
-    
-}
+    void U4DModel::receiveShadows(){
+        
+        setShader("shadowShader");
+        
+    }
 
-void U4DModel::applyPhysics(bool uValue){
-    
-    affectedByPhysics=uValue;
-}
+    void U4DModel::applyPhysics(bool uValue){
+        
+        affectedByPhysics=uValue;
+    }
 
-void U4DModel::applyCollision(bool uValue){
-    
-    affectedByCollision=uValue;
-}
+    void U4DModel::applyCollision(bool uValue){
+        
+        affectedByCollision=uValue;
+    }
 
-bool U4DModel::isPhysicsApplied(){
-    
-    return affectedByPhysics;
-    
-}
+    bool U4DModel::isPhysicsApplied(){
+        
+        return affectedByPhysics;
+        
+    }
 
-bool U4DModel::isCollisionApplied(){
+    bool U4DModel::isCollisionApplied(){
+        
+        return affectedByCollision;
+        
+    }
     
-    return affectedByCollision;
-    
-}
+    void U4DModel::setBoundingVolume(U4DConvexPolygon* uConvexPolygon){
+        
+        narrowPhaseBoundingVolume=uConvexPolygon;
+        
+    }
 
 }
 
