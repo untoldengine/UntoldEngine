@@ -110,6 +110,12 @@ void U4DEntityManager::update(float dt){
    
     //update the collision for each model
     child=rootEntity;
+    
+    U4DMatrix3n blender(1,0,0,
+                        0,0,-1,
+                        0,1,0);
+    
+    
     while (child!=NULL) {
         
         U4DModel *model=(U4DModel*)child;
@@ -118,7 +124,7 @@ void U4DEntityManager::update(float dt){
             
             if(model->isCollisionApplied()==true){
                 
-                U4DMatrix3n modelOrientation=model->getAbsoluteMatrixOrientation();
+                U4DMatrix3n modelOrientation=blender*model->getAbsoluteMatrixOrientation();
                 U4DVector3n modelPosition=model->getAbsolutePosition();
                 
                 //provide orientation and position for OBB

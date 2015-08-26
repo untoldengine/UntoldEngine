@@ -30,7 +30,7 @@ namespace U4DEngine {
         
         massProperties.centerOfMass=uCenterOfMass;
         
-        setVertexDistanceFromCenterOfMass();
+        //setVertexDistanceFromCenterOfMass();
         
     }
 

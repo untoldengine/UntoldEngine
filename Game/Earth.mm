@@ -49,6 +49,7 @@
 #include "U4DTetrahedron.h"
 #include "U4DSegment.h"
 #include "U4DTriangle.h"
+#include "U4DConvexPolygon.h"
 
 
 void Earth::init(){
@@ -57,14 +58,51 @@ void Earth::init(){
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     camera->translateBy(0.0, 0.0, -7.0);
-    camera->rotateBy(30.0, 0.0, 0.0);
+    //camera->rotateBy(30.0, 0.0, 0.0);
+    
+    //create the narrow phase bounding volume
+    
+    //compute the vertices
+    float width=1.0;
+    float height=1.0;
+    float depth=1.0;
+    
+    
+    U4DEngine::U4DVector3n v1(width,height,depth);
+    U4DEngine::U4DVector3n v2(width,height,-depth);
+    U4DEngine::U4DVector3n v3(-width,height,-depth);
+    U4DEngine::U4DVector3n v4(-width,height,depth);
+    
+    U4DEngine::U4DVector3n v5(width,-height,depth);
+    U4DEngine::U4DVector3n v6(width,-height,-depth);
+    U4DEngine::U4DVector3n v7(-width,-height,-depth);
+    U4DEngine::U4DVector3n v8(-width,-height,depth);
+    
+    
+    std::vector<U4DEngine::U4DVector3n> vertices{v1,v2,v3,v4,v5,v6,v7,v8};
+    
+    U4DEngine::U4DConvexPolygon* cubePolygon=new U4DEngine::U4DConvexPolygon();
+    cubePolygon->setVerticesInConvexPolygon(vertices);
+    
+    U4DEngine::U4DVector3n vt1(1,-1,0);
+    U4DEngine::U4DVector3n vt2(0,-1,-1);
+    U4DEngine::U4DVector3n vt3(-1,-1,0);
+    U4DEngine::U4DVector3n vt4(0,-1,1);
+    U4DEngine::U4DVector3n vt5(0,1,0);
+    
+    std::vector<U4DEngine::U4DVector3n> verticesTriangle{vt1,vt2,vt3,vt4,vt5};
+    
+    U4DEngine::U4DConvexPolygon* cube2Polygon=new U4DEngine::U4DConvexPolygon();
+    cube2Polygon->setVerticesInConvexPolygon(vertices);
+    
     
     setName("earth");
     
     enableGrid(true);
     
     cube=new Town();
-    cube->init("Cube",1,0,0);
+    cube->init("Cube",0,0,0);
+    cube->setBoundingVolume(cubePolygon);
     //cube->rotateBy(45, 45, 0);
     cube->setShader("simpleRedShader");
     //cube->applyPhysics(true);
@@ -74,8 +112,9 @@ void Earth::init(){
     
     
     cube2=new Town();
-    cube2->init("Cube",3.5,1.5,1.0);
-    cube2->rotateBy(0,15,15);
+    cube2->init("Cube",3,-1,0);
+    cube2->setBoundingVolume(cube2Polygon);
+    cube2->rotateBy(0,45,45);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
     cube2->applyCollision(true);

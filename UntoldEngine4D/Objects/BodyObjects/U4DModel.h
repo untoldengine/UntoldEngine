@@ -71,30 +71,6 @@ public:
         affectedByPhysics=false;
         affectedByCollision=false;
         
-        //create the narrow phase bounding volume
-        
-        //compute the vertices
-        float width=1.0;
-        float height=1.0;
-        float depth=1.0;
-        
-        
-        U4DVector3n v1(width,height,depth);
-        U4DVector3n v2(width,height,-depth);
-        U4DVector3n v3(-width,height,-depth);
-        U4DVector3n v4(-width,height,depth);
-        
-        U4DVector3n v5(width,-height,depth);
-        U4DVector3n v6(width,-height,-depth);
-        U4DVector3n v7(-width,-height,-depth);
-        U4DVector3n v8(-width,-height,depth);
-        
-        
-        std::vector<U4DVector3n> vertices{v1,v2,v3,v4,v5,v6,v7,v8};
-        
-        narrowPhaseBoundingVolume=new U4DConvexPolygon();
-        narrowPhaseBoundingVolume->setVerticesInConvexPolygon(vertices);
-        
     };
     
 
@@ -130,6 +106,8 @@ public:
     virtual void setAwake(bool uValue){};
     
     virtual bool getAwake(){};
+    
+    void setBoundingVolume(U4DConvexPolygon* uConvexPolygon);
  
 };
     
