@@ -92,8 +92,8 @@ void Earth::init(){
     
     std::vector<U4DEngine::U4DVector3n> verticesTriangle{vt1,vt2,vt3,vt4,vt5};
     
-    U4DEngine::U4DConvexPolygon* cube2Polygon=new U4DEngine::U4DConvexPolygon();
-    cube2Polygon->setVerticesInConvexPolygon(vertices);
+    U4DEngine::U4DConvexPolygon* trianglePolygon=new U4DEngine::U4DConvexPolygon();
+    trianglePolygon->setVerticesInConvexPolygon(verticesTriangle);
     
     
     setName("earth");
@@ -112,8 +112,8 @@ void Earth::init(){
     
     
     cube2=new Town();
-    cube2->init("Cube",3,-1,0);
-    cube2->setBoundingVolume(cube2Polygon);
+    cube2->init("Cone",3,-1,0);
+    cube2->setBoundingVolume(trianglePolygon);
     cube2->rotateBy(0,45,45);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);

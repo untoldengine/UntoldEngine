@@ -19,9 +19,7 @@
 #include "U4DArmatureData.h"
 #include "U4DAnimation.h"
 #include "CommonProtocols.h"
-//#include "U4DBoundingVolume.h"
-//#include "U4DOBB.h"
-#include "U4DConvexPolygon.h"
+
 
 namespace U4DEngine {
     
@@ -30,10 +28,6 @@ class U4DModel:public U4DVisibleEntity{
 private:
     
 protected:
-    
-    bool affectedByPhysics;
-    
-    bool affectedByCollision;
     
 public:
     
@@ -51,9 +45,6 @@ public:
     
     std::vector<U4DMatrix4n> armatureBoneMatrix;
     
-    //U4DOBB *obbBoundingVolume;
-    U4DConvexPolygon *narrowPhaseBoundingVolume;
-    
     
     U4DModel(){
         
@@ -67,9 +58,6 @@ public:
         openGlManager->setShader("modelShader");
         
         setEntityType(MODEL);
-        
-        affectedByPhysics=false;
-        affectedByCollision=false;
         
     };
     
@@ -94,20 +82,6 @@ public:
     void setShader(std::string uShader);
     
     void receiveShadows();
-    
-    void applyPhysics(bool uValue);
-    
-    void applyCollision(bool uValue);
-    
-    bool isPhysicsApplied();
-    
-    bool isCollisionApplied();
-    
-    virtual void setAwake(bool uValue){};
-    
-    virtual bool getAwake(){};
-    
-    void setBoundingVolume(U4DConvexPolygon* uConvexPolygon);
  
 };
     

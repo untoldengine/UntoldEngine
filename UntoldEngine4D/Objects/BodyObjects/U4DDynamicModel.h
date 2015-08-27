@@ -31,6 +31,8 @@ private:
     
 protected:
     
+    bool affectedByPhysics;
+    
     /**
      *  Velocity vector of object
      */
@@ -75,6 +77,7 @@ public:
      */
     U4DDynamicModel(){
         
+        affectedByPhysics=false;
         angularVelocity.zero();
         velocity.zero();
         acceleration.zero();
@@ -195,6 +198,11 @@ public:
      *  @return magnitude of motion
      */
     float getMotion();
+    
+    
+    void applyPhysics(bool uValue);
+    
+    bool isPhysicsApplied();
     
 };
 

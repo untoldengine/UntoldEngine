@@ -160,4 +160,22 @@ namespace U4DEngine {
        
     }
     
+    void U4DStaticModel::applyCollision(bool uValue){
+        
+        affectedByCollision=uValue;
+    }
+    
+    
+    bool U4DStaticModel::isCollisionApplied(){
+        
+        return affectedByCollision;
+        
+    }
+    
+    void U4DStaticModel::setBoundingVolume(U4DConvexPolygon* uConvexPolygon){
+        
+        narrowPhaseBoundingVolume=uConvexPolygon;
+        
+    }
+    
 }

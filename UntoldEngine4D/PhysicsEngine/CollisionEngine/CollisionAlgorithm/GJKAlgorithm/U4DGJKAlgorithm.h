@@ -54,10 +54,10 @@ public:
      
      @return returns true if collision occured
      */
-    bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt);
+    bool collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt);
     
     
-    void determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2);
+    void determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2);
     
     /*!
      @brief  Method to calculate the support points (most extreme points) in a particular direction.

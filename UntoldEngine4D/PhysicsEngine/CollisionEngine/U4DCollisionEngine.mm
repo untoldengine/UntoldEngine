@@ -30,7 +30,7 @@ void U4DCollisionEngine::setCollisionAlgorithm(U4DCollisionAlgorithm* uCollision
     
 }
 
-void U4DCollisionEngine::addToCollisionContainer(U4DDynamicModel* uModel){
+void U4DCollisionEngine::addToCollisionContainer(U4DStaticModel* uModel){
     
     modelCollection.push_back(uModel);
     
@@ -45,7 +45,6 @@ void U4DCollisionEngine::detectCollisions(float dt){
     }
     
 
-    
     //NEED TO REMOVE THIS
     modelCollection.clear();
 }
