@@ -118,21 +118,21 @@ void U4DEntityManager::update(float dt){
     
     while (child!=NULL) {
         
-        U4DModel *model=(U4DModel*)child;
+        U4DStaticModel *model=(U4DStaticModel*)child;
         
-        if (model->getEntityType()==MODEL) {
+        if (model!=nullptr && model->getEntityType()==MODEL) {
             
             if(model->isCollisionApplied()==true){
                 
                 U4DMatrix3n modelOrientation=blender*model->getAbsoluteMatrixOrientation();
                 U4DVector3n modelPosition=model->getAbsolutePosition();
                 
-                //provide orientation and position for OBB
+                //provide orientation and position for bounding volume
                 model->narrowPhaseBoundingVolume->center=modelPosition;
                 model->narrowPhaseBoundingVolume->orientation=modelOrientation;
                 
                 //add child to collision tree
-                collisionEngine->addToCollisionContainer((U4DDynamicModel*)child);
+                collisionEngine->addToCollisionContainer(model);
                 
             }
             
@@ -151,11 +151,11 @@ void U4DEntityManager::update(float dt){
     child=rootEntity;
     while (child!=NULL) {
         
-        U4DModel *model=(U4DModel*)child;
+        U4DDynamicModel *model=(U4DDynamicModel*)child;
         
-        if (model->isPhysicsApplied()==true) {
+        if (model!=nullptr && model->isPhysicsApplied()==true) {
             
-            physicsEngine->updatePhysicForces((U4DDynamicModel*)child, dt);
+            physicsEngine->updatePhysicForces(model, dt);
             
         }
         

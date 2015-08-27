@@ -11,34 +11,35 @@
 
 #include <iostream>
 #include "U4DModel.h"
+#include "U4DConvexPolygon.h"
 
 namespace U4DEngine {
     
-typedef struct{
-    
-    float mass;
-    U4DVector3n centerOfMass;
-    U4DMatrix3n momentOfInertiaTensor;
-    U4DMatrix3n inverseMomentOfInertiaTensor;
-    std::vector<U4DVector3n> vertexDistanceFromCenterOfMass;
-    
-}MassProperties;
+    typedef struct{
+        
+        float mass;
+        U4DVector3n centerOfMass;
+        U4DMatrix3n momentOfInertiaTensor;
+        U4DMatrix3n inverseMomentOfInertiaTensor;
+        std::vector<U4DVector3n> vertexDistanceFromCenterOfMass;
+        
+    }MassProperties;
 
-typedef struct{
-    
-    U4DVector3n contactPoint; //contact points (e.g. against plane, OBB, etc)
-    U4DVector3n forceOnContactPoint;
-    U4DVector3n lineOfAction;
-    
-}CollisionInformation;
+    typedef struct{
+        
+        U4DVector3n contactPoint; //contact points (e.g. against plane, OBB, etc)
+        U4DVector3n forceOnContactPoint;
+        U4DVector3n lineOfAction;
+        
+    }CollisionInformation;
 
-typedef struct{
-    
-    CollisionInformation collisionInformation;
-    bool collided; //did the model collided
-    float penetrationPoint;
-    
-}CollisionProperties;
+    typedef struct{
+        
+        CollisionInformation collisionInformation;
+        bool collided; //did the model collided
+        float penetrationPoint;
+        
+    }CollisionProperties;
 }
 
 
@@ -52,7 +53,16 @@ protected:
     
 public:
     
+    
+    
+    bool affectedByCollision;
+    
+    U4DConvexPolygon *narrowPhaseBoundingVolume;
+    
+    
     U4DStaticModel(){
+        
+        affectedByCollision=false;
         
         massProperties.mass=1.0;
         
@@ -105,6 +115,12 @@ public:
     void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
     
     void setVertexDistanceFromCenterOfMass();
+    
+    bool isCollisionApplied();
+    
+    void applyCollision(bool uValue);
+    
+    void setBoundingVolume(U4DConvexPolygon* uConvexPolygon);
 };
     
 }

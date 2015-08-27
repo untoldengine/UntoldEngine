@@ -16,7 +16,7 @@
 
 namespace U4DEngine {
     
-    bool U4DGJKAlgorithm::collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){
+    bool U4DGJKAlgorithm::collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt){
         
         //clear Q
         Q.clear();
@@ -112,7 +112,7 @@ namespace U4DEngine {
         return false;
     }
 
-    void U4DGJKAlgorithm::determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2){
+    void U4DGJKAlgorithm::determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2){
         
         U4DVector3n model1ContactPoint(0,0,0);
         

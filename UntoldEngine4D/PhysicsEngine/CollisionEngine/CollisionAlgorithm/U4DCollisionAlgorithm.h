@@ -19,8 +19,8 @@ class U4DCollisionAlgorithm{
     
 public:
     
-    virtual bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt)=0;
-    virtual void determineCollisionPoints(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2)=0;
+    virtual bool collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt)=0;
+    virtual void determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2)=0;
     
     
     ~U4DCollisionAlgorithm(){};

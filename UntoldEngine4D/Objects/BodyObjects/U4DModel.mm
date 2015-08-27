@@ -43,34 +43,6 @@ namespace U4DEngine {
         
     }
 
-    void U4DModel::applyPhysics(bool uValue){
-        
-        affectedByPhysics=uValue;
-    }
-
-    void U4DModel::applyCollision(bool uValue){
-        
-        affectedByCollision=uValue;
-    }
-
-    bool U4DModel::isPhysicsApplied(){
-        
-        return affectedByPhysics;
-        
-    }
-
-    bool U4DModel::isCollisionApplied(){
-        
-        return affectedByCollision;
-        
-    }
-    
-    void U4DModel::setBoundingVolume(U4DConvexPolygon* uConvexPolygon){
-        
-        narrowPhaseBoundingVolume=uConvexPolygon;
-        
-    }
-
 }
 
 

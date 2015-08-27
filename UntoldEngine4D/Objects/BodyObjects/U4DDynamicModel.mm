@@ -12,125 +12,136 @@
 
 namespace U4DEngine {
     
-#pragma mark-add force
-void U4DDynamicModel::addForce(U4DVector3n& uForce){
-    
-    force+=uForce;
-}
-
-#pragma mark-clear forces
-void U4DDynamicModel::clearForce(){
-    
-    force.zero();
-}
-
-#pragma mark-get force
-//get force
-U4DVector3n U4DDynamicModel::getForce(){
-    
-    return force;
-    
-}
-
-#pragma mark-add moment
-void U4DDynamicModel::addMoment(U4DVector3n& uMoment){
-   
-    moment+=uMoment;
-}
-
-#pragma mark-get moment
-//get moment
-U4DVector3n U4DDynamicModel::getMoment(){
-    
-    return moment;
-}
-
-#pragma mark-clear moment
-//clear moment
-void U4DDynamicModel::clearMoment(){
-    
-    moment.zero();
-}
-
-#pragma mark-get velocity
-//set and get velocity
-U4DVector3n U4DDynamicModel::getVelocity() const{
-    
-    return velocity;
-}
-
-#pragma mark-set velocity
-void U4DDynamicModel::setVelocity(U4DVector3n &uVelocity){
-    
-    velocity=uVelocity;
-}
-
-#pragma mark-get angular velocity
-U4DVector3n U4DDynamicModel::getAngularVelocity(){
-    return angularVelocity;
-}
-
-#pragma mark-set angular velocity
-void U4DDynamicModel::setAngularVelocity(U4DVector3n& uAngularVelocity){
-    
-    angularVelocity=uAngularVelocity;
-}
-
-#pragma mark-is asleep
-//sleep
-void U4DDynamicModel::setAwake(bool uValue){
-    
-    if (uValue) {
+    #pragma mark-add force
+    void U4DDynamicModel::addForce(U4DVector3n& uForce){
         
-        isAwake=true;
+        force+=uForce;
+    }
+
+    #pragma mark-clear forces
+    void U4DDynamicModel::clearForce(){
         
-        //add a bit of motion to avoid it falling asleep immediately
-        motion=sleepEpsilon*2;
+        force.zero();
+    }
+
+    #pragma mark-get force
+    //get force
+    U4DVector3n U4DDynamicModel::getForce(){
         
-    }else{
-        
-        isAwake=false;
-        velocity.zero();
-        angularVelocity.zero();
+        return force;
         
     }
-    
-    
-}
 
-bool U4DDynamicModel::getAwake(){
-    
-    return isAwake;
-}
+    #pragma mark-add moment
+    void U4DDynamicModel::addMoment(U4DVector3n& uMoment){
+       
+        moment+=uMoment;
+    }
 
-#pragma mark-motion magnitude
-//motion magnitude
-void U4DDynamicModel::setMotion(float uValue, float dt){
-    
-    float bias=pow(baseBias,dt);
-    
-    motion=bias*motion+(1-bias)*uValue;
-    
-    //prevent motion to shoot of the roof
-    
-    if (motion<sleepEpsilon) {
+    #pragma mark-get moment
+    //get moment
+    U4DVector3n U4DDynamicModel::getMoment(){
         
-       // setAwake(false);
+        return moment;
+    }
+
+    #pragma mark-clear moment
+    //clear moment
+    void U4DDynamicModel::clearMoment(){
+        
+        moment.zero();
+    }
+
+    #pragma mark-get velocity
+    //set and get velocity
+    U4DVector3n U4DDynamicModel::getVelocity() const{
+        
+        return velocity;
+    }
+
+    #pragma mark-set velocity
+    void U4DDynamicModel::setVelocity(U4DVector3n &uVelocity){
+        
+        velocity=uVelocity;
+    }
+
+    #pragma mark-get angular velocity
+    U4DVector3n U4DDynamicModel::getAngularVelocity(){
+        return angularVelocity;
+    }
+
+    #pragma mark-set angular velocity
+    void U4DDynamicModel::setAngularVelocity(U4DVector3n& uAngularVelocity){
+        
+        angularVelocity=uAngularVelocity;
+    }
+
+    #pragma mark-is asleep
+    //sleep
+    void U4DDynamicModel::setAwake(bool uValue){
+        
+        if (uValue) {
+            
+            isAwake=true;
+            
+            //add a bit of motion to avoid it falling asleep immediately
+            motion=sleepEpsilon*2;
+            
+        }else{
+            
+            isAwake=false;
+            velocity.zero();
+            angularVelocity.zero();
+            
+        }
         
         
-    }else if(motion>10*sleepEpsilon){
+    }
+
+    bool U4DDynamicModel::getAwake(){
         
-        motion=10*sleepEpsilon;
+        return isAwake;
+    }
+
+    #pragma mark-motion magnitude
+    //motion magnitude
+    void U4DDynamicModel::setMotion(float uValue, float dt){
         
-        //setAwake(true);
+        float bias=pow(baseBias,dt);
+        
+        motion=bias*motion+(1-bias)*uValue;
+        
+        //prevent motion to shoot of the roof
+        
+        if (motion<sleepEpsilon) {
+            
+           // setAwake(false);
+            
+            
+        }else if(motion>10*sleepEpsilon){
+            
+            motion=10*sleepEpsilon;
+            
+            //setAwake(true);
+        }
+        
+    }
+
+    float U4DDynamicModel::getMotion(){
+        
+        return motion;
     }
     
-}
-
-float U4DDynamicModel::getMotion(){
+    void U4DDynamicModel::applyPhysics(bool uValue){
+        
+        affectedByPhysics=uValue;
+    }
     
-    return motion;
-}
+    bool U4DDynamicModel::isPhysicsApplied(){
+        
+        return affectedByPhysics;
+        
+    }
 
 }
 
