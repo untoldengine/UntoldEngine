@@ -84,17 +84,9 @@ void Earth::init(){
     U4DEngine::U4DConvexPolygon* cubePolygon=new U4DEngine::U4DConvexPolygon();
     cubePolygon->setVerticesInConvexPolygon(vertices);
     
-    U4DEngine::U4DVector3n vt1(1,-1,0);
-    U4DEngine::U4DVector3n vt2(0,-1,-1);
-    U4DEngine::U4DVector3n vt3(-1,-1,0);
-    U4DEngine::U4DVector3n vt4(0,-1,1);
-    U4DEngine::U4DVector3n vt5(0,1,0);
     
-    std::vector<U4DEngine::U4DVector3n> verticesTriangle{vt1,vt2,vt3,vt4,vt5};
-    
-    U4DEngine::U4DConvexPolygon* trianglePolygon=new U4DEngine::U4DConvexPolygon();
-    trianglePolygon->setVerticesInConvexPolygon(verticesTriangle);
-    
+    U4DEngine::U4DConvexPolygon* cubePolygon2=new U4DEngine::U4DConvexPolygon();
+    cubePolygon2->setVerticesInConvexPolygon(vertices);
     
     setName("earth");
     
@@ -112,19 +104,14 @@ void Earth::init(){
     
     
     cube2=new Town();
-    cube2->init("Cone",3,-1,0);
-    cube2->setBoundingVolume(trianglePolygon);
-    cube2->rotateBy(0,45,45);
+    cube2->init("Cube",-1,0,0);
+    cube2->setBoundingVolume(cubePolygon2);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
     cube2->applyCollision(true);
     
     addChild(cube2);
-    
-    //cube2->rotateBy(90.0, 0.0, 0.0);
-    
     /*
-    
     // ADD Gravity
     
     

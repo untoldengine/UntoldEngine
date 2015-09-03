@@ -32,61 +32,61 @@ class U4DAnimation;
 
 namespace U4DEngine {
     
-class U4DDigitalAssetLoader{
+    class U4DDigitalAssetLoader{
 
-private:
-    
-    tinyxml2::XMLDocument doc;
-    
-protected:
-    
-    U4DDigitalAssetLoader();
-    
-    ~U4DDigitalAssetLoader();
+    private:
+        
+        tinyxml2::XMLDocument doc;
+        
+    protected:
+        
+        U4DDigitalAssetLoader();
+        
+        ~U4DDigitalAssetLoader();
 
-    
-public:
-    
-    /**
-     *  Instance for U4DDigitalAssetLoader Singleton
-     */
-    static U4DDigitalAssetLoader* instance;
-    
-    /**
-     *  SharedInstance for U4DDigitalAssetLoader Singleton
-     */
-    static U4DDigitalAssetLoader* sharedInstance();
-    
-    bool loadDigitalAssetFile(const char* uFile);
-    
-    void loadAssetToMesh(U4DModel *uModel,std::string uMeshID);
-    
-    void getObjectTransformationMatrix(U4DModel *uModel,std::string uMeshID);
-    
-    void loadEntityMatrixSpace(U4DEntity *uModel,std::string uStringData);
-    
-    void loadVerticesData(U4DModel *uModel,std::string uStringData);
-    
-    void loadNormalData(U4DModel *uModel,std::string uStringData);
-    
-    void loadUVData(U4DModel *uModel,std::string uStringData);
-    
-    void loadIndexData(U4DModel *uModel,std::string uStringData);
-    
-    void loadTangentDataToBody(U4DModel *uModel);
-    
-    void loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData);
-    
-    void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::string uStringData);
-    
-    void loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);
-    
-    void colorStringToVector(std::vector<float> *uColorData,std::string uStringData);
-    
-    void stringToFloat(std::string uStringData,std::vector<float> *uFloatData);
-    
-    void stringToInt(std::string uStringData,std::vector<int> *uIntData);
-};
+        
+    public:
+        
+        /**
+         *  Instance for U4DDigitalAssetLoader Singleton
+         */
+        static U4DDigitalAssetLoader* instance;
+        
+        /**
+         *  SharedInstance for U4DDigitalAssetLoader Singleton
+         */
+        static U4DDigitalAssetLoader* sharedInstance();
+        
+        bool loadDigitalAssetFile(const char* uFile);
+        
+        void loadAssetToMesh(U4DModel *uModel,std::string uMeshID);
+        
+        void getObjectTransformationMatrix(U4DModel *uModel,std::string uMeshID);
+        
+        void loadEntityMatrixSpace(U4DEntity *uModel,std::string uStringData);
+        
+        void loadVerticesData(U4DModel *uModel,std::string uStringData);
+        
+        void loadNormalData(U4DModel *uModel,std::string uStringData);
+        
+        void loadUVData(U4DModel *uModel,std::string uStringData);
+        
+        void loadIndexData(U4DModel *uModel,std::string uStringData);
+        
+        void loadTangentDataToBody(U4DModel *uModel);
+        
+        void loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData);
+        
+        void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::string uStringData);
+        
+        void loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);
+        
+        void colorStringToVector(std::vector<float> *uColorData,std::string uStringData);
+        
+        void stringToFloat(std::string uStringData,std::vector<float> *uFloatData);
+        
+        void stringToInt(std::string uStringData,std::vector<int> *uIntData);
+    };
 
 }
 

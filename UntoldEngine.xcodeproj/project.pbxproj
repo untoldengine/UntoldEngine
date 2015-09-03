@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */; };
+		03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */; };
+		03002C8D1B97812100665CC9 /* U4DEPAAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C8C1B97812100665CC9 /* U4DEPAAlgorithm.mm */; };
 		030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205501B6E9CD7005A72E8 /* U4DSegment.mm */; };
 		030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205531B6E9CE9005A72E8 /* U4DTriangle.mm */; };
 		030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205561B6E9D98005A72E8 /* U4DTetrahedron.mm */; };
@@ -181,6 +184,12 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DManifoldGeneration.mm; path = ManifoldGeneration/U4DManifoldGeneration.mm; sourceTree = "<group>"; };
+		03002C851B977FE600665CC9 /* U4DManifoldGeneration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DManifoldGeneration.h; path = ManifoldGeneration/U4DManifoldGeneration.h; sourceTree = "<group>"; };
+		03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCollisionDetection.mm; sourceTree = "<group>"; };
+		03002C881B97804B00665CC9 /* U4DCollisionDetection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCollisionDetection.h; sourceTree = "<group>"; };
+		03002C8B1B97812100665CC9 /* U4DEPAAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DEPAAlgorithm.h; path = ManifoldGeneration/EPAAlgorithm/U4DEPAAlgorithm.h; sourceTree = "<group>"; };
+		03002C8C1B97812100665CC9 /* U4DEPAAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DEPAAlgorithm.mm; path = ManifoldGeneration/EPAAlgorithm/U4DEPAAlgorithm.mm; sourceTree = "<group>"; };
 		030205501B6E9CD7005A72E8 /* U4DSegment.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSegment.mm; sourceTree = "<group>"; };
 		030205511B6E9CD7005A72E8 /* U4DSegment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSegment.h; sourceTree = "<group>"; };
 		030205531B6E9CE9005A72E8 /* U4DTriangle.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTriangle.mm; sourceTree = "<group>"; };
@@ -474,6 +483,25 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		03002C831B977F7600665CC9 /* ManifoldGeneration */ = {
+			isa = PBXGroup;
+			children = (
+				03002C8A1B97810500665CC9 /* EPAAlgorithm */,
+				03002C851B977FE600665CC9 /* U4DManifoldGeneration.h */,
+				03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */,
+			);
+			name = ManifoldGeneration;
+			sourceTree = "<group>";
+		};
+		03002C8A1B97810500665CC9 /* EPAAlgorithm */ = {
+			isa = PBXGroup;
+			children = (
+				03002C8B1B97812100665CC9 /* U4DEPAAlgorithm.h */,
+				03002C8C1B97812100665CC9 /* U4DEPAAlgorithm.mm */,
+			);
+			name = EPAAlgorithm;
+			sourceTree = "<group>";
+		};
 		0302055E1B6EB439005A72E8 /* GJKAlgorithm */ = {
 			isa = PBXGroup;
 			children = (
@@ -1062,9 +1090,12 @@
 		03E6EDB21943D816007AD131 /* CollisionEngine */ = {
 			isa = PBXGroup;
 			children = (
+				03002C831B977F7600665CC9 /* ManifoldGeneration */,
 				03E6EDB31943D816007AD131 /* CollisionAlgorithm */,
 				03E6EDB71943D816007AD131 /* U4DCollisionEngine.h */,
 				03E6EDB81943D816007AD131 /* U4DCollisionEngine.mm */,
+				03002C881B97804B00665CC9 /* U4DCollisionDetection.h */,
+				03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */,
 			);
 			path = CollisionEngine;
 			sourceTree = "<group>";
@@ -1362,6 +1393,7 @@
 				030DBA811A5881A400B30BE4 /* U4DSkyLight.mm in Sources */,
 				03759BC6175B038C002EB5D9 /* U4DShaderManager.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
+				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				03A9F72D1AE5F34A00E81A00 /* Town.mm in Sources */,
@@ -1379,6 +1411,8 @@
 				03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
 				030205681B6EE256005A72E8 /* U4DImpulseForceGenerator.mm in Sources */,
+				03002C8D1B97812100665CC9 /* U4DEPAAlgorithm.mm in Sources */,
+				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
 				036FB58218CE9CB8000EA639 /* MyCharacter.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
