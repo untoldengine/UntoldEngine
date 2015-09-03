@@ -11,20 +11,26 @@
 
 #include <stdio.h>
 #include <vector>
+#include "U4DCollisionDetection.h"
 #include "U4DDynamicModel.h"
 
 namespace U4DEngine {
     
-class U4DCollisionAlgorithm{
+    class U4DCollisionAlgorithm:public U4DCollisionDetection{
     
-public:
-    
-    virtual bool collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt)=0;
-    virtual void determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2)=0;
-    
-    
-    ~U4DCollisionAlgorithm(){};
-};
+        private:
+        
+        public:
+        
+        U4DCollisionAlgorithm(){};
+        
+        virtual ~U4DCollisionAlgorithm(){};
+        
+        virtual bool collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt){};
+        
+        virtual std::vector<U4DSimplexStruct> getCurrentSimpleStruct(){};
+        
+    };
 
 }
 

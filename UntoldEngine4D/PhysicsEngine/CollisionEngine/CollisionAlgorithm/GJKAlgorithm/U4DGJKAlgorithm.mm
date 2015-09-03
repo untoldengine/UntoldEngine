@@ -69,8 +69,6 @@ namespace U4DEngine {
                 
                 //if intersecting, determine collision properies before returning
                 
-                determineCollisionPoints(uModel1, uModel2);
-                
                 return true;
             }
             
@@ -112,58 +110,7 @@ namespace U4DEngine {
         return false;
     }
 
-    void U4DGJKAlgorithm::determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2){
-        
-        U4DVector3n model1ContactPoint(0,0,0);
-        
-        U4DVector3n model2ContactPoint(0,0,0);
-        
-        U4DPoint3n origin(0,0,0);
-        
-        std::vector<float> barycentricCoordinates;
-        
-        //determine barycentric coordinates
-        barycentricCoordinates=determineBarycentricCoordinatesInSimplex(origin, Q.size());
-        
-        //aclosestpoint=sa0*u+sa1*v+sa2*w+sa3*x
-        //bclosestpoint=sb0*u+sb1*v+sb2*w+sb3*x
-        for (int i=0; i<Q.size();i++) {
-            
-            model1ContactPoint+=Q.at(i).sa.toVector()*barycentricCoordinates.at(i);
-            
-            model2ContactPoint+=Q.at(i).sb.toVector()*barycentricCoordinates.at(i);
-        }
-        
-        
-        uModel1->collisionProperties.collisionInformation.contactPoint=model1ContactPoint;
-        uModel2->collisionProperties.collisionInformation.contactPoint=model2ContactPoint;
     
-    }
-    
-
-    U4DSimplexStruct U4DGJKAlgorithm::calculateSupportPointInDirection(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, U4DVector3n& uDirection){
-        
-        //V=Sb(-p)-sa(p)
-        
-        U4DPoint3n sa=uBoundingVolume1->getSupportPointInDirection(uDirection);
-        
-        uDirection.negate();
-        
-        U4DPoint3n sb=uBoundingVolume2->getSupportPointInDirection(uDirection);
-        
-        //sb - sa
-        U4DPoint3n sab=(sa-sb).toPoint();
-        
-        U4DSimplexStruct supportPoint;
-        
-        supportPoint.sa=sa;
-        supportPoint.sb=sb;
-        supportPoint.minkowskiPoint=sab;
-        
-        return supportPoint;
-        
-    }
-
     void U4DGJKAlgorithm::determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer){
         
         if (uNumberOfSimplexInContainer==2) {
@@ -386,75 +333,36 @@ namespace U4DEngine {
         return closestPoint;
     }
     
-    std::vector<float> U4DGJKAlgorithm::determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin, int uNumberOfSimplexInContainer){
+    void U4DGJKAlgorithm::determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ){
+        
+        U4DVector3n model1ContactPoint(0,0,0);
+        
+        U4DVector3n model2ContactPoint(0,0,0);
+        
+        U4DPoint3n origin(0,0,0);
         
         std::vector<float> barycentricCoordinates;
         
-        if (uNumberOfSimplexInContainer==2) {
-            
-            //do line
-            U4DPoint3n a=Q.at(0).minkowskiPoint;
-            U4DPoint3n b=Q.at(1).minkowskiPoint;
-            
-            U4DSegment segment(a,b);
-            
-            float uBarycentricU=0.0;
-            float uBarycentricV=0.0;
-            
-            segment.getBarycentricCoordinatesOfPoint(uClosestPointToOrigin, uBarycentricU, uBarycentricV);
-            
-            barycentricCoordinates.push_back(uBarycentricU);
-            barycentricCoordinates.push_back(uBarycentricV);
-            
-            
-            
-        }else if(uNumberOfSimplexInContainer==3){
-            
-            //do triangle
-            U4DPoint3n a=Q.at(0).minkowskiPoint;
-            U4DPoint3n b=Q.at(1).minkowskiPoint;
-            U4DPoint3n c=Q.at(2).minkowskiPoint;
-            
-            U4DTriangle triangle(a,b,c);
-            
-            float uBarycentricU=0.0;
-            float uBarycentricV=0.0;
-            float uBarycentricW=0.0;
-            
-            triangle.getBarycentricCoordinatesOfPoint(uClosestPointToOrigin, uBarycentricU, uBarycentricV, uBarycentricW);
-            
-            barycentricCoordinates.push_back(uBarycentricU);
-            barycentricCoordinates.push_back(uBarycentricV);
-            barycentricCoordinates.push_back(uBarycentricW);
+        //determine barycentric coordinates
+        barycentricCoordinates=determineBarycentricCoordinatesInSimplex(origin,uQ);
         
+        //aclosestpoint=sa0*u+sa1*v+sa2*w+sa3*x
+        //bclosestpoint=sb0*u+sb1*v+sb2*w+sb3*x
+        for (int i=0; i<uQ.size();i++) {
             
+            model1ContactPoint+=uQ.at(i).sa.toVector()*barycentricCoordinates.at(i);
             
-        }else if(uNumberOfSimplexInContainer==4){
-            
-            //do tetrahedron
-            U4DPoint3n a=Q.at(0).minkowskiPoint;
-            U4DPoint3n b=Q.at(1).minkowskiPoint;
-            U4DPoint3n c=Q.at(2).minkowskiPoint;
-            U4DPoint3n d=Q.at(3).minkowskiPoint;
-            
-            U4DTetrahedron tetrahedron(a,b,c,d);
-            
-            float uBarycentricU=0.0;
-            float uBarycentricV=0.0;
-            float uBarycentricW=0.0;
-            float uBarycentricX=0.0;
-            
-            tetrahedron.getBarycentricCoordinatesOfPoint(uClosestPointToOrigin, uBarycentricU, uBarycentricV, uBarycentricW, uBarycentricX);
-            
-            barycentricCoordinates.push_back(uBarycentricU);
-            barycentricCoordinates.push_back(uBarycentricV);
-            barycentricCoordinates.push_back(uBarycentricW);
-            barycentricCoordinates.push_back(uBarycentricX);
-            
+            model2ContactPoint+=uQ.at(i).sb.toVector()*barycentricCoordinates.at(i);
         }
         
-        return barycentricCoordinates;
+        
+        uModel1->collisionProperties.collisionInformation.contactPoint=model1ContactPoint;
+        uModel2->collisionProperties.collisionInformation.contactPoint=model2ContactPoint;
         
     }
     
+    std::vector<U4DSimplexStruct> U4DGJKAlgorithm::getCurrentSimpleStruct(){
+        
+        return Q;
+    }
 }

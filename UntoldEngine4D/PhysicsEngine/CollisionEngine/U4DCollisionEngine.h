@@ -24,29 +24,30 @@ class U4DEntityManager;
 
 namespace U4DEngine {
     
-class U4DCollisionEngine{
-    
-private:
-    
-    U4DCollisionAlgorithm *collisionAlgorithm;
-    
-    std::vector<U4DStaticModel*> modelCollection;
-    
-public:
-    
-    U4DCollisionEngine();
-    
-    ~U4DCollisionEngine();
-    
-    
-    void setCollisionAlgorithm(U4DCollisionAlgorithm* uCollisionAlgorithm);
-    
-    void detectCollisions(float dt);
-    
-    void addToCollisionContainer(U4DStaticModel* uModel);
-    
-    
-};
+    class U4DCollisionEngine{
+        
+    private:
+        
+        U4DCollisionAlgorithm *collisionAlgorithm;
+        
+        std::vector<U4DStaticModel*> modelCollection;
+        
+    public:
+        
+        U4DCollisionEngine();
+        
+        ~U4DCollisionEngine();
+        
+        
+        void setCollisionAlgorithm(U4DCollisionAlgorithm* uCollisionAlgorithm);
+        
+        void detectCollisions(float dt);
+        
+        void addToCollisionContainer(U4DStaticModel* uModel);
+        
+        
+        
+    };
 
 }
 
