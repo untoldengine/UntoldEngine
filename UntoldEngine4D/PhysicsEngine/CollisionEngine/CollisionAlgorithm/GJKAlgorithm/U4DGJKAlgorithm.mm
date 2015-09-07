@@ -59,7 +59,7 @@ namespace U4DEngine {
             
             //2. Compute the point P of minimum norm in CH(Q)
             
-            closestPtToOrigin=determineClosestPointOnSimplexToPoint(originPoint, Q.size());
+            closestPtToOrigin=determineClosestPointOnSimplexToPoint(originPoint, Q);
             
             /*
              3. If P is the origin itself, the origin is clearly contained in the Minkowski difference
@@ -293,45 +293,6 @@ namespace U4DEngine {
         
     }
 
-    U4DPoint3n U4DGJKAlgorithm::determineClosestPointOnSimplexToPoint(U4DPoint3n& uPoint,int uNumberOfSimplexInContainer){
-        
-        U4DPoint3n closestPoint;
-        
-        if (uNumberOfSimplexInContainer==2) {
-            //do line
-            U4DPoint3n a=Q.at(0).minkowskiPoint;
-            U4DPoint3n b=Q.at(1).minkowskiPoint;
-            
-            U4DSegment segment(a,b);
-            
-            closestPoint=segment.closestPointOnSegmentToPoint(uPoint);
-        
-        }else if(uNumberOfSimplexInContainer==3){
-            //do triangle
-            U4DPoint3n a=Q.at(0).minkowskiPoint;
-            U4DPoint3n b=Q.at(1).minkowskiPoint;
-            U4DPoint3n c=Q.at(2).minkowskiPoint;
-            
-            U4DTriangle triangle(a,b,c);
-            
-            closestPoint=triangle.closestPointOnTriangleToPoint(uPoint);
-            
-            
-        }else if(uNumberOfSimplexInContainer==4){
-            //do tetrahedron
-            U4DPoint3n a=Q.at(0).minkowskiPoint;
-            U4DPoint3n b=Q.at(1).minkowskiPoint;
-            U4DPoint3n c=Q.at(2).minkowskiPoint;
-            U4DPoint3n d=Q.at(3).minkowskiPoint;
-            
-            U4DTetrahedron tetrahedron(a,b,c,d);
-         
-            closestPoint=tetrahedron.closestPointOnTetrahedronToPoint(uPoint);
-            
-        }
-        
-        return closestPoint;
-    }
     
     void U4DGJKAlgorithm::determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ){
         

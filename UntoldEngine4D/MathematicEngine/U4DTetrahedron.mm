@@ -7,10 +7,12 @@
 //
 
 #include "U4DTetrahedron.h"
+#include <cmath>
+#include <vector>
 #include "U4DVector3n.h"
 #include "U4DMatrix4n.h"
 #include "U4DTriangle.h"
-#include <cmath>
+
 
 namespace U4DEngine {
     
@@ -128,6 +130,35 @@ namespace U4DEngine {
         return closestPt;
     }
 
+    U4DTriangle U4DTetrahedron::closestTriangleOnTetrahedronToPoint(U4DPoint3n& uPoint){
+        
+        U4DPoint3n origin(0,0,0);
+        
+        U4DTriangle abc(pointA,pointB,pointC);
+        U4DTriangle abd(pointA,pointB,pointD);
+        U4DTriangle bcd(pointB,pointC,pointD);
+        U4DTriangle acd(pointA,pointC,pointD);
+        
+        std::vector<U4DTriangle> triangles{abc,abd,bcd,acd};
+        
+        float distance=FLT_MAX;
+        int index=0;
+        
+        for (int i=0; i<triangles.size(); i++) {
+            
+            float triangleDistanceToOrigin=triangles.at(i).squareDistanceOfClosestPointOnTriangleToPoint(origin);
+            
+            if (triangleDistanceToOrigin<=distance) {
+                
+                distance=triangleDistanceToOrigin;
+                
+                index=i;
+            }
+        }
+        
+        return triangles.at(index);
+        
+    }
 
     bool U4DTetrahedron::isPointInTetrahedron(U4DPoint3n& uPoint){
         

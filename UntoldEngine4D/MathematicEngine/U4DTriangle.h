@@ -26,22 +26,12 @@ public:
     U4DTriangle(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC);
     ~U4DTriangle();
     
-    /*!
-     @brief  Determines the closest point to the triangle
-     
-     @param uPoint Point value
-     
-     @return Closest point to triangle
-     */
     U4DPoint3n closestPointOnTriangleToPoint(U4DPoint3n& uPoint);
     
-    /*!
-     @brief  Test if point is contained in triangle
-     
-     @param uPoint Point value
-     
-     @return true if point is on triangle, false otherwise
-     */
+    float distanceOfClosestPointOnTriangleToPoint(U4DPoint3n& uPoint);
+    
+    float squareDistanceOfClosestPointOnTriangleToPoint(U4DPoint3n& uPoint);
+    
     bool isPointOnTriangle(U4DPoint3n& uPoint);
     
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV, float& baryCoordinateW);

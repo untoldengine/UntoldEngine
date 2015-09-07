@@ -114,6 +114,10 @@ public:
     
     void convertVectorToPoint(U4DVector3n& v);
     
+    float magnitude();
+
+    float magnitudeSquare();
+    
     U4DVector3n toVector();
     
     void show();

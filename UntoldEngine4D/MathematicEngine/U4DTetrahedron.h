@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "U4DPoint3n.h"
+#include "U4DTriangle.h"
 
 namespace U4DEngine {
     
@@ -34,6 +35,8 @@ public:
     bool pointOutsideOfPlane(U4DPoint3n&p, U4DPoint3n& a, U4DPoint3n& b, U4DPoint3n& c, U4DPoint3n& d);
     
     U4DPoint3n closestPointOnTetrahedronToPoint(U4DPoint3n& uPoint);
+    
+    U4DTriangle closestTriangleOnTetrahedronToPoint(U4DPoint3n& uPoint);
     
     bool isPointInTetrahedron(U4DPoint3n& uPoint);
     

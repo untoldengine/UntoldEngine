@@ -39,6 +39,8 @@ namespace U4DEngine {
         
         U4DSimplexStruct calculateSupportPointInDirection(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, U4DVector3n& uDirection);
         
+        U4DPoint3n determineClosestPointOnSimplexToPoint(U4DPoint3n& uPoint,std::vector<U4DSimplexStruct> uQ);
+        
         std::vector<float> determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ);
         
     };

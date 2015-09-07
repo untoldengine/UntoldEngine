@@ -154,5 +154,20 @@ namespace U4DEngine {
         baryCoordinateU=1.0f-baryCoordinateV-baryCoordinateW;
         
     }
+    
+    float U4DTriangle::distanceOfClosestPointOnTriangleToPoint(U4DPoint3n& uPoint){
+        
+        U4DPoint3n pt=closestPointOnTriangleToPoint(uPoint);
+        
+        return pt.magnitude();
+        
+    }
+    
+    float U4DTriangle::squareDistanceOfClosestPointOnTriangleToPoint(U4DPoint3n& uPoint){
+        
+        U4DPoint3n pt=closestPointOnTriangleToPoint(uPoint);
+        
+        return pt.magnitudeSquare();
+    }
 
 }
