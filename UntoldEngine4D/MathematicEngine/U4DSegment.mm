@@ -20,6 +20,25 @@ namespace U4DEngine {
     U4DSegment::~U4DSegment(){
         
     }
+    
+    bool U4DSegment::operator==(const U4DSegment& uSegment){
+        
+        if (pointA==uSegment.pointA && pointB==uSegment.pointB) {
+            return true;
+        }else{
+            return false;
+        }
+    }
+    
+    U4DSegment U4DSegment::negate(){
+        
+        U4DSegment ba(pointB,pointA);
+        
+        return ba;
+        
+    }
+    
+    
 
     U4DPoint3n U4DSegment::closestPointOnSegmentToPoint(U4DPoint3n& uPoint){
         

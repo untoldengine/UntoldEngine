@@ -67,9 +67,17 @@ public:
     U4DPoint3n(const U4DPoint3n& a):x(a.x),y(a.y),z(a.z){};
     
     /**
-     *  Copy constructor
+     *  Copy assignment
      */
-    U4DPoint3n& operator=(const U4DPoint3n& a);
+    inline U4DPoint3n& operator=(const U4DPoint3n& a){
+    
+       x=a.x;
+       y=a.y;
+       z=a.z;
+       
+        return *this;
+    
+    };
     
     
     bool operator==(const U4DPoint3n& a);

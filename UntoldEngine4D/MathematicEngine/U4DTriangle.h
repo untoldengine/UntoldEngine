@@ -26,6 +26,19 @@ public:
     U4DTriangle(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC);
     ~U4DTriangle();
     
+    
+    U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC){};
+    
+    
+    inline U4DTriangle& operator=(const U4DTriangle& a){
+        
+        pointA=a.pointA;
+        pointB=a.pointB;
+        pointC=a.pointC;
+        
+        return *this;
+    };
+    
     U4DPoint3n closestPointOnTriangleToPoint(U4DPoint3n& uPoint);
     
     float distanceOfClosestPointOnTriangleToPoint(U4DPoint3n& uPoint);
@@ -36,6 +49,7 @@ public:
     
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV, float& baryCoordinateW);
     
+    float directionOfTriangleNormalToPoint(U4DPoint3n& uPoint);
 };
 
 }

@@ -20,6 +20,16 @@ class U4DSegment{
     
 private:
     
+    /*!
+     @brief  Point A on segment
+     */
+    U4DPoint3n pointA;
+    
+    /*!
+     @brief  Point B on segment
+     */
+    U4DPoint3n pointB;
+    
     /**
      @brief  barycentric point u of segment
      */
@@ -33,16 +43,6 @@ private:
 public:
     
     /*!
-     @brief  Point A on segment
-     */
-    U4DPoint3n pointA;
-    
-    /*!
-     @brief  Point B on segment
-     */
-    U4DPoint3n pointB;
-    
-    /*!
      @brief  Constructor
      */
     U4DSegment(U4DPoint3n& uPointA,U4DPoint3n& uPointB);
@@ -51,6 +51,10 @@ public:
      @brief  Destructor
      */
     ~U4DSegment();
+    
+    bool operator==(const U4DSegment& uSegment);
+    
+    U4DSegment negate();
 
     /*!
      @brief  Determines the closest point on the segment to a point

@@ -132,8 +132,6 @@ namespace U4DEngine {
 
     U4DTriangle U4DTetrahedron::closestTriangleOnTetrahedronToPoint(U4DPoint3n& uPoint){
         
-        U4DPoint3n origin(0,0,0);
-        
         U4DTriangle abc(pointA,pointB,pointC);
         U4DTriangle abd(pointA,pointB,pointD);
         U4DTriangle bcd(pointB,pointC,pointD);
@@ -146,7 +144,7 @@ namespace U4DEngine {
         
         for (int i=0; i<triangles.size(); i++) {
             
-            float triangleDistanceToOrigin=triangles.at(i).squareDistanceOfClosestPointOnTriangleToPoint(origin);
+            float triangleDistanceToOrigin=triangles.at(i).squareDistanceOfClosestPointOnTriangleToPoint(uPoint);
             
             if (triangleDistanceToOrigin<=distance) {
                 

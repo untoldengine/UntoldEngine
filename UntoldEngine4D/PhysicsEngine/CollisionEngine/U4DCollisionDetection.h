@@ -12,17 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DDynamicModel.h"
-
-namespace U4DEngine {
-    typedef struct{
-        
-        U4DPoint3n sa; //support point in sa
-        U4DPoint3n sb; //support point in sb
-        U4DPoint3n minkowskiPoint; //Minkowski difference point
-        
-    }U4DSimplexStruct;
-    
-}
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
