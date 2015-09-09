@@ -27,6 +27,7 @@ namespace U4DEngine{
         //1. Build the initial polytope from the tetrahedron  produced by GJK
         U4DPolytope polytope(uQ);
         
+        
         //2. Pick the closest face of the polytope to the origin
         U4DTriangle face=polytope.closestFaceOnPolytopeToPoint(origin);
         
@@ -49,7 +50,7 @@ namespace U4DEngine{
         
         polytope.removeAllFacesSeenByPoint(v.minkowskiPoint);
         
-        polytope.createNewFaces();
+        polytope.createNewFacesToTheSimplex(v.minkowskiPoint);
         
         
         //6. Go to step 2

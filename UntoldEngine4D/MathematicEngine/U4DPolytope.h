@@ -33,7 +33,7 @@ namespace U4DEngine {
         
         void removeAllFacesSeenByPoint(U4DPoint3n& uPoint);
         
-        void createNewFaces();
+        void createNewFacesToTheSimplex(U4DPoint3n& uPoint);
         
     };
 }

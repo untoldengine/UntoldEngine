@@ -20,16 +20,6 @@ class U4DSegment{
     
 private:
     
-    /*!
-     @brief  Point A on segment
-     */
-    U4DPoint3n pointA;
-    
-    /*!
-     @brief  Point B on segment
-     */
-    U4DPoint3n pointB;
-    
     /**
      @brief  barycentric point u of segment
      */
@@ -41,6 +31,16 @@ private:
     float barycentricV;
     
 public:
+    
+    /*!
+     @brief  Point A on segment
+     */
+    U4DPoint3n pointA;
+    
+    /*!
+     @brief  Point B on segment
+     */
+    U4DPoint3n pointB;
     
     /*!
      @brief  Constructor
