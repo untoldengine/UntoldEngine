@@ -12,15 +12,6 @@
 
 namespace U4DEngine {
     
-    U4DPoint3n& U4DPoint3n::operator=(const U4DPoint3n& a){
-        
-        x=a.x;
-        y=a.y;
-        z=a.z;
-        
-        return *this;
-        
-    };
 
     bool U4DPoint3n::operator==(const U4DPoint3n& a){
         

@@ -11,6 +11,7 @@
 #include "CommonProtocols.h"
 #include "U4DCollisionAlgorithm.h"
 #include "U4DGJKAlgorithm.h"
+#include "U4DEPAAlgorithm.h"
 
 namespace U4DEngine {
     
@@ -20,12 +21,11 @@ namespace U4DEngine {
         collisionAlgorithm=new U4DGJKAlgorithm();
         setCollisionAlgorithm(collisionAlgorithm);
         
-        // set Contact Points Algorithm
+        //set manifold generation algorithm
+        manifoldGenerationAlgorithm=new U4DEPAAlgorithm();
+        setManifoldGenerationAlgorithm(manifoldGenerationAlgorithm);
         
-        // set Penetration and Normal Contact Vector algorithm
-        
-        
-        
+    
     };
 
     U4DCollisionEngine::~U4DCollisionEngine(){};
@@ -33,6 +33,12 @@ namespace U4DEngine {
     void U4DCollisionEngine::setCollisionAlgorithm(U4DCollisionAlgorithm* uCollisionAlgorithm){
         
         collisionAlgorithm=uCollisionAlgorithm;
+        
+    }
+    
+    void U4DCollisionEngine::setManifoldGenerationAlgorithm(U4DManifoldGeneration* uManifoldGenerationAlgorithm){
+        
+        manifoldGenerationAlgorithm=uManifoldGenerationAlgorithm;
         
     }
 
@@ -46,13 +52,12 @@ namespace U4DEngine {
         
         if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
             
+            
             std::cout<<"Collision Occurred"<<std::endl;
             //if collision occurred then
-            //1. find contact points
             
-            //2. Find penetration depth
-            
-            //3. Find Normal contact Vector
+            //Manifold Generation Algorithm
+            manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
               
         }
         

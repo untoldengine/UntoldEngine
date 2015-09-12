@@ -15,6 +15,10 @@ namespace U4DEngine{
     
     void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ){
         
+        if(uQ.size()==4){
+            
+        int iterationSteps=0; //to avoid infinite loop
+            
         //upper bound set to infinity
         float upperBound=FLT_MAX;
         U4DVector3n faceNormalDirection(0,0,0);
@@ -33,7 +37,7 @@ namespace U4DEngine{
         U4DPolytope polytope(uQ);
         
         
-        while (upperBound-faceNormalDirection.magnitudeSquare()<0.001) {
+        while (iterationSteps<25) {
             
             //2. Pick the closest triangle of the polytope to the origin
             U4DTriangle face=polytope.closestFaceOnPolytopeToPoint(origin);
@@ -53,20 +57,22 @@ namespace U4DEngine{
            
             penetrationVector=v.minkowskiPoint.toVector();
             
-            //4. If this point is no further from the origin than the picked triangle then go to step 7.
-            
-            
             //4. update the upperbound
             upperBound=MIN(upperBound, penetrationVector.dot(faceNormalDirection));
+            
+            //4. If this point is no further from the origin than the picked triangle then go to step 7.
+            if (upperBound-faceNormalDirection.magnitudeSquare()<0.001) {
+                break;  //break from loop
+            }
             
             //5. Remove all faces from the polytope that can be seen by this new point, this will create a hole
             // that must be filled with new faces built from the new support point in the remaining points from the old faces.
             
-            polytope.removeAllFacesSeenByPoint(v.minkowskiPoint);
+            removeAllFacesSeenByPoint(polytope, v.minkowskiPoint);
             
-            polytope.createNewFacesToTheSimplex(v.minkowskiPoint);
+            createNewFacesToTheSimplex(polytope, v.minkowskiPoint);
             
-            
+            iterationSteps++;
             //6. Go to step 2
         }
         
@@ -74,18 +80,73 @@ namespace U4DEngine{
         penetrationVector.show();
         
         
+        }
     }
     
-    U4DTriangle U4DEPAAlgorithm::closestTriangleOnPolytopeToPoint(U4DPoint3n& uPoint, std::vector<U4DSimplexStruct> uQ){
+    void U4DEPAAlgorithm::removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint){
         
-        //build triangles from the simplex container Q. Assume Q.size()>=4
+        //what faces are seen by point
+        std::vector<U4DTriangle> facesNotSeenByPoint;
         
-        if (uQ.size()>=4) {
+        std::vector<U4DSegment> tempEdgesList;
+        std::vector<U4DSegment> tempNegateEdges;
+        
+        //we need to remove all faces seen by the point
+        
+        for (int i=0; i<uPolytope.faces.size(); i++) {
             
+            if (uPolytope.faces.at(i).directionOfTriangleNormalToPoint(uPoint)<0) { //if dot<0, then face not seen by point, so save these faces and delete the others
+                
+                facesNotSeenByPoint.push_back(uPolytope.faces.at(i));
+                
+            }else{ //else the face is seen by point, so save their edges and see if they are already in the container
+                
+                U4DSegment ab(uPolytope.faces.at(i).pointA,uPolytope.faces.at(i).pointB);
+                U4DSegment ac(uPolytope.faces.at(i).pointA,uPolytope.faces.at(i).pointC);
+                U4DSegment bc(uPolytope.faces.at(i).pointB,uPolytope.faces.at(i).pointC);
+                
+                tempEdgesList.push_back(ab);
+                tempEdgesList.push_back(ac);
+                tempEdgesList.push_back(bc);
+                
+                tempNegateEdges.push_back(ab.negate());
+                tempNegateEdges.push_back(ac.negate());
+                tempNegateEdges.push_back(bc.negate());
+                
+            }
+        }
+        
+        //clear faces
+        uPolytope.faces.clear();
+        
+        //copy faces with faces not seen by point
+        uPolytope.faces=facesNotSeenByPoint;
+        
+        
+        
+        
+    }
+    
+    void U4DEPAAlgorithm::createNewFacesToTheSimplex(U4DPolytope& uPolytope, U4DPoint3n& uPoint){
+        
+        //create new faces from the edges
+        
+        
+        for (int i=0; i<uPolytope.edgesList.size(); i++) {
             
+            //get points from edges/segments
             
+            U4DPoint3n a=uPolytope.edgesList.at(i).pointA;
+            U4DPoint3n b=uPolytope.edgesList.at(i).pointB;
+            
+            //create triangles
+            U4DTriangle triangle(a,b,uPoint);
+            
+            //add to faces
+            uPolytope.faces.push_back(triangle);
             
         }
+        
         
     }
     

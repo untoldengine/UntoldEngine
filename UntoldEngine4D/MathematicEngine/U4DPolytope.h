@@ -21,19 +21,20 @@ namespace U4DEngine {
         
     private:
         
+       
+        
+    public:
+        
         std::vector<U4DTriangle> faces;
         std::vector<U4DSegment> edgesList;
         
-    public:
         U4DPolytope(std::vector<U4DSimplexStruct> uQ);
         
         ~U4DPolytope();
         
         U4DTriangle closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint);
         
-        void removeAllFacesSeenByPoint(U4DPoint3n& uPoint);
         
-        void createNewFacesToTheSimplex(U4DPoint3n& uPoint);
         
     };
 }

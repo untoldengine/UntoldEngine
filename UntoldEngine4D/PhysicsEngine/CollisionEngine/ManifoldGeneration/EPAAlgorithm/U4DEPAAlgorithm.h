@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "U4DManifoldGeneration.h"
-#include "U4DTriangle.h"
+#include "U4DPolytope.h"
 
 namespace U4DEngine {
     
@@ -27,7 +27,9 @@ namespace U4DEngine {
         
         void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
         
-        U4DTriangle closestTriangleOnPolytopeToPoint(U4DPoint3n& uPoint, std::vector<U4DSimplexStruct> uQ);
+        void removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
+        
+        void createNewFacesToTheSimplex(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
         
     };
 }

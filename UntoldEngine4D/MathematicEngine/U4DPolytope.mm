@@ -15,6 +15,8 @@ namespace U4DEngine {
         
         faces.clear();
         edgesList.clear();
+        tempEdgesList.clear();
+        tempNegateEdges.clear();
         
         int m=4;    //set m to initial size of tetrahedron simplex
         
@@ -37,10 +39,28 @@ namespace U4DEngine {
             faces.push_back(acd);
             faces.push_back(bcd);
             
+            
+            //for each face, load its edges into the container
+            U4DSegment ab(a,b);
+            U4DSegment ac(a,c);
+            U4DSegment bc(b,c);
+            U4DSegment ad(a,d);
+            U4DSegment bd(b,d);
+            U4DSegment cd(c,d);
+            
+            edgesList.push_back(ab);
+            edgesList.push_back(ac);
+            edgesList.push_back(bc);
+            edgesList.push_back(ad);
+            edgesList.push_back(bd);
+            edgesList.push_back(cd);
+            
             m=m+1;
             n=n+1;
             
         }
+        
+        
     }
     
     U4DPolytope::~U4DPolytope(){
@@ -68,106 +88,5 @@ namespace U4DEngine {
         
     }
     
-    void U4DPolytope::removeAllFacesSeenByPoint(U4DPoint3n& uPoint){
-        
-        //what faces are seen by point
-        std::vector<U4DTriangle> facesNotSeenByPoint;
-        
-        //we need to remove all faces seen by the point
-        
-        for (int i=0; i<faces.size(); i++) {
-            
-            if (faces.at(i).directionOfTriangleNormalToPoint(uPoint)<0) { //if dot<0, then face not seen by point, so save these faces and delete the others
-                
-                facesNotSeenByPoint.push_back(faces.at(i));
-                
-            }else{
-                
-                //save the edges of the triangles which will be removed
-                U4DSegment ab(faces.at(i).pointA,faces.at(i).pointB);
-                U4DSegment ac(faces.at(i).pointA,faces.at(i).pointC);
-                U4DSegment bc(faces.at(i).pointB,faces.at(i).pointC);
-                
-                
-                if (edgesList.size()==0) { //if edgelist is empty, add edges
-                    
-                    edgesList.push_back(ab);
-                    edgesList.push_back(ac);
-                    edgesList.push_back(bc);
-                    
-                }else{ //if edgelist not empty
-                   
-                    std::vector<U4DSegment> edgeListCopy;
-                    std::vector<U4DSegment> tempEdgeList{ab,ac,bc};
-                    std::vector<U4DSegment> negateTempEdgeList{ab.negate(),ac.negate(),bc.negate()};
-                    
-                    //copy edge list
-                    edgeListCopy=edgesList;
-                    /*
-                     if edge in opposite direction exist, edge is removed and new edge is not added
-                     */
-                    
-                    for (int i=0; i<negateTempEdgeList.size(); i++) {
-                        
-                        for (int j=0; j<edgesList.size(); j++) {
-                            
-                            if (negateTempEdgeList.at(i)==edgesList.at(j)) { //if edge in opposite direction exist
-                                
-                                //remove edge
-                                edgeListCopy.erase(edgeListCopy.begin()+j);
-                                
-                            }else{
-                                
-                                //add edge to edge list
-                                edgeListCopy.push_back(tempEdgeList.at(i));
-                                
-                            }
-                        }
-                    }
-                 
-                    //clear edge list
-                    edgesList.clear();
-                    
-                    //copy new updated list to edgelist
-                    edgesList=edgeListCopy;
-                    
-                }
-                
-                
-            }
-        }
-        
-        //clear faces
-        faces.clear();
-        
-        //copy faces with faces not seen by point
-        faces=facesNotSeenByPoint;
-        
-        
-    }
-    
-    void U4DPolytope::createNewFacesToTheSimplex(U4DPoint3n& uPoint){
-        
-        //create new faces from the edges
-        
-        
-        for (int i=0; i<edgesList.size(); i++) {
-            
-            //get points from edges/segments
-
-            U4DPoint3n a=edgesList.at(i).pointA;
-            U4DPoint3n b=edgesList.at(i).pointB;
-            
-            //create triangles
-            U4DTriangle triangle(a,b,uPoint);
-            
-            //add to faces
-            faces.push_back(triangle);
-            
-        }
-        
-        
-    }
-
     
 }
