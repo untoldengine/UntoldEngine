@@ -14,10 +14,25 @@ namespace U4DEngine {
         //build polytope from simplex points
         
         faces.clear();
-        edgesList.clear();
-        tempEdgesList.clear();
-        tempNegateEdges.clear();
+
+        U4DPoint3n a(0,0,0);
+        U4DPoint3n b(1,1,0);
+        U4DPoint3n c(2,0,0);
+        U4DPoint3n d(3,1,0);
+        U4DPoint3n e(4,0,0);
+        U4DPoint3n f(5,1,0);
         
+        U4DTriangle acb(a,c,b);
+        U4DTriangle cdb(c,d,b);
+        U4DTriangle ced(c,e,d);
+        U4DTriangle edf(e,d,f);
+        
+        
+        faces.push_back(acb);
+        faces.push_back(cdb);
+        faces.push_back(ced);
+        faces.push_back(edf);
+        /*
         int m=4;    //set m to initial size of tetrahedron simplex
         
         int n=0;
@@ -39,27 +54,11 @@ namespace U4DEngine {
             faces.push_back(acd);
             faces.push_back(bcd);
             
-            
-            //for each face, load its edges into the container
-            U4DSegment ab(a,b);
-            U4DSegment ac(a,c);
-            U4DSegment bc(b,c);
-            U4DSegment ad(a,d);
-            U4DSegment bd(b,d);
-            U4DSegment cd(c,d);
-            
-            edgesList.push_back(ab);
-            edgesList.push_back(ac);
-            edgesList.push_back(bc);
-            edgesList.push_back(ad);
-            edgesList.push_back(bd);
-            edgesList.push_back(cd);
-            
             m=m+1;
             n=n+1;
             
         }
-        
+        */
         
     }
     

@@ -82,6 +82,7 @@ public:
     
     bool operator==(const U4DPoint3n& a);
     
+    bool operator!=(const U4DPoint3n& a);
     
     /**
      *  Add points

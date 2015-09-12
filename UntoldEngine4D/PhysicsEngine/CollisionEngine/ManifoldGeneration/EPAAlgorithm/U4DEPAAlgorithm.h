@@ -27,9 +27,11 @@ namespace U4DEngine {
         
         void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
         
-        void removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
+        void removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint,std::vector<U4DSegment>& uEdgesList);
         
-        void createNewFacesToTheSimplex(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
+        void createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint, std::vector<U4DSegment>& uEdgesList);
+        
+        void removeEdgesInPolytope(U4DPolytope& uPolytope, std::vector<U4DSegment>& uEdgesList);
         
     };
 }

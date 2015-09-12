@@ -22,6 +22,16 @@ namespace U4DEngine {
         }
     }
 
+    bool U4DPoint3n::operator!=(const U4DPoint3n& a){
+        
+        if (x!=a.x && y!=a.y && z!=a.z) {
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+    
     U4DVector3n U4DPoint3n::operator-(const U4DPoint3n& p)const{
         
         return U4DVector3n(p.x-x,p.y-y,p.z-z);

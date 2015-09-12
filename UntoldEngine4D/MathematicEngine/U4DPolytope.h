@@ -26,7 +26,6 @@ namespace U4DEngine {
     public:
         
         std::vector<U4DTriangle> faces;
-        std::vector<U4DSegment> edgesList;
         
         U4DPolytope(std::vector<U4DSimplexStruct> uQ);
         

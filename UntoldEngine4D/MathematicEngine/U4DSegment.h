@@ -54,7 +54,11 @@ public:
     
     bool operator==(const U4DSegment& uSegment);
     
+    bool operator!=(const U4DSegment& uSegment);
+    
     U4DSegment negate();
+    
+    bool isNegative(U4DSegment& uSegment);
 
     /*!
      @brief  Determines the closest point on the segment to a point

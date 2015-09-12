@@ -19,6 +19,8 @@ namespace U4DEngine{
             
         int iterationSteps=0; //to avoid infinite loop
             
+        std::vector<U4DSegment> edgesList;
+      
         //upper bound set to infinity
         float upperBound=FLT_MAX;
         U4DVector3n faceNormalDirection(0,0,0);
@@ -36,8 +38,18 @@ namespace U4DEngine{
         //1. Build the initial polytope from the tetrahedron  produced by GJK
         U4DPolytope polytope(uQ);
         
+        U4DPoint3n p(1,0.5,2);
+        removeAllFacesSeenByPoint(polytope, p, edgesList);
+        
+        removeEdgesInPolytope(polytope,edgesList);
+        
+        createNewPolytopeFacesToPoint(polytope, p,edgesList);
+            
+        /*
         
         while (iterationSteps<25) {
+            
+            edgesList.clear();
             
             //2. Pick the closest triangle of the polytope to the origin
             U4DTriangle face=polytope.closestFaceOnPolytopeToPoint(origin);
@@ -57,6 +69,9 @@ namespace U4DEngine{
            
             penetrationVector=v.minkowskiPoint.toVector();
             
+            U4DEngine::U4DPoint3n a(0,0,0);
+            U4DEngine::U4DPoint3n b(2,0,0);
+            
             //4. update the upperbound
             upperBound=MIN(upperBound, penetrationVector.dot(faceNormalDirection));
             
@@ -68,14 +83,16 @@ namespace U4DEngine{
             //5. Remove all faces from the polytope that can be seen by this new point, this will create a hole
             // that must be filled with new faces built from the new support point in the remaining points from the old faces.
             
-            removeAllFacesSeenByPoint(polytope, v.minkowskiPoint);
+            removeAllFacesSeenByPoint(polytope, v.minkowskiPoint,edgesList);
             
-            createNewFacesToTheSimplex(polytope, v.minkowskiPoint);
+            removeEdgesInPolytope(polytope,edgesList);
+            
+            createNewPolytopeFacesToPoint(polytope, v.minkowskiPoint,edgesList);
             
             iterationSteps++;
             //6. Go to step 2
         }
-        
+        */
         //7. Use the current closest triangle to the origin to extrapolate the contact information
         penetrationVector.show();
         
@@ -83,35 +100,31 @@ namespace U4DEngine{
         }
     }
     
-    void U4DEPAAlgorithm::removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint){
+    void U4DEPAAlgorithm::removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint,std::vector<U4DSegment>& uEdgesList){
         
         //what faces are seen by point
         std::vector<U4DTriangle> facesNotSeenByPoint;
         
-        std::vector<U4DSegment> tempEdgesList;
-        std::vector<U4DSegment> tempNegateEdges;
         
         //we need to remove all faces seen by the point
         
         for (int i=0; i<uPolytope.faces.size(); i++) {
             
-            if (uPolytope.faces.at(i).directionOfTriangleNormalToPoint(uPoint)<0) { //if dot<0, then face not seen by point, so save these faces and delete the others
-                
-                facesNotSeenByPoint.push_back(uPolytope.faces.at(i));
-                
-            }else{ //else the face is seen by point, so save their edges and see if they are already in the container
+            if (uPolytope.faces.at(i).directionOfTriangleNormalToPoint(uPoint)>=0) { //if dot>=0, then face seen by point, so save these edges
                 
                 U4DSegment ab(uPolytope.faces.at(i).pointA,uPolytope.faces.at(i).pointB);
-                U4DSegment ac(uPolytope.faces.at(i).pointA,uPolytope.faces.at(i).pointC);
-                U4DSegment bc(uPolytope.faces.at(i).pointB,uPolytope.faces.at(i).pointC);
+                U4DSegment ac(uPolytope.faces.at(i).pointB,uPolytope.faces.at(i).pointC);
+                U4DSegment bc(uPolytope.faces.at(i).pointC,uPolytope.faces.at(i).pointA);
                 
-                tempEdgesList.push_back(ab);
-                tempEdgesList.push_back(ac);
-                tempEdgesList.push_back(bc);
+                uEdgesList.push_back(ab);
+                uEdgesList.push_back(ac);
+                uEdgesList.push_back(bc);
                 
-                tempNegateEdges.push_back(ab.negate());
-                tempNegateEdges.push_back(ac.negate());
-                tempNegateEdges.push_back(bc.negate());
+                
+            }else{ //else the face is not seen by point, so save the face
+                
+               facesNotSeenByPoint.push_back(uPolytope.faces.at(i));
+                
                 
             }
         }
@@ -122,22 +135,70 @@ namespace U4DEngine{
         //copy faces with faces not seen by point
         uPolytope.faces=facesNotSeenByPoint;
         
+    }
+    
+
+    void U4DEPAAlgorithm::removeEdgesInPolytope(U4DPolytope& uPolytope,std::vector<U4DSegment>& uEdgesList){
+        
+        //index to keep track of edges to be removed
+        
+        std::vector<int> index;
+        
+        //check for edges going in opposite direction
+        
+        for (int i=0; i<uEdgesList.size(); i++) {
+            
+            U4DSegment abPositiveSegment=uEdgesList.at(i);
+            
+            for (int j=i+1; j<=uEdgesList.size()-1; j++) {
+                
+                U4DSegment abNegativeSegment=uEdgesList.at(j);
+                
+                //if the segment has a negative segment in the edgelist, then mark it to be removed
+                
+                if (abPositiveSegment==abNegativeSegment.negate()) {
+                    
+                    index.push_back(i);
+                    index.push_back(j);
+                    
+                }
+                
+            }
+            
+        }
         
         
+        //remove edges in edgelist
+    
+        int removalCount=0;
+        
+        for (int i=0; i<index.size();i++) {
+            
+        
+            //since edgelist will be updated with every erase, we need to make sure to keep track of the right index to remove
+            uEdgesList.erase(uEdgesList.begin()+(index.at(i)-removalCount));
+            
+            
+            removalCount++;
+            
+        }
+        
+        std::cout<<"hi";
         
     }
     
-    void U4DEPAAlgorithm::createNewFacesToTheSimplex(U4DPolytope& uPolytope, U4DPoint3n& uPoint){
+    
+    void U4DEPAAlgorithm::createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint,std::vector<U4DSegment>& uEdgesList){
         
         //create new faces from the edges
         
         
-        for (int i=0; i<uPolytope.edgesList.size(); i++) {
+        for (int i=0; i<uEdgesList.size(); i++) {
             
             //get points from edges/segments
             
-            U4DPoint3n a=uPolytope.edgesList.at(i).pointA;
-            U4DPoint3n b=uPolytope.edgesList.at(i).pointB;
+            U4DPoint3n a=uEdgesList.at(i).pointA;
+            U4DPoint3n b=uEdgesList.at(i).pointB;
             
             //create triangles
             U4DTriangle triangle(a,b,uPoint);
