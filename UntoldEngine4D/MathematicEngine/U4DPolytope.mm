@@ -15,50 +15,24 @@ namespace U4DEngine {
         
         faces.clear();
 
-        U4DPoint3n a(0,0,0);
-        U4DPoint3n b(1,1,0);
-        U4DPoint3n c(2,0,0);
-        U4DPoint3n d(3,1,0);
-        U4DPoint3n e(4,0,0);
-        U4DPoint3n f(5,1,0);
         
-        U4DTriangle acb(a,c,b);
-        U4DTriangle cdb(c,d,b);
-        U4DTriangle ced(c,e,d);
-        U4DTriangle edf(e,d,f);
+        U4DPoint3n a=uQ.at(0).minkowskiPoint;
+        U4DPoint3n b=uQ.at(1).minkowskiPoint;
+        U4DPoint3n c=uQ.at(2).minkowskiPoint;
+        U4DPoint3n d=uQ.at(3).minkowskiPoint;
         
+        U4DTriangle abc(a,b,c);
+        U4DTriangle abd(a,b,d);
         
-        faces.push_back(acb);
-        faces.push_back(cdb);
-        faces.push_back(ced);
-        faces.push_back(edf);
-        /*
-        int m=4;    //set m to initial size of tetrahedron simplex
+        U4DTriangle bdc(b,d,c);
         
-        int n=0;
+        U4DTriangle adc(a,d,c);
         
-        while (m<=uQ.size()) {
-            
-            U4DPoint3n a=uQ.at(n).minkowskiPoint;
-            U4DPoint3n b=uQ.at(n+1).minkowskiPoint;
-            U4DPoint3n c=uQ.at(n+2).minkowskiPoint;
-            U4DPoint3n d=uQ.at(n+3).minkowskiPoint;
-            
-            U4DTriangle abc(a,b,c);
-            U4DTriangle abd(a,b,d);
-            U4DTriangle acd(a,c,d);
-            U4DTriangle bcd(b,c,d);
-            
-            faces.push_back(abc);
-            faces.push_back(abd);
-            faces.push_back(acd);
-            faces.push_back(bcd);
-            
-            m=m+1;
-            n=n+1;
-            
-        }
-        */
+        faces.push_back(abc);
+        faces.push_back(abd);
+        faces.push_back(bdc);
+        faces.push_back(adc);
+        
         
     }
     

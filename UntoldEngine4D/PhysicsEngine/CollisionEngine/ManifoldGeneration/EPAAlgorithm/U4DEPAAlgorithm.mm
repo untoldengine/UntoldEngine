@@ -7,6 +7,7 @@
 //
 
 #include "U4DEPAAlgorithm.h"
+#include <algorithm>
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
 #include "U4DPolytope.h"
@@ -38,14 +39,6 @@ namespace U4DEngine{
         //1. Build the initial polytope from the tetrahedron  produced by GJK
         U4DPolytope polytope(uQ);
         
-        U4DPoint3n p(1,0.5,2);
-        removeAllFacesSeenByPoint(polytope, p, edgesList);
-        
-        removeEdgesInPolytope(polytope,edgesList);
-        
-        createNewPolytopeFacesToPoint(polytope, p,edgesList);
-            
-        /*
         
         while (iterationSteps<25) {
             
@@ -63,15 +56,13 @@ namespace U4DEngine{
             }
             
             //normalize the normal
-            faceNormalDirection.normalize();
+            
             
             U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormalDirection);
            
             penetrationVector=v.minkowskiPoint.toVector();
             
-            U4DEngine::U4DPoint3n a(0,0,0);
-            U4DEngine::U4DPoint3n b(2,0,0);
-            
+            //faceNormalDirection.normalize();
             //4. update the upperbound
             upperBound=MIN(upperBound, penetrationVector.dot(faceNormalDirection));
             
@@ -92,7 +83,7 @@ namespace U4DEngine{
             iterationSteps++;
             //6. Go to step 2
         }
-        */
+        
         //7. Use the current closest triangle to the origin to extrapolate the contact information
         penetrationVector.show();
         
@@ -124,7 +115,6 @@ namespace U4DEngine{
             }else{ //else the face is not seen by point, so save the face
                 
                facesNotSeenByPoint.push_back(uPolytope.faces.at(i));
-                
                 
             }
         }
@@ -167,6 +157,8 @@ namespace U4DEngine{
             
         }
         
+        //do a very simple sort
+        std::sort(index.begin(), index.end());
         
         //remove edges in edgelist
     
@@ -174,16 +166,12 @@ namespace U4DEngine{
         
         for (int i=0; i<index.size();i++) {
             
-        
             //since edgelist will be updated with every erase, we need to make sure to keep track of the right index to remove
             uEdgesList.erase(uEdgesList.begin()+(index.at(i)-removalCount));
-            
             
             removalCount++;
             
         }
-        
-        std::cout<<"hi";
         
     }
     
