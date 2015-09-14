@@ -18,7 +18,7 @@ namespace U4DEngine {
     class U4DEPAAlgorithm:public U4DManifoldGeneration{
         
     private:
-        
+        std::vector<U4DSegment> edgesList;
     public:
         
         U4DEPAAlgorithm(){};
@@ -27,11 +27,11 @@ namespace U4DEngine {
         
         void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
         
-        void removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint,std::vector<U4DSegment>& uEdgesList);
+        void removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
         
-        void createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint, std::vector<U4DSegment>& uEdgesList);
+        void createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
         
-        void removeEdgesInPolytope(U4DPolytope& uPolytope, std::vector<U4DSegment>& uEdgesList);
+        void removeEdgesInPolytope(U4DPolytope& uPolytope);
         
     };
 }

@@ -22,11 +22,11 @@ namespace U4DEngine {
         U4DPoint3n d=uQ.at(3).minkowskiPoint;
         
         U4DTriangle abc(a,b,c);
-        U4DTriangle abd(a,b,d);
+        U4DTriangle abd(a,c,d);
         
-        U4DTriangle bdc(b,d,c);
+        U4DTriangle bdc(a,d,b);
         
-        U4DTriangle adc(a,d,c);
+        U4DTriangle adc(b,d,c);
         
         faces.push_back(abc);
         faces.push_back(abd);
@@ -49,7 +49,7 @@ namespace U4DEngine {
             
             float triangleDistanceToOrigin=faces.at(i).squareDistanceOfClosestPointOnTriangleToPoint(uPoint);
             
-            if (triangleDistanceToOrigin<=distance) {
+            if (triangleDistanceToOrigin<distance) {
                 
                 distance=triangleDistanceToOrigin;
                 

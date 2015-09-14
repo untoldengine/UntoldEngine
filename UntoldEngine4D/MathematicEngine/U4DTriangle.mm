@@ -32,6 +32,7 @@ namespace U4DEngine {
         U4DVector3n ab=pointA-pointB;
         U4DVector3n ac=pointA-pointC;
         U4DVector3n ap=pointA-uPoint;
+        
         float d1=ab.dot(ap);
         float d2=ac.dot(ap);
         
