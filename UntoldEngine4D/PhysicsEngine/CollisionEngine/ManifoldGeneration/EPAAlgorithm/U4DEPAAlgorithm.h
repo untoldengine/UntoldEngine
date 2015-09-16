@@ -15,10 +15,26 @@
 
 namespace U4DEngine {
     
+    typedef struct{
+        
+    public:
+        U4DSegment edge;
+        bool tag=false;
+        
+    }Edges;
+    
+}
+
+
+namespace U4DEngine {
+    
     class U4DEPAAlgorithm:public U4DManifoldGeneration{
         
     private:
+        
+        std::vector<Edges> edgeListContainer;
         std::vector<U4DSegment> edgesList;
+        
     public:
         
         U4DEPAAlgorithm(){};

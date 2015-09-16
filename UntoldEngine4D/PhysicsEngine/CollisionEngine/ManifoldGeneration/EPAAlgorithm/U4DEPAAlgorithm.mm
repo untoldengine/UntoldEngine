@@ -40,7 +40,7 @@ namespace U4DEngine{
             
             while (iterationSteps<25) {
                 
-                edgesList.clear();
+                edgeListContainer.clear();
                 
                 //2. Pick the closest triangle of the polytope to the origin
                 U4DTriangle face=polytope.closestFaceOnPolytopeToPoint(origin);
@@ -50,7 +50,7 @@ namespace U4DEngine{
                 //faceNormal=(face.pointA-face.pointB).cross(face.pointA-face.pointC);
                 faceNormal=face.closestPointOnTriangleToPoint(origin).toVector();
                 
-                faceNormal=faceNormal*-1.0;
+                //faceNormal=faceNormal*-1.0;
                 
                 U4DSimplexStruct simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormal);
                
@@ -91,7 +91,7 @@ namespace U4DEngine{
     
     void U4DEPAAlgorithm::removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint){
         
-        //what faces are seen by point
+        //what faces are not seen by point
         std::vector<U4DTriangle> facesNotSeenByPoint;
         
         //we need to remove all faces seen by the point
@@ -101,12 +101,63 @@ namespace U4DEngine{
             if (uPolytope.faces.at(i).directionOfTriangleNormalToPoint(uPoint)>=0) { //if dot>=0, then face seen by point, so save these edges
                 
                 U4DSegment ab(uPolytope.faces.at(i).pointA,uPolytope.faces.at(i).pointB);
-                U4DSegment ac(uPolytope.faces.at(i).pointB,uPolytope.faces.at(i).pointC);
-                U4DSegment bc(uPolytope.faces.at(i).pointC,uPolytope.faces.at(i).pointA);
+                U4DSegment bc(uPolytope.faces.at(i).pointB,uPolytope.faces.at(i).pointC);
+                U4DSegment ca(uPolytope.faces.at(i).pointC,uPolytope.faces.at(i).pointA);
                 
-                edgesList.push_back(ab);
-                edgesList.push_back(ac);
-                edgesList.push_back(bc);
+                Edges edgeAB,edgeBC,edgeCA;
+                
+                edgeAB.edge=ab;
+                edgeAB.tag=false;
+                
+                edgeBC.edge=bc;
+                edgeBC.tag=false;
+                
+                edgeCA.edge=ca;
+                edgeCA.tag=false;
+                
+                std::vector<Edges> tempEdgeListContainer{edgeAB,edgeBC,edgeCA};
+                
+                if (edgeListContainer.size()==0) {
+                    
+                    //container is empty, no need to test
+                    edgeListContainer.push_back(edgeAB);
+                    edgeListContainer.push_back(edgeBC);
+                    edgeListContainer.push_back(edgeCA);
+                    
+                    
+                    
+                }else{
+                    
+                    for (int j=0; j<tempEdgeListContainer.size(); j++) {
+                        
+                        U4DSegment negateEdge=tempEdgeListContainer.at(j).edge.negate();
+                        
+                        for (int z=0; z<edgeListContainer.size(); z++) {
+                            
+                            U4DSegment edge=edgeListContainer.at(z).edge;
+                            
+                            if (edge==negateEdge) {
+                                
+                                //there is a edge going in opposite direction
+                                
+                                //set both edges tag to true, indicating that there is a negative direction edge
+                                
+                                tempEdgeListContainer.at(j).tag=true;
+                                edgeListContainer.at(z).tag=true;
+                                
+                            }
+                            
+                        }
+                    }
+                    
+                    
+                }
+                
+                //add edges to container
+                edgeListContainer.push_back(edgeAB);
+                edgeListContainer.push_back(edgeBC);
+                edgeListContainer.push_back(edgeCA);
+                
                 
                 
             }else{ //else the face is not seen by point, so save the face
@@ -127,46 +178,16 @@ namespace U4DEngine{
 
     void U4DEPAAlgorithm::removeEdgesInPolytope(U4DPolytope& uPolytope){
         
-        //index to keep track of edges to be removed
+        edgesList.clear();
         
-        std::vector<int> index;
-        
-        //check for edges going in opposite direction
-        
-        for (int i=0; i<edgesList.size(); i++) {
+        for (int i=0; i<edgeListContainer.size(); i++) {
             
-            U4DSegment abPositiveSegment=edgesList.at(i);
-            
-            for (int j=i+1; j<=edgesList.size()-1; j++) {
+            if (edgeListContainer.at(i).tag==false) {
                 
-                U4DSegment abNegativeSegment=edgesList.at(j);
-                
-                //if the segment has a negative segment in the edgelist, then mark it to be removed
-                
-                if (abPositiveSegment==abNegativeSegment.negate()) {
-                    
-                    index.push_back(i);
-                    index.push_back(j);
-                    
-                }
-                
+                edgesList.push_back(edgeListContainer.at(i).edge);
             }
-            
         }
         
-        //do a very simple sort
-        std::sort(index.begin(), index.end());
-        
-        //remove edges in edgelist
-    
-        int removalCount=0;
-        
-        std::vector<U4DSegment>::iterator it=edgesList.begin(), end=edgesList.end();
-        
-        for (; it!=end;) {
-            
-           
-        }
         
        
     }

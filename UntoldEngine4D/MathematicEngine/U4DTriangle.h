@@ -19,6 +19,7 @@ class U4DTriangle{
 private:
     
 public:
+    
     U4DPoint3n pointA;
     U4DPoint3n pointB;
     U4DPoint3n pointC;

@@ -42,6 +42,11 @@ public:
      */
     U4DPoint3n pointB;
     
+    /**
+     @brief  Default constructor
+     */
+    U4DSegment(){};
+    
     /*!
      @brief  Constructor
      */
@@ -51,6 +56,23 @@ public:
      @brief  Destructor
      */
     ~U4DSegment();
+    
+    
+    U4DSegment(const U4DSegment& a):pointA(a.pointA),pointB(a.pointB){
+        
+    };
+    
+    
+    inline U4DSegment& operator=(const U4DSegment& a){
+        
+        pointA=a.pointA;
+        pointB=a.pointB;
+        
+        return *this;
+        
+    };
+    
+    
     
     bool operator==(const U4DSegment& uSegment);
     

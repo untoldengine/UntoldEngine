@@ -105,7 +105,7 @@ void Earth::init(){
     
     
     cube2=new Town();
-    cube2->init("Cube",1.5,0,0);
+    cube2->init("Cube",3,0,0);
     cube2->setBoundingVolume(cubePolygon2);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
