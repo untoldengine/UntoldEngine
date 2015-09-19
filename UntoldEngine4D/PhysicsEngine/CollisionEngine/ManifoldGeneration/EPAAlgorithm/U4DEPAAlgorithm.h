@@ -32,8 +32,6 @@ namespace U4DEngine {
         
     private:
         
-        std::vector<Edges> edgeListContainer;
-        std::vector<U4DSegment> edgesList;
         
     public:
         
@@ -43,11 +41,11 @@ namespace U4DEngine {
         
         void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
         
-        void removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
+        void removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint, std::vector<Edges>& uRemovedFaceSavedEdges);
         
-        void createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint);
+        void removeEdgesInPolytope(U4DPolytope& uPolytope, std::vector<Edges>& uRemovedFaceSavedEdges, std::vector<U4DSegment>& uEdgeList);
         
-        void removeEdgesInPolytope(U4DPolytope& uPolytope);
+        void createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint, std::vector<U4DSegment>& uEdgeList);
         
     };
 }

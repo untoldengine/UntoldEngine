@@ -22,14 +22,18 @@ namespace U4DEngine{
             
             //upper bound set to infinity
             float upperBound=FLT_MAX;
-            U4DVector3n faceNormal(0,0,0);
-            U4DVector3n penetration(0,0,0);
+            U4DVector3n n(0,0,0); //normal plane
+            U4DVector3n w(0,0,0); //penetration
+            U4DVector3n tempN; //variable to store previous value of n
+            
+            std::vector<Edges> removedFaceSavedEdges; //saved edges from the removed faces
+            std::vector<U4DSegment> edgeList; //final set of saved edges
             
             //get bounding volume for each model
             U4DConvexPolygon *boundingVolume1=uModel1->narrowPhaseBoundingVolume;
             U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
             
-            U4DPoint3n origin(0.0,0.0,0.0);
+            U4DPoint3n origin(100.0,0.0,0.0);
             
             
             //steps
@@ -40,56 +44,58 @@ namespace U4DEngine{
             
             while (iterationSteps<25) {
                 
-                edgeListContainer.clear();
+                removedFaceSavedEdges.clear();
+                edgeList.clear();
                 
                 //2. Pick the closest triangle of the polytope to the origin
                 U4DTriangle face=polytope.closestFaceOnPolytopeToPoint(origin);
                 
                 //3. Generate the next point to be included in the polytope by getting the support point in the direction of the picked
                 //triangle's normal
-                //faceNormal=(face.pointA-face.pointB).cross(face.pointA-face.pointC);
-                faceNormal=face.closestPointOnTriangleToPoint(origin).toVector();
+                n=(face.pointA-face.pointB).cross(face.pointA-face.pointC);
+                //faceNormal=face.closestPointOnTriangleToPoint(origin).toVector();
                 
-                //faceNormal=faceNormal*-1.0;
+                n=n*-1.0;
                 
-                U4DSimplexStruct simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormal);
+                U4DSimplexStruct simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, n);
                
-                penetration=simplexPoint.minkowskiPoint.toVector();
-                
+                w=simplexPoint.minkowskiPoint.toVector();
                 
                 //4. update the upperbound
-                U4DVector3n normalizedFaceNormal=faceNormal;
-                normalizedFaceNormal.normalize();
-                
-                upperBound=MIN(upperBound, penetration.dot(normalizedFaceNormal));
+                n.normalize();
+                upperBound=MIN(upperBound, w.dot(n));
                 
                 //4. If this point is no further from the origin than the picked triangle then go to step 7.
-                if (faceNormal.magnitudeSquare()>=upperBound) {
+                if (w.dot(n)<0.0 || tempN==n) {
+                //if (n.magnitude()>=upperBound) {
+                    
                     break;  //break from loop
                 }
             
                 
+                tempN=n;
+                
                 //5. Remove all faces from the polytope that can be seen by this new point, this will create a hole
                 // that must be filled with new faces built from the new support point in the remaining points from the old faces.
                 
-                removeAllFacesSeenByPoint(polytope, simplexPoint.minkowskiPoint);
+                removeAllFacesSeenByPoint(polytope, simplexPoint.minkowskiPoint,removedFaceSavedEdges);
                 
-                removeEdgesInPolytope(polytope);
+                removeEdgesInPolytope(polytope,removedFaceSavedEdges,edgeList);
                 
-                createNewPolytopeFacesToPoint(polytope, simplexPoint.minkowskiPoint);
+                createNewPolytopeFacesToPoint(polytope, simplexPoint.minkowskiPoint,edgeList);
                 
                 iterationSteps++;
                 //6. Go to step 2
             }
             
             //7. Use the current closest triangle to the origin to extrapolate the contact information
-            penetration.show();
-        
+            w.show();
+            
         
         }
     }
     
-    void U4DEPAAlgorithm::removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint){
+    void U4DEPAAlgorithm::removeAllFacesSeenByPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint, std::vector<Edges>& uRemovedFaceSavedEdges){
         
         //what faces are not seen by point
         std::vector<U4DTriangle> facesNotSeenByPoint;
@@ -115,26 +121,25 @@ namespace U4DEngine{
                 edgeCA.edge=ca;
                 edgeCA.tag=false;
                 
-                std::vector<Edges> tempEdgeListContainer{edgeAB,edgeBC,edgeCA};
+                std::vector<Edges> removedFaceThreeEdges{edgeAB,edgeBC,edgeCA};
                 
-                if (edgeListContainer.size()==0) {
+                if (uRemovedFaceSavedEdges.size()==0) {
                     
                     //container is empty, no need to test
-                    edgeListContainer.push_back(edgeAB);
-                    edgeListContainer.push_back(edgeBC);
-                    edgeListContainer.push_back(edgeCA);
-                    
+                    uRemovedFaceSavedEdges.push_back(edgeAB);
+                    uRemovedFaceSavedEdges.push_back(edgeBC);
+                    uRemovedFaceSavedEdges.push_back(edgeCA);
                     
                     
                 }else{
                     
-                    for (int j=0; j<tempEdgeListContainer.size(); j++) {
+                    for (int j=0; j<removedFaceThreeEdges.size(); j++) {
                         
-                        U4DSegment negateEdge=tempEdgeListContainer.at(j).edge.negate();
+                        U4DSegment negateEdge=removedFaceThreeEdges.at(j).edge.negate();
                         
-                        for (int z=0; z<edgeListContainer.size(); z++) {
+                        for (int z=0; z<uRemovedFaceSavedEdges.size(); z++) {
                             
-                            U4DSegment edge=edgeListContainer.at(z).edge;
+                            U4DSegment edge=uRemovedFaceSavedEdges.at(z).edge;
                             
                             if (edge==negateEdge) {
                                 
@@ -142,8 +147,8 @@ namespace U4DEngine{
                                 
                                 //set both edges tag to true, indicating that there is a negative direction edge
                                 
-                                tempEdgeListContainer.at(j).tag=true;
-                                edgeListContainer.at(z).tag=true;
+                                removedFaceThreeEdges.at(j).tag=true;
+                                uRemovedFaceSavedEdges.at(z).tag=true;
                                 
                             }
                             
@@ -154,9 +159,9 @@ namespace U4DEngine{
                 }
                 
                 //add edges to container
-                edgeListContainer.push_back(edgeAB);
-                edgeListContainer.push_back(edgeBC);
-                edgeListContainer.push_back(edgeCA);
+                uRemovedFaceSavedEdges.push_back(edgeAB);
+                uRemovedFaceSavedEdges.push_back(edgeBC);
+                uRemovedFaceSavedEdges.push_back(edgeCA);
                 
                 
                 
@@ -176,34 +181,31 @@ namespace U4DEngine{
     }
     
 
-    void U4DEPAAlgorithm::removeEdgesInPolytope(U4DPolytope& uPolytope){
+    void U4DEPAAlgorithm::removeEdgesInPolytope(U4DPolytope& uPolytope, std::vector<Edges>& uRemovedFaceSavedEdges, std::vector<U4DSegment>& uEdgeList){
         
-        edgesList.clear();
-        
-        for (int i=0; i<edgeListContainer.size(); i++) {
+        for (int i=0; i<uRemovedFaceSavedEdges.size(); i++) {
             
-            if (edgeListContainer.at(i).tag==false) {
+            if (uRemovedFaceSavedEdges.at(i).tag==false) {
                 
-                edgesList.push_back(edgeListContainer.at(i).edge);
+                uEdgeList.push_back(uRemovedFaceSavedEdges.at(i).edge);
             }
         }
         
         
-       
     }
     
     
-    void U4DEPAAlgorithm::createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint){
+    void U4DEPAAlgorithm::createNewPolytopeFacesToPoint(U4DPolytope& uPolytope, U4DPoint3n& uPoint, std::vector<U4DSegment>& uEdgeList){
         
         //create new faces from the edges
         
         
-         for(int i=0; i<edgesList.size(); i++){
+         for(int i=0; i<uEdgeList.size(); i++){
             
             //get points from edges/segments
             
-            U4DPoint3n a=edgesList.at(i).pointA;
-            U4DPoint3n b=edgesList.at(i).pointB;
+            U4DPoint3n a=uEdgeList.at(i).pointA;
+            U4DPoint3n b=uEdgeList.at(i).pointB;
             
             //create triangles
             U4DTriangle triangle(a,b,uPoint);

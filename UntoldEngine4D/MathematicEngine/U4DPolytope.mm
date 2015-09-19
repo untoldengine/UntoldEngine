@@ -22,11 +22,12 @@ namespace U4DEngine {
         U4DPoint3n d=uQ.at(3).minkowskiPoint;
         
         U4DTriangle abc(a,b,c);
-        U4DTriangle abd(a,c,d);
         
-        U4DTriangle bdc(a,d,b);
+        U4DTriangle abd(a,b,d);
         
-        U4DTriangle adc(b,d,c);
+        U4DTriangle bdc(b,d,c);
+        
+        U4DTriangle adc(a,d,c);
         
         faces.push_back(abc);
         faces.push_back(abd);
