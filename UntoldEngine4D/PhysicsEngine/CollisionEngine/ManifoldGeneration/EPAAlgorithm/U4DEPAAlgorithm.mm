@@ -20,11 +20,8 @@ namespace U4DEngine{
             
             int iterationSteps=0; //to avoid infinite loop
             
-            //upper bound set to infinity
-            float upperBound=FLT_MAX;
+            
             U4DVector3n n(0,0,0); //normal plane
-            U4DVector3n w(0,0,0); //penetration
-            U4DVector3n tempN; //variable to store previous value of n
             
             std::vector<Edges> removedFaceSavedEdges; //saved edges from the removed faces
             std::vector<U4DSegment> edgeList; //final set of saved edges
@@ -33,8 +30,15 @@ namespace U4DEngine{
             U4DConvexPolygon *boundingVolume1=uModel1->narrowPhaseBoundingVolume;
             U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
             
-            U4DPoint3n origin(100.0,0.0,0.0);
+            U4DPoint3n origin(0.0,0.0,0.0);
             
+            U4DPoint3n a(0,0,0);
+            U4DPoint3n b(0,0,0);
+            U4DPoint3n c(0,0,0);
+            
+            U4DTriangle face(a,b,c);
+            
+            U4DSimplexStruct simplexPoint;
             
             //steps
             
@@ -48,33 +52,25 @@ namespace U4DEngine{
                 edgeList.clear();
                 
                 //2. Pick the closest triangle of the polytope to the origin
-                U4DTriangle face=polytope.closestFaceOnPolytopeToPoint(origin);
+                face=polytope.closestFaceOnPolytopeToPoint(origin);
                 
                 //3. Generate the next point to be included in the polytope by getting the support point in the direction of the picked
                 //triangle's normal
-                n=(face.pointA-face.pointB).cross(face.pointA-face.pointC);
-                //faceNormal=face.closestPointOnTriangleToPoint(origin).toVector();
+                n=(face.pointA-face.pointC).cross(face.pointA-face.pointB);
                 
-                n=n*-1.0;
-                
-                U4DSimplexStruct simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, n);
-               
-                w=simplexPoint.minkowskiPoint.toVector();
-                
-                //4. update the upperbound
                 n.normalize();
-                upperBound=MIN(upperBound, w.dot(n));
+                
+                float dist=n.magnitude();
+                
+                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, n);
+                
                 
                 //4. If this point is no further from the origin than the picked triangle then go to step 7.
-                if (w.dot(n)<0.0 || tempN==n) {
-                //if (n.magnitude()>=upperBound) {
-                    
+                if (simplexPoint.minkowskiPoint.toVector().dot(n)-dist<0.0001) {
+                //if(simplexPoint.minkowskiPoint.toVector().dot(n)<0 || simplexPoint.minkowskiPoint==tempW){
                     break;  //break from loop
                 }
             
-                
-                tempN=n;
-                
                 //5. Remove all faces from the polytope that can be seen by this new point, this will create a hole
                 // that must be filled with new faces built from the new support point in the remaining points from the old faces.
                 
@@ -89,9 +85,8 @@ namespace U4DEngine{
             }
             
             //7. Use the current closest triangle to the origin to extrapolate the contact information
-            w.show();
+            simplexPoint.minkowskiPoint.show();
             
-        
         }
     }
     
@@ -104,7 +99,11 @@ namespace U4DEngine{
         
         for (int i=0; i<uPolytope.faces.size(); i++) {
             
-            if (uPolytope.faces.at(i).directionOfTriangleNormalToPoint(uPoint)>=0) { //if dot>=0, then face seen by point, so save these edges
+            U4DTriangle triangle=uPolytope.faces.at(i);
+            
+            U4DVector3n triangleNormal=(triangle.pointA-triangle.pointB).cross(triangle.pointA-triangle.pointC);
+            
+            if (triangleNormal.dot(triangle.pointA-uPoint)>=0) { //if dot>0, then face seen by point, so save these edges
                 
                 U4DSegment ab(uPolytope.faces.at(i).pointA,uPolytope.faces.at(i).pointB);
                 U4DSegment bc(uPolytope.faces.at(i).pointB,uPolytope.faces.at(i).pointC);
@@ -147,21 +146,22 @@ namespace U4DEngine{
                                 
                                 //set both edges tag to true, indicating that there is a negative direction edge
                                 
+                                
                                 removedFaceThreeEdges.at(j).tag=true;
                                 uRemovedFaceSavedEdges.at(z).tag=true;
+                                
                                 
                             }
                             
                         }
                     }
                     
+                    //add edges to container
+                    uRemovedFaceSavedEdges.push_back(removedFaceThreeEdges.at(0));
+                    uRemovedFaceSavedEdges.push_back(removedFaceThreeEdges.at(1));
+                    uRemovedFaceSavedEdges.push_back(removedFaceThreeEdges.at(2));
                     
                 }
-                
-                //add edges to container
-                uRemovedFaceSavedEdges.push_back(edgeAB);
-                uRemovedFaceSavedEdges.push_back(edgeBC);
-                uRemovedFaceSavedEdges.push_back(edgeCA);
                 
                 
                 
@@ -177,7 +177,7 @@ namespace U4DEngine{
         
         //copy faces with faces not seen by point
         uPolytope.faces=facesNotSeenByPoint;
-        
+       
     }
     
 
@@ -215,8 +215,6 @@ namespace U4DEngine{
             
         }
         
-        
     }
-    
     
 }

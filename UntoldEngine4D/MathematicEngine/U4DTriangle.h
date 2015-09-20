@@ -50,7 +50,6 @@ public:
     
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV, float& baryCoordinateW);
     
-    float directionOfTriangleNormalToPoint(U4DPoint3n& uPoint);
 };
 
 }

@@ -19,7 +19,7 @@ namespace U4DEngine {
         
     public:
         U4DSegment edge;
-        bool tag=false;
+        bool tag;
         
     }Edges;
     

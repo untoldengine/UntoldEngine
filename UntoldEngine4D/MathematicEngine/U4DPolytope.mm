@@ -23,16 +23,16 @@ namespace U4DEngine {
         
         U4DTriangle abc(a,b,c);
         
-        U4DTriangle abd(a,b,d);
+        U4DTriangle acd(a,c,d);
+        
+        U4DTriangle adb(a,d,b);
         
         U4DTriangle bdc(b,d,c);
         
-        U4DTriangle adc(a,d,c);
-        
         faces.push_back(abc);
-        faces.push_back(abd);
+        faces.push_back(acd);
+        faces.push_back(adb);
         faces.push_back(bdc);
-        faces.push_back(adc);
         
         
     }

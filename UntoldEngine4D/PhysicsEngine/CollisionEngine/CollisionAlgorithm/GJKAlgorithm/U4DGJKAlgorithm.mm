@@ -43,7 +43,7 @@ namespace U4DEngine {
         U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         dir=c.minkowskiPoint.toVector();
-        dir.negate();
+        //dir.negate();
         
         U4DSimplexStruct b=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
@@ -228,9 +228,9 @@ namespace U4DEngine {
         U4DPoint3n d=Q.at(3).minkowskiPoint;
         
         U4DTriangle abc(a,b,c);
-        U4DTriangle abd(a,b,d);
+        U4DTriangle adb(a,d,b);
         U4DTriangle acd(a,c,d);
-        U4DTriangle bcd(b,c,d);
+        U4DTriangle bdc(b,d,c);
         
 
         U4DTetrahedron tetrahedron(a,b,c,d);
@@ -253,7 +253,7 @@ namespace U4DEngine {
                 
             determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
             //if point is a linear combination of abd
-            }else if(abd.isPointOnTriangle(uClosestPointToOrigin)){
+            }else if(adb.isPointOnTriangle(uClosestPointToOrigin)){
                 
                 
                 Q.push_back(tempSupportPointQA);
@@ -271,7 +271,7 @@ namespace U4DEngine {
                
             determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
             //if point is a linear combination of bcd
-            }else if(bcd.isPointOnTriangle(uClosestPointToOrigin)){
+            }else if(bdc.isPointOnTriangle(uClosestPointToOrigin)){
                 
                 
                 Q.push_back(tempSupportPointQB);

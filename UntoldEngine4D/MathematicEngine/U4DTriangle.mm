@@ -171,13 +171,6 @@ namespace U4DEngine {
         return pt.magnitudeSquare();
     }
     
-    float U4DTriangle::directionOfTriangleNormalToPoint(U4DPoint3n& uPoint){
-        
-        U4DVector3n point=uPoint.toVector();
-        U4DVector3n normal=(pointA-pointB).cross(pointA-pointC);
-        
-        return normal.dot(point);
-        
-    }
+    
 
 }

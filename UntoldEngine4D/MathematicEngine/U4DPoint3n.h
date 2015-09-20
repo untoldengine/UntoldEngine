@@ -69,13 +69,14 @@ public:
     /**
      *  Copy assignment
      */
+    
     inline U4DPoint3n& operator=(const U4DPoint3n& a){
     
        x=a.x;
        y=a.y;
        z=a.z;
        
-        return *this;
+      return *this;
     
     };
     

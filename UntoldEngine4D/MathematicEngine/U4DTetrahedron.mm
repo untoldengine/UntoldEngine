@@ -133,11 +133,11 @@ namespace U4DEngine {
     U4DTriangle U4DTetrahedron::closestTriangleOnTetrahedronToPoint(U4DPoint3n& uPoint){
         
         U4DTriangle abc(pointA,pointB,pointC);
-        U4DTriangle abd(pointA,pointB,pointD);
-        U4DTriangle bcd(pointB,pointC,pointD);
+        U4DTriangle adb(pointA,pointD,pointB);
+        U4DTriangle bdc(pointB,pointD,pointC);
         U4DTriangle acd(pointA,pointC,pointD);
         
-        std::vector<U4DTriangle> triangles{abc,abd,bcd,acd};
+        std::vector<U4DTriangle> triangles{abc,adb,bdc,acd};
         
         float distance=FLT_MAX;
         int index=0;
