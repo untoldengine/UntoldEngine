@@ -25,7 +25,6 @@ namespace U4DEngine {
         //check if triangle exist, if it does, do not add it
         if(triangles.size()==0){
             
-            uTriangle.tag=false;
             triangles.push_back(uTriangle);
             
         }else{
@@ -35,7 +34,6 @@ namespace U4DEngine {
                 if (triangles.at(i)==uTriangle) {
                     
                     triangleExist=true;
-                    triangles.at(i).tag=true;
                     
                     break;
                 }
@@ -43,7 +41,7 @@ namespace U4DEngine {
             
             
             if (triangleExist==false) {
-                uTriangle.tag=false;
+                
                 triangles.push_back(uTriangle);
             }
             
@@ -60,10 +58,7 @@ namespace U4DEngine {
         
         for (int i=0; i<triangles.size(); i++) {
            
-            if (triangles.at(i).tag==false) {
-                
-            
-            //get normal of triangle
+             //get normal of triangle
             U4DVector3n normal=triangles.at(i).getTriangleNormal();
             
             float normalDistance=normal.magnitudeSquare();
@@ -76,7 +71,6 @@ namespace U4DEngine {
                 
             }
             
-        }
      }
         
         return triangles.at(index);

@@ -26,7 +26,6 @@ public:
     U4DPoint3n pointA;
     U4DPoint3n pointB;
     U4DPoint3n pointC;
-    bool tag;
     
     U4DTriangle(){};
     
@@ -34,7 +33,7 @@ public:
     ~U4DTriangle();
     
     
-    U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),vertices(a.vertices),tag(a.tag){};
+    U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),vertices(a.vertices){};
     
     
     inline U4DTriangle& operator=(const U4DTriangle& a){
@@ -44,7 +43,6 @@ public:
         pointC=a.pointC;
         
         vertices=a.vertices;
-        tag=a.tag;
         
         return *this;
     };
