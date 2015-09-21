@@ -10,6 +10,7 @@
 #define __UntoldEngine__U4DTetrahedron__
 
 #include <stdio.h>
+#include <vector>
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
 
@@ -19,11 +20,15 @@ class U4DTetrahedron{
     
 private:
     
-public:
+    std::vector<U4DTriangle> triangles;
+    
     U4DPoint3n pointA;
     U4DPoint3n pointB;
     U4DPoint3n pointC;
     U4DPoint3n pointD;
+    
+public:
+    
     
     U4DTetrahedron(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC, U4DPoint3n& uPointD);
     ~U4DTetrahedron();
@@ -41,6 +46,9 @@ public:
     bool isPointInTetrahedron(U4DPoint3n& uPoint);
     
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV, float& baryCoordinateW, float& baryCoordinateX);
+    
+    std::vector<U4DTriangle>& getTrianglesOfTetrahedron();
+    
 };
     
 }

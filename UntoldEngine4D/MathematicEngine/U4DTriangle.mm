@@ -7,6 +7,7 @@
 //
 
 #include "U4DTriangle.h"
+#include "U4DPoint3n.h"
 #include "U4DVector3n.h"
 #include <cmath>
 
@@ -18,10 +19,25 @@ namespace U4DEngine {
         pointB=uPointB;
         pointC=uPointC;
         
+        vertices.push_back(pointA);
+        vertices.push_back(pointB);
+        vertices.push_back(pointC);
+        
     }
 
     U4DTriangle::~U4DTriangle(){
         
+    }
+    
+    bool U4DTriangle::operator==(const U4DTriangle& a){
+        
+        return (pointA==a.pointA && pointB==a.pointB && pointC==a.pointC);
+    }
+    
+    bool U4DTriangle::operator!=(const U4DTriangle& a){
+        
+        return (pointA!=a.pointA || pointB!=a.pointB || pointC!=a.pointC);
+    
     }
 
 
@@ -156,21 +172,14 @@ namespace U4DEngine {
         
     }
     
-    float U4DTriangle::distanceOfClosestPointOnTriangleToPoint(U4DPoint3n& uPoint){
+    U4DVector3n U4DTriangle::getTriangleNormal(){
         
-        U4DPoint3n pt=closestPointOnTriangleToPoint(uPoint);
-        
-        return pt.magnitude();
-        
+        return (pointA-pointB).cross(pointA-pointC);
     }
     
-    float U4DTriangle::squareDistanceOfClosestPointOnTriangleToPoint(U4DPoint3n& uPoint){
+    std::vector<U4DPoint3n>& U4DTriangle::getTriangleVertices(){
         
-        U4DPoint3n pt=closestPointOnTriangleToPoint(uPoint);
-        
-        return pt.magnitudeSquare();
+        return vertices;
     }
     
-    
-
 }

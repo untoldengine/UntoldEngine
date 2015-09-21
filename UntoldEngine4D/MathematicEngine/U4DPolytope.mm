@@ -10,56 +10,82 @@
 
 namespace U4DEngine {
     
-    U4DPolytope::U4DPolytope(std::vector<U4DSimplexStruct> uQ){
-        //build polytope from simplex points
-        
-        faces.clear();
-
-        
-        U4DPoint3n a=uQ.at(0).minkowskiPoint;
-        U4DPoint3n b=uQ.at(1).minkowskiPoint;
-        U4DPoint3n c=uQ.at(2).minkowskiPoint;
-        U4DPoint3n d=uQ.at(3).minkowskiPoint;
-        
-        U4DTriangle abc(a,b,c);
-        
-        U4DTriangle acd(a,c,d);
-        
-        U4DTriangle adb(a,d,b);
-        
-        U4DTriangle bdc(b,d,c);
-        
-        faces.push_back(abc);
-        faces.push_back(acd);
-        faces.push_back(adb);
-        faces.push_back(bdc);
-        
+    U4DPolytope::U4DPolytope(){
         
     }
     
     U4DPolytope::~U4DPolytope(){
         
     }
+    
+    void U4DPolytope::addTriangleToPolytope(U4DTriangle& uTriangle){
+        
+        bool triangleExist=false;
+        
+        //check if triangle exist, if it does, do not add it
+        if(triangles.size()==0){
+            
+            uTriangle.tag=false;
+            triangles.push_back(uTriangle);
+            
+        }else{
+            
+            for (int i=0; i<triangles.size(); i++) {
+                
+                if (triangles.at(i)==uTriangle) {
+                    
+                    triangleExist=true;
+                    triangles.at(i).tag=true;
+                    
+                    break;
+                }
+            }
+            
+            
+            if (triangleExist==false) {
+                uTriangle.tag=false;
+                triangles.push_back(uTriangle);
+            }
+            
+        }
+        
+       
+        
+    }
 
-    U4DTriangle U4DPolytope::closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint){
+    U4DTriangle U4DPolytope::closestTriangleOnPolytopeToPoint(U4DPoint3n& uPoint){
         
         float distance=FLT_MAX;
         int index=0;
         
-        for (int i=0; i<faces.size(); i++) {
-            
-            float triangleDistanceToOrigin=faces.at(i).squareDistanceOfClosestPointOnTriangleToPoint(uPoint);
-            
-            if (triangleDistanceToOrigin<distance) {
+        for (int i=0; i<triangles.size(); i++) {
+           
+            if (triangles.at(i).tag==false) {
                 
-                distance=triangleDistanceToOrigin;
+            
+            //get normal of triangle
+            U4DVector3n normal=triangles.at(i).getTriangleNormal();
+            
+            float normalDistance=normal.magnitudeSquare();
+            
+            if (normalDistance<distance) {
+                
+                distance=normalDistance;
                 
                 index=i;
+                
             }
+            
         }
+     }
         
-        return faces.at(index);
+        return triangles.at(index);
         
+    }
+    
+    std::vector<U4DTriangle>& U4DPolytope::getTrianglesOfPolytope(){
+        
+        return triangles;
     }
     
     

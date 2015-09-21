@@ -20,11 +20,12 @@ namespace U4DEngine {
         }else{
             return false;
         }
+        
     }
 
     bool U4DPoint3n::operator!=(const U4DPoint3n& a){
         
-        if (x!=a.x && y!=a.y && z!=a.z) {
+        if (x!=a.x || y!=a.y || z!=a.z) {
             return true;
         }else{
             return false;

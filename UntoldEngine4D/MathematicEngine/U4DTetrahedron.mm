@@ -23,6 +23,18 @@ namespace U4DEngine {
         pointC=uPointC;
         pointD=uPointD;
         
+        //set triangles that makes up the tetrahedron
+        
+        U4DTriangle abc(pointA,pointB,pointC);
+        U4DTriangle acd(pointA,pointC,pointD);
+        U4DTriangle adb(pointA,pointD,pointB);
+        U4DTriangle bdc(pointB,pointD,pointC);
+        
+        triangles.push_back(abc);
+        triangles.push_back(acd);
+        triangles.push_back(adb);
+        triangles.push_back(bdc);
+        
     }
 
     U4DTetrahedron::~U4DTetrahedron(){
@@ -132,19 +144,14 @@ namespace U4DEngine {
 
     U4DTriangle U4DTetrahedron::closestTriangleOnTetrahedronToPoint(U4DPoint3n& uPoint){
         
-        U4DTriangle abc(pointA,pointB,pointC);
-        U4DTriangle adb(pointA,pointD,pointB);
-        U4DTriangle bdc(pointB,pointD,pointC);
-        U4DTriangle acd(pointA,pointC,pointD);
-        
-        std::vector<U4DTriangle> triangles{abc,adb,bdc,acd};
-        
         float distance=FLT_MAX;
         int index=0;
         
         for (int i=0; i<triangles.size(); i++) {
             
-            float triangleDistanceToOrigin=triangles.at(i).squareDistanceOfClosestPointOnTriangleToPoint(uPoint);
+            U4DPoint3n closestPoint=triangles.at(i).closestPointOnTriangleToPoint(uPoint);
+            
+            float triangleDistanceToOrigin=closestPoint.magnitudeSquare();
             
             if (triangleDistanceToOrigin<=distance) {
                 
@@ -217,6 +224,12 @@ namespace U4DEngine {
         baryCoordinateW=dABPD/dABCD;
         baryCoordinateX=1-baryCoordinateU-baryCoordinateV-baryCoordinateW;
         
+    }
+    
+    std::vector<U4DTriangle>& U4DTetrahedron::getTrianglesOfTetrahedron(){
+        
+        
+        return triangles;
     }
 
 }
