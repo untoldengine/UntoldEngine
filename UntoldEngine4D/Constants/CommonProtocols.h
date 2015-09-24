@@ -12,6 +12,7 @@
 #include <vector>
 #include "U4DDualQuaternion.h"
 #include "U4DPoint3n.h"
+#include "U4DTriangle.h"
 
 namespace U4DEngine {
     
@@ -119,6 +120,15 @@ namespace U4DEngine {
         U4DPoint3n minkowskiPoint; //Minkowski difference point
         
     }U4DSimplexStruct;
+
+    
+        
+    typedef struct{
+        
+        U4DTriangle triangle;
+        bool isSeenByPoint;
+        
+    }POLYTOPEFACES;
 
     
 }

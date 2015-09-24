@@ -7,6 +7,7 @@
 //
 
 #include "U4DPolytope.h"
+#include <algorithm>
 
 namespace U4DEngine {
     
@@ -18,20 +19,24 @@ namespace U4DEngine {
         
     }
     
-    void U4DPolytope::addTriangleToPolytope(U4DTriangle& uTriangle){
+    void U4DPolytope::addFaceToPolytope(U4DTriangle& uTriangle){
         
         bool triangleExist=false;
         
         //check if triangle exist, if it does, do not add it
-        if(triangles.size()==0){
+        if(polytopeFaces.size()==0){
             
-            triangles.push_back(uTriangle);
+            POLYTOPEFACES faces;
+            faces.triangle=uTriangle;
+            faces.isSeenByPoint=false;
+            
+            polytopeFaces.push_back(faces);
             
         }else{
             
-            for (int i=0; i<triangles.size(); i++) {
-                
-                if (triangles.at(i)==uTriangle) {
+            for (int i=0; i<polytopeFaces.size(); i++) {
+            
+                if (polytopeFaces.at(i).triangle==uTriangle) {
                     
                     triangleExist=true;
                     
@@ -40,9 +45,14 @@ namespace U4DEngine {
             }
             
             
-            if (triangleExist==false) {
+            if (triangleExist==false) { //if triangle does not exist, then add it
                 
-                triangles.push_back(uTriangle);
+                POLYTOPEFACES faces;
+                faces.triangle=uTriangle;
+                faces.isSeenByPoint=false;
+                
+                polytopeFaces.push_back(faces);
+                
             }
             
         }
@@ -51,19 +61,23 @@ namespace U4DEngine {
         
     }
 
-    U4DTriangle U4DPolytope::closestTriangleOnPolytopeToPoint(U4DPoint3n& uPoint){
+    U4DTriangle U4DPolytope::closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint){
         
         float distance=FLT_MAX;
         int index=0;
         
-        for (int i=0; i<triangles.size(); i++) {
+        for (int i=0; i<polytopeFaces.size(); i++) {
            
+            
              //get normal of triangle
-            U4DVector3n normal=triangles.at(i).getTriangleNormal();
+            U4DVector3n normal=polytopeFaces.at(i).triangle.getTriangleNormal();
+            
+            //get distance from normal to point
+            normal-=uPoint.toVector();
             
             float normalDistance=normal.magnitudeSquare();
             
-            if (normalDistance<distance) {
+            if (normalDistance<=distance) {
                 
                 distance=normalDistance;
                 
@@ -73,14 +87,18 @@ namespace U4DEngine {
             
      }
         
-        return triangles.at(index);
+        return polytopeFaces.at(index).triangle;
         
     }
     
-    std::vector<U4DTriangle>& U4DPolytope::getTrianglesOfPolytope(){
+    std::vector<POLYTOPEFACES>& U4DPolytope::getFacesOfPolytope(){
         
-        return triangles;
+        return polytopeFaces;
     }
     
+    
+    void U4DPolytope::removeAllFaces(){
+        polytopeFaces.clear();
+    }
     
 }

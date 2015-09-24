@@ -11,14 +11,16 @@
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
 #include "U4DPolytope.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine{
+    
+    
     
     void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ){
         
         if(uQ.size()==4){
-            
-            
+                        
             U4DPolytope polytope;
             U4DSimplexStruct simplexPoint;
             
@@ -40,25 +42,25 @@ namespace U4DEngine{
             
             for (int i=0; i<triangles.size(); i++) {
                 
-                polytope.addTriangleToPolytope(triangles.at(i));
+                polytope.addFaceToPolytope(triangles.at(i));
             }
             
             while (iterationSteps<25) {
                 
                 //4. which face is closest to origin
-                U4DTriangle closestTriangle=polytope.closestTriangleOnPolytopeToPoint(origin);
+                U4DTriangle closestTriangle=polytope.closestFaceOnPolytopeToPoint(origin);
                 
                 //5. Get normal of face
                 U4DVector3n normal=closestTriangle.getTriangleNormal();
-
-                normal.normalize();
-                
-                float dist=normal.magnitude();
                 
                 //6. Get simplex point
                 
                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, normal);
                 
+                normal.normalize();
+                
+                float dist=normal.magnitude();
+
                 //7. check if need to exit loop
                 if (simplexPoint.minkowskiPoint.toVector().dot(normal)-dist<0.0001) {
                 
@@ -68,19 +70,20 @@ namespace U4DEngine{
                 
                 //8. Which faces is seen by simplex point
                 
-                std::vector<U4DTriangle> trianglesInPolytope=polytope.getTrianglesOfPolytope();
+                std::vector<POLYTOPEFACES>& trianglesInPolytope=polytope.getFacesOfPolytope();
                 
                 //faces container
                 std::vector<U4DTriangle> trianglesSeenByPoint;
                 
                 for (int n=0; n<trianglesInPolytope.size(); n++) {
                     
-                    U4DTriangle triangle=trianglesInPolytope.at(n);
+                    U4DTriangle triangle=trianglesInPolytope.at(n).triangle;
                     
                     U4DVector3n triangleNormal=(triangle.pointA-triangle.pointB).cross(triangle.pointA-triangle.pointC);
                     
                     if (triangleNormal.dot(triangle.pointA-simplexPoint.minkowskiPoint)>=0) { //if dot>0, then face seen by point
                         
+                        trianglesInPolytope.at(n).isSeenByPoint=true;
                         trianglesSeenByPoint.push_back(triangle);
                     }
                 
@@ -89,9 +92,9 @@ namespace U4DEngine{
                 
                 for (int i=0; i<trianglesSeenByPoint.size(); i++) {
                     
-                    U4DTriangle seenTriangle=trianglesSeenByPoint.at(i);
+                    U4DTriangle triangle=trianglesSeenByPoint.at(i);
                     
-                    std::vector<U4DPoint3n> vertices=seenTriangle.getTriangleVertices();
+                    std::vector<U4DPoint3n> vertices=triangle.getTriangleVertices();
                     
                     U4DTetrahedron newTetrahedron(vertices.at(0),vertices.at(1),vertices.at(2),simplexPoint.minkowskiPoint);
                     
@@ -102,13 +105,16 @@ namespace U4DEngine{
                     
                     for (int j=0; j<newTriangles.size(); j++) {
                         
-                        polytope.addTriangleToPolytope(newTriangles.at(j));
+                        polytope.addFaceToPolytope(newTriangles.at(j));
                     }
                     
                 }
                 
                 //11. Remove duplicate faces
                 
+                trianglesInPolytope.erase(std::remove_if(trianglesInPolytope.begin(), trianglesInPolytope.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),trianglesInPolytope.end());
+                
+            
                 
             //12. go back to 4
                 
@@ -122,4 +128,6 @@ namespace U4DEngine{
       }//end if Q==4
         
     }//end method
+   
+
 }

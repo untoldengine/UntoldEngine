@@ -35,11 +35,15 @@ namespace U4DEngine {
         
     public:
         
-        U4DEPAAlgorithm(){};
+        U4DEPAAlgorithm(){
+            
+        };
         
         ~U4DEPAAlgorithm(){};
         
+        
         void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
+        
         
     };
 }
