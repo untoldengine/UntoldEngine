@@ -61,25 +61,22 @@ namespace U4DEngine {
         
     }
 
-    U4DTriangle U4DPolytope::closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint){
+    POLYTOPEFACES& U4DPolytope::closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint){
         
         float distance=FLT_MAX;
         int index=0;
         
         for (int i=0; i<polytopeFaces.size(); i++) {
            
-            
              //get normal of triangle
-            U4DVector3n normal=polytopeFaces.at(i).triangle.getTriangleNormal();
+            U4DPoint3n closestPoint=polytopeFaces.at(i).triangle.closestPointOnTriangleToPoint(uPoint);
             
-            //get distance from normal to point
-            normal-=uPoint.toVector();
             
-            float normalDistance=normal.magnitudeSquare();
+            float closestDistance=closestPoint.magnitudeSquare();
             
-            if (normalDistance<=distance) {
+            if (closestDistance<distance) {
                 
-                distance=normalDistance;
+                distance=closestDistance;
                 
                 index=i;
                 
@@ -87,7 +84,7 @@ namespace U4DEngine {
             
      }
         
-        return polytopeFaces.at(index).triangle;
+        return polytopeFaces.at(index);
         
     }
     

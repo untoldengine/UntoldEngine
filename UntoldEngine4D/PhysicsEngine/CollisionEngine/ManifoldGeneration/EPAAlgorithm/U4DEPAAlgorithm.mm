@@ -45,27 +45,35 @@ namespace U4DEngine{
                 polytope.addFaceToPolytope(triangles.at(i));
             }
             
+            float dist=0;
+            U4DVector3n normal;
+            
             while (iterationSteps<25) {
                 
                 //4. which face is closest to origin
-                U4DTriangle closestTriangle=polytope.closestFaceOnPolytopeToPoint(origin);
+                POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
+                
+                face.isSeenByPoint=true;
+                
                 
                 //5. Get normal of face
-                U4DVector3n normal=closestTriangle.getTriangleNormal();
+                normal=face.triangle.getTriangleNormal();
+                
+                dist=normal.magnitude();
+                
                 
                 //6. Get simplex point
                 
-               simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, normal);
+                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, normal);
                 
-                normal.normalize();
-                
-                float dist=normal.magnitude();
+                //normal.normalize();
 
                 //7. check if need to exit loop
                 if (simplexPoint.minkowskiPoint.toVector().dot(normal)-dist<0.0001) {
                 
                     //break from loop
                     break;
+                
                 }
                 
                 //8. Which faces is seen by simplex point
@@ -111,7 +119,6 @@ namespace U4DEngine{
                 }
                 
                 //11. Remove duplicate faces
-                
                 trianglesInPolytope.erase(std::remove_if(trianglesInPolytope.begin(), trianglesInPolytope.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),trianglesInPolytope.end());
                 
             
@@ -122,9 +129,10 @@ namespace U4DEngine{
          
             }
             //13. if exit loop, get barycentric points
-                
-            simplexPoint.minkowskiPoint.show();
-         
+           
+            std::cout<<dist<<std::endl;
+            
+            
       }//end if Q==4
         
     }//end method

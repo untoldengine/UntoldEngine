@@ -107,12 +107,12 @@ namespace U4DEngine {
         if (va<=0.0f && (d4-d3)>=0.0f && (d5-d6)>=0.0f) {
             float w=(d4-d3)/((d4-d3)+(d5-d6));
             
-            U4DPoint3n cbPoint;
-            U4DVector3n cbVector=pointC-pointB;
+            U4DPoint3n bcPoint;
+            U4DVector3n bcVector=pointB-pointC;
             
-            cbPoint.convertVectorToPoint(cbVector);
+            bcPoint.convertVectorToPoint(bcVector);
             
-             return pointB+cbPoint*w; //barycentric coordinates (0,1-w,w)
+             return pointB+bcPoint*w; //barycentric coordinates (0,1-w,w)
         }
         
         

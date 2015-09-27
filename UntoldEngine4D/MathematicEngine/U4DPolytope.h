@@ -41,7 +41,7 @@ namespace U4DEngine {
         };
 
     
-        U4DTriangle closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint);
+        POLYTOPEFACES& closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint);
         
         std::vector<POLYTOPEFACES>& getFacesOfPolytope();
         
