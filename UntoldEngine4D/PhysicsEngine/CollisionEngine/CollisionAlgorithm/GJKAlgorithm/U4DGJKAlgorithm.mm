@@ -43,7 +43,7 @@ namespace U4DEngine {
         U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         dir=c.minkowskiPoint.toVector();
-        //dir.negate();
+        
         
         U4DSimplexStruct b=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
@@ -68,7 +68,6 @@ namespace U4DEngine {
             if (closestPtToOrigin==originPoint) {
                 
                 //if intersecting, determine collision properies before returning
-                
                 return true;
             }
             
@@ -83,6 +82,7 @@ namespace U4DEngine {
             
             dir=closestPtToOrigin.toVector();
             
+            
             U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
             /*
@@ -91,10 +91,10 @@ namespace U4DEngine {
              A and B.
              */
             
-                if (v.minkowskiPoint.toVector().dot(dir)<0.0 || v.minkowskiPoint==tempV) {
-        
-                    return false;
-                }
+            if (v.minkowskiPoint.toVector().dot(dir)<0.0 || v.minkowskiPoint==tempV) {
+    
+                return false;
+            }
             
             /*
              7. Add V to Q and got to step 2.

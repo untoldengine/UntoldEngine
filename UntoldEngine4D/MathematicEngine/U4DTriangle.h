@@ -61,6 +61,14 @@ public:
     U4DVector3n getTriangleNormal();
     
     std::vector<U4DPoint3n>& getTriangleVertices();
+    
+    /**
+     *  Debug-show the vector on the output log
+     */
+    void show();
+    
+    bool isValid();
+    
 };
 
 }

@@ -49,6 +49,13 @@ public:
     
     std::vector<U4DTriangle>& getTrianglesOfTetrahedron();
     
+    /**
+     *  Debug-show the vector on the output log
+     */
+    void show();
+    
+    bool isValid();
+    
 };
     
 }

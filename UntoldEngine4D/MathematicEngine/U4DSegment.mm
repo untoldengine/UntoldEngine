@@ -170,6 +170,29 @@ namespace U4DEngine {
 
     }
     
+    bool U4DSegment::isValid(){
+        
+        if (pointA!=pointB) {
+            return true;
+        }else{
+            return false;
+        }
+        
+    }
     
+    void U4DSegment::show(){
+        
+        std::cout<<"Point A: "<<std::endl;
+        pointA.show();
+        std::cout<<"Point B: "<<std::endl;
+        pointB.show();
+        
+        if (isValid()) {
+            std::cout<<"Segment is Valid"<<std::endl;
+        }else{
+            std::cout<<"Segment is not valid"<<std::endl;
+        }
+        
+    }
 
 }

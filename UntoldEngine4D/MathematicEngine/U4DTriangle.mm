@@ -182,4 +182,31 @@ namespace U4DEngine {
         return vertices;
     }
     
+    bool U4DTriangle::isValid(){
+        
+        if ((pointA.toVector()+pointB.toVector()).magnitudeSquare()>pointC.toVector().magnitudeSquare()) {
+            return true;
+        }else{
+            return false;
+        }
+        
+    }
+    
+    void U4DTriangle::show(){
+        
+        std::cout<<"Point A: "<<std::endl;
+        pointA.show();
+        std::cout<<"Point B: "<<std::endl;
+        pointB.show();
+        std::cout<<"Point C: "<<std::endl;
+        pointC.show();
+        
+        if (isValid()) {
+            std::cout<<"Triangle is Valid"<<std::endl;
+        }else{
+            std::cout<<"Triangle is not valid"<<std::endl;
+        }
+        
+    }
+    
 }

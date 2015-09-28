@@ -36,6 +36,7 @@ namespace U4DEngine {
             
             for (int i=0; i<polytopeFaces.size(); i++) {
             
+               
                 if (polytopeFaces.at(i).triangle==uTriangle) {
                     
                     triangleExist=true;
@@ -96,6 +97,15 @@ namespace U4DEngine {
     
     void U4DPolytope::removeAllFaces(){
         polytopeFaces.clear();
+    }
+    
+    void U4DPolytope::show(){
+        
+        for (int i=0; i<polytopeFaces.size(); i++) {
+            std::cout<<"Face: "<<i<<std::endl;
+            polytopeFaces.at(i).triangle.show();
+        }
+        
     }
     
 }

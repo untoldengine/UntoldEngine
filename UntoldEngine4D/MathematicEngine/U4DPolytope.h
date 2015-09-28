@@ -49,6 +49,11 @@ namespace U4DEngine {
         
         void removeAllFaces();
         
+        /**
+         *  Debug-show the vector on the output log
+         */
+        void show();
+        
     };
 }
 

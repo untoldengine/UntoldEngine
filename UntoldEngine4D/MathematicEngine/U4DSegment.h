@@ -10,6 +10,7 @@
 #define __UntoldEngine__U4DSegment__
 
 #include <stdio.h>
+#include <iostream>
 #include "U4DPoint3n.h"
 
 namespace U4DEngine {
@@ -111,6 +112,12 @@ public:
     
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV);
     
+    /**
+     *  Debug-show the vector on the output log
+     */
+    void show();
+    
+    bool isValid();
 };
     
 }

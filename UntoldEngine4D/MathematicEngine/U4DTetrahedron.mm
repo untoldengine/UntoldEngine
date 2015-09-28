@@ -231,5 +231,42 @@ namespace U4DEngine {
         
         return triangles;
     }
+    
+    bool U4DTetrahedron::isValid(){
+        
+        //simply check if the triple product is zero, if it is, then not a polyhedron
+        
+        U4DVector3n ab(pointA-pointB);
+        U4DVector3n ac(pointA-pointC);
+        U4DVector3n ad(pointA-pointD);
+        
+        if (ab.dot(ac.cross(ad))!=0) {
+            return true;
+        }else{
+            return false;
+        }
+        
+    }
+    
+    
+    void U4DTetrahedron::show(){
+        
+        std::cout<<"Point A: "<<std::endl;
+        pointA.show();
+        std::cout<<"Point B: "<<std::endl;
+        pointB.show();
+        std::cout<<"Point C: "<<std::endl;
+        pointC.show();
+        std::cout<<"Point D: "<<std::endl;
+        pointD.show();
+    
+        if (isValid()) {
+            std::cout<<"Tetrahedron is Valid"<<std::endl;
+        }else{
+            std::cout<<"Tetrahedron is not valid"<<std::endl;
+        }
+        
+        
+    }
 
 }

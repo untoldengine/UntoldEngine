@@ -34,6 +34,7 @@ namespace U4DEngine{
             //1. Build tetrahedron from Q
             U4DTetrahedron tetrahedron(uQ.at(0).minkowskiPoint,uQ.at(1).minkowskiPoint,uQ.at(2).minkowskiPoint,uQ.at(3).minkowskiPoint);
             
+            
             //2. get triangles of tetrahedron
             std::vector<U4DTriangle> triangles=tetrahedron.getTrianglesOfTetrahedron();
             
@@ -45,9 +46,12 @@ namespace U4DEngine{
                 polytope.addFaceToPolytope(triangles.at(i));
             }
             
-            float dist=0;
-            U4DVector3n normal;
             
+            
+            float dist=0;
+            U4DVector3n normal(0,0,0);
+            
+        
             while (iterationSteps<25) {
                 
                 //4. which face is closest to origin
@@ -58,15 +62,15 @@ namespace U4DEngine{
                 
                 //5. Get normal of face
                 normal=face.triangle.getTriangleNormal();
+                face.triangle.show();
                 
+                normal.normalize();
                 dist=normal.magnitude();
-                
-                
                 //6. Get simplex point
                 
                 simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, normal);
                 
-                //normal.normalize();
+                
 
                 //7. check if need to exit loop
                 if (simplexPoint.minkowskiPoint.toVector().dot(normal)-dist<0.0001) {
@@ -129,8 +133,6 @@ namespace U4DEngine{
          
             }
             //13. if exit loop, get barycentric points
-           
-            std::cout<<dist<<std::endl;
             
             
       }//end if Q==4
