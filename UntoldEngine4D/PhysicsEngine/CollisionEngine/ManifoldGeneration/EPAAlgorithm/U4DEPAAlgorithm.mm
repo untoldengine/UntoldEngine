@@ -47,97 +47,94 @@ namespace U4DEngine{
             
             
             
-            float dist=0;
-            U4DVector3n normal(0,0,0);
+            float u=FLT_MAX;
+            U4DVector3n closestNormal(0,0,0); //closest Normal
             
-            if (tetrahedron.isValid()) {
+            while (iterationSteps<25) {
                 
-                while (iterationSteps<25) {
+                //4. which face is closest to origin
+                POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
+                
+                face.isSeenByPoint=true;
+                
+                
+                //5. Get normal of face
+                closestNormal=face.triangle.getTriangleNormal();
+                
+                //6. Get simplex point
+                
+                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, closestNormal);
+                
+                closestNormal.normalize();
+                
+                float directionVector=simplexPoint.minkowskiPoint.toVector().dot(closestNormal);
+                
+                u=MIN(u, directionVector);
+                
+                float closestPointMagnitude=simplexPoint.minkowskiPoint.magnitude();
+                
+                //7. check if need to exit loop
+                if (closestPointMagnitude-u<0.0001) {
                     
-                    //4. which face is closest to origin
-                    POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
-                    
-                    face.isSeenByPoint=true;
-                    
-                    
-                    //5. Get normal of face
-                    normal=face.triangle.getTriangleNormal();
-                    
-                    
-                    normal.normalize();
-                    dist=normal.magnitudeSquare();
-                    //6. Get simplex point
-                    
-                    simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, normal);
-                    
-                    
-                    
-                    //7. check if need to exit loop
-                    if (simplexPoint.minkowskiPoint.toVector().dot(normal)-dist<0.0001) {
-                        
-                        //break from loop
-                        break;
-                        
-                    }
-                    
-                    //8. Which faces is seen by simplex point
-                    
-                    std::vector<POLYTOPEFACES>& trianglesInPolytope=polytope.getFacesOfPolytope();
-                    
-                    //faces container
-                    std::vector<U4DTriangle> trianglesSeenByPoint;
-                    
-                    for (int n=0; n<trianglesInPolytope.size(); n++) {
-                        
-                        U4DTriangle triangle=trianglesInPolytope.at(n).triangle;
-                        
-                        U4DVector3n triangleNormal=(triangle.pointA-triangle.pointB).cross(triangle.pointA-triangle.pointC);
-                        
-                        if (triangleNormal.dot(triangle.pointA-simplexPoint.minkowskiPoint)>=0) { //if dot>0, then face seen by point
-                            
-                            trianglesInPolytope.at(n).isSeenByPoint=true;
-                            trianglesSeenByPoint.push_back(triangle);
-                        }
-                        
-                    }
-                    //9. build tetrahedron with triangles seen by point
-                    
-                    for (int i=0; i<trianglesSeenByPoint.size(); i++) {
-                        
-                        U4DTriangle triangle=trianglesSeenByPoint.at(i);
-                        
-                        std::vector<U4DPoint3n> vertices=triangle.getTriangleVertices();
-                        
-                        U4DTetrahedron newTetrahedron(vertices.at(0),vertices.at(1),vertices.at(2),simplexPoint.minkowskiPoint);
-                        
-                        std::vector<U4DTriangle> newTriangles=newTetrahedron.getTrianglesOfTetrahedron();
-                        
-                        
-                        //10. Load triangles to Polytope
-                        
-                        for (int j=0; j<newTriangles.size(); j++) {
-                            
-                            polytope.addFaceToPolytope(newTriangles.at(j));
-                        }
-                        
-                    }
-                    
-                    //11. Remove duplicate faces
-                    trianglesInPolytope.erase(std::remove_if(trianglesInPolytope.begin(), trianglesInPolytope.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),trianglesInPolytope.end());
-                    
-                    
-                    
-                    //12. go back to 4
-                    
-                    iterationSteps++;
+                    //break from loop
+                    break;
                     
                 }
-                //13. if exit loop, get barycentric points
-                std::cout<<dist<<std::endl;
-                normal.show();
-            }//end if tetrahedron is valid
-            
-            
+                
+                //8. Which faces is seen by simplex point
+                
+                std::vector<POLYTOPEFACES>& trianglesInPolytope=polytope.getFacesOfPolytope();
+                
+                //faces container
+                std::vector<U4DTriangle> trianglesSeenByPoint;
+                
+                for (int n=0; n<trianglesInPolytope.size(); n++) {
+                    
+                    U4DTriangle triangle=trianglesInPolytope.at(n).triangle;
+                    
+                    U4DVector3n triangleNormal=(triangle.pointA-triangle.pointB).cross(triangle.pointA-triangle.pointC);
+                    
+                    if (triangleNormal.dot(triangle.pointA-simplexPoint.minkowskiPoint)>=0) { //if dot>0, then face seen by point
+                        
+                        trianglesInPolytope.at(n).isSeenByPoint=true;
+                        trianglesSeenByPoint.push_back(triangle);
+                    }
+                    
+                }
+                //9. build tetrahedron with triangles seen by point
+                
+                for (int i=0; i<trianglesSeenByPoint.size(); i++) {
+                    
+                    U4DTriangle triangle=trianglesSeenByPoint.at(i);
+                    
+                    std::vector<U4DPoint3n> vertices=triangle.getTriangleVertices();
+                    
+                    U4DTetrahedron newTetrahedron(vertices.at(0),vertices.at(1),vertices.at(2),simplexPoint.minkowskiPoint);
+                    
+                    std::vector<U4DTriangle> newTriangles=newTetrahedron.getTrianglesOfTetrahedron();
+                    
+                    
+                    //10. Load triangles to Polytope
+                    
+                    for (int j=0; j<newTriangles.size(); j++) {
+                        
+                        polytope.addFaceToPolytope(newTriangles.at(j));
+                    }
+                    
+                }
+                
+                //11. Remove duplicate faces
+                trianglesInPolytope.erase(std::remove_if(trianglesInPolytope.begin(), trianglesInPolytope.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),trianglesInPolytope.end());
+                
+                
+                
+                //12. go back to 4
+                
+                iterationSteps++;
+                
+            }
+            //13. if exit loop, get barycentric points
+            simplexPoint.minkowskiPoint.show();
             
       }//end if Q==4
         
