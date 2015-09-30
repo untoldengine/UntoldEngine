@@ -68,7 +68,7 @@ void Earth::init(){
     float height=1.0;
     float depth=1.0;
     
-    
+    /*
     U4DEngine::U4DVector3n v1(width,height,depth);
     U4DEngine::U4DVector3n v2(width,height,-depth);
     U4DEngine::U4DVector3n v3(-width,height,-depth);
@@ -81,9 +81,9 @@ void Earth::init(){
     
     
     std::vector<U4DEngine::U4DVector3n> vertices{v1,v2,v3,v4,v5,v6,v7,v8};
+    */
     
     
-    /*
     U4DEngine::U4DVector3n v1(4,11,0);
     U4DEngine::U4DVector3n v2(9,9,0);
     U4DEngine::U4DVector3n v3(4,5,0);
@@ -97,14 +97,14 @@ void Earth::init(){
     
    
     std::vector<U4DEngine::U4DVector3n> vertices2{v4,v5,v6,v7};
-    */
+    
     
     U4DEngine::U4DConvexPolygon* cubePolygon=new U4DEngine::U4DConvexPolygon();
-    cubePolygon->setVerticesInConvexPolygon(vertices);
+    cubePolygon->setVerticesInConvexPolygon(vertices1);
     
     
     U4DEngine::U4DConvexPolygon* cubePolygon2=new U4DEngine::U4DConvexPolygon();
-    cubePolygon2->setVerticesInConvexPolygon(vertices);
+    cubePolygon2->setVerticesInConvexPolygon(vertices2);
     
     setName("earth");
     

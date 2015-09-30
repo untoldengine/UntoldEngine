@@ -37,6 +37,9 @@ namespace U4DEngine {
         
         U4DPoint3n sb=uBoundingVolume1->getSupportPointInDirection(uDirection);
         
+        //set direction back to normal
+        uDirection.negate();
+        
         //sb - sa
         U4DPoint3n sab=(sb-sa).toPoint();
         

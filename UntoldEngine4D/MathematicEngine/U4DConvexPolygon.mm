@@ -42,8 +42,8 @@ namespace U4DEngine {
         //update the vertices with the orientation and translation
         for (auto& vertex:tempPolygonVertices) {
             
-            vertex=orientation*vertex;
-            vertex=vertex+center;
+            //vertex=orientation*vertex;
+            //vertex=vertex+center;
             
         }
         

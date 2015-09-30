@@ -40,16 +40,21 @@ namespace U4DEngine {
          */
         
         
-        U4DVector3n dir(1,1,1);
+        U4DVector3n dir(1,-1,0);
         
         U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
-        dir=c.minkowskiPoint.toVector();
+        //dir=c.minkowskiPoint.toVector();
         
+        dir.negate();
         
         U4DSimplexStruct b=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
+        
+        //test if the last point added past the origin
         if (b.minkowskiPoint.toVector().dot(dir)<0) {
+            
+            //if it did not passed the origin, then there is no way for the simplex to contain the point
             return false;
         }
         
@@ -84,7 +89,7 @@ namespace U4DEngine {
             
             dir=closestPtToOrigin.toVector();
             
-            
+            dir.negate();
             U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
             /*
