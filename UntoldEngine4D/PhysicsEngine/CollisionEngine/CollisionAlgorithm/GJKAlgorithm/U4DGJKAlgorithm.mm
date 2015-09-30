@@ -30,6 +30,8 @@ namespace U4DEngine {
         U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
         
         
+       // calculateMinkowskiPoints(boundingVolume1, boundingVolume2);
+        
         int iterationSteps=0; //to avoid infinite loop
         
         /*
@@ -39,7 +41,7 @@ namespace U4DEngine {
         
         
         U4DVector3n dir(1,1,1);
-       
+        
         U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         dir=c.minkowskiPoint.toVector();
@@ -139,22 +141,27 @@ namespace U4DEngine {
         
         U4DSegment segment(a,b);
         
-        Q.clear();
-        
-        //check if point is equals to a
-        if (a==uClosestPointToOrigin) {
-            Q.push_back(tempSupportPointQA);
-        
-        //check if point is equals to b
-        }else if(b==uClosestPointToOrigin){
-            Q.push_back(tempSupportPointQB);
+        if (segment.isValid()) {
             
-        //else point lies in segment ab
-        }else{
+            Q.clear();
             
-            Q.push_back(tempSupportPointQA);
-            Q.push_back(tempSupportPointQB);
-        }
+            //check if point is equals to a
+            if (a==uClosestPointToOrigin) {
+                Q.push_back(tempSupportPointQA);
+                
+                //check if point is equals to b
+            }else if(b==uClosestPointToOrigin){
+                Q.push_back(tempSupportPointQB);
+                
+                //else point lies in segment ab
+            }else{
+                
+                Q.push_back(tempSupportPointQA);
+                Q.push_back(tempSupportPointQB);
+            }
+            
+        }//end if segment is valid
+        
         
     }
 
@@ -176,41 +183,45 @@ namespace U4DEngine {
 
         U4DTriangle triangle(a,b,c);
         
-        //check if the point is in the triangl
-        if (triangle.isPointOnTriangle(uClosestPointToOrigin)) {
-         
-            //clear Q
-            Q.clear();
+        if (triangle.isValid()) {
             
-            
-            //if point is a linear combination of ab
-            if(ab.isPointOnSegment(uClosestPointToOrigin)){
+            //check if the point is in the triangle
+            if (triangle.isPointOnTriangle(uClosestPointToOrigin)) {
                 
-                Q.push_back(tempSupportPointQA);
-                Q.push_back(tempSupportPointQB);
+                //clear Q
+                Q.clear();
                 
-            //if point is a linear combination of ac
-            }else if(ac.isPointOnSegment(uClosestPointToOrigin)){
                 
-                Q.push_back(tempSupportPointQA);
-                Q.push_back(tempSupportPointQC);
-                
-            //if point is a linear combination of bc
-            }else if(bc.isPointOnSegment(uClosestPointToOrigin)){
-                
-                Q.push_back(tempSupportPointQB);
-                Q.push_back(tempSupportPointQC);
-                
-            //the point is part of the triangle but not found on edges.
-            }else{
-                
-                Q.push_back(tempSupportPointQA);
-                Q.push_back(tempSupportPointQB);
-                Q.push_back(tempSupportPointQC);
+                //if point is a linear combination of ab
+                if(ab.isPointOnSegment(uClosestPointToOrigin)){
+                    
+                    Q.push_back(tempSupportPointQA);
+                    Q.push_back(tempSupportPointQB);
+                    
+                    //if point is a linear combination of ac
+                }else if(ac.isPointOnSegment(uClosestPointToOrigin)){
+                    
+                    Q.push_back(tempSupportPointQA);
+                    Q.push_back(tempSupportPointQC);
+                    
+                    //if point is a linear combination of bc
+                }else if(bc.isPointOnSegment(uClosestPointToOrigin)){
+                    
+                    Q.push_back(tempSupportPointQB);
+                    Q.push_back(tempSupportPointQC);
+                    
+                    //the point is part of the triangle but not found on edges.
+                }else{
+                    
+                    Q.push_back(tempSupportPointQA);
+                    Q.push_back(tempSupportPointQB);
+                    Q.push_back(tempSupportPointQC);
+                    
+                }
                 
             }
             
-        }
+        }//end if triangle is valid
         
     }
 
@@ -235,61 +246,65 @@ namespace U4DEngine {
 
         U4DTetrahedron tetrahedron(a,b,c,d);
         
-        //check if the point is in the tetrahedron
+        if (tetrahedron.isValid()) {
         
-        if (tetrahedron.isPointInTetrahedron(uClosestPointToOrigin)) {
+            //check if the point is in the tetrahedron
             
-            //clear Q
-            Q.clear();
-            
-                    //if point is a linear combination of abc
-            if(abc.isPointOnTriangle(uClosestPointToOrigin)){
+            if (tetrahedron.isPointInTetrahedron(uClosestPointToOrigin)) {
                 
+                //clear Q
+                Q.clear();
                 
-                Q.push_back(tempSupportPointQA);
-                Q.push_back(tempSupportPointQB);
-                Q.push_back(tempSupportPointQC);
-            
-                
-            determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
-            //if point is a linear combination of abd
-            }else if(adb.isPointOnTriangle(uClosestPointToOrigin)){
-                
-                
-                Q.push_back(tempSupportPointQA);
-                Q.push_back(tempSupportPointQB);
-                Q.push_back(tempSupportPointQC);
-            
-            determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
-            //if point is a linear combination of acd
-            }else if(acd.isPointOnTriangle(uClosestPointToOrigin)){
-                
-                
-                Q.push_back(tempSupportPointQA);
-                Q.push_back(tempSupportPointQC);
-                Q.push_back(tempSupportPointQD);
-               
-            determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
-            //if point is a linear combination of bcd
-            }else if(bdc.isPointOnTriangle(uClosestPointToOrigin)){
-                
-                
-                Q.push_back(tempSupportPointQB);
-                Q.push_back(tempSupportPointQC);
-                Q.push_back(tempSupportPointQD);
-                
-            determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
-            //point is found in tetrahedron but not found on the triangle faces
-            }else{
-                
-                Q.push_back(tempSupportPointQA);
-                Q.push_back(tempSupportPointQB);
-                Q.push_back(tempSupportPointQC);
-                Q.push_back(tempSupportPointQD);
+                //if point is a linear combination of abc
+                if(abc.isPointOnTriangle(uClosestPointToOrigin)){
+                    
+                    
+                    Q.push_back(tempSupportPointQA);
+                    Q.push_back(tempSupportPointQB);
+                    Q.push_back(tempSupportPointQC);
+                    
+                    
+                    determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
+                    //if point is a linear combination of abd
+                }else if(adb.isPointOnTriangle(uClosestPointToOrigin)){
+                    
+                    
+                    Q.push_back(tempSupportPointQA);
+                    Q.push_back(tempSupportPointQB);
+                    Q.push_back(tempSupportPointQC);
+                    
+                    determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
+                    //if point is a linear combination of acd
+                }else if(acd.isPointOnTriangle(uClosestPointToOrigin)){
+                    
+                    
+                    Q.push_back(tempSupportPointQA);
+                    Q.push_back(tempSupportPointQC);
+                    Q.push_back(tempSupportPointQD);
+                    
+                    determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
+                    //if point is a linear combination of bcd
+                }else if(bdc.isPointOnTriangle(uClosestPointToOrigin)){
+                    
+                    
+                    Q.push_back(tempSupportPointQB);
+                    Q.push_back(tempSupportPointQC);
+                    Q.push_back(tempSupportPointQD);
+                    
+                    determineMinimumSimplexInQ(uClosestPointToOrigin,Q.size());
+                    //point is found in tetrahedron but not found on the triangle faces
+                }else{
+                    
+                    Q.push_back(tempSupportPointQA);
+                    Q.push_back(tempSupportPointQB);
+                    Q.push_back(tempSupportPointQC);
+                    Q.push_back(tempSupportPointQD);
+                    
+                }
                 
             }
             
-        }
+        }//end if tetrahedron is valid
         
     }
 

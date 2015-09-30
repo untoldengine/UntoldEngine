@@ -33,6 +33,7 @@ namespace U4DEngine {
         
         std::vector<float> determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ);
         
+        void calculateMinkowskiPoints(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2);
     };
 }
 

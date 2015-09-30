@@ -47,7 +47,7 @@ namespace U4DEngine {
             
         }
         
-        float dotProduct=FLT_MIN;
+        float dotProduct=-FLT_MAX;
         float support=0.0;
         
         //return the max dot product as the supporting vertex
@@ -57,7 +57,7 @@ namespace U4DEngine {
             
             support=vertex.dot(uDirection);
             
-            if(support>=dotProduct){
+            if(support>dotProduct){
                 
                 dotProduct=support;
                 index=i;

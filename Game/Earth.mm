@@ -54,6 +54,7 @@
 
 void Earth::init(){
     
+    
     //U4DDebugger *debugger=new U4DDebugger();
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
@@ -81,6 +82,23 @@ void Earth::init(){
     
     std::vector<U4DEngine::U4DVector3n> vertices{v1,v2,v3,v4,v5,v6,v7,v8};
     
+    
+    /*
+    U4DEngine::U4DVector3n v1(4,11,0);
+    U4DEngine::U4DVector3n v2(9,9,0);
+    U4DEngine::U4DVector3n v3(4,5,0);
+    
+    std::vector<U4DEngine::U4DVector3n> vertices1{v1,v2,v3};
+
+    U4DEngine::U4DVector3n v4(5,7,0);
+    U4DEngine::U4DVector3n v5(12,7,0);
+    U4DEngine::U4DVector3n v6(10,2,0);
+    U4DEngine::U4DVector3n v7(7,3,0);
+    
+   
+    std::vector<U4DEngine::U4DVector3n> vertices2{v4,v5,v6,v7};
+    */
+    
     U4DEngine::U4DConvexPolygon* cubePolygon=new U4DEngine::U4DConvexPolygon();
     cubePolygon->setVerticesInConvexPolygon(vertices);
     
@@ -104,7 +122,7 @@ void Earth::init(){
     
     
     cube2=new Town();
-    cube2->init("Cube",1.7,0.2,0.0);
+    cube2->init("Cube",0.0,0.0,0.0);
     cube2->setBoundingVolume(cubePolygon2);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);

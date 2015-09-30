@@ -184,7 +184,11 @@ namespace U4DEngine {
     
     bool U4DTriangle::isValid(){
         
-        if ((pointA.toVector()+pointB.toVector()).magnitudeSquare()>pointC.toVector().magnitudeSquare()) {
+        float ab=(pointA-pointB).magnitude();
+        float ac=(pointA-pointC).magnitude();
+        float bc=(pointB-pointC).magnitude();
+        
+        if ((ab+ac>bc) && (ab+bc>ac)&&(ac+bc>ab)) {
             return true;
         }else{
             return false;
