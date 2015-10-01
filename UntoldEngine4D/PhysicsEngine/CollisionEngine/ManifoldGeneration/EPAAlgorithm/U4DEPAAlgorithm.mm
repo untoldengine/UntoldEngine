@@ -48,33 +48,28 @@ namespace U4DEngine{
             
             
             float u=FLT_MAX;
-            U4DVector3n closestNormal(0,0,0); //closest Normal
+            U4DVector3n faceNormal(0,0,0); //closest Normal
             
             while (iterationSteps<25) {
                 
                 //4. which face is closest to origin
                 POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
                 
-                face.isSeenByPoint=true;
+                //face.isSeenByPoint=true;
                 
                 
                 //5. Get normal of face
-                closestNormal=face.triangle.getTriangleNormal();
+                faceNormal=face.triangle.getTriangleNormal();
                 
+                faceNormal.normalize();
                 //6. Get simplex point
                 
-                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, closestNormal);
+                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormal);
                 
-                closestNormal.normalize();
-                
-                float directionVector=simplexPoint.minkowskiPoint.toVector().dot(closestNormal);
-                
-                u=MIN(u, directionVector);
-                
-                float closestPointMagnitude=simplexPoint.minkowskiPoint.magnitude();
-                
+                float d=simplexPoint.minkowskiPoint.toVector().dot(faceNormal);
+                float faceNormalMagnitude=faceNormal.magnitude();
                 //7. check if need to exit loop
-                if (closestPointMagnitude-u<0.0001) {
+                if (d-faceNormalMagnitude<0.0001) {
                     
                     //break from loop
                     break;
@@ -107,9 +102,7 @@ namespace U4DEngine{
                     
                     U4DTriangle triangle=trianglesSeenByPoint.at(i);
                     
-                    std::vector<U4DPoint3n> vertices=triangle.getTriangleVertices();
-                    
-                    U4DTetrahedron newTetrahedron(vertices.at(0),vertices.at(1),vertices.at(2),simplexPoint.minkowskiPoint);
+                    U4DTetrahedron newTetrahedron(triangle.pointA,triangle.pointB,triangle.pointC,simplexPoint.minkowskiPoint);
                     
                     std::vector<U4DTriangle> newTriangles=newTetrahedron.getTrianglesOfTetrahedron();
                     
