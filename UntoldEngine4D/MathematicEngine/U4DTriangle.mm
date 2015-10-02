@@ -19,9 +19,9 @@ namespace U4DEngine {
         pointB=uPointB;
         pointC=uPointC;
         
-        vertices.push_back(pointA);
-        vertices.push_back(pointB);
-        vertices.push_back(pointC);
+        segmentAB=U4DSegment(uPointA,uPointB);
+        segmentAC=U4DSegment(uPointA,uPointC);
+        segmentBC=U4DSegment(uPointB,uPointC);
         
     }
 
@@ -177,10 +177,6 @@ namespace U4DEngine {
         return (pointA-pointB).cross(pointA-pointC);
     }
     
-    std::vector<U4DPoint3n>& U4DTriangle::getTriangleVertices(){
-        
-        return vertices;
-    }
     
     bool U4DTriangle::isValid(){
         
@@ -194,6 +190,13 @@ namespace U4DEngine {
             return false;
         }
         
+    }
+    
+    std::vector<U4DSegment> U4DTriangle::getSegments(){
+        
+        std::vector<U4DSegment> segments{segmentAB,segmentAC,segmentBC};
+        
+        return segments;
     }
     
     void U4DTriangle::show(){

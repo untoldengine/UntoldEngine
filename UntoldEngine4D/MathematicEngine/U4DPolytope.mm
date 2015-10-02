@@ -34,11 +34,12 @@ namespace U4DEngine {
             
         }else{
             
-            for (int i=0; i<polytopeFaces.size(); i++) {
+            for (auto &currentfaces:polytopeFaces) {
             
                
-                if (polytopeFaces.at(i).triangle==uTriangle) {
+                if (currentfaces.triangle==uTriangle) {
                     
+                    currentfaces.isSeenByPoint=true;
                     triangleExist=true;
                     
                     break;

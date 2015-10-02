@@ -32,22 +32,13 @@ namespace U4DEngine{
             int iterationSteps=0; //to avoid infinite loop
             
             //1. Build tetrahedron from Q
-            U4DTetrahedron tetrahedron(uQ.at(0).minkowskiPoint,uQ.at(1).minkowskiPoint,uQ.at(2).minkowskiPoint,uQ.at(3).minkowskiPoint);
-            
-            //2. get triangles of tetrahedron
-            std::vector<U4DTriangle> triangles=tetrahedron.getTrianglesOfTetrahedron();
-            
-            
-            //3. Load triangles to Polytope
-            
-            for (int i=0; i<triangles.size(); i++) {
-                
-                polytope.addFaceToPolytope(triangles.at(i));
-            }
             
             
             
-            float u=FLT_MAX;
+            //2. Load triangles to Polytope
+          
+            
+            
             U4DVector3n faceNormal(0,0,0); //closest Normal
             
             while (iterationSteps<25) {
@@ -55,21 +46,24 @@ namespace U4DEngine{
                 //4. which face is closest to origin
                 POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
                 
-                //face.isSeenByPoint=true;
-                
+                face.isSeenByPoint=true;
                 
                 //5. Get normal of face
                 faceNormal=face.triangle.getTriangleNormal();
                 
+                
                 faceNormal.normalize();
                 //6. Get simplex point
+                
                 
                 simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormal);
                 
                 float d=simplexPoint.minkowskiPoint.toVector().dot(faceNormal);
+                
                 float faceNormalMagnitude=faceNormal.magnitude();
+                
                 //7. check if need to exit loop
-                if (d-faceNormalMagnitude<0.0001) {
+                if (d-faceNormalMagnitude<0.001) {
                     
                     //break from loop
                     break;
@@ -78,46 +72,12 @@ namespace U4DEngine{
                 
                 //8. Which faces is seen by simplex point
                 
-                std::vector<POLYTOPEFACES>& trianglesInPolytope=polytope.getFacesOfPolytope();
                 
-                //faces container
-                std::vector<U4DTriangle> trianglesSeenByPoint;
+                //9. build polytope with triangles seen by point
                 
-                for (int n=0; n<trianglesInPolytope.size(); n++) {
-                    
-                    U4DTriangle triangle=trianglesInPolytope.at(n).triangle;
-                    
-                    U4DVector3n triangleNormal=(triangle.pointA-triangle.pointB).cross(triangle.pointA-triangle.pointC);
-                    
-                    if (triangleNormal.dot(triangle.pointA-simplexPoint.minkowskiPoint)>=0) { //if dot>0, then face seen by point
-                        
-                        trianglesInPolytope.at(n).isSeenByPoint=true;
-                        trianglesSeenByPoint.push_back(triangle);
-                    }
-                    
-                }
-                //9. build tetrahedron with triangles seen by point
-                
-                for (int i=0; i<trianglesSeenByPoint.size(); i++) {
-                    
-                    U4DTriangle triangle=trianglesSeenByPoint.at(i);
-                    
-                    U4DTetrahedron newTetrahedron(triangle.pointA,triangle.pointB,triangle.pointC,simplexPoint.minkowskiPoint);
-                    
-                    std::vector<U4DTriangle> newTriangles=newTetrahedron.getTrianglesOfTetrahedron();
-                    
-                    
-                    //10. Load triangles to Polytope
-                    
-                    for (int j=0; j<newTriangles.size(); j++) {
-                        
-                        polytope.addFaceToPolytope(newTriangles.at(j));
-                    }
-                    
-                }
+               
                 
                 //11. Remove duplicate faces
-                trianglesInPolytope.erase(std::remove_if(trianglesInPolytope.begin(), trianglesInPolytope.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),trianglesInPolytope.end());
                 
                 
                 
@@ -127,7 +87,8 @@ namespace U4DEngine{
                 
             }
             //13. if exit loop, get barycentric points
-            simplexPoint.minkowskiPoint.show();
+           
+            
             
       }//end if Q==4
         

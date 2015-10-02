@@ -25,16 +25,11 @@ namespace U4DEngine {
         
         //set triangles that makes up the tetrahedron
         
-        U4DTriangle abc(pointA,pointB,pointC);
-        U4DTriangle acd(pointA,pointC,pointD);
-        U4DTriangle adb(pointA,pointD,pointB);
-        U4DTriangle bdc(pointB,pointD,pointC);
-        
-        triangles.push_back(abc);
-        triangles.push_back(acd);
-        triangles.push_back(adb);
-        triangles.push_back(bdc);
-        
+        triangleABC=U4DTriangle(pointA,pointB,pointC);
+        triangleACD=U4DTriangle(pointA,pointC,pointD);
+        triangleADB=U4DTriangle(pointA,pointD,pointB);
+        triangleBDC=U4DTriangle(pointB,pointD,pointC);
+    
     }
 
     U4DTetrahedron::~U4DTetrahedron(){
@@ -147,6 +142,8 @@ namespace U4DEngine {
         float distance=FLT_MAX;
         int index=0;
         
+        std::vector<U4DTriangle> triangles=getTriangles();
+        
         for (int i=0; i<triangles.size(); i++) {
             
             U4DPoint3n closestPoint=triangles.at(i).closestPointOnTriangleToPoint(uPoint);
@@ -226,11 +223,6 @@ namespace U4DEngine {
         
     }
     
-    std::vector<U4DTriangle>& U4DTetrahedron::getTrianglesOfTetrahedron(){
-        
-        
-        return triangles;
-    }
     
     bool U4DTetrahedron::isValid(){
         
@@ -248,6 +240,12 @@ namespace U4DEngine {
         
     }
     
+    std::vector<U4DTriangle> U4DTetrahedron::getTriangles(){
+        
+        std::vector<U4DTriangle> triangles{triangleABC,triangleACD,triangleADB,triangleBDC};
+        
+        return triangles;
+    }
     
     void U4DTetrahedron::show(){
         

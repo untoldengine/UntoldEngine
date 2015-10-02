@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DPoint3n.h"
+#include "U4DSegment.h"
 
 namespace U4DEngine {
     
@@ -19,13 +20,15 @@ class U4DTriangle{
     
 private:
     
-    std::vector<U4DPoint3n> vertices;
-    
 public:
     
     U4DPoint3n pointA;
     U4DPoint3n pointB;
     U4DPoint3n pointC;
+    
+    U4DSegment segmentAB;
+    U4DSegment segmentAC;
+    U4DSegment segmentBC;
     
     U4DTriangle(){};
     
@@ -33,7 +36,7 @@ public:
     ~U4DTriangle();
     
     
-    U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),vertices(a.vertices){};
+    U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),segmentAB(a.segmentAB),segmentAC(a.segmentAC),segmentBC(a.segmentBC){};
     
     
     inline U4DTriangle& operator=(const U4DTriangle& a){
@@ -42,7 +45,9 @@ public:
         pointB=a.pointB;
         pointC=a.pointC;
         
-        vertices=a.vertices;
+        segmentAB=a.segmentAB;
+        segmentAC=a.segmentAC;
+        segmentBC=a.segmentBC;
         
         return *this;
     };
@@ -59,12 +64,9 @@ public:
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV, float& baryCoordinateW);
     
     U4DVector3n getTriangleNormal();
+ 
+    std::vector<U4DSegment> getSegments();
     
-    std::vector<U4DPoint3n>& getTriangleVertices();
-    
-    /**
-     *  Debug-show the vector on the output log
-     */
     void show();
     
     bool isValid();

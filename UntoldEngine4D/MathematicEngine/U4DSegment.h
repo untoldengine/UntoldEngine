@@ -10,6 +10,7 @@
 #define __UntoldEngine__U4DSegment__
 
 #include <stdio.h>
+#include <vector>
 #include <iostream>
 #include "U4DPoint3n.h"
 
@@ -20,17 +21,7 @@ namespace U4DEngine {
 class U4DSegment{
     
 private:
-    
-    /**
-     @brief  barycentric point u of segment
-     */
-    float barycentricU;
-    
-    /**
-     @brief  barycentric point v of segment
-     */
-    float barycentricV;
-    
+        
 public:
     
     /*!
@@ -111,6 +102,8 @@ public:
     float sqDistancePointSegment(U4DPoint3n& uPoint);
     
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV);
+    
+    std::vector<U4DPoint3n> getPoints();
     
     /**
      *  Debug-show the vector on the output log

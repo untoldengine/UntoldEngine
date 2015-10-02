@@ -180,6 +180,13 @@ namespace U4DEngine {
         
     }
     
+    std::vector<U4DPoint3n> U4DSegment::getPoints(){
+        
+        std::vector<U4DPoint3n> points{pointA,pointB};
+    
+        return points;
+    }
+    
     void U4DSegment::show(){
         
         std::cout<<"Point A: "<<std::endl;
