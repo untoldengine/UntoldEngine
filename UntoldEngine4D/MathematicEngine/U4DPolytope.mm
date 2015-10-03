@@ -40,7 +40,6 @@ namespace U4DEngine {
                
                 if (currentfaces.triangle==uTriangle) {
                     
-                    currentfaces.isSeenByPoint=true;
                     triangleExist=true;
                     
                     break;
@@ -72,7 +71,7 @@ namespace U4DEngine {
         for (int i=0; i<polytopeFaces.size(); i++) {
            
             //get normal of triangle
-            U4DVector3n closestFace=polytopeFaces.at(i).triangle.getTriangleNormal();
+            U4DVector3n closestFace=polytopeFaces.at(i).triangle.closestPointOnTriangleToPoint(uPoint).toVector();
             
             //normalize
             closestFace.normalize();

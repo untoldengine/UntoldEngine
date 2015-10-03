@@ -39,7 +39,6 @@ namespace U4DEngine{
             U4DTetrahedron tetrahedron(uQ.at(0).minkowskiPoint,uQ.at(1).minkowskiPoint,uQ.at(2).minkowskiPoint,uQ.at(3).minkowskiPoint);
             
             
-    
             //2. get triangles of tetrahedron
             std::vector<U4DTriangle> triangles=tetrahedron.getTriangles();
             
@@ -84,8 +83,8 @@ namespace U4DEngine{
                 //8. Which faces is seen by simplex point
                 for (auto face:polytope.getFacesOfPolytope()) {
                     
-                    U4DVector3n triangleNormal=(face.triangle.pointA-face.triangle.pointC).cross(face.triangle.pointA-face.triangle.pointB);
-                    
+                    U4DVector3n triangleNormal=(face.triangle.pointA-face.triangle.pointB).cross(face.triangle.pointA-face.triangle.pointC);
+                
                     if (triangleNormal.dot(simplexPoint.minkowskiPoint.toVector())>=0) { //if dot>0, then face seen by point
                         
                         face.isSeenByPoint=true;
@@ -95,9 +94,9 @@ namespace U4DEngine{
                         POLYTOPEEDGES bc;
                         POLYTOPEEDGES ca;
                         
-                        ab.segment=face.triangle.segmentAB.negate();
-                        bc.segment=face.triangle.segmentBC.negate();
-                        ca.segment=face.triangle.segmentAC.negate();
+                        ab.segment=face.triangle.segmentAB;
+                        bc.segment=face.triangle.segmentBC;
+                        ca.segment=face.triangle.segmentCA;
                         
                         ab.isDuplicate=false;
                         bc.isDuplicate=false;
@@ -127,9 +126,9 @@ namespace U4DEngine{
                             }//end for
                             
                             
-                            edges.push_back(ab);
-                            edges.push_back(bc);
-                            edges.push_back(ca);
+                            edges.push_back(tempEdges.at(0));
+                            edges.push_back(tempEdges.at(1));
+                            edges.push_back(tempEdges.at(2));
                             
                         }//end if
                         

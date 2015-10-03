@@ -20,9 +20,9 @@ namespace U4DEngine {
         pointC=uPointC;
         
         segmentAB=U4DSegment(uPointA,uPointB);
-        segmentAC=U4DSegment(uPointA,uPointC);
         segmentBC=U4DSegment(uPointB,uPointC);
-        
+        segmentCA=U4DSegment(uPointC,uPointA);
+
     }
 
     U4DTriangle::~U4DTriangle(){
@@ -194,7 +194,7 @@ namespace U4DEngine {
     
     std::vector<U4DSegment> U4DTriangle::getSegments(){
         
-        std::vector<U4DSegment> segments{segmentAB,segmentAC,segmentBC};
+        std::vector<U4DSegment> segments{segmentAB,segmentBC,segmentCA};
         
         return segments;
     }

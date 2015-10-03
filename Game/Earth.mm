@@ -82,65 +82,12 @@ void Earth::init(){
     std::vector<U4DEngine::U4DVector3n> vertices{v1,v2,v3,v4,v5,v6,v7,v8};
     
     
-    U4DEngine::U4DVector3n v1b(width+1.7,height,depth);
-    U4DEngine::U4DVector3n v2b(width+1.7,height,-depth);
-    U4DEngine::U4DVector3n v3b(-width+1.7,height,-depth);
-    U4DEngine::U4DVector3n v4b(-width+1.7,height,depth);
-    
-    U4DEngine::U4DVector3n v5b(width+1.7,-height,depth);
-    U4DEngine::U4DVector3n v6b(width+1.7,-height,-depth);
-    U4DEngine::U4DVector3n v7b(-width+1.7,-height,-depth);
-    U4DEngine::U4DVector3n v8b(-width+1.7,-height,depth);
-    
-    /*
-    U4DEngine::U4DVector3n v1b(width,height+1.7,depth);
-    U4DEngine::U4DVector3n v2b(width,height+1.7,-depth);
-    U4DEngine::U4DVector3n v3b(-width,height+1.7,-depth);
-    U4DEngine::U4DVector3n v4b(-width,height+1.7,depth);
-    
-    U4DEngine::U4DVector3n v5b(width,-height+1.7,depth);
-    U4DEngine::U4DVector3n v6b(width,-height+1.7,-depth);
-    U4DEngine::U4DVector3n v7b(-width,-height+1.7,-depth);
-    U4DEngine::U4DVector3n v8b(-width,-height+1.7,depth);
-    */
-    
-    /*
-    U4DEngine::U4DVector3n v1b(width,height,depth+1.7);
-    U4DEngine::U4DVector3n v2b(width,height,-depth+1.7);
-    U4DEngine::U4DVector3n v3b(-width,height,-depth+1.7);
-    U4DEngine::U4DVector3n v4b(-width,height,depth+1.7);
-    
-    U4DEngine::U4DVector3n v5b(width,-height,depth+1.7);
-    U4DEngine::U4DVector3n v6b(width,-height,-depth+1.7);
-    U4DEngine::U4DVector3n v7b(-width,-height,-depth+1.7);
-    U4DEngine::U4DVector3n v8b(-width,-height,depth+1.7);
-    */
-    
-    std::vector<U4DEngine::U4DVector3n> vertices2{v1b,v2b,v3b,v4b,v5b,v6b,v7b,v8b};
-    
-    
-    /*
-    U4DEngine::U4DVector3n v1(4,11,0);
-    U4DEngine::U4DVector3n v2(9,9,0);
-    U4DEngine::U4DVector3n v3(4,5,0);
-    
-    std::vector<U4DEngine::U4DVector3n> vertices1{v1,v2,v3};
-
-    U4DEngine::U4DVector3n v4(5,7,0);
-    U4DEngine::U4DVector3n v5(12,7,0);
-    U4DEngine::U4DVector3n v6(10,2,0);
-    U4DEngine::U4DVector3n v7(7,3,0);
-    
-   
-    std::vector<U4DEngine::U4DVector3n> vertices2{v4,v5,v6,v7};
-    */
-    
     U4DEngine::U4DConvexPolygon* cubePolygon=new U4DEngine::U4DConvexPolygon();
     cubePolygon->setVerticesInConvexPolygon(vertices);
     
     
     U4DEngine::U4DConvexPolygon* cubePolygon2=new U4DEngine::U4DConvexPolygon();
-    cubePolygon2->setVerticesInConvexPolygon(vertices2);
+    cubePolygon2->setVerticesInConvexPolygon(vertices);
     
     setName("earth");
     

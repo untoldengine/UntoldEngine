@@ -27,8 +27,8 @@ public:
     U4DPoint3n pointC;
     
     U4DSegment segmentAB;
-    U4DSegment segmentAC;
     U4DSegment segmentBC;
+    U4DSegment segmentCA;
     
     U4DTriangle(){};
     
@@ -36,7 +36,7 @@ public:
     ~U4DTriangle();
     
     
-    U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),segmentAB(a.segmentAB),segmentAC(a.segmentAC),segmentBC(a.segmentBC){};
+    U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),segmentAB(a.segmentAB),segmentCA(a.segmentCA),segmentBC(a.segmentBC){};
     
     
     inline U4DTriangle& operator=(const U4DTriangle& a){
@@ -46,8 +46,8 @@ public:
         pointC=a.pointC;
         
         segmentAB=a.segmentAB;
-        segmentAC=a.segmentAC;
         segmentBC=a.segmentBC;
+        segmentCA=a.segmentCA;
         
         return *this;
     };
