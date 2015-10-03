@@ -11,6 +11,20 @@
 
 #include <stdio.h>
 #include "U4DManifoldGeneration.h"
+#include "U4DPolytope.h"
+
+namespace U4DEngine {
+    
+    typedef struct{
+        
+    public:
+        U4DSegment edge;
+        bool tag;
+        
+    }Edges;
+    
+}
+
 
 namespace U4DEngine {
     
@@ -18,13 +32,18 @@ namespace U4DEngine {
         
     private:
         
+        
     public:
         
-        U4DEPAAlgorithm(){};
+        U4DEPAAlgorithm(){
+            
+        };
         
         ~U4DEPAAlgorithm(){};
         
+        
         void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
+        
         
     };
 }

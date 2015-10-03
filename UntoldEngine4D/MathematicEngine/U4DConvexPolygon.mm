@@ -47,17 +47,17 @@ namespace U4DEngine {
             
         }
         
-        float dotProduct=tempPolygonVertices.at(0).dot(uDirection);
+        float dotProduct=-FLT_MAX;
         float support=0.0;
         
         //return the max dot product as the supporting vertex
-        for(int i=1;i<tempPolygonVertices.size();i++){
+        for(int i=0;i<tempPolygonVertices.size();i++){
             
             U4DVector3n vertex=tempPolygonVertices.at(i);
             
             support=vertex.dot(uDirection);
             
-            if(support>=dotProduct){
+            if(support>dotProduct){
                 
                 dotProduct=support;
                 index=i;

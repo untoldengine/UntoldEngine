@@ -20,6 +20,35 @@ namespace U4DEngine {
     U4DSegment::~U4DSegment(){
         
     }
+    
+    bool U4DSegment::operator==(const U4DSegment& uSegment){
+        
+        if (pointA==uSegment.pointA && pointB==uSegment.pointB) {
+            return true;
+        }else{
+            return false;
+        }
+    }
+
+
+    bool U4DSegment::operator!=(const U4DSegment& uSegment){
+        
+        if (pointA!=uSegment.pointA && pointB!=uSegment.pointB) {
+            return true;
+        }else{
+            return false;
+        }
+    }
+    
+    U4DSegment U4DSegment::negate(){
+                
+        U4DSegment ba(pointB,pointA);
+        
+        return ba;
+        
+    }
+    
+    
 
     U4DPoint3n U4DSegment::closestPointOnSegmentToPoint(U4DPoint3n& uPoint){
         
@@ -141,6 +170,36 @@ namespace U4DEngine {
 
     }
     
+    bool U4DSegment::isValid(){
+        
+        if (pointA!=pointB) {
+            return true;
+        }else{
+            return false;
+        }
+        
+    }
     
+    std::vector<U4DPoint3n> U4DSegment::getPoints(){
+        
+        std::vector<U4DPoint3n> points{pointA,pointB};
+    
+        return points;
+    }
+    
+    void U4DSegment::show(){
+        
+        std::cout<<"Point A: "<<std::endl;
+        pointA.show();
+        std::cout<<"Point B: "<<std::endl;
+        pointB.show();
+        
+        if (isValid()) {
+            std::cout<<"Segment is Valid"<<std::endl;
+        }else{
+            std::cout<<"Segment is not valid"<<std::endl;
+        }
+        
+    }
 
 }

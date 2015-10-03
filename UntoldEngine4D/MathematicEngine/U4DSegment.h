@@ -10,6 +10,8 @@
 #define __UntoldEngine__U4DSegment__
 
 #include <stdio.h>
+#include <vector>
+#include <iostream>
 #include "U4DPoint3n.h"
 
 namespace U4DEngine {
@@ -19,17 +21,7 @@ namespace U4DEngine {
 class U4DSegment{
     
 private:
-    
-    /**
-     @brief  barycentric point u of segment
-     */
-    float barycentricU;
-    
-    /**
-     @brief  barycentric point v of segment
-     */
-    float barycentricV;
-    
+        
 public:
     
     /*!
@@ -42,6 +34,11 @@ public:
      */
     U4DPoint3n pointB;
     
+    /**
+     @brief  Default constructor
+     */
+    U4DSegment(){};
+    
     /*!
      @brief  Constructor
      */
@@ -51,6 +48,31 @@ public:
      @brief  Destructor
      */
     ~U4DSegment();
+    
+    
+    U4DSegment(const U4DSegment& a):pointA(a.pointA),pointB(a.pointB){
+        
+    };
+    
+    
+    inline U4DSegment& operator=(const U4DSegment& a){
+        
+        pointA=a.pointA;
+        pointB=a.pointB;
+        
+        return *this;
+        
+    };
+    
+    
+    
+    bool operator==(const U4DSegment& uSegment);
+    
+    bool operator!=(const U4DSegment& uSegment);
+    
+    U4DSegment negate();
+    
+    bool isNegative(U4DSegment& uSegment);
 
     /*!
      @brief  Determines the closest point on the segment to a point
@@ -81,6 +103,14 @@ public:
     
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV);
     
+    std::vector<U4DPoint3n> getPoints();
+    
+    /**
+     *  Debug-show the vector on the output log
+     */
+    void show();
+    
+    bool isValid();
 };
     
 }

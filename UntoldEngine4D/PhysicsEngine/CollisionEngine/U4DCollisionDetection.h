@@ -12,17 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DDynamicModel.h"
-
-namespace U4DEngine {
-    typedef struct{
-        
-        U4DPoint3n sa; //support point in sa
-        U4DPoint3n sb; //support point in sb
-        U4DPoint3n minkowskiPoint; //Minkowski difference point
-        
-    }U4DSimplexStruct;
-    
-}
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -38,6 +28,8 @@ namespace U4DEngine {
         virtual void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2,std::vector<U4DSimplexStruct> uQ){};
         
         U4DSimplexStruct calculateSupportPointInDirection(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, U4DVector3n& uDirection);
+        
+        U4DPoint3n determineClosestPointOnSimplexToPoint(U4DPoint3n& uPoint,std::vector<U4DSimplexStruct> uQ);
         
         std::vector<float> determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ);
         

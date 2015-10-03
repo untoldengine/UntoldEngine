@@ -44,8 +44,6 @@ namespace U4DEngine {
         
         void determineLinearCombinationOfPtInTetrahedron(U4DPoint3n& uClosestPointToOrigin);
         
-        U4DPoint3n determineClosestPointOnSimplexToPoint(U4DPoint3n& uPoint,int uNumberOfSimplexInContainer);
-        
         void determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
         
         std::vector<U4DSimplexStruct> getCurrentSimpleStruct();

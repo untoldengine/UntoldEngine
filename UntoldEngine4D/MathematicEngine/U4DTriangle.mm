@@ -7,6 +7,7 @@
 //
 
 #include "U4DTriangle.h"
+#include "U4DPoint3n.h"
 #include "U4DVector3n.h"
 #include <cmath>
 
@@ -18,10 +19,25 @@ namespace U4DEngine {
         pointB=uPointB;
         pointC=uPointC;
         
+        segmentAB=U4DSegment(uPointA,uPointB);
+        segmentBC=U4DSegment(uPointB,uPointC);
+        segmentCA=U4DSegment(uPointC,uPointA);
+
     }
 
     U4DTriangle::~U4DTriangle(){
         
+    }
+    
+    bool U4DTriangle::operator==(const U4DTriangle& a){
+        
+        return (pointA==a.pointA && pointB==a.pointB && pointC==a.pointC);
+    }
+    
+    bool U4DTriangle::operator!=(const U4DTriangle& a){
+        
+        return (pointA!=a.pointA || pointB!=a.pointB || pointC!=a.pointC);
+    
     }
 
 
@@ -32,6 +48,7 @@ namespace U4DEngine {
         U4DVector3n ab=pointA-pointB;
         U4DVector3n ac=pointA-pointC;
         U4DVector3n ap=pointA-uPoint;
+        
         float d1=ab.dot(ap);
         float d2=ac.dot(ap);
         
@@ -90,12 +107,12 @@ namespace U4DEngine {
         if (va<=0.0f && (d4-d3)>=0.0f && (d5-d6)>=0.0f) {
             float w=(d4-d3)/((d4-d3)+(d5-d6));
             
-            U4DPoint3n cbPoint;
-            U4DVector3n cbVector=pointC-pointB;
+            U4DPoint3n bcPoint;
+            U4DVector3n bcVector=pointB-pointC;
             
-            cbPoint.convertVectorToPoint(cbVector);
+            bcPoint.convertVectorToPoint(bcVector);
             
-             return pointB+cbPoint*w; //barycentric coordinates (0,1-w,w)
+             return pointB+bcPoint*w; //barycentric coordinates (0,1-w,w)
         }
         
         
@@ -154,5 +171,49 @@ namespace U4DEngine {
         baryCoordinateU=1.0f-baryCoordinateV-baryCoordinateW;
         
     }
-
+    
+    U4DVector3n U4DTriangle::getTriangleNormal(){
+        
+        return (pointA-pointB).cross(pointA-pointC);
+    }
+    
+    
+    bool U4DTriangle::isValid(){
+        
+        float ab=(pointA-pointB).magnitude();
+        float ac=(pointA-pointC).magnitude();
+        float bc=(pointB-pointC).magnitude();
+        
+        if ((ab+ac>bc) && (ab+bc>ac)&&(ac+bc>ab)) {
+            return true;
+        }else{
+            return false;
+        }
+        
+    }
+    
+    std::vector<U4DSegment> U4DTriangle::getSegments(){
+        
+        std::vector<U4DSegment> segments{segmentAB,segmentBC,segmentCA};
+        
+        return segments;
+    }
+    
+    void U4DTriangle::show(){
+        
+        std::cout<<"Point A: "<<std::endl;
+        pointA.show();
+        std::cout<<"Point B: "<<std::endl;
+        pointB.show();
+        std::cout<<"Point C: "<<std::endl;
+        pointC.show();
+        
+        if (isValid()) {
+            std::cout<<"Triangle is Valid"<<std::endl;
+        }else{
+            std::cout<<"Triangle is not valid"<<std::endl;
+        }
+        
+    }
+    
 }

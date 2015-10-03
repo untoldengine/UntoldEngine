@@ -12,6 +12,7 @@
 #include <iostream>
 #include "U4DEntityManager.h"
 #include "U4DCollisionAlgorithm.h"
+#include "U4DManifoldGeneration.h"
 #include "U4DDynamicModel.h"
 #include "U4DPlane.h"
 #include <vector>
@@ -29,6 +30,7 @@ namespace U4DEngine {
     private:
         
         U4DCollisionAlgorithm *collisionAlgorithm;
+        U4DManifoldGeneration *manifoldGenerationAlgorithm;
         
         std::vector<U4DStaticModel*> modelCollection;
         
@@ -40,6 +42,8 @@ namespace U4DEngine {
         
         
         void setCollisionAlgorithm(U4DCollisionAlgorithm* uCollisionAlgorithm);
+        
+        void setManifoldGenerationAlgorithm(U4DManifoldGeneration* uManifoldGenerationAlgorithm);
         
         void detectCollisions(float dt);
         

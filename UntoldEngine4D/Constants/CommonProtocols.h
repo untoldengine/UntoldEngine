@@ -11,6 +11,8 @@
 
 #include <vector>
 #include "U4DDualQuaternion.h"
+#include "U4DPoint3n.h"
+#include "U4DTriangle.h"
 
 namespace U4DEngine {
     
@@ -111,7 +113,29 @@ namespace U4DEngine {
     }BOUNDINGTYPE;
 
 
+    typedef struct{
+        
+        U4DPoint3n sa; //support point in sa
+        U4DPoint3n sb; //support point in sb
+        U4DPoint3n minkowskiPoint; //Minkowski difference point
+        
+    }U4DSimplexStruct;
+
+    typedef struct{
+        
+        U4DSegment segment;
+        bool isDuplicate;
+        
+    }POLYTOPEEDGES;
     
+    typedef struct{
+        
+        U4DTriangle triangle;
+        bool isSeenByPoint;
+        int n;
+        
+    }POLYTOPEFACES;
+
     
 }
 
