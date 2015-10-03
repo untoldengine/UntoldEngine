@@ -14,19 +14,6 @@
 
 namespace U4DEngine {
     
-    void U4DCollisionDetection::calculateMinkowskiPoints(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2){
-        
-        for (int i=0; i<uBoundingVolume1->polygonVertices.size(); i++) {
-            
-            for (int j=0; j<uBoundingVolume2->polygonVertices.size(); j++) {
-                
-                U4DVector3n minkowski=uBoundingVolume2->polygonVertices.at(j)-uBoundingVolume1->polygonVertices.at(i);
-                minkowski.show();
-            }
-        }
-        
-    }
-    
     U4DSimplexStruct U4DCollisionDetection::calculateSupportPointInDirection(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, U4DVector3n& uDirection){
         
         //V=Sb(-p)-sa(p)

@@ -30,8 +30,6 @@ namespace U4DEngine {
         U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
         
         
-        //calculateMinkowskiPoints(boundingVolume1, boundingVolume2);
-        
         int iterationSteps=0; //to avoid infinite loop
         
         /*

@@ -73,7 +73,7 @@ namespace U4DEngine{
                 float faceNormalMagnitude=faceNormal.magnitude();
                 
                 //7. check if need to exit loop
-                if (d-faceNormalMagnitude<0.001) {
+                if (d-faceNormalMagnitude<0.0001) {
                     
                     //break from loop
                     break;
@@ -125,7 +125,7 @@ namespace U4DEngine{
                                 
                             }//end for
                             
-                            
+                            //store the edges
                             edges.push_back(tempEdges.at(0));
                             edges.push_back(tempEdges.at(1));
                             edges.push_back(tempEdges.at(2));
@@ -157,10 +157,6 @@ namespace U4DEngine{
                 
             }
             //13. if exit loop, get barycentric points
-            
-           std::cout<<"Penetration: "<<d<<std::endl;
-            std::cout<<"Normal: "<<std::endl;
-            faceNormal.show();
             
             
       }//end if Q==4
