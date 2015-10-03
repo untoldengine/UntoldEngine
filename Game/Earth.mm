@@ -81,7 +81,7 @@ void Earth::init(){
     
     std::vector<U4DEngine::U4DVector3n> vertices{v1,v2,v3,v4,v5,v6,v7,v8};
     
-    /*
+    
     U4DEngine::U4DVector3n v1b(width+1.7,height,depth);
     U4DEngine::U4DVector3n v2b(width+1.7,height,-depth);
     U4DEngine::U4DVector3n v3b(-width+1.7,height,-depth);
@@ -91,17 +91,30 @@ void Earth::init(){
     U4DEngine::U4DVector3n v6b(width+1.7,-height,-depth);
     U4DEngine::U4DVector3n v7b(-width+1.7,-height,-depth);
     U4DEngine::U4DVector3n v8b(-width+1.7,-height,depth);
+    
+    /*
+    U4DEngine::U4DVector3n v1b(width,height+1.7,depth);
+    U4DEngine::U4DVector3n v2b(width,height+1.7,-depth);
+    U4DEngine::U4DVector3n v3b(-width,height+1.7,-depth);
+    U4DEngine::U4DVector3n v4b(-width,height+1.7,depth);
+    
+    U4DEngine::U4DVector3n v5b(width,-height+1.7,depth);
+    U4DEngine::U4DVector3n v6b(width,-height+1.7,-depth);
+    U4DEngine::U4DVector3n v7b(-width,-height+1.7,-depth);
+    U4DEngine::U4DVector3n v8b(-width,-height+1.7,depth);
     */
     
-    U4DEngine::U4DVector3n v1b(width,height-1.7,depth);
-    U4DEngine::U4DVector3n v2b(width,height-1.7,-depth);
-    U4DEngine::U4DVector3n v3b(-width,height-1.7,-depth);
-    U4DEngine::U4DVector3n v4b(-width,height-1.7,depth);
+    /*
+    U4DEngine::U4DVector3n v1b(width,height,depth+1.7);
+    U4DEngine::U4DVector3n v2b(width,height,-depth+1.7);
+    U4DEngine::U4DVector3n v3b(-width,height,-depth+1.7);
+    U4DEngine::U4DVector3n v4b(-width,height,depth+1.7);
     
-    U4DEngine::U4DVector3n v5b(width,-height-1.7,depth);
-    U4DEngine::U4DVector3n v6b(width,-height-1.7,-depth);
-    U4DEngine::U4DVector3n v7b(-width,-height-1.7,-depth);
-    U4DEngine::U4DVector3n v8b(-width,-height-1.7,depth);
+    U4DEngine::U4DVector3n v5b(width,-height,depth+1.7);
+    U4DEngine::U4DVector3n v6b(width,-height,-depth+1.7);
+    U4DEngine::U4DVector3n v7b(-width,-height,-depth+1.7);
+    U4DEngine::U4DVector3n v8b(-width,-height,depth+1.7);
+    */
     
     std::vector<U4DEngine::U4DVector3n> vertices2{v1b,v2b,v3b,v4b,v5b,v6b,v7b,v8b};
     

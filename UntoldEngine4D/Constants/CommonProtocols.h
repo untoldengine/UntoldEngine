@@ -121,12 +121,18 @@ namespace U4DEngine {
         
     }U4DSimplexStruct;
 
-    
+    typedef struct{
         
+        U4DSegment segment;
+        bool isDuplicate;
+        
+    }POLYTOPEEDGES;
+    
     typedef struct{
         
         U4DTriangle triangle;
         bool isSeenByPoint;
+        int n;
         
     }POLYTOPEFACES;
 

@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DPolytope::U4DPolytope(){
+    U4DPolytope::U4DPolytope():n(0){
         
     }
     
@@ -29,6 +29,7 @@ namespace U4DEngine {
             POLYTOPEFACES faces;
             faces.triangle=uTriangle;
             faces.isSeenByPoint=false;
+            faces.n=n;
             
             polytopeFaces.push_back(faces);
             
@@ -52,14 +53,14 @@ namespace U4DEngine {
                 POLYTOPEFACES faces;
                 faces.triangle=uTriangle;
                 faces.isSeenByPoint=false;
-                
+                faces.n=n;
                 polytopeFaces.push_back(faces);
                 
             }
             
         }
         
-       
+        n++;
         
     }
 

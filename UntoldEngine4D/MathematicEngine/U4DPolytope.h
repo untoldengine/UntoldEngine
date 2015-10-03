@@ -21,9 +21,11 @@ namespace U4DEngine {
         
     private:
         
-        std::vector<POLYTOPEFACES> polytopeFaces;
-        
+        int n;
     public:
+        
+        std::vector<POLYTOPEFACES> polytopeFaces;
+
         
         U4DPolytope();
         
