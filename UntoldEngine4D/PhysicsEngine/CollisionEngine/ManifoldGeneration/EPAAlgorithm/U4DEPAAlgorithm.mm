@@ -16,8 +16,11 @@
 namespace U4DEngine{
     
     
-    
-    void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ){
+    void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct>& uQ){
+        
+        //blow up simplex to tetrahedron
+        
+        //test if origin is in tetrahedron
         
         if(uQ.size()==4){
                         
@@ -164,4 +167,35 @@ namespace U4DEngine{
     }//end method
    
 
+    void U4DEPAAlgorithm::verifySimplexStructForEPA(std::vector<U4DSimplexStruct>& uQ){
+        
+        //get size of Q
+        
+        
+        //if Q size is a point
+        
+        
+        //if Q size is a segment
+        
+        
+        //if Q size is a triangle
+        
+        
+        
+    }
+    
+    bool U4DEPAAlgorithm::verifyTetrahedronForEPA(std::vector<U4DSimplexStruct>& uQ){
+        
+        U4DPoint3n origin(0,0,0);
+        U4DTetrahedron tetrahedron(uQ.at(0).minkowskiPoint,uQ.at(1).minkowskiPoint,uQ.at(2).minkowskiPoint,uQ.at(3).minkowskiPoint);
+        
+        if (tetrahedron.isPointInTetrahedron(origin)) {
+            return true;
+        }else{
+            return false;
+        }
+        
+    }
+    
+    
 }

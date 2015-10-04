@@ -72,6 +72,9 @@ namespace U4DEngine {
              */
             if (closestPtToOrigin==originPoint) {
                 
+                //Show how many simplex points in Q
+                std::cout<<Q.size()<<std::endl;
+                
                 //if intersecting, determine collision properies before returning
                 return true;
             }

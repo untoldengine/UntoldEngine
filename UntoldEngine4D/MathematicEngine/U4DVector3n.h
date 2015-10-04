@@ -367,6 +367,10 @@ public:
      */
     float getZ();
 
+    
+    void computeOrthonormalBasis(U4DVector3n& uTangent1, U4DVector3n& uTangent2);
+    
+    //Negate all components
     void negate();
     
     

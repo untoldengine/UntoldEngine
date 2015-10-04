@@ -52,12 +52,14 @@ namespace U4DEngine {
         
         if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
             
-            
-            std::cout<<"Collision Occurred"<<std::endl;
             //if collision occurred then
+            std::cout<<"Collision Occurred"<<std::endl;
+            
+            
+            
             
             //Manifold Generation Algorithm
-            manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
+            //manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
               
         }
         

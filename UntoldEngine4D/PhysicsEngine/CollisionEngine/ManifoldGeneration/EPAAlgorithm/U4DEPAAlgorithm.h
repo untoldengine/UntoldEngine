@@ -41,8 +41,11 @@ namespace U4DEngine {
         
         ~U4DEPAAlgorithm(){};
         
+        void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct>& uQ);
         
-        void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
+        void verifySimplexStructForEPA(std::vector<U4DSimplexStruct>& uQ);
+        
+        bool verifyTetrahedronForEPA(std::vector<U4DSimplexStruct>& uQ);
         
         
     };

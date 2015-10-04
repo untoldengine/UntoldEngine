@@ -264,4 +264,27 @@ namespace U4DEngine {
         z=-1*z;
     }
     
+    void U4DVector3n::computeOrthonormalBasis(U4DVector3n& uTangent1, U4DVector3n& uTangent2){
+        
+        //From Erin Catto
+        if (ABS(x)>=0.57735f) {
+            
+            uTangent1.x=y;
+            uTangent1.y=-x;
+            uTangent1.z=0.0;
+            
+        }else{
+            
+            uTangent1.x=0.0;
+            uTangent1.y=z;
+            uTangent1.z=-y;
+            
+        }
+        
+        uTangent1.normalize();
+        
+        uTangent2=(*this).cross(uTangent1);
+        
+    }
+    
 }

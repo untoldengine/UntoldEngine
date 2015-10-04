@@ -1,9 +1,10 @@
 
+#extension GL_EXT_shadow_samplers : require
 #ifdef GL_ES
 // define default precision for float, vec, mat.
 precision highp float;
 #endif
-#extension GL_EXT_shadow_samplers : require
+
 
 
 uniform sampler2DShadow ShadowMap;
