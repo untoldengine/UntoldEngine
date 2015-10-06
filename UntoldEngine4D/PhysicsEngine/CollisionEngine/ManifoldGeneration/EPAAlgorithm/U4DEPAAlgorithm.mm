@@ -18,6 +18,11 @@ namespace U4DEngine{
     
     void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct>& uQ){
         
+        //get bounding volume for each model
+        U4DConvexPolygon *boundingVolume1=uModel1->narrowPhaseBoundingVolume;
+        U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
+        
+        
         //blow up simplex to tetrahedron
         
         //test if origin is in tetrahedron
@@ -30,10 +35,6 @@ namespace U4DEngine{
             float d;
             
             U4DSimplexStruct simplexPoint;
-            
-            //get bounding volume for each model
-            U4DConvexPolygon *boundingVolume1=uModel1->narrowPhaseBoundingVolume;
-            U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
             
             U4DPoint3n origin(0.0,0.0,0.0);
             int iterationSteps=0; //to avoid infinite loop
@@ -167,20 +168,24 @@ namespace U4DEngine{
     }//end method
    
 
-    void U4DEPAAlgorithm::verifySimplexStructForEPA(std::vector<U4DSimplexStruct>& uQ){
+    void U4DEPAAlgorithm::verifySimplexStructForEPA(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, std::vector<U4DSimplexStruct>& uQ){
         
         //get size of Q
-        
+        int simplexStructSize=uQ.size();
         
         //if Q size is a point
+        if (simplexStructSize==1) {
         
-        
-        //if Q size is a segment
-        
-        
+         //if Q size is a segment
+        }else if (simplexStructSize==2){
+            
+            constructSimplexStructForSegment(uBoundingVolume1,uBoundingVolume2,uQ);
+            
         //if Q size is a triangle
-        
-        
+        }else if (simplexStructSize==3){
+            
+            constructSimplexStructForTriangle(uBoundingVolume1,uBoundingVolume2,uQ);
+        }
         
     }
     
@@ -194,6 +199,34 @@ namespace U4DEngine{
         }else{
             return false;
         }
+        
+    }
+    
+    void U4DEPAAlgorithm::constructSimplexStructForSegment(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
+        
+        U4DVector3n tangentVector1;
+        U4DVector3n tangentVector2;
+        
+        U4DVector3n simplexPointA=uQ.at(0).minkowskiPoint.toVector();
+        U4DVector3n simplexPointB=uQ.at(1).minkowskiPoint.toVector();
+        
+        U4DVector3n ab=simplexPointA-simplexPointB;
+        
+        //normalize the vector
+        ab.normalize();
+        
+        //find an orthonormal basis to vector ab
+        ab.computeOrthonormalBasis(tangentVector1, tangentVector2);
+        
+        //use TangentVector2 as a direction vector to find the support point
+        
+        U4DSimplexStruct simplexPoint0=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, tangentVector2);
+        
+        //
+        
+    }
+    
+    void U4DEPAAlgorithm::constructSimplexStructForTriangle(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
         
     }
     

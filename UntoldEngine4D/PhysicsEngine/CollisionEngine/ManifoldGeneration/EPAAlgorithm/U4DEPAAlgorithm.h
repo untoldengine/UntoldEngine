@@ -43,10 +43,13 @@ namespace U4DEngine {
         
         void determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct>& uQ);
         
-        void verifySimplexStructForEPA(std::vector<U4DSimplexStruct>& uQ);
+        void verifySimplexStructForEPA(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
         
         bool verifyTetrahedronForEPA(std::vector<U4DSimplexStruct>& uQ);
         
+        void constructSimplexStructForSegment(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
+        
+        void constructSimplexStructForTriangle(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
         
     };
 }

@@ -54,13 +54,6 @@
 
 void Earth::init(){
     
-    U4DEngine::U4DVector3n a(1,1,1);
-    U4DEngine::U4DVector3n b;
-    U4DEngine::U4DVector3n c;
-    
-    a.normalize();
-    a.computeOrthonormalBasis(b, c);
-    
     //U4DDebugger *debugger=new U4DDebugger();
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();

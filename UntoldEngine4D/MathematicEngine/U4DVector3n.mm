@@ -234,6 +234,28 @@ namespace U4DEngine {
         
     }
 
+    U4DVector3n U4DVector3n::rotateVectorAboutAngleAndAxis(float uAngle, U4DVector3n& uAxis){
+        
+        //convert our vector to a pure quaternion
+        
+        U4DQuaternion p(0,(*this));
+        
+        //normalize the axis
+        uAxis.normalize();
+        
+        //create the real quaternion
+        U4DQuaternion q(uAngle,uAxis);
+        
+        //convert quaternion to unit norm quaternion
+        q.convertToUnitNormQuaternion();
+        
+        U4DQuaternion qInverse=q.inverse();
+        
+        U4DQuaternion rotatedVector=q*p*qInverse;
+        
+        return rotatedVector.v;
+        
+    }
 
 
     #pragma mark-show
