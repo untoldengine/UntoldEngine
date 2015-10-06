@@ -202,31 +202,80 @@ namespace U4DEngine{
         
     }
     
-    void U4DEPAAlgorithm::constructSimplexStructForSegment(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
+    bool U4DEPAAlgorithm::constructSimplexStructForSegment(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
         
         U4DVector3n tangentVector1;
-        U4DVector3n tangentVector2;
+        U4DVector3n directionVector0;
+        U4DPoint3n origin(0.0,0.0,0.0);
         
-        U4DVector3n simplexPointA=uQ.at(0).minkowskiPoint.toVector();
-        U4DVector3n simplexPointB=uQ.at(1).minkowskiPoint.toVector();
+        U4DSimplexStruct simplexPointA=uQ.at(0);
+        U4DSimplexStruct simplexPointB=uQ.at(1);
         
-        U4DVector3n ab=simplexPointA-simplexPointB;
+        U4DVector3n ab=simplexPointA.minkowskiPoint-simplexPointB.minkowskiPoint;
         
         //normalize the vector
         ab.normalize();
         
         //find an orthonormal basis to vector ab
-        ab.computeOrthonormalBasis(tangentVector1, tangentVector2);
+        ab.computeOrthonormalBasis(tangentVector1, directionVector0);
         
-        //use TangentVector2 as a direction vector to find the support point
+        //rotate directionVector0 60 degrees about ab
         
-        U4DSimplexStruct simplexPoint0=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, tangentVector2);
+        U4DVector3n directionVector1=directionVector0.rotateVectorAboutAngleAndAxis(60, ab);
         
-        //
+        //rotate directionVector1 60 degrees about directionVector2
+        
+        U4DVector3n directionVector2=directionVector1.rotateVectorAboutAngleAndAxis(60, ab);
+        
+        
+        //use directionVector0 as a direction vector to find the support point
+        
+        U4DSimplexStruct simplexPoint0=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector0);
+        
+        ////use directionVector1 as a direction vector to find the support point
+        U4DSimplexStruct simplexPoint1=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector1);
+        
+        //use directionVector2 as a direction vector to find the support point
+        U4DSimplexStruct simplexPoint2=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector2);
+        
+        //Now you can build two tetrahedron: aX0X1X2 and bX0X1X2, now find out in which tetrahedron the origin is contained
+        
+        U4DTetrahedron tetrahedronA012(simplexPointA.minkowskiPoint,simplexPoint0.minkowskiPoint,simplexPoint1.minkowskiPoint,simplexPoint2.minkowskiPoint);
+
+        U4DTetrahedron tetrahedronB012(simplexPointB.minkowskiPoint,simplexPoint0.minkowskiPoint,simplexPoint1.minkowskiPoint,simplexPoint2.minkowskiPoint);
+
+        
+        if (tetrahedronA012.isPointInTetrahedron(origin)) {
+            
+            //load up Q with values
+            uQ.clear();
+            
+            uQ.push_back(simplexPointA);
+            uQ.push_back(simplexPoint0);
+            uQ.push_back(simplexPoint1);
+            uQ.push_back(simplexPoint2);
+            
+            return true;
+        }else if (tetrahedronB012.isPointInTetrahedron(origin)){
+            
+            //load up Q with values
+            uQ.clear();
+            
+            uQ.push_back(simplexPointB);
+            uQ.push_back(simplexPoint0);
+            uQ.push_back(simplexPoint1);
+            uQ.push_back(simplexPoint2);
+            
+            return true;
+            
+        }else{
+            
+            return false;
+        }
         
     }
     
-    void U4DEPAAlgorithm::constructSimplexStructForTriangle(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
+    bool U4DEPAAlgorithm::constructSimplexStructForTriangle(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
         
     }
     
