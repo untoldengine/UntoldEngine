@@ -53,7 +53,7 @@
 
 
 void Earth::init(){
-        
+    
     //U4DDebugger *debugger=new U4DDebugger();
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
@@ -96,7 +96,7 @@ void Earth::init(){
     cube=new Town();
     cube->init("Cube",0,0,0);
     cube->setBoundingVolume(cubePolygon);
-    //cube->rotateBy(45, 45, 0);
+    cube->rotateBy(45, 45, 0);
     cube->setShader("simpleRedShader");
     //cube->applyPhysics(true);
     cube->applyCollision(true);
@@ -105,7 +105,7 @@ void Earth::init(){
     
     
     cube2=new Town();
-    cube2->init("Cube",1.8,1.5,0.0);
+    cube2->init("Cube",1.8,0.0,0.0);
     cube2->setBoundingVolume(cubePolygon2);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);

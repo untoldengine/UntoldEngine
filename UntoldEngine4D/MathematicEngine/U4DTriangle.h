@@ -64,7 +64,7 @@ public:
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV, float& baryCoordinateW);
     
     U4DVector3n getTriangleNormal();
- 
+    
     std::vector<U4DSegment> getSegments();
     
     void show();
