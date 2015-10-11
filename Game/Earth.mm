@@ -95,22 +95,24 @@ void Earth::init(){
     
     cube=new Town();
     cube->init("Cube",0,0,0);
-    cube->rotateBy(45, 45, 0);
     cube->setShader("simpleRedShader");
     //cube->applyPhysics(true);
-    cube->applyCollision(true);
+    cube->enableCollision();
     
     addChild(cube);
     
-    
+   /*
     cube2=new Town();
     cube2->init("Cube",1.8,0.0,0.0);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
-    cube2->applyCollision(true);
+    
+    cube2->enableCollision();
     
     addChild(cube2);
-    /*
+    
+    
+    
     // ADD Gravity
     
     
@@ -251,7 +253,7 @@ void Earth::action(){
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
-    setEntityControlledByController(cube2);
+    setEntityControlledByController(cube);
     
     
 }

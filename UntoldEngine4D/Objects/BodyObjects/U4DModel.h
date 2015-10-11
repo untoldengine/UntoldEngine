@@ -46,32 +46,14 @@ public:
     std::vector<U4DMatrix4n> armatureBoneMatrix;
     
     
-    U4DModel(){
-        
-        hasMaterial=false;
-        hasTextures=false;
-        hasAnimation=false;
-        
-        openGlManager=new U4DOpenGL3DModel(this);
-        armatureManager=new U4DArmatureData(this);
-        
-        openGlManager->setShader("modelShader");
-        
-        setEntityType(MODEL);
-        
-    };
+    U4DModel();
+    
+    ~U4DModel();
     
 
-    ~U4DModel(){
-    
-        delete openGlManager;
-        delete armatureManager;
-    };
-    
+    U4DModel(const U4DModel& value);
 
-    U4DModel(const U4DModel& value){};
-
-    U4DModel& operator=(const U4DModel& value){return *this;};
+    U4DModel& operator=(const U4DModel& value);
     
     virtual void update(double dt){};
     

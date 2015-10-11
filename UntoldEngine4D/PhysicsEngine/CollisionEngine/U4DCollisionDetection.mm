@@ -10,7 +10,7 @@
 #include "U4DSegment.h"
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
-#include "U4DConvexPolygon.h"
+#include "U4DBoundingVolume.h"
 
 namespace U4DEngine {
     

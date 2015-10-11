@@ -7,8 +7,38 @@
 //
 
 #include "U4DStaticModel.h"
+#include "U4DBoundingVolume.h"
+#include "U4DBoundingConvex.h"
 
 namespace U4DEngine {
+    
+    U4DStaticModel::U4DStaticModel(){
+        
+        collisionEnabled=false;
+        
+        massProperties.mass=1.0;
+        
+        collisionProperties.collided=false;
+        
+        U4DVector3n centerOfMass(0.0,0.0,0.0);
+        
+        setCenterOfMass(centerOfMass);
+        
+        coefficientOfRestitution=1.0;
+        
+        setInertiaTensor(1.0,1.0,1.0);
+        
+        //create the bounding convex volume
+    
+        convexHullBoundingVolume=new U4DBoundingConvex();
+        
+    };
+    
+    U4DStaticModel::~U4DStaticModel(){};
+    
+    U4DStaticModel::U4DStaticModel(const U4DStaticModel& value){};
+    
+    U4DStaticModel& U4DStaticModel::operator=(const U4DStaticModel& value){return *this;};
     
     #pragma mark-mass
     //set mass of object
@@ -163,17 +193,34 @@ namespace U4DEngine {
      
      */
     
-    void U4DStaticModel::applyCollision(bool uValue){
+    void U4DStaticModel::enableCollision(){
         
-        affectedByCollision=uValue;
+        //determine the convex hull of the model
+        convexHullBoundingVolume->determineConvexHullOfModel(this->bodyCoordinates.verticesContainer);
+        
+        collisionEnabled=true;
+    }
+    
+    void U4DStaticModel::pauseCollision(){
+        
+        collisionEnabled=false;
     }
     
     
-    bool U4DStaticModel::isCollisionApplied(){
+    void U4DStaticModel::resumeCollision(){
         
-        return affectedByCollision;
+        collisionEnabled=true;
+    }
+    
+    void U4DStaticModel::allowCollisionWith(){
         
     }
     
+    
+    bool U4DStaticModel::isCollisionEnabled(){
+        
+        return collisionEnabled;
+    }
+
     
 }

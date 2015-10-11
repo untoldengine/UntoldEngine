@@ -29,14 +29,14 @@ private:
        
 public:
 
-    U4DCharacter(){};
-    U4DCharacter(const char*){};
+    U4DCharacter();
+    U4DCharacter(const char*);
     
-    ~U4DCharacter(){};
+    ~U4DCharacter();
     
-    U4DCharacter(const U4DCharacter& value){};
+    U4DCharacter(const U4DCharacter& value);
 
-    U4DCharacter& operator=(const U4DCharacter& value){return *this;};
+    U4DCharacter& operator=(const U4DCharacter& value);
     
     virtual void update(double dt){};    
     

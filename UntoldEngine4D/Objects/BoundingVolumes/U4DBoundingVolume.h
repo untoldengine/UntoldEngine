@@ -64,6 +64,8 @@ public:
     
     virtual void update(double dt){};
     
+    virtual void determineConvexHullOfModel(std::vector<U4DVector3n>& uVertices){};
+    
     U4DPoint3n getSupportPointInDirection(U4DVector3n& uDirection);
     
     void setBoundingType(BOUNDINGTYPE uType);

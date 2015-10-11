@@ -11,8 +11,12 @@
 
 #include <iostream>
 #include "U4DModel.h"
-#include "U4DBoundingVolume.h"
 
+namespace U4DEngine {
+    
+    class U4DBoundingVolume;
+    
+}
 namespace U4DEngine {
     
     typedef struct{
@@ -53,35 +57,17 @@ protected:
     
 public:
     
-    bool affectedByCollision;
-    
-    //U4DConvexPolygon *narrowPhaseBoundingVolume;
+    bool collisionEnabled;
     
     U4DBoundingVolume *convexHullBoundingVolume;
     
-    U4DStaticModel(){
-        
-        affectedByCollision=false;
-        
-        massProperties.mass=1.0;
-        
-        collisionProperties.collided=false;
-        
-        U4DVector3n centerOfMass(0.0,0.0,0.0);
-        
-        setCenterOfMass(centerOfMass);
-        
-        coefficientOfRestitution=1.0;
-        
-        setInertiaTensor(1.0,1.0,1.0);
-        
-    };
+    U4DStaticModel();
     
-    ~U4DStaticModel(){};
+    ~U4DStaticModel();
     
-    U4DStaticModel(const U4DStaticModel& value){};
+    U4DStaticModel(const U4DStaticModel& value);
     
-    U4DStaticModel& operator=(const U4DStaticModel& value){return *this;};
+    U4DStaticModel& operator=(const U4DStaticModel& value);
     
     MassProperties massProperties;
     
@@ -113,9 +99,15 @@ public:
     
     void setVertexDistanceFromCenterOfMass();
     
-    bool isCollisionApplied();
+    void enableCollision();
     
-    void applyCollision(bool uValue);
+    void pauseCollision();
+    
+    void resumeCollision();
+    
+    bool isCollisionEnabled();
+    
+    void allowCollisionWith();
     
 };
     
