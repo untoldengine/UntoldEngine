@@ -100,6 +100,7 @@
 		03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DCharacter.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DCharacter.mm */; };
+		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; settings = {ASSET_TAGS = (); }; };
 		03A9F6E81AD9D19300E81A00 /* fort.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E71AD9D19300E81A00 /* fort.png */; };
 		03A9F6EA1AD9D19A00E81A00 /* little_mansion.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E91AD9D19A00E81A00 /* little_mansion.png */; };
 		03A9F6EC1AD9D1A000E81A00 /* small_house_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6EB1AD9D1A000E81A00 /* small_house_01.png */; };
@@ -338,6 +339,8 @@
 		037C473B17B597CB007B8283 /* U4DModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DModel.mm; sourceTree = "<group>"; };
 		037C473C17B597CB007B8283 /* U4DCharacter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCharacter.h; sourceTree = "<group>"; };
 		037C473D17B597CB007B8283 /* U4DCharacter.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCharacter.mm; sourceTree = "<group>"; };
+		038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingConvex.mm; path = BoundingVolumes/U4DBoundingConvex.mm; sourceTree = "<group>"; };
+		038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingConvex.h; path = BoundingVolumes/U4DBoundingConvex.h; sourceTree = "<group>"; };
 		03A9F6E71AD9D19300E81A00 /* fort.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = fort.png; path = Resources/fort.png; sourceTree = SOURCE_ROOT; };
 		03A9F6E91AD9D19A00E81A00 /* little_mansion.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = little_mansion.png; path = Resources/little_mansion.png; sourceTree = SOURCE_ROOT; };
 		03A9F6EB1AD9D1A000E81A00 /* small_house_01.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_house_01.png; path = Resources/small_house_01.png; sourceTree = SOURCE_ROOT; };
@@ -561,6 +564,8 @@
 				0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */,
 				0327B1A61B0BBC370087BACC /* U4DBoundingSphere.h */,
 				0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */,
+				038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */,
+				038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */,
 			);
 			name = BoundingVolumes;
 			sourceTree = "<group>";
@@ -1367,6 +1372,7 @@
 				03759B49175B0135002EB5D9 /* main.m in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
 				03759B4D175B0135002EB5D9 /* AppDelegate.mm in Sources */,
+				038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */,
 				030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */,
 				03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */,
 				0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */,

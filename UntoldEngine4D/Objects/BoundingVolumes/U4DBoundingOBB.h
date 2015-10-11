@@ -17,31 +17,31 @@
 
 namespace U4DEngine {
     
-class U4DBoundingOBB:public U4DBoundingVolume{
-    
-private:
-    
-public:
-    
-    /*!
-     *  @brief  Positive halfspace extents of OBB along each axis
-     */
-    U4DVector3n halfSpace;
-    
-    U4DBoundingOBB(){};
-    
-    ~U4DBoundingOBB(){};
-    
-    U4DBoundingOBB(const U4DBoundingOBB& value){};
-    
-    U4DBoundingOBB& operator=(const U4DBoundingOBB& value){
-        return *this;
+    class U4DBoundingOBB:public U4DBoundingVolume{
+        
+    private:
+        
+    public:
+        
+        /*!
+         *  @brief  Positive halfspace extents of OBB along each axis
+         */
+        U4DVector3n halfSpace;
+        
+        U4DBoundingOBB(){};
+        
+        ~U4DBoundingOBB(){};
+        
+        U4DBoundingOBB(const U4DBoundingOBB& value){};
+        
+        U4DBoundingOBB& operator=(const U4DBoundingOBB& value){
+            return *this;
+        };
+        
+        void initBoundingVolume(U4DVector3n& uHalfSpace);
+      
+       
     };
-    
-    void initBoundingVolume(U4DVector3n& uHalfSpace);
-  
-   
-};
     
 }
 

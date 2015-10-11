@@ -116,23 +116,17 @@ public:
     
     U4DQuaternion inverse();
     
-    
     void inverse(U4DQuaternion& q);
-    
     
     void convertToUnitNormQuaternion();
     
-    
     U4DMatrix3n transformQuaternionToMatrix3n();
     
-    
     void transformEulerAnglesToQuaternion(float x,float y, float z);
-    
     
     U4DVector3n transformQuaternionToEulerAngles();
 
     void transformMatrix3nToQuaternion(U4DMatrix3n &uMatrix);
-    
     
     U4DQuaternion slerp(U4DQuaternion&q, float time);
     

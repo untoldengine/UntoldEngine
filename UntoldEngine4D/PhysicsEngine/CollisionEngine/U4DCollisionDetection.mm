@@ -14,7 +14,7 @@
 
 namespace U4DEngine {
     
-    U4DSimplexStruct U4DCollisionDetection::calculateSupportPointInDirection(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, U4DVector3n& uDirection){
+    U4DSimplexStruct U4DCollisionDetection::calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection){
         
         //V=Sb(-p)-sa(p)
         

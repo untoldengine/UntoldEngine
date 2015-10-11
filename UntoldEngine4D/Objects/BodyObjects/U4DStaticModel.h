@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include "U4DModel.h"
-#include "U4DConvexPolygon.h"
+#include "U4DBoundingVolume.h"
 
 namespace U4DEngine {
     
@@ -53,12 +53,11 @@ protected:
     
 public:
     
-    
-    
     bool affectedByCollision;
     
-    U4DConvexPolygon *narrowPhaseBoundingVolume;
+    //U4DConvexPolygon *narrowPhaseBoundingVolume;
     
+    U4DBoundingVolume *convexHullBoundingVolume;
     
     U4DStaticModel(){
         
@@ -76,8 +75,6 @@ public:
         
         setInertiaTensor(1.0,1.0,1.0);
         
-        
-    
     };
     
     ~U4DStaticModel(){};
@@ -120,7 +117,6 @@ public:
     
     void applyCollision(bool uValue);
     
-    void setBoundingVolume(U4DConvexPolygon* uConvexPolygon);
 };
     
 }

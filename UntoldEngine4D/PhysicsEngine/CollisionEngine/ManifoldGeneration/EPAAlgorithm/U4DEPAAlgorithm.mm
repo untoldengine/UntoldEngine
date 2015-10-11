@@ -19,8 +19,8 @@ namespace U4DEngine{
     void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct>& uQ){
         
         //get bounding volume for each model
-        U4DConvexPolygon *boundingVolume1=uModel1->narrowPhaseBoundingVolume;
-        U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
+        U4DBoundingVolume *boundingVolume1=uModel1->convexHullBoundingVolume;
+        U4DBoundingVolume *boundingVolume2=uModel2->convexHullBoundingVolume;
         
         
         //blow up simplex to tetrahedron
@@ -168,7 +168,7 @@ namespace U4DEngine{
     }//end method
    
 
-    void U4DEPAAlgorithm::verifySimplexStructForEPA(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2, std::vector<U4DSimplexStruct>& uQ){
+    void U4DEPAAlgorithm::verifySimplexStructForEPA(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, std::vector<U4DSimplexStruct>& uQ){
         
         //get size of Q
         int simplexStructSize=uQ.size();
@@ -189,7 +189,7 @@ namespace U4DEngine{
         
     }
     
-    bool U4DEPAAlgorithm::constructSimplexStructForSegment(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
+    bool U4DEPAAlgorithm::constructSimplexStructForSegment(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume *uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
         
         U4DVector3n tangentVector1;
         U4DVector3n directionVector0;
@@ -263,7 +263,7 @@ namespace U4DEngine{
         
     }
     
-    bool U4DEPAAlgorithm::constructSimplexStructForTriangle(U4DConvexPolygon *uBoundingVolume1, U4DConvexPolygon* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
+    bool U4DEPAAlgorithm::constructSimplexStructForTriangle(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
         
         U4DPoint3n origin(0.0,0.0,0.0);
         

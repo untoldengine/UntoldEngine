@@ -33,7 +33,7 @@ public:
     
         openGlManager=new U4DOpenGLGeometry(this);
         openGlManager->setShader("geometricShader");
-        
+
         U4DVector4n color(1.0,0.0,0.0,1.0);
         addCustomUniform("Color", color);
     };
@@ -63,6 +63,8 @@ public:
     virtual void initBoundingVolume(U4DVector3n& uHalfwidth){};
     
     virtual void update(double dt){};
+    
+    U4DPoint3n getSupportPointInDirection(U4DVector3n& uDirection);
     
     void setBoundingType(BOUNDINGTYPE uType);
     

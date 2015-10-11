@@ -143,6 +143,7 @@ namespace U4DEngine {
 
     }
 
+    /*
     void U4DStaticModel::setVertexDistanceFromCenterOfMass(){
         
         //clear the center of mass distance from vertices
@@ -159,6 +160,8 @@ namespace U4DEngine {
         }
        
     }
+     
+     */
     
     void U4DStaticModel::applyCollision(bool uValue){
         
@@ -172,10 +175,5 @@ namespace U4DEngine {
         
     }
     
-    void U4DStaticModel::setBoundingVolume(U4DConvexPolygon* uConvexPolygon){
-        
-        narrowPhaseBoundingVolume=uConvexPolygon;
-        
-    }
     
 }

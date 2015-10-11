@@ -124,12 +124,8 @@ void U4DEntityManager::update(float dt){
             
             if(model->isCollisionApplied()==true){
                 
-                U4DMatrix3n modelOrientation=blender*model->getAbsoluteMatrixOrientation();
-                U4DVector3n modelPosition=model->getAbsolutePosition();
-                
-                //provide orientation and position for bounding volume
-                model->narrowPhaseBoundingVolume->center=modelPosition;
-                model->narrowPhaseBoundingVolume->orientation=modelOrientation;
+                //update the bounding volume with the model current space dual quaternion (rotation and translation)
+                model->convexHullBoundingVolume->absoluteSpace=model->absoluteSpace;
                 
                 //add child to collision tree
                 collisionEngine->addToCollisionContainer(model);
