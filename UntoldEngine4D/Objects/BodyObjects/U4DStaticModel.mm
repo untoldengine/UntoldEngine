@@ -220,7 +220,18 @@ namespace U4DEngine {
     bool U4DStaticModel::isCollisionEnabled(){
         
         return collisionEnabled;
+    
     }
 
+    void U4DStaticModel::setBoundingBoxVisibility(bool uValue){
+        
+        boundingBoxVisibility=uValue;
+        
+    }
+    
+    bool U4DStaticModel::getBoundingBoxVisibility(){
+        
+        return boundingBoxVisibility;
+    }
     
 }

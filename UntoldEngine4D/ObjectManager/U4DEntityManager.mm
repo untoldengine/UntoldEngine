@@ -84,13 +84,15 @@ void U4DEntityManager::draw(){
             
         }
  
-            //child->draw();
+            child->draw();
         
             //ONLY FOR DEBUGGING PURPOSES
             U4DStaticModel *model=(U4DStaticModel*)child;
         
-            if (model!=nullptr && model->getEntityType()==MODEL) {
+            if (model!=nullptr && model->getEntityType()==MODEL && model->getBoundingBoxVisibility()==true) {
+                
                 model->convexHullBoundingVolume->draw();
+            
             }
             //END ONLY FOR DEBUGGING PURPOSES
         
@@ -127,10 +129,11 @@ void U4DEntityManager::update(float dt){
             if(model->isCollisionEnabled()==true){
                 
                 //update the bounding volume with the model current space dual quaternion (rotation and translation)
-               // model->convexHullBoundingVolume->absoluteSpace=model->absoluteSpace;
+                model->convexHullBoundingVolume->localSpace=model->absoluteSpace;
+                
                 
                 //add child to collision tree
-                //collisionEngine->addToCollisionContainer(model);
+                collisionEngine->addToCollisionContainer(model);
                 
             }
             
@@ -140,7 +143,7 @@ void U4DEntityManager::update(float dt){
     }
     
     //compute collision detection
-    //collisionEngine->detectCollisions(dt);
+    collisionEngine->detectCollisions(dt);
     /*
     
     

@@ -59,6 +59,8 @@ public:
     
     bool collisionEnabled;
     
+    bool boundingBoxVisibility;
+    
     U4DBoundingVolume *convexHullBoundingVolume;
     
     U4DStaticModel();
@@ -108,6 +110,10 @@ public:
     bool isCollisionEnabled();
     
     void allowCollisionWith();
+    
+    void setBoundingBoxVisibility(bool uValue);
+    
+    bool getBoundingBoxVisibility();
     
 };
     
