@@ -10,7 +10,7 @@
 #include "U4DSegment.h"
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
-#include "U4DConvexPolygon.h"
+#include "U4DBoundingVolume.h"
 #include "U4DDynamicModel.h"
 #include "U4DVector3n.h"
 
@@ -26,8 +26,8 @@ namespace U4DEngine {
         U4DPoint3n originPoint(0,0,0);
         U4DPoint3n tempV; //variable to store previous value of v
         
-        U4DConvexPolygon *boundingVolume1=uModel1->narrowPhaseBoundingVolume;
-        U4DConvexPolygon *boundingVolume2=uModel2->narrowPhaseBoundingVolume;
+        U4DBoundingVolume *boundingVolume1=uModel1->convexHullBoundingVolume;
+        U4DBoundingVolume *boundingVolume2=uModel2->convexHullBoundingVolume;
         
         
         int iterationSteps=0; //to avoid infinite loop
@@ -71,9 +71,6 @@ namespace U4DEngine {
                 of A and B. Stop and return A and B as intersecting.
              */
             if (closestPtToOrigin==originPoint) {
-                
-                //Show how many simplex points in Q
-                std::cout<<Q.size()<<std::endl;
                 
                 //if intersecting, determine collision properies before returning
                 return true;

@@ -8,7 +8,18 @@
 
 #include "U4DCharacter.h"
 
-
+namespace U4DEngine {
+    
+    U4DCharacter::U4DCharacter(){};
+    U4DCharacter::U4DCharacter(const char*){};
+    
+    U4DCharacter::~U4DCharacter(){};
+    
+    U4DCharacter::U4DCharacter(const U4DCharacter& value){};
+    
+    U4DCharacter& U4DCharacter::operator=(const U4DCharacter& value){return *this;};
+    
+}
 
 
 

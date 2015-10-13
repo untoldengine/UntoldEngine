@@ -126,7 +126,15 @@ U4DDualQuaternion U4DEntity::getLocalSpace(){
 
 U4DDualQuaternion U4DEntity::getAbsoluteSpace(){
     
-    return absoluteSpace;
+    U4DDualQuaternion space;
+    
+    if (parent!=NULL) {
+        space=absoluteSpace;
+    }else{
+        space=getLocalSpace();
+    }
+    
+    return space;
 }
 
 U4DQuaternion U4DEntity::getAbsoluteSpaceOrientation(){

@@ -14,7 +14,6 @@
 #include "U4DCollisionAlgorithm.h"
 #include "U4DManifoldGeneration.h"
 #include "U4DDynamicModel.h"
-#include "U4DPlane.h"
 #include <vector>
 
 namespace U4DEngine {

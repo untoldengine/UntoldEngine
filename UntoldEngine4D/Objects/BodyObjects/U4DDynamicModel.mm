@@ -11,6 +11,29 @@
 #include <cmath>
 
 namespace U4DEngine {
+
+    U4DDynamicModel::U4DDynamicModel(){
+        
+        affectedByPhysics=false;
+        angularVelocity.zero();
+        velocity.zero();
+        acceleration.zero();
+        force.zero();
+        moment.zero();
+        
+        
+        setAwake(true);
+        
+    };
+    
+
+    U4DDynamicModel::~U4DDynamicModel(){};
+    
+
+    U4DDynamicModel::U4DDynamicModel(const U4DDynamicModel& value){};
+    
+
+    U4DDynamicModel& U4DDynamicModel::operator=(const U4DDynamicModel& value){return *this;};
     
     #pragma mark-add force
     void U4DDynamicModel::addForce(U4DVector3n& uForce){

@@ -86,7 +86,15 @@ void U4DEntityManager::draw(){
  
             child->draw();
         
+            //ONLY FOR DEBUGGING PURPOSES
+            U4DStaticModel *model=(U4DStaticModel*)child;
         
+            if (model!=nullptr && model->getEntityType()==MODEL && model->getBoundingBoxVisibility()==true) {
+                
+                model->convexHullBoundingVolume->draw();
+            
+            }
+            //END ONLY FOR DEBUGGING PURPOSES
         
         child=child->next;
     }
@@ -111,10 +119,6 @@ void U4DEntityManager::update(float dt){
     //update the collision for each model
     child=rootEntity;
     
-    U4DMatrix3n blender(1,0,0,
-                        0,0,-1,
-                        0,1,0);
-    
     
     while (child!=NULL) {
         
@@ -122,14 +126,11 @@ void U4DEntityManager::update(float dt){
         
         if (model!=nullptr && model->getEntityType()==MODEL) {
             
-            if(model->isCollisionApplied()==true){
+            if(model->isCollisionEnabled()==true){
                 
-                U4DMatrix3n modelOrientation=blender*model->getAbsoluteMatrixOrientation();
-                U4DVector3n modelPosition=model->getAbsolutePosition();
+                //update the bounding volume with the model current space dual quaternion (rotation and translation)
+                model->convexHullBoundingVolume->localSpace=model->absoluteSpace;
                 
-                //provide orientation and position for bounding volume
-                model->narrowPhaseBoundingVolume->center=modelPosition;
-                model->narrowPhaseBoundingVolume->orientation=modelOrientation;
                 
                 //add child to collision tree
                 collisionEngine->addToCollisionContainer(model);

@@ -75,34 +75,22 @@ public:
     /**
      *  Constructor
      */
-    U4DDynamicModel(){
-        
-        affectedByPhysics=false;
-        angularVelocity.zero();
-        velocity.zero();
-        acceleration.zero();
-        force.zero();
-        moment.zero();
-        
-        
-        setAwake(true);
-    
-    };
+    U4DDynamicModel();
     
     /**
      *  Destructor
      */
-    ~U4DDynamicModel(){};
+    ~U4DDynamicModel();
     
     /**
      *  Copy Constructor
      */
-    U4DDynamicModel(const U4DDynamicModel& value){};
+    U4DDynamicModel(const U4DDynamicModel& value);
     
     /**
      *  Copy Constructor
      */
-    U4DDynamicModel& operator=(const U4DDynamicModel& value){return *this;};
+    U4DDynamicModel& operator=(const U4DDynamicModel& value);
     
     
     /**
