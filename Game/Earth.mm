@@ -94,7 +94,7 @@ void Earth::init(){
     enableGrid(true);
     
     cube=new Town();
-    cube->init("Cube",-1.0,0,0);
+    cube->init("Cone",0,1,0);
     cube->setShader("simpleRedShader");
     //cube->applyPhysics(true);
     cube->enableCollision();
@@ -105,7 +105,7 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",2.8,0.0,0.0);
+    cube2->init("Cone",2.8,0.0,0.0);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
     
