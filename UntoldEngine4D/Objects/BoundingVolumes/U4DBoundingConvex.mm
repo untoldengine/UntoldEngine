@@ -13,36 +13,31 @@ namespace U4DEngine {
     
     void U4DBoundingConvex::determineConvexHullOfModel(std::vector<U4DVector3n>& uVertices){
         
-        float width=1.0;
-        float height=1.0;
-        float depth=1.0;
         
-        U4DVector3n v0(width,height,depth);
+        U4DVector3n xDirection(1,0,0);
+        U4DVector3n yDirection(0,1,0);
+        U4DVector3n zDirection(0,0,1);
         
-        U4DVector3n v1(width,height,-depth);
+        int currentVertexIndex=0;
+        for (auto vertex:uVertices) {
+            
+            //load vertices
+            bodyCoordinates.addVerticesDataToContainer(vertex);
+            
+            
+            //Determine the index for drawing operation
+            U4DIndex renderingIndex0(currentVertexIndex,determineRenderingIndex(uVertices, vertex, xDirection),currentVertexIndex);
+            U4DIndex renderingIndex1(currentVertexIndex,determineRenderingIndex(uVertices, vertex, yDirection),currentVertexIndex);
+            U4DIndex renderingIndex2(currentVertexIndex,determineRenderingIndex(uVertices, vertex, zDirection),currentVertexIndex);
+            
+            bodyCoordinates.addIndexDataToContainer(renderingIndex0);
+            bodyCoordinates.addIndexDataToContainer(renderingIndex1);
+            bodyCoordinates.addIndexDataToContainer(renderingIndex2);
+            
+            currentVertexIndex++;
+            
+        }
         
-        U4DVector3n v2(width,-height,depth);
-        
-        U4DVector3n v3(width,-height,-depth);
-        
-        
-        
-        U4DVector3n v4(-width,-height,depth);
-        U4DVector3n v5(-width,-height,-depth);
-        
-        U4DVector3n v6(-width,height,-depth);
-        U4DVector3n v7(-width,height,depth);
-        
-        
-        bodyCoordinates.addVerticesDataToContainer(v0);
-        bodyCoordinates.addVerticesDataToContainer(v1);
-        bodyCoordinates.addVerticesDataToContainer(v2);
-        bodyCoordinates.addVerticesDataToContainer(v3);
-        
-        bodyCoordinates.addVerticesDataToContainer(v4);
-        bodyCoordinates.addVerticesDataToContainer(v5);
-        bodyCoordinates.addVerticesDataToContainer(v6);
-        bodyCoordinates.addVerticesDataToContainer(v7);
  
         setGeometry();
         

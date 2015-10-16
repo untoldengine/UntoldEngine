@@ -8,8 +8,7 @@ uniform mat3 NormalMatrix;
 
 void main(void)
     { 
-    
-gl_PointSize=5.0;
+
     gl_Position = MVPMatrix*Vertex;
     
     }

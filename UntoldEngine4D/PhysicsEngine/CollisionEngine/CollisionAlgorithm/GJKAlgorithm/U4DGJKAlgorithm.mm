@@ -21,7 +21,6 @@ namespace U4DEngine {
         //clear Q
         Q.clear();
         
-        
         U4DPoint3n closestPtToOrigin;
         U4DPoint3n originPoint(0,0,0);
         U4DPoint3n tempV; //variable to store previous value of v
@@ -71,7 +70,7 @@ namespace U4DEngine {
                 of A and B. Stop and return A and B as intersecting.
              */
             if (closestPtToOrigin==originPoint) {
-                
+                std::cout<<Q.size()<<std::endl;
                 //if intersecting, determine collision properies before returning
                 return true;
             }

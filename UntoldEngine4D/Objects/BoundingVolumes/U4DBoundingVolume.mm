@@ -83,5 +83,32 @@ namespace U4DEngine {
         
     }
     
+    int U4DBoundingVolume::determineRenderingIndex(std::vector<U4DVector3n>& uVertices, U4DVector3n& uVector, U4DVector3n& uDirection){
+     
+        
+        float dotProduct=FLT_MAX;
+        float support=0.0;
+        int index=0;
+        
+        //determine the minimum dot product in direction of vector
+        
+        for(int i=0;i<uVertices.size();i++){
+            
+            U4DVector3n vertex=uVertices.at(i);
+            
+            support=vertex.dot(uDirection);
+            
+            if(support<dotProduct){
+                
+                dotProduct=support;
+                index=i;
+            }
+            
+        }
+        
+        return index;
+        
+    }
+    
 
 }
