@@ -18,6 +18,8 @@
 #include "U4DRungaKuttaMethod.h"
 #include "U4DWorld.h"
 #include "U4DBoundingVolume.h"
+#include "U4DGJKAlgorithm.h"
+#include "U4DEPAAlgorithm.h"
 
 namespace U4DEngine {
     
@@ -32,6 +34,15 @@ U4DEntityManager::U4DEntityManager(){
     //set the integrator method
     integratorMethod=new U4DRungaKuttaMethod();
     physicsEngine->setIntegrator(integratorMethod);
+    
+    //set collision detection method
+    collisionAlgorithm=new U4DGJKAlgorithm();
+    collisionEngine->setCollisionAlgorithm(collisionAlgorithm);
+    
+    //set contact manifold method
+    manifoldGenerationAlgorithm=new U4DEPAAlgorithm();
+    collisionEngine->setManifoldGenerationAlgorithm(manifoldGenerationAlgorithm);
+    
     
 };
 
@@ -144,10 +155,10 @@ void U4DEntityManager::update(float dt){
     
     //compute collision detection
     collisionEngine->detectCollisions(dt);
+    
+    
+    
     /*
-    
-    
-    
     //update the physics
     child=rootEntity;
     while (child!=NULL) {

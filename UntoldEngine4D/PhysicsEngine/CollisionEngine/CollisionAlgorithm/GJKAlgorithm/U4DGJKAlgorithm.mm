@@ -13,6 +13,8 @@
 #include "U4DBoundingVolume.h"
 #include "U4DDynamicModel.h"
 #include "U4DVector3n.h"
+#include "U4DStaticModel.h"
+
 
 namespace U4DEngine {
     
@@ -37,7 +39,7 @@ namespace U4DEngine {
          */
         
         
-        U4DVector3n dir(1,-1,0);
+        U4DVector3n dir(1,1,1);
         
         U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
@@ -70,8 +72,22 @@ namespace U4DEngine {
                 of A and B. Stop and return A and B as intersecting.
              */
             if (closestPtToOrigin==originPoint) {
-                std::cout<<Q.size()<<std::endl;
+                
                 //if intersecting, determine collision properies before returning
+                
+                std::vector<float> barycentricPoints;
+                
+                //get the barycentric points of the collision
+                barycentricPoints=determineBarycentricCoordinatesInSimplex(originPoint, Q);
+                
+                U4DPoint3n contactPointModel1=Q.at(0).sa*barycentricPoints.at(0)+Q.at(1).sa*barycentricPoints.at(1)+Q.at(2).sa*barycentricPoints.at(2)+Q.at(3).sa*barycentricPoints.at(3);
+                
+                U4DPoint3n contactPointModel2=Q.at(0).sb*barycentricPoints.at(0)+Q.at(1).sb*barycentricPoints.at(1)+Q.at(2).sb*barycentricPoints.at(2)+Q.at(3).sb*barycentricPoints.at(3);
+                
+                //apply contact point
+                uModel1->collisionProperties.contactManifoldInformation.contactPoint=contactPointModel1.toVector();
+                uModel2->collisionProperties.contactManifoldInformation.contactPoint=contactPointModel2.toVector();
+                
                 return true;
             }
             
@@ -96,7 +112,7 @@ namespace U4DEngine {
              */
             
             if (v.minkowskiPoint.toVector().dot(dir)<0.0 || v.minkowskiPoint==tempV) {
-    
+                
                 return false;
             }
             
@@ -333,10 +349,9 @@ namespace U4DEngine {
             model2ContactPoint+=uQ.at(i).sb.toVector()*barycentricCoordinates.at(i);
         }
         
-        
-        uModel1->collisionProperties.collisionInformation.contactPoint=model1ContactPoint;
-        uModel2->collisionProperties.collisionInformation.contactPoint=model2ContactPoint;
-        
+        uModel1->collisionProperties.contactManifoldInformation.contactPoint=model1ContactPoint;
+        uModel2->collisionProperties.contactManifoldInformation.contactPoint=model2ContactPoint;
+                
     }
     
     std::vector<U4DSimplexStruct> U4DGJKAlgorithm::getCurrentSimpleStruct(){

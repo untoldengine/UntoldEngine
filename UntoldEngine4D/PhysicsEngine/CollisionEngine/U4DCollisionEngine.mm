@@ -15,18 +15,7 @@
 
 namespace U4DEngine {
     
-    U4DCollisionEngine::U4DCollisionEngine(){
-
-        //set collision detection algorithm
-        collisionAlgorithm=new U4DGJKAlgorithm();
-        setCollisionAlgorithm(collisionAlgorithm);
-        
-        //set manifold generation algorithm
-        manifoldGenerationAlgorithm=new U4DEPAAlgorithm();
-        setManifoldGenerationAlgorithm(manifoldGenerationAlgorithm);
-        
-    
-    };
+    U4DCollisionEngine::U4DCollisionEngine(){};
 
     U4DCollisionEngine::~U4DCollisionEngine(){};
 
@@ -56,11 +45,19 @@ namespace U4DEngine {
             std::cout<<"Collision Occurred"<<std::endl;
             
             
-            
-            
             //Manifold Generation Algorithm
-            //manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
-              
+            manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
+            
+            std::cout<<"Contact Points"<<std::endl;
+            modelCollection.at(0)->collisionProperties.contactManifoldInformation.contactPoint.show();
+            
+            std::cout<<"Line of Action"<<std::endl;
+            modelCollection.at(0)->collisionProperties.contactManifoldInformation.lineOfAction.show();
+            
+            std::cout<<"Penetration Depth"<<std::endl;
+            std::cout<<modelCollection.at(0)->collisionProperties.contactManifoldInformation.penetrationDepth<<std::endl;
+            
+            
         }else{
             std::cout<<"Collision Did not Occurred"<<std::endl;
         }

@@ -15,8 +15,7 @@
 
 namespace U4DEngine{
     
-    
-    void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct>& uQ){
+    void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2,std::vector<U4DSimplexStruct> uQ){
         
         //get bounding volume for each model
         U4DBoundingVolume *boundingVolume1=uModel1->convexHullBoundingVolume;
@@ -32,7 +31,7 @@ namespace U4DEngine{
             U4DPolytope polytope;
             std::vector<POLYTOPEEDGES> edges;
             U4DVector3n faceNormal;
-            float d;
+            float penetrationDepth;
             
             U4DSimplexStruct simplexPoint;
             
@@ -72,12 +71,12 @@ namespace U4DEngine{
                 
                 simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormal);
                 
-                d=simplexPoint.minkowskiPoint.toVector().dot(faceNormal);
+                penetrationDepth=simplexPoint.minkowskiPoint.toVector().dot(faceNormal);
                 
                 float faceNormalMagnitude=faceNormal.magnitude();
                 
                 //7. check if need to exit loop
-                if (d-faceNormalMagnitude<0.0001) {
+                if (penetrationDepth-faceNormalMagnitude<0.0001) {
                     
                     //break from loop
                     break;
@@ -160,8 +159,13 @@ namespace U4DEngine{
                 iterationSteps++;
                 
             }
-            //13. if exit loop, get barycentric points
             
+            //13. if exit loop, get barycentric points
+            uModel1->collisionProperties.contactManifoldInformation.penetrationDepth=penetrationDepth;
+            uModel1->collisionProperties.contactManifoldInformation.lineOfAction=faceNormal;
+            
+            uModel2->collisionProperties.contactManifoldInformation.penetrationDepth=penetrationDepth;
+            uModel2->collisionProperties.contactManifoldInformation.lineOfAction=faceNormal;
             
       }//end if Q==4
         

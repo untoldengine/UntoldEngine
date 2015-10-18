@@ -18,7 +18,6 @@
 
 namespace U4DEngine {
     
-class U4DOctTreeHierachy;
 class U4DEntityManager;
 }
 
