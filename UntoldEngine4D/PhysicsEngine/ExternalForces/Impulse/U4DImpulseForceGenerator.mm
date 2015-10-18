@@ -33,8 +33,8 @@ void  U4DImpulseForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
     
     //get the contact point and line of action
     
-    U4DVector3n contactPoint=uModel->collisionProperties.collisionInformation.contactPoint;
-    U4DVector3n lineOfAction=uModel->collisionProperties.collisionInformation.lineOfAction;
+    U4DVector3n contactPoint=uModel->collisionProperties.contactManifoldInformation.contactPoint;
+    U4DVector3n lineOfAction=uModel->collisionProperties.contactManifoldInformation.lineOfAction;
     
     //get the velocity model
     /*

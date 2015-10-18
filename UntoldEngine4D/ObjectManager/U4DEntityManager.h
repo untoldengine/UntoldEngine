@@ -14,19 +14,21 @@
 
 namespace U4DEngine {
     
-class U4DEntity;
-class U4DWorld;
-class U4DCollisionEngine;
-class U4DVisibleEntity;
-class U4DPhysicsEngine;
-class U4DCollisionEngine;
-class U4DCollisionData;
-class U4DTouchesController;
-class U4DControllerInterface;
-class U4DGravityForceGenerator;
-class U4DDragForceGenerator;
-class U4DIntegrator;
-class U4DDynamicModel;
+    class U4DEntity;
+    class U4DWorld;
+    class U4DCollisionEngine;
+    class U4DVisibleEntity;
+    class U4DPhysicsEngine;
+    class U4DCollisionEngine;
+    class U4DCollisionData;
+    class U4DTouchesController;
+    class U4DControllerInterface;
+    class U4DGravityForceGenerator;
+    class U4DDragForceGenerator;
+    class U4DIntegrator;
+    class U4DDynamicModel;
+    class U4DCollisionAlgorithm;
+    class U4DManifoldGeneration;
     
 }
 
@@ -47,6 +49,10 @@ private:
     U4DControllerInterface *touchController;
     
     U4DIntegrator *integratorMethod;
+    
+    U4DCollisionAlgorithm *collisionAlgorithm;
+    
+    U4DManifoldGeneration *manifoldGenerationAlgorithm;
     
 public:
     

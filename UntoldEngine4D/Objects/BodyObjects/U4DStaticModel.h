@@ -34,14 +34,14 @@ namespace U4DEngine {
         U4DVector3n contactPoint; //contact points (e.g. against plane, OBB, etc)
         U4DVector3n forceOnContactPoint;
         U4DVector3n lineOfAction;
+        float penetrationDepth;
         
-    }CollisionInformation;
+    }ContactManifoldInformation;
 
     typedef struct{
         
-        CollisionInformation collisionInformation;
+        ContactManifoldInformation contactManifoldInformation;
         bool collided; //did the model collided
-        float penetrationPoint;
         
     }CollisionProperties;
 }

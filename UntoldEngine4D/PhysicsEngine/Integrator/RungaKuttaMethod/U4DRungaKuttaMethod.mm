@@ -65,7 +65,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
         
     }else{
     
-        U4DVector3n axisOfRotation=uModel->collisionProperties.collisionInformation.contactPoint;
+        U4DVector3n axisOfRotation=uModel->collisionProperties.contactManifoldInformation.contactPoint;
     
         uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
