@@ -8,6 +8,7 @@
 
 #import "ViewController.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DTouches.h"
@@ -40,15 +41,19 @@
     }
     
     GLKView *view = (GLKView *)self.view;
+    
     view.context = self.context;
+    
     view.drawableDepthFormat = GLKViewDrawableDepthFormat24;
    
-    view.enableSetNeedsDisplay=60.0;
+    self.preferredFramesPerSecond=60;
+    
     [EAGLContext setCurrentContext:self.context];
     
     glEnable(GL_DEPTH_TEST);
     
     glViewport(0, 0, view.frame.size.height, view.frame.size.width);
+    
     
     //set the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
@@ -118,10 +123,14 @@
 
 - (void)update
 {
-    //call the update
     
+    //call the update
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
     director->update(self.timeSinceLastUpdate);
+    
+    //NSLog(@"Time Since Last Update%f",self.timeSinceLastUpdate);
+    //NSLog(@"FPS %ld",(long)self.framesPerSecond);
     
 }
 
@@ -130,12 +139,13 @@
     glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
-    //[EAGLContext setCurrentContext:self.context];
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     director->draw();
    
 }
+
+
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
  

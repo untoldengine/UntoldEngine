@@ -11,13 +11,13 @@
 
 namespace U4DEngine {
     
-const float PI=3.141592653589793;
-const float sleepEpsilon=180.0;
-const float baseBias=0.5;
-const float epsilon=1.0e-4f;
-const float motionEpsilon=180.0;
-const float velocityEpsilon=0.0005;
-
+    const float PI=3.141592653589793;
+    const float sleepEpsilon=180.0;
+    const float baseBias=0.5;
+    const float epsilon=1.0e-4f;
+    const float motionEpsilon=180.0;
+    const float velocityEpsilon=0.0005;
+    const float timeStep=0.01;
 }
 
 #define DegreesToRad(angle) angle*M_PI/180

@@ -60,43 +60,14 @@ void Earth::init(){
     camera->translateBy(0.0, 0.0, -7.0);
     //camera->rotateBy(30.0, 0.0, 0.0);
     
-    //create the narrow phase bounding volume
-    
-    //compute the vertices
-    float width=1.0;
-    float height=1.0;
-    float depth=1.0;
-    
-    
-    U4DEngine::U4DVector3n v1(width,height,depth);
-    U4DEngine::U4DVector3n v2(width,height,-depth);
-    U4DEngine::U4DVector3n v3(-width,height,-depth);
-    U4DEngine::U4DVector3n v4(-width,height,depth);
-    
-    U4DEngine::U4DVector3n v5(width,-height,depth);
-    U4DEngine::U4DVector3n v6(width,-height,-depth);
-    U4DEngine::U4DVector3n v7(-width,-height,-depth);
-    U4DEngine::U4DVector3n v8(-width,-height,depth);
-    
-    
-    std::vector<U4DEngine::U4DVector3n> vertices{v1,v2,v3,v4,v5,v6,v7,v8};
-    
-    
-    U4DEngine::U4DConvexPolygon* cubePolygon=new U4DEngine::U4DConvexPolygon();
-    cubePolygon->setVerticesInConvexPolygon(vertices);
-    
-    
-    U4DEngine::U4DConvexPolygon* cubePolygon2=new U4DEngine::U4DConvexPolygon();
-    cubePolygon2->setVerticesInConvexPolygon(vertices);
-    
     setName("earth");
     
     enableGrid(true);
     
     cube=new Town();
-    cube->init("Cube",0,4,0);
+    cube->init("Cube",0,0,0);
     cube->setShader("simpleRedShader");
-    cube->applyPhysics(true);
+    //cube->applyPhysics(true);
     cube->enableCollision();
     
     cube->setBoundingBoxVisibility(true);
@@ -105,7 +76,7 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",0.0,0.0,0.0);
+    cube2->init("Cube",3.0,0.0,0.0);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
     

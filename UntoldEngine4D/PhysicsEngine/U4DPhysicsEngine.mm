@@ -28,7 +28,7 @@ void U4DPhysicsEngine::updatePhysicForces(U4DDynamicModel *uModel,float dt){
     
     gravityForce.updateForce(uModel,dt);
     
-    impulseForce.updateForce(uModel,dt);
+    //impulseForce.updateForce(uModel,dt);
     
     //DO THE RESOLVE FORCE AND MOMENT Method HERE
     

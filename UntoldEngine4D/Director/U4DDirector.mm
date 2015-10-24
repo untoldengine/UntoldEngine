@@ -15,6 +15,7 @@
 #include "U4DControllerInterface.h"
 #include "U4DLights.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 #import <GLKit/GLKit.h>
 
 namespace U4DEngine {
@@ -40,11 +41,31 @@ void U4DDirector::draw(){
 
 void U4DDirector::update(double dt){
     
-    //update the scheduler
-    U4DScheduler *scheduler=U4DScheduler::sharedInstance();
-    scheduler->tick(dt);
+    //set up the time step
     
-    scene->update(dt);
+    U4DScheduler *scheduler=U4DScheduler::sharedInstance();
+    
+    float frameTime=dt;
+    
+    if (frameTime>0.25) {
+        frameTime=0.25;
+        
+    }
+    
+    accumulator+=frameTime;
+    
+    while (accumulator>=timeStep) {
+
+        //update state and physics engine
+        scene->update(timeStep);
+        
+        //update the scheduler
+        scheduler->tick(timeStep);
+        
+        accumulator-=timeStep;
+        
+    }
+    
 }
 
 void U4DDirector::loadShaders(){

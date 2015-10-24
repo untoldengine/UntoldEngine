@@ -42,24 +42,15 @@ namespace U4DEngine {
         if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
             
             //if collision occurred then
-            std::cout<<"Collision Occurred"<<std::endl;
+            //std::cout<<"Collision Occurred"<<std::endl;
             
             
             //Manifold Generation Algorithm
             manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
             
-            std::cout<<"Contact Points"<<std::endl;
-            modelCollection.at(0)->collisionProperties.contactManifoldInformation.contactPoint.show();
-            
-            std::cout<<"Line of Action"<<std::endl;
-            modelCollection.at(0)->collisionProperties.contactManifoldInformation.lineOfAction.show();
-            
-            std::cout<<"Penetration Depth"<<std::endl;
-            std::cout<<modelCollection.at(0)->collisionProperties.contactManifoldInformation.penetrationDepth<<std::endl;
-            
             
         }else{
-            std::cout<<"Collision Did not Occurred"<<std::endl;
+            
         }
         
 

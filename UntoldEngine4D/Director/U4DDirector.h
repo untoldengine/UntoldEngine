@@ -43,6 +43,7 @@ class U4DDirector{
   
 private:
     
+    
     /**
      *  Current Universe of the game
      */
@@ -60,6 +61,9 @@ private:
     std::vector<GLuint> shaderProgram;
     
     U4DLights* mainLight;
+    
+    //time step accumulator
+    float accumulator;
     
 protected:
     
