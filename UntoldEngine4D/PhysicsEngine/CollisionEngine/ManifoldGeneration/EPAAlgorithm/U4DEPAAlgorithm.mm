@@ -55,7 +55,7 @@ namespace U4DEngine{
             }
            
             
-            while (iterationSteps<25) {
+            while (iterationSteps<10) {
                 
                 //4. which face is closest to origin
                 POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);

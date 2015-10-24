@@ -158,7 +158,7 @@ void U4DEntityManager::update(float dt){
     
     
     
-    /*
+    
     //update the physics
     child=rootEntity;
     while (child!=NULL) {
@@ -173,7 +173,7 @@ void U4DEntityManager::update(float dt){
         
         child=child->next;
     }
-    */
+    
     
 }
 
