@@ -46,7 +46,7 @@ namespace U4DEngine {
             
             
             //Manifold Generation Algorithm
-            manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
+           // manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
             
             
         }else{
