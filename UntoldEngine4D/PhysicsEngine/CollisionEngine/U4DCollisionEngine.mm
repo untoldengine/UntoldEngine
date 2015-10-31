@@ -12,12 +12,17 @@
 #include "U4DCollisionAlgorithm.h"
 #include "U4DGJKAlgorithm.h"
 #include "U4DEPAAlgorithm.h"
+#include "U4DDynamicModel.h"
 
 namespace U4DEngine {
     
     U4DCollisionEngine::U4DCollisionEngine(){};
 
     U4DCollisionEngine::~U4DCollisionEngine(){};
+    
+    void U4DCollisionEngine::update(float dt){
+        
+    }
 
     void U4DCollisionEngine::setCollisionAlgorithm(U4DCollisionAlgorithm* uCollisionAlgorithm){
         
@@ -31,7 +36,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DCollisionEngine::addToCollisionContainer(U4DStaticModel* uModel){
+    void U4DCollisionEngine::addToCollisionContainer(U4DDynamicModel* uModel){
         
         modelCollection.push_back(uModel);
         
@@ -39,27 +44,96 @@ namespace U4DEngine {
 
     void U4DCollisionEngine::detectCollisions(float dt){
         
-        if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
+        if (modelCollection.size()>1) {
             
-            //if collision occurred then
-            //std::cout<<"Collision Occurred"<<std::endl;
-            
-            
-            //Manifold Generation Algorithm
-           // manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
-            
-            
-        }else{
-            
-        }
+            if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
+                
+                //if collision occurred then
+                std::cout<<"Collision Occurred"<<std::endl;
+                
+                //Manifold Generation Algorithm
+                manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
+                
+               
+                //contact resolution
+                contactResolution(modelCollection.at(0), dt);
+                contactResolution(modelCollection.at(1), dt);
+                
+                
+            }else{
+                
+            }
         
+        }
 
         //NEED TO REMOVE THIS
         modelCollection.clear();
     }
     
     
-
+    void U4DCollisionEngine::contactResolution(U4DDynamicModel* uModel, float dt){
+        
+        
+        U4DVector3n velocityBody;
+        U4DVector3n angularVelocityBody;
+        
+        //Clear all forces
+        uModel->clearForce();
+        uModel->clearMoment();
+        
+        //get the contact point and line of action
+        
+        U4DVector3n contactPoint=uModel->collisionProperties.contactManifoldInformation.contactPoint;
+        U4DVector3n lineOfAction=uModel->collisionProperties.contactManifoldInformation.lineOfAction;
+        
+        //get the velocity model
+        /*
+         r=contact point
+         vp=v+(wxr)
+         */
+        
+        U4DVector3n Vp=uModel->getVelocity()+(uModel->getAngularVelocity().cross(contactPoint));
+        
+        float inverseMass=1.0/uModel->massProperties.mass;
+        
+        /*
+         
+         See page 115 in Physics for game developers
+         
+         |J|=-(Vr*n)(e+1)/[1/m +n*((rxn)/I)xr]
+         
+         */
+        
+        
+        float j=-1*(Vp.dot(lineOfAction))*(uModel->coefficientOfRestitution+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
+        
+        
+        
+        /*
+         
+         V1after=V1before+(|J|n)/m
+         
+         */
+        
+        velocityBody+=uModel->getVelocity()+(lineOfAction*j)/uModel->massProperties.mass;
+        
+        
+        
+        /*
+         
+         w1after=w1before+(rx|j|n)/I
+         */
+        
+        
+        angularVelocityBody+=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction*j));
+        
+        uModel->setVelocity(velocityBody);
+        
+        uModel->setAngularVelocity(angularVelocityBody);
+        
+        
+    }
+    
     /*
     void U4DCollisionEngine::collisionDetection(U4DDynamicModel* uModel,float dt){
         

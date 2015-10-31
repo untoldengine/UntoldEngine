@@ -29,63 +29,54 @@ namespace U4DEngine {
     class U4DDynamicModel;
     class U4DCollisionAlgorithm;
     class U4DManifoldGeneration;
+    class U4DVector3n;
     
 }
 
 
 namespace U4DEngine {
     
-/**
- *  Class manager for all objects in the engine
- */
-class U4DEntityManager{
+    /**
+     *  Class manager for all objects in the engine
+     */
+    class U4DEntityManager{
 
-private:
-    
-    U4DPhysicsEngine *physicsEngine;
- 
-    U4DCollisionEngine *collisionEngine;
-    
-    U4DControllerInterface *touchController;
-    
-    U4DIntegrator *integratorMethod;
-    
-    U4DCollisionAlgorithm *collisionAlgorithm;
-    
-    U4DManifoldGeneration *manifoldGenerationAlgorithm;
-    
-public:
-    
-    U4DEntity *rootEntity;
-    
-    U4DEntityManager();
- 
-    ~U4DEntityManager();
-    
-    U4DEntityManager(const U4DEntityManager& value){};
+    private:
+        
+        U4DPhysicsEngine *physicsEngine;
+     
+        U4DCollisionEngine *collisionEngine;
+        
+        U4DControllerInterface *touchController;
+        
+        U4DIntegrator *integratorMethod;
+        
+        U4DCollisionAlgorithm *collisionAlgorithm;
+        
+        U4DManifoldGeneration *manifoldGenerationAlgorithm;
+        
+    public:
+        
+        U4DEntity *rootEntity;
+        
+        U4DEntityManager();
+     
+        ~U4DEntityManager();
+        
+        U4DEntityManager(const U4DEntityManager& value){};
 
-    U4DEntityManager& operator=(const U4DEntityManager& value){return *this;};
- 
-    void draw();
-    
-    void update(float dt);
-    
-    void setRootEntity(U4DVisibleEntity* uRootEntity);
-    
-    void setPhysicsProperties();
-    
-    void applyPhysicsToObject(U4DDynamicModel* uModel);
- 
-    void applyCollision(U4DDynamicModel *uModel);
-   
-    void applyGravityToObject(U4DDynamicModel *uModel);
- 
-    void applyDampingToObject(U4DDynamicModel *uModel);
-
-    void applyExternalForce(U4DCollisionData& uCollisionData);
-    
-    
-};
+        U4DEntityManager& operator=(const U4DEntityManager& value){return *this;};
+     
+        void draw();
+        
+        void update(float dt);
+        
+        void setRootEntity(U4DVisibleEntity* uRootEntity);
+        
+        void setGravity(U4DVector3n& uGravity);
+        
+        
+    };
     
 }
 

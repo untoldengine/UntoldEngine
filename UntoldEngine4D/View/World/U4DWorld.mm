@@ -8,9 +8,39 @@
 
 #include "U4DWorld.h"
 #include "U4DControllerInterface.h"
+#include "U4DEntityManager.h"
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
+    
+    //constructor
+    U4DWorld::U4DWorld(){
+        
+        entityManager=new U4DEntityManager();
+        entityManager->setRootEntity(this);
+        
+        openGlManager=new U4DOpenGLWorld(this);
+        openGlManager->setShader("worldShader");
+        gridEnabled=false;
+        shadowsEnabled=false;
+        
+        U4DVector3n uGravity(0.0,-10.0,0.0);
+        setGravity(uGravity);
+        
+    }
+    
+    
+    //copy constructor
+    U4DWorld::U4DWorld(const U4DWorld& value){
+    
+    }
+    
+    U4DWorld& U4DWorld::operator=(const U4DWorld& value){
+    
+        return *this;
+    
+    }
+    
     
     void U4DWorld::draw(){
         
@@ -163,6 +193,9 @@ namespace U4DEngine {
     void U4DWorld::setGravity(U4DVector3n& uGravity){
      
         gravity=uGravity;
+        
+        entityManager->setGravity(gravity);
+        
     }
 
     U4DVector3n U4DWorld::getGravity(){

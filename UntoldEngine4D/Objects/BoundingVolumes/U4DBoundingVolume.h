@@ -34,8 +34,8 @@ public:
         openGlManager=new U4DOpenGLGeometry(this);
         openGlManager->setShader("geometricShader");
 
-        U4DVector4n color(1.0,0.0,0.0,1.0);
-        addCustomUniform("Color", color);
+        //U4DVector4n color(1.0,0.0,0.0,1.0);
+        //addCustomUniform("Color", color);
     };
     
    

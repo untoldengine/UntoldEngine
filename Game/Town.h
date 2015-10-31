@@ -11,9 +11,9 @@
 
 #include <iostream>
 #include <string>
-#include "U4DCharacter.h"
+#include "U4DGameObject.h"
 
-class Town:public U4DEngine::U4DCharacter{
+class Town:public U4DEngine::U4DGameObject{
     
 public:
     

@@ -11,10 +11,10 @@
 
 #include <iostream>
 #include <string>
-#include "U4DCharacter.h"
+#include "U4DGameObject.h"
 
 
-class MyCharacter:public U4DEngine::U4DCharacter{
+class MyCharacter:public U4DEngine::U4DGameObject{
 
 public:
     

@@ -26,7 +26,7 @@ namespace U4DEngine {
         
         virtual ~U4DCollisionAlgorithm(){};
         
-        virtual bool collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt){};
+        virtual bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){};
         
         virtual std::vector<U4DSimplexStruct> getCurrentSimpleStruct(){};
         

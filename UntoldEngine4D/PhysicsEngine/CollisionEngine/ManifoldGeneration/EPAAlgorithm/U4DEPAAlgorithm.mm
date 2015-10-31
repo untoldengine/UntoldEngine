@@ -15,7 +15,7 @@
 
 namespace U4DEngine{
     
-    void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2,std::vector<U4DSimplexStruct> uQ){
+    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ){
         
         //get bounding volume for each model
         U4DBoundingVolume *boundingVolume1=uModel1->convexHullBoundingVolume;
@@ -25,7 +25,7 @@ namespace U4DEngine{
         //blow up simplex to tetrahedron
         
         //test if origin is in tetrahedron
-        
+       
         if(uQ.size()==4){
                         
             U4DPolytope polytope;
@@ -55,7 +55,7 @@ namespace U4DEngine{
             }
            
             
-            while (iterationSteps<10) {
+            while (iterationSteps<10 && polytope.polytopeFaces.size()>0) {
                 
                 //4. which face is closest to origin
                 POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
@@ -137,10 +137,12 @@ namespace U4DEngine{
                         
                     }//end if
                 }
-                
+               
                 //9. Remove duplicate faces and edges
                 
                 polytope.polytopeFaces.erase(std::remove_if(polytope.polytopeFaces.begin(), polytope.polytopeFaces.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),polytope.polytopeFaces.end());
+                
+                std::cout<<"size of polytope: "<<polytope.polytopeFaces.size()<<std::endl;
                 
                 edges.erase(std::remove_if(edges.begin(), edges.end(),[](POLYTOPEEDGES &e){ return e.isDuplicate;} ),edges.end());
                 
@@ -166,6 +168,7 @@ namespace U4DEngine{
             
             uModel2->collisionProperties.contactManifoldInformation.penetrationDepth=penetrationDepth;
             uModel2->collisionProperties.contactManifoldInformation.lineOfAction=faceNormal;
+            
             
       }//end if Q==4
         

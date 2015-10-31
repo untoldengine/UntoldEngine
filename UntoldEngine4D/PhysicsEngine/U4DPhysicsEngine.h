@@ -16,7 +16,6 @@
 #include "U4DBodyForceGenerator.h"
 #include "U4DIntegrator.h"
 #include "U4DGravityForceGenerator.h"
-#include "U4DImpulseForceGenerator.h"
 
 namespace U4DEngine {
     
@@ -27,8 +26,6 @@ private:
     U4DIntegrator *integrator;
     
     U4DGravityForceGenerator gravityForce;
-    
-    U4DImpulseForceGenerator impulseForce;
     
     
 protected:
@@ -52,6 +49,9 @@ public:
     void setGravity(U4DVector3n& uGravity);
     
     U4DVector3n getGravity();
+    
+    void update(float dt);
+    
     
 };
 

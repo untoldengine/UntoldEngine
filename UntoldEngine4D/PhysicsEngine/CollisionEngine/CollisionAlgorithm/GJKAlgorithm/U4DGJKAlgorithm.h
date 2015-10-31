@@ -34,7 +34,7 @@ namespace U4DEngine {
         U4DGJKAlgorithm(){};
         ~U4DGJKAlgorithm(){};
         
-        bool collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt);
+        bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt);
         
         void determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer);
         

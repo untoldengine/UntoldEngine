@@ -18,7 +18,7 @@
 
 namespace U4DEngine {
     
-    bool U4DGJKAlgorithm::collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt){
+    bool U4DGJKAlgorithm::collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){
         
         //clear Q
         Q.clear();

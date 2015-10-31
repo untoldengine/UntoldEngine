@@ -17,17 +17,17 @@ namespace U4DEngine {
     
     void U4DBoundingVolume::setGeometry(){
 
-        openGlManager->loadRenderingInformation();
+       // openGlManager->loadRenderingInformation();
     }
 
     void U4DBoundingVolume::draw(){
      
-        openGlManager->draw();
+       // openGlManager->draw();
     }
 
     void U4DBoundingVolume::setGeometryColor(U4DVector4n& uColor){
         
-        updateUniforms("Color", uColor);
+       // updateUniforms("Color", uColor);
         
     }
 

@@ -16,7 +16,9 @@
 void MainScene::init(){
     
     Earth *earth=new Earth();
+    
     U4DEngine::U4DGameModelInterface *model=new GameLogic();
+    
     U4DEngine::U4DControllerInterface *control=new GameController();
     
     setGameWorldControllerAndModel(earth, control, model);

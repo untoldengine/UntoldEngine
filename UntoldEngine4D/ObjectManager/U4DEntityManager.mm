@@ -20,202 +20,156 @@
 #include "U4DBoundingVolume.h"
 #include "U4DGJKAlgorithm.h"
 #include "U4DEPAAlgorithm.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
     
-U4DEntityManager::U4DEntityManager(){
-    
-    //set the collision manager
-    collisionEngine=new U4DCollisionEngine();
-    
-    //set the physics engine
-    physicsEngine=new U4DPhysicsEngine();
-    
-    //set the integrator method
-    integratorMethod=new U4DRungaKuttaMethod();
-    physicsEngine->setIntegrator(integratorMethod);
-    
-    //set collision detection method
-    collisionAlgorithm=new U4DGJKAlgorithm();
-    collisionEngine->setCollisionAlgorithm(collisionAlgorithm);
-    
-    //set contact manifold method
-    manifoldGenerationAlgorithm=new U4DEPAAlgorithm();
-    collisionEngine->setManifoldGenerationAlgorithm(manifoldGenerationAlgorithm);
-    
-    
-};
-
-U4DEntityManager::~U4DEntityManager(){
-
-    delete collisionEngine;
-    delete physicsEngine;
-    delete integratorMethod;
-
-};
-
-
-void U4DEntityManager::setRootEntity(U4DVisibleEntity* uRootEntity){
-    
-    rootEntity=uRootEntity;
-    
-}
-
-void U4DEntityManager::setPhysicsProperties(){
-    
-    U4DWorld *world=(U4DWorld*)rootEntity;
-    
-    U4DVector3n gravity=world->getGravity();
-    
-    physicsEngine->setGravity(gravity);
-    
-}
-
-#pragma mark-draw
-//draw
-void U4DEntityManager::draw(){
-    
-    //Collisions draw
-    
-    //collisionEngine->draw();
-   
-    U4DEntity* child=rootEntity;
-    
-    while (child!=NULL) {
+    U4DEntityManager::U4DEntityManager(){
         
-        if(child->isRoot()){
-            
-            child->absoluteSpace=child->localSpace;
-    
-            child->getShadows();
-            
-        }else{
-            
-            child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
-            
-        }
- 
-            child->draw();
+        //set the collision manager
+        collisionEngine=new U4DCollisionEngine();
         
-            //ONLY FOR DEBUGGING PURPOSES
-            U4DStaticModel *model=(U4DStaticModel*)child;
+        //set the physics engine
+        physicsEngine=new U4DPhysicsEngine();
         
-            if (model!=nullptr && model->getEntityType()==MODEL && model->getBoundingBoxVisibility()==true) {
-                
-                model->convexHullBoundingVolume->draw();
-            
-            }
-            //END ONLY FOR DEBUGGING PURPOSES
+        //set the integrator method
+        integratorMethod=new U4DRungaKuttaMethod();
+        physicsEngine->setIntegrator(integratorMethod);
         
-        child=child->next;
+        //set collision detection method
+        collisionAlgorithm=new U4DGJKAlgorithm();
+        collisionEngine->setCollisionAlgorithm(collisionAlgorithm);
+        
+        //set contact manifold method
+        manifoldGenerationAlgorithm=new U4DEPAAlgorithm();
+        collisionEngine->setManifoldGenerationAlgorithm(manifoldGenerationAlgorithm);
+        
+        
+    };
+
+    U4DEntityManager::~U4DEntityManager(){
+
+        delete collisionEngine;
+        delete physicsEngine;
+        delete integratorMethod;
+
+    };
+
+
+    void U4DEntityManager::setRootEntity(U4DVisibleEntity* uRootEntity){
+        
+        rootEntity=uRootEntity;
+        
     }
-    
-}
 
-
-#pragma mark-update
-//update
-void U4DEntityManager::update(float dt){
-    
-    //update the positions
-    U4DEntity* child=rootEntity;
-    
-    while (child!=NULL) {
+    void U4DEntityManager::setGravity(U4DVector3n& uGravity){
         
-        child->update(dt);
+        physicsEngine->setGravity(uGravity);
         
-        child=child->next;
     }
-   
-    //update the collision for each model
-    child=rootEntity;
-    
-    
-    while (child!=NULL) {
+
+    #pragma mark-draw
+    //draw
+    void U4DEntityManager::draw(){
         
-        U4DStaticModel *model=(U4DStaticModel*)child;
+        U4DEntity* child=rootEntity;
         
-        if (model!=nullptr && model->getEntityType()==MODEL) {
+        while (child!=NULL) {
             
-            if(model->isCollisionEnabled()==true){
+            if(child->isRoot()){
                 
-                //update the bounding volume with the model current space dual quaternion (rotation and translation)
-                model->convexHullBoundingVolume->localSpace=model->absoluteSpace;
+                child->absoluteSpace=child->localSpace;
+        
+                child->getShadows();
                 
+            }else{
                 
-                //add child to collision tree
-                collisionEngine->addToCollisionContainer(model);
+                child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
                 
             }
+     
+                child->draw();
             
+                //ONLY FOR DEBUGGING PURPOSES
+                //U4DStaticModel *model=(U4DStaticModel*)child;
+            
+                //if (model!=nullptr && model->getEntityType()==MODEL && model->getBoundingBoxVisibility()==true) {
+                    
+                    //model->convexHullBoundingVolume->draw();
+                
+               // }
+                //END ONLY FOR DEBUGGING PURPOSES
+            
+            child=child->next;
         }
         
-        child=child->next;
     }
-    
-    //compute collision detection
-    collisionEngine->detectCollisions(dt);
-    
-    
-    
-    
-    //update the physics
-    child=rootEntity;
-    while (child!=NULL) {
+
+
+    #pragma mark-update
+    //update
+    void U4DEntityManager::update(float dt){
         
-        U4DDynamicModel *model=(U4DDynamicModel*)child;
+        //update the positions
+        U4DEntity* child=rootEntity;
         
-        if (model!=nullptr && model->isPhysicsApplied()==true) {
+        while (child!=NULL) {
             
-            physicsEngine->updatePhysicForces(model, dt);
+            child->update(dt);
             
+            child=child->next;
         }
         
-        child=child->next;
+        
+        //update the collision for each model
+        child=rootEntity;
+        
+        
+        while (child!=NULL) {
+            
+            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+            
+            if (model) {
+                
+                    if(model->isCollisionEnabled()==true){
+                        
+                        //update the bounding volume with the model current space dual quaternion (rotation and translation)
+                        model->convexHullBoundingVolume->localSpace=model->absoluteSpace;
+                        
+                        
+                        //add child to collision tree
+                        collisionEngine->addToCollisionContainer(model);
+                        
+                    }
+            }
+            
+            child=child->next;
+        }
+        
+        //compute collision detection
+        collisionEngine->detectCollisions(dt);
+        
+        //update the physics
+        child=rootEntity;
+        while (child!=NULL) {
+            
+            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+            
+            if (model) {
+            
+                if (model->isPhysicsApplied()==true) {
+                    
+                    physicsEngine->updatePhysicForces(model, dt);
+                    
+                }
+                
+            }
+            
+            child=child->next;
+        }
+        
+        
     }
     
-    
-}
-
-/*
-#pragma mark-apply physics to object
-//apply physics
-void U4DEntityManager::applyPhysicsToObject(U4DDynamicModel* uBody){
-    
-    //add(uBody); //add physics to object
-}
-
-#pragma mark-apply collision
-void U4DEntityManager::applyCollision(U4DDynamicModel* uBody){
-    
-    //send the body to the collision engine so that it produces the geometry
-    collisionEngine->applyCollisionDetection(uBody);
-}
-
-#pragma mark-apply gravity to object
-//apply gravity to object
-void U4DEntityManager::applyGravityToObject(U4DDynamicModel* uBody){
-    
-    physicsEngine->add(uBody, applyGravity);
-   
-}
-
-#pragma mark-apply damping to object
-//apply damping to object
-void U4DEntityManager::applyDampingToObject(U4DDynamicModel *uBody){
-    
-    physicsEngine->add(uBody, applyDrag);
-    
-}
-
-#pragma mark-apply external force to body
-
-//apply external force on body
-void U4DEntityManager::applyExternalForce(U4DCollisionData& uCollisionData){
-    
-
-}
-*/
-
 }
 

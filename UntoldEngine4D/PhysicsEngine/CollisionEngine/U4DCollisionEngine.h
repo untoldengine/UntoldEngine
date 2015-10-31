@@ -30,7 +30,7 @@ namespace U4DEngine {
         U4DCollisionAlgorithm *collisionAlgorithm;
         U4DManifoldGeneration *manifoldGenerationAlgorithm;
         
-        std::vector<U4DStaticModel*> modelCollection;
+        std::vector<U4DDynamicModel*> modelCollection;
         
     public:
         
@@ -45,9 +45,15 @@ namespace U4DEngine {
         
         void detectCollisions(float dt);
         
-        void addToCollisionContainer(U4DStaticModel* uModel);
+        void addToCollisionContainer(U4DDynamicModel* uModel);
         
+        void contactResolution(U4DDynamicModel* uModel, float dt);
         
+        void update(float dt);
+        
+        void add(U4DDynamicModel *uModel);
+        
+        void remove(U4DDynamicModel *uModel);
         
     };
 

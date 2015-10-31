@@ -70,22 +70,22 @@ protected:
     /**
      *  Director Constructor
      */
-    U4DDirector(){};
+    U4DDirector();
     
     /**
      *  Director Destructor
      */
-    ~U4DDirector(){};
+    ~U4DDirector();
     
     /**
      *  Copy constructor
      */
-    U4DDirector(const U4DDirector& value){};
+    U4DDirector(const U4DDirector& value);
 
     /**
      *  Copy constructor
      */
-    U4DDirector& operator=(const U4DDirector& value){return *this;};
+    U4DDirector& operator=(const U4DDirector& value);
     
 public:
     

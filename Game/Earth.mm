@@ -65,23 +65,24 @@ void Earth::init(){
     enableGrid(true);
     
     cube=new Town();
-    cube->init("Cube",0,0,0);
+    cube->init("Cube",0,3,0);
     cube->setShader("simpleRedShader");
-    //cube->applyPhysics(true);
+    
+    cube->applyPhysics(true);
     cube->enableCollision();
     
-    cube->setBoundingBoxVisibility(true);
+    //cube->setBoundingBoxVisibility(true);
     
     addChild(cube);
     
    
     cube2=new Town();
-    cube2->init("Cube",3.0,0.0,0.0);
+    cube2->init("Cube",0.0,0.0,0.0);
     cube2->setShader("simpleShader");
     //cube2->applyPhysics(true);
     
     cube2->enableCollision();
-    cube2->setBoundingBoxVisibility(true);
+    //cube2->setBoundingBoxVisibility(true);
     addChild(cube2);
     
     /*
