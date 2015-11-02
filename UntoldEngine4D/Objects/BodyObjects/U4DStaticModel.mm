@@ -12,9 +12,8 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel(){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),boundingBoxVisibility(false){
         
-        collisionEnabled=false;
         
         massProperties.mass=1.0;
         
@@ -24,7 +23,7 @@ namespace U4DEngine {
         
         setCenterOfMass(centerOfMass);
         
-        coefficientOfRestitution=1.0;
+        coefficientOfRestitution=0.8;
         
         setInertiaTensor(1.0,1.0,1.0);
         
@@ -232,6 +231,21 @@ namespace U4DEngine {
     bool U4DStaticModel::getBoundingBoxVisibility(){
         
         return boundingBoxVisibility;
+    }
+    
+    void U4DStaticModel::updateBoundingBoxSpace(){
+        
+        //update the bounding volume with the model current space dual quaternion (rotation and translation)
+        convexHullBoundingVolume->setLocalSpace(absoluteSpace);
+        
+    }
+    
+    U4DBoundingVolume* U4DStaticModel::getBoundingVolume(){
+        
+        //update the bounding box space
+        updateBoundingBoxSpace();
+        
+        return convexHullBoundingVolume;
     }
     
 }

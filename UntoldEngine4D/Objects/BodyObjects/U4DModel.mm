@@ -22,11 +22,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel(){
-        
-        hasMaterial=false;
-        hasTextures=false;
-        hasAnimation=false;
+    U4DModel::U4DModel():hasMaterial(false),hasTextures(false),hasAnimation(false){
         
         openGlManager=new U4DOpenGL3DModel(this);
         armatureManager=new U4DArmatureData(this);

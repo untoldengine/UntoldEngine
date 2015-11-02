@@ -15,9 +15,9 @@ namespace U4DEngine {
 #pragma mark-integrate
 void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     
-    U4DVector3n velocityNew;
-    U4DVector3n displacementNew;
-    U4DVector3n angularVelocityNew;
+    U4DVector3n velocityNew(0,0,0);
+    U4DVector3n displacementNew(0,0,0);
+    U4DVector3n angularVelocityNew(0,0,0);
     U4DQuaternion orientationNew;
     
     //calculate the acceleration
@@ -31,8 +31,6 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     
     uModel->translateTo(displacementNew);
     uModel->setVelocity(velocityNew);
-   
-    
     
     //CALCULATE ANGULAR POSITION
     
@@ -83,9 +81,9 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     uModel->clearMoment();
     
     //determine if the motion of the body is too low and set body to sleep
-    float currentMotion=velocityNew.magnitudeSquare()+angularVelocityNew.magnitudeSquare();
+    //float currentMotion=velocityNew.magnitudeSquare()+angularVelocityNew.magnitudeSquare();
     
-    uModel->setMotion(currentMotion,dt);
+    //uModel->setMotion(currentMotion,dt);
     
 }
 
@@ -101,6 +99,8 @@ void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicModel *uModel,U4DVector
     uVnew=uModel->getVelocity()+(k1+k2*2+k3*2+k4)*(rungaKuttaCorrectionCoefficient/6);
 
     uSnew=uModel->getLocalPosition()+uVnew*dt;
+    
+
     
 }
 

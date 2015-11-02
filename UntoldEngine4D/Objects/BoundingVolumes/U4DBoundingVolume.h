@@ -29,27 +29,13 @@ private:
 public:
     
    
-    U4DBoundingVolume(){
+    U4DBoundingVolume();
     
-        openGlManager=new U4DOpenGLGeometry(this);
-        openGlManager->setShader("geometricShader");
+    ~U4DBoundingVolume();
+    
+    U4DBoundingVolume(const U4DBoundingVolume& value);
 
-        //U4DVector4n color(1.0,0.0,0.0,1.0);
-        //addCustomUniform("Color", color);
-    };
-    
-   
-    ~U4DBoundingVolume(){};
-    
-   
-    U4DBoundingVolume(const U4DBoundingVolume& value){};
-
-  
-    U4DBoundingVolume& operator=(const U4DBoundingVolume& value){
-        
-        return *this;
-    
-    };
+    U4DBoundingVolume& operator=(const U4DBoundingVolume& value);
     
     U4DVertexData bodyCoordinates;
     

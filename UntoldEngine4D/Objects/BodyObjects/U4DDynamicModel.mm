@@ -12,18 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel(){
-        
-        affectedByPhysics=false;
-        angularVelocity.zero();
-        velocity.zero();
-        acceleration.zero();
-        force.zero();
-        moment.zero();
-        
-        
-        setAwake(true);
-        
+    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true){
     };
     
 

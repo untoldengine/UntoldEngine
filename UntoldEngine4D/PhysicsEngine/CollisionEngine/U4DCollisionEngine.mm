@@ -49,18 +49,18 @@ namespace U4DEngine {
             if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
                 
                 //if collision occurred then
-                std::cout<<"Collision Occurred"<<std::endl;
                 
                 //Manifold Generation Algorithm
                 manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
                 
-               
+                
                 //contact resolution
                 contactResolution(modelCollection.at(0), dt);
                 contactResolution(modelCollection.at(1), dt);
                 
                 
             }else{
+                
                 
             }
         
@@ -74,8 +74,8 @@ namespace U4DEngine {
     void U4DCollisionEngine::contactResolution(U4DDynamicModel* uModel, float dt){
         
         
-        U4DVector3n velocityBody;
-        U4DVector3n angularVelocityBody;
+        U4DVector3n velocityBody(0,0,0);
+        U4DVector3n angularVelocityBody(0,0,0);
         
         //Clear all forces
         uModel->clearForce();
@@ -114,6 +114,7 @@ namespace U4DEngine {
          V1after=V1before+(|J|n)/m
          
          */
+        
         
         velocityBody+=uModel->getVelocity()+(lineOfAction*j)/uModel->massProperties.mass;
         

@@ -23,13 +23,13 @@ namespace U4DEngine {
         //clear Q
         Q.clear();
         
-        U4DPoint3n closestPtToOrigin;
+        U4DPoint3n closestPtToOrigin(0,0,0);
         U4DPoint3n originPoint(0,0,0);
-        U4DPoint3n tempV; //variable to store previous value of v
+        U4DPoint3n tempV(0,0,0); //variable to store previous value of v
         std::vector<float> barycentricPoints; //barycentric points
         
-        U4DBoundingVolume *boundingVolume1=uModel1->convexHullBoundingVolume;
-        U4DBoundingVolume *boundingVolume2=uModel2->convexHullBoundingVolume;
+        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
+        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
         
         int iterationSteps=0; //to avoid infinite loop
@@ -39,17 +39,13 @@ namespace U4DEngine {
          the dimension) from the Minkowski difference of A and B.
          */
         
-        
         U4DVector3n dir(1,1,1);
         
         U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
-        //dir=c.minkowskiPoint.toVector();
-        
         dir.negate();
         
         U4DSimplexStruct b=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-        
         
         //test if the last point added past the origin
         if (b.minkowskiPoint.toVector().dot(dir)<0) {
@@ -79,6 +75,7 @@ namespace U4DEngine {
                 std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPtToOrigin, Q);
                 
                 uModel1->collisionProperties.contactManifoldInformation.contactPoint=closestCollisionPoints.at(0).toVector();
+                
                 uModel2->collisionProperties.contactManifoldInformation.contactPoint=closestCollisionPoints.at(1).toVector();
                 
                 return true;
@@ -369,5 +366,6 @@ namespace U4DEngine {
     std::vector<U4DSimplexStruct> U4DGJKAlgorithm::getCurrentSimpleStruct(){
         
         return Q;
+        
     }
 }

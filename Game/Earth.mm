@@ -64,8 +64,12 @@ void Earth::init(){
     
     enableGrid(true);
     
+    U4DEngine::U4DVector3n gravity(0,-10,0);
+    
+    setGravity(gravity);
+    
     cube=new Town();
-    cube->init("Cube",0,3,0);
+    cube->init("Cube",-1.5,10,0);
     cube->setShader("simpleRedShader");
     
     cube->applyPhysics(true);

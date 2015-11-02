@@ -118,7 +118,6 @@ namespace U4DEngine {
         
         int uNumberOfSimplexInContainer=uQ.size();
         
-        
         if (uNumberOfSimplexInContainer==2) {
             //do line
             U4DPoint3n a=uQ.at(0).minkowskiPoint;

@@ -14,22 +14,13 @@
 
 namespace U4DEngine {
     
-    U4DEntity::U4DEntity(){
+    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),viewDirection(0,0,1),parent(nullptr),next(nullptr){
         
-        parent=nullptr;
-        next=nullptr;
         prevSibling=this;
         lastDescendant=this;
         
-        
-        localOrientation.zero();
-        localPosition.zero();
         transformation=new U4DTransformation(this);
-        
-        U4DVector3n uViewDirection(0,0,1);
-        
-        setViewDirection(uViewDirection);
-
+    
     }
 
 

@@ -21,7 +21,7 @@ namespace U4DEngine {
     
     typedef struct{
         
-        float mass;
+        float mass=0.0;
         U4DVector3n centerOfMass;
         U4DMatrix3n momentOfInertiaTensor;
         U4DMatrix3n inverseMomentOfInertiaTensor;
@@ -34,14 +34,14 @@ namespace U4DEngine {
         U4DVector3n contactPoint; //contact points (e.g. against plane, OBB, etc)
         U4DVector3n forceOnContactPoint;
         U4DVector3n lineOfAction;
-        float penetrationDepth;
+        float penetrationDepth=0.0;
         
     }ContactManifoldInformation;
 
     typedef struct{
         
         ContactManifoldInformation contactManifoldInformation;
-        bool collided; //did the model collided
+        bool collided=false; //did the model collided
         
     }CollisionProperties;
 }
@@ -114,6 +114,11 @@ public:
     void setBoundingBoxVisibility(bool uValue);
     
     bool getBoundingBoxVisibility();
+    
+    void updateBoundingBoxSpace();
+    
+    U4DBoundingVolume* getBoundingVolume();
+    
     
 };
     

@@ -14,18 +14,13 @@
 namespace U4DEngine {
     
     //constructor
-    U4DWorld::U4DWorld(){
+    U4DWorld::U4DWorld():gravity(0.0,0.0,0.0),gridEnabled(false),shadowsEnabled(false){
         
         entityManager=new U4DEntityManager();
         entityManager->setRootEntity(this);
         
         openGlManager=new U4DOpenGLWorld(this);
         openGlManager->setShader("worldShader");
-        gridEnabled=false;
-        shadowsEnabled=false;
-        
-        U4DVector3n uGravity(0.0,-10.0,0.0);
-        setGravity(uGravity);
         
     }
     

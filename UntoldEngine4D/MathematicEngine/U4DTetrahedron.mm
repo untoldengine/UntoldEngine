@@ -216,6 +216,10 @@ namespace U4DEngine {
         dABCP=abcp.getDeterminant();
         dABCD=abcd.getDeterminant();
         
+        if (dABCD==0.0) {
+            dABCD=0.0001;
+        }
+        
         baryCoordinateU=dPBCD/dABCD;
         baryCoordinateV=dAPCD/dABCD;
         baryCoordinateW=dABPD/dABCD;

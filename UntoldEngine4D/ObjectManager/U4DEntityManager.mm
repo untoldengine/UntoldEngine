@@ -89,16 +89,20 @@ namespace U4DEngine {
             }
      
                 child->draw();
-            
+            /*
                 //ONLY FOR DEBUGGING PURPOSES
-                //U4DStaticModel *model=(U4DStaticModel*)child;
+                U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
             
-                //if (model!=nullptr && model->getEntityType()==MODEL && model->getBoundingBoxVisibility()==true) {
+            if (model) {
+            
+                if (model->getBoundingBoxVisibility()==true) {
                     
-                    //model->convexHullBoundingVolume->draw();
-                
-               // }
-                //END ONLY FOR DEBUGGING PURPOSES
+                    model->convexHullBoundingVolume->draw();
+                    
+                }
+            }
+            */
+            //END ONLY FOR DEBUGGING PURPOSES
             
             child=child->next;
         }
@@ -133,10 +137,6 @@ namespace U4DEngine {
                 
                     if(model->isCollisionEnabled()==true){
                         
-                        //update the bounding volume with the model current space dual quaternion (rotation and translation)
-                        model->convexHullBoundingVolume->localSpace=model->absoluteSpace;
-                        
-                        
                         //add child to collision tree
                         collisionEngine->addToCollisionContainer(model);
                         
@@ -148,7 +148,7 @@ namespace U4DEngine {
         
         //compute collision detection
         collisionEngine->detectCollisions(dt);
-        
+       
         //update the physics
         child=rootEntity;
         while (child!=NULL) {
@@ -167,7 +167,7 @@ namespace U4DEngine {
             
             child=child->next;
         }
-        
+       
         
     }
     
