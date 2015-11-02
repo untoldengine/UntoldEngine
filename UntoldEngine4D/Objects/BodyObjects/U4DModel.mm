@@ -71,6 +71,32 @@ namespace U4DEngine {
         setShader("shadowShader");
         
     }
+    
+    void U4DModel::setHasMaterial(bool uValue){
+        
+        hasMaterial=uValue;
+    }
+    
+    void U4DModel::setHasTexture(bool uValue){
+        hasTextures=uValue;
+    }
+    
+    void U4DModel::setHasAnimation(bool uValue){
+        hasAnimation=uValue;
+    }
+    
+    bool U4DModel::getHasMaterial(){
+        return hasMaterial;
+    }
+    
+    bool U4DModel::getHasTexture(){
+        return hasTextures;
+    }
+    
+    bool U4DModel::getHasAnimation(){
+        return hasAnimation;
+    }
+    
 
 }
 

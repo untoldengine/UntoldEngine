@@ -17,6 +17,7 @@ namespace U4DEngine {
     class U4DBoundingVolume;
     
 }
+
 namespace U4DEngine {
     
     typedef struct{
@@ -49,78 +50,92 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
-class U4DStaticModel:public U4DModel{
-    
-private:
-    
-protected:
-    
-public:
-    
-    bool collisionEnabled;
-    
-    bool boundingBoxVisibility;
-    
-    U4DBoundingVolume *convexHullBoundingVolume;
-    
-    U4DStaticModel();
-    
-    ~U4DStaticModel();
-    
-    U4DStaticModel(const U4DStaticModel& value);
-    
-    U4DStaticModel& operator=(const U4DStaticModel& value);
-    
-    MassProperties massProperties;
-    
-    CollisionProperties collisionProperties;
-    
-    float coefficientOfRestitution;
- 
-    void setMass(float uMass);
-    
-    float getMass()const;
-    
-    void setCenterOfMass(U4DVector3n& uCenterOfMass);
-    
-    U4DVector3n getCenterOfMass();
-    
-    void setCoefficientOfRestitution(float uValue);
-    
-    float getCoefficientOfRestitution();
-    
-    void setInertiaTensor(float uRadius);
-    
-    void setInertiaTensor(float uLength, float uWidth, float uHeight);
-    
-    U4DMatrix3n getMomentOfInertiaTensor();
-    
-    U4DMatrix3n getInverseMomentOfInertiaTensor();
-    
-    void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
-    
-    void setVertexDistanceFromCenterOfMass();
-    
-    void enableCollision();
-    
-    void pauseCollision();
-    
-    void resumeCollision();
-    
-    bool isCollisionEnabled();
-    
-    void allowCollisionWith();
-    
-    void setBoundingBoxVisibility(bool uValue);
-    
-    bool getBoundingBoxVisibility();
-    
-    void updateBoundingBoxSpace();
-    
-    U4DBoundingVolume* getBoundingVolume();
-    
-    
-};
+    class U4DStaticModel:public U4DModel{
+        
+        private:
+            
+            bool collisionEnabled;
+            
+            bool boundingBoxVisibility;
+            
+            U4DBoundingVolume *convexHullBoundingVolume;
+        
+            MassProperties massProperties;
+        
+            CollisionProperties collisionProperties;
+        
+            float coefficientOfRestitution;
+        
+        protected:
+            
+        public:
+        
+            U4DStaticModel();
+            
+            ~U4DStaticModel();
+            
+            U4DStaticModel(const U4DStaticModel& value);
+            
+            U4DStaticModel& operator=(const U4DStaticModel& value);
+        
+            void setMass(float uMass);
+            
+            float getMass()const;
+            
+            void setCenterOfMass(U4DVector3n& uCenterOfMass);
+            
+            U4DVector3n getCenterOfMass();
+            
+            void setCoefficientOfRestitution(float uValue);
+            
+            float getCoefficientOfRestitution();
+            
+            void setInertiaTensor(float uRadius);
+            
+            void setInertiaTensor(float uLength, float uWidth, float uHeight);
+            
+            U4DMatrix3n getMomentOfInertiaTensor();
+            
+            U4DMatrix3n getInverseMomentOfInertiaTensor();
+            
+            void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
+            
+            void setVertexDistanceFromCenterOfMass();
+            
+            void enableCollision();
+            
+            void pauseCollision();
+            
+            void resumeCollision();
+            
+            bool isCollisionEnabled();
+            
+            void allowCollisionWith();
+            
+            void setBoundingBoxVisibility(bool uValue);
+            
+            bool getBoundingBoxVisibility();
+            
+            void updateBoundingBoxSpace();
+            
+            U4DBoundingVolume* getBoundingVolume();
+            
+            void setCollisionContactPoint(U4DVector3n& uContactPoint);
+            
+            void setCollisionLineOfAction(U4DVector3n& uLineOfAction);
+            
+            void setCollisionPenetrationDepth(float uPenetrationDepth);
+            
+            U4DVector3n getCollisionContactPoint();
+            
+            U4DVector3n getCollisionLineOfAction();
+            
+            float getCollisionPenetrationDepth();
+        
+            void setModelHasCollided(bool uValue);
+        
+            bool getModelHasCollided();
+        };
     
 }
 

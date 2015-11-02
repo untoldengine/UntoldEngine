@@ -162,11 +162,15 @@ namespace U4DEngine{
             }
             
             //13. if exit loop, get barycentric points
-            uModel1->collisionProperties.contactManifoldInformation.penetrationDepth=penetrationDepth;
-            uModel1->collisionProperties.contactManifoldInformation.lineOfAction=faceNormal*-1.0;
             
-            uModel2->collisionProperties.contactManifoldInformation.penetrationDepth=penetrationDepth;
-            uModel2->collisionProperties.contactManifoldInformation.lineOfAction=faceNormal;
+            //set the penetration and line of action
+            uModel1->setCollisionPenetrationDepth(penetrationDepth);
+            uModel1->setCollisionLineOfAction(faceNormal);
+            
+            faceNormal*=-1.0;
+            
+            uModel2->setCollisionPenetrationDepth(penetrationDepth);
+            uModel2->setCollisionLineOfAction(faceNormal);
             
             
       }//end if Q==4

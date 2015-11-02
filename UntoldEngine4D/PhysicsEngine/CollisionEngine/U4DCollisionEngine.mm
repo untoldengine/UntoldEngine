@@ -83,8 +83,8 @@ namespace U4DEngine {
         
         //get the contact point and line of action
         
-        U4DVector3n contactPoint=uModel->collisionProperties.contactManifoldInformation.contactPoint;
-        U4DVector3n lineOfAction=uModel->collisionProperties.contactManifoldInformation.lineOfAction;
+        U4DVector3n contactPoint=uModel->getCollisionContactPoint();
+        U4DVector3n lineOfAction=uModel->getCollisionLineOfAction();
         
         //get the velocity model
         /*
@@ -94,7 +94,7 @@ namespace U4DEngine {
         
         U4DVector3n Vp=uModel->getVelocity()+(uModel->getAngularVelocity().cross(contactPoint));
         
-        float inverseMass=1.0/uModel->massProperties.mass;
+        float inverseMass=1.0/uModel->getMass();
         
         /*
          
@@ -105,7 +105,7 @@ namespace U4DEngine {
          */
         
         
-        float j=-1*(Vp.dot(lineOfAction))*(uModel->coefficientOfRestitution+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
+        float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
         
         
         
@@ -116,7 +116,7 @@ namespace U4DEngine {
          */
         
         
-        velocityBody+=uModel->getVelocity()+(lineOfAction*j)/uModel->massProperties.mass;
+        velocityBody+=uModel->getVelocity()+(lineOfAction*j)/uModel->getMass();
         
         
         

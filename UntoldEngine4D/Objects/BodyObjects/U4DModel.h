@@ -23,49 +23,64 @@
 
 namespace U4DEngine {
     
-class U4DModel:public U4DVisibleEntity{
-    
-private:
-    
-protected:
-    
-public:
-    
-    bool hasMaterial;
-    bool hasTextures;
-    bool hasAnimation;
-    
-    U4DVertexData bodyCoordinates;
-    
-    U4DMaterialData materialInformation;
-    
-    U4DTextureData textureInformation;
-    
-    U4DArmatureData *armatureManager;
-    
-    std::vector<U4DMatrix4n> armatureBoneMatrix;
-    
-    
-    U4DModel();
-    
-    ~U4DModel();
-    
+    class U4DModel:public U4DVisibleEntity{
+        
+    private:
+        
+        bool hasMaterial;
+        
+        bool hasTextures;
+        
+        bool hasAnimation;
+        
+        
+        
+    protected:
+        
+    public:
+        
+        U4DVertexData bodyCoordinates;
+        
+        U4DMaterialData materialInformation;
+        
+        U4DTextureData textureInformation;
+        
+        U4DArmatureData *armatureManager;
+        
+        std::vector<U4DMatrix4n> armatureBoneMatrix;
+        
+        U4DModel();
+        
+        ~U4DModel();
+        
 
-    U4DModel(const U4DModel& value);
+        U4DModel(const U4DModel& value);
 
-    U4DModel& operator=(const U4DModel& value);
-    
-    virtual void update(double dt){};
-    
-    void draw() final;
-    
-    void drawDepthOnFrameBuffer();
+        U4DModel& operator=(const U4DModel& value);
+        
+        virtual void update(double dt){};
+        
+        void draw() final;
+        
+        void drawDepthOnFrameBuffer();
 
-    void setShader(std::string uShader);
-    
-    void receiveShadows();
- 
-};
+        void setShader(std::string uShader);
+        
+        void receiveShadows();
+        
+        void setHasMaterial(bool uValue);
+        
+        void setHasTexture(bool uValue);
+        
+        void setHasAnimation(bool uValue);
+        
+        bool getHasMaterial();
+        
+        bool getHasTexture();
+        
+        bool getHasAnimation();
+     
+    };
     
 }
 

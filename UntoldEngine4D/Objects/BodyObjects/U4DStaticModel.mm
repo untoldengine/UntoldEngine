@@ -12,32 +12,34 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),boundingBoxVisibility(false){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),boundingBoxVisibility(false),coefficientOfRestitution(1.0){
         
-        
-        massProperties.mass=1.0;
-        
-        collisionProperties.collided=false;
+        setMass(1.0);
         
         U4DVector3n centerOfMass(0.0,0.0,0.0);
         
         setCenterOfMass(centerOfMass);
         
-        coefficientOfRestitution=0.8;
-        
         setInertiaTensor(1.0,1.0,1.0);
         
         //create the bounding convex volume
-    
         convexHullBoundingVolume=new U4DBoundingConvex();
         
-    };
+    }
     
-    U4DStaticModel::~U4DStaticModel(){};
+    U4DStaticModel::~U4DStaticModel(){
     
-    U4DStaticModel::U4DStaticModel(const U4DStaticModel& value){};
+    }
     
-    U4DStaticModel& U4DStaticModel::operator=(const U4DStaticModel& value){return *this;};
+    U4DStaticModel::U4DStaticModel(const U4DStaticModel& value){
+    
+    }
+    
+    U4DStaticModel& U4DStaticModel::operator=(const U4DStaticModel& value){
+        
+        return *this;
+    
+    }
     
     #pragma mark-mass
     //set mass of object
@@ -246,6 +248,50 @@ namespace U4DEngine {
         updateBoundingBoxSpace();
         
         return convexHullBoundingVolume;
+    }
+    
+    void U4DStaticModel::setCollisionContactPoint(U4DVector3n& uContactPoint){
+        
+        collisionProperties.contactManifoldInformation.contactPoint=uContactPoint;
+        
+    }
+    
+    void U4DStaticModel::setCollisionLineOfAction(U4DVector3n& uLineOfAction){
+        
+        collisionProperties.contactManifoldInformation.lineOfAction=uLineOfAction;
+    
+    }
+    
+    void U4DStaticModel::setCollisionPenetrationDepth(float uPenetrationDepth){
+        
+        collisionProperties.contactManifoldInformation.penetrationDepth=uPenetrationDepth;
+        
+    }
+    
+    U4DVector3n U4DStaticModel::getCollisionContactPoint(){
+        
+        return collisionProperties.contactManifoldInformation.contactPoint;
+        
+    }
+    
+    U4DVector3n U4DStaticModel::getCollisionLineOfAction(){
+     
+        return collisionProperties.contactManifoldInformation.lineOfAction;
+        
+    }
+    
+    float U4DStaticModel::getCollisionPenetrationDepth(){
+        
+        return collisionProperties.contactManifoldInformation.penetrationDepth;
+        
+    }
+    
+    void U4DStaticModel::setModelHasCollided(bool uValue){
+        collisionProperties.collided=uValue;
+    }
+    
+    bool U4DStaticModel::getModelHasCollided(){
+        return collisionProperties.collided;
     }
     
 }
