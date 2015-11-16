@@ -256,9 +256,9 @@ namespace U4DEngine {
         
     }
     
-    void U4DStaticModel::setCollisionLineOfAction(U4DVector3n& uLineOfAction){
+    void U4DStaticModel::setCollisionNormalDirection(U4DVector3n& uNormalDirection){
         
-        collisionProperties.contactManifoldInformation.lineOfAction=uLineOfAction;
+        collisionProperties.contactManifoldInformation.normalDirection=uNormalDirection;
     
     }
     
@@ -274,9 +274,9 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DStaticModel::getCollisionLineOfAction(){
+    U4DVector3n U4DStaticModel::getCollisionNormalDirection(){
      
-        return collisionProperties.contactManifoldInformation.lineOfAction;
+        return collisionProperties.contactManifoldInformation.normalDirection;
         
     }
     
@@ -292,6 +292,15 @@ namespace U4DEngine {
     
     bool U4DStaticModel::getModelHasCollided(){
         return collisionProperties.collided;
+    }
+    
+    void U4DStaticModel::setNormalForce(U4DVector3n& uNormalForce){
+        
+        collisionProperties.contactManifoldInformation.normalForce=uNormalForce;
+    }
+    
+    U4DVector3n U4DStaticModel::getNormalForce(){
+        return collisionProperties.contactManifoldInformation.normalForce;
     }
     
 }

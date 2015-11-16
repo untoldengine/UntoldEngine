@@ -33,8 +33,8 @@ namespace U4DEngine {
     typedef struct{
         
         U4DVector3n contactPoint; //contact points (e.g. against plane, OBB, etc)
-        U4DVector3n forceOnContactPoint;
-        U4DVector3n lineOfAction;
+        U4DVector3n normalForce;
+        U4DVector3n normalDirection;
         float penetrationDepth=0.0;
         
     }ContactManifoldInformation;
@@ -122,13 +122,17 @@ namespace U4DEngine {
             
             void setCollisionContactPoint(U4DVector3n& uContactPoint);
             
-            void setCollisionLineOfAction(U4DVector3n& uLineOfAction);
+            void setCollisionNormalDirection(U4DVector3n& uNormalDirection);
             
             void setCollisionPenetrationDepth(float uPenetrationDepth);
-            
+        
+            void setNormalForce(U4DVector3n& uNormalForce);
+        
+            U4DVector3n getNormalForce();
+        
             U4DVector3n getCollisionContactPoint();
             
-            U4DVector3n getCollisionLineOfAction();
+            U4DVector3n getCollisionNormalDirection();
             
             float getCollisionPenetrationDepth();
         

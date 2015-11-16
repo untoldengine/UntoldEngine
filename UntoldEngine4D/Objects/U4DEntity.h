@@ -20,8 +20,8 @@
 
 namespace U4DEngine {
     
-class U4DQuaternion;
-class U4DTransformation;
+    class U4DQuaternion;
+    class U4DTransformation;
 
 }
 
@@ -38,7 +38,6 @@ private:
     ENTITYTYPE entityType;
     
 
-    
 protected:
     
     U4DVector3n localOrientation;

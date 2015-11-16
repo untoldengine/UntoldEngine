@@ -165,12 +165,14 @@ namespace U4DEngine{
             
             //set the penetration and line of action
             uModel1->setCollisionPenetrationDepth(penetrationDepth);
-            uModel1->setCollisionLineOfAction(faceNormal);
+            uModel1->setCollisionNormalDirection(faceNormal);
             
             faceNormal*=-1.0;
             
             uModel2->setCollisionPenetrationDepth(penetrationDepth);
-            uModel2->setCollisionLineOfAction(faceNormal);
+            uModel2->setCollisionNormalDirection(faceNormal);
+            
+            std::cout<<uModel2->getCollisionPenetrationDepth()<<std::endl;
             
             
       }//end if Q==4

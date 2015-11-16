@@ -48,6 +48,8 @@ namespace U4DEngine {
             
             if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
                 
+                std::cout<<"Collision Occurred"<<std::endl;
+                
                 //if collision occurred then
                 
                 //Manifold Generation Algorithm
@@ -60,8 +62,8 @@ namespace U4DEngine {
                 
                 
             }else{
-                
-                
+               
+                std::cout<<"Non-Collision Occurred"<<std::endl;
             }
         
         }
@@ -84,7 +86,7 @@ namespace U4DEngine {
         //get the contact point and line of action
         
         U4DVector3n contactPoint=uModel->getCollisionContactPoint();
-        U4DVector3n lineOfAction=uModel->getCollisionLineOfAction();
+        U4DVector3n lineOfAction=uModel->getCollisionNormalDirection();
         
         //get the velocity model
         /*

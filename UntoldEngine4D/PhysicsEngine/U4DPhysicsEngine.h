@@ -16,6 +16,7 @@
 #include "U4DBodyForceGenerator.h"
 #include "U4DIntegrator.h"
 #include "U4DGravityForceGenerator.h"
+#include "U4DNormalForceGenerator.h"
 
 namespace U4DEngine {
     
@@ -26,6 +27,8 @@ private:
     U4DIntegrator *integrator;
     
     U4DGravityForceGenerator gravityForce;
+    
+    U4DNormalForceGenerator normalForce;
     
     
 protected:
@@ -43,8 +46,6 @@ public:
     void setIntegrator(U4DIntegrator *uIntegrator);
     
     void integrate(U4DDynamicModel *uModel,float dt);
-    
-    void resolveForcesAndMoments(U4DDynamicModel *uModel,float dt);
     
     void setGravity(U4DVector3n& uGravity);
     

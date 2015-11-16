@@ -178,6 +178,7 @@
 		03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A417EE29FD00712ECD /* U4DOpenGLGeometry.mm */; };
 		03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */; };
 		03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */; };
+		03FBE3F01BF6EC1B007E837F /* U4DNormalForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FBE3EE1BF6EC1B007E837F /* U4DNormalForceGenerator.mm */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -456,6 +457,8 @@
 		03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLImage.mm; sourceTree = "<group>"; };
 		03F862A717EE29FD00712ECD /* U4DOpenGLManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLManager.h; sourceTree = "<group>"; };
 		03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLManager.mm; sourceTree = "<group>"; };
+		03FBE3EE1BF6EC1B007E837F /* U4DNormalForceGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DNormalForceGenerator.mm; path = Normal/U4DNormalForceGenerator.mm; sourceTree = "<group>"; };
+		03FBE3EF1BF6EC1B007E837F /* U4DNormalForceGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DNormalForceGenerator.h; path = Normal/U4DNormalForceGenerator.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1084,6 +1087,7 @@
 		03E6EDC01943D816007AD131 /* ExternalForces */ = {
 			isa = PBXGroup;
 			children = (
+				03FBE3ED1BF6EBB2007E837F /* Normal */,
 				03E6EDC11943D816007AD131 /* Drag */,
 				03E6EDC41943D816007AD131 /* Gravity */,
 				03E6EDC71943D816007AD131 /* U4DBodyForceGenerator.h */,
@@ -1197,6 +1201,15 @@
 			name = OpenGLManager;
 			path = UntoldEngine4D/OpenGLManager;
 			sourceTree = SOURCE_ROOT;
+		};
+		03FBE3ED1BF6EBB2007E837F /* Normal */ = {
+			isa = PBXGroup;
+			children = (
+				03FBE3EF1BF6EC1B007E837F /* U4DNormalForceGenerator.h */,
+				03FBE3EE1BF6EC1B007E837F /* U4DNormalForceGenerator.mm */,
+			);
+			name = Normal;
+			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
@@ -1344,6 +1357,7 @@
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
+				03FBE3F01BF6EC1B007E837F /* U4DNormalForceGenerator.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03E6EDDD1943D816007AD131 /* U4DEulerMethod.mm in Sources */,

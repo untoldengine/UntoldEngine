@@ -114,16 +114,9 @@ namespace U4DEngine {
     //update
     void U4DEntityManager::update(float dt){
         
+
         //update the positions
         U4DEntity* child=rootEntity;
-        
-        while (child!=NULL) {
-            
-            child->update(dt);
-            
-            child=child->next;
-        }
-        
         
         //update the collision for each model
         child=rootEntity;
@@ -136,6 +129,12 @@ namespace U4DEngine {
             if (model) {
                 
                     if(model->isCollisionEnabled()==true){
+                        
+                        U4DVector3n zero(0,0,0);
+                        //reset all contact manifold data
+                        model->setCollisionNormalDirection(zero);
+                        model->setCollisionContactPoint(zero);
+                        model->setCollisionPenetrationDepth(0.0);
                         
                         //add child to collision tree
                         collisionEngine->addToCollisionContainer(model);
@@ -168,8 +167,19 @@ namespace U4DEngine {
             child=child->next;
         }
        
+    
+        //update the positions
+        child=rootEntity;
+        
+        while (child!=NULL) {
+            
+            child->update(dt);
+            
+            child=child->next;
+        }
         
     }
+    
     
 }
 

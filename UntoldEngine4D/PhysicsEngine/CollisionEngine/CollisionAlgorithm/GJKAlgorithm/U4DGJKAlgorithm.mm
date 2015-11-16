@@ -72,6 +72,9 @@ namespace U4DEngine {
                 
                 //since collision is true, get the closest collision points
                 
+                uModel1->setModelHasCollided(true);
+                uModel2->setModelHasCollided(true);
+                
                 std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPtToOrigin, Q);
                 
                 U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector()-boundingVolume1->getAbsolutePosition();
@@ -81,6 +84,7 @@ namespace U4DEngine {
                 U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector()-boundingVolume2->getAbsolutePosition();
                 
                 uModel2->setCollisionContactPoint(contactPoint2);
+                
                 
                 return true;
             }
@@ -107,6 +111,8 @@ namespace U4DEngine {
             
             if (v.minkowskiPoint.toVector().dot(dir)<0.0 || v.minkowskiPoint==tempV) {
                
+                uModel1->setModelHasCollided(false);
+                uModel2->setModelHasCollided(false);
                 //collision did not occur, get distance between objects
                 //distanceToCollision(closestPtToOrigin, Q);
                 

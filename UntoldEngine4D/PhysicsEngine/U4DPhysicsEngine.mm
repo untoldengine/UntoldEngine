@@ -32,7 +32,9 @@ namespace U4DEngine {
         
         gravityForce.updateForce(uModel,dt);
         
-        //DO THE RESOLVE FORCE AND MOMENT Method HERE
+    
+        normalForce.updateForce(uModel, dt);
+        
         
         //Integrate
         integrate(uModel, dt);
@@ -65,71 +67,5 @@ namespace U4DEngine {
         
     }
     
-    
-    /* YOU MAY WANT TO CREATE A FORCE GENERATOR FOR THIS
-    void U4DPhysicsEngine::resolveForcesAndMoments(U4DDynamicModel *uModel,float dt){
-        
-        float gravityFactor=8.0;
-        
-        //if the model has not collided, then calculate the moments about center of mass
-        
-        if (uModel->collisionProperties.collided==false) {
-          
-        U4DVector3n gravityForce=getGravity()*uModel->getMass();
-            
-         //transform the vertices of the model
-        U4DMatrix3n orientation=uModel->getAbsoluteMatrixOrientation();
-        
-        
-        for (int i=0; i<uModel->massProperties.vertexDistanceFromCenterOfMass.size(); i++) {
-            
-            U4DVector3n vertex=uModel->massProperties.vertexDistanceFromCenterOfMass.at(i);
-            
-            vertex=orientation*(vertex);
-            
-            U4DVector3n torque=(vertex.cross(gravityForce))/gravityFactor;
-            
-            uModel->addMoment(torque);
-        
-        }
-        
-        //Normal Force calculation
-        }else if (uModel->collisionProperties.collided==true) {
-
-            
-            U4DVector3n normalForce=getGravity()*uModel->getMass()*-1.0;
-            
-            if (uModel->getMotion()<motionEpsilon && uModel->getVelocity().magnitude()>velocityEpsilon) {
-                
-            
-            //calculate the resultant moments
-            for (int i=0; i<uModel->collisionProperties.contactForcePoints.contactPoints.size(); i++) {
-                
-                U4DVector3n torque=uModel->collisionProperties.contactForcePoints.contactPoints.at(i).cross(normalForce);
-                
-                uModel->addMoment(torque);
-                
-                U4DVector3n velocity=uModel->getVelocity();
-                U4DVector3n angularVelocity=uModel->getAngularVelocity();
-                
-                velocity/=100.0;
-                angularVelocity/=100.0;
-                
-                uModel->setVelocity(velocity);
-                uModel->setAngularVelocity(angularVelocity);
-                
-            }
-             
-            }
-                
-
-            //set the normal force
-            uModel->addForce(normalForce);
-         
-                
-        }
-        
-    }
-    */
 
 }
