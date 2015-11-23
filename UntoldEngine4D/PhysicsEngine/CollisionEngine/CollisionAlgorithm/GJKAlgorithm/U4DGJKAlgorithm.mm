@@ -77,11 +77,11 @@ namespace U4DEngine {
                 
                 std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPtToOrigin, Q);
                 
-                U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector()-boundingVolume1->getAbsolutePosition();
+                U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector();
                 
                 uModel1->setCollisionContactPoint(contactPoint1);
                 
-                U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector()-boundingVolume2->getAbsolutePosition();
+                U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector();
                 
                 uModel2->setCollisionContactPoint(contactPoint2);
                 
