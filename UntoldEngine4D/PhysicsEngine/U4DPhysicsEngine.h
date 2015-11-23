@@ -17,6 +17,7 @@
 #include "U4DIntegrator.h"
 #include "U4DGravityForceGenerator.h"
 #include "U4DNormalForceGenerator.h"
+#include "U4DTorqueForceGenerator.h"
 
 namespace U4DEngine {
     
@@ -30,6 +31,7 @@ private:
     
     U4DNormalForceGenerator normalForce;
     
+    U4DTorqueForceGenerator torqueForce;
     
 protected:
 

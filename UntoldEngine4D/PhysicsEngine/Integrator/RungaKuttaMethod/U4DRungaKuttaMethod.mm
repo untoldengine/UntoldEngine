@@ -55,16 +55,17 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     }
     
 
-    if(uModel->getModelHasCollided()==false){
+    if(uModel->getModelHasCollided()){
         
-        U4DVector3n axisOfRotation=uModel->getCenterOfMass();
+        U4DVector3n axisOfRotation=uModel->getCollisionContactPoint();
         
         uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
+        
     }else{
     
-        U4DVector3n axisOfRotation=uModel->getCollisionContactPoint();
-    
+        U4DVector3n axisOfRotation=uModel->getCenterOfMass();
+        
         uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
         

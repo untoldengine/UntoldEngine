@@ -172,8 +172,7 @@ namespace U4DEngine{
             uModel2->setCollisionPenetrationDepth(penetrationDepth);
             uModel2->setCollisionNormalDirection(faceNormal);
             
-            std::cout<<uModel2->getCollisionPenetrationDepth()<<std::endl;
-            
+            uModel1->getCollisionNormalDirection().show();
             
       }//end if Q==4
         

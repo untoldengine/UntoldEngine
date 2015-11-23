@@ -57,20 +57,23 @@ void Earth::init(){
     //U4DDebugger *debugger=new U4DDebugger();
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 0.0, -7.0);
-    camera->rotateBy(20.0,0.0,0.0);
+    camera->translateBy(0.0, -2.0, -7.0);
+    //camera->rotateBy(20.0,0.0,0.0);
     
     setName("earth");
     
     enableGrid(true);
     
-    U4DEngine::U4DVector3n gravity(0,-10,0);
+    U4DEngine::U4DVector3n gravity(0,-1,0);
     //Set gravity here
     setGravity(gravity);
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0,6.0,0);
+    cube->init("Cube",0.0,3.3,0);
+    //cube->rotateBy(0.0, 0.0, 45);
+    U4DEngine::U4DVector3n centerOfMass(-0.5,0,0);
+    cube->setCenterOfMass(centerOfMass);
     cube->setShader("simpleRedShader");
     
     //Apply physics engine to the object
@@ -90,6 +93,7 @@ void Earth::init(){
     cube2=new Town();
     cube2->init("Cube",0.0,1.0,0.0);
     cube2->setShader("simpleShader");
+    
     //cube2->applyPhysics(true);
     
     cube2->enableCollision();
