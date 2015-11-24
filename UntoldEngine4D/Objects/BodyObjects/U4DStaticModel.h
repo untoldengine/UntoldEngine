@@ -78,6 +78,8 @@ namespace U4DEngine {
             
             U4DStaticModel& operator=(const U4DStaticModel& value);
         
+            bool getEquilibrium();
+        
             void setMass(float uMass);
             
             float getMass()const;

@@ -71,7 +71,11 @@ void Earth::init(){
     //create our object
     cube=new Town();
     cube->init("Cube",0.0,4.3,0);
-    cube->rotateBy(0.0, 0.0, 15);
+    cube->rotateBy(10.0, 0.0, 0.0);
+    
+    bool equilibrium=cube->getEquilibrium();
+    
+    
     U4DEngine::U4DVector3n centerOfMass(0,0,0);
     cube->setCenterOfMass(centerOfMass);
     cube->setShader("simpleRedShader");

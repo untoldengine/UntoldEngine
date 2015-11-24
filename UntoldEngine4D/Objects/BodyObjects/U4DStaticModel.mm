@@ -41,6 +41,21 @@ namespace U4DEngine {
     
     }
     
+    
+    bool U4DStaticModel::getEquilibrium(){
+        
+        U4DVector3n orientation=getAbsoluteOrientation();
+        
+        float equilibrium=sinf(orientation.x)*cosf(orientation.y);
+        
+        if (equilibrium==1.0 || equilibrium == -1.0) {
+            return true;
+        }
+        
+        return false;
+        
+    }
+    
     #pragma mark-mass
     //set mass of object
     void U4DStaticModel::setMass(float uMass){
