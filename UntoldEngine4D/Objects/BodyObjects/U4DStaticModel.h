@@ -21,12 +21,17 @@ namespace U4DEngine {
 namespace U4DEngine {
     
     typedef struct{
+     
+        std::vector<U4DVector3n> convexHullVertices;
+    
+    }ConvexHullProperties;
+    
+    typedef struct{
         
         float mass=0.0;
         U4DVector3n centerOfMass;
         U4DMatrix3n momentOfInertiaTensor;
         U4DMatrix3n inverseMomentOfInertiaTensor;
-        std::vector<U4DVector3n> vertexDistanceFromCenterOfMass;
         
     }MassProperties;
 
@@ -37,11 +42,11 @@ namespace U4DEngine {
         U4DVector3n normalDirection;
         float penetrationDepth=0.0;
         
-    }ContactManifoldInformation;
+    }ContactManifoldProperties;
 
     typedef struct{
         
-        ContactManifoldInformation contactManifoldInformation;
+        ContactManifoldProperties contactManifoldProperties;
         bool collided=false; //did the model collided
         
     }CollisionProperties;
@@ -64,6 +69,8 @@ namespace U4DEngine {
         
             CollisionProperties collisionProperties;
         
+            ConvexHullProperties convexHullProperties;
+        
             float coefficientOfRestitution;
         
         protected:
@@ -77,8 +84,6 @@ namespace U4DEngine {
             U4DStaticModel(const U4DStaticModel& value);
             
             U4DStaticModel& operator=(const U4DStaticModel& value);
-        
-            bool getEquilibrium();
         
             void setMass(float uMass);
             
@@ -101,9 +106,15 @@ namespace U4DEngine {
             U4DMatrix3n getInverseMomentOfInertiaTensor();
             
             void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
-            
-            void setVertexDistanceFromCenterOfMass();
-            
+        
+            void computeConvexHullVertices();
+        
+            void updateConvexHullVertices();
+        
+            void clearConvexHullVertices();
+        
+            std::vector<U4DVector3n>& getConvexHullVertices();
+        
             void enableCollision();
             
             void pauseCollision();

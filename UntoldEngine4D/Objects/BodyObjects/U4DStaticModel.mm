@@ -42,20 +42,6 @@ namespace U4DEngine {
     }
     
     
-    bool U4DStaticModel::getEquilibrium(){
-        
-        U4DVector3n orientation=getAbsoluteOrientation();
-        
-        float equilibrium=sinf(orientation.x)*cosf(orientation.y);
-        
-        if (equilibrium==1.0 || equilibrium == -1.0) {
-            return true;
-        }
-        
-        return false;
-        
-    }
-    
     #pragma mark-mass
     //set mass of object
     void U4DStaticModel::setMass(float uMass){
@@ -76,34 +62,33 @@ namespace U4DEngine {
         
         massProperties.centerOfMass=uCenterOfMass;
         
-        //setVertexDistanceFromCenterOfMass();
-        
     }
 
     U4DVector3n U4DStaticModel::getCenterOfMass(){
         
+        //update center of mass
+        massProperties.centerOfMass=massProperties.centerOfMass;
+    
         return massProperties.centerOfMass;
         
     }
-
 
 
     #pragma mark-coefficient of Restitution
     //coefficient of restitution
     void U4DStaticModel::setCoefficientOfRestitution(float uValue){
 
-
-     if (uValue>1.0) {
-         coefficientOfRestitution=1.0;  //coefficient can't be greater than 1
-     }else{
-         coefficientOfRestitution=uValue;
-     }
+         if (uValue>1.0) {
+             coefficientOfRestitution=1.0;  //coefficient can't be greater than 1
+         }else{
+             coefficientOfRestitution=uValue;
+         }
 
     }
 
     float U4DStaticModel::getCoefficientOfRestitution(){
 
-     return coefficientOfRestitution;
+        return coefficientOfRestitution;
     }
 
     #pragma mark-inertia tensor
@@ -209,10 +194,46 @@ namespace U4DEngine {
      
      */
     
-    void U4DStaticModel::enableCollision(){
+    void U4DStaticModel::computeConvexHullVertices(){
         
         //determine the convex hull of the model
-        convexHullBoundingVolume->determineConvexHullOfModel(this->bodyCoordinates.verticesContainer);
+        convexHullBoundingVolume->computeConvexHullVertices(this->bodyCoordinates.verticesContainer);
+        
+    }
+    
+    void U4DStaticModel::updateConvexHullVertices(){
+        
+        //update the position of the convex hull vertices
+        
+        //The position of the convex hull vertices are relative to the center of mass
+        
+        for(auto convexHullVertices:getBoundingVolume()->getConvexHullVertices()){
+            
+            convexHullVertices=getAbsoluteMatrixOrientation()*convexHullVertices;
+            convexHullVertices=convexHullVertices+getAbsolutePosition();
+            
+            convexHullProperties.convexHullVertices.push_back(convexHullVertices);
+            
+        }
+        
+    }
+    
+    
+    std::vector<U4DVector3n>& U4DStaticModel::getConvexHullVertices(){
+        
+        updateConvexHullVertices();
+        
+        return convexHullProperties.convexHullVertices;
+        
+    }
+    
+    void U4DStaticModel::clearConvexHullVertices(){
+        
+        convexHullProperties.convexHullVertices.clear();
+    
+    }
+    
+    void U4DStaticModel::enableCollision(){
         
         collisionEnabled=true;
     }
@@ -267,37 +288,37 @@ namespace U4DEngine {
     
     void U4DStaticModel::setCollisionContactPoint(U4DVector3n& uContactPoint){
         
-        collisionProperties.contactManifoldInformation.contactPoint=uContactPoint;
+        collisionProperties.contactManifoldProperties.contactPoint=uContactPoint;
         
     }
     
     void U4DStaticModel::setCollisionNormalDirection(U4DVector3n& uNormalDirection){
         
-        collisionProperties.contactManifoldInformation.normalDirection=uNormalDirection;
+        collisionProperties.contactManifoldProperties.normalDirection=uNormalDirection;
     
     }
     
     void U4DStaticModel::setCollisionPenetrationDepth(float uPenetrationDepth){
         
-        collisionProperties.contactManifoldInformation.penetrationDepth=uPenetrationDepth;
+        collisionProperties.contactManifoldProperties.penetrationDepth=uPenetrationDepth;
         
     }
     
     U4DVector3n U4DStaticModel::getCollisionContactPoint(){
         
-        return collisionProperties.contactManifoldInformation.contactPoint;
+        return collisionProperties.contactManifoldProperties.contactPoint;
         
     }
     
     U4DVector3n U4DStaticModel::getCollisionNormalDirection(){
      
-        return collisionProperties.contactManifoldInformation.normalDirection;
+        return collisionProperties.contactManifoldProperties.normalDirection;
         
     }
     
     float U4DStaticModel::getCollisionPenetrationDepth(){
         
-        return collisionProperties.contactManifoldInformation.penetrationDepth;
+        return collisionProperties.contactManifoldProperties.penetrationDepth;
         
     }
     
@@ -311,11 +332,11 @@ namespace U4DEngine {
     
     void U4DStaticModel::setNormalForce(U4DVector3n& uNormalForce){
         
-        collisionProperties.contactManifoldInformation.normalForce=uNormalForce;
+        collisionProperties.contactManifoldProperties.normalForce=uNormalForce;
     }
     
     U4DVector3n U4DStaticModel::getNormalForce(){
-        return collisionProperties.contactManifoldInformation.normalForce;
+        return collisionProperties.contactManifoldProperties.normalForce;
     }
     
 }

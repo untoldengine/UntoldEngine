@@ -71,14 +71,15 @@ void Earth::init(){
     //create our object
     cube=new Town();
     cube->init("Cube",0.0,4.3,0);
-    cube->rotateBy(10.0, 0.0, 0.0);
-    
-    bool equilibrium=cube->getEquilibrium();
+    cube->rotateBy(0.0, 0.0, 0.0);
     
     
-    U4DEngine::U4DVector3n centerOfMass(0,0,0);
+    U4DEngine::U4DVector3n centerOfMass(0.5,0,0);
     cube->setCenterOfMass(centerOfMass);
     cube->setShader("simpleRedShader");
+    
+    
+    cube->computeConvexHullVertices();
     
     //Apply physics engine to the object
     cube->applyPhysics(true);
@@ -99,7 +100,7 @@ void Earth::init(){
     cube2->setShader("simpleShader");
     
     //cube2->applyPhysics(true);
-    
+    cube2->computeConvexHullVertices();
     cube2->enableCollision();
     //cube2->setBoundingBoxVisibility(true);
     addChild(cube2);
