@@ -70,8 +70,8 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,4.3,0);
-    cube->rotateBy(0.0, 0.0, 0.0);
+    cube->init("Cube",0.0,5.3,0);
+    cube->rotateBy(0.0, 0.0, 30.0);
     
     
     U4DEngine::U4DVector3n centerOfMass(0.5,0,0);

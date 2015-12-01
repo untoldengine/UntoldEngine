@@ -115,6 +115,8 @@ namespace U4DEngine {
         
             std::vector<U4DVector3n>& getConvexHullVertices();
         
+            int getConvexHullVerticesCount();
+        
             void enableCollision();
             
             void pauseCollision();

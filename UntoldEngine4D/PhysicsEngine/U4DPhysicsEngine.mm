@@ -63,6 +63,8 @@ namespace U4DEngine {
     void U4DPhysicsEngine::setGravity(U4DVector3n& uGravity){
         
         gravityForce.setGravity(uGravity);
+        normalForce.setGravity(uGravity);
+        torqueForce.setGravity(uGravity);
     }
 
     U4DVector3n U4DPhysicsEngine::getGravity(){

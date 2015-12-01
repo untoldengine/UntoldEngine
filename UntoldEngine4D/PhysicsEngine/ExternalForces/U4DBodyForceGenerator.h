@@ -14,17 +14,18 @@
 
 namespace U4DEngine {
     
-class U4DDynamicModel;
+    class U4DDynamicModel;
+    
 }
 
 namespace U4DEngine {
 
-class U4DBodyForceGenerator{
-    
-public:
-    virtual void updateForce(U4DDynamicModel *uModel, float dt)=0;
-    
-};
+    class U4DBodyForceGenerator{
+        
+    public:
+        virtual void updateForce(U4DDynamicModel *uModel, float dt)=0;
+        
+    };
     
 }
 

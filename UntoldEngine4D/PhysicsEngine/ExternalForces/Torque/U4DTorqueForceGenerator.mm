@@ -25,12 +25,9 @@ namespace U4DEngine {
         
         //get center of mass
         U4DVector3n centerOfMass=uModel->getCenterOfMass();
-        centerOfMass.show();
+        
         //get contact point
         U4DVector3n contactPoint=uModel->getCollisionContactPoint();
-        
-        //get gravity
-        U4DVector3n gravity(0,-10,0);
         
         //get mass
         float mass=uModel->getMass();
@@ -43,10 +40,7 @@ namespace U4DEngine {
             U4DVector3n radius=centerOfMass-vertex;
             
             //calculate torque
-            U4DVector3n torque=(gravity*mass).cross(radius);
-       
-            std::cout<<"Torque"<<std::endl;
-            torque.show();
+            U4DVector3n torque=((gravity*mass).cross(radius))*(1/uModel->getConvexHullVerticesCount());
             
             uModel->addMoment(torque);
         }
@@ -62,6 +56,18 @@ namespace U4DEngine {
     U4DVector3n U4DTorqueForceGenerator::getTorque(){
         
         return torque;
+        
+    }
+    
+    void U4DTorqueForceGenerator::setGravity(U4DVector3n& uGravity){
+        
+        gravity=uGravity;
+        
+    }
+    
+    U4DVector3n U4DTorqueForceGenerator::getGravity(){
+        
+        return gravity;
         
     }
     

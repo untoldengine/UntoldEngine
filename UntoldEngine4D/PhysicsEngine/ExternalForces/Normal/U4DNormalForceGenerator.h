@@ -21,6 +21,7 @@ namespace U4DEngine {
     private:
         
         U4DVector3n normalForce;
+        U4DVector3n gravity;
         
     public:
         
@@ -34,6 +35,9 @@ namespace U4DEngine {
         
         U4DVector3n getNormalForce();
         
+        void setGravity(U4DVector3n& uGravity);
+        
+        U4DVector3n getGravity();
         
     };
     
