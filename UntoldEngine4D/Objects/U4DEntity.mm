@@ -14,453 +14,446 @@
 
 namespace U4DEngine {
     
-U4DEntity::U4DEntity(){
-    
-    parent=NULL;
-    next=NULL;
-    prevSibling=this;
-    lastDescendant=this;
-    
-    localOrientation.zero();
-    localPosition.zero();
-    transformation=new U4DTransformation(this);
-    
-    U4DVector3n uViewDirection(0,0,1);
-    
-    setViewDirection(uViewDirection);
-
-}
-
-
-U4DEntity::~U4DEntity(){
-
-    delete transformation;
-}
-
-
-U4DEntity::U4DEntity(const U4DEntity& value){
-    
-    localOrientation=value.localOrientation;
-    localPosition=value.localPosition;
-    localSpace=value.localSpace;
-    transformation=value.transformation;
-}
-
-
-U4DEntity& U4DEntity::operator=(const U4DEntity& value){
-    
-    localOrientation=value.localOrientation;
-    localPosition=value.localPosition;
-    localSpace=value.localSpace;
-    transformation=value.transformation;
-    return *this;
-}
-
-void U4DEntity::setName(std::string uName){
-    name=uName;
-}
-
-std::string U4DEntity::getName(){
-    return name;
-}
-
-void U4DEntity::setEntityType(ENTITYTYPE uType){
-    entityType=uType;
-}
-
-ENTITYTYPE U4DEntity::getEntityType(){
-    return entityType;
-}
-
-void U4DEntity::setLocalSpace(U4DDualQuaternion &uLocalSpace){
-    
-    localSpace=uLocalSpace;
-    
-}
-
-
-void U4DEntity::setLocalSpace(U4DMatrix4n &uMatrix){
-    
-    U4DDualQuaternion dualQuaternion;
-    dualQuaternion.transformMatrix4nToDualQuaternion(uMatrix);
-    
-    //assign to body
-    setLocalSpace(dualQuaternion);
-}
-
-void U4DEntity::setViewDirection(U4DVector3n &uViewDirection){
-    
-    uViewDirection.normalize();
-    viewDirection=uViewDirection;
-    
-}
-
-void U4DEntity::updateViewDirection(U4DQuaternion &uViewDirectionSpace){
- 
-    U4DMatrix3n uViewDirectionMatrix=uViewDirectionSpace.transformQuaternionToMatrix3n();
-    viewDirection=uViewDirectionMatrix*viewDirection;
-    viewDirection.normalize();
-}
-
-U4DQuaternion U4DEntity::getLocalSpaceOrientation(){
-    
-    return localSpace.getRealQuaternionPart();
-}
-
-U4DQuaternion U4DEntity::getLocalSpaceTranslation(){
-    
-    return localSpace.getPureQuaternionPart();
-}
-
-U4DVector3n U4DEntity::getLocalOrientation(){
-    
-    localOrientation=getLocalSpaceOrientation().transformQuaternionToEulerAngles();
-    
-    return localOrientation;
-}
-
-U4DDualQuaternion U4DEntity::getLocalSpace(){
-    
-    return localSpace;
-}
-
-U4DDualQuaternion U4DEntity::getAbsoluteSpace(){
-    
-    U4DDualQuaternion space;
-    
-    if (parent!=NULL) {
-        space=absoluteSpace;
-    }else{
-        space=getLocalSpace();
-    }
-    
-    return space;
-}
-
-U4DQuaternion U4DEntity::getAbsoluteSpaceOrientation(){
-    
-    U4DDualQuaternion space;
-    
-    if (parent!=NULL) {
-        space=getLocalSpace()*parent->getLocalSpace();
-    }else{
-        space=getLocalSpace();
-    }
-    
-    return space.getRealQuaternionPart();
-}
-
-U4DQuaternion U4DEntity::getAbsoluteSpaceTranslation(){
-
-    U4DDualQuaternion space;
-    
-    if (parent!=NULL) {
-        space=getLocalSpace()*parent->getLocalSpace();
-    
-    }else{
+    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),viewDirection(0,0,1),parent(nullptr),next(nullptr){
         
-        space=getLocalSpace();
-    }
-    
-    return space.getPureQuaternionPart();
-}
-
-
-U4DVector3n U4DEntity::getLocalPosition(){
-    
-    U4DQuaternion pos=getLocalSpaceTranslation();
-    
-    localPosition.x=pos.v.x;
-    localPosition.y=pos.v.y;
-    localPosition.z=pos.v.z;
-    
-    return localPosition;
-    
-}
-
-U4DVector3n U4DEntity::getViewDirection(){
-    return viewDirection;
-}
-
-void U4DEntity::setLocalSpaceOrientation(U4DQuaternion &uOrientation){
- 
-    localSpace.setRealQuaternionPart(uOrientation);
-    
-}
-
-void U4DEntity::setLocalSpacePosition(U4DQuaternion &uPosition){
-    
-    localSpace.setPureQuaternionPart(uPosition);
-    
-}
-
-
-U4DVector3n U4DEntity::getAbsoluteOrientation(){
-    
-    U4DDualQuaternion space;
-    
-    if (parent!=NULL) {
-    
-        space=getLocalSpace()*parent->getLocalSpace();
-    
-    }else{
-    
-        space=getLocalSpace();
+        prevSibling=this;
+        lastDescendant=this;
+        
+        transformation=new U4DTransformation(this);
     
     }
-    
-    
-    U4DQuaternion orientation=space.getRealQuaternionPart();
-    
-    return orientation.transformQuaternionToEulerAngles();
-    
-}
 
-U4DVector3n U4DEntity::getAbsolutePosition(){
- 
-    U4DDualQuaternion space;
-    
-    if (parent!=NULL) {
-        space=getLocalSpace()*parent->getLocalSpace();
-    }else{
-        space=getLocalSpace();
+
+    U4DEntity::~U4DEntity(){
+
+        delete transformation;
     }
-    
-    U4DQuaternion position=space.getPureQuaternionPart();
-    
-    U4DVector3n pos(position.v.x,position.v.y,position.v.z);
-    
-    return pos;
-    
-}
 
-U4DMatrix3n U4DEntity::getAbsoluteMatrixOrientation(){
-    
-    U4DQuaternion entityOrientation=getAbsoluteSpaceOrientation();
-    
-    U4DMatrix3n m=entityOrientation.transformQuaternionToMatrix3n();
-    
-    return m;
-    
-}
 
-U4DMatrix3n U4DEntity::getLocalMatrixOrientation(){
-    
-    U4DQuaternion entityOrientation=getLocalSpaceOrientation();
-    
-    U4DMatrix3n m=entityOrientation.transformQuaternionToMatrix3n();
-    
-    return m;
-}
-
-//Transformation helper functions
-
-void U4DEntity::translateTo(U4DVector3n& translation){
-    
-    transformation->translateTo(translation);
-}
-
-void U4DEntity::translateTo(float x,float y, float z){
-    transformation->translateTo(x,y,z);
-}
-
-void U4DEntity::rotateTo(U4DQuaternion& rotation){
-    transformation->rotateTo(rotation);
-}
-
-void U4DEntity::rotateBy(U4DQuaternion& rotation){
-    transformation->rotateBy(rotation);
-}
-
-void U4DEntity::rotateTo(float angle, U4DVector3n& axis){
-    transformation->rotateTo(angle,axis);
-}
-
-void U4DEntity::rotateBy(float angle, U4DVector3n& axis){
-    transformation->rotateBy(angle,axis);
-}
-
-void U4DEntity::rotateTo(float angleX, float angleY, float angleZ){
- 
-    transformation->rotateTo(angleX,angleY,angleZ);
-}
-
-void U4DEntity::rotateBy(float angleX, float angleY, float angleZ){
-    
-    transformation->rotateBy(angleX,angleY,angleZ);
-}
-
-void U4DEntity::translateTo(U4DVector2n &translation){
-    transformation->translateTo(translation);
-}
-
-void U4DEntity::translateBy(float x,float y, float z){
-    transformation->translateBy(x, y, z);
-}
-
-void U4DEntity::rotateAboutAxis(float angle, U4DVector3n& axisOrientation, U4DVector3n& axisPosition){
-    
-    transformation->rotateAboutAxis(angle, axisOrientation,axisPosition);
-}
-
-void U4DEntity::rotateAboutAxis(U4DQuaternion& uOrientation, U4DVector3n& axisPosition){
-    
-    transformation->rotateAboutAxis(uOrientation, axisPosition);
-    
-}
-
-void U4DEntity::viewInDirection(U4DVector3n& uDestinationPoint){
-    
-    transformation->viewInDirection(uDestinationPoint);
-    
-}
-//scenegraph methods
-void U4DEntity::addChild(U4DEntity *uChild){
-    
-    U4DEntity* lastAddedChild=getFirstChild();
-    
-    if(lastAddedChild==0){ //add as first child
+    U4DEntity::U4DEntity(const U4DEntity& value){
         
-        uChild->parent=this;
+        localOrientation=value.localOrientation;
+        localPosition=value.localPosition;
+        localSpace=value.localSpace;
+        transformation=value.transformation;
+    }
+
+
+    U4DEntity& U4DEntity::operator=(const U4DEntity& value){
         
-        uChild->lastDescendant->next=lastDescendant->next;
+        localOrientation=value.localOrientation;
+        localPosition=value.localPosition;
+        localSpace=value.localSpace;
+        transformation=value.transformation;
+        return *this;
+    }
+
+    void U4DEntity::setName(std::string uName){
+        name=uName;
+    }
+
+    std::string U4DEntity::getName(){
+        return name;
+    }
+
+    void U4DEntity::setEntityType(ENTITYTYPE uType){
+        entityType=uType;
+    }
+
+    ENTITYTYPE U4DEntity::getEntityType(){
+        return entityType;
+    }
+
+    void U4DEntity::setLocalSpace(U4DDualQuaternion &uLocalSpace){
         
-        lastDescendant->next=uChild;
+        localSpace=uLocalSpace;
         
-        uChild->prevSibling=getLastChild();
+    }
+
+
+    void U4DEntity::setLocalSpace(U4DMatrix4n &uMatrix){
         
-        if (isLeaf()) {
-            
-            next=uChild;
-            
-        }
+        U4DDualQuaternion dualQuaternion;
+        dualQuaternion.transformMatrix4nToDualQuaternion(uMatrix);
         
-        getFirstChild()->prevSibling=uChild;
+        //assign to body
+        setLocalSpace(dualQuaternion);
+    }
+
+    void U4DEntity::setViewDirection(U4DVector3n &uViewDirection){
         
-        changeLastDescendant(uChild->lastDescendant);
+        uViewDirection.normalize();
+        viewDirection=uViewDirection;
         
+    }
+
+    void U4DEntity::updateViewDirection(U4DQuaternion &uViewDirectionSpace){
+     
+        U4DMatrix3n uViewDirectionMatrix=uViewDirectionSpace.transformQuaternionToMatrix3n();
+        viewDirection=uViewDirectionMatrix*viewDirection;
+        viewDirection.normalize();
+    }
+
+    U4DQuaternion U4DEntity::getLocalSpaceOrientation(){
         
-    }else{
+        return localSpace.getRealQuaternionPart();
+    }
+
+    U4DQuaternion U4DEntity::getLocalSpaceTranslation(){
         
-        uChild->parent=lastAddedChild->parent;
+        return localSpace.getPureQuaternionPart();
+    }
+
+    U4DVector3n U4DEntity::getLocalOrientation(){
         
-        uChild->prevSibling=lastAddedChild->prevSibling;
+        localOrientation=getLocalSpaceOrientation().transformQuaternionToEulerAngles();
         
-        uChild->lastDescendant->next=lastAddedChild;
+        return localOrientation;
+    }
+
+    U4DDualQuaternion U4DEntity::getLocalSpace(){
         
-        if (lastAddedChild->parent->next==lastAddedChild) {
-            lastAddedChild->parent->next=uChild;
+        return localSpace;
+    }
+
+    U4DDualQuaternion U4DEntity::getAbsoluteSpace(){
+        
+        U4DDualQuaternion space;
+        
+        if (parent!=NULL) {
+            space=absoluteSpace;
         }else{
-            lastAddedChild->prevSibling->lastDescendant->next=uChild;
+            space=getLocalSpace();
         }
         
-        lastAddedChild->prevSibling=uChild;
+        return space;
+    }
+
+    U4DQuaternion U4DEntity::getAbsoluteSpaceOrientation(){
+        
+        U4DDualQuaternion space;
+        
+        if (parent!=NULL) {
+            space=getLocalSpace()*parent->getLocalSpace();
+        }else{
+            space=getLocalSpace();
+        }
+        
+        return space.getRealQuaternionPart();
+    }
+
+    U4DQuaternion U4DEntity::getAbsoluteSpaceTranslation(){
+
+        U4DDualQuaternion space;
+        
+        if (parent!=NULL) {
+            space=getLocalSpace()*parent->getLocalSpace();
+        
+        }else{
+            
+            space=getLocalSpace();
+        }
+        
+        return space.getPureQuaternionPart();
+    }
+
+
+    U4DVector3n U4DEntity::getLocalPosition(){
+        
+        U4DQuaternion pos=getLocalSpaceTranslation();
+        
+        localPosition.x=pos.v.x;
+        localPosition.y=pos.v.y;
+        localPosition.z=pos.v.z;
+        
+        return localPosition;
         
     }
-    
-}
 
-void U4DEntity::removeChild(U4DEntity *uChild){
-    
-    U4DEntity* sibling = uChild->getNextSibling();
-    
-    if (sibling)
-        sibling->prevSibling = uChild->prevSibling;
-    else
-        getFirstChild()->prevSibling = uChild->prevSibling;
-    
-    if (lastDescendant == uChild->lastDescendant)
-        changeLastDescendant(uChild->prevInPreOrderTraversal());
-    
-    if (next == uChild)	// deleting first child?
-        next = uChild->lastDescendant->next;
-    else
-        uChild->prevSibling->lastDescendant->next = uChild->lastDescendant->next;
-}
+    U4DVector3n U4DEntity::getViewDirection(){
+        return viewDirection;
+    }
 
-U4DEntity *U4DEntity::prevInPreOrderTraversal(){
-    
-    U4DEntity* prev = 0;
-    if (parent)
-    {
-        if (parent->next == this)
-            prev = parent;
+    void U4DEntity::setLocalSpaceOrientation(U4DQuaternion &uOrientation){
+     
+        localSpace.setRealQuaternionPart(uOrientation);
+        
+    }
+
+    void U4DEntity::setLocalSpacePosition(U4DQuaternion &uPosition){
+        
+        localSpace.setPureQuaternionPart(uPosition);
+        
+    }
+
+
+    U4DVector3n U4DEntity::getAbsoluteOrientation(){
+        
+        U4DDualQuaternion space;
+        
+        if (parent!=NULL) {
+        
+            space=getLocalSpace()*parent->getLocalSpace();
+        
+        }else{
+        
+            space=getLocalSpace();
+        
+        }
+        
+        
+        U4DQuaternion orientation=space.getRealQuaternionPart();
+        
+        return orientation.transformQuaternionToEulerAngles();
+        
+    }
+
+    U4DVector3n U4DEntity::getAbsolutePosition(){
+     
+        U4DDualQuaternion space;
+        
+        if (parent!=NULL) {
+            space=getLocalSpace()*parent->getLocalSpace();
+        }else{
+            space=getLocalSpace();
+        }
+        
+        U4DQuaternion position=space.getPureQuaternionPart();
+        
+        U4DVector3n pos(position.v.x,position.v.y,position.v.z);
+        
+        return pos;
+        
+    }
+
+    U4DMatrix3n U4DEntity::getAbsoluteMatrixOrientation(){
+        
+        U4DQuaternion entityOrientation=getAbsoluteSpaceOrientation();
+        
+        U4DMatrix3n m=entityOrientation.transformQuaternionToMatrix3n();
+        
+        return m;
+        
+    }
+
+    U4DMatrix3n U4DEntity::getLocalMatrixOrientation(){
+        
+        U4DQuaternion entityOrientation=getLocalSpaceOrientation();
+        
+        U4DMatrix3n m=entityOrientation.transformQuaternionToMatrix3n();
+        
+        return m;
+    }
+
+    //Transformation helper functions
+
+    void U4DEntity::translateTo(U4DVector3n& translation){
+        
+        transformation->translateTo(translation);
+    }
+
+    void U4DEntity::translateTo(float x,float y, float z){
+        transformation->translateTo(x,y,z);
+    }
+
+    void U4DEntity::rotateTo(U4DQuaternion& rotation){
+        transformation->rotateTo(rotation);
+    }
+
+    void U4DEntity::rotateBy(U4DQuaternion& rotation){
+        transformation->rotateBy(rotation);
+    }
+
+    void U4DEntity::rotateTo(float angle, U4DVector3n& axis){
+        transformation->rotateTo(angle,axis);
+    }
+
+    void U4DEntity::rotateBy(float angle, U4DVector3n& axis){
+        transformation->rotateBy(angle,axis);
+    }
+
+    void U4DEntity::rotateTo(float angleX, float angleY, float angleZ){
+     
+        transformation->rotateTo(angleX,angleY,angleZ);
+    }
+
+    void U4DEntity::rotateBy(float angleX, float angleY, float angleZ){
+        
+        transformation->rotateBy(angleX,angleY,angleZ);
+    }
+
+    void U4DEntity::translateTo(U4DVector2n &translation){
+        transformation->translateTo(translation);
+    }
+
+    void U4DEntity::translateBy(float x,float y, float z){
+        transformation->translateBy(x, y, z);
+    }
+
+    void U4DEntity::rotateAboutAxis(float angle, U4DVector3n& axisOrientation, U4DVector3n& axisPosition){
+        
+        transformation->rotateAboutAxis(angle, axisOrientation,axisPosition);
+    }
+
+    void U4DEntity::rotateAboutAxis(U4DQuaternion& uOrientation, U4DVector3n& axisPosition){
+        
+        transformation->rotateAboutAxis(uOrientation, axisPosition);
+        
+    }
+
+    void U4DEntity::viewInDirection(U4DVector3n& uDestinationPoint){
+        
+        transformation->viewInDirection(uDestinationPoint);
+        
+    }
+    //scenegraph methods
+    void U4DEntity::addChild(U4DEntity *uChild){
+        
+        U4DEntity* lastAddedChild=getFirstChild();
+        
+        if(lastAddedChild==0){ //add as first child
+            
+            uChild->parent=this;
+            
+            uChild->lastDescendant->next=lastDescendant->next;
+            
+            lastDescendant->next=uChild;
+            
+            uChild->prevSibling=getLastChild();
+            
+            if (isLeaf()) {
+                
+                next=uChild;
+                
+            }
+            
+            getFirstChild()->prevSibling=uChild;
+            
+            changeLastDescendant(uChild->lastDescendant);
+            
+            
+        }else{
+            
+            uChild->parent=lastAddedChild->parent;
+            
+            uChild->prevSibling=lastAddedChild->prevSibling;
+            
+            uChild->lastDescendant->next=lastAddedChild;
+            
+            if (lastAddedChild->parent->next==lastAddedChild) {
+                lastAddedChild->parent->next=uChild;
+            }else{
+                lastAddedChild->prevSibling->lastDescendant->next=uChild;
+            }
+            
+            lastAddedChild->prevSibling=uChild;
+            
+        }
+        
+    }
+
+    void U4DEntity::removeChild(U4DEntity *uChild){
+        
+        U4DEntity* sibling = uChild->getNextSibling();
+        
+        if (sibling)
+            sibling->prevSibling = uChild->prevSibling;
         else
-            prev = prevSibling->lastDescendant;
-    }
-    return prev;
-}
-
-U4DEntity *U4DEntity::nextInPreOrderTraversal(){
-    return next;
-}
-
-U4DEntity *U4DEntity::getFirstChild(){
-    
-    U4DEntity* child=NULL;
-    if(next && (next->parent==this)){
-        child=next;
-    }
-    
-    return child;
-}
-
-U4DEntity *U4DEntity::getLastChild(){
-    
-    U4DEntity *child=getFirstChild();
-    
-    if(child){
-        child=child->prevSibling;
-    }
-    
-    return child;
-}
-
-U4DEntity *U4DEntity::getNextSibling(){
-    
-    U4DEntity* sibling = lastDescendant->next;
-    if (sibling && (sibling->parent != parent))
-        sibling = 0;
-    return sibling;
-}
-
-
-U4DEntity *U4DEntity::getPrevSibling(){
-    U4DEntity* sibling = 0;
-    if (parent && (parent->next != this))
-        sibling =prevSibling;
-    return sibling;
-}
-
-void U4DEntity::changeLastDescendant(U4DEntity *uNewLastDescendant){
-    
-    U4DEntity *oldLast=lastDescendant;
-    U4DEntity *ancestor=this;
-    
-    do{
-        ancestor->lastDescendant=uNewLastDescendant;
-        ancestor=ancestor->parent;
-    }while (ancestor && (ancestor->lastDescendant==oldLast));
-    
-}
-
-bool U4DEntity::isRoot(){
-    
-    bool value=false;
-    
-    if (parent==0) {
+            getFirstChild()->prevSibling = uChild->prevSibling;
         
-        value=true;
+        if (lastDescendant == uChild->lastDescendant)
+            changeLastDescendant(uChild->prevInPreOrderTraversal());
+        
+        if (next == uChild)	// deleting first child?
+            next = uChild->lastDescendant->next;
+        else
+            uChild->prevSibling->lastDescendant->next = uChild->lastDescendant->next;
         
     }
-    
-    return value;
-}
 
-bool U4DEntity::isLeaf(){
-    
-    return lastDescendant=this;
-    
-}
+    U4DEntity *U4DEntity::prevInPreOrderTraversal(){
+        
+        U4DEntity* prev = 0;
+        if (parent)
+        {
+            if (parent->next == this)
+                prev = parent;
+            else
+                prev = prevSibling->lastDescendant;
+        }
+        return prev;
+    }
+
+    U4DEntity *U4DEntity::nextInPreOrderTraversal(){
+        return next;
+    }
+
+    U4DEntity *U4DEntity::getFirstChild(){
+        
+        U4DEntity* child=NULL;
+        if(next && (next->parent==this)){
+            child=next;
+        }
+        
+        return child;
+    }
+
+    U4DEntity *U4DEntity::getLastChild(){
+        
+        U4DEntity *child=getFirstChild();
+        
+        if(child){
+            child=child->prevSibling;
+        }
+        
+        return child;
+    }
+
+    U4DEntity *U4DEntity::getNextSibling(){
+        
+        U4DEntity* sibling = lastDescendant->next;
+        if (sibling && (sibling->parent != parent))
+            sibling = 0;
+        return sibling;
+    }
+
+
+    U4DEntity *U4DEntity::getPrevSibling(){
+        U4DEntity* sibling = 0;
+        if (parent && (parent->next != this))
+            sibling =prevSibling;
+        return sibling;
+    }
+
+    void U4DEntity::changeLastDescendant(U4DEntity *uNewLastDescendant){
+        
+        U4DEntity *oldLast=lastDescendant;
+        U4DEntity *ancestor=this;
+        
+        do{
+            ancestor->lastDescendant=uNewLastDescendant;
+            ancestor=ancestor->parent;
+        }while (ancestor && (ancestor->lastDescendant==oldLast));
+        
+    }
+
+    bool U4DEntity::isRoot(){
+        
+        bool value=false;
+        
+        if (parent==0) {
+            
+            value=true;
+            
+        }
+        
+        return value;
+    }
+
+    bool U4DEntity::isLeaf(){
+        
+        return lastDescendant=this;
+        
+    }
 
 }

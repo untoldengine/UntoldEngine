@@ -27,7 +27,6 @@ private:
     
     U4DControllerInterface *gameController;
     U4DWorld* gameWorld;
-    U4DEntityManager *entityManager;
     
 public:
     

@@ -35,8 +35,10 @@ namespace U4DEngine {
             return *this;
         };
         
-        void determineConvexHullOfModel(std::vector<U4DVector3n>& uVertices);
+        void computeConvexHullVertices(std::vector<U4DVector3n>& uVertices);
+        void initConvexHullRenderingVertices();
         
+        std::vector<U4DVector3n> getConvexHullVertices();
     };
     
 }

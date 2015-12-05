@@ -23,6 +23,8 @@ U4DOpenGLManager::U4DOpenGLManager(){
     displayWidth=director->getDisplayWidth();
     displayHeight=director->getDisplayHeight();
     
+    
+    
 }
 
 U4DOpenGLManager::~U4DOpenGLManager(){

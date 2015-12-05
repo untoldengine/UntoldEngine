@@ -22,9 +22,10 @@
 
 namespace U4DEngine {
     
-class U4DEntity;
-class U4DControllerInterface;
-class U4DLights;
+    class U4DEntity;
+    class U4DControllerInterface;
+    class U4DEntityManager;
+    class U4DLights;
 }
 
 namespace U4DEngine {
@@ -34,34 +35,26 @@ class U4DWorld:public U4DVisibleEntity{
 private:
     
     U4DControllerInterface *gameController;
+    
     bool gridEnabled;
     bool shadowsEnabled;
     
     U4DVector3n gravity;
     
 public:
-    
+    U4DEntityManager *entityManager;
     U4DVertexData bodyCoordinates;
     
     //constructor
-    U4DWorld(){
-    
-        openGlManager=new U4DOpenGLWorld(this);
-        openGlManager->setShader("worldShader");
-        gridEnabled=false;
-        shadowsEnabled=false;
-        
-        U4DVector3n uGravity(0.0,-10.0,0.0);
-        setGravity(uGravity);
-        
-    };
+    U4DWorld();
     
     //destructor
     virtual ~U4DWorld(){};
     
     //copy constructor
-    U4DWorld(const U4DWorld& value){};
-    U4DWorld& operator=(const U4DWorld& value){return *this;};
+    U4DWorld(const U4DWorld& value);
+    
+    U4DWorld& operator=(const U4DWorld& value);
     
     virtual void init(){};
     

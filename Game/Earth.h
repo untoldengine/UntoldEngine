@@ -23,9 +23,6 @@ class Earth:public U4DEngine::U4DWorld{
 private:
     Town *cube2;
     Town *cube;
-    Town *well;
-    Town *fort;
-    MyCharacter *robot;
     int rotation;
 public:
    

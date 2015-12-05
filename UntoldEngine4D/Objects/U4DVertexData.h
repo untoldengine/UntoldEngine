@@ -19,31 +19,34 @@
 
 namespace U4DEngine {
     
-class U4DVertexData{
-    
-private:
-   
-public:
-    
-    U4DVertexData(){};
-    ~U4DVertexData(){};
-  
-    std::vector<U4DVector3n> verticesContainer;
-    std::vector<U4DVector3n> normalContainer;
-    std::vector<U4DVector2n> uVContainer;
-    std::vector<U4DVector4n> tangentContainer;
-    std::vector<U4DIndex> indexContainer;
-    std::vector<U4DVector4n> vertexWeightsContainer;
-    std::vector<U4DVector4n> boneIndicesContainer;
-    
-    void addVerticesDataToContainer(U4DVector3n& uData);
-    void addNormalDataToContainer(U4DVector3n& uData);
-    void addUVDataToContainer(U4DVector2n& uData);
-    void addTangetDataToContainer(U4DVector4n& uData);
-    void addIndexDataToContainer(U4DIndex& uData);
-    void addVertexWeightsToContainer(U4DVector4n& uData);
-    void addBoneIndicesToContainer(U4DVector4n& uData);
-};
+    class U4DVertexData{
+        
+    private:
+       
+    public:
+        
+        U4DVertexData(){};
+        ~U4DVertexData(){};
+      
+        std::vector<U4DVector3n> verticesContainer;
+        std::vector<U4DVector3n> normalContainer;
+        std::vector<U4DVector2n> uVContainer;
+        std::vector<U4DVector4n> tangentContainer;
+        std::vector<U4DIndex> indexContainer;
+        std::vector<U4DVector4n> vertexWeightsContainer;
+        std::vector<U4DVector4n> boneIndicesContainer;
+        
+        void addVerticesDataToContainer(U4DVector3n& uData);
+        void addNormalDataToContainer(U4DVector3n& uData);
+        void addUVDataToContainer(U4DVector2n& uData);
+        void addTangetDataToContainer(U4DVector4n& uData);
+        void addIndexDataToContainer(U4DIndex& uData);
+        void addVertexWeightsToContainer(U4DVector4n& uData);
+        void addBoneIndicesToContainer(U4DVector4n& uData);
+        
+        std::vector<U4DVector3n> getVerticesDataFromContainer();
+        
+    };
     
 }
 

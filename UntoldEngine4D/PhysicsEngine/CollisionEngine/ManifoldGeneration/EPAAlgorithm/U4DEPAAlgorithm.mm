@@ -15,23 +15,23 @@
 
 namespace U4DEngine{
     
-    void U4DEPAAlgorithm::determineCollisionManifold(U4DStaticModel* uModel1, U4DStaticModel* uModel2,std::vector<U4DSimplexStruct> uQ){
+    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ){
         
         //get bounding volume for each model
-        U4DBoundingVolume *boundingVolume1=uModel1->convexHullBoundingVolume;
-        U4DBoundingVolume *boundingVolume2=uModel2->convexHullBoundingVolume;
+        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
+        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
         
         //blow up simplex to tetrahedron
         
         //test if origin is in tetrahedron
-        
+       
         if(uQ.size()==4){
                         
             U4DPolytope polytope;
             std::vector<POLYTOPEEDGES> edges;
-            U4DVector3n faceNormal;
-            float penetrationDepth;
+            U4DVector3n faceNormal(0,0,0);
+            float penetrationDepth=0.0;
             
             U4DSimplexStruct simplexPoint;
             
@@ -55,7 +55,7 @@ namespace U4DEngine{
             }
            
             
-            while (iterationSteps<10) {
+            while (iterationSteps<5 && polytope.polytopeFaces.size()>0) {
                 
                 //4. which face is closest to origin
                 POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
@@ -137,10 +137,11 @@ namespace U4DEngine{
                         
                     }//end if
                 }
-                
+               
                 //9. Remove duplicate faces and edges
                 
                 polytope.polytopeFaces.erase(std::remove_if(polytope.polytopeFaces.begin(), polytope.polytopeFaces.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),polytope.polytopeFaces.end());
+                
                 
                 edges.erase(std::remove_if(edges.begin(), edges.end(),[](POLYTOPEEDGES &e){ return e.isDuplicate;} ),edges.end());
                 
@@ -161,11 +162,16 @@ namespace U4DEngine{
             }
             
             //13. if exit loop, get barycentric points
-            uModel1->collisionProperties.contactManifoldInformation.penetrationDepth=penetrationDepth;
-            uModel1->collisionProperties.contactManifoldInformation.lineOfAction=faceNormal;
             
-            uModel2->collisionProperties.contactManifoldInformation.penetrationDepth=penetrationDepth;
-            uModel2->collisionProperties.contactManifoldInformation.lineOfAction=faceNormal;
+            //set the penetration and line of action
+            uModel1->setCollisionPenetrationDepth(penetrationDepth);
+            uModel1->setCollisionNormalDirection(faceNormal);
+            
+            faceNormal*=-1.0;
+            
+            uModel2->setCollisionPenetrationDepth(penetrationDepth);
+            uModel2->setCollisionNormalDirection(faceNormal);
+            
             
       }//end if Q==4
         
@@ -195,8 +201,8 @@ namespace U4DEngine{
     
     bool U4DEPAAlgorithm::constructSimplexStructForSegment(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume *uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
         
-        U4DVector3n tangentVector1;
-        U4DVector3n directionVector0;
+        U4DVector3n tangentVector1(0,0,0);
+        U4DVector3n directionVector0(0,0,0);
         U4DPoint3n origin(0.0,0.0,0.0);
         
         U4DSimplexStruct simplexPointA=uQ.at(0);

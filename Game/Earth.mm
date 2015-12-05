@@ -57,31 +57,50 @@ void Earth::init(){
     //U4DDebugger *debugger=new U4DDebugger();
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 0.0, -7.0);
-    //camera->rotateBy(30.0, 0.0, 0.0);
+    camera->translateBy(0.0, -2.0, -7.0);
+    //camera->rotateBy(20.0,0.0,0.0);
     
     setName("earth");
     
     enableGrid(true);
     
+    U4DEngine::U4DVector3n gravity(0,-10,0);
+    //Set gravity here
+    setGravity(gravity);
+    
+    //create our object
     cube=new Town();
-    cube->init("Cube",0,0,0);
+    cube->init("Cube",0.0,5.3,0);
+    //cube->rotateBy(0.0, 0.0, 30.0);
+    
+    U4DEngine::U4DVector3n centerOfMass(0.7,0,0);
+    cube->setCenterOfMass(centerOfMass);
     cube->setShader("simpleRedShader");
-    //cube->applyPhysics(true);
+    
+    cube->computeConvexHullVertices();
+    
+    //Apply physics engine to the object
+    cube->applyPhysics(true);
+    
+    //Apply the collision engine to the object
     cube->enableCollision();
     
-    cube->setBoundingBoxVisibility(true);
+    //set the coefficient of restitution to 0.8
+    cube->setCoefficientOfRestitution(0.9);
+    
+    //cube->setBoundingBoxVisibility(true);
     
     addChild(cube);
     
    
     cube2=new Town();
-    cube2->init("Cube",3.0,0.0,0.0);
+    cube2->init("Cube",0.0,1.0,0.0);
     cube2->setShader("simpleShader");
-    //cube2->applyPhysics(true);
     
+    //cube2->applyPhysics(true);
+    cube2->computeConvexHullVertices();
     cube2->enableCollision();
-    cube2->setBoundingBoxVisibility(true);
+    //cube2->setBoundingBoxVisibility(true);
     addChild(cube2);
     
     /*

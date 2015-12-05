@@ -145,7 +145,8 @@ void U4DDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshID
                     
                     colorStringToVector(&uModel->materialInformation.diffuseMaterialColorContainer,diffuseColorString);
                     
-                    uModel->hasMaterial=true;
+                    uModel->setHasMaterial(true);
+                    
                     
                 }
                 
@@ -156,7 +157,7 @@ void U4DDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshID
                     
                     colorStringToVector(&uModel->materialInformation.specularMaterialColorContainer,specularColorString);
                     
-                    uModel->hasMaterial=true;
+                    uModel->setHasMaterial(true);
                     
                 }
                 
@@ -176,7 +177,8 @@ void U4DDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshID
                     
                     uModel->textureInformation.setDiffuseTexture(textureString);
                     
-                    uModel->hasTextures=true;
+                    uModel->setHasTexture(true);
+                    
                 }
                 
                 if (localMatrix!=NULL) {

@@ -20,8 +20,8 @@
 
 namespace U4DEngine {
     
-class U4DQuaternion;
-class U4DTransformation;
+    class U4DQuaternion;
+    class U4DTransformation;
 
 }
 
@@ -38,7 +38,6 @@ private:
     ENTITYTYPE entityType;
     
 
-    
 protected:
     
     U4DVector3n localOrientation;
@@ -70,24 +69,6 @@ public:
     
     
     U4DEntity *lastDescendant;
-    
-    
-    U4DEntity *getFirstChild();
-    
-    
-    U4DEntity *getLastChild();
-    
-    
-    U4DEntity *getNextSibling();
-    
-    
-    U4DEntity *getPrevSibling();
-    
-    
-    U4DEntity *prevInPreOrderTraversal();
-    
-    
-    U4DEntity *nextInPreOrderTraversal();
     
     
     U4DEntity();
@@ -175,15 +156,34 @@ public:
     virtual void viewInDirection(U4DVector3n& uDestinationPoint);
     
     //scenegraph
+    
     void addChild(U4DEntity *uChild);
     
     void removeChild(U4DEntity *uChild);
     
     void changeLastDescendant(U4DEntity *uNewLastDescendant);
     
+    U4DEntity *getFirstChild();
+    
+    
+    U4DEntity *getLastChild();
+    
+    
+    U4DEntity *getNextSibling();
+    
+    
+    U4DEntity *getPrevSibling();
+    
+    
+    U4DEntity *prevInPreOrderTraversal();
+    
+    
+    U4DEntity *nextInPreOrderTraversal();
+    
     bool isLeaf();
     
     bool isRoot();
+     
     
     virtual void draw(){};
     

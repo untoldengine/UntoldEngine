@@ -34,7 +34,7 @@ namespace U4DEngine {
         U4DGJKAlgorithm(){};
         ~U4DGJKAlgorithm(){};
         
-        bool collision(U4DStaticModel* uModel1, U4DStaticModel* uModel2,float dt);
+        bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt);
         
         void determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer);
         
@@ -44,7 +44,9 @@ namespace U4DEngine {
         
         void determineLinearCombinationOfPtInTetrahedron(U4DPoint3n& uClosestPointToOrigin);
         
-        void determineCollisionPoints(U4DStaticModel* uModel1, U4DStaticModel* uModel2, std::vector<U4DSimplexStruct> uQ);
+        std::vector<U4DPoint3n> closestBarycentricPoints(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ);
+        
+        float distanceToCollision(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ);
         
         std::vector<U4DSimplexStruct> getCurrentSimpleStruct();
         

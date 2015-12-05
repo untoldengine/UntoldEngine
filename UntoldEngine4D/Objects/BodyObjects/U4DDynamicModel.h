@@ -187,6 +187,7 @@ public:
      */
     float getMotion();
     
+    float getSpeedSquare();
     
     void applyPhysics(bool uValue);
     

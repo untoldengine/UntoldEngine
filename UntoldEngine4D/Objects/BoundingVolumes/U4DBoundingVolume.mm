@@ -15,6 +15,29 @@
 
 namespace U4DEngine {
     
+    
+    U4DBoundingVolume::U4DBoundingVolume(){
+        
+        openGlManager=new U4DOpenGLGeometry(this);
+        openGlManager->setShader("geometricShader");
+        
+        U4DVector4n color(1.0,0.0,0.0,1.0);
+        addCustomUniform("Color", color);
+    };
+    
+    
+    U4DBoundingVolume::~U4DBoundingVolume(){};
+    
+    
+    U4DBoundingVolume::U4DBoundingVolume(const U4DBoundingVolume& value){};
+    
+    
+    U4DBoundingVolume& U4DBoundingVolume::operator=(const U4DBoundingVolume& value){
+        
+        return *this;
+        
+    };
+    
     void U4DBoundingVolume::setGeometry(){
 
         openGlManager->loadRenderingInformation();
@@ -44,7 +67,6 @@ namespace U4DEngine {
     U4DPoint3n U4DBoundingVolume::getSupportPointInDirection(U4DVector3n& uDirection){
         
         int index=0;
-        
         
         std::vector<U4DVector3n> tempPolygonVertices;
         

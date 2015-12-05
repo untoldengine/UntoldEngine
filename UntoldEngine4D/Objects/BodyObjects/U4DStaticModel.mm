@@ -12,33 +12,35 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel(){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),boundingBoxVisibility(false),coefficientOfRestitution(1.0){
         
-        collisionEnabled=false;
-        
-        massProperties.mass=1.0;
-        
-        collisionProperties.collided=false;
+        setMass(1.0);
         
         U4DVector3n centerOfMass(0.0,0.0,0.0);
         
         setCenterOfMass(centerOfMass);
         
-        coefficientOfRestitution=1.0;
-        
         setInertiaTensor(1.0,1.0,1.0);
         
         //create the bounding convex volume
-    
         convexHullBoundingVolume=new U4DBoundingConvex();
         
-    };
+    }
     
-    U4DStaticModel::~U4DStaticModel(){};
+    U4DStaticModel::~U4DStaticModel(){
     
-    U4DStaticModel::U4DStaticModel(const U4DStaticModel& value){};
+    }
     
-    U4DStaticModel& U4DStaticModel::operator=(const U4DStaticModel& value){return *this;};
+    U4DStaticModel::U4DStaticModel(const U4DStaticModel& value){
+    
+    }
+    
+    U4DStaticModel& U4DStaticModel::operator=(const U4DStaticModel& value){
+        
+        return *this;
+    
+    }
+    
     
     #pragma mark-mass
     //set mass of object
@@ -60,34 +62,33 @@ namespace U4DEngine {
         
         massProperties.centerOfMass=uCenterOfMass;
         
-        //setVertexDistanceFromCenterOfMass();
-        
     }
 
     U4DVector3n U4DStaticModel::getCenterOfMass(){
         
+        //update center of mass
+        massProperties.centerOfMass=massProperties.centerOfMass;
+    
         return massProperties.centerOfMass;
         
     }
-
 
 
     #pragma mark-coefficient of Restitution
     //coefficient of restitution
     void U4DStaticModel::setCoefficientOfRestitution(float uValue){
 
-
-     if (uValue>1.0) {
-         coefficientOfRestitution=1.0;  //coefficient can't be greater than 1
-     }else{
-         coefficientOfRestitution=uValue;
-     }
+         if (uValue>1.0) {
+             coefficientOfRestitution=1.0;  //coefficient can't be greater than 1
+         }else{
+             coefficientOfRestitution=uValue;
+         }
 
     }
 
     float U4DStaticModel::getCoefficientOfRestitution(){
 
-     return coefficientOfRestitution;
+        return coefficientOfRestitution;
     }
 
     #pragma mark-inertia tensor
@@ -193,10 +194,52 @@ namespace U4DEngine {
      
      */
     
-    void U4DStaticModel::enableCollision(){
+    void U4DStaticModel::computeConvexHullVertices(){
         
         //determine the convex hull of the model
-        convexHullBoundingVolume->determineConvexHullOfModel(this->bodyCoordinates.verticesContainer);
+        convexHullBoundingVolume->computeConvexHullVertices(this->bodyCoordinates.verticesContainer);
+        
+    }
+    
+    void U4DStaticModel::updateConvexHullVertices(){
+        
+        //update the position of the convex hull vertices
+        
+        //The position of the convex hull vertices are relative to the center of mass
+        
+        for(auto convexHullVertices:getBoundingVolume()->getConvexHullVertices()){
+            
+            convexHullVertices=getAbsoluteMatrixOrientation()*convexHullVertices;
+            convexHullVertices=convexHullVertices+getAbsolutePosition();
+            
+            convexHullProperties.convexHullVertices.push_back(convexHullVertices);
+            
+        }
+        
+    }
+    
+    
+    std::vector<U4DVector3n>& U4DStaticModel::getConvexHullVertices(){
+        
+        updateConvexHullVertices();
+        
+        return convexHullProperties.convexHullVertices;
+        
+    }
+    
+    int U4DStaticModel::getConvexHullVerticesCount(){
+        
+        return convexHullProperties.convexHullVertices.size();
+        
+    }
+    
+    void U4DStaticModel::clearConvexHullVertices(){
+        
+        convexHullProperties.convexHullVertices.clear();
+    
+    }
+    
+    void U4DStaticModel::enableCollision(){
         
         collisionEnabled=true;
     }
@@ -232,6 +275,74 @@ namespace U4DEngine {
     bool U4DStaticModel::getBoundingBoxVisibility(){
         
         return boundingBoxVisibility;
+    }
+    
+    void U4DStaticModel::updateBoundingBoxSpace(){
+        
+        //update the bounding volume with the model current space dual quaternion (rotation and translation)
+        convexHullBoundingVolume->setLocalSpace(absoluteSpace);
+        
+    }
+    
+    U4DBoundingVolume* U4DStaticModel::getBoundingVolume(){
+        
+        //update the bounding box space
+        updateBoundingBoxSpace();
+        
+        return convexHullBoundingVolume;
+    }
+    
+    void U4DStaticModel::setCollisionContactPoint(U4DVector3n& uContactPoint){
+        
+        collisionProperties.contactManifoldProperties.contactPoint=uContactPoint;
+        
+    }
+    
+    void U4DStaticModel::setCollisionNormalDirection(U4DVector3n& uNormalDirection){
+        
+        collisionProperties.contactManifoldProperties.normalDirection=uNormalDirection;
+    
+    }
+    
+    void U4DStaticModel::setCollisionPenetrationDepth(float uPenetrationDepth){
+        
+        collisionProperties.contactManifoldProperties.penetrationDepth=uPenetrationDepth;
+        
+    }
+    
+    U4DVector3n U4DStaticModel::getCollisionContactPoint(){
+        
+        return collisionProperties.contactManifoldProperties.contactPoint;
+        
+    }
+    
+    U4DVector3n U4DStaticModel::getCollisionNormalDirection(){
+     
+        return collisionProperties.contactManifoldProperties.normalDirection;
+        
+    }
+    
+    float U4DStaticModel::getCollisionPenetrationDepth(){
+        
+        return collisionProperties.contactManifoldProperties.penetrationDepth;
+        
+    }
+    
+    void U4DStaticModel::setModelHasCollided(bool uValue){
+        collisionProperties.collided=uValue;
+    }
+    
+    bool U4DStaticModel::getModelHasCollided(){
+        return collisionProperties.collided;
+    }
+    
+    void U4DStaticModel::setNormalForce(U4DVector3n& uNormalForce){
+        
+        collisionProperties.contactManifoldProperties.normalForce=uNormalForce;
+    }
+    
+    U4DVector3n U4DStaticModel::getNormalForce(){
+        return collisionProperties.contactManifoldProperties.normalForce;
     }
     
 }
