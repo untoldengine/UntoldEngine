@@ -68,7 +68,6 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
         
         uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
-        
     }
    
     

@@ -10,6 +10,7 @@
 #include "U4DIntegrator.h"
 #include "U4DEulerMethod.h"
 #include "U4DGravityForceGenerator.h"
+#include "U4DDynamicModel.h"
 
 namespace U4DEngine {
     
@@ -33,10 +34,11 @@ namespace U4DEngine {
         gravityForce.updateForce(uModel,dt);
         
         if (uModel->getModelHasCollided()) {
-            
+       
             normalForce.updateForce(uModel, dt);
+                
+            //torqueForce.updateForce(uModel, dt);
             
-            torqueForce.updateForce(uModel, dt);
         }
         
         

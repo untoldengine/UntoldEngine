@@ -228,9 +228,9 @@ namespace U4DEngine {
     }
     
     int U4DStaticModel::getConvexHullVerticesCount(){
-#pragma FIX THIS
-        //return convexHullProperties.convexHullVertices.size();
-        return 8;
+        
+        return convexHullProperties.convexHullVertices.size();
+        
     }
     
     void U4DStaticModel::clearConvexHullVertices(){

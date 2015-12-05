@@ -21,8 +21,6 @@ namespace U4DEngine {
     
     void U4DTorqueForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
         
-        uModel->getAbsolutePosition().show();
-        
         //get center of mass
         U4DVector3n centerOfMass=uModel->getCenterOfMass();
         
@@ -32,18 +30,12 @@ namespace U4DEngine {
         //get mass
         float mass=uModel->getMass();
         
+        U4DVector3n radius=centerOfMass-contactPoint;
+            
+        //calculate torque
+        U4DVector3n torque=(gravity*mass).cross(radius);
         
-        //calculate the torque for each vertex about center of mass
-        
-        for (auto vertex:uModel->getConvexHullVertices()) {
-            
-            U4DVector3n radius=centerOfMass-vertex;
-            
-            //calculate torque
-            U4DVector3n torque=((gravity*mass).cross(radius))*(1/uModel->getConvexHullVerticesCount());
-            
-            uModel->addMoment(torque);
-        }
+        uModel->addMoment(torque);
         
     }
     
