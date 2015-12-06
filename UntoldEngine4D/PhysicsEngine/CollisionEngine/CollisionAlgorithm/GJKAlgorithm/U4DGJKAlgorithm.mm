@@ -49,7 +49,9 @@ namespace U4DEngine {
         U4DSimplexStruct w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         
-        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>0.001) {
+        //Algorithm found in Game Physics Pearls. Page 106
+        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>U4DEngine::epsilon) {
+            
             
             Q.push_back(w);
             
@@ -64,11 +66,12 @@ namespace U4DEngine {
             w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
         }
+
+        float distance=v.minkowskiPoint.magnitudeSquare();
         
-        
-        float distance=v.minkowskiPoint.magnitude();
-        
-        std::cout<<distance<<std::endl;
+        if (distance>U4DEngine::epsilon) {
+            return false;
+        }
         
         return true;
         
