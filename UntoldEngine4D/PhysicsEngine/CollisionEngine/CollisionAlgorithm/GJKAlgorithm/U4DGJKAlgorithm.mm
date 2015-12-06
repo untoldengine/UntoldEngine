@@ -18,7 +18,9 @@
 
 namespace U4DEngine {
     
+    
     bool U4DGJKAlgorithm::collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){
+        
         
         //clear Q
         Q.clear();
@@ -31,9 +33,6 @@ namespace U4DEngine {
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
-        
-        int iterationSteps=0; //to avoid infinite loop
-        
         /*
          1. Initialize the simplex set Q to one or more points (up to d+1 points, where d is
          the dimension) from the Minkowski difference of A and B.
@@ -41,98 +40,157 @@ namespace U4DEngine {
         
         U4DVector3n dir(1,1,1);
         
-        U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+        U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+        
+        dir=v.minkowskiPoint.toVector();
         
         dir.negate();
         
-        U4DSimplexStruct b=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+        U4DSimplexStruct w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
-        //test if the last point added past the origin
-        if (b.minkowskiPoint.toVector().dot(dir)<0) {
-            
-            //if it did not passed the origin, then there is no way for the simplex to contain the point
-            return false;
-        }
         
-        //adding simplex struct to container
-        Q.push_back(c);
-        Q.push_back(b);
-        
-        while (iterationSteps<25) {
+        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>0.001) {
             
-            //2. Compute the point P of minimum norm in CH(Q)
+            Q.push_back(w);
             
-            closestPtToOrigin=determineClosestPointOnSimplexToPoint(originPoint, Q);
+            v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
             
-            /*
-             3. If P is the origin itself, the origin is clearly contained in the Minkowski difference
-                of A and B. Stop and return A and B as intersecting.
-             */
-            if (closestPtToOrigin==originPoint) {
-                
-                //since collision is true, get the closest collision points
-                
-                uModel1->setModelHasCollided(true);
-                uModel2->setModelHasCollided(true);
-                
-                std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPtToOrigin, Q);
-                
-                U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector();
-                
-                uModel1->setCollisionContactPoint(contactPoint1);
-                
-                U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector();
-                
-                uModel2->setCollisionContactPoint(contactPoint2);
-                
-                
-                return true;
-            }
+            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
             
-            /*
-             4. Reduce Q to the smallest subset Q' of Q such that P is in CH(Q'). That is, remove
-             any points from Q not determining the subsimplex of Q in which P lies.
-            */
-            
-            determineMinimumSimplexInQ(closestPtToOrigin,Q.size());
-            
-            // 5. Let V=Sb(-p)-sa(p) be a supporting point in direction -P.
-            
-            dir=closestPtToOrigin.toVector();
+            dir=v.minkowskiPoint.toVector();
             
             dir.negate();
-            U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
-            /*
-             6. If V is no more extremal in direction -P than P itself, stop and return A and B as not
-             intersecting. The length of the vector from the origin to P is the separation distance of
-             A and B.
-             */
+            w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
-            if (v.minkowskiPoint.toVector().dot(dir)<0.0 || v.minkowskiPoint==tempV) {
-               
-                uModel1->setModelHasCollided(false);
-                uModel2->setModelHasCollided(false);
-                //collision did not occur, get distance between objects
-                //distanceToCollision(closestPtToOrigin, Q);
-                
-                //Need to compute the time of impact
-                return false;
-            }
-            
-            /*
-             7. Add V to Q and got to step 2.
-             */
-            
-            tempV=v.minkowskiPoint;
-            
-            Q.push_back(v);
-            
-            iterationSteps++;
         }
         
-        //undefined collision state
-        return false;
+        
+        float distance=v.minkowskiPoint.magnitude();
+        
+        std::cout<<distance<<std::endl;
+        
+        return true;
+        
+        
+        
+       
+//        
+//        //clear Q
+//        Q.clear();
+//        
+//        U4DPoint3n closestPtToOrigin(0,0,0);
+//        U4DPoint3n originPoint(0,0,0);
+//        U4DPoint3n tempV(0,0,0); //variable to store previous value of v
+//        std::vector<float> barycentricPoints; //barycentric points
+//        
+//        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
+//        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
+//        
+//        int iterationSteps=0; //to avoid infinite loop
+//        
+//        /*
+//         1. Initialize the simplex set Q to one or more points (up to d+1 points, where d is
+//         the dimension) from the Minkowski difference of A and B.
+//         */
+//        
+//        U4DVector3n dir(1,1,1);
+//        
+//        U4DSimplexStruct c=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+//        
+//        dir.negate();
+//        
+//        U4DSimplexStruct b=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+//        
+//        //test if the last point added past the origin
+//        if (b.minkowskiPoint.toVector().dot(dir)<0) {
+//            
+//            //if it did not passed the origin, then there is no way for the simplex to contain the point
+//            return false;
+//        }
+//        
+//        //adding simplex struct to container
+//        Q.push_back(c);
+//        Q.push_back(b);
+//        
+//        while (iterationSteps<25) {
+//            
+//            //2. Compute the point P of minimum norm in CH(Q)
+//            
+//            closestPtToOrigin=determineClosestPointOnSimplexToPoint(originPoint, Q);
+//            
+//            /*
+//             3. If P is the origin itself, the origin is clearly contained in the Minkowski difference
+//                of A and B. Stop and return A and B as intersecting.
+//             */
+//            if (closestPtToOrigin==originPoint) {
+//                
+//                //since collision is true, get the closest collision points
+//                
+//                
+//                uModel1->setModelHasCollided(true);
+//                uModel2->setModelHasCollided(true);
+//                /*
+//                std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPtToOrigin, Q);
+//                
+//                U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector();
+//                
+//                uModel1->setCollisionContactPoint(contactPoint1);
+//                
+//                U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector();
+//                
+//                uModel2->setCollisionContactPoint(contactPoint2);
+//                */
+//                
+//                return true;
+//            }
+//            
+//            /*
+//             4. Reduce Q to the smallest subset Q' of Q such that P is in CH(Q'). That is, remove
+//             any points from Q not determining the subsimplex of Q in which P lies.
+//            */
+//            
+//            determineMinimumSimplexInQ(closestPtToOrigin,Q.size());
+//            
+//            // 5. Let V=Sb(-p)-sa(p) be a supporting point in direction -P.
+//            
+//            dir=closestPtToOrigin.toVector();
+//            
+//            dir.negate();
+//            
+//            U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+//            
+//            /*
+//             6. If V is no more extremal in direction -P than P itself, stop and return A and B as not
+//             intersecting. The length of the vector from the origin to P is the separation distance of
+//             A and B.
+//             */
+//            
+//            if (v.minkowskiPoint.toVector().dot(dir)<0.0 || v.minkowskiPoint==tempV) {
+//               
+//                
+//                uModel1->setModelHasCollided(false);
+//                uModel2->setModelHasCollided(false);
+//                
+//                //Need to compute the time of impact
+//                
+//                
+//                return false;
+//            }
+//            
+//            /*
+//             7. Add V to Q and got to step 2.
+//             */
+//            
+//            tempV=v.minkowskiPoint;
+//            
+//            Q.push_back(v);
+//            
+//            iterationSteps++;
+//        }
+//
+//        //undefined collision state
+//        return false;
     }
 
     

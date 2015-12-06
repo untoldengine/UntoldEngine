@@ -36,6 +36,7 @@ namespace U4DEngine {
         
         bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt);
         
+        
         void determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer);
         
         void determineLinearCombinationOfPtInLine(U4DPoint3n& uClosestPointToOrigin);
