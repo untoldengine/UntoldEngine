@@ -30,17 +30,22 @@ namespace U4DEngine {
         U4DPoint3n tempV(0,0,0); //variable to store previous value of v
         std::vector<float> barycentricPoints; //barycentric points
         
+        //GJK continuous collision variables
+       
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
-        
+
         /*
          1. Initialize the simplex set Q to one or more points (up to d+1 points, where d is
          the dimension) from the Minkowski difference of A and B.
          */
         
+
         U4DVector3n dir(1,1,1);
-        
+
         U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+
+        Q.push_back(v);
         
         dir=v.minkowskiPoint.toVector();
         
@@ -48,10 +53,8 @@ namespace U4DEngine {
         
         U4DSimplexStruct w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
-        
         //Algorithm found in Game Physics Pearls. Page 106
         while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>U4DEngine::epsilon) {
-            
             
             Q.push_back(w);
             
@@ -66,7 +69,7 @@ namespace U4DEngine {
             w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
         }
-
+        
         float distance=v.minkowskiPoint.magnitudeSquare();
         
         if (distance>U4DEngine::epsilon) {
@@ -74,6 +77,11 @@ namespace U4DEngine {
         }
         
         return true;
+        
+        
+        
+        
+        
         
         
         
