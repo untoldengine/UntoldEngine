@@ -21,6 +21,7 @@ namespace U4DEngine {
     
     bool U4DGJKAlgorithm::collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){
         
+        //version 3 of the GJK-TOI implementation
         
         //clear Q
         Q.clear();
@@ -29,22 +30,22 @@ namespace U4DEngine {
         U4DPoint3n originPoint(0,0,0);
         U4DPoint3n tempV(0,0,0); //variable to store previous value of v
         std::vector<float> barycentricPoints; //barycentric points
+        float t=0; //time of impact
+        U4DVector3n s(0,0,0); //hit spot
+        U4DVector3n n(0,0,0); //normal plane
+        U4DVector3n r(0,0,0); //ray
         
-        //GJK continuous collision variables
-       
+        
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
-
-        /*
-         1. Initialize the simplex set Q to one or more points (up to d+1 points, where d is
-         the dimension) from the Minkowski difference of A and B.
-         */
         
-
+        U4DVector3n rs(0,5,0);
+        r=rs-uModel2->getAbsolutePosition();
+        
         U4DVector3n dir(1,1,1);
-
+        
         U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-
+        
         Q.push_back(v);
         
         dir=v.minkowskiPoint.toVector();
@@ -53,38 +54,113 @@ namespace U4DEngine {
         
         U4DSimplexStruct w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
-        //Algorithm found in Game Physics Pearls. Page 106
-        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>U4DEngine::epsilon) {
-            
-            Q.push_back(w);
-            
-            v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
-            
-            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
+        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::epsilon) {
             
             dir=v.minkowskiPoint.toVector();
             
             dir.negate();
             
-            w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+            U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
-        }
-        
-        float distance=v.minkowskiPoint.magnitudeSquare();
-        
-        if (distance>U4DEngine::epsilon) {
-            return false;
+            if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(r))*t) {
+                
+                if (v.minkowskiPoint.toVector().dot(r)>0.0) {
+                    
+                    t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
+                    
+                    std::cout<<t<<std::endl;
+                    if (t>1.0) {
+                        return false;
+                    }
+                    
+                    s=r*t;
+                    
+                    Q.clear();
+                    
+                    n=v.minkowskiPoint.toVector();
+                    
+                    v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+                    
+                    Q.push_back(v);
+                    
+                }else{
+                    return false;
+                }
+            }
+            
+            p.minkowskiPoint=(s.toPoint()-p.minkowskiPoint).toPoint();
+            Q.push_back(p);
+            
+            v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
+            
+            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
+            
         }
         
         return true;
         
+        //Version 2 of the GJK
+        
+//        //clear Q
+//        Q.clear();
+//        
+//        U4DPoint3n closestPtToOrigin(0,0,0);
+//        U4DPoint3n originPoint(0,0,0);
+//        U4DPoint3n tempV(0,0,0); //variable to store previous value of v
+//        std::vector<float> barycentricPoints; //barycentric points
+//        
+//        //GJK continuous collision variables
+//       
+//        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
+//        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
+//
+//        /*
+//         1. Initialize the simplex set Q to one or more points (up to d+1 points, where d is
+//         the dimension) from the Minkowski difference of A and B.
+//         */
+//        
+//
+//        U4DVector3n dir(1,1,1);
+//
+//        U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+//
+//        Q.push_back(v);
+//        
+//        dir=v.minkowskiPoint.toVector();
+//        
+//        dir.negate();
+//        
+//        U4DSimplexStruct w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+//        
+//        //Algorithm found in Game Physics Pearls. Page 106
+//        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>U4DEngine::epsilon) {
+//            
+//            Q.push_back(w);
+//            
+//            v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
+//            
+//            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
+//            
+//            dir=v.minkowskiPoint.toVector();
+//            
+//            dir.negate();
+//            
+//            w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+//            
+//        }
+//        
+//        float distance=v.minkowskiPoint.magnitudeSquare();
+//        
+//        if (distance>U4DEngine::epsilon) {
+//            return false;
+//        }
+//        
+//        return true;
         
         
         
         
-        
-        
-        
+        //Version 1 of the GJK
        
 //        
 //        //clear Q

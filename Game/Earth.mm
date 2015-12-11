@@ -64,13 +64,13 @@ void Earth::init(){
     
     enableGrid(true);
     
-    U4DEngine::U4DVector3n gravity(0,-1,0);
+    U4DEngine::U4DVector3n gravity(0,-10,0);
     //Set gravity here
     setGravity(gravity);
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,4.0,0.0);
+    cube->init("Cube",0.0,5.0,0.0);
     //cube->rotateBy(0.0, 0.0, 30.0);
     
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
@@ -80,7 +80,7 @@ void Earth::init(){
     cube->computeConvexHullVertices();
     
     //Apply physics engine to the object
-    //cube->applyPhysics(true);
+    cube->applyPhysics(true);
     
     //Apply the collision engine to the object
     cube->enableCollision();
