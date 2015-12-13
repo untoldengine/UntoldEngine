@@ -70,7 +70,7 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,5.0,0.0);
+    cube->init("Cube",0.0,7.0,0.0);
     //cube->rotateBy(0.0, 0.0, 30.0);
     
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
@@ -94,7 +94,7 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",0.0,0.0,0.0);
+    cube2->init("Cube",0,0,0.0);
     cube2->setShader("simpleShader");
     
     //cube2->applyPhysics(true);
@@ -246,7 +246,6 @@ void Earth::action(){
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
     setEntityControlledByController(cube);
-    
     
 }
 

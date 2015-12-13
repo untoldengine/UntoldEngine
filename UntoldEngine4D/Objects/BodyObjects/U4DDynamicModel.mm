@@ -155,9 +155,6 @@ namespace U4DEngine {
         
     }
 
-    float U4DDynamicModel::getSpeedSquare(){
-        return getVelocity().magnitudeSquare();
-    }
 }
 
 

@@ -33,14 +33,13 @@ namespace U4DEngine {
         float t=0; //time of impact
         U4DVector3n s(0,0,0); //hit spot
         U4DVector3n n(0,0,0); //normal plane
-        U4DVector3n r(0,0,0); //ray
-        
+        U4DVector3n rs(0,5,0); //ray
+        U4DVector3n r(0,0,0);
         
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
-        U4DVector3n rs(0,5,0);
-        r=rs-uModel2->getAbsolutePosition();
+        r=r-(uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition());
         
         U4DVector3n dir(1,1,1);
         
@@ -48,13 +47,12 @@ namespace U4DEngine {
         
         Q.push_back(v);
         
-        dir=v.minkowskiPoint.toVector();
-        
-        dir.negate();
-        
-        U4DSimplexStruct w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-        
+        float iterations=0;
         while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::epsilon) {
+            
+            if (iterations>10) { //iterations to avoid infinite loop
+                return false;
+            }
             
             dir=v.minkowskiPoint.toVector();
             
@@ -68,20 +66,26 @@ namespace U4DEngine {
                     
                     t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
                     
-                    std::cout<<t<<std::endl;
+                    std::cout<<"Time of Impact: "<<t<<std::endl;
+                    
                     if (t>1.0) {
                         return false;
                     }
                     
                     s=r*t;
                     
+                    n=v.minkowskiPoint.toVector();
+                    
                     Q.clear();
                     
-                    n=v.minkowskiPoint.toVector();
+                    dir=p.minkowskiPoint.toVector();
+                    
+                    dir.negate();
                     
                     v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
                     
                     Q.push_back(v);
+ 
                     
                 }else{
                     return false;
@@ -89,19 +93,24 @@ namespace U4DEngine {
             }
             
             p.minkowskiPoint=(s.toPoint()-p.minkowskiPoint).toPoint();
+            
             Q.push_back(p);
             
             v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
             
             determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
             
+            iterations++;
         }
         
-        return true;
+        if (t<U4DEngine::epsilon) {
+            return true;
+        }
+        return false;
         
         //Version 2 of the GJK
         
-//        //clear Q
+        //clear Q
 //        Q.clear();
 //        
 //        U4DPoint3n closestPtToOrigin(0,0,0);
@@ -132,8 +141,13 @@ namespace U4DEngine {
 //        
 //        U4DSimplexStruct w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
 //        
+//        float iterations=0;
 //        //Algorithm found in Game Physics Pearls. Page 106
 //        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>U4DEngine::epsilon) {
+//            
+//            if (iterations>10) {
+//                return false;
+//            }
 //            
 //            Q.push_back(w);
 //            
@@ -147,6 +161,7 @@ namespace U4DEngine {
 //            
 //            w=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
 //            
+//            iterations++;
 //        }
 //        
 //        float distance=v.minkowskiPoint.magnitudeSquare();
@@ -156,7 +171,7 @@ namespace U4DEngine {
 //        }
 //        
 //        return true;
-        
+//        
         
         
         
