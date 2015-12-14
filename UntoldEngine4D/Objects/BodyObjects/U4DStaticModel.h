@@ -154,6 +154,7 @@ namespace U4DEngine {
             void setModelHasCollided(bool uValue);
         
             bool getModelHasCollided();
+        
         };
     
 }

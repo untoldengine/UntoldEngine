@@ -39,6 +39,7 @@ namespace U4DEngine {
         void initConvexHullRenderingVertices();
         
         std::vector<U4DVector3n> getConvexHullVertices();
+        
     };
     
 }

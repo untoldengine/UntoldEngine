@@ -49,7 +49,7 @@ namespace U4DEngine {
             if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
                 
                 std::cout<<"Collision Occurred"<<std::endl;
-                /*
+                
                 //if collision occurred then
                 
                 //Manifold Generation Algorithm
@@ -59,7 +59,7 @@ namespace U4DEngine {
                 //contact resolution
                 contactResolution(modelCollection.at(0), dt);
                 contactResolution(modelCollection.at(1), dt);
-                */
+                
                 
             }else{
                

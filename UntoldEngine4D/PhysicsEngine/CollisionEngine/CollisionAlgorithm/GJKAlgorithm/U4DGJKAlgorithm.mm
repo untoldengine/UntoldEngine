@@ -26,7 +26,6 @@ namespace U4DEngine {
         //clear Q
         Q.clear();
         
-        U4DPoint3n closestPtToOrigin(0,0,0);
         U4DPoint3n originPoint(0,0,0);
         U4DPoint3n tempV(0,0,0); //variable to store previous value of v
         std::vector<float> barycentricPoints; //barycentric points
@@ -39,6 +38,9 @@ namespace U4DEngine {
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
+        uModel1->setModelHasCollided(false);
+        uModel2->setModelHasCollided(false);
+        
         r=r-(uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition());
         
         U4DVector3n dir(1,1,1);
@@ -48,6 +50,7 @@ namespace U4DEngine {
         Q.push_back(v);
         
         float iterations=0;
+        
         while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::epsilon) {
             
             if (iterations>10) { //iterations to avoid infinite loop
@@ -66,15 +69,11 @@ namespace U4DEngine {
                     
                     t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
                     
-                    std::cout<<"Time of Impact: "<<t<<std::endl;
-                    
                     if (t>1.0) {
                         return false;
                     }
                     
                     s=r*t;
-                    
-                    n=v.minkowskiPoint.toVector();
                     
                     Q.clear();
                     
@@ -104,9 +103,25 @@ namespace U4DEngine {
         }
         
         if (t<U4DEngine::epsilon) {
+            
+            uModel1->setModelHasCollided(true);
+            uModel2->setModelHasCollided(true);
+           
+            std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(v.minkowskiPoint, Q);
+
+            U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector();
+
+            uModel1->setCollisionContactPoint(contactPoint1);
+
+            U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector();
+            
+            uModel2->setCollisionContactPoint(contactPoint2);
+            
             return true;
         }
+        
         return false;
+        
         
         //Version 2 of the GJK
         

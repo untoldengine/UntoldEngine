@@ -23,6 +23,7 @@ namespace U4DEngine{
         
         
         //blow up simplex to tetrahedron
+        verifySimplexStructForEPA(boundingVolume1,boundingVolume2,uQ);
         
         //test if origin is in tetrahedron
        
