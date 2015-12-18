@@ -157,6 +157,8 @@ namespace U4DEngine {
             if (model) {
             
                 if (model->isPhysicsApplied()==true) {
+                   
+                    dt=dt*model->getTimeStep();
                     
                     physicsEngine->updatePhysicForces(model, dt);
                     

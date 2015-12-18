@@ -50,7 +50,12 @@ namespace U4DEngine {
                 
                 std::cout<<"Collision Occurred"<<std::endl;
                 
+                
                 //if collision occurred then
+                modelCollection.at(0)->setModelHasCollided(true);
+                modelCollection.at(1)->setModelHasCollided(true);
+                
+                //
                 
                 //Manifold Generation Algorithm
                 manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
@@ -64,6 +69,8 @@ namespace U4DEngine {
             }else{
                
                 std::cout<<"Non-Collision Occurred"<<std::endl;
+                modelCollection.at(0)->setModelHasCollided(true);
+                modelCollection.at(1)->setModelHasCollided(true);
                 
             }
         
@@ -109,7 +116,6 @@ namespace U4DEngine {
         
         
         float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
-        
         
         
         /*

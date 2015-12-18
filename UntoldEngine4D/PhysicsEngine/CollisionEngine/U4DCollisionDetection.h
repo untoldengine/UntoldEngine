@@ -35,6 +35,8 @@ namespace U4DEngine {
         
         std::vector<float> determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ);
         
+        
+        
     };
 }
 

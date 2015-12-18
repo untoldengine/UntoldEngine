@@ -19,7 +19,7 @@ namespace U4DEngine {
     class U4DCollisionAlgorithm:public U4DCollisionDetection{
     
         private:
-        
+            
         public:
         
         U4DCollisionAlgorithm(){};
@@ -28,9 +28,7 @@ namespace U4DEngine {
         
         virtual bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){};
         
-        
         virtual std::vector<U4DSimplexStruct> getCurrentSimpleStruct(){};
-        
     };
 
 }

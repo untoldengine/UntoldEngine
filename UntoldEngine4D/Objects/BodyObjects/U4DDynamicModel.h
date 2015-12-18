@@ -68,7 +68,7 @@ protected:
      */
     float motion;
     
-   
+    float timeStep;
     
 public:
     
@@ -190,6 +190,10 @@ public:
     void applyPhysics(bool uValue);
     
     bool isPhysicsApplied();
+    
+    void setTimeStep(float uTimeStep);
+    
+    float getTimeStep();
     
 };
 

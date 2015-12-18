@@ -12,9 +12,11 @@
 #include "U4DTetrahedron.h"
 #include "U4DPolytope.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 
 namespace U4DEngine{
     
+
     void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ){
         
         //get bounding volume for each model
@@ -28,7 +30,7 @@ namespace U4DEngine{
         //test if origin is in tetrahedron
        
         if(uQ.size()==4){
-                        
+            
             U4DPolytope polytope;
             std::vector<POLYTOPEEDGES> edges;
             U4DVector3n faceNormal(0,0,0);
@@ -39,6 +41,8 @@ namespace U4DEngine{
             U4DPoint3n origin(0.0,0.0,0.0);
             int iterationSteps=0; //to avoid infinite loop
             
+            
+            //get penetration and collision normal
             //1. Build tetrahedron from Q
             U4DTetrahedron tetrahedron(uQ.at(0).minkowskiPoint,uQ.at(1).minkowskiPoint,uQ.at(2).minkowskiPoint,uQ.at(3).minkowskiPoint);
             
@@ -77,7 +81,7 @@ namespace U4DEngine{
                 float faceNormalMagnitude=faceNormal.magnitude();
                 
                 //7. check if need to exit loop
-                if (penetrationDepth-faceNormalMagnitude<0.0001) {
+                if (penetrationDepth-faceNormalMagnitude<U4DEngine::epsilon) {
                     
                     //break from loop
                     break;

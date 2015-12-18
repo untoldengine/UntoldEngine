@@ -36,7 +36,6 @@ namespace U4DEngine {
         
         bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt);
         
-        
         void determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer);
         
         void determineLinearCombinationOfPtInLine(U4DPoint3n& uClosestPointToOrigin);
@@ -50,7 +49,6 @@ namespace U4DEngine {
         float distanceToCollision(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ);
         
         std::vector<U4DSimplexStruct> getCurrentSimpleStruct();
-        
     };
     
 }

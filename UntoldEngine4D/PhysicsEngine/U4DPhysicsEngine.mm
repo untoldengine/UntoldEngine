@@ -35,7 +35,7 @@ namespace U4DEngine {
         
         if (uModel->getModelHasCollided()) {
        
-            normalForce.updateForce(uModel, dt);
+            //normalForce.updateForce(uModel, dt);
                 
             //torqueForce.updateForce(uModel, dt);
             

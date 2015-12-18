@@ -31,17 +31,16 @@ namespace U4DEngine {
         std::vector<float> barycentricPoints; //barycentric points
         float t=0; //time of impact
         U4DVector3n s(0,0,0); //hit spot
-        U4DVector3n n(0,0,0); //normal plane
-        U4DVector3n rs(0,5,0); //ray
-        U4DVector3n r(0,0,0);
+        
+        U4DVector3n r(0,0,0); //ray
         
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
-        uModel1->setModelHasCollided(false);
-        uModel2->setModelHasCollided(false);
-        
         r=r-(uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition());
+        r.normalize();
+        
+        //r=U4DVector3n(0,5,0)-uModel2->getAbsolutePosition();
         
         U4DVector3n dir(1,1,1);
         
@@ -51,9 +50,13 @@ namespace U4DEngine {
         
         float iterations=0;
         
+        uModel1->setTimeStep(1.0);
+        uModel2->setTimeStep(1.0);
+        
         while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::epsilon) {
             
             if (iterations>10) { //iterations to avoid infinite loop
+                
                 return false;
             }
             
@@ -69,7 +72,10 @@ namespace U4DEngine {
                     
                     t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
                     
+                    std::cout<<"Time of Impact: "<<t<<std::endl;
+                    
                     if (t>1.0) {
+                       
                         return false;
                     }
                     
@@ -87,6 +93,7 @@ namespace U4DEngine {
  
                     
                 }else{
+                    
                     return false;
                 }
             }
@@ -102,17 +109,18 @@ namespace U4DEngine {
             iterations++;
         }
         
+        
         if (t<U4DEngine::epsilon) {
-            
-            uModel1->setModelHasCollided(true);
-            uModel2->setModelHasCollided(true);
            
+            uModel1->setTimeStep(t);
+            uModel2->setTimeStep(t);
+            
             std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(v.minkowskiPoint, Q);
-
+            
             U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector();
-
+            
             uModel1->setCollisionContactPoint(contactPoint1);
-
+            
             U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector();
             
             uModel2->setCollisionContactPoint(contactPoint2);
@@ -310,6 +318,8 @@ namespace U4DEngine {
 //        return false;
     }
 
+    
+    
     
     void U4DGJKAlgorithm::determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer){
         
@@ -509,15 +519,15 @@ namespace U4DEngine {
     std::vector<U4DPoint3n> U4DGJKAlgorithm::closestBarycentricPoints(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ){
         
         //get the barycentric points of the collision
-        std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(uClosestPointToOrigin, Q);
+        std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(uClosestPointToOrigin, uQ);
         
         U4DPoint3n closestPointsModel1(0,0,0);
         U4DPoint3n closestPointsModel2(0,0,0);
         
         for (int i=0; i<barycentricPoints.size(); i++) {
             
-            closestPointsModel1+=Q.at(i).sa*barycentricPoints.at(i);
-            closestPointsModel2+=Q.at(i).sb*barycentricPoints.at(i);
+            closestPointsModel1+=uQ.at(i).sa*barycentricPoints.at(i);
+            closestPointsModel2+=uQ.at(i).sb*barycentricPoints.at(i);
         }
         
         
@@ -540,7 +550,7 @@ namespace U4DEngine {
             closestPointsModel1+=Q.at(i).sa*barycentricPoints.at(i);
             closestPointsModel2+=Q.at(i).sb*barycentricPoints.at(i);
         }
-    
+        
         
         U4DVector3n distanceVector=closestPointsModel1-closestPointsModel2;
         
