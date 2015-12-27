@@ -70,10 +70,13 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cone",0.0,10.0,0.0);
-    cube->rotateBy(0.0, 0.0, 180.0);
+    cube->init("Cube",-1.0,5.9,0.0);
+    cube->setName("falling");
+    
+    //cube->rotateBy(0.0, 0.0, 25.0);
     
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
+    
     cube->setCenterOfMass(centerOfMass);
     cube->setShader("simpleRedShader");
     
@@ -94,8 +97,10 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cone",0,1,0.0);
+    cube2->init("Cube",0,0,0.0);
     cube2->setShader("simpleShader");
+    cube2->setName("static");
+    cube2->rotateBy(0.0, 0.0, -60.0);
     
     //cube2->applyPhysics(true);
     cube2->computeConvexHullVertices();
@@ -237,7 +242,7 @@ void Earth::init(){
 
 void Earth::update(double dt){
 
-    //cube->rotateBy(0, 0, 1);
+    //cube->rotateBy(0, 0, -1);
 }
 
 void Earth::action(){

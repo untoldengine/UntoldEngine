@@ -66,8 +66,6 @@ namespace U4DEngine {
 
     U4DVector3n U4DStaticModel::getCenterOfMass(){
         
-        //update center of mass
-        massProperties.centerOfMass=massProperties.centerOfMass;
     
         return massProperties.centerOfMass;
         

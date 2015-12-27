@@ -31,7 +31,6 @@ namespace U4DEngine {
         std::vector<float> barycentricPoints; //barycentric points
         float t=0; //time of impact
         U4DVector3n s(0,0,0); //hit spot
-        
         U4DVector3n r(0,0,0); //ray
         
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
@@ -40,20 +39,16 @@ namespace U4DEngine {
         r=r-(uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition());
         r.normalize();
         
-        //r=U4DVector3n(0,5,0)-uModel2->getAbsolutePosition();
-        
         U4DVector3n dir(1,1,1);
         
         U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         Q.push_back(v);
-        
+
         float iterations=0;
-        
-        uModel1->setTimeStep(1.0);
-        uModel2->setTimeStep(1.0);
-        
+   
         while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::epsilon) {
+            
             
             if (iterations>10) { //iterations to avoid infinite loop
                 
@@ -66,20 +61,24 @@ namespace U4DEngine {
             
             U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
+            
             if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(r))*t) {
+                
                 
                 if (v.minkowskiPoint.toVector().dot(r)>0.0) {
                     
                     t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
                     
-                    std::cout<<"Time of Impact: "<<t<<std::endl;
-                    
                     if (t>1.0) {
-                       
+                        
                         return false;
                     }
-                    
+
                     s=r*t;
+                    
+                    closestPointToOrigin=v.minkowskiPoint;
+                    
+                    contactNormal=v.minkowskiPoint.toVector()*-1.0;
                     
                     Q.clear();
                     
@@ -90,7 +89,7 @@ namespace U4DEngine {
                     v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
                     
                     Q.push_back(v);
- 
+                    
                     
                 }else{
                     
@@ -107,28 +106,51 @@ namespace U4DEngine {
             determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
             
             iterations++;
+            
         }
         
+        //if the simplex container is 2, it is not enough to get the correct normal data. Make sure simplex size is always greater than 2
+        if (Q.size()==2) {
+            return false;
+        }
         
         if (t<U4DEngine::epsilon) {
-           
-            uModel1->setTimeStep(t);
-            uModel2->setTimeStep(t);
             
-            std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(v.minkowskiPoint, Q);
+            //get the barycentric points of the collision
+            std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(closestPointToOrigin, Q);
             
-            U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector();
+            U4DPoint3n closestPointsModel1(0,0,0);
+            U4DPoint3n closestPointsModel2(0,0,0);
+            
+            for (int i=0; i<barycentricPoints.size(); i++) {
+                
+                closestPointsModel1+=Q.at(i).sa*barycentricPoints.at(i);
+                closestPointsModel2+=Q.at(i).sb*barycentricPoints.at(i);
+            }
+            
+            //get contact points
+            U4DVector3n contactPoint1=closestPointsModel1.toVector();
             
             uModel1->setCollisionContactPoint(contactPoint1);
             
-            U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector();
+            U4DVector3n contactPoint2=closestPointsModel2.toVector();
             
             uModel2->setCollisionContactPoint(contactPoint2);
+            
+            
+            //Get contact normal
+            contactNormal.normalize();
+            
+            uModel1->setCollisionNormalDirection(contactNormal);
+            
+            contactNormal.negate();
+            
+            uModel2->setCollisionNormalDirection(contactNormal);
             
             return true;
         }
         
-        return false;
+       return false;
         
         
         //Version 2 of the GJK
@@ -176,6 +198,8 @@ namespace U4DEngine {
 //            
 //            v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
 //            
+//            
+//            
 //            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
 //            
 //            dir=v.minkowskiPoint.toVector();
@@ -188,20 +212,21 @@ namespace U4DEngine {
 //        }
 //        
 //        float distance=v.minkowskiPoint.magnitudeSquare();
+//        closestPointToOrigin=v.minkowskiPoint;
 //        
 //        if (distance>U4DEngine::epsilon) {
 //            return false;
 //        }
 //        
 //        return true;
-//        
+        
         
         
         
         //Version 1 of the GJK
        
-//        
-//        //clear Q
+        
+        //clear Q
 //        Q.clear();
 //        
 //        U4DPoint3n closestPtToOrigin(0,0,0);
@@ -250,22 +275,30 @@ namespace U4DEngine {
 //             */
 //            if (closestPtToOrigin==originPoint) {
 //                
+//                
 //                //since collision is true, get the closest collision points
 //                
+//                closestPointToOrigin=originPoint;
 //                
-//                uModel1->setModelHasCollided(true);
-//                uModel2->setModelHasCollided(true);
-//                /*
-//                std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPtToOrigin, Q);
-//                
-//                U4DVector3n contactPoint1=closestCollisionPoints.at(0).toVector();
-//                
+//                //get the barycentric points of the collision
+//                std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(closestPointToOrigin, Q);
+//    
+//                U4DPoint3n closestPointsModel1(0,0,0);
+//                U4DPoint3n closestPointsModel2(0,0,0);
+//    
+//                for (int i=0; i<barycentricPoints.size(); i++) {
+//    
+//                    closestPointsModel1+=Q.at(i).sa*barycentricPoints.at(i);
+//                    closestPointsModel2+=Q.at(i).sb*barycentricPoints.at(i);
+//                }
+//    
+//                U4DVector3n contactPoint1=closestPointsModel1.toVector();
+//    
 //                uModel1->setCollisionContactPoint(contactPoint1);
 //                
-//                U4DVector3n contactPoint2=closestCollisionPoints.at(1).toVector();
+//                U4DVector3n contactPoint2=closestPointsModel2.toVector();
 //                
 //                uModel2->setCollisionContactPoint(contactPoint2);
-//                */
 //                
 //                return true;
 //            }
@@ -294,12 +327,6 @@ namespace U4DEngine {
 //            if (v.minkowskiPoint.toVector().dot(dir)<0.0 || v.minkowskiPoint==tempV) {
 //               
 //                
-//                uModel1->setModelHasCollided(false);
-//                uModel2->setModelHasCollided(false);
-//                
-//                //Need to compute the time of impact
-//                
-//                
 //                return false;
 //            }
 //            
@@ -316,6 +343,7 @@ namespace U4DEngine {
 //
 //        //undefined collision state
 //        return false;
+        
     }
 
     
@@ -562,5 +590,9 @@ namespace U4DEngine {
         
         return Q;
         
+    }
+    
+    U4DPoint3n U4DGJKAlgorithm::getClosestPointToOrigin(){
+        return closestPointToOrigin;
     }
 }

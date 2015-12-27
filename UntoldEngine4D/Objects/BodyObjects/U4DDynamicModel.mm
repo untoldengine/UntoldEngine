@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeStep(1.0){
+    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true){
     };
     
 
@@ -153,16 +153,6 @@ namespace U4DEngine {
         
         return affectedByPhysics;
         
-    }
-    
-    void U4DDynamicModel::setTimeStep(float uTimeStep){
-        
-        timeStep=uTimeStep;
-    }
-    
-    float U4DDynamicModel::getTimeStep(){
-        
-        return timeStep;
     }
 
 }
