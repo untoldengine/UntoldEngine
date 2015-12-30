@@ -141,8 +141,7 @@ namespace U4DEngine {
         uModel->setVelocity(velocityBody);
         
         uModel->setAngularVelocity(angularVelocityBody);
-        
-        
+       
     }
     
     /*

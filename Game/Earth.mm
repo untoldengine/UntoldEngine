@@ -70,10 +70,10 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",-1.0,5.9,0.0);
+    cube->init("Cube",-1.0,3.9,0.0);
     cube->setName("falling");
     
-    //cube->rotateBy(0.0, 0.0, 25.0);
+    cube->rotateBy(0.0, 0.0, 25.0);
     
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
     
@@ -89,7 +89,7 @@ void Earth::init(){
     cube->enableCollision();
     
     //set the coefficient of restitution to 0.8
-    cube->setCoefficientOfRestitution(0.9);
+    cube->setCoefficientOfRestitution(0.7);
     
     //cube->setBoundingBoxVisibility(true);
     

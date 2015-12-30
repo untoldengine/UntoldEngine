@@ -36,7 +36,8 @@ namespace U4DEngine {
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
-        r=r-(uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition());
+        r=(uModel1->getVelocity()-uModel2->getVelocity());
+        
         r.normalize();
         
         U4DVector3n dir(1,1,1);
@@ -47,7 +48,7 @@ namespace U4DEngine {
 
         float iterations=0;
    
-        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::epsilon) {
+        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::collisionEpsilon) {
             
             
             if (iterations>10) { //iterations to avoid infinite loop
@@ -74,6 +75,7 @@ namespace U4DEngine {
                         return false;
                     }
 
+                    
                     s=r*t;
                     
                     closestPointToOrigin=v.minkowskiPoint;
@@ -108,13 +110,30 @@ namespace U4DEngine {
             iterations++;
             
         }
+  
+        
+        //set time of impact for each model.
+        
+        if (t>U4DEngine::collisionEpsilon&&t<minimumTimeOfImpact) {
+            
+            //minimum time step allowed
+            uModel1->setTimeOfImpact(minimumTimeOfImpact);
+            uModel2->setTimeOfImpact(minimumTimeOfImpact);
+            
+        }else{
+            
+            uModel1->setTimeOfImpact(t);
+            uModel2->setTimeOfImpact(t);
+            
+        }
+        
         
         //if the simplex container is 2, it is not enough to get the correct normal data. Make sure simplex size is always greater than 2
         if (Q.size()==2) {
             return false;
         }
         
-        if (t<U4DEngine::epsilon) {
+        if (t<U4DEngine::collisionEpsilon) {
             
             //get the barycentric points of the collision
             std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(closestPointToOrigin, Q);
@@ -137,8 +156,7 @@ namespace U4DEngine {
             
             uModel2->setCollisionContactPoint(contactPoint2);
             
-            
-            //Get contact normal
+            //Sett contact normal
             contactNormal.normalize();
             
             uModel1->setCollisionNormalDirection(contactNormal);
@@ -147,9 +165,15 @@ namespace U4DEngine {
             
             uModel2->setCollisionNormalDirection(contactNormal);
             
+            //reset time of impact
+            uModel1->resetTimeOfImpact();
+            
+            uModel2->resetTimeOfImpact();
+            
             return true;
         }
         
+
        return false;
         
         

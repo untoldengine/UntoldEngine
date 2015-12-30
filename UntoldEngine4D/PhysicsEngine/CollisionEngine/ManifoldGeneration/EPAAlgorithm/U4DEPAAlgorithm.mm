@@ -81,7 +81,7 @@ namespace U4DEngine{
                 float faceNormalMagnitude=faceNormal.magnitude();
                 
                 //7. check if need to exit loop
-                if (penetrationDepth-faceNormalMagnitude<U4DEngine::epsilon) {
+                if (penetrationDepth-faceNormalMagnitude<U4DEngine::collisionEpsilon) {
                     
                     //break from loop
                     break;
