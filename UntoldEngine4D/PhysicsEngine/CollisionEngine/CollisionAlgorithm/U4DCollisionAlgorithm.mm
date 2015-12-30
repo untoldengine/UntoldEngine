@@ -7,4 +7,3 @@
 //
 
 #include "U4DCollisionAlgorithm.h"
-

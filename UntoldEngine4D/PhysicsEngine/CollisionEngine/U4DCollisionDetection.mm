@@ -14,6 +14,7 @@
 
 namespace U4DEngine {
     
+    
     U4DSimplexStruct U4DCollisionDetection::calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection){
         
         //V=Sb(-p)-sa(p)
@@ -43,6 +44,7 @@ namespace U4DEngine {
     std::vector<float> U4DCollisionDetection::determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin,std::vector<U4DSimplexStruct> uQ){
         
         std::vector<float> barycentricCoordinates;
+        
         int uNumberOfSimplexInContainer=uQ.size();
         
         if (uNumberOfSimplexInContainer==2) {

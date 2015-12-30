@@ -19,7 +19,7 @@ namespace U4DEngine {
     class U4DCollisionAlgorithm:public U4DCollisionDetection{
     
         private:
-        
+            
         public:
         
         U4DCollisionAlgorithm(){};
@@ -30,6 +30,7 @@ namespace U4DEngine {
         
         virtual std::vector<U4DSimplexStruct> getCurrentSimpleStruct(){};
         
+        virtual U4DPoint3n getClosestPointToOrigin(){};
     };
 
 }

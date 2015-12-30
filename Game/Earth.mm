@@ -70,10 +70,13 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,5.3,0);
-    //cube->rotateBy(0.0, 0.0, 30.0);
+    cube->init("Cube",-1.0,3.9,0.0);
+    cube->setName("falling");
     
-    U4DEngine::U4DVector3n centerOfMass(0.7,0,0);
+    cube->rotateBy(0.0, 0.0, 25.0);
+    
+    U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
+    
     cube->setCenterOfMass(centerOfMass);
     cube->setShader("simpleRedShader");
     
@@ -86,7 +89,7 @@ void Earth::init(){
     cube->enableCollision();
     
     //set the coefficient of restitution to 0.8
-    cube->setCoefficientOfRestitution(0.9);
+    cube->setCoefficientOfRestitution(0.7);
     
     //cube->setBoundingBoxVisibility(true);
     
@@ -94,8 +97,10 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",0.0,1.0,0.0);
+    cube2->init("Cube",0,0,0.0);
     cube2->setShader("simpleShader");
+    cube2->setName("static");
+    cube2->rotateBy(0.0, 0.0, -60.0);
     
     //cube2->applyPhysics(true);
     cube2->computeConvexHullVertices();
@@ -237,7 +242,7 @@ void Earth::init(){
 
 void Earth::update(double dt){
 
-    
+    //cube->rotateBy(0, 0, -1);
 }
 
 void Earth::action(){
@@ -246,7 +251,6 @@ void Earth::action(){
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
     setEntityControlledByController(cube);
-    
     
 }
 

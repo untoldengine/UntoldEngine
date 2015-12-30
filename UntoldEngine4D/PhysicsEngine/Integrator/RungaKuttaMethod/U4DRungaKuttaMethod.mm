@@ -20,6 +20,9 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     U4DVector3n angularVelocityNew(0,0,0);
     U4DQuaternion orientationNew;
     
+    //set timestep for model
+    dt=dt*uModel->getTimeOfImpact();
+    
     //calculate the acceleration
     U4DVector3n linearAcceleration=(uModel->getForce())*(1/uModel->getMass());
     
@@ -84,7 +87,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     //float currentMotion=velocityNew.magnitudeSquare()+angularVelocityNew.magnitudeSquare();
     
     //uModel->setMotion(currentMotion,dt);
-    
+    uModel->resetTimeOfImpact();
 }
 
 void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicModel *uModel,U4DVector3n &uLinearAcceleration,float dt,U4DVector3n &uVnew,U4DVector3n &uSnew){

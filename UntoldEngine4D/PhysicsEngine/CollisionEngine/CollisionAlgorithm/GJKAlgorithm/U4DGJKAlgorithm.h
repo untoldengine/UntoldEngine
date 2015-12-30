@@ -29,6 +29,9 @@ namespace U4DEngine {
         
         std::vector<U4DSimplexStruct> Q; //simplex container
         
+        U4DPoint3n closestPointToOrigin;
+        U4DVector3n contactNormal;
+        
     public:
         
         U4DGJKAlgorithm(){};
@@ -50,6 +53,7 @@ namespace U4DEngine {
         
         std::vector<U4DSimplexStruct> getCurrentSimpleStruct();
         
+        U4DPoint3n getClosestPointToOrigin();
     };
     
 }

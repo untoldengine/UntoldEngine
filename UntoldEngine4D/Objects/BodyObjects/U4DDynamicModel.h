@@ -68,7 +68,7 @@ protected:
      */
     float motion;
     
-   
+    float timeOfImpact;
     
 public:
     
@@ -187,11 +187,15 @@ public:
      */
     float getMotion();
     
-    float getSpeedSquare();
-    
     void applyPhysics(bool uValue);
     
     bool isPhysicsApplied();
+    
+    void setTimeOfImpact(float uTimeOfImpact);
+    
+    float getTimeOfImpact();
+    
+    void resetTimeOfImpact();
     
 };
 

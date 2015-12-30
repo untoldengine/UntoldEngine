@@ -18,7 +18,7 @@
 
 namespace U4DEngine {
     
-class U4DEntityManager;
+    class U4DEntityManager;
 }
 
 namespace U4DEngine {

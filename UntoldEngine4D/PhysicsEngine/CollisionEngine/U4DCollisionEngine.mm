@@ -50,11 +50,16 @@ namespace U4DEngine {
                 
                 std::cout<<"Collision Occurred"<<std::endl;
                 
+                
                 //if collision occurred then
+                modelCollection.at(0)->setModelHasCollided(true);
+                modelCollection.at(1)->setModelHasCollided(true);
+                
+                //
                 
                 //Manifold Generation Algorithm
-                manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct());
-                
+                //manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct(), collisionAlgorithm->getClosestPointToOrigin());
+            
                 
                 //contact resolution
                 contactResolution(modelCollection.at(0), dt);
@@ -64,6 +69,9 @@ namespace U4DEngine {
             }else{
                
                 std::cout<<"Non-Collision Occurred"<<std::endl;
+                modelCollection.at(0)->setModelHasCollided(false);
+                modelCollection.at(1)->setModelHasCollided(false);
+                
             }
         
         }
@@ -74,7 +82,6 @@ namespace U4DEngine {
     
     
     void U4DCollisionEngine::contactResolution(U4DDynamicModel* uModel, float dt){
-        
         
         U4DVector3n velocityBody(0,0,0);
         U4DVector3n angularVelocityBody(0,0,0);
@@ -87,6 +94,8 @@ namespace U4DEngine {
         
         U4DVector3n contactPoint=uModel->getCollisionContactPoint();
         U4DVector3n lineOfAction=uModel->getCollisionNormalDirection();
+        
+        contactPoint=lineOfAction*contactPoint.dot(lineOfAction);
         
         //get the velocity model
         /*
@@ -108,7 +117,6 @@ namespace U4DEngine {
         
         
         float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
-        
         
         
         /*
@@ -133,8 +141,7 @@ namespace U4DEngine {
         uModel->setVelocity(velocityBody);
         
         uModel->setAngularVelocity(angularVelocityBody);
-        
-        
+       
     }
     
     /*

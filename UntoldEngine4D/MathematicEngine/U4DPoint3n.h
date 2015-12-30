@@ -45,7 +45,7 @@ public:
     /**
      *  Constructor
      */
-    U4DPoint3n(){}
+    U4DPoint3n():x(0.0),y(0.0),z(0.0){}
     
     /**
      *  Constructor

@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true){
+    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0){
     };
     
 
@@ -154,10 +154,31 @@ namespace U4DEngine {
         return affectedByPhysics;
         
     }
-
-    float U4DDynamicModel::getSpeedSquare(){
-        return getVelocity().magnitudeSquare();
+    
+    void U4DDynamicModel::setTimeOfImpact(float uTimeOfImpact){
+        
+        if (uTimeOfImpact>1.0) {
+            
+            timeOfImpact=1.0; //time of impact can't be greater than 1. Meaning no collision
+            
+        }else{
+         
+            timeOfImpact=uTimeOfImpact;
+            
+        }
+        
     }
+    
+    float U4DDynamicModel::getTimeOfImpact(){
+        
+        return timeOfImpact;
+    }
+    
+    void U4DDynamicModel::resetTimeOfImpact(){
+        
+        timeOfImpact=1.0; //no collision
+    }
+
 }
 
 

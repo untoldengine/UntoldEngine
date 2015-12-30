@@ -130,12 +130,6 @@ namespace U4DEngine {
                 
                     if(model->isCollisionEnabled()==true){
                         
-                        U4DVector3n zero(0,0,0);
-                        //reset all contact manifold data
-                        model->setCollisionNormalDirection(zero);
-                        model->setCollisionContactPoint(zero);
-                        model->setCollisionPenetrationDepth(0.0);
-                        
                         //add child to collision tree
                         collisionEngine->addToCollisionContainer(model);
                         

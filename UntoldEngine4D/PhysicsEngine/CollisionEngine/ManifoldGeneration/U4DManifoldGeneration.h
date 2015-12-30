@@ -22,7 +22,9 @@ namespace U4DEngine {
         
         ~U4DManifoldGeneration(){};
         
-        virtual void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ){};
+        virtual void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n uClosestPointToOrigin){};
+        
+        
         
     };
 }
