@@ -18,6 +18,7 @@ namespace U4DEngine {
     const float minimumTimeOfImpact=0.3;
     const float motionEpsilon=180.0;
     const float velocityEpsilon=0.0005;
+    const float barycentricEpsilon=1.0;
     const float timeStep=0.01;
 }
 

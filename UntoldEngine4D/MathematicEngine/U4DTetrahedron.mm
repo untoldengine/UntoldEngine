@@ -12,6 +12,7 @@
 #include "U4DVector3n.h"
 #include "U4DMatrix4n.h"
 #include "U4DTriangle.h"
+#include "Constants.h"
 
 
 namespace U4DEngine {
@@ -216,8 +217,8 @@ namespace U4DEngine {
         dABCP=abcp.getDeterminant();
         dABCD=abcd.getDeterminant();
         
-        if (dABCD==0.0) {
-            dABCD=0.0001;
+        if (fabs(dABCD)<U4DEngine::barycentricEpsilon) {
+            dABCD=1.0;
         }
         
         baryCoordinateU=dPBCD/dABCD;

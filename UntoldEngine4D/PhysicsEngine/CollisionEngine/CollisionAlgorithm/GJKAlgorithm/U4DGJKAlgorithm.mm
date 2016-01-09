@@ -80,7 +80,7 @@ namespace U4DEngine {
                     
                     closestPointToOrigin=v.minkowskiPoint;
                     
-                    contactNormal=v.minkowskiPoint.toVector()*-1.0;
+                    contactNormal=v.minkowskiPoint.toVector();
                     
                     Q.clear();
                     
@@ -126,44 +126,23 @@ namespace U4DEngine {
             uModel2->setTimeOfImpact(t);
             
         }
+                
+        //if the simplex container is 2, it is not enough to get the correct normal data. 
         
-        
-        //if the simplex container is 2, it is not enough to get the correct normal data. Make sure simplex size is always greater than 2
-        if (Q.size()==2) {
+        if (Q.size()<=2) {
             return false;
         }
         
         if (t<U4DEngine::collisionEpsilon) {
-            
-            //get the barycentric points of the collision
-            std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(closestPointToOrigin, Q);
-            
-            U4DPoint3n closestPointsModel1(0,0,0);
-            U4DPoint3n closestPointsModel2(0,0,0);
-            
-            for (int i=0; i<barycentricPoints.size(); i++) {
-                
-                closestPointsModel1+=Q.at(i).sa*barycentricPoints.at(i);
-                closestPointsModel2+=Q.at(i).sb*barycentricPoints.at(i);
-            }
-            
-            //get contact points
-            U4DVector3n contactPoint1=closestPointsModel1.toVector();
-            
-            uModel1->setCollisionContactPoint(contactPoint1);
-            
-            U4DVector3n contactPoint2=closestPointsModel2.toVector();
-            
-            uModel2->setCollisionContactPoint(contactPoint2);
-            
-            //Sett contact normal
+           
+            //Set contact normal
             contactNormal.normalize();
             
             uModel1->setCollisionNormalDirection(contactNormal);
             
-            contactNormal.negate();
+            U4DVector3n negateContactNormal=contactNormal*-1.0;
             
-            uModel2->setCollisionNormalDirection(contactNormal);
+            uModel2->setCollisionNormalDirection(negateContactNormal);
             
             //reset time of impact
             uModel1->resetTimeOfImpact();

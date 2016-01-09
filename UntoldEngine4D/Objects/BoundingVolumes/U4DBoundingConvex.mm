@@ -11,6 +11,23 @@
 
 namespace U4DEngine {
     
+    U4DBoundingConvex::U4DBoundingConvex(){
+        
+        
+    
+    };
+    
+    U4DBoundingConvex::~U4DBoundingConvex(){};
+    
+    U4DBoundingConvex::U4DBoundingConvex(const U4DBoundingConvex& value){};
+    
+    U4DBoundingConvex& U4DBoundingConvex::operator=(const U4DBoundingConvex& value){
+        
+        return *this;
+    
+    };
+    
+    
     void U4DBoundingConvex::computeConvexHullVertices(std::vector<U4DVector3n>& uVertices){
         
         for (auto vertex:uVertices) {

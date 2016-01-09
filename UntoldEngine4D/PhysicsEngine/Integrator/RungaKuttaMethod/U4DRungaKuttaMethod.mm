@@ -48,6 +48,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     U4DVector3n angularAcceleration=inverseMomentOfInertia*(moment-(uModel->getAngularVelocity().cross(momentOfInertiaTensor*uModel->getAngularVelocity())));
     
     
+    //get the new angular velocity and new orientation
     evaluateAngularAspect(uModel, angularAcceleration, dt, angularVelocityNew, orientationNew);
     
     float norm=orientationNew.norm();
@@ -58,10 +59,12 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     }
     
 
+    //use the new orientation to rotate the object
     if(uModel->getModelHasCollided()){
         
         U4DVector3n axisOfRotation=uModel->getCollisionContactPoint();
         
+        //set the new orientation and rotate
         uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
         
@@ -69,14 +72,15 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     
         U4DVector3n axisOfRotation=uModel->getCenterOfMass();
         
-        uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
+        //set the new orientation and rotate
+        //uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
     }
    
     
     angularVelocityNew=angularVelocityNew-uModel->getAngularVelocity()*0.2;
     
-    
+    //set the new angular velocity
     uModel->setAngularVelocity(angularVelocityNew);
 
     //clear all forces and moments
@@ -99,8 +103,10 @@ void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicModel *uModel,U4DVector
     k3=(uLinearAcceleration+k2*0.5)*dt;
     k4=(uLinearAcceleration+k3)*dt;
     
+    //calculate new velocity
     uVnew=uModel->getVelocity()+(k1+k2*2+k3*2+k4)*(rungaKuttaCorrectionCoefficient/6);
 
+    //calculate new position
     uSnew=uModel->getLocalPosition()+uVnew*dt;
     
 
@@ -118,6 +124,7 @@ void U4DRungaKuttaMethod::evaluateAngularAspect(U4DDynamicModel *uModel,U4DVecto
     k3=(uAngularAcceleration+k2*0.5)*dt;
     k4=(uAngularAcceleration+k3)*dt;
     
+    //calculate new angular velocity
     uAngularVelocityNew=uModel->getAngularVelocity()+(k1+k2*2+k3*2+k4)*(rungaKuttaCorrectionCoefficient/6);
     
     
