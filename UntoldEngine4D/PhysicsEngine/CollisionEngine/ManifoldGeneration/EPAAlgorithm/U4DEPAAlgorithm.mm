@@ -50,6 +50,7 @@ namespace U4DEngine{
             
             uModel2->setCollisionContactPoint(contactPoint2);
             
+            
         }
         
         
@@ -191,16 +192,16 @@ namespace U4DEngine{
 //            }
 //            
 //            //13. if exit loop, get barycentric points
-//            
-//            
+//
 //            //set the penetration and line of action
-//            uModel1->setCollisionPenetrationDepth(penetrationDepth);
-//            uModel1->setCollisionNormalDirection(faceNormal);
+//            //uModel1->setCollisionPenetrationDepth(penetrationDepth);
+//            uModel1->setCollisionNormalFaceDirection(faceNormal);
 //            
-//            faceNormal.negate();
-//            
-//            uModel2->setCollisionPenetrationDepth(penetrationDepth);
-//            uModel2->setCollisionNormalDirection(faceNormal);
+//            //faceNormal.negate();
+//            std::cout<<"Normal Face"<<std::endl;
+//            faceNormal.show();
+//            //uModel2->setCollisionPenetrationDepth(penetrationDepth);
+//            uModel2->setCollisionNormalFaceDirection(faceNormal);
 //            
 //            
 //      }//end if Q==4

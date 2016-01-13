@@ -36,7 +36,7 @@ namespace U4DEngine {
         U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
         
-        r=(uModel1->getVelocity()-uModel2->getVelocity());
+        r=uModel1->getVelocity()-uModel2->getVelocity();
         
         r.normalize();
         
@@ -45,36 +45,32 @@ namespace U4DEngine {
         U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         Q.push_back(v);
+        
+        int iterationSteps=0;
+        
+        while (iterationSteps<25) {
 
-        float iterations=0;
-   
-        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::collisionEpsilon) {
-            
-            
-            if (iterations>10) { //iterations to avoid infinite loop
-                
-                return false;
-            }
             
             dir=v.minkowskiPoint.toVector();
             
             dir.negate();
+
             
             U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-            
-            
+        
             if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(r))*t) {
                 
-                
+               
                 if (v.minkowskiPoint.toVector().dot(r)>0.0) {
                     
                     t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
                     
+                    std::cout<<"Time: "<<t<<std::endl;
                     if (t>1.0) {
                         
                         return false;
                     }
-
+                    
                     
                     s=r*t;
                     
@@ -107,8 +103,7 @@ namespace U4DEngine {
             
             determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
             
-            iterations++;
-            
+            iterationSteps++;
         }
   
         
@@ -126,8 +121,8 @@ namespace U4DEngine {
             uModel2->setTimeOfImpact(t);
             
         }
-                
-        //if the simplex container is 2, it is not enough to get the correct normal data. 
+
+        //if the simplex container is 2, it is not enough to get the correct normal data.
         
         if (Q.size()<=2) {
             return false;
@@ -152,7 +147,7 @@ namespace U4DEngine {
             return true;
         }
         
-
+        
        return false;
         
         
@@ -300,7 +295,8 @@ namespace U4DEngine {
 //                uModel1->setCollisionContactPoint(contactPoint1);
 //                
 //                U4DVector3n contactPoint2=closestPointsModel2.toVector();
-//                
+//                contactPoint1.show();
+//                contactPoint2.show();
 //                uModel2->setCollisionContactPoint(contactPoint2);
 //                
 //                return true;

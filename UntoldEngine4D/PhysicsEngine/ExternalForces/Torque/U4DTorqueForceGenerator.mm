@@ -30,11 +30,15 @@ namespace U4DEngine {
         //get mass
         float mass=uModel->getMass();
         
-        U4DVector3n radius=centerOfMass-contactPoint;
+        U4DVector3n radius=uModel->getCollisionNormalFaceDirection();
         
         //calculate torque
         U4DVector3n torque=(gravity*mass).cross(radius);
-        
+        U4DVector3n orientation=uModel->getAbsoluteOrientation();
+        std::cout<<"Orientation"<<std::endl;
+        orientation.show();
+        std::cout<<"Torque"<<std::endl;
+        torque.show();
         uModel->addMoment(torque);
         
     }

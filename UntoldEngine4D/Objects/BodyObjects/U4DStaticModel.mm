@@ -302,6 +302,11 @@ namespace U4DEngine {
     
     }
     
+    void U4DStaticModel::setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection){
+        
+        collisionProperties.contactManifoldProperties.normalFaceDirection=uNormalFaceDirection;
+    }
+    
     void U4DStaticModel::setCollisionPenetrationDepth(float uPenetrationDepth){
         
         collisionProperties.contactManifoldProperties.penetrationDepth=uPenetrationDepth;
@@ -317,6 +322,12 @@ namespace U4DEngine {
     U4DVector3n U4DStaticModel::getCollisionNormalDirection(){
      
         return collisionProperties.contactManifoldProperties.normalDirection;
+        
+    }
+    
+    U4DVector3n U4DStaticModel::getCollisionNormalFaceDirection(){
+        
+        return collisionProperties.contactManifoldProperties.normalFaceDirection;
         
     }
     
