@@ -73,12 +73,12 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
         U4DVector3n axisOfRotation=uModel->getCenterOfMass();
         
         //set the new orientation and rotate
-        //uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
+        uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
     }
    
     
-    angularVelocityNew=angularVelocityNew-uModel->getAngularVelocity()*0.2;
+    angularVelocityNew=angularVelocityNew-uModel->getAngularVelocity()*0.09;
     
     //set the new angular velocity
     uModel->setAngularVelocity(angularVelocityNew);
@@ -88,9 +88,10 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     uModel->clearMoment();
     
     //determine if the motion of the body is too low and set body to sleep
-    //float currentMotion=velocityNew.magnitudeSquare()+angularVelocityNew.magnitudeSquare();
+    float currentMotion=velocityNew.magnitudeSquare()+angularVelocityNew.magnitudeSquare();
     
-    //uModel->setMotion(currentMotion,dt);
+    uModel->setMotion(currentMotion,dt);
+    
     uModel->resetTimeOfImpact();
 }
 

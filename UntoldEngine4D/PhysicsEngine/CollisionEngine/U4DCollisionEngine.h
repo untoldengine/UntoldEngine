@@ -55,6 +55,7 @@ namespace U4DEngine {
         
         void remove(U4DDynamicModel *uModel);
         
+        float clip(float n, float lower, float upper);
     };
 
 }

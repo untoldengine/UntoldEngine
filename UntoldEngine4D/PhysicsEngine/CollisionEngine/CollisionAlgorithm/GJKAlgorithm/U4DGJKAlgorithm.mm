@@ -54,7 +54,6 @@ namespace U4DEngine {
             dir=v.minkowskiPoint.toVector();
             
             dir.negate();
-
             
             U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
@@ -65,7 +64,6 @@ namespace U4DEngine {
                     
                     t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
                     
-                    std::cout<<"Time: "<<t<<std::endl;
                     if (t>1.0) {
                         
                         return false;
@@ -109,7 +107,7 @@ namespace U4DEngine {
         
         //set time of impact for each model.
         
-        if (t>U4DEngine::collisionEpsilon&&t<minimumTimeOfImpact) {
+        if (t>U4DEngine::collisionDistanceEpsilon&&t<minimumTimeOfImpact) {
             
             //minimum time step allowed
             uModel1->setTimeOfImpact(minimumTimeOfImpact);
@@ -121,17 +119,21 @@ namespace U4DEngine {
             uModel2->setTimeOfImpact(t);
             
         }
-
+        
         //if the simplex container is 2, it is not enough to get the correct normal data.
         
-        if (Q.size()<=2) {
+        if (Q.size()<=2 || Q.size()>4) {
             return false;
         }
         
-        if (t<U4DEngine::collisionEpsilon) {
+        if (t<U4DEngine::collisionTimeEpsilon) {
            
             //Set contact normal
-            contactNormal.normalize();
+            //contactNormal.normalize();
+            U4DVector3n lineOfAction=uModel2->getAbsolutePosition()-uModel1->getAbsolutePosition();
+            lineOfAction.normalize();
+            
+            contactNormal=lineOfAction;
             
             uModel1->setCollisionNormalDirection(contactNormal);
             

@@ -85,8 +85,8 @@ namespace U4DEngine {
             barycentricCoordinates.push_back(uBarycentricW);
             
             
-           //checking if simplex container is equal or greater than four. The reason is that sometimes the simplex is equals to 5
-        }else if(uNumberOfSimplexInContainer>=4){
+           
+        }else if(uNumberOfSimplexInContainer==4){
             
             //do tetrahedron
             U4DPoint3n a=uQ.at(0).minkowskiPoint;
@@ -139,8 +139,8 @@ namespace U4DEngine {
             
             closestPoint=triangle.closestPointOnTriangleToPoint(uPoint);
             
-         //checking if simplex container is equal or greater than four. The reason is that sometimes the simplex is equals to 5
-        }else if(uNumberOfSimplexInContainer>=4){
+         
+        }else if(uNumberOfSimplexInContainer==4){
             //do tetrahedron
             U4DPoint3n a=uQ.at(0).minkowskiPoint;
             U4DPoint3n b=uQ.at(1).minkowskiPoint;

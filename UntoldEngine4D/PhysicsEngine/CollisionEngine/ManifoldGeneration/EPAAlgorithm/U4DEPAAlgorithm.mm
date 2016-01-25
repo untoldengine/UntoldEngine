@@ -27,7 +27,7 @@ namespace U4DEngine{
         //blow up simplex to tetrahedron
         verifySimplexStructForEPA(boundingVolume1,boundingVolume2,uQ);
        
-        if (uQ.size()>=4) {
+        if (uQ.size()==4) {
             
             //get the barycentric points of the collision
             std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(uClosestPointToOrigin, uQ);
@@ -49,7 +49,6 @@ namespace U4DEngine{
             U4DVector3n contactPoint2=closestPointsModel2.toVector();
             
             uModel2->setCollisionContactPoint(contactPoint2);
-            
             
         }
         
@@ -106,7 +105,7 @@ namespace U4DEngine{
 //                float faceNormalMagnitude=faceNormal.magnitude();
 //                
 //                //7. check if need to exit loop
-//                if (penetrationDepth-faceNormalMagnitude<U4DEngine::collisionEpsilon) {
+//                if (penetrationDepth-faceNormalMagnitude<U4DEngine::collisionDistanceEpsilon) {
 //                    
 //                    //break from loop
 //                    break;

@@ -79,7 +79,7 @@ U4DVector3n U4DPlane::intersetPlanes(U4DPlane& uPlane){
     
     float denom=direction.dot(direction);
     
-    if (denom<U4DEngine::collisionEpsilon) {
+    if (denom<U4DEngine::collisionDistanceEpsilon) {
         
         uPoint.zero();
         return uPoint;
@@ -101,7 +101,7 @@ U4DVector3n U4DPlane::intersetPlanes(U4DPlane& uPlane2, U4DPlane& uPlane3){
     
     float denom=n.dot(u);
     
-    if (std::abs(denom)<U4DEngine::collisionEpsilon) {
+    if (std::abs(denom)<U4DEngine::collisionDistanceEpsilon) {
         
         uPoint.zero();
         return uPoint; //planes do not intersect in a point

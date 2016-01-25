@@ -68,7 +68,7 @@ namespace U4DEngine {
                 
             }else{
                
-                std::cout<<"Non-Collision Occurred"<<std::endl;
+                //std::cout<<"Non-Collision Occurred"<<std::endl;
                 modelCollection.at(0)->setModelHasCollided(false);
                 modelCollection.at(1)->setModelHasCollided(false);
                 
@@ -93,9 +93,10 @@ namespace U4DEngine {
         //get the contact point and line of action
         
         U4DVector3n contactPoint=uModel->getCollisionContactPoint();
+        
         U4DVector3n lineOfAction=uModel->getCollisionNormalDirection();
         
-        contactPoint=lineOfAction*contactPoint.dot(lineOfAction);
+        U4DVector3n normContactPoint=lineOfAction*contactPoint.dot(lineOfAction);
         
         //get the velocity model
         /*
@@ -116,8 +117,10 @@ namespace U4DEngine {
          */
         
         
-        float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
+        float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(normContactPoint.cross(lineOfAction)).cross(normContactPoint)));
         
+        //clip j
+        j=clip(j, -20.0, 20.0);
         
         /*
          
@@ -126,8 +129,7 @@ namespace U4DEngine {
          */
         
         
-        velocityBody+=uModel->getVelocity()+(lineOfAction*j)/uModel->getMass();
-        
+        velocityBody=uModel->getVelocity()+(lineOfAction*j)/uModel->getMass();
         
         
         /*
@@ -136,12 +138,33 @@ namespace U4DEngine {
          */
         
         
-        angularVelocityBody+=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction*j));
+        angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction*j));
+        
+        angularVelocityBody=angularVelocityBody-uModel->getAngularVelocity()*0.09;
         
         uModel->setVelocity(velocityBody);
         
         uModel->setAngularVelocity(angularVelocityBody);
        
+        
+        std::cout<<"impulse: "<<j<<std::endl;
+        
+        std::cout<<"Contact Points"<<std::endl;
+        contactPoint.show();
+        
+        std::cout<<"Line of Action"<<std::endl;
+        lineOfAction.show();
+        
+        std::cout<<"Velocity"<<std::endl;
+        uModel->getVelocity().show();
+        
+        std::cout<<"Angular Velocity"<<std::endl;
+        uModel->getAngularVelocity().show();
+        
+    }
+    
+    float U4DCollisionEngine::clip(float n, float lower, float upper) {
+        return std::max(lower, std::min(n, upper));
     }
     
     /*
