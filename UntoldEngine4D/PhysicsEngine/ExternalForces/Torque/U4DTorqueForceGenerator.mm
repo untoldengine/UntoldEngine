@@ -35,6 +35,9 @@ namespace U4DEngine {
         //calculate torque
         U4DVector3n torque=(radius).cross(gravity*mass);
         
+        std::cout<<"Torque"<<std::endl;
+        torque.show();
+        
         uModel->addMoment(torque);
         
     }

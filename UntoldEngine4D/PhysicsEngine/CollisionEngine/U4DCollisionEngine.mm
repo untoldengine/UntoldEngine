@@ -120,8 +120,8 @@ namespace U4DEngine {
         float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(normContactPoint.cross(lineOfAction)).cross(normContactPoint)));
         
         //clip j
-        j=clip(j, -20.0, 20.0);
-        
+        j=clip(j, -10.0, 10.0);
+
         /*
          
          V1after=V1before+(|J|n)/m
@@ -138,9 +138,10 @@ namespace U4DEngine {
          */
         
         
-        angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction*j));
+        angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction));
         
-        angularVelocityBody=angularVelocityBody-uModel->getAngularVelocity()*0.09;
+        std::cout<<"Angular Velocity"<<std::endl;
+        angularVelocityBody.show();
         
         uModel->setVelocity(velocityBody);
         
@@ -157,9 +158,6 @@ namespace U4DEngine {
         
         std::cout<<"Velocity"<<std::endl;
         uModel->getVelocity().show();
-        
-        std::cout<<"Angular Velocity"<<std::endl;
-        uModel->getAngularVelocity().show();
         
     }
     

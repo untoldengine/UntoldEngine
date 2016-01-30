@@ -105,9 +105,10 @@ namespace U4DEngine {
         }
   
         
+        
         //set time of impact for each model.
         
-        if (t>U4DEngine::collisionDistanceEpsilon&&t<minimumTimeOfImpact) {
+        if (t<minimumTimeOfImpact) {
             
             //minimum time step allowed
             uModel1->setTimeOfImpact(minimumTimeOfImpact);
@@ -119,7 +120,7 @@ namespace U4DEngine {
             uModel2->setTimeOfImpact(t);
             
         }
-        
+
         //if the simplex container is 2, it is not enough to get the correct normal data.
         
         if (Q.size()<=2 || Q.size()>4) {
@@ -129,11 +130,11 @@ namespace U4DEngine {
         if (t<U4DEngine::collisionTimeEpsilon) {
            
             //Set contact normal
-            //contactNormal.normalize();
+            contactNormal.normalize();
             U4DVector3n lineOfAction=uModel2->getAbsolutePosition()-uModel1->getAbsolutePosition();
             lineOfAction.normalize();
             
-            contactNormal=lineOfAction;
+            //contactNormal=lineOfAction;
             
             uModel1->setCollisionNormalDirection(contactNormal);
             

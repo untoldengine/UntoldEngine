@@ -73,7 +73,7 @@ void Earth::init(){
     cube->init("Cube",0.0,3.5,0.0);
     cube->setName("falling");
     
-    cube->rotateBy(0.0, 0.0, 20.0);
+    cube->rotateBy(0.0, 0.0, 15.0);
     
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
     

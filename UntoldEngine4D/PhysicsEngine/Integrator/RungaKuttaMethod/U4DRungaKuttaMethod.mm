@@ -76,10 +76,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
         uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
     }
-   
-    
-    angularVelocityNew=angularVelocityNew-uModel->getAngularVelocity()*0.09;
-    
+
     //set the new angular velocity
     uModel->setAngularVelocity(angularVelocityNew);
 

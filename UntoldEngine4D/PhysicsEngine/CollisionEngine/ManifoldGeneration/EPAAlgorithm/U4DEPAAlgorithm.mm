@@ -39,6 +39,7 @@ namespace U4DEngine{
                 
                 closestPointsModel1+=uQ.at(i).sa*barycentricPoints.at(i);
                 closestPointsModel2+=uQ.at(i).sb*barycentricPoints.at(i);
+                
             }
             
             //get contact points
