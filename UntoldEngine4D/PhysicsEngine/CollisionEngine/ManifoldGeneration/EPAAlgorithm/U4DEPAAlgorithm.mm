@@ -49,8 +49,10 @@ namespace U4DEngine{
             
             U4DVector3n contactPoint2=closestPointsModel2.toVector();
             
-            uModel2->setCollisionContactPoint(contactPoint2);
+            uModel2->setCollisionContactPoint(contactPoint1);
             
+            contactPoint1.show();
+            contactPoint2.show();
         }
         
         

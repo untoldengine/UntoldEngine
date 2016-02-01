@@ -78,7 +78,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     }
 
     //set the new angular velocity
-    uModel->setAngularVelocity(angularVelocityNew);
+    //uModel->setAngularVelocity(angularVelocityNew);
 
     //clear all forces and moments
     uModel->clearForce();

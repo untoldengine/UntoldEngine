@@ -129,7 +129,7 @@ namespace U4DEngine {
          */
         
         
-        velocityBody=uModel->getVelocity()+(lineOfAction*j)/uModel->getMass();
+        velocityBody=(lineOfAction*j)/uModel->getMass();
         
         
         /*
@@ -138,10 +138,8 @@ namespace U4DEngine {
          */
         
         
-        angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction));
+        angularVelocityBody=uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction));
         
-        std::cout<<"Angular Velocity"<<std::endl;
-        angularVelocityBody.show();
         
         uModel->setVelocity(velocityBody);
         
@@ -158,6 +156,9 @@ namespace U4DEngine {
         
         std::cout<<"Velocity"<<std::endl;
         uModel->getVelocity().show();
+        
+        std::cout<<"Angular Velocity"<<std::endl;
+        angularVelocityBody.show();
         
     }
     
