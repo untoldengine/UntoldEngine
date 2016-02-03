@@ -12,19 +12,19 @@ namespace U4DEngine {
     
 void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
 
-    U4DVector3n velocity;
-    float dragCoeff;
-    
-    velocity=uModel->getVelocity();
-    dragCoeff=velocity.magnitude();
-    
-    dragCoeff=k1*dragCoeff+k2*dragCoeff*dragCoeff;
-    
-    //calculate the final force and apply it
-    velocity.normalize();
-    velocity*=-dragCoeff;
-    
-    uModel->addForce(velocity);
+//    U4DVector3n velocity;
+//    float dragCoeff;
+//    
+//    velocity=uModel->getVelocity();
+//    dragCoeff=velocity.magnitude();
+//    
+//    dragCoeff=k1*dragCoeff+k2*dragCoeff*dragCoeff;
+//    
+//    //calculate the final force and apply it
+//    velocity.normalize();
+//    velocity*=-dragCoeff;
+//    
+//    uModel->addForce(velocity);
     
     //moment
     U4DVector3n moment;

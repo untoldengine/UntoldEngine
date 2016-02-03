@@ -37,10 +37,11 @@ namespace U4DEngine {
             
             normalForce.updateForce(uModel, dt);
                 
-            //torqueForce.updateForce(uModel, dt);
+            torqueForce.updateForce(uModel, dt);
             
         }
         
+        dragForce.updateForce(uModel,dt);
         
         //Integrate
         integrate(uModel, dt);

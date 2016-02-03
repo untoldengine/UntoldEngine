@@ -25,15 +25,13 @@ namespace U4DEngine {
         
     public:
         
-        U4DBoundingConvex(){};
+        U4DBoundingConvex();
         
-        ~U4DBoundingConvex(){};
+        ~U4DBoundingConvex();
         
-        U4DBoundingConvex(const U4DBoundingConvex& value){};
+        U4DBoundingConvex(const U4DBoundingConvex& value);
         
-        U4DBoundingConvex& operator=(const U4DBoundingConvex& value){
-            return *this;
-        };
+        U4DBoundingConvex& operator=(const U4DBoundingConvex& value);
         
         void computeConvexHullVertices(std::vector<U4DVector3n>& uVertices);
         void initConvexHullRenderingVertices();

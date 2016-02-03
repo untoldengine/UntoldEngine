@@ -26,159 +26,187 @@ namespace U4DEngine{
         
         //blow up simplex to tetrahedron
         verifySimplexStructForEPA(boundingVolume1,boundingVolume2,uQ);
-        
-        //test if origin is in tetrahedron
        
-        if(uQ.size()==4){
+        if (uQ.size()==4) {
             
-            U4DPolytope polytope;
-            std::vector<POLYTOPEEDGES> edges;
-            U4DVector3n faceNormal(0,0,0);
-            float penetrationDepth=0.0;
+            //get the barycentric points of the collision
+            std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(uClosestPointToOrigin, uQ);
             
-            U4DSimplexStruct simplexPoint;
+            U4DPoint3n closestPointsModel1(0,0,0);
+            U4DPoint3n closestPointsModel2(0,0,0);
             
-            U4DPoint3n origin(0.0,0.0,0.0);
-            int iterationSteps=0; //to avoid infinite loop
-            
-            
-            //get penetration and collision normal
-            //1. Build tetrahedron from Q
-            U4DTetrahedron tetrahedron(uQ.at(0).minkowskiPoint,uQ.at(1).minkowskiPoint,uQ.at(2).minkowskiPoint,uQ.at(3).minkowskiPoint);
-            
-            
-            //2. get triangles of tetrahedron
-            std::vector<U4DTriangle> triangles=tetrahedron.getTriangles();
-            
-            
-            //3. Load triangles to Polytope
-            
-            for (auto face:triangles) {
+            for (int i=0; i<barycentricPoints.size(); i++) {
                 
-                polytope.addFaceToPolytope(face);
-                
-            }
-           
-            
-            while (iterationSteps<5 && polytope.polytopeFaces.size()>0) {
-                
-                //4. which face is closest to origin
-                POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
-                
-                face.isSeenByPoint=true;
-                
-                //5. Get normal of face
-                faceNormal=face.triangle.getTriangleNormal();
-                
-                faceNormal.normalize();
-                //6. Get simplex point
-                
-                
-                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormal);
-                
-                penetrationDepth=simplexPoint.minkowskiPoint.toVector().dot(faceNormal);
-                
-                float faceNormalMagnitude=faceNormal.magnitude();
-                
-                //7. check if need to exit loop
-                if (penetrationDepth-faceNormalMagnitude<U4DEngine::collisionEpsilon) {
-                    
-                    //break from loop
-                    break;
-                    
-                }
-                
-                //8. Which faces is seen by simplex point
-                for (auto face:polytope.getFacesOfPolytope()) {
-                    
-                    U4DVector3n triangleNormal=(face.triangle.pointA-face.triangle.pointB).cross(face.triangle.pointA-face.triangle.pointC);
-                
-                    if (triangleNormal.dot(simplexPoint.minkowskiPoint.toVector())>=0) { //if dot>0, then face seen by point
-                        
-                        face.isSeenByPoint=true;
-                        
-                        //add segments into container
-                        POLYTOPEEDGES ab;
-                        POLYTOPEEDGES bc;
-                        POLYTOPEEDGES ca;
-                        
-                        ab.segment=face.triangle.segmentAB;
-                        bc.segment=face.triangle.segmentBC;
-                        ca.segment=face.triangle.segmentCA;
-                        
-                        ab.isDuplicate=false;
-                        bc.isDuplicate=false;
-                        ca.isDuplicate=false;
-                        
-                        std::vector<POLYTOPEEDGES> tempEdges{ab,bc,ca};
-                        
-                        if (edges.size()==0) {
-                            
-                            edges=tempEdges;
-                            
-                        }else{
-                            
-                            for (auto& tempEdge:tempEdges) {
-                                
-                                for (auto& edge:edges) {
-                                    
-                                    if (tempEdge.segment==edge.segment.negate()) {
-                                        
-                                        tempEdge.isDuplicate=true;
-                                        edge.isDuplicate=true;
-                                        
-                                    }//end if
-                                    
-                                }//end for
-                                
-                            }//end for
-                            
-                            //store the edges
-                            edges.push_back(tempEdges.at(0));
-                            edges.push_back(tempEdges.at(1));
-                            edges.push_back(tempEdges.at(2));
-                            
-                        }//end if
-                        
-                    }//end if
-                }
-               
-                //9. Remove duplicate faces and edges
-                
-                polytope.polytopeFaces.erase(std::remove_if(polytope.polytopeFaces.begin(), polytope.polytopeFaces.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),polytope.polytopeFaces.end());
-                
-                
-                edges.erase(std::remove_if(edges.begin(), edges.end(),[](POLYTOPEEDGES &e){ return e.isDuplicate;} ),edges.end());
-                
-                //10. build polytope with triangles seen by point
-                
-                for (auto edge:edges) {
-                    
-                    U4DTriangle triangle(simplexPoint.minkowskiPoint,edge.segment.pointA,edge.segment.pointB);
-                    polytope.addFaceToPolytope(triangle);
-                    
-                }
-               
-                
-                //12. go back to 4
-                
-                iterationSteps++;
+                closestPointsModel1+=uQ.at(i).sa*barycentricPoints.at(i);
+                closestPointsModel2+=uQ.at(i).sb*barycentricPoints.at(i);
                 
             }
             
-            //13. if exit loop, get barycentric points
+            //get contact points
+            U4DVector3n contactPoint1=closestPointsModel1.toVector();
             
-            //set the penetration and line of action
-            uModel1->setCollisionPenetrationDepth(penetrationDepth);
-            uModel1->setCollisionNormalDirection(faceNormal);
+            uModel1->setCollisionContactPoint(contactPoint1);
             
-            faceNormal*=-1.0;
+            U4DVector3n contactPoint2=closestPointsModel2.toVector();
             
-            uModel2->setCollisionPenetrationDepth(penetrationDepth);
-            uModel2->setCollisionNormalDirection(faceNormal);
+            uModel2->setCollisionContactPoint(contactPoint1);
             
-            
-      }//end if Q==4
+            contactPoint1.show();
+            contactPoint2.show();
+        }
+        
+        
+//        if(uQ.size()>=4){
+//            
+//            U4DPolytope polytope;
+//            std::vector<POLYTOPEEDGES> edges;
+//            U4DVector3n faceNormal(0,0,0);
+//            float penetrationDepth=0.0;
+//            
+//            U4DSimplexStruct simplexPoint;
+//            
+//            U4DPoint3n origin(0.0,0.0,0.0);
+//            int iterationSteps=0; //to avoid infinite loop
+//            
+//            
+//            //get penetration and collision normal
+//            //1. Build tetrahedron from Q
+//            U4DTetrahedron tetrahedron(uQ.at(0).minkowskiPoint,uQ.at(1).minkowskiPoint,uQ.at(2).minkowskiPoint,uQ.at(3).minkowskiPoint);
+//            
+//            
+//            //2. get triangles of tetrahedron
+//            std::vector<U4DTriangle> triangles=tetrahedron.getTriangles();
+//            
+//            
+//            //3. Load triangles to Polytope
+//            
+//            for (auto face:triangles) {
+//                
+//                polytope.addFaceToPolytope(face);
+//                
+//            }
+//           
+//            
+//            while (iterationSteps<5 && polytope.polytopeFaces.size()>0) {
+//                
+//                //4. which face is closest to origin
+//                POLYTOPEFACES& face=polytope.closestFaceOnPolytopeToPoint(origin);
+//                
+//                face.isSeenByPoint=true;
+//                
+//                //5. Get normal of face
+//                faceNormal=face.triangle.getTriangleNormal();
+//                
+//                faceNormal.normalize();
+//                //6. Get simplex point
+//                
+//                
+//                simplexPoint=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, faceNormal);
+//                
+//                penetrationDepth=simplexPoint.minkowskiPoint.toVector().dot(faceNormal);
+//                
+//                float faceNormalMagnitude=faceNormal.magnitude();
+//                
+//                //7. check if need to exit loop
+//                if (penetrationDepth-faceNormalMagnitude<U4DEngine::collisionDistanceEpsilon) {
+//                    
+//                    //break from loop
+//                    break;
+//                    
+//                }
+//                
+//                //8. Which faces is seen by simplex point
+//                for (auto face:polytope.getFacesOfPolytope()) {
+//                    
+//                    U4DVector3n triangleNormal=(face.triangle.pointA-face.triangle.pointB).cross(face.triangle.pointA-face.triangle.pointC);
+//                
+//                    if (triangleNormal.dot(simplexPoint.minkowskiPoint.toVector())>=0) { //if dot>0, then face seen by point
+//                        
+//                        face.isSeenByPoint=true;
+//                        
+//                        //add segments into container
+//                        POLYTOPEEDGES ab;
+//                        POLYTOPEEDGES bc;
+//                        POLYTOPEEDGES ca;
+//                        
+//                        ab.segment=face.triangle.segmentAB;
+//                        bc.segment=face.triangle.segmentBC;
+//                        ca.segment=face.triangle.segmentCA;
+//                        
+//                        ab.isDuplicate=false;
+//                        bc.isDuplicate=false;
+//                        ca.isDuplicate=false;
+//                        
+//                        std::vector<POLYTOPEEDGES> tempEdges{ab,bc,ca};
+//                        
+//                        if (edges.size()==0) {
+//                            
+//                            edges=tempEdges;
+//                            
+//                        }else{
+//                            
+//                            for (auto& tempEdge:tempEdges) {
+//                                
+//                                for (auto& edge:edges) {
+//                                    
+//                                    if (tempEdge.segment==edge.segment.negate()) {
+//                                        
+//                                        tempEdge.isDuplicate=true;
+//                                        edge.isDuplicate=true;
+//                                        
+//                                    }//end if
+//                                    
+//                                }//end for
+//                                
+//                            }//end for
+//                            
+//                            //store the edges
+//                            edges.push_back(tempEdges.at(0));
+//                            edges.push_back(tempEdges.at(1));
+//                            edges.push_back(tempEdges.at(2));
+//                            
+//                        }//end if
+//                        
+//                    }//end if
+//                }
+//               
+//                //9. Remove duplicate faces and edges
+//                
+//                polytope.polytopeFaces.erase(std::remove_if(polytope.polytopeFaces.begin(), polytope.polytopeFaces.end(),[](POLYTOPEFACES &p){ return p.isSeenByPoint;} ),polytope.polytopeFaces.end());
+//                
+//                
+//                edges.erase(std::remove_if(edges.begin(), edges.end(),[](POLYTOPEEDGES &e){ return e.isDuplicate;} ),edges.end());
+//                
+//                //10. build polytope with triangles seen by point
+//                
+//                for (auto edge:edges) {
+//                    
+//                    U4DTriangle triangle(simplexPoint.minkowskiPoint,edge.segment.pointA,edge.segment.pointB);
+//                    polytope.addFaceToPolytope(triangle);
+//                    
+//                }
+//               
+//                
+//                //12. go back to 4
+//                
+//                iterationSteps++;
+//                
+//            }
+//            
+//            //13. if exit loop, get barycentric points
+//
+//            //set the penetration and line of action
+//            //uModel1->setCollisionPenetrationDepth(penetrationDepth);
+//            uModel1->setCollisionNormalFaceDirection(faceNormal);
+//            
+//            //faceNormal.negate();
+//            std::cout<<"Normal Face"<<std::endl;
+//            faceNormal.show();
+//            //uModel2->setCollisionPenetrationDepth(penetrationDepth);
+//            uModel2->setCollisionNormalFaceDirection(faceNormal);
+//            
+//            
+//      }//end if Q==4
         
     }//end method
    

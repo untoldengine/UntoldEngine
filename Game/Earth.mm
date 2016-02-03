@@ -58,7 +58,7 @@ void Earth::init(){
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     camera->translateBy(0.0, -2.0, -7.0);
-    //camera->rotateBy(20.0,0.0,0.0);
+    //camera->rotateBy(10.0,-15.0,0.0);
     
     setName("earth");
     
@@ -70,11 +70,12 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",-1.0,3.9,0.0);
+    cube->init("Cube",0.0,3.5,0.0);
     cube->setName("falling");
     
-    cube->rotateBy(0.0, 0.0, 25.0);
+    //cube->rotateBy(0.0, 0.0, 260.0);
     
+    cube->setMass(1.0);
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
     
     cube->setCenterOfMass(centerOfMass);
@@ -89,7 +90,7 @@ void Earth::init(){
     cube->enableCollision();
     
     //set the coefficient of restitution to 0.8
-    cube->setCoefficientOfRestitution(0.7);
+    cube->setCoefficientOfRestitution(0.8);
     
     //cube->setBoundingBoxVisibility(true);
     
@@ -97,10 +98,10 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",0,0,0.0);
+    cube2->init("Cube",0.0,0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("static");
-    cube2->rotateBy(0.0, 0.0, -60.0);
+    //cube2->rotateBy(0.0, 0.0, -60.0);
     
     //cube2->applyPhysics(true);
     cube2->computeConvexHullVertices();
@@ -242,7 +243,20 @@ void Earth::init(){
 
 void Earth::update(double dt){
 
-    //cube->rotateBy(0, 0, -1);
+//    U4DEngine::U4DVector3n axix(0,0,1);
+//    
+//    U4DEngine::U4DQuaternion axisOrientation(rotation,axix);
+//    
+//    U4DEngine::U4DVector3n axisPosition(-0.5,0.0,0.5);
+//    
+//    cube->rotateAboutAxis(axisOrientation, axisPosition);
+//    
+//    rotation++;
+//    
+//    if (rotation>360) {
+//        rotation=0;
+//    }
+    
 }
 
 void Earth::action(){

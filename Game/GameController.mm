@@ -86,5 +86,6 @@ void GameController::backward(){
  */
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     //camera->translateBy(0.0,0.0,-0.2);
-    controlledU4DObject->translateBy(0.0,-0.1,0.0);
+    controlledU4DObject->translateBy(0.0,-0.001,0.0);
+   
 }

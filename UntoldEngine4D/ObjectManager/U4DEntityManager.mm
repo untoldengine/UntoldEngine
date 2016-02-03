@@ -89,20 +89,22 @@ namespace U4DEngine {
             }
      
                 child->draw();
+            
             /*
                 //ONLY FOR DEBUGGING PURPOSES
                 U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
             
-            if (model) {
-            
-                if (model->getBoundingBoxVisibility()==true) {
-                    
-                    model->convexHullBoundingVolume->draw();
-                    
+                if (model) {
+                
+                    if (model->getBoundingBoxVisibility()==true) {
+                        
+                        model->getBoundingVolume()->draw();
+                        
+                    }
                 }
-            }
-            */
+            
             //END ONLY FOR DEBUGGING PURPOSES
+            */
             
             child=child->next;
         }

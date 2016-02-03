@@ -85,7 +85,7 @@ namespace U4DEngine {
             barycentricCoordinates.push_back(uBarycentricW);
             
             
-            
+           
         }else if(uNumberOfSimplexInContainer==4){
             
             //do tetrahedron
@@ -139,7 +139,7 @@ namespace U4DEngine {
             
             closestPoint=triangle.closestPointOnTriangleToPoint(uPoint);
             
-            
+         
         }else if(uNumberOfSimplexInContainer==4){
             //do tetrahedron
             U4DPoint3n a=uQ.at(0).minkowskiPoint;
