@@ -33,8 +33,8 @@ namespace U4DEngine {
         U4DVector3n s(0,0,0); //hit spot
         U4DVector3n r(0,0,0); //ray
         
-        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
-        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
+        U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
+        U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
         
         r=uModel1->getVelocity()-uModel2->getVelocity();
         

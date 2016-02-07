@@ -70,10 +70,10 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,3.5,0.0);
+    cube->init("Pyramid",0.0,5.5,0.0);
     cube->setName("falling");
     
-    //cube->rotateBy(0.0, 0.0, 260.0);
+    //cube->rotateBy(40.0, 20.0, 260.0);
     
     cube->setMass(1.0);
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);

@@ -66,6 +66,8 @@ namespace U4DEngine {
             
             U4DBoundingVolume *convexHullBoundingVolume;
         
+            U4DBoundingVolume *sphereBoundingVolume;
+        
             MassProperties massProperties;
         
             CollisionProperties collisionProperties;
@@ -127,15 +129,29 @@ namespace U4DEngine {
             bool isCollisionEnabled();
             
             void allowCollisionWith();
+        
+            //Narrow Phase Bounding Volume
+            U4DBoundingVolume* getNarrowPhaseBoundingVolume();
+        
+            void setNarrowPhaseBoundingVolumeVisibility(bool uValue);
             
-            void setBoundingBoxVisibility(bool uValue);
+            bool getNarrowPhaseBoundingVolumeVisibility();
             
-            bool getBoundingBoxVisibility();
+            void updateNarrowPhaseBoundingVolumeSpace();
+        
+        
+            //Broad Phase Bounding Volume
+        
+            U4DBoundingVolume* getBroadPhaseBoundingVolume();
+        
+            void setBroadPhaseBoundingVolumeVisibility(bool uValue);
             
-            void updateBoundingBoxSpace();
+            bool getBroadPhaseBoundingVolumeVisibility();
             
-            U4DBoundingVolume* getBoundingVolume();
-            
+            void updateBroadPhaseBoundingVolumeSpace();
+        
+        
+        
             void setCollisionContactPoint(U4DVector3n& uContactPoint);
             
             void setCollisionNormalDirection(U4DVector3n& uNormalDirection);

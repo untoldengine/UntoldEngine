@@ -205,7 +205,7 @@ namespace U4DEngine {
         
         //The position of the convex hull vertices are relative to the center of mass
         
-        for(auto convexHullVertices:getBoundingVolume()->getConvexHullVertices()){
+        for(auto convexHullVertices:getNarrowPhaseBoundingVolume()->getConvexHullVertices()){
             
             convexHullVertices=getAbsoluteMatrixOrientation()*convexHullVertices;
             convexHullVertices=convexHullVertices+getAbsolutePosition();
@@ -264,28 +264,28 @@ namespace U4DEngine {
     
     }
 
-    void U4DStaticModel::setBoundingBoxVisibility(bool uValue){
+    void U4DStaticModel::setNarrowPhaseBoundingVolumeVisibility(bool uValue){
         
         boundingBoxVisibility=uValue;
         
     }
     
-    bool U4DStaticModel::getBoundingBoxVisibility(){
+    bool U4DStaticModel::getNarrowPhaseBoundingVolumeVisibility(){
         
         return boundingBoxVisibility;
     }
     
-    void U4DStaticModel::updateBoundingBoxSpace(){
+    void U4DStaticModel::updateNarrowPhaseBoundingVolumeSpace(){
         
         //update the bounding volume with the model current space dual quaternion (rotation and translation)
         convexHullBoundingVolume->setLocalSpace(absoluteSpace);
         
     }
     
-    U4DBoundingVolume* U4DStaticModel::getBoundingVolume(){
+    U4DBoundingVolume* U4DStaticModel::getNarrowPhaseBoundingVolume(){
         
-        //update the bounding box space
-        updateBoundingBoxSpace();
+        //update the narrow bounding volume space
+        updateNarrowPhaseBoundingVolumeSpace();
         
         return convexHullBoundingVolume;
     }
