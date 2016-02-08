@@ -90,21 +90,21 @@ namespace U4DEngine {
      
                 child->draw();
             
-            /*
-                //ONLY FOR DEBUGGING PURPOSES
+            
+            //    ONLY FOR DEBUGGING PURPOSES
                 U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
             
                 if (model) {
                 
-                    if (model->getBoundingBoxVisibility()==true) {
+                    if (model->getBroadPhaseBoundingVolumeVisibility()==true) {
                         
-                        model->getBoundingVolume()->draw();
+                        model->getBroadPhaseBoundingVolume()->draw();
                         
                     }
                 }
             
             //END ONLY FOR DEBUGGING PURPOSES
-            */
+            
             
             child=child->next;
         }

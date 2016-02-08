@@ -62,10 +62,14 @@ namespace U4DEngine {
             
             bool collisionEnabled;
             
-            bool boundingBoxVisibility;
-            
+            bool broadPhaseBoundingVolumeVisibility;
+        
+            bool narrowPhaseBoundingVolumeVisibility;
+        
+            //Narrow Phase Bounding Volume
             U4DBoundingVolume *convexHullBoundingVolume;
         
+            //Broad Phase Bounding Volume
             U4DBoundingVolume *sphereBoundingVolume;
         
             MassProperties massProperties;
@@ -110,8 +114,6 @@ namespace U4DEngine {
             
             void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
         
-            void computeConvexHullVertices();
-        
             void updateConvexHullVertices();
         
             void clearConvexHullVertices();
@@ -149,7 +151,6 @@ namespace U4DEngine {
             bool getBroadPhaseBoundingVolumeVisibility();
             
             void updateBroadPhaseBoundingVolumeSpace();
-        
         
         
             void setCollisionContactPoint(U4DVector3n& uContactPoint);
