@@ -34,6 +34,7 @@
 		030D84991A717A93003488F4 /* simpleShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030D84971A717A93003488F4 /* simpleShader.vp */; };
 		030D849C1A717F68003488F4 /* modelShaderNOTexture.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030D849A1A717F68003488F4 /* modelShaderNOTexture.fp */; };
 		030D849D1A717F68003488F4 /* modelShaderNOTexture.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030D849B1A717F68003488F4 /* modelShaderNOTexture.vp */; };
+		0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */; settings = {ASSET_TAGS = (); }; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
 		0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19D1B0BBC370087BACC /* U4DBoundingAABB.mm */; };
@@ -227,6 +228,8 @@
 		030D84971A717A93003488F4 /* simpleShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleShader.vp; sourceTree = "<group>"; };
 		030D849A1A717F68003488F4 /* modelShaderNOTexture.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShaderNOTexture.fp; sourceTree = "<group>"; };
 		030D849B1A717F68003488F4 /* modelShaderNOTexture.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShaderNOTexture.vp; sourceTree = "<group>"; };
+		0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHTree.mm; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.mm; sourceTree = "<group>"; };
+		0314B0B81C6FC09100EB8C34 /* U4DBVHTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHTree.h; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.h; sourceTree = "<group>"; };
 		031723C81933FE54001584B1 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		031723C91933FE54001584B1 /* lodepng.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = lodepng.mm; sourceTree = "<group>"; };
 		03196B3417659BE5008BA0B8 /* U4DTouches.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTouches.mm; sourceTree = "<group>"; };
@@ -515,6 +518,31 @@
 				030C3DFB19298226009EF31B /* U4DDirector.mm */,
 			);
 			path = Director;
+			sourceTree = "<group>";
+		};
+		0314B0B41C6FC04F00EB8C34 /* BoundaryVolumeHierarchy */ = {
+			isa = PBXGroup;
+			children = (
+				0314B0B61C6FC06D00EB8C34 /* BVHManager */,
+				0314B0B51C6FC05D00EB8C34 /* BVHTree */,
+			);
+			name = BoundaryVolumeHierarchy;
+			sourceTree = "<group>";
+		};
+		0314B0B51C6FC05D00EB8C34 /* BVHTree */ = {
+			isa = PBXGroup;
+			children = (
+				0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */,
+				0314B0B81C6FC09100EB8C34 /* U4DBVHTree.h */,
+			);
+			name = BVHTree;
+			sourceTree = "<group>";
+		};
+		0314B0B61C6FC06D00EB8C34 /* BVHManager */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = BVHManager;
 			sourceTree = "<group>";
 		};
 		031723C71933FE54001584B1 /* PNGLoader */ = {
@@ -1066,6 +1094,7 @@
 		03E6EDB21943D816007AD131 /* CollisionEngine */ = {
 			isa = PBXGroup;
 			children = (
+				0314B0B41C6FC04F00EB8C34 /* BoundaryVolumeHierarchy */,
 				03002C831B977F7600665CC9 /* ManifoldGeneration */,
 				03E6EDB31943D816007AD131 /* CollisionAlgorithm */,
 				03E6EDB71943D816007AD131 /* U4DCollisionEngine.h */,
@@ -1372,6 +1401,7 @@
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03FBE3F01BF6EC1B007E837F /* U4DNormalForceGenerator.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
+				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03E6EDDD1943D816007AD131 /* U4DEulerMethod.mm in Sources */,
 				03FBE3F41BFB9394007E837F /* U4DTorqueForceGenerator.mm in Sources */,

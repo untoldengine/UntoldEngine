@@ -13,6 +13,7 @@
 #include <string>
 #include "U4DGameObject.h"
 
+
 class Town:public U4DEngine::U4DGameObject{
     
 public:
@@ -24,7 +25,6 @@ public:
     void init(const char* uName,float xPosition,float yPosition, float zPosition);
     
     void update(double dt);
-    
     
     
 private:

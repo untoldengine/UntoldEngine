@@ -20,10 +20,6 @@ namespace U4DEngine {
         
         float radius;
         
-        
-        U4DVector3n offset;
-        
-        
     public:
         
         U4DBoundingSphere();
@@ -36,8 +32,10 @@ namespace U4DEngine {
         
         void computeBoundingVolume(float uRadius,int uRings, int uSectors);
         
-       
-       // void initSphere(float uRadius,U4DVector3n& uOffset,int uRings, int uSectors);
+        void setRadius(float uRadius);
+        
+        float getRadius();
+        
     };
 
 }

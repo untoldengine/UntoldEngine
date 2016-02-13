@@ -51,7 +51,6 @@
 #include "U4DTriangle.h"
 #include "U4DConvexPolygon.h"
 
-
 void Earth::init(){
     
     //U4DDebugger *debugger=new U4DDebugger();
@@ -72,6 +71,8 @@ void Earth::init(){
     cube=new Town();
     cube->init("Cube",0.0,5.5,0.0);
     cube->setName("falling");
+
+    
     
     //cube->rotateBy(40.0, 20.0, 260.0);
     
@@ -92,6 +93,8 @@ void Earth::init(){
     
     cube->setBroadPhaseBoundingVolumeVisibility(true);
     
+    
+    
     addChild(cube);
     
    
@@ -102,9 +105,15 @@ void Earth::init(){
     //cube2->rotateBy(0.0, 0.0, -60.0);
     
     //cube2->applyPhysics(true);
+    
     cube2->enableCollision();
     cube2->setBroadPhaseBoundingVolumeVisibility(true);
+    
+
+    
     addChild(cube2);
+    
+    
     
     /*
     

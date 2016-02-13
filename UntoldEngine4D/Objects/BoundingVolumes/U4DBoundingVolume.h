@@ -41,8 +41,6 @@ namespace U4DEngine {
         
         virtual void computeBoundingVolume(float uRadius,int uRings, int uSectors){};
         
-        virtual void computeBoundingVolume(float uRadius,U4DVector3n& uOffset,int uRings, int uSectors){};
-        
         virtual void computeBoundingVolume(U4DVector3n& uMin,U4DVector3n& uMax){};
         
         virtual void computeBoundingVolume(U4DVector3n& uHalfwidth){};
@@ -66,8 +64,11 @@ namespace U4DEngine {
         void draw();
         
         int determineRenderingIndex(std::vector<U4DVector3n>& uVertices, U4DVector3n& uVector, U4DVector3n& uDirection);
-        
 
+        virtual void setRadius(float uRadius){};
+        
+        virtual float getRadius(){};
+        
     };
     
 }

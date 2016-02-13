@@ -64,6 +64,7 @@ namespace U4DEngine {
         return boundingType;
     }
     
+
     
     int U4DBoundingVolume::determineRenderingIndex(std::vector<U4DVector3n>& uVertices, U4DVector3n& uVector, U4DVector3n& uDirection){
      
@@ -91,6 +92,7 @@ namespace U4DEngine {
         return index;
         
     }
+    
     
 
 }
