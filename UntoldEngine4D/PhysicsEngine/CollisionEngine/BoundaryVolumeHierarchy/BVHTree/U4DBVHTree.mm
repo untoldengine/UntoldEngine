@@ -171,5 +171,33 @@ namespace U4DEngine {
         return lastDescendant=this;
         
     }
+    
+    U4DPoint3n U4DBVHTree::getBoundaryVolumeMinPoint(){
+        
+        return boundaryVolumeMinPoint;
+    }
+    
+    U4DPoint3n U4DBVHTree::getBoundaryVolumeMaxPoint(){
+        
+        return boundaryVolumeMaxPoint;
+    }
+    
+    void U4DBVHTree::setBoundaryVolumeMinPoint(U4DPoint3n& uMinPoint){
+        
+        boundaryVolumeMinPoint=uMinPoint;
+    }
+    
+    void U4DBVHTree::setBoundaryVolumeMaxPoint(U4DPoint3n& uMaxPoint){
+        
+        boundaryVolumeMaxPoint=uMaxPoint;
+    }
+    
+    void U4DBVHTree::setLongestVolumeDimensionVector(U4DVector3n& uLongestVolumeDimensionVector){
+        longetVolumeDimensionVector=uLongestVolumeDimensionVector;
+    }
+    
+    U4DVector3n U4DBVHTree::getLongestVolumeDimensionVector(){
+        return longetVolumeDimensionVector;
+    }
 
 }

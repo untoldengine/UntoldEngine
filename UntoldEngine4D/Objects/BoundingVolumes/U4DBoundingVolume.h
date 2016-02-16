@@ -17,6 +17,7 @@
 #include "U4DIndex.h"
 #include "U4DVertexData.h"
 #include "U4DVisibleEntity.h"
+#include "U4DPoint3n.h"
 
 namespace U4DEngine {
     
@@ -69,6 +70,10 @@ namespace U4DEngine {
         
         virtual float getRadius(){};
         
+        virtual U4DPoint3n getMaxBoundaryPoint(){};
+        
+        virtual U4DPoint3n getMinBoundaryPoint(){};
+
     };
     
 }

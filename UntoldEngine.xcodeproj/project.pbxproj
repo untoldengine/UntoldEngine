@@ -35,6 +35,7 @@
 		030D849C1A717F68003488F4 /* modelShaderNOTexture.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030D849A1A717F68003488F4 /* modelShaderNOTexture.fp */; };
 		030D849D1A717F68003488F4 /* modelShaderNOTexture.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030D849B1A717F68003488F4 /* modelShaderNOTexture.vp */; };
 		0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */; settings = {ASSET_TAGS = (); }; };
+		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; settings = {ASSET_TAGS = (); }; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
 		0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19D1B0BBC370087BACC /* U4DBoundingAABB.mm */; };
@@ -230,6 +231,8 @@
 		030D849B1A717F68003488F4 /* modelShaderNOTexture.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShaderNOTexture.vp; sourceTree = "<group>"; };
 		0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHTree.mm; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.mm; sourceTree = "<group>"; };
 		0314B0B81C6FC09100EB8C34 /* U4DBVHTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHTree.h; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.h; sourceTree = "<group>"; };
+		0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHManager.mm; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.mm; sourceTree = "<group>"; };
+		0314B0BB1C6FE8F600EB8C34 /* U4DBVHManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHManager.h; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.h; sourceTree = "<group>"; };
 		031723C81933FE54001584B1 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		031723C91933FE54001584B1 /* lodepng.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = lodepng.mm; sourceTree = "<group>"; };
 		03196B3417659BE5008BA0B8 /* U4DTouches.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTouches.mm; sourceTree = "<group>"; };
@@ -541,6 +544,8 @@
 		0314B0B61C6FC06D00EB8C34 /* BVHManager */ = {
 			isa = PBXGroup;
 			children = (
+				0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */,
+				0314B0BB1C6FE8F600EB8C34 /* U4DBVHManager.h */,
 			);
 			name = BVHManager;
 			sourceTree = "<group>";
@@ -1422,6 +1427,7 @@
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
+				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				03A9F72D1AE5F34A00E81A00 /* Town.mm in Sources */,
 				03002C901B9E27BA00665CC9 /* U4DPolytope.mm in Sources */,

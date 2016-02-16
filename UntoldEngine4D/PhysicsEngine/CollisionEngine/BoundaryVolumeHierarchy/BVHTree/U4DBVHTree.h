@@ -11,11 +11,13 @@
 
 #include <stdio.h>
 #include <vector>
-
-class U4DDynamicModel;
+#include "U4DPoint3n.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
- 
+
+    class U4DDynamicModel;
+    
     class U4DBVHTree{
         
     private:
@@ -28,14 +30,24 @@ namespace U4DEngine {
         
         U4DBVHTree *lastDescendant;
         
-        std::vector<U4DDynamicModel *> models;
+        //min & max of volume
         
+        U4DPoint3n boundaryVolumeMinPoint;
+        
+        U4DPoint3n boundaryVolumeMaxPoint;
+        
+        //longest volume dimension
+        
+        U4DVector3n longetVolumeDimensionVector;
         
     public:
         
         U4DBVHTree();
         
         ~U4DBVHTree();
+        
+        //vector of objects
+        std::vector<U4DDynamicModel *> models;
         
         //scenegraph
         
@@ -61,6 +73,17 @@ namespace U4DEngine {
         
         bool isRoot();
         
+        U4DPoint3n getBoundaryVolumeMinPoint();
+        
+        U4DPoint3n getBoundaryVolumeMaxPoint();
+        
+        void setBoundaryVolumeMinPoint(U4DPoint3n& uMinPoint);
+        
+        void setBoundaryVolumeMaxPoint(U4DPoint3n& uMaxPoint);
+        
+        void setLongestVolumeDimensionVector(U4DVector3n& uLongestVolumeDimensionVector);
+        
+        U4DVector3n getLongestVolumeDimensionVector();
     };
     
 }

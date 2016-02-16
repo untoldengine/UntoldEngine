@@ -36,6 +36,10 @@ namespace U4DEngine {
         
         float getRadius();
         
+        U4DPoint3n getMaxBoundaryPoint();
+        
+        U4DPoint3n getMinBoundaryPoint();
+        
     };
 
 }

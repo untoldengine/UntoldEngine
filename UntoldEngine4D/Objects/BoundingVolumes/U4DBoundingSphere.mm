@@ -85,5 +85,21 @@ namespace U4DEngine {
         
         return radius;
     }
+    
+    U4DPoint3n U4DBoundingSphere::getMaxBoundaryPoint(){
+        
+        U4DPoint3n position=getLocalPosition().toPoint();
+        
+        return U4DPoint3n(position.x+radius,position.y+radius,position.z+radius);
+    
+    }
+    
+    U4DPoint3n U4DBoundingSphere::getMinBoundaryPoint(){
+    
+        U4DPoint3n position=getLocalPosition().toPoint();
+        
+        return U4DPoint3n(position.x-radius,position.y-radius,position.z-radius);
+        
+    }
 
 }
