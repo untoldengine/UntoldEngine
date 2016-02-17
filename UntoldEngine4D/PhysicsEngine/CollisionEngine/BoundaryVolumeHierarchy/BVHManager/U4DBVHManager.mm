@@ -62,7 +62,7 @@ namespace U4DEngine{
         
         //get the min and max points for the volume
         
-        for (auto n:uNode->models) {
+        for (auto n:uNode->modelsContainer) {
         
             U4DBoundingVolume *sphere=n->getBroadPhaseBoundingVolume();
             
@@ -132,6 +132,79 @@ namespace U4DEngine{
     void U4DBVHManager::clearModels(){
         
         models.clear();
+        
+    }
+    
+    void U4DBVHManager::heapSorting(U4DBVHTree *uNode, U4DVector3n& uLongestDimensionVector){
+        
+        int index=0;
+        
+        
+        int numValues=(int)uNode->modelsContainer.size();
+        
+        //convert the array of values into a heap
+        
+        for (index=numValues/2-1; index>=0; index--) {
+            
+            reHeapDown(uNode,index,numValues-1,uLongestDimensionVector);
+        }
+        
+        //sort the array
+        for (index=numValues-1; index>=1; index--) {
+            
+            swap(uNode,0,index);
+            reHeapDown(uNode,0,index-1,uLongestDimensionVector);
+        }
+        
+    }
+    
+    void U4DBVHManager::reHeapDown(U4DBVHTree *uNode,int root, int bottom, U4DVector3n& uLongestDimensionVector){
+        
+        int maxChild;
+        int rightChild;
+        int leftChild;
+        
+        leftChild=root*2+1;
+        rightChild=root*2+2;
+        
+        
+        
+        if (leftChild<=bottom) {
+            
+            if (leftChild==bottom) {
+                
+                maxChild=leftChild;
+                
+            }else{
+                
+                if (uNode->modelsContainer.at(leftChild)->getLocalPosition().dot(uLongestDimensionVector)<=uNode->modelsContainer.at(rightChild)->getLocalPosition().dot(uLongestDimensionVector)) {
+                    
+                    maxChild=rightChild;
+                    
+                }else{
+                    maxChild=leftChild;
+                }
+            }
+            
+            if (uNode->modelsContainer.at(root)->getLocalPosition().dot(uLongestDimensionVector)<uNode->modelsContainer.at(maxChild)->getLocalPosition().dot(uLongestDimensionVector)) {
+                
+                swap(uNode,root,maxChild);
+                reHeapDown(uNode,maxChild,bottom,uLongestDimensionVector);
+            }
+        }
+        
+    }
+    
+    
+    
+    void U4DBVHManager::swap(U4DBVHTree *uNode,int uIndex1, int uIndex2){
+        
+        
+        U4DDynamicModel* model1=uNode->modelsContainer.at(uIndex1);
+        U4DDynamicModel* model2=uNode->modelsContainer.at(uIndex2);
+        
+        uNode->modelsContainer.at(uIndex1)=model2;
+        uNode->modelsContainer.at(uIndex2)=model1;
         
     }
     

@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
-
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
     
@@ -53,6 +53,12 @@ namespace U4DEngine {
         void clearModels();
         
         bool intersection();
+        
+        void heapSorting(U4DBVHTree *uNode, U4DVector3n& uLongestDimensionVector);
+        
+        void reHeapDown(U4DBVHTree *uNode,int root, int bottom, U4DVector3n& uLongestDimensionVector);
+        
+        void swap(U4DBVHTree *uNode,int uindex1, int uindex2);
         
     };
     

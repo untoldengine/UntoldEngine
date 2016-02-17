@@ -47,7 +47,7 @@ namespace U4DEngine {
         ~U4DBVHTree();
         
         //vector of objects
-        std::vector<U4DDynamicModel *> models;
+        std::vector<U4DDynamicModel *> modelsContainer;
         
         //scenegraph
         
