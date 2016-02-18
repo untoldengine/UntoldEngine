@@ -54,11 +54,13 @@ namespace U4DEngine {
         
         bool intersection();
         
-        void heapSorting(U4DBVHTree *uNode, U4DVector3n& uLongestDimensionVector);
+        void heapSorting(U4DBVHTree *uNode);
         
-        void reHeapDown(U4DBVHTree *uNode,int root, int bottom, U4DVector3n& uLongestDimensionVector);
+        void reHeapDown(U4DBVHTree *uNode,int root, int bottom);
         
         void swap(U4DBVHTree *uNode,int uindex1, int uindex2);
+        
+        void binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimenstion, int uFromLocation, int uToLocation);
         
     };
     

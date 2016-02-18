@@ -10,7 +10,7 @@
 
 namespace U4DEngine {
     
-    U4DBVHTree::U4DBVHTree():parent(nullptr),next(nullptr){
+    U4DBVHTree::U4DBVHTree():parent(nullptr),next(nullptr),splitIndex(0){
         
         prevSibling=this;
         lastDescendant=this;
@@ -198,6 +198,16 @@ namespace U4DEngine {
     
     U4DVector3n U4DBVHTree::getLongestVolumeDimensionVector(){
         return longetVolumeDimensionVector;
+    }
+    
+    void U4DBVHTree::setSplitIndex(float uSplitIndex){
+        
+        splitIndex=uSplitIndex;
+    }
+    
+    float U4DBVHTree::getSplitIndex(){
+        
+        return splitIndex;
     }
 
 }

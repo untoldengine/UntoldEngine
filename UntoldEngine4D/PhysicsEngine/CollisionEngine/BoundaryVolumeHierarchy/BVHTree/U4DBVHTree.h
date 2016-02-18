@@ -40,6 +40,9 @@ namespace U4DEngine {
         
         U4DVector3n longetVolumeDimensionVector;
         
+        //longest dimension split index
+        int splitIndex;
+        
     public:
         
         U4DBVHTree();
@@ -84,6 +87,11 @@ namespace U4DEngine {
         void setLongestVolumeDimensionVector(U4DVector3n& uLongestVolumeDimensionVector);
         
         U4DVector3n getLongestVolumeDimensionVector();
+        
+        void setSplitIndex(float uSplitIndex);
+        
+        float getSplitIndex();
+
     };
     
 }
