@@ -279,19 +279,19 @@ namespace U4DEngine {
         
         for (index=numValues/2-1; index>=0; index--) {
             
-            repheadDown(uVolumeVertices,uVolumeVerticesIndex,index,numValues-1);
+            reHeapDown(uVolumeVertices,uVolumeVerticesIndex,index,numValues-1);
         }
         
         //sort the array
         for (index=numValues-1; index>=1; index--) {
             
             swap(uVolumeVertices,0,index);
-            repheadDown(uVolumeVertices,uVolumeVerticesIndex,0,index-1);
+            reHeapDown(uVolumeVertices,uVolumeVerticesIndex,0,index-1);
         }
         
     }
 
-    void U4DCollisionEngine::repheadDown(vector<U4DVector3n> &uVolumeVertices,int uVolumeVerticesIndex,int root, int bottom){
+    void U4DCollisionEngine::reHeapDown(vector<U4DVector3n> &uVolumeVertices,int uVolumeVerticesIndex,int root, int bottom){
         
         int maxChild;
         int rightChild;
@@ -322,7 +322,7 @@ namespace U4DEngine {
             if ((uVolumeVertices.at(root)).squareMagnitude()<(uVolumeVertices.at(maxChild)).squareMagnitude()) {
                 
                 swap(uVolumeVertices,root,maxChild);
-                repheadDown(uVolumeVertices,uVolumeVerticesIndex,maxChild,bottom);
+                reHeapDown(uVolumeVertices,uVolumeVerticesIndex,maxChild,bottom);
             }
         }
         
