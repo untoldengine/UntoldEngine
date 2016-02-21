@@ -24,32 +24,64 @@ namespace U4DEngine{
         
     }
     
+    std::vector<U4DDynamicModel *> U4DBVHManager::getModelsContainer(){
+        
+        return modelsContainer;
+    }
+    
     void U4DBVHManager::buildBVH(){
         
+        //create parent node
+        std::unique_ptr<U4DBVHTree> root(new U4DBVHTree());
+        
+        //copy all models into container
+        root->copyModelsContainer(modelsContainer);
+        
+        //start building the nodes
+        buildBVHNode(root.get(), 0, getModelsContainer().size());
+        
+    }
+    
+    void U4DBVHManager::buildBVHNode(U4DBVHTree *uNode, int uLeftIndex, int uSplitIndex){
+        
         //1. Create node with current objects
+        std::unique_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
         
+        //load models in to container
+        for (int i=uLeftIndex; i<uSplitIndex; i++) {
+            
+            U4DDynamicModel *model=uNode->getModelsContainer().at(i);
+            
+            nodeLeaf->getModelsContainer().push_back(model);
         
+        }
+        
+        //add it as child
+        uNode->addChild(nodeLeaf.get());
+        
+        //check if the node leaf has more than two models, if it does then split it recursively, else stop
+        if (nodeLeaf->getModelsContainer().size()>2) {
+         
         //2. Calculate volume
+        calculateBVHVolume(nodeLeaf.get());
         
         //3. get longest dimension
+        getBVHLongestDimensionVector(nodeLeaf.get());
         
         //4. sort objects along the longest dimension
+        heapSorting(nodeLeaf.get());
         
         //5. get split index
+        getBVHSplitIndex(nodeLeaf.get());
         
         //6. build left and right node
+        buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
+        buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
         
-        //
-        
-    }
-    
-    void U4DBVHManager::buildBVHNode(){
+        }
         
     }
     
-    void U4DBVHManager::sortModels(U4DBVHTree *uNode){
-        
-    }
     
     void U4DBVHManager::calculateBVHVolume(U4DBVHTree *uNode){
         
@@ -62,7 +94,7 @@ namespace U4DEngine{
         
         //get the min and max points for the volume
         
-        for (auto n:uNode->modelsContainer) {
+        for (auto n:uNode->getModelsContainer()) {
         
             U4DBoundingVolume *sphere=n->getBroadPhaseBoundingVolume();
             
@@ -133,19 +165,19 @@ namespace U4DEngine{
         float halfDistance=maxBoundary.dot(uNode->getLongestVolumeDimensionVector())-minBoundary.dot(uNode->getLongestVolumeDimensionVector())/2;
         
         //search for split index
-        binarySearchForSplitIndex(uNode, halfDistance, 0, uNode->modelsContainer.size()-1);
+        binarySearchForSplitIndex(uNode, halfDistance, 0, uNode->getModelsContainer().size()-1);
         
     }
     
     void U4DBVHManager::addModel(U4DDynamicModel* uModel){
         
-        models.push_back(uModel);
+        modelsContainer.push_back(uModel);
         
     }
     
     void U4DBVHManager::clearModels(){
         
-        models.clear();
+        modelsContainer.clear();
         
     }
     
@@ -153,7 +185,7 @@ namespace U4DEngine{
         
         int index=0;
         
-        int numValues=(int)uNode->modelsContainer.size();
+        int numValues=(int)uNode->getModelsContainer().size();
         
         //convert the array of values into a heap
         for (index=numValues/2-1; index>=0; index--) {
@@ -188,7 +220,7 @@ namespace U4DEngine{
                 
             }else{
                 
-                if (uNode->modelsContainer.at(leftChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<=uNode->modelsContainer.at(rightChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
+                if (uNode->getModelsContainer().at(leftChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<=uNode->getModelsContainer().at(rightChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
                     
                     maxChild=rightChild;
                     
@@ -197,7 +229,7 @@ namespace U4DEngine{
                 }
             }
             
-            if (uNode->modelsContainer.at(root)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<uNode->modelsContainer.at(maxChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
+            if (uNode->getModelsContainer().at(root)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<uNode->getModelsContainer().at(maxChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
                 
                 swap(uNode,root,maxChild);
                 reHeapDown(uNode,maxChild,bottom);
@@ -210,27 +242,27 @@ namespace U4DEngine{
     
     void U4DBVHManager::swap(U4DBVHTree *uNode,int uIndex1, int uIndex2){
         
-        U4DDynamicModel* model1=uNode->modelsContainer.at(uIndex1);
-        U4DDynamicModel* model2=uNode->modelsContainer.at(uIndex2);
+        U4DDynamicModel* model1=uNode->getModelsContainer().at(uIndex1);
+        U4DDynamicModel* model2=uNode->getModelsContainer().at(uIndex2);
         
-        uNode->modelsContainer.at(uIndex1)=model2;
-        uNode->modelsContainer.at(uIndex2)=model1;
+        uNode->getModelsContainer().at(uIndex1)=model2;
+        uNode->getModelsContainer().at(uIndex2)=model1;
         
     }
     
-    void U4DBVHManager::binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimenstion, int uFromLocation, int uToLocation){
+    void U4DBVHManager::binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimension, int uFromLocation, int uToLocation){
         
         
         if ((uToLocation-uFromLocation)==0 || std::abs(uToLocation-uFromLocation)==1) {
             
             //Do the comparison here
             
-            float broadPhaseBoundingVolumePositionAtFromLocation=uNode->modelsContainer.at(uFromLocation)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
+            float broadPhaseBoundingVolumePositionAtFromLocation=uNode->getModelsContainer().at(uFromLocation)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
                                                                                                                                                                
-            float broadPhaseBoundingVolumePositionAtToLocation=uNode->modelsContainer.at(uToLocation)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
+            float broadPhaseBoundingVolumePositionAtToLocation=uNode->getModelsContainer().at(uToLocation)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
                                                                                                        
-            float distance1=std::abs(broadPhaseBoundingVolumePositionAtFromLocation-uHalfDistanceOfLongestDimenstion);
-            float distance2=std::abs(broadPhaseBoundingVolumePositionAtToLocation-uHalfDistanceOfLongestDimenstion);
+            float distance1=std::abs(broadPhaseBoundingVolumePositionAtFromLocation-uHalfDistanceOfLongestDimension);
+            float distance2=std::abs(broadPhaseBoundingVolumePositionAtToLocation-uHalfDistanceOfLongestDimension);
             
             if (distance1<distance2) {
                 
@@ -250,20 +282,20 @@ namespace U4DEngine{
             
             int midPoint=(uFromLocation+uToLocation)/2;
             
-            float broadPhaseBoundingVolumePositionAlongVector=uNode->modelsContainer.at(midPoint)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
+            float broadPhaseBoundingVolumePositionAlongVector=uNode->getModelsContainer().at(midPoint)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
             
-            if (uHalfDistanceOfLongestDimenstion<broadPhaseBoundingVolumePositionAlongVector) {
+            if (uHalfDistanceOfLongestDimension<broadPhaseBoundingVolumePositionAlongVector) {
                 
-                binarySearchForSplitIndex(uNode, uHalfDistanceOfLongestDimenstion, uFromLocation, midPoint-1);
+                binarySearchForSplitIndex(uNode, uHalfDistanceOfLongestDimension, uFromLocation, midPoint-1);
                 
-            }else if(uHalfDistanceOfLongestDimenstion==broadPhaseBoundingVolumePositionAlongVector){
+            }else if(uHalfDistanceOfLongestDimension==broadPhaseBoundingVolumePositionAlongVector){
                 
                 //set the split index
                 uNode->setSplitIndex(midPoint);
                 
             }else{
                 
-                binarySearchForSplitIndex(uNode, uHalfDistanceOfLongestDimenstion, midPoint+1, uToLocation);
+                binarySearchForSplitIndex(uNode, uHalfDistanceOfLongestDimension, midPoint+1, uToLocation);
             }
             
         }

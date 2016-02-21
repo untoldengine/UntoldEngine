@@ -37,11 +37,13 @@ namespace U4DEngine {
         U4DPoint3n boundaryVolumeMaxPoint;
         
         //longest volume dimension
-        
-        U4DVector3n longetVolumeDimensionVector;
+        U4DVector3n longestVolumeDimensionVector;
         
         //longest dimension split index
         int splitIndex;
+        
+        //vector of objects
+        std::vector<U4DDynamicModel *> modelsContainer;
         
     public:
         
@@ -49,8 +51,9 @@ namespace U4DEngine {
         
         ~U4DBVHTree();
         
-        //vector of objects
-        std::vector<U4DDynamicModel *> modelsContainer;
+        std::vector<U4DDynamicModel *> getModelsContainer();
+        
+        void copyModelsContainer(std::vector<U4DDynamicModel *> uModelsContainer);
         
         //scenegraph
         

@@ -21,6 +21,15 @@ namespace U4DEngine {
     U4DBVHTree::~U4DBVHTree(){
         
     }
+    
+    std::vector<U4DDynamicModel *> U4DBVHTree::getModelsContainer(){
+        return modelsContainer;
+    }
+    
+    void U4DBVHTree::copyModelsContainer(std::vector<U4DDynamicModel *> uModelsContainer){
+        
+        modelsContainer=uModelsContainer;
+    }
 
     //scenegraph methods
     void U4DBVHTree::addChild(U4DBVHTree *uChild){
@@ -193,11 +202,11 @@ namespace U4DEngine {
     }
     
     void U4DBVHTree::setLongestVolumeDimensionVector(U4DVector3n& uLongestVolumeDimensionVector){
-        longetVolumeDimensionVector=uLongestVolumeDimensionVector;
+        longestVolumeDimensionVector=uLongestVolumeDimensionVector;
     }
     
     U4DVector3n U4DBVHTree::getLongestVolumeDimensionVector(){
-        return longetVolumeDimensionVector;
+        return longestVolumeDimensionVector;
     }
     
     void U4DBVHTree::setSplitIndex(float uSplitIndex){

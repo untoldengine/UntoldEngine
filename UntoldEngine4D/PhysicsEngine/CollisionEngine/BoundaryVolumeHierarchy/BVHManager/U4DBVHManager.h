@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include <memory>
 #include "U4DVector3n.h"
 
 namespace U4DEngine {
@@ -28,7 +29,7 @@ namespace U4DEngine {
         
         U4DBVHTree *rightNode;
         
-        std::vector<U4DDynamicModel *> models;
+        std::vector<U4DDynamicModel *> modelsContainer;
         
     public:
         
@@ -38,9 +39,9 @@ namespace U4DEngine {
         
         void buildBVH();
         
-        void buildBVHNode();
+        void buildBVHNode(U4DBVHTree *uNode, int uLeftIndex, int uSplitIndex);
         
-        void sortModels(U4DBVHTree *uNode);
+        std::vector<U4DDynamicModel *> getModelsContainer();
         
         void calculateBVHVolume(U4DBVHTree *uNode);
         
@@ -60,7 +61,7 @@ namespace U4DEngine {
         
         void swap(U4DBVHTree *uNode,int uindex1, int uindex2);
         
-        void binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimenstion, int uFromLocation, int uToLocation);
+        void binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimension, int uFromLocation, int uToLocation);
         
     };
     
