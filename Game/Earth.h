@@ -23,6 +23,12 @@ class Earth:public U4DEngine::U4DWorld{
 private:
     Town *cube2;
     Town *cube;
+    Town *cube3;
+    
+    Town *cube4;
+    Town *cube5;
+    Town *cube6;
+    
     int rotation;
 public:
    

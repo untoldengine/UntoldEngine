@@ -250,7 +250,7 @@ namespace U4DEngine {
             sphereBoundingVolume=new U4DBoundingSphere();
             
             //calculate the sphere
-            sphereBoundingVolume->computeBoundingVolume(1.4, 10, 10);
+            sphereBoundingVolume->computeBoundingVolume(2.0, 10, 10);
             
             //enable collision
             collisionEnabled=true;

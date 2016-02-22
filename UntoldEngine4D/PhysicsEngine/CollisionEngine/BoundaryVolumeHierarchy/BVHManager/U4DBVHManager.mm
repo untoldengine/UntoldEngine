@@ -32,7 +32,10 @@ namespace U4DEngine{
     void U4DBVHManager::buildBVH(){
         
         //create parent node
-        std::unique_ptr<U4DBVHTree> root(new U4DBVHTree());
+        
+        std::shared_ptr<U4DBVHTree> root(new U4DBVHTree());
+        
+        treeContainer.push_back(root);
         
         //copy all models into container
         root->copyModelsContainer(modelsContainer);
@@ -40,43 +43,72 @@ namespace U4DEngine{
         //start building the nodes
         buildBVHNode(root.get(), 0, getModelsContainer().size());
         
+        U4DBVHTree *child=root.get();
+        
+        while (child!=NULL) {
+            
+            if(child->isRoot()){
+
+                
+            }else{
+                
+                std::cout<<"Parent: "<<std::endl;
+                
+                for (auto n:child->getModelsContainer()) {
+                
+                    std::cout<<n->getName()<<std::endl;
+                }
+                
+            }
+        
+            child=child->next;
+        }
+        
+        //clean up all containers
+        cleanUp();
+        
+        std::cout<<"STOP HERE"<<std::endl;
+        
     }
     
     void U4DBVHManager::buildBVHNode(U4DBVHTree *uNode, int uLeftIndex, int uSplitIndex){
         
         //1. Create node with current objects
-        std::unique_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
+        std::shared_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
+        
+        treeContainer.push_back(nodeLeaf);
+        
+        //add it as child
+        uNode->addChild(nodeLeaf.get());
         
         //load models in to container
         for (int i=uLeftIndex; i<uSplitIndex; i++) {
             
             U4DDynamicModel *model=uNode->getModelsContainer().at(i);
             
-            nodeLeaf->getModelsContainer().push_back(model);
-        
+            nodeLeaf->addModelToContainer(model);
+            
         }
         
-        //add it as child
-        uNode->addChild(nodeLeaf.get());
         
         //check if the node leaf has more than two models, if it does then split it recursively, else stop
         if (nodeLeaf->getModelsContainer().size()>2) {
          
-        //2. Calculate volume
-        calculateBVHVolume(nodeLeaf.get());
-        
-        //3. get longest dimension
-        getBVHLongestDimensionVector(nodeLeaf.get());
-        
-        //4. sort objects along the longest dimension
-        heapSorting(nodeLeaf.get());
-        
-        //5. get split index
-        getBVHSplitIndex(nodeLeaf.get());
-        
-        //6. build left and right node
-        buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
-        buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
+            //2. Calculate volume
+            calculateBVHVolume(nodeLeaf.get());
+            
+            //3. get longest dimension
+            getBVHLongestDimensionVector(nodeLeaf.get());
+             
+            //4. sort objects along the longest dimension
+            heapSorting(nodeLeaf.get());
+                
+            //5. get split index
+            getBVHSplitIndex(nodeLeaf.get());
+            
+            //6. build left and right node
+            buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
+            buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
         
         }
         
@@ -162,7 +194,7 @@ namespace U4DEngine{
         U4DVector3n maxBoundary=uNode->getBoundaryVolumeMaxPoint().toVector();
         
         //half distance of longest dimension in volume
-        float halfDistance=maxBoundary.dot(uNode->getLongestVolumeDimensionVector())-minBoundary.dot(uNode->getLongestVolumeDimensionVector())/2;
+        float halfDistance=(maxBoundary.dot(uNode->getLongestVolumeDimensionVector())-minBoundary.dot(uNode->getLongestVolumeDimensionVector()))/2;
         
         //search for split index
         binarySearchForSplitIndex(uNode, halfDistance, 0, uNode->getModelsContainer().size()-1);
@@ -220,7 +252,7 @@ namespace U4DEngine{
                 
             }else{
                 
-                if (uNode->getModelsContainer().at(leftChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<=uNode->getModelsContainer().at(rightChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
+                if (uNode->getModelsContainer().at(leftChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<=uNode->getModelsContainer().at(rightChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
                     
                     maxChild=rightChild;
                     
@@ -229,7 +261,7 @@ namespace U4DEngine{
                 }
             }
             
-            if (uNode->getModelsContainer().at(root)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<uNode->getModelsContainer().at(maxChild)->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
+            if (uNode->getModelsContainer().at(root)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<uNode->getModelsContainer().at(maxChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
                 
                 swap(uNode,root,maxChild);
                 reHeapDown(uNode,maxChild,bottom);
@@ -245,8 +277,8 @@ namespace U4DEngine{
         U4DDynamicModel* model1=uNode->getModelsContainer().at(uIndex1);
         U4DDynamicModel* model2=uNode->getModelsContainer().at(uIndex2);
         
-        uNode->getModelsContainer().at(uIndex1)=model2;
-        uNode->getModelsContainer().at(uIndex2)=model1;
+        uNode->addModelToContainerAtIndex(uIndex1, model2);
+        uNode->addModelToContainerAtIndex(uIndex2, model1);
         
     }
     
@@ -299,6 +331,13 @@ namespace U4DEngine{
             }
             
         }
+        
+    }
+    
+    void U4DBVHManager::cleanUp(){
+        
+        modelsContainer.clear();
+        treeContainer.clear();
         
     }
     

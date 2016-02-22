@@ -20,10 +20,23 @@ namespace U4DEngine {
     
     U4DBVHTree::~U4DBVHTree(){
         
+        std::cout<<"Deleting Tree"<<std::endl;
     }
     
     std::vector<U4DDynamicModel *> U4DBVHTree::getModelsContainer(){
+        
         return modelsContainer;
+    
+    }
+    
+    void U4DBVHTree::addModelToContainer(U4DDynamicModel *uModelsContainer){
+        
+        modelsContainer.push_back(uModelsContainer);
+    }
+    
+    void U4DBVHTree::addModelToContainerAtIndex(int uIndex, U4DDynamicModel *uModelsContainer){
+        
+        modelsContainer.at(uIndex)=uModelsContainer;
     }
     
     void U4DBVHTree::copyModelsContainer(std::vector<U4DDynamicModel *> uModelsContainer){

@@ -22,14 +22,6 @@ namespace U4DEngine {
         
     private:
         
-        U4DBVHTree *parent;
-        
-        U4DBVHTree *prevSibling;
-        
-        U4DBVHTree *next;
-        
-        U4DBVHTree *lastDescendant;
-        
         //min & max of volume
         
         U4DPoint3n boundaryVolumeMinPoint;
@@ -51,7 +43,19 @@ namespace U4DEngine {
         
         ~U4DBVHTree();
         
+        U4DBVHTree *parent;
+        
+        U4DBVHTree *prevSibling;
+        
+        U4DBVHTree *next;
+        
+        U4DBVHTree *lastDescendant;
+        
         std::vector<U4DDynamicModel *> getModelsContainer();
+        
+        void addModelToContainer(U4DDynamicModel *uModelsContainer);
+        
+        void addModelToContainerAtIndex(int uIndex, U4DDynamicModel *uModelsContainer);
         
         void copyModelsContainer(std::vector<U4DDynamicModel *> uModelsContainer);
         

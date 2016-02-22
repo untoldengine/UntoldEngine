@@ -23,12 +23,6 @@ namespace U4DEngine {
         
     private:
         
-        U4DBVHTree *rootNode;
-        
-        U4DBVHTree *leftNode;
-        
-        U4DBVHTree *rightNode;
-        
         std::vector<U4DDynamicModel *> modelsContainer;
         
     public:
@@ -36,6 +30,8 @@ namespace U4DEngine {
         U4DBVHManager();
         
         ~U4DBVHManager();
+        
+        std::vector<std::shared_ptr<U4DBVHTree>> treeContainer;
         
         void buildBVH();
         
@@ -63,6 +59,7 @@ namespace U4DEngine {
         
         void binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimension, int uFromLocation, int uToLocation);
         
+        void cleanUp();
     };
     
 }

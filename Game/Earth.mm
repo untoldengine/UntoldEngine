@@ -69,8 +69,8 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,5.5,0.0);
-    cube->setName("falling");
+    cube->init("Cube",1.0,0,0.0);
+    cube->setName("cube1");
 
     
     
@@ -83,7 +83,7 @@ void Earth::init(){
     cube->setShader("simpleRedShader");
     
     //Apply physics engine to the object
-    cube->applyPhysics(true);
+    //cube->applyPhysics(true);
     
     //Apply the collision engine to the object
     cube->enableCollision();
@@ -91,7 +91,7 @@ void Earth::init(){
     //set the coefficient of restitution to 0.8
     cube->setCoefficientOfRestitution(0.8);
     
-    cube->setBroadPhaseBoundingVolumeVisibility(true);
+    //cube->setBroadPhaseBoundingVolumeVisibility(true);
     
     
     
@@ -99,21 +99,55 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",0.0,0,0.0);
+    cube2->init("Cube",2.0,0,0.0);
     cube2->setShader("simpleShader");
-    cube2->setName("static");
+    cube2->setName("cube2");
     //cube2->rotateBy(0.0, 0.0, -60.0);
     
     //cube2->applyPhysics(true);
     
     cube2->enableCollision();
-    cube2->setBroadPhaseBoundingVolumeVisibility(true);
+    //cube2->setBroadPhaseBoundingVolumeVisibility(true);
     
 
     
     addChild(cube2);
     
+    cube3=new Town();
+    cube3->init("Cube", -15, 0, 0);
+    cube3->setShader("simpleShader");
+    cube3->setName("cube3");
+    cube3->enableCollision();
     
+    addChild(cube3);
+    
+    
+    
+//    cube4=new Town();
+//    cube4->init("Cube", 5, 3, 0);
+//    cube4->setShader("simpleShader");
+//    cube4->setName("cube4");
+//    cube4->enableCollision();
+//    
+//    addChild(cube4);
+//    
+//    
+//    cube5=new Town();
+//    cube5->init("Cube", 5, 2, 0);
+//    cube5->setShader("simpleShader");
+//    cube5->setName("cube5");
+//    cube5->enableCollision();
+//    
+//    addChild(cube5);
+//    
+//    
+//    cube6=new Town();
+//    cube6->init("Cube", 15, 1, 0);
+//    cube6->setShader("simpleShader");
+//    cube6->setName("cube6");
+//    cube6->enableCollision();
+//    
+//    addChild(cube6);
     
     /*
     

@@ -20,6 +20,7 @@
 #include "U4DBoundingVolume.h"
 #include "U4DGJKAlgorithm.h"
 #include "U4DEPAAlgorithm.h"
+#include "U4DBVHManager.h"
 #include "U4DVector3n.h"
 
 namespace U4DEngine {
@@ -36,7 +37,11 @@ namespace U4DEngine {
         integratorMethod=new U4DRungaKuttaMethod();
         physicsEngine->setIntegrator(integratorMethod);
         
-        //set collision detection method
+        
+        //set the Broad Phase BVH Tree generation
+        bvhTreeManager=new U4DBVHManager();
+        
+        //set narrow Phase collision detection method
         collisionAlgorithm=new U4DGJKAlgorithm();
         collisionEngine->setCollisionAlgorithm(collisionAlgorithm);
         
@@ -117,33 +122,60 @@ namespace U4DEngine {
     void U4DEntityManager::update(float dt){
         
 
-        //update the positions
+        //set the root entity
         U4DEntity* child=rootEntity;
         
-        //update the collision for each model
-        child=rootEntity;
-        
+        //BROAD PHASE COLLISION STARTS
         
         while (child!=NULL) {
-            
+
             U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
-            
+
             if (model) {
-                
+
                     if(model->isCollisionEnabled()==true){
-                        
-                        //add child to collision tree
-                        collisionEngine->addToCollisionContainer(model);
-                        
+
+                        //add child to collision bhv manager tree
+                        bvhTreeManager->addModel(model);
+
                     }
             }
-            
+
             child=child->next;
         }
+
+        bvhTreeManager->buildBVH();
         
-        //compute collision detection
-        collisionEngine->detectCollisions(dt);
-       
+        std::cout<<"STOP HERE"<<std::endl;
+        
+        //BROAD PHASE COLLISION STARTS ENDS
+        
+
+//        //COLLISION STAGE STARTS
+//        
+//        while (child!=NULL) {
+//            
+//            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+//            
+//            if (model) {
+//                
+//                    if(model->isCollisionEnabled()==true){
+//                        
+//                        //add child to collision tree
+//                        collisionEngine->addToCollisionContainer(model);
+//                        
+//                    }
+//            }
+//            
+//            child=child->next;
+//        }
+//        
+//        //compute collision detection
+//        collisionEngine->detectCollisions(dt);
+//       
+//        
+//        //COLLISION STAGE ENDS
+//        
         //update the physics
         child=rootEntity;
         while (child!=NULL) {
