@@ -49,7 +49,7 @@ namespace U4DEngine {
         
         void clearModels();
         
-        bool intersection();
+        void broadPhaseCollision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
         
         void heapSorting(U4DBVHTree *uNode);
         
@@ -57,9 +57,14 @@ namespace U4DEngine {
         
         void swap(U4DBVHTree *uNode,int uindex1, int uindex2);
         
-        void binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimension, int uFromLocation, int uToLocation);
+        bool overlapBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
+        
+        void overlapBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
+        
+        bool descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
         
         void cleanUp();
+        
     };
     
 }

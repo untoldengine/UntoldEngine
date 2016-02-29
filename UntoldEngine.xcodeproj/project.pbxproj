@@ -38,6 +38,8 @@
 		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; settings = {ASSET_TAGS = (); }; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
+		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; settings = {ASSET_TAGS = (); }; };
+		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; settings = {ASSET_TAGS = (); }; };
 		0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19D1B0BBC370087BACC /* U4DBoundingAABB.mm */; };
 		0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19F1B0BBC370087BACC /* U4DBoundingOBB.mm */; };
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
@@ -237,6 +239,10 @@
 		031723C91933FE54001584B1 /* lodepng.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = lodepng.mm; sourceTree = "<group>"; };
 		03196B3417659BE5008BA0B8 /* U4DTouches.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTouches.mm; sourceTree = "<group>"; };
 		03196B3717659EBC008BA0B8 /* U4DTouches.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouches.h; sourceTree = "<group>"; };
+		0325D20C1C836D9200F1B9BE /* U4DAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAABB.mm; sourceTree = "<group>"; };
+		0325D20D1C836D9200F1B9BE /* U4DAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAABB.h; sourceTree = "<group>"; };
+		0325D2121C83D5B900F1B9BE /* U4DSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSphere.mm; sourceTree = "<group>"; };
+		0325D2131C83D5B900F1B9BE /* U4DSphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSphere.h; sourceTree = "<group>"; };
 		0327B19C1B0BBC370087BACC /* U4DBoundingAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingAABB.h; path = BoundingVolumes/U4DBoundingAABB.h; sourceTree = "<group>"; };
 		0327B19D1B0BBC370087BACC /* U4DBoundingAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingAABB.mm; path = BoundingVolumes/U4DBoundingAABB.mm; sourceTree = "<group>"; };
 		0327B19E1B0BBC370087BACC /* U4DBoundingOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingOBB.h; path = BoundingVolumes/U4DBoundingOBB.h; sourceTree = "<group>"; };
@@ -766,6 +772,10 @@
 				0346862A1B1A4DA400B2105B /* U4DPlane.mm */,
 				036ABB381B26267D0028E269 /* U4DOBB.h */,
 				036ABB371B26267D0028E269 /* U4DOBB.mm */,
+				0325D20D1C836D9200F1B9BE /* U4DAABB.h */,
+				0325D20C1C836D9200F1B9BE /* U4DAABB.mm */,
+				0325D2131C83D5B900F1B9BE /* U4DSphere.h */,
+				0325D2121C83D5B900F1B9BE /* U4DSphere.mm */,
 				030205511B6E9CD7005A72E8 /* U4DSegment.h */,
 				030205501B6E9CD7005A72E8 /* U4DSegment.mm */,
 				030205541B6E9CE9005A72E8 /* U4DTriangle.h */,
@@ -1389,6 +1399,7 @@
 				036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */,
 				0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */,
 				03759B49175B0135002EB5D9 /* main.m in Sources */,
+				0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
 				03759B4D175B0135002EB5D9 /* AppDelegate.mm in Sources */,
 				038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */,
@@ -1465,6 +1476,7 @@
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
 				030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */,
 				03F862A917EE29FD00712ECD /* U4DOpenGL3DModel.mm in Sources */,
+				0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */,
 				03B5E7E6193A3F4100800EC8 /* U4DDigitalAssetLoader.mm in Sources */,
 				034DBC7F1A73E29300AC43EB /* U4DOpenGLLight.mm in Sources */,
 				03E6EDD71943D816007AD131 /* U4DCollisionEngine.mm in Sources */,

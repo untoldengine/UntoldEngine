@@ -17,8 +17,7 @@
 #include "MyCharacter.h"
 #include "U4DBoundingAABB.h"
 #include "U4DMatrix3n.h"
-#include "U4DImage.h"
-#include "U4DMultiImage.h"
+
 #include "U4DButton.h"
 #include "U4DSkyBox.h"
 #include "U4DTouches.h"
@@ -30,26 +29,14 @@
 #include "U4DSpriteLoader.h"
 
 
-#include "U4DFont.h"
-#include "U4DBoundingSphere.h"
-#include "U4DBoundingOBB.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingAABB.h"
-
 #include "U4DDigitalAssetLoader.h"
-#include "U4DFontLoader.h"
+
 #include "U4DLights.h"
 #include "U4DDebugger.h"
-#include "U4DAnimation.h"
-#include "U4DSpriteAnimation.h"
+
 #include "Town.h"
-#include "U4DPlane.h"
-#include "U4DOBB.h"
+
 #include "U4DPoint3n.h"
-#include "U4DTetrahedron.h"
-#include "U4DSegment.h"
-#include "U4DTriangle.h"
-#include "U4DConvexPolygon.h"
 
 void Earth::init(){
     
@@ -69,7 +56,7 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",1.0,0,0.0);
+    cube->init("Cube",0.0,0,0.0);
     cube->setName("cube1");
 
     
@@ -99,7 +86,7 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",2.0,0,0.0);
+    cube2->init("Cube",0,4,0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     //cube2->rotateBy(0.0, 0.0, -60.0);
@@ -114,7 +101,7 @@ void Earth::init(){
     addChild(cube2);
     
     cube3=new Town();
-    cube3->init("Cube", -15, 0, 0);
+    cube3->init("Cube", 0, 5, 0);
     cube3->setShader("simpleShader");
     cube3->setName("cube3");
     cube3->enableCollision();
@@ -122,27 +109,27 @@ void Earth::init(){
     addChild(cube3);
     
     
-    
+//    
 //    cube4=new Town();
-//    cube4->init("Cube", 5, 3, 0);
+//    cube4->init("Cube", 0, 6, 0);
 //    cube4->setShader("simpleShader");
 //    cube4->setName("cube4");
 //    cube4->enableCollision();
 //    
 //    addChild(cube4);
-//    
+//
 //    
 //    cube5=new Town();
-//    cube5->init("Cube", 5, 2, 0);
+//    cube5->init("Cube", 26, 2, 0);
 //    cube5->setShader("simpleShader");
 //    cube5->setName("cube5");
 //    cube5->enableCollision();
 //    
 //    addChild(cube5);
-//    
-//    
+
+    
 //    cube6=new Town();
-//    cube6->init("Cube", 15, 1, 0);
+//    cube6->init("Cube", 8, 1, 0);
 //    cube6->setShader("simpleShader");
 //    cube6->setName("cube6");
 //    cube6->enableCollision();

@@ -95,9 +95,9 @@ namespace U4DEngine {
         
         U4DVector3n getLongestVolumeDimensionVector();
         
-        void setSplitIndex(float uSplitIndex);
+        void setSplitIndex(int uSplitIndex);
         
-        float getSplitIndex();
+        int getSplitIndex();
 
     };
     

@@ -12,6 +12,7 @@
 #include "U4DDynamicModel.h"
 #include "U4DBoundingVolume.h"
 #include <cmath>
+#include <cstdlib>
 
 
 namespace U4DEngine{
@@ -90,7 +91,6 @@ namespace U4DEngine{
             
         }
         
-        
         //check if the node leaf has more than two models, if it does then split it recursively, else stop
         if (nodeLeaf->getModelsContainer().size()>2) {
          
@@ -117,12 +117,12 @@ namespace U4DEngine{
     
     void U4DBVHManager::calculateBVHVolume(U4DBVHTree *uNode){
         
-        float xMin=0.0;
-        float xMax=0.0;
-        float yMin=0.0;
-        float yMax=0.0;
-        float zMin=0.0;
-        float zMax=0.0;
+        float xMin=FLT_MAX;
+        float xMax=FLT_MIN;
+        float yMin=FLT_MAX;
+        float yMax=FLT_MIN;
+        float zMin=FLT_MAX;
+        float zMax=FLT_MIN;
         
         //get the min and max points for the volume
         
@@ -196,8 +196,39 @@ namespace U4DEngine{
         //half distance of longest dimension in volume
         float halfDistance=(maxBoundary.dot(uNode->getLongestVolumeDimensionVector())-minBoundary.dot(uNode->getLongestVolumeDimensionVector()))/2;
         
+        halfDistance=maxBoundary.dot(uNode->getLongestVolumeDimensionVector())-halfDistance;
+        
         //search for split index
-        binarySearchForSplitIndex(uNode, halfDistance, 0, uNode->getModelsContainer().size()-1);
+        std::vector<float> tempVectorOfModelPosition;
+        
+        for (auto n:uNode->getModelsContainer()) {
+            
+            float broadPhaseBoundingVolumePositionAlongVector=n->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
+            
+            float distance=std::abs(broadPhaseBoundingVolumePositionAlongVector-halfDistance);
+            
+            tempVectorOfModelPosition.push_back(distance);
+        
+        }
+        
+        
+        //Get the minimum element in the vector with the lowest distance to the half distance of the volue
+        auto closestModelToHalfDistance=std::min_element(tempVectorOfModelPosition.cbegin(), tempVectorOfModelPosition.cend());
+        
+        //Get the actual index in the vector which corresponds to the minimum element
+        int splitIndex=std::distance(tempVectorOfModelPosition.cbegin(), closestModelToHalfDistance);
+        
+        //
+        float positionOfModelAlongLongestVector=uNode->getModelsContainer().at(splitIndex)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
+        
+        if (positionOfModelAlongLongestVector<halfDistance) {
+            
+            splitIndex++;
+            
+        }
+        
+        
+        uNode->setSplitIndex(splitIndex);
         
     }
     
@@ -282,56 +313,44 @@ namespace U4DEngine{
         
     }
     
-    void U4DBVHManager::binarySearchForSplitIndex(U4DBVHTree *uNode, float uHalfDistanceOfLongestDimension, int uFromLocation, int uToLocation){
+    void U4DBVHManager::broadPhaseCollision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
         
+        if (overlapBetweenTreeVolume(uTreeLeftNode,uTreeRightNode)) return;
         
-        if ((uToLocation-uFromLocation)==0 || std::abs(uToLocation-uFromLocation)==1) {
+        if (uTreeLeftNode->isLeaf() && uTreeRightNode->isLeaf()) {
             
-            //Do the comparison here
-            
-            float broadPhaseBoundingVolumePositionAtFromLocation=uNode->getModelsContainer().at(uFromLocation)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
-                                                                                                                                                               
-            float broadPhaseBoundingVolumePositionAtToLocation=uNode->getModelsContainer().at(uToLocation)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
-                                                                                                       
-            float distance1=std::abs(broadPhaseBoundingVolumePositionAtFromLocation-uHalfDistanceOfLongestDimension);
-            float distance2=std::abs(broadPhaseBoundingVolumePositionAtToLocation-uHalfDistanceOfLongestDimension);
-            
-            if (distance1<distance2) {
-                
-                uNode->setSplitIndex(uFromLocation);
-            }else if(distance2<distance1){
-                
-                uNode->setSplitIndex(uToLocation);
-            
-            }else{
-                
-                uNode->setSplitIndex(uFromLocation);    //not necessary but just in case
-            
-            }
-            
+            //At leaf nodes, perform collision tests on leaf node contents
+            overlapBetweenTreeLeafNodes(uTreeLeftNode,uTreeRightNode);
             
         }else{
             
-            int midPoint=(uFromLocation+uToLocation)/2;
-            
-            float broadPhaseBoundingVolumePositionAlongVector=uNode->getModelsContainer().at(midPoint)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
-            
-            if (uHalfDistanceOfLongestDimension<broadPhaseBoundingVolumePositionAlongVector) {
+            if (descendTreeRule(uTreeLeftNode,uTreeRightNode)) {
                 
-                binarySearchForSplitIndex(uNode, uHalfDistanceOfLongestDimension, uFromLocation, midPoint-1);
-                
-            }else if(uHalfDistanceOfLongestDimension==broadPhaseBoundingVolumePositionAlongVector){
-                
-                //set the split index
-                uNode->setSplitIndex(midPoint);
+                broadPhaseCollision(uTreeLeftNode->getFirstChild(), uTreeRightNode);
+                broadPhaseCollision(uTreeLeftNode->getLastChild(), uTreeRightNode);
                 
             }else{
-                
-                binarySearchForSplitIndex(uNode, uHalfDistanceOfLongestDimension, midPoint+1, uToLocation);
+                broadPhaseCollision(uTreeLeftNode, uTreeRightNode->getFirstChild());
+                broadPhaseCollision(uTreeLeftNode, uTreeRightNode->getLastChild());
             }
             
         }
         
+    }
+    
+    bool U4DBVHManager::overlapBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+        
+        
+    }
+    
+    void U4DBVHManager::overlapBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+        
+        
+    }
+    
+    bool U4DBVHManager::descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+        
+        return uTreeLeftNode->isLeaf();
     }
     
     void U4DBVHManager::cleanUp(){

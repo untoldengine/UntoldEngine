@@ -222,12 +222,12 @@ namespace U4DEngine {
         return longestVolumeDimensionVector;
     }
     
-    void U4DBVHTree::setSplitIndex(float uSplitIndex){
+    void U4DBVHTree::setSplitIndex(int uSplitIndex){
         
         splitIndex=uSplitIndex;
     }
     
-    float U4DBVHTree::getSplitIndex(){
+    int U4DBVHTree::getSplitIndex(){
         
         return splitIndex;
     }

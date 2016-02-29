@@ -46,8 +46,6 @@ public:
      */
     U4DVector3n center;
     
-    
-    
     /*!
      *  @brief  Test if OBB intersects plane
      *
