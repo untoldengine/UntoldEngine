@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "U4DPoint3n.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
     
@@ -21,6 +22,9 @@ namespace U4DEngine {
         U4DPoint3n minPoint;
         
         U4DPoint3n maxPoint;
+        
+        //longest volume dimension
+        U4DVector3n longestAABBDimensionVector;
         
     public:
         
@@ -39,6 +43,11 @@ namespace U4DEngine {
         U4DPoint3n getMaxPoint();
         
         bool didCollideWithAABB(U4DAABB &uAABB);
+        
+        void setLongestAABBDimensionVector(U4DVector3n& uLongestAABBDimensionVector);
+        
+        U4DVector3n getLongestAABBDimensionVector();
+
         
     };
     

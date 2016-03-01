@@ -13,6 +13,7 @@
 #include <vector>
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
+#include "U4DAABB.h"
 
 namespace U4DEngine {
 
@@ -22,14 +23,8 @@ namespace U4DEngine {
         
     private:
         
-        //min & max of volume
-        
-        U4DPoint3n boundaryVolumeMinPoint;
-        
-        U4DPoint3n boundaryVolumeMaxPoint;
-        
-        //longest volume dimension
-        U4DVector3n longestVolumeDimensionVector;
+        //AABB volume
+        U4DAABB* aabbVolume;
         
         //longest dimension split index
         int splitIndex;
@@ -83,17 +78,7 @@ namespace U4DEngine {
         
         bool isRoot();
         
-        U4DPoint3n getBoundaryVolumeMinPoint();
-        
-        U4DPoint3n getBoundaryVolumeMaxPoint();
-        
-        void setBoundaryVolumeMinPoint(U4DPoint3n& uMinPoint);
-        
-        void setBoundaryVolumeMaxPoint(U4DPoint3n& uMaxPoint);
-        
-        void setLongestVolumeDimensionVector(U4DVector3n& uLongestVolumeDimensionVector);
-        
-        U4DVector3n getLongestVolumeDimensionVector();
+        U4DAABB* getAABBVolume();
         
         void setSplitIndex(int uSplitIndex);
         

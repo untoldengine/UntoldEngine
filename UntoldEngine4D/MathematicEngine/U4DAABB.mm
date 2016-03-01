@@ -59,4 +59,12 @@ namespace U4DEngine {
         return true;
     }
     
+    void U4DAABB::setLongestAABBDimensionVector(U4DVector3n& uLongestAABBDimensionVector){
+        longestAABBDimensionVector=uLongestAABBDimensionVector;
+    }
+    
+    U4DVector3n U4DAABB::getLongestAABBDimensionVector(){
+        return longestAABBDimensionVector;
+    }
+    
 }

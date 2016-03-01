@@ -86,7 +86,7 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",0,4,0);
+    cube2->init("Cube",0,2,0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     //cube2->rotateBy(0.0, 0.0, -60.0);

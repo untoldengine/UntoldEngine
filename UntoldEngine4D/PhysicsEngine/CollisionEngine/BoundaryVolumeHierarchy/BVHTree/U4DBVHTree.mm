@@ -15,12 +15,18 @@ namespace U4DEngine {
         prevSibling=this;
         lastDescendant=this;
         
-        
+        aabbVolume=new U4DAABB();
     }
     
     U4DBVHTree::~U4DBVHTree(){
         
+        delete aabbVolume;
+        
         std::cout<<"Deleting Tree"<<std::endl;
+    }
+    
+    U4DAABB* U4DBVHTree::getAABBVolume(){
+        return aabbVolume;
     }
     
     std::vector<U4DDynamicModel *> U4DBVHTree::getModelsContainer(){
@@ -192,34 +198,6 @@ namespace U4DEngine {
         
         return lastDescendant=this;
         
-    }
-    
-    U4DPoint3n U4DBVHTree::getBoundaryVolumeMinPoint(){
-        
-        return boundaryVolumeMinPoint;
-    }
-    
-    U4DPoint3n U4DBVHTree::getBoundaryVolumeMaxPoint(){
-        
-        return boundaryVolumeMaxPoint;
-    }
-    
-    void U4DBVHTree::setBoundaryVolumeMinPoint(U4DPoint3n& uMinPoint){
-        
-        boundaryVolumeMinPoint=uMinPoint;
-    }
-    
-    void U4DBVHTree::setBoundaryVolumeMaxPoint(U4DPoint3n& uMaxPoint){
-        
-        boundaryVolumeMaxPoint=uMaxPoint;
-    }
-    
-    void U4DBVHTree::setLongestVolumeDimensionVector(U4DVector3n& uLongestVolumeDimensionVector){
-        longestVolumeDimensionVector=uLongestVolumeDimensionVector;
-    }
-    
-    U4DVector3n U4DBVHTree::getLongestVolumeDimensionVector(){
-        return longestVolumeDimensionVector;
     }
     
     void U4DBVHTree::setSplitIndex(int uSplitIndex){

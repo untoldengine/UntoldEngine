@@ -145,19 +145,19 @@ namespace U4DEngine{
         
         //assign volume min and max values to node
         U4DPoint3n maxPoint(xMax,yMax,zMax);
-        uNode->setBoundaryVolumeMaxPoint(maxPoint);
+        uNode->getAABBVolume()->setMaxPoint(maxPoint);
         
         U4DPoint3n minPoint(xMin,yMin,zMin);
-        uNode->setBoundaryVolumeMinPoint(minPoint);
+        uNode->getAABBVolume()->setMinPoint(minPoint);
         
     }
     
     void U4DBVHManager::getBVHLongestDimensionVector(U4DBVHTree *uNode){
         
         //get the longest dimension of the volume
-        float xDimension=std::abs(uNode->getBoundaryVolumeMinPoint().x-uNode->getBoundaryVolumeMaxPoint().x);
-        float yDimension=std::abs(uNode->getBoundaryVolumeMinPoint().y-uNode->getBoundaryVolumeMaxPoint().y);
-        float zDimension=std::abs(uNode->getBoundaryVolumeMinPoint().z-uNode->getBoundaryVolumeMaxPoint().z);
+        float xDimension=std::abs(uNode->getAABBVolume()->getMinPoint().x-uNode->getAABBVolume()->getMaxPoint().x);
+        float yDimension=std::abs(uNode->getAABBVolume()->getMinPoint().y-uNode->getAABBVolume()->getMaxPoint().y);
+        float zDimension=std::abs(uNode->getAABBVolume()->getMinPoint().z-uNode->getAABBVolume()->getMaxPoint().z);
         
         float longestDimension=0.0;
         U4DVector3n longestDimensionVector(0,0,0);
@@ -179,8 +179,7 @@ namespace U4DEngine{
         
         }
         
-         uNode->setLongestVolumeDimensionVector(longestDimensionVector);
-        
+        uNode->getAABBVolume()->setLongestAABBDimensionVector(longestDimensionVector);
     }
     
     void U4DBVHManager::getBVHSplitIndex(U4DBVHTree *uNode){
@@ -188,22 +187,22 @@ namespace U4DEngine{
         //split the longest dimension of the volume in half
         
         //get min point of volume
-        U4DVector3n minBoundary=uNode->getBoundaryVolumeMinPoint().toVector();
+        U4DVector3n minBoundary=uNode->getAABBVolume()->getMinPoint().toVector();
         
         //get max point in volume
-        U4DVector3n maxBoundary=uNode->getBoundaryVolumeMaxPoint().toVector();
+        U4DVector3n maxBoundary=uNode->getAABBVolume()->getMaxPoint().toVector();
         
         //half distance of longest dimension in volume
-        float halfDistance=(maxBoundary.dot(uNode->getLongestVolumeDimensionVector())-minBoundary.dot(uNode->getLongestVolumeDimensionVector()))/2;
+        float halfDistance=(maxBoundary.dot(uNode->getAABBVolume()->getLongestAABBDimensionVector())-minBoundary.dot(uNode->getAABBVolume()->getLongestAABBDimensionVector()))/2;
         
-        halfDistance=maxBoundary.dot(uNode->getLongestVolumeDimensionVector())-halfDistance;
+        halfDistance=maxBoundary.dot(uNode->getAABBVolume()->getLongestAABBDimensionVector())-halfDistance;
         
         //search for split index
         std::vector<float> tempVectorOfModelPosition;
         
         for (auto n:uNode->getModelsContainer()) {
             
-            float broadPhaseBoundingVolumePositionAlongVector=n->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
+            float broadPhaseBoundingVolumePositionAlongVector=n->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());
             
             float distance=std::abs(broadPhaseBoundingVolumePositionAlongVector-halfDistance);
             
@@ -219,7 +218,7 @@ namespace U4DEngine{
         int splitIndex=std::distance(tempVectorOfModelPosition.cbegin(), closestModelToHalfDistance);
         
         //
-        float positionOfModelAlongLongestVector=uNode->getModelsContainer().at(splitIndex)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector());
+        float positionOfModelAlongLongestVector=uNode->getModelsContainer().at(splitIndex)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());
         
         if (positionOfModelAlongLongestVector<halfDistance) {
             
@@ -283,7 +282,7 @@ namespace U4DEngine{
                 
             }else{
                 
-                if (uNode->getModelsContainer().at(leftChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<=uNode->getModelsContainer().at(rightChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
+                if (uNode->getModelsContainer().at(leftChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector())<=uNode->getModelsContainer().at(rightChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector())) {
                     
                     maxChild=rightChild;
                     
@@ -292,7 +291,7 @@ namespace U4DEngine{
                 }
             }
             
-            if (uNode->getModelsContainer().at(root)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())<uNode->getModelsContainer().at(maxChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getLongestVolumeDimensionVector())) {
+            if (uNode->getModelsContainer().at(root)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector())<uNode->getModelsContainer().at(maxChild)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector())) {
                 
                 swap(uNode,root,maxChild);
                 reHeapDown(uNode,maxChild,bottom);
@@ -315,12 +314,12 @@ namespace U4DEngine{
     
     void U4DBVHManager::broadPhaseCollision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
         
-        if (overlapBetweenTreeVolume(uTreeLeftNode,uTreeRightNode)) return;
+        if (collisionBetweenTreeVolume(uTreeLeftNode,uTreeRightNode)) return;
         
         if (uTreeLeftNode->isLeaf() && uTreeRightNode->isLeaf()) {
             
             //At leaf nodes, perform collision tests on leaf node contents
-            overlapBetweenTreeLeafNodes(uTreeLeftNode,uTreeRightNode);
+            collisionBetweenTreeLeafNodes(uTreeLeftNode,uTreeRightNode);
             
         }else{
             
@@ -338,12 +337,12 @@ namespace U4DEngine{
         
     }
     
-    bool U4DBVHManager::overlapBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+    bool U4DBVHManager::collisionBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
         
         
     }
     
-    void U4DBVHManager::overlapBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+    void U4DBVHManager::collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
         
         
     }
