@@ -27,19 +27,18 @@
 #include "GameController.h"
 #include "U4DSprite.h"
 #include "U4DSpriteLoader.h"
-
-
 #include "U4DDigitalAssetLoader.h"
-
 #include "U4DLights.h"
 #include "U4DDebugger.h"
-
 #include "Town.h"
-
 #include "U4DPoint3n.h"
+#include "U4DAABB.h"
+#include "U4DBoundingSphere.h"
+
+#include "U4DBVHTree.h"
 
 void Earth::init(){
-    
+
     //U4DDebugger *debugger=new U4DDebugger();
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
@@ -86,7 +85,7 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",0,2,0);
+    cube2->init("Cube",5,2,0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     //cube2->rotateBy(0.0, 0.0, -60.0);
@@ -101,22 +100,21 @@ void Earth::init(){
     addChild(cube2);
     
     cube3=new Town();
-    cube3->init("Cube", 0, 5, 0);
+    cube3->init("Cube", 5, 0, 0);
     cube3->setShader("simpleShader");
     cube3->setName("cube3");
     cube3->enableCollision();
     
     addChild(cube3);
     
+
+    cube4=new Town();
+    cube4->init("Cube", 6, 0, 0);
+    cube4->setShader("simpleShader");
+    cube4->setName("cube4");
+    cube4->enableCollision();
     
-//    
-//    cube4=new Town();
-//    cube4->init("Cube", 0, 6, 0);
-//    cube4->setShader("simpleShader");
-//    cube4->setName("cube4");
-//    cube4->enableCollision();
-//    
-//    addChild(cube4);
+    addChild(cube4);
 //
 //    
 //    cube5=new Town();

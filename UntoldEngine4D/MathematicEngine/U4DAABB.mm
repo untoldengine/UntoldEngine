@@ -46,13 +46,13 @@ namespace U4DEngine {
     }
     
     
-    bool U4DAABB::didCollideWithAABB(U4DAABB &uAABB){
+    bool U4DAABB::didCollideWithAABB(U4DAABB *uAABB){
         
         //Exit with no intersection if separated along an axis
         
-        if (maxPoint.x<uAABB.minPoint.x || minPoint.x>uAABB.maxPoint.x) return false;
-        if (maxPoint.y<uAABB.minPoint.y || minPoint.y>uAABB.maxPoint.y) return false;
-        if (maxPoint.z<uAABB.minPoint.z || minPoint.z>uAABB.maxPoint.z) return false;
+        if (maxPoint.x<uAABB->minPoint.x || minPoint.x>uAABB->maxPoint.x) return false;
+        if (maxPoint.y<uAABB->minPoint.y || minPoint.y>uAABB->maxPoint.y) return false;
+        if (maxPoint.z<uAABB->minPoint.z || minPoint.z>uAABB->maxPoint.z) return false;
         
         //overlapping on all axes means AABBs are intersecting
         

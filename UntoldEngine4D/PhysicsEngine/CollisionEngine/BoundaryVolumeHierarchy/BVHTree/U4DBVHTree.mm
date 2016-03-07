@@ -22,7 +22,6 @@ namespace U4DEngine {
         
         delete aabbVolume;
         
-        std::cout<<"Deleting Tree"<<std::endl;
     }
     
     U4DAABB* U4DBVHTree::getAABBVolume(){

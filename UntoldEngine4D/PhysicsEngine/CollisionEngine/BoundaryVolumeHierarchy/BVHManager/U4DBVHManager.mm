@@ -13,6 +13,7 @@
 #include "U4DBoundingVolume.h"
 #include <cmath>
 #include <cstdlib>
+#include <stack>
 
 
 namespace U4DEngine{
@@ -44,26 +45,34 @@ namespace U4DEngine{
         //start building the nodes
         buildBVHNode(root.get(), 0, getModelsContainer().size());
         
-        U4DBVHTree *child=root.get();
+        U4DBVHTree *child=root.get()->getFirstChild();
         
         while (child!=NULL) {
             
             if(child->isRoot()){
-
+                
+               
                 
             }else{
                 
-                std::cout<<"Parent: "<<std::endl;
-                
+                std::cout<<"Parent"<<std::endl;
                 for (auto n:child->getModelsContainer()) {
-                
                     std::cout<<n->getName()<<std::endl;
+                    
+                    }
+                
+                if (child->getFirstChild()!=NULL) {
+                    
+                    broadPhaseCollision(child->getFirstChild(), child->getLastChild());
+                    
                 }
                 
             }
-        
+            
             child=child->next;
         }
+        
+        //start broad phase collision test
         
         //clean up all containers
         cleanUp();
@@ -91,15 +100,15 @@ namespace U4DEngine{
             
         }
         
+        //2. Calculate volume
+        calculateBVHVolume(nodeLeaf.get());
+        
+        //3. get longest dimension
+        getBVHLongestDimensionVector(nodeLeaf.get());
+        
         //check if the node leaf has more than two models, if it does then split it recursively, else stop
-        if (nodeLeaf->getModelsContainer().size()>2) {
-         
-            //2. Calculate volume
-            calculateBVHVolume(nodeLeaf.get());
+        if (nodeLeaf->getModelsContainer().size()>1) {
             
-            //3. get longest dimension
-            getBVHLongestDimensionVector(nodeLeaf.get());
-             
             //4. sort objects along the longest dimension
             heapSorting(nodeLeaf.get());
                 
@@ -110,10 +119,89 @@ namespace U4DEngine{
             buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
             buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
         
+        
         }
         
     }
     
+    
+    void U4DBVHManager::broadPhaseCollision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+        
+        
+        //No collision between tree volumes, then exit
+        if (!collisionBetweenTreeVolume(uTreeLeftNode,uTreeRightNode)) return;
+        
+        if (uTreeLeftNode->getFirstChild()==NULL && uTreeRightNode->getFirstChild()==NULL) {
+            
+            //At leaf nodes, perform collision tests on leaf node contents
+            collisionBetweenTreeLeafNodes(uTreeLeftNode,uTreeRightNode);
+            
+        }else{
+            
+            if (descendTreeRule(uTreeLeftNode,uTreeRightNode)) {
+                
+                broadPhaseCollision(uTreeLeftNode->getFirstChild(), uTreeRightNode);
+                
+                broadPhaseCollision(uTreeLeftNode->getLastChild(), uTreeRightNode);
+                
+            }else{
+                
+                broadPhaseCollision(uTreeLeftNode, uTreeRightNode->getFirstChild());
+                
+                broadPhaseCollision(uTreeLeftNode, uTreeRightNode->getLastChild());
+                
+            }
+        }
+        
+    }
+    
+    bool U4DBVHManager::collisionBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+        
+            std::cout<<"Collision Between tree volume"<<std::endl;
+        
+        std::cout<<"Left tree volume"<<std::endl;
+        for (auto n:uTreeLeftNode->getModelsContainer()) {
+            std::cout<<n->getName()<<std::endl;
+        }
+        
+        std::cout<<"Right tree volume"<<std::endl;
+        for (auto n:uTreeRightNode->getModelsContainer()) {
+            std::cout<<n->getName()<<std::endl;
+        }
+        
+            return uTreeLeftNode->getAABBVolume()->didCollideWithAABB(uTreeRightNode->getAABBVolume());
+        
+    }
+    
+    void U4DBVHManager::collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+        
+        //Test collision between leaf nodes
+    
+        std::cout<<"Collision Between leaf Nodes"<<std::endl;
+        
+        std::cout<<"Left tree leaf"<<std::endl;
+        for (auto n:uTreeLeftNode->getModelsContainer()) {
+            std::cout<<n->getName()<<std::endl;
+        }
+        
+        std::cout<<"Right tree leaf"<<std::endl;
+        for (auto n:uTreeRightNode->getModelsContainer()) {
+            std::cout<<n->getName()<<std::endl;
+        }
+
+    
+    }
+    
+    bool U4DBVHManager::descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+        
+        bool value=false;
+        
+        if (uTreeLeftNode->getFirstChild()!=NULL) {
+            return value=true;
+        }
+        
+        return value;
+    }
     
     void U4DBVHManager::calculateBVHVolume(U4DBVHTree *uNode){
         
@@ -226,7 +314,6 @@ namespace U4DEngine{
             
         }
         
-        
         uNode->setSplitIndex(splitIndex);
         
     }
@@ -310,46 +397,6 @@ namespace U4DEngine{
         uNode->addModelToContainerAtIndex(uIndex1, model2);
         uNode->addModelToContainerAtIndex(uIndex2, model1);
         
-    }
-    
-    void U4DBVHManager::broadPhaseCollision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-        if (collisionBetweenTreeVolume(uTreeLeftNode,uTreeRightNode)) return;
-        
-        if (uTreeLeftNode->isLeaf() && uTreeRightNode->isLeaf()) {
-            
-            //At leaf nodes, perform collision tests on leaf node contents
-            collisionBetweenTreeLeafNodes(uTreeLeftNode,uTreeRightNode);
-            
-        }else{
-            
-            if (descendTreeRule(uTreeLeftNode,uTreeRightNode)) {
-                
-                broadPhaseCollision(uTreeLeftNode->getFirstChild(), uTreeRightNode);
-                broadPhaseCollision(uTreeLeftNode->getLastChild(), uTreeRightNode);
-                
-            }else{
-                broadPhaseCollision(uTreeLeftNode, uTreeRightNode->getFirstChild());
-                broadPhaseCollision(uTreeLeftNode, uTreeRightNode->getLastChild());
-            }
-            
-        }
-        
-    }
-    
-    bool U4DBVHManager::collisionBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-        
-    }
-    
-    void U4DBVHManager::collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-        
-    }
-    
-    bool U4DBVHManager::descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-        return uTreeLeftNode->isLeaf();
     }
     
     void U4DBVHManager::cleanUp(){
