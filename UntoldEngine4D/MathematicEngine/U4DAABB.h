@@ -42,7 +42,7 @@ namespace U4DEngine {
         
         U4DPoint3n getMaxPoint();
         
-        bool didCollideWithAABB(U4DAABB *uAABB);
+        bool intersectionWithVolume(U4DAABB *uAABB);
         
         void setLongestAABBDimensionVector(U4DVector3n& uLongestAABBDimensionVector);
         

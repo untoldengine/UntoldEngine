@@ -73,6 +73,8 @@ namespace U4DEngine {
         virtual U4DPoint3n getMaxBoundaryPoint(){};
         
         virtual U4DPoint3n getMinBoundaryPoint(){};
+        
+        
 
     };
     

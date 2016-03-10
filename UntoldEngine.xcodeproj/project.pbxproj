@@ -40,6 +40,7 @@
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
 		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; settings = {ASSET_TAGS = (); }; };
 		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; settings = {ASSET_TAGS = (); }; };
+		0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */; settings = {ASSET_TAGS = (); }; };
 		0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19D1B0BBC370087BACC /* U4DBoundingAABB.mm */; };
 		0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19F1B0BBC370087BACC /* U4DBoundingOBB.mm */; };
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
@@ -243,6 +244,8 @@
 		0325D20D1C836D9200F1B9BE /* U4DAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAABB.h; sourceTree = "<group>"; };
 		0325D2121C83D5B900F1B9BE /* U4DSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSphere.mm; sourceTree = "<group>"; };
 		0325D2131C83D5B900F1B9BE /* U4DSphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSphere.h; sourceTree = "<group>"; };
+		0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBroadPhaseCollisionModelPair.mm; path = BoundaryVolumeHierarchy/U4DBroadPhaseCollisionModelPair.mm; sourceTree = "<group>"; };
+		0325D22D1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBroadPhaseCollisionModelPair.h; path = BoundaryVolumeHierarchy/U4DBroadPhaseCollisionModelPair.h; sourceTree = "<group>"; };
 		0327B19C1B0BBC370087BACC /* U4DBoundingAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingAABB.h; path = BoundingVolumes/U4DBoundingAABB.h; sourceTree = "<group>"; };
 		0327B19D1B0BBC370087BACC /* U4DBoundingAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingAABB.mm; path = BoundingVolumes/U4DBoundingAABB.mm; sourceTree = "<group>"; };
 		0327B19E1B0BBC370087BACC /* U4DBoundingOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingOBB.h; path = BoundingVolumes/U4DBoundingOBB.h; sourceTree = "<group>"; };
@@ -534,6 +537,8 @@
 			children = (
 				0314B0B61C6FC06D00EB8C34 /* BVHManager */,
 				0314B0B51C6FC05D00EB8C34 /* BVHTree */,
+				0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */,
+				0325D22D1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.h */,
 			);
 			name = BoundaryVolumeHierarchy;
 			sourceTree = "<group>";
@@ -1436,6 +1441,7 @@
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				03759BC6175B038C002EB5D9 /* U4DShaderManager.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
+				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,

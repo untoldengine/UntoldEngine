@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include "U4DBoundingVolume.h"
+#include "U4DSphere.h"
 
 namespace U4DEngine {
     
@@ -19,6 +20,7 @@ namespace U4DEngine {
     private:
         
         float radius;
+        U4DSphere sphere; //used for mathematical operaions only
         
     public:
         
@@ -39,6 +41,8 @@ namespace U4DEngine {
         U4DPoint3n getMaxBoundaryPoint();
         
         U4DPoint3n getMinBoundaryPoint();
+        
+        bool intesectionWithBoundingVolume(U4DBoundingSphere *uBoundingSphere);
         
     };
 

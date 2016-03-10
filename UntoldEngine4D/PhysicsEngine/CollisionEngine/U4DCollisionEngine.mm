@@ -13,6 +13,7 @@
 #include "U4DGJKAlgorithm.h"
 #include "U4DEPAAlgorithm.h"
 #include "U4DDynamicModel.h"
+#include "U4DBVHManager.h"
 
 namespace U4DEngine {
     
@@ -35,49 +36,107 @@ namespace U4DEngine {
         manifoldGenerationAlgorithm=uManifoldGenerationAlgorithm;
         
     }
-
-    void U4DCollisionEngine::addToCollisionContainer(U4DDynamicModel* uModel){
+    
+    void U4DCollisionEngine::setBoundaryVolumeHierarchyManager(U4DBVHManager* uBoundaryVolumeHierarchyManager){
         
-        modelCollection.push_back(uModel);
+        boundaryVolumeHierarchyManager=uBoundaryVolumeHierarchyManager;
         
     }
 
-    void U4DCollisionEngine::detectCollisions(float dt){
+    void U4DCollisionEngine::addToBroadPhaseCollisionContainer(U4DDynamicModel* uModel){
         
-        if (modelCollection.size()>1) {
+        boundaryVolumeHierarchyManager->addModelToTreeContainer(uModel);
+        
+    }
+    
+    void U4DCollisionEngine::detectBroadPhaseCollisions(float dt){
+        
+        //build bvh tree
+        boundaryVolumeHierarchyManager->buildBVH();
+        
+        //determine collisions
+        boundaryVolumeHierarchyManager->startCollision();
+        
+        //retrieve collision pairs
+        collisionPairs=boundaryVolumeHierarchyManager->getBroadPhaseCollisionPairs();
+        
+    }
+
+    void U4DCollisionEngine::detectNarrowPhaseCollision(float dt){
+        
+        
+        for (auto n:collisionPairs) {
             
-            if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
+            U4DDynamicModel *model1=n.model1;
+            U4DDynamicModel *model2 =n.model2;
+            
+            if (collisionAlgorithm->collision(model1, model2, dt)) {
                 
-                std::cout<<"Collision Occurred"<<std::endl;
+                std::cout<<"Narrow Phase Collision Occurred"<<std::endl;
                 
                 
                 //if collision occurred then
-                modelCollection.at(0)->setModelHasCollided(true);
-                modelCollection.at(1)->setModelHasCollided(true);
+                model1->setModelHasCollided(true);
+                model2->setModelHasCollided(true);
                 
                 //
                 
                 //Manifold Generation Algorithm
-                manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct(), collisionAlgorithm->getClosestPointToOrigin());
-            
+                manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), collisionAlgorithm->getClosestPointToOrigin());
+                
                 
                 //contact resolution
-                contactResolution(modelCollection.at(0), dt);
-                contactResolution(modelCollection.at(1), dt);
+                contactResolution(model1, dt);
+                contactResolution(model2, dt);
                 
                 
             }else{
-               
+                
                 //std::cout<<"Non-Collision Occurred"<<std::endl;
-                modelCollection.at(0)->setModelHasCollided(false);
-                modelCollection.at(1)->setModelHasCollided(false);
+                model1->setModelHasCollided(false);
+                model2->setModelHasCollided(false);
                 
             }
+                
         
         }
+        
+        
+        
+        
+//        if (modelCollection.size()>1) {
+//            
+//            if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
+//                
+//                std::cout<<"Collision Occurred"<<std::endl;
+//                
+//                
+//                //if collision occurred then
+//                modelCollection.at(0)->setModelHasCollided(true);
+//                modelCollection.at(1)->setModelHasCollided(true);
+//                
+//                //
+//                
+//                //Manifold Generation Algorithm
+//                manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct(), collisionAlgorithm->getClosestPointToOrigin());
+//            
+//                
+//                //contact resolution
+//                contactResolution(modelCollection.at(0), dt);
+//                contactResolution(modelCollection.at(1), dt);
+//                
+//                
+//            }else{
+//               
+//                //std::cout<<"Non-Collision Occurred"<<std::endl;
+//                modelCollection.at(0)->setModelHasCollided(false);
+//                modelCollection.at(1)->setModelHasCollided(false);
+//                
+//            }
+//        
+//        }
 
-        //NEED TO REMOVE THIS
-        modelCollection.clear();
+       
     }
     
     
@@ -144,26 +203,17 @@ namespace U4DEngine {
         uModel->setVelocity(velocityBody);
         
         uModel->setAngularVelocity(angularVelocityBody);
-       
-        
-        std::cout<<"impulse: "<<j<<std::endl;
-        
-        std::cout<<"Contact Points"<<std::endl;
-        contactPoint.show();
-        
-        std::cout<<"Line of Action"<<std::endl;
-        lineOfAction.show();
-        
-        std::cout<<"Velocity"<<std::endl;
-        uModel->getVelocity().show();
-        
-        std::cout<<"Angular Velocity"<<std::endl;
-        angularVelocityBody.show();
         
     }
     
     float U4DCollisionEngine::clip(float n, float lower, float upper) {
         return std::max(lower, std::min(n, upper));
+    }
+    
+    void U4DCollisionEngine::clearContainers(){
+        
+        boundaryVolumeHierarchyManager->clearContainers();
+        collisionPairs.clear();
     }
     
     /*

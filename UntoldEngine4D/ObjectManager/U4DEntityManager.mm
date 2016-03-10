@@ -40,6 +40,7 @@ namespace U4DEngine {
         
         //set the Broad Phase BVH Tree generation
         bvhTreeManager=new U4DBVHManager();
+        collisionEngine->setBoundaryVolumeHierarchyManager(bvhTreeManager);
         
         //set narrow Phase collision detection method
         collisionAlgorithm=new U4DGJKAlgorithm();
@@ -136,7 +137,7 @@ namespace U4DEngine {
                     if(model->isCollisionEnabled()==true){
 
                         //add child to collision bhv manager tree
-                        bvhTreeManager->addModel(model);
+                        collisionEngine->addToBroadPhaseCollisionContainer(model);
 
                     }
             }
@@ -144,38 +145,24 @@ namespace U4DEngine {
             child=child->next;
         }
 
-        bvhTreeManager->buildBVH();
-        
-        std::cout<<"STOP HERE"<<std::endl;
+        collisionEngine->detectBroadPhaseCollisions(dt);
         
         //BROAD PHASE COLLISION STARTS ENDS
         
 
-//        //COLLISION STAGE STARTS
-//        
-//        while (child!=NULL) {
-//            
-//            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
-//            
-//            if (model) {
-//                
-//                    if(model->isCollisionEnabled()==true){
-//                        
-//                        //add child to collision tree
-//                        collisionEngine->addToCollisionContainer(model);
-//                        
-//                    }
-//            }
-//            
-//            child=child->next;
-//        }
-//        
-//        //compute collision detection
-//        collisionEngine->detectCollisions(dt);
-//       
-//        
-//        //COLLISION STAGE ENDS
-//        
+        //NARROW COLLISION STAGE STARTS
+        
+        //compute collision detection
+        collisionEngine->detectNarrowPhaseCollision(dt);
+       
+        
+        //NARROW COLLISION STAGE ENDS
+
+        
+        //clean up all collision containers
+        collisionEngine->clearContainers();
+        
+        
         //update the physics
         child=rootEntity;
         while (child!=NULL) {

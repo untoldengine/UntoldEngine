@@ -12,7 +12,9 @@
 #include <stdio.h>
 #include <vector>
 #include <memory>
+#include "CommonProtocols.h"
 #include "U4DVector3n.h"
+#include "U4DBroadPhaseCollisionModelPair.h"
 
 namespace U4DEngine {
     
@@ -24,6 +26,7 @@ namespace U4DEngine {
     private:
         
         std::vector<U4DDynamicModel *> modelsContainer;
+        std::vector<U4DBroadPhaseCollisionModelPair> broadPhaseCollisionPairs;
         
     public:
         
@@ -45,11 +48,11 @@ namespace U4DEngine {
         
         void getBVHSplitIndex(U4DBVHTree *uNode);
         
-        void addModel(U4DDynamicModel* uModel);
+        void addModelToTreeContainer(U4DDynamicModel* uModel);
         
-        void clearModels();
+        void startCollision();
         
-        void broadPhaseCollision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
+        void collision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
         
         void heapSorting(U4DBVHTree *uNode);
         
@@ -63,7 +66,9 @@ namespace U4DEngine {
         
         bool descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
         
-        void cleanUp();
+        std::vector<U4DBroadPhaseCollisionModelPair> getBroadPhaseCollisionPairs();
+        
+        void clearContainers();
         
     };
     

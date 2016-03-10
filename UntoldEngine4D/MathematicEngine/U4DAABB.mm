@@ -46,7 +46,7 @@ namespace U4DEngine {
     }
     
     
-    bool U4DAABB::didCollideWithAABB(U4DAABB *uAABB){
+    bool U4DAABB::intersectionWithVolume(U4DAABB *uAABB){
         
         //Exit with no intersection if separated along an axis
         

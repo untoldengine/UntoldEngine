@@ -50,7 +50,7 @@ namespace U4DEngine {
         
     }
     
-    bool U4DSphere::didCollideWithSphere(U4DSphere &uSphere){
+    bool U4DSphere::intersectionWithVolume(U4DSphere &uSphere){
         
         //Calculate squared distance between centers
         U4DVector3n distanceBetweenCentersVector=center-uSphere.center;

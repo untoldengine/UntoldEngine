@@ -34,7 +34,7 @@ namespace U4DEngine {
         U4DPoint3n getCenter();
         float getRadius();
         
-        bool didCollideWithSphere(U4DSphere &uSphere);
+        bool intersectionWithVolume(U4DSphere &uSphere);
         
     };
 

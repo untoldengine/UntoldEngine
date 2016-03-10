@@ -53,7 +53,7 @@ public:
      *
      *  @return true if intersection exist
      */
-    bool testOBBPlane(U4DPlane& uPlane);
+    bool intersectionWithVolume(U4DPlane& uPlane);
     
     /*!
      * @brief Test if OBB intersects OBB
@@ -63,7 +63,7 @@ public:
      * @return true if intersection exist;
      */
     
-    bool testOBBOBB(U4DOBB* uOBB);
+    bool intersectionWithVolume(U4DOBB* uOBB);
     
     /*!
      *  @brief  Given point uPoint, return point on (or in) OBB, closest to uPoint

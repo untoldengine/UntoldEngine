@@ -55,7 +55,7 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,0,0.0);
+    cube->init("Cube",-2.0,0,0.0);
     cube->setName("cube1");
 
     
@@ -75,7 +75,7 @@ void Earth::init(){
     cube->enableCollision();
     
     //set the coefficient of restitution to 0.8
-    cube->setCoefficientOfRestitution(0.8);
+    //cube->setCoefficientOfRestitution(0.8);
     
     //cube->setBroadPhaseBoundingVolumeVisibility(true);
     
@@ -85,13 +85,14 @@ void Earth::init(){
     
    
     cube2=new Town();
-    cube2->init("Cube",5,2,0);
+    cube2->init("Cube",-2,5,0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     //cube2->rotateBy(0.0, 0.0, -60.0);
     
-    //cube2->applyPhysics(true);
-    
+    cube2->applyPhysics(true);
+    //set the coefficient of restitution to 0.8
+    cube2->setCoefficientOfRestitution(0.8);
     cube2->enableCollision();
     //cube2->setBroadPhaseBoundingVolumeVisibility(true);
     
@@ -100,21 +101,27 @@ void Earth::init(){
     addChild(cube2);
     
     cube3=new Town();
-    cube3->init("Cube", 5, 0, 0);
+    cube3->init("Cube", 3, 0, 0);
     cube3->setShader("simpleShader");
     cube3->setName("cube3");
     cube3->enableCollision();
+    //cube3->setBroadPhaseBoundingVolumeVisibility(true);
     
     addChild(cube3);
     
 
     cube4=new Town();
-    cube4->init("Cube", 6, 0, 0);
+    cube4->init("Cube", 3, 5, 0);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
     cube4->enableCollision();
+    cube4->applyPhysics(true);
+    //set the coefficient of restitution to 0.8
+    cube4->setCoefficientOfRestitution(0.8);
+    //cube4->setBroadPhaseBoundingVolumeVisibility(true);
     
     addChild(cube4);
+    
 //
 //    
 //    cube5=new Town();

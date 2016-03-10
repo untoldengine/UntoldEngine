@@ -22,6 +22,7 @@ namespace U4DEngine {
     
     
     U4DBoundingSphere::U4DBoundingSphere(const U4DBoundingSphere& value){
+        
         radius=value.radius;
     };
     
@@ -102,4 +103,22 @@ namespace U4DEngine {
         
     }
 
+    bool U4DBoundingSphere::intesectionWithBoundingVolume(U4DBoundingSphere *uBoundingSphere){
+    
+        //update the sphere information with bounding sphere
+        U4DPoint3n centerBoundingSphere1=getLocalPosition().toPoint();
+        sphere.setRadius(radius);
+        sphere.setCenter(centerBoundingSphere1);
+        
+        //update the sphere2 information with bounding sphere2
+        U4DPoint3n centerBoundingSphere2=uBoundingSphere->getLocalPosition().toPoint();
+        uBoundingSphere->sphere.setRadius(uBoundingSphere->radius);
+        uBoundingSphere->sphere.setCenter(centerBoundingSphere2);
+        
+        
+        return sphere.intersectionWithVolume(uBoundingSphere->sphere);
+        
+    }
+    
+    
 }
