@@ -37,7 +37,6 @@ namespace U4DEngine {
         U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
         
         r=uModel1->getVelocity()-uModel2->getVelocity();
-        
         r.normalize();
         
         U4DVector3n dir(1,1,1);
@@ -68,7 +67,6 @@ namespace U4DEngine {
                         
                         return false;
                     }
-                    
                     
                     s=r*t;
                     
@@ -105,7 +103,6 @@ namespace U4DEngine {
         }
   
         
-        
         //set time of impact for each model.
         
         if (t<minimumTimeOfImpact) {
@@ -120,7 +117,7 @@ namespace U4DEngine {
             uModel2->setTimeOfImpact(t);
             
         }
-
+        
         //if the simplex container is 2, it is not enough to get the correct normal data.
         
         if (Q.size()<=2 || Q.size()>4) {
@@ -227,7 +224,7 @@ namespace U4DEngine {
         //Version 1 of the GJK
        
         
-        //clear Q
+//        //clear Q
 //        Q.clear();
 //        
 //        U4DPoint3n closestPtToOrigin(0,0,0);
@@ -235,8 +232,8 @@ namespace U4DEngine {
 //        U4DPoint3n tempV(0,0,0); //variable to store previous value of v
 //        std::vector<float> barycentricPoints; //barycentric points
 //        
-//        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
-//        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
+//        U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
+//        U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
 //        
 //        int iterationSteps=0; //to avoid infinite loop
 //        
@@ -298,8 +295,7 @@ namespace U4DEngine {
 //                uModel1->setCollisionContactPoint(contactPoint1);
 //                
 //                U4DVector3n contactPoint2=closestPointsModel2.toVector();
-//                contactPoint1.show();
-//                contactPoint2.show();
+//                
 //                uModel2->setCollisionContactPoint(contactPoint2);
 //                
 //                return true;

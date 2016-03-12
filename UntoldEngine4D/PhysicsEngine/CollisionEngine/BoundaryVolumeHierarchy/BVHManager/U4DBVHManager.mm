@@ -175,8 +175,6 @@ namespace U4DEngine{
             pairs.model1=uTreeLeftNode->getModelsContainer().at(0);
             pairs.model2=uTreeRightNode->getModelsContainer().at(0);
             
-            std::cout<<pairs.model1->getName()<<std::endl;
-            std::cout<<pairs.model2->getName()<<std::endl;
             broadPhaseCollisionPairs.push_back(pairs);
             
         }
@@ -289,7 +287,7 @@ namespace U4DEngine{
             
             float broadPhaseBoundingVolumePositionAlongVector=n->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());
             
-            float distance=std::abs(broadPhaseBoundingVolumePositionAlongVector-halfDistance);
+            float distance=broadPhaseBoundingVolumePositionAlongVector-halfDistance;
             
             tempVectorOfModelPosition.push_back(distance);
         

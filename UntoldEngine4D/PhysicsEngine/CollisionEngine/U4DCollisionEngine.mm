@@ -151,7 +151,8 @@ namespace U4DEngine {
         
         //get the contact point and line of action
         
-        U4DVector3n contactPoint=uModel->getCollisionContactPoint();
+        U4DVector3n contactPoint=uModel->getCollisionContactPoint()-uModel->getAbsolutePosition();
+        
         
         U4DVector3n lineOfAction=uModel->getCollisionNormalDirection();
         

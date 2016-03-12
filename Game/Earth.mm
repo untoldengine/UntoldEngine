@@ -53,93 +53,96 @@ void Earth::init(){
     //Set gravity here
     setGravity(gravity);
     
-    //create our object
-    cube=new Town();
-    cube->init("Cube",-2.0,0,0.0);
-    cube->setName("cube1");
-
-    
-    
-    //cube->rotateBy(40.0, 20.0, 260.0);
-    
-    cube->setMass(1.0);
-    U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
-    
-    cube->setCenterOfMass(centerOfMass);
-    cube->setShader("simpleRedShader");
-    
-    //Apply physics engine to the object
-    //cube->applyPhysics(true);
-    
-    //Apply the collision engine to the object
-    cube->enableCollision();
-    
-    //set the coefficient of restitution to 0.8
-    //cube->setCoefficientOfRestitution(0.8);
-    
-    //cube->setBroadPhaseBoundingVolumeVisibility(true);
-    
-    
-    
-    addChild(cube);
-    
-   
-    cube2=new Town();
-    cube2->init("Cube",-2,5,0);
-    cube2->setShader("simpleShader");
-    cube2->setName("cube2");
-    //cube2->rotateBy(0.0, 0.0, -60.0);
-    
-    cube2->applyPhysics(true);
-    //set the coefficient of restitution to 0.8
-    cube2->setCoefficientOfRestitution(0.8);
-    cube2->enableCollision();
-    //cube2->setBroadPhaseBoundingVolumeVisibility(true);
-    
-
-    
-    addChild(cube2);
-    
-    cube3=new Town();
-    cube3->init("Cube", 3, 0, 0);
-    cube3->setShader("simpleShader");
-    cube3->setName("cube3");
-    cube3->enableCollision();
-    //cube3->setBroadPhaseBoundingVolumeVisibility(true);
-    
-    addChild(cube3);
-    
-
-    cube4=new Town();
-    cube4->init("Cube", 3, 5, 0);
-    cube4->setShader("simpleShader");
-    cube4->setName("cube4");
-    cube4->enableCollision();
-    cube4->applyPhysics(true);
-    //set the coefficient of restitution to 0.8
-    cube4->setCoefficientOfRestitution(0.8);
-    //cube4->setBroadPhaseBoundingVolumeVisibility(true);
-    
-    addChild(cube4);
-    
+//    //create our object
+//    cube=new Town();
+//    cube->init("Cube",0.0,0,0.0);
+//    cube->setName("cube1");
 //
 //    
-//    cube5=new Town();
-//    cube5->init("Cube", 26, 2, 0);
-//    cube5->setShader("simpleShader");
-//    cube5->setName("cube5");
-//    cube5->enableCollision();
 //    
-//    addChild(cube5);
+//    //cube->rotateBy(40.0, 20.0, 260.0);
+//    
+//    cube->setMass(1.0);
+//    U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
+//    
+//    cube->setCenterOfMass(centerOfMass);
+//    cube->setShader("simpleRedShader");
+//    
+//    //Apply physics engine to the object
+//    //cube->applyPhysics(true);
+//    
+//    //Apply the collision engine to the object
+//    cube->enableCollision();
+//    
+//    //set the coefficient of restitution to 0.8
+//    //cube->setCoefficientOfRestitution(0.8);
+//    
+//    cube->setBroadPhaseBoundingVolumeVisibility(true);
+//    
+//    
+//    
+//    addChild(cube);
+//    
+//   
+//    cube2=new Town();
+//    cube2->init("Cube",0,5,0);
+//    cube2->setShader("simpleShader");
+//    cube2->setName("cube2");
+//    //cube2->rotateBy(0.0, 0.0, -60.0);
+//    
+//    cube2->applyPhysics(true);
+//    //set the coefficient of restitution to 0.8
+//    cube2->setCoefficientOfRestitution(0.8);
+//    cube2->enableCollision();
+//    cube2->setBroadPhaseBoundingVolumeVisibility(true);
+//    
+//
+//    
+//    addChild(cube2);
+//    
+//    cube3=new Town();
+//    cube3->init("Cube", 3, 0, 0);
+//    cube3->setShader("simpleShader");
+//    cube3->setName("cube3");
+//    cube3->enableCollision();
+//    cube3->setBroadPhaseBoundingVolumeVisibility(true);
+//    
+//    addChild(cube3);
+//    
+//
+//    cube4=new Town();
+//    cube4->init("Cube", 3, 4, 0);
+//    cube4->setShader("simpleShader");
+//    cube4->setName("cube4");
+//    cube4->enableCollision();
+//    cube4->applyPhysics(true);
+//    //set the coefficient of restitution to 0.8
+//    cube4->setCoefficientOfRestitution(0.8);
+//    cube4->setBroadPhaseBoundingVolumeVisibility(true);
+//    
+//    addChild(cube4);
+
 
     
-//    cube6=new Town();
-//    cube6->init("Cube", 8, 1, 0);
-//    cube6->setShader("simpleShader");
-//    cube6->setName("cube6");
-//    cube6->enableCollision();
-//    
-//    addChild(cube6);
+    cube5=new Town();
+    cube5->init("Cube", -5, 0, 0);
+    cube5->setShader("simpleShader");
+    cube5->setName("cube5");
+    cube5->enableCollision();
+    
+    addChild(cube5);
+
+    
+    cube6=new Town();
+    cube6->init("Cube", -5, 7, 0);
+    cube6->setShader("simpleShader");
+    cube6->setName("cube6");
+    cube6->enableCollision();
+    cube6->applyPhysics(true);
+    //set the coefficient of restitution to 0.8
+    cube6->setCoefficientOfRestitution(0.8);
+    
+    addChild(cube6);
     
     /*
     
