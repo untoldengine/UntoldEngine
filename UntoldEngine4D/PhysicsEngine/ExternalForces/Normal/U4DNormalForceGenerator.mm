@@ -21,11 +21,9 @@ namespace U4DEngine {
     
     void U4DNormalForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
         
-
         U4DVector3n normalDirection=uModel->getCollisionNormalDirection();
-        
-        normalForce=normalDirection*(normalDirection.dot(gravity*uModel->getMass()*-1.0));
-        
+
+        normalForce=gravity*uModel->getMass()*-1.0;
         
         uModel->addForce(normalForce);
         

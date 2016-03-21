@@ -37,7 +37,7 @@ namespace U4DEngine {
             
             normalForce.updateForce(uModel, dt);
                 
-            torqueForce.updateForce(uModel, dt);
+            //torqueForce.updateForce(uModel, dt);
             
         }
         

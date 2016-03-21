@@ -263,6 +263,13 @@ namespace U4DEngine {
         
         std::cout<<"("<<x<<","<<y<<","<<z<<")"<<std::endl;
     }
+    
+    void U4DVector3n::show(std::string uString){
+        
+        std::cout<<uString<<std::endl;
+        std::cout<<"("<<x<<","<<y<<","<<z<<")"<<std::endl;
+        
+    }
 
     float U4DVector3n::getX(){
         

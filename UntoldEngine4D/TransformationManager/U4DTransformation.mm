@@ -296,22 +296,7 @@ void U4DTransformation::rotateAboutAxis(U4DQuaternion& uOrientation, U4DVector3n
     
     //start of rotation
     
-    //normalize the axis
-    //axisOrientation.normalize();
-    
     U4DQuaternion rotation(uOrientation);
-    
-    //THIS HAS TO BE HAMILTON
-    /*
-     rotation.convertToUnitNormQuaternion();
-    
-    
-    if (uEntity->getEntityType()==MODEL) {
-        
-        rotation=rotation*worldTransform;
-        
-    }
-    */
     
     //get the current translation
     U4DQuaternion t=uEntity->getLocalSpaceTranslation();

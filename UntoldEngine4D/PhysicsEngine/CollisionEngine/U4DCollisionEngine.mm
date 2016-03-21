@@ -72,14 +72,9 @@ namespace U4DEngine {
             
             if (collisionAlgorithm->collision(model1, model2, dt)) {
                 
-                std::cout<<"Narrow Phase Collision Occurred"<<std::endl;
-                
-                
                 //if collision occurred then
                 model1->setModelHasCollided(true);
                 model2->setModelHasCollided(true);
-                
-                //
                 
                 //Manifold Generation Algorithm
                 manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), collisionAlgorithm->getClosestPointToOrigin());
@@ -88,54 +83,11 @@ namespace U4DEngine {
                 //contact resolution
                 contactResolution(model1, dt);
                 contactResolution(model2, dt);
-                
-                
-            }else{
-                
-                //std::cout<<"Non-Collision Occurred"<<std::endl;
-                model1->setModelHasCollided(false);
-                model2->setModelHasCollided(false);
+                    
                 
             }
                 
-        
         }
-        
-        
-        
-        
-//        if (modelCollection.size()>1) {
-//            
-//            if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
-//                
-//                std::cout<<"Collision Occurred"<<std::endl;
-//                
-//                
-//                //if collision occurred then
-//                modelCollection.at(0)->setModelHasCollided(true);
-//                modelCollection.at(1)->setModelHasCollided(true);
-//                
-//                //
-//                
-//                //Manifold Generation Algorithm
-//                manifoldGenerationAlgorithm->determineCollisionManifold(modelCollection.at(0), modelCollection.at(1), collisionAlgorithm->getCurrentSimpleStruct(), collisionAlgorithm->getClosestPointToOrigin());
-//            
-//                
-//                //contact resolution
-//                contactResolution(modelCollection.at(0), dt);
-//                contactResolution(modelCollection.at(1), dt);
-//                
-//                
-//            }else{
-//               
-//                //std::cout<<"Non-Collision Occurred"<<std::endl;
-//                modelCollection.at(0)->setModelHasCollided(false);
-//                modelCollection.at(1)->setModelHasCollided(false);
-//                
-//            }
-//        
-//        }
-
        
     }
     
@@ -149,14 +101,14 @@ namespace U4DEngine {
         uModel->clearForce();
         uModel->clearMoment();
         
+        //set timestep for model
+        dt=dt*uModel->getTimeOfImpact();
+        
         //get the contact point and line of action
         
         U4DVector3n contactPoint=uModel->getCollisionContactPoint()-uModel->getAbsolutePosition();
         
-        
         U4DVector3n lineOfAction=uModel->getCollisionNormalDirection();
-        
-        U4DVector3n normContactPoint=lineOfAction*contactPoint.dot(lineOfAction);
         
         //get the velocity model
         /*
@@ -177,11 +129,9 @@ namespace U4DEngine {
          */
         
         
-        float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(normContactPoint.cross(lineOfAction)).cross(normContactPoint)));
+        float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
         
-        //clip j
-        j=clip(j, -10.0, 10.0);
-
+        
         /*
          
          V1after=V1before+(|J|n)/m
@@ -189,7 +139,7 @@ namespace U4DEngine {
          */
         
         
-        velocityBody=(lineOfAction*j)/uModel->getMass();
+        velocityBody=uModel->getVelocity()+(lineOfAction*j)/uModel->getMass();
         
         
         /*
@@ -198,18 +148,19 @@ namespace U4DEngine {
          */
         
         
-        angularVelocityBody=uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction));
-        
+        angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction*j));
         
         uModel->setVelocity(velocityBody);
         
         uModel->setAngularVelocity(angularVelocityBody);
         
+        //determine if the motion of the body is too low and set body to sleep
+        float currentMotion=velocityBody.magnitudeSquare()+angularVelocityBody.magnitudeSquare();
+        
+        uModel->setMotion(currentMotion,dt);
+        
     }
     
-    float U4DCollisionEngine::clip(float n, float lower, float upper) {
-        return std::max(lower, std::min(n, upper));
-    }
     
     void U4DCollisionEngine::clearContainers(){
         

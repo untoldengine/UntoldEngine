@@ -104,8 +104,6 @@ namespace U4DEngine {
             
             float getCoefficientOfRestitution();
             
-            void setInertiaTensor(float uRadius);
-            
             void setInertiaTensor(float uLength, float uWidth, float uHeight);
             
             U4DMatrix3n getMomentOfInertiaTensor();

@@ -66,7 +66,6 @@ namespace U4DEngine {
         
         void clearContainers();
         
-        float clip(float n, float lower, float upper);
     };
 
 }

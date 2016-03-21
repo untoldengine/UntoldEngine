@@ -108,7 +108,7 @@ public:
     U4DVector3n transform(const U4DVector3n& v) const;
     
     /**
-     *  Multiply vectors
+     *  Multiply matrix
      *
      *  @param m matrix
      *
@@ -117,7 +117,7 @@ public:
     U4DMatrix3n operator*(const U4DMatrix3n& m) const;
     
     /**
-     *  Multiply vectors
+     *  Multiply matrix
      *
      *  @param m matrix
      */

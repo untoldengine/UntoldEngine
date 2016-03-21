@@ -169,7 +169,6 @@ namespace U4DEngine{
         
     
         if (collisionOccurred) {
-            std::cout<<"Broad Phase Collision Occurred"<<std::endl;
             
             U4DBroadPhaseCollisionModelPair pairs;
             pairs.model1=uTreeLeftNode->getModelsContainer().at(0);

@@ -95,19 +95,6 @@ namespace U4DEngine {
 
     #pragma mark-inertia tensor
     //set and get the intertia tensor
-     
-     
-    void U4DStaticModel::setInertiaTensor(float uRadius){
-
-    U4DMatrix3n tensor;
-
-    //	0	3	6
-    //	1	4	7
-    //	2	5	8
-
-
-
-    }
 
     void U4DStaticModel::setInertiaTensor(float uX, float uY, float uZ){
         

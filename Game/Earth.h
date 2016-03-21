@@ -29,6 +29,15 @@ private:
     Town *cube5;
     Town *cube6;
     
+    Town *cube7;
+    Town *cube8;
+    
+    Town *cube9;
+    
+    Town *cube10;
+    Town *cube11;
+    Town *cube12;
+    
     int rotation;
 public:
    

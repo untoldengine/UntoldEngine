@@ -47,9 +47,8 @@ namespace U4DEngine {
         
         int iterationSteps=0;
         
-        while (iterationSteps<25) {
+        while (iterationSteps<10) {
 
-            
             dir=v.minkowskiPoint.toVector();
             
             dir.negate();
@@ -125,7 +124,7 @@ namespace U4DEngine {
         }
         
         if (t<U4DEngine::collisionTimeEpsilon) {
-           
+            
             //Set contact normal
             contactNormal.normalize();
             U4DVector3n lineOfAction=uModel2->getAbsolutePosition()-uModel1->getAbsolutePosition();
