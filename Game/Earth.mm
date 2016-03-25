@@ -296,15 +296,15 @@ void Earth::init(){
 
 void Earth::update(double dt){
 
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    
-    camera->rotateTo(0.0,rotation,0.0);
-    
-    rotation++;
-    
-    if (rotation>360) {
-        rotation=0;
-    }
+//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+//    
+//    camera->rotateTo(0.0,rotation,0.0);
+//    
+//    rotation++;
+//    
+//    if (rotation>360) {
+//        rotation=0;
+//    }
     
 }
 

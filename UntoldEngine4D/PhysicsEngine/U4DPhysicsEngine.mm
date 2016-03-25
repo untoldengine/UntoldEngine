@@ -41,7 +41,8 @@ namespace U4DEngine {
             
         }
         
-        dragForce.updateForce(uModel,dt);
+        
+        //dragForce.updateForce(uModel,dt);
         
         //Integrate
         integrate(uModel, dt);

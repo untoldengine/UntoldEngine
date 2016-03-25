@@ -150,6 +150,7 @@ namespace U4DEngine {
         
         angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction*j));
         
+        
         uModel->setVelocity(velocityBody);
         
         uModel->setAngularVelocity(angularVelocityBody);
