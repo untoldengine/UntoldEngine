@@ -17,8 +17,7 @@
 #include "MyCharacter.h"
 #include "U4DBoundingAABB.h"
 #include "U4DMatrix3n.h"
-#include "U4DImage.h"
-#include "U4DMultiImage.h"
+
 #include "U4DButton.h"
 #include "U4DSkyBox.h"
 #include "U4DTouches.h"
@@ -28,36 +27,22 @@
 #include "GameController.h"
 #include "U4DSprite.h"
 #include "U4DSpriteLoader.h"
-
-
-#include "U4DFont.h"
-#include "U4DBoundingSphere.h"
-#include "U4DBoundingOBB.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingAABB.h"
-
 #include "U4DDigitalAssetLoader.h"
-#include "U4DFontLoader.h"
 #include "U4DLights.h"
 #include "U4DDebugger.h"
-#include "U4DAnimation.h"
-#include "U4DSpriteAnimation.h"
 #include "Town.h"
-#include "U4DPlane.h"
-#include "U4DOBB.h"
 #include "U4DPoint3n.h"
-#include "U4DTetrahedron.h"
-#include "U4DSegment.h"
-#include "U4DTriangle.h"
-#include "U4DConvexPolygon.h"
+#include "U4DAABB.h"
+#include "U4DBoundingSphere.h"
 
+#include "U4DBVHTree.h"
 
 void Earth::init(){
-    
+
     //U4DDebugger *debugger=new U4DDebugger();
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->translateBy(0.0, -2.0, -7.0);
+    camera->translateBy(0.0, -2.0, -9.0);
     //camera->rotateBy(10.0,-15.0,0.0);
     
     setName("earth");
@@ -70,10 +55,12 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,3.5,0.0);
-    cube->setName("falling");
+    cube->init("Cube",0.0,0,0.0);
+    cube->setName("cube1");
+
     
-    //cube->rotateBy(0.0, 0.0, 260.0);
+    
+    //cube->rotateBy(40.0, 20.0, 260.0);
     
     cube->setMass(1.0);
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
@@ -81,33 +68,99 @@ void Earth::init(){
     cube->setCenterOfMass(centerOfMass);
     cube->setShader("simpleRedShader");
     
-    cube->computeConvexHullVertices();
-    
     //Apply physics engine to the object
-    cube->applyPhysics(true);
+    //cube->applyPhysics(true);
     
     //Apply the collision engine to the object
     cube->enableCollision();
     
     //set the coefficient of restitution to 0.8
-    cube->setCoefficientOfRestitution(0.8);
+    //cube->setCoefficientOfRestitution(0.8);
     
-    //cube->setBoundingBoxVisibility(true);
-    
-    addChild(cube);
-    
-   
+    //cube->setBroadPhaseBoundingVolumeVisibility(true);
+ 
     cube2=new Town();
-    cube2->init("Cube",0.0,0,0.0);
+    cube2->init("Cube",0.0,5,0);
     cube2->setShader("simpleShader");
-    cube2->setName("static");
+    cube2->setName("cube2");
     //cube2->rotateBy(0.0, 0.0, -60.0);
     
-    //cube2->applyPhysics(true);
-    cube2->computeConvexHullVertices();
+    cube2->applyPhysics(true);
+    cube2->setInertiaTensor(1.0,1.0,1.0);
+    //set the coefficient of restitution to 0.8
+    cube2->setCoefficientOfRestitution(0.8);
     cube2->enableCollision();
-    //cube2->setBoundingBoxVisibility(true);
+    //cube2->setBroadPhaseBoundingVolumeVisibility(true);
+    
+    
+    cube3=new Town();
+    cube3->init("SmallPyramid", 3, 0, -3);
+    cube3->setShader("simpleShader");
+    cube3->setName("cube3");
+    cube3->enableCollision();
+    //cube3->setBroadPhaseBoundingVolumeVisibility(true);
+    
+    
+    cube4=new Town();
+    cube4->init("SmallPyramid", 3, 4, -3);
+    cube4->setShader("simpleShader");
+    cube4->setName("cube4");
+    cube4->enableCollision();
+    cube4->applyPhysics(true);
+    //cube4->rotateBy(0.0, 0.0, -20.0);
+    //set the coefficient of restitution to 0.8
+    cube4->setCoefficientOfRestitution(0.8);
+    //cube4->setBroadPhaseBoundingVolumeVisibility(true);
+
+
+    cube5=new Town();
+    cube5->init("Pyramid", 5, 0, 1);
+    cube5->setShader("simpleShader");
+    cube5->setName("cube5");
+    cube5->enableCollision();
+    //cube5->setBroadPhaseBoundingVolumeVisibility(true);
+
+    
+    cube6=new Town();
+    cube6->init("Pyramid", 5, 7, 1);
+    cube6->setShader("simpleShader");
+    cube6->setName("cube6");
+    cube6->enableCollision();
+    cube6->applyPhysics(true);
+    //cube6->rotateBy(0.0, 0.0,30.0);
+    //set the coefficient of restitution to 0.8
+    cube6->setCoefficientOfRestitution(0.8);
+    //cube6->setBroadPhaseBoundingVolumeVisibility(true);
+    
+    
+    cube7=new Town();
+    cube7->init("Pyramid", -3, 0, 4);
+    cube7->setShader("simpleShader");
+    cube7->setName("cube7");
+    cube7->enableCollision();
+    //cube7->setBroadPhaseBoundingVolumeVisibility(true);
+    
+    
+    cube8=new Town();
+    cube8->init("Pyramid", -3, 7, 4);
+    cube8->setShader("simpleShader");
+    cube8->setName("cube8");
+    cube8->enableCollision();
+    cube8->applyPhysics(true);
+    //cube8->rotateBy(0.0, 0.0, 10.0);
+    //set the coefficient of restitution to 0.8
+    cube8->setCoefficientOfRestitution(0.8);
+    //cube8->setBroadPhaseBoundingVolumeVisibility(true);
+    
+    
+    addChild(cube);
     addChild(cube2);
+    addChild(cube3);
+    addChild(cube4);
+    addChild(cube5);
+    addChild(cube6);
+    addChild(cube7);
+    addChild(cube8);
     
     /*
     
@@ -243,13 +296,9 @@ void Earth::init(){
 
 void Earth::update(double dt){
 
-//    U4DEngine::U4DVector3n axix(0,0,1);
+//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 //    
-//    U4DEngine::U4DQuaternion axisOrientation(rotation,axix);
-//    
-//    U4DEngine::U4DVector3n axisPosition(-0.5,0.0,0.5);
-//    
-//    cube->rotateAboutAxis(axisOrientation, axisPosition);
+//    camera->rotateTo(0.0,rotation,0.0);
 //    
 //    rotation++;
 //    

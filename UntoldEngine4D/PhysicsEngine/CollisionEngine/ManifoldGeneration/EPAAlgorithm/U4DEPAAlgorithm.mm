@@ -20,8 +20,8 @@ namespace U4DEngine{
     void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n uClosestPointToOrigin){
         
         //get bounding volume for each model
-        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
-        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
+        U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
+        U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
         
         
         //blow up simplex to tetrahedron
@@ -50,9 +50,7 @@ namespace U4DEngine{
             U4DVector3n contactPoint2=closestPointsModel2.toVector();
             
             uModel2->setCollisionContactPoint(contactPoint1);
-            
-            contactPoint1.show();
-            contactPoint2.show();
+        
         }
         
         

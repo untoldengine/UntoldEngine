@@ -9,10 +9,11 @@
 #include "U4DStaticModel.h"
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingConvex.h"
+#include "U4DBoundingSphere.h"
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),boundingBoxVisibility(false),coefficientOfRestitution(1.0){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0){
         
         setMass(1.0);
         
@@ -22,8 +23,11 @@ namespace U4DEngine {
         
         setInertiaTensor(1.0,1.0,1.0);
         
-        //create the bounding convex volume
-        convexHullBoundingVolume=new U4DBoundingConvex();
+        //set the convex hull bounding volume to null
+        convexHullBoundingVolume=nullptr;
+        
+        //set the sphere bounding volume to null
+        sphereBoundingVolume=nullptr;
         
     }
     
@@ -91,19 +95,6 @@ namespace U4DEngine {
 
     #pragma mark-inertia tensor
     //set and get the intertia tensor
-     
-     
-    void U4DStaticModel::setInertiaTensor(float uRadius){
-
-    U4DMatrix3n tensor;
-
-    //	0	3	6
-    //	1	4	7
-    //	2	5	8
-
-
-
-    }
 
     void U4DStaticModel::setInertiaTensor(float uX, float uY, float uZ){
         
@@ -192,12 +183,6 @@ namespace U4DEngine {
      
      */
     
-    void U4DStaticModel::computeConvexHullVertices(){
-        
-        //determine the convex hull of the model
-        convexHullBoundingVolume->computeConvexHullVertices(this->bodyCoordinates.verticesContainer);
-        
-    }
     
     void U4DStaticModel::updateConvexHullVertices(){
         
@@ -205,7 +190,7 @@ namespace U4DEngine {
         
         //The position of the convex hull vertices are relative to the center of mass
         
-        for(auto convexHullVertices:getBoundingVolume()->getConvexHullVertices()){
+        for(auto convexHullVertices:getNarrowPhaseBoundingVolume()->getConvexHullVertices()){
             
             convexHullVertices=getAbsoluteMatrixOrientation()*convexHullVertices;
             convexHullVertices=convexHullVertices+getAbsolutePosition();
@@ -239,7 +224,31 @@ namespace U4DEngine {
     
     void U4DStaticModel::enableCollision(){
         
-        collisionEnabled=true;
+        //test if the bounding volume object was previously created
+        if(convexHullBoundingVolume==nullptr && sphereBoundingVolume==nullptr){
+            
+            //create the bounding convex volume
+            convexHullBoundingVolume=new U4DBoundingConvex();
+
+            //determine the convex hull of the model
+            convexHullBoundingVolume->computeConvexHullVertices(this->bodyCoordinates.verticesContainer);
+        
+            //create sphere bounding volume
+            sphereBoundingVolume=new U4DBoundingSphere();
+            
+            //calculate the sphere
+            sphereBoundingVolume->computeBoundingVolume(1.4, 10, 10);
+            
+            //enable collision
+            collisionEnabled=true;
+        
+        }else if(convexHullBoundingVolume!=nullptr && sphereBoundingVolume!=nullptr){
+            
+            collisionEnabled=true;
+            
+        }
+        
+        
     }
     
     void U4DStaticModel::pauseCollision(){
@@ -264,31 +273,63 @@ namespace U4DEngine {
     
     }
 
-    void U4DStaticModel::setBoundingBoxVisibility(bool uValue){
+    void U4DStaticModel::setNarrowPhaseBoundingVolumeVisibility(bool uValue){
         
-        boundingBoxVisibility=uValue;
+        narrowPhaseBoundingVolumeVisibility=uValue;
         
     }
     
-    bool U4DStaticModel::getBoundingBoxVisibility(){
+    bool U4DStaticModel::getNarrowPhaseBoundingVolumeVisibility(){
         
-        return boundingBoxVisibility;
+        return narrowPhaseBoundingVolumeVisibility;
     }
     
-    void U4DStaticModel::updateBoundingBoxSpace(){
+    void U4DStaticModel::updateNarrowPhaseBoundingVolumeSpace(){
         
         //update the bounding volume with the model current space dual quaternion (rotation and translation)
         convexHullBoundingVolume->setLocalSpace(absoluteSpace);
         
     }
     
-    U4DBoundingVolume* U4DStaticModel::getBoundingVolume(){
+    U4DBoundingVolume* U4DStaticModel::getNarrowPhaseBoundingVolume(){
         
-        //update the bounding box space
-        updateBoundingBoxSpace();
+        //update the narrow bounding volume space
+        updateNarrowPhaseBoundingVolumeSpace();
         
         return convexHullBoundingVolume;
     }
+    
+    
+    //Broad Phase Bounding Volume
+    
+    U4DBoundingVolume* U4DStaticModel::getBroadPhaseBoundingVolume(){
+        
+        //update the broad phase bounding volume space
+        updateBroadPhaseBoundingVolumeSpace();
+        
+        return sphereBoundingVolume;
+        
+    }
+    
+    void U4DStaticModel::setBroadPhaseBoundingVolumeVisibility(bool uValue){
+        
+        broadPhaseBoundingVolumeVisibility=uValue;
+        
+    }
+    
+    bool U4DStaticModel::getBroadPhaseBoundingVolumeVisibility(){
+        
+        return broadPhaseBoundingVolumeVisibility;
+    }
+    
+    void U4DStaticModel::updateBroadPhaseBoundingVolumeSpace(){
+        
+        //update the bounding volume with the model current space dual quaternion (rotation and translation)
+        sphereBoundingVolume->setLocalSpace(absoluteSpace);
+        
+    }
+    
+    
     
     void U4DStaticModel::setCollisionContactPoint(U4DVector3n& uContactPoint){
         

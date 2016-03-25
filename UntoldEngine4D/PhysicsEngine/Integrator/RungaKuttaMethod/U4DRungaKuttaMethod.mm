@@ -23,6 +23,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     //set timestep for model
     dt=dt*uModel->getTimeOfImpact();
     
+    
     //calculate the acceleration
     U4DVector3n linearAcceleration=(uModel->getForce())*(1/uModel->getMass());
     
@@ -34,6 +35,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     
     uModel->translateTo(displacementNew);
     uModel->setVelocity(velocityNew);
+
     
     //CALCULATE ANGULAR POSITION
     
@@ -58,36 +60,33 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
         orientationNew.normalize();
     }
     
-
+    
     //use the new orientation to rotate the object
     if(uModel->getModelHasCollided()){
         
         U4DVector3n axisOfRotation=uModel->getCollisionContactPoint();
         
         //set the new orientation and rotate
-        uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
+        //uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
         
+        uModel->setModelHasCollided(false);
         
     }else{
-    
+
         U4DVector3n axisOfRotation=uModel->getCenterOfMass();
         
         //set the new orientation and rotate
-        uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
-        
+        //uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
+
     }
 
     //set the new angular velocity
-    //uModel->setAngularVelocity(angularVelocityNew);
+    
+    uModel->setAngularVelocity(angularVelocityNew);
 
     //clear all forces and moments
     uModel->clearForce();
     uModel->clearMoment();
-    
-    //determine if the motion of the body is too low and set body to sleep
-    float currentMotion=velocityNew.magnitudeSquare()+angularVelocityNew.magnitudeSquare();
-    
-    uModel->setMotion(currentMotion,dt);
     
     uModel->resetTimeOfImpact();
 }
@@ -107,8 +106,6 @@ void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicModel *uModel,U4DVector
     //calculate new position
     uSnew=uModel->getLocalPosition()+uVnew*dt;
     
-
-    
 }
 
 void U4DRungaKuttaMethod::evaluateAngularAspect(U4DDynamicModel *uModel,U4DVector3n &uAngularAcceleration,float dt,U4DVector3n &uAngularVelocityNew,U4DQuaternion &uOrientationNew){
@@ -121,6 +118,7 @@ void U4DRungaKuttaMethod::evaluateAngularAspect(U4DDynamicModel *uModel,U4DVecto
     k2=(uAngularAcceleration+k1*0.5)*dt;
     k3=(uAngularAcceleration+k2*0.5)*dt;
     k4=(uAngularAcceleration+k3)*dt;
+
     
     //calculate new angular velocity
     uAngularVelocityNew=uModel->getAngularVelocity()+(k1+k2*2+k3*2+k4)*(rungaKuttaCorrectionCoefficient/6);

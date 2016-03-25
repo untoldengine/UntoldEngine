@@ -11,44 +11,40 @@
 
 #include <iostream>
 #include "U4DBoundingVolume.h"
+#include "U4DSphere.h"
 
 namespace U4DEngine {
     
-class U4DBoundingSphere:public U4DBoundingVolume{
-  
-private:
-    
-public:
-    
-   
-    U4DBoundingSphere(){}
-    
-    
-    ~U4DBoundingSphere(){}
-    
-   
-    U4DBoundingSphere(const U4DBoundingSphere& value){
-        radius=value.radius;
+    class U4DBoundingSphere:public U4DBoundingVolume{
+      
+    private:
+        
+        float radius;
+        U4DSphere sphere; //used for mathematical operaions only
+        
+    public:
+        
+        U4DBoundingSphere();
+        
+        ~U4DBoundingSphere();
+       
+        U4DBoundingSphere(const U4DBoundingSphere& value);
+        
+        U4DBoundingSphere& operator=(const U4DBoundingSphere& value);
+        
+        void computeBoundingVolume(float uRadius,int uRings, int uSectors);
+        
+        void setRadius(float uRadius);
+        
+        float getRadius();
+        
+        U4DPoint3n getMaxBoundaryPoint();
+        
+        U4DPoint3n getMinBoundaryPoint();
+        
+        bool intesectionWithBoundingVolume(U4DBoundingSphere *uBoundingSphere);
+        
     };
-    
-    
-    U4DBoundingSphere& operator=(const U4DBoundingSphere& value){
-        radius=value.radius;
-        return *this;
-    };
-    
-    
-    float radius;
-    
-   
-    U4DVector3n offset;
-    
-    
-    void initBoundingVolume(float uRadius,int uRings, int uSectors);
-    
-   
-   // void initSphere(float uRadius,U4DVector3n& uOffset,int uRings, int uSectors);
-};
 
 }
 

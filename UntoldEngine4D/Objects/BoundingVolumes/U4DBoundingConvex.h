@@ -34,9 +34,12 @@ namespace U4DEngine {
         U4DBoundingConvex& operator=(const U4DBoundingConvex& value);
         
         void computeConvexHullVertices(std::vector<U4DVector3n>& uVertices);
-        void initConvexHullRenderingVertices();
+        
+        void computeBoundingVolume();
         
         std::vector<U4DVector3n> getConvexHullVertices();
+        
+        U4DPoint3n getSupportPointInDirection(U4DVector3n& uDirection);
         
     };
     

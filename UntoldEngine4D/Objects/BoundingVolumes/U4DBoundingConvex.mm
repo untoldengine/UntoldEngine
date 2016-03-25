@@ -39,7 +39,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DBoundingConvex::initConvexHullRenderingVertices(){
+    void U4DBoundingConvex::computeBoundingVolume(){
         
         U4DVector3n xDirection(1,0,0);
         U4DVector3n yDirection(0,1,0);
@@ -65,13 +65,54 @@ namespace U4DEngine {
         }
         
         
-        setGeometry();
+        loadRenderingInformation();
         
     }
 
     std::vector<U4DVector3n> U4DBoundingConvex::getConvexHullVertices(){
         
         return bodyCoordinates.getVerticesDataFromContainer();
+    }
+    
+    U4DPoint3n U4DBoundingConvex::getSupportPointInDirection(U4DVector3n& uDirection){
+        
+        int index=0;
+        
+        std::vector<U4DVector3n> tempPolygonVertices;
+        
+        //copy polygon vertices into a temp container
+        tempPolygonVertices=bodyCoordinates.verticesContainer;
+        
+        //update the vertices with the orientation and translation
+        for (auto& vertex:tempPolygonVertices) {
+            
+            vertex=getAbsoluteMatrixOrientation()*vertex;
+            vertex=vertex+getAbsolutePosition();
+            
+        }
+        
+        float dotProduct=-FLT_MAX;
+        float support=0.0;
+        
+        //return the max dot product as the supporting vertex
+        for(int i=0;i<tempPolygonVertices.size();i++){
+            
+            U4DVector3n vertex=tempPolygonVertices.at(i);
+            
+            support=vertex.dot(uDirection);
+            
+            if(support>dotProduct){
+                
+                dotProduct=support;
+                index=i;
+            }
+            
+        }
+        
+        U4DVector3n supportVector=tempPolygonVertices.at(index);
+        
+        return supportVector.toPoint();
+        
     }
 
 

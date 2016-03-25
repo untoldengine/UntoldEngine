@@ -15,52 +15,52 @@
 
 namespace U4DEngine {
     
-class U4DBoundingAABB:public U4DBoundingVolume{
-  
-private:
-    
-public:
-    
-    
-    U4DBoundingAABB(){};
-    
-  
-    ~U4DBoundingAABB(){}
-    
-   
-    U4DBoundingAABB(const U4DBoundingAABB& value){};
+    class U4DBoundingAABB:public U4DBoundingVolume{
+      
+    private:
+        
+    public:
+        
+        
+        U4DBoundingAABB(){};
+        
+      
+        ~U4DBoundingAABB(){}
+        
+       
+        U4DBoundingAABB(const U4DBoundingAABB& value){};
 
-    
-    U4DBoundingAABB& operator=(const U4DBoundingAABB& value){
-        width=value.width;
-        height=value.height;
-        depth=value.depth;
         
-        min=value.min;
-        max=value.max;
+        U4DBoundingAABB& operator=(const U4DBoundingAABB& value){
+            width=value.width;
+            height=value.height;
+            depth=value.depth;
+            
+            min=value.min;
+            max=value.max;
+            
+            return *this;
+        };
         
-        return *this;
+        
+        float width;
+        
+        
+        float height;
+        
+        
+        float depth;
+        
+        
+        U4DVector3n min;
+        
+        
+        U4DVector3n max;
+        
+        
+        void computeBoundingVolume(U4DVector3n& uMin,U4DVector3n& uMax);
+        
     };
-    
-    
-    float width;
-    
-    
-    float height;
-    
-    
-    float depth;
-    
-    
-    U4DVector3n min;
-    
-    
-    U4DVector3n max;
-    
-    
-    void initBoundingVolume(U4DVector3n& uMin,U4DVector3n& uMax);
-    
-};
     
 }
 

@@ -63,11 +63,9 @@ public:
     U4DEntity *parent;
     
     U4DEntity *prevSibling;
-    
-    
+
     U4DEntity *next;
-    
-    
+        
     U4DEntity *lastDescendant;
     
     

@@ -30,6 +30,7 @@ namespace U4DEngine {
     class U4DCollisionAlgorithm;
     class U4DManifoldGeneration;
     class U4DVector3n;
+    class U4DBVHManager;
     
 }
 
@@ -54,6 +55,9 @@ namespace U4DEngine {
         U4DCollisionAlgorithm *collisionAlgorithm;
         
         U4DManifoldGeneration *manifoldGenerationAlgorithm;
+        
+        U4DBVHManager *bvhTreeManager;
+        
         
     public:
         

@@ -38,7 +38,7 @@ namespace U4DEngine {
             return *this;
         };
         
-        void initBoundingVolume(U4DVector3n& uHalfSpace);
+        void computeBoundingVolume(U4DVector3n& uHalfSpace);
       
        
     };

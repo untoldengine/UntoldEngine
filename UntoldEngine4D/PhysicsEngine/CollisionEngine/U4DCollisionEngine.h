@@ -10,15 +10,17 @@
 #define __UntoldEngine__U4DCollisionEngine__
 
 #include <iostream>
-#include "U4DEntityManager.h"
-#include "U4DCollisionAlgorithm.h"
-#include "U4DManifoldGeneration.h"
-#include "U4DDynamicModel.h"
 #include <vector>
+#include "CommonProtocols.h"
+#include "U4DBroadPhaseCollisionModelPair.h"
 
 namespace U4DEngine {
     
     class U4DEntityManager;
+    class U4DCollisionAlgorithm;
+    class U4DManifoldGeneration;
+    class U4DDynamicModel;
+    class U4DBVHManager;
 }
 
 namespace U4DEngine {
@@ -29,8 +31,9 @@ namespace U4DEngine {
         
         U4DCollisionAlgorithm *collisionAlgorithm;
         U4DManifoldGeneration *manifoldGenerationAlgorithm;
+        U4DBVHManager *boundaryVolumeHierarchyManager;
         
-        std::vector<U4DDynamicModel*> modelCollection;
+        std::vector<U4DBroadPhaseCollisionModelPair> collisionPairs;
         
     public:
         
@@ -43,9 +46,15 @@ namespace U4DEngine {
         
         void setManifoldGenerationAlgorithm(U4DManifoldGeneration* uManifoldGenerationAlgorithm);
         
-        void detectCollisions(float dt);
+        void setBoundaryVolumeHierarchyManager(U4DBVHManager* uBoundaryVolumeHierarchyManager);
         
-        void addToCollisionContainer(U4DDynamicModel* uModel);
+        void detectBroadPhaseCollisions(float dt);
+        
+        void detectNarrowPhaseCollision(float dt);
+        
+        void addToBroadPhaseCollisionContainer(U4DDynamicModel* uModel);
+        
+
         
         void contactResolution(U4DDynamicModel* uModel, float dt);
         
@@ -55,7 +64,8 @@ namespace U4DEngine {
         
         void remove(U4DDynamicModel *uModel);
         
-        float clip(float n, float lower, float upper);
+        void clearContainers();
+        
     };
 
 }

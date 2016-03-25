@@ -236,19 +236,19 @@ namespace U4DEngine {
         
         for (index=numValues/2-1; index>=0; index--) {
             
-            repheadDown(uBoneDataContainer,boneVertexWeightIndex,index,numValues-1);
+            reHeapDown(uBoneDataContainer,boneVertexWeightIndex,index,numValues-1);
         }
         
         //sort the array
         for (index=numValues-1; index>=1; index--) {
             
             swap(uBoneDataContainer,0,index);
-            repheadDown(uBoneDataContainer,boneVertexWeightIndex,0,index-1);
+            reHeapDown(uBoneDataContainer,boneVertexWeightIndex,0,index-1);
         }
         
     }
 
-    void U4DArmatureData::repheadDown(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex,int root, int bottom){
+    void U4DArmatureData::reHeapDown(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex,int root, int bottom){
         
         int maxChild;
         int rightChild;
@@ -277,7 +277,7 @@ namespace U4DEngine {
             if (uBoneDataContainer.at(root)->vertexWeightContainer.at(boneVertexWeightIndex)<uBoneDataContainer.at(maxChild)->vertexWeightContainer.at(boneVertexWeightIndex)) {
                 
                 swap(uBoneDataContainer,root,maxChild);
-                repheadDown(uBoneDataContainer,boneVertexWeightIndex,maxChild,bottom);
+                reHeapDown(uBoneDataContainer,boneVertexWeightIndex,maxChild,bottom);
             }
         }
         

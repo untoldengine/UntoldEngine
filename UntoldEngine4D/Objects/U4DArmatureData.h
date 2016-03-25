@@ -47,7 +47,7 @@ public:
     void setVertexWeightsAndBoneIndices();
     
     void prepareAndSendBoneDataToBuffer(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex);
-    void repheadDown(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex, int root, int bottom);
+    void reHeapDown(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex, int root, int bottom);
     void heapSorting(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex);
     void swap(std::vector<U4DBoneData*> &uBoneDataContainer,int uindex1, int uindex2);
     

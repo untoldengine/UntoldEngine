@@ -62,9 +62,15 @@ namespace U4DEngine {
             
             bool collisionEnabled;
             
-            bool boundingBoxVisibility;
-            
+            bool broadPhaseBoundingVolumeVisibility;
+        
+            bool narrowPhaseBoundingVolumeVisibility;
+        
+            //Narrow Phase Bounding Volume
             U4DBoundingVolume *convexHullBoundingVolume;
+        
+            //Broad Phase Bounding Volume
+            U4DBoundingVolume *sphereBoundingVolume;
         
             MassProperties massProperties;
         
@@ -98,8 +104,6 @@ namespace U4DEngine {
             
             float getCoefficientOfRestitution();
             
-            void setInertiaTensor(float uRadius);
-            
             void setInertiaTensor(float uLength, float uWidth, float uHeight);
             
             U4DMatrix3n getMomentOfInertiaTensor();
@@ -107,8 +111,6 @@ namespace U4DEngine {
             U4DMatrix3n getInverseMomentOfInertiaTensor();
             
             void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
-        
-            void computeConvexHullVertices();
         
             void updateConvexHullVertices();
         
@@ -127,15 +129,28 @@ namespace U4DEngine {
             bool isCollisionEnabled();
             
             void allowCollisionWith();
+        
+            //Narrow Phase Bounding Volume
+            U4DBoundingVolume* getNarrowPhaseBoundingVolume();
+        
+            void setNarrowPhaseBoundingVolumeVisibility(bool uValue);
             
-            void setBoundingBoxVisibility(bool uValue);
+            bool getNarrowPhaseBoundingVolumeVisibility();
             
-            bool getBoundingBoxVisibility();
+            void updateNarrowPhaseBoundingVolumeSpace();
+        
+        
+            //Broad Phase Bounding Volume
+        
+            U4DBoundingVolume* getBroadPhaseBoundingVolume();
+        
+            void setBroadPhaseBoundingVolumeVisibility(bool uValue);
             
-            void updateBoundingBoxSpace();
+            bool getBroadPhaseBoundingVolumeVisibility();
             
-            U4DBoundingVolume* getBoundingVolume();
-            
+            void updateBroadPhaseBoundingVolumeSpace();
+        
+        
             void setCollisionContactPoint(U4DVector3n& uContactPoint);
             
             void setCollisionNormalDirection(U4DVector3n& uNormalDirection);

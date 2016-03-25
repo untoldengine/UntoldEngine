@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0){
+    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),motion(0.0){
     };
     
 
@@ -97,13 +97,15 @@ namespace U4DEngine {
             isAwake=true;
             
             //add a bit of motion to avoid it falling asleep immediately
-            motion=sleepEpsilon*2;
+            //motion=sleepEpsilon*2.0;
             
         }else{
             
             isAwake=false;
             velocity.zero();
             angularVelocity.zero();
+            force.zero();
+            moment.zero();
             
         }
         
@@ -127,14 +129,14 @@ namespace U4DEngine {
         
         if (motion<sleepEpsilon) {
             
-           // setAwake(false);
+            setAwake(false);
             
             
-        }else if(motion>10*sleepEpsilon){
+        }else if(motion>sleepEpsilon){
             
-            motion=10*sleepEpsilon;
+            motion=sleepEpsilon;
             
-            //setAwake(true);
+            setAwake(true);
         }
         
     }

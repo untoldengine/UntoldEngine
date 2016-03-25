@@ -28,7 +28,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DOBB::testOBBPlane(U4DPlane& uPlane){
+    bool U4DOBB::intersectionWithVolume(U4DPlane& uPlane){
         
         //compute the projection interval radius of b onto L(t)
         
@@ -43,7 +43,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DOBB::testOBBOBB(U4DOBB* uOBB){
+    bool U4DOBB::intersectionWithVolume(U4DOBB* uOBB){
         
         float ra,rb;
         U4DMatrix3n R;

@@ -346,6 +346,8 @@ public:
     
     void show();
     
+    void show(std::string uString);
+    
     /*!
      *  @brief  returns the x component of the vector
      *

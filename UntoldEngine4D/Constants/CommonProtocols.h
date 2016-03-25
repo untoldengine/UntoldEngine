@@ -14,6 +14,7 @@
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
 
+
 namespace U4DEngine {
     
     typedef enum {
@@ -135,7 +136,6 @@ namespace U4DEngine {
         int n;
         
     }POLYTOPEFACES;
-
     
 }
 
