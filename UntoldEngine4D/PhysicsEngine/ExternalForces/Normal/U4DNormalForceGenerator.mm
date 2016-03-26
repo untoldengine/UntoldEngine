@@ -7,6 +7,7 @@
 //
 
 #include "U4DNormalForceGenerator.h"
+#include <cmath>
 
 namespace U4DEngine {
     
@@ -21,11 +22,13 @@ namespace U4DEngine {
     
     void U4DNormalForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
         
-        U4DVector3n normalDirection=uModel->getCollisionNormalDirection();
+        U4DVector3n normalFaceDirection=uModel->getCollisionNormalFaceDirection();
         
-        normalForce=normalDirection*(normalDirection.dot(gravity*uModel->getMass()*-1.0));
+        float mass=uModel->getMass();
         
-        normalDirection.show("Normal Direction");
+        float angle=gravity.angle(normalFaceDirection);
+        
+        U4DVector3n normalForce=gravity*mass*cos(angle)*-1.0;
         
         uModel->addForce(normalForce);
         

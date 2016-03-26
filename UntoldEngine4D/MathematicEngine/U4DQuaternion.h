@@ -14,7 +14,7 @@
 
 #include "U4DVector3n.h"
 #include "U4DVector3n.h"
-#include <math.h>
+#include <cmath>
 
 namespace U4DEngine {
 class U4DVector3n;

@@ -68,6 +68,9 @@ protected:
      */
     float motion;
     
+    /**
+     @brief Time of Impact
+     */
     float timeOfImpact;
     
 public:

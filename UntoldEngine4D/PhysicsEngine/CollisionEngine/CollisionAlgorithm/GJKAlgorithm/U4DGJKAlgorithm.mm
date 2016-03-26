@@ -127,16 +127,12 @@ namespace U4DEngine {
             
             //Set contact normal
             contactNormal.normalize();
-            U4DVector3n lineOfAction=uModel2->getAbsolutePosition()-uModel1->getAbsolutePosition();
-            lineOfAction.normalize();
             
-            //contactNormal=lineOfAction;
-            
-            uModel1->setCollisionNormalDirection(contactNormal);
+            uModel1->setCollisionNormalFaceDirection(contactNormal);
             
             U4DVector3n negateContactNormal=contactNormal*-1.0;
             
-            uModel2->setCollisionNormalDirection(negateContactNormal);
+            uModel2->setCollisionNormalFaceDirection(negateContactNormal);
             
             //reset time of impact
             uModel1->resetTimeOfImpact();

@@ -76,7 +76,7 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
         U4DVector3n axisOfRotation=uModel->getCenterOfMass();
         
         //set the new orientation and rotate
-        //uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
+        uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
 
     }
 

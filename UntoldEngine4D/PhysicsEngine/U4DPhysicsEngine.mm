@@ -36,18 +36,20 @@ namespace U4DEngine {
         if (uModel->getModelHasCollided()) {
             
             normalForce.updateForce(uModel, dt);
-                
+            
             //torqueForce.updateForce(uModel, dt);
             
         }
         
-        
+     
         //dragForce.updateForce(uModel,dt);
         
         //Integrate
         integrate(uModel, dt);
         
-     
+        //reset any collision information
+        uModel->resetCollisionInformation();
+        
     }
 
     #pragma mark-integrate
