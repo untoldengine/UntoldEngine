@@ -29,6 +29,9 @@ namespace U4DEngine {
         //set the sphere bounding volume to null
         sphereBoundingVolume=nullptr;
         
+        //set all collision information to zero
+        resetCollisionInformation();
+        
     }
     
     U4DStaticModel::~U4DStaticModel(){
@@ -337,11 +340,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DStaticModel::setCollisionNormalDirection(U4DVector3n& uNormalDirection){
-        
-        collisionProperties.contactManifoldProperties.normalDirection=uNormalDirection;
-    
-    }
     
     void U4DStaticModel::setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection){
         
@@ -354,15 +352,17 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DStaticModel::getCollisionContactPoint(){
+    void U4DStaticModel::resetCollisionInformation(){
         
-        return collisionProperties.contactManifoldProperties.contactPoint;
+        collisionProperties.contactManifoldProperties.contactPoint.zero();
+        collisionProperties.contactManifoldProperties.normalFaceDirection.zero();
+        collisionProperties.contactManifoldProperties.penetrationDepth=0.0;
         
     }
     
-    U4DVector3n U4DStaticModel::getCollisionNormalDirection(){
-     
-        return collisionProperties.contactManifoldProperties.normalDirection;
+    U4DVector3n U4DStaticModel::getCollisionContactPoint(){
+        
+        return collisionProperties.contactManifoldProperties.contactPoint;
         
     }
     

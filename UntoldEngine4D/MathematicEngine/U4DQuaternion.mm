@@ -10,7 +10,7 @@
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
 #include "Constants.h"
-#include <math.h>
+#include <cmath>
 
 namespace U4DEngine {
     

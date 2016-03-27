@@ -81,8 +81,8 @@ namespace U4DEngine {
                 
                 
                 //contact resolution
-                contactResolution(model1, dt);
-                contactResolution(model2, dt);
+                contactResolution(model1, dt*model1->getTimeOfImpact());
+                contactResolution(model2, dt*model2->getTimeOfImpact());
                     
                 
             }
@@ -108,7 +108,7 @@ namespace U4DEngine {
         
         U4DVector3n contactPoint=uModel->getCollisionContactPoint()-uModel->getAbsolutePosition();
         
-        U4DVector3n lineOfAction=uModel->getCollisionNormalDirection();
+        U4DVector3n lineOfAction=uModel->getCollisionNormalFaceDirection();
         
         //get the velocity model
         /*
@@ -153,12 +153,12 @@ namespace U4DEngine {
         
         uModel->setVelocity(velocityBody);
         
-        uModel->setAngularVelocity(angularVelocityBody);
+        //uModel->setAngularVelocity(angularVelocityBody);
         
         //determine if the motion of the body is too low and set body to sleep
-        float currentMotion=velocityBody.magnitudeSquare()+angularVelocityBody.magnitudeSquare();
-        
-        uModel->setMotion(currentMotion,dt);
+//        float currentMotion=velocityBody.magnitudeSquare()+angularVelocityBody.magnitudeSquare();
+//        
+//        uModel->setMotion(currentMotion,dt);
         
     }
     

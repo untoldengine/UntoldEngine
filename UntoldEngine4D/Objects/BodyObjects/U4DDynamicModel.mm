@@ -127,7 +127,7 @@ namespace U4DEngine {
         
         //prevent motion to shoot of the roof
         
-        if (motion<sleepEpsilon) {
+        if (motion<=sleepEpsilon) {
             
             setAwake(false);
             
