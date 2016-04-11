@@ -234,7 +234,7 @@ namespace U4DEngine {
             convexHullBoundingVolume=new U4DBoundingConvex();
 
             //determine the convex hull of the model
-            convexHullBoundingVolume->computeConvexHullVertices(this->bodyCoordinates.verticesContainer);
+            convexHullBoundingVolume->setConvexHullVertices(this->bodyCoordinates.convexHullContainer);
         
             //create sphere bounding volume
             sphereBoundingVolume=new U4DBoundingSphere();

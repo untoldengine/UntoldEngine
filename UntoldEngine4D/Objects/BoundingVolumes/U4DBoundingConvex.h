@@ -33,7 +33,7 @@ namespace U4DEngine {
         
         U4DBoundingConvex& operator=(const U4DBoundingConvex& value);
         
-        void computeConvexHullVertices(std::vector<U4DVector3n>& uVertices);
+        void setConvexHullVertices(std::vector<U4DVector3n>& uVertices);
         
         void computeBoundingVolume();
         
