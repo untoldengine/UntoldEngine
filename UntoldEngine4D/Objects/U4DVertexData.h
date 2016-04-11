@@ -36,6 +36,7 @@ namespace U4DEngine {
         std::vector<U4DVector3n> convexHullContainer;
         std::vector<U4DVector4n> vertexWeightsContainer;
         std::vector<U4DVector4n> boneIndicesContainer;
+        U4DVector3n modelDimension;
         
         void addVerticesDataToContainer(U4DVector3n& uData);
         void addNormalDataToContainer(U4DVector3n& uData);
@@ -45,9 +46,11 @@ namespace U4DEngine {
         void addConvexHullDataToContainer(U4DVector3n& uData);
         void addVertexWeightsToContainer(U4DVector4n& uData);
         void addBoneIndicesToContainer(U4DVector4n& uData);
+        void setModelDimension(U4DVector3n& uData);
         
         std::vector<U4DVector3n> getVerticesDataFromContainer();
         std::vector<U4DVector3n> getConvexHullDataFromContainer();
+        U4DVector3n getModelDimension();
     };
     
 }

@@ -101,6 +101,7 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *localMatrix=child->FirstChildElement("local_matrix");
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
                     tinyxml2::XMLElement *convexHull=child->FirstChildElement("convexHull");
+                    tinyxml2::XMLElement *dimension=child->FirstChildElement("dimension");
                     
                     //Set name
                     uModel->setName(meshName);
@@ -144,6 +145,11 @@ namespace U4DEngine {
                         std::string data=convexHull->GetText();
                         loadConvexHullData(uModel, data);
                         
+                    }
+                    
+                    if (dimension!=NULL) {
+                        std::string data=dimension->GetText();
+                        loadDimensionDataToBody(uModel, data);
                     }
                     
                     if (diffuseColor!=NULL) {
@@ -618,6 +624,24 @@ namespace U4DEngine {
             i=i+3;
             
         }
+        
+    }
+    
+    void U4DDigitalAssetLoader::loadDimensionDataToBody(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        float x=tempVector.at(0);
+        
+        float y=tempVector.at(1);
+        
+        float z=tempVector.at(2);
+        
+        U4DVector3n uDimension(x,y,z);
+        
+        uModel->bodyCoordinates.setModelDimension(uDimension);
         
     }
 
