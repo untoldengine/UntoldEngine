@@ -28,12 +28,12 @@ namespace U4DEngine {
     };
     
     
-    void U4DBoundingConvex::computeConvexHullVertices(std::vector<U4DVector3n>& uVertices){
+    void U4DBoundingConvex::setConvexHullVertices(std::vector<U4DVector3n>& uVertices){
+        
         
         for (auto vertex:uVertices) {
             
-            //load vertices-THIS IS TEMPORARY VERTEX INFORMATION
-            bodyCoordinates.addVerticesDataToContainer(vertex);
+            bodyCoordinates.addConvexHullDataToContainer(vertex);
             
         }
         
@@ -47,7 +47,7 @@ namespace U4DEngine {
         
         int currentVertexIndex=0;
         
-        std::vector<U4DVector3n> uVertices=bodyCoordinates.getVerticesDataFromContainer();
+        std::vector<U4DVector3n> uVertices=bodyCoordinates.getConvexHullDataFromContainer();
         
         for (auto vertex:uVertices) {
             
@@ -71,7 +71,7 @@ namespace U4DEngine {
 
     std::vector<U4DVector3n> U4DBoundingConvex::getConvexHullVertices(){
         
-        return bodyCoordinates.getVerticesDataFromContainer();
+        return bodyCoordinates.getConvexHullDataFromContainer();
     }
     
     U4DPoint3n U4DBoundingConvex::getSupportPointInDirection(U4DVector3n& uDirection){
@@ -81,7 +81,7 @@ namespace U4DEngine {
         std::vector<U4DVector3n> tempPolygonVertices;
         
         //copy polygon vertices into a temp container
-        tempPolygonVertices=bodyCoordinates.verticesContainer;
+        tempPolygonVertices=bodyCoordinates.convexHullContainer;
         
         //update the vertices with the orientation and translation
         for (auto& vertex:tempPolygonVertices) {

@@ -34,6 +34,10 @@ namespace U4DEngine {
         
         indexContainer.push_back(uData);
     }
+    
+    void U4DVertexData::addConvexHullDataToContainer(U4DVector3n& uData){
+        convexHullContainer.push_back(uData);
+    }
 
     void U4DVertexData::addVertexWeightsToContainer(U4DVector4n& uData){
         
@@ -51,6 +55,12 @@ namespace U4DEngine {
         
         return verticesContainer;
     
+    }
+    
+    std::vector<U4DVector3n> U4DVertexData::getConvexHullDataFromContainer(){
+        
+        return convexHullContainer;
+        
     }
 
 }

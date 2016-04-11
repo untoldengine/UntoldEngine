@@ -74,13 +74,13 @@ void Earth::init(){
  
     
     cube2=new Town();
-    cube2->init("Pyramid",0.0,5,0);
+    cube2->init("MiniCube",0.0,5,0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(0.0, 0.0, -30.0);
+    //cube2->rotateBy(0.0, 0.0, -60.0);
     
     cube2->applyPhysics(true);
-    cube2->setInertiaTensor(1.0,1.0,1.0);
+    
     //set the coefficient of restitution to 0.8
     cube2->setCoefficientOfRestitution(0.8);
     cube2->enableCollision();

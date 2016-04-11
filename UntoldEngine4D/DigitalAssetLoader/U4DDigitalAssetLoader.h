@@ -73,6 +73,8 @@ namespace U4DEngine {
         
         void loadIndexData(U4DModel *uModel,std::string uStringData);
         
+        void loadConvexHullData(U4DModel *uModel,std::string uStringData);
+        
         void loadTangentDataToBody(U4DModel *uModel);
         
         void loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData);

@@ -48,7 +48,7 @@ namespace U4DEngine {
         
         virtual void update(double dt){};
         
-        virtual void computeConvexHullVertices(std::vector<U4DVector3n>& uVertices){};
+        virtual void setConvexHullVertices(std::vector<U4DVector3n>& uVertices){};
         
         virtual std::vector<U4DVector3n> getConvexHullVertices(){};
         
