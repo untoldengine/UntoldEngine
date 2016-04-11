@@ -239,8 +239,9 @@ namespace U4DEngine {
             //create sphere bounding volume
             sphereBoundingVolume=new U4DBoundingSphere();
             
+            float dimension=sqrt(bodyCoordinates.getModelDimension().x);
             //calculate the sphere
-            sphereBoundingVolume->computeBoundingVolume(1.4, 10, 10);
+            sphereBoundingVolume->computeBoundingVolume(dimension, 10, 10);
             
             //enable collision
             collisionEnabled=true;

@@ -62,5 +62,16 @@ namespace U4DEngine {
         return convexHullContainer;
         
     }
+    
+    void U4DVertexData::setModelDimension(U4DVector3n& uData){
+        
+        modelDimension=uData;
+        
+    }
+    
+    U4DVector3n U4DVertexData::getModelDimension(){
+        
+        return modelDimension;
+    }
 
 }

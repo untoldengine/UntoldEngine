@@ -77,6 +77,8 @@ namespace U4DEngine {
         
         void loadTangentDataToBody(U4DModel *uModel);
         
+        void loadDimensionDataToBody(U4DModel *uModel,std::string uStringData);
+        
         void loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData);
         
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::string uStringData);
