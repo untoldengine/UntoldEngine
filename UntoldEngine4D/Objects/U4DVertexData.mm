@@ -63,6 +63,16 @@ namespace U4DEngine {
         
     }
     
+    void U4DVertexData::addEdgesDataToContainer(U4DSegment& uData){
+        
+        edgesContainer.push_back(uData);
+    }
+    
+    std::vector<U4DSegment> U4DVertexData::getEdgesDataFromContainer(){
+        
+        return edgesContainer;
+    }
+    
     void U4DVertexData::setModelDimension(U4DVector3n& uData){
         
         modelDimension=uData;

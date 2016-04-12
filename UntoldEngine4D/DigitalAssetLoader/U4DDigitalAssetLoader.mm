@@ -15,6 +15,7 @@
 #include "U4DModel.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector4n.h"
+#include "U4DSegment.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
 #include "U4DAnimation.h"
@@ -102,6 +103,7 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
                     tinyxml2::XMLElement *convexHull=child->FirstChildElement("convexHull");
                     tinyxml2::XMLElement *dimension=child->FirstChildElement("dimension");
+                    tinyxml2::XMLElement *edges=child->FirstChildElement("edges");
                     
                     //Set name
                     uModel->setName(meshName);
@@ -152,6 +154,11 @@ namespace U4DEngine {
                         loadDimensionDataToBody(uModel, data);
                     }
                     
+                    if (edges!=NULL) {
+                        std::string data=edges->GetText();
+                        loadEdgesData(uModel, data);
+                    }
+                    
                     if (diffuseColor!=NULL) {
                         
                         std::string diffuseColorString=diffuseColor->GetText();
@@ -159,7 +166,6 @@ namespace U4DEngine {
                         colorStringToVector(&uModel->materialInformation.diffuseMaterialColorContainer,diffuseColorString);
                         
                         uModel->setHasMaterial(true);
-                        
                         
                     }
                     
@@ -622,6 +628,39 @@ namespace U4DEngine {
             
             uModel->bodyCoordinates.addConvexHullDataToContainer(uVertices);
             i=i+3;
+            
+        }
+        
+    }
+    
+    void U4DDigitalAssetLoader::loadEdgesData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<int> tempVector;
+        
+        stringToInt(uStringData, &tempVector);
+        
+        //get the vertices of the model
+        std::vector<U4DVector3n> vertices=uModel->bodyCoordinates.getVerticesDataFromContainer();
+        
+        for (int i=0; i<tempVector.size();) {
+            
+            //get the index of the edge
+            int indexA=tempVector.at(i);
+            
+            int indexB=tempVector.at(i+1);
+            
+            //Get the vertex that corresponds to the index
+            
+            U4DVector3n a=vertices.at(indexA);
+            U4DVector3n b=vertices.at(indexB);
+            
+            U4DPoint3n pointA=a.toPoint();
+            U4DPoint3n pointB=b.toPoint();
+            
+            U4DSegment segment(pointA,pointB);
+            
+            uModel->bodyCoordinates.addEdgesDataToContainer(segment);
+            i=i+2;
             
         }
         
