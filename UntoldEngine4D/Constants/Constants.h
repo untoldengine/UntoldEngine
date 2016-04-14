@@ -21,6 +21,7 @@ namespace U4DEngine {
     const float velocityEpsilon=0.0005;
     const float barycentricEpsilon=1.0;
     const float timeStep=0.01;
+    const float zeroEpsilon=1.0e-4f;
 }
 
 #define DegreesToRad(angle) angle*M_PI/180
