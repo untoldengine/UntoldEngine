@@ -12,106 +12,130 @@
 
 namespace U4DEngine {
     
-U4DPlane::U4DPlane(U4DVector3n& uPoint1, U4DVector3n& uPoint2, U4DVector3n& uPoint3){
-    
-    n=(uPoint2-uPoint1).cross(uPoint3-uPoint1);
-    
-    d=n.dot(uPoint1);
-    
-}
+    //given three noncollinear points (ordered CCW), compute plane equation
+    U4DPlane::U4DPlane(U4DPoint3n& uPoint1, U4DPoint3n& uPoint2, U4DPoint3n& uPoint3){
+        
+        n=(uPoint1-uPoint2).cross(uPoint1-uPoint3);
+        
+        d=n.dot(uPoint1.toVector());
+        
+    }
 
-U4DPlane::U4DPlane(U4DVector3n& uNormal, float uDistance){
-    
-    n=uNormal;
-    
-    d=uDistance;
-}
+    U4DPlane::U4DPlane(U4DVector3n& uNormal, float uDistance){
+        
+        n=uNormal;
+        
+        d=uDistance;
+        
+    }
 
-U4DPlane::U4DPlane(U4DVector3n& uNormal, U4DVector3n& uPoint){
+    //compute plane equation
+    U4DPlane::U4DPlane(U4DVector3n& uNormal, U4DPoint3n& uPoint){
+     
+        n=uNormal;
+        
+        d=n.dot(uPoint.toVector());
+        
+    }
+    
+    U4DPlane::~U4DPlane(){}
+    
+    U4DPlane::U4DPlane(const U4DPlane& a):n(a.n),d(a.d){}
+    
+    U4DPlane& U4DPlane::operator=(const U4DPlane& a){
+        
+        n=a.n;
+        d=a.d;
+        
+        return *this;
+        
+    };
+
+
+    U4DPoint3n U4DPlane::closestPointToPlane(U4DPoint3n& uPoint){
+        
+        U4DPoint3n q;
+        
+        float t=(n.dot(uPoint.toVector())-d)/(n.dot(n));
+        
+        q=(uPoint.toVector()-n*t).toPoint();
+        
+        return q;
+        
+    }
+
+    float U4DPlane::distPointToPlane(U4DPoint3n& uPoint){
+        
+        return (n.dot(uPoint.toVector())-d)/(n.magnitude());
+    }
+    
+    float U4DPlane::distPointToPlaneSquare(U4DPoint3n& uPoint){
+        
+        return (n.dot(uPoint.toVector())-d)/(n.magnitudeSquare());
+        
+    }
+    
+    bool U4DPlane::intersectSegment(U4DSegment& uSegment, U4DPoint3n& uIntersectionPoint){
+        
+        U4DVector3n pointAB=uSegment.pointA-uSegment.pointB;
+        
+        float t=(d-n.dot(uSegment.pointA.toVector()))/(n.dot(pointAB));
+        
+        //if t>0 compute and return intersection point
+        if(t>=0.0f && t<=1.0){
+            
+            uIntersectionPoint=(uSegment.pointA.toVector()+pointAB*t).toPoint();
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    bool U4DPlane::intersectPlane(U4DPlane& uPlane, U4DPoint3n& uIntersectionPoint, U4DVector3n& uIntersectionVector){
+        
+
+        //compute direction of intersection line
+        U4DVector3n direction=n.cross(uPlane.n);
+        
+        //if denom is zero, the planes are parallel (and separated) or coincident, so they're not considered intersecting
+        
+        float denom=direction.dot(direction);
+        
+        if (denom<U4DEngine::zeroEpsilon) {
+            
+            return false;
+        
+        }
+        
+        //compute point on intersection line
+        uIntersectionPoint=((uPlane.n*d-n*uPlane.d).cross(direction)/denom).toPoint();
+      
+        //set direction as intersection vector
+        uIntersectionVector=direction;
+        
+        return true;
+    }
  
-    n=uNormal;
-    
-    d=uNormal.dot(uPoint);
-    
-}
-
-U4DVector3n U4DPlane::intersectSegmentPlane(U4DVector3n& uPointA, U4DVector3n& uPointB){
-    
-    U4DVector3n pointAB=uPointB-uPointA;
-    
-    U4DVector3n intersectionPoint(0,0,0);
-    
-    float t=(d-n.dot(uPointA))/(n.dot(pointAB));
-    
-    if(t>=0.0f && t <=1.0){
+    //compute the point at which the three planes intersect (if at all)
+    bool U4DPlane::intersectPlanes(U4DPlane& uPlane2, U4DPlane& uPlane3, U4DPoint3n& uIntersectionPoint){
+       
+        U4DVector3n u=uPlane2.n.cross(uPlane3.n);
         
-        intersectionPoint=uPointA+pointAB*t;
-    }
-    
-    return intersectionPoint;
-}
-
-U4DVector3n U4DPlane::closestPointToPlane(U4DVector3n& uPoint){
-    
-    U4DVector3n q;
-    
-    float t=(n.dot(uPoint)-d)/(n.magnitude());
-    
-    q=uPoint-n*t;
-    
-    return q;
-    
-}
-
-float U4DPlane::distPointToPlane(U4DVector3n& uPoint){
-    
-    return (n.dot(uPoint)-d)/(n.magnitude());
-}
-
-U4DVector3n U4DPlane::intersetPlanes(U4DPlane& uPlane){
-    
-    U4DVector3n uPoint;
-    
-    //compute direction of intersection line
-    U4DVector3n direction=n.cross(uPlane.n);
-    
-    //if d is zero, the planes are parallel (and separated) or coincident, so they're not considered intersecting
-    
-    float denom=direction.dot(direction);
-    
-    if (denom<U4DEngine::collisionDistanceEpsilon) {
+        //if denom is zero, the planes are parallel (and separated) or coincident, so they're not considered intersecting
+        float denom=n.dot(u);
         
-        uPoint.zero();
-        return uPoint;
-    
-    }
-    
-    //compute point on intersection line
-    uPoint=(uPlane.n*d-n*uPlane.d).cross(direction)/denom;
-  
-    
-    return uPoint;
-}
-
-U4DVector3n U4DPlane::intersetPlanes(U4DPlane& uPlane2, U4DPlane& uPlane3){
-    
-    U4DVector3n uPoint;
-   
-    U4DVector3n u=uPlane2.n.cross(uPlane3.n);
-    
-    float denom=n.dot(u);
-    
-    if (std::abs(denom)<U4DEngine::collisionDistanceEpsilon) {
         
-        uPoint.zero();
-        return uPoint; //planes do not intersect in a point
-    
+        if (std::abs(denom)<U4DEngine::zeroEpsilon) {
+            
+            return false; //planes do not intersect in a point
+        
+        }
+        
+        uIntersectionPoint=((u*d + n.cross(uPlane2.n*uPlane3.d-uPlane3.n*uPlane2.d))/denom).toPoint();
+        
+        return true;
+        
     }
-    
-    uPoint=(u*d + n.cross(uPlane2.n*uPlane3.d-uPlane3.n*uPlane2.d))/denom;
-    
-    return uPoint;
-    
-}
 
 }

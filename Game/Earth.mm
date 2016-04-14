@@ -35,12 +35,10 @@
 #include "U4DAABB.h"
 #include "U4DBoundingSphere.h"
 
-#include "U4DBVHTree.h"
 
 void Earth::init(){
 
     //U4DDebugger *debugger=new U4DDebugger();
-    
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     camera->translateBy(0.0, -2.0, -9.0);
     //camera->rotateBy(10.0,-15.0,0.0);

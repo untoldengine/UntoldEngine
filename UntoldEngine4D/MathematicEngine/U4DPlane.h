@@ -12,64 +12,46 @@
 #include <stdio.h>
 #include <iostream>
 #include "U4DVector3n.h"
+#include "U4DPoint3n.h"
+#include "U4DSegment.h"
 
 namespace U4DEngine {
     
-class U4DPlane{
-    
-private:
-    
-public:
-  
-    U4DVector3n n;
-    
-    float d;
-    
-    U4DPlane(U4DVector3n& a, U4DVector3n& b, U4DVector3n& c);
-    
-    U4DPlane(U4DVector3n& uNormal, float uDistance);
-    
-    U4DPlane(U4DVector3n& uNormal, U4DVector3n& uPoint);
-    
-    ~U4DPlane(){};
-    
-    U4DPlane(const U4DPlane& a):n(a.n),d(a.d){};
-    
-    inline U4DPlane& operator=(const U4DPlane& a){
+    class U4DPlane{
         
-        n=a.n;
-        d=a.d;
+        private:
+            
+        public:
         
-        return *this;
+            U4DVector3n n; //plane normal. Points x on the plane satisfy n.dox(x)=d
+            
+            float d; //d=n.dot(p) for a given point p on the plane
         
+            U4DPlane(U4DPoint3n& a, U4DPoint3n& b, U4DPoint3n& c);
+            
+            U4DPlane(U4DVector3n& uNormal, float uDistance);
+            
+            U4DPlane(U4DVector3n& uNormal, U4DPoint3n& uPoint);
+            
+            ~U4DPlane();
+            
+            U4DPlane(const U4DPlane& a);
+        
+            inline U4DPlane& operator=(const U4DPlane& a);
+        
+            U4DPoint3n closestPointToPlane(U4DPoint3n& uPoint);
+            
+            float distPointToPlane(U4DPoint3n& uPoint);
+        
+            float distPointToPlaneSquare(U4DPoint3n& uPoint);
+        
+            bool intersectSegment(U4DSegment& uSegment, U4DPoint3n& uIntersectionPoint);
+        
+            bool intersectPlane(U4DPlane& uPlane, U4DPoint3n& uIntersectionPoint, U4DVector3n& uIntersectionVector);
+        
+            //compute the point at which the three planes intersect (if at all)
+            bool intersectPlanes(U4DPlane& uPlane2, U4DPlane& uPlane3, U4DPoint3n& uIntersectionPoint);
     };
-    
-    
-    U4DVector3n intersectSegmentPlane(U4DVector3n& pointA, U4DVector3n& pointB);
-    
-    U4DVector3n closestPointToPlane(U4DVector3n& uPoint);
-    
-    float distPointToPlane(U4DVector3n& uPoint);
-    
-    /*!
-     *  @brief  Given planes plane1 and plane2, computer line L=p+t*d of their intersection.
-     *
-     *  @param uPlane plane
-     *
-     *  @return returns intersection vector
-     */
-    U4DVector3n intersetPlanes(U4DPlane& uPlane);
-    
-    /*!
-     *  @brief  Computes the point uPoint at which three planes intersect (if at all)
-     *
-     *  @param uPlane2 plane 2
-     *  @param uPlane3 plane 3
-     *
-     *  @return point where all three planes intersect
-     */
-    U4DVector3n intersetPlanes(U4DPlane& uPlane2, U4DPlane& uPlane3);
-};
     
 }
 
