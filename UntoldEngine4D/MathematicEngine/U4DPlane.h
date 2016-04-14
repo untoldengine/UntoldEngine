@@ -41,9 +41,9 @@ namespace U4DEngine {
         
             U4DPoint3n closestPointToPlane(U4DPoint3n& uPoint);
             
-            float distPointToPlane(U4DPoint3n& uPoint);
+            float magnitudeOfPointToPlane(U4DPoint3n& uPoint);
         
-            float distPointToPlaneSquare(U4DPoint3n& uPoint);
+            float magnitudeSquareOfPointToPlane(U4DPoint3n& uPoint);
         
             bool intersectSegment(U4DSegment& uSegment, U4DPoint3n& uIntersectionPoint);
         

@@ -64,12 +64,12 @@ namespace U4DEngine {
         
     }
 
-    float U4DPlane::distPointToPlane(U4DPoint3n& uPoint){
+    float U4DPlane::magnitudeOfPointToPlane(U4DPoint3n& uPoint){
         
         return (n.dot(uPoint.toVector())-d)/(n.magnitude());
     }
     
-    float U4DPlane::distPointToPlaneSquare(U4DPoint3n& uPoint){
+    float U4DPlane::magnitudeSquareOfPointToPlane(U4DPoint3n& uPoint){
         
         return (n.dot(uPoint.toVector())-d)/(n.magnitudeSquare());
         
