@@ -75,7 +75,9 @@ namespace U4DEngine {
         
         void loadConvexHullData(U4DModel *uModel,std::string uStringData);
         
-        void loadEdgesData(U4DModel *uModel,std::string uStringData);
+        void loadEdgesData(U4DModel *uModel, std::string uStringData);
+        
+        void loadFacesData(U4DModel *uModel, std::string uStringData);
         
         void loadTangentDataToBody(U4DModel *uModel);
         

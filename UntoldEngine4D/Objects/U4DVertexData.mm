@@ -73,6 +73,16 @@ namespace U4DEngine {
         return edgesContainer;
     }
     
+    void U4DVertexData::addFacesDataToContainer(U4DTriangle& uData){
+        
+        facesContainer.push_back(uData);
+    }
+    
+    std::vector<U4DTriangle> U4DVertexData::getFacesDataFromContainer(){
+        
+        return facesContainer;
+    }
+    
     void U4DVertexData::setModelDimension(U4DVector3n& uData){
         
         modelDimension=uData;

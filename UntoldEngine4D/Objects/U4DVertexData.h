@@ -16,6 +16,7 @@
 #include "U4DVector4n.h"
 #include "U4DIndex.h"
 #include "U4DSegment.h"
+#include "U4DTriangle.h"
 #include "U4DBoneIndices.h"
 
 namespace U4DEngine {
@@ -38,6 +39,7 @@ namespace U4DEngine {
         std::vector<U4DVector4n> vertexWeightsContainer;
         std::vector<U4DVector4n> boneIndicesContainer;
         std::vector<U4DSegment> edgesContainer;
+        std::vector<U4DTriangle> facesContainer;
         U4DVector3n modelDimension;
         
         void addVerticesDataToContainer(U4DVector3n& uData);
@@ -49,11 +51,13 @@ namespace U4DEngine {
         void addVertexWeightsToContainer(U4DVector4n& uData);
         void addBoneIndicesToContainer(U4DVector4n& uData);
         void addEdgesDataToContainer(U4DSegment& uData);
+        void addFacesDataToContainer(U4DTriangle& uData);
         void setModelDimension(U4DVector3n& uData);
         
         std::vector<U4DVector3n> getVerticesDataFromContainer();
         std::vector<U4DVector3n> getConvexHullDataFromContainer();
         std::vector<U4DSegment> getEdgesDataFromContainer();
+        std::vector<U4DTriangle> getFacesDataFromContainer();
         U4DVector3n getModelDimension();
     };
     
