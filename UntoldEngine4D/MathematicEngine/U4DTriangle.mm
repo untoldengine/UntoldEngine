@@ -177,7 +177,51 @@ namespace U4DEngine {
         return (pointA-pointB).cross(pointA-pointC);
     }
     
+    U4DPoint3n U4DTriangle::getCentroid(){
+        
+        U4DPoint3n centroid((pointA.x+pointB.x+pointC.x)/3.0,(pointA.y+pointB.y+pointC.y)/3.0,(pointA.z+pointB.z+pointC.z)/3.0);
+        
+        return centroid;
+        
+    }
     
+    U4DTriangle U4DTriangle::projectTriangleOntoPlane(U4DPlane& uPlane){
+        
+        U4DPoint3n projectedPointA=uPlane.closestPointToPlane(pointA);
+        U4DPoint3n projectedPointB=uPlane.closestPointToPlane(pointB);
+        U4DPoint3n projectedPointC=uPlane.closestPointToPlane(pointC);
+        
+        U4DTriangle projectedTriangle(projectedPointA,projectedPointB,projectedPointC);
+        
+        return projectedTriangle;
+        
+    }
+    
+    float U4DTriangle::distanceToPlane(U4DPlane& uPlane){
+        
+        float pointADistance=uPlane.magnitudeOfPointToPlane(pointA);
+        float pointBDistance=uPlane.magnitudeOfPointToPlane(pointB);
+        float pointCDistance=uPlane.magnitudeOfPointToPlane(pointC);
+        
+        float minDistace=MIN(pointADistance, pointBDistance);
+        minDistace=MIN(pointCDistance,minDistace);
+        
+        return minDistace;
+    }
+    
+    float U4DTriangle::distanceSquareToPlane(U4DPlane& uPlane){
+        
+        float pointADistance=uPlane.magnitudeSquareOfPointToPlane(pointA);
+        float pointBDistance=uPlane.magnitudeSquareOfPointToPlane(pointB);
+        float pointCDistance=uPlane.magnitudeSquareOfPointToPlane(pointC);
+        
+        float minDistace=MIN(pointADistance, pointBDistance);
+        minDistace=MIN(pointCDistance,minDistace);
+        
+        return minDistace;
+    }
+    
+
     bool U4DTriangle::isValid(){
         
         float ab=(pointA-pointB).magnitude();
