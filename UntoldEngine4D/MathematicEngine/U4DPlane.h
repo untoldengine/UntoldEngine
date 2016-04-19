@@ -51,6 +51,7 @@ namespace U4DEngine {
         
             //compute the point at which the three planes intersect (if at all)
             bool intersectPlanes(U4DPlane& uPlane2, U4DPlane& uPlane3, U4DPoint3n& uIntersectionPoint);
+        
     };
     
 }

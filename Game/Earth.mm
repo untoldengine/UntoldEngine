@@ -31,13 +31,11 @@
 #include "U4DLights.h"
 #include "U4DDebugger.h"
 #include "Town.h"
-#include "U4DPoint3n.h"
-#include "U4DAABB.h"
-#include "U4DBoundingSphere.h"
+
 
 
 void Earth::init(){
-
+    
     //U4DDebugger *debugger=new U4DDebugger();
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     camera->translateBy(0.0, -2.0, -9.0);
