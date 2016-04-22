@@ -20,6 +20,7 @@
 #include "U4DBoundingVolume.h"
 #include "U4DGJKAlgorithm.h"
 #include "U4DEPAAlgorithm.h"
+#include "U4DSHAlgorithm.h"
 #include "U4DBVHManager.h"
 #include "U4DVector3n.h"
 
@@ -47,7 +48,7 @@ namespace U4DEngine {
         collisionEngine->setCollisionAlgorithm(collisionAlgorithm);
         
         //set contact manifold method
-        manifoldGenerationAlgorithm=new U4DEPAAlgorithm();
+        manifoldGenerationAlgorithm=new U4DSHAlgorithm();
         collisionEngine->setManifoldGenerationAlgorithm(manifoldGenerationAlgorithm);
         
         

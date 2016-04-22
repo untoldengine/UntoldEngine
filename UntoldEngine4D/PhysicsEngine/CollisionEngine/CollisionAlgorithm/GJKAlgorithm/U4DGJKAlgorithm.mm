@@ -139,6 +139,14 @@ namespace U4DEngine {
             
             uModel2->resetTimeOfImpact();
             
+            //closest collision point
+            
+            std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
+            
+            //Once there is a contact,the closestBarycentricPoints returns two identical closest points. I'm assigning the first
+            //point in the vector as the closesCollisionPoint.
+            closestCollisionPoint=closestCollisionPoints.at(0);
+            
             return true;
         }
         
@@ -586,6 +594,15 @@ namespace U4DEngine {
     }
     
     U4DPoint3n U4DGJKAlgorithm::getClosestPointToOrigin(){
+        
         return closestPointToOrigin;
+        
     }
+    
+    U4DPoint3n U4DGJKAlgorithm::getClosestCollisionPoint(){
+        
+        return closestCollisionPoint;
+        
+    }
+    
 }

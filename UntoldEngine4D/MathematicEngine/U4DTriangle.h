@@ -12,8 +12,8 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DPoint3n.h"
-#include "U4DSegment.h"
 #include "U4DPlane.h"
+#include "U4DSegment.h"
 
 
 namespace U4DEngine {
@@ -28,17 +28,13 @@ class U4DTriangle{
         U4DPoint3n pointB;
         U4DPoint3n pointC;
         
-        U4DSegment segmentAB;
-        U4DSegment segmentBC;
-        U4DSegment segmentCA;
-        
         U4DTriangle(){};
         
         U4DTriangle(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC);
         ~U4DTriangle();
         
         
-        U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),segmentAB(a.segmentAB),segmentCA(a.segmentCA),segmentBC(a.segmentBC){};
+        U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC){};
         
         
         inline U4DTriangle& operator=(const U4DTriangle& a){
@@ -46,10 +42,6 @@ class U4DTriangle{
             pointA=a.pointA;
             pointB=a.pointB;
             pointC=a.pointC;
-            
-            segmentAB=a.segmentAB;
-            segmentBC=a.segmentBC;
-            segmentCA=a.segmentCA;
             
             return *this;
         };

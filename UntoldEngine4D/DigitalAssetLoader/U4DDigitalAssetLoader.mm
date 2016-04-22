@@ -161,7 +161,7 @@ namespace U4DEngine {
                     }
                     
                     if (faces!=NULL) {
-                        std::string data=faces->GetText();
+                        std::string data=index->GetText();
                         loadFacesData(uModel, data);
                     }
                     
@@ -701,6 +701,7 @@ namespace U4DEngine {
             U4DPoint3n pointC=c.toPoint();
             
             U4DTriangle face(pointA,pointB,pointC);
+            
             
             if (!face.isValid()) {
                 
