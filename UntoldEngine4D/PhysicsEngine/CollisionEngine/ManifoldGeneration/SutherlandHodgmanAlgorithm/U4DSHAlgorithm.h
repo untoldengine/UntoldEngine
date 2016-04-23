@@ -25,14 +25,18 @@ namespace U4DEngine {
         float distance;
         float dotProduct;
         
-    }MODELFACES;
+    }CONTACTFACES;
     
     typedef struct{
         
         U4DSegment segment;
         bool isDuplicate;
+        U4DVector3n normal;
+        bool isReference;
         
-    }MODELEDGES;
+    }CONTACTPOLYGON;
+    
+    
     
 }
 
@@ -53,13 +57,14 @@ namespace U4DEngine {
         void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPointToOrigin){}
         
     
-        std::vector<U4DSegment> clipPolygons(std::vector<U4DSegment> uEdges1, std::vector<U4DSegment> uEdges2);
+        std::vector<U4DSegment> clipPolygons(std::vector<CONTACTPOLYGON>& uReferencePolygons, std::vector<CONTACTPOLYGON>& uIncidentPolygons);
         
-        std::vector<MODELFACES> mostParallelFacesToPlane(U4DDynamicModel* uModel, U4DPlane& uPlane);
+        std::vector<CONTACTFACES> mostParallelFacesToPlane(U4DDynamicModel* uModel, U4DPlane& uPlane);
         
-        std::vector<U4DTriangle> projectFacesToPlane(std::vector<MODELFACES>& uFaces, U4DPlane& uPlane);
+        std::vector<U4DTriangle> projectFacesToPlane(std::vector<CONTACTFACES>& uFaces, U4DPlane& uPlane);
         
-        std::vector<U4DSegment> getEdgesFromFaces(std::vector<U4DTriangle>& uFaces);
+        std::vector<CONTACTPOLYGON> getEdgesFromFaces(std::vector<U4DTriangle>& uFaces, U4DPlane& uPlane);
+        
     };
     
 }

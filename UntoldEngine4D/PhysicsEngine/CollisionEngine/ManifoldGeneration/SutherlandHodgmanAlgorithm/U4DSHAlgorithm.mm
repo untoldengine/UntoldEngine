@@ -33,9 +33,9 @@ namespace U4DEngine {
         
         //step 2. For each model determine which face is most parallel to plane, i.e., dot product ~0
         
-        std::vector<MODELFACES> parallelFacesModel1=mostParallelFacesToPlane(uModel1, planeCollisionOfModel1);
+        std::vector<CONTACTFACES> parallelFacesModel1=mostParallelFacesToPlane(uModel1, planeCollisionOfModel1);
         
-        std::vector<MODELFACES> parallelFacesModel2=mostParallelFacesToPlane(uModel2, planeCollisionOfModel2);
+        std::vector<CONTACTFACES> parallelFacesModel2=mostParallelFacesToPlane(uModel2, planeCollisionOfModel2);
         
         //step 3. for each model project selected faces onto plane
         
@@ -44,18 +44,55 @@ namespace U4DEngine {
         std::vector<U4DTriangle> projectedFacesModel2=projectFacesToPlane(parallelFacesModel2, planeCollisionOfModel2);
         
         //step 4. Break triangle into segments and remove any duplicate segments
-        std::vector<U4DSegment> polygonEdgesOfModel1=getEdgesFromFaces(projectedFacesModel1);
-        std::vector<U4DSegment> polygonEdgesOfModel2=getEdgesFromFaces(projectedFacesModel2);
+        std::vector<CONTACTPOLYGON> polygonEdgesOfModel1=getEdgesFromFaces(projectedFacesModel1,planeCollisionOfModel1);
+        std::vector<CONTACTPOLYGON> polygonEdgesOfModel2=getEdgesFromFaces(projectedFacesModel2,planeCollisionOfModel2);
+        
+        //step 5. Determine reference polygon
+
+        float maxFaceParallelToPlaneInModel1=-FLT_MIN;
+        float maxFaceParallelToPlaneInModel2=-FLT_MIN;
+        
+        //Get the most dot product parallel to plane for each model
+        for(auto n:parallelFacesModel1){
+            
+            maxFaceParallelToPlaneInModel1=MAX(n.dotProduct,maxFaceParallelToPlaneInModel1);
+            
+        }
+        
+        for(auto n:parallelFacesModel2){
+            
+            maxFaceParallelToPlaneInModel2=MAX(n.dotProduct,maxFaceParallelToPlaneInModel2);
+            
+        }
+        
+        //compare dot product and assign a reference plane
         
         //step 5. perform sutherland
+        
+        if (maxFaceParallelToPlaneInModel1>=maxFaceParallelToPlaneInModel2) {
+            
+            //set polygon in model 1 as the reference plane
+            //and polygon in model 2 as the incident plane
+            
+            clipPolygons(polygonEdgesOfModel1, polygonEdgesOfModel2);
+            
+        }else{
+            
+            //set polygon in model 2 as the reference plane
+            //and polygon in model 1 as the incident plane
+            
+            clipPolygons(polygonEdgesOfModel2, polygonEdgesOfModel1);
+        }
+        
+        
         
         std::cout<<"stop"<<std::endl;
         
     }
     
-    std::vector<MODELFACES> U4DSHAlgorithm::mostParallelFacesToPlane(U4DDynamicModel* uModel, U4DPlane& uPlane){
+    std::vector<CONTACTFACES> U4DSHAlgorithm::mostParallelFacesToPlane(U4DDynamicModel* uModel, U4DPlane& uPlane){
         
-        std::vector<MODELFACES> modelFaces; //faces of each polygon in the model
+        std::vector<CONTACTFACES> modelFaces; //faces of each polygon in the model
         
         float parallelToPlane=-FLT_MIN;
         float support=0.0;
@@ -87,7 +124,7 @@ namespace U4DEngine {
             n.pointC=vertexC.toPoint();
             
             //structure to store all faces
-            MODELFACES modelFace;
+            CONTACTFACES modelFace;
             
             //store triangle
             modelFace.triangle=n;
@@ -97,11 +134,9 @@ namespace U4DEngine {
             
             //Normalize the face normal vector so the dot product between the face normal and the plane falls within [-1,1]
             faceNormal.normalize();
-            
-            
+        
             //get the minimal dot product
             support=faceNormal.dot(planeNormal);
-            
             
             modelFace.dotProduct=support;
             
@@ -117,15 +152,15 @@ namespace U4DEngine {
             
         }
 
-    
         //remove all faces with dot product not equal to most parallel face to plane
-        modelFaces.erase(std::remove_if(modelFaces.begin(), modelFaces.end(),[parallelToPlane](MODELFACES &e){ return !(fabs(e.dotProduct - parallelToPlane) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, parallelToPlane)));} ),modelFaces.end());
+        modelFaces.erase(std::remove_if(modelFaces.begin(), modelFaces.end(),[parallelToPlane](CONTACTFACES &e){ return !(fabs(e.dotProduct - parallelToPlane) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, parallelToPlane)));} ),modelFaces.end());
+        
         
         return modelFaces;
         
     }
     
-    std::vector<U4DTriangle> U4DSHAlgorithm::projectFacesToPlane(std::vector<MODELFACES>& uFaces, U4DPlane& uPlane){
+    std::vector<U4DTriangle> U4DSHAlgorithm::projectFacesToPlane(std::vector<CONTACTFACES>& uFaces, U4DPlane& uPlane){
         
         std::vector<U4DTriangle> projectedTriangles;
         
@@ -139,18 +174,19 @@ namespace U4DEngine {
         return projectedTriangles;
     }
     
-    std::vector<U4DSegment> U4DSHAlgorithm::getEdgesFromFaces(std::vector<U4DTriangle>& uFaces){
+    std::vector<CONTACTPOLYGON> U4DSHAlgorithm::getEdgesFromFaces(std::vector<U4DTriangle>& uFaces, U4DPlane& uPlane){
         
-        std::vector<MODELEDGES> modelEdges;
-        std::vector<U4DSegment> polygonEdges;
+        std::vector<CONTACTPOLYGON> modelEdges;
     
+        //For each face, get its corresponding edges
+        
         for(auto n:uFaces){
             
             std::vector<U4DSegment> segment=n.getSegments();
             
-            MODELEDGES modelEdgeAB;
-            MODELEDGES modelEdgeBC;
-            MODELEDGES modelEdgeCA;
+            CONTACTPOLYGON modelEdgeAB;
+            CONTACTPOLYGON modelEdgeBC;
+            CONTACTPOLYGON modelEdgeCA;
             
             modelEdgeAB.segment=segment.at(0);
             modelEdgeBC.segment=segment.at(1);
@@ -160,7 +196,7 @@ namespace U4DEngine {
             modelEdgeBC.isDuplicate=false;
             modelEdgeCA.isDuplicate=false;
             
-            std::vector<MODELEDGES> tempEdges{modelEdgeAB,modelEdgeBC,modelEdgeCA};
+            std::vector<CONTACTPOLYGON> tempEdges{modelEdgeAB,modelEdgeBC,modelEdgeCA};
             
             if (modelEdges.size()==0) {
                 
@@ -192,19 +228,34 @@ namespace U4DEngine {
         }
         
         //remove all duplicate faces
-        modelEdges.erase(std::remove_if(modelEdges.begin(), modelEdges.end(),[](MODELEDGES &e){ return e.isDuplicate;} ),modelEdges.end());
+        modelEdges.erase(std::remove_if(modelEdges.begin(), modelEdges.end(),[](CONTACTPOLYGON &e){ return e.isDuplicate;} ),modelEdges.end());
         
-        
-        for(auto n:modelEdges){
+        //calculate the normal of the line by doing a cross product between the plane normal and the segment direction
+        for(auto& n:modelEdges){
             
-            polygonEdges.push_back(n.segment);
+            std::vector<U4DPoint3n> points=n.segment.getPoints();
+            
+            //get points
+            U4DPoint3n pointA=points.at(0);
+            U4DPoint3n pointB=points.at(1);
+            
+            //compute line
+            U4DVector3n line=pointB-pointA;
+            
+            //get normal
+            U4DVector3n normal=uPlane.n.cross(line);
+            
+            //assign normal to model edge
+            n.normal=normal;
+            
         }
         
-        return polygonEdges;
+        return modelEdges;
         
     }
+    
 
-    std::vector<U4DSegment> U4DSHAlgorithm::clipPolygons(std::vector<U4DSegment> uEdges1, std::vector<U4DSegment> uEdges2){
+    std::vector<U4DSegment> U4DSHAlgorithm::clipPolygons(std::vector<CONTACTPOLYGON>& uReferencePolygons, std::vector<CONTACTPOLYGON>& uIncidentPolygons){
         
         
     }

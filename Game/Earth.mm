@@ -32,7 +32,6 @@
 #include "U4DDebugger.h"
 #include "Town.h"
 
-#include "U4DTriangle.h"
 
 void Earth::init(){
     
@@ -73,7 +72,7 @@ void Earth::init(){
     cube2->init("Cube",0.0,5,0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    //cube2->rotateBy(0.0, 0.0, 20.0);
+    cube2->rotateBy(0.0, 0.0, 20.0);
     
     cube2->applyPhysics(true);
     
