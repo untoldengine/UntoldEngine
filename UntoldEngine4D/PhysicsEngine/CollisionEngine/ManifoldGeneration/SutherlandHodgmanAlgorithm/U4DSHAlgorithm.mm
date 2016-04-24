@@ -44,8 +44,8 @@ namespace U4DEngine {
         std::vector<U4DTriangle> projectedFacesModel2=projectFacesToPlane(parallelFacesModel2, planeCollisionOfModel2);
         
         //step 4. Break triangle into segments and remove any duplicate segments
-        std::vector<CONTACTPOLYGON> polygonEdgesOfModel1=getEdgesFromFaces(projectedFacesModel1,planeCollisionOfModel1);
-        std::vector<CONTACTPOLYGON> polygonEdgesOfModel2=getEdgesFromFaces(projectedFacesModel2,planeCollisionOfModel2);
+        std::vector<CONTACTEDGE> polygonEdgesOfModel1=getEdgesFromFaces(projectedFacesModel1,planeCollisionOfModel1);
+        std::vector<CONTACTEDGE> polygonEdgesOfModel2=getEdgesFromFaces(projectedFacesModel2,planeCollisionOfModel2);
         
         //step 5. Determine reference polygon
 
@@ -174,9 +174,9 @@ namespace U4DEngine {
         return projectedTriangles;
     }
     
-    std::vector<CONTACTPOLYGON> U4DSHAlgorithm::getEdgesFromFaces(std::vector<U4DTriangle>& uFaces, U4DPlane& uPlane){
+    std::vector<CONTACTEDGE> U4DSHAlgorithm::getEdgesFromFaces(std::vector<U4DTriangle>& uFaces, U4DPlane& uPlane){
         
-        std::vector<CONTACTPOLYGON> modelEdges;
+        std::vector<CONTACTEDGE> modelEdges;
     
         //For each face, get its corresponding edges
         
@@ -184,9 +184,9 @@ namespace U4DEngine {
             
             std::vector<U4DSegment> segment=n.getSegments();
             
-            CONTACTPOLYGON modelEdgeAB;
-            CONTACTPOLYGON modelEdgeBC;
-            CONTACTPOLYGON modelEdgeCA;
+            CONTACTEDGE modelEdgeAB;
+            CONTACTEDGE modelEdgeBC;
+            CONTACTEDGE modelEdgeCA;
             
             modelEdgeAB.segment=segment.at(0);
             modelEdgeBC.segment=segment.at(1);
@@ -196,7 +196,7 @@ namespace U4DEngine {
             modelEdgeBC.isDuplicate=false;
             modelEdgeCA.isDuplicate=false;
             
-            std::vector<CONTACTPOLYGON> tempEdges{modelEdgeAB,modelEdgeBC,modelEdgeCA};
+            std::vector<CONTACTEDGE> tempEdges{modelEdgeAB,modelEdgeBC,modelEdgeCA};
             
             if (modelEdges.size()==0) {
                 
@@ -228,7 +228,7 @@ namespace U4DEngine {
         }
         
         //remove all duplicate faces
-        modelEdges.erase(std::remove_if(modelEdges.begin(), modelEdges.end(),[](CONTACTPOLYGON &e){ return e.isDuplicate;} ),modelEdges.end());
+        modelEdges.erase(std::remove_if(modelEdges.begin(), modelEdges.end(),[](CONTACTEDGE &e){ return e.isDuplicate;} ),modelEdges.end());
         
         //calculate the normal of the line by doing a cross product between the plane normal and the segment direction
         for(auto& n:modelEdges){
@@ -255,8 +255,130 @@ namespace U4DEngine {
     }
     
 
-    std::vector<U4DSegment> U4DSHAlgorithm::clipPolygons(std::vector<CONTACTPOLYGON>& uReferencePolygons, std::vector<CONTACTPOLYGON>& uIncidentPolygons){
+    std::vector<U4DSegment> U4DSHAlgorithm::clipPolygons(std::vector<CONTACTEDGE>& uReferencePolygons, std::vector<CONTACTEDGE>& uIncidentPolygons){
         
+        std::vector<U4DSegment> clipEdges;
+        std::vector<U4DSegment> tempClipEdges;
+        
+        //copy the incident edges into the the clip edges
+        for(auto n:uIncidentPolygons){
+            
+            clipEdges.push_back(n.segment);
+            
+        }
+    
+        
+        for(auto referencePolygon:uReferencePolygons){
+            
+            //clear temp edges
+            tempClipEdges.clear();
+            
+            U4DVector3n normal=referencePolygon.normal;
+            U4DPoint3n pointOnPlane=referencePolygon.segment.pointA;
+            
+            //create plane
+            U4DPlane referencePlane(normal,pointOnPlane);
+            
+            //For every segment determine the location of each point and the direction of the segment
+            for(auto incidentEdges:clipEdges){
+                
+                //get the points in the segment
+                std::vector<U4DPoint3n> incidentPoints=incidentEdges.getPoints();
+                std::vector<POINTINFORMATION> pointInformation;
+                
+                //determine the location of each point segment with respect to the plane normal
+                for(int i=0; i<incidentPoints.size(); i++){
+                    
+                    float direction=referencePlane.magnitudeSquareOfPointToPlane(incidentPoints.at(i));
+                    
+                    pointInformation.at(i).point=incidentPoints.at(i);
+                    
+                    if (direction>U4DEngine::zeroEpsilon) {
+                        
+                        pointInformation.at(i).location=insidePlane;
+                    
+                    }else{
+                       
+                        if (direction<U4DEngine::zeroEpsilon) {
+                            
+                            pointInformation.at(i).location=outsidePlane;
+                        
+                        }else{
+                           
+                            pointInformation.at(i).location=boundaryPlane;
+                        
+                        }
+                        
+                    }
+                
+                }//end for
+                    
+                //determine the direction of the segment
+                CONTACTEDGEINFORMATION edgeInformation;
+                edgeInformation.contactSegment=incidentEdges;
+                
+                //segment going from INSIDE of plane to OUTSIDE of plane
+                if (pointInformation.at(0).location==insidePlane && pointInformation.at(1).location==outsidePlane) {
+                    
+                    edgeInformation.direction=inToOut;
+                    
+                //segment going from OUTSIDE of plane to INSIDE of plane
+                }else if (pointInformation.at(0).location==outsidePlane && pointInformation.at(1).location==insidePlane){
+                    
+                    edgeInformation.direction=outToIn;
+                    
+                //segment going from INSIDE of plane to INSIDE of plane
+                }else if (pointInformation.at(0).location==insidePlane && pointInformation.at(1).location==insidePlane){
+                
+                    edgeInformation.direction=inToIn;
+                    
+                //segment going from OUTSIDE of plane to OUTSIDE of plane
+                }else if (pointInformation.at(0).location==outsidePlane && pointInformation.at(1).location==outsidePlane){
+                    
+                    edgeInformation.direction=outToOut;
+                    
+                //segment is in boundary
+                }else{
+                    
+                    edgeInformation.direction=inBoundary;
+                    
+                }
+                
+                
+                //clip the segment
+                std::vector<U4DPoint3n> clippedPoints;
+                
+                if (edgeInformation.direction==inToOut) {
+                    //Add intersection point
+                    U4DPoint3n intersectPoint;
+                    
+                    referencePlane.intersectSegment(incidentEdges, intersectPoint);
+                    
+                    clippedPoints.push_back(intersectPoint);
+                    
+                }else if (edgeInformation.direction==outToIn){
+                    //Add intersection point and pointB
+                    
+                    
+                }else if (edgeInformation.direction==inToIn){
+                    //Add pointB
+                    
+                }else if (edgeInformation.direction==outToOut){
+                    //Add none
+                    
+                }else{
+                    //edge is a boundary
+                    //Add pointA and PointB
+                }
+                    
+                    
+                
+                
+                
+                
+            }//end for
+            
+        }//end for
         
     }
     
