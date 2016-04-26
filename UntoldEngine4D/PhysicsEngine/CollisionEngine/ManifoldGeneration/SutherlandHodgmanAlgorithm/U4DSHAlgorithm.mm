@@ -230,6 +230,37 @@ namespace U4DEngine {
         //remove all duplicate faces
         modelEdges.erase(std::remove_if(modelEdges.begin(), modelEdges.end(),[](CONTACTEDGE &e){ return e.isDuplicate;} ),modelEdges.end());
         
+        //Since the triangle was broken up, it also broke the CCW direction of all segments.
+        //We need to connect the segments in a CCW direction
+        std::vector<CONTACTEDGE> tempModelEdges;
+        
+        //use the first value in the container as the pivot segment
+        int pivotIndex=0;
+        
+        tempModelEdges.push_back(modelEdges.at(pivotIndex));
+        
+        for (int pivot=0; pivot<modelEdges.size(); pivot++) {
+            
+            U4DSegment pivotSegment=modelEdges.at(pivotIndex).segment;
+            
+            for (int rotating=0; rotating<modelEdges.size(); rotating++) {
+                
+                //if I'm not testing the same segment and if the point B of the pivot segment is equal to the rotating pointB segment
+                if ((pivotSegment.pointB==modelEdges.at(rotating).segment.pointA) &&(modelEdges.at(pivot).segment != modelEdges.at(rotating).segment)) {
+                    
+                    tempModelEdges.push_back(modelEdges.at(rotating));
+                    pivotIndex=rotating;
+                    
+                    break;
+                }
+            }
+            
+        }
+        
+        modelEdges.clear();
+        //copy the sorted CCW segments
+        modelEdges=tempModelEdges;
+        
         //calculate the normal of the line by doing a cross product between the plane normal and the segment direction
         for(auto& n:modelEdges){
             
@@ -240,7 +271,7 @@ namespace U4DEngine {
             U4DPoint3n pointB=points.at(1);
             
             //compute line
-            U4DVector3n line=pointB-pointA;
+            U4DVector3n line=pointA-pointB;
             
             //get normal
             U4DVector3n normal=uPlane.n.cross(line);
@@ -258,7 +289,7 @@ namespace U4DEngine {
     std::vector<U4DSegment> U4DSHAlgorithm::clipPolygons(std::vector<CONTACTEDGE>& uReferencePolygons, std::vector<CONTACTEDGE>& uIncidentPolygons){
         
         std::vector<U4DSegment> clipEdges;
-        std::vector<U4DSegment> tempClipEdges;
+        std::vector<U4DPoint3n> clippedPoints;
         
         //copy the incident edges into the the clip edges
         for(auto n:uIncidentPolygons){
@@ -269,9 +300,6 @@ namespace U4DEngine {
     
         
         for(auto referencePolygon:uReferencePolygons){
-            
-            //clear temp edges
-            tempClipEdges.clear();
             
             U4DVector3n normal=referencePolygon.normal;
             U4DPoint3n pointOnPlane=referencePolygon.segment.pointA;
@@ -284,32 +312,37 @@ namespace U4DEngine {
                 
                 //get the points in the segment
                 std::vector<U4DPoint3n> incidentPoints=incidentEdges.getPoints();
-                std::vector<POINTINFORMATION> pointInformation;
+                std::vector<POINTINFORMATION> pointsInformation;
                 
                 //determine the location of each point segment with respect to the plane normal
                 for(int i=0; i<incidentPoints.size(); i++){
                     
                     float direction=referencePlane.magnitudeSquareOfPointToPlane(incidentPoints.at(i));
                     
-                    pointInformation.at(i).point=incidentPoints.at(i);
+                    POINTINFORMATION pointInformation;
+                    
+                    pointInformation.point=incidentPoints.at(i);
                     
                     if (direction>U4DEngine::zeroEpsilon) {
                         
-                        pointInformation.at(i).location=insidePlane;
+                        pointInformation.location=insidePlane;
                     
                     }else{
                        
                         if (direction<U4DEngine::zeroEpsilon) {
                             
-                            pointInformation.at(i).location=outsidePlane;
+                            pointInformation.location=outsidePlane;
                         
                         }else{
                            
-                            pointInformation.at(i).location=boundaryPlane;
+                            pointInformation.location=boundaryPlane;
                         
                         }
                         
                     }
+                    
+                    //store the points information
+                    pointsInformation.push_back(pointInformation);
                 
                 }//end for
                     
@@ -318,22 +351,22 @@ namespace U4DEngine {
                 edgeInformation.contactSegment=incidentEdges;
                 
                 //segment going from INSIDE of plane to OUTSIDE of plane
-                if (pointInformation.at(0).location==insidePlane && pointInformation.at(1).location==outsidePlane) {
+                if (pointsInformation.at(0).location==insidePlane && pointsInformation.at(1).location==outsidePlane) {
                     
                     edgeInformation.direction=inToOut;
                     
                 //segment going from OUTSIDE of plane to INSIDE of plane
-                }else if (pointInformation.at(0).location==outsidePlane && pointInformation.at(1).location==insidePlane){
+                }else if (pointsInformation.at(0).location==outsidePlane && pointsInformation.at(1).location==insidePlane){
                     
                     edgeInformation.direction=outToIn;
                     
                 //segment going from INSIDE of plane to INSIDE of plane
-                }else if (pointInformation.at(0).location==insidePlane && pointInformation.at(1).location==insidePlane){
+                }else if (pointsInformation.at(0).location==insidePlane && pointsInformation.at(1).location==insidePlane){
                 
                     edgeInformation.direction=inToIn;
                     
                 //segment going from OUTSIDE of plane to OUTSIDE of plane
-                }else if (pointInformation.at(0).location==outsidePlane && pointInformation.at(1).location==outsidePlane){
+                }else if (pointsInformation.at(0).location==outsidePlane && pointsInformation.at(1).location==outsidePlane){
                     
                     edgeInformation.direction=outToOut;
                     
@@ -346,7 +379,7 @@ namespace U4DEngine {
                 
                 
                 //clip the segment
-                std::vector<U4DPoint3n> clippedPoints;
+                
                 
                 if (edgeInformation.direction==inToOut) {
                     //Add intersection point
@@ -359,9 +392,18 @@ namespace U4DEngine {
                 }else if (edgeInformation.direction==outToIn){
                     //Add intersection point and pointB
                     
+                    U4DPoint3n intersectPoint;
+                    
+                    referencePlane.intersectSegment(incidentEdges, intersectPoint);
+                    
+                    
+                    clippedPoints.push_back(intersectPoint);
+                    clippedPoints.push_back(incidentEdges.pointB);
                     
                 }else if (edgeInformation.direction==inToIn){
                     //Add pointB
+                    
+                    clippedPoints.push_back(incidentEdges.pointB);
                     
                 }else if (edgeInformation.direction==outToOut){
                     //Add none
@@ -369,17 +411,45 @@ namespace U4DEngine {
                 }else{
                     //edge is a boundary
                     //Add pointA and PointB
+                    clippedPoints.push_back(incidentEdges.pointA);
+                    clippedPoints.push_back(incidentEdges.pointB);
+                    
                 }
+                
+            }//end for-Segment
+            
+            //for each point in clippedPoints, connect them as segments and initialize them as clipped edges
+            
+            if (clippedPoints.size()>1) {
+                
+                clipEdges.clear();
+                
+                for(int i=0;i<clippedPoints.size()-1;){
                     
+                    U4DSegment newSegment(clippedPoints.at(i),clippedPoints.at(i+1));
+                    clipEdges.push_back(newSegment);
+                    i=i+1;
                     
+                }
                 
+                //close the polygon loop
+                U4DSegment closeSegment(clippedPoints.at(clippedPoints.size()-1),clippedPoints.at(0));
                 
+                clipEdges.push_back(closeSegment);
                 
-                
-            }//end for
+            }
+            
+            clippedPoints.clear();
             
         }//end for
         
+        for(auto clip:clipEdges){
+            
+            clip.pointA.show();
+            
+        }
+        
+        return clipEdges;
     }
     
     
