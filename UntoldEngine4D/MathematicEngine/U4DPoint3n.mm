@@ -74,6 +74,18 @@ namespace U4DEngine {
         return d;
         
     }
+    
+    //distance between two points
+    float U4DPoint3n::distanceSquareBetweenPoints(U4DPoint3n& v){
+        
+        float x1=x-v.x;
+        float y1=y-v.y;
+        float z1=z-v.z;
+        
+        float d=x1*x1 + y1*y1 + z1*z1;
+        return d;
+        
+    }
 
     void U4DPoint3n::convertVectorToPoint(U4DVector3n& v){
         

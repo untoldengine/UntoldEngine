@@ -335,9 +335,9 @@ namespace U4DEngine {
     
     
     
-    void U4DStaticModel::setCollisionContactPoint(U4DVector3n& uContactPoint){
+    void U4DStaticModel::addCollisionContactPoint(U4DVector3n& uContactPoint){
         
-        collisionProperties.contactManifoldProperties.contactPoint=uContactPoint;
+        collisionProperties.contactManifoldProperties.contactPoint.push_back(uContactPoint);
         
     }
     
@@ -355,13 +355,17 @@ namespace U4DEngine {
     
     void U4DStaticModel::resetCollisionInformation(){
         
-        collisionProperties.contactManifoldProperties.contactPoint.zero();
+        clearCollisionContactPoints();
         collisionProperties.contactManifoldProperties.normalFaceDirection.zero();
         collisionProperties.contactManifoldProperties.penetrationDepth=0.0;
         
     }
     
-    U4DVector3n U4DStaticModel::getCollisionContactPoint(){
+    void U4DStaticModel::clearCollisionContactPoints(){
+        collisionProperties.contactManifoldProperties.contactPoint.clear();
+    }
+    
+    std::vector<U4DVector3n> U4DStaticModel::getCollisionContactPoints(){
         
         return collisionProperties.contactManifoldProperties.contactPoint;
         

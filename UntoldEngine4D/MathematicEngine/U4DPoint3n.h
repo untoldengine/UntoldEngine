@@ -122,6 +122,8 @@ public:
      */
     float distanceBetweenPoints(U4DPoint3n& v);
     
+    float distanceSquareBetweenPoints(U4DPoint3n& v);
+    
     void convertVectorToPoint(U4DVector3n& v);
     
     float magnitude();

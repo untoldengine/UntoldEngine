@@ -42,14 +42,14 @@ namespace U4DEngine{
                 
             }
             
-            //get contact points
-            U4DVector3n contactPoint1=closestPointsModel1.toVector();
-            
-            uModel1->setCollisionContactPoint(contactPoint1);
-            
-            U4DVector3n contactPoint2=closestPointsModel2.toVector();
-            
-            uModel2->setCollisionContactPoint(contactPoint1);
+//            //get contact points
+//            U4DVector3n contactPoint1=closestPointsModel1.toVector();
+//            
+//            uModel1->setCollisionContactPoint(contactPoint1);
+//            
+//            U4DVector3n contactPoint2=closestPointsModel2.toVector();
+//            
+//            uModel2->setCollisionContactPoint(contactPoint1);
         
         }
         

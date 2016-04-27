@@ -22,7 +22,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,U4DPoint3n& uClosestPoint){
+    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,U4DPoint3n& uClosestPoint){
         
         //step 1. Create plane
         U4DVector3n collisionNormalOfModel1=uModel1->getCollisionNormalFaceDirection();
@@ -69,25 +69,96 @@ namespace U4DEngine {
         
         //step 5. perform sutherland
         
+        std::vector<U4DSegment> segments;
+        
         if (maxFaceParallelToPlaneInModel1>=maxFaceParallelToPlaneInModel2) {
             
             //set polygon in model 1 as the reference plane
             //and polygon in model 2 as the incident plane
+            //project the closest point onto the plane
             
-            clipPolygons(polygonEdgesOfModel1, polygonEdgesOfModel2);
+            segments=clipPolygons(polygonEdgesOfModel1, polygonEdgesOfModel2);
+            uClosestPoint=planeCollisionOfModel1.closestPointToPlane(uClosestPoint);
             
         }else{
             
             //set polygon in model 2 as the reference plane
             //and polygon in model 1 as the incident plane
+            //project the closest point onto the plane
             
-            clipPolygons(polygonEdgesOfModel2, polygonEdgesOfModel1);
+            segments=clipPolygons(polygonEdgesOfModel2, polygonEdgesOfModel1);
+            uClosestPoint=planeCollisionOfModel2.closestPointToPlane(uClosestPoint);
         }
         
+        //if sutherland was not able to clipped the faces, then no contact points exists
+        if (segments.size()==0) {
+            
+            //No contact points found,
+            
+            return false;
+        }
+        
+        for(auto n: segments){
+            
+            float distance=n.sqDistancePointSegment(uClosestPoint);
+            
+            //check if segment is close to the closest point from GJK
+            if (distance<U4DEngine::closestDistanceToSimplexEpsilon) {
+                
+                uModel1->clearCollisionContactPoints();
+                uModel2->clearCollisionContactPoints();
+            
+                if (n.pointA.distanceSquareBetweenPoints(uClosestPoint)<U4DEngine::closestDistanceToSimplexEpsilon) {
+                    //return one point as contact point
+                    
+                    U4DVector3n pointA=n.pointA.toVector();
+                    
+                    uModel1->addCollisionContactPoint(pointA);
+                    uModel2->addCollisionContactPoint(pointA);
+                    
+                    break;
+                }else if (n.pointB.distanceSquareBetweenPoints(uClosestPoint)<U4DEngine::closestDistanceToSimplexEpsilon){
+                    //return one point as contact point
+                    
+                    U4DVector3n pointB=n.pointB.toVector();
+                    
+                    uModel1->addCollisionContactPoint(pointB);
+                    uModel2->addCollisionContactPoint(pointB);
+                    
+                    break;
+                }
+                
+                //return two points as contact point if segment is close to closestPoint from GJK
+                
+                U4DVector3n pointA=n.pointA.toVector();
+                U4DVector3n pointB=n.pointB.toVector();
+                
+                uModel1->addCollisionContactPoint(pointA);
+                uModel1->addCollisionContactPoint(pointB);
+                
+                uModel2->addCollisionContactPoint(pointA);
+                uModel2->addCollisionContactPoint(pointB);
+                
+                
+                break;
+            }//end if
+            
+            //if no segment was close to the closest point from the GJK, then add the points into the vector
+            U4DVector3n point=n.pointA.toVector();
+            
+            uModel1->addCollisionContactPoint(point);
+            uModel2->addCollisionContactPoint(point);
+           
+            
+            
+        }//end for
         
         
-        std::cout<<"stop"<<std::endl;
+        for(auto n:uModel1->getCollisionContactPoints()){
+            n.show("Points");
+        }
         
+        return true;
     }
     
     std::vector<CONTACTFACES> U4DSHAlgorithm::mostParallelFacesToPlane(U4DDynamicModel* uModel, U4DPlane& uPlane){
@@ -329,7 +400,7 @@ namespace U4DEngine {
                     
                     }else{
                        
-                        if (direction<U4DEngine::zeroEpsilon) {
+                        if (direction < -U4DEngine::zeroEpsilon) {
                             
                             pointInformation.location=outsidePlane;
                         
@@ -410,8 +481,8 @@ namespace U4DEngine {
                     
                 }else{
                     //edge is a boundary
-                    //Add pointA and PointB
-                    clippedPoints.push_back(incidentEdges.pointA);
+                    //Add PointB
+                    
                     clippedPoints.push_back(incidentEdges.pointB);
                     
                 }
@@ -443,15 +514,8 @@ namespace U4DEngine {
             
         }//end for
         
-        for(auto clip:clipEdges){
-            
-            clip.pointA.show();
-            
-        }
-        
         return clipEdges;
     }
-    
     
     
 }
