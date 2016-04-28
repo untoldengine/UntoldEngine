@@ -31,6 +31,11 @@ namespace U4DEngine {
         virtual std::vector<U4DSimplexStruct> getCurrentSimpleStruct(){};
         
         virtual U4DPoint3n getClosestPointToOrigin(){};
+        
+        virtual U4DPoint3n getClosestCollisionPoint(){};
+
+        virtual U4DVector3n getContactNormal(){};
+        
     };
 
 }

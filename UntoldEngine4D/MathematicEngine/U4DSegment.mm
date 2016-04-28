@@ -11,6 +11,10 @@
 
 namespace U4DEngine {
     
+    U4DSegment::U4DSegment():pointA(0.0,0.0,0.0),pointB(0.0,0.0,0.0){
+    
+    }
+    
     U4DSegment::U4DSegment(U4DPoint3n& uPointA,U4DPoint3n& uPointB){
         
         pointA=uPointA;

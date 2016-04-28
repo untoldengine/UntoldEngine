@@ -18,10 +18,6 @@ namespace U4DEngine {
         pointA=uPointA;
         pointB=uPointB;
         pointC=uPointC;
-        
-        segmentAB=U4DSegment(uPointA,uPointB);
-        segmentBC=U4DSegment(uPointB,uPointC);
-        segmentCA=U4DSegment(uPointC,uPointA);
 
     }
 
@@ -177,6 +173,7 @@ namespace U4DEngine {
         return (pointA-pointB).cross(pointA-pointC);
     }
     
+    
     U4DPoint3n U4DTriangle::getCentroid(){
         
         U4DPoint3n centroid((pointA.x+pointB.x+pointC.x)/3.0,(pointA.y+pointB.y+pointC.y)/3.0,(pointA.z+pointB.z+pointC.z)/3.0);
@@ -238,6 +235,10 @@ namespace U4DEngine {
     
     std::vector<U4DSegment> U4DTriangle::getSegments(){
         
+        U4DSegment segmentAB=U4DSegment(pointA,pointB);
+        U4DSegment segmentBC=U4DSegment(pointB,pointC);
+        U4DSegment segmentCA=U4DSegment(pointC,pointA);
+        
         std::vector<U4DSegment> segments{segmentAB,segmentBC,segmentCA};
         
         return segments;
@@ -251,6 +252,10 @@ namespace U4DEngine {
         pointB.show();
         std::cout<<"Point C: "<<std::endl;
         pointC.show();
+        
+        U4DVector3n normal=getTriangleNormal();
+        
+        normal.show("Normal");
         
         if (isValid()) {
             std::cout<<"Triangle is Valid"<<std::endl;

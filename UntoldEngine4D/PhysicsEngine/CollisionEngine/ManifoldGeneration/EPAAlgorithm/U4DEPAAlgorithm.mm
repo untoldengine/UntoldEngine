@@ -17,7 +17,7 @@
 namespace U4DEngine{
     
 
-    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n uClosestPointToOrigin){
+    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPointToOrigin){
         
         //get bounding volume for each model
         U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
@@ -42,14 +42,14 @@ namespace U4DEngine{
                 
             }
             
-            //get contact points
-            U4DVector3n contactPoint1=closestPointsModel1.toVector();
-            
-            uModel1->setCollisionContactPoint(contactPoint1);
-            
-            U4DVector3n contactPoint2=closestPointsModel2.toVector();
-            
-            uModel2->setCollisionContactPoint(contactPoint1);
+//            //get contact points
+//            U4DVector3n contactPoint1=closestPointsModel1.toVector();
+//            
+//            uModel1->setCollisionContactPoint(contactPoint1);
+//            
+//            U4DVector3n contactPoint2=closestPointsModel2.toVector();
+//            
+//            uModel2->setCollisionContactPoint(contactPoint1);
         
         }
         

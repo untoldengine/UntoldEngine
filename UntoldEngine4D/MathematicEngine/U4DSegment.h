@@ -37,7 +37,7 @@ public:
     /**
      @brief  Default constructor
      */
-    U4DSegment(){};
+    U4DSegment();
     
     /*!
      @brief  Constructor

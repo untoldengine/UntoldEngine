@@ -77,13 +77,19 @@ namespace U4DEngine {
                 model2->setModelHasCollided(true);
                 
                 //Manifold Generation Algorithm
-                manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), collisionAlgorithm->getClosestPointToOrigin());
+                U4DPoint3n closestPoints=collisionAlgorithm->getClosestCollisionPoint();
                 
-                
-                //contact resolution
-                contactResolution(model1, dt*model1->getTimeOfImpact());
-                contactResolution(model2, dt*model2->getTimeOfImpact());
+                if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),closestPoints)){
                     
+                    //contact resolution
+                    //contactResolution(model1, dt*model1->getTimeOfImpact());
+                    //contactResolution(model2, dt*model2->getTimeOfImpact());
+                    
+                }else{
+                    
+                    std::cout<<"Contact Manifold were not found"<<std::endl;
+                
+                }
                 
             }
                 
@@ -106,7 +112,7 @@ namespace U4DEngine {
         
         //get the contact point and line of action
         
-        U4DVector3n contactPoint=uModel->getCollisionContactPoint()-uModel->getAbsolutePosition();
+        U4DVector3n contactPoint(0,1,0);
         
         U4DVector3n lineOfAction=uModel->getCollisionNormalFaceDirection();
         

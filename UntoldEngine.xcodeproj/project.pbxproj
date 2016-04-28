@@ -134,6 +134,7 @@
 		03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D3740A1AE9E76A000D8535 /* U4DSpriteAnimation.mm */; };
 		03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740D1AE9FE8F000D8535 /* spriteExample.png */; };
 		03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740E1AE9FE8F000D8535 /* spriteExample.xml */; };
+		03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -389,6 +390,8 @@
 		03D3740B1AE9E76A000D8535 /* U4DSpriteAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSpriteAnimation.h; sourceTree = "<group>"; };
 		03D3740D1AE9FE8F000D8535 /* spriteExample.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = spriteExample.png; path = Resources/spriteExample.png; sourceTree = SOURCE_ROOT; };
 		03D3740E1AE9FE8F000D8535 /* spriteExample.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = spriteExample.xml; path = Resources/spriteExample.xml; sourceTree = SOURCE_ROOT; };
+		03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSHAlgorithm.mm; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.mm; sourceTree = "<group>"; };
+		03D4B1CD1CC5DEB0007BE481 /* U4DSHAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DSHAlgorithm.h; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.h; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -498,6 +501,7 @@
 		03002C831B977F7600665CC9 /* ManifoldGeneration */ = {
 			isa = PBXGroup;
 			children = (
+				03D4B1CB1CC5DE36007BE481 /* SutherlandHodgmanAlgorithm */,
 				03002C8A1B97810500665CC9 /* EPAAlgorithm */,
 				03002C851B977FE600665CC9 /* U4DManifoldGeneration.h */,
 				03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */,
@@ -1010,6 +1014,15 @@
 			path = SpriteAnimation;
 			sourceTree = "<group>";
 		};
+		03D4B1CB1CC5DE36007BE481 /* SutherlandHodgmanAlgorithm */ = {
+			isa = PBXGroup;
+			children = (
+				03D4B1CD1CC5DEB0007BE481 /* U4DSHAlgorithm.h */,
+				03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */,
+			);
+			name = SutherlandHodgmanAlgorithm;
+			sourceTree = "<group>";
+		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
@@ -1462,6 +1475,7 @@
 				03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
 				03002C8D1B97812100665CC9 /* U4DEPAAlgorithm.mm in Sources */,
+				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
 				036FB58218CE9CB8000EA639 /* MyCharacter.mm in Sources */,

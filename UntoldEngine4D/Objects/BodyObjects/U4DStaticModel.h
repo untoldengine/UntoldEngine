@@ -37,7 +37,7 @@ namespace U4DEngine {
 
     typedef struct{
         
-        U4DVector3n contactPoint;
+        std::vector<U4DVector3n> contactPoint;
         U4DVector3n normalForce;
         U4DVector3n normalFaceDirection;
         float penetrationDepth=0.0;
@@ -149,7 +149,7 @@ namespace U4DEngine {
             
             void updateBroadPhaseBoundingVolumeSpace();
         
-            void setCollisionContactPoint(U4DVector3n& uContactPoint);
+            void addCollisionContactPoint(U4DVector3n& uContactPoint);
         
             void setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection);
             
@@ -159,7 +159,9 @@ namespace U4DEngine {
         
             U4DVector3n getNormalForce();
         
-            U4DVector3n getCollisionContactPoint();
+            std::vector<U4DVector3n> getCollisionContactPoints();
+        
+            void clearCollisionContactPoints();
         
             U4DVector3n getCollisionNormalFaceDirection();
             
