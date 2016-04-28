@@ -31,6 +31,10 @@ namespace U4DEngine {
         U4DVector3n collisionNormalOfModel2=uModel2->getCollisionNormalFaceDirection();
         U4DPlane planeCollisionOfModel2(collisionNormalOfModel2,uClosestPoint);
         
+        if (collisionNormalOfModel1==U4DVector3n(0,0,0) || collisionNormalOfModel2==U4DVector3n(0,0,0)) {
+            return false;
+        }
+        
         //step 2. For each model determine which face is most parallel to plane, i.e., dot product ~0
         
         std::vector<CONTACTFACES> parallelFacesModel1=mostParallelFacesToPlane(uModel1, planeCollisionOfModel1);
@@ -90,13 +94,6 @@ namespace U4DEngine {
             uClosestPoint=planeCollisionOfModel2.closestPointToPlane(uClosestPoint);
         }
         
-        //if sutherland was not able to clipped the faces, then no contact points exists
-        if (segments.size()==0) {
-            
-            //No contact points found,
-            
-            return false;
-        }
         
         for(auto n: segments){
             
@@ -133,6 +130,7 @@ namespace U4DEngine {
                 U4DVector3n pointA=n.pointA.toVector();
                 U4DVector3n pointB=n.pointB.toVector();
                 
+                
                 uModel1->addCollisionContactPoint(pointA);
                 uModel1->addCollisionContactPoint(pointB);
                 
@@ -150,13 +148,8 @@ namespace U4DEngine {
             uModel2->addCollisionContactPoint(point);
            
             
-            
         }//end for
         
-        
-        for(auto n:uModel1->getCollisionContactPoints()){
-            n.show("Points");
-        }
         
         return true;
     }

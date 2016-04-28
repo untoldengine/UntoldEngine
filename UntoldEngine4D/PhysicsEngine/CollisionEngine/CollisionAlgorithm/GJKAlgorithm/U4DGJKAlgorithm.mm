@@ -119,7 +119,7 @@ namespace U4DEngine {
         
         //if the simplex container is 2, it is not enough to get the correct normal data.
         
-        if (Q.size()<2 || Q.size()>4) {
+        if (Q.size()<=2 || Q.size()>4) {
             return false;
         }
         

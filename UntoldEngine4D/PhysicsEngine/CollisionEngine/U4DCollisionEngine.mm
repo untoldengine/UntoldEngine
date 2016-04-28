@@ -82,8 +82,8 @@ namespace U4DEngine {
                 if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),closestPoints)){
                     
                     //contact resolution
-                    contactResolution(model1, dt*model1->getTimeOfImpact());
-                    contactResolution(model2, dt*model2->getTimeOfImpact());
+                    //contactResolution(model1, dt*model1->getTimeOfImpact());
+                    //contactResolution(model2, dt*model2->getTimeOfImpact());
                     
                 }else{
                     
