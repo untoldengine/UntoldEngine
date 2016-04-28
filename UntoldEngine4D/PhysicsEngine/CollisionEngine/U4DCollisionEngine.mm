@@ -82,8 +82,8 @@ namespace U4DEngine {
                 if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),closestPoints)){
                     
                     //contact resolution
-                    //contactResolution(model1, dt*model1->getTimeOfImpact());
-                    //contactResolution(model2, dt*model2->getTimeOfImpact());
+                    contactResolution(model1, dt*model1->getTimeOfImpact());
+                    contactResolution(model2, dt*model2->getTimeOfImpact());
                     
                 }else{
                     
@@ -112,54 +112,63 @@ namespace U4DEngine {
         
         //get the contact point and line of action
         
-        U4DVector3n contactPoint(0,1,0);
+        std::vector<U4DVector3n> contactManifold=uModel->getCollisionContactPoints();
         
-        U4DVector3n lineOfAction=uModel->getCollisionNormalFaceDirection();
+        U4DVector3n normalCollisionVector=uModel->getCollisionNormalFaceDirection();
         
-        //get the velocity model
-        /*
-         r=contact point
-         vp=v+(wxr)
-         */
+        U4DVector3n centerOfMass=uModel->getCenterOfMass()+uModel->getAbsolutePosition();
         
-        U4DVector3n Vp=uModel->getVelocity()+(uModel->getAngularVelocity().cross(contactPoint));
-        
-        float inverseMass=1.0/uModel->getMass();
-        
-        /*
-         
-         See page 115 in Physics for game developers
-         
-         |J|=-(Vr*n)(e+1)/[1/m +n*((rxn)/I)xr]
-         
-         */
-        
-        
-        float j=-1*(Vp.dot(lineOfAction))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+lineOfAction.dot(uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction)).cross(contactPoint)));
-        
-        
-        /*
-         
-         V1after=V1before+(|J|n)/m
-         
-         */
-        
-        
-        velocityBody=uModel->getVelocity()+(lineOfAction*j)/uModel->getMass();
-        
-        
-        /*
-         
-         w1after=w1before+(rx|j|n)/I
-         */
-        
-        
-        angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(contactPoint.cross(lineOfAction*j));
-        
+        for(auto n:contactManifold){
+            
+            U4DVector3n radius=n;
+            
+            //lineOfAction=uModel->getAbsolutePosition();
+            
+            //get the velocity model
+            /*
+             r=contact point
+             vp=v+(wxr)
+             */
+            
+            U4DVector3n Vp=uModel->getVelocity()+(uModel->getAngularVelocity().cross(radius));
+            
+            float inverseMass=1.0/uModel->getMass();
+            
+            /*
+             
+             See page 115 in Physics for game developers
+             
+             |J|=-(Vr*n)(e+1)/[1/m +n*((rxn)/I)xr]
+             
+             */
+            
+            
+            float j=-1*(Vp.dot(normalCollisionVector))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+normalCollisionVector.dot(uModel->getInverseMomentOfInertiaTensor()*(radius.cross(normalCollisionVector)).cross(radius)));
+            
+            
+            /*
+             
+             V1after=V1before+(|J|n)/m
+             
+             */
+            
+            
+            velocityBody=uModel->getVelocity()+(normalCollisionVector*j)/uModel->getMass();
+            
+            
+            /*
+             
+             w1after=w1before+(rx|j|n)/I
+             */
+            
+            
+            angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(radius.cross(normalCollisionVector*j));
+            
+        }
         
         uModel->setVelocity(velocityBody);
         
-        //uModel->setAngularVelocity(angularVelocityBody);
+        uModel->setAngularVelocity(angularVelocityBody);
         
         //determine if the motion of the body is too low and set body to sleep
 //        float currentMotion=velocityBody.magnitudeSquare()+angularVelocityBody.magnitudeSquare();
