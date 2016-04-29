@@ -64,24 +64,20 @@ void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
     //use the new orientation to rotate the object
     if(uModel->getModelHasCollided()){
         
-//        U4DVector3n axisOfRotation=uModel->getCollisionContactPoint();
-//        
-//        //set the new orientation and rotate
-//        //uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
-//        
-//        uModel->setModelHasCollided(false);
-        
-    }else{
-
-        U4DVector3n axisOfRotation=uModel->getCenterOfMass();
+        U4DVector3n axisOfRotation=uModel->getCenterOfMass()+uModel->getAbsolutePosition();
         
         //set the new orientation and rotate
         uModel->transformation->rotateAboutAxis(orientationNew, axisOfRotation);
+        
+        uModel->setModelHasCollided(false);
+        
+    }else{
+
+        
 
     }
 
     //set the new angular velocity
-    
     uModel->setAngularVelocity(angularVelocityNew);
 
     //clear all forces and moments
