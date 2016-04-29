@@ -69,7 +69,7 @@ void Earth::init(){
  
     
     cube2=new Town();
-    cube2->init("Cube",0.5,5,0.0);
+    cube2->init("Cube",0.0,5,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
 //    U4DEngine::U4DVector3n centerOfMass2(0.8,0.0,0.0);
@@ -82,7 +82,6 @@ void Earth::init(){
     cube2->setCoefficientOfRestitution(0.8);
     cube2->enableCollision();
     //cube2->setBroadPhaseBoundingVolumeVisibility(true);
-    
     
     addChild(cube);
     addChild(cube2);

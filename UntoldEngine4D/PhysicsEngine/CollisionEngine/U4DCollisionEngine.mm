@@ -131,8 +131,8 @@ namespace U4DEngine {
         
         for(auto n:contactManifold){
             
-            U4DVector3n radiusOfModel1=centerOfMassForModel1-n;
-            U4DVector3n radiusOfModel2=centerOfMassForModel2-n;
+            U4DVector3n radiusOfModel1=n-centerOfMassForModel1;
+            U4DVector3n radiusOfModel2=n-centerOfMassForModel2;
             
             //get the velocity model
             /*
@@ -160,8 +160,7 @@ namespace U4DEngine {
             
             float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
-            float j=MAX(-1*(vR.dot(normalCollisionVector))*(1.0+1.0)/(totalInverseMasses+totalAngularEffect),0.0);
-            
+            float j=MAX(-1*(vR.dot(normalCollisionVector))*(1.0+1.0)/(totalInverseMasses+totalAngularEffect),0.5);
             
             /*
              
@@ -184,42 +183,40 @@ namespace U4DEngine {
             
         }
         
+        angularImpulseFactorOfModel1.show("angular");
         //Add the new velocity to the previous velocity
         /*
          
          V1after=V1before+(|J|n)/m
          
          */
-        U4DVector3n newLinearVelocityOfModel1=linearImpulseFactorOfModel1-uModel1->getVelocity();
+        U4DVector3n newLinearVelocityOfModel1=uModel1->getVelocity()-linearImpulseFactorOfModel1;
         U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
-        
-//        linearImpulseFactorOfModel1-=uModel1->getVelocity();
-//        linearImpulseFactorOfModel2+=uModel2->getVelocity();
-        
+
         //Add the new angular velocity to the previous velocity
         /*
          
          w1after=w1before+(rx|j|n)/I
          */
         
-        U4DVector3n newAngularVelocityOfModel1=angularImpulseFactorOfModel1-uModel1->getAngularVelocity();
+        U4DVector3n newAngularVelocityOfModel1=uModel1->getAngularVelocity()-angularImpulseFactorOfModel1;
         U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
-//        angularImpulseFactorOfModel1-=uModel1->getAngularVelocity();
-//        angularImpulseFactorOfModel2+=uModel2->getAngularVelocity();
         
         //Set the new linear and angular velocities for the models
         uModel1->setVelocity(newLinearVelocityOfModel1);
         
         uModel1->setAngularVelocity(newAngularVelocityOfModel1);
         
-        uModel2->setVelocity(newLinearVelocityOfModel2);
-    
-        uModel2->setAngularVelocity(newAngularVelocityOfModel2);
+//        uModel2->setVelocity(newLinearVelocityOfModel2);
+//    
+//        uModel2->setAngularVelocity(newAngularVelocityOfModel2);
         
         //determine if the motion of the body is too low and set body to sleep
-//        float currentMotion=velocityBody.magnitudeSquare()+angularVelocityBody.magnitudeSquare();
+//        float currentMotion1=newLinearVelocityOfModel1.magnitudeSquare()+newAngularVelocityOfModel1.magnitudeSquare();
+//        float currentMotion2=newLinearVelocityOfModel2.magnitudeSquare()+newAngularVelocityOfModel2.magnitudeSquare();
 //        
-//        uModel->setMotion(currentMotion,dt);
+//        uModel1->setMotion(currentMotion1,dt);
+//        uModel2->setMotion(currentMotion2,dt);
         
     }
     
