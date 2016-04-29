@@ -82,8 +82,8 @@ namespace U4DEngine {
                 if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),closestPoints)){
                     
                     //contact resolution
-                    contactResolution(model1, dt*model1->getTimeOfImpact());
-                    contactResolution(model2, dt*model2->getTimeOfImpact());
+                    contactResolution(model1, model2, dt*model1->getTimeOfImpact());
+                    //contactResolution(model2, dt*model2->getTimeOfImpact());
                     
                 }else{
                     
@@ -98,31 +98,41 @@ namespace U4DEngine {
     }
     
     
-    void U4DCollisionEngine::contactResolution(U4DDynamicModel* uModel, float dt){
+    void U4DCollisionEngine::contactResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, float dt){
         
-        U4DVector3n velocityBody(0,0,0);
-        U4DVector3n angularVelocityBody(0,0,0);
+        U4DVector3n linearImpulseFactorOfModel1(0,0,0);
+        U4DVector3n angularImpulseFactorOfModel1(0,0,0);
+ 
+        U4DVector3n linearImpulseFactorOfModel2(0,0,0);
+        U4DVector3n angularImpulseFactorOfModel2(0,0,0);
         
         //Clear all forces
-        uModel->clearForce();
-        uModel->clearMoment();
+        uModel1->clearForce();
+        uModel1->clearMoment();
+        
+        uModel2->clearForce();
+        uModel2->clearMoment();
         
         //set timestep for model
-        dt=dt*uModel->getTimeOfImpact();
+        //dt=dt*uModel->getTimeOfImpact();
         
         //get the contact point and line of action
         
-        std::vector<U4DVector3n> contactManifold=uModel->getCollisionContactPoints();
+        std::vector<U4DVector3n> contactManifold=uModel1->getCollisionContactPoints();
         
-        U4DVector3n normalCollisionVector=uModel->getCollisionNormalFaceDirection();
+        U4DVector3n normalCollisionVector=uModel1->getCollisionNormalFaceDirection();
         
-        U4DVector3n centerOfMass=uModel->getCenterOfMass()+uModel->getAbsolutePosition();
+        U4DVector3n centerOfMassForModel1=uModel1->getCenterOfMass()+uModel1->getAbsolutePosition();
+        U4DVector3n centerOfMassForModel2=uModel2->getCenterOfMass()+uModel2->getAbsolutePosition();
+        
+        float inverseMassOfModel1=1.0/uModel1->getMass();
+        float inverseMassOfModel2=1.0/uModel2->getMass();
+        float totalInverseMasses=inverseMassOfModel1+inverseMassOfModel2;
         
         for(auto n:contactManifold){
             
-            U4DVector3n radius=n;
-            
-            //lineOfAction=uModel->getAbsolutePosition();
+            U4DVector3n radiusOfModel1=centerOfMassForModel1-n;
+            U4DVector3n radiusOfModel2=centerOfMassForModel2-n;
             
             //get the velocity model
             /*
@@ -130,10 +140,12 @@ namespace U4DEngine {
              vp=v+(wxr)
              */
             
-            U4DVector3n Vp=uModel->getVelocity()+(uModel->getAngularVelocity().cross(radius));
+            U4DVector3n vpModel1=uModel1->getVelocity()+(uModel1->getAngularVelocity().cross(radiusOfModel1));
+            U4DVector3n vpModel2=uModel2->getVelocity()+(uModel2->getAngularVelocity().cross(radiusOfModel2));
             
-            float inverseMass=1.0/uModel->getMass();
+            U4DVector3n vR=vpModel2-vpModel1;
             
+
             /*
              
              See page 115 in Physics for game developers
@@ -142,33 +154,67 @@ namespace U4DEngine {
              
              */
             
+            U4DVector3n angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
             
-            float j=-1*(Vp.dot(normalCollisionVector))*(uModel->getCoefficientOfRestitution()+1)/(inverseMass+normalCollisionVector.dot(uModel->getInverseMomentOfInertiaTensor()*(radius.cross(normalCollisionVector)).cross(radius)));
+            U4DVector3n angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
             
+            float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
-            /*
-             
-             V1after=V1before+(|J|n)/m
-             
-             */
-            
-            
-            velocityBody=uModel->getVelocity()+(normalCollisionVector*j)/uModel->getMass();
+            float j=MAX(-1*(vR.dot(normalCollisionVector))*(1.0+1.0)/(totalInverseMasses+totalAngularEffect),0.0);
             
             
             /*
              
-             w1after=w1before+(rx|j|n)/I
+             Linear Impulse factor=(|J|n)/m
+             
+             */
+            
+            linearImpulseFactorOfModel1+=(normalCollisionVector*j)*inverseMassOfModel1;
+            linearImpulseFactorOfModel2+=(normalCollisionVector*j)*inverseMassOfModel2;
+            
+            /*
+             
+             Angular Impulse factor=(rx|j|n)/I
              */
             
             
-            angularVelocityBody=uModel->getAngularVelocity()+uModel->getInverseMomentOfInertiaTensor()*(radius.cross(normalCollisionVector*j));
+            angularImpulseFactorOfModel1+=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector*j));
+            
+            angularImpulseFactorOfModel2+=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector*j));
             
         }
         
-        uModel->setVelocity(velocityBody);
+        //Add the new velocity to the previous velocity
+        /*
+         
+         V1after=V1before+(|J|n)/m
+         
+         */
+        U4DVector3n newLinearVelocityOfModel1=linearImpulseFactorOfModel1-uModel1->getVelocity();
+        U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
         
-        uModel->setAngularVelocity(angularVelocityBody);
+//        linearImpulseFactorOfModel1-=uModel1->getVelocity();
+//        linearImpulseFactorOfModel2+=uModel2->getVelocity();
+        
+        //Add the new angular velocity to the previous velocity
+        /*
+         
+         w1after=w1before+(rx|j|n)/I
+         */
+        
+        U4DVector3n newAngularVelocityOfModel1=angularImpulseFactorOfModel1-uModel1->getAngularVelocity();
+        U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
+//        angularImpulseFactorOfModel1-=uModel1->getAngularVelocity();
+//        angularImpulseFactorOfModel2+=uModel2->getAngularVelocity();
+        
+        //Set the new linear and angular velocities for the models
+        uModel1->setVelocity(newLinearVelocityOfModel1);
+        
+        uModel1->setAngularVelocity(newAngularVelocityOfModel1);
+        
+        uModel2->setVelocity(newLinearVelocityOfModel2);
+    
+        uModel2->setAngularVelocity(newAngularVelocityOfModel2);
         
         //determine if the motion of the body is too low and set body to sleep
 //        float currentMotion=velocityBody.magnitudeSquare()+angularVelocityBody.magnitudeSquare();

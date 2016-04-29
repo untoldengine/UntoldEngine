@@ -53,7 +53,7 @@ void Earth::init(){
     cube->init("Cube",0.0,0,0.0);
     cube->setName("cube1");
     //cube->rotateBy(0.0, 0.0, -20.0);
-    cube->setMass(1.0);
+    //cube->setMass(10.0);
     U4DEngine::U4DVector3n centerOfMass(0.0,0,0);
     
     cube->setCenterOfMass(centerOfMass);
@@ -69,11 +69,13 @@ void Earth::init(){
  
     
     cube2=new Town();
-    cube2->init("Cube",0.0,5,0.0);
+    cube2->init("Cube",0.5,5,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
+//    U4DEngine::U4DVector3n centerOfMass2(0.8,0.0,0.0);
+//    cube2->setCenterOfMass(centerOfMass2);
     //cube2->rotateBy(0.0, 0.0, 60.0);
-    
+    //cube2->setMass(10.0);
     cube2->applyPhysics(true);
     
     //set the coefficient of restitution to 0.8

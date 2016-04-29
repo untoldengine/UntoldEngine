@@ -54,7 +54,7 @@ namespace U4DEngine {
         
         void addToBroadPhaseCollisionContainer(U4DDynamicModel* uModel);
         
-        void contactResolution(U4DDynamicModel* uModel, float dt);
+        void contactResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, float dt);
         
         void update(float dt);
         
