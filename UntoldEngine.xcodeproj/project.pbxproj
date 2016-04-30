@@ -171,6 +171,7 @@
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
 		03EB59911AEF7D8C00A5F7DA /* floorTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03EB59901AEF7D8C00A5F7DA /* floorTexture.png */; };
 		03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
+		03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */; settings = {ASSET_TAGS = (); }; };
 		03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03EF7A4517F908A60023F0FD /* spriteShader.fp */; };
 		03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03EF7A4617F908A60023F0FD /* spriteShader.vp */; };
 		03EF85411791E426007D6152 /* U4DIndex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF853F1791E426007D6152 /* U4DIndex.mm */; };
@@ -456,6 +457,8 @@
 		03EB59901AEF7D8C00A5F7DA /* floorTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = floorTexture.png; path = Resources/floorTexture.png; sourceTree = SOURCE_ROOT; };
 		03EF2DFC1B6D5EF200F26945 /* U4DPoint3n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPoint3n.h; sourceTree = "<group>"; };
 		03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPoint3n.mm; sourceTree = "<group>"; };
+		03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DCollisionResponse.mm; path = CollisionResponse/U4DCollisionResponse.mm; sourceTree = "<group>"; };
+		03EF780C1CD32FF500BA0C87 /* U4DCollisionResponse.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DCollisionResponse.h; path = CollisionResponse/U4DCollisionResponse.h; sourceTree = "<group>"; };
 		03EF7A4517F908A60023F0FD /* spriteShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = spriteShader.fp; sourceTree = "<group>"; };
 		03EF7A4617F908A60023F0FD /* spriteShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = spriteShader.vp; sourceTree = "<group>"; };
 		03EF853F1791E426007D6152 /* U4DIndex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DIndex.mm; sourceTree = "<group>"; };
@@ -1127,6 +1130,7 @@
 		03E6EDB21943D816007AD131 /* CollisionEngine */ = {
 			isa = PBXGroup;
 			children = (
+				03EF780A1CD32FBF00BA0C87 /* CollisionResponse */,
 				0314B0B41C6FC04F00EB8C34 /* BoundaryVolumeHierarchy */,
 				03002C831B977F7600665CC9 /* ManifoldGeneration */,
 				03E6EDB31943D816007AD131 /* CollisionAlgorithm */,
@@ -1236,6 +1240,15 @@
 				03068D6919BFFFC400ABDC55 /* U4DAnimation.mm */,
 			);
 			path = Animation;
+			sourceTree = "<group>";
+		};
+		03EF780A1CD32FBF00BA0C87 /* CollisionResponse */ = {
+			isa = PBXGroup;
+			children = (
+				03EF780C1CD32FF500BA0C87 /* U4DCollisionResponse.h */,
+				03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */,
+			);
+			name = CollisionResponse;
 			sourceTree = "<group>";
 		};
 		03F8629E17EE29FD00712ECD /* OpenGLManager */ = {
@@ -1435,6 +1448,7 @@
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03FBE3F01BF6EC1B007E837F /* U4DNormalForceGenerator.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
+				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03E6EDDD1943D816007AD131 /* U4DEulerMethod.mm in Sources */,

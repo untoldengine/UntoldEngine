@@ -29,6 +29,7 @@ namespace U4DEngine {
     class U4DDynamicModel;
     class U4DCollisionAlgorithm;
     class U4DManifoldGeneration;
+    class U4DCollisionResponse;
     class U4DVector3n;
     class U4DBVHManager;
     
@@ -57,6 +58,8 @@ namespace U4DEngine {
         U4DManifoldGeneration *manifoldGenerationAlgorithm;
         
         U4DBVHManager *bvhTreeManager;
+        
+        U4DCollisionResponse *collisionResponse;
         
         
     public:

@@ -26,7 +26,6 @@ namespace U4DEngine {
         
         virtual bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){};
         
-        
         virtual void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ){};
         
         U4DSimplexStruct calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection);

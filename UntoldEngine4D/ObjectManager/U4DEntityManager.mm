@@ -21,6 +21,7 @@
 #include "U4DGJKAlgorithm.h"
 #include "U4DEPAAlgorithm.h"
 #include "U4DSHAlgorithm.h"
+#include "U4DCollisionResponse.h"
 #include "U4DBVHManager.h"
 #include "U4DVector3n.h"
 
@@ -51,6 +52,9 @@ namespace U4DEngine {
         manifoldGenerationAlgorithm=new U4DSHAlgorithm();
         collisionEngine->setManifoldGenerationAlgorithm(manifoldGenerationAlgorithm);
         
+        //set the collision response
+        collisionResponse=new U4DCollisionResponse();
+        collisionEngine->setCollisionResponse(collisionResponse);
         
     };
 

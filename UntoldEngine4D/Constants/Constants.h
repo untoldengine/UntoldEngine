@@ -23,6 +23,7 @@ namespace U4DEngine {
     const float timeStep=0.01;
     const float zeroEpsilon=1.0e-4f;
     const float closestDistanceToSimplexEpsilon=0.2;  //epsilon for closest point to simplex
+    const float impulseCollisionMinimum=0.2; //sets the minimum impulse allowed between collisions
 }
 
 #define DegreesToRad(angle) angle*M_PI/180

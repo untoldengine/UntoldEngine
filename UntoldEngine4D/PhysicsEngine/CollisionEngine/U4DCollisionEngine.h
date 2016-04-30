@@ -19,6 +19,7 @@ namespace U4DEngine {
     class U4DEntityManager;
     class U4DCollisionAlgorithm;
     class U4DManifoldGeneration;
+    class U4DCollisionResponse;
     class U4DDynamicModel;
     class U4DBVHManager;
 }
@@ -32,7 +33,7 @@ namespace U4DEngine {
         U4DCollisionAlgorithm *collisionAlgorithm;
         U4DManifoldGeneration *manifoldGenerationAlgorithm;
         U4DBVHManager *boundaryVolumeHierarchyManager;
-        
+        U4DCollisionResponse *collisionResponse;
         std::vector<U4DBroadPhaseCollisionModelPair> collisionPairs;
         
     public:
@@ -46,6 +47,8 @@ namespace U4DEngine {
         
         void setManifoldGenerationAlgorithm(U4DManifoldGeneration* uManifoldGenerationAlgorithm);
         
+        void setCollisionResponse(U4DCollisionResponse* uCollisionResponse);
+        
         void setBoundaryVolumeHierarchyManager(U4DBVHManager* uBoundaryVolumeHierarchyManager);
         
         void detectBroadPhaseCollisions(float dt);
@@ -53,8 +56,6 @@ namespace U4DEngine {
         void detectNarrowPhaseCollision(float dt);
         
         void addToBroadPhaseCollisionContainer(U4DDynamicModel* uModel);
-        
-        void contactResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, float dt);
         
         void update(float dt);
         
