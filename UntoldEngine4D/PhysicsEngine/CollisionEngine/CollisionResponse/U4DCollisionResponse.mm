@@ -88,7 +88,9 @@ namespace U4DEngine {
             
             float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
-            float j=MAX(-1*(vR.dot(normalCollisionVector))*(1.0+1.0)/(totalInverseMasses+totalAngularEffect),U4DEngine::impulseCollisionMinimum);
+            float j=MAX(-1*(vR.dot(normalCollisionVector))*(0.8+1.0)/(totalInverseMasses+totalAngularEffect),U4DEngine::impulseCollisionMinimum);
+            
+            std::cout<<j<<std::endl;
             
             /*
              
@@ -122,9 +124,11 @@ namespace U4DEngine {
         
         //determine if the sum of radius is in the same direction of the normal. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         sumOfAllRadiusesOfModel1.normalize();
+        
         float dotProductOfRadiusSumAndCollisionNormal1=sumOfAllRadiusesOfModel1.dot(uModel1->getCollisionNormalFaceDirection());
         
         sumOfAllRadiusesOfModel2.normalize();
+        
         float dotProductOfRadiusSumAndCollisionNormal2=sumOfAllRadiusesOfModel2.dot(uModel2->getCollisionNormalFaceDirection());
         
         
@@ -149,13 +153,23 @@ namespace U4DEngine {
         U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
         
         //Set the new linear and angular velocities for the models
-        uModel1->setVelocity(newLinearVelocityOfModel1);
         
-        uModel1->setAngularVelocity(newAngularVelocityOfModel1);
+        if (uModel1->isPhysicsApplied()) {
+            
+            uModel1->setVelocity(newLinearVelocityOfModel1);
+            
+            uModel1->setAngularVelocity(newAngularVelocityOfModel1);
+            
+        }
         
-        uModel2->setVelocity(newLinearVelocityOfModel2);
         
-        uModel2->setAngularVelocity(newAngularVelocityOfModel2);
+        if(uModel2->isPhysicsApplied()){
+            
+            uModel2->setVelocity(newLinearVelocityOfModel2);
+            
+            uModel2->setAngularVelocity(newAngularVelocityOfModel2);
+            
+        }
         
     }
     
