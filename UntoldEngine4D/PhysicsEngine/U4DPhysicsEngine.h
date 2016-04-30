@@ -30,11 +30,9 @@ namespace U4DEngine {
         
         U4DGravityForceGenerator gravityForce;
         
-        U4DNormalForceGenerator normalForce;
-        
-        U4DTorqueForceGenerator torqueForce;
-        
         U4DDragForceGenerator dragForce;
+        
+        U4DVector3n gravity;
         
     protected:
 

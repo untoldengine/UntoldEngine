@@ -31,9 +31,9 @@ namespace U4DEngine {
         
         //add all the forces for that body
         
-        gravityForce.updateForce(uModel,dt);
+        gravityForce.updateForce(uModel, gravity, dt);
         
-     
+        
         //dragForce.updateForce(uModel,dt);
         
         //Integrate
@@ -59,14 +59,14 @@ namespace U4DEngine {
 
     void U4DPhysicsEngine::setGravity(U4DVector3n& uGravity){
         
-        gravityForce.setGravity(uGravity);
-        normalForce.setGravity(uGravity);
-        torqueForce.setGravity(uGravity);
+        gravity=uGravity;
+        
+        
     }
 
     U4DVector3n U4DPhysicsEngine::getGravity(){
         
-        return gravityForce.getGravity();
+        return gravity;
         
     }
     

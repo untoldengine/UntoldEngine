@@ -12,32 +12,33 @@
 #include <iostream>
 #include "U4DEntityManager.h"
 #include "U4DBodyForceGenerator.h"
-#include "U4DVector3n.h"
-#include "U4DDynamicModel.h"
+
 
 namespace U4DEngine {
     
-class U4DGravityForceGenerator:public U4DBodyForceGenerator{
-  
-private:
+    class U4DVector3n;
+    class U4DDynamicModel;
     
-    U4DVector3n gravity;
+}
+
+namespace U4DEngine {
     
-public:
-    
-    U4DGravityForceGenerator();
-    
-    ~U4DGravityForceGenerator();
-    
-    void updateForce(U4DDynamicModel *uModel, float dt);
-    
-    void setGravity(U4DVector3n& uGravity);
-    
-    U4DVector3n getGravity();
-    
-    
-};
-    
+    class U4DGravityForceGenerator:public U4DBodyForceGenerator{
+      
+    private:
+        
+    public:
+        
+        U4DGravityForceGenerator();
+        
+        ~U4DGravityForceGenerator();
+        
+        void updateForce(U4DDynamicModel *uModel,U4DVector3n& uGravity, float dt);
+        
+        void updateForce(U4DDynamicModel *uModel, float dt){};
+
+    };
+        
 }
 
 #endif /* defined(__UntoldEngine__GravityForceGenerator__) */

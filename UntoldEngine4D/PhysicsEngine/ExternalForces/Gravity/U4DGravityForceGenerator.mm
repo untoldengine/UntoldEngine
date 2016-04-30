@@ -7,7 +7,8 @@
 //
 
 #include "U4DGravityForceGenerator.h"
-
+#include "U4DVector3n.h"
+#include "U4DDynamicModel.h"
 
 namespace U4DEngine {
     
@@ -20,24 +21,14 @@ namespace U4DEngine {
         
     }
 
-    void U4DGravityForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
+    void U4DGravityForceGenerator::updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt){
         
-        U4DVector3n force=gravity*uModel->getMass();
+        U4DVector3n force=uGravity*uModel->getMass();
+        
         uModel->addForce(force);
         
         
     }
 
-    void U4DGravityForceGenerator::setGravity(U4DVector3n& uGravity){
-        
-        gravity=uGravity;
-        
-    }
-
-    U4DVector3n U4DGravityForceGenerator::getGravity(){
-        
-        return gravity;
-        
-    }
 
 }

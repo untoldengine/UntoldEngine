@@ -101,6 +101,7 @@
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DGameObject.mm */; };
 		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; settings = {ASSET_TAGS = (); }; };
+		039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */; settings = {ASSET_TAGS = (); }; };
 		03A9F6E81AD9D19300E81A00 /* fort.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E71AD9D19300E81A00 /* fort.png */; };
 		03A9F6EA1AD9D19A00E81A00 /* little_mansion.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E91AD9D19A00E81A00 /* little_mansion.png */; };
 		03A9F6EC1AD9D1A000E81A00 /* small_house_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6EB1AD9D1A000E81A00 /* small_house_01.png */; };
@@ -345,6 +346,8 @@
 		037C473D17B597CB007B8283 /* U4DGameObject.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameObject.mm; sourceTree = "<group>"; };
 		038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingConvex.mm; path = BoundingVolumes/U4DBoundingConvex.mm; sourceTree = "<group>"; };
 		038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingConvex.h; path = BoundingVolumes/U4DBoundingConvex.h; sourceTree = "<group>"; };
+		039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRestingForcesGenerator.mm; path = RestingForces/U4DRestingForcesGenerator.mm; sourceTree = "<group>"; };
+		039174FF1CD56D0000FD2674 /* U4DRestingForcesGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DRestingForcesGenerator.h; path = RestingForces/U4DRestingForcesGenerator.h; sourceTree = "<group>"; };
 		03A9F6E71AD9D19300E81A00 /* fort.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = fort.png; path = Resources/fort.png; sourceTree = SOURCE_ROOT; };
 		03A9F6E91AD9D19A00E81A00 /* little_mansion.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = little_mansion.png; path = Resources/little_mansion.png; sourceTree = SOURCE_ROOT; };
 		03A9F6EB1AD9D1A000E81A00 /* small_house_01.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_house_01.png; path = Resources/small_house_01.png; sourceTree = SOURCE_ROOT; };
@@ -954,6 +957,15 @@
 			path = Game/Resources;
 			sourceTree = "<group>";
 		};
+		039174FD1CD56C0200FD2674 /* RestingForces */ = {
+			isa = PBXGroup;
+			children = (
+				039174FF1CD56D0000FD2674 /* U4DRestingForcesGenerator.h */,
+				039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */,
+			);
+			name = RestingForces;
+			sourceTree = "<group>";
+		};
 		03A9F7031ADB2F3600E81A00 /* FontAssetLoader */ = {
 			isa = PBXGroup;
 			children = (
@@ -1156,6 +1168,7 @@
 		03E6EDC01943D816007AD131 /* ExternalForces */ = {
 			isa = PBXGroup;
 			children = (
+				039174FD1CD56C0200FD2674 /* RestingForces */,
 				03FBE3F11BFB934A007E837F /* Torque */,
 				03FBE3ED1BF6EBB2007E837F /* Normal */,
 				03E6EDC11943D816007AD131 /* Drag */,
@@ -1468,6 +1481,7 @@
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				03759BC6175B038C002EB5D9 /* U4DShaderManager.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
+				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,

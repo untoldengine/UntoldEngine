@@ -44,10 +44,6 @@ void Earth::init(){
     
     enableGrid(true);
     
-    U4DEngine::U4DVector3n gravity(0,-10,0);
-    //Set gravity here
-    setGravity(gravity);
-    
     //create our object
     cube=new Town();
     cube->init("Cube",0.0,0,0.0);

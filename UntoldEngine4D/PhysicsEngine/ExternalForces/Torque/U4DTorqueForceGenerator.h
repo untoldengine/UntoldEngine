@@ -18,26 +18,26 @@ namespace U4DEngine {
     
     class U4DTorqueForceGenerator:public U4DBodyForceGenerator{
         
-    private:
-        
-        U4DVector3n torque;
-        U4DVector3n gravity;
-        
-    public:
-        
-        U4DTorqueForceGenerator();
-        
-        ~U4DTorqueForceGenerator();
-        
-        void updateForce(U4DDynamicModel *uModel, float dt);
-        
-        void setTorque(U4DVector3n& uTorque);
-        
-        U4DVector3n getTorque();
-        
-        void setGravity(U4DVector3n& uGravity);
-        
-        U4DVector3n getGravity();
+//    private:
+//        
+//        U4DVector3n torque;
+//        U4DVector3n gravity;
+//        
+//    public:
+//        
+//        U4DTorqueForceGenerator();
+//        
+//        ~U4DTorqueForceGenerator();
+//        
+//        void updateForce(U4DDynamicModel *uModel, float dt);
+//        
+//        void setTorque(U4DVector3n& uTorque);
+//        
+//        U4DVector3n getTorque();
+//        
+//        void setGravity(U4DVector3n& uGravity);
+//        
+//        U4DVector3n getGravity();
     };
     
 }
