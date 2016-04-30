@@ -11,4 +11,28 @@
 
 #include <stdio.h>
 
+namespace U4DEngine {
+    
+    class U4DDynamicModel;
+    
+}
+
+namespace U4DEngine {
+    
+    class U4DCollisionResponse{
+        
+    private:
+        
+    public:
+        
+        U4DCollisionResponse();
+        ~U4DCollisionResponse();
+        
+        void collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2);
+        
+        bool areNumbersEqual(float uA, float uB, float uEpsilon);
+        
+    };
+}
+
 #endif /* U4DCollisionResponse_hpp */

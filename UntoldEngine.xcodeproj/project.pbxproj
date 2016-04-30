@@ -1245,8 +1245,8 @@
 		03EF780A1CD32FBF00BA0C87 /* CollisionResponse */ = {
 			isa = PBXGroup;
 			children = (
-				03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */,
 				03EF780C1CD32FF500BA0C87 /* U4DCollisionResponse.h */,
+				03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */,
 			);
 			name = CollisionResponse;
 			sourceTree = "<group>";
