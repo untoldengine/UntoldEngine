@@ -10,57 +10,57 @@
 
 namespace U4DEngine {
     
-    U4DTorqueForceGenerator::U4DTorqueForceGenerator(){
-        
-        
-    }
-    
-    U4DTorqueForceGenerator::~U4DTorqueForceGenerator(){
-        
-    }
-    
-    void U4DTorqueForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
+//    U4DTorqueForceGenerator::U4DTorqueForceGenerator(){
 //        
-//        //get center of mass
-//        U4DVector3n centerOfMass=uModel->getCenterOfMass();
 //        
-//        //get contact point
-//        U4DVector3n contactPoint=uModel->getCollisionContactPoint();
+//    }
+//    
+//    U4DTorqueForceGenerator::~U4DTorqueForceGenerator(){
 //        
-//        //get mass
-//        float mass=uModel->getMass();
+//    }
+//    
+//    void U4DTorqueForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
+////        
+////        //get center of mass
+////        U4DVector3n centerOfMass=uModel->getCenterOfMass();
+////        
+////        //get contact point
+////        U4DVector3n contactPoint=uModel->getCollisionContactPoint();
+////        
+////        //get mass
+////        float mass=uModel->getMass();
+////        
+////        U4DVector3n radius=centerOfMass-contactPoint;
+////        
+////        //calculate torque
+////        U4DVector3n torque=(radius).cross(gravity*mass);
+////        
+////        uModel->addMoment(torque);
 //        
-//        U4DVector3n radius=centerOfMass-contactPoint;
+//    }
+//    
+//    void U4DTorqueForceGenerator::setTorque(U4DVector3n& uTorque){
 //        
-//        //calculate torque
-//        U4DVector3n torque=(radius).cross(gravity*mass);
+//        torque=uTorque;
 //        
-//        uModel->addMoment(torque);
-        
-    }
-    
-    void U4DTorqueForceGenerator::setTorque(U4DVector3n& uTorque){
-        
-        torque=uTorque;
-        
-    }
-    
-    U4DVector3n U4DTorqueForceGenerator::getTorque(){
-        
-        return torque;
-        
-    }
-    
-    void U4DTorqueForceGenerator::setGravity(U4DVector3n& uGravity){
-        
-        gravity=uGravity;
-        
-    }
-    
-    U4DVector3n U4DTorqueForceGenerator::getGravity(){
-        
-        return gravity;
-        
-    }
+//    }
+//    
+//    U4DVector3n U4DTorqueForceGenerator::getTorque(){
+//        
+//        return torque;
+//        
+//    }
+//    
+//    void U4DTorqueForceGenerator::setGravity(U4DVector3n& uGravity){
+//        
+//        gravity=uGravity;
+//        
+//    }
+//    
+//    U4DVector3n U4DTorqueForceGenerator::getGravity(){
+//        
+//        return gravity;
+//        
+//    }
     
 }

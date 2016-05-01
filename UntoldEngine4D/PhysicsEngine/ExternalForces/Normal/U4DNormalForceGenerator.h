@@ -18,26 +18,26 @@ namespace U4DEngine {
     
     class U4DNormalForceGenerator:public U4DBodyForceGenerator{
         
-    private:
-        
-        U4DVector3n normalForce;
-        U4DVector3n gravity;
-        
-    public:
-        
-        U4DNormalForceGenerator();
-        
-        ~U4DNormalForceGenerator();
-        
-        void updateForce(U4DDynamicModel *uModel, float dt);
-        
-        void setNormalForce(U4DVector3n& uNormalForce);
-        
-        U4DVector3n getNormalForce();
-        
-        void setGravity(U4DVector3n& uGravity);
-        
-        U4DVector3n getGravity();
+//    private:
+//        
+//        U4DVector3n normalForce;
+//        U4DVector3n gravity;
+//        
+//    public:
+//        
+//        U4DNormalForceGenerator();
+//        
+//        ~U4DNormalForceGenerator();
+//        
+//        void updateForce(U4DDynamicModel *uModel, float dt);
+//        
+//        void setNormalForce(U4DVector3n& uNormalForce);
+//        
+//        U4DVector3n getNormalForce();
+//        
+//        void setGravity(U4DVector3n& uGravity);
+//        
+//        U4DVector3n getGravity();
         
     };
     

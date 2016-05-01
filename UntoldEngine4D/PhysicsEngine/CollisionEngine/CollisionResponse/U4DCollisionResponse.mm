@@ -90,8 +90,6 @@ namespace U4DEngine {
             
             float j=MAX(-1*(vR.dot(normalCollisionVector))*(0.8+1.0)/(totalInverseMasses+totalAngularEffect),U4DEngine::impulseCollisionMinimum);
             
-            std::cout<<j<<std::endl;
-            
             /*
              
              Linear Impulse factor=(|J|n)/m

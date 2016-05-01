@@ -44,10 +44,6 @@ void Earth::init(){
     
     enableGrid(true);
     
-    U4DEngine::U4DVector3n gravity(0,-10,0);
-    //Set gravity here
-    setGravity(gravity);
-    
     //create our object
     cube=new Town();
     cube->init("Cube",0.0,0,0.0);
@@ -69,12 +65,12 @@ void Earth::init(){
  
     
     cube2=new Town();
-    cube2->init("Cube",0.0,10.0,0.0);
+    cube2->init("Cube",0.9,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
 //    U4DEngine::U4DVector3n centerOfMass2(0.8,0.0,0.0);
 //    cube2->setCenterOfMass(centerOfMass2);
-    //cube2->rotateBy(0.0, 0.0, 60.0);
+    cube2->rotateBy(0.0, 0.0, 20.0);
     cube2->setMass(1.0);
     cube2->applyPhysics(true);
     
