@@ -16,9 +16,8 @@
 #include "U4DBodyForceGenerator.h"
 #include "U4DIntegrator.h"
 #include "U4DGravityForceGenerator.h"
-#include "U4DNormalForceGenerator.h"
-#include "U4DTorqueForceGenerator.h"
 #include "U4DDragForceGenerator.h"
+#include "U4DRestingForcesGenerator.h"
 
 namespace U4DEngine {
     
@@ -31,6 +30,8 @@ namespace U4DEngine {
         U4DGravityForceGenerator gravityForce;
         
         U4DDragForceGenerator dragForce;
+        
+        U4DRestingForcesGenerator restingForces;
         
         U4DVector3n gravity;
         

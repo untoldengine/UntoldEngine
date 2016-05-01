@@ -33,7 +33,11 @@ namespace U4DEngine {
         
         gravityForce.updateForce(uModel, gravity, dt);
         
-        
+        if (uModel->getModelHasCollided()) {
+            
+            restingForces.updateForce(uModel, gravity, dt);
+            
+        }
         //dragForce.updateForce(uModel,dt);
         
         //Integrate
