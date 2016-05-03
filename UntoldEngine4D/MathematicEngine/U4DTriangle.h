@@ -37,14 +37,7 @@ class U4DTriangle{
         U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC){};
         
         
-        inline U4DTriangle& operator=(const U4DTriangle& a){
-            
-            pointA=a.pointA;
-            pointB=a.pointB;
-            pointC=a.pointC;
-            
-            return *this;
-        };
+        U4DTriangle& operator=(const U4DTriangle& a);
         
         bool operator==(const U4DTriangle& a);
         
@@ -67,6 +60,10 @@ class U4DTriangle{
         float distanceToPlane(U4DPlane& uPlane);
     
         float distanceSquareToPlane(U4DPlane& uPlane);
+    
+        float centroidDistanceToPlane(U4DPlane& uPlane);
+    
+        float centroidSquareDistanceToPlane(U4DPlane& uPlane);
     
         void show();
         

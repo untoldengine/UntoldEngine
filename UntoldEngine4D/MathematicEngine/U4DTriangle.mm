@@ -25,6 +25,15 @@ namespace U4DEngine {
         
     }
     
+    U4DTriangle& U4DTriangle::operator=(const U4DTriangle& a){
+        
+        pointA=a.pointA;
+        pointB=a.pointB;
+        pointC=a.pointC;
+        
+        return *this;
+    };
+    
     bool U4DTriangle::operator==(const U4DTriangle& a){
         
         return (pointA==a.pointA && pointB==a.pointB && pointC==a.pointC);
@@ -218,7 +227,22 @@ namespace U4DEngine {
         return minDistace;
     }
     
-
+    float U4DTriangle::centroidDistanceToPlane(U4DPlane& uPlane){
+        
+        U4DPoint3n triangleCentroid=getCentroid();
+        
+        return std::abs(uPlane.magnitudeOfPointToPlane(triangleCentroid));
+        
+    }
+    
+    float U4DTriangle::centroidSquareDistanceToPlane(U4DPlane& uPlane){
+     
+        U4DPoint3n triangleCentroid=getCentroid();
+        
+        return std::abs(uPlane.magnitudeSquareOfPointToPlane(triangleCentroid));
+        
+    }
+    
     bool U4DTriangle::isValid(){
         
         float ab=(pointA-pointB).magnitude();

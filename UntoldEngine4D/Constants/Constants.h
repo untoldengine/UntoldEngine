@@ -16,13 +16,13 @@ namespace U4DEngine {
     const float baseBias=0.4;
     const float collisionDistanceEpsilon=1.0e-3f;
     const float collisionTimeEpsilon=1.0e-3f;
-    const float minimumTimeOfImpact=0.1;
+    const float minimumTimeOfImpact=0.2;
     const float motionEpsilon=180.0;
     const float velocityEpsilon=0.0005;
     const float barycentricEpsilon=1.0;
     const float timeStep=0.01;
     const float zeroEpsilon=1.0e-4f;
-    const float closestDistanceToSimplexEpsilon=0.2;  //epsilon for closest point to simplex
+    const float closestDistanceToSimplexEpsilon=1.0e-1f;  //epsilon for closest point to simplex
     const float impulseCollisionMinimum=0.0; //sets the minimum impulse allowed between collisions
 }
 

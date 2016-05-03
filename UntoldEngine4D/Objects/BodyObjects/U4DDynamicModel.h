@@ -73,6 +73,11 @@ protected:
      */
     float timeOfImpact;
     
+    /**
+     @brief Axis of rotation for the model
+     */
+    U4DVector3n axisOfRotation;
+    
 public:
     
     /**
@@ -197,6 +202,10 @@ public:
     void setTimeOfImpact(float uTimeOfImpact);
     
     float getTimeOfImpact();
+    
+    void setAxisOfRotation(U4DVector3n &uAxisOfRotation);
+    
+    U4DVector3n getAxisOfRotation();
     
     void resetTimeOfImpact();
     
