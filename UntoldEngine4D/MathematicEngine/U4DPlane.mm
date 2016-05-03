@@ -12,6 +12,11 @@
 
 namespace U4DEngine {
     
+    U4DPlane::U4DPlane(){
+        n.zero();
+        d=0.0;
+    }
+    
     //given three noncollinear points (ordered CCW), compute plane equation
     U4DPlane::U4DPlane(U4DPoint3n& uPoint1, U4DPoint3n& uPoint2, U4DPoint3n& uPoint3){
         

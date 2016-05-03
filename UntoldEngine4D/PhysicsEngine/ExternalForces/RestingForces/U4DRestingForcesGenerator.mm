@@ -70,7 +70,7 @@ namespace U4DEngine {
         
         //calculate torque
         U4DVector3n torque(0.0,0.0,0.0);
-        
+
         for(auto n:contactManifold){
             
             //get the radius from the contact manifold to the center of mass

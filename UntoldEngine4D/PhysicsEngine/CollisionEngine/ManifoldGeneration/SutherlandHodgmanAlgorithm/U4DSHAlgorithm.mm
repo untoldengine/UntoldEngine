@@ -74,81 +74,97 @@ namespace U4DEngine {
         //step 5. perform sutherland
         
         std::vector<U4DSegment> segments;
+        U4DTriangle incidentFace;
+        U4DTriangle referenceFace;
         
         if (maxFaceParallelToPlaneInModel1>=maxFaceParallelToPlaneInModel2) {
             
             //set polygon in model 1 as the reference plane
             //and polygon in model 2 as the incident plane
-            //project the closest point onto the plane
             
             segments=clipPolygons(polygonEdgesOfModel1, polygonEdgesOfModel2);
-            uClosestPoint=planeCollisionOfModel1.closestPointToPlane(uClosestPoint);
+            
+            incidentFace=parallelFacesModel2.at(0).triangle;
+            referenceFace=parallelFacesModel1.at(0).triangle;
             
         }else{
             
             //set polygon in model 2 as the reference plane
             //and polygon in model 1 as the incident plane
-            //project the closest point onto the plane
             
             segments=clipPolygons(polygonEdgesOfModel2, polygonEdgesOfModel1);
-            uClosestPoint=planeCollisionOfModel2.closestPointToPlane(uClosestPoint);
+            
+            incidentFace=parallelFacesModel1.at(0).triangle;
+            referenceFace=parallelFacesModel2.at(0).triangle;
+            
+          
         }
         
         
-        for(auto n: segments){
+        //step 6. Return best contact manifold
+        
+        //Create an incident and reference plane from the faces
+        U4DPlane incidentFacePlane(incidentFace.pointA,incidentFace.pointB,incidentFace.pointC);
+        U4DPlane referenceFacePlane(referenceFace.pointA,referenceFace.pointB,referenceFace.pointC);
+        
+        
+        //check if both planes intersect
+        U4DVector3n intersectionVector;
+        U4DPoint3n intersectionPoint;
+        
+        
+        if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
+            //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
+
+            //find the smallest distance between intersection and segments
+            float minimumDistanceToSegment=FLT_MAX;
+            float distanceToSegment=0.0;
+            float distanceIndex=0;
             
-            float distance=n.sqDistancePointSegment(uClosestPoint);
-            
-            //check if segment is close to the closest point from GJK
-            if (distance<U4DEngine::closestDistanceToSimplexEpsilon) {
+            for(int i=0;i<segments.size();i++){
                 
-                uModel1->clearCollisionContactPoints();
-                uModel2->clearCollisionContactPoints();
-            
-                if (n.pointA.distanceSquareBetweenPoints(uClosestPoint)<U4DEngine::closestDistanceToSimplexEpsilon) {
-                    //return one point as contact point
+                distanceToSegment=segments.at(i).sqDistancePointSegment(intersectionPoint);
+                
+                if (distanceToSegment<minimumDistanceToSegment) {
                     
-                    U4DVector3n pointA=n.pointA.toVector();
+                    minimumDistanceToSegment=distanceToSegment;
                     
-                    uModel1->addCollisionContactPoint(pointA);
-                    uModel2->addCollisionContactPoint(pointA);
-                    
-                    break;
-                }else if (n.pointB.distanceSquareBetweenPoints(uClosestPoint)<U4DEngine::closestDistanceToSimplexEpsilon){
-                    //return one point as contact point
-                    
-                    U4DVector3n pointB=n.pointB.toVector();
-                    
-                    uModel1->addCollisionContactPoint(pointB);
-                    uModel2->addCollisionContactPoint(pointB);
-                    
-                    break;
+                    distanceIndex=i;
                 }
                 
-                //return two points as contact point if segment is close to closestPoint from GJK
-                
-                U4DVector3n pointA=n.pointA.toVector();
-                U4DVector3n pointB=n.pointB.toVector();
-                
-                
-                uModel1->addCollisionContactPoint(pointA);
-                uModel1->addCollisionContactPoint(pointB);
-                
-                uModel2->addCollisionContactPoint(pointA);
-                uModel2->addCollisionContactPoint(pointB);
-                
-                
-                break;
-            }//end if
+            }
             
-            //if no segment was close to the closest point from the GJK, then add the points into the vector
+            //If minimum distance to segment is less than closest distance to simplex
+            if (minimumDistanceToSegment<U4DEngine::closestDistanceToSimplexEpsilon) {
+            
+            //return segment
+            U4DVector3n pointA=segments.at(distanceIndex).pointA.toVector();
+            U4DVector3n pointB=segments.at(distanceIndex).pointB.toVector();
+
+            uModel1->addCollisionContactPoint(pointA);
+            uModel1->addCollisionContactPoint(pointB);
+
+            uModel2->addCollisionContactPoint(pointA);
+            uModel2->addCollisionContactPoint(pointB);
+                
+            return true;
+                
+            }
+        }
+        
+        
+        //If there is no plane intersection, then return all points
+        
+        for(auto n:segments){
+
             U4DVector3n point=n.pointA.toVector();
-            
+
             uModel1->addCollisionContactPoint(point);
             uModel2->addCollisionContactPoint(point);
-           
             
-        }//end for
+        }
+
+       
         
         
         return true;

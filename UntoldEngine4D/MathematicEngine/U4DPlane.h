@@ -27,6 +27,8 @@ namespace U4DEngine {
             
             float d; //d=n.dot(p) for a given point p on the plane
         
+            U4DPlane();
+        
             U4DPlane(U4DPoint3n& a, U4DPoint3n& b, U4DPoint3n& c);
             
             U4DPlane(U4DVector3n& uNormal, float uDistance);
