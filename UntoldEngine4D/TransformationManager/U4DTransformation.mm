@@ -295,17 +295,7 @@ void U4DTransformation::rotateAboutAxis(U4DQuaternion& uOrientation, U4DVector3n
     
     
     //start of rotation
-    
-    U4DQuaternion rotation(uOrientation);
-    
-    //get the current translation
-    U4DQuaternion t=uEntity->getLocalSpaceTranslation();
-    
-    uEntity->setLocalSpaceOrientation(rotation);
-    
-    U4DQuaternion d=(t*uEntity->getLocalSpaceOrientation())*0.5;
-    
-    uEntity->setLocalSpacePosition(d);
+    updateSpaceMatrixOrientation(uOrientation);
     //end of rotation
     
     

@@ -21,8 +21,17 @@ namespace U4DEngine {
     
     void U4DRestingForcesGenerator::updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt){
         
-        generateNormalForce(uModel, uGravity);
-        generateTorqueForce(uModel, uGravity);
+        if (uModel->getEquilibrium()==true) {
+            
+            generateNormalForce(uModel, uGravity);
+            
+        }else{
+            
+            generateNormalForce(uModel, uGravity);
+            generateTorqueForce(uModel, uGravity);
+            
+        }
+        
     }
     
     void U4DRestingForcesGenerator::generateNormalForce(U4DDynamicModel *uModel, U4DVector3n& uGravity){
@@ -42,17 +51,10 @@ namespace U4DEngine {
         //calculate the normal force at each contact point
         U4DVector3n normalForce(0.0,0.0,0.0);
         
-        for(auto n:contactManifold){
-            
-            //get the radius from the contact manifold to the center of mass
-            U4DVector3n radius=n-centerOfMass;
-            
-            float angle=radius.angle(contactCollisionNormal);
-            
-            normalForce+=uGravity*mass*cos(angle)*-1.0;
-            
-        }
+        float angle=uGravity.angle(contactCollisionNormal);
         
+        normalForce=uGravity*mass*cos(angle)*-1.0;
+
         uModel->addForce(normalForce);
         
     }
@@ -70,7 +72,7 @@ namespace U4DEngine {
         
         //calculate torque
         U4DVector3n torque(0.0,0.0,0.0);
-
+        
         for(auto n:contactManifold){
             
             //get the radius from the contact manifold to the center of mass

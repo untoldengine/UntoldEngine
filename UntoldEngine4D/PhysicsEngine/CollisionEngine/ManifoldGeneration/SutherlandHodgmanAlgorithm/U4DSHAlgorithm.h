@@ -87,6 +87,8 @@ namespace U4DEngine {
         
         std::vector<CONTACTEDGE> getEdgesFromFaces(std::vector<U4DTriangle>& uFaces, U4DPlane& uPlane);
         
+        bool isCenterOfMassWithinReferencePlane(U4DDynamicModel* uModel,std::vector<CONTACTEDGE>& uReferencePolygons);
+        
     };
     
 }
