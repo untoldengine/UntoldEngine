@@ -102,7 +102,7 @@ namespace U4DEngine {
                 
             }
      
-                child->draw();
+            child->draw();
             
             
             //    ONLY FOR DEBUGGING PURPOSES
