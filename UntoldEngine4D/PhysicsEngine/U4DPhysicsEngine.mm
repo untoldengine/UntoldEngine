@@ -35,7 +35,11 @@ namespace U4DEngine {
         
         if (uModel->getModelHasCollided()) {
             
+            //determine resting forces
             restingForces.updateForce(uModel, gravity, dt);
+            
+            //determine if the model should be awake
+            uModel->determineAwakeCondition();
             
             uModel->setModelHasCollided(false);
         }
@@ -43,6 +47,9 @@ namespace U4DEngine {
         
         //Integrate
         integrate(uModel, dt);
+        
+        //determine energy condition of the model
+        uModel->determineEnergyMotion(dt);
         
         //reset any collision information
         uModel->resetCollisionInformation();
