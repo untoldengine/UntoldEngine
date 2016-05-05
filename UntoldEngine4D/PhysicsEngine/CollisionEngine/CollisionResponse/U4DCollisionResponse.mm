@@ -120,23 +120,15 @@ namespace U4DEngine {
         U4DVector3n newLinearVelocityOfModel1=uModel1->getVelocity()-linearImpulseFactorOfModel1;
         U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
         
-        //determine if the sum of radius is in the same direction of the normal. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
-        sumOfAllRadiusesOfModel1.normalize();
+        //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
-        float dotProductOfRadiusSumAndCollisionNormal1=sumOfAllRadiusesOfModel1.dot(uModel1->getCollisionNormalFaceDirection());
-        
-        sumOfAllRadiusesOfModel2.normalize();
-        
-        float dotProductOfRadiusSumAndCollisionNormal2=sumOfAllRadiusesOfModel2.dot(uModel2->getCollisionNormalFaceDirection());
-        
-        
-        if (areNumbersEqual(dotProductOfRadiusSumAndCollisionNormal1,1.0,U4DEngine::zeroEpsilon)) {
+        if (uModel1->getEquilibrium()) {
             
             angularImpulseFactorOfModel1.zero();
             
         }
         
-        if (areNumbersEqual(dotProductOfRadiusSumAndCollisionNormal2,1.0,U4DEngine::zeroEpsilon)) {
+        if (uModel2->getEquilibrium()) {
             
             angularImpulseFactorOfModel2.zero();
         }
@@ -157,7 +149,7 @@ namespace U4DEngine {
             uModel1->setVelocity(newLinearVelocityOfModel1);
             
             uModel1->setAngularVelocity(newAngularVelocityOfModel1);
-            
+
         }
         
         

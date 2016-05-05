@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),motion(0.0){
+    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),motion(0.0),equilibrium(true){
     };
     
 
@@ -169,6 +169,16 @@ namespace U4DEngine {
             
         }
         
+    }
+    
+    void U4DDynamicModel::setEquilibrium(bool uValue){
+        
+        equilibrium=uValue;
+    }
+    
+    bool U4DDynamicModel::getEquilibrium(){
+        
+        return equilibrium;
     }
     
     float U4DDynamicModel::getTimeOfImpact(){

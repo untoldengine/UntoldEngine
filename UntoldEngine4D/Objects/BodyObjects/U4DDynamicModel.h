@@ -78,6 +78,11 @@ protected:
      */
     U4DVector3n axisOfRotation;
     
+    /**
+     @brief is model in equilibrium state
+     */
+    bool equilibrium;
+    
 public:
     
     /**
@@ -206,6 +211,10 @@ public:
     void setAxisOfRotation(U4DVector3n &uAxisOfRotation);
     
     U4DVector3n getAxisOfRotation();
+    
+    void setEquilibrium(bool uValue);
+    
+    bool getEquilibrium();
     
     void resetTimeOfImpact();
     

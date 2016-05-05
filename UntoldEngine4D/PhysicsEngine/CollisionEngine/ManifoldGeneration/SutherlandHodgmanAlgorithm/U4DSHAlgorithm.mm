@@ -76,30 +76,39 @@ namespace U4DEngine {
         std::vector<U4DSegment> segments;
         U4DTriangle incidentFace;
         U4DTriangle referenceFace;
+        std::vector<CONTACTEDGE> referencePlane;
+        std::vector<CONTACTEDGE> incidentPlane;
+        std::vector<CONTACTFACES> referenceModelFace;
+        std::vector<CONTACTFACES> incidentModelFace;
         
         if (maxFaceParallelToPlaneInModel1>=maxFaceParallelToPlaneInModel2) {
             
             //set polygon in model 1 as the reference plane
             //and polygon in model 2 as the incident plane
             
-            segments=clipPolygons(polygonEdgesOfModel1, polygonEdgesOfModel2);
+            referencePlane=polygonEdgesOfModel1;
+            incidentPlane=polygonEdgesOfModel2;
             
-            incidentFace=parallelFacesModel2.at(0).triangle;
-            referenceFace=parallelFacesModel1.at(0).triangle;
+            referenceModelFace=parallelFacesModel1;
+            incidentModelFace=parallelFacesModel2;
             
         }else{
             
             //set polygon in model 2 as the reference plane
             //and polygon in model 1 as the incident plane
             
-            segments=clipPolygons(polygonEdgesOfModel2, polygonEdgesOfModel1);
+            referencePlane=polygonEdgesOfModel2;
+            incidentPlane=polygonEdgesOfModel1;
             
-            incidentFace=parallelFacesModel1.at(0).triangle;
-            referenceFace=parallelFacesModel2.at(0).triangle;
+            referenceModelFace=parallelFacesModel2;
+            incidentModelFace=parallelFacesModel1;
             
-          
         }
         
+        segments=clipPolygons(referencePlane, incidentPlane);
+        
+        incidentFace=incidentModelFace.at(0).triangle;
+        referenceFace=referenceModelFace.at(0).triangle;
         
         //step 6. Return best contact manifold
         
@@ -147,6 +156,12 @@ namespace U4DEngine {
             uModel2->addCollisionContactPoint(pointA);
             uModel2->addCollisionContactPoint(pointB);
                 
+        
+            //set both models equilibrium
+            
+            uModel1->setEquilibrium(false);
+            uModel2->setEquilibrium(false);
+                
             return true;
                 
             }
@@ -163,8 +178,28 @@ namespace U4DEngine {
             uModel2->addCollisionContactPoint(point);
             
         }
-
-       
+        
+        //check if the center of mass is within the reference planes
+        
+        if(!isCenterOfMassWithinReferencePlane(uModel1,polygonEdgesOfModel2)){
+            
+            uModel1->setEquilibrium(false);
+        
+        }else{
+        
+            uModel1->setEquilibrium(true);
+        
+        }
+        
+        if(!isCenterOfMassWithinReferencePlane(uModel2,polygonEdgesOfModel1)){
+            
+            uModel2->setEquilibrium(false);
+        
+        }else{
+            
+            uModel2->setEquilibrium(true);
+            
+        }
         
         
         return true;
@@ -526,6 +561,45 @@ namespace U4DEngine {
         return clipEdges;
     }
     
+    
+    bool U4DSHAlgorithm::isCenterOfMassWithinReferencePlane(U4DDynamicModel* uModel,std::vector<CONTACTEDGE>& uReferencePolygons){
+        
+        U4DPoint3n centerOfMass=(uModel->getCenterOfMass()+uModel->getAbsolutePosition()).toPoint();
+        
+        for(auto referencePolygon:uReferencePolygons){
+            
+            U4DVector3n normal=referencePolygon.normal;
+            U4DPoint3n pointOnPlane=referencePolygon.segment.pointA;
+            
+            //create plane
+            U4DPlane referencePlane(normal,pointOnPlane);
+            
+            float direction=referencePlane.magnitudeSquareOfPointToPlane(centerOfMass);
+            
+            if (direction>U4DEngine::zeroEpsilon) {
+                
+                //Center of mass is inside the plane
+                
+            }else{
+                
+                if (direction <-U4DEngine::zeroEpsilon) {
+                    
+                   //Center of mass is outside the plane
+                    
+                    return false;
+                    
+                }else{
+                    
+                    //Center of mass is on the boundary of the plane edge
+                    
+                }
+                
+            }
+            
+        }
+        
+        return true;
+    }
     
 }
 
