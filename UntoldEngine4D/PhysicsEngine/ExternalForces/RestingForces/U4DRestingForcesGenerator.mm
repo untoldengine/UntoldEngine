@@ -26,8 +26,7 @@ namespace U4DEngine {
             generateNormalForce(uModel, uGravity);
             
         }else{
-            
-            generateNormalForce(uModel, uGravity);
+
             generateTorqueForce(uModel, uGravity);
             
         }
@@ -80,6 +79,9 @@ namespace U4DEngine {
             
             torque+=(radius).cross(uGravity*mass);
         }
+        
+        //average the torque
+        torque/=contactManifold.size();
         
         uModel->addMoment(torque);
         

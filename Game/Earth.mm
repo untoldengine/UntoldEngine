@@ -71,9 +71,9 @@ void Earth::init(){
     cube2->init("Cube",0.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    U4DEngine::U4DVector3n centerOfMass2(0.0,0.0,0.0);
-    cube2->setCenterOfMass(centerOfMass2);
-    cube2->rotateBy(0.0, 0.0, -20.0);
+    //U4DEngine::U4DVector3n centerOfMass2(-0.8,0.0,0.0);
+    //cube2->setCenterOfMass(centerOfMass2);
+    cube2->rotateBy(0.0, 0.0, 20.0);
     cube2->setMass(1.0);
     cube2->applyPhysics(true);
     
