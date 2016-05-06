@@ -72,13 +72,6 @@ namespace U4DEngine {
         //set the new angular velocity
         uModel->setAngularVelocity(angularVelocityNew);
 
-        
-        
-        //clear all forces and moments
-        uModel->clearForce();
-        uModel->clearMoment();
-        
-        uModel->resetTimeOfImpact();
     }
 
     void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicModel *uModel,U4DVector3n &uLinearAcceleration,float dt,U4DVector3n &uVnew,U4DVector3n &uSnew){

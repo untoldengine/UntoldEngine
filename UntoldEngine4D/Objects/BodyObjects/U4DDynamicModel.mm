@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),motion(0.0),equilibrium(true){
+    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),energyMotion(0.0),equilibrium(false){
     };
     
 
@@ -93,57 +93,54 @@ namespace U4DEngine {
     void U4DDynamicModel::setAwake(bool uValue){
         
         if (uValue) {
-            
+
             isAwake=true;
             
-            //add a bit of motion to avoid it falling asleep immediately
-            //motion=sleepEpsilon*2.0;
+            //Add a bit of motion to avoid model from falling asleep immediately.
+            energyMotion=U4DEngine::sleepEpsilon*2.0f;
             
         }else{
             
+            //set model to sleep and zero out velocity and forces
             isAwake=false;
             velocity.zero();
             angularVelocity.zero();
-            force.zero();
-            moment.zero();
             
         }
-        
-        
     }
 
     bool U4DDynamicModel::getAwake(){
         
         return isAwake;
+        
     }
+    
 
-    #pragma mark-motion magnitude
-    //motion magnitude
-    void U4DDynamicModel::setMotion(float uValue, float dt){
+    #pragma mark-energy motion
+    //energy motion
+    void U4DDynamicModel::determineEnergyMotion(float dt){
         
-        float bias=pow(baseBias,dt);
+        float currentEnergyMotion=velocity.dot(velocity)+angularVelocity.dot(angularVelocity);
         
-        motion=bias*motion+(1-bias)*uValue;
+        float bias=pow(U4DEngine::sleepBias,dt);
         
-        //prevent motion to shoot of the roof
+        energyMotion=bias*energyMotion+(1-bias)*currentEnergyMotion;
         
-        if (motion<=sleepEpsilon) {
+        if (energyMotion<U4DEngine::sleepEpsilon && equilibrium==true) {
             
             setAwake(false);
             
+        }else if (energyMotion>10*U4DEngine::sleepEpsilon){
             
-        }else if(motion>sleepEpsilon){
-            
-            motion=sleepEpsilon;
-            
-            setAwake(true);
+            energyMotion=10*U4DEngine::sleepEpsilon;
+        
         }
         
     }
 
-    float U4DDynamicModel::getMotion(){
+    float U4DDynamicModel::getEnergyMotion(){
         
-        return motion;
+        return energyMotion;
     }
     
     void U4DDynamicModel::applyPhysics(bool uValue){

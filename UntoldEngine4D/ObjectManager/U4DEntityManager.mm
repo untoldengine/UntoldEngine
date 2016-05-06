@@ -141,7 +141,7 @@ namespace U4DEngine {
             U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
 
             if (model) {
-
+                
                     if(model->isCollisionEnabled()==true){
 
                         //add child to collision bhv manager tree
