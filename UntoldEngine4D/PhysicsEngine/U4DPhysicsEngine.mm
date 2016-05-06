@@ -38,11 +38,9 @@ namespace U4DEngine {
             //determine resting forces
             restingForces.updateForce(uModel, gravity, dt);
             
-            //determine if the model should be awake
-            uModel->determineAwakeCondition();
-            
             uModel->setModelHasCollided(false);
         }
+        
         dragForce.updateForce(uModel,dt);
         
         //Integrate
@@ -54,6 +52,15 @@ namespace U4DEngine {
         //reset any collision information
         uModel->resetCollisionInformation();
         
+        //clear all forces and moments
+        uModel->clearForce();
+        uModel->clearMoment();
+        
+        //reset time of impact
+        uModel->resetTimeOfImpact();
+        
+        //reset equilibrium
+        uModel->setEquilibrium(false);
     }
 
     #pragma mark-integrate

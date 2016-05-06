@@ -91,8 +91,6 @@ public:
     
     float getEnergyMotion();
     
-    void determineAwakeCondition(); //Determines if the model should go to sleep or stay awake
-    
     void applyPhysics(bool uValue);
     
     bool isPhysicsApplied();
