@@ -11,7 +11,6 @@
 #include "U4DDirector.h"
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
-#import <GLKit/GLKit.h>
 
 namespace U4DEngine {
     
@@ -53,19 +52,8 @@ namespace U4DEngine {
         updateUniforms("Color", uColor);
         
     }
-
-    void U4DBoundingVolume::setBoundingType(BOUNDINGTYPE uType){
-        
-        boundingType=uType;
-    }
-
-    BOUNDINGTYPE U4DBoundingVolume::getBoundingType(){
-        
-        return boundingType;
-    }
     
 
-    
     int U4DBoundingVolume::determineRenderingIndex(std::vector<U4DVector3n>& uVertices, U4DVector3n& uVector, U4DVector3n& uDirection){
      
         

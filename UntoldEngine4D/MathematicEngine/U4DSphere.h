@@ -17,6 +17,7 @@ namespace U4DEngine {
     class U4DSphere {
         
     private:
+        
         U4DPoint3n center;
         float radius;
         

@@ -12,14 +12,36 @@
 
 namespace U4DEngine {
     
-    void U4DBoundingOBB::computeBoundingVolume(U4DVector3n& uHalfSpace){
+    U4DBoundingOBB::U4DBoundingOBB(){
+    
+    }
+    
+    U4DBoundingOBB::~U4DBoundingOBB(){
+    
+    }
+    
+    U4DBoundingOBB::U4DBoundingOBB(const U4DBoundingOBB& value){
+        halfwidth=value.halfwidth;
+        obb=value.obb;
+    }
+    
+    U4DBoundingOBB& U4DBoundingOBB::operator=(const U4DBoundingOBB& value){
         
-        halfSpace=uHalfSpace;
+        halfwidth=value.halfwidth;
+        obb=value.obb;
+        
+        return *this;
+    };
+    
+    void U4DBoundingOBB::computeBoundingVolume(U4DVector3n& uHalfwidth){
+        
+        halfwidth=uHalfwidth;
+        obb.setHalfwidth(halfwidth);
         
         //make a cube
-        float width=halfSpace.x*2.0;
-        float height=halfSpace.y*2.0;
-        float depth=halfSpace.z*2.0;
+        float width=halfwidth.x*2.0;
+        float height=halfwidth.y*2.0;
+        float depth=halfwidth.z*2.0;
         
         U4DVector3n v1(width,height,depth); 
         U4DVector3n v2(width,height,-depth);

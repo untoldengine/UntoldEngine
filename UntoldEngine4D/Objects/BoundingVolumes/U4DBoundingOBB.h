@@ -10,10 +10,8 @@
 #define __UntoldEngine__U4DBoundingOBB__
 
 #include <iostream>
-#include <vector>
-#include "U4DPoint3n.h"
 #include "U4DBoundingVolume.h"
-#include "U4DPlane.h"
+#include "U4DOBB.h"
 
 namespace U4DEngine {
     
@@ -21,26 +19,23 @@ namespace U4DEngine {
         
     private:
         
+        U4DVector3n halfwidth;  //Positive halfwidth extents of OBB along each axis
+        U4DOBB obb;   //OBB volume. This holds all the math operations for a OBB
+        
     public:
+
+        U4DBoundingOBB();
         
-        /*!
-         *  @brief  Positive halfspace extents of OBB along each axis
-         */
-        U4DVector3n halfSpace;
+        ~U4DBoundingOBB();
         
-        U4DBoundingOBB(){};
+        U4DBoundingOBB(const U4DBoundingOBB& value);
         
-        ~U4DBoundingOBB(){};
+        U4DBoundingOBB& operator=(const U4DBoundingOBB& value);
         
-        U4DBoundingOBB(const U4DBoundingOBB& value){};
-        
-        U4DBoundingOBB& operator=(const U4DBoundingOBB& value){
-            return *this;
-        };
-        
-        void computeBoundingVolume(U4DVector3n& uHalfSpace);
+        void computeBoundingVolume(U4DVector3n& uHalfwidth);
       
-       
+        void setHalfwidth(U4DVector3n& uHalfwidth);
+        
     };
     
 }

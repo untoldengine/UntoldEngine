@@ -25,6 +25,8 @@ private:
     
 public:
     
+    U4DOBB();
+    
     U4DOBB(U4DVector3n& uHalfWidth);
     
     U4DOBB(U4DVector3n& uHalfWidth, U4DVector3n& uCenter, U4DMatrix3n& uOrientation);
@@ -93,6 +95,7 @@ public:
      */
     std::vector<U4DVector3n> computeVertexIntersectingPlane(U4DPlane& uPlane);
 
+    void setHalfwidth(U4DVector3n& uHalfwidth);
     
 };
     

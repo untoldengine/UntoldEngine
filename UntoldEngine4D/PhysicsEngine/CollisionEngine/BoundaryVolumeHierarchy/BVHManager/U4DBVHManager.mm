@@ -162,10 +162,14 @@ namespace U4DEngine{
     void U4DBVHManager::collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
         
         //Test collision between leaf nodes
-        U4DBoundingSphere *broadPhaseVolume1=(U4DBoundingSphere*)uTreeLeftNode->getModelsContainer().at(0)->getBroadPhaseBoundingVolume();
-        U4DBoundingSphere *broadPhaseVolume2=(U4DBoundingSphere*)uTreeRightNode->getModelsContainer().at(0)->getBroadPhaseBoundingVolume();
+        U4DBoundingVolume *broadPhaseVolume1=uTreeLeftNode->getModelsContainer().at(0)->getBroadPhaseBoundingVolume();
+        U4DBoundingVolume *broadPhaseVolume2=uTreeRightNode->getModelsContainer().at(0)->getBroadPhaseBoundingVolume();
     
-        bool collisionOccurred=broadPhaseVolume1->intesectionWithBoundingVolume(broadPhaseVolume2);
+        //Get the spheres from each bounding volume
+        U4DSphere sphereVolume1=broadPhaseVolume1->getSphere();
+        U4DSphere sphereVolume2=broadPhaseVolume2->getSphere();
+        
+        bool collisionOccurred=sphereVolume1.intersectionWithVolume(sphereVolume2);
         
     
         if (collisionOccurred) {
