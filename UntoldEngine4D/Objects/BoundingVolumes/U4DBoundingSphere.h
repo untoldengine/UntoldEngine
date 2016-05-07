@@ -42,7 +42,7 @@ namespace U4DEngine {
         
         U4DPoint3n getMinBoundaryPoint();
         
-        bool intesectionWithBoundingVolume(U4DBoundingSphere *uBoundingSphere);
+        U4DSphere& getSphere();
         
     };
 

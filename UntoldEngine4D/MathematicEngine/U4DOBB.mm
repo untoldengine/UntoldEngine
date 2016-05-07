@@ -12,6 +12,10 @@
 
 namespace U4DEngine {
     
+    U4DOBB::U4DOBB(){
+        
+    }
+    
     U4DOBB::U4DOBB(U4DVector3n& uHalfWidth){
       
         halfwidth=uHalfWidth;
@@ -40,6 +44,12 @@ namespace U4DEngine {
         
         //intersection occurs when distance s falls within [-r,+r] interval
         return std::abs(s)<=r;
+        
+    }
+    
+    void U4DOBB::setHalfwidth(U4DVector3n& uHalfwidth){
+        
+        halfwidth=uHalfwidth;
         
     }
 

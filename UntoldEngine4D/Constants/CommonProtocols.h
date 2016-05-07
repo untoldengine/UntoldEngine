@@ -106,13 +106,6 @@ namespace U4DEngine {
         
     }ENTITYTYPE;
 
-    typedef enum{
-        
-        SPHERE,
-        AABB
-        
-    }BOUNDINGTYPE;
-
 
     typedef struct{
         

@@ -24,12 +24,15 @@ namespace U4DEngine {
     U4DBoundingSphere::U4DBoundingSphere(const U4DBoundingSphere& value){
         
         radius=value.radius;
+        sphere=value.sphere;
+        
     };
     
     
     U4DBoundingSphere& U4DBoundingSphere::operator=(const U4DBoundingSphere& value){
         
         radius=value.radius;
+        sphere=value.sphere;
         return *this;
         
     };
@@ -37,6 +40,9 @@ namespace U4DEngine {
     void U4DBoundingSphere::computeBoundingVolume(float uRadius,int uRings, int uSectors){
 
         radius=uRadius;
+        
+        sphere.setRadius(radius);
+        
         float R=1.0/(uRings-1);
         float S=1.0/(uSectors-1);
         
@@ -89,7 +95,7 @@ namespace U4DEngine {
     
     U4DPoint3n U4DBoundingSphere::getMaxBoundaryPoint(){
         
-        U4DPoint3n position=getLocalPosition().toPoint();
+        U4DPoint3n position=getAbsolutePosition().toPoint();
         
         return U4DPoint3n(position.x+radius,position.y+radius,position.z+radius);
     
@@ -97,28 +103,20 @@ namespace U4DEngine {
     
     U4DPoint3n U4DBoundingSphere::getMinBoundaryPoint(){
     
-        U4DPoint3n position=getLocalPosition().toPoint();
+        U4DPoint3n position=getAbsolutePosition().toPoint();
         
         return U4DPoint3n(position.x-radius,position.y-radius,position.z-radius);
         
     }
-
-    bool U4DBoundingSphere::intesectionWithBoundingVolume(U4DBoundingSphere *uBoundingSphere){
     
+    U4DSphere& U4DBoundingSphere::getSphere(){
+        
         //update the sphere information with bounding sphere
-        U4DPoint3n centerBoundingSphere1=getLocalPosition().toPoint();
-        sphere.setRadius(radius);
-        sphere.setCenter(centerBoundingSphere1);
+        U4DPoint3n updateCenter=getAbsolutePosition().toPoint();
         
-        //update the sphere2 information with bounding sphere2
-        U4DPoint3n centerBoundingSphere2=uBoundingSphere->getLocalPosition().toPoint();
-        uBoundingSphere->sphere.setRadius(uBoundingSphere->radius);
-        uBoundingSphere->sphere.setCenter(centerBoundingSphere2);
+        sphere.setCenter(updateCenter);
         
-        
-        return sphere.intersectionWithVolume(uBoundingSphere->sphere);
-        
+        return sphere;
     }
-    
-    
+
 }

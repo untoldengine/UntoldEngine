@@ -20,12 +20,14 @@
 #include "U4DPoint3n.h"
 
 namespace U4DEngine {
+    class U4DSphere;
+}
+
+namespace U4DEngine {
     
     class U4DBoundingVolume:public U4DVisibleEntity{
       
     private:
-        
-        BOUNDINGTYPE boundingType;
         
     public:
         
@@ -54,10 +56,6 @@ namespace U4DEngine {
         
         virtual U4DPoint3n getSupportPointInDirection(U4DVector3n& uDirection){};
         
-        void setBoundingType(BOUNDINGTYPE uType);
-        
-        BOUNDINGTYPE getBoundingType();
-        
         void loadRenderingInformation();
         
         void setBoundingVolumeColor(U4DVector4n& uColor);
@@ -74,8 +72,8 @@ namespace U4DEngine {
         
         virtual U4DPoint3n getMinBoundaryPoint(){};
         
+        virtual U4DSphere& getSphere(){};
         
-
     };
     
 }
