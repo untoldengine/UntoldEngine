@@ -306,11 +306,12 @@ namespace U4DEngine{
         //
         float positionOfModelAlongLongestVector=uNode->getModelsContainer().at(splitIndex)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());
         
-        if (positionOfModelAlongLongestVector<halfDistance) {
+        if (positionOfModelAlongLongestVector<=halfDistance) {
             
             splitIndex++;
             
         }
+        
         
         uNode->setSplitIndex(splitIndex);
         

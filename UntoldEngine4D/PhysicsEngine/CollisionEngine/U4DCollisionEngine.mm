@@ -92,7 +92,6 @@ namespace U4DEngine {
                     collisionResponse->collisionResolution(model1, model2);
                     
                 }else{
-                    
                     std::cout<<"Contact Manifold were not found"<<std::endl;
                 
                 }

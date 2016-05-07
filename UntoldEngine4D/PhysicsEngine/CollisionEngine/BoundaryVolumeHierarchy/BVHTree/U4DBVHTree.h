@@ -54,6 +54,12 @@ namespace U4DEngine {
         
         void copyModelsContainer(std::vector<U4DDynamicModel *> uModelsContainer);
         
+        U4DAABB* getAABBVolume();
+        
+        void setSplitIndex(int uSplitIndex);
+        
+        int getSplitIndex();
+        
         //scenegraph
         
         void addChild(U4DBVHTree *uChild);
@@ -77,13 +83,7 @@ namespace U4DEngine {
         bool isLeaf();
         
         bool isRoot();
-        
-        U4DAABB* getAABBVolume();
-        
-        void setSplitIndex(int uSplitIndex);
-        
-        int getSplitIndex();
-
+    
     };
     
 }

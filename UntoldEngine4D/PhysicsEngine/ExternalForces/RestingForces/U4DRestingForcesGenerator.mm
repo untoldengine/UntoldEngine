@@ -26,7 +26,7 @@ namespace U4DEngine {
             generateNormalForce(uModel, uGravity);
             
         }else{
-
+            //generateNormalForce(uModel, uGravity);
             generateTorqueForce(uModel, uGravity);
             
         }
@@ -34,9 +34,6 @@ namespace U4DEngine {
     }
     
     void U4DRestingForcesGenerator::generateNormalForce(U4DDynamicModel *uModel, U4DVector3n& uGravity){
-        
-        //get contact points
-        std::vector<U4DVector3n> contactManifold=uModel->getCollisionContactPoints();
         
         //get normal collision vector
         U4DVector3n contactCollisionNormal=uModel->getCollisionNormalFaceDirection();
@@ -81,7 +78,10 @@ namespace U4DEngine {
         }
         
         //average the torque
-        torque/=contactManifold.size();
+        
+        if (contactManifold.size()!=0) {
+            torque/=contactManifold.size();
+        }
         
         uModel->addMoment(torque);
         
