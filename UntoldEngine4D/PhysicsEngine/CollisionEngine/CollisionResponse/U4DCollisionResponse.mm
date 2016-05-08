@@ -45,6 +45,11 @@ namespace U4DEngine {
         
         std::vector<U4DVector3n> contactManifold=uModel1->getCollisionContactPoints();
         
+        //resize vector if it contains more than four contact manifold
+        if (contactManifold.size()>4) {
+            contactManifold.resize(4);
+        }
+        
         U4DVector3n normalCollisionVector=uModel1->getCollisionNormalFaceDirection();
         
         U4DVector3n centerOfMassForModel1=uModel1->getCenterOfMass()+uModel1->getAbsolutePosition();
@@ -89,7 +94,7 @@ namespace U4DEngine {
             float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
             float j=MAX(-1*(vR.dot(normalCollisionVector))*(0.8+1.0)/(totalInverseMasses+totalAngularEffect),U4DEngine::impulseCollisionMinimum);
-            
+           
             /*
              
              Linear Impulse factor=(|J|n)/m
