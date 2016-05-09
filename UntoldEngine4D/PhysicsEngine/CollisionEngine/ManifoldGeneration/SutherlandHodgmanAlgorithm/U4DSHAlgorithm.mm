@@ -22,6 +22,34 @@ namespace U4DEngine {
         
     }
     
+    void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPoint, U4DVector3n& uContactCollisionNormal){
+    
+        
+        U4DVector3n negateContactNormal=uContactCollisionNormal*-1.0;
+        
+        U4DPlane collisionPlane(uContactCollisionNormal,uClosestPoint);
+        
+        //test if the model is within the plane and set the normal accordingly
+        U4DPoint3n position=uModel1->getAbsolutePosition().toPoint();
+        
+        float direction=collisionPlane.magnitudeSquareOfPointToPlane(position);
+        
+        if (direction<U4DEngine::zeroEpsilon) {
+            
+            uModel1->setCollisionNormalFaceDirection(uContactCollisionNormal);
+            
+            uModel2->setCollisionNormalFaceDirection(negateContactNormal);
+            
+        }else{
+            
+            uModel2->setCollisionNormalFaceDirection(uContactCollisionNormal);
+            
+            uModel1->setCollisionNormalFaceDirection(negateContactNormal);
+            
+        }
+        
+    }
+    
     bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,U4DPoint3n& uClosestPoint){
         
         //step 1. Create plane

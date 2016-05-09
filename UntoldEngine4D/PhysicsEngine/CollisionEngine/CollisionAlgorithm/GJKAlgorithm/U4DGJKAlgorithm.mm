@@ -131,39 +131,14 @@ namespace U4DEngine {
             //closest collision point
             std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
             
-            U4DPlane plane(contactCollisionNormal,closestCollisionPoints.at(0));
-            
-            //test if the model is within the plane and set the normal accordingly
-            U4DPoint3n position=uModel1->getAbsolutePosition().toPoint();
-            
-            float direction=plane.magnitudeSquareOfPointToPlane(position);
-            
-            if (direction<U4DEngine::zeroEpsilon) {
-                
-                uModel1->setCollisionNormalFaceDirection(contactCollisionNormal);
-                
-                U4DVector3n negateContactNormal=contactCollisionNormal*-1.0;
-                
-                uModel2->setCollisionNormalFaceDirection(negateContactNormal);
-                
-            }else{
-                
-                uModel2->setCollisionNormalFaceDirection(contactCollisionNormal);
-                
-                U4DVector3n negateContactNormal=contactCollisionNormal*-1.0;
-                
-                uModel1->setCollisionNormalFaceDirection(negateContactNormal);
-                
-            }
+            //Once there is a contact,the closestBarycentricPoints returns two identical closest points. I'm assigning the first
+            //point in the vector as the closesCollisionPoint.
+            closestCollisionPoint=closestCollisionPoints.at(0);
             
             //reset time of impact
             uModel1->resetTimeOfImpact();
             
             uModel2->resetTimeOfImpact();
-            
-            //Once there is a contact,the closestBarycentricPoints returns two identical closest points. I'm assigning the first
-            //point in the vector as the closesCollisionPoint.
-            closestCollisionPoint=closestCollisionPoints.at(0);
             
             return true;
         }
