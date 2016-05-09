@@ -34,7 +34,7 @@ namespace U4DEngine {
         
         virtual U4DPoint3n getClosestCollisionPoint(){};
 
-        virtual U4DVector3n getContactNormal(){};
+        virtual U4DVector3n getContactCollisionNormal(){};
         
     };
 

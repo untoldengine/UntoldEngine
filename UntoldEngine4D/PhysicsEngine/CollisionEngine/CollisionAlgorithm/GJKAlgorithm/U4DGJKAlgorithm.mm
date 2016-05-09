@@ -71,7 +71,7 @@ namespace U4DEngine {
                     
                     closestPointToOrigin=v.minkowskiPoint;
                     
-                    contactNormal=v.minkowskiPoint.toVector();
+                    contactCollisionNormal=v.minkowskiPoint.toVector();
                     
                     Q.clear();
                     
@@ -126,26 +126,19 @@ namespace U4DEngine {
         if (t<U4DEngine::collisionTimeEpsilon) {
             
             //Set contact normal
-            contactNormal.normalize();
-            
-            uModel1->setCollisionNormalFaceDirection(contactNormal);
-            
-            U4DVector3n negateContactNormal=contactNormal*-1.0;
-            
-            uModel2->setCollisionNormalFaceDirection(negateContactNormal);
-            
-            //reset time of impact
-            uModel1->resetTimeOfImpact();
-            
-            uModel2->resetTimeOfImpact();
+            contactCollisionNormal.normalize();
             
             //closest collision point
-            
             std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
             
             //Once there is a contact,the closestBarycentricPoints returns two identical closest points. I'm assigning the first
             //point in the vector as the closesCollisionPoint.
             closestCollisionPoint=closestCollisionPoints.at(0);
+            
+            //reset time of impact
+            uModel1->resetTimeOfImpact();
+            
+            uModel2->resetTimeOfImpact();
             
             return true;
         }
@@ -603,6 +596,11 @@ namespace U4DEngine {
         
         return closestCollisionPoint;
         
+    }
+    
+    U4DVector3n U4DGJKAlgorithm::getContactCollisionNormal(){
+        
+        return contactCollisionNormal;
     }
     
 }

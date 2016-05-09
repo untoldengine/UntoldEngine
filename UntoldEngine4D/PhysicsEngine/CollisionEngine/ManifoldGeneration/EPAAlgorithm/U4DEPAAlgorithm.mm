@@ -17,7 +17,7 @@
 namespace U4DEngine{
     
 
-    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPointToOrigin){
+    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPoint, U4DVector3n& uContactCollisionNormal){
         
         //get bounding volume for each model
         U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
@@ -26,32 +26,6 @@ namespace U4DEngine{
         
         //blow up simplex to tetrahedron
         verifySimplexStructForEPA(boundingVolume1,boundingVolume2,uQ);
-       
-        if (uQ.size()==4) {
-            
-            //get the barycentric points of the collision
-            std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(uClosestPointToOrigin, uQ);
-            
-            U4DPoint3n closestPointsModel1(0,0,0);
-            U4DPoint3n closestPointsModel2(0,0,0);
-            
-            for (int i=0; i<barycentricPoints.size(); i++) {
-                
-                closestPointsModel1+=uQ.at(i).sa*barycentricPoints.at(i);
-                closestPointsModel2+=uQ.at(i).sb*barycentricPoints.at(i);
-                
-            }
-            
-//            //get contact points
-//            U4DVector3n contactPoint1=closestPointsModel1.toVector();
-//            
-//            uModel1->setCollisionContactPoint(contactPoint1);
-//            
-//            U4DVector3n contactPoint2=closestPointsModel2.toVector();
-//            
-//            uModel2->setCollisionContactPoint(contactPoint1);
-        
-        }
         
         
 //        if(uQ.size()>=4){
