@@ -31,7 +31,7 @@ namespace U4DEngine {
         
         U4DPoint3n closestPointToOrigin;
         
-        U4DVector3n contactNormal;
+        U4DVector3n contactCollisionNormal;
         
         U4DPoint3n closestCollisionPoint;
         
@@ -59,6 +59,8 @@ namespace U4DEngine {
         U4DPoint3n getClosestPointToOrigin();
         
         U4DPoint3n getClosestCollisionPoint();
+        
+        U4DVector3n getContactCollisionNormal();
         
     };
     

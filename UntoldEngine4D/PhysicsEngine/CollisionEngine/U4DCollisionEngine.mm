@@ -71,7 +71,6 @@ namespace U4DEngine {
 
     void U4DCollisionEngine::detectNarrowPhaseCollision(float dt){
         
-        
         for (auto n:collisionPairs) {
             
             U4DDynamicModel *model1=n.model1;
@@ -90,6 +89,7 @@ namespace U4DEngine {
                     
                     //collision Response
                     collisionResponse->collisionResolution(model1, model2);
+
                     
                 }else{
                     std::cout<<"Contact Manifold were not found"<<std::endl;

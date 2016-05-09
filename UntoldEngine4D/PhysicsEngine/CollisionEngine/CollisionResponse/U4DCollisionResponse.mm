@@ -45,7 +45,6 @@ namespace U4DEngine {
         
         std::vector<U4DVector3n> contactManifold=uModel1->getCollisionContactPoints();
         
-        //resize vector if it contains more than four contact manifold
         if (contactManifold.size()>4) {
             contactManifold.resize(4);
         }
