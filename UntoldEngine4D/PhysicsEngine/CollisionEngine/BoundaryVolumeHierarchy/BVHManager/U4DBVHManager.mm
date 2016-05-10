@@ -27,7 +27,8 @@ namespace U4DEngine{
     }
     
     U4DBVHManager::~U4DBVHManager(){
-        
+        //delete all classes
+        delete bvhModelCollision;
     }
     
     std::vector<U4DDynamicModel *> U4DBVHManager::getModelsContainer(){
@@ -301,8 +302,7 @@ namespace U4DEngine{
     }
     
     void U4DBVHManager::clearContainers(){
-        std::cout<<"Broad Container: "<<broadPhaseCollisionPairs.size()<<std::endl;
-        std::cout<<"tree container: "<<treeContainer.size()<<std::endl;
+        
         modelsContainer.clear();
         treeContainer.clear();
         broadPhaseCollisionPairs.clear();

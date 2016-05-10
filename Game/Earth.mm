@@ -80,7 +80,7 @@ void Earth::init(){
     cube4->init("Cube",5.5,6.0,0.0);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
-    //cube4->rotateBy(0.0, 0.0, 20.0);
+    cube4->rotateBy(0.0, 0.0, 20.0);
     cube4->setMass(1.0);
     cube4->applyPhysics(true);
     
