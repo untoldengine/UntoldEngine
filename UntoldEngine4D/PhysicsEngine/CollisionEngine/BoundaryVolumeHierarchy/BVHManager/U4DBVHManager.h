@@ -15,26 +15,34 @@
 #include "CommonProtocols.h"
 #include "U4DVector3n.h"
 #include "U4DBroadPhaseCollisionModelPair.h"
+#include "U4DBVHCollision.h"
+#include "U4DBVHModelCollision.h"
 
 namespace U4DEngine {
     
     class U4DBVHTree;
     class U4DDynamicModel;
     
+}
+
+namespace U4DEngine {
+    
     class U4DBVHManager{
         
     private:
         
         std::vector<U4DDynamicModel *> modelsContainer;
-        std::vector<U4DBroadPhaseCollisionModelPair> broadPhaseCollisionPairs;
+        U4DBVHCollision *bvhModelCollision;
         
     public:
+        
+        std::vector<U4DBroadPhaseCollisionModelPair> broadPhaseCollisionPairs;
+        
+        std::vector<std::shared_ptr<U4DBVHTree>> treeContainer;
         
         U4DBVHManager();
         
         ~U4DBVHManager();
-        
-        std::vector<std::shared_ptr<U4DBVHTree>> treeContainer;
         
         void buildBVH();
         
@@ -52,19 +60,11 @@ namespace U4DEngine {
         
         void startCollision();
         
-        void collision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
-        
         void heapSorting(U4DBVHTree *uNode);
         
         void reHeapDown(U4DBVHTree *uNode,int root, int bottom);
         
         void swap(U4DBVHTree *uNode,int uindex1, int uindex2);
-        
-        bool collisionBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
-        
-        void collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
-        
-        bool descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode);
         
         std::vector<U4DBroadPhaseCollisionModelPair> getBroadPhaseCollisionPairs();
         

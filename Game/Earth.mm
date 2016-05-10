@@ -60,7 +60,7 @@ void Earth::init(){
     cube2->init("Cube",0.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(0.0, 0.0, 20.0);
+    //cube2->rotateBy(0.0, 0.0, 20.0);
     cube2->setMass(1.0);
     cube2->applyPhysics(true);
 
@@ -80,17 +80,17 @@ void Earth::init(){
     cube4->init("Cube",5.5,6.0,0.0);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
-    cube4->rotateBy(0.0, 0.0, 20.0);
+    //cube4->rotateBy(0.0, 0.0, 20.0);
     cube4->setMass(1.0);
     cube4->applyPhysics(true);
     
     cube4->enableCollision();
 
-    addChild(cube4);
+    
     addChild(cube);
     addChild(cube2);
     addChild(cube3);
-    
+    addChild(cube4);
     /*
     
     // ADD Gravity

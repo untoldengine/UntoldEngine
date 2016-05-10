@@ -21,6 +21,9 @@ namespace U4DEngine{
     
     U4DBVHManager::U4DBVHManager(){
         
+        //deals with model vs model collision
+        bvhModelCollision=new U4DBVHModelCollision();
+        
     }
     
     U4DBVHManager::~U4DBVHManager(){
@@ -99,90 +102,10 @@ namespace U4DEngine{
     
     void U4DBVHManager::startCollision(){
         
-        //get root tree
-        U4DBVHTree *child=treeContainer.at(0)->getFirstChild();
-        
-        while (child!=NULL) {
-            
-            if(child->isRoot()){
-                
-                
-            }else{
-                
-                if (child->getFirstChild()!=NULL) {
-                    
-                    collision(child->getFirstChild(), child->getLastChild());
-                    
-                }
-                
-            }
-            
-            child=child->next;
-        }
+        bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
         
     }
     
-    
-    void U4DBVHManager::collision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-        
-        //No collision between tree volumes, then exit
-        if (!collisionBetweenTreeVolume(uTreeLeftNode,uTreeRightNode)) return;
-        
-        if (uTreeLeftNode->getFirstChild()==NULL && uTreeRightNode->getFirstChild()==NULL) {
-            
-            //At leaf nodes, perform collision tests on leaf node contents
-            collisionBetweenTreeLeafNodes(uTreeLeftNode,uTreeRightNode);
-            
-        }else{
-            
-            if (descendTreeRule(uTreeLeftNode,uTreeRightNode)) {
-                
-                collision(uTreeLeftNode->getFirstChild(), uTreeRightNode);
-                
-                collision(uTreeLeftNode->getLastChild(), uTreeRightNode);
-                
-            }else{
-                
-                collision(uTreeLeftNode, uTreeRightNode->getFirstChild());
-                
-                collision(uTreeLeftNode, uTreeRightNode->getLastChild());
-                
-            }
-        }
-        
-    }
-    
-    bool U4DBVHManager::collisionBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-            return uTreeLeftNode->getAABBVolume()->intersectionWithVolume(uTreeRightNode->getAABBVolume());
-        
-    }
-    
-    void U4DBVHManager::collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-        //Test collision between leaf nodes
-        U4DBoundingVolume *broadPhaseVolume1=uTreeLeftNode->getModelsContainer().at(0)->getBroadPhaseBoundingVolume();
-        U4DBoundingVolume *broadPhaseVolume2=uTreeRightNode->getModelsContainer().at(0)->getBroadPhaseBoundingVolume();
-    
-        //Get the spheres from each bounding volume
-        U4DSphere sphereVolume1=broadPhaseVolume1->getSphere();
-        U4DSphere sphereVolume2=broadPhaseVolume2->getSphere();
-        
-        bool collisionOccurred=sphereVolume1.intersectionWithVolume(sphereVolume2);
-        
-    
-        if (collisionOccurred) {
-            
-            U4DBroadPhaseCollisionModelPair pairs;
-            pairs.model1=uTreeLeftNode->getModelsContainer().at(0);
-            pairs.model2=uTreeRightNode->getModelsContainer().at(0);
-            
-            broadPhaseCollisionPairs.push_back(pairs);
-            
-        }
-        
-    }
     
     std::vector<U4DBroadPhaseCollisionModelPair> U4DBVHManager::getBroadPhaseCollisionPairs(){
         
@@ -190,16 +113,6 @@ namespace U4DEngine{
         
     }
     
-    bool U4DBVHManager::descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
-        
-        bool value=false;
-        
-        if (uTreeLeftNode->getFirstChild()!=NULL) {
-            return value=true;
-        }
-        
-        return value;
-    }
     
     void U4DBVHManager::calculateBVHVolume(U4DBVHTree *uNode){
         
@@ -388,7 +301,8 @@ namespace U4DEngine{
     }
     
     void U4DBVHManager::clearContainers(){
-        
+        std::cout<<"Broad Container: "<<broadPhaseCollisionPairs.size()<<std::endl;
+        std::cout<<"tree container: "<<treeContainer.size()<<std::endl;
         modelsContainer.clear();
         treeContainer.clear();
         broadPhaseCollisionPairs.clear();
