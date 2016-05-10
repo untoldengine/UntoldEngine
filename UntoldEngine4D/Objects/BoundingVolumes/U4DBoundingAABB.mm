@@ -30,18 +30,6 @@ namespace U4DEngine {
         return *this;
     }
     
-    U4DAABB& U4DBoundingAABB::getAABB(){
-        
-        //update the aabb information with bounding aabb
-        U4DPoint3n groundPosition=getAbsolutePosition().toPoint();
-        
-        aabb.minPoint+=groundPosition;
-        aabb.maxPoint+=groundPosition;
-        
-        return aabb;
-        
-    }
-    
     U4DPoint3n U4DBoundingAABB::getMaxBoundaryPoint(){
         
         U4DPoint3n position=getAbsolutePosition().toPoint();

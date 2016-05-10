@@ -35,9 +35,7 @@ namespace U4DEngine {
         U4DPoint3n getMaxBoundaryPoint();
         
         U4DPoint3n getMinBoundaryPoint();
-        
-        U4DAABB& getAABB();
-        
+
         void computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax);
         
     };

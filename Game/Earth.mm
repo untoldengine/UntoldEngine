@@ -49,7 +49,7 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,0,0.0);
+    cube->init("GroundFloor",0.0,0,0.0);
     cube->setName("cube1");
     cube->setShader("simpleRedShader");
     cube->setAsGround(true);
@@ -69,15 +69,15 @@ void Earth::init(){
     
     
     cube3=new Town();
-    cube3->init("Cube",5.0,0.0,0.0);
+    cube3->init("Cube",-3.0,3.0,0.0);
     cube3->setShader("simpleShader");
     cube3->setName("cube3");
     cube3->setMass(1.0);
-    //cube3->applyPhysics(true);
+    cube3->applyPhysics(true);
     cube3->enableCollision();
     
     cube4=new Town();
-    cube4->init("Cube",5.0,6.0,0.0);
+    cube4->init("Cube",3.0,6.0,0.0);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
     //cube4->rotateBy(0.0, 0.0, 20.0);

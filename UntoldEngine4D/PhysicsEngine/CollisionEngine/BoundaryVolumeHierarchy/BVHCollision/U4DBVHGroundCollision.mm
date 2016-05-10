@@ -76,7 +76,10 @@ namespace U4DEngine {
         U4DBoundingVolume *broadPhaseVolume2=uTreeRightNode->getModelsContainer().at(0)->getBroadPhaseBoundingVolume();
         
         //Get the spheres from each bounding volume
-        U4DAABB aabbVolume=broadPhaseVolume1->getAABB();
+        U4DAABB aabbVolume;
+        aabbVolume.maxPoint=broadPhaseVolume1->getMaxBoundaryPoint();
+        aabbVolume.minPoint=broadPhaseVolume1->getMinBoundaryPoint();
+        
         U4DSphere sphereVolume=broadPhaseVolume2->getSphere();
         
         bool collisionOccurred=aabbVolume.intersectionWithVolume(sphereVolume);

@@ -75,7 +75,6 @@ namespace U4DEngine {
         
         virtual U4DSphere& getSphere(){};
         
-        virtual U4DAABB& getAABB(){};
     };
     
 }
