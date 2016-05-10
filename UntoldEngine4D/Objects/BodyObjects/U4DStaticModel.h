@@ -79,6 +79,8 @@ namespace U4DEngine {
         
             float coefficientOfRestitution;
         
+            bool isGround;
+        
         protected:
             
         public:
@@ -172,6 +174,10 @@ namespace U4DEngine {
             bool getModelHasCollided();
         
             void resetCollisionInformation();
+        
+            void setAsGround(bool uValue);
+        
+            bool getIsGround();
         
         };
     

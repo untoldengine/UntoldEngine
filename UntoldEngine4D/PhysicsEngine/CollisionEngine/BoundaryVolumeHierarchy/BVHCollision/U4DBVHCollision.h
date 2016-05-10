@@ -39,6 +39,8 @@ namespace U4DEngine {
         
         virtual void collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){};
         
+        virtual void setGroundNode(std::shared_ptr<U4DBVHTree> uGroundNode){};
+        
     };
 }
 

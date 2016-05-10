@@ -16,12 +16,14 @@
 #include "U4DVector3n.h"
 #include "U4DBroadPhaseCollisionModelPair.h"
 #include "U4DBVHCollision.h"
-#include "U4DBVHModelCollision.h"
+
 
 namespace U4DEngine {
     
     class U4DBVHTree;
     class U4DDynamicModel;
+    class U4DBVHModelCollision;
+    class U4DBVHGroundCollision;
     
 }
 
@@ -33,6 +35,7 @@ namespace U4DEngine {
         
         std::vector<U4DDynamicModel *> modelsContainer;
         U4DBVHCollision *bvhModelCollision;
+        U4DBVHCollision *bvhGroundCollision;
         
     public:
         

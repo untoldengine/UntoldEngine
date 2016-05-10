@@ -10,10 +10,11 @@
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
+#include "U4DBoundingAABB.h"
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isGround(false){
         
         setMass(1.0);
         
@@ -236,12 +237,31 @@ namespace U4DEngine {
             //determine the convex hull of the model
             convexHullBoundingVolume->setConvexHullVertices(this->bodyCoordinates.convexHullContainer);
         
-            //create sphere bounding volume
-            sphereBoundingVolume=new U4DBoundingSphere();
-            
-            float dimension=sqrt(bodyCoordinates.getModelDimension().x);
-            //calculate the sphere
-            sphereBoundingVolume->computeBoundingVolume(dimension, 10, 10);
+            if (getIsGround()) {
+                
+                //create a AABB bounding volume
+                sphereBoundingVolume=new U4DBoundingAABB();
+                
+                float xDimension=bodyCoordinates.getModelDimension().x/2.0;
+                float yDimension=bodyCoordinates.getModelDimension().y/2.0;
+                float zDimension=bodyCoordinates.getModelDimension().z/2.0;
+                
+                //get min and max points to create the AABB
+                U4DPoint3n minPoints(-xDimension,-yDimension,-zDimension);
+                U4DPoint3n maxPoints(xDimension,yDimension,zDimension);
+                
+                //calculate the AABB
+                sphereBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
+                
+            }else{
+                
+                //create sphere bounding volume
+                sphereBoundingVolume=new U4DBoundingSphere();
+                
+                float dimension=sqrt(bodyCoordinates.getModelDimension().x);
+                //calculate the sphere
+                sphereBoundingVolume->computeBoundingVolume(dimension, 10, 10);
+            }
             
             //enable collision
             collisionEnabled=true;
@@ -398,6 +418,14 @@ namespace U4DEngine {
     
     U4DVector3n U4DStaticModel::getNormalForce(){
         return collisionProperties.contactManifoldProperties.normalForce;
+    }
+    
+    void U4DStaticModel::setAsGround(bool uValue){
+        isGround=uValue;
+    }
+    
+    bool U4DStaticModel::getIsGround(){
+        return isGround;
     }
     
 }
