@@ -18,10 +18,11 @@ namespace U4DEngine {
         
     private:
         
-        U4DPoint3n center;
-        float radius;
-        
     public:
+        
+        U4DPoint3n center;
+        
+        float radius;
         
         U4DSphere();
         

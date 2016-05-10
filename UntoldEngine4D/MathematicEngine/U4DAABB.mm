@@ -7,6 +7,7 @@
 //
 
 #include "U4DAABB.h"
+#include "U4DSphere.h"
 
 namespace U4DEngine {
 
@@ -57,6 +58,41 @@ namespace U4DEngine {
         //overlapping on all axes means AABBs are intersecting
         
         return true;
+    }
+    
+    float U4DAABB::squarDistanceToPoint(U4DPoint3n& uPoint){
+        float sqDistance=0.0;
+        
+        //for each axix count any excess distance outside box extents. See page 131 in Real-Time Collision Detection
+        
+        //x-axis
+        if (uPoint.x<minPoint.x) sqDistance+=(minPoint.x-uPoint.x)*(minPoint.x-uPoint.x);
+        if (uPoint.x>maxPoint.x) sqDistance+=(uPoint.x-maxPoint.x)*(uPoint.x-maxPoint.x);
+        
+        
+        //y-axis
+        if (uPoint.y<minPoint.y) sqDistance+=(minPoint.y-uPoint.y)*(minPoint.y-uPoint.y);
+        if (uPoint.y>maxPoint.y) sqDistance+=(uPoint.y-maxPoint.y)*(uPoint.y-maxPoint.y);
+        
+        //z-axis
+        if (uPoint.z<minPoint.z) sqDistance+=(minPoint.z-uPoint.z)*(minPoint.z-uPoint.z);
+        if (uPoint.z>maxPoint.z) sqDistance+=(uPoint.z-maxPoint.z)*(uPoint.z-maxPoint.z);
+        
+        
+        return sqDistance;
+    }
+    
+    bool U4DAABB::intersectionWithVolume(U4DSphere &uSphere){
+        
+        //Compute squared distance between sphere center and AABB
+        
+        float sqDistance=squarDistanceToPoint(uSphere.center);
+        
+        //Sphere and AABB intersect if the (squared) distance
+        //between them is less than the (squared) sphere radius
+        
+        return sqDistance<=uSphere.radius*uSphere.radius;
+        
     }
     
     void U4DAABB::setLongestAABBDimensionVector(U4DVector3n& uLongestAABBDimensionVector){
