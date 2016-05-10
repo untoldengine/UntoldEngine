@@ -14,6 +14,10 @@
 #include "U4DVector3n.h"
 
 namespace U4DEngine {
+    class U4DSphere;
+}
+
+namespace U4DEngine {
     
     class U4DAABB {
         
@@ -44,10 +48,13 @@ namespace U4DEngine {
         
         bool intersectionWithVolume(U4DAABB *uAABB);
         
+        bool intersectionWithVolume(U4DSphere &uSphere);
+        
         void setLongestAABBDimensionVector(U4DVector3n& uLongestAABBDimensionVector);
         
         U4DVector3n getLongestAABBDimensionVector();
 
+        float squarDistanceToPoint(U4DPoint3n& uPoint);
         
     };
     
