@@ -57,7 +57,7 @@ void Earth::init(){
     cube->enableCollision();
     
     cube2=new Town();
-    cube2->init("Cube",0.0,5.0,0.0);
+    cube2->init("Cube",2.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     //cube2->rotateBy(0.0, 0.0, 20.0);
@@ -89,8 +89,8 @@ void Earth::init(){
     
     addChild(cube);
     addChild(cube2);
-    addChild(cube3);
-    addChild(cube4);
+//    addChild(cube3);
+//    addChild(cube4);
     /*
     
     // ADD Gravity

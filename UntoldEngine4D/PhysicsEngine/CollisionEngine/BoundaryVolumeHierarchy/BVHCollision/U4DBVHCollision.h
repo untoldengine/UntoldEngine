@@ -23,6 +23,8 @@ namespace U4DEngine {
         
     private:
         
+        bool groundPresent;
+        
     public:
         
         U4DBVHCollision();
@@ -40,6 +42,10 @@ namespace U4DEngine {
         virtual void collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){};
         
         virtual void setGroundNode(std::shared_ptr<U4DBVHTree> uGroundNode){};
+        
+        void setIsGroundPresent(bool uValue);
+        
+        bool getIsGroundPresent();
         
     };
 }

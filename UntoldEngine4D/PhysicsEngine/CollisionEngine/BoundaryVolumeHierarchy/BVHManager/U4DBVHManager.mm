@@ -61,6 +61,8 @@ namespace U4DEngine{
             groundNode->getAABBVolume()->setMinPoint(minPoint);
             
             bvhGroundCollision->setGroundNode(groundNode);
+            
+            bvhGroundCollision->setIsGroundPresent(true);
         }
         
         
@@ -130,8 +132,15 @@ namespace U4DEngine{
         //check sphere vs spher collisions
         bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
         
-        //check sphere vs aabb collisions
-        bvhGroundCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
+        //check sphere vs ground collisions
+        if (bvhGroundCollision->getIsGroundPresent()) {
+            
+            bvhGroundCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
+            
+            //reset if ground is present
+            bvhGroundCollision->setIsGroundPresent(false);
+        }
+
         
     }
     
