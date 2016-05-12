@@ -104,6 +104,7 @@
 		039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */; settings = {ASSET_TAGS = (); }; };
 		039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175021CE190C300FD2674 /* U4DBVHCollision.mm */; settings = {ASSET_TAGS = (); }; };
 		039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */; settings = {ASSET_TAGS = (); }; };
+		0391750A1CE1AD2F00FD2674 /* U4DBVHGroundCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175081CE1AD2F00FD2674 /* U4DBVHGroundCollision.mm */; settings = {ASSET_TAGS = (); }; };
 		03A9F6E81AD9D19300E81A00 /* fort.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E71AD9D19300E81A00 /* fort.png */; };
 		03A9F6EA1AD9D19A00E81A00 /* little_mansion.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E91AD9D19A00E81A00 /* little_mansion.png */; };
 		03A9F6EC1AD9D1A000E81A00 /* small_house_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6EB1AD9D1A000E81A00 /* small_house_01.png */; };
@@ -354,6 +355,8 @@
 		039175031CE190C300FD2674 /* U4DBVHCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHCollision.h; sourceTree = "<group>"; };
 		039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHModelCollision.mm; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHModelCollision.mm; sourceTree = "<group>"; };
 		039175061CE1933100FD2674 /* U4DBVHModelCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHModelCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHModelCollision.h; sourceTree = "<group>"; };
+		039175081CE1AD2F00FD2674 /* U4DBVHGroundCollision.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHGroundCollision.mm; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHGroundCollision.mm; sourceTree = "<group>"; };
+		039175091CE1AD2F00FD2674 /* U4DBVHGroundCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHGroundCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHGroundCollision.h; sourceTree = "<group>"; };
 		03A9F6E71AD9D19300E81A00 /* fort.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = fort.png; path = Resources/fort.png; sourceTree = SOURCE_ROOT; };
 		03A9F6E91AD9D19A00E81A00 /* little_mansion.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = little_mansion.png; path = Resources/little_mansion.png; sourceTree = SOURCE_ROOT; };
 		03A9F6EB1AD9D1A000E81A00 /* small_house_01.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_house_01.png; path = Resources/small_house_01.png; sourceTree = SOURCE_ROOT; };
@@ -980,6 +983,8 @@
 				039175021CE190C300FD2674 /* U4DBVHCollision.mm */,
 				039175061CE1933100FD2674 /* U4DBVHModelCollision.h */,
 				039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */,
+				039175091CE1AD2F00FD2674 /* U4DBVHGroundCollision.h */,
+				039175081CE1AD2F00FD2674 /* U4DBVHGroundCollision.mm */,
 			);
 			name = BVHCollision;
 			sourceTree = "<group>";
@@ -1556,6 +1561,7 @@
 				03E6EDA31943D79F007AD131 /* U4DSkyBox.mm in Sources */,
 				03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */,
 				030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */,
+				0391750A1CE1AD2F00FD2674 /* U4DBVHGroundCollision.mm in Sources */,
 				037C474217B597CB007B8283 /* U4DModel.mm in Sources */,
 				037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */,
 				03E6ED6A1943D6FE007AD131 /* U4DButton.mm in Sources */,

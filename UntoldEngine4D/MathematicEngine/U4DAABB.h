@@ -23,14 +23,14 @@ namespace U4DEngine {
         
     private:
         
-        U4DPoint3n minPoint;
-        
-        U4DPoint3n maxPoint;
-        
         //longest volume dimension
         U4DVector3n longestAABBDimensionVector;
         
     public:
+        
+        U4DPoint3n minPoint;
+        
+        U4DPoint3n maxPoint;
         
         U4DAABB();
         

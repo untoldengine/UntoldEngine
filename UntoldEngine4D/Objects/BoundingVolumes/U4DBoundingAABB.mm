@@ -10,14 +10,50 @@
 
 namespace U4DEngine {
     
-    void U4DBoundingAABB::computeBoundingVolume(U4DVector3n& uMin,U4DVector3n& uMax){
+    U4DBoundingAABB::U4DBoundingAABB(){
+    
+    }
+    
+    
+    U4DBoundingAABB::~U4DBoundingAABB(){
+    
+    }
+    
+    
+    U4DBoundingAABB::U4DBoundingAABB(const U4DBoundingAABB& value){
+        aabb=value.aabb;
+    }
+    
+    
+    U4DBoundingAABB& U4DBoundingAABB::operator=(const U4DBoundingAABB& value){
+        aabb=value.aabb;
+        return *this;
+    }
+    
+    U4DPoint3n U4DBoundingAABB::getMaxBoundaryPoint(){
         
-        min=uMin;
-        max=uMax;
+        U4DPoint3n position=getAbsolutePosition().toPoint();
         
-        width=(std::abs(uMax.x-uMin.x))/2;
-        height=(std::abs(uMax.y-uMin.y))/2;
-        depth=(std::abs(uMax.z-uMin.z))/2;
+        return U4DPoint3n(position.x+aabb.maxPoint.x,position.y+aabb.maxPoint.y,position.z+aabb.maxPoint.z);
+        
+    }
+    
+    U4DPoint3n U4DBoundingAABB::getMinBoundaryPoint(){
+        
+        U4DPoint3n position=getAbsolutePosition().toPoint();
+        
+        return U4DPoint3n(position.x+aabb.minPoint.x,position.y+aabb.minPoint.y,position.z+aabb.minPoint.z);
+        
+    }
+    
+    void U4DBoundingAABB::computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){
+        
+        aabb.minPoint=uMin;
+        aabb.maxPoint=uMax;
+        
+        float width=(std::abs(uMax.x-uMin.x))/2;
+        float height=(std::abs(uMax.y-uMin.y))/2;
+        float depth=(std::abs(uMax.z-uMin.z))/2;
         
         U4DVector3n v1(width,height,depth);
         U4DVector3n v2(width,height,-depth);

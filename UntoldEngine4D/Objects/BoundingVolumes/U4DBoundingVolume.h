@@ -21,6 +21,7 @@
 
 namespace U4DEngine {
     class U4DSphere;
+    class U4DAABB;
 }
 
 namespace U4DEngine {
@@ -44,7 +45,7 @@ namespace U4DEngine {
         
         virtual void computeBoundingVolume(float uRadius,int uRings, int uSectors){};
         
-        virtual void computeBoundingVolume(U4DVector3n& uMin,U4DVector3n& uMax){};
+        virtual void computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){};
         
         virtual void computeBoundingVolume(U4DVector3n& uHalfwidth){};
         

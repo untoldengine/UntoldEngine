@@ -12,6 +12,7 @@
 #include <iostream>
 #include <cmath>
 #include "U4DBoundingVolume.h"
+#include "U4DAABB.h"
 
 namespace U4DEngine {
     
@@ -19,46 +20,23 @@ namespace U4DEngine {
       
     private:
         
+        U4DAABB aabb;
+        
     public:
         
+        U4DBoundingAABB();
         
-        U4DBoundingAABB(){};
-        
-      
-        ~U4DBoundingAABB(){}
-        
+        ~U4DBoundingAABB();
        
-        U4DBoundingAABB(const U4DBoundingAABB& value){};
+        U4DBoundingAABB(const U4DBoundingAABB& value);
+        
+        U4DBoundingAABB& operator=(const U4DBoundingAABB& value);
 
+        U4DPoint3n getMaxBoundaryPoint();
         
-        U4DBoundingAABB& operator=(const U4DBoundingAABB& value){
-            width=value.width;
-            height=value.height;
-            depth=value.depth;
-            
-            min=value.min;
-            max=value.max;
-            
-            return *this;
-        };
-        
-        
-        float width;
-        
-        
-        float height;
-        
-        
-        float depth;
-        
-        
-        U4DVector3n min;
-        
-        
-        U4DVector3n max;
-        
-        
-        void computeBoundingVolume(U4DVector3n& uMin,U4DVector3n& uMax);
+        U4DPoint3n getMinBoundaryPoint();
+
+        void computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax);
         
     };
     
