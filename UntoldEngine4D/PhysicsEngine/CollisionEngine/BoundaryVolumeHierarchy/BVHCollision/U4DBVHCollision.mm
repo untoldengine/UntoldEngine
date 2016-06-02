@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DBVHCollision::U4DBVHCollision(){
+    U4DBVHCollision::U4DBVHCollision():groundPresent(false){
         
     }
     
