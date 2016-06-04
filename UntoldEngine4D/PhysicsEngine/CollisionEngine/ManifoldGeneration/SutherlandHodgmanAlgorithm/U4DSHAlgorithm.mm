@@ -99,8 +99,6 @@ namespace U4DEngine {
         
         //compare dot product and assign a reference plane
         
-        //step 5. perform sutherland
-        
         std::vector<U4DSegment> segments;
         U4DTriangle incidentFace;
         U4DTriangle referenceFace;
@@ -133,6 +131,8 @@ namespace U4DEngine {
             
         }
         
+        //step 5. perform sutherland
+        
         segments=clipPolygons(referencePlane, incidentPlane);
         
         incidentFace=incidentModelFace.at(0).triangle;
@@ -152,7 +152,8 @@ namespace U4DEngine {
         
         if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
             //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
-
+            
+            
             //find the smallest distance between intersection and segments
             float minimumDistanceToSegment=FLT_MAX;
             float distanceToSegment=0.0;
@@ -171,26 +172,59 @@ namespace U4DEngine {
                 
             }
             
+            //Determine if closest segment is parallel to intersection vector. If it is parallel, it means that the collision
+            //was an segment-face. If it is not parallel, we can assume the collision was an edge-face
+            
+            U4DVector3n segmentDirection=segments.at(distanceIndex).pointA.toVector()-segments.at(distanceIndex).pointB.toVector();
+            
+            //normalize the segment direction and intersection vector in order for the dot product to be within [-1,1] range
+            segmentDirection.normalize();
+            intersectionVector.normalize();
+            
+            float segmentAlongIntersectionVector=intersectionVector.dot(segmentDirection);
+            
             //If minimum distance to segment is less than closest distance to simplex
             if (minimumDistanceToSegment<U4DEngine::closestDistanceToSimplexEpsilon) {
             
-            //return segment
-            U4DVector3n pointA=segments.at(distanceIndex).pointA.toVector();
-            U4DVector3n pointB=segments.at(distanceIndex).pointB.toVector();
-
-            uModel1->addCollisionContactPoint(pointA);
-            uModel1->addCollisionContactPoint(pointB);
-
-            uModel2->addCollisionContactPoint(pointA);
-            uModel2->addCollisionContactPoint(pointB);
+                //collision segment-face
+                if (segmentAlongIntersectionVector==1.0) {
+                    
+                    //return segment
+                    U4DVector3n pointA=segments.at(distanceIndex).pointA.toVector();
+                    U4DVector3n pointB=segments.at(distanceIndex).pointB.toVector();
+                    
+                    uModel1->addCollisionContactPoint(pointA);
+                    uModel1->addCollisionContactPoint(pointB);
+                    
+                    uModel2->addCollisionContactPoint(pointA);
+                    uModel2->addCollisionContactPoint(pointB);
+                    
+                    
+                }else{
+                    //collision edge-face
+                    
+                    U4DVector3n pointA(0.0,0.0,0.0);
+                    
+                    if (segments.at(distanceIndex).pointA==intersectionPoint || segments.at(distanceIndex).pointB==intersectionPoint) {
+                    
+                        //Get the segment point equal to the intersection point
+                        
+                        pointA=intersectionPoint.toVector();
+                        
+                    }
+                    
+                    uModel1->addCollisionContactPoint(pointA);
+                    
+                    uModel2->addCollisionContactPoint(pointA);
+                    
+                }
                 
-        
-            //set both models equilibrium
-            
-            uModel1->setEquilibrium(false);
-            uModel2->setEquilibrium(false);
+                //set both models equilibrium
                 
-            return true;
+                uModel1->setEquilibrium(false);
+                uModel2->setEquilibrium(false);
+                
+                return true;
                 
             }
         }
