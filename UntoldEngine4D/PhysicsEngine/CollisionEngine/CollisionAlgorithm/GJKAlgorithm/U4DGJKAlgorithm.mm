@@ -32,11 +32,13 @@ namespace U4DEngine {
         float tClip=0.0; //time of impact
         U4DVector3n hitSpot(0,0,0); //hit spot
         U4DVector3n relativeCSOTranslation(0,0,0); //relative CSO translation
+        int iterationSteps=0;
         
         U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
         
         relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
+        
         //relativeCSOTranslation.normalize();
         
         U4DVector3n dir(1,1,1);
@@ -45,19 +47,21 @@ namespace U4DEngine {
         
         Q.push_back(v);
         
-        int iterationSteps=0;
+        dir=v.minkowskiPoint.toVector();
         
-        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::collisionDistanceEpsilon) {
+        dir.negate();
+        
+        U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+        
+        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
 
-            dir=v.minkowskiPoint.toVector();
+            if (iterationSteps>10) {
+                return false;
+            }
             
-            dir.negate();
             
-            U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-        
             if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(relativeCSOTranslation))*tClip) {
                 
-               
                 if (v.minkowskiPoint.toVector().dot(relativeCSOTranslation)>0.0) {
                     
                     tClip=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(relativeCSOTranslation);
@@ -67,6 +71,8 @@ namespace U4DEngine {
                         return false;
                     }
                     
+                    std::cout<<"TClip: "<<tClip<<std::endl;
+                    
                     hitSpot=relativeCSOTranslation*tClip;
                     
                     closestPointToOrigin=v.minkowskiPoint;
@@ -75,13 +81,13 @@ namespace U4DEngine {
                     
                     Q.clear();
                     
-                    dir=p.minkowskiPoint.toVector();
-                    
-                    dir.negate();
-                    
-                    v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-                    
-                    Q.push_back(v);
+//                    dir=p.minkowskiPoint.toVector();
+//                    
+//                    dir.negate();
+//                    
+//                    v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+//                    
+//                    Q.push_back(v);
                     
                     
                 }else{
@@ -90,60 +96,42 @@ namespace U4DEngine {
                 }
             }
             
+            //p-hitSpot
             p.minkowskiPoint=(hitSpot.toPoint()-p.minkowskiPoint).toPoint();
             
             Q.push_back(p);
             
             v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
-            v.minkowskiPoint.show();
+            
             determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
+            
+            dir=v.minkowskiPoint.toVector();
+            
+            dir.negate();
+            
+            p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
             iterationSteps++;
         }
-  
         
-        //set time of impact for each model.
-        
-        if (tClip<minimumTimeOfImpact) {
-            
-            //minimum time step allowed
-            uModel1->setTimeOfImpact(minimumTimeOfImpact);
-            uModel2->setTimeOfImpact(minimumTimeOfImpact);
-            
-        }else{
-            
-            uModel1->setTimeOfImpact(tClip);
-            uModel2->setTimeOfImpact(tClip);
-            
+        if (Q.size()<2 || Q.size()>4) {
+            return false;
         }
         
-        //if the simplex container is 2, it is not enough to get the correct normal data.
-        
-        if (Q.size()<=2 || Q.size()>4) {
+        if (tClip==0.0 || contactCollisionNormal==U4DVector3n(0.0,0.0,0.0)) {
             //return false;
         }
         
-        if (tClip<U4DEngine::collisionTimeEpsilon) {
-            
-            //Set contact normal
-            contactCollisionNormal.normalize();
-            
-            //closest collision point
-            std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
-            
-            //Once there is a contact,the closestBarycentricPoints returns two identical closest points. I'm assigning the first
-            //point in the vector as the closesCollisionPoint.
-            closestCollisionPoint=closestCollisionPoints.at(0);
-            
-            //reset time of impact
-            uModel1->resetTimeOfImpact();
-            
-            uModel2->resetTimeOfImpact();
-            
-            return true;
+        if (v.minkowskiPoint.magnitude()>U4DEngine::collisionDistanceEpsilon) {
+            return false;
         }
         
-       return false;
+        
+        //Set contact normal
+        contactCollisionNormal.normalize();
+        
+        
+       return true;
         
         
         //Version 2 of the GJK
@@ -158,8 +146,8 @@ namespace U4DEngine {
 //        
 //        //GJK continuous collision variables
 //       
-//        U4DBoundingVolume *boundingVolume1=uModel1->getBoundingVolume();
-//        U4DBoundingVolume *boundingVolume2=uModel2->getBoundingVolume();
+//        U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
+//        U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
 //
 //        /*
 //         1. Initialize the simplex set Q to one or more points (up to d+1 points, where d is
@@ -181,7 +169,7 @@ namespace U4DEngine {
 //        
 //        float iterations=0;
 //        //Algorithm found in Game Physics Pearls. Page 106
-//        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>U4DEngine::epsilon) {
+//        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(w.minkowskiPoint.toVector())>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
 //            
 //            if (iterations>10) {
 //                return false;
@@ -190,9 +178,7 @@ namespace U4DEngine {
 //            Q.push_back(w);
 //            
 //            v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
-//            
-//            
-//            
+//
 //            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
 //            
 //            dir=v.minkowskiPoint.toVector();
@@ -204,10 +190,10 @@ namespace U4DEngine {
 //            iterations++;
 //        }
 //        
-//        float distance=v.minkowskiPoint.magnitudeSquare();
+//        float distance=v.minkowskiPoint.magnitude();
 //        closestPointToOrigin=v.minkowskiPoint;
 //        
-//        if (distance>U4DEngine::epsilon) {
+//        if (distance>U4DEngine::collisionDistanceEpsilon) {
 //            return false;
 //        }
 //        
