@@ -29,15 +29,15 @@ namespace U4DEngine {
         U4DPoint3n originPoint(0,0,0);
         U4DPoint3n tempV(0,0,0); //variable to store previous value of v
         std::vector<float> barycentricPoints; //barycentric points
-        float t=0; //time of impact
-        U4DVector3n s(0,0,0); //hit spot
-        U4DVector3n r(0,0,0); //ray
+        float tClip=0.0; //time of impact
+        U4DVector3n hitSpot(0,0,0); //hit spot
+        U4DVector3n relativeCSOTranslation(0,0,0); //relative CSO translation
         
         U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
         U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
         
-        r=uModel1->getVelocity()-uModel2->getVelocity();
-        r.normalize();
+        relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
+        //relativeCSOTranslation.normalize();
         
         U4DVector3n dir(1,1,1);
         
@@ -47,7 +47,7 @@ namespace U4DEngine {
         
         int iterationSteps=0;
         
-        while (iterationSteps<25) {
+        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::collisionDistanceEpsilon) {
 
             dir=v.minkowskiPoint.toVector();
             
@@ -55,19 +55,19 @@ namespace U4DEngine {
             
             U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
-            if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(r))*t) {
+            if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(relativeCSOTranslation))*tClip) {
                 
                
-                if (v.minkowskiPoint.toVector().dot(r)>0.0) {
+                if (v.minkowskiPoint.toVector().dot(relativeCSOTranslation)>0.0) {
                     
-                    t=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(r);
+                    tClip=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(relativeCSOTranslation);
                     
-                    if (t>1.0) {
+                    if (tClip>1.0) {
                         
                         return false;
                     }
                     
-                    s=r*t;
+                    hitSpot=relativeCSOTranslation*tClip;
                     
                     closestPointToOrigin=v.minkowskiPoint;
                     
@@ -90,12 +90,12 @@ namespace U4DEngine {
                 }
             }
             
-            p.minkowskiPoint=(s.toPoint()-p.minkowskiPoint).toPoint();
+            p.minkowskiPoint=(hitSpot.toPoint()-p.minkowskiPoint).toPoint();
             
             Q.push_back(p);
             
             v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
-            
+            v.minkowskiPoint.show();
             determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
             
             iterationSteps++;
@@ -104,7 +104,7 @@ namespace U4DEngine {
         
         //set time of impact for each model.
         
-        if (t<minimumTimeOfImpact) {
+        if (tClip<minimumTimeOfImpact) {
             
             //minimum time step allowed
             uModel1->setTimeOfImpact(minimumTimeOfImpact);
@@ -112,18 +112,18 @@ namespace U4DEngine {
             
         }else{
             
-            uModel1->setTimeOfImpact(t);
-            uModel2->setTimeOfImpact(t);
+            uModel1->setTimeOfImpact(tClip);
+            uModel2->setTimeOfImpact(tClip);
             
         }
         
         //if the simplex container is 2, it is not enough to get the correct normal data.
         
         if (Q.size()<=2 || Q.size()>4) {
-            return false;
+            //return false;
         }
         
-        if (t<U4DEngine::collisionTimeEpsilon) {
+        if (tClip<U4DEngine::collisionTimeEpsilon) {
             
             //Set contact normal
             contactCollisionNormal.normalize();
@@ -142,7 +142,6 @@ namespace U4DEngine {
             
             return true;
         }
-        
         
        return false;
         

@@ -14,7 +14,7 @@ namespace U4DEngine {
     const float PI=3.141592653589793;
     const float sleepEpsilon=0.96;
     const float sleepBias=0.5;
-    const float collisionDistanceEpsilon=1.0e-3f;
+    const float collisionDistanceEpsilon=1.0e-4f;
     const float collisionTimeEpsilon=1.0e-3f;
     const float minimumTimeOfImpact=0.2;
     const float barycentricEpsilon=1.0;

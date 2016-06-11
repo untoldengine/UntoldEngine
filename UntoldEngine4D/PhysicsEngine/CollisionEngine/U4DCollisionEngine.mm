@@ -77,7 +77,7 @@ namespace U4DEngine {
             U4DDynamicModel *model2 =n.model2;
             
             if (collisionAlgorithm->collision(model1, model2, dt)) {
-                
+                std::cout<<"Collision"<<std::endl;
                 //if collision occurred then
                 model1->setModelHasCollided(true);
                 model2->setModelHasCollided(true);
