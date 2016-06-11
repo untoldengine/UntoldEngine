@@ -61,7 +61,7 @@ void Earth::init(){
     cube2->init("Cube",-1.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    //cube2->rotateBy(60.0, 20.0, 60.0);
+    cube2->rotateBy(60.0, 20.0, 0.0);
     cube2->setMass(1.0);
     cube2->setCoefficientOfRestitution(0.8);
     cube2->applyPhysics(true);

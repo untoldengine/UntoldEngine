@@ -39,7 +39,7 @@ namespace U4DEngine {
         
         relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
         
-        //relativeCSOTranslation.normalize();
+        relativeCSOTranslation.normalize();
         
         U4DVector3n dir(1,1,1);
         
@@ -54,11 +54,10 @@ namespace U4DEngine {
         U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
-
+            
             if (iterationSteps>10) {
                 return false;
             }
-            
             
             if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(relativeCSOTranslation))*tClip) {
                 
@@ -80,15 +79,6 @@ namespace U4DEngine {
                     contactCollisionNormal=v.minkowskiPoint.toVector();
                     
                     Q.clear();
-                    
-//                    dir=p.minkowskiPoint.toVector();
-//                    
-//                    dir.negate();
-//                    
-//                    v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-//                    
-//                    Q.push_back(v);
-                    
                     
                 }else{
                     
@@ -117,17 +107,18 @@ namespace U4DEngine {
         if (Q.size()<2 || Q.size()>4) {
             return false;
         }
-        
-        if (tClip==0.0 || contactCollisionNormal==U4DVector3n(0.0,0.0,0.0)) {
-            //return false;
-        }
-        
+                
         if (v.minkowskiPoint.magnitude()>U4DEngine::collisionDistanceEpsilon) {
             return false;
         }
         
         
-        //Set contact normal
+        //if contact collision normal=0.0, then set the contact collision normal to the relative translation
+        if (contactCollisionNormal==U4DVector3n(0.0,0.0,0.0)) {
+            contactCollisionNormal=relativeCSOTranslation;
+        }
+        
+        //normalize contact normal
         contactCollisionNormal.normalize();
         
         
