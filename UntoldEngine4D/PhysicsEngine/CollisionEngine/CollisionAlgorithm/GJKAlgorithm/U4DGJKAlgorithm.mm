@@ -70,8 +70,6 @@ namespace U4DEngine {
                         return false;
                     }
                     
-                    std::cout<<"TClip: "<<tClip<<std::endl;
-                    
                     hitSpot=relativeCSOTranslation*tClip;
                     
                     closestPointToOrigin=v.minkowskiPoint;
@@ -79,6 +77,21 @@ namespace U4DEngine {
                     contactCollisionNormal=v.minkowskiPoint.toVector();
                     
                     Q.clear();
+                    
+                    //set time of impact for each model.
+                    
+                    if (tClip<U4DEngine::minimumTimeOfImpact) {
+                        
+                        //minimum time step allowed
+                        uModel1->setTimeOfImpact(U4DEngine::minimumTimeOfImpact);
+                        uModel2->setTimeOfImpact(U4DEngine::minimumTimeOfImpact);
+                        
+                    }else{
+                        
+                        uModel1->setTimeOfImpact(tClip);
+                        uModel2->setTimeOfImpact(tClip);
+                        
+                    }
                     
                 }else{
                     
@@ -115,12 +128,25 @@ namespace U4DEngine {
         
         //if contact collision normal=0.0, then set the contact collision normal to the relative translation
         if (contactCollisionNormal==U4DVector3n(0.0,0.0,0.0)) {
+        
             contactCollisionNormal=relativeCSOTranslation;
+        
         }
         
         //normalize contact normal
         contactCollisionNormal.normalize();
         
+        //closest collision point
+        std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
+        
+        //Once there is a contact,the closestBarycentricPoints returns two identical closest points. I'm assigning the first
+        //point in the vector as the closesCollisionPoint.
+        closestCollisionPoint=closestCollisionPoints.at(0);
+        
+        //reset time of impact
+        uModel1->resetTimeOfImpact();
+        
+        uModel2->resetTimeOfImpact();
         
        return true;
         
