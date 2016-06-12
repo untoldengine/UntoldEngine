@@ -17,18 +17,15 @@ namespace U4DEngine {
     
     U4DSimplexStruct U4DCollisionDetection::calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection){
         
-        //V=Sb(-p)-sa(p)
+        //Calculate the supporting point Sa-b(v)=sa(v)-sb(-v)
         
-        U4DPoint3n sa=uBoundingVolume2->getSupportPointInDirection(uDirection);
+        U4DPoint3n sa=uBoundingVolume1->getSupportPointInDirection(uDirection);
         
         uDirection.negate();
         
-        U4DPoint3n sb=uBoundingVolume1->getSupportPointInDirection(uDirection);
+        U4DPoint3n sb=uBoundingVolume2->getSupportPointInDirection(uDirection);
         
-        //set direction back to normal
-        uDirection.negate();
-        
-        //sb - sa
+        //Sa-b(v)=sa(v)-sb(-v)
         U4DPoint3n sab=(sb-sa).toPoint();
         
         U4DSimplexStruct supportPoint;
@@ -36,6 +33,9 @@ namespace U4DEngine {
         supportPoint.sa=sa;
         supportPoint.sb=sb;
         supportPoint.minkowskiPoint=sab;
+        
+        //set direction back to normal
+        uDirection.negate();
         
         return supportPoint;
         
