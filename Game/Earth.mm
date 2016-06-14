@@ -58,10 +58,10 @@ void Earth::init(){
     cube->setMass(1.0);
     
     cube2=new Town();
-    cube2->init("Cube",-1.0,5.0,0.0);
+    cube2->init("Cube",1.0,5.0,0.5);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(23.0, 0.0, 0.0);
+    cube2->rotateBy(40.0,0.0,0.0);
     cube2->setMass(1.0);
     cube2->setCoefficientOfRestitution(0.8);
     cube2->applyPhysics(true);
@@ -244,7 +244,7 @@ void Earth::action(){
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
-    setEntityControlledByController(cube);
+    setEntityControlledByController(cube2);
     
 }
 
