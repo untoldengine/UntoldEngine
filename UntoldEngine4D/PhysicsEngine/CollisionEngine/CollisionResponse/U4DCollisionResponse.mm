@@ -156,7 +156,8 @@ namespace U4DEngine {
             uModel1->setVelocity(newLinearVelocityOfModel1);
             
             uModel1->setAngularVelocity(newAngularVelocityOfModel1);
-
+            newLinearVelocityOfModel1.show("linear velocity");
+            newAngularVelocityOfModel1.show("angular velocity");
         }
         
         

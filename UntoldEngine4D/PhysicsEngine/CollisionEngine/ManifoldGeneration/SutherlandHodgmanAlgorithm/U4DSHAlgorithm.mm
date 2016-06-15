@@ -69,16 +69,26 @@ namespace U4DEngine {
         
         std::vector<CONTACTFACES> parallelFacesModel2=mostParallelFacesToPlane(uModel2, planeCollisionOfModel2);
         
+        if (parallelFacesModel1.size()==0 || parallelFacesModel2.size()==0) {
+            return false;
+        }
+        
         //step 3. for each model project selected faces onto plane
         
         std::vector<U4DTriangle> projectedFacesModel1=projectFacesToPlane(parallelFacesModel1, planeCollisionOfModel1);
         
         std::vector<U4DTriangle> projectedFacesModel2=projectFacesToPlane(parallelFacesModel2, planeCollisionOfModel2);
         
+        if (projectedFacesModel1.size()==0 || projectedFacesModel2.size()==0) {
+            return false;
+        }
         //step 4. Break triangle into segments and remove any duplicate segments
         std::vector<CONTACTEDGE> polygonEdgesOfModel1=getEdgesFromFaces(projectedFacesModel1,planeCollisionOfModel1);
         std::vector<CONTACTEDGE> polygonEdgesOfModel2=getEdgesFromFaces(projectedFacesModel2,planeCollisionOfModel2);
         
+        if (polygonEdgesOfModel1.size()==0 || polygonEdgesOfModel2.size()==0) {
+            return false;
+        }
         //step 5. Determine reference polygon
 
         float maxFaceParallelToPlaneInModel1=-FLT_MIN;
@@ -149,6 +159,7 @@ namespace U4DEngine {
         U4DVector3n intersectionVector;
         U4DPoint3n intersectionPoint;
         
+        
         if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
             //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
             
@@ -209,8 +220,7 @@ namespace U4DEngine {
             
             uModel2->addCollisionContactPoint(pointA);
             uModel2->addCollisionContactPoint(pointB);
-        
-            
+
             //set both models equilibrium
             
             uModel1->setEquilibrium(false);
