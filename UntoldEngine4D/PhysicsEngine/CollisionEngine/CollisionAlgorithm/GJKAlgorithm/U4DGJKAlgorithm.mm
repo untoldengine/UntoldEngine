@@ -128,9 +128,9 @@ namespace U4DEngine {
         
         //if contact collision normal=0.0, then set the contact collision normal to the relative translation
         if (contactCollisionNormal==U4DVector3n(0.0,0.0,0.0)) {
-        
+            
             contactCollisionNormal=relativeCSOTranslation;
-        
+            
         }
         
         //normalize contact normal

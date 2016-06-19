@@ -10,36 +10,44 @@
 
 namespace U4DEngine {
     
-void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
+    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.10),k2(0.15){
+    
+    }
+    
+    U4DDragForceGenerator::~U4DDragForceGenerator(){
+    
+    }
+    
+    void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
 
-//    U4DVector3n velocity;
-//    float dragCoeff;
-//    
-//    velocity=uModel->getVelocity();
-//    dragCoeff=velocity.magnitude();
-//    
-//    dragCoeff=k1*dragCoeff+k2*dragCoeff*dragCoeff;
-//    
-//    //calculate the final force and apply it
-//    velocity.normalize();
-//    velocity*=-dragCoeff;
-//    
-//    uModel->addForce(velocity);
-    
-    //moment
-    U4DVector3n moment;
-    float momentDragCoeff;
-    
-    moment=uModel->getAngularVelocity();
-    momentDragCoeff=moment.magnitude();
-    
-    momentDragCoeff=k1*momentDragCoeff+k2*momentDragCoeff*momentDragCoeff;
-    
-    moment.normalize();
-    moment*=-momentDragCoeff;
-    
-    uModel->addMoment(moment);
-    
-}
+        U4DVector3n velocity;
+        float dragCoeff;
+        
+        velocity=uModel->getVelocity();
+        dragCoeff=velocity.magnitude();
+        
+        dragCoeff=k1*dragCoeff+k2*dragCoeff*dragCoeff;
+        
+        //calculate the final force and apply it
+        velocity.normalize();
+        velocity*=-dragCoeff;
+        
+        uModel->addForce(velocity);
+        
+        //moment
+        U4DVector3n moment;
+        float momentDragCoeff;
+        
+        moment=uModel->getAngularVelocity();
+        momentDragCoeff=moment.magnitude();
+        
+        momentDragCoeff=k1*momentDragCoeff+k2*momentDragCoeff*momentDragCoeff;
+        
+        moment.normalize();
+        moment*=-momentDragCoeff;
+        
+        uModel->addMoment(moment);
+        
+    }
 
 }

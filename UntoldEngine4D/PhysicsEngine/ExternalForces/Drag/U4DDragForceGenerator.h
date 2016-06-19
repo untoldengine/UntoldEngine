@@ -26,10 +26,10 @@ class U4DDragForceGenerator:public U4DBodyForceGenerator{
         
     public:
         
-        U4DDragForceGenerator():k1(1.0),k2(0.9){};
+        U4DDragForceGenerator();
         
-        ~U4DDragForceGenerator(){};
-        
+        ~U4DDragForceGenerator();
+    
         void updateForce(U4DDynamicModel *uModel, float dt);
         
         void updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt){};

@@ -44,7 +44,7 @@ void Earth::init(){
     
     enableGrid(true);
     
-    U4DEngine::U4DVector3n gravity(0,-1.0,0);
+    U4DEngine::U4DVector3n gravity(0,-5.0,0);
     //setGravity(gravity);
     
     //create our object
@@ -58,12 +58,12 @@ void Earth::init(){
     cube->setMass(1.0);
     
     cube2=new Town();
-    cube2->init("Cube",-1.0,5.0,0.0);
+    cube2->init("Cube",0.0,10.0,0.5);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(23.0, 0.0, 0.0);
+    cube2->rotateBy(60.0,20.0,40.0);
     cube2->setMass(1.0);
-    cube2->setCoefficientOfRestitution(0.8);
+    cube2->setCoefficientOfRestitution(0.5);
     cube2->applyPhysics(true);
 
     cube2->enableCollision();
@@ -71,7 +71,7 @@ void Earth::init(){
     
     
     cube3=new Town();
-    cube3->init("Cube",3.0,3.0,0.0);
+    cube3->init("Cube",4.0,0.0,0.0);
     cube3->setShader("simpleShader");
     cube3->setName("cube3");
     cube3->setMass(1.0);
@@ -79,10 +79,10 @@ void Earth::init(){
     cube3->enableCollision();
     
     cube4=new Town();
-    cube4->init("Cube",3.0,6.0,0.0);
+    cube4->init("Cube",4.0,6.0,-0.4);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
-    cube4->rotateBy(30.0, 50.0, 20.0);
+    cube4->rotateBy(40.0, 50.0, 20.0);
     cube4->setMass(1.0);
     cube4->applyPhysics(true);
     
@@ -91,8 +91,8 @@ void Earth::init(){
     
     addChild(cube);
     addChild(cube2);
-//    addChild(cube3);
-//    addChild(cube4);
+    //addChild(cube3);
+    //addChild(cube4);
     /*
     
     // ADD Gravity
@@ -244,7 +244,7 @@ void Earth::action(){
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
-    setEntityControlledByController(cube);
+    setEntityControlledByController(cube2);
     
 }
 
