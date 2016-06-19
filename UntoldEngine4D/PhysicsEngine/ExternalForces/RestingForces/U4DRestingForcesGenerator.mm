@@ -84,7 +84,7 @@ namespace U4DEngine {
         }
         
         uModel->addMoment(torque);
-        
+        torque.show("torque");
     }
     
 }
