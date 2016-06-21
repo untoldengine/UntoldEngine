@@ -49,19 +49,19 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,1,0.0);
+    cube->init("GroundFloor",0.0,0.0,0.0);
     cube->setName("cube1");
     cube->setShader("simpleRedShader");
-    //cube->setAsGround(true);
+    cube->setAsGround(true);
     //Apply the collision engine to the object
     cube->enableCollision();
     cube->setMass(1.0);
     
     cube2=new Town();
-    cube2->init("Cube",1.5,4.0,0.5);
+    cube2->init("Cube",0.0,4.0,0.5);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    //cube2->rotateBy(80.0,20.0,-60.0);
+    //cube2->rotateBy(80.0,0.0,-60.0);
     cube2->setMass(1.0);
     cube2->setCoefficientOfRestitution(0.5);
     cube2->applyPhysics(true);
@@ -93,7 +93,7 @@ void Earth::init(){
     
     addChild(cube);
     addChild(cube2);
-    addChild(cube3);
+    //addChild(cube3);
     //addChild(cube4);
     /*
     

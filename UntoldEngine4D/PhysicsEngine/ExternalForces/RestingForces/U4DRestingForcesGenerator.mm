@@ -68,7 +68,7 @@ namespace U4DEngine {
         
         //calculate torque
         U4DVector3n torque(0.0,0.0,0.0);
-        std::cout<<contactManifold.size()<<std::endl;
+        
         for(auto n:contactManifold){
             
             //get the radius from the contact manifold to the center of mass
@@ -84,7 +84,7 @@ namespace U4DEngine {
         }
         
         uModel->addMoment(torque);
-        torque.show("torque");
+       
     }
     
 }

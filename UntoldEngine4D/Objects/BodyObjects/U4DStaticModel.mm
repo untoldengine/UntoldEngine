@@ -231,6 +231,14 @@ namespace U4DEngine {
         //test if the bounding volume object was previously created
         if(convexHullBoundingVolume==nullptr && sphereBoundingVolume==nullptr){
             
+            //Get body dimensions
+            float xDimension=bodyCoordinates.getModelDimension().x/2.0;
+            float yDimension=bodyCoordinates.getModelDimension().y/2.0;
+            float zDimension=bodyCoordinates.getModelDimension().z/2.0;
+            
+            //set inertia tensor
+            setInertiaTensor(xDimension, yDimension, zDimension);
+            
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();
 
@@ -241,10 +249,6 @@ namespace U4DEngine {
                 
                 //create a AABB bounding volume
                 sphereBoundingVolume=new U4DBoundingAABB();
-                
-                float xDimension=bodyCoordinates.getModelDimension().x/2.0;
-                float yDimension=bodyCoordinates.getModelDimension().y/2.0;
-                float zDimension=bodyCoordinates.getModelDimension().z/2.0;
                 
                 //get min and max points to create the AABB
                 U4DPoint3n minPoints(-xDimension,-yDimension,-zDimension);
