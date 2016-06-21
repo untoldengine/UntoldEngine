@@ -76,7 +76,7 @@ namespace U4DEngine {
             U4DVector3n vpModel2=uModel2->getVelocity()+(uModel2->getAngularVelocity().cross(radiusOfModel2));
             
             U4DVector3n vR=vpModel2-vpModel1;
-            vR.show("VR");
+            
             /*
              
              See page 115 in Physics for game developers
@@ -156,7 +156,7 @@ namespace U4DEngine {
             uModel1->setVelocity(newLinearVelocityOfModel1);
             
             uModel1->setAngularVelocity(newAngularVelocityOfModel1);
-            newAngularVelocityOfModel1.show("angular velocity-collision response");
+            
         }
         
         

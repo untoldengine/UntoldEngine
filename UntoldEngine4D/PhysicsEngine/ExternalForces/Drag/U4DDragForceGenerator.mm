@@ -10,7 +10,7 @@
 
 namespace U4DEngine {
     
-    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.10),k2(0.15){
+    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.9),k2(0.7){
     
     }
     
@@ -45,7 +45,7 @@ namespace U4DEngine {
         
         moment.normalize();
         moment*=-momentDragCoeff;
-        
+        moment.show("moment due to drag");
         uModel->addMoment(moment);
         
     }
