@@ -39,14 +39,14 @@ namespace U4DEngine {
         //CALCULATE ANGULAR POSITION
         
         U4DVector3n moment=uModel->getMoment();
-        moment.show("moment");
+        
         U4DMatrix3n momentOfInertiaTensor=uModel->getMomentOfInertiaTensor();
         U4DMatrix3n inverseMomentOfInertia=uModel->getInverseMomentOfInertiaTensor();
         
         //get the angular acceleration
         U4DVector3n angularAcceleration=inverseMomentOfInertia*(moment-(uModel->getAngularVelocity().cross(momentOfInertiaTensor*uModel->getAngularVelocity())));
         
-        angularAcceleration.show("angular acceleration");
+        
         
         //get the new angular velocity and new orientation
         evaluateAngularAspect(uModel, angularAcceleration, dt, angularVelocityNew, orientationNew);
@@ -71,9 +71,10 @@ namespace U4DEngine {
         
         uModel->setLocalSpacePosition(d);
 
+        angularVelocityNew=angularVelocityNew-angularVelocityNew*0.50;
         //set the new angular velocity
         uModel->setAngularVelocity(angularVelocityNew);
-        angularVelocityNew.show("angular velocity-runge");
+        
     }
 
     void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicModel *uModel,U4DVector3n &uLinearAcceleration,float dt,U4DVector3n &uVnew,U4DVector3n &uSnew){
