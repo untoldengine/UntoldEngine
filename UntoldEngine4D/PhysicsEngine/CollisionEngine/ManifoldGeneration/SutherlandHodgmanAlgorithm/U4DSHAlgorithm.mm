@@ -214,7 +214,7 @@ namespace U4DEngine {
             //return segment
             U4DVector3n pointA=segments.at(distanceIndex).pointA.toVector();
             U4DVector3n pointB=segments.at(distanceIndex).pointB.toVector();
-           
+            
             uModel1->addCollisionContactPoint(pointA);
             uModel1->addCollisionContactPoint(pointB);
             

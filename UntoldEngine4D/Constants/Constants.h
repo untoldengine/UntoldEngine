@@ -20,8 +20,8 @@ namespace U4DEngine {
     const float barycentricEpsilon=1.0;
     const float timeStep=0.01;
     const float zeroEpsilon=1.0e-4f;
-    const float closestDistanceToSimplexEpsilon=0.3;  //epsilon for closest point to simplex
     const float impulseCollisionMinimum=0.0; //sets the minimum impulse allowed between collisions
+    const float AABBVolumePaddingForGround=5.0; //Ground Padding for the AABB volume
 }
 
 #define DegreesToRad(angle) angle*M_PI/180
