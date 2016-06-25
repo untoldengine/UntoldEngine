@@ -262,7 +262,8 @@ namespace U4DEngine {
                 //create sphere bounding volume
                 sphereBoundingVolume=new U4DBoundingSphere();
                 
-                float dimension=sqrt(bodyCoordinates.getModelDimension().x);
+                //set the radius for the sphere bounding volume
+                float dimension=bodyCoordinates.getModelDimension().x;
                 
                 //calculate the sphere
                 sphereBoundingVolume->computeBoundingVolume(dimension, 10, 10);

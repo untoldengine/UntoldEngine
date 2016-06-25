@@ -33,6 +33,8 @@ namespace U4DEngine {
         bool isDuplicate;
         U4DVector3n normal;
         bool isReference;
+        float dotProduct;
+        float distance;
         
     }CONTACTEDGE;
     
