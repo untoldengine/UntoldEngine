@@ -70,6 +70,8 @@ namespace U4DEngine {
                         return false;
                     }
                     
+                    std::cout<<"TClip: "<<tClip<<std::endl;
+                    
                     hitSpot=relativeCSOTranslation*tClip;
                     
                     closestPointToOrigin=v.minkowskiPoint;

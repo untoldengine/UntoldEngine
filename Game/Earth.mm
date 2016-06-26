@@ -45,7 +45,7 @@ void Earth::init(){
     enableGrid(true);
     
     U4DEngine::U4DVector3n gravity(0,-5.0,0);
-    setGravity(gravity);
+    //setGravity(gravity);
     
     //create our object
     cube=new Town();
@@ -58,10 +58,10 @@ void Earth::init(){
     cube->setMass(1.0);
     
     cube2=new Town();
-    cube2->init("Cube",3.0,5.0,2.0);
+    cube2->init("Cube",-2.0,5.0,2.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(0.0,0.0,50.0);
+    cube2->rotateBy(60.0,0.0,0.0);
     cube2->setMass(1.0);
     //cube2->setCoefficientOfRestitution(0.8);
     cube2->applyPhysics(true);

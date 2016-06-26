@@ -34,7 +34,7 @@ namespace U4DEngine {
         
         float direction=collisionPlane.magnitudeSquareOfPointToPlane(position);
         
-        if (direction<U4DEngine::zeroEpsilon) {
+        if (direction>-U4DEngine::zeroEpsilon && direction<U4DEngine::zeroEpsilon) {
             
             uModel1->setCollisionNormalFaceDirection(uContactCollisionNormal);
             
@@ -224,6 +224,9 @@ namespace U4DEngine {
             //return segment
             U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
             U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
+            
+            std::cout<<"Segmnet"<<std::endl;
+            incidentSegments.at(distanceIndex).segment.show();
             
             uModel1->addCollisionContactPoint(pointA);
             uModel1->addCollisionContactPoint(pointB);
