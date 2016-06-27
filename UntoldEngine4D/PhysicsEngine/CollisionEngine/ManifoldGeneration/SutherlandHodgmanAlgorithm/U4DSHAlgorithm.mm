@@ -24,17 +24,38 @@ namespace U4DEngine {
     
     void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPoint, U4DVector3n& uContactCollisionNormal){
     
+        POINTINFORMATION pointInformation;
         
         U4DVector3n negateContactNormal=uContactCollisionNormal*-1.0;
         
         U4DPlane collisionPlane(uContactCollisionNormal,uClosestPoint);
         
         //test if the model is within the plane and set the normal accordingly
-        U4DPoint3n position=uModel1->getAbsolutePosition().toPoint();
+        pointInformation.point=uModel1->getAbsolutePosition().toPoint();
         
-        float direction=collisionPlane.magnitudeSquareOfPointToPlane(position);
+        float direction=collisionPlane.magnitudeSquareOfPointToPlane(pointInformation.point);
         
-        if (direction<U4DEngine::zeroEpsilon) {
+        
+        if (direction>U4DEngine::zeroEpsilon) {
+            
+            pointInformation.location=insidePlane;
+            
+        }else{
+            
+            if (direction<-U4DEngine::zeroEpsilon) {
+                
+                pointInformation.location=outsidePlane;
+                
+            }else{
+                
+                pointInformation.location=boundaryPlane;
+                
+            }
+            
+        }
+        
+        
+        if (pointInformation.location==boundaryPlane) {
             
             uModel1->setCollisionNormalFaceDirection(uContactCollisionNormal);
             
@@ -163,33 +184,43 @@ namespace U4DEngine {
         if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
             //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
             
+            //load all segments into a contact edge vector
+            std::vector<CONTACTEDGE> incidentSegments;
+            
+            for(int i=0;i<segments.size();i++){
+                
+                CONTACTEDGE incidentSegment;
+                incidentSegment.segment=segments.at(i);
+                
+                incidentSegments.push_back(incidentSegment);
+                
+            }
             
             //find the most parallel segment relative to the intersection vector
             float segmentParallelToVector=-FLT_MIN;
             float segmentDotVector=0.0;
             
-            std::vector<U4DSegment> tempSegments;
-            
             intersectionVector.normalize();
             
-            for(int i=0; i<segments.size();i++){
+            for(int i=0; i<incidentSegments.size();i++){
                 
-                U4DVector3n segmentVector=segments.at(i).pointA-segments.at(i).pointB;
+                U4DVector3n segmentVector=incidentSegments.at(i).segment.pointA-incidentSegments.at(i).segment.pointB;
+                
                 segmentVector.normalize();
                 
                 segmentDotVector=fabs(segmentVector.dot(intersectionVector));
                 
+                //get the most parallel value from the dot product
                 if (segmentDotVector>=segmentParallelToVector) {
                     segmentParallelToVector=segmentDotVector;
-                    tempSegments.push_back(segments.at(i));
+                    incidentSegments.at(i).dotProduct=segmentDotVector;
                 }
                 
             }
             
-            if (tempSegments.size()>0) {
-                segments.clear();
-                segments=tempSegments;
-            }
+            
+            //remove all segment with dot product not equal to most parallel segment to intersection vector
+            incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
             
             //find the smallest distance between intersection and segments
@@ -197,9 +228,9 @@ namespace U4DEngine {
             float distanceToSegment=0.0;
             float distanceIndex=0;
           
-            for(int i=0;i<segments.size();i++){
+            for(int i=0;i<incidentSegments.size();i++){
                 
-                distanceToSegment=segments.at(i).sqDistancePointSegment(intersectionPoint);
+                distanceToSegment=incidentSegments.at(i).segment.sqDistancePointSegment(intersectionPoint);
                 
                 if (distanceToSegment<minimumDistanceToSegment) {
                     
@@ -212,9 +243,9 @@ namespace U4DEngine {
             
             
             //return segment
-            U4DVector3n pointA=segments.at(distanceIndex).pointA.toVector();
-            U4DVector3n pointB=segments.at(distanceIndex).pointB.toVector();
-           
+            U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
+            U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
+
             uModel1->addCollisionContactPoint(pointA);
             uModel1->addCollisionContactPoint(pointB);
             
