@@ -24,17 +24,38 @@ namespace U4DEngine {
     
     void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPoint, U4DVector3n& uContactCollisionNormal){
     
+        POINTINFORMATION pointInformation;
         
         U4DVector3n negateContactNormal=uContactCollisionNormal*-1.0;
         
         U4DPlane collisionPlane(uContactCollisionNormal,uClosestPoint);
         
         //test if the model is within the plane and set the normal accordingly
-        U4DPoint3n position=uModel1->getAbsolutePosition().toPoint();
+        pointInformation.point=uModel1->getAbsolutePosition().toPoint();
         
-        float direction=collisionPlane.magnitudeSquareOfPointToPlane(position);
+        float direction=collisionPlane.magnitudeSquareOfPointToPlane(pointInformation.point);
         
-        if (direction>-U4DEngine::zeroEpsilon && direction<U4DEngine::zeroEpsilon) {
+        
+        if (direction>U4DEngine::zeroEpsilon) {
+            
+            pointInformation.location=insidePlane;
+            
+        }else{
+            
+            if (direction<-U4DEngine::zeroEpsilon) {
+                
+                pointInformation.location=outsidePlane;
+                
+            }else{
+                
+                pointInformation.location=boundaryPlane;
+                
+            }
+            
+        }
+        
+        
+        if (pointInformation.location==boundaryPlane) {
             
             uModel1->setCollisionNormalFaceDirection(uContactCollisionNormal);
             
@@ -180,7 +201,7 @@ namespace U4DEngine {
             float segmentDotVector=0.0;
             
             intersectionVector.normalize();
-            intersectionVector.show("Intersect Vector");
+            
             for(int i=0; i<incidentSegments.size();i++){
                 
                 U4DVector3n segmentVector=incidentSegments.at(i).segment.pointA-incidentSegments.at(i).segment.pointB;
@@ -224,10 +245,7 @@ namespace U4DEngine {
             //return segment
             U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
             U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
-            
-            std::cout<<"Segmnet"<<std::endl;
-            incidentSegments.at(distanceIndex).segment.show();
-            
+
             uModel1->addCollisionContactPoint(pointA);
             uModel1->addCollisionContactPoint(pointB);
             
