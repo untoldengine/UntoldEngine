@@ -50,7 +50,7 @@ void Earth::init(){
     //create our object
     cube=new Town();
     cube->init("GroundFloor",0.0,0.0,0.0);
-    cube->setName("cube1");
+    cube->setName("ground");
     cube->setShader("simpleRedShader");
     cube->setAsGround(true);
     //Apply the collision engine to the object
