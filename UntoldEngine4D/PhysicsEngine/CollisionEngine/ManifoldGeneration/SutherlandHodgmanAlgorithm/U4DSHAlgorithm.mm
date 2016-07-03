@@ -33,35 +33,38 @@ namespace U4DEngine {
         //test if the model is within the plane and set the normal accordingly
         pointInformation.point=uModel1->getAbsolutePosition().toPoint();
         
+        std::cout<<uModel1->getName()<<std::endl;
+        uContactCollisionNormal.show("collision normal");
+        
         float direction=collisionPlane.magnitudeSquareOfPointToPlane(pointInformation.point);
         
         
         if (direction>U4DEngine::zeroEpsilon) {
             
             pointInformation.location=insidePlane;
-            
+            std::cout<<"Inside"<<std::endl;
         }else{
             
             if (direction<-U4DEngine::zeroEpsilon) {
                 
                 pointInformation.location=outsidePlane;
-                
+                std::cout<<"Outside"<<std::endl;
             }else{
                 
                 pointInformation.location=boundaryPlane;
-                
+                std::cout<<"Boundary"<<std::endl;
             }
             
         }
         
-        
-        if (pointInformation.location==boundaryPlane) {
+       
+        if (pointInformation.location==outsidePlane) {
             
             uModel1->setCollisionNormalFaceDirection(uContactCollisionNormal);
             
             uModel2->setCollisionNormalFaceDirection(negateContactNormal);
             
-        }else{
+        }else if(pointInformation.location==insidePlane || pointInformation.location==boundaryPlane){
             
             uModel2->setCollisionNormalFaceDirection(uContactCollisionNormal);
             
@@ -175,7 +178,6 @@ namespace U4DEngine {
         U4DPlane incidentFacePlane(incidentFace.pointA,incidentFace.pointB,incidentFace.pointC);
         U4DPlane referenceFacePlane(referenceFace.pointA,referenceFace.pointB,referenceFace.pointC);
         
-        
         //check if both planes intersect
         U4DVector3n intersectionVector;
         U4DPoint3n intersectionPoint;
@@ -241,23 +243,26 @@ namespace U4DEngine {
                 
             }
             
-            
-            //return segment
-            U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
-            U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
-
-            uModel1->addCollisionContactPoint(pointA);
-            uModel1->addCollisionContactPoint(pointB);
-            
-            uModel2->addCollisionContactPoint(pointA);
-            uModel2->addCollisionContactPoint(pointB);
-
-            //set both models equilibrium
-            
-            uModel1->setEquilibrium(false);
-            uModel2->setEquilibrium(false);
-            
-            return true;
+            if (minimumDistanceToSegment<1.0) {
+                
+                //return segment
+                U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
+                U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
+                
+                uModel1->addCollisionContactPoint(pointA);
+                uModel1->addCollisionContactPoint(pointB);
+                
+                uModel2->addCollisionContactPoint(pointA);
+                uModel2->addCollisionContactPoint(pointB);
+                
+                //set both models equilibrium
+                
+                uModel1->setEquilibrium(false);
+                uModel2->setEquilibrium(false);
+                
+                return true;
+                
+            }
             
         }
         

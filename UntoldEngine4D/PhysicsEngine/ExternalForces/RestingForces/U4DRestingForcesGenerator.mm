@@ -27,7 +27,7 @@ namespace U4DEngine {
             
         }else{
             //generateNormalForce(uModel, uGravity);
-            generateTorqueForce(uModel, uGravity);
+            //generateTorqueForce(uModel, uGravity);
             
         }
         

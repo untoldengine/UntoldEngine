@@ -71,8 +71,6 @@ namespace U4DEngine {
         
         uModel->setLocalSpacePosition(d);
 
-        //angularVelocityNew=angularVelocityNew-angularVelocityNew*0.50;
-        
         //set the new angular velocity
         uModel->setAngularVelocity(angularVelocityNew);
         

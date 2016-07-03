@@ -66,14 +66,19 @@ namespace U4DEngine {
             sumOfAllRadiusesOfModel1+=radiusOfModel1;
             sumOfAllRadiusesOfModel2+=radiusOfModel2;
             
+        }
+        
+        sumOfAllRadiusesOfModel1/=contactManifold.size();
+        sumOfAllRadiusesOfModel2/=contactManifold.size();
+        
             //get the velocity model
             /*
              r=contact point
              vp=v+(wxr)
              */
             
-            U4DVector3n vpModel1=uModel1->getVelocity()+(uModel1->getAngularVelocity().cross(radiusOfModel1));
-            U4DVector3n vpModel2=uModel2->getVelocity()+(uModel2->getAngularVelocity().cross(radiusOfModel2));
+            U4DVector3n vpModel1=uModel1->getVelocity()+(uModel1->getAngularVelocity().cross(sumOfAllRadiusesOfModel1));
+            U4DVector3n vpModel2=uModel2->getVelocity()+(uModel2->getAngularVelocity().cross(sumOfAllRadiusesOfModel2));
             
             U4DVector3n vR=vpModel2-vpModel1;
             
@@ -85,14 +90,14 @@ namespace U4DEngine {
              
              */
             
-            U4DVector3n angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
+            U4DVector3n angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(sumOfAllRadiusesOfModel1.cross(normalCollisionVector)).cross(sumOfAllRadiusesOfModel1);
             
-            U4DVector3n angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
+            U4DVector3n angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(sumOfAllRadiusesOfModel2.cross(normalCollisionVector)).cross(sumOfAllRadiusesOfModel2);
             
             float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
             //The coefficient of restitution is multiplied by 10 to provide enouch impulse to create a bouncing effect
-            float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution()*10.0;
+            float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution()*1.0;
             
             float j=MAX(-1*(vR.dot(normalCollisionVector))*(coefficientOfRestitution+1.0)/(totalInverseMasses+totalAngularEffect),U4DEngine::impulseCollisionMinimum);
             
@@ -112,11 +117,10 @@ namespace U4DEngine {
              */
             
             
-            angularImpulseFactorOfModel1+=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector*j));
+            angularImpulseFactorOfModel1+=uModel1->getInverseMomentOfInertiaTensor()*(sumOfAllRadiusesOfModel1.cross(normalCollisionVector*j));
             
-            angularImpulseFactorOfModel2+=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector*j));
-            
-        }
+            angularImpulseFactorOfModel2+=uModel2->getInverseMomentOfInertiaTensor()*(sumOfAllRadiusesOfModel2.cross(normalCollisionVector*j));
+    
         
         //Add the new velocity to the previous velocity
         /*
@@ -155,7 +159,7 @@ namespace U4DEngine {
             
             uModel1->setVelocity(newLinearVelocityOfModel1);
             
-            uModel1->setAngularVelocity(newAngularVelocityOfModel1);
+            //uModel1->setAngularVelocity(newAngularVelocityOfModel1);
             
         }
         
