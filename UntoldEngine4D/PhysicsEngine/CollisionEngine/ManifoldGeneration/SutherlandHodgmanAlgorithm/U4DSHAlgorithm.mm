@@ -33,6 +33,7 @@ namespace U4DEngine {
         //test if the model is within the plane and set the normal accordingly
         pointInformation.point=uModel1->getAbsolutePosition().toPoint();
         
+        
         float direction=collisionPlane.magnitudeSquareOfPointToPlane(pointInformation.point);
         
         
@@ -54,14 +55,14 @@ namespace U4DEngine {
             
         }
         
-        
-        if (pointInformation.location==boundaryPlane) {
+       
+        if (pointInformation.location==outsidePlane) {
             
             uModel1->setCollisionNormalFaceDirection(uContactCollisionNormal);
             
             uModel2->setCollisionNormalFaceDirection(negateContactNormal);
             
-        }else{
+        }else if(pointInformation.location==insidePlane || pointInformation.location==boundaryPlane){
             
             uModel2->setCollisionNormalFaceDirection(uContactCollisionNormal);
             
@@ -175,7 +176,6 @@ namespace U4DEngine {
         U4DPlane incidentFacePlane(incidentFace.pointA,incidentFace.pointB,incidentFace.pointC);
         U4DPlane referenceFacePlane(referenceFace.pointA,referenceFace.pointB,referenceFace.pointC);
         
-        
         //check if both planes intersect
         U4DVector3n intersectionVector;
         U4DPoint3n intersectionPoint;
@@ -222,6 +222,9 @@ namespace U4DEngine {
             //remove all segment with dot product not equal to most parallel segment to intersection vector
             incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
+            if (incidentSegments.size()<=1.0) {
+                return false;
+            }
             
             //find the smallest distance between intersection and segments
             float minimumDistanceToSegment=FLT_MAX;
@@ -241,23 +244,26 @@ namespace U4DEngine {
                 
             }
             
-            
-            //return segment
-            U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
-            U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
-
-            uModel1->addCollisionContactPoint(pointA);
-            uModel1->addCollisionContactPoint(pointB);
-            
-            uModel2->addCollisionContactPoint(pointA);
-            uModel2->addCollisionContactPoint(pointB);
-
-            //set both models equilibrium
-            
-            uModel1->setEquilibrium(false);
-            uModel2->setEquilibrium(false);
-            
-            return true;
+            if (minimumDistanceToSegment<1.0) {
+                
+                //return segment
+                U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
+                U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
+                
+                uModel1->addCollisionContactPoint(pointA);
+                uModel1->addCollisionContactPoint(pointB);
+                
+                uModel2->addCollisionContactPoint(pointA);
+                uModel2->addCollisionContactPoint(pointB);
+                
+                //set both models equilibrium
+                
+                uModel1->setEquilibrium(false);
+                uModel2->setEquilibrium(false);
+                
+                return true;
+                
+            }
             
         }
         

@@ -37,7 +37,7 @@ void Earth::init(){
     
     //U4DDebugger *debugger=new U4DDebugger();
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->translateBy(0.0, -2.0, -9.0);
+    camera->translateBy(0.0, -2.0, -12.0);
     //camera->rotateBy(10.0,-15.0,0.0);
     
     setName("earth");
@@ -50,7 +50,7 @@ void Earth::init(){
     //create our object
     cube=new Town();
     cube->init("GroundFloor",0.0,0.0,0.0);
-    cube->setName("cube1");
+    cube->setName("ground");
     cube->setShader("simpleRedShader");
     cube->setAsGround(true);
     //Apply the collision engine to the object
@@ -58,18 +58,20 @@ void Earth::init(){
     cube->setMass(1.0);
     
     cube2=new Town();
-    cube2->init("Cube",0.5,7.0,0.0);
+    cube2->init("Cube",0.0,3.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(20.0,30.0,10.0);
+    //cube2->rotateBy(0.0,0.0,10);
     cube2->setMass(1.0);
     //cube2->setCoefficientOfRestitution(0.8);
     cube2->applyPhysics(true);
 
     cube2->enableCollision();
     
+    //cube2->setBroadPhaseBoundingVolumeVisibility(true);
+    
     cube3=new Town();
-    cube3->init("Cube",2.0,4.0,0.0);
+    cube3->init("Cube",1.7,5.0,0.0);
     cube3->setShader("simpleShader");
     cube3->setName("cube3");
     cube3->setMass(1.0);
@@ -78,7 +80,7 @@ void Earth::init(){
     cube3->enableCollision();
     
     cube4=new Town();
-    cube4->init("Cube",-2.0,6.0,2.0);
+    cube4->init("Cube",-3.0,6.0,2.0);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
     //cube4->rotateBy(40.0, 50.0, 20.0);
@@ -92,7 +94,7 @@ void Earth::init(){
     addChild(cube);
     addChild(cube2);
     //addChild(cube3);
-    //addChild(cube4);
+    addChild(cube4);
     /*
     
     // ADD Gravity

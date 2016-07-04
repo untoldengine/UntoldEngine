@@ -22,6 +22,8 @@ namespace U4DEngine {
         
         n=(uPoint1-uPoint2).cross(uPoint1-uPoint3);
         
+        n.normalize();
+        
         d=n.dot(uPoint1.toVector());
         
     }

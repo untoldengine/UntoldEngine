@@ -10,7 +10,7 @@
 
 namespace U4DEngine {
     
-    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.05),k2(0.9){
+    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.9),k2(0.9){
     
     }
     
@@ -20,33 +20,38 @@ namespace U4DEngine {
     
     void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
 
-        U4DVector3n velocity;
+        U4DVector3n linearDrag;
         float dragCoeff;
         
-        velocity=uModel->getVelocity();
-        dragCoeff=velocity.magnitude();
+        linearDrag=uModel->getVelocity();
+        dragCoeff=linearDrag.magnitude();
         
         dragCoeff=k1*dragCoeff+k2*dragCoeff*dragCoeff;
         
         //calculate the final force and apply it
-        velocity.normalize();
-        velocity*=-dragCoeff;
+        linearDrag.normalize();
+        linearDrag*=-dragCoeff;
         
-        uModel->addForce(velocity);
+        uModel->addForce(linearDrag);
         
         //moment
-        U4DVector3n moment;
+        U4DVector3n angularDrag;
         float momentDragCoeff;
         
-        moment=uModel->getAngularVelocity();
-        momentDragCoeff=moment.magnitude();
+        angularDrag=uModel->getAngularVelocity();
+        momentDragCoeff=angularDrag.magnitude();
+          
+        if (momentDragCoeff>10000) {
+     
+            std::cout<<"Moment went insane"<<std::endl;
+        
+        }
         
         momentDragCoeff=k1*momentDragCoeff+k2*momentDragCoeff*momentDragCoeff;
         
-        moment.normalize();
-        moment*=-momentDragCoeff;
-        
-        uModel->addMoment(moment);
+        angularDrag.normalize();
+        angularDrag*=-momentDragCoeff;
+        uModel->addMoment(angularDrag);
         
     }
 

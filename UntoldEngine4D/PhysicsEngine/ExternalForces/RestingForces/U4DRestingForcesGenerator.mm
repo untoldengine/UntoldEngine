@@ -26,6 +26,7 @@ namespace U4DEngine {
             generateNormalForce(uModel, uGravity);
             
         }else{
+            
             //generateNormalForce(uModel, uGravity);
             generateTorqueForce(uModel, uGravity);
             
@@ -50,7 +51,7 @@ namespace U4DEngine {
         float angle=uGravity.angle(contactCollisionNormal);
         
         normalForce=uGravity*mass*cos(angle)*-1.0;
-
+        
         uModel->addForce(normalForce);
         
     }

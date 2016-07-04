@@ -58,10 +58,14 @@ namespace U4DEngine {
         float inverseMassOfModel2=1.0/uModel2->getMass();
         float totalInverseMasses=inverseMassOfModel1+inverseMassOfModel2;
         
+        std::cout<<"size: "<<contactManifold.size()<<std::endl;
+        
         for(auto n:contactManifold){
             
             U4DVector3n radiusOfModel1=n-centerOfMassForModel1;
             U4DVector3n radiusOfModel2=n-centerOfMassForModel2;
+            
+            std::cout<<radiusOfModel1.magnitude()<<std::endl;
             
             sumOfAllRadiusesOfModel1+=radiusOfModel1;
             sumOfAllRadiusesOfModel2+=radiusOfModel2;
@@ -112,12 +116,11 @@ namespace U4DEngine {
              */
             
             
-            angularImpulseFactorOfModel1+=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector*j));
+            angularImpulseFactorOfModel1+=uModel1->getInverseMomentOfInertiaTensor()*(sumOfAllRadiusesOfModel1.cross(normalCollisionVector*j));
             
-            angularImpulseFactorOfModel2+=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector*j));
-            
+            angularImpulseFactorOfModel2+=uModel2->getInverseMomentOfInertiaTensor()*(sumOfAllRadiusesOfModel2.cross(normalCollisionVector*j));
+    
         }
-        
         //Add the new velocity to the previous velocity
         /*
          
@@ -127,6 +130,9 @@ namespace U4DEngine {
         U4DVector3n newLinearVelocityOfModel1=uModel1->getVelocity()-linearImpulseFactorOfModel1;
         U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
         
+//        newLinearVelocityOfModel1/=contactManifold.size();
+//        newLinearVelocityOfModel2/=contactManifold.size();
+//        
         //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
         if (uModel1->getEquilibrium()) {
@@ -149,6 +155,9 @@ namespace U4DEngine {
         U4DVector3n newAngularVelocityOfModel1=uModel1->getAngularVelocity()-angularImpulseFactorOfModel1;
         U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
         
+        
+        newAngularVelocityOfModel1/=contactManifold.size();
+        newAngularVelocityOfModel2/=contactManifold.size();
         //Set the new linear and angular velocities for the models
         
         if (uModel1->isPhysicsApplied()) {

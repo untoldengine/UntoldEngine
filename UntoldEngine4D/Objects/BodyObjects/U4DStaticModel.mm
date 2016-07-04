@@ -263,7 +263,7 @@ namespace U4DEngine {
                 sphereBoundingVolume=new U4DBoundingSphere();
                 
                 //set the radius for the sphere bounding volume
-                float dimension=std::sqrt(bodyCoordinates.getModelDimension().x);
+                float dimension=bodyCoordinates.getModelDimension().x;
                 
                 //calculate the sphere
                 sphereBoundingVolume->computeBoundingVolume(dimension, 10, 10);

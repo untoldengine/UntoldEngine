@@ -111,6 +111,7 @@ namespace U4DEngine {
         
         boundaryVolumeHierarchyManager->clearContainers();
         collisionPairs.clear();
+        
     }
 
 }

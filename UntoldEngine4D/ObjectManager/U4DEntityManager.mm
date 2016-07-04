@@ -189,8 +189,8 @@ namespace U4DEngine {
             
             child=child->next;
         }
-       
-    
+        
+        
         //update the positions
         child=rootEntity;
         
@@ -200,6 +200,32 @@ namespace U4DEngine {
             
             child=child->next;
         }
+        
+        //clean everything up
+        child=rootEntity;
+        while (child!=NULL) {
+            
+            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+            
+            if (model) {
+                
+                //reset any collision information
+                model->resetCollisionInformation();
+                
+                //reset time of impact
+                model->resetTimeOfImpact();
+                
+                //reset equilibrium
+                model->setEquilibrium(false);
+                
+                //set as non-collided
+                model->setModelHasCollided(false);
+                
+            }
+            
+            child=child->next;
+        }
+        
         
     }
     
