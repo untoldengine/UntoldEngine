@@ -34,6 +34,12 @@ public:
     
     void translateTo(float x,float y, float z);
     
+    void translateTo(U4DVector2n &translation);
+    
+    void translateBy(U4DVector3n& translation);
+    
+    void translateBy(float x,float y, float z);
+    
     void rotateTo(U4DQuaternion& rotation);
     
     void rotateTo(U4DMatrix3n& uRotationMatrix);
@@ -47,10 +53,6 @@ public:
     void rotateTo(float angleX, float angleY, float angleZ);
     
     void rotateBy(float angleX, float angleY, float angleZ);
-    
-    void translateTo(U4DVector2n &translation);
-    
-    void translateBy(float x,float y, float z);
     
     void rotateAboutAxis(float angle, U4DVector3n& axisOrientation, U4DVector3n& axisPosition);
     
