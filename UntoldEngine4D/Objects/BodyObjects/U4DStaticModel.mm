@@ -232,12 +232,16 @@ namespace U4DEngine {
         if(convexHullBoundingVolume==nullptr && sphereBoundingVolume==nullptr){
             
             //Get body dimensions
-            float xDimension=bodyCoordinates.getModelDimension().x/2.0;
-            float yDimension=bodyCoordinates.getModelDimension().y/2.0;
-            float zDimension=bodyCoordinates.getModelDimension().z/2.0;
+            float xDimension=bodyCoordinates.getModelDimension().x;
+            float yDimension=bodyCoordinates.getModelDimension().y;
+            float zDimension=bodyCoordinates.getModelDimension().z;
+            
+            //set model longest dimension
+            float longestModelDimension=MAX(xDimension, yDimension);
+            longestModelDimension=MAX(longestModelDimension, zDimension);
             
             //set inertia tensor
-            setInertiaTensor(xDimension, yDimension, zDimension);
+            setInertiaTensor(xDimension/2.0, yDimension/2.0, zDimension/2.0);
             
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();
@@ -263,10 +267,10 @@ namespace U4DEngine {
                 sphereBoundingVolume=new U4DBoundingSphere();
                 
                 //set the radius for the sphere bounding volume
-                float dimension=bodyCoordinates.getModelDimension().x;
+                float radius=longestModelDimension;
                 
                 //calculate the sphere
-                sphereBoundingVolume->computeBoundingVolume(dimension, 10, 10);
+                sphereBoundingVolume->computeBoundingVolume(radius, 10, 10);
             }
             
             //enable collision
