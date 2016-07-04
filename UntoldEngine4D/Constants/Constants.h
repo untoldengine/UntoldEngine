@@ -21,7 +21,7 @@ namespace U4DEngine {
     const float timeStep=0.01;
     const float zeroEpsilon=1.0e-4f;
     const float impulseCollisionMinimum=0.0; //sets the minimum impulse allowed between collisions
-    
+    const float rungaKuttaCorrectionCoefficient=0.7;
 }
 
 #define DegreesToRad(angle) angle*M_PI/180

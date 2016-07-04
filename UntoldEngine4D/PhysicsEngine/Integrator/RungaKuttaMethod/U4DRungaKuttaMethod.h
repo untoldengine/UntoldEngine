@@ -12,8 +12,6 @@
 #include <iostream>
 #include "U4DIntegrator.h"
 
-#define rungaKuttaCorrectionCoefficient 0.7
-
 namespace U4DEngine {
     
 class U4DRungaKuttaMethod:public U4DIntegrator{
