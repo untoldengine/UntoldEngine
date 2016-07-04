@@ -51,9 +51,9 @@ namespace U4DEngine {
         aabb.minPoint=uMin;
         aabb.maxPoint=uMax;
         
-        float width=(std::abs(uMax.x-uMin.x))/2;
-        float height=(std::abs(uMax.y-uMin.y))/2;
-        float depth=(std::abs(uMax.z-uMin.z))/2;
+        float width=(std::abs(uMax.x-uMin.x))/2.0;
+        float depth=(std::abs(uMax.y-uMin.y))/2.0;
+        float height=(std::abs(uMax.z-uMin.z))/2.0;
         
         U4DVector3n v1(width,height,depth);
         U4DVector3n v2(width,height,-depth);

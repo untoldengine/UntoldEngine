@@ -58,17 +58,15 @@ void Earth::init(){
     cube->setMass(1.0);
     
     cube2=new Town();
-    cube2->init("Cube",0.0,3.0,0.0);
+    cube2->init("Cube",0.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    //cube2->rotateBy(0.0,0.0,10);
+    cube2->rotateBy(0.0,0.0,20);
     cube2->setMass(1.0);
-    //cube2->setCoefficientOfRestitution(0.8);
+    cube2->setCoefficientOfRestitution(0.9);
     cube2->applyPhysics(true);
 
     cube2->enableCollision();
-    
-    //cube2->setBroadPhaseBoundingVolumeVisibility(true);
     
     cube3=new Town();
     cube3->init("Cube",1.7,5.0,0.0);
@@ -94,7 +92,7 @@ void Earth::init(){
     addChild(cube);
     addChild(cube2);
     //addChild(cube3);
-    addChild(cube4);
+    //addChild(cube4);
     /*
     
     // ADD Gravity
