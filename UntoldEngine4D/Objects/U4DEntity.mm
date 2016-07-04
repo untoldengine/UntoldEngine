@@ -255,6 +255,18 @@ namespace U4DEngine {
     void U4DEntity::translateTo(float x,float y, float z){
         transformation->translateTo(x,y,z);
     }
+    
+    void U4DEntity::translateTo(U4DVector2n &translation){
+        transformation->translateTo(translation);
+    }
+    
+    void U4DEntity::translateBy(float x,float y, float z){
+        transformation->translateBy(x, y, z);
+    }
+    
+    void U4DEntity::translateBy(U4DVector3n& translation){
+        transformation->translateBy(translation);
+    }
 
     void U4DEntity::rotateTo(U4DQuaternion& rotation){
         transformation->rotateTo(rotation);
@@ -280,14 +292,6 @@ namespace U4DEngine {
     void U4DEntity::rotateBy(float angleX, float angleY, float angleZ){
         
         transformation->rotateBy(angleX,angleY,angleZ);
-    }
-
-    void U4DEntity::translateTo(U4DVector2n &translation){
-        transformation->translateTo(translation);
-    }
-
-    void U4DEntity::translateBy(float x,float y, float z){
-        transformation->translateBy(x, y, z);
     }
 
     void U4DEntity::rotateAboutAxis(float angle, U4DVector3n& axisOrientation, U4DVector3n& axisPosition){
