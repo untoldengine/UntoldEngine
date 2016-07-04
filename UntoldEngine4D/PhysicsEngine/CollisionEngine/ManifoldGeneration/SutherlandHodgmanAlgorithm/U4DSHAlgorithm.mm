@@ -267,6 +267,10 @@ namespace U4DEngine {
             
         }
         
+        //if container is empty, then return
+        if (segments.size()<=1) {
+            return false;
+        }
         
         //If there is no plane intersection, then return all points
         
