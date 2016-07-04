@@ -222,6 +222,9 @@ namespace U4DEngine {
             //remove all segment with dot product not equal to most parallel segment to intersection vector
             incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
+            if (incidentSegments.size()<=1.0) {
+                return false;
+            }
             
             //find the smallest distance between intersection and segments
             float minimumDistanceToSegment=FLT_MAX;

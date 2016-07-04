@@ -10,7 +10,7 @@
 
 namespace U4DEngine {
     
-    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.05),k2(0.9){
+    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.9),k2(0.9){
     
     }
     

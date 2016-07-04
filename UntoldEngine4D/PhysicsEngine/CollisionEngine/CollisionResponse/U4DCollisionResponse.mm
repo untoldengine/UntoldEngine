@@ -130,9 +130,9 @@ namespace U4DEngine {
         U4DVector3n newLinearVelocityOfModel1=uModel1->getVelocity()-linearImpulseFactorOfModel1;
         U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
         
-        newLinearVelocityOfModel1/=contactManifold.size();
-        newLinearVelocityOfModel2/=contactManifold.size();
-        
+//        newLinearVelocityOfModel1/=contactManifold.size();
+//        newLinearVelocityOfModel2/=contactManifold.size();
+//        
         //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
         if (uModel1->getEquilibrium()) {
