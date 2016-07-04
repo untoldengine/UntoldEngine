@@ -140,7 +140,6 @@ namespace U4DEngine {
             
             void updateNarrowPhaseBoundingVolumeSpace();
         
-        
             //Broad Phase Bounding Volume
         
             U4DBoundingVolume* getBroadPhaseBoundingVolume();
