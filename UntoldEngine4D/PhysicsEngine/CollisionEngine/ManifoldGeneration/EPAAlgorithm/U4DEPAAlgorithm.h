@@ -40,7 +40,7 @@ namespace U4DEngine {
         
         ~U4DEPAAlgorithm(){};
         
-        void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPoint, U4DVector3n& uContactCollisionNormal);
+        void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
         void verifySimplexStructForEPA(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume *uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
         
@@ -48,7 +48,7 @@ namespace U4DEngine {
         
         bool constructSimplexStructForTriangle(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
         
-        bool determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPoint, std::vector<U4DVector3n> &uContactManifold){};
+        bool determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){};
         
     };
 }

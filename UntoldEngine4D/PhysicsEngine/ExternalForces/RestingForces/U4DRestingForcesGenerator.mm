@@ -78,12 +78,6 @@ namespace U4DEngine {
             torque+=(radius).cross(uGravity*mass);
         }
         
-        //average the torque
-        
-        if (contactManifold.size()!=0) {
-            torque/=contactManifold.size();
-        }
-        
         uModel->addMoment(torque);
        
     }

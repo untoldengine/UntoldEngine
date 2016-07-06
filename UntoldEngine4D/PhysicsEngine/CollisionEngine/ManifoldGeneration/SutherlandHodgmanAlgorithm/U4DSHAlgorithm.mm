@@ -22,13 +22,14 @@ namespace U4DEngine {
         
     }
     
-    void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, U4DPoint3n& uClosestPoint, U4DVector3n& uContactCollisionNormal){
+    void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
     
+        
         POINTINFORMATION pointInformation;
         
-        U4DVector3n negateContactNormal=uContactCollisionNormal*-1.0;
+        U4DVector3n negateContactNormal=uCollisionManifoldNode.normalCollisionVector*-1.0;
         
-        U4DPlane collisionPlane(uContactCollisionNormal,uClosestPoint);
+        U4DPlane collisionPlane(uCollisionManifoldNode.normalCollisionVector,uCollisionManifoldNode.collisionClosestPoint);
         
         //test if the model is within the plane and set the normal accordingly
         pointInformation.point=uModel1->getAbsolutePosition().toPoint();
@@ -58,30 +59,30 @@ namespace U4DEngine {
        
         if (pointInformation.location==outsidePlane) {
             
-            uModel1->setCollisionNormalFaceDirection(uContactCollisionNormal);
+            uModel1->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             
             uModel2->setCollisionNormalFaceDirection(negateContactNormal);
             
         }else if(pointInformation.location==insidePlane || pointInformation.location==boundaryPlane){
             
-            uModel2->setCollisionNormalFaceDirection(uContactCollisionNormal);
+            uModel2->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             
             uModel1->setCollisionNormalFaceDirection(negateContactNormal);
             
-            uContactCollisionNormal=negateContactNormal;
+            uCollisionManifoldNode.normalCollisionVector=negateContactNormal;
             
         }
         
     }
     
-    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,U4DPoint3n& uClosestPoint, std::vector<U4DVector3n> &uContactManifold){
+    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
         
         //step 1. Create plane
         U4DVector3n collisionNormalOfModel1=uModel1->getCollisionNormalFaceDirection();
-        U4DPlane planeCollisionOfModel1(collisionNormalOfModel1,uClosestPoint);
+        U4DPlane planeCollisionOfModel1(collisionNormalOfModel1,uCollisionManifoldNode.collisionClosestPoint);
         
         U4DVector3n collisionNormalOfModel2=uModel2->getCollisionNormalFaceDirection();
-        U4DPlane planeCollisionOfModel2(collisionNormalOfModel2,uClosestPoint);
+        U4DPlane planeCollisionOfModel2(collisionNormalOfModel2,uCollisionManifoldNode.collisionClosestPoint);
         
         if (collisionNormalOfModel1==U4DVector3n(0,0,0) || collisionNormalOfModel2==U4DVector3n(0,0,0)) {
             return false;
@@ -250,7 +251,7 @@ namespace U4DEngine {
                 
             }
             
-            //if (minimumDistanceToSegment<1.0) {
+            if (minimumDistanceToSegment<1.0) {
                 
                 //return segment
                 U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
@@ -267,13 +268,13 @@ namespace U4DEngine {
                 uModel1->setEquilibrium(false);
                 uModel2->setEquilibrium(false);
                 
-                //add points to vector
-                uContactManifold.push_back(pointA);
-                uContactManifold.push_back(pointB);
-                
+                //add points to the collision node
+                uCollisionManifoldNode.contactPoints.push_back(pointA);
+                uCollisionManifoldNode.contactPoints.push_back(pointB);
+            
                 return true;
                 
-           // }
+            }
             
         }
         
@@ -288,9 +289,8 @@ namespace U4DEngine {
             uModel1->addCollisionContactPoint(point);
             uModel2->addCollisionContactPoint(point);
             
-            //add point to vector
-            uContactManifold.push_back(point);
-            
+            //add point to collision node
+            uCollisionManifoldNode.contactPoints.push_back(point);
         }
         
         //check if the center of mass is within the reference planes

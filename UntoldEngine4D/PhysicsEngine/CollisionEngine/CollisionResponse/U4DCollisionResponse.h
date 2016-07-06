@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -30,7 +31,7 @@ namespace U4DEngine {
         U4DCollisionResponse();
         ~U4DCollisionResponse();
         
-        void collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, std::vector<U4DVector3n> uContactManifold, U4DVector3n uNormalCollisionVector);
+        void collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
         bool areNumbersEqual(float uA, float uB, float uEpsilon);
         
