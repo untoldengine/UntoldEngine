@@ -68,11 +68,13 @@ namespace U4DEngine {
             
             uModel1->setCollisionNormalFaceDirection(negateContactNormal);
             
+            uContactCollisionNormal=negateContactNormal;
+            
         }
         
     }
     
-    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,U4DPoint3n& uClosestPoint){
+    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,U4DPoint3n& uClosestPoint, std::vector<U4DVector3n> &uContactManifold){
         
         //step 1. Create plane
         U4DVector3n collisionNormalOfModel1=uModel1->getCollisionNormalFaceDirection();
@@ -180,6 +182,10 @@ namespace U4DEngine {
         U4DVector3n intersectionVector;
         U4DPoint3n intersectionPoint;
         
+        //if container is empty, then return
+        if (segments.size()==0) {
+            return false;
+        }
         
         if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
             //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
@@ -222,7 +228,7 @@ namespace U4DEngine {
             //remove all segment with dot product not equal to most parallel segment to intersection vector
             incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
-            if (incidentSegments.size()<=1.0) {
+            if (incidentSegments.size()==0.0) {
                 return false;
             }
             
@@ -244,7 +250,7 @@ namespace U4DEngine {
                 
             }
             
-            if (minimumDistanceToSegment<1.0) {
+            //if (minimumDistanceToSegment<1.0) {
                 
                 //return segment
                 U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
@@ -261,16 +267,17 @@ namespace U4DEngine {
                 uModel1->setEquilibrium(false);
                 uModel2->setEquilibrium(false);
                 
+                //add points to vector
+                uContactManifold.push_back(pointA);
+                uContactManifold.push_back(pointB);
+                
                 return true;
                 
-            }
+           // }
             
         }
         
-        //if container is empty, then return
-        if (segments.size()<=1) {
-            return false;
-        }
+
         
         //If there is no plane intersection, then return all points
         
@@ -280,6 +287,9 @@ namespace U4DEngine {
 
             uModel1->addCollisionContactPoint(point);
             uModel2->addCollisionContactPoint(point);
+            
+            //add point to vector
+            uContactManifold.push_back(point);
             
         }
         

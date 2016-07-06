@@ -255,8 +255,8 @@ namespace U4DEngine {
                 sphereBoundingVolume=new U4DBoundingAABB();
                 
                 //get min and max points to create the AABB
-                U4DPoint3n minPoints(-xDimension,-yDimension,-zDimension);
-                U4DPoint3n maxPoints(xDimension,yDimension,zDimension);
+                U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
+                U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
                 
                 //calculate the AABB
                 sphereBoundingVolume->computeBoundingVolume(minPoints, maxPoints);

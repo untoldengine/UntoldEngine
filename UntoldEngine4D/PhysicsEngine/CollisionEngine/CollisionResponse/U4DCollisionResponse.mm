@@ -21,7 +21,7 @@ namespace U4DEngine {
     
     }
     
-    void U4DCollisionResponse::collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2){
+    void U4DCollisionResponse::collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2, std::vector<U4DVector3n> uContactManifold, U4DVector3n uNormalCollisionVector){
         
         //set the linear and angular factor for each model
         U4DVector3n linearImpulseFactorOfModel1(0,0,0);
@@ -39,13 +39,13 @@ namespace U4DEngine {
         
         //get the contact point and line of action
         
-        std::vector<U4DVector3n> contactManifold=uModel1->getCollisionContactPoints();
+        std::vector<U4DVector3n> contactManifold=uContactManifold;
         
         if (contactManifold.size()>4) {
             contactManifold.resize(4);
         }
         
-        U4DVector3n normalCollisionVector=uModel1->getCollisionNormalFaceDirection();
+        U4DVector3n normalCollisionVector=uNormalCollisionVector;
         
         U4DVector3n centerOfMassForModel1=uModel1->getCenterOfMass()+uModel1->getAbsolutePosition();
         U4DVector3n centerOfMassForModel2=uModel2->getCenterOfMass()+uModel2->getAbsolutePosition();
@@ -119,8 +119,11 @@ namespace U4DEngine {
         U4DVector3n newLinearVelocityOfModel1=uModel1->getVelocity()-linearImpulseFactorOfModel1;
         U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
         
-        newLinearVelocityOfModel1/=contactManifold.size();
-        newLinearVelocityOfModel2/=contactManifold.size();
+        //Add the new angular velocity to the previous velocity
+        /*
+         
+         w1after=w1before+(rx|j|n)/I
+         */
         
         //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
@@ -135,18 +138,20 @@ namespace U4DEngine {
             angularImpulseFactorOfModel2.zero();
         }
         
-        //Add the new angular velocity to the previous velocity
-        /*
-         
-         w1after=w1before+(rx|j|n)/I
-         */
-        
         U4DVector3n newAngularVelocityOfModel1=uModel1->getAngularVelocity()-angularImpulseFactorOfModel1;
         U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
         
+        //reduce the velocity if collision is with ground
+        if (uModel1->getIsGround() || uModel2->getIsGround()) {
+
+            newAngularVelocityOfModel1/=contactManifold.size();
+            newAngularVelocityOfModel2/=contactManifold.size();
+            
+            newLinearVelocityOfModel1/=contactManifold.size();
+            newLinearVelocityOfModel2/=contactManifold.size();
+
+        }
         
-        newAngularVelocityOfModel1/=contactManifold.size();
-        newAngularVelocityOfModel2/=contactManifold.size();
         //Set the new linear and angular velocities for the models
         
         if (uModel1->isPhysicsApplied()) {
