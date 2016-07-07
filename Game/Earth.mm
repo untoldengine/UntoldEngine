@@ -49,23 +49,24 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("Cube",0.0,0.0,0.0);
+    cube->init("GroundFloor",0.0,0.0,0.0);
     cube->setName("ground");
     cube->setShader("simpleRedShader");
-    //cube->setAsGround(true);
+    cube->setAsGround(true);
     //Apply the collision engine to the object
     cube->enableCollision();
     cube->setMass(1.0);
+    cube->setCoefficientOfRestitution(0.7);
     
     //cube->setBroadPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
-    cube2->init("Cube",1.5,7.0,0.0);
+    cube2->init("Cube",0.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(40.0,0.0,60);
+    cube2->rotateBy(0.0,0.0,-60);
     cube2->setMass(1.0);
-    //cube2->setCoefficientOfRestitution(0.8);
+    cube2->setCoefficientOfRestitution(0.6);
     cube2->applyPhysics(true);
 
     cube2->enableCollision();

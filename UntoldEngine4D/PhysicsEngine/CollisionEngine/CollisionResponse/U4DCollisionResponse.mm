@@ -116,6 +116,7 @@ namespace U4DEngine {
          V1after=V1before+(|J|n)/m
          
          */
+        
         U4DVector3n newLinearVelocityOfModel1=uModel1->getVelocity()-linearImpulseFactorOfModel1;
         U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
         
@@ -134,13 +135,13 @@ namespace U4DEngine {
         }
         
         if (uModel2->getEquilibrium()) {
-            
+        
             angularImpulseFactorOfModel2.zero();
+            
         }
         
         U4DVector3n newAngularVelocityOfModel1=uModel1->getAngularVelocity()-angularImpulseFactorOfModel1;
         U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
-        
         
         //Set the new linear and angular velocities for the models
         
@@ -158,7 +159,6 @@ namespace U4DEngine {
             uModel2->setVelocity(newLinearVelocityOfModel2);
             
             uModel2->setAngularVelocity(newAngularVelocityOfModel2);
-            
         }
         
     }

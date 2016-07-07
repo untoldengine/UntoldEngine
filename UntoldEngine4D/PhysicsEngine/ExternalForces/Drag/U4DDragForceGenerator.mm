@@ -40,12 +40,6 @@ namespace U4DEngine {
         
         angularDrag=uModel->getAngularVelocity();
         momentDragCoeff=angularDrag.magnitude();
-          
-        if (momentDragCoeff>10000) {
-     
-            std::cout<<"Moment went insane"<<std::endl;
-        
-        }
         
         momentDragCoeff=k1*momentDragCoeff+k2*momentDragCoeff*momentDragCoeff;
         
