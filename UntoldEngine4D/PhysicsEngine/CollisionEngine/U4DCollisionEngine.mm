@@ -82,18 +82,22 @@ namespace U4DEngine {
                 model1->setModelHasCollided(true);
                 model2->setModelHasCollided(true);
                 
-                //Manifold Generation Algorithm
-                U4DPoint3n closestPoints=collisionAlgorithm->getClosestCollisionPoint();
-                U4DVector3n normalCollisionContact=collisionAlgorithm->getContactCollisionNormal();
                 
+                //create a collision node to contain all the collision information
+                COLLISIONMANIFOLDONODE collisionNode;
+                
+                collisionNode.collisionClosestPoint=collisionAlgorithm->getClosestCollisionPoint();
+                collisionNode.normalCollisionVector=collisionAlgorithm->getContactCollisionNormal();
+                
+                //Manifold Generation Algorithm
                 //Get the Normal collision plane manifold information
-                manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), closestPoints, normalCollisionContact);
+                manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), collisionNode);
                 
                 //Get the collision contacts (Manifold) information
-                if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),closestPoints)){
+                if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),collisionNode)){
                     
                     //collision Response
-                    collisionResponse->collisionResolution(model1, model2);
+                    collisionResponse->collisionResolution(model1, model2,collisionNode);
 
                     
                 }else{

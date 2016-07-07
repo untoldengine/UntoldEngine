@@ -131,6 +131,15 @@ namespace U4DEngine {
     }POLYTOPEFACES;
     
     
+    typedef struct{
+        
+        std::vector<U4DVector3n> contactPoints;
+        U4DVector3n normalCollisionVector;
+        U4DPoint3n collisionClosestPoint;
+        
+        
+    }COLLISIONMANIFOLDONODE;
+    
 }
 
 

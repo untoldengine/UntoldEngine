@@ -10,10 +10,13 @@
 #define U4DCollisionResponse_hpp
 
 #include <stdio.h>
+#include <vector>
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
     class U4DDynamicModel;
+    class U4DVector3n;
     
 }
 
@@ -28,7 +31,7 @@ namespace U4DEngine {
         U4DCollisionResponse();
         ~U4DCollisionResponse();
         
-        void collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2);
+        void collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
         bool areNumbersEqual(float uA, float uB, float uEpsilon);
         
