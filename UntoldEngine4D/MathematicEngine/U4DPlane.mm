@@ -109,7 +109,7 @@ namespace U4DEngine {
         
         float denom=direction.dot(direction);
         
-        if (denom<U4DEngine::zeroEpsilon) {
+        if (denom<U4DEngine::zeroPlaneIntersectionEpsilon) {
             
             return false;
         
