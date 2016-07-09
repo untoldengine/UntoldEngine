@@ -44,12 +44,12 @@ void Earth::init(){
     
     enableGrid(true);
     
-    U4DEngine::U4DVector3n gravity(0,-5.0,0);
+    U4DEngine::U4DVector3n gravity(0,-1.0,0);
     //setGravity(gravity);
     
     //create our object
     cube=new Town();
-    cube->init("GroundFloor",0.0,0.0,0.0);
+    cube->init("GroundFloor5",0.0,0.0,0.0);
     cube->setName("ground");
     cube->setShader("simpleRedShader");
     cube->setAsGround(true);
@@ -58,20 +58,20 @@ void Earth::init(){
     cube->setMass(1.0);
     cube->setCoefficientOfRestitution(0.7);
     
-    //cube->setBroadPhaseBoundingVolumeVisibility(true);
+    cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
-    cube2->init("Cube",0.0,5.0,0.0);
+    cube2->init("Cube",2.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(0.0,0.0,-60);
+    cube2->rotateBy(0.0,0.0,60.0);
     cube2->setMass(1.0);
-    cube2->setCoefficientOfRestitution(0.6);
+    //cube2->setCoefficientOfRestitution(0.6);
     cube2->applyPhysics(true);
 
     cube2->enableCollision();
     
-    //cube2->setBroadPhaseBoundingVolumeVisibility(true);
+    cube2->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube3=new Town();
     cube3->init("Cube",1.7,5.0,0.0);
