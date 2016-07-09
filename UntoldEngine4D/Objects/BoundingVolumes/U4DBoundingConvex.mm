@@ -13,6 +13,9 @@ namespace U4DEngine {
     
     U4DBoundingConvex::U4DBoundingConvex(){
         
+        //set convex color to green
+        U4DVector4n green(0,1,0,1);
+        setBoundingVolumeColor(green);
     }
     
     U4DBoundingConvex::~U4DBoundingConvex(){
@@ -39,6 +42,9 @@ namespace U4DEngine {
             
         }
         
+        //send data to the GPU
+        computeBoundingVolume();
+        
     }
     
     void U4DBoundingConvex::computeBoundingVolume(){
@@ -52,6 +58,8 @@ namespace U4DEngine {
         std::vector<U4DVector3n> uVertices=bodyCoordinates.getConvexHullDataFromContainer();
         
         for (auto vertex:uVertices) {
+        
+             bodyCoordinates.addVerticesDataToContainer(vertex);
             
              //Determine the index for drawing operation
              U4DIndex renderingIndex0(currentVertexIndex,determineRenderingIndex(uVertices, vertex, xDirection),currentVertexIndex);
@@ -65,7 +73,6 @@ namespace U4DEngine {
              currentVertexIndex++;
             
         }
-        
         
         loadRenderingInformation();
         

@@ -115,6 +115,10 @@ namespace U4DEngine {
                         model->getBroadPhaseBoundingVolume()->draw();
                         
                     }
+                    
+                    if(model->getNarrowPhaseBoundingVolumeVisibility()==true){
+                        model->getNarrowPhaseBoundingVolume()->draw();
+                    }
                 }
             
             //END ONLY FOR DEBUGGING PURPOSES
