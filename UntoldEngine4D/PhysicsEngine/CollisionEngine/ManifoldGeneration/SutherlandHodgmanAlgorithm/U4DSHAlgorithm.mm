@@ -240,7 +240,7 @@ namespace U4DEngine {
           
             for(int i=0;i<incidentSegments.size();i++){
                 
-                distanceToSegment=incidentSegments.at(i).segment.sqDistancePointSegment(intersectionPoint);
+                distanceToSegment=incidentSegments.at(i).segment.normalizedSquareDistancePointSegment(intersectionPoint);
                 
                 if (distanceToSegment<minimumDistanceToSegment) {
                     
@@ -251,7 +251,7 @@ namespace U4DEngine {
                 
             }
             
-            if (minimumDistanceToSegment<1.0) {
+            if (minimumDistanceToSegment<=1.0) {
                 
                 //return segment
                 U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();

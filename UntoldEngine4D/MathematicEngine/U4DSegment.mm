@@ -133,6 +133,33 @@ namespace U4DEngine {
         
         return ac.dot(ac)-e*(e/f);
     }
+    
+    float U4DSegment::normalizedSquareDistancePointSegment(U4DPoint3n& uPoint){
+        
+        U4DVector3n ab=pointA-pointB;
+        U4DVector3n ac=pointA-uPoint;
+        U4DVector3n bc=pointB-uPoint;
+        
+        //normalize the vectors
+        ab.normalize();
+        ac.normalize();
+        bc.normalize();
+        
+        float e=ac.dot(ab);
+        
+        //Handle cases where c projects outside ab
+        
+        if (e<=0.0f) return ac.dot(ac);
+        
+        float f=ab.dot(ab);
+        
+        if (e>=f) return bc.dot(bc);
+        
+        //Handle cases where c projects onto ab
+        
+        return ac.dot(ac)-e*(e/f);
+        
+    }
         
         
     void U4DSegment::getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV){
