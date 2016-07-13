@@ -101,6 +101,8 @@ public:
      */
     float sqDistancePointSegment(U4DPoint3n& uPoint);
     
+    float normalizedSquareDistancePointSegment(U4DPoint3n& uPoint);
+    
     void getBarycentricCoordinatesOfPoint(U4DPoint3n& uPoint, float& baryCoordinateU, float& baryCoordinateV);
     
     std::vector<U4DPoint3n> getPoints();
