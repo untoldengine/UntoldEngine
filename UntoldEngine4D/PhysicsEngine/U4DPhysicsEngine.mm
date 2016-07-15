@@ -29,28 +29,31 @@ namespace U4DEngine {
     #pragma mark-update All external Forces
     void U4DPhysicsEngine::updatePhysicForces(U4DDynamicModel *uModel,float dt){
         
-        //add all the forces for that body
         
-        gravityForce.updateForce(uModel, gravity, dt);
-        
-        if (uModel->getModelHasCollided()) {
+        if (uModel->getAwake()) {
             
-            //determine resting forces
-            restingForces.updateForce(uModel, gravity, dt);
+            //add all the forces for that body
+            gravityForce.updateForce(uModel, gravity, dt);
             
+            if (uModel->getModelHasCollided()) {
+                
+                //determine resting forces
+                restingForces.updateForce(uModel, gravity, dt);
+                
+            }
+            
+            dragForce.updateForce(uModel,dt);
+            
+            if (uModel->getEquilibrium()) {
+                
+                U4DVector3n zero(0,0,0);
+                uModel->setAngularVelocity(zero);
+                uModel->clearMoment();
+                
+            }
+            //Integrate
+            integrate(uModel, dt);
         }
-        
-        dragForce.updateForce(uModel,dt);
-        
-        if (uModel->getEquilibrium()) {
-        
-            U4DVector3n zero(0,0,0);
-            uModel->setAngularVelocity(zero);
-            uModel->clearMoment();
-            
-        }
-        //Integrate
-        integrate(uModel, dt);
         
         //determine energy condition of the model
         uModel->determineEnergyMotion(dt);

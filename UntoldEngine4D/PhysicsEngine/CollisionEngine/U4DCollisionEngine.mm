@@ -94,7 +94,6 @@ namespace U4DEngine {
                     //collision Response
                     collisionResponse->collisionResolution(model1, model2,collisionNode);
 
-                    
                     //if collision occurred then
                     model1->setModelHasCollided(true);
                     model2->setModelHasCollided(true);

@@ -36,7 +36,7 @@ namespace U4DEngine {
             }else{
                 
                 if (child->getFirstChild()!=NULL) {
-                    
+
                     collision(child->getFirstChild(), child->getLastChild(), uBroadPhaseCollisionPairs);
                     
                 }

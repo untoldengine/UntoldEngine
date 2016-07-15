@@ -100,12 +100,12 @@ namespace U4DEngine {
             energyMotion=U4DEngine::sleepEpsilon*2.0f;
             
         }else{
-            
             //set model to sleep and zero out velocity and forces
             isAwake=false;
             velocity.zero();
             angularVelocity.zero();
-            
+            clearForce();
+            clearMoment();
         }
     }
 
