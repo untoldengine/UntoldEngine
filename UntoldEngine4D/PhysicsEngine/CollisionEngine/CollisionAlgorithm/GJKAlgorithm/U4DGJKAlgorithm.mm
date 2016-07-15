@@ -24,7 +24,7 @@ namespace U4DEngine {
         //version 3 of the GJK-TOI implementation
         
         //clear Q
-        Q.clear();
+        cleanUp();
         
         U4DPoint3n originPoint(0,0,0);
         U4DPoint3n tempV(0,0,0); //variable to store previous value of v
@@ -66,7 +66,6 @@ namespace U4DEngine {
                     tClip=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(relativeCSOTranslation);
                     
                     if (tClip>1.0) {
-                        
                         return false;
                     }
                     
@@ -94,7 +93,6 @@ namespace U4DEngine {
                     }
                     
                 }else{
-                    
                     return false;
                 }
             }
@@ -413,6 +411,13 @@ namespace U4DEngine {
     U4DVector3n U4DGJKAlgorithm::getContactCollisionNormal(){
         
         return contactCollisionNormal;
+    }
+    
+    void U4DGJKAlgorithm::cleanUp(){
+        Q.clear();
+        closestPointToOrigin.zero();
+        closestCollisionPoint.zero();
+        contactCollisionNormal=U4DVector3n(0,1,0);
     }
     
 }

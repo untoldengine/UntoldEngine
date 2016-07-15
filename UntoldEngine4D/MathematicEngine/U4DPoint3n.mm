@@ -110,6 +110,12 @@ namespace U4DEngine {
         return magnitude;
     }
     
+    void U4DPoint3n::zero(){
+        x=0;
+        y=0;
+        z=0;
+    }
+    
 
     #pragma mark-show
     void U4DPoint3n::show(){

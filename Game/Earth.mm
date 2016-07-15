@@ -44,7 +44,7 @@ void Earth::init(){
     
     enableGrid(true);
     
-    U4DEngine::U4DVector3n gravity(0,-1.0,0);
+    U4DEngine::U4DVector3n gravity(0,-5.0,0);
     //setGravity(gravity);
     
     //create our object
@@ -56,12 +56,12 @@ void Earth::init(){
     //Apply the collision engine to the object
     cube->enableCollision();
     cube->setMass(1.0);
-    cube->setCoefficientOfRestitution(0.7);
+    //cube->setCoefficientOfRestitution(0.7);
     
-    cube->setNarrowPhaseBoundingVolumeVisibility(true);
+    //cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
-    cube2->init("Cube",3.0,5.0,-3.0);
+    cube2->init("Cube",0.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     cube2->rotateBy(0.0,0.0,70.0);
@@ -71,7 +71,7 @@ void Earth::init(){
 
     cube2->enableCollision();
     
-    cube2->setNarrowPhaseBoundingVolumeVisibility(true);
+    cube2->setBroadPhaseBoundingVolumeVisibility(true);
     
     cube3=new Town();
     cube3->init("Cube",1.7,5.0,0.0);
@@ -83,21 +83,21 @@ void Earth::init(){
     cube3->enableCollision();
     
     cube4=new Town();
-    cube4->init("Cube",0.8,9.0,0.0);
+    cube4->init("Cube",3.5,5,0.0);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
-    //cube4->rotateBy(40.0, 50.0, 20.0);
+    cube4->rotateBy(0.0, 50.0, 20.0);
     cube4->setMass(1.0);
-    //cube4->setCoefficientOfRestitution(0.8);
+    //cube4->setCoefficientOfRestitution(0.6);
     cube4->applyPhysics(true);
     
     cube4->enableCollision();
-    //cube4->setBroadPhaseBoundingVolumeVisibility(true);
+    cube4->setBroadPhaseBoundingVolumeVisibility(true);
     
     addChild(cube);
     addChild(cube2);
     //addChild(cube3);
-    //addChild(cube4);
+    addChild(cube4);
     /*
     
     // ADD Gravity

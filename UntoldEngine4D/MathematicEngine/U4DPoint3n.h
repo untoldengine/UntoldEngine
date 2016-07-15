@@ -130,6 +130,8 @@ public:
 
     float magnitudeSquare();
     
+    void zero();
+    
     U4DVector3n toVector();
     
     void show();

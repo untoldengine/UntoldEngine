@@ -184,7 +184,7 @@ namespace U4DEngine {
         U4DPoint3n intersectionPoint;
         
         //if container is empty, then return
-        if (segments.size()==0) {
+        if (segments.size()<=1) {
             return false;
         }
         
@@ -229,7 +229,7 @@ namespace U4DEngine {
             //remove all segment with dot product not equal to most parallel segment to intersection vector
             incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
-            if (incidentSegments.size()==0.0) {
+            if (incidentSegments.size()<=1) {
                 return false;
             }
             
