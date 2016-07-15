@@ -31,7 +31,7 @@ namespace U4DEngine {
     void U4DBVHGroundCollision::startCollision(std::vector<std::shared_ptr<U4DBVHTree>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
         
         //get root tree
-        U4DBVHTree *child=uTreeContainer.at(0)->getFirstChild();
+        U4DBVHTree *child=uTreeContainer.at(0).get()->next;
         
         while (child!=NULL) {
             
@@ -54,16 +54,16 @@ namespace U4DEngine {
         //No collision between tree volumes, then exit
         if (!collisionBetweenTreeVolume(uTreeLeftNode,uTreeRightNode)) return;
         
-        if (uTreeRightNode->getFirstChild()==NULL) {
+        if (uTreeLeftNode->getFirstChild()==NULL && uTreeRightNode->getFirstChild()==NULL) {
             
             //At leaf nodes, perform collision tests on leaf node contents
             collisionBetweenTreeLeafNodes(uTreeLeftNode,uTreeRightNode,uBroadPhaseCollisionPairs);
             
         }else{
             
-            collision(uTreeLeftNode, uTreeRightNode->getFirstChild(),uBroadPhaseCollisionPairs);
-            
-            collision(uTreeLeftNode, uTreeRightNode->getLastChild(),uBroadPhaseCollisionPairs);
+//            collision(uTreeLeftNode, uTreeRightNode->getFirstChild(),uBroadPhaseCollisionPairs);
+//            
+//            collision(uTreeLeftNode, uTreeRightNode->getLastChild(),uBroadPhaseCollisionPairs);
             
         }
         

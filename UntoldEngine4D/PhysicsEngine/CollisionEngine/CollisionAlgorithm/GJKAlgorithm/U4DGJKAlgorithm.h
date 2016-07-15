@@ -62,6 +62,7 @@ namespace U4DEngine {
         
         U4DVector3n getContactCollisionNormal();
         
+        void cleanUp();
     };
     
 }

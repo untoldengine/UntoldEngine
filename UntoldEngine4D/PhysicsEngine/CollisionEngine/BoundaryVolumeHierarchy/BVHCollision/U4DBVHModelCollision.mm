@@ -24,9 +24,9 @@ namespace U4DEngine {
     }
     
     void U4DBVHModelCollision::startCollision(std::vector<std::shared_ptr<U4DBVHTree>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
-        
+       
         //get root tree
-        U4DBVHTree *child=uTreeContainer.at(0)->getFirstChild();
+        U4DBVHTree *child=uTreeContainer.at(0).get()->next;
         
         while (child!=NULL) {
             

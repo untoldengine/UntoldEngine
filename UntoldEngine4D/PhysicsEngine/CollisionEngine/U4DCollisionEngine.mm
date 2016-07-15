@@ -78,11 +78,6 @@ namespace U4DEngine {
             
             if (collisionAlgorithm->collision(model1, model2, dt)) {
                 
-                //if collision occurred then
-                model1->setModelHasCollided(true);
-                model2->setModelHasCollided(true);
-                
-                
                 //create a collision node to contain all the collision information
                 COLLISIONMANIFOLDONODE collisionNode;
                 
@@ -99,6 +94,11 @@ namespace U4DEngine {
                     //collision Response
                     collisionResponse->collisionResolution(model1, model2,collisionNode);
 
+                    
+                    //if collision occurred then
+                    model1->setModelHasCollided(true);
+                    model2->setModelHasCollided(true);
+                    
                     
                 }else{
                     std::cout<<"Contact Manifold were not found"<<std::endl;
