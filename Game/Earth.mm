@@ -56,7 +56,7 @@ void Earth::init(){
     //Apply the collision engine to the object
     cube->enableCollision();
     cube->setMass(1.0);
-    //cube->setCoefficientOfRestitution(0.7);
+    cube->setCoefficientOfRestitution(0.7);
     
     //cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
@@ -64,9 +64,9 @@ void Earth::init(){
     cube2->init("Cube",0.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(0.0,0.0,70.0);
+    //cube2->rotateBy(0.0,0.0,70.0);
     cube2->setMass(1.0);
-    //cube2->setCoefficientOfRestitution(0.6);
+    cube2->setCoefficientOfRestitution(0.6);
     cube2->applyPhysics(true);
 
     cube2->enableCollision();
@@ -86,9 +86,9 @@ void Earth::init(){
     cube4->init("Cube",3.5,5,0.0);
     cube4->setShader("simpleShader");
     cube4->setName("cube4");
-    cube4->rotateBy(0.0, 50.0, 20.0);
+    //cube4->rotateBy(0.0, 50.0, 20.0);
     cube4->setMass(1.0);
-    //cube4->setCoefficientOfRestitution(0.6);
+    cube4->setCoefficientOfRestitution(0.6);
     cube4->applyPhysics(true);
     
     cube4->enableCollision();
