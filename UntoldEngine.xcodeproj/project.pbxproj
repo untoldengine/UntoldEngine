@@ -814,8 +814,8 @@
 				0377BD281B8007B4006F1E61 /* U4DConvexPolygon.mm */,
 				03002C8F1B9E27BA00665CC9 /* U4DPolytope.h */,
 				03002C8E1B9E27BA00665CC9 /* U4DPolytope.mm */,
-				0317AD2E1D3A7E3900552C93 /* U4DConvexHullGenerator.mm */,
 				0317AD2F1D3A7E3900552C93 /* U4DConvexHullGenerator.h */,
+				0317AD2E1D3A7E3900552C93 /* U4DConvexHullGenerator.mm */,
 			);
 			path = MathematicEngine;
 			sourceTree = "<group>";

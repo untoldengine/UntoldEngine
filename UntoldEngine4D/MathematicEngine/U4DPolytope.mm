@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DPolytope::U4DPolytope():n(0){
+    U4DPolytope::U4DPolytope():index(0){
         
     }
     
@@ -29,7 +29,7 @@ namespace U4DEngine {
             POLYTOPEFACES faces;
             faces.triangle=uTriangle;
             faces.isSeenByPoint=false;
-            faces.n=n;
+            faces.index=index;
             
             polytopeFaces.push_back(faces);
             
@@ -52,14 +52,14 @@ namespace U4DEngine {
                 POLYTOPEFACES faces;
                 faces.triangle=uTriangle;
                 faces.isSeenByPoint=false;
-                faces.n=n;
+                faces.index=index;
                 polytopeFaces.push_back(faces);
                 
             }
             
         }
         
-        n++;
+        index++;
         
     }
 
@@ -97,6 +97,17 @@ namespace U4DEngine {
         return polytopeFaces;
     }
     
+    std::vector<POLYTOPEEDGES>& U4DPolytope::getEdgesOfPolytope(){
+     
+        //for each face get its segments
+        
+    }
+    
+    std::vector<POLYTOPEVERTEX>& U4DPolytope::getVertexOfPolytope(){
+        
+        //for each face get its vertex
+    }
+    
     
     void U4DPolytope::removeAllFaces(){
         polytopeFaces.clear();
@@ -104,9 +115,8 @@ namespace U4DEngine {
     
     void U4DPolytope::show(){
         
-        for (int i=0; i<polytopeFaces.size(); i++) {
-            std::cout<<"Face: "<<i<<std::endl;
-            polytopeFaces.at(i).triangle.show();
+        for (auto n:polytopeFaces) {
+            n.triangle.show();
         }
         
     }

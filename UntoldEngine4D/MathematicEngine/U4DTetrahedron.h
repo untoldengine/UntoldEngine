@@ -32,7 +32,7 @@ private:
     
 public:
     
-    
+    U4DTetrahedron();
     U4DTetrahedron(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC, U4DPoint3n& uPointD);
     
     ~U4DTetrahedron();

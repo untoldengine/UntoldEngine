@@ -114,6 +114,14 @@ namespace U4DEngine {
         U4DPoint3n minkowskiPoint; //Minkowski difference point
         
     }U4DSimplexStruct;
+    
+    typedef struct{
+        
+        U4DVector3n vertex;
+        bool isDuplicate;
+        bool onHull;
+        
+    }POLYTOPEVERTEX;
 
     typedef struct{
         
@@ -126,10 +134,18 @@ namespace U4DEngine {
         
         U4DTriangle triangle;
         bool isSeenByPoint;
-        int n;
+        int index;
         
     }POLYTOPEFACES;
     
+    typedef struct{
+        
+        std::vector<POLYTOPEVERTEX> vertex;
+        std::vector<POLYTOPEEDGES> edges;
+        std::vector<POLYTOPEFACES> faces;
+        bool isValid;
+        
+    }CONVEXHULL;
     
     typedef struct{
         

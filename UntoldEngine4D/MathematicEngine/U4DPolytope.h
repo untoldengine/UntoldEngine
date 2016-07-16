@@ -21,11 +21,13 @@ namespace U4DEngine {
         
     private:
         
-        int n;
+        int index;
+        
     public:
         
         std::vector<POLYTOPEFACES> polytopeFaces;
-
+        std::vector<POLYTOPEEDGES> polytopeEdges;
+        std::vector<POLYTOPEVERTEX> polytopeVertex;
         
         U4DPolytope();
         
@@ -38,6 +40,8 @@ namespace U4DEngine {
         inline U4DPolytope& operator=(const U4DPolytope& a){
             
             polytopeFaces=a.polytopeFaces;
+            polytopeEdges=a.polytopeEdges;
+            polytopeVertex=a.polytopeVertex;
             
             return *this;
         };
@@ -46,6 +50,10 @@ namespace U4DEngine {
         POLYTOPEFACES& closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint);
         
         std::vector<POLYTOPEFACES>& getFacesOfPolytope();
+        
+        std::vector<POLYTOPEEDGES>& getEdgesOfPolytope();
+        
+        std::vector<POLYTOPEVERTEX>& getVertexOfPolytope();
         
         void addFaceToPolytope(U4DTriangle& uTriangle);
         
