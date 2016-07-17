@@ -45,13 +45,13 @@ namespace U4DEngine {
         U4DConvexHullGenerator();
         ~U4DConvexHullGenerator();
         
-        CONVEXHULL buildHull(std::vector<U4DVector3n> &uVertices);
+        CONVEXHULL buildConvexHull(std::vector<U4DVector3n> &uVertices);
         
         HULLINITIALDATA buildTetrahedron(std::vector<U4DVector3n> &uVertices);
         
         int volumeSign(U4DTriangle &uTriangle, U4DVector3n &uVector);
         
-        bool verify();
+        bool isValid(CONVEXHULL &uConvexHull);
    
     };
 

@@ -23,7 +23,7 @@ namespace U4DEngine {
         
     }
     
-    CONVEXHULL U4DConvexHullGenerator::buildHull(std::vector<U4DVector3n> &uVertices){
+    CONVEXHULL U4DConvexHullGenerator::buildConvexHull(std::vector<U4DVector3n> &uVertices){
         
         U4DPolytope polytope;
         CONVEXHULL convexhull;
@@ -228,8 +228,17 @@ namespace U4DEngine {
         
     }
     
-    bool U4DConvexHullGenerator::verify(){
+    bool U4DConvexHullGenerator::isValid(CONVEXHULL &uConvexHull){
         
+        //check that Vertices-Edges+Faces=2
+        
+        if ((uConvexHull.vertex.size()-uConvexHull.edges.size()+uConvexHull.faces.size())==2) {
+            return true;
+        }else{
+            
+            std::cout<<"Sorry dude, computed Convex Hull is not valid"<<std::endl;
+            return false;
+        }
     }
     
 }
