@@ -53,9 +53,8 @@ namespace U4DEngine {
                 
                 edges.clear();
             
-                std::cout<<polytope.getFacesOfPolytope().size()<<std::endl;
                 //Which faces is seen by point
-                for (auto &face:polytope.getFacesOfPolytope()) {
+                for (auto &face:polytope.getPolytopeFaces()) {
                     
                     if (volumeSign(face.triangle, n.vertex)<0) { //is face seen by point
                         
@@ -133,12 +132,11 @@ namespace U4DEngine {
                 
             }
             
-            polytope.cleanUp();
             
             //return convex hull
-            convexhull.faces=polytope.getFacesOfPolytope();
-            convexhull.edges=polytope.getEdgesOfPolytope();
-            convexhull.vertex=polytope.getVertexOfPolytope();
+            convexhull.faces=polytope.getPolytopeFaces();
+            convexhull.edges=polytope.getPolytopeSegments();
+            convexhull.vertex=polytope.getPolytopeVertices();
             
         }else{
            

@@ -11,6 +11,8 @@
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
+#include "U4DConvexHullGenerator.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -245,9 +247,14 @@ namespace U4DEngine {
             
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();
-
+            
+            //generate the convex hull for the model
+            U4DConvexHullGenerator convexGenerator;
+            
+            CONVEXHULL convexHull=convexGenerator.buildHull(this->bodyCoordinates.verticesContainer);
+            
             //determine the convex hull of the model
-            convexHullBoundingVolume->setConvexHullVertices(this->bodyCoordinates.convexHullContainer);
+            convexHullBoundingVolume->setConvexHullVertices(convexHull);
         
             if (getIsGround()) {
                 

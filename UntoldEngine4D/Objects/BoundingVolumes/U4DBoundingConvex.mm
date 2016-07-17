@@ -33,10 +33,12 @@ namespace U4DEngine {
     }
     
     
-    void U4DBoundingConvex::setConvexHullVertices(std::vector<U4DVector3n>& uVertices){
+    void U4DBoundingConvex::setConvexHullVertices(CONVEXHULL &uConvexHull){
         
-        
-        for (auto vertex:uVertices) {
+        //decompose the convex hull into vertices
+        for(auto n:uConvexHull.vertex){
+            
+            U4DVector3n vertex=n.vertex;
             
             bodyCoordinates.addConvexHullDataToContainer(vertex);
             

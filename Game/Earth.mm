@@ -35,24 +35,6 @@
 
 void Earth::init(){
     
-    U4DEngine::U4DVector3n v0(0,0,0);
-    U4DEngine::U4DVector3n v1(0,10,0);
-    U4DEngine::U4DVector3n v2(10,10,0);
-    U4DEngine::U4DVector3n v3(10,0,0);
-    
-    U4DEngine::U4DVector3n v4(0,0,10);
-    U4DEngine::U4DVector3n v5(0,10,10);
-    U4DEngine::U4DVector3n v6(10,10,10);
-    U4DEngine::U4DVector3n v7(10,0,10);
-    
-    std::vector<U4DEngine::U4DVector3n> vecs{v0,v1,v2,v3,v4,v5,v6,v7};
-    
-    U4DEngine::U4DConvexHullGenerator convexGenerator;
-    
-    U4DEngine::CONVEXHULL hull=convexGenerator.buildHull(vecs);
-    
-    
-    
     //U4DDebugger *debugger=new U4DDebugger();
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     camera->translateBy(0.0, -2.0, -12.0);
@@ -76,7 +58,7 @@ void Earth::init(){
     cube->setMass(1.0);
     //cube->setCoefficientOfRestitution(0.7);
     
-    //cube->setNarrowPhaseBoundingVolumeVisibility(true);
+    cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
     cube2->init("Cube",0.0,5.0,0.0);
@@ -85,11 +67,11 @@ void Earth::init(){
     cube2->rotateBy(0.0,0.0,20.0);
     cube2->setMass(1.0);
     cube2->setCoefficientOfRestitution(0.6);
-    cube2->applyPhysics(true);
+    //cube2->applyPhysics(true);
 
     cube2->enableCollision();
     
-    //cube2->setBroadPhaseBoundingVolumeVisibility(true);
+    cube2->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube3=new Town();
     cube3->init("Cube",1.7,5.0,0.0);
@@ -115,7 +97,7 @@ void Earth::init(){
     addChild(cube);
     addChild(cube2);
     //addChild(cube3);
-    addChild(cube4);
+    //addChild(cube4);
     /*
     
     // ADD Gravity

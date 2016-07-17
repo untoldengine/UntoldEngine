@@ -25,67 +25,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DPolytope::addPolytopeFace(POLYTOPEFACES &uFace, U4DTriangle& uTriangle){
-        
-        //process face
-        uFace.triangle=uTriangle;
-        uFace.isSeenByPoint=false;
-        uFace.index=index;
-                
-        //add face
-        polytopeFaces.push_back(uFace);
-
-    }
-    
-    void U4DPolytope::addPolytopeEdges(POLYTOPEFACES &uFace, U4DTriangle& uTriangle){
-        
-        //process edges
-        std::vector<U4DSegment> segments=uTriangle.getSegments();
-        
-        POLYTOPEEDGES ab;
-        POLYTOPEEDGES bc;
-        POLYTOPEEDGES ca;
-        
-        ab.isDuplicate=false;
-        bc.isDuplicate=false;
-        ca.isDuplicate=false;
-        
-        ab.segment=segments.at(0);
-        bc.segment=segments.at(1);
-        ca.segment=segments.at(2);
-        
-        //add edges
-        uFace.edges.push_back(ab);
-        uFace.edges.push_back(bc);
-        uFace.edges.push_back(ca);
-        
-        
-    }
-    
-    void U4DPolytope::addPolytopeVertices(POLYTOPEFACES &uFace, U4DTriangle& uTriangle){
-        
-        //process vertices
-        POLYTOPEVERTEX pointA;
-        pointA.vertex=uTriangle.pointA.toVector();
-        
-        POLYTOPEVERTEX pointB;
-        pointB.vertex=uTriangle.pointB.toVector();
-        
-        POLYTOPEVERTEX pointC;
-        pointC.vertex=uTriangle.pointC.toVector();
-        
-        pointA.isDuplicate=false;
-        pointB.isDuplicate=false;
-        pointC.isDuplicate=false;
-        
-        
-        //add vertices
-        uFace.vertices.push_back(pointA);
-        uFace.vertices.push_back(pointB);
-        uFace.vertices.push_back(pointC);
-        
-    }
-    
     void U4DPolytope::addPolytopeData(U4DTriangle& uTriangle){
         
         bool triangleExist=false;
@@ -106,11 +45,15 @@ namespace U4DEngine {
             //process face
             POLYTOPEFACES face;
             
-            addPolytopeFace(face, uTriangle);
+            //process face
+            face.triangle=uTriangle;
+            face.isSeenByPoint=false;
+            face.index=index;
             
-            addPolytopeEdges(face, uTriangle);
+            //add face
+            polytopeFaces.push_back(face);
             
-            addPolytopeVertices(face, uTriangle);
+          
             
         }
         
@@ -147,23 +90,143 @@ namespace U4DEngine {
         
     }
     
-    std::vector<POLYTOPEFACES>& U4DPolytope::getFacesOfPolytope(){
-        
-        return polytopeFaces;
-    }
-    
-    std::vector<POLYTOPEEDGES>& U4DPolytope::getEdgesOfPolytope(){
+    std::vector<POLYTOPEVERTEX> U4DPolytope::getPolytopeVertices(){
      
-        return polytopeEdges;
-    }
-    
-    std::vector<POLYTOPEVERTEX>& U4DPolytope::getVertexOfPolytope(){
-
-        return polytopeVertex;
-    }
-    
-    void U4DPolytope::cleanUp(){
+        std::vector<U4DVector3n> verticesBucket;
+        polytopeVertices.clear();
         
+        if (polytopeEdges.size()>0) {
+            
+            bool isDuplicate=false;
+            
+            //get the first segmet in the polytope
+            U4DSegment firstSegment=polytopeEdges.at(0).segment;
+            
+            //get the points of the segmet
+            
+            std::vector<U4DPoint3n> segmentPoints=firstSegment.getPoints();
+            
+            //load the first points into the bucket
+            for(auto n:segmentPoints){
+                verticesBucket.push_back(n.toVector());
+            }
+            
+            //Get the rest of the points and load them into the bucket if they don't exist
+            for(auto n:polytopeEdges){
+                
+                std::vector<U4DPoint3n> restOfPoints=n.segment.getPoints();
+                
+                //for each new point, compare if they exist in the bucket
+                for(auto m:restOfPoints){
+                    
+                    isDuplicate=false;
+                    
+                    for(auto p:verticesBucket){
+                        
+                        //if the points are equal, don't add them
+                        if (m.toVector()==p) {
+                            
+                            isDuplicate=true;
+                            
+                        }//end if
+                        
+                    }//end for
+                    
+                    if (isDuplicate==false) {
+                        verticesBucket.push_back(m.toVector());
+                        
+                    }//end if
+                    
+                }//end for
+                
+                
+            }//end for
+            
+        }
+        
+        for(auto n:verticesBucket){
+            
+            POLYTOPEVERTEX vertices;
+            vertices.vertex=n;
+            
+            polytopeVertices.push_back(vertices);
+        }
+        
+        return polytopeVertices;
+        
+    }
+    
+    
+    std::vector<POLYTOPEEDGES> U4DPolytope::getPolytopeSegments(){
+        
+        
+        std::vector<U4DSegment> segmentBucket;
+        polytopeEdges.clear();
+        
+        if (polytopeFaces.size()>0) {
+            
+            bool isDuplicate=false;
+            
+            //get the first face in the polytope
+            U4DTriangle firstFace=polytopeFaces.at(0).triangle;
+            
+            //get the segments of the triangle
+            
+            std::vector<U4DSegment> firstSegments=firstFace.getSegments();
+            
+            //load the first segments into the bucket
+            for(auto n:firstSegments){
+                segmentBucket.push_back(n);
+            }
+            
+            //Get the rest of the segments and load them into the bucket if they don't exist
+            for(auto n:polytopeFaces){
+                
+                std::vector<U4DSegment> restOfSegments=n.triangle.getSegments();
+                
+                //for each new segment, compare if they exist in the bucket
+                for(auto m:restOfSegments){
+                    
+                    isDuplicate=false;
+                    
+                    for(auto p:segmentBucket){
+                        
+                        //if the segments are equal, don't add them
+                        if (m==p || m==p.negate()) {
+                            
+                            isDuplicate=true;
+                        }//end if
+                    }//end for
+                    
+                    if (isDuplicate==false) {
+                        segmentBucket.push_back(m);
+                        
+                    }//end if
+                    
+                }//end for
+                
+                
+            }//end for
+        
+            
+        }
+        
+        for(auto n:segmentBucket){
+        
+            POLYTOPEEDGES edge;
+            edge.segment=n;
+            
+            polytopeEdges.push_back(edge);
+        }
+        
+        return polytopeEdges;
+        
+    }
+    
+    
+    std::vector<POLYTOPEFACES>& U4DPolytope::getPolytopeFaces(){
+            
+            return polytopeFaces;
     }
     
     void U4DPolytope::removeAllFaces(){

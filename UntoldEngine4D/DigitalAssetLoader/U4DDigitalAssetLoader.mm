@@ -101,7 +101,6 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *texture=child->FirstChildElement("texture_image");
                     tinyxml2::XMLElement *localMatrix=child->FirstChildElement("local_matrix");
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
-                    tinyxml2::XMLElement *convexHull=child->FirstChildElement("convexHull");
                     tinyxml2::XMLElement *dimension=child->FirstChildElement("dimension");
                     tinyxml2::XMLElement *edges=child->FirstChildElement("edges");
                     tinyxml2::XMLElement *faces=child->FirstChildElement("faces");
@@ -140,13 +139,6 @@ namespace U4DEngine {
                         
                         std::string data=index->GetText();
                         loadIndexData(uModel, data);
-                        
-                    }
-                    
-                    if (convexHull!=NULL) {
-                        
-                        std::string data=convexHull->GetText();
-                        loadConvexHullData(uModel, data);
                         
                     }
                     
@@ -612,29 +604,6 @@ namespace U4DEngine {
             uModel->bodyCoordinates.addIndexDataToContainer(index);
             
             i=i+3;
-        }
-        
-    }
-    
-    void U4DDigitalAssetLoader::loadConvexHullData(U4DModel *uModel,std::string uStringData){
-        
-        std::vector<float> tempVector;
-        
-        stringToFloat(uStringData, &tempVector);
-        
-        for (int i=0; i<tempVector.size();) {
-            
-            float x=tempVector.at(i);
-            
-            float y=tempVector.at(i+1);
-            
-            float z=tempVector.at(i+2);
-            
-            U4DVector3n uVertices(x,y,z);
-            
-            uModel->bodyCoordinates.addConvexHullDataToContainer(uVertices);
-            i=i+3;
-            
         }
         
     }

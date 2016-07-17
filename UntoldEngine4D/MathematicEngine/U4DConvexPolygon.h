@@ -22,21 +22,10 @@ namespace U4DEngine {
         
     public:
         
-        std::vector<U4DVector3n> polygonVertices;
-        
-        U4DMatrix3n orientation;
-        
-        U4DVector3n center;
-        
         U4DConvexPolygon();
         
         ~U4DConvexPolygon();
         
-        void setVerticesInConvexPolygon(std::vector<U4DVector3n> uPolygonVertices);
-        
-        std::vector<U4DVector3n> getVerticesInConvexPolygon();
-        
-        U4DPoint3n getSupportPointInDirection(U4DVector3n& uDirection);
         
     };
 }
