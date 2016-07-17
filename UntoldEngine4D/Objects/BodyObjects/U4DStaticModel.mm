@@ -11,6 +11,8 @@
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
+#include "U4DConvexHullGenerator.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -245,36 +247,47 @@ namespace U4DEngine {
             
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();
-
-            //determine the convex hull of the model
-            convexHullBoundingVolume->setConvexHullVertices(this->bodyCoordinates.convexHullContainer);
-        
-            if (getIsGround()) {
-                
-                //create a AABB bounding volume
-                sphereBoundingVolume=new U4DBoundingAABB();
-                
-                //get min and max points to create the AABB
-                U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
-                U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
-                
-                //calculate the AABB
-                sphereBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
-                
-            }else{
-                
-                //create sphere bounding volume
-                sphereBoundingVolume=new U4DBoundingSphere();
-                
-                //set the radius for the sphere bounding volume
-                float radius=longestModelDimension;
-                
-                //calculate the sphere
-                sphereBoundingVolume->computeBoundingVolume(radius, 10, 10);
-            }
             
-            //enable collision
-            collisionEnabled=true;
+            //generate the convex hull for the model
+            U4DConvexHullGenerator convexHullGenerator;
+            
+            //determine the convex hull of the model
+            CONVEXHULL convexHull=convexHullGenerator.buildConvexHull(this->bodyCoordinates.verticesContainer);
+            
+            //if convex hull valid, then set it to the model and enable collision
+            
+            if (convexHullGenerator.isValid(convexHull)) {
+                
+                convexHullBoundingVolume->setConvexHullVertices(convexHull);
+                
+                if (getIsGround()) {
+                    
+                    //create a AABB bounding volume
+                    sphereBoundingVolume=new U4DBoundingAABB();
+                    
+                    //get min and max points to create the AABB
+                    U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
+                    U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
+                    
+                    //calculate the AABB
+                    sphereBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
+                    
+                }else{
+                    
+                    //create sphere bounding volume
+                    sphereBoundingVolume=new U4DBoundingSphere();
+                    
+                    //set the radius for the sphere bounding volume
+                    float radius=longestModelDimension;
+                    
+                    //calculate the sphere
+                    sphereBoundingVolume->computeBoundingVolume(radius, 10, 10);
+                }
+                
+                //enable collision
+                collisionEnabled=true;
+                
+            }
         
         }else if(convexHullBoundingVolume!=nullptr && sphereBoundingVolume!=nullptr){
             

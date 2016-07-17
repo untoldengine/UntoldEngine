@@ -73,8 +73,6 @@ namespace U4DEngine {
         
         void loadIndexData(U4DModel *uModel,std::string uStringData);
         
-        void loadConvexHullData(U4DModel *uModel,std::string uStringData);
-        
         void loadEdgesData(U4DModel *uModel, std::string uStringData);
         
         void loadFacesData(U4DModel *uModel, std::string uStringData);

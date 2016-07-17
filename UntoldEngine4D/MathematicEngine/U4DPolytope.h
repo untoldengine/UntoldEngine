@@ -11,8 +11,6 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DTriangle.h"  
-#include "U4DSegment.h"
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
@@ -21,11 +19,13 @@ namespace U4DEngine {
         
     private:
         
-        int n;
+        int index;
+        
     public:
         
         std::vector<POLYTOPEFACES> polytopeFaces;
-
+        std::vector<POLYTOPEEDGES> polytopeEdges;
+        std::vector<POLYTOPEVERTEX> polytopeVertices;
         
         U4DPolytope();
         
@@ -38,6 +38,8 @@ namespace U4DEngine {
         inline U4DPolytope& operator=(const U4DPolytope& a){
             
             polytopeFaces=a.polytopeFaces;
+            polytopeEdges=a.polytopeEdges;
+            polytopeVertices=a.polytopeVertices;
             
             return *this;
         };
@@ -45,11 +47,17 @@ namespace U4DEngine {
     
         POLYTOPEFACES& closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint);
         
-        std::vector<POLYTOPEFACES>& getFacesOfPolytope();
+        std::vector<POLYTOPEFACES>& getPolytopeFaces();
+                
+        std::vector<POLYTOPEEDGES> getPolytopeSegments();
         
-        void addFaceToPolytope(U4DTriangle& uTriangle);
+        std::vector<POLYTOPEVERTEX> getPolytopeVertices();
+        
+        void addPolytopeData(U4DTriangle& uTriangle);
         
         void removeAllFaces();
+        
+        void cleanUp();
         
         /**
          *  Debug-show the vector on the output log

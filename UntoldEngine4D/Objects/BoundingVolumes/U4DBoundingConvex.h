@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "U4DBoundingVolume.h"
 #include "U4DPoint3n.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     class U4DVector3n;
@@ -21,6 +22,7 @@ namespace U4DEngine {
 namespace U4DEngine {
     
     class U4DBoundingConvex:public U4DBoundingVolume{
+        
     private:
         
     public:
@@ -33,7 +35,7 @@ namespace U4DEngine {
         
         U4DBoundingConvex& operator=(const U4DBoundingConvex& value);
         
-        void setConvexHullVertices(std::vector<U4DVector3n>& uVertices);
+        void setConvexHullVertices(CONVEXHULL &uConvexHull);
         
         void computeBoundingVolume();
         

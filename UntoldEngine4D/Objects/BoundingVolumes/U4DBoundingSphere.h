@@ -20,7 +20,7 @@ namespace U4DEngine {
     private:
         
         float radius;
-        U4DSphere sphere; //used for mathematical operaions only
+        U4DSphere sphere; //used for mathematical operations only
         
     public:
         
