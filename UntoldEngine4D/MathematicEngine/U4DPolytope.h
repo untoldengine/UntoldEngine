@@ -11,8 +11,6 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DTriangle.h"  
-#include "U4DSegment.h"
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
@@ -55,9 +53,17 @@ namespace U4DEngine {
         
         std::vector<POLYTOPEVERTEX>& getVertexOfPolytope();
         
-        void addFaceToPolytope(U4DTriangle& uTriangle);
+        void addPolytopeData(U4DTriangle& uTriangle);
+        
+        void addPolytopeFace(POLYTOPEFACES &uFace, U4DTriangle& uTriangle);
+        
+        void addPolytopeEdges(POLYTOPEFACES &uFace, U4DTriangle& uTriangle);
+        
+        void addPolytopeVertices(POLYTOPEFACES &uFace, U4DTriangle& uTriangle);
         
         void removeAllFaces();
+        
+        void cleanUp();
         
         /**
          *  Debug-show the vector on the output log

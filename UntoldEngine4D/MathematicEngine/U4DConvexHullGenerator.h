@@ -49,6 +49,7 @@ namespace U4DEngine {
         
         HULLINITIALDATA buildTetrahedron(std::vector<U4DVector3n> &uVertices);
         
+        int volumeSign(U4DTriangle &uTriangle, U4DVector3n &uVector);
         
         bool verify();
    

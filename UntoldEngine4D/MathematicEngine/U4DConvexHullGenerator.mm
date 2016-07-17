@@ -42,7 +42,7 @@ namespace U4DEngine {
             
             for (auto face:triangles) {
                 
-                polytope.addFaceToPolytope(face);
+                polytope.addPolytopeData(face);
                 
             }
             
@@ -51,12 +51,13 @@ namespace U4DEngine {
             
             for(auto n: hullInitialData.vertices){
                 
+                edges.clear();
+            
+                std::cout<<polytope.getFacesOfPolytope().size()<<std::endl;
                 //Which faces is seen by point
-                for (auto face:polytope.getFacesOfPolytope()) {
+                for (auto &face:polytope.getFacesOfPolytope()) {
                     
-                    U4DVector3n triangleNormal=(face.triangle.pointA-face.triangle.pointB).cross(face.triangle.pointA-face.triangle.pointC);
-                    
-                    if (triangleNormal.dot(n.vertex)>=0) { //if dot>0, then face seen by point
+                    if (volumeSign(face.triangle, n.vertex)<0) { //is face seen by point
                         
                         face.isSeenByPoint=true;
                         
@@ -89,8 +90,12 @@ namespace U4DEngine {
                                     
                                     if (tempEdge.segment==edge.segment.negate()) {
                                         
+                                        //set edges as duplicates
                                         tempEdge.isDuplicate=true;
                                         edge.isDuplicate=true;
+                                        
+                                        //set vertices as duplicates
+                                        
                                         
                                     }//end if
                                     
@@ -122,11 +127,13 @@ namespace U4DEngine {
                     
                     U4DTriangle triangle(point,edge.segment.pointA,edge.segment.pointB);
                     
-                    polytope.addFaceToPolytope(triangle);
+                    polytope.addPolytopeData(triangle);
                     
                 }
                 
             }
+            
+            polytope.cleanUp();
             
             //return convex hull
             convexhull.faces=polytope.getFacesOfPolytope();
@@ -143,6 +150,34 @@ namespace U4DEngine {
         
         return convexhull;
 
+    }
+    
+    int U4DConvexHullGenerator::volumeSign(U4DTriangle &uTriangle, U4DVector3n &uVector){
+        
+        float volume;
+        
+        float ax,ay,az,bx,by,bz,cx,cy,cz;
+        
+        ax=uTriangle.pointA.x-uVector.x;
+        ay=uTriangle.pointA.y-uVector.y;
+        az=uTriangle.pointA.z-uVector.z;
+        
+        bx=uTriangle.pointB.x-uVector.x;
+        by=uTriangle.pointB.y-uVector.y;
+        bz=uTriangle.pointB.z-uVector.z;
+        
+        cx=uTriangle.pointC.x-uVector.x;
+        cy=uTriangle.pointC.y-uVector.y;
+        cz=uTriangle.pointC.z-uVector.z;
+        
+        
+        volume=ax*(by*cz-bz*cy)+ay*(bz*cx-bx*cz)+az*(bx*cy-by*cx);
+        
+        //the volume should be an integer
+        if (volume>0.5) return 1;
+        else if(volume<-0.5) return -1;
+        else return 0;
+        
     }
     
     HULLINITIALDATA U4DConvexHullGenerator::buildTetrahedron(std::vector<U4DVector3n> &uVertices){

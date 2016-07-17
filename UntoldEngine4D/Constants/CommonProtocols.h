@@ -119,7 +119,6 @@ namespace U4DEngine {
         
         U4DVector3n vertex;
         bool isDuplicate;
-        bool onHull;
         
     }POLYTOPEVERTEX;
 
@@ -133,6 +132,8 @@ namespace U4DEngine {
     typedef struct{
         
         U4DTriangle triangle;
+        std::vector<POLYTOPEEDGES> edges;
+        std::vector<POLYTOPEVERTEX> vertices;
         bool isSeenByPoint;
         int index;
         
