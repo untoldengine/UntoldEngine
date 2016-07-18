@@ -332,7 +332,7 @@ namespace U4DEngine {
         //Normalize the plane so the dot product between the face normal and the plane falls within [-1,1]
         planeNormal.normalize();
         
-        for(auto n: uModel->bodyCoordinates.getFacesDataFromContainer()){
+        for(auto n: uModel->bodyCoordinates.getConvexHullFacesDataFromContainer()){
             
             //update all faces with current model position
             

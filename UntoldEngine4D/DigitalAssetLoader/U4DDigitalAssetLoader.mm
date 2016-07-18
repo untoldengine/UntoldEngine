@@ -102,8 +102,6 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *localMatrix=child->FirstChildElement("local_matrix");
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
                     tinyxml2::XMLElement *dimension=child->FirstChildElement("dimension");
-                    tinyxml2::XMLElement *edges=child->FirstChildElement("edges");
-                    tinyxml2::XMLElement *faces=child->FirstChildElement("faces");
                     
                     //Set name
                     uModel->setName(meshName);
@@ -147,15 +145,6 @@ namespace U4DEngine {
                         loadDimensionDataToBody(uModel, data);
                     }
                     
-                    if (edges!=NULL) {
-                        std::string data=edges->GetText();
-                        loadEdgesData(uModel, data);
-                    }
-                    
-                    if (faces!=NULL) {
-                        std::string data=index->GetText();
-                        loadFacesData(uModel, data);
-                    }
                     
                     if (diffuseColor!=NULL) {
                         
@@ -604,85 +593,6 @@ namespace U4DEngine {
             uModel->bodyCoordinates.addIndexDataToContainer(index);
             
             i=i+3;
-        }
-        
-    }
-    
-    void U4DDigitalAssetLoader::loadEdgesData(U4DModel *uModel,std::string uStringData){
-        
-        std::vector<int> tempVector;
-        
-        stringToInt(uStringData, &tempVector);
-        
-        //get the vertices of the model
-        std::vector<U4DVector3n> vertices=uModel->bodyCoordinates.getVerticesDataFromContainer();
-        
-        for (int i=0; i<tempVector.size();) {
-            
-            //get the index of the edge
-            int indexA=tempVector.at(i);
-            
-            int indexB=tempVector.at(i+1);
-            
-            //Get the vertex that corresponds to the index
-            
-            U4DVector3n a=vertices.at(indexA);
-            U4DVector3n b=vertices.at(indexB);
-            
-            U4DPoint3n pointA=a.toPoint();
-            U4DPoint3n pointB=b.toPoint();
-            
-            U4DSegment segment(pointA,pointB);
-            
-            uModel->bodyCoordinates.addEdgesDataToContainer(segment);
-            i=i+2;
-            
-        }
-        
-    }
-    
-    void U4DDigitalAssetLoader::loadFacesData(U4DModel *uModel, std::string uStringData){
-        
-        std::vector<int> tempVector;
-        
-        stringToInt(uStringData, &tempVector);
-        
-        //get the vertices of the model
-        std::vector<U4DVector3n> vertices=uModel->bodyCoordinates.getVerticesDataFromContainer();
-        
-        for (int i=0; i<tempVector.size();) {
-            
-            //get the index of the edge
-            int indexA=tempVector.at(i);
-            
-            int indexB=tempVector.at(i+1);
-            
-            int indexC=tempVector.at(i+2);
-            
-            //Get the vertex that corresponds to the index
-            
-            U4DVector3n a=vertices.at(indexA);
-            U4DVector3n b=vertices.at(indexB);
-            U4DVector3n c=vertices.at(indexC);
-            
-            U4DPoint3n pointA=a.toPoint();
-            U4DPoint3n pointB=b.toPoint();
-            U4DPoint3n pointC=c.toPoint();
-            
-            U4DTriangle face(pointA,pointB,pointC);
-            
-            
-            if (!face.isValid()) {
-                
-                std::cout<<"Model Face is not valid. These indexes are invalid: "<<i<<","<<i+1<<","<<i+2<<std::endl;
-                std::cout<<"They are producing a collinear face/triangle."<<std::endl;
-                face.show();
-                
-            }
-            
-            uModel->bodyCoordinates.addFacesDataToContainer(face);
-            i=i+3;
-            
         }
         
     }

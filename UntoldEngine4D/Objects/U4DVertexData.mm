@@ -35,8 +35,8 @@ namespace U4DEngine {
         indexContainer.push_back(uData);
     }
     
-    void U4DVertexData::addConvexHullDataToContainer(U4DVector3n& uData){
-        convexHullContainer.push_back(uData);
+    void U4DVertexData::addConvexHullVerticesToContainer(U4DVector3n& uData){
+        convexHullVerticesContainer.push_back(uData);
     }
 
     void U4DVertexData::addVertexWeightsToContainer(U4DVector4n& uData){
@@ -57,30 +57,30 @@ namespace U4DEngine {
     
     }
     
-    std::vector<U4DVector3n> U4DVertexData::getConvexHullDataFromContainer(){
+    std::vector<U4DVector3n> U4DVertexData::getConvexHullVerticesFromContainer(){
         
-        return convexHullContainer;
+        return convexHullVerticesContainer;
         
     }
     
-    void U4DVertexData::addEdgesDataToContainer(U4DSegment& uData){
+    void U4DVertexData::addConvexHullEdgesDataToContainer(U4DSegment& uData){
         
-        edgesContainer.push_back(uData);
+        convexHullEdgesContainer.push_back(uData);
     }
     
-    std::vector<U4DSegment> U4DVertexData::getEdgesDataFromContainer(){
+    std::vector<U4DSegment> U4DVertexData::getConvexHullEdgesDataFromContainer(){
         
-        return edgesContainer;
+        return convexHullEdgesContainer;
     }
     
-    void U4DVertexData::addFacesDataToContainer(U4DTriangle& uData){
+    void U4DVertexData::addConvexHullFacesDataToContainer(U4DTriangle& uData){
         
-        facesContainer.push_back(uData);
+        convexHullFacesContainer.push_back(uData);
     }
     
-    std::vector<U4DTriangle> U4DVertexData::getFacesDataFromContainer(){
+    std::vector<U4DTriangle> U4DVertexData::getConvexHullFacesDataFromContainer(){
         
-        return facesContainer;
+        return convexHullFacesContainer;
     }
     
     void U4DVertexData::setModelDimension(U4DVector3n& uData){
