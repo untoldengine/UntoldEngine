@@ -260,6 +260,30 @@ namespace U4DEngine {
                 
                 convexHullBoundingVolume->setConvexHullVertices(convexHull);
                 
+                //decompose the convex hull into vertices. Note this data is also contained in the bounding volume. But I'm adding it here just in case I need it in the future.
+                for(auto n:convexHull.vertex){
+                    
+                    U4DVector3n vertex=n.vertex;
+                    
+                    bodyCoordinates.addConvexHullVerticesToContainer(vertex);
+                    
+                }
+                
+                //decompose the convex hull into segments
+                for(auto n:convexHull.edges){
+                    U4DSegment segment=n.segment;
+                    bodyCoordinates.addConvexHullEdgesDataToContainer(segment);
+                }
+                
+                
+                //decompose the convex hull into faces
+                for(auto n:convexHull.faces){
+                    U4DTriangle face=n.triangle;
+                    
+                    bodyCoordinates.addConvexHullFacesDataToContainer(face);
+                    
+                }
+                
                 if (getIsGround()) {
                     
                     //create a AABB bounding volume

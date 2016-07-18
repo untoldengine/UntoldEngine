@@ -61,10 +61,10 @@ void Earth::init(){
     cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
-    cube2->init("Cube",0.0,5.0,0.0);
+    cube2->init("Shape1",0.0,5.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    //cube2->rotateBy(0.0,0.0,90.0);
+    cube2->rotateBy(30.0,0.0,60.0);
     cube2->setMass(1.0);
     //cube2->setCoefficientOfRestitution(0.6);
     cube2->applyPhysics(true);

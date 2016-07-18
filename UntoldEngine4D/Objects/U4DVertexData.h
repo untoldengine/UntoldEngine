@@ -35,11 +35,11 @@ namespace U4DEngine {
         std::vector<U4DVector2n> uVContainer;
         std::vector<U4DVector4n> tangentContainer;
         std::vector<U4DIndex> indexContainer;
-        std::vector<U4DVector3n> convexHullContainer;
+        std::vector<U4DVector3n> convexHullVerticesContainer;
         std::vector<U4DVector4n> vertexWeightsContainer;
         std::vector<U4DVector4n> boneIndicesContainer;
-        std::vector<U4DSegment> edgesContainer;
-        std::vector<U4DTriangle> facesContainer;
+        std::vector<U4DSegment> convexHullEdgesContainer;
+        std::vector<U4DTriangle> convexHullFacesContainer;
         U4DVector3n modelDimension;
         
         void addVerticesDataToContainer(U4DVector3n& uData);
@@ -47,17 +47,17 @@ namespace U4DEngine {
         void addUVDataToContainer(U4DVector2n& uData);
         void addTangetDataToContainer(U4DVector4n& uData);
         void addIndexDataToContainer(U4DIndex& uData);
-        void addConvexHullDataToContainer(U4DVector3n& uData);
+        void addConvexHullVerticesToContainer(U4DVector3n& uData);
         void addVertexWeightsToContainer(U4DVector4n& uData);
         void addBoneIndicesToContainer(U4DVector4n& uData);
-        void addEdgesDataToContainer(U4DSegment& uData);
-        void addFacesDataToContainer(U4DTriangle& uData);
+        void addConvexHullEdgesDataToContainer(U4DSegment& uData);
+        void addConvexHullFacesDataToContainer(U4DTriangle& uData);
         void setModelDimension(U4DVector3n& uData);
         
         std::vector<U4DVector3n> getVerticesDataFromContainer();
-        std::vector<U4DVector3n> getConvexHullDataFromContainer();
-        std::vector<U4DSegment> getEdgesDataFromContainer();
-        std::vector<U4DTriangle> getFacesDataFromContainer();
+        std::vector<U4DVector3n> getConvexHullVerticesFromContainer();
+        std::vector<U4DSegment> getConvexHullEdgesDataFromContainer();
+        std::vector<U4DTriangle> getConvexHullFacesDataFromContainer();
         U4DVector3n getModelDimension();
     };
     
