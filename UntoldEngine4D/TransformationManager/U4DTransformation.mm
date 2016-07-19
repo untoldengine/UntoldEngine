@@ -21,12 +21,6 @@ namespace U4DEngine {
         
         uEntity=uUObject;
         
-        U4DVector3n worldTransmormAxis(-0.707107,0,0);
-        
-        U4DQuaternion world(0.707107,worldTransmormAxis);
-        
-        worldTransform=world;
-        
     }
 
 
@@ -110,12 +104,6 @@ namespace U4DEngine {
         //update view direction
         uEntity->updateViewDirection(rotation);
         
-        if (uEntity->getEntityType()==MODEL) {
-        
-        rotation=rotation*worldTransform;
-            
-        }
-        
         updateSpaceMatrixOrientation(rotation);
         
     }
@@ -128,11 +116,6 @@ namespace U4DEngine {
         
         //update view direction
         uEntity->updateViewDirection(rotation);
-        
-        if (uEntity->getEntityType()==MODEL) {
-            
-            rotation=rotation*worldTransform;
-        }
         
         updateSpaceMatrixOrientation(rotation);
         
@@ -161,12 +144,6 @@ namespace U4DEngine {
         
         //update view direction
         uEntity->updateViewDirection(rotation);
-        
-        if (uEntity->getEntityType()==MODEL) {
-        
-            rotation=rotation*worldTransform;
-            
-        }
         
         updateSpaceMatrixOrientation(rotation);
         
@@ -247,13 +224,6 @@ namespace U4DEngine {
         
         //THIS HAS TO BE HAMILTON
         rotation.convertToUnitNormQuaternion();
-        
-        
-        if (uEntity->getEntityType()==MODEL) {
-            
-            rotation=rotation*worldTransform;
-            
-        }
         
         //get the current translation
         U4DQuaternion t=uEntity->getLocalSpaceTranslation();

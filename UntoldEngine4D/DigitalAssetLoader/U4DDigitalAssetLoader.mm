@@ -424,6 +424,14 @@ namespace U4DEngine {
         tempMatrix.matrixData[11]=tempVector.at(14);
         tempMatrix.matrixData[15]=tempVector.at(15);
         
+        
+        U4DMatrix4n m(1,0,0,0,
+                      0,0,1,0,
+                      0,1,0,0,
+                      0,0,0,1);
+        
+        tempMatrix=m*tempMatrix*m;
+        
         //convert matrix to dual quaternion
         
         U4DDualQuaternion modelDualQuaternion;
@@ -464,6 +472,8 @@ namespace U4DEngine {
         //transform the model dual quaternion by the world dual quaternion
         modelDualQuaternion=modelDualQuaternion*worldDualQuaternionTransform;
         */
+        
+        
         
         uModel->setLocalSpace(modelDualQuaternion);
         

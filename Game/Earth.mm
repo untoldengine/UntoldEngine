@@ -49,7 +49,7 @@ void Earth::init(){
     
     //create our object
     cube=new Town();
-    cube->init("GroundFloor5",0.0,0.0,0.0);
+    cube->init("GroundFloor",0.0,0.0,0.0);
     cube->setName("cube");
     cube->setShader("simpleRedShader");
     cube->setAsGround(true);
@@ -61,13 +61,13 @@ void Earth::init(){
     cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
-    cube2->init("Shape1",0.0,5.0,0.0);
+    cube2->init("Cube2",0.0,0.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
-    cube2->rotateBy(30.0,0.0,60.0);
+    //cube2->rotateBy(0.0,0.0,60.0);
     cube2->setMass(1.0);
     //cube2->setCoefficientOfRestitution(0.6);
-    cube2->applyPhysics(true);
+    //cube2->applyPhysics(true);
 
     cube2->enableCollision();
     
@@ -212,7 +212,7 @@ void Earth::update(double dt){
 
 //    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 //    
-//    camera->rotateTo(0.0,-rotation,0.0);
+//    cube2->rotateTo(-rotation,0.0,0.0);
 //    
 //    rotation++;
 //    

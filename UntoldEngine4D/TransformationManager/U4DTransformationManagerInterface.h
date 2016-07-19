@@ -27,8 +27,6 @@ private:
     
 public:
     
-    U4DQuaternion worldTransform;
-    
     ~U4DTransformationManagerInterface(){};
     
     virtual void translateTo(U4DVector3n& translation)=0;
