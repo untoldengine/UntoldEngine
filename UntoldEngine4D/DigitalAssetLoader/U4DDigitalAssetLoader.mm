@@ -425,15 +425,6 @@ namespace U4DEngine {
         tempMatrix.matrixData[15]=tempVector.at(15);
         
         
-        U4DMatrix4n m(1,0,0,0,
-                      0,0,1,0,
-                      0,1,0,0,
-                      0,0,0,1);
-        
-        tempMatrix=m*tempMatrix*m;
-        
-        //convert matrix to dual quaternion
-        
         U4DDualQuaternion modelDualQuaternion;
         modelDualQuaternion.transformMatrix4nToDualQuaternion(tempMatrix);
         
