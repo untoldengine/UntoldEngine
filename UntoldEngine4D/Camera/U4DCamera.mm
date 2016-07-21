@@ -22,7 +22,8 @@ U4DCamera* U4DCamera::instance=0;
 U4DCamera::U4DCamera(){
     
     setEntityType(CAMERA);
-    
+    U4DVector3n viewInDirection(0,0,1);
+    setViewDirection(viewInDirection);
 }
     
 U4DCamera::~U4DCamera(){

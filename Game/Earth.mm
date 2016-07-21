@@ -80,7 +80,7 @@ void Earth::init(){
     light->translateTo(-2.0,4.0,0.0);
     addChild(light);
     
-//    U4DEngine::U4DVector3n n(0,-5,0);
+//    U4DEngine::U4DVector3n n(4,-5,0);
 //    camera->viewInDirection(n);
     
     addChild(cube);
@@ -225,7 +225,7 @@ void Earth::update(double dt){
 //    if (rotation>360) {
 //        rotation=0;
 //    }
-    
+//    
 }
 
 void Earth::action(){

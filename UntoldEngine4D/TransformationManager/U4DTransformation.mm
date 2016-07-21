@@ -304,18 +304,19 @@ namespace U4DEngine {
 
         U4DVector3n forwardVector=uDestinationPoint-entityPosition;
         
+        if (uEntity->getEntityType()==CAMERA) {
+            forwardVector=entityPosition-uDestinationPoint;
+        }
+        
         float angle=uEntity->getViewDirection().angle(forwardVector);
+        
         if (angle>90) {
             angle=180-angle;
         }
-        std::cout<<"Name: "<<uEntity->getName()<<std::endl;
-        std::cout<<"angle: "<<angle<<std::endl;
         
         U4DVector3n rotationAxis=uEntity->getViewDirection().cross(forwardVector);
         
         rotationAxis.normalize();
-        
-        rotationAxis.show();
         
         U4DQuaternion rotationQuaternion(angle,rotationAxis);
         

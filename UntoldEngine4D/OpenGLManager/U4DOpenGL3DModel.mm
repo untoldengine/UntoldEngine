@@ -284,8 +284,6 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     depthOrthoMatrix.computeOrthographicMatrix(-5.0, 5.0, -5.0, 5.0, -5.0f, 5.0f);
     
-    U4DDualQuaternion mModel=getEntitySpace();
-
     U4DDirector *director=U4DDirector::sharedInstance();
     
     U4DLights *light=director->getLight();
@@ -300,19 +298,16 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     U4DMatrix4n lightMatrix=lightViewSpace.transformDualQuaternionToMatrix4n();
     
-    lightMatrix.invert();
     
-    U4DMatrix4n modelMatrix=mModel.transformDualQuaternionToMatrix4n();
     
-    U4DMatrix4n modelWorldLightMatrix=lightMatrix*modelMatrix;
+    U4DDualQuaternion mModel=getEntitySpace();
     
-    //U4DDualQuaternion modelWorldLight=mModel*lightViewSpace;
+    U4DDualQuaternion mModelWorldView=mModel*getCameraOrientation();
     
-    //U4DMatrix4n modelWorldLightMatrix=modelWorldLight.transformDualQuaternionToMatrix4n();
+    U4DMatrix4n mModelViewMatrix=mModelWorldView.transformDualQuaternionToMatrix4n();
     
-    //compute depth MVP
-    //U4DDualQuaternion depthMVPSpace=modelWorldLight*depthOrthoSpace;
-    
+    U4DMatrix4n modelWorldLightMatrix=lightMatrix*mModelViewMatrix;
+  
     depthMVPMatrix=depthOrthoMatrix*modelWorldLightMatrix;
     
     U4DMatrix4n biasMatrix(
@@ -322,7 +317,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
                            0.0, 0.0, 0.0, 1.0
                            );
     
-    //depthMVPMatrix=biasMatrix*depthMVPMatrix;
+    depthMVPMatrix=biasMatrix*depthMVPMatrix;
     
     
     //load depth shader uniform

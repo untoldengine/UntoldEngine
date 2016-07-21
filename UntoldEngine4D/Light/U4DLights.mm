@@ -23,7 +23,6 @@ U4DLights::U4DLights(){
     openGlManager=new U4DOpenGLLight(this);
     openGlManager->setShader("lightShader");
     
-    
     setLightSphere(0.1, 15, 15);
     
 };
