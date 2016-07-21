@@ -6,7 +6,7 @@ uniform mat3 NormalMatrix;
 uniform mat4 MVMatrix;
 uniform mat4 MVPMatrix;
 
-uniform mat4 DepthMVPMatrix;
+uniform mat4 LightSpaceMatrix;
 
 mat4 biasMatrix=mat4(0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.5, 0.0,0.5, 0.5, 0.5, 1.0);
 
@@ -17,8 +17,8 @@ void main(void)
 
     gl_Position = MVPMatrix*Vertex;
   
-    mat4 depthBiasMVP=biasMatrix*DepthMVPMatrix;
+    mat4 depthBiasMVP=biasMatrix*LightSpaceMatrix;
     
-    shadowCoord=DepthMVPMatrix*Vertex;
+    shadowCoord=LightSpaceMatrix*Vertex;
 
     }

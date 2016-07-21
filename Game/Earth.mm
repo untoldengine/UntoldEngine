@@ -77,7 +77,7 @@ void Earth::init(){
     
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
     light->setName("light");
-    light->translateTo(-2.0,4.0,0.0);
+    light->translateTo(2.0,4.0,0.0);
     addChild(light);
     
 //    U4DEngine::U4DVector3n n(4,-5,0);

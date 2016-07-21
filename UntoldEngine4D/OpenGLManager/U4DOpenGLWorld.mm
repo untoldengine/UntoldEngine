@@ -65,10 +65,10 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_EXT, GL_LEQUAL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_EXT, GL_COMPARE_REF_TO_TEXTURE_EXT);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_EXT, GL_LEQUAL);
+    //glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_EXT, GL_COMPARE_REF_TO_TEXTURE_EXT);
     
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT, DEPTHSHADOWWIDTH,DEPTHSHADOWHEIGHT, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT, DEPTHSHADOWWIDTH, DEPTHSHADOWHEIGHT, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
     
     
     //Create Framebuffer here
@@ -114,11 +114,13 @@ void U4DOpenGLWorld::startShadowMapPass(){
     glBindFramebuffer(GL_FRAMEBUFFER, depthTextureFramebuffer);
     glViewport(0,0,DEPTHSHADOWWIDTH,DEPTHSHADOWHEIGHT);
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_DEPTH_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glCullFace(GL_FRONT);
     
 }
 
 void U4DOpenGLWorld::endShadowMapPass(){
+    
     
     //reset framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 2);
@@ -126,12 +128,12 @@ void U4DOpenGLWorld::endShadowMapPass(){
     glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
     
     //Clear previous frame values
-	//glClear(GL_DEPTH_BUFFER_BIT);
+	glClear(GL_DEPTH_BUFFER_BIT);
     
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, textureID[5]);
     glUniform1i(textureUniformLocations.shadowMapTextureUniformLocation, 5);
-    
+    glCullFace(GL_BACK);
     
 }
 

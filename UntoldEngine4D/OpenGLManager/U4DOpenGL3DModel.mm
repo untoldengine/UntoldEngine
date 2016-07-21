@@ -282,7 +282,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //compute ortho space
     U4DMatrix4n depthOrthoMatrix;
     
-    depthOrthoMatrix.computeOrthographicMatrix(-5.0, 5.0, -5.0, 5.0, -5.0f, 5.0f);
+    depthOrthoMatrix.computeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, -10.0f, 10.0f);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -290,7 +290,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     U4DVector3n modelPosition=getEntityAbsolutePosition();
     
-    U4DVector3n origin(modelPosition);
+    U4DVector3n origin(0,0,0);
     
     light->viewInDirection(origin);
     
@@ -298,17 +298,14 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     U4DMatrix4n lightMatrix=lightViewSpace.transformDualQuaternionToMatrix4n();
     
+    //light space matrix
+    lightSpaceMatrix=depthOrthoMatrix*lightMatrix;
     
-    
-    U4DDualQuaternion mModel=getEntitySpace();
-    
-    U4DDualQuaternion mModelWorldView=mModel*getCameraOrientation();
-    
-    U4DMatrix4n mModelViewMatrix=mModelWorldView.transformDualQuaternionToMatrix4n();
-    
-    U4DMatrix4n modelWorldLightMatrix=lightMatrix*mModelViewMatrix;
-  
-    depthMVPMatrix=depthOrthoMatrix*modelWorldLightMatrix;
+//    U4DDualQuaternion mModel=getEntitySpace();
+//    
+//    U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
+//    
+//    lightSpaceMatrix=lightSpaceMatrix*mModelMatrix;
     
     U4DMatrix4n biasMatrix(
                            0.5, 0.0, 0.0, 0.5,
@@ -317,11 +314,11 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
                            0.0, 0.0, 0.0, 1.0
                            );
     
-    depthMVPMatrix=biasMatrix*depthMVPMatrix;
+    //depthMVPMatrix=biasMatrix*depthMVPMatrix;
     
     
     //load depth shader uniform
-    glUniformMatrix4fv(modelViewUniformLocations.depthModelViewProjectionLocation,1,0,depthMVPMatrix.matrixData);
+    glUniformMatrix4fv(modelViewUniformLocations.depthModelViewProjectionLocation,1,0,lightSpaceMatrix.matrixData);
     
     //load the shadow current pass
     glUniform1f(lightUniformLocations.shadowCurrentPassUniformLocation, 0.0);
@@ -338,7 +335,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
 
 void U4DOpenGL3DModel::loadDepthShadowUniform(){
     
-    glUniformMatrix4fv(modelViewUniformLocations.depthModelViewProjectionLocation,1,0,depthMVPMatrix.matrixData);
+    glUniformMatrix4fv(modelViewUniformLocations.depthModelViewProjectionLocation,1,0,lightSpaceMatrix.matrixData);
     
 }
 
