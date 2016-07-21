@@ -14,6 +14,7 @@
 #include "U4DMatrix4n.h"
 #include "U4DEntity.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 
 namespace U4DEngine {
     
@@ -286,61 +287,42 @@ namespace U4DEngine {
 
     void U4DTransformation::viewInDirection(U4DVector3n& uDestinationPoint){
         
-        /*
-         zaxis = normal(cameraTarget - cameraPosition)
-         xaxis = normal(cross(cameraUpVector, zaxis))
-         yaxis = cross(zaxis, xaxis)
-         
-         xaxis.x           yaxis.x           zaxis.x          0
-         xaxis.y           yaxis.y           zaxis.y          0
-         xaxis.z           yaxis.z           zaxis.z          0
-         -dot(xaxis, cameraPosition)  -dot(yaxis, cameraPosition)  -dot(zaxis, cameraPosition)  1
-         
-         
-         The three input vectors represent the following, respectively:
-         The eye point: [0, 3, -5].
-         The camera look-at target: the origin [0, 0, 0].
-         The current world's up-direction: usually [0, 1, 0].
-         
-         LookAtLH(
-         new Vector3(0.0f, 3.0f, -5.0f),
-         new Vector3(0.0f, 0.0f, 0.0f),
-         new Vector3(0.0f, 1.0f, 0.0f));
-         
-         
-         LookAtLH(
-         Vector3 cameraPosition,
-         Vector3 cameraTarget,
-         Vector3 cameraUpVector
-         );
-         
-         */
         
         U4DVector3n up(0,1,0);
+
+        U4DVector3n entityPosition;
         
-        U4DVector3n parentPosition(0,0,0);
-        
+        //if entity has parent, then get the absolute position
         if (uEntity->parent!=NULL) {
-            parentPosition=uEntity->parent->getLocalPosition();
+            
+            entityPosition=uEntity->getAbsolutePosition();
+            
+        }else{
+            //if it does not have a parent, then get the local position
+            entityPosition=uEntity->getLocalPosition();
         }
+
+        U4DVector3n forwardVector=uDestinationPoint-entityPosition;
         
-        U4DVector3n zAxis=uEntity->getAbsolutePosition()-uDestinationPoint;
+        float angle=uEntity->getViewDirection().angle(forwardVector);
+        if (angle>90) {
+            angle=180-angle;
+        }
+        std::cout<<"Name: "<<uEntity->getName()<<std::endl;
+        std::cout<<"angle: "<<angle<<std::endl;
         
-        zAxis.normalize();
+        U4DVector3n rotationAxis=uEntity->getViewDirection().cross(forwardVector);
         
-        U4DVector3n xAxis=up.cross(zAxis);
-        xAxis.normalize();
+        rotationAxis.normalize();
         
-        U4DVector3n yAxis=zAxis.cross(xAxis);
-        yAxis.normalize();
+        rotationAxis.show();
         
+        U4DQuaternion rotationQuaternion(angle,rotationAxis);
         
-        U4DMatrix3n m(xAxis.x,yAxis.x,zAxis.x,
-                      xAxis.y,yAxis.y,zAxis.y,
-                      xAxis.z,yAxis.z,zAxis.z);
+        rotationQuaternion.convertToUnitNormQuaternion();
         
+        updateSpaceMatrixOrientation(rotationQuaternion);
         
-        rotateTo(m);
         
     }
     

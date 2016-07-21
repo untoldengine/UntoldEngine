@@ -107,27 +107,7 @@ void main()
 
     }else{
 
-    mediump vec4 finalColor=vec4(0.0);
-
-    finalColor.a=1.0;
-
-    light.lightPosition=light0Position;
-
-    light.pointLightIntensity=6.0;
-   
-    light.pointLightAttenuation=vec3(1.0,0.0,0.0);
-   
-    light.lightAmbDiffSpec=vec3(1.0,0.5,0.5);
-
-    light.lightColor=vec3(1.0,1.0,1.0);
-    
-    computePointLightValues(positionInViewSpace);
-   
-    finalColor.rgb+=vec3(computeLitColor(positionInViewSpace,normalInViewSpace));
-
-    mediump vec4 textureColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
-    
-    finalColor=vec4(mix(textureColor,finalColor,0.2));
+    mediump vec4 finalColor=vec4(1.0,0.0,0.0,0.0);
 
     scaledShadowCoord=shadowCoord;
 

@@ -99,7 +99,7 @@ namespace U4DEngine {
             }else{
                 
                 child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
-                
+               
             }
      
             child->draw();

@@ -20,10 +20,6 @@ varying mediump vec3 normalInViewSpace;
 
 varying mediump vec4 light0Position;
 
-mat4 blenderMatrix=mat4(1,0,0,0,
-                        0,0,1,0,
-                        0,-1,0,0,
-                        0,0,0,1);
 
 void main(void) 
 {
@@ -40,11 +36,9 @@ void main(void)
     positionInViewSpace=MVMatrix*Vertex;
     normalInViewSpace=NormalMatrix*Normal;
     
-    light0Position=blenderMatrix*PointLight;
-
     light0Position=MVMatrix*light0Position;
     
-    shadowCoord=DepthMVPMatrix*Vertex;
+    shadowCoord=DepthMVMatrix*Vertex;
 
     gl_Position = MVPMatrix*Vertex;
   

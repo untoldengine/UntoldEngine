@@ -37,8 +37,8 @@ void Earth::init(){
     
     //U4DDebugger *debugger=new U4DDebugger();
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->translateBy(0.0, -2.0, -9.0);
-    //camera->rotateBy(10.0,-15.0,0.0);
+    camera->translateBy(0.0, -5.0, -10.0);
+    //camera->rotateTo(0.0,-20.0,0.0);
     
     setName("earth");
     
@@ -52,27 +52,36 @@ void Earth::init(){
     cube->init("GroundFloor",0.0,0.0,0.0);
     cube->setName("cube");
     cube->setShader("simpleRedShader");
-    cube->setAsGround(true);
+    //cube->setAsGround(true);
     //Apply the collision engine to the object
-    cube->enableCollision();
-    cube->setMass(1.0);
+    //cube->enableCollision();
+    //cube->setMass(1.0);
     //cube->setCoefficientOfRestitution(0.7);
     
-    cube->setNarrowPhaseBoundingVolumeVisibility(true);
+    //cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
-    cube2->init("Cube2",0.0,0.0,0.0);
+    cube2->init("Cube",0.0,0.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     //cube2->rotateBy(0.0,0.0,60.0);
-    cube2->setMass(1.0);
+    //cube2->setMass(1.0);
     //cube2->setCoefficientOfRestitution(0.6);
     //cube2->applyPhysics(true);
 
-    cube2->enableCollision();
+    //cube2->enableCollision();
     
-    cube2->setNarrowPhaseBoundingVolumeVisibility(true);
+    //cube2->setNarrowPhaseBoundingVolumeVisibility(true);
+    enableShadows();
+    cube->receiveShadows();
     
+    U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
+    light->setName("light");
+    light->translateTo(-2.0,4.0,0.0);
+    addChild(light);
+    
+//    U4DEngine::U4DVector3n n(0,-5,0);
+//    camera->viewInDirection(n);
     
     addChild(cube);
     addChild(cube2);
@@ -94,7 +103,7 @@ void Earth::init(){
      /*
      //SHOW SHADOWS
      
-     enableShadows();
+     
     
     
     fort=new Town();
@@ -111,10 +120,7 @@ void Earth::init(){
     addChild(fort);
     
     */
-    U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
-    
-    light->translateTo(-3.0,4.0,-3.0);
-    addChild(light);
+   
     
     //debugger->addEntityToDebug(light);
     //addChild(debugger);
@@ -227,7 +233,7 @@ void Earth::action(){
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
-    setEntityControlledByController(cube2);
+    setEntityControlledByController(light);
     
 }
 

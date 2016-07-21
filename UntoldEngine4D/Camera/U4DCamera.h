@@ -36,9 +36,9 @@ private:
     
 protected:
     
-     U4DCamera(){};
+     U4DCamera();
     
-    ~U4DCamera(){};
+    ~U4DCamera();
     
 public:
 

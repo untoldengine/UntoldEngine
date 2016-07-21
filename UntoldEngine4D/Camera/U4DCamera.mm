@@ -13,15 +13,27 @@
 #include "U4DQuaternion.h"
 #include "U4DDualQuaternion.h"
 #include "U4DTransformation.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
 U4DCamera* U4DCamera::instance=0;
 
+U4DCamera::U4DCamera(){
+    
+    setEntityType(CAMERA);
+    
+}
+    
+U4DCamera::~U4DCamera(){
+    
+}
+    
 U4DCamera* U4DCamera::sharedInstance(){
     
     if (instance==0) {
         instance=new U4DCamera();
+        
     }
     
     return instance;
