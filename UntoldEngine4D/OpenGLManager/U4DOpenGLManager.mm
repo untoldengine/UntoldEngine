@@ -56,6 +56,10 @@ void U4DOpenGLManager::loadRenderingInformation(){
 
 void U4DOpenGLManager::enableUniformsLocations(){
     
+    
+    //Model Uniform Location
+     modelViewUniformLocations.modelUniformLocation=glGetUniformLocation(shader,"ModelMatrix");  //model matrix
+    
     //Model View Uniform Locations
     modelViewUniformLocations.modelViewUniformLocation=glGetUniformLocation(shader,"MVMatrix");  //model-view matrix
     
@@ -64,7 +68,7 @@ void U4DOpenGLManager::enableUniformsLocations(){
     modelViewUniformLocations.normaMatrixViewlUniformLocation=glGetUniformLocation(shader, "NormalMatrix"); //normal matrix
 
     //set up shadow uniform location
-    modelViewUniformLocations.depthModelViewProjectionLocation=glGetUniformLocation(shader, "DepthMVPMatrix");
+    modelViewUniformLocations.depthModelViewProjectionLocation=glGetUniformLocation(shader, "LightSpaceMatrix");
     
     //Texture Uniform Locations
     textureUniformLocations.emissionTextureUniformLocation=glGetUniformLocation(shader, "EmissionTexture");
@@ -247,6 +251,10 @@ void U4DOpenGLManager::draw(){
     //get the camera matrix
     
     mModelViewProjection=getCameraProjection()*mModelViewMatrix;
+    
+    U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
+    
+    glUniformMatrix4fv(modelViewUniformLocations.modelUniformLocation,1,0,mModelMatrix.matrixData);
     
     glUniformMatrix4fv(modelViewUniformLocations.modelViewUniformLocation,1,0,mModelViewMatrix.matrixData);
     

@@ -47,6 +47,7 @@ namespace U4DEngine {
         
         if (shadowsEnabled==true) {
             
+            
             openGlManager->startShadowMapPass();
             
             //for each children get the shadow

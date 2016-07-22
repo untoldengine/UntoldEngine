@@ -62,6 +62,8 @@ typedef struct{
 
 typedef struct{
     
+    GLint modelUniformLocation;
+    
     GLint modelViewUniformLocation;
     
     GLint normaMatrixViewlUniformLocation;
@@ -132,7 +134,9 @@ protected:
 
     GLuint vertexObjectBuffer;
     
-    GLuint depthTextureFramebuffer;
+    GLuint offscreenFramebuffer;
+    
+    GLuint depthRenderbuffer;
     
     std::vector<CustomUniforms> customUniforms;
     

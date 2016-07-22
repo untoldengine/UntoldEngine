@@ -5,46 +5,24 @@ attribute vec2 TextureCoord;
 uniform mat3 NormalMatrix;
 uniform mat4 MVMatrix;
 uniform mat4 MVPMatrix;
+uniform mat4 ModelMatrix;
 
-uniform vec4 PointLight;
-
-
-uniform mat4 DepthMVPMatrix;
+uniform mat4 LightSpaceMatrix;
 varying vec4 shadowCoord;
 uniform float ShadowCurrentPass;
 
-varying mediump vec2 vVaryingTexCoords;
-
-varying mediump vec4 positionInViewSpace;
-varying mediump vec3 normalInViewSpace;
-
-varying mediump vec4 light0Position;
-
-mat4 blenderMatrix=mat4(1,0,0,0,
-                        0,0,1,0,
-                        0,-1,0,0,
-                        0,0,0,1);
 
 void main(void) 
 {
 
     if(ShadowCurrentPass==0.0){
 
-    //gl_Position = DepthMVPMatrix*Vertex;
+    gl_Position = LightSpaceMatrix*ModelMatrix*Vertex;
     
     
     }else{
 
-    vVaryingTexCoords=TextureCoord;
-
-    positionInViewSpace=MVMatrix*Vertex;
-    normalInViewSpace=NormalMatrix*Normal;
-    
-    light0Position=blenderMatrix*PointLight;
-
-    light0Position=MVMatrix*light0Position;
-    
-    shadowCoord=DepthMVPMatrix*Vertex;
+    shadowCoord=LightSpaceMatrix*ModelMatrix*Vertex;
 
     gl_Position = MVPMatrix*Vertex;
   

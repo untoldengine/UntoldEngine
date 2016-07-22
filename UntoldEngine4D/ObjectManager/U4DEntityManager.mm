@@ -88,6 +88,7 @@ namespace U4DEngine {
         
         U4DEntity* child=rootEntity;
         
+        
         while (child!=NULL) {
             
             if(child->isRoot()){
@@ -99,7 +100,7 @@ namespace U4DEngine {
             }else{
                 
                 child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
-                
+               
             }
      
             child->draw();

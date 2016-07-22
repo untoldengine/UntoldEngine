@@ -102,6 +102,7 @@ namespace U4DEngine {
         
         LIGHT,
         MODEL,
+        CAMERA,
         PARENT
         
     }ENTITYTYPE;

@@ -1,6 +1,7 @@
 attribute vec4 Vertex;
 
 uniform mat4 MVPMatrix;
+uniform mat4 MVMatrix;
 
 void main(void) 
 {

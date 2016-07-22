@@ -23,7 +23,7 @@ void Town::init(const char* uName,float xPosition,float yPosition, float zPositi
         
     }
    
-    //translateTo(xPosition,yPosition,zPosition);
+    translateTo(xPosition,yPosition,zPosition);
     
     //rotateTo(0.0,0.0,40.0);
     

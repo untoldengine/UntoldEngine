@@ -25,7 +25,7 @@ class U4DOpenGL3DModel:public U4DOpenGLManager{
 private:
     
     U4DModel *u4dObject;
-    U4DMatrix4n depthMVPMatrix;
+    U4DMatrix4n lightSpaceMatrix;
     
 public:
     

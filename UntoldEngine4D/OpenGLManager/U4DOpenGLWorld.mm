@@ -57,26 +57,28 @@ void U4DOpenGLWorld::drawElements(){
 void U4DOpenGLWorld::initShadowMapFramebuffer(){
     
     
+    //Create Framebuffer here
+    glGenFramebuffers(1, &offscreenFramebuffer);
+    
+    
+    //create the destination texture
     glActiveTexture(GL_TEXTURE5);
     glGenTextures(1, &textureID[5]);
     glBindTexture(GL_TEXTURE_2D, textureID[5]);
     
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_FUNC_EXT, GL_LEQUAL);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_COMPARE_MODE_EXT, GL_COMPARE_REF_TO_TEXTURE_EXT);
     
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT, DEPTHSHADOWWIDTH,DEPTHSHADOWHEIGHT, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, 0);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT, DEPTHSHADOWWIDTH, DEPTHSHADOWHEIGHT, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
     
     
-    //Create Framebuffer here
-    glGenFramebuffers(1, &depthTextureFramebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, depthTextureFramebuffer);
+    glBindFramebuffer(GL_FRAMEBUFFER, offscreenFramebuffer);
     
     //attach texture to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,textureID[5],0);
+    
     
     //check the status of the framebuffer
     
@@ -111,22 +113,19 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
 void U4DOpenGLWorld::startShadowMapPass(){
     
     //set framebuffer for shadow mapping
-    glBindFramebuffer(GL_FRAMEBUFFER, depthTextureFramebuffer);
     glViewport(0,0,DEPTHSHADOWWIDTH,DEPTHSHADOWHEIGHT);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    glClear(GL_DEPTH_BUFFER_BIT|GL_DEPTH_BUFFER_BIT);
-    
+    glBindFramebuffer(GL_FRAMEBUFFER, offscreenFramebuffer);
+    glClear(GL_DEPTH_BUFFER_BIT);
+    glCullFace(GL_FRONT);
 }
 
 void U4DOpenGLWorld::endShadowMapPass(){
     
+    glCullFace(GL_BACK);
     //reset framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 2);
     glViewport(0,0,displayWidth,displayHeight);
-    glClearColor(1.0f, 1.0f, 1.0f, 1.0f);
-    
-    //Clear previous frame values
-	//glClear(GL_DEPTH_BUFFER_BIT);
+    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
     
     glActiveTexture(GL_TEXTURE5);
     glBindTexture(GL_TEXTURE_2D, textureID[5]);
