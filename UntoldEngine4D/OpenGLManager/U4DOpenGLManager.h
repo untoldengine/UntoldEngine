@@ -62,6 +62,8 @@ typedef struct{
 
 typedef struct{
     
+    GLint modelUniformLocation;
+    
     GLint modelViewUniformLocation;
     
     GLint normaMatrixViewlUniformLocation;
