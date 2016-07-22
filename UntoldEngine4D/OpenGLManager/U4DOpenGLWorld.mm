@@ -116,12 +116,12 @@ void U4DOpenGLWorld::startShadowMapPass(){
     glViewport(0,0,DEPTHSHADOWWIDTH,DEPTHSHADOWHEIGHT);
     glBindFramebuffer(GL_FRAMEBUFFER, offscreenFramebuffer);
     glClear(GL_DEPTH_BUFFER_BIT);
-    
+    glCullFace(GL_FRONT);
 }
 
 void U4DOpenGLWorld::endShadowMapPass(){
     
-    
+    glCullFace(GL_BACK);
     //reset framebuffer
     glBindFramebuffer(GL_FRAMEBUFFER, 2);
     glViewport(0,0,displayWidth,displayHeight);
