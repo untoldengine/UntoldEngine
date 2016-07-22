@@ -59,7 +59,6 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
     
     //Create Framebuffer here
     glGenFramebuffers(1, &offscreenFramebuffer);
-    glBindFramebuffer(GL_FRAMEBUFFER, offscreenFramebuffer);
     
     
     //create the destination texture
@@ -72,20 +71,14 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
     
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT, DEPTHSHADOWWIDTH, DEPTHSHADOWHEIGHT, 0,GL_DEPTH_COMPONENT, GL_FLOAT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT, DEPTHSHADOWWIDTH, DEPTHSHADOWHEIGHT, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
     
+    
+    glBindFramebuffer(GL_FRAMEBUFFER, offscreenFramebuffer);
     
     //attach texture to framebuffer
-    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_COMPONENT, GL_TEXTURE_2D,textureID[5],0);
+    glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,textureID[5],0);
     
-    
-    //create depth renderbuffer
-    
-    glGenRenderbuffers(1, &depthRenderbuffer);
-    glBindRenderbuffer(GL_RENDERBUFFER, depthRenderbuffer);
-    glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH_COMPONENT16, DEPTHSHADOWWIDTH, DEPTHSHADOWHEIGHT);
-    glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_RENDERBUFFER, depthRenderbuffer);
-  
     
     //check the status of the framebuffer
     

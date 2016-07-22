@@ -65,12 +65,6 @@ namespace U4DEngine {
         
         openGlManager->setShader(uShader);
     }
-
-    void U4DModel::receiveShadows(){
-        
-        setShader("shadowShader");
-        
-    }
     
     void U4DModel::setHasMaterial(bool uValue){
         

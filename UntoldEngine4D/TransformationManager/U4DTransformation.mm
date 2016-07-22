@@ -304,7 +304,7 @@ namespace U4DEngine {
 
         U4DVector3n forwardVector=uDestinationPoint-entityPosition;
         
-        if (uEntity->getEntityType()==CAMERA) {
+        if (uEntity->getEntityType()==CAMERA || uEntity->getEntityType()==LIGHT) {
             forwardVector=entityPosition-uDestinationPoint;
         }
         

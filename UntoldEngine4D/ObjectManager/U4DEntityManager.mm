@@ -88,6 +88,7 @@ namespace U4DEngine {
         
         U4DEntity* child=rootEntity;
         
+        
         while (child!=NULL) {
             
             if(child->isRoot()){

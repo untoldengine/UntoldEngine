@@ -66,8 +66,6 @@ namespace U4DEngine {
 
         void setShader(std::string uShader);
         
-        void receiveShadows();
-        
         void setHasMaterial(bool uValue);
         
         void setHasTexture(bool uValue);

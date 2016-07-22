@@ -282,7 +282,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //compute ortho space
     U4DMatrix4n depthOrthoMatrix;
     
-    depthOrthoMatrix.computeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, -1.0f, 10.0f);
+    depthOrthoMatrix.computeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, -10.0f, 10.0f);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -290,7 +290,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     U4DVector3n modelPosition=getEntityAbsolutePosition();
     
-    U4DVector3n origin(0,0,0);
+    U4DVector3n origin(modelPosition);
     
     light->viewInDirection(origin);
     
@@ -301,8 +301,8 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //light space matrix
     lightSpaceMatrix=depthOrthoMatrix*lightMatrix;
     
-    
-    
+//    
+//    
 //    U4DMatrix4n biasMatrix(
 //                           0.5, 0.0, 0.0, 0.5,
 //                           0.0, 0.5, 0.0, 0.5,
@@ -311,7 +311,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
 //                           );
 //    
 //    lightSpaceMatrix=biasMatrix*lightSpaceMatrix;
-    
+//    
     
     U4DDualQuaternion mModel=getEntitySpace();
     
