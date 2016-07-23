@@ -14,6 +14,48 @@
 
 namespace U4DEngine {
     
+    
+/**
+ *  Constructor
+ */
+U4DQuaternion::U4DQuaternion(){};
+
+/**
+ *  Constructor
+ */
+U4DQuaternion::U4DQuaternion(float uS,U4DVector3n& uV):s(uS),v(uV){
+
+}
+
+/**
+ *  Destructor
+ */
+U4DQuaternion::~U4DQuaternion(){
+
+};
+
+/**
+ *  Copy Constructor
+ */
+
+U4DQuaternion::U4DQuaternion(const U4DQuaternion & value){
+    
+    s=value.s;
+    v=value.v;
+    
+};
+
+/**
+ *  Copy Constructor
+ */
+U4DQuaternion& U4DQuaternion::operator=(const U4DQuaternion& value){
+    
+    s=value.s;
+    v=value.v;
+    
+    return *this;
+};
+    
 #pragma mark-add
 //add
 void U4DQuaternion::operator+=(const U4DQuaternion& q){

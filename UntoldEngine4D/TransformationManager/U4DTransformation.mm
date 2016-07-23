@@ -288,33 +288,42 @@ namespace U4DEngine {
     void U4DTransformation::viewInDirection(U4DVector3n& uDestinationPoint){
         
         
-        U4DVector3n up(0,1,0);
-
+        U4DVector3n upVector(0,1,0);
+        float oneEightyAngle=180.0;
         U4DVector3n entityPosition;
         
-        //if entity has parent, then get the absolute position
-        if (uEntity->parent!=NULL) {
+        //if entity is camera, then get the local position
+        if (uEntity->getEntityType()==CAMERA) {
             
-            entityPosition=uEntity->getAbsolutePosition();
+            entityPosition=uEntity->getLocalPosition();
             
         }else{
-            //if it does not have a parent, then get the local position
-            entityPosition=uEntity->getLocalPosition();
+            //else get the absolute position
+            entityPosition=uEntity->getAbsolutePosition();
         }
 
+        //calculate the forward vector
         U4DVector3n forwardVector=uDestinationPoint-entityPosition;
         
-        if (uEntity->getEntityType()==CAMERA || uEntity->getEntityType()==LIGHT) {
+        if (uEntity->getEntityType()==CAMERA ) {
             forwardVector=entityPosition-uDestinationPoint;
         }
         
+        //calculate the angle
         float angle=uEntity->getViewDirection().angle(forwardVector);
         
-        if (angle>90) {
-            angle=180-angle;
-        }
+        //calculate the rotation axis
+        U4DVector3n rotationAxis=forwardVector.cross(uEntity->getViewDirection());
         
-        U4DVector3n rotationAxis=uEntity->getViewDirection().cross(forwardVector);
+        //if angle is 180 it means that both vectors are pointing opposite to each other.
+        //this means that there is no rotation axis. so set the Up Vector as the rotation axis
+        
+        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+            
+            rotationAxis=upVector;
+            angle=180.0;
+        
+        }
         
         rotationAxis.normalize();
         
