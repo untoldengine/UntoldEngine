@@ -304,17 +304,13 @@ namespace U4DEngine {
 
         U4DVector3n forwardVector=uDestinationPoint-entityPosition;
         
-        if (uEntity->getEntityType()==CAMERA || uEntity->getEntityType()==LIGHT) {
+        if (uEntity->getEntityType()==CAMERA ) {
             forwardVector=entityPosition-uDestinationPoint;
         }
         
         float angle=uEntity->getViewDirection().angle(forwardVector);
         
-        if (angle>90) {
-            angle=180-angle;
-        }
-        
-        U4DVector3n rotationAxis=uEntity->getViewDirection().cross(forwardVector);
+        U4DVector3n rotationAxis=forwardVector.cross(uEntity->getViewDirection());
         
         rotationAxis.normalize();
         

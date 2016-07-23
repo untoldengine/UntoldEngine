@@ -43,40 +43,28 @@ public:
     /**
      *  Constructor
      */
-    U4DQuaternion(){};
+    U4DQuaternion();
     
     /**
      *  Constructor
      */
-    U4DQuaternion(float uS,U4DVector3n& uV):s(uS),v(uV){}
+    U4DQuaternion(float uS,U4DVector3n& uV);
     
     
     /**
      *  Destructor
      */
-    ~U4DQuaternion(){};
+    ~U4DQuaternion();
     
     /**
      *  Copy Constructor
      */
-    U4DQuaternion(const U4DQuaternion & value){
-    
-        s=value.s;
-        v=value.v;
-        
-    };
+    U4DQuaternion(const U4DQuaternion & value);
     
     /**
      *  Copy Constructor
      */
-    inline U4DQuaternion& operator=(const U4DQuaternion& value){
-        
-        s=value.s;
-        v=value.v;
-        
-        return *this;
-    };
-    
+    U4DQuaternion& operator=(const U4DQuaternion& value);
     
     void operator+=(const U4DQuaternion& q);
     
