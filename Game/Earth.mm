@@ -51,7 +51,7 @@ void Earth::init(){
     cube=new Town();
     cube->init("GroundFloor",0.0,0.0,0.0);
     cube->setName("cube");
-    cube->setShader("shadowShader");
+    cube->setShader("modelShader");
     //cube->setAsGround(true);
     //Apply the collision engine to the object
     //cube->enableCollision();
@@ -62,12 +62,12 @@ void Earth::init(){
     
     cube2=new Town();
     cube2->init("Cube",0.0,3.0,0.0);
-    cube2->setShader("shadowShader");
+    cube2->setShader("modelShader");
     cube2->setName("cube2");
     
     cube3=new Town();
     cube3->init("Cube",-3.0,1.0,0.0);
-    cube3->setShader("shadowShader");
+    cube3->setShader("modelShader");
     cube3->setName("cube3");
     
     
@@ -79,7 +79,7 @@ void Earth::init(){
     //cube2->enableCollision();
     
     //cube2->setNarrowPhaseBoundingVolumeVisibility(true);
-    enableShadows();
+    //enableShadows();
     
     
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();

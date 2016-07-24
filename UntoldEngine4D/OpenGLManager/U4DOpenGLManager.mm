@@ -71,6 +71,7 @@ void U4DOpenGLManager::enableUniformsLocations(){
     modelViewUniformLocations.depthModelViewProjectionLocation=glGetUniformLocation(shader, "LightSpaceMatrix");
     
     //Texture Uniform Locations
+    textureUniformLocations.hasTextureUniformLocation=glGetUniformLocation(shader, "HasTexture");
     textureUniformLocations.emissionTextureUniformLocation=glGetUniformLocation(shader, "EmissionTexture");
     textureUniformLocations.ambientTextureUniformLocation=glGetUniformLocation(shader, "AmbientTexture");
     textureUniformLocations.diffuseTextureUniformLocation=glGetUniformLocation(shader, "DiffuseTexture");
@@ -262,7 +263,6 @@ void U4DOpenGLManager::draw(){
     
     glUniformMatrix3fv(modelViewUniformLocations.normaMatrixViewlUniformLocation,1,0,normalModelViewMatrix.matrixData);
     
-
     glUniform1f(lightUniformLocations.shadowCurrentPassUniformLocation, 1.0);
     
     loadDepthShadowUniform();
@@ -272,6 +272,9 @@ void U4DOpenGLManager::draw(){
     
     //load lights data
     loadLightsUniforms();
+    
+    //load has texture data
+    loadHasTextureUniform();
     
     //get custom uniforms
     getCustomUniforms();

@@ -17,6 +17,7 @@ uniform vec4 SpecularMaterialColor;
 uniform float Shininess;
 uniform vec4 PointLight;
 
+uniform float HasTexture;
 
 varying mediump vec4 light0Position;
 
@@ -108,9 +109,13 @@ void main()
    
    finalColor.rgb+=vec3(computeLitColor(positionInViewSpace,normalInViewSpace));
 
+   //check if the model has a texture
+
+   if(HasTexture==1.0){
    mediump vec4 textureColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
     
    finalColor=vec4(mix(textureColor,finalColor,0.2));
+   }
 
    gl_FragColor=visibility*finalColor;
 

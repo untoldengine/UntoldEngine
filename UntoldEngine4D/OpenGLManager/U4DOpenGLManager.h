@@ -88,6 +88,9 @@ typedef struct {
 }MaterialUniformLocations;
 
 typedef struct{
+    
+    GLint hasTextureUniformLocation;
+    
     GLint emissionTextureUniformLocation;
     
     GLint ambientTextureUniformLocation;
@@ -191,6 +194,8 @@ public:
     virtual void loadArmatureUniforms(){};
 
     virtual void loadLightsUniforms(){};
+    
+    virtual void loadHasTextureUniform(){};
     
     virtual void enableVerticesAttributeLocations(){};
 

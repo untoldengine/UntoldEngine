@@ -130,7 +130,6 @@
 		03AEF86719CF474D00082589 /* AnimationShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03AEF86519CF474D00082589 /* AnimationShader.fp */; };
 		03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03AEF86619CF474D00082589 /* AnimationShader.vp */; };
 		03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03AEF86919CF4DAC00082589 /* U4DBoneIndices.mm */; };
-		03B3DDFC1B51BEB300112B7C /* cubemapcoordinate.png in Resources */ = {isa = PBXBuildFile; fileRef = 03B3DDFB1B51BEB300112B7C /* cubemapcoordinate.png */; };
 		03B5E7E6193A3F4100800EC8 /* U4DDigitalAssetLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B5E7E5193A3F4100800EC8 /* U4DDigitalAssetLoader.mm */; };
 		03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B5E7E9193A3F4700800EC8 /* tinyxml2.mm */; };
 		03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B718E91A0AA83000C94651 /* U4DLights.mm */; };
@@ -192,6 +191,7 @@
 		03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */; };
 		03FBE3F01BF6EC1B007E837F /* U4DNormalForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FBE3EE1BF6EC1B007E837F /* U4DNormalForceGenerator.mm */; settings = {ASSET_TAGS = (); }; };
 		03FBE3F41BFB9394007E837F /* U4DTorqueForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FBE3F21BFB9394007E837F /* U4DTorqueForceGenerator.mm */; settings = {ASSET_TAGS = (); }; };
+		03FD1E641D44238B00687FD0 /* uvExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03FD1E631D44238B00687FD0 /* uvExample.png */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -392,7 +392,6 @@
 		03AEF86619CF474D00082589 /* AnimationShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = AnimationShader.vp; sourceTree = "<group>"; };
 		03AEF86919CF4DAC00082589 /* U4DBoneIndices.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBoneIndices.mm; sourceTree = "<group>"; };
 		03AEF86A19CF4DAC00082589 /* U4DBoneIndices.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBoneIndices.h; sourceTree = "<group>"; };
-		03B3DDFB1B51BEB300112B7C /* cubemapcoordinate.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = cubemapcoordinate.png; path = Resources/cubemapcoordinate.png; sourceTree = SOURCE_ROOT; };
 		03B5E7E4193A3F4100800EC8 /* U4DDigitalAssetLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDigitalAssetLoader.h; sourceTree = "<group>"; };
 		03B5E7E5193A3F4100800EC8 /* U4DDigitalAssetLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDigitalAssetLoader.mm; sourceTree = "<group>"; };
 		03B5E7E8193A3F4700800EC8 /* tinyxml2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tinyxml2.h; sourceTree = "<group>"; };
@@ -498,6 +497,7 @@
 		03FBE3EF1BF6EC1B007E837F /* U4DNormalForceGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DNormalForceGenerator.h; path = Normal/U4DNormalForceGenerator.h; sourceTree = "<group>"; };
 		03FBE3F21BFB9394007E837F /* U4DTorqueForceGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DTorqueForceGenerator.mm; path = Torque/U4DTorqueForceGenerator.mm; sourceTree = "<group>"; };
 		03FBE3F31BFB9394007E837F /* U4DTorqueForceGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DTorqueForceGenerator.h; path = Torque/U4DTorqueForceGenerator.h; sourceTree = "<group>"; };
+		03FD1E631D44238B00687FD0 /* uvExample.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = uvExample.png; path = Resources/uvExample.png; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -941,7 +941,7 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
-				03B3DDFB1B51BEB300112B7C /* cubemapcoordinate.png */,
+				03FD1E631D44238B00687FD0 /* uvExample.png */,
 				03EB59901AEF7D8C00A5F7DA /* floorTexture.png */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
@@ -1404,7 +1404,6 @@
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
 				03A9F6FB1ADB0BC800E81A00 /* FrontImage.png in Resources */,
-				03B3DDFC1B51BEB300112B7C /* cubemapcoordinate.png in Resources */,
 				03AEF86719CF474D00082589 /* AnimationShader.fp in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
@@ -1414,6 +1413,7 @@
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
 				036C12991A86B27900932C76 /* objectWithShadowShader.vp in Resources */,
+				03FD1E641D44238B00687FD0 /* uvExample.png in Resources */,
 				03A9F6FE1ADB0BC800E81A00 /* TopImage.png in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03F396021A65A9D9007A45BD /* worldShader.vp in Resources */,
