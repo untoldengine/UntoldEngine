@@ -21,6 +21,10 @@ uniform float HasTexture;
 
 varying mediump vec4 light0Position;
 
+uniform sampler2D ShadowMap;
+varying highp vec4 shadowCoord;
+uniform float ShadowCurrentPass;
+
 struct Lights{
    mediump vec3 L;
    lowp float iL;
@@ -86,38 +90,71 @@ mediump vec3 computeSpecularComponent(in mediump vec3 surfaceNormal,in mediump v
 
 }
 
+float ShadowCalculation(vec4 uShadowCoord){
+
+    float bias = 0.005;
+
+    //use this bias when you have normal and light direction data
+    //float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+
+    // perform perspective divide
+    vec3 projCoords=uShadowCoord.xyz/uShadowCoord.w;
+
+    // Transform to [0,1] range
+    projCoords=projCoords*0.5+0.5;
+
+    // Get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
+    float closestDepth=texture2D(ShadowMap,projCoords.xy).r;
+
+    // Get depth of current fragment from light's perspective
+    float currentDepth = projCoords.z;
+
+    // Check whether current frag pos is in shadow
+    float shadow = currentDepth-bias > closestDepth  ? 0.5 : 0.0;
+
+    if(projCoords.z > 1.0)
+    shadow = 0.0;
+
+    return shadow;
+
+}
+
 void main()
 {
+    if(ShadowCurrentPass==0.0){
 
-   mediump vec4 finalColor=vec4(0.0);
 
-   float visibility = 1.0;
+    }else{
+        mediump vec4 finalColor=vec4(0.0);
 
-   finalColor.a=1.0;
+       finalColor.a=1.0;
 
-   light.lightPosition=light0Position;
+       light.lightPosition=light0Position;
 
-   light.pointLightIntensity=3.0;
-   
-   light.pointLightAttenuation=vec3(1.0,0.0,0.0);
-   
-   light.lightAmbDiffSpec=vec3(1.0,0.5,0.5);
+       light.pointLightIntensity=3.0;
+       
+       light.pointLightAttenuation=vec3(1.0,0.0,0.0);
+       
+       light.lightAmbDiffSpec=vec3(1.0,0.5,0.5);
 
-   light.lightColor=vec3(1.0,1.0,1.0);
-    
-   computePointLightValues(positionInViewSpace);
-   
-   finalColor.rgb+=vec3(computeLitColor(positionInViewSpace,normalInViewSpace));
+       light.lightColor=vec3(1.0,1.0,1.0);
+        
+       computePointLightValues(positionInViewSpace);
+       
+       finalColor.rgb+=vec3(computeLitColor(positionInViewSpace,normalInViewSpace));
 
-   //check if the model has a texture
+       //check if the model has a texture
 
-   if(HasTexture==1.0){
-   mediump vec4 textureColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
-    
-   finalColor=vec4(mix(textureColor,finalColor,0.2));
-   }
+       if(HasTexture==1.0){
+       mediump vec4 textureColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
+        
+       finalColor=vec4(mix(textureColor,finalColor,0.2));
+       }
 
-   gl_FragColor=visibility*finalColor;
+       float shadow = ShadowCalculation(shadowCoord);
 
+       gl_FragColor=finalColor*(1.0-shadow);
+
+    }
 
 }

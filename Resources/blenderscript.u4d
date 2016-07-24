@@ -17,8 +17,6 @@
                 <emission_color>0.0 0.0 0.0 1.0</emission_color>
                 <shininess>50.000000</shininess>
                 
-                <texture_image>uvExample.png</texture_image>
-                
                 <local_matrix>1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 1.474552 0.000000 0.000000 1.000000 -0.000000 0.000000 0.000000 0.000000 1.000000</local_matrix>
                 
                 <dimension>2.000000 2.000000 2.000000</dimension>

@@ -5,10 +5,12 @@ attribute vec2 TextureCoord;
 uniform mat4 MVPMatrix;
 uniform mat3 NormalMatrix;
 uniform mat4 MVMatrix;
-uniform mat4 LightSpaceMatrix;
-uniform vec4 PointLight;
-uniform float ShadowCurrentPass;
+uniform mat4 ModelMatrix;
 
+uniform mat4 LightSpaceMatrix;
+uniform float ShadowCurrentPass;
+varying vec4 shadowCoord;
+uniform vec4 PointLight;
 
 varying mediump vec2 vVaryingTexCoords;
 
@@ -22,10 +24,9 @@ void main(void)
 
     if(ShadowCurrentPass==0.0){
 
-    gl_Position = LightSpaceMatrix*Vertex;
+    gl_Position = LightSpaceMatrix*ModelMatrix*Vertex;
     
-    }
-    else{
+    }else{
 
     vVaryingTexCoords=TextureCoord;
 
@@ -33,6 +34,8 @@ void main(void)
     normalInViewSpace=NormalMatrix*Normal;
     
     light0Position=MVMatrix*PointLight;
+
+    shadowCoord=LightSpaceMatrix*ModelMatrix*Vertex;
     gl_Position = MVPMatrix*Vertex;
 
     }
