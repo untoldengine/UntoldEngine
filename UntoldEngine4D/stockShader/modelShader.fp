@@ -12,7 +12,7 @@ varying mediump vec4 positionInViewSpace;
 varying mediump vec3 normalInViewSpace;
 
 uniform vec4 DiffuseMaterialColor;
-mediump vec4 AmbientMaterialColor=vec4(0.0,0.0,0.0,1.0);
+mediump vec4 AmbientMaterialColor=vec4(0.0,0.0,0.0,0.2);
 uniform vec4 SpecularMaterialColor;
 uniform float Shininess;
 uniform vec4 PointLight;
@@ -70,7 +70,7 @@ mediump vec3 computeAmbientComponent(){
 mediump vec3 computeLitColor(in mediump
  vec4 surfacePosition,in mediump vec3 surfaceNormal){
 
-   return computeAmbientComponent()+computeDiffuseComponent(surfaceNormal)+computeSpecularComponent(surfaceNormal,surfacePosition);
+   return computeAmbientComponent()+computeDiffuseComponent(surfaceNormal);
 }
 
 mediump vec3 computeDiffuseComponent(in mediump vec3 surfaceNormal){
@@ -131,17 +131,17 @@ void main()
 
        light.lightPosition=light0Position;
 
-       light.pointLightIntensity=3.0;
+       light.pointLightIntensity=1.0;
        
        light.pointLightAttenuation=vec3(1.0,0.0,0.0);
        
-       light.lightAmbDiffSpec=vec3(1.0,0.5,0.5);
+       light.lightAmbDiffSpec=vec3(0.1,1.0,0.1);
 
        light.lightColor=vec3(1.0,1.0,1.0);
         
        computePointLightValues(positionInViewSpace);
        
-       finalColor.rgb+=vec3(computeLitColor(positionInViewSpace,normalInViewSpace));
+       finalColor.rgb=vec3(computeLitColor(positionInViewSpace,normalInViewSpace));
 
        //check if the model has a texture
 

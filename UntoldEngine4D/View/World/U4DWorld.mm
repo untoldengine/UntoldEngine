@@ -88,7 +88,7 @@ namespace U4DEngine {
     void U4DWorld::enableShadows(){
         
         shadowsEnabled=true;
-        openGlManager->setShader("modelShader");
+        openGlManager->setShader("simpleShader");
         openGlManager->initShadowMapFramebuffer();
         
     }
