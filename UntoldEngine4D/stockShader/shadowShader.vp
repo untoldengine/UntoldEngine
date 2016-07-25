@@ -23,7 +23,7 @@ void main(void)
     }else{
 
     shadowCoord=LightSpaceMatrix*ModelMatrix*Vertex;
-
+    
     gl_Position = MVPMatrix*Vertex;
   
     

@@ -52,6 +52,8 @@ public:
     
     void loadLightsUniforms();
     
+    void loadHasTextureUniform();
+    
     void drawElements();
     
     void activateTexturesUniforms();

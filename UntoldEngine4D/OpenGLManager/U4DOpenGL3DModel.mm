@@ -161,6 +161,7 @@ void U4DOpenGL3DModel::loadTextureObjectBuffer(){
 void U4DOpenGL3DModel::loadLightsUniforms(){
  
     U4DDirector *director=U4DDirector::sharedInstance();
+    
     U4DLights* light=director->getLight();
     
     U4DVector3n lightPosition=light->getAbsolutePosition();
@@ -172,11 +173,9 @@ void U4DOpenGL3DModel::loadLightsUniforms(){
     //load the light position
     glUniform4f(lightUniformLocations.lightPositionUniformLocation, lightPosition.x, lightPosition.y, lightPosition.z, 1.0);
     
-    
     //load the light MVP
     glUniformMatrix4fv(lightUniformLocations.lightModelViewProjectionUniformLocation, 1, 0, lightMatrix.matrixData);
 
-    
 }
 
 
@@ -301,18 +300,6 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //light space matrix
     lightSpaceMatrix=depthOrthoMatrix*lightMatrix;
     
-//    
-//    
-//    U4DMatrix4n biasMatrix(
-//                           0.5, 0.0, 0.0, 0.5,
-//                           0.0, 0.5, 0.0, 0.5,
-//                           0.0, 0.0, 0.5, 0.5,
-//                           0.0, 0.0, 0.0, 1.0
-//                           );
-//    
-//    lightSpaceMatrix=biasMatrix*lightSpaceMatrix;
-//    
-    
     U4DDualQuaternion mModel=getEntitySpace();
     
     U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
@@ -339,6 +326,17 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
 void U4DOpenGL3DModel::loadDepthShadowUniform(){
     
     glUniformMatrix4fv(modelViewUniformLocations.depthModelViewProjectionLocation,1,0,lightSpaceMatrix.matrixData);
+    
+}
+    
+void U4DOpenGL3DModel::loadHasTextureUniform(){
+    
+    if (u4dObject->getHasTexture()) {
+        
+        glUniform1f(textureUniformLocations.hasTextureUniformLocation, 1.0);
+    }else{
+        glUniform1f(textureUniformLocations.hasTextureUniformLocation, 0.0);
+    }
     
 }
 
