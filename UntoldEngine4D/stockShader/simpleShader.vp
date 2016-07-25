@@ -8,7 +8,7 @@ uniform mat4 MVMatrix;
 uniform mat4 ModelMatrix;
 uniform mat4 LightSpaceMatrix;
 
-uniform vec4 DiffuseMaterialColor;
+
 uniform float ShadowCurrentPass;
 varying vec4 shadowCoord;
 uniform vec4 PointLight;
@@ -21,6 +21,8 @@ varying lowp vec4 colorVarying;
 
 varying mediump vec2 vVaryingTexCoords;
 
+varying float nDotVP;
+
 void main(void) 
 {
     if(ShadowCurrentPass==0.0){
@@ -32,11 +34,8 @@ void main(void)
 
         vec3 eyeNormal = normalize(NormalMatrix * Normal);
         vec3 lightPosition = vec3(PointLight.xyz);
-        vec4 diffuseColor = DiffuseMaterialColor;;
         
-        float nDotVP = max(0.0, dot(eyeNormal, normalize(lightPosition)));
-                     
-        colorVarying = diffuseColor * nDotVP;
+        nDotVP = max(0.0, dot(eyeNormal, normalize(lightPosition)));
 
         vVaryingTexCoords=TextureCoord;
 

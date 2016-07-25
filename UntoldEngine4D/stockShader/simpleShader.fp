@@ -9,7 +9,7 @@ varying mediump vec3 normalInViewSpace;
 
 varying mediump vec2 vVaryingTexCoords;
 uniform sampler2D DiffuseTexture;
-
+uniform vec4 DiffuseMaterialColor;
 
 uniform sampler2D ShadowMap;
 varying highp vec4 shadowCoord;
@@ -17,6 +17,7 @@ uniform float ShadowCurrentPass;
 varying mediump vec4 light0Position;
 
 uniform float HasTexture;
+varying float nDotVP;
 
 float ShadowCalculation(vec4 uShadowCoord){
 
@@ -59,7 +60,7 @@ void main(void)
 
         vec4 finalColor=vec4(0.0);
 
-        finalColor=colorVarying;
+        finalColor=DiffuseMaterialColor * nDotVP;
 
         float shadow = ShadowCalculation(shadowCoord);
 
