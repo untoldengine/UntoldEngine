@@ -58,7 +58,7 @@ public:
     
     U4DTransformation *transformation;
     
-    U4DVector3n viewDirection;
+    U4DVector3n forwardVector;
     
     U4DEntity *parent;
     
@@ -91,10 +91,6 @@ public:
     
     void setLocalSpace(U4DMatrix4n &uMatrix);
     
-    void setViewDirection(U4DVector3n &uViewDirection);
-    
-    void updateViewDirection(U4DQuaternion &uViewDirectionSpace);
-    
     U4DDualQuaternion getLocalSpace();
     
     U4DDualQuaternion getAbsoluteSpace();
@@ -119,7 +115,9 @@ public:
     
     U4DVector3n getAbsolutePosition();
     
-    U4DVector3n getViewDirection();
+    U4DVector3n getForwardVector();
+    
+    void setForwardVector(U4DVector3n &uForwardVector);
     
     U4DMatrix3n getAbsoluteMatrixOrientation();
     

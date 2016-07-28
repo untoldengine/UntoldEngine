@@ -14,7 +14,7 @@
 
 namespace U4DEngine {
     
-    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),viewDirection(0,0,-1),parent(nullptr),next(nullptr){
+    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),forwardVector(0,0,-1),parent(nullptr),next(nullptr){
         
         prevSibling=this;
         lastDescendant=this;
@@ -80,19 +80,6 @@ namespace U4DEngine {
         setLocalSpace(dualQuaternion);
     }
 
-    void U4DEntity::setViewDirection(U4DVector3n &uViewDirection){
-        
-        uViewDirection.normalize();
-        viewDirection=uViewDirection;
-        
-    }
-
-    void U4DEntity::updateViewDirection(U4DQuaternion &uViewDirectionSpace){
-     
-        U4DMatrix3n uViewDirectionMatrix=uViewDirectionSpace.transformQuaternionToMatrix3n();
-        viewDirection=uViewDirectionMatrix*viewDirection;
-        viewDirection.normalize();
-    }
 
     U4DQuaternion U4DEntity::getLocalSpaceOrientation(){
         
@@ -170,8 +157,16 @@ namespace U4DEngine {
         
     }
 
-    U4DVector3n U4DEntity::getViewDirection(){
-        return viewDirection;
+    U4DVector3n U4DEntity::getForwardVector(){
+        
+        return forwardVector;
+        
+    }
+    
+    void U4DEntity::setForwardVector(U4DVector3n &uForwardVector){
+        
+        uForwardVector.normalize();
+        forwardVector=uForwardVector;
     }
 
     void U4DEntity::setLocalSpaceOrientation(U4DQuaternion &uOrientation){

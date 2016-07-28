@@ -102,9 +102,6 @@ namespace U4DEngine {
 
         rotation.convertToUnitNormQuaternion();
         
-        //update view direction
-        uEntity->updateViewDirection(rotation);
-        
         updateSpaceMatrixOrientation(rotation);
         
     }
@@ -115,9 +112,6 @@ namespace U4DEngine {
         
         rotation.transformMatrix3nToQuaternion(uRotationMatrix);
         
-        //update view direction
-        uEntity->updateViewDirection(rotation);
-        
         updateSpaceMatrixOrientation(rotation);
         
     }
@@ -125,9 +119,6 @@ namespace U4DEngine {
     void U4DTransformation::rotateBy(U4DQuaternion& rotation){
         
         rotation.convertToUnitNormQuaternion();
-        
-        //update view direction
-        uEntity->updateViewDirection(rotation);
         
         U4DQuaternion currentOrientation=uEntity->getLocalSpaceOrientation();
         
@@ -143,9 +134,6 @@ namespace U4DEngine {
         U4DQuaternion rotation;
         rotation.transformEulerAnglesToQuaternion(angleX, angleY, angleZ);
         
-        //update view direction
-        uEntity->updateViewDirection(rotation);
-        
         updateSpaceMatrixOrientation(rotation);
         
     }
@@ -156,9 +144,6 @@ namespace U4DEngine {
         rotation.transformEulerAnglesToQuaternion(angleX, angleY, angleZ);
         
         U4DQuaternion currentOrientation=uEntity->getLocalSpaceOrientation();
-        
-        //update view direction
-        uEntity->updateViewDirection(rotation);
         
         rotation=rotation*currentOrientation;
         
@@ -310,10 +295,10 @@ namespace U4DEngine {
         }
         
         //calculate the angle
-        float angle=uEntity->getViewDirection().angle(forwardVector);
-        
+        float angle=uEntity->getForwardVector().angle(forwardVector);
+       
         //calculate the rotation axis
-        U4DVector3n rotationAxis=forwardVector.cross(uEntity->getViewDirection());
+        U4DVector3n rotationAxis=forwardVector.cross(uEntity->getForwardVector());
         
         //if angle is 180 it means that both vectors are pointing opposite to each other.
         //this means that there is no rotation axis. so set the Up Vector as the rotation axis
