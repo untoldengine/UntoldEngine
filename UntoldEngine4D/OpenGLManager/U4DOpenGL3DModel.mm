@@ -170,6 +170,8 @@ void U4DOpenGL3DModel::loadLightsUniforms(){
     
     U4DMatrix4n lightMatrix=lightViewSpace.transformDualQuaternionToMatrix4n();
     
+    lightPosition=lightMatrix*lightPosition;
+    
     //load the light position
     glUniform4f(lightUniformLocations.lightPositionUniformLocation, lightPosition.x, lightPosition.y, lightPosition.z, 1.0);
     

@@ -33,9 +33,10 @@ void main(void)
     }else{
 
         vec3 eyeNormal = normalize(NormalMatrix * Normal);
-        vec3 lightPosition = vec3(PointLight.xyz);
+
+        light0Position=MVMatrix*PointLight;
         
-        nDotVP = max(0.0, dot(eyeNormal, normalize(lightPosition)));
+        nDotVP = max(0.0, dot(eyeNormal, normalize(light0Position.xyz)));
 
         vVaryingTexCoords=TextureCoord;
 
@@ -45,7 +46,7 @@ void main(void)
 
         positionInViewSpace=MVMatrix*Vertex;
 
-        light0Position=MVMatrix*PointLight;
+
 
         gl_Position = MVPMatrix * Vertex;
 

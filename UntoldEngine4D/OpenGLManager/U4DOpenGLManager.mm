@@ -230,11 +230,20 @@ void U4DOpenGLManager::draw(){
     
     activateTexturesUniforms();
 
+    //get Model matrix
     U4DDualQuaternion mModel=getEntitySpace();
     
-    U4DDualQuaternion mModelWorldView=mModel*getCameraSpace();
+    U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
     
-    U4DMatrix4n mModelViewMatrix=mModelWorldView.transformDualQuaternionToMatrix4n();
+    //get camera matrix
+    U4DMatrix4n cameraMatrix=getCameraSpace().transformDualQuaternionToMatrix4n();
+    
+    cameraMatrix.invert();
+    
+    //U4DDualQuaternion mModelWorldView=mModel*getCameraSpace();
+    
+    U4DMatrix4n mModelViewMatrix=cameraMatrix*mModelMatrix;
+    
     
     //extract the 3x3 matrix
     U4DMatrix3n modelViewMatrix3x3=mModelViewMatrix.extract3x3Matrix();
@@ -247,13 +256,13 @@ void U4DOpenGLManager::draw(){
     
     normalModelViewMatrix=modelViewMatrix3x3.transpose();
     
+    
     U4DMatrix4n mModelViewProjection;
     
     //get the camera matrix
     
     mModelViewProjection=getCameraProjection()*mModelViewMatrix;
     
-    U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
     
     glUniformMatrix4fv(modelViewUniformLocations.modelUniformLocation,1,0,mModelMatrix.matrixData);
     
