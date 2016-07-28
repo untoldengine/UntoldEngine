@@ -70,8 +70,6 @@ typedef struct{
 
     GLint modelViewProjectionUniformLocation;
     
-    GLint depthModelViewProjectionLocation;
-    
 }ModelViewUniformLocations;
 
 typedef struct {
@@ -117,7 +115,7 @@ typedef struct{
     
     GLint shadowCurrentPassUniformLocation;
     
-    GLint lightModelViewProjectionUniformLocation;
+    GLint lightShadowDepthUniformLocation;
     
 }LightsUniformLocations;
 

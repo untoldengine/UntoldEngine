@@ -67,9 +67,6 @@ void U4DOpenGLManager::enableUniformsLocations(){
     
     modelViewUniformLocations.normaMatrixViewlUniformLocation=glGetUniformLocation(shader, "NormalMatrix"); //normal matrix
 
-    //set up shadow uniform location
-    modelViewUniformLocations.depthModelViewProjectionLocation=glGetUniformLocation(shader, "LightSpaceMatrix");
-    
     //Texture Uniform Locations
     textureUniformLocations.hasTextureUniformLocation=glGetUniformLocation(shader, "HasTexture");
     textureUniformLocations.emissionTextureUniformLocation=glGetUniformLocation(shader, "EmissionTexture");
@@ -96,8 +93,8 @@ void U4DOpenGLManager::enableUniformsLocations(){
     //shadow current pass uniform
     lightUniformLocations.shadowCurrentPassUniformLocation=glGetUniformLocation(shader, "ShadowCurrentPass");
     
-    //light MVP uniform location
-    lightUniformLocations.lightModelViewProjectionUniformLocation=glGetUniformLocation(shader, "LightMVP");
+    //set up shadow uniform location
+    lightUniformLocations.lightShadowDepthUniformLocation=glGetUniformLocation(shader, "LightShadowSpaceMatrix");
     
 }
 
