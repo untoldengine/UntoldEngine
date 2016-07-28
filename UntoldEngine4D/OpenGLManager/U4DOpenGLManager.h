@@ -229,7 +229,7 @@ public:
     virtual void setAmbientTexture(const char* uTexture){};
     virtual void setNormalBumpTexture(const char* uTexture){};
 
-    virtual U4DDualQuaternion getCameraOrientation();
+    virtual U4DDualQuaternion getCameraSpace();
 
     void loadRenderingInformation();
     

@@ -208,7 +208,7 @@ U4DMatrix4n U4DOpenGLManager::getCameraProjection(){
     return camera->getCameraProjectionView();
 }
 
-U4DDualQuaternion U4DOpenGLManager::getCameraOrientation(){
+U4DDualQuaternion U4DOpenGLManager::getCameraSpace(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     U4DDualQuaternion cameraQuaternion;
@@ -232,7 +232,7 @@ void U4DOpenGLManager::draw(){
 
     U4DDualQuaternion mModel=getEntitySpace();
     
-    U4DDualQuaternion mModelWorldView=mModel*getCameraOrientation();
+    U4DDualQuaternion mModelWorldView=mModel*getCameraSpace();
     
     U4DMatrix4n mModelViewMatrix=mModelWorldView.transformDualQuaternionToMatrix4n();
     
