@@ -67,18 +67,15 @@ namespace U4DEngine {
         
         U4DVector3n modelPosition=uModel->getAbsolutePosition();
         
-        //negate the model position
-        modelPosition*=-1.0;
-        
         //rotate to the model location
         viewInDirection(modelPosition);
         
         //translate the camera to the offset
         U4DVector3n offsetPosition(uXOffset, uYOffset, uZOffset);
         
-        U4DVector3n cameraPosition(modelPosition.x-0.0,modelPosition.y-3.0,modelPosition.z-7.0);
+        U4DVector3n cameraPosition=modelPosition+offsetPosition;
         
-        //translateTo(cameraPosition);
+        translateTo(cameraPosition);
     
     }
 
