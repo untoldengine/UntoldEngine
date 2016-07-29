@@ -24,9 +24,14 @@ void U4DOpenGLDebugger::draw(){
         
         U4DDualQuaternion mModel=mEntity->getAbsoluteSpace();
         
-        U4DDualQuaternion mModelWorldView=mModel*getCameraSpace();
+        U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
         
-        U4DMatrix4n mModelViewMatrix=mModelWorldView.transformDualQuaternionToMatrix4n();
+        //get camera matrix
+        U4DMatrix4n cameraMatrix=getCameraSpace().transformDualQuaternionToMatrix4n();
+        
+        cameraMatrix.invert();
+        
+        U4DMatrix4n mModelViewMatrix=cameraMatrix*mModelMatrix;
         
         U4DMatrix4n mModelViewProjection;
         
