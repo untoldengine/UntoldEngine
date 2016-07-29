@@ -54,7 +54,7 @@ public:
     
     virtual void setDiffuseTexture(const char* uTexture);
     
-    U4DDualQuaternion getCameraOrientation();
+    U4DDualQuaternion getCameraSpace();
 
     
 };

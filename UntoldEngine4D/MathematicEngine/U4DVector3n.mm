@@ -136,6 +136,13 @@ namespace U4DEngine {
         
         theta=dot(u)/(m.magnitude()*u.magnitude());
         
+        //keep theta bounded by [-1,1]
+        if (theta>1.0) {
+            theta=1.0;
+        }else if(theta<-1.0){
+            theta=-1.0;
+        }
+        
         theta=RadToDegrees(acos(theta));
         
         return theta;

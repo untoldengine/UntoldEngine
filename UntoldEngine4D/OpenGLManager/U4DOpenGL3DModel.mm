@@ -170,11 +170,10 @@ void U4DOpenGL3DModel::loadLightsUniforms(){
     
     U4DMatrix4n lightMatrix=lightViewSpace.transformDualQuaternionToMatrix4n();
     
+    lightPosition=lightMatrix*lightPosition;
+    
     //load the light position
     glUniform4f(lightUniformLocations.lightPositionUniformLocation, lightPosition.x, lightPosition.y, lightPosition.z, 1.0);
-    
-    //load the light MVP
-    glUniformMatrix4fv(lightUniformLocations.lightModelViewProjectionUniformLocation, 1, 0, lightMatrix.matrixData);
 
 }
 
@@ -305,7 +304,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
     
     //load depth shader uniform
-    glUniformMatrix4fv(modelViewUniformLocations.depthModelViewProjectionLocation,1,0,lightSpaceMatrix.matrixData);
+    glUniformMatrix4fv(lightUniformLocations.lightShadowDepthUniformLocation,1,0,lightSpaceMatrix.matrixData);
     
     //load model matrix
     glUniformMatrix4fv(modelViewUniformLocations.modelUniformLocation,1,0,mModelMatrix.matrixData);
@@ -325,7 +324,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
 
 void U4DOpenGL3DModel::loadDepthShadowUniform(){
     
-    glUniformMatrix4fv(modelViewUniformLocations.depthModelViewProjectionLocation,1,0,lightSpaceMatrix.matrixData);
+    glUniformMatrix4fv(lightUniformLocations.lightShadowDepthUniformLocation,1,0,lightSpaceMatrix.matrixData);
     
 }
     

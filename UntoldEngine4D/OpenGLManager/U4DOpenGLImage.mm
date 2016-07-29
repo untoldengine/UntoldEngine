@@ -81,7 +81,7 @@ void U4DOpenGLImage::drawElements(){
     glEnable(GL_DEPTH_TEST);
 }
 
-U4DDualQuaternion U4DOpenGLImage::getCameraOrientation(){
+U4DDualQuaternion U4DOpenGLImage::getCameraSpace(){
     
     U4DDualQuaternion cameraQuaternion;  //IDENTITY MATRIX
     return cameraQuaternion;

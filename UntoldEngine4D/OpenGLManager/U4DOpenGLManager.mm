@@ -67,9 +67,6 @@ void U4DOpenGLManager::enableUniformsLocations(){
     
     modelViewUniformLocations.normaMatrixViewlUniformLocation=glGetUniformLocation(shader, "NormalMatrix"); //normal matrix
 
-    //set up shadow uniform location
-    modelViewUniformLocations.depthModelViewProjectionLocation=glGetUniformLocation(shader, "LightSpaceMatrix");
-    
     //Texture Uniform Locations
     textureUniformLocations.hasTextureUniformLocation=glGetUniformLocation(shader, "HasTexture");
     textureUniformLocations.emissionTextureUniformLocation=glGetUniformLocation(shader, "EmissionTexture");
@@ -96,8 +93,8 @@ void U4DOpenGLManager::enableUniformsLocations(){
     //shadow current pass uniform
     lightUniformLocations.shadowCurrentPassUniformLocation=glGetUniformLocation(shader, "ShadowCurrentPass");
     
-    //light MVP uniform location
-    lightUniformLocations.lightModelViewProjectionUniformLocation=glGetUniformLocation(shader, "LightMVP");
+    //set up shadow uniform location
+    lightUniformLocations.lightShadowDepthUniformLocation=glGetUniformLocation(shader, "LightShadowSpaceMatrix");
     
 }
 
@@ -208,7 +205,7 @@ U4DMatrix4n U4DOpenGLManager::getCameraProjection(){
     return camera->getCameraProjectionView();
 }
 
-U4DDualQuaternion U4DOpenGLManager::getCameraOrientation(){
+U4DDualQuaternion U4DOpenGLManager::getCameraSpace(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     U4DDualQuaternion cameraQuaternion;
@@ -230,11 +227,20 @@ void U4DOpenGLManager::draw(){
     
     activateTexturesUniforms();
 
+    //get Model matrix
     U4DDualQuaternion mModel=getEntitySpace();
     
-    U4DDualQuaternion mModelWorldView=mModel*getCameraOrientation();
+    U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
     
-    U4DMatrix4n mModelViewMatrix=mModelWorldView.transformDualQuaternionToMatrix4n();
+    //get camera matrix
+    U4DMatrix4n cameraMatrix=getCameraSpace().transformDualQuaternionToMatrix4n();
+    
+    cameraMatrix.invert();
+    
+    //U4DDualQuaternion mModelWorldView=mModel*getCameraSpace();
+    
+    U4DMatrix4n mModelViewMatrix=cameraMatrix*mModelMatrix;
+    
     
     //extract the 3x3 matrix
     U4DMatrix3n modelViewMatrix3x3=mModelViewMatrix.extract3x3Matrix();
@@ -247,13 +253,13 @@ void U4DOpenGLManager::draw(){
     
     normalModelViewMatrix=modelViewMatrix3x3.transpose();
     
+    
     U4DMatrix4n mModelViewProjection;
     
     //get the camera matrix
     
     mModelViewProjection=getCameraProjection()*mModelViewMatrix;
     
-    U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
     
     glUniformMatrix4fv(modelViewUniformLocations.modelUniformLocation,1,0,mModelMatrix.matrixData);
     

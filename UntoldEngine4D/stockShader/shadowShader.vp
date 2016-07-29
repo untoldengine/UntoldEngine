@@ -7,7 +7,7 @@ uniform mat4 MVMatrix;
 uniform mat4 MVPMatrix;
 uniform mat4 ModelMatrix;
 
-uniform mat4 LightSpaceMatrix;
+uniform mat4 LightShadowSpaceMatrix;
 varying vec4 shadowCoord;
 uniform float ShadowCurrentPass;
 
@@ -17,12 +17,12 @@ void main(void)
 
     if(ShadowCurrentPass==0.0){
 
-    gl_Position = LightSpaceMatrix*ModelMatrix*Vertex;
+    gl_Position = LightShadowSpaceMatrix*ModelMatrix*Vertex;
     
     
     }else{
 
-    shadowCoord=LightSpaceMatrix*ModelMatrix*Vertex;
+    shadowCoord=LightShadowSpaceMatrix*ModelMatrix*Vertex;
     
     gl_Position = MVPMatrix*Vertex;
   
