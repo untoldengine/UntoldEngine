@@ -21,10 +21,10 @@ varying float nDotVP;
 
 float ShadowCalculation(vec4 uShadowCoord){
 
-    //float bias = 0.005;
+    float bias = 0.005;
 
     //use this bias when you have normal and light direction data
-    float bias = max(0.05 * (1.0 - dot(normalInViewSpace, light0Position.xyz)), 0.005);
+    //float bias = max(0.05 * (1.0 - dot(normalInViewSpace, light0Position.xyz)), 0.005);
 
     // perform perspective divide
     vec3 projCoords=uShadowCoord.xyz/uShadowCoord.w;
@@ -39,10 +39,11 @@ float ShadowCalculation(vec4 uShadowCoord){
     float currentDepth = projCoords.z;
 
     // Check whether current frag pos is in shadow
-    float shadow = currentDepth-bias > closestDepth  ? 0.5 : 0.0;
+    float shadow = currentDepth-bias > closestDepth  ? 0.2 : 0.0;
 
-    if(projCoords.z > 1.0)
-    shadow = 0.0;
+    if(projCoords.z > 1.0){
+        shadow = 0.0;
+    }
 
     return shadow;
 
@@ -66,9 +67,9 @@ void main(void)
 
         if(HasTexture==1.0){
 
-        mediump vec4 textureColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
+            mediump vec4 textureColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
 
-        finalColor=vec4(mix(textureColor,finalColor,0.2));
+            finalColor=vec4(mix(textureColor,finalColor,0.2));
 
         }
 

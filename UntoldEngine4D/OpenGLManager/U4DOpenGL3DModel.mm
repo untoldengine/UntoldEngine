@@ -286,12 +286,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     U4DLights *light=director->getLight();
     
-    U4DVector3n modelPosition=getEntityAbsolutePosition();
-    
-    U4DVector3n origin(modelPosition);
-    
-    light->viewInDirection(origin);
-    
+    //get light absolute space
     U4DDualQuaternion lightViewSpace=light->getAbsoluteSpace();
     
     U4DMatrix4n lightMatrix=lightViewSpace.transformDualQuaternionToMatrix4n();
@@ -299,6 +294,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //light space matrix
     lightSpaceMatrix=depthOrthoMatrix*lightMatrix;
     
+    //get model absolute space
     U4DDualQuaternion mModel=getEntitySpace();
     
     U4DMatrix4n mModelMatrix=mModel.transformDualQuaternionToMatrix4n();
