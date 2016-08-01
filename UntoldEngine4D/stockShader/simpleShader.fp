@@ -4,8 +4,8 @@
 precision highp float;
 #endif
 
-varying lowp vec4 colorVarying;
 varying mediump vec3 normalInViewSpace;
+varying mediump vec4 positionInViewSpace;
 
 varying mediump vec2 vVaryingTexCoords;
 uniform sampler2D DiffuseTexture;
@@ -14,7 +14,7 @@ uniform vec4 DiffuseMaterialColor;
 uniform sampler2D ShadowMap;
 varying highp vec4 shadowCoord;
 uniform float ShadowCurrentPass;
-varying mediump vec4 light0Position;
+varying mediump vec4 lightPosition;
 
 uniform float HasTexture;
 varying float nDotVP;
@@ -24,7 +24,7 @@ float ShadowCalculation(vec4 uShadowCoord){
     float bias = 0.005;
 
     //use this bias when you have normal and light direction data
-    //float bias = max(0.05 * (1.0 - dot(normalInViewSpace, light0Position.xyz)), 0.005);
+    //float bias = max(0.05 * (1.0 - dot(normalInViewSpace, lightPosition.xyz)), 0.005);
 
     // perform perspective divide
     vec3 projCoords=uShadowCoord.xyz/uShadowCoord.w;
@@ -49,6 +49,17 @@ float ShadowCalculation(vec4 uShadowCoord){
 
 }
 
+vec4 computeDiffuseComponent(vec3 surfaceNormal, vec4 lightPosition){
+
+    //CD=iL*max(0,dot(L,N))*LD*MD
+    //return light.iL*(light.lightColor*light.lightAmbDiffSpec.y)*DiffuseMaterialColor.rgb*max(0.0,dot(surfaceNormal,light.L));
+
+    vec3 n=normalize(surfaceNormal);
+    vec3 s=normalize(vec3(lightPosition));
+    return vec4(DiffuseMaterialColor.xyz*max(0.5,dot(n,s)),1.0);
+
+}
+
 
 void main(void)
 {
@@ -61,7 +72,7 @@ void main(void)
 
         vec4 finalColor=vec4(0.0);
 
-        finalColor=DiffuseMaterialColor * nDotVP;
+        finalColor=computeDiffuseComponent(normalInViewSpace, lightPosition);
 
         float shadow = ShadowCalculation(shadowCoord);
 

@@ -14,14 +14,12 @@ varying vec4 shadowCoord;
 uniform vec4 PointLight;
 
 
-varying mediump vec4 light0Position;
+varying mediump vec4 lightPosition;
 varying mediump vec3 normalInViewSpace;
 varying mediump vec4 positionInViewSpace;
-varying lowp vec4 colorVarying;
 
 varying mediump vec2 vVaryingTexCoords;
 
-varying float nDotVP;
 
 void main(void) 
 {
@@ -32,11 +30,7 @@ void main(void)
 
     }else{
 
-        vec3 eyeNormal = normalize(NormalMatrix * Normal);
-
-        light0Position=MVMatrix*PointLight;
-        
-        nDotVP = max(0.5, dot(eyeNormal, normalize(light0Position.xyz)));
+        lightPosition=MVMatrix*PointLight;
 
         vVaryingTexCoords=TextureCoord;
 
