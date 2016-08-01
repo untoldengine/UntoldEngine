@@ -16,31 +16,28 @@
 
 
 namespace U4DEngine {
-class U4DLights:public U4DVisibleEntity{
-    
-private:
+    class U4DLights:public U4DVisibleEntity{
+        
+        private:
 
-    int index;
-    
-    
-public:
-    
-    U4DLights();
-    
-    ~U4DLights();
-    
-    void draw();
-    
-    void setLightIndex(int uIndex);
-    int getLightIndex();
-    
-    void setLightSphere(float uRadius,int uRings, int uSectors);
-    
-    U4DVertexData bodyCoordinates;
-    std::vector<float> lightColor; //the color the light emits
-    float intensity;          //total energy that the light emits
-    
-};
+            int index;
+            
+            
+        public:
+            
+            U4DLights();
+            
+            ~U4DLights();
+            
+            void draw();
+            
+            void setLightSphere(float uRadius,int uRings, int uSectors);
+            
+            U4DVertexData bodyCoordinates;
+        
+            std::vector<float> lightColor; //the color the light emits
+        
+    };
     
 }
 
