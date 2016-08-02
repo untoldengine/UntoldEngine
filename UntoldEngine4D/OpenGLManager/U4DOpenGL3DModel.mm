@@ -88,6 +88,18 @@ void U4DOpenGL3DModel::loadMaterialsUniforms(){
     if (!u4dObject->materialInformation.diffuseMaterialColorContainer.empty()) {
         glUniform4fv(materialUniformLocations.diffuseColorMaterialUniformLocation, u4dObject->materialInformation.diffuseMaterialColorContainer.size(), u4dObject->materialInformation.diffuseMaterialColorContainer[0].colorData);
     }
+    
+    if (!u4dObject->materialInformation.specularMaterialColorContainer.empty()) {
+        glUniform4fv(materialUniformLocations.specularColorMaterialUniformLocation, u4dObject->materialInformation.specularMaterialColorContainer.size(), u4dObject->materialInformation.specularMaterialColorContainer[0].colorData);
+    }
+    
+    if (!u4dObject->materialInformation.diffuseMaterialIntensityContainer.empty()) {
+        glUniform1fv(materialUniformLocations.diffuseIntensityMaterialUniformLocation, u4dObject->materialInformation.diffuseMaterialIntensityContainer.size(), &u4dObject->materialInformation.diffuseMaterialIntensityContainer[0]);
+    }
+    
+    if (!u4dObject->materialInformation.specularMaterialIntensityContainer.empty()) {
+        glUniform1fv(materialUniformLocations.specularIntensityMaterialUniformLocation, u4dObject->materialInformation.specularMaterialIntensityContainer.size(), &u4dObject->materialInformation.specularMaterialIntensityContainer[0]);
+    }
 
 }
 
