@@ -73,6 +73,16 @@ namespace U4DEngine {
         
         void loadIndexData(U4DModel *uModel,std::string uStringData);
         
+        void loadMaterialIndexData(U4DModel *uModel,std::string uStringData);
+        
+        void loadDiffuseColorData(U4DModel *uModel,std::string uStringData);
+        
+        void loadSpecularColorsData(U4DModel *uModel,std::string uStringData);
+        
+        void loadDiffuseIntensityData(U4DModel *uModel,std::string uStringData);
+        
+        void loadSpecularIntensityData(U4DModel *uModel,std::string uStringData);
+        
         void loadTangentDataToBody(U4DModel *uModel);
         
         void loadDimensionDataToBody(U4DModel *uModel,std::string uStringData);
@@ -82,8 +92,6 @@ namespace U4DEngine {
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::string uStringData);
         
         void loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);
-        
-        void colorStringToVector(std::vector<float> *uColorData,std::string uStringData);
         
         void stringToFloat(std::string uStringData,std::vector<float> *uFloatData);
         

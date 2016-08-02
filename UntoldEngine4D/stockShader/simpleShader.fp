@@ -9,7 +9,7 @@ varying mediump vec4 positionInViewSpace;
 
 varying mediump vec2 vVaryingTexCoords;
 uniform sampler2D DiffuseTexture;
-uniform vec4 DiffuseMaterialColor;
+uniform vec4 DiffuseMaterialColor[1];
 
 uniform sampler2D ShadowMap;
 varying highp vec4 shadowCoord;
@@ -56,7 +56,7 @@ vec4 computeDiffuseComponent(vec3 surfaceNormal, vec4 lightPosition){
 
     vec3 n=normalize(surfaceNormal);
     vec3 s=normalize(vec3(lightPosition));
-    return vec4(DiffuseMaterialColor.xyz*max(0.5,dot(n,s)),1.0);
+    return vec4(DiffuseMaterialColor[0].xyz*max(0.5,dot(n,s)),1.0);
 
 }
 

@@ -95,9 +95,11 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *normal=child->FirstChildElement("normal");
                     tinyxml2::XMLElement *uv=child->FirstChildElement("uv");
                     tinyxml2::XMLElement *index=child->FirstChildElement("index");
+                    tinyxml2::XMLElement *materialIndex=child->FirstChildElement("material_index");
                     tinyxml2::XMLElement *diffuseColor=child->FirstChildElement("diffuse_color");
                     tinyxml2::XMLElement *specularColor=child->FirstChildElement("specular_color");
-                    tinyxml2::XMLElement *shininess=child->FirstChildElement("shininess");
+                    tinyxml2::XMLElement *diffuseIntensity=child->FirstChildElement("diffuse_intensity");
+                    tinyxml2::XMLElement *specularIntensity=child->FirstChildElement("specular_intensity");
                     tinyxml2::XMLElement *texture=child->FirstChildElement("texture_image");
                     tinyxml2::XMLElement *localMatrix=child->FirstChildElement("local_matrix");
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
@@ -145,14 +147,18 @@ namespace U4DEngine {
                         loadDimensionDataToBody(uModel, data);
                     }
                     
+                    if (materialIndex!=NULL) {
+                        
+                        std::string data=materialIndex->GetText();
+                        loadMaterialIndexData(uModel, data);
+                        uModel->setHasMaterial(true);
+                        
+                    }
                     
                     if (diffuseColor!=NULL) {
                         
                         std::string diffuseColorString=diffuseColor->GetText();
-                        
-                        colorStringToVector(&uModel->materialInformation.diffuseMaterialColorContainer,diffuseColorString);
-                        
-                        uModel->setHasMaterial(true);
+                        loadDiffuseColorData(uModel, diffuseColorString);
                         
                     }
                     
@@ -160,20 +166,21 @@ namespace U4DEngine {
                     if (specularColor!=NULL) {
                         
                         std::string specularColorString=specularColor->GetText();
-                        
-                        colorStringToVector(&uModel->materialInformation.specularMaterialColorContainer,specularColorString);
-                        
-                        uModel->setHasMaterial(true);
+                        loadSpecularColorsData(uModel, specularColorString);
                         
                     }
                     
-                    if (shininess!=NULL) {
+                    if (diffuseIntensity!=NULL) {
                         
-                        std::string intensityString=shininess->GetText();
+                        std::string diffuseIntensityString=diffuseIntensity->GetText();
+                        loadDiffuseIntensityData(uModel, diffuseIntensityString);
                         
-                        float shininess=stof(intensityString);
-                       
-                        uModel->materialInformation.setShininessOfMaterial(shininess);
+                    }
+                    
+                    if (specularIntensity!=NULL) {
+                        
+                        std::string specularIntensityString=specularIntensity->GetText();
+                        loadSpecularIntensityData(uModel, specularIntensityString);
                         
                     }
                     
@@ -700,8 +707,23 @@ namespace U4DEngine {
         delete[] tan1;
         delete[] tan2;
     }
+    
+    void U4DDigitalAssetLoader::loadMaterialIndexData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size(); i++) {
+            
+            float materialIndex=tempVector.at(i);
+            
+            uModel->materialInformation.addMaterialIndexDataToContainer(materialIndex);
+        }
+        
+    }
 
-    void U4DDigitalAssetLoader::colorStringToVector(std::vector<float> *uColorData,std::string uStringData){
+    void U4DDigitalAssetLoader::loadDiffuseColorData(U4DModel *uModel,std::string uStringData){
         
         std::vector<float> tempVector;
         
@@ -709,18 +731,80 @@ namespace U4DEngine {
         
         for (int i=0; i<tempVector.size();) {
             
-            uColorData->push_back(tempVector.at(i));
-            uColorData->push_back(tempVector.at(i+1));
-            uColorData->push_back(tempVector.at(i+2));
-            uColorData->push_back(tempVector.at(i+3));
+            float x=tempVector.at(i);
+            
+            float y=tempVector.at(i+1);
+            
+            float z=tempVector.at(i+2);
+            
+            float a=tempVector.at(i+3);
+            
+            U4DColorData uDiffuseColor(x,y,z,a);
+            
+            uModel->materialInformation.addDiffuseMaterialDataToContainer(uDiffuseColor);
             
             i=i+4;
+            
         }
         
     }
-
-
-
+    
+    void U4DDigitalAssetLoader::loadSpecularColorsData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();) {
+            
+            float x=tempVector.at(i);
+            
+            float y=tempVector.at(i+1);
+            
+            float z=tempVector.at(i+2);
+            
+            float a=tempVector.at(i+3);
+            
+            U4DColorData uSpecularColor(x,y,z,a);
+            
+            uModel->materialInformation.addSpecularMaterialDataToContainer(uSpecularColor);
+            
+            i=i+4;
+            
+        }
+        
+    }
+    
+    
+    void U4DDigitalAssetLoader::loadDiffuseIntensityData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();i++) {
+            
+            float diffuseIntensity=tempVector.at(i);
+            uModel->materialInformation.addDiffuseIntensityMaterialDataToContainer(diffuseIntensity);
+            
+        }
+        
+    }
+    
+    void U4DDigitalAssetLoader::loadSpecularIntensityData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();i++) {
+            
+            float specularIntensity=tempVector.at(i);
+            uModel->materialInformation.addSpecularIntensityMaterialDataToContainer(specularIntensity);
+            
+        }
+        
+    }
 
     void U4DDigitalAssetLoader::stringToFloat(std::string uStringData,std::vector<float> *uFloatData){
         
