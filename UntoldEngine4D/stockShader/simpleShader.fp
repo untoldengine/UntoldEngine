@@ -24,10 +24,10 @@ varying float nDotVP;
 
 float ShadowCalculation(vec4 uShadowCoord){
 
-    float bias = 0.005;
+    //float bias = 0.005;
 
     //use this bias when you have normal and light direction data
-    //float bias = max(0.05 * (1.0 - dot(normalInViewSpace, lightPosition.xyz)), 0.005);
+    float bias = max(0.05 * (1.0 - dot(normalInViewSpace, lightPosition.xyz)), 0.005);
 
     // perform perspective divide
     vec3 projCoords=uShadowCoord.xyz/uShadowCoord.w;
@@ -52,14 +52,25 @@ float ShadowCalculation(vec4 uShadowCoord){
 
 }
 
-vec4 computeDiffuseComponent(vec3 surfaceNormal, vec4 lightPosition){
+vec4 computeMaterialColor(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
 
     //CD=iL*max(0,dot(L,N))*LD*MD
-    //return light.iL*(light.lightColor*light.lightAmbDiffSpec.y)*DiffuseMaterialColor.rgb*max(0.0,dot(surfaceNormal,light.L));
 
+    //compute the diffuse component
     vec3 n=normalize(surfaceNormal);
     vec3 s=normalize(vec3(lightPosition));
-    return vec4(DiffuseMaterialColor[0].xyz*max(0.5,dot(n,s)),1.0)*DiffuseMaterialIntensity[0];
+
+    vec4 diffuseComponent=vec4(DiffuseMaterialColor[0].xyz*max(0.2,dot(n,s)),1.0)*DiffuseMaterialIntensity[0];
+
+    //compute the specular component
+    vec3 v=normalize(-surfacePosition.xyz);
+    vec3 r=reflect(-s,n);
+
+    vec4 specularComponent=vec4(SpecularMaterialColor[0].xyz*pow(max(dot(r,v),0.0),50.0),1.0)*SpecularMaterialIntensity[0];
+
+    vec4 finalMaterialColor=diffuseComponent+specularComponent;
+
+    return finalMaterialColor;
 
 }
 
@@ -75,7 +86,7 @@ void main(void)
 
         vec4 finalColor=vec4(0.0);
 
-        finalColor=computeDiffuseComponent(normalInViewSpace, lightPosition);
+        finalColor=computeMaterialColor(normalInViewSpace, positionInViewSpace, lightPosition);
 
         float shadow = ShadowCalculation(shadowCoord);
 
