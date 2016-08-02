@@ -58,14 +58,14 @@ void Earth::init(){
     //cube->setNarrowPhaseBoundingVolumeVisibility(true);
     
     cube2=new Town();
-    cube2->init("Cube",0.0,1.0,2.0);
+    cube2->init("Cube",0.0,0.0,0.0);
     cube2->setShader("simpleShader");
     cube2->setName("cube2");
     
-    cube3=new Town();
-    cube3->init("Cube3",-3.0,1.0,0.0);
-    cube3->setShader("simpleShader");
-    cube3->setName("cube3");
+//    cube3=new Town();
+//    cube3->init("Cube3",-3.0,1.0,0.0);
+//    cube3->setShader("simpleShader");
+//    cube3->setName("cube3");
     
     
     //cube2->rotateBy(0.0,0.0,60.0);
@@ -81,20 +81,20 @@ void Earth::init(){
     
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
     light->setName("light");
-    light->translateTo(3.0,3.0,-7.0);
-    
+    light->translateTo(3.0,3.0,3.0);
     U4DEngine::U4DVector3n origin(0,0,0);
     
     light->viewInDirection(origin);
+   
     
     
-    addChild(cube3);
+    //addChild(cube3);
     addChild(cube);
     addChild(cube2);
     addChild(light);
 
     debugger->addEntityToDebug(light);
-    addChild(debugger);
+    //addChild(debugger);
     
     
     initLoadingModels();
@@ -105,7 +105,7 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->followModel(cube2, 0.0, 2.0, 7.0);
+    //camera->followModel(cube2, 0.0, 2.0, 7.0);
     
 
 }

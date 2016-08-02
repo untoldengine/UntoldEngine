@@ -11,30 +11,33 @@
 
 #include <iostream>
 #include <vector>
+#include "U4DColorData.h"
 
 namespace U4DEngine {
     
 class U4DMaterialData{
     
-private:
-    
-public:
-    U4DMaterialData(){};
-    ~U4DMaterialData(){};
-    
-    std::vector<float> emissionMaterialColorContainer;
-    std::vector<float> diffuseMaterialColorContainer;
-    std::vector<float> ambientMaterialColorContainer;
-    std::vector<float> specularMaterialColorContainer;
-    float shininessOfMaterial=0.0;
-    
-    void addEmissionMaterialDataToContainer(float uData);
-    void addDiffuseMaterialDataToContainer(float uData);
-    void addSpecularMaterialDataToContainer(float uData);
-    void addAmbientMaterialDataToContainer(float uData);
-    void setShininessOfMaterial(float uData);
-    
-};
+    private:
+        
+    public:
+        U4DMaterialData(){};
+        ~U4DMaterialData(){};
+        
+        std::vector<U4DColorData> diffuseMaterialColorContainer;
+        std::vector<U4DColorData> specularMaterialColorContainer;
+        std::vector<float> diffuseMaterialIntensityContainer;
+        std::vector<float> specularMaterialIntensityContainer;
+        std::vector<float> specularMaterialHardnessContainer;
+        std::vector<float> materialIndexColorContainer;
+        
+        void addDiffuseMaterialDataToContainer(U4DColorData& uData);
+        void addSpecularMaterialDataToContainer(U4DColorData& uData);
+        void addDiffuseIntensityMaterialDataToContainer(float &uData);
+        void addSpecularIntensityMaterialDataToContainer(float &uData);
+        void addSpecularHardnessMaterialDataToContainer(float &uData);
+        void addMaterialIndexDataToContainer(float &uData);
+        
+    };
     
 }
 

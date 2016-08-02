@@ -85,31 +85,26 @@ void U4DOpenGL3DModel::loadVertexObjectBuffer(){
 
 void U4DOpenGL3DModel::loadMaterialsUniforms(){
         
-   
-        if (!u4dObject->materialInformation.emissionMaterialColorContainer.empty()) {
-            
-            glUniform4fv(materialUniformLocations.emissionColorMaterialUniformLocation, 1, &u4dObject->materialInformation.emissionMaterialColorContainer[0]);
-            
-        }
-        
-        
-        if (!u4dObject->materialInformation.ambientMaterialColorContainer.empty()) {
-            glUniform4fv(materialUniformLocations.ambientColorMaterialUniformLocation, 1, &u4dObject->materialInformation.ambientMaterialColorContainer[0]);
-            
-        }
-        
-        if (!u4dObject->materialInformation.diffuseMaterialColorContainer.empty()) {
-            glUniform4fv(materialUniformLocations.diffuseColorMaterialUniformLocation, 1, &u4dObject->materialInformation.diffuseMaterialColorContainer[0]);
-        }
-        
-        if (!u4dObject->materialInformation.specularMaterialColorContainer.empty()) {
-            glUniform4fv(materialUniformLocations.specularColorMaterialUniformLocation, 1, &u4dObject->materialInformation.specularMaterialColorContainer[0]);
-            
-        }
+    if (!u4dObject->materialInformation.diffuseMaterialColorContainer.empty()) {
+        glUniform4fv(materialUniformLocations.diffuseColorMaterialUniformLocation, u4dObject->materialInformation.diffuseMaterialColorContainer.size(), u4dObject->materialInformation.diffuseMaterialColorContainer[0].colorData);
+    }
     
-        glUniform1fv(materialUniformLocations.shininessColorMaterialUniformLocation, 1, &u4dObject->materialInformation.shininessOfMaterial);
+    if (!u4dObject->materialInformation.specularMaterialColorContainer.empty()) {
+        glUniform4fv(materialUniformLocations.specularColorMaterialUniformLocation, u4dObject->materialInformation.specularMaterialColorContainer.size(), u4dObject->materialInformation.specularMaterialColorContainer[0].colorData);
+    }
     
+    if (!u4dObject->materialInformation.diffuseMaterialIntensityContainer.empty()) {
+        glUniform1fv(materialUniformLocations.diffuseIntensityMaterialUniformLocation, u4dObject->materialInformation.diffuseMaterialIntensityContainer.size(), &u4dObject->materialInformation.diffuseMaterialIntensityContainer[0]);
+    }
     
+    if (!u4dObject->materialInformation.specularMaterialIntensityContainer.empty()) {
+        glUniform1fv(materialUniformLocations.specularIntensityMaterialUniformLocation, u4dObject->materialInformation.specularMaterialIntensityContainer.size(), &u4dObject->materialInformation.specularMaterialIntensityContainer[0]);
+    }
+    
+    if (!u4dObject->materialInformation.specularMaterialHardnessContainer.empty()) {
+        glUniform1fv(materialUniformLocations.specularHardnessMaterialUniformLocation, u4dObject->materialInformation.specularMaterialHardnessContainer.size(), &u4dObject->materialInformation.specularMaterialHardnessContainer[0]);
+    }
+
 }
 
 void U4DOpenGL3DModel::loadTextureObjectBuffer(){
@@ -280,7 +275,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //compute ortho space
     U4DMatrix4n depthOrthoMatrix;
     
-    depthOrthoMatrix.computeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, -10.0f, 10.0f);
+    depthOrthoMatrix.computeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, -20.0f, 20.0f);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     

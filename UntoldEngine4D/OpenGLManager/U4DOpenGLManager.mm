@@ -77,11 +77,11 @@ void U4DOpenGLManager::enableUniformsLocations(){
     textureUniformLocations.shadowMapTextureUniformLocation=glGetUniformLocation(shader, "ShadowMap");
     
     //Material Uniform Locations
-    materialUniformLocations.emissionColorMaterialUniformLocation=glGetUniformLocation(shader, "EmissionMaterialColor");
-    materialUniformLocations.ambientColorMaterialUniformLocation=glGetUniformLocation(shader, "AmbientMaterialColor");
     materialUniformLocations.diffuseColorMaterialUniformLocation=glGetUniformLocation(shader, "DiffuseMaterialColor");
     materialUniformLocations.specularColorMaterialUniformLocation=glGetUniformLocation(shader, "SpecularMaterialColor");
-    materialUniformLocations.shininessColorMaterialUniformLocation=glGetUniformLocation(shader, "Shininess");
+    materialUniformLocations.diffuseIntensityMaterialUniformLocation=glGetUniformLocation(shader, "DiffuseMaterialIntensity");
+    materialUniformLocations.specularIntensityMaterialUniformLocation=glGetUniformLocation(shader, "SpecularMaterialIntensity");
+    materialUniformLocations.specularHardnessMaterialUniformLocation=glGetUniformLocation(shader, "SpecularMaterialHardness");
     
     //Animations Uniform Locations
     armatureUniformLocations.boneMatrixUniformLocation=glGetUniformLocation(shader, "BoneMatrix");

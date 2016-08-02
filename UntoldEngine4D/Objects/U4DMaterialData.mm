@@ -10,31 +10,31 @@
 
 namespace U4DEngine {
     
-void U4DMaterialData::addEmissionMaterialDataToContainer(float uData){
+    void U4DMaterialData::addDiffuseMaterialDataToContainer(U4DColorData& uData){
+        
+        diffuseMaterialColorContainer.push_back(uData);
+    }
     
-    emissionMaterialColorContainer.push_back(uData);
-}
-
-void U4DMaterialData::addDiffuseMaterialDataToContainer(float uData){
+    void U4DMaterialData::addSpecularMaterialDataToContainer(U4DColorData& uData){
+        
+        specularMaterialColorContainer.push_back(uData);
+        
+    }
     
-    diffuseMaterialColorContainer.push_back(uData);
-}
-
-void U4DMaterialData::addSpecularMaterialDataToContainer(float uData){
+    void U4DMaterialData::addDiffuseIntensityMaterialDataToContainer(float &uData){
+        diffuseMaterialIntensityContainer.push_back(uData);
+    }
     
-    specularMaterialColorContainer.push_back(uData);
+    void U4DMaterialData::addSpecularIntensityMaterialDataToContainer(float &uData){
+        specularMaterialIntensityContainer.push_back(uData);
+    }
     
-}
-
-void U4DMaterialData::addAmbientMaterialDataToContainer(float uData){
+    void U4DMaterialData::addSpecularHardnessMaterialDataToContainer(float &uData){
+        specularMaterialHardnessContainer.push_back(uData);
+    }
     
-    ambientMaterialColorContainer.push_back(uData);
+    void U4DMaterialData::addMaterialIndexDataToContainer(float &uData){
+        materialIndexColorContainer.push_back(uData);
+    }
     
-}
-
-void U4DMaterialData::setShininessOfMaterial(float uData){
-    
-    shininessOfMaterial=uData;
-}
-
 }

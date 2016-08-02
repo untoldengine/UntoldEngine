@@ -30,7 +30,7 @@ void main(void)
 
     }else{
 
-        lightPosition=MVMatrix*PointLight;
+        lightPosition=PointLight;
 
         vVaryingTexCoords=TextureCoord;
 

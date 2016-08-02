@@ -58,6 +58,8 @@ typedef struct{
     
     GLint boneIndicesAttributeLocation;
     
+    GLint materialIndexAttributeLocation;
+    
 }AttibuteLocations;
 
 typedef struct{
@@ -73,15 +75,16 @@ typedef struct{
 }ModelViewUniformLocations;
 
 typedef struct {
-    GLint emissionColorMaterialUniformLocation;
-    
-    GLint ambientColorMaterialUniformLocation;
     
     GLint diffuseColorMaterialUniformLocation;
     
     GLint specularColorMaterialUniformLocation;
     
-    GLint shininessColorMaterialUniformLocation;
+    GLint diffuseIntensityMaterialUniformLocation;
+    
+    GLint specularIntensityMaterialUniformLocation;
+    
+    GLint specularHardnessMaterialUniformLocation;
     
 }MaterialUniformLocations;
 
