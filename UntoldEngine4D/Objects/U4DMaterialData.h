@@ -27,12 +27,14 @@ class U4DMaterialData{
         std::vector<U4DColorData> specularMaterialColorContainer;
         std::vector<float> diffuseMaterialIntensityContainer;
         std::vector<float> specularMaterialIntensityContainer;
+        std::vector<float> specularMaterialHardnessContainer;
         std::vector<float> materialIndexColorContainer;
         
         void addDiffuseMaterialDataToContainer(U4DColorData& uData);
         void addSpecularMaterialDataToContainer(U4DColorData& uData);
         void addDiffuseIntensityMaterialDataToContainer(float &uData);
         void addSpecularIntensityMaterialDataToContainer(float &uData);
+        void addSpecularHardnessMaterialDataToContainer(float &uData);
         void addMaterialIndexDataToContainer(float &uData);
         
     };

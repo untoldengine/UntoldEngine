@@ -29,6 +29,10 @@ namespace U4DEngine {
         specularMaterialIntensityContainer.push_back(uData);
     }
     
+    void U4DMaterialData::addSpecularHardnessMaterialDataToContainer(float &uData){
+        specularMaterialHardnessContainer.push_back(uData);
+    }
+    
     void U4DMaterialData::addMaterialIndexDataToContainer(float &uData){
         materialIndexColorContainer.push_back(uData);
     }

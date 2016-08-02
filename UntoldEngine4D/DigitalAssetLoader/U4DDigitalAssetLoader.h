@@ -83,6 +83,8 @@ namespace U4DEngine {
         
         void loadSpecularIntensityData(U4DModel *uModel,std::string uStringData);
         
+        void loadSpecularHardnessData(U4DModel *uModel,std::string uStringData);
+        
         void loadTangentDataToBody(U4DModel *uModel);
         
         void loadDimensionDataToBody(U4DModel *uModel,std::string uStringData);

@@ -100,6 +100,7 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *specularColor=child->FirstChildElement("specular_color");
                     tinyxml2::XMLElement *diffuseIntensity=child->FirstChildElement("diffuse_intensity");
                     tinyxml2::XMLElement *specularIntensity=child->FirstChildElement("specular_intensity");
+                    tinyxml2::XMLElement *specularHardness=child->FirstChildElement("specular_hardness");
                     tinyxml2::XMLElement *texture=child->FirstChildElement("texture_image");
                     tinyxml2::XMLElement *localMatrix=child->FirstChildElement("local_matrix");
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
@@ -148,9 +149,9 @@ namespace U4DEngine {
                     }
                     
                     if (materialIndex!=NULL) {
-                        
-                        std::string data=materialIndex->GetText();
-                        loadMaterialIndexData(uModel, data);
+                        //Uncommenting this data until opengl es support "flat" glsl keyword
+                        //std::string data=materialIndex->GetText();
+                        //loadMaterialIndexData(uModel, data);
                         uModel->setHasMaterial(true);
                         
                     }
@@ -181,6 +182,13 @@ namespace U4DEngine {
                         
                         std::string specularIntensityString=specularIntensity->GetText();
                         loadSpecularIntensityData(uModel, specularIntensityString);
+                        
+                    }
+                    
+                    if (specularHardness!=NULL) {
+                        
+                        std::string specularHardnessString=specularHardness->GetText();
+                        loadSpecularHardnessData(uModel, specularHardnessString);
                         
                     }
                     
@@ -801,6 +809,21 @@ namespace U4DEngine {
             
             float specularIntensity=tempVector.at(i);
             uModel->materialInformation.addSpecularIntensityMaterialDataToContainer(specularIntensity);
+            
+        }
+        
+    }
+    
+    void U4DDigitalAssetLoader::loadSpecularHardnessData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();i++) {
+            
+            float specularHardness=tempVector.at(i);
+            uModel->materialInformation.addSpecularHardnessMaterialDataToContainer(specularHardness);
             
         }
         

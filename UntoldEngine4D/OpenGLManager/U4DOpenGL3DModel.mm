@@ -100,6 +100,10 @@ void U4DOpenGL3DModel::loadMaterialsUniforms(){
     if (!u4dObject->materialInformation.specularMaterialIntensityContainer.empty()) {
         glUniform1fv(materialUniformLocations.specularIntensityMaterialUniformLocation, u4dObject->materialInformation.specularMaterialIntensityContainer.size(), &u4dObject->materialInformation.specularMaterialIntensityContainer[0]);
     }
+    
+    if (!u4dObject->materialInformation.specularMaterialHardnessContainer.empty()) {
+        glUniform1fv(materialUniformLocations.specularHardnessMaterialUniformLocation, u4dObject->materialInformation.specularMaterialHardnessContainer.size(), &u4dObject->materialInformation.specularMaterialHardnessContainer[0]);
+    }
 
 }
 

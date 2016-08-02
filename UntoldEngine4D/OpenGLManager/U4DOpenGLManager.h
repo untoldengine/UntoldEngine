@@ -84,6 +84,8 @@ typedef struct {
     
     GLint specularIntensityMaterialUniformLocation;
     
+    GLint specularHardnessMaterialUniformLocation;
+    
 }MaterialUniformLocations;
 
 typedef struct{

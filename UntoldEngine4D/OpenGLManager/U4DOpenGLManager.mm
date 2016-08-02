@@ -81,6 +81,7 @@ void U4DOpenGLManager::enableUniformsLocations(){
     materialUniformLocations.specularColorMaterialUniformLocation=glGetUniformLocation(shader, "SpecularMaterialColor");
     materialUniformLocations.diffuseIntensityMaterialUniformLocation=glGetUniformLocation(shader, "DiffuseMaterialIntensity");
     materialUniformLocations.specularIntensityMaterialUniformLocation=glGetUniformLocation(shader, "SpecularMaterialIntensity");
+    materialUniformLocations.specularHardnessMaterialUniformLocation=glGetUniformLocation(shader, "SpecularMaterialHardness");
     
     //Animations Uniform Locations
     armatureUniformLocations.boneMatrixUniformLocation=glGetUniformLocation(shader, "BoneMatrix");
