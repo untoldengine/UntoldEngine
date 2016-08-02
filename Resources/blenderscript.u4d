@@ -33,10 +33,10 @@
                 <material_index>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 </material_index>
                 
                 <diffuse_color>0.715694 0.021219 0.028426 1.0 0.800000 0.078030 0.480885 1.0 </diffuse_color>
-                <specular_color>1.000000 0.818984 0.767867 1.0 1.000000 1.000000 1.000000 1.0 </specular_color>
+                <specular_color>1.000000 0.392430 0.009374 1.0 1.000000 1.000000 1.000000 1.0 </specular_color>
                 <diffuse_intensity>1.000000 0.800000 </diffuse_intensity>
-                <specular_intensity>0.060606 0.500000 </specular_intensity>
-                <specular_hardness>20.000000 50.000000 </specular_hardness>
+                <specular_intensity>0.000000 0.500000 </specular_intensity>
+                <specular_hardness>38.000000 50.000000 </specular_hardness>
                 
                 <local_matrix>1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 1.274326 0.000000 0.000000 1.000000 -0.000000 0.000000 0.000000 0.000000 1.000000</local_matrix>
                 

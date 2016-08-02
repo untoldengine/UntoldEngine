@@ -61,13 +61,13 @@ vec4 computeMaterialColor(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPo
     vec3 n=normalize(surfaceNormal);
     vec3 s=normalize(vec3(lightPosition));
 
-    vec4 diffuseComponent=vec4(DiffuseMaterialColor[0].xyz*max(0.2,dot(n,s)),1.0)*DiffuseMaterialIntensity[0];
+    vec4 diffuseComponent=vec4(DiffuseMaterialColor[0].xyz*max(0.0,dot(n,s)),1.0)*DiffuseMaterialIntensity[0];
 
     //compute the specular component
     vec3 v=normalize(-surfacePosition.xyz);
-    vec3 r=reflect(-s,n);
+    vec3 h=normalize(v+s);
 
-    vec4 specularComponent=vec4(SpecularMaterialColor[0].xyz*pow(max(dot(r,v),0.0),SpecularMaterialHardness[0]),1.0)*SpecularMaterialIntensity[0];
+    vec4 specularComponent=vec4(SpecularMaterialColor[0].xyz*pow(max(dot(h,n),0.0),SpecularMaterialHardness[0]),1.0)*SpecularMaterialIntensity[0];
 
     vec4 finalMaterialColor=diffuseComponent+specularComponent;
 
