@@ -7,11 +7,11 @@ precision highp float;
 
 
 uniform sampler2D DiffuseTexture;
-uniform vec4 DiffuseMaterialColor[1];
-uniform vec4 SpecularMaterialColor[1];
-uniform float DiffuseMaterialIntensity[1];
-uniform float SpecularMaterialIntensity[1];
-uniform float SpecularMaterialHardness[1];
+uniform vec4 DiffuseMaterialColor[10];
+uniform vec4 SpecularMaterialColor[10];
+uniform float DiffuseMaterialIntensity[10];
+uniform float SpecularMaterialIntensity[10];
+uniform float SpecularMaterialHardness[10];
 
 uniform sampler2D ShadowMap;
 uniform float ShadowCurrentPass;
@@ -23,6 +23,7 @@ in mediump vec4 positionInViewSpace;
 in mediump vec2 vVaryingTexCoords;
 in highp vec4 shadowCoord;
 in mediump vec4 lightPosition;
+flat in highp int colorIndex;
 
 out vec4 fragmentColor;
 
@@ -64,13 +65,13 @@ vec4 computeMaterialColor(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPo
     vec3 n=normalize(surfaceNormal);
     vec3 s=normalize(vec3(lightPosition));
 
-    vec4 diffuseComponent=vec4(DiffuseMaterialColor[0].xyz*max(0.0,dot(n,s)),1.0)*DiffuseMaterialIntensity[0];
+    vec4 diffuseComponent=vec4(DiffuseMaterialColor[colorIndex].xyz*max(0.0,dot(n,s)),1.0)*DiffuseMaterialIntensity[colorIndex];
 
     //compute the specular component
     vec3 v=normalize(-surfacePosition.xyz);
     vec3 h=normalize(v+s);
 
-    vec4 specularComponent=vec4(SpecularMaterialColor[0].xyz*pow(max(dot(h,n),0.0),SpecularMaterialHardness[0]),1.0)*SpecularMaterialIntensity[0];
+    vec4 specularComponent=vec4(SpecularMaterialColor[colorIndex].xyz*pow(max(dot(h,n),0.0),SpecularMaterialHardness[colorIndex]),1.0)*SpecularMaterialIntensity[colorIndex];
 
     vec4 finalMaterialColor=diffuseComponent+specularComponent;
 

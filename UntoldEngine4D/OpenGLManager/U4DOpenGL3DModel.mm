@@ -54,7 +54,7 @@ void U4DOpenGL3DModel::loadVertexObjectBuffer(){
     glGenBuffers(1, &vertexObjectBuffer);
     glBindBuffer(GL_ARRAY_BUFFER, vertexObjectBuffer);
     
-    glBufferData(GL_ARRAY_BUFFER,sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size())+sizeof(int)*4*u4dObject->bodyCoordinates.boneIndicesContainer.size(), NULL, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER,sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size()+4*u4dObject->bodyCoordinates.boneIndicesContainer.size()+u4dObject->materialInformation.materialIndexColorContainer.size()), NULL, GL_STATIC_DRAW);
     
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*3*u4dObject->bodyCoordinates.verticesContainer.size(), &u4dObject->bodyCoordinates.verticesContainer[0]);
     
@@ -71,6 +71,9 @@ void U4DOpenGL3DModel::loadVertexObjectBuffer(){
     //load bone indices container
     glBufferSubData(GL_ARRAY_BUFFER, sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size()), sizeof(float)*4*u4dObject->bodyCoordinates.boneIndicesContainer.size(), &u4dObject->bodyCoordinates.boneIndicesContainer[0]);
     
+    //load material index container
+    glBufferSubData(GL_ARRAY_BUFFER, sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size()+4*u4dObject->bodyCoordinates.boneIndicesContainer.size()), sizeof(float)*u4dObject->materialInformation.materialIndexColorContainer.size(), &u4dObject->materialInformation.materialIndexColorContainer[0]);
+
     
     //load the index into index buffer
     
@@ -179,6 +182,7 @@ void U4DOpenGL3DModel::enableVerticesAttributeLocations(){
     attributeLocations.verticesAttributeLocation=glGetAttribLocation(shader,"Vertex");
     attributeLocations.normalAttributeLocation=glGetAttribLocation(shader,"Normal");
     attributeLocations.uvAttributeLocation=glGetAttribLocation(shader, "TextureCoord");
+    attributeLocations.materialIndexAttributeLocation=glGetAttribLocation(shader, "MaterialIndex");
     attributeLocations.tangetVectorAttributeLocation=glGetAttribLocation(shader, "TangentVector");
     attributeLocations.vertexWeightAttributeLocation=glGetAttribLocation(shader, "Weights");
     attributeLocations.boneIndicesAttributeLocation=glGetAttribLocation(shader, "BoneIndices");
@@ -207,6 +211,10 @@ void U4DOpenGL3DModel::enableVerticesAttributeLocations(){
     //bone indices
     glEnableVertexAttribArray(attributeLocations.boneIndicesAttributeLocation);
     glVertexAttribPointer(attributeLocations.boneIndicesAttributeLocation, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size())));
+    
+    //material index
+    glEnableVertexAttribArray(attributeLocations.materialIndexAttributeLocation);
+    glVertexAttribPointer(attributeLocations.materialIndexAttributeLocation, 1, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size()+4*u4dObject->bodyCoordinates.boneIndicesContainer.size())));
     
 }
 
