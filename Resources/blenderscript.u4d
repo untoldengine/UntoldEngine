@@ -9,6 +9,8 @@
                 
                 <index>0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 </index>
                 
+                <material_index>0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 </material_index>
+                
                 <diffuse_color>1.000000 1.000000 1.000000 1.0 </diffuse_color>
                 <specular_color>1.000000 1.000000 1.000000 1.0 </specular_color>
                 <diffuse_intensity>0.800000 </diffuse_intensity>
@@ -28,11 +30,13 @@
                 
                 <index>0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 </index>
                 
-                <diffuse_color>0.715694 0.021219 0.028426 1.0 </diffuse_color>
-                <specular_color>1.000000 1.000000 1.000000 1.0 </specular_color>
-                <diffuse_intensity>0.800000 </diffuse_intensity>
-                <specular_intensity>0.500000 </specular_intensity>
-                <specular_hardness>50.000000 </specular_hardness>
+                <material_index>0 0 0 2 2 2 1 1 1 0 0 0 0 0 0 0 0 0 0 0 0 2 2 2 1 1 1 0 0 0 0 0 0 0 0 0 </material_index>
+                
+                <diffuse_color>0.715694 0.021219 0.028426 1.0 0.603827 0.603827 0.603827 1.0 0.000000 0.000000 0.000000 1.0 </diffuse_color>
+                <specular_color>1.000000 1.000000 1.000000 1.0 1.000000 1.000000 1.000000 1.0 1.000000 1.000000 1.000000 1.0 </specular_color>
+                <diffuse_intensity>0.800000 0.800000 0.800000 </diffuse_intensity>
+                <specular_intensity>0.000000 0.000000 0.000000 </specular_intensity>
+                <specular_hardness>50.000000 50.000000 50.000000 </specular_hardness>
                 
                 <local_matrix>1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 1.220934 0.000000 0.000000 1.000000 -0.000000 0.000000 0.000000 0.000000 1.000000</local_matrix>
                 

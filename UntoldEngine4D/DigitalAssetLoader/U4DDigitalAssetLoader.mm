@@ -149,9 +149,9 @@ namespace U4DEngine {
                     }
                     
                     if (materialIndex!=NULL) {
-                        //Uncommenting this data until opengl es support "flat" glsl keyword
-                        //std::string data=materialIndex->GetText();
-                        //loadMaterialIndexData(uModel, data);
+                        
+                        std::string data=materialIndex->GetText();
+                        loadMaterialIndexData(uModel, data);
                         uModel->setHasMaterial(true);
                         
                     }
@@ -727,6 +727,7 @@ namespace U4DEngine {
             float materialIndex=tempVector.at(i);
             
             uModel->materialInformation.addMaterialIndexDataToContainer(materialIndex);
+            
         }
         
     }

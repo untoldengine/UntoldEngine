@@ -3,6 +3,7 @@
 in vec4 Vertex;
 in vec3 Normal;
 in vec2 TextureCoord;
+in float MaterialIndex;
 
 uniform mat4 MVPMatrix;
 uniform mat3 NormalMatrix;
@@ -18,7 +19,9 @@ out mediump vec3 normalInViewSpace;
 out mediump vec4 positionInViewSpace;
 out mediump vec2 vVaryingTexCoords;
 
-void main(void) 
+flat out highp int colorIndex;
+
+void main(void)
 {
 
     if(ShadowCurrentPass==0.0){
@@ -31,6 +34,8 @@ void main(void)
         lightPosition=PointLight;
 
         vVaryingTexCoords=TextureCoord;
+
+        colorIndex=int(MaterialIndex);
 
         shadowCoord=LightShadowSpaceMatrix*ModelMatrix*Vertex;
 
