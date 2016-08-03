@@ -1,17 +1,20 @@
+#version 300 es
 
 #ifdef GL_ES
 // define default precision for float, vec, mat.
 precision highp float;
 #endif
 
-varying vec4 vVaryingColor;
+in vec4 vVaryingColor;
+in mediump vec2 vVaryingTexCoords;
 
-varying mediump vec2 vVaryingTexCoords;
 uniform sampler2D DiffuseTexture;
+
+out vec4 fragmentColor;
 
 void main(void)
    { 
 
-   gl_FragColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
+   fragmentColor=texture(DiffuseTexture,vVaryingTexCoords.st);
 
    }

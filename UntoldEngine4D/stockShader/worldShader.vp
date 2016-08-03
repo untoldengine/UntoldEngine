@@ -1,8 +1,10 @@
-attribute vec4 Vertex;
+#version 300 es
+
+in vec4 Vertex;
 
 uniform mat4 MVPMatrix;
 
-varying mediump vec4 axisColor;
+out mediump vec4 axisColor;
 
 void main(void) 
 {

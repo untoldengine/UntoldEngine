@@ -1,23 +1,26 @@
+#version 300 es
 
 #ifdef GL_ES
 // define default precision for float, vec, mat.
 precision highp float;
 #endif
 
-varying mediump vec2 vVaryingTexCoords;
+
+in mediump vec2 vVaryingTexCoords;
+in mediump vec3 outPosition;
+in mediump vec3 outNormal;
+in mediump float shininess;
+
+
 uniform sampler2D DiffuseTexture;
-
-varying mediump vec3 outPosition;
-varying mediump vec3 outNormal;
-varying mediump float shininess;
-//varying mediump vec4 lightPosition;
-
 uniform vec4 DiffuseMaterialColor;
 uniform vec4 AmbientMaterialColor;
 uniform vec4 SpecularMaterialColor;
 uniform float Shininess;
-
 uniform vec4 PointLight;
+
+
+out vec4 fragmentColor;
 
 mediump vec3 ads(){
 
@@ -38,13 +41,11 @@ return lightIntensity*(AmbientMaterialColor.xyz+DiffuseMaterialColor.xyz*max(dot
 void main(void)
    {
 
-   //gl_FragColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
-
-   mediump vec4 color0=texture2D(DiffuseTexture,vVaryingTexCoords.st);
+   mediump vec4 color0=texture(DiffuseTexture,vVaryingTexCoords.st);
 
    mediump vec4 adsValue=vec4(ads(),1.0);
    mediump vec3 texColor=vec3(mix(color0,adsValue,0.5));
    
-   gl_FragColor=color0;
+   fragmentColor=color0;
 
 }

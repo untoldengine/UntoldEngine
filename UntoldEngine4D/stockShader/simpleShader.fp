@@ -1,13 +1,11 @@
+#version 300 es
 
 #ifdef GL_ES
 // define default precision for float, vec, mat.
 precision highp float;
 #endif
 
-varying mediump vec3 normalInViewSpace;
-varying mediump vec4 positionInViewSpace;
 
-varying mediump vec2 vVaryingTexCoords;
 uniform sampler2D DiffuseTexture;
 uniform vec4 DiffuseMaterialColor[1];
 uniform vec4 SpecularMaterialColor[1];
@@ -16,12 +14,17 @@ uniform float SpecularMaterialIntensity[1];
 uniform float SpecularMaterialHardness[1];
 
 uniform sampler2D ShadowMap;
-varying highp vec4 shadowCoord;
 uniform float ShadowCurrentPass;
-varying mediump vec4 lightPosition;
-
 uniform float HasTexture;
-varying float nDotVP;
+
+
+in mediump vec3 normalInViewSpace;
+in mediump vec4 positionInViewSpace;
+in mediump vec2 vVaryingTexCoords;
+in highp vec4 shadowCoord;
+in mediump vec4 lightPosition;
+
+out vec4 fragmentColor;
 
 float ShadowCalculation(vec4 uShadowCoord){
 
@@ -37,7 +40,7 @@ float ShadowCalculation(vec4 uShadowCoord){
     projCoords=projCoords*0.5+0.5;
 
     // Get closest depth value from light's perspective (using [0,1] range fragPosLight as coords)
-    float closestDepth=texture2D(ShadowMap,projCoords.xy).r;
+    float closestDepth=texture(ShadowMap,projCoords.xy).r;
 
     // Get depth of current fragment from light's perspective
     float currentDepth = projCoords.z;
@@ -81,7 +84,7 @@ void main(void)
 
     if(ShadowCurrentPass==0.0){
 
-    gl_FragColor=vec4(gl_FragCoord.z);
+    fragmentColor=vec4(gl_FragCoord.z);
 
     }else{
 
@@ -93,14 +96,13 @@ void main(void)
 
         if(HasTexture==1.0){
 
-            mediump vec4 textureColor=texture2D(DiffuseTexture,vVaryingTexCoords.st);
+            mediump vec4 textureColor=texture(DiffuseTexture,vVaryingTexCoords.st);
 
             finalColor=vec4(mix(textureColor,finalColor,0.2));
 
         }
 
-        gl_FragColor=finalColor*(1.0-shadow);
-
+        fragmentColor=finalColor*(1.0-shadow);
 
     }
 

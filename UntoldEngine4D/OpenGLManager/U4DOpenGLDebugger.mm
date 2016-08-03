@@ -16,7 +16,7 @@ void U4DOpenGLDebugger::draw(){
     
     glUseProgram(shader);
     
-    glBindVertexArrayOES(vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     
     for (int i=0; i<u4dDebugger->entityContainer.size(); i++) {
      
@@ -46,7 +46,7 @@ void U4DOpenGLDebugger::draw(){
         
     }
     
-    glBindVertexArrayOES(0);
+    glBindVertexArray(0);
     //I should delete the buffer  glDeleteBuffers
     
 }
@@ -54,8 +54,8 @@ void U4DOpenGLDebugger::draw(){
 void U4DOpenGLDebugger::loadVertexObjectBuffer(){
     
     //init OPENGLBUFFERS
-    glGenVertexArraysOES(1,&vertexObjectArray);
-    glBindVertexArrayOES(vertexObjectArray);
+    glGenVertexArrays(1,&vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     
     //load the vertex
     glGenBuffers(1, &vertexObjectBuffer);

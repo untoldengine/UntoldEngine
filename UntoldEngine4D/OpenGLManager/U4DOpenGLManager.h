@@ -19,8 +19,8 @@
 #include "U4DVector3n.h"  
 #include "U4DVector4n.h" 
 #include "U4DIndex.h"
-#import <OpenGLES/ES2/gl.h>
-#import <OpenGLES/ES2/glext.h>
+#import <OpenGLES/ES3/gl.h>
+#import <OpenGLES/ES3/glext.h>
 
 #define OPENGL_ES
 

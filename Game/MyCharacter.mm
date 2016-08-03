@@ -24,7 +24,7 @@ void MyCharacter::init(const char* uName,float xPosition,float yPosition, float 
        
     }
     
-    translateTo(xPosition,yPosition,zPosition);
+    //translateTo(xPosition,yPosition,zPosition);
    
     anim=new U4DEngine::U4DAnimation(this);
     

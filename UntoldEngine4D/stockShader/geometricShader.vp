@@ -1,7 +1,6 @@
-attribute vec4 Vertex;
+#version 300 es
 
-
-
+in vec4 Vertex;
 uniform mat4 MVPMatrix;
 uniform mat3 NormalMatrix;
 
