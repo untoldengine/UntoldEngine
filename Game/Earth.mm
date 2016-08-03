@@ -33,6 +33,7 @@
 #include "Town.h"
 #include "U4DConvexHullGenerator.h"
 
+
 void Earth::init(){
     
     U4DEngine::U4DDebugger *debugger=new U4DEngine::U4DDebugger();
@@ -49,14 +50,14 @@ void Earth::init(){
     cube->init("GroundFloor",0.0,0.0,0.0);
     cube->setName("cube");
     cube->setShader("simpleShader");
-    //cube->setAsGround(true);
-    //Apply the collision engine to the object
-    //cube->enableCollision();
-    //cube->setMass(1.0);
-    //cube->setCoefficientOfRestitution(0.7);
-    
-    //cube->setNarrowPhaseBoundingVolumeVisibility(true);
-    
+//    //cube->setAsGround(true);
+//    //Apply the collision engine to the object
+//    //cube->enableCollision();
+//    //cube->setMass(1.0);
+//    //cube->setCoefficientOfRestitution(0.7);
+//    
+//    //cube->setNarrowPhaseBoundingVolumeVisibility(true);
+//    
     cube2=new Town();
     cube2->init("Cube",0.0,0.0,0.0);
     cube2->setShader("simpleShader");
@@ -85,7 +86,7 @@ void Earth::init(){
     U4DEngine::U4DVector3n origin(0,0,0);
     
     light->viewInDirection(origin);
-   
+
     
     
     //addChild(cube3);
@@ -93,9 +94,10 @@ void Earth::init(){
     addChild(cube2);
     addChild(light);
 
-    debugger->addEntityToDebug(light);
-    //addChild(debugger);
+//    debugger->addEntityToDebug(light);
+//    addChild(debugger);
     
+
     
     initLoadingModels();
     

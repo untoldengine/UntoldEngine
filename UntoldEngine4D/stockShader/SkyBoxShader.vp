@@ -1,10 +1,12 @@
-attribute vec4 Vertex;
-attribute vec3 Normal;
-attribute vec2 TextureCoord;
+#version 300 es
+
+in vec4 Vertex;
+in vec3 Normal;
+in vec2 TextureCoord;
 
 uniform mat4 MVPMatrix;
 
-varying mediump vec3 vVaryingTexCoords;
+out mediump vec3 vVaryingTexCoords;
 
 
 void main(void)

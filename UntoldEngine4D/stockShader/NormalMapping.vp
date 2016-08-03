@@ -1,18 +1,18 @@
-attribute vec4 Vertex;
-attribute vec3 Normal;
-attribute vec2 TextureCoord;
-attribute vec4 TangentVector;
+#version 300 es
+
+in vec4 Vertex;
+in vec3 Normal;
+in vec2 TextureCoord;
+in vec4 TangentVector;
 
 uniform mat4 MVPMatrix;
 uniform mat3 NormalMatrix;
 uniform mat4 MVMatrix;
 
-varying mediump vec2 vVaryingTexCoords;
-varying mediump vec3 LightDir;
-varying mediump vec3 ViewDir;
-
-
-varying mediump vec4 lightPosition;
+out mediump vec2 vVaryingTexCoords;
+out mediump vec3 LightDir;
+out mediump vec3 ViewDir;
+out mediump vec4 lightPosition;
 
 
 void main(void) 
