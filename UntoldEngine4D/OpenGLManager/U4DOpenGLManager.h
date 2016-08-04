@@ -72,6 +72,8 @@ typedef struct{
 
     GLint modelViewProjectionUniformLocation;
     
+    GLint cameraViewDirectionUniformLocation;
+    
 }ModelViewUniformLocations;
 
 typedef struct {
@@ -231,6 +233,8 @@ public:
     virtual void setNormalBumpTexture(const char* uTexture){};
 
     virtual U4DDualQuaternion getCameraSpace();
+    
+    U4DVector3n getCameraViewDirection();
 
     void loadRenderingInformation();
     

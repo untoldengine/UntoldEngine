@@ -78,6 +78,20 @@ namespace U4DEngine {
         translateTo(cameraPosition);
     
     }
+    
+    U4DVector3n U4DCamera::getViewInDirection(){
+        
+        //get forward vector
+        U4DVector3n forward=getForwardVector();
+        
+        //get the entity rotation matrix
+        U4DMatrix3n orientationMatrix=getLocalMatrixOrientation();
+        
+        orientationMatrix.invert();
+        
+        return orientationMatrix*forward;
+        
+    }
 
 }
 

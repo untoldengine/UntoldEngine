@@ -57,8 +57,8 @@ void GameController::action(){
     
     U4DEngine::U4DVector3n axisOrientation(0,1,0);
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //camera->rotateBy(data.x, axisOrientation);
-    controlledU4DObject->rotateBy(data.x, axisOrientation);
+    //camera->rotateBy(-data.x, axisOrientation);
+    controlledU4DObject->rotateBy(-data.x, axisOrientation);
 }
 
 void GameController::forward(){
@@ -72,9 +72,9 @@ void GameController::forward(){
     U4DVector3n pos=controlledU4DObject->getAbsolutePosition();
     */
     
-//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-//    camera->translateBy(0.0,0.0,0.2);
-    controlledU4DObject->translateBy(0.0,0.0,-0.2);
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    camera->translateBy(0.0,0.0,0.2);
+    //controlledU4DObject->translateBy(0.0,0.0,-0.2);
 }
 
 void GameController::backward(){
@@ -84,8 +84,8 @@ void GameController::backward(){
     
     controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
  */
-//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-//    camera->translateBy(0.0,0.0,-0.2);
-    controlledU4DObject->translateBy(0.0,0.0,0.2);
+  U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+   camera->translateBy(0.0,0.0,-0.2);
+    //controlledU4DObject->translateBy(0.0,0.0,0.2);
    
 }

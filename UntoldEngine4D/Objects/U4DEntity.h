@@ -153,6 +153,8 @@ public:
     
     virtual void viewInDirection(U4DVector3n& uDestinationPoint);
     
+    virtual U4DVector3n getViewInDirection(){};
+    
     //scenegraph
     
     void addChild(U4DEntity *uChild);

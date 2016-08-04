@@ -66,6 +66,8 @@ void U4DOpenGLManager::enableUniformsLocations(){
     modelViewUniformLocations.modelViewProjectionUniformLocation=glGetUniformLocation(shader,"MVPMatrix"); //model-view-projection matrix
     
     modelViewUniformLocations.normaMatrixViewlUniformLocation=glGetUniformLocation(shader, "NormalMatrix"); //normal matrix
+    
+    modelViewUniformLocations.cameraViewDirectionUniformLocation=glGetUniformLocation(shader, "CameraViewDirection");  //camera view direction
 
     //Texture Uniform Locations
     textureUniformLocations.hasTextureUniformLocation=glGetUniformLocation(shader, "HasTexture");
@@ -213,6 +215,13 @@ U4DDualQuaternion U4DOpenGLManager::getCameraSpace(){
     
     return cameraQuaternion;
 }
+    
+U4DVector3n U4DOpenGLManager::getCameraViewDirection(){
+    
+    U4DCamera *camera=U4DCamera::sharedInstance();
+    return camera->getViewInDirection();
+    
+}
 
 
 #pragma mark-draw
@@ -253,13 +262,13 @@ void U4DOpenGLManager::draw(){
     
     normalModelViewMatrix=modelViewMatrix3x3.transpose();
     
-    
+    //get the mvp
     U4DMatrix4n mModelViewProjection;
-    
-    //get the camera matrix
-    
+
     mModelViewProjection=getCameraProjection()*mModelViewMatrix;
     
+    //get the camera view direction
+    U4DVector3n cameraViewDirection=getCameraViewDirection();
     
     glUniformMatrix4fv(modelViewUniformLocations.modelUniformLocation,1,0,mModelMatrix.matrixData);
     
@@ -270,6 +279,8 @@ void U4DOpenGLManager::draw(){
     glUniformMatrix3fv(modelViewUniformLocations.normaMatrixViewlUniformLocation,1,0,normalModelViewMatrix.matrixData);
     
     glUniform1f(lightUniformLocations.shadowCurrentPassUniformLocation, 1.0);
+    
+    glUniform3f(modelViewUniformLocations.cameraViewDirectionUniformLocation, cameraViewDirection.x, cameraViewDirection.y, cameraViewDirection.z);
     
     loadDepthShadowUniform();
     
