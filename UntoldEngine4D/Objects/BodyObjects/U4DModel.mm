@@ -27,7 +27,7 @@ namespace U4DEngine {
         openGlManager=new U4DOpenGL3DModel(this);
         armatureManager=new U4DArmatureData(this);
         
-        openGlManager->setShader("modelShader");
+        openGlManager->setShader("phongShader");
         
         setEntityType(MODEL);
         

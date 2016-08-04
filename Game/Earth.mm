@@ -43,13 +43,11 @@ void Earth::init(){
     
     setName("earth");
     
-    enableGrid(true);
-    
     //create our object
     cube=new Town();
     cube->init("GroundFloor",0.0,0.0,0.0);
     cube->setName("cube");
-    cube->setShader("simpleShader");
+    
 //    //cube->setAsGround(true);
 //    //Apply the collision engine to the object
 //    //cube->enableCollision();
@@ -60,7 +58,7 @@ void Earth::init(){
 //    
     cube2=new Town();
     cube2->init("Cube",0.0,0.0,0.0);
-    cube2->setShader("simpleFlatShader");
+    
     cube2->setName("cube2");
     
 //    cube3=new Town();

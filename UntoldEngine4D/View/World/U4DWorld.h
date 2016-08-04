@@ -66,10 +66,6 @@ public:
     
     void initLoadingModels();
     
-    void buildGrid();
-    
-    void enableGrid(bool value);
-    
     void draw();
     
     void enableShadows();
