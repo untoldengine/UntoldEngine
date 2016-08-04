@@ -27,4 +27,7 @@ void Planet::init(const char* uName, const char* uBlenderFile){
 
 void Planet::update(double dt){
     
+    rotateBy(0.0,1.0, 0.0);
+    
+    
 }

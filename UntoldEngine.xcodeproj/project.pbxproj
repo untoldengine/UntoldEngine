@@ -113,7 +113,6 @@
 		03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7081ADF82A300E81A00 /* ArialFont.xml */; };
 		03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F70D1AE08C6F00E81A00 /* U4DSpriteLoader.mm */; };
 		03A9F72A1AE48EDB00E81A00 /* bodyWithHelmet.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7291AE48EDB00E81A00 /* bodyWithHelmet.png */; };
-		03A9F72D1AE5F34A00E81A00 /* Town.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F72B1AE5F34A00E81A00 /* Town.mm */; };
 		03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFEF11775F3F5002DDD03 /* U4DEntity.mm */; };
 		03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFEF71775F71C002DDD03 /* U4DVisibleEntity.mm */; };
 		03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFF01177600E8002DDD03 /* U4DEntityManager.mm */; };
@@ -365,8 +364,6 @@
 		03A9F70C1AE08C6F00E81A00 /* U4DSpriteLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSpriteLoader.h; sourceTree = "<group>"; };
 		03A9F70D1AE08C6F00E81A00 /* U4DSpriteLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSpriteLoader.mm; sourceTree = "<group>"; };
 		03A9F7291AE48EDB00E81A00 /* bodyWithHelmet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = bodyWithHelmet.png; path = Resources/bodyWithHelmet.png; sourceTree = SOURCE_ROOT; };
-		03A9F72B1AE5F34A00E81A00 /* Town.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Town.mm; sourceTree = "<group>"; };
-		03A9F72C1AE5F34A00E81A00 /* Town.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Town.h; sourceTree = "<group>"; };
 		03ADFEEF1775F37A002DDD03 /* U4DWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DWorld.h; sourceTree = "<group>"; };
 		03ADFEF11775F3F5002DDD03 /* U4DEntity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DEntity.mm; sourceTree = "<group>"; };
 		03ADFEF21775F3F5002DDD03 /* U4DEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DEntity.h; sourceTree = "<group>"; };
@@ -661,8 +658,6 @@
 				036FB56D18CE9CB8000EA639 /* MainScene.mm */,
 				036FB56F18CE9CB8000EA639 /* MyCharacter.h */,
 				036FB57018CE9CB8000EA639 /* MyCharacter.mm */,
-				03A9F72C1AE5F34A00E81A00 /* Town.h */,
-				03A9F72B1AE5F34A00E81A00 /* Town.mm */,
 				03D559D21D53D11900E567D5 /* Rocket.h */,
 				03D559D11D53D11900E567D5 /* Rocket.mm */,
 				03D559D51D53D12D00E567D5 /* Floor.h */,
@@ -1508,7 +1503,6 @@
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
-				03A9F72D1AE5F34A00E81A00 /* Town.mm in Sources */,
 				03002C901B9E27BA00665CC9 /* U4DPolytope.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,

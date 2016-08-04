@@ -142,7 +142,7 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->followModel(rocket, 0.0, 2.0, 7.0);
+    camera->followModel(rocket, 0.0, 2.0, 10.0);
     
 
 }
