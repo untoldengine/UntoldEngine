@@ -22,6 +22,8 @@ namespace U4DEngine {
         openGlManager=new U4DOpenGLWorld(this);
         openGlManager->setShader("phongShader");
         
+        enableShadows();
+        
     }
     
     

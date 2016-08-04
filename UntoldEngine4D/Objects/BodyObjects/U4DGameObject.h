@@ -42,6 +42,8 @@ namespace U4DEngine {
         
         virtual void update(double dt){};
         
+        bool loadModel(const char* uModelName, const char* uBlenderFile);
+        
     };
 
 }
