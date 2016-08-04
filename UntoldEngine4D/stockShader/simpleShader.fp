@@ -12,6 +12,7 @@ uniform vec4 SpecularMaterialColor[10];
 uniform float DiffuseMaterialIntensity[10];
 uniform float SpecularMaterialIntensity[10];
 uniform float SpecularMaterialHardness[10];
+uniform vec3 CameraViewDirection;
 
 uniform sampler2D ShadowMap;
 uniform float ShadowCurrentPass;
@@ -60,7 +61,7 @@ float ShadowCalculation(vec4 uShadowCoord){
 vec4 phongShading(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
 
     //retrieve the material colors
-    highp vec3 materialAmbienColor=vec3(1.0);
+    highp vec3 materialAmbientColor=vec3(0.0,0.0,0.0);
     highp vec3 materialDiffuseColor=DiffuseMaterialColor[colorIndex].xyz;
     highp vec3 materialSpecularColor=SpecularMaterialColor[colorIndex].xyz;
 
@@ -69,7 +70,7 @@ vec4 phongShading(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
 
     //compute normal,viewDirection, halfplane
     highp vec3 n=normalize(surfaceNormal);
-    highp vec3 viewDirection=vec3(0.0,1.0,1.0);
+    highp vec3 viewDirection=normalize(-CameraViewDirection);
     highp vec3 halfPlane=normalize(lightDirection+viewDirection);
 
     //compute the diffuse and specular factors
@@ -80,7 +81,7 @@ vec4 phongShading(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
     specularFactor=pow(specularFactor,SpecularMaterialHardness[colorIndex]);
 
     //compute final color
-    highp vec3 color=diffuseFactor*materialDiffuseColor*DiffuseMaterialIntensity[colorIndex]+specularFactor*materialSpecularColor*SpecularMaterialIntensity[colorIndex];
+    highp vec3 color=materialAmbientColor+diffuseFactor*materialDiffuseColor*DiffuseMaterialIntensity[colorIndex]+specularFactor*materialSpecularColor*SpecularMaterialIntensity[colorIndex];
 
     return vec4(color,1.0);
 

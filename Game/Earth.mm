@@ -82,12 +82,11 @@ void Earth::init(){
     
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
     light->setName("light");
-    light->translateTo(3.0,3.0,-5.0);
+    light->translateTo(0.0,1.0,-5.0);
     U4DEngine::U4DVector3n origin(0,0,0);
     
     light->viewInDirection(origin);
-
-    
+    camera->viewInDirection(origin);
     
     //addChild(cube3);
     addChild(cube);
@@ -116,7 +115,7 @@ void Earth::action(){
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
-    setEntityControlledByController(this);
+    setEntityControlledByController(cube2);
     
 }
 
