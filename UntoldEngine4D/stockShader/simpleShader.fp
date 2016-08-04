@@ -57,25 +57,32 @@ float ShadowCalculation(vec4 uShadowCoord){
 
 }
 
-vec4 computeMaterialColor(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
+vec4 phongShading(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
 
-    //CD=iL*max(0,dot(L,N))*LD*MD
+    //retrieve the material colors
+    highp vec3 materialAmbienColor=vec3(1.0);
+    highp vec3 materialDiffuseColor=DiffuseMaterialColor[colorIndex].xyz;
+    highp vec3 materialSpecularColor=SpecularMaterialColor[colorIndex].xyz;
 
-    //compute the diffuse component
-    vec3 n=normalize(surfaceNormal);
-    vec3 s=normalize(vec3(lightPosition));
+    //get the light direction
+    highp vec3 lightDirection=normalize(vec3(lightPosition));
 
-    vec4 diffuseComponent=vec4(DiffuseMaterialColor[colorIndex].xyz*max(0.0,dot(n,s)),1.0)*DiffuseMaterialIntensity[colorIndex];
+    //compute normal,viewDirection, halfplane
+    highp vec3 n=normalize(surfaceNormal);
+    highp vec3 viewDirection=vec3(0.0,1.0,1.0);
+    highp vec3 halfPlane=normalize(lightDirection+viewDirection);
 
-    //compute the specular component
-    vec3 v=normalize(-surfacePosition.xyz);
-    vec3 h=normalize(v+s);
+    //compute the diffuse and specular factors
+    highp float diffuseFactor=max(0.0,dot(n,lightDirection));
+    highp float specularFactor=max(0.0,dot(n,halfPlane));
 
-    vec4 specularComponent=vec4(SpecularMaterialColor[colorIndex].xyz*pow(max(dot(h,n),0.0),SpecularMaterialHardness[colorIndex]),1.0)*SpecularMaterialIntensity[colorIndex];
+    //compute specular shininess factor
+    specularFactor=pow(specularFactor,SpecularMaterialHardness[colorIndex]);
 
-    vec4 finalMaterialColor=diffuseComponent+specularComponent;
+    //compute final color
+    highp vec3 color=diffuseFactor*materialDiffuseColor*DiffuseMaterialIntensity[colorIndex]+specularFactor*materialSpecularColor*SpecularMaterialIntensity[colorIndex];
 
-    return finalMaterialColor;
+    return vec4(color,1.0);
 
 }
 
@@ -91,7 +98,7 @@ void main(void)
 
         vec4 finalColor=vec4(0.0);
 
-        finalColor=computeMaterialColor(normalInViewSpace, positionInViewSpace, lightPosition);
+        finalColor=phongShading(normalInViewSpace, positionInViewSpace, lightPosition);
 
         float shadow = ShadowCalculation(shadowCoord);
 
