@@ -132,6 +132,8 @@
 		03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740D1AE9FE8F000D8535 /* spriteExample.png */; };
 		03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740E1AE9FE8F000D8535 /* spriteExample.xml */; };
 		03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
+		03D559C71D53B3B700E567D5 /* simpleFlatShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559C51D53B3B700E567D5 /* simpleFlatShader.fp */; settings = {ASSET_TAGS = (); }; };
+		03D559C81D53B3B700E567D5 /* simpleFlatShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559C61D53B3B700E567D5 /* simpleFlatShader.vp */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -394,6 +396,8 @@
 		03D3740E1AE9FE8F000D8535 /* spriteExample.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = spriteExample.xml; path = Resources/spriteExample.xml; sourceTree = SOURCE_ROOT; };
 		03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSHAlgorithm.mm; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.mm; sourceTree = "<group>"; };
 		03D4B1CD1CC5DEB0007BE481 /* U4DSHAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DSHAlgorithm.h; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.h; sourceTree = "<group>"; };
+		03D559C51D53B3B700E567D5 /* simpleFlatShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleFlatShader.fp; sourceTree = "<group>"; };
+		03D559C61D53B3B700E567D5 /* simpleFlatShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleFlatShader.vp; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -838,6 +842,8 @@
 		03759B9B175B0383002EB5D9 /* stockShader */ = {
 			isa = PBXGroup;
 			children = (
+				03D559C51D53B3B700E567D5 /* simpleFlatShader.fp */,
+				03D559C61D53B3B700E567D5 /* simpleFlatShader.vp */,
 				034DBC871A74112000AC43EB /* debugShader.fp */,
 				034DBC881A74112000AC43EB /* debugShader.vp */,
 				034DBC801A73FAD200AC43EB /* lightShader.fp */,
@@ -1395,6 +1401,7 @@
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03F396021A65A9D9007A45BD /* worldShader.vp in Resources */,
 				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
+				03D559C81D53B3B700E567D5 /* simpleFlatShader.vp in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				03A9F6EA1AD9D19A00E81A00 /* little_mansion.png in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
@@ -1410,6 +1417,7 @@
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */,
 				034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */,
+				03D559C71D53B3B700E567D5 /* simpleFlatShader.fp in Resources */,
 				03A9F6FC1ADB0BC800E81A00 /* LeftImage.png in Resources */,
 				034DBC891A74112000AC43EB /* debugShader.fp in Resources */,
 				03A9F6EE1AD9D1A800E81A00 /* small_house_02.png in Resources */,
