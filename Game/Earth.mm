@@ -15,9 +15,7 @@
 #include "U4DDirector.h"
 
 #include "MyCharacter.h"
-#include "U4DBoundingAABB.h"
 #include "U4DMatrix3n.h"
-
 #include "U4DButton.h"
 #include "U4DSkyBox.h"
 #include "U4DTouches.h"
@@ -26,13 +24,13 @@
 
 #include "GameController.h"
 #include "U4DSprite.h"
-#include "U4DSpriteLoader.h"
-#include "U4DDigitalAssetLoader.h"
 #include "U4DLights.h"
 #include "U4DDebugger.h"
-#include "Town.h"
-#include "U4DConvexHullGenerator.h"
-
+#include "Floor.h"
+#include "Rocket.h"
+#include "Mountain.h"
+#include "Planet.h"
+#include "Meteor.h"
 
 void Earth::init(){
     
@@ -43,10 +41,45 @@ void Earth::init(){
     
     setName("earth");
     
+    //create the floor
+    floor=new Floor();
+    floor->init("GroundFloor","blenderscript.u4d");
+    
+    //create the rocket
+    rocket=new Rocket();
+    rocket->init("Rocket","blenderscript.u4d");
+    
+    //create mountain
+    mountain=new Mountain();
+    mountain->init("Mountain", "blenderscript.u4d");
+    
+    mountain2=new Mountain();
+    mountain2->init("Mountain2", "blenderscript.u4d");
+    
+    mountain3=new Mountain();
+    mountain3->init("Mountain3", "blenderscript.u4d");
+    
+    mountain4=new Mountain();
+    mountain4->init("Mountain4", "blenderscript.u4d");
+    
+    //create planet
+    planet=new Planet();
+    planet->init("Planet", "blenderscript.u4d");
+    
+    //create meteors
+    meteor1=new Meteor();
+    meteor1->init("Meteor1", "blenderscript.u4d");
+    
+    meteor2=new Meteor();
+    meteor2->init("Meteor2", "blenderscript.u4d");
+    
+    meteor3=new Meteor();
+    meteor3->init("Meteor3", "blenderscript.u4d");
+    
     //create our object
-    cube=new Town();
-    cube->init("GroundFloor",0.0,0.0,0.0);
-    cube->setName("cube");
+//    cube=new Town();
+//    cube->init("GroundFloor",0.0,0.0,0.0);
+//    cube->setName("cube");
     
 //    //cube->setAsGround(true);
 //    //Apply the collision engine to the object
@@ -56,10 +89,10 @@ void Earth::init(){
 //    
 //    //cube->setNarrowPhaseBoundingVolumeVisibility(true);
 //    
-    cube2=new Town();
-    cube2->init("Cube",0.0,0.0,0.0);
-    
-    cube2->setName("cube2");
+//    cube2=new Town();
+//    cube2->init("Cube",0.0,0.0,0.0);
+//    
+//    cube2->setName("cube2");
     
 //    cube3=new Town();
 //    cube3->init("Cube3",-3.0,1.0,0.0);
@@ -75,9 +108,7 @@ void Earth::init(){
     //cube2->enableCollision();
     
     //cube2->setNarrowPhaseBoundingVolumeVisibility(true);
-    enableShadows();
-    
-    
+
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
     light->setName("light");
     light->translateTo(3.0,3.0,5.0);
@@ -86,10 +117,17 @@ void Earth::init(){
     light->viewInDirection(origin);
     camera->viewInDirection(origin);
     
-    //addChild(cube3);
-    addChild(cube);
-    addChild(cube2);
-    //addChild(light);
+
+    addChild(floor);
+    addChild(rocket);
+    addChild(mountain);
+    addChild(mountain2);
+    addChild(mountain3);
+    addChild(mountain4);
+    addChild(planet);
+    addChild(meteor1);
+    addChild(meteor2);
+    addChild(meteor3);
 
 //    debugger->addEntityToDebug(light);
 //    addChild(debugger);
@@ -104,7 +142,7 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //camera->followModel(cube2, 0.0, 2.0, 7.0);
+    camera->followModel(rocket, 0.0, 2.0, 10.0);
     
 
 }
@@ -113,7 +151,7 @@ void Earth::action(){
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     U4DEngine::U4DLights *light=director->getLight();
-    setEntityControlledByController(cube2);
+    setEntityControlledByController(rocket);
     
 }
 

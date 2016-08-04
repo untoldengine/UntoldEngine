@@ -14,35 +14,32 @@
 #include "U4DVector3n.h"
 
 class MyCharacter;
-class MyPlane;
+
 class GameController;
-class Town;
+class Rocket;
+class Floor;
+class Mountain;
+class Planet;
+class Meteor;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
-    Town *cube2;
-    Town *cube;
-    Town *cube3;
+    Rocket *rocket;
+    Floor *floor;
+    Mountain *mountain;
+    Mountain *mountain2;
+    Mountain *mountain3;
+    Mountain *mountain4;
+    Planet *planet;
+    Meteor *meteor1;
+    Meteor *meteor2;
+    Meteor *meteor3;
     
-    Town *cube4;
-    Town *cube5;
-    Town *cube6;
-    
-    Town *cube7;
-    Town *cube8;
-    
-    Town *cube9;
-    
-    Town *cube10;
-    Town *cube11;
-    Town *cube12;
-    
-    int rotation;
 public:
    
     Earth(){
-        rotation=0;
+        
     };
     
     void init();

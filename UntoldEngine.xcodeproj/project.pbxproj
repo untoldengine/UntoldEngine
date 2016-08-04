@@ -113,7 +113,6 @@
 		03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7081ADF82A300E81A00 /* ArialFont.xml */; };
 		03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F70D1AE08C6F00E81A00 /* U4DSpriteLoader.mm */; };
 		03A9F72A1AE48EDB00E81A00 /* bodyWithHelmet.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7291AE48EDB00E81A00 /* bodyWithHelmet.png */; };
-		03A9F72D1AE5F34A00E81A00 /* Town.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F72B1AE5F34A00E81A00 /* Town.mm */; };
 		03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFEF11775F3F5002DDD03 /* U4DEntity.mm */; };
 		03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFEF71775F71C002DDD03 /* U4DVisibleEntity.mm */; };
 		03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFF01177600E8002DDD03 /* U4DEntityManager.mm */; };
@@ -134,6 +133,11 @@
 		03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CA1D53CAA200E567D5 /* gouraudShader.vp */; settings = {ASSET_TAGS = (); }; };
 		03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CB1D53CAA200E567D5 /* phongShader.fp */; settings = {ASSET_TAGS = (); }; };
 		03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CC1D53CAA200E567D5 /* phongShader.vp */; settings = {ASSET_TAGS = (); }; };
+		03D559D31D53D11900E567D5 /* Rocket.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D11D53D11900E567D5 /* Rocket.mm */; settings = {ASSET_TAGS = (); }; };
+		03D559D61D53D12D00E567D5 /* Floor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D41D53D12D00E567D5 /* Floor.mm */; settings = {ASSET_TAGS = (); }; };
+		03D559D91D53D13D00E567D5 /* Mountain.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D71D53D13D00E567D5 /* Mountain.mm */; settings = {ASSET_TAGS = (); }; };
+		03D559DC1D53D14A00E567D5 /* Planet.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559DA1D53D14A00E567D5 /* Planet.mm */; settings = {ASSET_TAGS = (); }; };
+		03D559DF1D53D15700E567D5 /* Meteor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559DD1D53D15700E567D5 /* Meteor.mm */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -360,8 +364,6 @@
 		03A9F70C1AE08C6F00E81A00 /* U4DSpriteLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSpriteLoader.h; sourceTree = "<group>"; };
 		03A9F70D1AE08C6F00E81A00 /* U4DSpriteLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSpriteLoader.mm; sourceTree = "<group>"; };
 		03A9F7291AE48EDB00E81A00 /* bodyWithHelmet.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = bodyWithHelmet.png; path = Resources/bodyWithHelmet.png; sourceTree = SOURCE_ROOT; };
-		03A9F72B1AE5F34A00E81A00 /* Town.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Town.mm; sourceTree = "<group>"; };
-		03A9F72C1AE5F34A00E81A00 /* Town.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Town.h; sourceTree = "<group>"; };
 		03ADFEEF1775F37A002DDD03 /* U4DWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DWorld.h; sourceTree = "<group>"; };
 		03ADFEF11775F3F5002DDD03 /* U4DEntity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DEntity.mm; sourceTree = "<group>"; };
 		03ADFEF21775F3F5002DDD03 /* U4DEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DEntity.h; sourceTree = "<group>"; };
@@ -394,6 +396,16 @@
 		03D559CA1D53CAA200E567D5 /* gouraudShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gouraudShader.vp; sourceTree = "<group>"; };
 		03D559CB1D53CAA200E567D5 /* phongShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = phongShader.fp; sourceTree = "<group>"; };
 		03D559CC1D53CAA200E567D5 /* phongShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = phongShader.vp; sourceTree = "<group>"; };
+		03D559D11D53D11900E567D5 /* Rocket.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Rocket.mm; sourceTree = "<group>"; };
+		03D559D21D53D11900E567D5 /* Rocket.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Rocket.h; sourceTree = "<group>"; };
+		03D559D41D53D12D00E567D5 /* Floor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Floor.mm; sourceTree = "<group>"; };
+		03D559D51D53D12D00E567D5 /* Floor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Floor.h; sourceTree = "<group>"; };
+		03D559D71D53D13D00E567D5 /* Mountain.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Mountain.mm; sourceTree = "<group>"; };
+		03D559D81D53D13D00E567D5 /* Mountain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Mountain.h; sourceTree = "<group>"; };
+		03D559DA1D53D14A00E567D5 /* Planet.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Planet.mm; sourceTree = "<group>"; };
+		03D559DB1D53D14A00E567D5 /* Planet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Planet.h; sourceTree = "<group>"; };
+		03D559DD1D53D15700E567D5 /* Meteor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Meteor.mm; sourceTree = "<group>"; };
+		03D559DE1D53D15700E567D5 /* Meteor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Meteor.h; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -646,8 +658,16 @@
 				036FB56D18CE9CB8000EA639 /* MainScene.mm */,
 				036FB56F18CE9CB8000EA639 /* MyCharacter.h */,
 				036FB57018CE9CB8000EA639 /* MyCharacter.mm */,
-				03A9F72C1AE5F34A00E81A00 /* Town.h */,
-				03A9F72B1AE5F34A00E81A00 /* Town.mm */,
+				03D559D21D53D11900E567D5 /* Rocket.h */,
+				03D559D11D53D11900E567D5 /* Rocket.mm */,
+				03D559D51D53D12D00E567D5 /* Floor.h */,
+				03D559D41D53D12D00E567D5 /* Floor.mm */,
+				03D559D81D53D13D00E567D5 /* Mountain.h */,
+				03D559D71D53D13D00E567D5 /* Mountain.mm */,
+				03D559DB1D53D14A00E567D5 /* Planet.h */,
+				03D559DA1D53D14A00E567D5 /* Planet.mm */,
+				03D559DE1D53D15700E567D5 /* Meteor.h */,
+				03D559DD1D53D15700E567D5 /* Meteor.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -1457,6 +1477,7 @@
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
+				03D559DC1D53D14A00E567D5 /* Planet.mm in Sources */,
 				03E6EDDD1943D816007AD131 /* U4DEulerMethod.mm in Sources */,
 				03FBE3F41BFB9394007E837F /* U4DTorqueForceGenerator.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
@@ -1478,20 +1499,22 @@
 				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
+				03D559D61D53D12D00E567D5 /* Floor.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
-				03A9F72D1AE5F34A00E81A00 /* Town.mm in Sources */,
 				03002C901B9E27BA00665CC9 /* U4DPolytope.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				0377BD2A1B8007B4006F1E61 /* U4DConvexPolygon.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
+				03D559D91D53D13D00E567D5 /* Mountain.mm in Sources */,
 				03E6ED9F1943D799007AD131 /* U4DFont.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
+				03D559DF1D53D15700E567D5 /* Meteor.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
@@ -1515,6 +1538,7 @@
 				0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */,
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
+				03D559D31D53D11900E567D5 /* Rocket.mm in Sources */,
 				03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
