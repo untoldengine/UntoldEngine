@@ -60,7 +60,7 @@ void Earth::init(){
 //    
     cube2=new Town();
     cube2->init("Cube",0.0,0.0,0.0);
-    cube2->setShader("simpleShader");
+    cube2->setShader("simpleFlatShader");
     cube2->setName("cube2");
     
 //    cube3=new Town();
@@ -82,7 +82,7 @@ void Earth::init(){
     
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
     light->setName("light");
-    light->translateTo(0.0,1.0,-5.0);
+    light->translateTo(3.0,3.0,5.0);
     U4DEngine::U4DVector3n origin(0,0,0);
     
     light->viewInDirection(origin);

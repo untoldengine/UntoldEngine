@@ -26,14 +26,10 @@
 		030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3DF51927ED26009EF31B /* geometricShader.fp */; };
 		030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3DF61927ED26009EF31B /* geometricShader.vp */; };
 		030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030C3DFB19298226009EF31B /* U4DDirector.mm */; };
-		030C3E0E192AEDD1009EF31B /* PerFragment.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3E0C192AEDD1009EF31B /* PerFragment.fp */; };
-		030C3E0F192AEDD1009EF31B /* PerFragment.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3E0D192AEDD1009EF31B /* PerFragment.vp */; };
 		030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3E12192C7016009EF31B /* multiImageShader.fp */; };
 		030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3E13192C7016009EF31B /* multiImageShader.vp */; };
 		030D84981A717A93003488F4 /* simpleShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030D84961A717A93003488F4 /* simpleShader.fp */; };
 		030D84991A717A93003488F4 /* simpleShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030D84971A717A93003488F4 /* simpleShader.vp */; };
-		030D849C1A717F68003488F4 /* modelShaderNOTexture.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030D849A1A717F68003488F4 /* modelShaderNOTexture.fp */; };
-		030D849D1A717F68003488F4 /* modelShaderNOTexture.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030D849B1A717F68003488F4 /* modelShaderNOTexture.vp */; };
 		0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */; settings = {ASSET_TAGS = (); }; };
 		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; settings = {ASSET_TAGS = (); }; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
@@ -62,8 +58,6 @@
 		035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */; };
 		036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
-		036C12981A86B27900932C76 /* objectWithShadowShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 036C12961A86B27900932C76 /* objectWithShadowShader.fp */; };
-		036C12991A86B27900932C76 /* objectWithShadowShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 036C12971A86B27900932C76 /* objectWithShadowShader.vp */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
 		036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036FB55F18CE9CB8000EA639 /* Earth.mm */; };
@@ -93,8 +87,6 @@
 		03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759BA4175B0383002EB5D9 /* U4DWorld.mm */; };
 		03759BC6175B038C002EB5D9 /* U4DShaderManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759BC5175B038C002EB5D9 /* U4DShaderManager.mm */; };
 		0377BD2A1B8007B4006F1E61 /* U4DConvexPolygon.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0377BD281B8007B4006F1E61 /* U4DConvexPolygon.mm */; };
-		0377BD2D1B800E84006F1E61 /* simpleRedShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 0377BD2B1B800E84006F1E61 /* simpleRedShader.fp */; };
-		0377BD2E1B800E84006F1E61 /* simpleRedShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 0377BD2C1B800E84006F1E61 /* simpleRedShader.vp */; };
 		03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F871934DA8E00CF0600 /* ButtonA.png */; };
 		03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F881934DA8E00CF0600 /* ButtonAPressed.png */; };
 		03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F891934DA8E00CF0600 /* ButtonB.png */; };
@@ -140,6 +132,8 @@
 		03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740D1AE9FE8F000D8535 /* spriteExample.png */; };
 		03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740E1AE9FE8F000D8535 /* spriteExample.xml */; };
 		03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
+		03D559C71D53B3B700E567D5 /* simpleFlatShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559C51D53B3B700E567D5 /* simpleFlatShader.fp */; settings = {ASSET_TAGS = (); }; };
+		03D559C81D53B3B700E567D5 /* simpleFlatShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559C61D53B3B700E567D5 /* simpleFlatShader.vp */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -232,14 +226,10 @@
 		030C3DF61927ED26009EF31B /* geometricShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = geometricShader.vp; sourceTree = "<group>"; };
 		030C3DFA19298226009EF31B /* U4DDirector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDirector.h; sourceTree = "<group>"; };
 		030C3DFB19298226009EF31B /* U4DDirector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDirector.mm; sourceTree = "<group>"; };
-		030C3E0C192AEDD1009EF31B /* PerFragment.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PerFragment.fp; sourceTree = "<group>"; };
-		030C3E0D192AEDD1009EF31B /* PerFragment.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = PerFragment.vp; sourceTree = "<group>"; };
 		030C3E12192C7016009EF31B /* multiImageShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = multiImageShader.fp; sourceTree = "<group>"; };
 		030C3E13192C7016009EF31B /* multiImageShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = multiImageShader.vp; sourceTree = "<group>"; };
 		030D84961A717A93003488F4 /* simpleShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleShader.fp; sourceTree = "<group>"; };
 		030D84971A717A93003488F4 /* simpleShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleShader.vp; sourceTree = "<group>"; };
-		030D849A1A717F68003488F4 /* modelShaderNOTexture.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShaderNOTexture.fp; sourceTree = "<group>"; };
-		030D849B1A717F68003488F4 /* modelShaderNOTexture.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShaderNOTexture.vp; sourceTree = "<group>"; };
 		0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHTree.mm; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.mm; sourceTree = "<group>"; };
 		0314B0B81C6FC09100EB8C34 /* U4DBVHTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHTree.h; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.h; sourceTree = "<group>"; };
 		0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHManager.mm; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.mm; sourceTree = "<group>"; };
@@ -290,8 +280,6 @@
 		036435C31863D88900E2A6F6 /* U4DOpenGLFont.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLFont.h; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
-		036C12961A86B27900932C76 /* objectWithShadowShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = objectWithShadowShader.fp; sourceTree = "<group>"; };
-		036C12971A86B27900932C76 /* objectWithShadowShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = objectWithShadowShader.vp; sourceTree = "<group>"; };
 		036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModelInterface.mm; sourceTree = "<group>"; };
 		036C244B176790F100ADC1A6 /* U4DGameModelInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DGameModelInterface.h; sourceTree = "<group>"; };
 		036C244D176798D700ADC1A6 /* U4DGameModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModel.mm; sourceTree = "<group>"; };
@@ -341,8 +329,6 @@
 		03759BC5175B038C002EB5D9 /* U4DShaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DShaderManager.mm; sourceTree = "<group>"; };
 		0377BD281B8007B4006F1E61 /* U4DConvexPolygon.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DConvexPolygon.mm; sourceTree = "<group>"; };
 		0377BD291B8007B4006F1E61 /* U4DConvexPolygon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DConvexPolygon.h; sourceTree = "<group>"; };
-		0377BD2B1B800E84006F1E61 /* simpleRedShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleRedShader.fp; sourceTree = "<group>"; };
-		0377BD2C1B800E84006F1E61 /* simpleRedShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleRedShader.vp; sourceTree = "<group>"; };
 		03798F871934DA8E00CF0600 /* ButtonA.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonA.png; path = Resources/ButtonA.png; sourceTree = SOURCE_ROOT; };
 		03798F881934DA8E00CF0600 /* ButtonAPressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonAPressed.png; path = Resources/ButtonAPressed.png; sourceTree = SOURCE_ROOT; };
 		03798F891934DA8E00CF0600 /* ButtonB.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonB.png; path = Resources/ButtonB.png; sourceTree = SOURCE_ROOT; };
@@ -410,6 +396,8 @@
 		03D3740E1AE9FE8F000D8535 /* spriteExample.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = spriteExample.xml; path = Resources/spriteExample.xml; sourceTree = SOURCE_ROOT; };
 		03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSHAlgorithm.mm; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.mm; sourceTree = "<group>"; };
 		03D4B1CD1CC5DEB0007BE481 /* U4DSHAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DSHAlgorithm.h; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.h; sourceTree = "<group>"; };
+		03D559C51D53B3B700E567D5 /* simpleFlatShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleFlatShader.fp; sourceTree = "<group>"; };
+		03D559C61D53B3B700E567D5 /* simpleFlatShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = simpleFlatShader.vp; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -854,16 +842,12 @@
 		03759B9B175B0383002EB5D9 /* stockShader */ = {
 			isa = PBXGroup;
 			children = (
-				036C12961A86B27900932C76 /* objectWithShadowShader.fp */,
-				036C12971A86B27900932C76 /* objectWithShadowShader.vp */,
+				03D559C51D53B3B700E567D5 /* simpleFlatShader.fp */,
+				03D559C61D53B3B700E567D5 /* simpleFlatShader.vp */,
 				034DBC871A74112000AC43EB /* debugShader.fp */,
 				034DBC881A74112000AC43EB /* debugShader.vp */,
 				034DBC801A73FAD200AC43EB /* lightShader.fp */,
 				034DBC811A73FAD200AC43EB /* lightShader.vp */,
-				030D849A1A717F68003488F4 /* modelShaderNOTexture.fp */,
-				030D849B1A717F68003488F4 /* modelShaderNOTexture.vp */,
-				0377BD2B1B800E84006F1E61 /* simpleRedShader.fp */,
-				0377BD2C1B800E84006F1E61 /* simpleRedShader.vp */,
 				030D84961A717A93003488F4 /* simpleShader.fp */,
 				030D84971A717A93003488F4 /* simpleShader.vp */,
 				03F395FF1A65A9D9007A45BD /* worldShader.fp */,
@@ -876,8 +860,6 @@
 				03AEF86619CF474D00082589 /* AnimationShader.vp */,
 				03DB6E83192F7B25006E21D0 /* NormalMapping.fp */,
 				03DB6E84192F7B25006E21D0 /* NormalMapping.vp */,
-				030C3E0C192AEDD1009EF31B /* PerFragment.fp */,
-				030C3E0D192AEDD1009EF31B /* PerFragment.vp */,
 				03EF7A4517F908A60023F0FD /* spriteShader.fp */,
 				03EF7A4617F908A60023F0FD /* spriteShader.vp */,
 				030C3E12192C7016009EF31B /* multiImageShader.fp */,
@@ -1396,10 +1378,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				030D849D1A717F68003488F4 /* modelShaderNOTexture.vp in Resources */,
-				030C3E0E192AEDD1009EF31B /* PerFragment.fp in Resources */,
 				03A9F6F91ADB0BC800E81A00 /* BackImage.png in Resources */,
-				030D849C1A717F68003488F4 /* modelShaderNOTexture.fp in Resources */,
 				03F396011A65A9D9007A45BD /* worldShader.fp in Resources */,
 				030D84991A717A93003488F4 /* simpleShader.vp in Resources */,
 				034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */,
@@ -1417,13 +1396,12 @@
 				03A9F6FD1ADB0BC800E81A00 /* RightImage.png in Resources */,
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
-				036C12991A86B27900932C76 /* objectWithShadowShader.vp in Resources */,
 				03FD1E641D44238B00687FD0 /* uvExample.png in Resources */,
 				03A9F6FE1ADB0BC800E81A00 /* TopImage.png in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03F396021A65A9D9007A45BD /* worldShader.vp in Resources */,
-				0377BD2E1B800E84006F1E61 /* simpleRedShader.vp in Resources */,
 				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
+				03D559C81D53B3B700E567D5 /* simpleFlatShader.vp in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				03A9F6EA1AD9D19A00E81A00 /* little_mansion.png in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
@@ -1437,10 +1415,9 @@
 				03DE8BB81A630D18004DD23C /* shadowShader.vp in Resources */,
 				030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
-				036C12981A86B27900932C76 /* objectWithShadowShader.fp in Resources */,
-				0377BD2D1B800E84006F1E61 /* simpleRedShader.fp in Resources */,
 				03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */,
 				034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */,
+				03D559C71D53B3B700E567D5 /* simpleFlatShader.fp in Resources */,
 				03A9F6FC1ADB0BC800E81A00 /* LeftImage.png in Resources */,
 				034DBC891A74112000AC43EB /* debugShader.fp in Resources */,
 				03A9F6EE1AD9D1A800E81A00 /* small_house_02.png in Resources */,
@@ -1450,7 +1427,6 @@
 				03DB6E85192F7B25006E21D0 /* NormalMapping.fp in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				03A9F6F01AD9D1B200E81A00 /* statue.png in Resources */,
-				030C3E0F192AEDD1009EF31B /* PerFragment.vp in Resources */,
 				03EB59911AEF7D8C00A5F7DA /* floorTexture.png in Resources */,
 				03DE8BB71A630D18004DD23C /* shadowShader.fp in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,

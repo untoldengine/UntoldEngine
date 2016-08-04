@@ -25,7 +25,7 @@ private:
     
 public:
     
-    std::string shaders[17]={"SkyBoxShader","imageShader","spriteShader","geometricShader","PerFragment","multiImageShader","NormalMapping","AnimationShader","modelShader","modelShaderNOTexture","shadowShader","worldShader","simpleShader","lightShader","debugShader","objectWithShadowShader","simpleRedShader"};
+    std::string shaders[14]={"SkyBoxShader","imageShader","spriteShader","geometricShader","multiImageShader","NormalMapping","AnimationShader","modelShader","shadowShader","worldShader","simpleShader","lightShader","debugShader","simpleFlatShader"};
     
     U4DShaderManager(){};
     
