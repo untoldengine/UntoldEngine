@@ -20,7 +20,7 @@ namespace U4DEngine {
         entityManager->setRootEntity(this);
         
         openGlManager=new U4DOpenGLWorld(this);
-        openGlManager->setShader("worldShader");
+        openGlManager->setShader("phongShader");
         
     }
     
@@ -88,7 +88,6 @@ namespace U4DEngine {
     void U4DWorld::enableShadows(){
         
         shadowsEnabled=true;
-        openGlManager->setShader("simpleShader");
         openGlManager->initShadowMapFramebuffer();
         
     }
@@ -109,65 +108,8 @@ namespace U4DEngine {
         openGlManager->endShadowMapPass();
     }
 
-    void U4DWorld::buildGrid(){
-        
-        int gridsize=5;
-        
-        //grid box
-        U4DVector3n backLeftCorner(-gridsize,0,-gridsize);
-        U4DVector3n backRightCorner(gridsize,0,-gridsize);
-        U4DVector3n frontLeftCorner(-gridsize,0,gridsize);
-        U4DVector3n frontRightCorner(gridsize,0,gridsize);
-        
-        bodyCoordinates.addVerticesDataToContainer(backLeftCorner);
-        bodyCoordinates.addVerticesDataToContainer(backRightCorner);
-        
-        bodyCoordinates.addVerticesDataToContainer(backLeftCorner);
-        bodyCoordinates.addVerticesDataToContainer(frontLeftCorner);
-        
-        bodyCoordinates.addVerticesDataToContainer(backRightCorner);
-        bodyCoordinates.addVerticesDataToContainer(frontRightCorner);
-        
-        bodyCoordinates.addVerticesDataToContainer(frontLeftCorner);
-        bodyCoordinates.addVerticesDataToContainer(frontRightCorner);
-        
-        //grid lines
-        for (int x=-gridsize; x<=gridsize; x++) {
-            
-            U4DVector3n startBackPoint(x,0,-gridsize);
-            U4DVector3n endFrontPoint(x,0,gridsize);
-        
-            bodyCoordinates.addVerticesDataToContainer(startBackPoint);
-            bodyCoordinates.addVerticesDataToContainer(endFrontPoint);
-            
-            U4DVector3n startLeftPoint(-gridsize,0,x);
-            U4DVector3n endRightPoint(gridsize,0,x);
-            
-            bodyCoordinates.addVerticesDataToContainer(startLeftPoint);
-            bodyCoordinates.addVerticesDataToContainer(endRightPoint);
-
-        }
-        
-        //grid vertical line
-        
-        U4DVector3n startVerticalPoint(0,-2,0);
-        U4DVector3n endVerticalPoint(0,2,0);
-
-        bodyCoordinates.addVerticesDataToContainer(startVerticalPoint);
-        bodyCoordinates.addVerticesDataToContainer(endVerticalPoint);
-
-
-    }
 
     void U4DWorld::initLoadingModels(){
-        
-        //build the world
-        
-        if (gridEnabled==true) {
-        
-            buildGrid();
-        
-        }
         
         U4DEntity *child=this;
         
@@ -177,12 +119,6 @@ namespace U4DEngine {
             child->loadRenderingInformation();
             child=child->next;
         }
-        
-    }
-
-    void U4DWorld::enableGrid(bool value){
-        
-        gridEnabled=value;
         
     }
 
