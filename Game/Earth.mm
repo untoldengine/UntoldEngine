@@ -43,7 +43,7 @@ void Earth::init(){
     
     //create the floor
     floor=new Floor();
-    floor->init("GroundFloor","blenderscript.u4d");
+    floor->init("Piso","blenderscript.u4d");
     
     //create the rocket
     rocket=new Rocket();
@@ -67,47 +67,15 @@ void Earth::init(){
     planet->init("Planet", "blenderscript.u4d");
     
     //create meteors
-    meteor1=new Meteor();
-    meteor1->init("Meteor1", "blenderscript.u4d");
-    
-    meteor2=new Meteor();
-    meteor2->init("Meteor2", "blenderscript.u4d");
+//    meteor1=new Meteor();
+//    meteor1->init("Meteor1", "blenderscript.u4d");
+//    
+//    meteor2=new Meteor();
+//    meteor2->init("Meteor2", "blenderscript.u4d");
     
     meteor3=new Meteor();
-    meteor3->init("Meteor3", "blenderscript.u4d");
+    meteor3->init("Cube", "blenderscript.u4d");
     
-    //create our object
-//    cube=new Town();
-//    cube->init("GroundFloor",0.0,0.0,0.0);
-//    cube->setName("cube");
-    
-//    //cube->setAsGround(true);
-//    //Apply the collision engine to the object
-//    //cube->enableCollision();
-//    //cube->setMass(1.0);
-//    //cube->setCoefficientOfRestitution(0.7);
-//    
-//    //cube->setNarrowPhaseBoundingVolumeVisibility(true);
-//    
-//    cube2=new Town();
-//    cube2->init("Cube",0.0,0.0,0.0);
-//    
-//    cube2->setName("cube2");
-    
-//    cube3=new Town();
-//    cube3->init("Cube3",-3.0,1.0,0.0);
-//    cube3->setShader("simpleShader");
-//    cube3->setName("cube3");
-    
-    
-    //cube2->rotateBy(0.0,0.0,60.0);
-    //cube2->setMass(1.0);
-    //cube2->setCoefficientOfRestitution(0.6);
-    //cube2->applyPhysics(true);
-
-    //cube2->enableCollision();
-    
-    //cube2->setNarrowPhaseBoundingVolumeVisibility(true);
 
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
     light->setName("light");
@@ -119,14 +87,14 @@ void Earth::init(){
     
 
     addChild(floor);
-    addChild(rocket);
-    addChild(mountain);
-    addChild(mountain2);
-    addChild(mountain3);
-    addChild(mountain4);
-    addChild(planet);
-    addChild(meteor1);
-    addChild(meteor2);
+//    addChild(rocket);
+//    addChild(mountain);
+//    addChild(mountain2);
+//    addChild(mountain3);
+//    addChild(mountain4);
+//    addChild(planet);
+//    addChild(meteor1);
+//    addChild(meteor2);
     addChild(meteor3);
 
 //    debugger->addEntityToDebug(light);
