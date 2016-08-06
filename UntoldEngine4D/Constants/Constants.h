@@ -23,12 +23,12 @@ namespace U4DEngine {
     const float zeroPlaneIntersectionEpsilon=1.0e-3f;
     const float impulseCollisionMinimum=0.0; //sets the minimum impulse allowed between collisions
     const float rungaKuttaCorrectionCoefficient=0.7;
+    const float DEPTHSHADOWWIDTH=1024;
+    const float DEPTHSHADOWHEIGHT=1024;
 }
 
 #define DegreesToRad(angle) angle*M_PI/180
 #define RadToDegrees(angle) angle*180/M_PI
 
-#define DEPTHSHADOWWIDTH 1024
-#define DEPTHSHADOWHEIGHT 1024
 
 #endif
