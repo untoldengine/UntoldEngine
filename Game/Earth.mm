@@ -43,7 +43,7 @@ void Earth::init(){
     
     //create the floor
     floor=new Floor();
-    floor->init("Piso","blenderscript.u4d");
+    floor->init("GroundFloor","blenderscript.u4d");
     
     //create the rocket
     rocket=new Rocket();
@@ -67,14 +67,14 @@ void Earth::init(){
     planet->init("Planet", "blenderscript.u4d");
     
     //create meteors
-//    meteor1=new Meteor();
-//    meteor1->init("Meteor1", "blenderscript.u4d");
-//    
-//    meteor2=new Meteor();
-//    meteor2->init("Meteor2", "blenderscript.u4d");
+    meteor1=new Meteor();
+    meteor1->init("Meteor1", "blenderscript.u4d");
+    
+    meteor2=new Meteor();
+    meteor2->init("Meteor2", "blenderscript.u4d");
     
     meteor3=new Meteor();
-    meteor3->init("Cube", "blenderscript.u4d");
+    meteor3->init("Meteor3", "blenderscript.u4d");
     
 
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
@@ -87,14 +87,14 @@ void Earth::init(){
     
 
     addChild(floor);
-//    addChild(rocket);
-//    addChild(mountain);
-//    addChild(mountain2);
-//    addChild(mountain3);
-//    addChild(mountain4);
-//    addChild(planet);
-//    addChild(meteor1);
-//    addChild(meteor2);
+    addChild(rocket);
+    addChild(mountain);
+    addChild(mountain2);
+    addChild(mountain3);
+    addChild(mountain4);
+    addChild(planet);
+    addChild(meteor1);
+    addChild(meteor2);
     addChild(meteor3);
 
 //    debugger->addEntityToDebug(light);
