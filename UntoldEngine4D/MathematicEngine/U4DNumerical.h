@@ -10,7 +10,6 @@
 #define U4DNumerical_hpp
 
 #include <stdio.h>
-#include <iostream>
 #include "Constants.h"
 
 namespace U4DEngine {

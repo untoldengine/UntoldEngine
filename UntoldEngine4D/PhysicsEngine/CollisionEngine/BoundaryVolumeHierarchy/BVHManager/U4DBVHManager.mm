@@ -14,6 +14,7 @@
 #include "U4DBoundingSphere.h"
 #include "U4DBVHModelCollision.h"
 #include "U4DBVHGroundCollision.h"
+#include "U4DNumerical.h"
 #include <cmath>
 #include <cstdlib>
 #include <stack>
@@ -201,11 +202,13 @@ namespace U4DEngine{
         longestDimension=MAX(xDimension, yDimension);
         longestDimension=MAX(zDimension, longestDimension);
         
-        if (longestDimension==xDimension) {
+        U4DNumerical comparison;
+        
+        if (comparison.areEqual(longestDimension, xDimension, U4DEngine::zeroEpsilon)) {
             
             longestDimensionVector=U4DVector3n(1,0,0);
             
-        }else if(longestDimension==yDimension){
+        }else if(comparison.areEqual(longestDimension, yDimension, U4DEngine::zeroEpsilon)){
         
             longestDimensionVector=U4DVector3n(0,1,0);
         

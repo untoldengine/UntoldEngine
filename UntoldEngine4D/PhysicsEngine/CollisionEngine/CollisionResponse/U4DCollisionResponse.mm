@@ -163,10 +163,4 @@ namespace U4DEngine {
         
     }
     
-    bool U4DCollisionResponse::areNumbersEqual(float uA, float uB, float uEpsilon){
-        
-        return (fabs(uA - uB) <= uEpsilon * std::max(1.0f, std::max(uA, uB)));
-        
-    }
-    
 }

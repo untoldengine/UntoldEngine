@@ -10,18 +10,21 @@
 #include "U4DPoint3n.h"
 #include "U4DQuaternion.h"
 #include "Constants.h"
+#include "U4DNumerical.h"
 #include <cmath>
-
 
 namespace U4DEngine {
     
     bool U4DVector3n::operator==(const U4DVector3n& a){
         
-        if (x==a.x && y==a.y && z==a.z) {
+        U4DNumerical comparison;
+        
+        if (comparison.areEqual(x, a.x, U4DEngine::zeroEpsilon) && comparison.areEqual(y, a.y, U4DEngine::zeroEpsilon) && comparison.areEqual(z, a.z, U4DEngine::zeroEpsilon)) {
             return true;
         }else{
             return false;
         }
+        
     }
 
     #pragma mark-add

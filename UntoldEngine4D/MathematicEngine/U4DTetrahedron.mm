@@ -13,7 +13,7 @@
 #include "U4DMatrix4n.h"
 #include "U4DTriangle.h"
 #include "Constants.h"
-
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
@@ -239,7 +239,9 @@ namespace U4DEngine {
         U4DVector3n ac(pointA-pointC);
         U4DVector3n ad(pointA-pointD);
         
-        if (ab.dot(ac.cross(ad))!=0) {
+        U4DNumerical comparison;
+        
+        if (!comparison.areEqual(ab.dot(ac.cross(ad)), 0.0, U4DEngine::zeroEpsilon)) {
             return true;
         }else{
             return false;

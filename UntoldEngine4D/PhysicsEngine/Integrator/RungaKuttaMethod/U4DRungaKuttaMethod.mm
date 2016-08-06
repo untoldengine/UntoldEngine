@@ -116,41 +116,5 @@ namespace U4DEngine {
         uOrientationNew=uOrientationNew+(uAngularVelocityNew*uOrientationNew)*(dt*0.5);
         
     }
-
-//apply the Runga-Kutta algorithm
-/*Example
- 
- Consider the damped oscillating system
- x" = dv/dt = 10 - 4x - v = f(t, x, v)
- x'= dx/dt = v = g(t, x, v)
- subject to initial conditions x(0) = 1, x'(0) = 0
- Using a time step of h = 1 second
- 
- We start with t = 0, x = 1, v = 0
- kf is the step for v while kg is the step for x
- kf1 = f(t, x, v) = f(0, 1, 0) = 6
- kg1 = g(t,x,v) = g(0, 1, 0) = 0
- 
- kf2 = f(t+h/2, x+kg1*h/2, v+kf1*h/2)
- = f(0.5, 1, 3) = 3
- kg2 = g(t+h/2, x+kg1*h/2, v+kf1*h/2)
- = g(0.5, 1, 3) = 3
- 
- kf3 = f(t+h/2, x+kg2*h/2, v+kf2*h/2)
- = f(0.5, 2.5, 1.5) = -1.5
- kg3 = g(t+h/2, x+kg2*h/2, v+kf2*h/2)
- = g(0.5, 2.5, 1.5) = 1.5
- 
- kf4 = f(t+h, x+kg3*h, v+kf3*h)
- = f(1, 2.5, -1.5) = 1.5
- kg4 = g(t+h, x+kg3*h, v+kf3*h)
- = g(1, 2.5, -1.5) = -1.5
- 
- At the next time value, t = 1
- x(1) = x(0) + h/6 * (kg1 + 2kg2 + 2kg3 + kg4)
- = 2.25
- x'(1) = y(0) + h/6 * (kf1 + 2kf2 + 2kf3 + kf4)
- = 1.75
- */
     
 }

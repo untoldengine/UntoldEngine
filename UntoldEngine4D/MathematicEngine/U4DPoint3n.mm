@@ -8,14 +8,16 @@
 
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
-
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
 
     bool U4DPoint3n::operator==(const U4DPoint3n& a){
         
-        if (x==a.x && y==a.y && z==a.z) {
+        U4DNumerical comparison;
+        
+        if (comparison.areEqual(x, a.x, U4DEngine::zeroEpsilon) && comparison.areEqual(y, a.y, U4DEngine::zeroEpsilon) && comparison.areEqual(z, a.z, U4DEngine::zeroEpsilon)) {
             return true;
         }else{
             return false;
@@ -25,11 +27,14 @@ namespace U4DEngine {
 
     bool U4DPoint3n::operator!=(const U4DPoint3n& a){
         
-        if (x!=a.x || y!=a.y || z!=a.z) {
+        U4DNumerical comparison;
+        
+        if (!comparison.areEqual(x, a.x, U4DEngine::zeroEpsilon) || !comparison.areEqual(y, a.y, U4DEngine::zeroEpsilon) || !comparison.areEqual(z, a.z, U4DEngine::zeroEpsilon)) {
             return true;
         }else{
             return false;
         }
+        
     }
 
     
