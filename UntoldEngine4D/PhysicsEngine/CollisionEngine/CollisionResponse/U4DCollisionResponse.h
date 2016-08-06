@@ -33,8 +33,6 @@ namespace U4DEngine {
         
         void collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
-        bool areNumbersEqual(float uA, float uB, float uEpsilon);
-        
     };
 }
 
