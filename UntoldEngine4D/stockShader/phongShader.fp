@@ -77,8 +77,12 @@ vec4 phongShading(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
     highp float diffuseFactor=max(0.0,dot(n,lightDirection));
     highp float specularFactor=max(0.0,dot(n,halfPlane));
 
-    //compute specular shininess factor
-    specularFactor=pow(specularFactor,SpecularMaterialHardness[colorIndex]);
+    if(specularFactor>0.0){
+
+        //compute specular shininess factor
+        specularFactor=pow(specularFactor,SpecularMaterialHardness[colorIndex]);
+
+    }
 
     //compute final color
     highp vec3 color=materialAmbientColor+diffuseFactor*materialDiffuseColor*DiffuseMaterialIntensity[colorIndex]+specularFactor*materialSpecularColor*SpecularMaterialIntensity[colorIndex];
