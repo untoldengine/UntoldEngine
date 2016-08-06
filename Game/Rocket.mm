@@ -29,4 +29,8 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
 
 void Rocket::update(double dt){
     
+    U4DEngine::U4DVector3n vec(0.0,0.0,1.0);
+    U4DEngine::U4DQuaternion q(1.0,vec);
+    
+    rotateBy(q);
 }

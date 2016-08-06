@@ -27,6 +27,8 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
 
 void Meteor::update(double dt){
     
-    rotateBy(0.0, 1.0, 0.0);
+    U4DEngine::U4DVector3n vec(0.0,0.0,1.0);
+    
+    rotateBy(1.0,vec);
     
 }

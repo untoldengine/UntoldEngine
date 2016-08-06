@@ -98,7 +98,6 @@ namespace U4DEngine {
     }
 
     void U4DTransformation::rotateTo(U4DQuaternion& rotation){
-        
 
         rotation.convertToUnitNormQuaternion();
         
@@ -115,6 +114,26 @@ namespace U4DEngine {
         updateSpaceMatrixOrientation(rotation);
         
     }
+    
+    
+    void U4DTransformation::rotateTo(float angleX, float angleY, float angleZ){
+        
+        U4DQuaternion rotation;
+        rotation.transformEulerAnglesToQuaternion(angleX, angleY, angleZ);
+        
+        updateSpaceMatrixOrientation(rotation);
+        
+    }
+    
+    
+    void U4DTransformation::rotateTo(float angle, U4DVector3n& axis){
+        
+        axis.normalize();
+        U4DQuaternion rotation(angle,axis);
+        
+        rotateTo(rotation);
+        
+    }
 
     void U4DTransformation::rotateBy(U4DQuaternion& rotation){
         
@@ -124,15 +143,8 @@ namespace U4DEngine {
         
         rotation=rotation*currentOrientation;
         
-        updateSpaceMatrixOrientation(rotation);
-        
-    }
-
-
-    void U4DTransformation::rotateTo(float angleX, float angleY, float angleZ){
-        
-        U4DQuaternion rotation;
-        rotation.transformEulerAnglesToQuaternion(angleX, angleY, angleZ);
+        //need to normalize the quaternion multiplication
+        rotation.normalize();
         
         updateSpaceMatrixOrientation(rotation);
         
@@ -147,25 +159,22 @@ namespace U4DEngine {
         
         rotation=rotation*currentOrientation;
         
+        //need to normalize the quaternion multiplication
+        rotation.normalize();
+        
         updateSpaceMatrixOrientation(rotation);
      
     }
 
 
-    void U4DTransformation::rotateTo(float angle, U4DVector3n& axis){
-        
-        axis.normalize();
-        U4DQuaternion rotation(angle,axis);
-        
-        rotateTo(rotation);
-        
-    }
-
     void U4DTransformation::rotateBy(float angle, U4DVector3n& axis){
         
         axis.normalize();
+        
         U4DQuaternion rotation(angle,axis);
         
+        //need to normalize the quaternion multiplication
+        rotation.normalize();
         
         rotateBy(rotation);
         

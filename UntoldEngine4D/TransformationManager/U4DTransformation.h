@@ -44,13 +44,13 @@ public:
     
     void rotateTo(U4DMatrix3n& uRotationMatrix);
     
-    void rotateBy(U4DQuaternion& rotation);
-    
     void rotateTo(float angle, U4DVector3n& axis);
     
-    void rotateBy(float angle, U4DVector3n& axis);
-    
     void rotateTo(float angleX, float angleY, float angleZ);
+    
+    void rotateBy(U4DQuaternion& rotation);
+    
+    void rotateBy(float angle, U4DVector3n& axis);
     
     void rotateBy(float angleX, float angleY, float angleZ);
     
