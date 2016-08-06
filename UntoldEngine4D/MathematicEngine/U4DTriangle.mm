@@ -9,6 +9,7 @@
 #include "U4DTriangle.h"
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
+#include "U4DNumerical.h"
 #include <cmath>
 
 namespace U4DEngine {
@@ -117,12 +118,20 @@ namespace U4DEngine {
             
             bcPoint.convertVectorToPoint(bcVector);
             
-             return pointB+bcPoint*w; //barycentric coordinates (0,1-w,w)
+            return pointB+bcPoint*w; //barycentric coordinates (0,1-w,w)
         }
         
         
         //P inside face region, compute Q through its barycentric coordinates (u,v,w)
-        float denom=1.0f/(va+vb+vc);
+        
+        U4DNumerical comparison;
+        
+        float denom=0.0;
+        
+        if (!comparison.areEqual(va+vb+vc, 0.0, U4DEngine::zeroEpsilon)) {
+            denom=1.0f/(va+vb+vc);
+        }
+        
         float v=vb*denom;
         float w=vc*denom;
         
@@ -171,9 +180,15 @@ namespace U4DEngine {
         
         float denom=d00*d11-d01*d01;
         
-        baryCoordinateV=(d11*d20-d01*d21)/denom;
-        baryCoordinateW=(d00*d21-d01*d20)/denom;
-        baryCoordinateU=1.0f-baryCoordinateV-baryCoordinateW;
+        U4DNumerical comparison;
+        
+        if (!comparison.areEqual(denom, 0.0, U4DEngine::zeroEpsilon)) {
+            
+            baryCoordinateV=(d11*d20-d01*d21)/denom;
+            baryCoordinateW=(d00*d21-d01*d20)/denom;
+            baryCoordinateU=1.0f-baryCoordinateV-baryCoordinateW;
+            
+        }
         
     }
     
@@ -231,7 +246,7 @@ namespace U4DEngine {
         
         U4DPoint3n triangleCentroid=getCentroid();
         
-        return std::abs(uPlane.magnitudeOfPointToPlane(triangleCentroid));
+        return fabs(uPlane.magnitudeOfPointToPlane(triangleCentroid));
         
     }
     
@@ -239,7 +254,7 @@ namespace U4DEngine {
      
         U4DPoint3n triangleCentroid=getCentroid();
         
-        return std::abs(uPlane.magnitudeSquareOfPointToPlane(triangleCentroid));
+        return fabs(uPlane.magnitudeSquareOfPointToPlane(triangleCentroid));
         
     }
     
