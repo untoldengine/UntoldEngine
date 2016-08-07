@@ -39,10 +39,8 @@ namespace U4DEngine {
         
         U4DEngine::U4DDigitalAssetLoader *loader=U4DEngine::U4DDigitalAssetLoader::sharedInstance();
         
-        if(loader->loadDigitalAssetFile(uBlenderFile)){
-            
-            loader->loadAssetToMesh(this,uModelName);
-            
+        if(loader->loadDigitalAssetFile(uBlenderFile) && loader->loadAssetToMesh(this,uModelName)){
+                        
             return true;
         }
         
