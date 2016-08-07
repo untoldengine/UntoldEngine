@@ -35,7 +35,7 @@ namespace U4DEngine {
         std::vector<float> data;
         GLint location;
         
-    }CustomUniforms;
+    }CUSTOMUNIFORMS;
 
     typedef struct{
         
