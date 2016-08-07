@@ -46,7 +46,7 @@ void U4DSpriteLoader::loadSprites(){
     
     for(tinyxml2::XMLElement* sprite = textureAtlas->FirstChildElement("sprite"); sprite != NULL; sprite= sprite->NextSiblingElement("sprite"))
     {
-        SpriteData uSpriteData;
+        SPRITEDATA uSpriteData;
         
         const char* spriteName = sprite->Attribute("n");
         uSpriteData.name=spriteName;

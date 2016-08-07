@@ -45,7 +45,7 @@ namespace U4DEngine {
         int width;
         int height;
         
-    }SpriteData;
+    }SPRITEDATA;
 
 
     typedef struct {
