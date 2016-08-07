@@ -89,12 +89,12 @@ namespace U4DEngine {
         float time;
         U4DDualQuaternion animationSpaceTransform;
         
-    }KeyframeData;
+    }KEYFRAMEDATA;
 
     typedef struct{
       
         std::string name;
-        std::vector<KeyframeData> keyframes;
+        std::vector<KEYFRAMEDATA> keyframes;
         
     }AnimationData;
 
