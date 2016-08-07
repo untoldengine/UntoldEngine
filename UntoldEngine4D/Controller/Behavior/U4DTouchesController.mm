@@ -31,7 +31,7 @@ void U4DTouchesController::touchEnded(const U4DTouches &touches){
     changeState(touches, rTouchesEnded);
 }
 
-void U4DTouchesController::add(U4DButton *uButton,U4DVector2n &buttonPosition,TouchState touchActionOn){
+void U4DTouchesController::add(U4DButton *uButton,U4DVector2n &buttonPosition,TOUCHSTATE touchActionOn){
     
     uButton->translateTo(buttonPosition);
     uButton->setButtonActionOn(touchActionOn);
@@ -51,7 +51,7 @@ void U4DTouchesController::add(U4DJoyStick *uJoyStick){
     
 }
 
-void U4DTouchesController::changeState(const U4DTouches &touches,TouchState touchState){
+void U4DTouchesController::changeState(const U4DTouches &touches,TOUCHSTATE touchState){
     
     //button
     std::vector<U4DButton*>::iterator buttonPos;

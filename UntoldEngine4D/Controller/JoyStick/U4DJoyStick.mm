@@ -64,14 +64,14 @@ void U4DJoyStick::action(){
 }
 
 
-void U4DJoyStick::changeState(TouchState uTouchState,U4DVector3n uNewPosition){
+void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
     
     joyStickState=uTouchState;
     currentPosition=uNewPosition;
     
 }
 
-void U4DJoyStick::changeState(TouchState uTouchState){
+void U4DJoyStick::changeState(TOUCHSTATE uTouchState){
     
     joyStickState=uTouchState;
     
@@ -82,7 +82,7 @@ void U4DJoyStick::changeState(TouchState uTouchState){
     
 }
 
-TouchState U4DJoyStick::getState(){
+TOUCHSTATE U4DJoyStick::getState(){
     
     return joyStickState;
 }

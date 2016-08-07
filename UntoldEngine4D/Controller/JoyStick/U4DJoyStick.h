@@ -32,7 +32,7 @@ private:
     float joyStickHeight;
     
     U4DVector3n originalPosition;
-    TouchState joyStickState;
+    TOUCHSTATE joyStickState;
     
     U4DVector3n dataPosition;
     float dataMagnitude;
@@ -112,9 +112,9 @@ public:
     inline float getJoyStickBackgroundWidth(){return backgroundWidth;};
     inline float getJoyStickBackgroundHeight(){return backgroundHeight;};
     
-    void changeState(TouchState uTouchState,U4DVector3n uNewPosition);
-    void changeState(TouchState uTouchState);
-    TouchState getState();
+    void changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition);
+    void changeState(TOUCHSTATE uTouchState);
+    TOUCHSTATE getState();
     
     void setDataPosition(U4DVector3n uData);
     U4DVector3n getDataPosition();

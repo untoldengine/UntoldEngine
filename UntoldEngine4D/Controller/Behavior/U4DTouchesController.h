@@ -47,9 +47,9 @@ public:
     
     void keyboardInput(int key){};
     
-    void add(U4DButton *uButton,U4DVector2n &buttonPosition,TouchState touchActionOn);
+    void add(U4DButton *uButton,U4DVector2n &buttonPosition,TOUCHSTATE touchActionOn);
     void add(U4DButton *uButton);
-    void changeState(const U4DTouches &touches,TouchState touchState);
+    void changeState(const U4DTouches &touches,TOUCHSTATE touchState);
     
     void add(U4DJoyStick *uJoyStick);
     

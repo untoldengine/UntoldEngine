@@ -26,7 +26,7 @@ namespace U4DEngine {
         rTouchesReleased,
         rTouchesNull
         
-    }TouchState;
+    }TOUCHSTATE;
 
 
     typedef struct{
