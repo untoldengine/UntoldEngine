@@ -16,7 +16,7 @@ void U4DVisibleEntity::loadRenderingInformation(){
 
 void U4DVisibleEntity::addCustomUniform(const char* uName,std::vector<float> uData){
     
-    CustomUniforms customUniform;
+    CUSTOMUNIFORMS customUniform;
     
     customUniform.name=uName;
     customUniform.data=uData;

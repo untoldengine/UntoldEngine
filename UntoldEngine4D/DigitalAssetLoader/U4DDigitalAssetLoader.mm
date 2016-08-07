@@ -923,7 +923,7 @@ namespace U4DEngine {
                                 std::string animationName=animationChild->Attribute("name");
                                 std::string animationFPS=animationChild->Attribute("fps");
                                 
-                                AnimationData animationData;
+                                ANIMATIONDATA animationData;
                                 
                                 //set animation name
                                 animationData.name=animationName;
@@ -939,7 +939,7 @@ namespace U4DEngine {
                                 
                                 for (tinyxml2::XMLElement *keyframe=animationChild->FirstChildElement("keyframe"); keyframe!=NULL; keyframe=keyframe->NextSiblingElement("keyframe")) {
                                     
-                                    KeyframeData keyframeData;
+                                    KEYFRAMEDATA keyframeData;
                                     
                                     //get keyframe
                                     float time=std::stof(keyframe->Attribute("time"));

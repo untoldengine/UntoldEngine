@@ -144,7 +144,7 @@ protected:
     
     GLuint depthRenderbuffer;
     
-    std::vector<CustomUniforms> customUniforms;
+    std::vector<CUSTOMUNIFORMS> customUniforms;
     
     AttibuteLocations attributeLocations;
     
@@ -238,7 +238,7 @@ public:
 
     void loadRenderingInformation();
     
-    void addCustomUniforms(CustomUniforms uCustomUniforms);
+    void addCustomUniforms(CUSTOMUNIFORMS uCustomUniforms);
     void enableCustomUniforms();
     void getCustomUniforms();
     void updateCustomUniforms(const char* uName,std::vector<float> uData);

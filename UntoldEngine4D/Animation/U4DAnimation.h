@@ -43,7 +43,7 @@ public:
     int keyframeRange;
     float interpolationTime;
    
-    std::vector<AnimationData> animationsContainer;
+    std::vector<ANIMATIONDATA> animationsContainer;
     U4DBoneData* rootBone;
     
     

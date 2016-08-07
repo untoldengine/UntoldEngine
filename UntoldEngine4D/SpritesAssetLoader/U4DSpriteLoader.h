@@ -30,7 +30,7 @@ public:
     
     ~U4DSpriteLoader(){};
     
-    std::vector<SpriteData> spriteData;
+    std::vector<SPRITEDATA> spriteData;
     
     std::string spriteAtlasImage;
     

@@ -100,7 +100,7 @@ void U4DOpenGLManager::enableUniformsLocations(){
     
 }
 
-void U4DOpenGLManager::addCustomUniforms(CustomUniforms uCustomUniforms){
+void U4DOpenGLManager::addCustomUniforms(CUSTOMUNIFORMS uCustomUniforms){
     
     customUniforms.push_back(uCustomUniforms);
     

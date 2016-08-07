@@ -27,7 +27,7 @@ void U4DSprite::setSprite(const char* uSprite){
     
     for (int i=0; i<spriteLoader->spriteData.size(); i++) {
         
-        SpriteData spriteData;
+        SPRITEDATA spriteData;
         
         spriteData=spriteLoader->spriteData.at(i);
         
@@ -55,7 +55,7 @@ void U4DSprite::setSprite(const char* uSprite){
 
 void U4DSprite::changeSprite(const char* uSprite){
     
-    SpriteData spriteData;
+    SPRITEDATA spriteData;
     
     for (int i=0; i<spriteLoader->spriteData.size(); i++) {
         

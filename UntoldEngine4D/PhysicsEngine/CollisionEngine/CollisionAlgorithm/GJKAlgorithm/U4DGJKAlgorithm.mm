@@ -43,7 +43,7 @@ namespace U4DEngine {
         
         U4DVector3n dir(1,1,1);
         
-        U4DSimplexStruct v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+        SIMPLEXDATA v=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         Q.push_back(v);
         
@@ -51,7 +51,7 @@ namespace U4DEngine {
         
         dir.negate();
         
-        U4DSimplexStruct p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+        SIMPLEXDATA p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
         
         while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
             
@@ -173,8 +173,8 @@ namespace U4DEngine {
         
     void U4DGJKAlgorithm::determineLinearCombinationOfPtInLine(U4DPoint3n& uClosestPointToOrigin){
         
-        U4DSimplexStruct tempSupportPointQA=Q.at(0);
-        U4DSimplexStruct tempSupportPointQB=Q.at(1);
+        SIMPLEXDATA tempSupportPointQA=Q.at(0);
+        SIMPLEXDATA tempSupportPointQB=Q.at(1);
         
         U4DPoint3n a=Q.at(0).minkowskiPoint;
         U4DPoint3n b=Q.at(1).minkowskiPoint;
@@ -207,9 +207,9 @@ namespace U4DEngine {
 
     void U4DGJKAlgorithm::determineLinearCombinationOfPtInTriangle(U4DPoint3n& uClosestPointToOrigin){
         
-        U4DSimplexStruct tempSupportPointQA=Q.at(0);
-        U4DSimplexStruct tempSupportPointQB=Q.at(1);
-        U4DSimplexStruct tempSupportPointQC=Q.at(2);
+        SIMPLEXDATA tempSupportPointQA=Q.at(0);
+        SIMPLEXDATA tempSupportPointQB=Q.at(1);
+        SIMPLEXDATA tempSupportPointQC=Q.at(2);
         
         
         U4DPoint3n a=Q.at(0).minkowskiPoint;
@@ -268,10 +268,10 @@ namespace U4DEngine {
     void U4DGJKAlgorithm::determineLinearCombinationOfPtInTetrahedron(U4DPoint3n& uClosestPointToOrigin){
         
         
-        U4DSimplexStruct tempSupportPointQA=Q.at(0);
-        U4DSimplexStruct tempSupportPointQB=Q.at(1);
-        U4DSimplexStruct tempSupportPointQC=Q.at(2);
-        U4DSimplexStruct tempSupportPointQD=Q.at(3);
+        SIMPLEXDATA tempSupportPointQA=Q.at(0);
+        SIMPLEXDATA tempSupportPointQB=Q.at(1);
+        SIMPLEXDATA tempSupportPointQC=Q.at(2);
+        SIMPLEXDATA tempSupportPointQD=Q.at(3);
         
         U4DPoint3n a=Q.at(0).minkowskiPoint;
         U4DPoint3n b=Q.at(1).minkowskiPoint;
@@ -348,7 +348,7 @@ namespace U4DEngine {
         
     }
     
-    std::vector<U4DPoint3n> U4DGJKAlgorithm::closestBarycentricPoints(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ){
+    std::vector<U4DPoint3n> U4DGJKAlgorithm::closestBarycentricPoints(U4DPoint3n& uClosestPointToOrigin, std::vector<SIMPLEXDATA> uQ){
         
         //get the barycentric points of the collision
         std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(uClosestPointToOrigin, uQ);
@@ -369,7 +369,7 @@ namespace U4DEngine {
         
     }
     
-    float U4DGJKAlgorithm::distanceToCollision(U4DPoint3n& uClosestPointToOrigin, std::vector<U4DSimplexStruct> uQ){
+    float U4DGJKAlgorithm::distanceToCollision(U4DPoint3n& uClosestPointToOrigin, std::vector<SIMPLEXDATA> uQ){
         
         //get the barycentric points of the collision
         std::vector<float> barycentricPoints=determineBarycentricCoordinatesInSimplex(uClosestPointToOrigin, Q);
@@ -390,7 +390,7 @@ namespace U4DEngine {
         
     }
     
-    std::vector<U4DSimplexStruct> U4DGJKAlgorithm::getCurrentSimpleStruct(){
+    std::vector<SIMPLEXDATA> U4DGJKAlgorithm::getCurrentSimpleStruct(){
         
         return Q;
         

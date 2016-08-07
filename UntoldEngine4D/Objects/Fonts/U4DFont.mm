@@ -53,7 +53,7 @@ void U4DFont::setText(const char* uText){
             if (text[i]==*fontLoader->fontData[j].letter) {
                 
                 //copy the chars into the textContainer
-                TextData textData;
+                TEXTDATA textData;
                 
                 textData.x=fontLoader->fontData[j].x/fontLoader->fontAtlasWidth;
                 textData.y=fontLoader->fontData[j].y/fontLoader->fontAtlasHeight;
@@ -89,7 +89,7 @@ void U4DFont::draw(){
     
     for (int i=0; i<textContainer.size(); i++) {
         
-        TextData textData;
+        TEXTDATA textData;
         textData=textContainer.at(i);
         
         currentTextYOffset=lastTextYOffset-textData.yOffset;

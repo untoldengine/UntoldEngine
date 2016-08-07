@@ -13,7 +13,7 @@
 
 namespace U4DEngine {
     
-U4DSpriteAnimation::U4DSpriteAnimation(U4DSprite *uSprite, SpriteAnimation &uSpriteAnimation){
+U4DSpriteAnimation::U4DSpriteAnimation(U4DSprite *uSprite, SPRITEANIMATION &uSpriteAnimation){
     
     spriteAnimationFrame=0;
     spriteAnimation=uSpriteAnimation;

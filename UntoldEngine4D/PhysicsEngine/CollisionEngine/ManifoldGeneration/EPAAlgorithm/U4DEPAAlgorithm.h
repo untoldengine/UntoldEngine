@@ -40,15 +40,15 @@ namespace U4DEngine {
         
         ~U4DEPAAlgorithm(){};
         
-        void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
+        void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
-        void verifySimplexStructForEPA(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume *uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
+        void verifySimplexStructForEPA(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume *uBoundingVolume2,std::vector<SIMPLEXDATA>& uQ);
         
-        bool constructSimplexStructForSegment(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
+        bool constructSimplexStructForSegment(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<SIMPLEXDATA>& uQ);
         
-        bool constructSimplexStructForTriangle(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ);
+        bool constructSimplexStructForTriangle(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<SIMPLEXDATA>& uQ);
         
-        bool determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){};
+        bool determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){};
         
     };
 }

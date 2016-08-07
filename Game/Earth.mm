@@ -43,7 +43,7 @@ void Earth::init(){
     
     //create the floor
     floor=new Floor();
-    floor->init("GroundFloor","blenderscript.u4d");
+    floor->init("Piso","blenderscript.u4d");
     
     //create the rocket
     rocket=new Rocket();

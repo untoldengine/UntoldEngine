@@ -29,7 +29,7 @@ public:
     
     ~U4DFontLoader(){};
     
-    std::vector<FontData> fontData;
+    std::vector<FONTDATA> fontData;
     
     std::string fontAtlasImage;
     

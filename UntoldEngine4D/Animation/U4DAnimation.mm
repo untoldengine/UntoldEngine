@@ -66,7 +66,7 @@ void U4DAnimation::runAnimation(){
     
     U4DBoneData *boneChild=rootBone;
     
-    AnimationData animationData;
+    ANIMATIONDATA animationData;
    
     
     while (boneChild!=NULL) {

@@ -13,7 +13,7 @@
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2,U4DCallbackInterface *uAction,TouchState uButtonActionOn):buttonState(rTouchesNull){
+U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2,U4DCallbackInterface *uAction,TOUCHSTATE uButtonActionOn):buttonState(rTouchesNull){
     
     buttonImages.setImages(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
@@ -65,12 +65,12 @@ void U4DButton::action(){
 
 }
 
-void U4DButton::changeState(TouchState uTouchState){
+void U4DButton::changeState(TOUCHSTATE uTouchState){
     
     buttonState=uTouchState;
 }
 
-void U4DButton::changeState(TouchState uTouchState,U4DVector3n uTouchPosition){
+void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
     
     
         if (uTouchPosition.x>left && uTouchPosition.x<right) {
@@ -93,16 +93,16 @@ void U4DButton::changeState(TouchState uTouchState,U4DVector3n uTouchPosition){
 
 }
 
-TouchState U4DButton::getState(){
+TOUCHSTATE U4DButton::getState(){
     return buttonState;
 }
 
-void U4DButton::setButtonActionOn(TouchState &uButtonActionOn){
+void U4DButton::setButtonActionOn(TOUCHSTATE &uButtonActionOn){
     
     buttonActionOn=uButtonActionOn;
 }
 
-TouchState U4DButton::getButtonActionOn(){
+TOUCHSTATE U4DButton::getButtonActionOn(){
     
     return buttonActionOn;
 }

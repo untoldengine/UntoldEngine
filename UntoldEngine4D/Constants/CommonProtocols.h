@@ -26,7 +26,7 @@ namespace U4DEngine {
         rTouchesReleased,
         rTouchesNull
         
-    }TouchState;
+    }TOUCHSTATE;
 
 
     typedef struct{
@@ -35,7 +35,7 @@ namespace U4DEngine {
         std::vector<float> data;
         GLint location;
         
-    }CustomUniforms;
+    }CUSTOMUNIFORMS;
 
     typedef struct{
         
@@ -45,7 +45,7 @@ namespace U4DEngine {
         int width;
         int height;
         
-    }SpriteData;
+    }SPRITEDATA;
 
 
     typedef struct {
@@ -53,7 +53,7 @@ namespace U4DEngine {
         std::vector<const char*> animationSprites;
         float delay;
         
-    }SpriteAnimation;
+    }SPRITEANIMATION;
 
 
     typedef struct{
@@ -69,7 +69,7 @@ namespace U4DEngine {
         int infoFontSize; //size of whole fonts
         const char *letter;
         
-    }FontData;
+    }FONTDATA;
 
     typedef struct{
 
@@ -81,7 +81,7 @@ namespace U4DEngine {
         float yOffset;
         float xAdvance;
         const char* letter;
-    }TextData;
+    }TEXTDATA;
 
     typedef struct{
         
@@ -89,14 +89,14 @@ namespace U4DEngine {
         float time;
         U4DDualQuaternion animationSpaceTransform;
         
-    }KeyframeData;
+    }KEYFRAMEDATA;
 
     typedef struct{
       
         std::string name;
-        std::vector<KeyframeData> keyframes;
+        std::vector<KEYFRAMEDATA> keyframes;
         
-    }AnimationData;
+    }ANIMATIONDATA;
 
     typedef enum{
         
@@ -114,7 +114,7 @@ namespace U4DEngine {
         U4DPoint3n sb; //support point in sb
         U4DPoint3n minkowskiPoint; //Minkowski difference point
         
-    }U4DSimplexStruct;
+    }SIMPLEXDATA;
     
     typedef struct{
         
