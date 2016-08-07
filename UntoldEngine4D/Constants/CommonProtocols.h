@@ -69,7 +69,7 @@ namespace U4DEngine {
         int infoFontSize; //size of whole fonts
         const char *letter;
         
-    }FontData;
+    }FONTDATA;
 
     typedef struct{
 

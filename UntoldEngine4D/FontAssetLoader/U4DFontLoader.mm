@@ -73,7 +73,7 @@ void U4DFontLoader::loadFont(){
     {
         
         //set up the fontData
-        FontData ufontData;
+        FONTDATA ufontData;
         
         const char* ID = subElem->Attribute("id");
         ufontData.ID=atoi(ID);
