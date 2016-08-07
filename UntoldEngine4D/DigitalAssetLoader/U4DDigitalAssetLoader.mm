@@ -923,7 +923,7 @@ namespace U4DEngine {
                                 std::string animationName=animationChild->Attribute("name");
                                 std::string animationFPS=animationChild->Attribute("fps");
                                 
-                                AnimationData animationData;
+                                ANIMATIONDATA animationData;
                                 
                                 //set animation name
                                 animationData.name=animationName;

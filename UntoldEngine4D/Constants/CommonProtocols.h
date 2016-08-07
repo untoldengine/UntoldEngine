@@ -96,7 +96,7 @@ namespace U4DEngine {
         std::string name;
         std::vector<KEYFRAMEDATA> keyframes;
         
-    }AnimationData;
+    }ANIMATIONDATA;
 
     typedef enum{
         
