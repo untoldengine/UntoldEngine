@@ -17,7 +17,7 @@
 namespace U4DEngine{
     
 
-    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
+    void U4DEPAAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
         
         //get bounding volume for each model
         U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
@@ -35,7 +35,7 @@ namespace U4DEngine{
 //            U4DVector3n faceNormal(0,0,0);
 //            float penetrationDepth=0.0;
 //            
-//            U4DSimplexStruct simplexPoint;
+//            SIMPLEXDATA simplexPoint;
 //            
 //            U4DPoint3n origin(0.0,0.0,0.0);
 //            int iterationSteps=0; //to avoid infinite loop
@@ -183,7 +183,7 @@ namespace U4DEngine{
     }//end method
    
 
-    void U4DEPAAlgorithm::verifySimplexStructForEPA(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, std::vector<U4DSimplexStruct>& uQ){
+    void U4DEPAAlgorithm::verifySimplexStructForEPA(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, std::vector<SIMPLEXDATA>& uQ){
         
         //get size of Q
         int simplexStructSize=uQ.size();
@@ -204,14 +204,14 @@ namespace U4DEngine{
         
     }
     
-    bool U4DEPAAlgorithm::constructSimplexStructForSegment(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume *uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
+    bool U4DEPAAlgorithm::constructSimplexStructForSegment(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume *uBoundingVolume2,std::vector<SIMPLEXDATA>& uQ){
         
         U4DVector3n tangentVector1(0,0,0);
         U4DVector3n directionVector0(0,0,0);
         U4DPoint3n origin(0.0,0.0,0.0);
         
-        U4DSimplexStruct simplexPointA=uQ.at(0);
-        U4DSimplexStruct simplexPointB=uQ.at(1);
+        SIMPLEXDATA simplexPointA=uQ.at(0);
+        SIMPLEXDATA simplexPointB=uQ.at(1);
         
         U4DVector3n ab=simplexPointA.minkowskiPoint-simplexPointB.minkowskiPoint;
         
@@ -232,13 +232,13 @@ namespace U4DEngine{
         
         //use directionVector0 as a direction vector to find the support point
         
-        U4DSimplexStruct simplexPoint0=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector0);
+        SIMPLEXDATA simplexPoint0=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector0);
         
         ////use directionVector1 as a direction vector to find the support point
-        U4DSimplexStruct simplexPoint1=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector1);
+        SIMPLEXDATA simplexPoint1=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector1);
         
         //use directionVector2 as a direction vector to find the support point
-        U4DSimplexStruct simplexPoint2=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector2);
+        SIMPLEXDATA simplexPoint2=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector2);
         
         //Now you can build two tetrahedron: aX0X1X2 and bX0X1X2, now find out in which tetrahedron the origin is contained
         
@@ -278,13 +278,13 @@ namespace U4DEngine{
         
     }
     
-    bool U4DEPAAlgorithm::constructSimplexStructForTriangle(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<U4DSimplexStruct>& uQ){
+    bool U4DEPAAlgorithm::constructSimplexStructForTriangle(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2,std::vector<SIMPLEXDATA>& uQ){
         
         U4DPoint3n origin(0.0,0.0,0.0);
         
-        U4DSimplexStruct simplexPointA=uQ.at(0);
-        U4DSimplexStruct simplexPointB=uQ.at(1);
-        U4DSimplexStruct simplexPointC=uQ.at(2);
+        SIMPLEXDATA simplexPointA=uQ.at(0);
+        SIMPLEXDATA simplexPointB=uQ.at(1);
+        SIMPLEXDATA simplexPointC=uQ.at(2);
         
         //get the normal vector of the triangle in clockwise and counterclockwise direction and use it as the direction vector for the
         //simplex points
@@ -296,11 +296,11 @@ namespace U4DEngine{
         
         //use directionVector0 as a direction vector to find the support point
         
-        U4DSimplexStruct simplexPoint0=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector0);
+        SIMPLEXDATA simplexPoint0=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector0);
         
         //use directionVector1 as a direction vector to find the support point
         
-        U4DSimplexStruct simplexPoint1=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector1);
+        SIMPLEXDATA simplexPoint1=calculateSupportPointInDirection(uBoundingVolume1, uBoundingVolume2, directionVector1);
         
         //Now you can build two tetrahedron: ABC0 and ABC1, now find out in which tetrahedron the origin is contained
         

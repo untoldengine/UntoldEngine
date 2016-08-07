@@ -22,7 +22,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
+    void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
     
         
         POINTINFORMATION pointInformation;
@@ -75,7 +75,7 @@ namespace U4DEngine {
         
     }
     
-    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<U4DSimplexStruct> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
+    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
         
         //step 1. Create plane
         U4DVector3n collisionNormalOfModel1=uModel1->getCollisionNormalFaceDirection();

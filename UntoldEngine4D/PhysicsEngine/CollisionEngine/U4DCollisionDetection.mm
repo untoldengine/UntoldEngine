@@ -15,7 +15,7 @@
 namespace U4DEngine {
     
     
-    U4DSimplexStruct U4DCollisionDetection::calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection){
+    SIMPLEXDATA U4DCollisionDetection::calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection){
         
         //Calculate the supporting point Sa-b(v)=sa(v)-sb(-v)
         
@@ -28,7 +28,7 @@ namespace U4DEngine {
         //Sa-b(v)=sa(v)-sb(-v)
         U4DPoint3n sab=(sb-sa).toPoint();
         
-        U4DSimplexStruct supportPoint;
+        SIMPLEXDATA supportPoint;
         
         supportPoint.sa=sa;
         supportPoint.sb=sb;
@@ -41,7 +41,7 @@ namespace U4DEngine {
         
     }
     
-    std::vector<float> U4DCollisionDetection::determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin,std::vector<U4DSimplexStruct> uQ){
+    std::vector<float> U4DCollisionDetection::determineBarycentricCoordinatesInSimplex(U4DPoint3n& uClosestPointToOrigin,std::vector<SIMPLEXDATA> uQ){
         
         std::vector<float> barycentricCoordinates;
         
@@ -114,7 +114,7 @@ namespace U4DEngine {
         
     }
     
-    U4DPoint3n U4DCollisionDetection::determineClosestPointOnSimplexToPoint(U4DPoint3n& uPoint,std::vector<U4DSimplexStruct> uQ){
+    U4DPoint3n U4DCollisionDetection::determineClosestPointOnSimplexToPoint(U4DPoint3n& uPoint,std::vector<SIMPLEXDATA> uQ){
         
         U4DPoint3n closestPoint;
         

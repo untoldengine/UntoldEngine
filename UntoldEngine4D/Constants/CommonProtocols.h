@@ -114,7 +114,7 @@ namespace U4DEngine {
         U4DPoint3n sb; //support point in sb
         U4DPoint3n minkowskiPoint; //Minkowski difference point
         
-    }U4DSimplexStruct;
+    }SIMPLEXDATA;
     
     typedef struct{
         

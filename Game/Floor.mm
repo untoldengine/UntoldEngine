@@ -22,7 +22,10 @@ void Floor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-
+//        setAsGround(true);
+//        enableCollision();
+//        setCoefficientOfRestitution(0.7);
+        
     }
 }
 
