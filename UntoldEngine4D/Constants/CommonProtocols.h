@@ -81,7 +81,7 @@ namespace U4DEngine {
         float yOffset;
         float xAdvance;
         const char* letter;
-    }TextData;
+    }TEXTDATA;
 
     typedef struct{
         

@@ -30,7 +30,7 @@ private:
     
     const char* text;
     
-    std::vector<TextData> textContainer;
+    std::vector<TEXTDATA> textContainer;
     
     float textSpacing;
     
