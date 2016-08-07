@@ -59,7 +59,7 @@ namespace U4DEngine {
         
         bool loadDigitalAssetFile(const char* uFile);
         
-        void loadAssetToMesh(U4DModel *uModel,std::string uMeshID);
+        bool loadAssetToMesh(U4DModel *uModel,std::string uMeshID);
         
         void getObjectTransformationMatrix(U4DModel *uModel,std::string uMeshID);
         

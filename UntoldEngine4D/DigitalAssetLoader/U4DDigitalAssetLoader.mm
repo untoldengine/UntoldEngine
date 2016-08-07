@@ -60,9 +60,11 @@ namespace U4DEngine {
     }
 
 
-    void U4DDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshID){
+    bool U4DDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshID){
         
         tinyxml2::XMLNode *root=doc.FirstChildElement("UntoldEngine");
+        
+        bool modelExist=false;
         
         //Get Mesh ID
         tinyxml2::XMLElement *node=root->FirstChildElement("asset")->FirstChildElement("meshes");
@@ -85,11 +87,14 @@ namespace U4DEngine {
                 if (meshName.compare(uMeshID)==0) {
                  
                 //MAXIMUM number of verts: 1538, Tris=3072, Faces: 3072.
-                //Becaue of the algorithm used the MAX vertex count is 3072*3
+                //Becasue of the algorithm used the MAX vertex count is 3072*3
                 if (vertexCount<=9000 && indexCount%3==0) {
                     //The model can be processed since it is below 1000 vertices and it has been properly triangularized
                     
                     std::cout<<"Loading model: "<<meshName<<std::endl;
+                    
+                    //inform that the model does exist
+                    modelExist=true;
                     
                     tinyxml2::XMLElement *vertices=child->FirstChildElement("vertices");
                     tinyxml2::XMLElement *normal=child->FirstChildElement("normal");
@@ -374,35 +379,39 @@ namespace U4DEngine {
                         
                     }//end if
                     
-                    
-                    //load lights
-                   
                 
                 }else if(vertexCount>9000 && indexCount%3!=0){
-                    std::cout<<"The vertex count for  "<<meshName<<"  is above the acceptable range. Decrease the vertex count to below 1500\nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, there are no loose vertices. Make sure your model is designed using Box-Modeling technique."<<std::endl;
+                    std::cout<<"The vertex count for  "<<meshName<<"  is above the acceptable range. Decrease the vertex count to below 1500\nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, and that there are no loose vertices. Make sure your model is designed using Mesh-Modeling techniques only."<<std::endl;
                     
+                    return false;
                     
                 }else if(vertexCount>9000){
                     std::cout<<"The vertex count for "<<meshName<<" is above the acceptable range. Decrease the vertex count to below 1500."<<std::endl;
                     
+                    return false;
                     
                 }else if(indexCount%3!=0){
-                    std::cout<<"The character "<<meshName<<" has not been properly triangularized. Make sure not to use n-gons in your topology. Make sure your model is designed using Box-Modeling technique."<<std::endl;
+                    std::cout<<"The character "<<meshName<<" has not been properly triangularized. Make sure not to use n-gons in your topology. Make sure your model is designed using Mesh-Modeling techniques only."<<std::endl;
                     
+                    return false;
                 }
-                    
-                }
-                
-                else{
-                    //std::cout<<"Damn dude, hope it was a typo because no model with name "<<uMeshID<<" exist"<<std::endl;
-                    
-                    //return false;
-                }
-                
+             
+                   
             }
-            
-        
+                
         }
+            
+    
+      }
+        
+        if (modelExist) {
+            std::cout<<"Loading Complete. Model "<<uMeshID<<" has been loaded."<<std::endl;
+            return true;
+        }
+        
+        std::cout<<"No model with name "<<uMeshID<<" exist."<<std::endl;
+        
+        return false;
         
     }
 
