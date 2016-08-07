@@ -53,7 +53,7 @@ namespace U4DEngine {
         std::vector<const char*> animationSprites;
         float delay;
         
-    }SpriteAnimation;
+    }SPRITEANIMATION;
 
 
     typedef struct{

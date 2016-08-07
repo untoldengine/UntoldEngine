@@ -22,13 +22,13 @@ private:
     
     int spriteAnimationFrame;
     U4DSprite *sprite;
-    SpriteAnimation spriteAnimation;
+    SPRITEANIMATION spriteAnimation;
     U4DTimer *timer;
     U4DCallback<U4DSpriteAnimation> *scheduler;
     
 public:
     
-    U4DSpriteAnimation(U4DSprite *uSprite, SpriteAnimation &uSpriteAnimation);
+    U4DSpriteAnimation(U4DSprite *uSprite, SPRITEANIMATION &uSpriteAnimation);
     
     
     ~U4DSpriteAnimation();
