@@ -405,10 +405,11 @@ namespace U4DEngine {
       }
         
         if (modelExist) {
+            std::cout<<"Loading Complete. Model "<<uMeshID<<" has been loaded."<<std::endl;
             return true;
         }
         
-        std::cout<<"No model with name "<<uMeshID<<" exist"<<std::endl;
+        std::cout<<"No model with name "<<uMeshID<<" exist."<<std::endl;
         
         return false;
         
