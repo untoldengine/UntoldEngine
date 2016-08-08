@@ -79,12 +79,9 @@ void Earth::init(){
     meteor3->init("Meteor3", "blenderscript.u4d");
     
 
-    U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
-    light->setName("light");
-    light->translateTo(3.0,3.0,5.0);
+
     U4DVector3n origin(0,0,0);
     
-    light->viewInDirection(origin);
     camera->viewInDirection(origin);
     
 
@@ -112,15 +109,13 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->followModel(rocket, 0.0, 2.0, 10.0);
+    //camera->followModel(rocket, 0.0, 2.0, 10.0);
     
 
 }
 
 void Earth::action(){
     
-    U4DDirector *director=U4DDirector::sharedInstance();
-    U4DLights *light=director->getLight();
     setEntityControlledByController(rocket);
     
 }

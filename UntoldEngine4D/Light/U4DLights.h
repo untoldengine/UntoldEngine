@@ -11,31 +11,46 @@
 
 #include <iostream>
 #include "U4DEntity.h"
-#include "U4DVisibleEntity.h"
-#include "U4DVertexData.h"
-
 
 namespace U4DEngine {
-    class U4DLights:public U4DVisibleEntity{
+    
+    class U4DLights:public U4DEntity{
         
-        private:
-
-            int index;
-            
-            
-        public:
-            
-            U4DLights();
-            
-            ~U4DLights();
-            
-            void draw();
-            
-            void setLightSphere(float uRadius,int uRings, int uSectors);
-            
-            U4DVertexData bodyCoordinates;
+    private:
         
-            std::vector<float> lightColor; //the color the light emits
+    protected:
+        
+        /**
+         *  Light Constructor
+         */
+        U4DLights();
+        
+        /**
+         *  Light Destructor
+         */
+        ~U4DLights();
+        
+        /**
+         *  Copy constructor
+         */
+        U4DLights(const U4DLights& value);
+        
+        /**
+         *  Copy constructor
+         */
+        U4DLights& operator=(const U4DLights& value);
+        
+    public:
+        
+        /**
+         *  Instance for U4DLights Singleton
+         */
+        static U4DLights* instance;
+        
+        /**
+         *  SharedInstance for U4DLights Singleton
+         */
+        static U4DLights* sharedInstance();
         
     };
     

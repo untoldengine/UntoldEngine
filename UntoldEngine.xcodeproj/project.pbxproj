@@ -45,7 +45,6 @@
 		034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
 		034DBC7C1A73E08C00AC43EB /* U4DDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034DBC7B1A73E08C00AC43EB /* U4DDebugger.mm */; };
-		034DBC7F1A73E29300AC43EB /* U4DOpenGLLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034DBC7D1A73E29300AC43EB /* U4DOpenGLLight.mm */; };
 		034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC801A73FAD200AC43EB /* lightShader.fp */; };
 		034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC811A73FAD200AC43EB /* lightShader.vp */; };
 		034DBC861A74002F00AC43EB /* U4DOpenGLDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034DBC841A74002F00AC43EB /* U4DOpenGLDebugger.mm */; };
@@ -262,8 +261,6 @@
 		0346862B1B1A4DA400B2105B /* U4DPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlane.h; sourceTree = "<group>"; };
 		034DBC7A1A73E08C00AC43EB /* U4DDebugger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDebugger.h; sourceTree = "<group>"; };
 		034DBC7B1A73E08C00AC43EB /* U4DDebugger.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDebugger.mm; sourceTree = "<group>"; };
-		034DBC7D1A73E29300AC43EB /* U4DOpenGLLight.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLLight.mm; sourceTree = "<group>"; };
-		034DBC7E1A73E29300AC43EB /* U4DOpenGLLight.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLLight.h; sourceTree = "<group>"; };
 		034DBC801A73FAD200AC43EB /* lightShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.fp; sourceTree = "<group>"; };
 		034DBC811A73FAD200AC43EB /* lightShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.vp; sourceTree = "<group>"; };
 		034DBC841A74002F00AC43EB /* U4DOpenGLDebugger.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLDebugger.mm; sourceTree = "<group>"; };
@@ -1326,8 +1323,6 @@
 				0328EE9917F5C88C00560A63 /* U4DOpenGLSprite.mm */,
 				036435C31863D88900E2A6F6 /* U4DOpenGLFont.h */,
 				036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */,
-				034DBC7E1A73E29300AC43EB /* U4DOpenGLLight.h */,
-				034DBC7D1A73E29300AC43EB /* U4DOpenGLLight.mm */,
 				034DBC851A74002F00AC43EB /* U4DOpenGLDebugger.h */,
 				034DBC841A74002F00AC43EB /* U4DOpenGLDebugger.mm */,
 			);
@@ -1566,7 +1561,6 @@
 				03F862A917EE29FD00712ECD /* U4DOpenGL3DModel.mm in Sources */,
 				0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */,
 				03B5E7E6193A3F4100800EC8 /* U4DDigitalAssetLoader.mm in Sources */,
-				034DBC7F1A73E29300AC43EB /* U4DOpenGLLight.mm in Sources */,
 				03E6EDD71943D816007AD131 /* U4DCollisionEngine.mm in Sources */,
 				03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */,
 				03EF85411791E426007D6152 /* U4DIndex.mm in Sources */,
