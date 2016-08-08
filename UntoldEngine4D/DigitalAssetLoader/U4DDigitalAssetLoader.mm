@@ -20,6 +20,7 @@
 #include "U4DBoneData.h"
 #include "U4DAnimation.h"
 #include "U4DLights.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -47,12 +48,18 @@ namespace U4DEngine {
         
         bool loadOk=doc.LoadFile(uFile);
         
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
         if (!loadOk) {
-            std::cout<<"Digital Asset File Loaded"<<std::endl;
+        
+            logger->log("Digital Asset File Loaded");
+            
             loadOk=true;
             
         }else{
-            std::cout<<"oops, no Digital Asset File";
+            
+            logger->log("oops, no Digital Asset File");
+            
             loadOk=false;
         }
         
@@ -63,7 +70,7 @@ namespace U4DEngine {
     bool U4DDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshID){
         
         tinyxml2::XMLNode *root=doc.FirstChildElement("UntoldEngine");
-        
+        U4DLogger *logger=U4DLogger::sharedInstance();
         bool modelExist=false;
         
         //Get Mesh ID
@@ -91,7 +98,7 @@ namespace U4DEngine {
                 if (vertexCount<=9000 && indexCount%3==0) {
                     //The model can be processed since it is below 1000 vertices and it has been properly triangularized
                     
-                    std::cout<<"Loading model: "<<meshName<<std::endl;
+                    logger->log("loading model: %s",meshName.c_str());
                     
                     //inform that the model does exist
                     modelExist=true;
@@ -381,17 +388,20 @@ namespace U4DEngine {
                     
                 
                 }else if(vertexCount>9000 && indexCount%3!=0){
-                    std::cout<<"The vertex count for  "<<meshName<<"  is above the acceptable range. Decrease the vertex count to below 1500\nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, and that there are no loose vertices. Make sure your model is designed using Mesh-Modeling techniques only."<<std::endl;
+                    
+                    logger->log("The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500\nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, and that there are no loose vertices. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
                     
                     return false;
                     
                 }else if(vertexCount>9000){
-                    std::cout<<"The vertex count for "<<meshName<<" is above the acceptable range. Decrease the vertex count to below 1500."<<std::endl;
+                    
+                    logger->log("The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500.",meshName.c_str());
                     
                     return false;
                     
                 }else if(indexCount%3!=0){
-                    std::cout<<"The character "<<meshName<<" has not been properly triangularized. Make sure not to use n-gons in your topology. Make sure your model is designed using Mesh-Modeling techniques only."<<std::endl;
+                    
+                    logger->log("The character %s has not been properly triangularized. Make sure not to use n-gons in your topology. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
                     
                     return false;
                 }
@@ -405,11 +415,13 @@ namespace U4DEngine {
       }
         
         if (modelExist) {
-            std::cout<<"Loading Complete. Model "<<uMeshID<<" has been loaded."<<std::endl;
+        
+            logger->log("Loading Complete. Model %s has been loaded.",uMeshID.c_str());
+
             return true;
         }
         
-        std::cout<<"No model with name "<<uMeshID<<" exist."<<std::endl;
+        logger->log("No model with name %s exist.",uMeshID.c_str());
         
         return false;
         

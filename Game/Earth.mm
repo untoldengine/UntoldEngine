@@ -40,15 +40,12 @@ void Earth::init(){
     U4DCamera *camera=U4DCamera::sharedInstance();
     camera->translateBy(0.0, 3.0, 10.0);
     //camera->rotateTo(0.0,-20.0,0.0);
-    
-    U4DLogger *logger=U4DLogger::sharedInstance();
-    logger->log("Hello Harold");
-    
+
     setName("earth");
     
     //create the floor
     floor=new Floor();
-    floor->init("Piso","blenderscript.u4d");
+    floor->init("GroundFloor","blenderscript.u4d");
     
     //create the rocket
     rocket=new Rocket();
@@ -85,7 +82,7 @@ void Earth::init(){
     U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
     light->setName("light");
     light->translateTo(3.0,3.0,5.0);
-    U4DEngine::U4DVector3n origin(0,0,0);
+    U4DVector3n origin(0,0,0);
     
     light->viewInDirection(origin);
     camera->viewInDirection(origin);

@@ -10,6 +10,8 @@
 #define U4DLogger_hpp
 
 #include <stdio.h>
+#include <iostream>
+#include <string>
 
 namespace U4DEngine {
     
@@ -17,17 +19,14 @@ namespace U4DEngine {
         
     private:
         
+        bool debugMode;
+        
     protected:
         
         /**
          *  Logger Constructor
          */
         U4DLogger();
-        
-        /**
-         *  Logger Destructor
-         */
-        ~U4DLogger();
         
         /**
          *  Copy constructor
@@ -38,6 +37,11 @@ namespace U4DEngine {
          *  Copy constructor
          */
         U4DLogger& operator=(const U4DLogger& value);
+        
+        /**
+         *  Logger Destructor
+         */
+        ~U4DLogger();
         
     public:
         
@@ -50,8 +54,10 @@ namespace U4DEngine {
          *  SharedInstance for U4DLogger Singleton
          */
         static U4DLogger* sharedInstance();
+
+        void log(const char* uLog, ...);
         
-        void log(const char* uLog);
+        void setDebugMode(bool uValue);
         
     };
 

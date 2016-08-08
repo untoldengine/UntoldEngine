@@ -7,16 +7,14 @@
 //
 
 #include "U4DLogger.h"
-#include <iostream>
 
 namespace U4DEngine {
 
-    U4DLogger::U4DLogger(){
+    U4DLogger* U4DLogger::instance=0;
+    
+    U4DLogger::U4DLogger():debugMode(true){
     }
     
-    U4DLogger::~U4DLogger(){
-        
-    }
     
     U4DLogger::U4DLogger(const U4DLogger& value){
         
@@ -26,25 +24,40 @@ namespace U4DEngine {
         
         return *this;
         
-    };
+    }
     
-    
-    U4DLogger* U4DLogger::instance=0;
-    
+    U4DLogger::~U4DLogger(){
+        
+    }
+
     U4DLogger* U4DLogger::sharedInstance(){
         
         if (instance==0) {
             instance=new U4DLogger();
         }
-        
+
         return instance;
     }
     
-    void U4DLogger::log(const char* uLog){
+    void U4DLogger::log(const char* uLog, ...){
         
-        std::cout<<uLog<<std::endl;
-        
-    }
+        if (debugMode==true) {
 
+            char buffer[256];
+            va_list args;
+            va_start (args, uLog);
+            vsprintf (buffer,uLog, args);
+            
+            std::cout<<buffer<<std::endl;
+            
+            va_end (args);
+        
+        }
+    }
+    
+    void U4DLogger::setDebugMode(bool uValue){
+        debugMode=uValue;
+    }
+    
     
 }
