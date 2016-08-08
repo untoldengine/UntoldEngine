@@ -13,7 +13,6 @@
 #include "U4DScene.h"
 #include "U4DGameModelInterface.h"
 #include "U4DControllerInterface.h"
-#include "U4DLights.h"
 #include "CommonProtocols.h"
 #include "Constants.h"
 
@@ -194,18 +193,6 @@ namespace U4DEngine {
     void U4DDirector::touchMoved(const U4DTouches &touches){
         
         scene->touchMoved(touches);
-    }
-
-    void U4DDirector::loadLight(U4DLights* uLight){
-        
-        mainLight=uLight;
-        
-    }
-
-    U4DLights* U4DDirector::getLight(){
-        
-        return mainLight;
-        
     }
 
 }

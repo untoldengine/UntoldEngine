@@ -29,7 +29,6 @@ class U4DGameModelInterface;
 class U4DVector2n;
 class U4DControllerInterface;
 class U4DTouches;
-class U4DLights;
 }
 
 namespace U4DEngine {
@@ -59,8 +58,6 @@ private:
     float displayHeight;
     
     std::vector<GLuint> shaderProgram;
-    
-    U4DLights* mainLight;
     
     //time step accumulator
     float accumulator;
@@ -186,9 +183,6 @@ public:
     void touchEnded(const U4DTouches &touches);
     void touchMoved(const U4DTouches &touches);
     
-    //light
-    void loadLight(U4DLights* uLight);
-    U4DLights* getLight();
 };
 
 }

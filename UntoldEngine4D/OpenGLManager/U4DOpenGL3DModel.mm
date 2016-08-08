@@ -158,9 +158,7 @@ void U4DOpenGL3DModel::loadTextureObjectBuffer(){
 
 void U4DOpenGL3DModel::loadLightsUniforms(){
  
-    U4DDirector *director=U4DDirector::sharedInstance();
-    
-    U4DLights* light=director->getLight();
+    U4DLights *light=U4DLights::sharedInstance();
     
     U4DVector3n lightPosition=light->getAbsolutePosition();
     
@@ -285,9 +283,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     depthOrthoMatrix.computeOrthographicMatrix(-10.0, 10.0, -10.0, 10.0, -20.0f, 20.0f);
     
-    U4DDirector *director=U4DDirector::sharedInstance();
-    
-    U4DLights *light=director->getLight();
+    U4DLights *light=U4DLights::sharedInstance();
     
     //get light absolute space
     U4DDualQuaternion lightViewSpace=light->getAbsoluteSpace();
