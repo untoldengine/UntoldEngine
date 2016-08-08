@@ -139,6 +139,7 @@
 		03D559DC1D53D14A00E567D5 /* Planet.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559DA1D53D14A00E567D5 /* Planet.mm */; settings = {ASSET_TAGS = (); }; };
 		03D559DF1D53D15700E567D5 /* Meteor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559DD1D53D15700E567D5 /* Meteor.mm */; settings = {ASSET_TAGS = (); }; };
 		03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E01D5630AC00E567D5 /* U4DNumerical.mm */; settings = {ASSET_TAGS = (); }; };
+		03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E41D58248A00E567D5 /* U4DLogger.mm */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -409,6 +410,8 @@
 		03D559DE1D53D15700E567D5 /* Meteor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Meteor.h; sourceTree = "<group>"; };
 		03D559E01D5630AC00E567D5 /* U4DNumerical.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DNumerical.mm; sourceTree = "<group>"; };
 		03D559E11D5630AC00E567D5 /* U4DNumerical.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DNumerical.h; sourceTree = "<group>"; };
+		03D559E41D58248A00E567D5 /* U4DLogger.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DLogger.mm; path = Logger/U4DLogger.mm; sourceTree = "<group>"; };
+		03D559E51D58248A00E567D5 /* U4DLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DLogger.h; path = Logger/U4DLogger.h; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -709,6 +712,7 @@
 		03759B42175B0135002EB5D9 /* UntoldEngine4D */ = {
 			isa = PBXGroup;
 			children = (
+				03D559E31D58246D00E567D5 /* Logger */,
 				03D374091AE9E746000D8535 /* SpriteAnimation */,
 				034DBC791A73E08C00AC43EB /* Debugger */,
 				03B718E71A0AA83000C94651 /* Light */,
@@ -1064,6 +1068,15 @@
 				03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */,
 			);
 			name = SutherlandHodgmanAlgorithm;
+			sourceTree = "<group>";
+		};
+		03D559E31D58246D00E567D5 /* Logger */ = {
+			isa = PBXGroup;
+			children = (
+				03D559E41D58248A00E567D5 /* U4DLogger.mm */,
+				03D559E51D58248A00E567D5 /* U4DLogger.h */,
+			);
+			name = Logger;
 			sourceTree = "<group>";
 		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
@@ -1467,6 +1480,7 @@
 				038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */,
 				030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */,
 				03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */,
+				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
 				0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */,
 				03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */,
 				034DBC7C1A73E08C00AC43EB /* U4DDebugger.mm in Sources */,

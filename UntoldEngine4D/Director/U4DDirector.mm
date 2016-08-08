@@ -16,7 +16,7 @@
 #include "U4DLights.h"
 #include "CommonProtocols.h"
 #include "Constants.h"
-#import <GLKit/GLKit.h>
+
 
 namespace U4DEngine {
     

@@ -25,19 +25,24 @@
 #include "GameController.h"
 #include "U4DSprite.h"
 #include "U4DLights.h"
-#include "U4DDebugger.h"
+#include "U4DLogger.h"
 #include "Floor.h"
 #include "Rocket.h"
 #include "Mountain.h"
 #include "Planet.h"
 #include "Meteor.h"
 
+using namespace U4DEngine;
+
 void Earth::init(){
     
-    U4DEngine::U4DDebugger *debugger=new U4DEngine::U4DDebugger();
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    //U4DEngine::U4DDebugger *debugger=new U4DEngine::U4DDebugger();
+    U4DCamera *camera=U4DCamera::sharedInstance();
     camera->translateBy(0.0, 3.0, 10.0);
     //camera->rotateTo(0.0,-20.0,0.0);
+    
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    logger->log("Hello Harold");
     
     setName("earth");
     
@@ -109,7 +114,7 @@ void Earth::init(){
 
 void Earth::update(double dt){
     
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    U4DCamera *camera=U4DCamera::sharedInstance();
     camera->followModel(rocket, 0.0, 2.0, 10.0);
     
 
@@ -117,8 +122,8 @@ void Earth::update(double dt){
 
 void Earth::action(){
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    U4DEngine::U4DLights *light=director->getLight();
+    U4DDirector *director=U4DDirector::sharedInstance();
+    U4DLights *light=director->getLight();
     setEntityControlledByController(rocket);
     
 }
