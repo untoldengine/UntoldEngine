@@ -8,7 +8,6 @@
 
 #include "U4DPhysicsEngine.h"
 #include "U4DIntegrator.h"
-#include "U4DEulerMethod.h"
 #include "U4DGravityForceGenerator.h"
 #include "U4DDynamicModel.h"
 
