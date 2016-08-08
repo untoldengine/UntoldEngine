@@ -36,13 +36,12 @@ using namespace U4DEngine;
 
 void Earth::init(){
     
-    //U4DEngine::U4DDebugger *debugger=new U4DEngine::U4DDebugger();
     U4DCamera *camera=U4DCamera::sharedInstance();
     camera->translateBy(0.0, 3.0, 10.0);
     //camera->rotateTo(0.0,-20.0,0.0);
 
     setName("earth");
-    
+
     //create the floor
     floor=new Floor();
     floor->init("GroundFloor","blenderscript.u4d");
@@ -77,8 +76,6 @@ void Earth::init(){
     
     meteor3=new Meteor();
     meteor3->init("Meteor3", "blenderscript.u4d");
-    
-
 
     U4DVector3n origin(0,0,0);
     
@@ -96,10 +93,7 @@ void Earth::init(){
     addChild(meteor2);
     addChild(meteor3);
 
-//    debugger->addEntityToDebug(light);
-//    addChild(debugger);
     
-
     
     initLoadingModels();
     

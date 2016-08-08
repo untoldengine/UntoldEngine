@@ -12,7 +12,7 @@ namespace U4DEngine {
 
     U4DLogger* U4DLogger::instance=0;
     
-    U4DLogger::U4DLogger():debugMode(true){
+    U4DLogger::U4DLogger():debugMode(true),engineMode(true){
     }
     
     
@@ -55,8 +55,29 @@ namespace U4DEngine {
         }
     }
     
+    void U4DLogger::engineLog(const char* uLog, ...){
+        
+        if (engineMode==true) {
+            
+            char buffer[256];
+            va_list args;
+            va_start (args, uLog);
+            vsprintf (buffer,uLog, args);
+            
+            std::cout<<buffer<<std::endl;
+            
+            va_end (args);
+            
+        }
+        
+    }
+    
     void U4DLogger::setDebugMode(bool uValue){
         debugMode=uValue;
+    }
+    
+    void U4DLogger::setEngineMode(bool uValue){
+        engineMode=uValue;
     }
     
     

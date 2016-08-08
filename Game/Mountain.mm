@@ -22,6 +22,7 @@ void Mountain::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //do your magic here
+
     }
 }
 

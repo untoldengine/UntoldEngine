@@ -11,8 +11,8 @@
 #include "CommonProtocols.h"
 #include "U4DCollisionAlgorithm.h"
 #include "U4DGJKAlgorithm.h"
-#include "U4DEPAAlgorithm.h"
 #include "U4DCollisionResponse.h"
+#include "U4DSHAlgorithm.h"
 #include "U4DDynamicModel.h"
 #include "U4DBVHManager.h"
 #include "U4DLogger.h"
@@ -104,7 +104,7 @@ namespace U4DEngine {
                     
                 }else{
                     
-                    logger->log("Contact Manifold were not found");
+                    logger->engineLog("Contact Manifold were not found");
 
                 }
                 
