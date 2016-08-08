@@ -104,7 +104,7 @@ namespace U4DEngine {
                     
                 }else{
                     
-                    logger->log("Contact Manifold were not found");
+                    logger->engineLog("Contact Manifold were not found");
 
                 }
                 

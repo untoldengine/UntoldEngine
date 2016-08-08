@@ -41,7 +41,7 @@ void Earth::init(){
     //camera->rotateTo(0.0,-20.0,0.0);
 
     setName("earth");
-    
+
     //create the floor
     floor=new Floor();
     floor->init("GroundFloor","blenderscript.u4d");
@@ -75,9 +75,7 @@ void Earth::init(){
     meteor2->init("Meteor2", "blenderscript.u4d");
     
     meteor3=new Meteor();
-    meteor3->init("MiniCube", "blenderscript.u4d");
-    
-
+    meteor3->init("Meteor3", "blenderscript.u4d");
 
     U4DVector3n origin(0,0,0);
     
@@ -85,14 +83,14 @@ void Earth::init(){
     
 
     addChild(floor);
-//    addChild(rocket);
+    addChild(rocket);
     addChild(mountain);
     addChild(mountain2);
     addChild(mountain3);
     addChild(mountain4);
     addChild(planet);
-//    addChild(meteor1);
-//    addChild(meteor2);
+    addChild(meteor1);
+    addChild(meteor2);
     addChild(meteor3);
 
     

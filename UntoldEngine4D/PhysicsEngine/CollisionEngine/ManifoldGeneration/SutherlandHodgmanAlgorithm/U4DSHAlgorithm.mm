@@ -102,7 +102,7 @@ namespace U4DEngine {
         
         if (parallelFacesModel1.size()==0 || parallelFacesModel2.size()==0) {
             
-            logger->engineLog("SH algorithm failed: Couldn't fine most parallel plane to face.");
+            logger->engineLog("SH algorithm failed: Couldn't find most parallel plane to face.");
             
             return false;
         }

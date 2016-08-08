@@ -22,15 +22,15 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        translateTo(0.0,5.0,0.0);
-        enableCollision();
-        applyPhysics(true);
-        setCoefficientOfRestitution(0.6);
+//        translateTo(0.0,5.0,0.0);
+//        enableCollision();
+//        applyPhysics(true);
+//        setCoefficientOfRestitution(0.6);
     }
 }
 
 void Meteor::update(double dt){
     
-    //rotateBy(0.0,1.0,0.0);
+    rotateBy(0.0,1.0,0.0);
     
 }
