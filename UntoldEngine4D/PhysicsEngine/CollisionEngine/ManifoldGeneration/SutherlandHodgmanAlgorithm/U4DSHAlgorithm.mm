@@ -229,7 +229,7 @@ namespace U4DEngine {
             //remove all segment with dot product not equal to most parallel segment to intersection vector
             incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * MAX(1.0f, MAX(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
-            if (incidentSegments.size()<=1) {
+            if (incidentSegments.size()<1) {
                 return false;
             }
             
