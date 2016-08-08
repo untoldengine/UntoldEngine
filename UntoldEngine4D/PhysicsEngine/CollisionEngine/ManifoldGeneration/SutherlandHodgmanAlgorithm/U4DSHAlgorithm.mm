@@ -11,6 +11,7 @@
 #include "U4DSegment.h"
 #include "U4DTriangle.h"
 #include "Constants.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
 
@@ -77,6 +78,8 @@ namespace U4DEngine {
     
     bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
         
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
         //step 1. Create plane
         U4DVector3n collisionNormalOfModel1=uModel1->getCollisionNormalFaceDirection();
         U4DPlane planeCollisionOfModel1(collisionNormalOfModel1,uCollisionManifoldNode.collisionClosestPoint);
@@ -85,6 +88,9 @@ namespace U4DEngine {
         U4DPlane planeCollisionOfModel2(collisionNormalOfModel2,uCollisionManifoldNode.collisionClosestPoint);
         
         if (collisionNormalOfModel1==U4DVector3n(0,0,0) || collisionNormalOfModel2==U4DVector3n(0,0,0)) {
+            
+            logger->engineLog("SH algorithm failed: Collision Normals equal to (0.0,0.0,0.0).");
+            
             return false;
         }
         
@@ -95,6 +101,9 @@ namespace U4DEngine {
         std::vector<CONTACTFACES> parallelFacesModel2=mostParallelFacesToPlane(uModel2, planeCollisionOfModel2);
         
         if (parallelFacesModel1.size()==0 || parallelFacesModel2.size()==0) {
+            
+            logger->engineLog("SH algorithm failed: Couldn't fine most parallel plane to face.");
+            
             return false;
         }
         
@@ -105,6 +114,9 @@ namespace U4DEngine {
         std::vector<U4DTriangle> projectedFacesModel2=projectFacesToPlane(parallelFacesModel2, planeCollisionOfModel2);
         
         if (projectedFacesModel1.size()==0 || projectedFacesModel2.size()==0) {
+            
+            logger->engineLog("SH algorithm failed: Couldn't project select faces to plane");
+            
             return false;
         }
         //step 4. Break triangle into segments and remove any duplicate segments
@@ -112,6 +124,9 @@ namespace U4DEngine {
         std::vector<CONTACTEDGE> polygonEdgesOfModel2=getEdgesFromFaces(projectedFacesModel2,planeCollisionOfModel2);
         
         if (polygonEdgesOfModel1.size()==0 || polygonEdgesOfModel2.size()==0) {
+            
+            logger->engineLog("SH algorithm failed: Couldn't obtain edges from the collided faces");
+            
             return false;
         }
         //step 5. Determine reference polygon
@@ -185,6 +200,8 @@ namespace U4DEngine {
         
         //if container is empty, then return
         if (segments.size()<=1) {
+            
+            logger->engineLog("SH algorithm failed: SH produced zero segments");
             return false;
         }
         
@@ -230,6 +247,9 @@ namespace U4DEngine {
             incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * MAX(1.0f, MAX(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
             if (incidentSegments.size()<1) {
+                
+                logger->engineLog("SH algorithm failed: Incident segments equal to less than one");
+                
                 return false;
             }
             

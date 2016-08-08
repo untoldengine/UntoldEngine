@@ -20,6 +20,7 @@ namespace U4DEngine {
     private:
         
         bool debugMode;
+        bool engineMode;
         
     protected:
         
@@ -57,7 +58,11 @@ namespace U4DEngine {
 
         void log(const char* uLog, ...);
         
+        void engineLog(const char* uLog, ...);
+        
         void setDebugMode(bool uValue);
+        
+        void setEngineMode(bool uValue);
         
     };
 

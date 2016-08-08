@@ -44,7 +44,7 @@ void Earth::init(){
     
     //create the floor
     floor=new Floor();
-    floor->init("Piso","blenderscript.u4d");
+    floor->init("GroundFloor","blenderscript.u4d");
     
     //create the rocket
     rocket=new Rocket();
@@ -75,7 +75,7 @@ void Earth::init(){
     meteor2->init("Meteor2", "blenderscript.u4d");
     
     meteor3=new Meteor();
-    meteor3->init("Cube", "blenderscript.u4d");
+    meteor3->init("MiniCube", "blenderscript.u4d");
     
 
 
@@ -86,11 +86,11 @@ void Earth::init(){
 
     addChild(floor);
 //    addChild(rocket);
-//    addChild(mountain);
-//    addChild(mountain2);
-//    addChild(mountain3);
-//    addChild(mountain4);
-//    addChild(planet);
+    addChild(mountain);
+    addChild(mountain2);
+    addChild(mountain3);
+    addChild(mountain4);
+    addChild(planet);
 //    addChild(meteor1);
 //    addChild(meteor2);
     addChild(meteor3);

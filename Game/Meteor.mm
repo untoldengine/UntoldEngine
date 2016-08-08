@@ -23,7 +23,6 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         translateTo(0.0,5.0,0.0);
-        rotateBy(90, 0, 0);
         enableCollision();
         applyPhysics(true);
         setCoefficientOfRestitution(0.6);
