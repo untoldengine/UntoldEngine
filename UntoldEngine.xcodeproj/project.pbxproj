@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */; };
 		03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */; };
-		03002C8D1B97812100665CC9 /* U4DEPAAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C8C1B97812100665CC9 /* U4DEPAAlgorithm.mm */; };
 		03002C901B9E27BA00665CC9 /* U4DPolytope.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C8E1B9E27BA00665CC9 /* U4DPolytope.mm */; };
 		030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205501B6E9CD7005A72E8 /* U4DSegment.mm */; };
 		030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205531B6E9CE9005A72E8 /* U4DTriangle.mm */; };
@@ -159,7 +158,6 @@
 		03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDC31943D816007AD131 /* U4DDragForceGenerator.mm */; };
 		03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDC61943D816007AD131 /* U4DGravityForceGenerator.mm */; };
 		03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDC81943D816007AD131 /* U4DBodyForceGenerator.mm */; };
-		03E6EDDD1943D816007AD131 /* U4DEulerMethod.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDCC1943D816007AD131 /* U4DEulerMethod.mm */; };
 		03E6EDDE1943D816007AD131 /* U4DIntegrator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDCE1943D816007AD131 /* U4DIntegrator.mm */; };
 		03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDD11943D816007AD131 /* U4DRungaKuttaMethod.mm */; };
 		03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDD51943D816007AD131 /* U4DPhysicsEngine.mm */; };
@@ -195,8 +193,6 @@
 		03002C851B977FE600665CC9 /* U4DManifoldGeneration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DManifoldGeneration.h; path = ManifoldGeneration/U4DManifoldGeneration.h; sourceTree = "<group>"; };
 		03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCollisionDetection.mm; sourceTree = "<group>"; };
 		03002C881B97804B00665CC9 /* U4DCollisionDetection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCollisionDetection.h; sourceTree = "<group>"; };
-		03002C8B1B97812100665CC9 /* U4DEPAAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DEPAAlgorithm.h; path = ManifoldGeneration/EPAAlgorithm/U4DEPAAlgorithm.h; sourceTree = "<group>"; };
-		03002C8C1B97812100665CC9 /* U4DEPAAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DEPAAlgorithm.mm; path = ManifoldGeneration/EPAAlgorithm/U4DEPAAlgorithm.mm; sourceTree = "<group>"; };
 		03002C8E1B9E27BA00665CC9 /* U4DPolytope.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPolytope.mm; sourceTree = "<group>"; };
 		03002C8F1B9E27BA00665CC9 /* U4DPolytope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPolytope.h; sourceTree = "<group>"; };
 		030205501B6E9CD7005A72E8 /* U4DSegment.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSegment.mm; sourceTree = "<group>"; };
@@ -445,8 +441,6 @@
 		03E6EDC61943D816007AD131 /* U4DGravityForceGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGravityForceGenerator.mm; sourceTree = "<group>"; };
 		03E6EDC71943D816007AD131 /* U4DBodyForceGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBodyForceGenerator.h; sourceTree = "<group>"; };
 		03E6EDC81943D816007AD131 /* U4DBodyForceGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBodyForceGenerator.mm; sourceTree = "<group>"; };
-		03E6EDCB1943D816007AD131 /* U4DEulerMethod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DEulerMethod.h; sourceTree = "<group>"; };
-		03E6EDCC1943D816007AD131 /* U4DEulerMethod.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DEulerMethod.mm; sourceTree = "<group>"; };
 		03E6EDCD1943D816007AD131 /* U4DIntegrator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DIntegrator.h; sourceTree = "<group>"; };
 		03E6EDCE1943D816007AD131 /* U4DIntegrator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DIntegrator.mm; sourceTree = "<group>"; };
 		03E6EDD01943D816007AD131 /* U4DRungaKuttaMethod.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DRungaKuttaMethod.h; sourceTree = "<group>"; };
@@ -518,20 +512,10 @@
 			isa = PBXGroup;
 			children = (
 				03D4B1CB1CC5DE36007BE481 /* SutherlandHodgmanAlgorithm */,
-				03002C8A1B97810500665CC9 /* EPAAlgorithm */,
 				03002C851B977FE600665CC9 /* U4DManifoldGeneration.h */,
 				03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */,
 			);
 			name = ManifoldGeneration;
-			sourceTree = "<group>";
-		};
-		03002C8A1B97810500665CC9 /* EPAAlgorithm */ = {
-			isa = PBXGroup;
-			children = (
-				03002C8B1B97812100665CC9 /* U4DEPAAlgorithm.h */,
-				03002C8C1B97812100665CC9 /* U4DEPAAlgorithm.mm */,
-			);
-			name = EPAAlgorithm;
 			sourceTree = "<group>";
 		};
 		0302055E1B6EB439005A72E8 /* GJKAlgorithm */ = {
@@ -1238,21 +1222,11 @@
 		03E6EDC91943D816007AD131 /* Integrator */ = {
 			isa = PBXGroup;
 			children = (
-				03E6EDCA1943D816007AD131 /* EulerMethod */,
 				03E6EDCD1943D816007AD131 /* U4DIntegrator.h */,
 				03E6EDCE1943D816007AD131 /* U4DIntegrator.mm */,
 				03E6EDCF1943D816007AD131 /* RungaKuttaMethod */,
 			);
 			path = Integrator;
-			sourceTree = "<group>";
-		};
-		03E6EDCA1943D816007AD131 /* EulerMethod */ = {
-			isa = PBXGroup;
-			children = (
-				03E6EDCB1943D816007AD131 /* U4DEulerMethod.h */,
-				03E6EDCC1943D816007AD131 /* U4DEulerMethod.mm */,
-			);
-			path = EulerMethod;
 			sourceTree = "<group>";
 		};
 		03E6EDCF1943D816007AD131 /* RungaKuttaMethod */ = {
@@ -1492,7 +1466,6 @@
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03D559DC1D53D14A00E567D5 /* Planet.mm in Sources */,
-				03E6EDDD1943D816007AD131 /* U4DEulerMethod.mm in Sources */,
 				03FBE3F41BFB9394007E837F /* U4DTorqueForceGenerator.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
@@ -1535,7 +1508,6 @@
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
-				03002C8D1B97812100665CC9 /* U4DEPAAlgorithm.mm in Sources */,
 				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
