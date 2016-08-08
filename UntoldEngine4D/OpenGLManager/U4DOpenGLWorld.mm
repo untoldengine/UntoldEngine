@@ -12,6 +12,7 @@
 #include "U4DCamera.h"
 #include "U4DLights.h"
 #include "Constants.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -56,6 +57,7 @@ void U4DOpenGLWorld::drawElements(){
 #pragma mark-set framebuffer for shadow map
 void U4DOpenGLWorld::initShadowMapFramebuffer(){
     
+    U4DLogger *logger=U4DLogger::sharedInstance();
     
     //Create Framebuffer here
     glGenFramebuffers(1, &offscreenFramebuffer);
@@ -89,19 +91,27 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
         switch (fboStatus) {
                 
             case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
-                std::cout<<"The framebuffer is incomplete attachment.";
+                
+                logger->log("The framebuffer is incomplete attachment.");
+                
                 break;
+                
             case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
-                std::cout<<"The framebuffer is missing attachment.";
+                
+                logger->log("The framebuffer is missing attachment.");
+                
                 break;
                 
             default:
                 
-                std::cout<<"Ok, stop messing around. FOCUS. There is an error with the framebuffer, but was not able to detect why.";
+                logger->log("There is an error with the framebuffer, but was not able to detect why.");
+                
                 break;
         }
     }else{
-        std::cout<<"The framebuffer has been set properly."<<std::endl;
+        
+        logger->log("The framebuffer has been set properly.");
+        
     }
     
     //reset framebuffer

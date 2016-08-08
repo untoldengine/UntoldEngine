@@ -15,6 +15,7 @@
 #include "U4DCollisionResponse.h"
 #include "U4DDynamicModel.h"
 #include "U4DBVHManager.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -71,6 +72,8 @@ namespace U4DEngine {
 
     void U4DCollisionEngine::detectNarrowPhaseCollision(float dt){
         
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
         for (auto n:collisionPairs) {
             
             U4DDynamicModel *model1=n.model1;
@@ -100,8 +103,9 @@ namespace U4DEngine {
                     
                     
                 }else{
-                    std::cout<<"Contact Manifold were not found"<<std::endl;
-                
+                    
+                    logger->log("Contact Manifold were not found");
+
                 }
                 
             }
