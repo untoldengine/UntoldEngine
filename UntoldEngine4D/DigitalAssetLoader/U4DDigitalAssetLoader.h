@@ -71,6 +71,8 @@ namespace U4DEngine {
         
         void loadUVData(U4DModel *uModel,std::string uStringData);
         
+        void loadPreHullData(U4DModel *uModel,std::string uStringData);
+        
         void loadIndexData(U4DModel *uModel,std::string uStringData);
         
         void loadMaterialIndexData(U4DModel *uModel,std::string uStringData);

@@ -13,6 +13,7 @@
 #include "U4DBoundingAABB.h"
 #include "U4DConvexHullGenerator.h"
 #include "CommonProtocols.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -252,15 +253,19 @@ namespace U4DEngine {
             U4DConvexHullGenerator convexHullGenerator;
             
             //determine the convex hull of the model
-            CONVEXHULL convexHull=convexHullGenerator.buildConvexHull(this->bodyCoordinates.verticesContainer);
+            CONVEXHULL convexHull=convexHullGenerator.buildConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
             
+            U4DLogger *logger=U4DLogger::sharedInstance();
             //if convex hull valid, then set it to the model and enable collision
             
             if (convexHullGenerator.isValid(convexHull)) {
                 
+                logger->log("Convex Hull was properly computed for model %s.",getName().c_str());
+                
+                //set the convex hull for the bounding volume. Note the convex hull is maintained by the U4DBoundingConvex class
                 convexHullBoundingVolume->setConvexHullVertices(convexHull);
                 
-                //decompose the convex hull into vertices. Note this data is also contained in the bounding volume. But I'm adding it here just in case I need it in the future.
+                //decompose the convex hull into vertices. Note this data is also contained in the bounding volume.
                 for(auto n:convexHull.vertex){
                     
                     U4DVector3n vertex=n.vertex;
