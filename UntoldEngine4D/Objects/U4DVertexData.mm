@@ -83,6 +83,16 @@ namespace U4DEngine {
         return convexHullFacesContainer;
     }
     
+    void U4DVertexData::addPreConvexHullVerticesDataToContainer(U4DVector3n& uData){
+        
+        preConvexHullVerticesContainer.push_back(uData);
+    }
+    
+    std::vector<U4DVector3n> U4DVertexData::getPreConvexHullVerticesDataFromContainer(){
+        
+        return preConvexHullVerticesContainer;
+    }
+    
     void U4DVertexData::setModelDimension(U4DVector3n& uData){
         
         modelDimension=uData;

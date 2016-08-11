@@ -117,6 +117,7 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *localMatrix=child->FirstChildElement("local_matrix");
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
                     tinyxml2::XMLElement *dimension=child->FirstChildElement("dimension");
+                    tinyxml2::XMLElement *preHullVertices=child->FirstChildElement("prehullvertices");
                     
                     //Set name
                     uModel->setName(meshName);
@@ -153,6 +154,12 @@ namespace U4DEngine {
                         std::string data=index->GetText();
                         loadIndexData(uModel, data);
                         
+                    }
+                    
+                    if (preHullVertices!=NULL) {
+                        
+                        std::string data=preHullVertices->GetText();
+                        loadPreHullData(uModel, data);
                     }
                     
                     if (dimension!=NULL) {
@@ -608,6 +615,29 @@ namespace U4DEngine {
             
             uModel->bodyCoordinates.addUVDataToContainer(UV);
             i=i+2;
+            
+        }
+        
+    }
+    
+    void U4DDigitalAssetLoader::loadPreHullData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();) {
+            
+            float x=tempVector.at(i);
+            
+            float y=tempVector.at(i+1);
+            
+            float z=tempVector.at(i+2);
+            
+            U4DVector3n uPreHullVertices(x,y,z);
+            
+            uModel->bodyCoordinates.addPreConvexHullVerticesDataToContainer(uPreHullVertices);
+            i=i+3;
             
         }
         
