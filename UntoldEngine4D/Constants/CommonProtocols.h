@@ -158,6 +158,40 @@ namespace U4DEngine {
         
     }COLLISIONMANIFOLDONODE;
     
+    //CONVEX HULL STRUCTURES
+    typedef struct CONVEXHULLVERTEXSTRUCT CONVEXVERTEX;
+    typedef CONVEXVERTEX *CONVEXHULLVERTEX;
+    
+    typedef struct CONVEXHULLEDGESTRUCT CONVEXEDGE;
+    typedef CONVEXEDGE *CONVEXHULLEDGE;
+    
+    typedef struct CONVEXHULLFACESTRUCT CONVEXFACE;
+    typedef CONVEXFACE *CONVEXHULLFACE;
+    
+    struct CONVEXHULLVERTEXSTRUCT{
+        int v[3];
+        int vNum;
+        CONVEXHULLEDGE duplicate;
+        bool onHull;
+        bool processed;
+        CONVEXHULLVERTEX next,prev;
+    };
+    
+    struct CONVEXHULLEDGESTRUCT{
+        CONVEXHULLFACE adjFace[2];
+        CONVEXHULLVERTEX endPts[2];
+        CONVEXHULLFACE newFace;
+        bool shouldDelete;
+        CONVEXHULLEDGE next,prev;
+    };
+    
+    struct CONVEXHULLFACESTRUCT{
+        CONVEXHULLEDGE edge[3];
+        CONVEXHULLVERTEX vertex[3];
+        bool visible;
+        CONVEXHULLFACE next,prev;
+    };
+    
 }
 
 

@@ -138,6 +138,7 @@
 		03D559DF1D53D15700E567D5 /* Meteor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559DD1D53D15700E567D5 /* Meteor.mm */; settings = {ASSET_TAGS = (); }; };
 		03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E01D5630AC00E567D5 /* U4DNumerical.mm */; settings = {ASSET_TAGS = (); }; };
 		03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E41D58248A00E567D5 /* U4DLogger.mm */; settings = {ASSET_TAGS = (); }; };
+		03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -405,6 +406,8 @@
 		03D559E11D5630AC00E567D5 /* U4DNumerical.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DNumerical.h; sourceTree = "<group>"; };
 		03D559E41D58248A00E567D5 /* U4DLogger.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DLogger.mm; path = Logger/U4DLogger.mm; sourceTree = "<group>"; };
 		03D559E51D58248A00E567D5 /* U4DLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DLogger.h; path = Logger/U4DLogger.h; sourceTree = "<group>"; };
+		03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DConvexHullAlgorithm.mm; path = ConvexHullAlgorithm/U4DConvexHullAlgorithm.mm; sourceTree = "<group>"; };
+		03D55A3C1D5D86A900E567D5 /* U4DConvexHullAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DConvexHullAlgorithm.h; path = ConvexHullAlgorithm/U4DConvexHullAlgorithm.h; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -1060,6 +1063,15 @@
 			name = Logger;
 			sourceTree = "<group>";
 		};
+		03D55A3A1D5D869100E567D5 /* ConvexHull */ = {
+			isa = PBXGroup;
+			children = (
+				03D55A3C1D5D86A900E567D5 /* U4DConvexHullAlgorithm.h */,
+				03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */,
+			);
+			name = ConvexHull;
+			sourceTree = "<group>";
+		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
@@ -1164,6 +1176,7 @@
 		03E6EDB21943D816007AD131 /* CollisionEngine */ = {
 			isa = PBXGroup;
 			children = (
+				03D55A3A1D5D869100E567D5 /* ConvexHull */,
 				03EF780A1CD32FBF00BA0C87 /* CollisionResponse */,
 				0314B0B41C6FC04F00EB8C34 /* BoundaryVolumeHierarchy */,
 				03002C831B977F7600665CC9 /* ManifoldGeneration */,
@@ -1555,6 +1568,7 @@
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
+				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03E6ED841943D78C007AD131 /* U4DSprite.mm in Sources */,
 				03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */,
 			);
