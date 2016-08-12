@@ -31,10 +31,27 @@
 #include "Mountain.h"
 #include "Planet.h"
 #include "Meteor.h"
+#include "U4DConvexHullAlgorithm.h"
 
 using namespace U4DEngine;
 
 void Earth::init(){
+    
+    
+    U4DVector3n n1(0,0,0);
+    U4DVector3n n2(0,10,0);
+    U4DVector3n n3(10,10,0);
+    U4DVector3n n4(10,0,0);
+    U4DVector3n n5(0,0,10);
+    U4DVector3n n6(0,10,10);
+    U4DVector3n n7(10,10,10);
+    U4DVector3n n8(10,0,10);
+
+    std::vector<U4DVector3n> vec{n1,n2,n3,n4,n5,n6,n7,n8};
+    
+    U4DConvexHullAlgorithm convexHull;
+    
+    convexHull.computeConvexHull(vec);
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     camera->translateBy(0.0, 3.0, 10.0);

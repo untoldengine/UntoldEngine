@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include "CommonProtocols.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
     
@@ -31,7 +32,9 @@ namespace U4DEngine {
         CONVEXHULLEDGE makeNullEdge();
         CONVEXHULLFACE makeNullFace();
         
-        void doubleTriangle();
+        void computeConvexHull(std::vector<U4DVector3n> &uVertices);
+        void readVertices(std::vector<U4DVector3n> &uVertices);
+        bool doubleTriangle();
         bool collinear(CONVEXHULLVERTEX a, CONVEXHULLVERTEX b, CONVEXHULLVERTEX c);
         CONVEXHULLFACE makeFace(CONVEXHULLVERTEX v0, CONVEXHULLVERTEX v1, CONVEXHULLVERTEX v2, CONVEXHULLFACE fold);
         void constructHull();
@@ -48,11 +51,13 @@ namespace U4DEngine {
         void deleteFace(CONVEXHULLFACE p);
         void deleteVertex(CONVEXHULLVERTEX p);
         
-        void checks();
-        void consistency();
-        void convexity();
-        void checkEuler( int v, int e, int f);
-        void checkEndPts();
+        bool checks();
+        bool consistency();
+        bool convexity();
+        bool checkEuler();
+        bool checkEndPts();
+        
+        void printVertices();
     };
 }
 
