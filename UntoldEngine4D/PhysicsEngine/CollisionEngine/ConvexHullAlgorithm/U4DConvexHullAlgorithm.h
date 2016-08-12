@@ -47,6 +47,12 @@ namespace U4DEngine {
         void deleteEdge(CONVEXHULLEDGE p);
         void deleteFace(CONVEXHULLFACE p);
         void deleteVertex(CONVEXHULLVERTEX p);
+        
+        void checks();
+        void consistency();
+        void convexity();
+        void checkEuler( int v, int e, int f);
+        void checkEndPts();
     };
 }
 

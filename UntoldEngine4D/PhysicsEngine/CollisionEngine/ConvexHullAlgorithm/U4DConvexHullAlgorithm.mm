@@ -234,7 +234,6 @@ namespace U4DEngine {
     int U4DConvexHullAlgorithm::volumeSign(CONVEXHULLFACE f, CONVEXHULLVERTEX p){
         
         double  vol;
-        int     voli;
         double  ax, ay, az, bx, by, bz, cx, cy, cz;
         
         ax = f->vertex[0]->v[0] - p->v[0];
@@ -538,6 +537,182 @@ namespace U4DEngine {
             
             free((char*) p);
             p=NULL;
+        }
+        
+    }
+    
+    void U4DConvexHullAlgorithm::checks(){
+        
+        CONVEXHULLVERTEX  v;
+        CONVEXHULLEDGE    e;
+        CONVEXHULLFACE    f;
+        
+        int 	   V = 0, E = 0 , F = 0;
+        
+        consistency();
+        convexity();
+        if ( v == vertexHead )
+            do {
+                if (v->processed) V++;
+                v = v->next;
+            } while ( v != vertexHead);
+        if ( e == edgeHead)
+            do {
+                E++;
+                e = e->next;
+            } while ( e != edgeHead);
+        if ( f == faceHead)
+            do {
+                F++;
+                f  = f ->next;
+            } while ( f  != faceHead);
+        checkEuler( V, E, F );
+        checkEndPts();
+    }
+    
+    void U4DConvexHullAlgorithm::consistency(){
+        
+        CONVEXHULLEDGE e;
+        int i, j;
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        e = edgeHead;
+        
+        do {
+            /* find index of endpoint[0] in adjacent face[0] */
+            for ( i = 0; e->adjFace[0]->vertex[i] != e->endPts[0]; ++i )
+                ;
+            
+            /* find index of endpoint[0] in adjacent face[1] */
+            for ( j = 0; e->adjFace[1]->vertex[j] != e->endPts[0]; ++j )
+                ;
+            
+            /* check if the endpoints occur in opposite order */
+            if ( !( e->adjFace[0]->vertex[ (i+1) % 3 ] ==
+                   e->adjFace[1]->vertex[ (j+2) % 3 ] ||
+                   e->adjFace[0]->vertex[ (i+2) % 3 ] ==
+                   e->adjFace[1]->vertex[ (j+1) % 3 ] )  )
+                break;
+            e = e->next;
+            
+        } while ( e != edgeHead );
+        
+        if ( e != edgeHead ){
+            
+            logger->log("Edges are note consistent");
+        }else{
+
+            logger->log("Edges are consistent");
+            
+        }
+    }
+
+    void U4DConvexHullAlgorithm::convexity(){
+        
+        CONVEXHULLFACE    f;
+        CONVEXHULLVERTEX  v;
+        int               vol;
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        f = faceHead;
+        
+        do {
+            v = vertexHead;
+            do {
+                if ( v->processed ) {
+                    vol = volumeSign( f, v );
+                    if ( vol < 0 )
+                        break;
+                }
+                v = v->next;
+            } while ( v != vertexHead );
+            
+            f = f->next;
+            
+        } while ( f != faceHead);
+        
+        if ( f != faceHead){
+            
+            logger->log("Convexity failed");
+
+        }else{
+
+            logger->log("Convexity passed");
+
+        }
+    }
+    
+    void U4DConvexHullAlgorithm::checkEuler( int v, int e, int f){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        logger->log("Vertex, Edges, Faces = %d %d %d:", v, e, f);
+        
+        if ( (v - e + f) != 2 ){
+            logger->log("V-E+F != 2\n");
+        
+        }else{
+            logger->log("V-E+F = 2\t");
+        }
+        
+        if ( f != (2 * v - 4) ){
+            
+            logger->log("F=%d != 2V-4=%d; V=%d\n",
+                        f, 2*v-4, v);
+            
+        }else{
+            logger->log("F = 2V-4\t");
+            
+        }
+        
+        if ( (2 * e) != (3 * f)){
+            logger->log("Checks: 2E=%d != 3F=%d; E=%d, F=%d\n",
+                        2*e, 3*f, e, f);
+            
+        }else{
+            
+            logger->log("2E = 3F\n");
+            
+        }
+        
+    }
+    
+    void U4DConvexHullAlgorithm::checkEndPts(){
+        
+        int i;
+        CONVEXHULLFACE fstart;
+        CONVEXHULLEDGE e;
+        CONVEXHULLVERTEX v;
+        bool error = FALSE;
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        fstart = faceHead;
+        if (faceHead) do {
+            for( i=0; i<3; ++i ) {
+                v = faceHead->vertex[i];
+                e = faceHead->edge[i];
+                if ( v != e->endPts[0] && v != e->endPts[1] ) {
+                    error = true;
+                    
+                    logger->log("CheckEndpts: Error!\n");
+                    logger->log("  addr: %8x;", faceHead);
+                    logger->log("  edges:");
+                    logger->log("(%3d,%3d)",
+                                e->endPts[0]->vNum,
+                                e->endPts[1]->vNum);
+                }
+            }
+            faceHead= faceHead->next;
+        } while ( faceHead != fstart );
+        
+        if ( error ){
+            logger->log("ERROR found and reported above.\n");
+        
+        }else{
+            logger->log("All endpts of all edges of all faces check.\n");
         }
         
     }
