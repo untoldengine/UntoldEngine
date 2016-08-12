@@ -169,7 +169,7 @@ namespace U4DEngine {
     typedef CONVEXFACE *CONVEXHULLFACE;
     
     struct CONVEXHULLVERTEXSTRUCT{
-        int v[3];
+        float v[3];
         int vNum;
         CONVEXHULLEDGE duplicate;
         bool onHull;

@@ -8,6 +8,7 @@
 
 #include "U4DConvexHullAlgorithm.h"
 #include <stdlib.h>
+#include "U4DNumerical.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {
@@ -99,9 +100,9 @@ namespace U4DEngine {
     
     void U4DConvexHullAlgorithm::doubleTriangle(){
         
-        CONVEXHULLVERTEX v0,v1,v2,v3,t;
+        CONVEXHULLVERTEX v0,v1,v2,v3;
         CONVEXHULLFACE f0,f1=NULL;
-        CONVEXHULLEDGE e0,e1,e2,s;
+        CONVEXHULLEDGE e0,e1,e2;
         
         int vol=0;
         
@@ -114,7 +115,7 @@ namespace U4DEngine {
             
             if ((v0=v0->next)==vertexHead) {
                 logger->log("All points are collinear");
-                exit(0);
+                break;
             }
         }
         
@@ -149,7 +150,7 @@ namespace U4DEngine {
             if ((v3=v3->next)==v0) {
                 
                 logger->log("All points are coplanar");
-                exit(0);
+                break;
                 vol=volumeSign(f0,v3);
             }
         }
@@ -160,13 +161,15 @@ namespace U4DEngine {
     
     bool U4DConvexHullAlgorithm::collinear(CONVEXHULLVERTEX a, CONVEXHULLVERTEX b, CONVEXHULLVERTEX c){
         
-        return
-        ( c->v[2] - a->v[2] ) * ( b->v[1] - a->v[1] ) -
-        ( b->v[2] - a->v[2] ) * ( c->v[1] - a->v[1] ) == 0
-        && ( b->v[2] - a->v[2] ) * ( c->v[0] - a->v[0] ) -
-        ( b->v[0] - a->v[0] ) * ( c->v[2] - a->v[2] ) == 0
-        && ( b->v[0] - a->v[0] ) * ( c->v[1] - a->v[1] ) -
-        ( b->v[1] - a->v[1] ) * ( c->v[0] - a->v[0] ) == 0  ;
+        U4DNumerical comparison;
+        
+        bool isCollinear=false;
+        
+        isCollinear=(comparison.areEqual((c->v[2] - a->v[2]) * (b->v[1] - a->v[1]) -
+                                        (b->v[2] - a->v[2]) * (c->v[1] - a->v[1]), 0.0, U4DEngine::zeroEpsilon) && comparison.areEqual((b->v[2] - a->v[2] ) * (c->v[0] - a->v[0]) -(b->v[0] - a->v[0]) * (c->v[2] - a->v[2]), 0.0, U4DEngine::zeroEpsilon)&& comparison.areEqual((c->v[1] - a->v[1])-(b->v[1] - a->v[1]) * (c->v[0] - a->v[0] ), 0.0, U4DEngine::zeroEpsilon));
+        
+        return isCollinear;
+        
     }
     
     CONVEXHULLFACE U4DConvexHullAlgorithm::makeFace(CONVEXHULLVERTEX v0, CONVEXHULLVERTEX v1, CONVEXHULLVERTEX v2, CONVEXHULLFACE fold){
@@ -215,7 +218,7 @@ namespace U4DEngine {
     void U4DConvexHullAlgorithm::constructHull(){
         
         CONVEXHULLVERTEX v,vnext;
-        int vol;
+        int vol=0;
         
         v=vertexHead;
         
@@ -345,7 +348,7 @@ namespace U4DEngine {
     {
         CONVEXHULLFACE  fv;   /* The visible face adjacent to e */
         int    i;    /* Index of e->endpoint[0] in fv. */
-        CONVEXHULLEDGE  s;	/* Temporary, for swapping */
+        CONVEXHULLEDGE  s=nullptr;	/* Temporary, for swapping */
         
         if  ( e->adjFace[0]->visible )
             fv = e->adjFace[0];
@@ -543,9 +546,9 @@ namespace U4DEngine {
     
     void U4DConvexHullAlgorithm::checks(){
         
-        CONVEXHULLVERTEX  v;
-        CONVEXHULLEDGE    e;
-        CONVEXHULLFACE    f;
+        CONVEXHULLVERTEX  v=nullptr;
+        CONVEXHULLEDGE    e=nullptr;
+        CONVEXHULLFACE    f=nullptr;
         
         int 	   V = 0, E = 0 , F = 0;
         
@@ -575,6 +578,7 @@ namespace U4DEngine {
         CONVEXHULLEDGE e;
         int i, j;
         
+        U4DNumerical comparison;
         U4DLogger *logger=U4DLogger::sharedInstance();
         
         e = edgeHead;
