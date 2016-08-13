@@ -53,11 +53,10 @@ namespace U4DEngine {
         void deleteFace(CONVEXHULLFACE p);
         void deleteVertex(CONVEXHULLVERTEX p);
         
-        bool checks();
-        bool consistency();
-        bool convexity();
-        bool checkEuler();
-        bool checkEndPts();
+        bool checkIfConvexHullIsValid();
+        bool checkIfConsistencyPassed();
+        bool checkIfConvexityPassed();
+        bool checkIfEulerFormulaPassed();
         
         void loadComputedCHVertices(CONVEXHULL &uConvexHull);
         void loadComputedCHEdges(CONVEXHULL &uConvexHull);

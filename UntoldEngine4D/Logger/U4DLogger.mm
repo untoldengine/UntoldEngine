@@ -48,7 +48,6 @@ namespace U4DEngine {
             va_start (args, uLog);
             vsprintf (buffer,uLog, args);
             
-            std::cout<<""<<std::endl;
             std::cout<<buffer<<std::endl;
             
             va_end (args);

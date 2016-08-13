@@ -37,7 +37,7 @@ namespace U4DEngine {
             if(constructHull()){
                 
                 //Do check on final data
-                if(checks()){
+                if(checkIfConvexHullIsValid()){
                     
                     convexHull.isValid=true;
                     
@@ -273,7 +273,7 @@ namespace U4DEngine {
                 addOne(v);
                 cleanUp(&vnext);
                 //perform test on each iteration
-                if(!checks()){
+                if(!checkIfConvexHullIsValid()){
                     return false;
                 }
             }
@@ -594,12 +594,12 @@ namespace U4DEngine {
         
     }
     
-    bool U4DConvexHullAlgorithm::checks(){
+    bool U4DConvexHullAlgorithm::checkIfConvexHullIsValid(){
         
-        return (consistency()&&convexity()&&checkEuler());
+        return (checkIfConsistencyPassed()&&checkIfConvexityPassed()&&checkIfEulerFormulaPassed());
     }
     
-    bool U4DConvexHullAlgorithm::consistency(){
+    bool U4DConvexHullAlgorithm::checkIfConsistencyPassed(){
         
         CONVEXHULLEDGE e;
         int i, j;
@@ -637,7 +637,7 @@ namespace U4DEngine {
         return true;
     }
 
-    bool U4DConvexHullAlgorithm::convexity(){
+    bool U4DConvexHullAlgorithm::checkIfConvexityPassed(){
         
         CONVEXHULLFACE    f;
         CONVEXHULLVERTEX  v;
@@ -672,7 +672,7 @@ namespace U4DEngine {
         return true;
     }
     
-    bool U4DConvexHullAlgorithm::checkEuler(){
+    bool U4DConvexHullAlgorithm::checkIfEulerFormulaPassed(){
         
         U4DLogger *logger=U4DLogger::sharedInstance();
         CONVEXHULLVERTEX  v=vertexHead;
@@ -723,45 +723,6 @@ namespace U4DEngine {
         
         return true;
     }
-    
-    bool U4DConvexHullAlgorithm::checkEndPts(){
-        
-        int i;
-        CONVEXHULLFACE fstart;
-        CONVEXHULLEDGE e;
-        CONVEXHULLVERTEX v;
-        bool error = false;
-        
-        U4DLogger *logger=U4DLogger::sharedInstance();
-        
-        fstart = faceHead;
-        if (faceHead) do {
-            for( i=0; i<3; ++i ) {
-                v = faceHead->vertex[i];
-                e = faceHead->edge[i];
-                if ( v != e->endPts[0] && v != e->endPts[1] ) {
-                    error = true;
-                    
-                    logger->log("CheckEndpts: Error!\n");
-                    logger->log("  addr: %8x;", faceHead);
-                    logger->log("  edges:");
-                    logger->log("(%3d,%3d)",
-                                e->endPts[0]->vNum,
-                                e->endPts[1]->vNum);
-                }
-            }
-            faceHead= faceHead->next;
-        } while ( faceHead != fstart );
-        
-        if ( error ){
-            logger->log("ERROR found and reported above.\n");
-            return false;
-        }
-        
-        return true;
-        
-    }
-    
     
     void U4DConvexHullAlgorithm::loadComputedCHVertices(CONVEXHULL &uConvexHull){
         
