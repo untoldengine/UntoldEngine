@@ -25,6 +25,8 @@ namespace U4DEngine {
     
     void U4DConvexHullAlgorithm::computeConvexHull(std::vector<U4DVector3n> &uVertices){
         
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
         readVertices(uVertices);
         
         if(doubleTriangle()){
@@ -32,11 +34,14 @@ namespace U4DEngine {
             constructHull();
             
             if(checks()){
-                
+                logger->log("Convex Hull is valid");
                 printVertices();
                 
+            }else{
+                logger->log("Computed Convex Hull is not valid");
             }
         }
+        
         
     }
     
@@ -134,61 +139,54 @@ namespace U4DEngine {
     
     bool U4DConvexHullAlgorithm::doubleTriangle(){
         
-        CONVEXHULLVERTEX v0,v1,v2,v3;
-        CONVEXHULLFACE f0,f1=NULL;
-        CONVEXHULLEDGE e0,e1,e2;
+        CONVEXHULLVERTEX  v0, v1, v2, v3;
+        CONVEXHULLFACE    f0, f1 = NULL;
         
-        int vol=0;
+        int      vol=0;
         
         U4DLogger *logger=U4DLogger::sharedInstance();
         
-        //Find 3 noncollinear points
-        v0=vertexHead;
-        
-        while (collinear(v0, v0->next, v0->next->next)) {
-            
-            if ((v0=v0->next)==vertexHead) {
-                logger->log("All points are collinear");
+        /* Find 3 noncollinear points. */
+        v0 = vertexHead;
+        while (collinear( v0, v0->next, v0->next->next)){
+            if ((v0 = v0->next) == vertexHead){
+                logger->log("DoubleTriangle:  All points are Collinear!\n");
                 return false;
             }
         }
+        v1 = v0->next;
+        v2 = v1->next;
         
-        v1=v0->next;
-        v2=v1->next;
+        /* Mark the vertices as processed. */
+        v0->processed = true;
+        v1->processed = true;
+        v2->processed = true;
         
-        //Mark the vertices as processed
-        v0->processed=true;
-        v1->processed=true;
-        v2->processed=true;
+        /* Create the two "twin" faces. */
+        f0 = makeFace( v0, v1, v2, f1 );
+        f1 = makeFace( v2, v1, v0, f0 );
         
-        //create two twin faces
-        f0=makeFace(v0,v1,v2,f1);
-        f1=makeFace(v2,v1,v0,f0);
+        /* Link adjacent face fields. */
+        f0->edge[0]->adjFace[1] = f1;
+        f0->edge[1]->adjFace[1] = f1;
+        f0->edge[2]->adjFace[1] = f1;
+        f1->edge[0]->adjFace[1] = f0;
+        f1->edge[1]->adjFace[1] = f0;
+        f1->edge[2]->adjFace[1] = f0;
         
-        //Link adjacent face fields
-        f0->edge[0]->adjFace[1]=f1;
-        f0->edge[1]->adjFace[1]=f1;
-        f0->edge[2]->adjFace[1]=f1;
-
-        f1->edge[0]->adjFace[1]=f0;
-        f1->edge[1]->adjFace[1]=f0;
-        f1->edge[2]->adjFace[1]=f0;
-        
-        //Find a fourth noncoplanar point to form tetrahedron
-        v3=v2->next;
-        vol=volumeSign(f0,v3);
-        
-        while (!vol) {
-            
-            if ((v3=v3->next)==v0) {
-                logger->log("All points are coplanar");
+        /* Find a fourth, noncoplanar point to form tetrahedron. */
+        v3 = v2->next;
+        vol = volumeSign( f0, v3 );
+        while ( !vol )   {
+            if ( ( v3 = v3->next ) == v0 ){
+                logger->log("DoubleTriangle:  All points are coplanar!\n");
                 return false;
             }
-            vol=volumeSign(f0,v3);
+            vol = volumeSign( f0, v3 );
         }
         
-        //Insure that v3 will be the first added
-        vertexHead=v3;
+        /* Insure that v3 will be the first added. */
+        vertexHead = v3;
         
         return true;
     }
@@ -252,8 +250,7 @@ namespace U4DEngine {
     void U4DConvexHullAlgorithm::constructHull(){
         
         CONVEXHULLVERTEX v,vnext;
-        int vol=0;
-        
+       
         v=vertexHead;
         
         do{
@@ -262,7 +259,7 @@ namespace U4DEngine {
                 v->processed=true;
                 addOne(v);
                 cleanUp(&vnext);
-                checks();
+                
             }
             v=vnext;
         }while (v!=vertexHead);
@@ -618,10 +615,6 @@ namespace U4DEngine {
             
             logger->log("Edges are not consistent");
             return false;
-        }else{
-
-            logger->log("Edges are consistent");
-            
         }
         
         return true;
@@ -656,10 +649,6 @@ namespace U4DEngine {
             
             logger->log("Convexity failed");
             return false;
-
-        }else{
-
-            logger->log("Convexity passed");
 
         }
         
@@ -697,8 +686,6 @@ namespace U4DEngine {
         if ( (V - E + F) != 2 ){
             logger->log("V-E+F != 2\n");
             return false;
-        }else{
-            logger->log("V-E+F = 2\t");
         }
         
         if ( F != (2 * V - 4) ){
@@ -708,9 +695,6 @@ namespace U4DEngine {
             
             return false;
             
-        }else{
-            logger->log("F = 2V-4\t");
-            
         }
         
         if ( (2 * E) != (3 * F)){
@@ -718,10 +702,6 @@ namespace U4DEngine {
                         2*E, 3*F, E, F);
             
             return false;
-        }else{
-            
-            logger->log("2E = 3F\n");
-            
         }
         
         return true;
@@ -759,8 +739,6 @@ namespace U4DEngine {
         if ( error ){
             logger->log("ERROR found and reported above.\n");
             return false;
-        }else{
-            logger->log("All endpts of all edges of all faces check.\n");
         }
         
         return true;
@@ -773,7 +751,7 @@ namespace U4DEngine {
         U4DLogger *logger=U4DLogger::sharedInstance();
         
         temp = vertexHead;
-        fprintf (stderr, "Vertex List\n");
+        
         if (vertexHead) do {
             
             logger->log("vertices %f, %f, %f",vertexHead->v[0],
