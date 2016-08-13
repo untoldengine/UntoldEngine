@@ -44,20 +44,12 @@ namespace U4DEngine {
             return *this;
         };
 
-    
-        POLYTOPEFACES& closestFaceOnPolytopeToPoint(U4DPoint3n& uPoint);
         
         std::vector<POLYTOPEFACES>& getPolytopeFaces();
                 
         std::vector<POLYTOPEEDGES> getPolytopeSegments();
         
         std::vector<POLYTOPEVERTEX> getPolytopeVertices();
-        
-        void addPolytopeData(U4DTriangle& uTriangle);
-        
-        void removeAllFaces();
-        
-        void cleanUp();
         
         /**
          *  Debug-show the vector on the output log

@@ -119,24 +119,18 @@ namespace U4DEngine {
     typedef struct{
         
         U4DVector3n vertex;
-        bool isDuplicate;
         
     }POLYTOPEVERTEX;
 
     typedef struct{
         
         U4DSegment segment;
-        bool isDuplicate;
         
     }POLYTOPEEDGES;
     
     typedef struct{
         
         U4DTriangle triangle;
-        std::vector<POLYTOPEEDGES> edges;
-        std::vector<POLYTOPEVERTEX> vertices;
-        bool isSeenByPoint;
-        int index;
         
     }POLYTOPEFACES;
     

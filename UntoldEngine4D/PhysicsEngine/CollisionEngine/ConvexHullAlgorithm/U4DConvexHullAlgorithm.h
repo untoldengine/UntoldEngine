@@ -32,7 +32,7 @@ namespace U4DEngine {
         CONVEXHULLEDGE makeNullEdge();
         CONVEXHULLFACE makeNullFace();
         
-        void computeConvexHull(std::vector<U4DVector3n> &uVertices);
+        CONVEXHULL computeConvexHull(std::vector<U4DVector3n> &uVertices);
         void readVertices(std::vector<U4DVector3n> &uVertices);
         bool doubleTriangle();
         bool collinear(CONVEXHULLVERTEX a, CONVEXHULLVERTEX b, CONVEXHULLVERTEX c);
@@ -57,7 +57,9 @@ namespace U4DEngine {
         bool checkEuler();
         bool checkEndPts();
         
-        void printVertices();
+        void loadComputedCHVertices(CONVEXHULL &uConvexHull);
+        void loadComputedCHEdges(CONVEXHULL &uConvexHull);
+        void loadComputedCHFaces(CONVEXHULL &uConvexHull);
     };
 }
 

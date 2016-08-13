@@ -250,21 +250,17 @@ namespace U4DEngine {
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();
             
-            
+            //generate the convex hull for the model
             U4DConvexHullAlgorithm convexHullAlgorithm;
             
-            convexHullAlgorithm.computeConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
-            
-            //generate the convex hull for the model
-            U4DConvexHullGenerator convexHullGenerator;
-            
             //determine the convex hull of the model
-            CONVEXHULL convexHull=convexHullGenerator.buildConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
+            CONVEXHULL convexHull=convexHullAlgorithm.computeConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
             
             U4DLogger *logger=U4DLogger::sharedInstance();
+            
             //if convex hull valid, then set it to the model and enable collision
             
-            if (convexHullGenerator.isValid(convexHull)) {
+            if (convexHull.isValid) {
                 
                 logger->log("Convex Hull was properly computed for model %s.",getName().c_str());
                 

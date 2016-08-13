@@ -23,9 +23,12 @@ namespace U4DEngine {
         
     }
     
-    void U4DConvexHullAlgorithm::computeConvexHull(std::vector<U4DVector3n> &uVertices){
+    CONVEXHULL U4DConvexHullAlgorithm::computeConvexHull(std::vector<U4DVector3n> &uVertices){
         
         U4DLogger *logger=U4DLogger::sharedInstance();
+        CONVEXHULL convexHull;
+        
+        convexHull.isValid=false;
         
         readVertices(uVertices);
         
@@ -34,15 +37,22 @@ namespace U4DEngine {
             constructHull();
             
             if(checks()){
-                logger->log("Convex Hull is valid");
-                printVertices();
+                
+                convexHull.isValid=true;
+               
+                //load vertices
+                loadComputedCHVertices(convexHull);
+                //load edges
+                loadComputedCHEdges(convexHull);
+                //load faces
+                loadComputedCHFaces(convexHull);
                 
             }else{
                 logger->log("Computed Convex Hull is not valid");
             }
         }
         
-        
+        return convexHull;
     }
     
     void U4DConvexHullAlgorithm::readVertices(std::vector<U4DVector3n> &uVertices){
@@ -664,6 +674,7 @@ namespace U4DEngine {
         
         int V = 0, E = 0 , F = 0;
         
+        //count all vertices, edges and faces
         if ( v == vertexHead )
             do {
                 if (v->processed) V++;
@@ -681,8 +692,7 @@ namespace U4DEngine {
             } while ( f  != faceHead);
         
         
-        logger->log("Vertex, Edges, Faces = %d %d %d:", V, E, F);
-        
+        //check euler's equation of polygon
         if ( (V - E + F) != 2 ){
             logger->log("V-E+F != 2\n");
             return false;
@@ -745,20 +755,74 @@ namespace U4DEngine {
         
     }
     
-    void U4DConvexHullAlgorithm::printVertices()
-    {
-        CONVEXHULLVERTEX   temp;
-        U4DLogger *logger=U4DLogger::sharedInstance();
+    
+    void U4DConvexHullAlgorithm::loadComputedCHVertices(CONVEXHULL &uConvexHull){
+        
+        CONVEXHULLVERTEX temp;
         
         temp = vertexHead;
         
         if (vertexHead) do {
             
-            logger->log("vertices %f, %f, %f",vertexHead->v[0],
-                        vertexHead->v[1], vertexHead->v[2]);
+            U4DVector3n computedVertex(vertexHead->v[0],vertexHead->v[1], vertexHead->v[2]);
+            
+            POLYTOPEVERTEX polytopeVertex;
+            polytopeVertex.vertex=computedVertex;
+            
+            uConvexHull.vertex.push_back(polytopeVertex);
             
             vertexHead = vertexHead->next;
+            
         } while ( vertexHead != temp );
+        
+    }
+    
+    void U4DConvexHullAlgorithm::loadComputedCHEdges(CONVEXHULL &uConvexHull){
+        
+        CONVEXHULLEDGE temp;
+        
+        temp = edgeHead;
+        
+        if (edgeHead) do {
+            
+            U4DPoint3n a(edgeHead->endPts[0]->v[0],edgeHead->endPts[0]->v[1],edgeHead->endPts[0]->v[2]);
+            U4DPoint3n b(edgeHead->endPts[1]->v[0],edgeHead->endPts[1]->v[1],edgeHead->endPts[1]->v[2]);
+            
+            U4DSegment segment(a,b);
+            
+            POLYTOPEEDGES polytopeEdge;
+            polytopeEdge.segment=segment;
+            
+            uConvexHull.edges.push_back(polytopeEdge);
+            
+            edgeHead = edgeHead->next;
+            
+        } while (edgeHead != temp );
+        
+    }
+    
+    void U4DConvexHullAlgorithm::loadComputedCHFaces(CONVEXHULL &uConvexHull){
+        
+        CONVEXHULLFACE  temp;
+        
+        temp = faceHead;
+        
+        if (faceHead) do {
+            
+            U4DPoint3n a(faceHead->vertex[0]->v[0],faceHead->vertex[0]->v[1],faceHead->vertex[0]->v[2]);
+            U4DPoint3n b(faceHead->vertex[1]->v[0],faceHead->vertex[1]->v[1],faceHead->vertex[1]->v[2]);
+            U4DPoint3n c(faceHead->vertex[2]->v[0],faceHead->vertex[2]->v[1],faceHead->vertex[2]->v[2]);
+            
+            U4DTriangle triangle(a,b,c);
+            
+            POLYTOPEFACES polytopeFace;
+            polytopeFace.triangle=triangle;
+            
+            uConvexHull.faces.push_back(polytopeFace);
+            
+            faceHead= faceHead->next;
+            
+        } while ( faceHead != temp );
         
     }
     
