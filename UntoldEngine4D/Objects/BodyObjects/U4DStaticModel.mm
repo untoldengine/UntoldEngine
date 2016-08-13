@@ -11,7 +11,6 @@
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
-#include "U4DConvexHullGenerator.h"
 #include "U4DConvexHullAlgorithm.h"
 #include "CommonProtocols.h"
 #include "U4DLogger.h"
@@ -253,10 +252,12 @@ namespace U4DEngine {
             //generate the convex hull for the model
             U4DConvexHullAlgorithm convexHullAlgorithm;
             
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("Computing Convex Hull for model %s ...",getName().c_str());
+            
             //determine the convex hull of the model
             CONVEXHULL convexHull=convexHullAlgorithm.computeConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
-            
-            U4DLogger *logger=U4DLogger::sharedInstance();
             
             //if convex hull valid, then set it to the model and enable collision
             
@@ -317,6 +318,10 @@ namespace U4DEngine {
                 
                 //enable collision
                 collisionEnabled=true;
+                
+            }else{
+                logger->log("Computed Convex Hull for model %s is not valid",getName().c_str());
+                logger->log("Please visit www.untoldengine.com for a review on Model Topology to produce a valid Convex Hull");
                 
             }
         

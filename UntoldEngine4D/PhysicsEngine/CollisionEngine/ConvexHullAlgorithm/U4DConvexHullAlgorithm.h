@@ -4,9 +4,11 @@
 //
 //  Created by Harold Serrano on 8/11/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
-//  Algorithm implemented from "Computational Geometry in C" (Second Edition)
-//  Convex Hull Algorithm created by Joseph O'Rourke.
-//  Algorithm has been minimally modified to work with the Untold Engine by Harold Serrano
+//
+//  This is a C++ implementation of Joseph O'Rourke's classic Incremental Convex Hull
+//  algorithm mentioned in his book "Computation Geometry" 2nd edition.
+//  In contrast to his original implementation this implementation works with floating point numbers.
+//  The algorithm has been minimally modified to work with the Untold Engine by Harold Serrano
 
 #ifndef U4DConvexHullAlgorithm_hpp
 #define U4DConvexHullAlgorithm_hpp
@@ -37,7 +39,7 @@ namespace U4DEngine {
         bool doubleTriangle();
         bool collinear(CONVEXHULLVERTEX a, CONVEXHULLVERTEX b, CONVEXHULLVERTEX c);
         CONVEXHULLFACE makeFace(CONVEXHULLVERTEX v0, CONVEXHULLVERTEX v1, CONVEXHULLVERTEX v2, CONVEXHULLFACE fold);
-        void constructHull();
+        bool constructHull();
         bool addOne(CONVEXHULLVERTEX p);
         int volumeSign(CONVEXHULLFACE f, CONVEXHULLVERTEX p);
         CONVEXHULLFACE makeConeFace(CONVEXHULLEDGE e, CONVEXHULLVERTEX p);
