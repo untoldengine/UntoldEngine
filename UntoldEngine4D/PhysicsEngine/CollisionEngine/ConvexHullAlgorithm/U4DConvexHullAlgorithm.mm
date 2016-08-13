@@ -31,12 +31,11 @@ namespace U4DEngine {
             
             constructHull();
             
-        }
-        
-        if(checks()){
-           
-            printVertices();
-            
+            if(checks()){
+                
+                printVertices();
+                
+            }
         }
         
     }
@@ -176,14 +175,12 @@ namespace U4DEngine {
         f1->edge[2]->adjFace[1]=f0;
         
         //Find a fourth noncoplanar point to form tetrahedron
-        
         v3=v2->next;
         vol=volumeSign(f0,v3);
         
         while (!vol) {
             
             if ((v3=v3->next)==v0) {
-                
                 logger->log("All points are coplanar");
                 return false;
             }
@@ -265,6 +262,7 @@ namespace U4DEngine {
                 v->processed=true;
                 addOne(v);
                 cleanUp(&vnext);
+                checks();
             }
             v=vnext;
         }while (v!=vertexHead);
@@ -325,13 +323,14 @@ namespace U4DEngine {
         e = edgeHead;
         do {
             temp = e->next;
-            if ( e->adjFace[0]->visible && e->adjFace[1]->visible )
+            if ( e->adjFace[0]->visible && e->adjFace[1]->visible ){
             /* e interior: mark for deletion. */
                 e->shouldDelete = true;
-            else if ( e->adjFace[0]->visible || e->adjFace[1]->visible )
+            }else if ( e->adjFace[0]->visible || e->adjFace[1]->visible ){
         
             /* e border: make a new face. */
                 e->newFace = makeConeFace( e, p );
+            }
             e = temp;
     
         } while ( e != edgeHead );
@@ -617,7 +616,7 @@ namespace U4DEngine {
         
         if ( e != edgeHead ){
             
-            logger->log("Edges are note consistent");
+            logger->log("Edges are not consistent");
             return false;
         }else{
 
