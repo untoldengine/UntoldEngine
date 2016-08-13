@@ -81,15 +81,19 @@ void Earth::init(){
     
     camera->viewInDirection(origin);
 
+    U4DLights *light=U4DLights::sharedInstance();
+    light->translateTo(5.0,5.0,5.0);
+    light->viewInDirection(origin);
+    
     addChild(floor);
-    addChild(rocket);
-    addChild(mountain);
-    addChild(mountain2);
-    addChild(mountain3);
-    addChild(mountain4);
-    addChild(planet);
-    addChild(meteor1);
-    addChild(meteor2);
+//    addChild(rocket);
+//    addChild(mountain);
+//    addChild(mountain2);
+//    addChild(mountain3);
+//    addChild(mountain4);
+//    addChild(planet);
+//    addChild(meteor1);
+//    addChild(meteor2);
     addChild(meteor3);
 
     
@@ -102,7 +106,7 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    //camera->followModel(rocket, 0.0, 2.0, 10.0);
+    camera->followModel(rocket, 0.0, 2.0, 10.0);
     
 
 }

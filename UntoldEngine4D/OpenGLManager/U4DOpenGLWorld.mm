@@ -80,9 +80,11 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
     //attach texture to framebuffer
     glFramebufferTexture2D(GL_FRAMEBUFFER, GL_DEPTH_ATTACHMENT, GL_TEXTURE_2D,textureID[5],0);
     
+    //enable polygon offset for self-shadowing fix
+    glEnable(GL_POLYGON_OFFSET_FILL);
+    glPolygonOffset(1.5f, 1.5f);
     
     //check the status of the framebuffer
-    
     
     GLenum fboStatus=glCheckFramebufferStatus(GL_FRAMEBUFFER);
     
