@@ -163,7 +163,7 @@ namespace U4DEngine {
         v0 = vertexHead;
         while (collinear( v0, v0->next, v0->next->next)){
             if ((v0 = v0->next) == vertexHead){
-                logger->log("Error: All points in input data are Collinear!\n");
+                logger->log("Error computing Convex Hull: All points in input data are Collinear.");
                 return false;
             }
         }
@@ -192,7 +192,7 @@ namespace U4DEngine {
         vol = volumeSign( f0, v3 );
         while ( !vol )   {
             if ( ( v3 = v3->next ) == v0 ){
-                logger->log("DoubleTriangle:  All points are coplanar!\n");
+                logger->log("Error computing Convex Hull: All points in input data are coplanar.");
                 return false;
             }
             vol = volumeSign( f0, v3 );
@@ -630,7 +630,7 @@ namespace U4DEngine {
         
         if ( e != edgeHead ){
             
-            logger->log("Error: Convex Hull failed Consistency Edges test");
+            logger->log("Error computing Convex Hull: Convex Hull Consistency Edges test failed.");
             return false;
         }
         
@@ -664,7 +664,7 @@ namespace U4DEngine {
         
         if ( f != faceHead){
             
-            logger->log("Error: Convex Hull Convexity Test failed");
+            logger->log("Error computing Convex Hull: Convex Hull Convexity Test failed.");
             return false;
 
         }
@@ -701,13 +701,13 @@ namespace U4DEngine {
         
         //check euler's equation of polygon
         if ( (V - E + F) != 2 ){
-            logger->log("Error: Convex Hull failed to pass Euler's Formula test: V-E+F != 2");
+            logger->log("Error computing Convex Hull: Convex Hull failed to pass Euler's Formula test: V-E+F != 2 .");
             return false;
         }
         
         if ( F != (2 * V - 4) ){
             
-            logger->log("Error: Convex Hull failed to pass Euler's Formula test: F=%d != 2V-4=%d; V=%d",
+            logger->log("Error computing Convex Hull: Convex Hull failed to pass Euler's Formula test: F=%d != 2V-4=%d; V=%d .",
                         F, 2*V-4, V);
             
             return false;
@@ -715,7 +715,7 @@ namespace U4DEngine {
         }
         
         if ( (2 * E) != (3 * F)){
-            logger->log("Error: Convex Hull failed to pass Euler's Formula test: 2E=%d != 3F=%d; E=%d, F=%d",
+            logger->log("Error computing Convex Hull: Convex Hull failed to pass Euler's Formula test: 2E=%d != 3F=%d; E=%d, F=%d .",
                         2*E, 3*F, E, F);
             
             return false;

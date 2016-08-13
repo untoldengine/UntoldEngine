@@ -89,7 +89,7 @@ namespace U4DEngine {
         
         if (collisionNormalOfModel1==U4DVector3n(0,0,0) || collisionNormalOfModel2==U4DVector3n(0,0,0)) {
             
-            logger->engineLog("SH algorithm failed: Collision Normals equal to (0.0,0.0,0.0).");
+            logger->log("Sutherland-Hodgman algorithm failed: Collision Normals equal to (0.0,0.0,0.0).");
             
             return false;
         }
@@ -102,7 +102,7 @@ namespace U4DEngine {
         
         if (parallelFacesModel1.size()==0 || parallelFacesModel2.size()==0) {
             
-            logger->engineLog("SH algorithm failed: Couldn't find most parallel plane to face.");
+            logger->log("Sutherland-Hodgman algorithm failed: Couldn't find most parallel plane to face.");
             
             return false;
         }
@@ -115,7 +115,7 @@ namespace U4DEngine {
         
         if (projectedFacesModel1.size()==0 || projectedFacesModel2.size()==0) {
             
-            logger->engineLog("SH algorithm failed: Couldn't project select faces to plane");
+            logger->log("Sutherland-Hodgman algorithm failed: Couldn't project select faces to plane");
             
             return false;
         }
@@ -125,7 +125,7 @@ namespace U4DEngine {
         
         if (polygonEdgesOfModel1.size()==0 || polygonEdgesOfModel2.size()==0) {
             
-            logger->engineLog("SH algorithm failed: Couldn't obtain edges from the collided faces");
+            logger->log("Sutherland-Hodgman algorithm failed: Couldn't obtain edges from the collided faces");
             
             return false;
         }
@@ -201,7 +201,7 @@ namespace U4DEngine {
         //if container is empty, then return
         if (segments.size()<=1) {
             
-            logger->engineLog("SH algorithm failed: SH produced zero segments");
+            logger->log("Sutherland-Hodgman algorithm failed: Couldn't produce valid segments");
             return false;
         }
         
@@ -248,7 +248,7 @@ namespace U4DEngine {
             
             if (incidentSegments.size()<1) {
                 
-                logger->engineLog("SH algorithm failed: Incident segments equal to less than one");
+                logger->log("Sutherland-Hodgman algorithm failed: Incident segments equal to less than one");
                 
                 return false;
             }
