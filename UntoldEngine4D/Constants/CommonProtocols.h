@@ -119,24 +119,18 @@ namespace U4DEngine {
     typedef struct{
         
         U4DVector3n vertex;
-        bool isDuplicate;
         
     }POLYTOPEVERTEX;
 
     typedef struct{
         
         U4DSegment segment;
-        bool isDuplicate;
         
     }POLYTOPEEDGES;
     
     typedef struct{
         
         U4DTriangle triangle;
-        std::vector<POLYTOPEEDGES> edges;
-        std::vector<POLYTOPEVERTEX> vertices;
-        bool isSeenByPoint;
-        int index;
         
     }POLYTOPEFACES;
     
@@ -157,6 +151,40 @@ namespace U4DEngine {
         
         
     }COLLISIONMANIFOLDONODE;
+    
+    //CONVEX HULL STRUCTURES
+    typedef struct CONVEXHULLVERTEXSTRUCT CONVEXVERTEX;
+    typedef CONVEXVERTEX *CONVEXHULLVERTEX;
+    
+    typedef struct CONVEXHULLEDGESTRUCT CONVEXEDGE;
+    typedef CONVEXEDGE *CONVEXHULLEDGE;
+    
+    typedef struct CONVEXHULLFACESTRUCT CONVEXFACE;
+    typedef CONVEXFACE *CONVEXHULLFACE;
+    
+    struct CONVEXHULLVERTEXSTRUCT{
+        float v[3];
+        int vNum;
+        CONVEXHULLEDGE duplicate;
+        bool onHull;
+        bool processed;
+        CONVEXHULLVERTEX next,prev;
+    };
+    
+    struct CONVEXHULLEDGESTRUCT{
+        CONVEXHULLFACE adjFace[2];
+        CONVEXHULLVERTEX endPts[2];
+        CONVEXHULLFACE newFace;
+        bool shouldDelete;
+        CONVEXHULLEDGE next,prev;
+    };
+    
+    struct CONVEXHULLFACESTRUCT{
+        CONVEXHULLEDGE edge[3];
+        CONVEXHULLVERTEX vertex[3];
+        bool visible;
+        CONVEXHULLFACE next,prev;
+    };
     
 }
 

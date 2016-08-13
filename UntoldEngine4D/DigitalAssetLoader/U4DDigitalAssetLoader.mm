@@ -52,13 +52,13 @@ namespace U4DEngine {
         
         if (!loadOk) {
         
-            logger->log("Digital Asset File Loaded");
+            logger->log("Digital Asset File %s succesfully Loaded.",uFile);
             
             loadOk=true;
             
         }else{
             
-            logger->log("oops, no Digital Asset File");
+            logger->log("Error loading Digital Asset File, No file %s exist.",uFile);
             
             loadOk=false;
         }
@@ -98,7 +98,7 @@ namespace U4DEngine {
                 if (vertexCount<=9000 && indexCount%3==0) {
                     //The model can be processed since it is below 1000 vertices and it has been properly triangularized
                     
-                    logger->log("loading model: %s",meshName.c_str());
+                    logger->log("Loading Digital Asset Data for model: %s",meshName.c_str());
                     
                     //inform that the model does exist
                     modelExist=true;
@@ -423,7 +423,7 @@ namespace U4DEngine {
         
         if (modelExist) {
         
-            logger->log("Loading Complete. Model %s has been loaded.",uMeshID.c_str());
+            logger->log("Digital Asset Data for model %s has been loaded into the engine.",uMeshID.c_str());
 
             return true;
         }

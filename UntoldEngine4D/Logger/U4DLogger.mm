@@ -55,23 +55,6 @@ namespace U4DEngine {
         }
     }
     
-    void U4DLogger::engineLog(const char* uLog, ...){
-        
-        if (engineMode==true) {
-            
-            char buffer[256];
-            va_list args;
-            va_start (args, uLog);
-            vsprintf (buffer,uLog, args);
-            
-            std::cout<<buffer<<std::endl;
-            
-            va_end (args);
-            
-        }
-        
-    }
-    
     void U4DLogger::setDebugMode(bool uValue){
         debugMode=uValue;
     }

@@ -9,7 +9,6 @@
 /* Begin PBXBuildFile section */
 		03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */; };
 		03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */; };
-		03002C901B9E27BA00665CC9 /* U4DPolytope.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C8E1B9E27BA00665CC9 /* U4DPolytope.mm */; };
 		030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205501B6E9CD7005A72E8 /* U4DSegment.mm */; };
 		030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205531B6E9CE9005A72E8 /* U4DTriangle.mm */; };
 		030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205561B6E9D98005A72E8 /* U4DTetrahedron.mm */; };
@@ -30,7 +29,6 @@
 		0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */; settings = {ASSET_TAGS = (); }; };
 		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; settings = {ASSET_TAGS = (); }; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
-		0317AD301D3A7E3900552C93 /* U4DConvexHullGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0317AD2E1D3A7E3900552C93 /* U4DConvexHullGenerator.mm */; settings = {ASSET_TAGS = (); }; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
 		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; settings = {ASSET_TAGS = (); }; };
 		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; settings = {ASSET_TAGS = (); }; };
@@ -82,7 +80,6 @@
 		03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759BA1175B0383002EB5D9 /* U4DScene.mm */; };
 		03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759BA4175B0383002EB5D9 /* U4DWorld.mm */; };
 		03759BC6175B038C002EB5D9 /* U4DShaderManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759BC5175B038C002EB5D9 /* U4DShaderManager.mm */; };
-		0377BD2A1B8007B4006F1E61 /* U4DConvexPolygon.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0377BD281B8007B4006F1E61 /* U4DConvexPolygon.mm */; };
 		03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F871934DA8E00CF0600 /* ButtonA.png */; };
 		03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F881934DA8E00CF0600 /* ButtonAPressed.png */; };
 		03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F891934DA8E00CF0600 /* ButtonB.png */; };
@@ -138,6 +135,7 @@
 		03D559DF1D53D15700E567D5 /* Meteor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559DD1D53D15700E567D5 /* Meteor.mm */; settings = {ASSET_TAGS = (); }; };
 		03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E01D5630AC00E567D5 /* U4DNumerical.mm */; settings = {ASSET_TAGS = (); }; };
 		03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E41D58248A00E567D5 /* U4DLogger.mm */; settings = {ASSET_TAGS = (); }; };
+		03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -193,8 +191,6 @@
 		03002C851B977FE600665CC9 /* U4DManifoldGeneration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DManifoldGeneration.h; path = ManifoldGeneration/U4DManifoldGeneration.h; sourceTree = "<group>"; };
 		03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCollisionDetection.mm; sourceTree = "<group>"; };
 		03002C881B97804B00665CC9 /* U4DCollisionDetection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCollisionDetection.h; sourceTree = "<group>"; };
-		03002C8E1B9E27BA00665CC9 /* U4DPolytope.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPolytope.mm; sourceTree = "<group>"; };
-		03002C8F1B9E27BA00665CC9 /* U4DPolytope.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPolytope.h; sourceTree = "<group>"; };
 		030205501B6E9CD7005A72E8 /* U4DSegment.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSegment.mm; sourceTree = "<group>"; };
 		030205511B6E9CD7005A72E8 /* U4DSegment.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSegment.h; sourceTree = "<group>"; };
 		030205531B6E9CE9005A72E8 /* U4DTriangle.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTriangle.mm; sourceTree = "<group>"; };
@@ -231,8 +227,6 @@
 		0314B0BB1C6FE8F600EB8C34 /* U4DBVHManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHManager.h; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.h; sourceTree = "<group>"; };
 		031723C81933FE54001584B1 /* lodepng.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = lodepng.h; sourceTree = "<group>"; };
 		031723C91933FE54001584B1 /* lodepng.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = lodepng.mm; sourceTree = "<group>"; };
-		0317AD2E1D3A7E3900552C93 /* U4DConvexHullGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DConvexHullGenerator.mm; sourceTree = "<group>"; };
-		0317AD2F1D3A7E3900552C93 /* U4DConvexHullGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DConvexHullGenerator.h; sourceTree = "<group>"; };
 		03196B3417659BE5008BA0B8 /* U4DTouches.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTouches.mm; sourceTree = "<group>"; };
 		03196B3717659EBC008BA0B8 /* U4DTouches.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouches.h; sourceTree = "<group>"; };
 		0325D20C1C836D9200F1B9BE /* U4DAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAABB.mm; sourceTree = "<group>"; };
@@ -320,8 +314,6 @@
 		03759BA4175B0383002EB5D9 /* U4DWorld.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DWorld.mm; sourceTree = "<group>"; };
 		03759BC4175B038C002EB5D9 /* U4DShaderManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DShaderManager.h; sourceTree = "<group>"; };
 		03759BC5175B038C002EB5D9 /* U4DShaderManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DShaderManager.mm; sourceTree = "<group>"; };
-		0377BD281B8007B4006F1E61 /* U4DConvexPolygon.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DConvexPolygon.mm; sourceTree = "<group>"; };
-		0377BD291B8007B4006F1E61 /* U4DConvexPolygon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DConvexPolygon.h; sourceTree = "<group>"; };
 		03798F871934DA8E00CF0600 /* ButtonA.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonA.png; path = Resources/ButtonA.png; sourceTree = SOURCE_ROOT; };
 		03798F881934DA8E00CF0600 /* ButtonAPressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonAPressed.png; path = Resources/ButtonAPressed.png; sourceTree = SOURCE_ROOT; };
 		03798F891934DA8E00CF0600 /* ButtonB.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonB.png; path = Resources/ButtonB.png; sourceTree = SOURCE_ROOT; };
@@ -405,6 +397,8 @@
 		03D559E11D5630AC00E567D5 /* U4DNumerical.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DNumerical.h; sourceTree = "<group>"; };
 		03D559E41D58248A00E567D5 /* U4DLogger.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DLogger.mm; path = Logger/U4DLogger.mm; sourceTree = "<group>"; };
 		03D559E51D58248A00E567D5 /* U4DLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DLogger.h; path = Logger/U4DLogger.h; sourceTree = "<group>"; };
+		03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DConvexHullAlgorithm.mm; path = ConvexHullAlgorithm/U4DConvexHullAlgorithm.mm; sourceTree = "<group>"; };
+		03D55A3C1D5D86A900E567D5 /* U4DConvexHullAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DConvexHullAlgorithm.h; path = ConvexHullAlgorithm/U4DConvexHullAlgorithm.h; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -801,12 +795,6 @@
 				030205531B6E9CE9005A72E8 /* U4DTriangle.mm */,
 				030205571B6E9D98005A72E8 /* U4DTetrahedron.h */,
 				030205561B6E9D98005A72E8 /* U4DTetrahedron.mm */,
-				0377BD291B8007B4006F1E61 /* U4DConvexPolygon.h */,
-				0377BD281B8007B4006F1E61 /* U4DConvexPolygon.mm */,
-				03002C8F1B9E27BA00665CC9 /* U4DPolytope.h */,
-				03002C8E1B9E27BA00665CC9 /* U4DPolytope.mm */,
-				0317AD2F1D3A7E3900552C93 /* U4DConvexHullGenerator.h */,
-				0317AD2E1D3A7E3900552C93 /* U4DConvexHullGenerator.mm */,
 				03D559E11D5630AC00E567D5 /* U4DNumerical.h */,
 				03D559E01D5630AC00E567D5 /* U4DNumerical.mm */,
 			);
@@ -1060,6 +1048,15 @@
 			name = Logger;
 			sourceTree = "<group>";
 		};
+		03D55A3A1D5D869100E567D5 /* ConvexHull */ = {
+			isa = PBXGroup;
+			children = (
+				03D55A3C1D5D86A900E567D5 /* U4DConvexHullAlgorithm.h */,
+				03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */,
+			);
+			name = ConvexHull;
+			sourceTree = "<group>";
+		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
@@ -1164,6 +1161,7 @@
 		03E6EDB21943D816007AD131 /* CollisionEngine */ = {
 			isa = PBXGroup;
 			children = (
+				03D55A3A1D5D869100E567D5 /* ConvexHull */,
 				03EF780A1CD32FBF00BA0C87 /* CollisionResponse */,
 				0314B0B41C6FC04F00EB8C34 /* BoundaryVolumeHierarchy */,
 				03002C831B977F7600665CC9 /* ManifoldGeneration */,
@@ -1491,10 +1489,8 @@
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
-				03002C901B9E27BA00665CC9 /* U4DPolytope.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
-				0377BD2A1B8007B4006F1E61 /* U4DConvexPolygon.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
 				03D559D91D53D13D00E567D5 /* Mountain.mm in Sources */,
 				03E6ED9F1943D799007AD131 /* U4DFont.mm in Sources */,
@@ -1511,7 +1507,6 @@
 				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
-				0317AD301D3A7E3900552C93 /* U4DConvexHullGenerator.mm in Sources */,
 				036FB58218CE9CB8000EA639 /* MyCharacter.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
@@ -1555,6 +1550,7 @@
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
+				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03E6ED841943D78C007AD131 /* U4DSprite.mm in Sources */,
 				03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */,
 			);

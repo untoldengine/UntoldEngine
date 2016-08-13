@@ -11,7 +11,7 @@
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
-#include "U4DConvexHullGenerator.h"
+#include "U4DConvexHullAlgorithm.h"
 #include "CommonProtocols.h"
 #include "U4DLogger.h"
 
@@ -250,17 +250,20 @@ namespace U4DEngine {
             convexHullBoundingVolume=new U4DBoundingConvex();
             
             //generate the convex hull for the model
-            U4DConvexHullGenerator convexHullGenerator;
-            
-            //determine the convex hull of the model
-            CONVEXHULL convexHull=convexHullGenerator.buildConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
+            U4DConvexHullAlgorithm convexHullAlgorithm;
             
             U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("Computing Convex Hull for Collision Detection for model: %s",getName().c_str());
+            
+            //determine the convex hull of the model
+            CONVEXHULL convexHull=convexHullAlgorithm.computeConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
+            
             //if convex hull valid, then set it to the model and enable collision
             
-            if (convexHullGenerator.isValid(convexHull)) {
+            if (convexHull.isValid) {
                 
-                logger->log("Convex Hull was properly computed for model %s.",getName().c_str());
+                logger->log("Convex Hull was properly computed. Collision Detection is enabled for model: %s.",getName().c_str());
                 
                 //set the convex hull for the bounding volume. Note the convex hull is maintained by the U4DBoundingConvex class
                 convexHullBoundingVolume->setConvexHullVertices(convexHull);
@@ -315,6 +318,10 @@ namespace U4DEngine {
                 
                 //enable collision
                 collisionEnabled=true;
+                
+            }else{
+                logger->log("Computed Convex Hull for model %s is not valid",getName().c_str());
+                logger->log("Please visit www.untoldengine.com for a review on Model Topology to produce a valid Convex Hull");
                 
             }
         

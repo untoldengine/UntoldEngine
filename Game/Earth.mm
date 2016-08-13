@@ -80,7 +80,6 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
     
     camera->viewInDirection(origin);
-    
 
     addChild(floor);
     addChild(rocket);
