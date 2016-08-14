@@ -72,6 +72,8 @@ public:
     
     void loadDepthShadowUniform();
     
+    void loadSelfShadowBiasUniform();
+    
     void drawDepthOnFrameBuffer();
 
 };

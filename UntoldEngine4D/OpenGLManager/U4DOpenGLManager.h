@@ -106,6 +106,8 @@ typedef struct{
     
     GLint shadowMapTextureUniformLocation;
     
+    GLint selfShadowBiasUniformLocation;
+    
 }TextureUniformLocations;
 
 typedef struct{
@@ -229,7 +231,9 @@ public:
     virtual U4DVector3n getEntityLocalPosition(){};
     
     virtual void setDiffuseTexture(const char* uTexture){};
+    
     virtual void setAmbientTexture(const char* uTexture){};
+    
     virtual void setNormalBumpTexture(const char* uTexture){};
 
     virtual U4DDualQuaternion getCameraSpace();
@@ -256,6 +260,8 @@ public:
     virtual void setMultiImageActiveImage(bool value){};
     
     virtual void loadDepthShadowUniform(){};
+    
+    virtual void loadSelfShadowBiasUniform(){};
 };
 
 }

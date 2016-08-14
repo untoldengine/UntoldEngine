@@ -23,7 +23,6 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
 
-
     }
     
     

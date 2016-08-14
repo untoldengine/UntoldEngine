@@ -16,6 +16,7 @@ uniform vec3 CameraViewDirection;
 
 uniform sampler2D ShadowMap;
 uniform float ShadowCurrentPass;
+uniform float SelfShadowBias;
 uniform float HasTexture;
 
 
@@ -30,10 +31,8 @@ out vec4 fragmentColor;
 
 float ShadowCalculation(vec4 uShadowCoord){
 
-    //float bias = 0.005;
-
     //use this bias when you have normal and light direction data
-    float bias = max(0.05 * (1.0 - dot(normalInViewSpace, lightPosition.xyz)), 0.005);
+    float bias = max(0.05 * (1.0 - dot(normalInViewSpace, lightPosition.xyz)), SelfShadowBias);
 
     // perform perspective divide
     vec3 projCoords=uShadowCoord.xyz/uShadowCoord.w;

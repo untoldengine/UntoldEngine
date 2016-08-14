@@ -49,6 +49,8 @@ namespace U4DEngine {
         
         std::vector<U4DMatrix4n> armatureBoneMatrix;
         
+        float selfShadowBias;
+        
         U4DModel();
         
         ~U4DModel();
@@ -77,6 +79,20 @@ namespace U4DEngine {
         bool getHasTexture();
         
         bool getHasAnimation();
+        
+        /**
+         @brief Set the bias to reduce self-shadowing
+         
+         @param uSelfShadowBias Bias value. Default is 0.005. Optimal range [0.005-0.01]
+         */
+        void setSelfShadowBias(float uSelfShadowBias);
+        
+        /**
+         @brief Returns the bias value used to reduce self-shadowing
+         
+         @return Self-shadow bias value
+         */
+        float getSelfShadowBias();
      
     };
     
