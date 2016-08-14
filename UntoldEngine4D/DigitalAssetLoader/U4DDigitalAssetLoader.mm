@@ -672,9 +672,9 @@ namespace U4DEngine {
         
         float x=tempVector.at(0);
         
-        float y=tempVector.at(1);
+        float y=tempVector.at(2);
         
-        float z=tempVector.at(2);
+        float z=tempVector.at(1);
         
         U4DVector3n uDimension(x,y,z);
         
