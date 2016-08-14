@@ -12,7 +12,7 @@ uniform sampler2D DiffuseTexture;
 uniform sampler2D ShadowMap;
 uniform float ShadowCurrentPass;
 uniform float HasTexture;
-
+uniform float SelfShadowBias;
 in mediump vec3 normalInViewSpace;
 in mediump vec4 positionInViewSpace;
 in mediump vec2 vVaryingTexCoords;
@@ -27,7 +27,7 @@ float ShadowCalculation(vec4 uShadowCoord){
     //float bias = 0.005;
 
     //use this bias when you have normal and light direction data
-    float bias = max(0.05 * (1.0 - dot(normalInViewSpace, lightPosition.xyz)), 0.005);
+    float bias = max(0.05 * (1.0 - dot(normalInViewSpace, lightPosition.xyz)), SelfShadowBias);
 
     // perform perspective divide
     vec3 projCoords=uShadowCoord.xyz/uShadowCoord.w;
@@ -42,7 +42,7 @@ float ShadowCalculation(vec4 uShadowCoord){
     float currentDepth = projCoords.z;
 
     // Check whether current frag pos is in shadow
-    float shadow = currentDepth-bias > closestDepth  ? 0.2 : 0.0;
+    float shadow = currentDepth-bias > closestDepth  ? 0.09 : 0.0;
 
     if(projCoords.z > 1.0){
         shadow = 0.0;

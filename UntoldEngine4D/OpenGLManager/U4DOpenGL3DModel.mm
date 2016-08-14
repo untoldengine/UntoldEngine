@@ -323,6 +323,14 @@ void U4DOpenGL3DModel::loadDepthShadowUniform(){
     
 }
     
+void U4DOpenGL3DModel::loadSelfShadowBiasUniform(){
+    
+    float selfShadowBias=u4dObject->getSelfShadowBias();
+    
+    glUniform1f(textureUniformLocations.selfShadowBiasUniformLocation,selfShadowBias);
+    
+}
+    
 void U4DOpenGL3DModel::loadHasTextureUniform(){
     
     if (u4dObject->getHasTexture()) {

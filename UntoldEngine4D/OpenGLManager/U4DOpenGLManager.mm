@@ -77,6 +77,7 @@ void U4DOpenGLManager::enableUniformsLocations(){
     textureUniformLocations.specularTextureUniformLocation=glGetUniformLocation(shader, "SpecularTexture");
     textureUniformLocations.normalBumpTextureUniformLocation=glGetUniformLocation(shader, "NormalBumpTexture");
     textureUniformLocations.shadowMapTextureUniformLocation=glGetUniformLocation(shader, "ShadowMap");
+    textureUniformLocations.selfShadowBiasUniformLocation=glGetUniformLocation(shader, "SelfShadowBias");
     
     //Material Uniform Locations
     materialUniformLocations.diffuseColorMaterialUniformLocation=glGetUniformLocation(shader, "DiffuseMaterialColor");
@@ -282,7 +283,10 @@ void U4DOpenGLManager::draw(){
     
     glUniform3f(modelViewUniformLocations.cameraViewDirectionUniformLocation, cameraViewDirection.x, cameraViewDirection.y, cameraViewDirection.z);
     
+    //load shadow information
     loadDepthShadowUniform();
+    
+    loadSelfShadowBiasUniform();
     
     //load armature data
     loadArmatureUniforms();

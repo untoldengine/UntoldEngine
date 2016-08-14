@@ -22,7 +22,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTextures(false),hasAnimation(false){
+    U4DModel::U4DModel():hasMaterial(false),hasTextures(false),hasAnimation(false),selfShadowBias(0.005){
         
         openGlManager=new U4DOpenGL3DModel(this);
         armatureManager=new U4DArmatureData(this);
@@ -91,6 +91,13 @@ namespace U4DEngine {
         return hasAnimation;
     }
     
+    void U4DModel::setSelfShadowBias(float uSelfShadowBias){
+        selfShadowBias=uSelfShadowBias;
+    }
+    
+    float U4DModel::getSelfShadowBias(){
+        return selfShadowBias;
+    }
 
 }
 

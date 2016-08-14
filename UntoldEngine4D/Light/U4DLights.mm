@@ -18,7 +18,7 @@ namespace U4DEngine {
         setEntityType(LIGHT);
       
         //set default position
-        translateTo(3.0,3.0,5.0);
+        translateTo(5.0,5.0,5.0);
         
         //view in direction of
         U4DVector3n origin(0,0,0);
