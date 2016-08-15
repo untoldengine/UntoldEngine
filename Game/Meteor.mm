@@ -27,7 +27,7 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
         enableCollision();
         applyPhysics(true);
         setCoefficientOfRestitution(0.7);
-        setShader("gouraudShader");
+        //setShader("gouraudShader");
         
     }
 }

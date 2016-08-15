@@ -75,7 +75,7 @@ void Earth::init(){
 //    meteor2->init("Meteor2", "blenderscript.u4d");
     
     meteor3=new Meteor();
-    meteor3->init("Icosphere", "blenderscript.u4d");
+    meteor3->init("Pentagon", "blenderscript.u4d");
 
     U4DVector3n origin(0,0,0);
     

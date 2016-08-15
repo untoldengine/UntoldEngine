@@ -89,6 +89,8 @@ namespace U4DEngine {
 
          if (uValue>1.0) {
              coefficientOfRestitution=1.0;  //coefficient can't be greater than 1
+         }else if(uValue<0.0){
+             coefficientOfRestitution=0.0;  //coefficient can't be less than 0
          }else{
              coefficientOfRestitution=uValue;
          }
