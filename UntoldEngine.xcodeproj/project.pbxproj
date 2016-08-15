@@ -136,6 +136,7 @@
 		03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E01D5630AC00E567D5 /* U4DNumerical.mm */; settings = {ASSET_TAGS = (); }; };
 		03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E41D58248A00E567D5 /* U4DLogger.mm */; settings = {ASSET_TAGS = (); }; };
 		03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
+		03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3E1D6165A800E567D5 /* U4DTrigonometry.mm */; settings = {ASSET_TAGS = (); }; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -399,6 +400,8 @@
 		03D559E51D58248A00E567D5 /* U4DLogger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DLogger.h; path = Logger/U4DLogger.h; sourceTree = "<group>"; };
 		03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DConvexHullAlgorithm.mm; path = ConvexHullAlgorithm/U4DConvexHullAlgorithm.mm; sourceTree = "<group>"; };
 		03D55A3C1D5D86A900E567D5 /* U4DConvexHullAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DConvexHullAlgorithm.h; path = ConvexHullAlgorithm/U4DConvexHullAlgorithm.h; sourceTree = "<group>"; };
+		03D55A3E1D6165A800E567D5 /* U4DTrigonometry.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTrigonometry.mm; sourceTree = "<group>"; };
+		03D55A3F1D6165A800E567D5 /* U4DTrigonometry.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTrigonometry.h; sourceTree = "<group>"; };
 		03DB332C19EEFF7F00261B4E /* modelShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.fp; sourceTree = "<group>"; };
 		03DB332D19EEFF7F00261B4E /* modelShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = modelShader.vp; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
@@ -797,6 +800,8 @@
 				030205561B6E9D98005A72E8 /* U4DTetrahedron.mm */,
 				03D559E11D5630AC00E567D5 /* U4DNumerical.h */,
 				03D559E01D5630AC00E567D5 /* U4DNumerical.mm */,
+				03D55A3F1D6165A800E567D5 /* U4DTrigonometry.h */,
+				03D55A3E1D6165A800E567D5 /* U4DTrigonometry.mm */,
 			);
 			path = MathematicEngine;
 			sourceTree = "<group>";
@@ -1441,6 +1446,7 @@
 				036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */,
 				0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */,
 				03759B49175B0135002EB5D9 /* main.m in Sources */,
+				03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */,
 				0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
 				03759B4D175B0135002EB5D9 /* AppDelegate.mm in Sources */,

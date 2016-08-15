@@ -10,7 +10,7 @@
 #include "U4DVector3n.h"
 #include "U4DQuaternion.h"
 #include "Constants.h"
-
+#include "U4DTrigonometry.h"
 
 namespace U4DEngine {
     
@@ -108,7 +108,9 @@ void U4DMatrix3n::transformMatrixAboutXAxis(float uAngle){
     //	1	4	7
     //	2	5	8
     
-    uAngle=DegreesToRad(uAngle);
+    U4DTrigonometry trigonometry;
+    
+    uAngle=trigonometry.degreesToRad(uAngle);
     
     U4DMatrix3n m(1.0,0.0,0.0,
                   0.0,cos(uAngle),-sin(uAngle),
@@ -124,7 +126,9 @@ void U4DMatrix3n::transformMatrixAboutYAxis(float uAngle){
     //	1	4	7
     //	2	5	8
     
-    uAngle=DegreesToRad(uAngle);
+    U4DTrigonometry trigonometry;
+    
+    uAngle=trigonometry.degreesToRad(uAngle);
     
     U4DMatrix3n m(cos(uAngle),0.0,sin(uAngle),
                   0.0,1.0,0.0,
@@ -141,7 +145,9 @@ void U4DMatrix3n::transformMatrixAboutZAxis(float uAngle){
     //	1	4	7
     //	2	5	8
     
-    uAngle=DegreesToRad(uAngle);
+    U4DTrigonometry trigonometry;
+    
+    uAngle=trigonometry.degreesToRad(uAngle);
     
     U4DMatrix3n m(cos(uAngle),-sin(uAngle),0.0,
                   sin(uAngle),cos(uAngle),0.0,

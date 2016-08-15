@@ -11,6 +11,7 @@
 #include "U4DQuaternion.h"
 #include "Constants.h"
 #include "U4DNumerical.h"
+#include "U4DTrigonometry.h"
 #include <cmath>
 
 namespace U4DEngine {
@@ -146,7 +147,9 @@ namespace U4DEngine {
             theta=-1.0;
         }
         
-        theta=RadToDegrees(acos(theta));
+        U4DTrigonometry trigonometry;
+        
+        theta=trigonometry.radToDegrees(acos(theta));
         
         return theta;
         

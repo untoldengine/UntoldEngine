@@ -38,10 +38,6 @@ namespace U4DEngine {
         
         bool areEqual(float uNumber1, float uNumber2, float uEpsilon);
         
-        float degreesToRad(float uAngle);
-        
-        float radToDegrees(float uAngle);
-        
     };
 
 }

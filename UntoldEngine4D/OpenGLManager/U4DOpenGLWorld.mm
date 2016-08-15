@@ -73,7 +73,7 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     
-    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT16, U4DEngine::DEPTHSHADOWWIDTH, U4DEngine::DEPTHSHADOWHEIGHT, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
+    glTexImage2D(GL_TEXTURE_2D, 0,GL_DEPTH_COMPONENT16, U4DEngine::depthShadowWidth, U4DEngine::depthShadowHeight, 0,GL_DEPTH_COMPONENT, GL_UNSIGNED_INT, NULL);
     
     glBindFramebuffer(GL_FRAMEBUFFER, offscreenFramebuffer);
     
@@ -124,7 +124,7 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
 void U4DOpenGLWorld::startShadowMapPass(){
     
     //set framebuffer for shadow mapping
-    glViewport(0,0,U4DEngine::DEPTHSHADOWWIDTH,U4DEngine::DEPTHSHADOWHEIGHT);
+    glViewport(0,0,U4DEngine::depthShadowWidth,U4DEngine::depthShadowHeight);
     glBindFramebuffer(GL_FRAMEBUFFER, offscreenFramebuffer);
     glClear(GL_DEPTH_BUFFER_BIT);
     glCullFace(GL_FRONT);
