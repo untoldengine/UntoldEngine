@@ -38,16 +38,5 @@ namespace U4DEngine {
         return (fabs(uNumber1-uNumber2)<=uEpsilon*MAX(1.0,MAX(fabs(uNumber1),fabs(uNumber2))));
         
     }
-    
-    
-    float U4DNumerical::degreesToRad(float uAngle){
-        return (uAngle*M_PI/180.0);
-    }
-    
-    
-    
-    float U4DNumerical::radToDegrees(float uAngle){
-        return (uAngle*180.0/M_PI);
-    }
-    
+
 }

@@ -10,6 +10,7 @@
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
 #include "Constants.h"
+#include "U4DTrigonometry.h"
 #include <cmath>
 
 namespace U4DEngine {
@@ -218,7 +219,9 @@ void U4DQuaternion::inverse(U4DQuaternion& q){
 //hamilton
 void U4DQuaternion::convertToUnitNormQuaternion(){
     
-    float angle=DegreesToRad(s);
+    U4DTrigonometry trigonometry;
+    
+    float angle=trigonometry.degreesToRad(s);
     
     v.normalize();
     s=cosf(angle*0.5);
@@ -259,9 +262,11 @@ U4DMatrix3n U4DQuaternion::transformQuaternionToMatrix3n(){
 //euler to quaternion
 void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
     
-    x=DegreesToRad(x);
-    y=DegreesToRad(y);
-    z=DegreesToRad(z);
+    U4DTrigonometry trigonometry;
+    
+    x=trigonometry.degreesToRad(x);
+    y=trigonometry.degreesToRad(y);
+    z=trigonometry.degreesToRad(z);
     
     x=x/2;
     y=y/2;
@@ -309,9 +314,11 @@ U4DVector3n U4DQuaternion::transformQuaternionToEulerAngles(){
 
     }
     
-    x=RadToDegrees(x);
-    y=RadToDegrees(y);
-    z=RadToDegrees(z);
+    U4DTrigonometry trigonometry;
+    
+    x=trigonometry.radToDegrees(x);
+    y=trigonometry.radToDegrees(y);
+    z=trigonometry.radToDegrees(z);
     
     U4DVector3n euler(x,y,z);
     

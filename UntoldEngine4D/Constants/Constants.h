@@ -27,8 +27,4 @@ namespace U4DEngine {
     const float DEPTHSHADOWHEIGHT=1024;
 }
 
-#define DegreesToRad(angle) angle*M_PI/180
-#define RadToDegrees(angle) angle*180/M_PI
-
-
 #endif
