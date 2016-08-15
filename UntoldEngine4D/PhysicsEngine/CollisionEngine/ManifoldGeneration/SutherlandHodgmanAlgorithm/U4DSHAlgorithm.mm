@@ -35,36 +35,36 @@ namespace U4DEngine {
         //test if the model is within the plane and set the normal accordingly
         pointInformation.point=uModel1->getAbsolutePosition().toPoint();
         
-        
         float direction=collisionPlane.magnitudeSquareOfPointToPlane(pointInformation.point);
-        
-        
-        if (direction>U4DEngine::zeroEpsilon) {
+
+        if (direction>U4DEngine::planeBoundaryEpsilon) {
             
             pointInformation.location=insidePlane;
-            
+
         }else{
             
-            if (direction<-U4DEngine::zeroEpsilon) {
+            if (direction<-U4DEngine::planeBoundaryEpsilon) {
                 
                 pointInformation.location=outsidePlane;
+
                 
             }else{
                 
                 pointInformation.location=boundaryPlane;
-                
+
             }
             
         }
         
        
-        if (pointInformation.location==outsidePlane) {
+        if (pointInformation.location==outsidePlane|| pointInformation.location==boundaryPlane) {
             
             uModel1->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             
             uModel2->setCollisionNormalFaceDirection(negateContactNormal);
             
-        }else if(pointInformation.location==insidePlane || pointInformation.location==boundaryPlane){
+            
+        }else if(pointInformation.location==insidePlane ){
             
             uModel2->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             
