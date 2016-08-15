@@ -23,8 +23,8 @@ namespace U4DEngine {
     const float impulseCollisionMinimum=0.0; //sets the minimum impulse allowed between collisions
     const float rungaKuttaCorrectionCoefficient=0.7;
     const float planeBoundaryEpsilon=0.8f; //epsilon to determine if point is inside/outside plane
-    const float DEPTHSHADOWWIDTH=1024;
-    const float DEPTHSHADOWHEIGHT=1024;
+    const float depthShadowWidth=1024;
+    const float depthShadowHeight=1024;
 }
 
 #endif
