@@ -25,7 +25,7 @@ void Floor::init(const char* uName, const char* uBlenderFile){
         setAsGround(true);
         enableCollision();
         setCoefficientOfRestitution(0.7);
-        
+        //setShader("gouraudShader");
     }
 }
 
