@@ -12,7 +12,6 @@
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
 #include "U4DConvexHullAlgorithm.h"
-#include "CommonProtocols.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {
@@ -25,7 +24,7 @@ namespace U4DEngine {
         
         setCenterOfMass(centerOfMass);
         
-        setInertiaTensor(1.0,1.0,1.0);
+        setInertiaTensor(cubicBody,1.0,1.0,1.0);
         
         //set the convex hull bounding volume to null
         convexHullBoundingVolume=nullptr;
@@ -105,7 +104,7 @@ namespace U4DEngine {
     #pragma mark-inertia tensor
     //set and get the intertia tensor
 
-    void U4DStaticModel::setInertiaTensor(float uX, float uY, float uZ){
+    void U4DStaticModel::setInertiaTensor(MODELBODYTYPE uModelBodyType, float uX, float uY, float uZ){
         
         U4DMatrix3n tensor;
         
@@ -113,14 +112,58 @@ namespace U4DEngine {
         //	1	4	7
         //	2	5	8
         
-        float Ixx=(uY*uY+uZ*uZ)*massProperties.mass/12.0;
-        float Iyy=(uX*uX+uZ*uZ)*massProperties.mass/12.0;
-        float Izz=(uX*uX+uY*uY)*massProperties.mass/12.0;
+        float Ixx=0.0;
+        float Iyy=0.0;
+        float Izz=0.0;
         
-        float Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
-        float Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
-        float Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
+        float Ixy=0.0;
+        float Ixz=0.0;
+        float Iyz=0.0;
         
+        if (uModelBodyType==sphericalBody) {
+            
+            uX=uX/2.0;
+            uY=uY/2.0;
+            uZ=uZ/2.0;
+            
+            //Inertia Tensor for spherical bodies
+            Ixx=(2*uX*uX)*massProperties.mass/5.0;
+            Iyy=(2*uX*uX)*massProperties.mass/5.0;
+            Izz=(2*uX*uX)*massProperties.mass/5.0;
+            
+            Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
+            Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
+            Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
+            
+        }else if(uModelBodyType==cylindricalBody){
+            //Inertia Tensor for cylindrical bodies
+            
+            
+            uX=uX/2.0;
+            
+            Ixx=(3*uX*uX+uY*uY)*massProperties.mass/12.0;
+            Iyy=(3*uX*uX+uY*uY)*massProperties.mass/12.0;
+            Izz=(uX*uX)*massProperties.mass/2.0;
+            
+            Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
+            Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
+            Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
+            
+            
+        }else{
+            
+            
+            //Inertia Tensor for cubic bodies
+            Ixx=(uY*uY+uZ*uZ)*massProperties.mass/12.0;
+            Iyy=(uX*uX+uZ*uZ)*massProperties.mass/12.0;
+            Izz=(uX*uX+uY*uY)*massProperties.mass/12.0;
+    
+            Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
+            Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
+            Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
+        }
+        
+
         tensor.matrixData[0]=Ixx;
         tensor.matrixData[4]=Iyy;
         tensor.matrixData[8]=Izz;
@@ -231,7 +274,7 @@ namespace U4DEngine {
     
     }
     
-    void U4DStaticModel::enableCollision(){
+    void U4DStaticModel::enableCollision(MODELBODYTYPE uModelBodyType){
         
         //test if the bounding volume object was previously created
         if(convexHullBoundingVolume==nullptr && sphereBoundingVolume==nullptr){
@@ -246,7 +289,7 @@ namespace U4DEngine {
             longestModelDimension=MAX(longestModelDimension, zDimension);
             
             //set inertia tensor
-            setInertiaTensor(xDimension/2.0, yDimension/2.0, zDimension/2.0);
+            setInertiaTensor(uModelBodyType, xDimension, yDimension, zDimension);
             
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();

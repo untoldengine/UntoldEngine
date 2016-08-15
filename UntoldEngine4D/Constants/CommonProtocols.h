@@ -186,6 +186,12 @@ namespace U4DEngine {
         CONVEXHULLFACE next,prev;
     };
     
+    typedef enum{
+        cubicBody,
+        sphericalBody,
+        cylindricalBody
+    }MODELBODYTYPE;
+    
 }
 
 

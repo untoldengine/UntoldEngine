@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include "U4DModel.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -105,7 +106,7 @@ namespace U4DEngine {
             
             float getCoefficientOfRestitution();
             
-            void setInertiaTensor(float uLength, float uWidth, float uHeight);
+            void setInertiaTensor(MODELBODYTYPE uModelBodyType, float uLength, float uWidth, float uHeight);
             
             U4DMatrix3n getMomentOfInertiaTensor();
             
@@ -121,7 +122,7 @@ namespace U4DEngine {
         
             int getConvexHullVerticesCount();
         
-            void enableCollision();
+            void enableCollision(MODELBODYTYPE uModelBodyType);
             
             void pauseCollision();
             

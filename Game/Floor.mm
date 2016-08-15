@@ -22,10 +22,10 @@ void Floor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-//        setAsGround(true);
-//        enableCollision();
-//        setCoefficientOfRestitution(0.7);
-//        //setShader("gouraudShader");
+        setAsGround(true);
+        enableCollision(U4DEngine::cubicBody);
+        setCoefficientOfRestitution(0.9);
+        //setShader("gouraudShader");
     }
 }
 
