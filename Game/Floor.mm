@@ -22,7 +22,7 @@ void Floor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        initAsGround(true);
+        initAsFloor(true);
         
         enableCollisionBehavior();
         
