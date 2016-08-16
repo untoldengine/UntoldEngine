@@ -22,9 +22,9 @@ void Floor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        setAsGround(true);
+        initAsFloor(true);
         
-        enableCollision();
+        enableCollisionBehavior();
         
         //setShader("gouraudShader");
     }

@@ -145,7 +145,7 @@ namespace U4DEngine {
 
             if (model) {
                 
-                    if(model->isCollisionEnabled()==true){
+                    if(model->isCollisionBehaviorEnabled()==true){
 
                         //add child to collision bhv manager tree
                         collisionEngine->addToBroadPhaseCollisionContainer(model);
@@ -182,7 +182,7 @@ namespace U4DEngine {
             
             if (model) {
             
-                if (model->isPhysicsApplied()==true) {
+                if (model->isKineticsBehaviorEnabled()==true) {
                     
                     physicsEngine->updatePhysicForces(model, dt);
                     
@@ -212,8 +212,8 @@ namespace U4DEngine {
             
             if (model) {
                 
-                //reset any collision information
-                model->resetCollisionInformation();
+                //clear any collision information
+                model->clearCollisionInformation();
                 
                 //reset time of impact
                 model->resetTimeOfImpact();

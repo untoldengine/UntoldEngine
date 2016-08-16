@@ -33,7 +33,7 @@ namespace U4DEngine {
         
         bool hasAnimation;
         
-        
+        float selfShadowBias;
         
     protected:
         
@@ -49,7 +49,7 @@ namespace U4DEngine {
         
         std::vector<U4DMatrix4n> armatureBoneMatrix;
         
-        float selfShadowBias;
+        
         
         U4DModel();
         

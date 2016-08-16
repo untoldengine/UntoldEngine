@@ -82,7 +82,7 @@ namespace U4DEngine {
         
             float coefficientOfRestitution;
         
-            bool isGround;
+            bool isFloor;
         
         protected:
             
@@ -96,70 +96,89 @@ namespace U4DEngine {
             
             U4DStaticModel& operator=(const U4DStaticModel& value);
         
-            void setMass(float uMass);
+            //Init operations
+            void initMass(float uMass);
+        
+            void initCenterOfMass(U4DVector3n& uCenterOfMass);
+            
+            void initCoefficientOfRestitution(float uValue);
+            
+            void initInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType);
+            
+            void initAsFloor(bool uValue);
+        
+            //Set Operations
+        
+            void setNarrowPhaseBoundingVolumeVisibility(bool uValue);
+            
+            void setBroadPhaseBoundingVolumeVisibility(bool uValue);
+            
+                //These set operations should be make private
+                
+                void setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection);
+                
+                void setCollisionPenetrationDepth(float uPenetrationDepth);
+                
+                void setNormalForce(U4DVector3n& uNormalForce);
+                
+                void setModelHasCollided(bool uValue);
+        
+            //Behavior operations
+        
+            void enableCollisionBehavior();
+            
+            void pauseCollisionBehavior();
+            
+            void resumeCollisionBehavior();
+            
+            bool isCollisionBehaviorEnabled();
+        
+            //Compute operations
+            void computeInertiaTensor();
+            
+            //Update operations
+            void updateConvexHullVertices();
+            
+            void updateNarrowPhaseBoundingVolumeSpace();
+            
+            void updateBroadPhaseBoundingVolumeSpace();
+        
+            //add operations
+       
+            void addCollisionContactPoint(U4DVector3n& uContactPoint);
+        
+            //clear operations
+            void clearConvexHullVertices();
+        
+            void clearCollisionInformation();
+            
+            //Get Operations
             
             float getMass()const;
             
-            void setCenterOfMass(U4DVector3n& uCenterOfMass);
-            
             U4DVector3n getCenterOfMass();
             
-            void setCoefficientOfRestitution(float uValue);
-            
             float getCoefficientOfRestitution();
-        
-            void setInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType);
-        
-            INERTIATENSORTYPE getInertiaTensorType();
-        
-            void computeInertiaTensor();
             
+            INERTIATENSORTYPE getInertiaTensorType();
+            
+            bool getIsFloor();
+        
             U4DMatrix3n getMomentOfInertiaTensor();
             
             U4DMatrix3n getInverseMomentOfInertiaTensor();
-        
-            void updateConvexHullVertices();
-        
-            void clearConvexHullVertices();
         
             std::vector<U4DVector3n>& getConvexHullVertices();
         
             int getConvexHullVerticesCount();
         
-            void enableCollision();
-            
-            void pauseCollision();
-            
-            void resumeCollision();
-            
-            bool isCollisionEnabled();
-        
-            //Narrow Phase Bounding Volume
             U4DBoundingVolume* getNarrowPhaseBoundingVolume();
         
-            void setNarrowPhaseBoundingVolumeVisibility(bool uValue);
-            
             bool getNarrowPhaseBoundingVolumeVisibility();
-            
-            void updateNarrowPhaseBoundingVolumeSpace();
-        
-            //Broad Phase Bounding Volume
         
             U4DBoundingVolume* getBroadPhaseBoundingVolume();
         
-            void setBroadPhaseBoundingVolumeVisibility(bool uValue);
-            
             bool getBroadPhaseBoundingVolumeVisibility();
-            
-            void updateBroadPhaseBoundingVolumeSpace();
-        
-            void addCollisionContactPoint(U4DVector3n& uContactPoint);
-        
-            void setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection);
-            
-            void setCollisionPenetrationDepth(float uPenetrationDepth);
-        
-            void setNormalForce(U4DVector3n& uNormalForce);
         
             U4DVector3n getNormalForce();
         
@@ -171,15 +190,7 @@ namespace U4DEngine {
             
             float getCollisionPenetrationDepth();
         
-            void setModelHasCollided(bool uValue);
-        
             bool getModelHasCollided();
-        
-            void resetCollisionInformation();
-        
-            void setAsGround(bool uValue);
-        
-            bool getIsGround();
         
         };
     

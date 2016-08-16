@@ -145,7 +145,7 @@ namespace U4DEngine {
         
         //Set the new linear and angular velocities for the models
         
-        if (uModel1->isPhysicsApplied()) {
+        if (uModel1->isKineticsBehaviorEnabled()) {
             
             uModel1->setVelocity(newLinearVelocityOfModel1);
             
@@ -154,7 +154,7 @@ namespace U4DEngine {
         }
         
         
-        if(uModel2->isPhysicsApplied()){
+        if(uModel2->isKineticsBehaviorEnabled()){
             
             uModel2->setVelocity(newLinearVelocityOfModel2);
             

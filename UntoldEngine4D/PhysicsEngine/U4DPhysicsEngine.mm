@@ -55,7 +55,7 @@ namespace U4DEngine {
         }
         
         //determine energy condition of the model
-        uModel->determineEnergyMotion(dt);
+        uModel->computeModelKineticEnergy(dt);
         
         //clear all forces and moments
         uModel->clearForce();

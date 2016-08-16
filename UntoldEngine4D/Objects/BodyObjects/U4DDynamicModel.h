@@ -43,13 +43,13 @@ protected:
     
     U4DVector3n axisOfRotation; //axis of rotation for the model.
 
-    float energyMotion; //kinetic energy of the model
+    float modelKineticEnergy; //kinetic energy of the model
 
     float timeOfImpact; //time that the model will impact with another object
 
     bool equilibrium;   //equilibrium state of the model upon collision
     
-    bool affectedByPhysics;
+    bool kineticsEnabled;
     
     bool isAwake;
     
@@ -63,51 +63,68 @@ public:
     
     U4DDynamicModel& operator=(const U4DDynamicModel& value);
     
-    void clearForce();
+    //Add operations
     
     void addForce(U4DVector3n& uForce);
+    
+    void addMoment(U4DVector3n& uMoment);
+    
+    //Behavior operations
+    
+    void enableKineticsBehavior();
+    
+    void pauseKineticsBehavior();
+    
+    void resumeKineticsBehavior();
+    
+    bool isKineticsBehaviorEnabled();
+    
+    //Clear operations
+    
+    void clearForce();
+    
+    void clearMoment();
+    
+    //Set operations
+    
+    void setVelocity(U4DVector3n &uVelocity);
+    
+    void setAngularVelocity(U4DVector3n& uAngularVelocity);
+    
+    void setTimeOfImpact(float uTimeOfImpact);
+    
+    void setAxisOfRotation(U4DVector3n &uAxisOfRotation);
+    
+    void setAwake(bool uValue);
+    
+     void setEquilibrium(bool uValue);
+    
+    //Compute operations
+    
+    void computeModelKineticEnergy(float dt); //Determines the kinetic motion of the model
+    
+    //Reset operations
+    void resetTimeOfImpact();
+    
+    //Get operations
     
     U4DVector3n getForce();
     
     U4DVector3n getMoment();
     
-    void addMoment(U4DVector3n& uMoment);
-    
-    void clearMoment();
-
     U4DVector3n getVelocity() const;
-    
-    void setVelocity(U4DVector3n &uVelocity);
     
     U4DVector3n getAngularVelocity();
     
-    void setAngularVelocity(U4DVector3n& uAngularVelocity);
-    
-    void setAwake(bool uValue);
-    
     bool getAwake();
     
-    void determineEnergyMotion(float dt); //Determines the kinetic motion of the model
-    
-    float getEnergyMotion();
-    
-    void applyPhysics(bool uValue);
-    
-    bool isPhysicsApplied();
-    
-    void setTimeOfImpact(float uTimeOfImpact);
+    float getModelKineticEnergy();
     
     float getTimeOfImpact();
     
-    void setAxisOfRotation(U4DVector3n &uAxisOfRotation);
-    
     U4DVector3n getAxisOfRotation();
     
-    void setEquilibrium(bool uValue);
-    
     bool getEquilibrium();
-    
-    void resetTimeOfImpact();
     
 };
 
