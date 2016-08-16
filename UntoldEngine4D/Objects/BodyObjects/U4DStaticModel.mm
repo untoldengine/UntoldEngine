@@ -18,13 +18,13 @@ namespace U4DEngine {
     
     U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isGround(false){
         
-        setMass(1.0);
+        initMass(1.0);
         
         U4DVector3n centerOfMass(0.0,0.0,0.0);
         
-        setCenterOfMass(centerOfMass);
+        initCenterOfMass(centerOfMass);
         
-        setInertiaTensorType(cubicInertia);
+        initInertiaTensorType(cubicInertia);
         
         massProperties.intertiaTensorComputed=false;
         
@@ -35,7 +35,7 @@ namespace U4DEngine {
         sphereBoundingVolume=nullptr;
         
         //set all collision information to zero
-        resetCollisionInformation();
+        clearCollisionInformation();
         
     }
     
@@ -56,7 +56,7 @@ namespace U4DEngine {
     
     #pragma mark-mass
     //set mass of object
-    void U4DStaticModel::setMass(float uMass){
+    void U4DStaticModel::initMass(float uMass){
         
         
         massProperties.mass=uMass;
@@ -70,7 +70,7 @@ namespace U4DEngine {
     }
 
 
-    void U4DStaticModel::setCenterOfMass(U4DVector3n& uCenterOfMass){
+    void U4DStaticModel::initCenterOfMass(U4DVector3n& uCenterOfMass){
         
         massProperties.centerOfMass=uCenterOfMass;
         
@@ -86,7 +86,7 @@ namespace U4DEngine {
 
     #pragma mark-coefficient of Restitution
     //coefficient of restitution
-    void U4DStaticModel::setCoefficientOfRestitution(float uValue){
+    void U4DStaticModel::initCoefficientOfRestitution(float uValue){
 
          if (uValue>1.0) {
              coefficientOfRestitution=1.0;  //coefficient can't be greater than 1
@@ -103,7 +103,7 @@ namespace U4DEngine {
         return coefficientOfRestitution;
     }
     
-    void U4DStaticModel::setInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType){
+    void U4DStaticModel::initInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType){
         
         massProperties.inertiaTensorType=uInertiaTensorType;
     }
@@ -260,7 +260,7 @@ namespace U4DEngine {
     
     }
     
-    void U4DStaticModel::enableCollision(){
+    void U4DStaticModel::enableCollisionBehavior(){
         
         //test if the bounding volume object was previously created
         if(convexHullBoundingVolume==nullptr && sphereBoundingVolume==nullptr){
@@ -365,19 +365,19 @@ namespace U4DEngine {
         
     }
     
-    void U4DStaticModel::pauseCollision(){
+    void U4DStaticModel::pauseCollisionBehavior(){
         
         collisionEnabled=false;
     }
     
     
-    void U4DStaticModel::resumeCollision(){
+    void U4DStaticModel::resumeCollisionBehavior(){
         
         collisionEnabled=true;
     }
     
     
-    bool U4DStaticModel::isCollisionEnabled(){
+    bool U4DStaticModel::isCollisionBehaviorEnabled(){
         
         return collisionEnabled;
     
@@ -459,7 +459,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DStaticModel::resetCollisionInformation(){
+    void U4DStaticModel::clearCollisionInformation(){
         
         clearCollisionContactPoints();
         collisionProperties.contactManifoldProperties.normalFaceDirection.zero();
@@ -506,7 +506,7 @@ namespace U4DEngine {
         return collisionProperties.contactManifoldProperties.normalForce;
     }
     
-    void U4DStaticModel::setAsGround(bool uValue){
+    void U4DStaticModel::initAsGround(bool uValue){
         isGround=uValue;
     }
     
