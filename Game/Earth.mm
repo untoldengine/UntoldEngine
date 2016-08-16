@@ -46,36 +46,36 @@ void Earth::init(){
     floor=new Floor();
     floor->init("GroundFloor","blenderscript.u4d");
     
-    //create the rocket
-    rocket=new Rocket();
-    rocket->init("Rocket","blenderscript.u4d");
-    
-    //create mountain
-    mountain=new Mountain();
-    mountain->init("Mountain", "blenderscript.u4d");
-    
-    mountain2=new Mountain();
-    mountain2->init("Mountain2", "blenderscript.u4d");
-    
-    mountain3=new Mountain();
-    mountain3->init("Mountain3", "blenderscript.u4d");
-    
-    mountain4=new Mountain();
-    mountain4->init("Mountain4", "blenderscript.u4d");
-    
-    //create planet
-    planet=new Planet();
-    planet->init("Planet", "blenderscript.u4d");
-    
-    //create meteors
-    meteor1=new Meteor();
-    meteor1->init("Meteor1", "blenderscript.u4d");
-    
-    meteor2=new Meteor();
-    meteor2->init("Meteor2", "blenderscript.u4d");
+//    //create the rocket
+//    rocket=new Rocket();
+//    rocket->init("Rocket","blenderscript.u4d");
+//    
+//    //create mountain
+//    mountain=new Mountain();
+//    mountain->init("Mountain", "blenderscript.u4d");
+//    
+//    mountain2=new Mountain();
+//    mountain2->init("Mountain2", "blenderscript.u4d");
+//    
+//    mountain3=new Mountain();
+//    mountain3->init("Mountain3", "blenderscript.u4d");
+//    
+//    mountain4=new Mountain();
+//    mountain4->init("Mountain4", "blenderscript.u4d");
+//    
+//    //create planet
+//    planet=new Planet();
+//    planet->init("Planet", "blenderscript.u4d");
+//    
+//    //create meteors
+//    meteor1=new Meteor();
+//    meteor1->init("Meteor1", "blenderscript.u4d");
+//    
+//    meteor2=new Meteor();
+//    meteor2->init("Meteor2", "blenderscript.u4d");
     
     meteor3=new Meteor();
-    meteor3->init("Meteor3", "blenderscript.u4d");
+    meteor3->init("Cube", "blenderscript.u4d");
 
     U4DVector3n origin(0,0,0);
     
@@ -86,14 +86,14 @@ void Earth::init(){
     light->viewInDirection(origin);
     
     addChild(floor);
-    addChild(rocket);
-    addChild(mountain);
-    addChild(mountain2);
-    addChild(mountain3);
-    addChild(mountain4);
-    addChild(planet);
-    addChild(meteor1);
-    addChild(meteor2);
+//    addChild(rocket);
+//    addChild(mountain);
+//    addChild(mountain2);
+//    addChild(mountain3);
+//    addChild(mountain4);
+//    addChild(planet);
+//    addChild(meteor1);
+//    addChild(meteor2);
     addChild(meteor3);
 
     
@@ -113,7 +113,7 @@ void Earth::update(double dt){
 
 void Earth::action(){
     
-    setEntityControlledByController(rocket);
+    //setEntityControlledByController(rocket);
     
 }
 

@@ -12,7 +12,6 @@
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
 #include "U4DConvexHullAlgorithm.h"
-#include "CommonProtocols.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {
@@ -25,7 +24,9 @@ namespace U4DEngine {
         
         setCenterOfMass(centerOfMass);
         
-        setInertiaTensor(1.0,1.0,1.0);
+        setInertiaTensorType(cubicInertia);
+        
+        massProperties.intertiaTensorComputed=false;
         
         //set the convex hull bounding volume to null
         convexHullBoundingVolume=nullptr;
@@ -101,41 +102,110 @@ namespace U4DEngine {
 
         return coefficientOfRestitution;
     }
+    
+    void U4DStaticModel::setInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType){
+        
+        massProperties.inertiaTensorType=uInertiaTensorType;
+    }
+    
+    INERTIATENSORTYPE U4DStaticModel::getInertiaTensorType(){
+        
+        return massProperties.inertiaTensorType;
+    }
 
     #pragma mark-inertia tensor
     //set and get the intertia tensor
 
-    void U4DStaticModel::setInertiaTensor(float uX, float uY, float uZ){
+    void U4DStaticModel::computeInertiaTensor(){
         
-        U4DMatrix3n tensor;
+        //if the inertia tensor hasn't been computed for the body, then computed. I check this to avoid multiple computations of the inertia tensor. for example, when the collision or physics behaviors are enabled.
         
-        //	0	3	6
-        //	1	4	7
-        //	2	5	8
+        if (massProperties.intertiaTensorComputed==false) {
+            
+            U4DMatrix3n tensor;
+            
+            //	0	3	6
+            //	1	4	7
+            //	2	5	8
+            
+            float Ixx=0.0;
+            float Iyy=0.0;
+            float Izz=0.0;
+            
+            float Ixy=0.0;
+            float Ixz=0.0;
+            float Iyz=0.0;
+            
+            //get inertia tensor type
+            INERTIATENSORTYPE inertiaType=getInertiaTensorType();
+            
+            //Get body dimensions
+            float uX=bodyCoordinates.getModelDimension().x;
+            float uY=bodyCoordinates.getModelDimension().y;
+            float uZ=bodyCoordinates.getModelDimension().z;
+            
+            if (inertiaType==sphericalInertia) {
+                
+                uX=uX/2.0;
+                uY=uY/2.0;
+                uZ=uZ/2.0;
+                
+                //Inertia Tensor for spherical bodies
+                Ixx=(2*uX*uX)*massProperties.mass/5.0;
+                Iyy=(2*uX*uX)*massProperties.mass/5.0;
+                Izz=(2*uX*uX)*massProperties.mass/5.0;
+                
+                Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
+                Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
+                Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
+                
+            }else if(inertiaType==cylindricalInertia){
+                //Inertia Tensor for cylindrical bodies
+                
+                
+                uX=uX/2.0;
+                
+                Ixx=(3*uX*uX+uY*uY)*massProperties.mass/12.0;
+                Iyy=(3*uX*uX+uY*uY)*massProperties.mass/12.0;
+                Izz=(uX*uX)*massProperties.mass/2.0;
+                
+                Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
+                Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
+                Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
+                
+                
+            }else{
+                
+                
+                //Inertia Tensor for cubic bodies
+                Ixx=(uY*uY+uZ*uZ)*massProperties.mass/12.0;
+                Iyy=(uX*uX+uZ*uZ)*massProperties.mass/12.0;
+                Izz=(uX*uX+uY*uY)*massProperties.mass/12.0;
         
-        float Ixx=(uY*uY+uZ*uZ)*massProperties.mass/12.0;
-        float Iyy=(uX*uX+uZ*uZ)*massProperties.mass/12.0;
-        float Izz=(uX*uX+uY*uY)*massProperties.mass/12.0;
-        
-        float Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
-        float Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
-        float Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
-        
-        tensor.matrixData[0]=Ixx;
-        tensor.matrixData[4]=Iyy;
-        tensor.matrixData[8]=Izz;
-        
-        tensor.matrixData[3]=-Ixy;
-        tensor.matrixData[6]=-Ixz;
-        tensor.matrixData[7]=Iyz;
-        
-        tensor.matrixData[1]=-Ixy;
-        tensor.matrixData[2]=-Ixz;
-        tensor.matrixData[5]=-Iyz;
-        
-        
-        massProperties.momentOfInertiaTensor=tensor;
-        massProperties.inverseMomentOfInertiaTensor=tensor.inverse();
+                Ixy=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.y);
+                Ixz=massProperties.mass*(massProperties.centerOfMass.x*massProperties.centerOfMass.z);
+                Iyz=massProperties.mass*(massProperties.centerOfMass.y*massProperties.centerOfMass.z);
+            }
+            
+
+            tensor.matrixData[0]=Ixx;
+            tensor.matrixData[4]=Iyy;
+            tensor.matrixData[8]=Izz;
+            
+            tensor.matrixData[3]=-Ixy;
+            tensor.matrixData[6]=-Ixz;
+            tensor.matrixData[7]=Iyz;
+            
+            tensor.matrixData[1]=-Ixy;
+            tensor.matrixData[2]=-Ixz;
+            tensor.matrixData[5]=-Iyz;
+            
+            
+            massProperties.momentOfInertiaTensor=tensor;
+            massProperties.inverseMomentOfInertiaTensor=tensor.inverse();
+            
+            massProperties.intertiaTensorComputed=true;
+        }
     }
 
 
@@ -151,48 +221,7 @@ namespace U4DEngine {
 
     }
 
-
-    void U4DStaticModel::integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2){
-
-    float temp0=w0+w1;
-    f1=temp0+w2;
-
-    float temp1=w0*w0;
-
-    float temp2=temp1+w1*temp0;
-
-    f2=temp2+w2*f1;
-
-    f3=w0*temp1+w1*temp2+w2*f2;
-
-    g0=f2+w0*(f1+w0);
-    g1=f2+w1*(f1+w1);
-    g2=f2+w2*(f1+w2);
-
-
-    }
-
-    /*
-    void U4DStaticModel::setVertexDistanceFromCenterOfMass(){
-        
-        //clear the center of mass distance from vertices
-        massProperties.vertexDistanceFromCenterOfMass.clear();
-        
-        std::vector<U4DVector3n> vertices=narrowPhaseBoundingVolume->getVerticesInConvexPolygon();
-       
-        for (int i=0; i<vertices.size(); i++) {
-            
-            U4DVector3n distance=massProperties.centerOfMass-vertices.at(i);
-        
-            massProperties.vertexDistanceFromCenterOfMass.push_back(distance);
-            
-        }
-       
-    }
-     
-     */
-    
-    
+   
     void U4DStaticModel::updateConvexHullVertices(){
         
         //update the position of the convex hull vertices
@@ -236,17 +265,8 @@ namespace U4DEngine {
         //test if the bounding volume object was previously created
         if(convexHullBoundingVolume==nullptr && sphereBoundingVolume==nullptr){
             
-            //Get body dimensions
-            float xDimension=bodyCoordinates.getModelDimension().x;
-            float yDimension=bodyCoordinates.getModelDimension().y;
-            float zDimension=bodyCoordinates.getModelDimension().z;
-            
-            //set model longest dimension
-            float longestModelDimension=MAX(xDimension, yDimension);
-            longestModelDimension=MAX(longestModelDimension, zDimension);
-            
-            //set inertia tensor
-            setInertiaTensor(xDimension/2.0, yDimension/2.0, zDimension/2.0);
+            //compute the inertia tensor
+            computeInertiaTensor();
             
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();
@@ -293,6 +313,15 @@ namespace U4DEngine {
                     bodyCoordinates.addConvexHullFacesDataToContainer(face);
                     
                 }
+                
+                //Get body dimensions
+                float xDimension=bodyCoordinates.getModelDimension().x;
+                float yDimension=bodyCoordinates.getModelDimension().y;
+                float zDimension=bodyCoordinates.getModelDimension().z;
+                
+                //set model longest dimension
+                float longestModelDimension=MAX(xDimension, yDimension);
+                longestModelDimension=MAX(longestModelDimension, zDimension);
                 
                 if (getIsGround()) {
                     
@@ -345,10 +374,6 @@ namespace U4DEngine {
     void U4DStaticModel::resumeCollision(){
         
         collisionEnabled=true;
-    }
-    
-    void U4DStaticModel::allowCollisionWith(){
-        
     }
     
     

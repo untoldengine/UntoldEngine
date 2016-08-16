@@ -145,7 +145,11 @@ namespace U4DEngine {
     
     void U4DDynamicModel::applyPhysics(bool uValue){
         
+        //make sure that the inertia tensor has been computed before applying physics
+        computeInertiaTensor();
+        
         affectedByPhysics=uValue;
+        
     }
     
     bool U4DDynamicModel::isPhysicsApplied(){

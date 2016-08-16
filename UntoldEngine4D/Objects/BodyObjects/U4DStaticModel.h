@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include "U4DModel.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -29,9 +30,11 @@ namespace U4DEngine {
     typedef struct{
         
         float mass=0.0;
+        INERTIATENSORTYPE inertiaTensorType;
         U4DVector3n centerOfMass;
         U4DMatrix3n momentOfInertiaTensor;
         U4DMatrix3n inverseMomentOfInertiaTensor;
+        bool intertiaTensorComputed;
         
     }MassProperties;
 
@@ -104,14 +107,16 @@ namespace U4DEngine {
             void setCoefficientOfRestitution(float uValue);
             
             float getCoefficientOfRestitution();
-            
-            void setInertiaTensor(float uLength, float uWidth, float uHeight);
+        
+            void setInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType);
+        
+            INERTIATENSORTYPE getInertiaTensorType();
+        
+            void computeInertiaTensor();
             
             U4DMatrix3n getMomentOfInertiaTensor();
             
             U4DMatrix3n getInverseMomentOfInertiaTensor();
-            
-            void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
         
             void updateConvexHullVertices();
         
@@ -128,8 +133,6 @@ namespace U4DEngine {
             void resumeCollision();
             
             bool isCollisionEnabled();
-            
-            void allowCollisionWith();
         
             //Narrow Phase Bounding Volume
             U4DBoundingVolume* getNarrowPhaseBoundingVolume();

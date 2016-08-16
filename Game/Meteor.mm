@@ -8,7 +8,6 @@
 
 #include "Meteor.h"
 
-
 Meteor::Meteor(){
     
 }
@@ -22,18 +21,22 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-//        translateTo(0.0,5.0,0.0);
-//        //rotateTo(0.0,20.0,60.0);
-//        enableCollision();
-//        applyPhysics(true);
-//        setCoefficientOfRestitution(0.7);
-//        //setShader("gouraudShader");
+        translateTo(0.0,5.0,0.0);
+        rotateTo(0.0,0.0,60.0);
+        
+        
+       // setCoefficientOfRestitution(0.9);
+        
+        enableCollision();
+        applyPhysics(true);
+        
+        setShader("gouraudShader");
         
     }
 }
 
 void Meteor::update(double dt){
     
-    rotateBy(0.0,1.0,0.0);
+    //rotateBy(0.0,1.0,0.0);
     
 }
