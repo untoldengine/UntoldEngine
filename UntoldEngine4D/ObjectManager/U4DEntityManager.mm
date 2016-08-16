@@ -182,7 +182,7 @@ namespace U4DEngine {
             
             if (model) {
             
-                if (model->isPhysicsApplied()==true) {
+                if (model->isKineticsBehaviorEnabled()==true) {
                     
                     physicsEngine->updatePhysicForces(model, dt);
                     

@@ -22,13 +22,10 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         translateTo(0.0,5.0,0.0);
-        rotateTo(0.0,0.0,60.0);
-        
-        
-       // setCoefficientOfRestitution(0.9);
-        
+        //rotateTo(0.0,0.0,20.0);
+    
         enableCollisionBehavior();
-        applyPhysics(true);
+        enableKineticsBehavior();
         
         setShader("gouraudShader");
         

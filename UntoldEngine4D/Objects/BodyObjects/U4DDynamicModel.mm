@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():affectedByPhysics(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),energyMotion(0.0),equilibrium(false){
+    U4DDynamicModel::U4DDynamicModel():kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false){
     };
     
 
@@ -97,7 +97,7 @@ namespace U4DEngine {
             isAwake=true;
             
             //Add a bit of motion to avoid model from falling asleep immediately.
-            energyMotion=U4DEngine::sleepEpsilon*2.0f;
+            modelKineticEnergy=U4DEngine::sleepEpsilon*2.0f;
             
         }else{
             //set model to sleep and zero out velocity and forces
@@ -118,43 +118,52 @@ namespace U4DEngine {
 
     #pragma mark-energy motion
     //energy motion
-    void U4DDynamicModel::determineEnergyMotion(float dt){
+    void U4DDynamicModel::computeModelKineticEnergy(float dt){
         
         float currentEnergyMotion=velocity.dot(velocity)+angularVelocity.dot(angularVelocity);
         
         float bias=pow(U4DEngine::sleepBias,dt);
         
-        energyMotion=bias*energyMotion+(1-bias)*currentEnergyMotion;
+        modelKineticEnergy=bias*modelKineticEnergy+(1-bias)*currentEnergyMotion;
         
-        if (energyMotion<U4DEngine::sleepEpsilon && equilibrium==true) {
+        if (modelKineticEnergy<U4DEngine::sleepEpsilon && equilibrium==true) {
             
             setAwake(false);
             
-        }else if (energyMotion>10*U4DEngine::sleepEpsilon){
+        }else if (modelKineticEnergy>10*U4DEngine::sleepEpsilon){
             
-            energyMotion=10*U4DEngine::sleepEpsilon;
+            modelKineticEnergy=10*U4DEngine::sleepEpsilon;
         
         }
         
     }
 
-    float U4DDynamicModel::getEnergyMotion(){
+    float U4DDynamicModel::getModelKineticEnergy(){
         
-        return energyMotion;
+        return modelKineticEnergy;
     }
     
-    void U4DDynamicModel::applyPhysics(bool uValue){
+    void U4DDynamicModel::enableKineticsBehavior(){
         
         //make sure that the inertia tensor has been computed before applying physics
         computeInertiaTensor();
         
-        affectedByPhysics=uValue;
+        kineticsEnabled=true;
         
     }
     
-    bool U4DDynamicModel::isPhysicsApplied(){
+    void U4DDynamicModel::pauseKineticsBehavior(){
         
-        return affectedByPhysics;
+        kineticsEnabled=false;
+    }
+    
+    void U4DDynamicModel::resumeKineticsBehavior(){
+        kineticsEnabled=true;
+    }
+    
+    bool U4DDynamicModel::isKineticsBehaviorEnabled(){
+        
+        return kineticsEnabled;
         
     }
     
