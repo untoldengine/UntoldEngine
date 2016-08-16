@@ -113,7 +113,7 @@ void Earth::update(double dt){
 
 void Earth::action(){
     
-    setEntityControlledByController(this);
+    //setEntityControlledByController(rocket);
     
 }
 

@@ -57,8 +57,8 @@ void GameController::action(){
     
     U4DEngine::U4DVector3n axisOrientation(0,1,0);
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //camera->rotateBy(-data.x, axisOrientation);
-    controlledU4DObject->rotateBy(-data.x, axisOrientation);
+    camera->rotateBy(-data.x, axisOrientation);
+    //controlledU4DObject->rotateBy(-data.x, axisOrientation);
 }
 
 void GameController::forward(){

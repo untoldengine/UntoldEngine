@@ -187,10 +187,10 @@ namespace U4DEngine {
     };
     
     typedef enum{
-        cubicBody,
-        sphericalBody,
-        cylindricalBody
-    }MODELBODYTYPE;
+        cubicInertia,
+        sphericalInertia,
+        cylindricalInertia
+    }INERTIATENSORTYPE;
     
 }
 

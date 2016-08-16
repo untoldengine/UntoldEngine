@@ -22,11 +22,14 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         translateTo(0.0,5.0,0.0);
-        rotateTo(0.0,0.0,20.0);
+        rotateTo(0.0,0.0,60.0);
         
-        enableCollision(U4DEngine::cylindricalBody);
+        
+       // setCoefficientOfRestitution(0.9);
+        
+        enableCollision();
         applyPhysics(true);
-        setCoefficientOfRestitution(0.9);
+        
         setShader("gouraudShader");
         
     }

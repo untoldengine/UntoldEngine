@@ -23,8 +23,9 @@ void Floor::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         setAsGround(true);
-        enableCollision(U4DEngine::cubicBody);
-        setCoefficientOfRestitution(0.9);
+        
+        enableCollision();
+        
         //setShader("gouraudShader");
     }
 }
