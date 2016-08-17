@@ -63,10 +63,10 @@ void Earth::init(){
 //    mountain4=new Mountain();
 //    mountain4->init("Mountain4", "blenderscript.u4d");
 //    
-//    //create planet
-//    planet=new Planet();
-//    planet->init("Planet", "blenderscript.u4d");
-//    
+    //create planet
+    planet=new Planet();
+    planet->init("Cube", "blenderscript.u4d");
+//
 //    //create meteors
 //    meteor1=new Meteor();
 //    meteor1->init("Meteor1", "blenderscript.u4d");
@@ -74,9 +74,11 @@ void Earth::init(){
 //    meteor2=new Meteor();
 //    meteor2->init("Meteor2", "blenderscript.u4d");
     
+    
     meteor3=new Meteor();
-    meteor3->init("Cube", "blenderscript.u4d");
-
+    meteor3->init("Prism", "blenderscript.u4d");
+   
+    
     U4DVector3n origin(0,0,0);
     
     camera->viewInDirection(origin);
@@ -91,7 +93,7 @@ void Earth::init(){
 //    addChild(mountain2);
 //    addChild(mountain3);
 //    addChild(mountain4);
-//    addChild(planet);
+    addChild(planet);
 //    addChild(meteor1);
 //    addChild(meteor2);
     addChild(meteor3);

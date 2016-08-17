@@ -21,9 +21,11 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        translateTo(0.0,5.0,0.0);
-        rotateTo(0.0,0.0,20.0);
+        translateTo(3.0,5.0,0.0);
+        rotateTo(90.0,0.0,0.0);
     
+        //initMass(5.0);
+        initCoefficientOfRestitution(0.9);
         enableCollisionBehavior();
         enableKineticsBehavior();
         

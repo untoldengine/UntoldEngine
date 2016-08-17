@@ -16,7 +16,7 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isFloor(false){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isInfinitePlatform(false){
         
         initMass(1.0);
         
@@ -323,7 +323,7 @@ namespace U4DEngine {
                 float longestModelDimension=MAX(xDimension, yDimension);
                 longestModelDimension=MAX(longestModelDimension, zDimension);
                 
-                if (getIsFloor()) {
+                if (getIsInfinitePlatform()) {
                     
                     //create a AABB bounding volume
                     sphereBoundingVolume=new U4DBoundingAABB();
@@ -506,12 +506,12 @@ namespace U4DEngine {
         return collisionProperties.contactManifoldProperties.normalForce;
     }
     
-    void U4DStaticModel::initAsFloor(bool uValue){
-        isFloor=uValue;
+    void U4DStaticModel::initAsInfinitePlatform(bool uValue){
+        isInfinitePlatform=uValue;
     }
     
-    bool U4DStaticModel::getIsFloor(){
-        return isFloor;
+    bool U4DStaticModel::getIsInfinitePlatform(){
+        return isInfinitePlatform;
     }
     
 }
