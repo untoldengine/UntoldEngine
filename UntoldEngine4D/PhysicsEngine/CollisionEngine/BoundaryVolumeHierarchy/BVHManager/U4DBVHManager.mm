@@ -45,7 +45,7 @@ namespace U4DEngine{
     
     void U4DBVHManager::addModelToTreeContainer(U4DDynamicModel* uModel){
         
-        if (!uModel->getIsFloor()) {
+        if (!uModel->getIsInfinitePlatform()) {
             
             modelsContainer.push_back(uModel);
             

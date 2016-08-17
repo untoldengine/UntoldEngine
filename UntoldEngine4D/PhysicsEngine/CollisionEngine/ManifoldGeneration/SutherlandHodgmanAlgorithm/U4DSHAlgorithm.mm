@@ -37,34 +37,35 @@ namespace U4DEngine {
         
         float direction=collisionPlane.magnitudeSquareOfPointToPlane(pointInformation.point);
 
+        
         if (direction>U4DEngine::planeBoundaryEpsilon) {
             
             pointInformation.location=insidePlane;
-
+            
         }else{
             
             if (direction<-U4DEngine::planeBoundaryEpsilon) {
                 
                 pointInformation.location=outsidePlane;
-
+                
                 
             }else{
                 
                 pointInformation.location=boundaryPlane;
-
+                
             }
             
         }
         
        
-        if (pointInformation.location==outsidePlane|| pointInformation.location==boundaryPlane) {
+        if (pointInformation.location==outsidePlane ) {
             
             uModel1->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             
             uModel2->setCollisionNormalFaceDirection(negateContactNormal);
             
             
-        }else if(pointInformation.location==insidePlane ){
+        }else if(pointInformation.location==insidePlane || pointInformation.location==boundaryPlane){
             
             uModel2->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             

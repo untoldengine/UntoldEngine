@@ -82,7 +82,7 @@ namespace U4DEngine {
         
             float coefficientOfRestitution;
         
-            bool isFloor;
+            bool isInfinitePlatform;
         
         protected:
             
@@ -105,7 +105,7 @@ namespace U4DEngine {
             
             void initInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType);
             
-            void initAsFloor(bool uValue);
+            void initAsInfinitePlatform(bool uValue);
         
             //Set Operations
         
@@ -162,7 +162,7 @@ namespace U4DEngine {
             
             INERTIATENSORTYPE getInertiaTensorType();
             
-            bool getIsFloor();
+            bool getIsInfinitePlatform();
         
             U4DMatrix3n getMomentOfInertiaTensor();
             
