@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false){
+    U4DDynamicModel::U4DDynamicModel():kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false),gravity(0.0,-10.0,0.0),dragCoefficient(0.9,0.9){
     };
     
 
@@ -200,7 +200,38 @@ namespace U4DEngine {
         
         timeOfImpact=1.0; //no collision
     }
-
+    
+    void U4DDynamicModel::setGravity(U4DVector3n& uGravity){
+    
+        gravity=uGravity;
+    }
+    
+    U4DVector3n U4DDynamicModel::getGravity(){
+        return gravity;
+    }
+    
+    void U4DDynamicModel::resetGravity(){
+        
+        gravity=U4DVector3n(0.0,-10.0,0.0);
+        
+    }
+    
+    void U4DDynamicModel::setDragCoefficient(U4DVector2n& uDragCoefficient){
+        
+        dragCoefficient=uDragCoefficient;
+    }
+    
+    U4DVector2n U4DDynamicModel::getDragCoefficient(){
+        
+        return dragCoefficient;
+    }
+    
+    void U4DDynamicModel::resetDragCoefficient(){
+        
+        dragCoefficient=U4DVector2n(0.9,0.9);
+    }
+    
+    
 }
 
 

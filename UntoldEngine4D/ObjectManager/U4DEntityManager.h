@@ -80,9 +80,6 @@ namespace U4DEngine {
         
         void setRootEntity(U4DVisibleEntity* uRootEntity);
         
-        void setGravity(U4DVector3n& uGravity);
-        
-        
     };
     
 }

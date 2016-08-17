@@ -17,12 +17,6 @@ namespace U4DEngine {
 class U4DDragForceGenerator:public U4DBodyForceGenerator{
   
     private:
-
-        //velocity drag coefficient
-        float k1;
-        
-        //velocity squared drag coefficient
-        float k2;
         
     public:
         
@@ -31,9 +25,6 @@ class U4DDragForceGenerator:public U4DBodyForceGenerator{
         ~U4DDragForceGenerator();
     
         void updateForce(U4DDynamicModel *uModel, float dt);
-        
-        void updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt){};
-        
         
     };
 

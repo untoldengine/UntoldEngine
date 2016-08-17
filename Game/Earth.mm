@@ -76,7 +76,7 @@ void Earth::init(){
     
     
     meteor3=new Meteor();
-    meteor3->init("Prism", "blenderscript.u4d");
+    meteor3->init("Cube", "blenderscript.u4d");
    
     
     U4DVector3n origin(0,0,0);
@@ -93,7 +93,7 @@ void Earth::init(){
 //    addChild(mountain2);
 //    addChild(mountain3);
 //    addChild(mountain4);
-    addChild(planet);
+    //addChild(planet);
 //    addChild(meteor1);
 //    addChild(meteor2);
     addChild(meteor3);

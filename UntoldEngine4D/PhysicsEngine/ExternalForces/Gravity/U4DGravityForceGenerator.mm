@@ -21,9 +21,9 @@ namespace U4DEngine {
         
     }
 
-    void U4DGravityForceGenerator::updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt){
+    void U4DGravityForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
         
-        U4DVector3n force=uGravity*uModel->getMass();
+        U4DVector3n force=uModel->getGravity()*uModel->getMass();
         
         uModel->addForce(force);
         

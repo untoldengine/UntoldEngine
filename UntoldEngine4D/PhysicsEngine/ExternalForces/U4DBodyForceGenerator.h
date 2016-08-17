@@ -24,8 +24,6 @@ namespace U4DEngine {
         
     public:
         
-        virtual void updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt)=0;
-        
         virtual void updateForce(U4DDynamicModel *uModel, float dt)=0;
         
     };

@@ -182,8 +182,6 @@
 		03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A417EE29FD00712ECD /* U4DOpenGLGeometry.mm */; };
 		03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */; };
 		03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */; };
-		03FBE3F01BF6EC1B007E837F /* U4DNormalForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FBE3EE1BF6EC1B007E837F /* U4DNormalForceGenerator.mm */; settings = {ASSET_TAGS = (); }; };
-		03FBE3F41BFB9394007E837F /* U4DTorqueForceGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FBE3F21BFB9394007E837F /* U4DTorqueForceGenerator.mm */; settings = {ASSET_TAGS = (); }; };
 		03FD1E641D44238B00687FD0 /* uvExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03FD1E631D44238B00687FD0 /* uvExample.png */; settings = {ASSET_TAGS = (); }; };
 /* End PBXBuildFile section */
 
@@ -482,10 +480,6 @@
 		03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLImage.mm; sourceTree = "<group>"; };
 		03F862A717EE29FD00712ECD /* U4DOpenGLManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLManager.h; sourceTree = "<group>"; };
 		03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLManager.mm; sourceTree = "<group>"; };
-		03FBE3EE1BF6EC1B007E837F /* U4DNormalForceGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DNormalForceGenerator.mm; path = Normal/U4DNormalForceGenerator.mm; sourceTree = "<group>"; };
-		03FBE3EF1BF6EC1B007E837F /* U4DNormalForceGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DNormalForceGenerator.h; path = Normal/U4DNormalForceGenerator.h; sourceTree = "<group>"; };
-		03FBE3F21BFB9394007E837F /* U4DTorqueForceGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DTorqueForceGenerator.mm; path = Torque/U4DTorqueForceGenerator.mm; sourceTree = "<group>"; };
-		03FBE3F31BFB9394007E837F /* U4DTorqueForceGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DTorqueForceGenerator.h; path = Torque/U4DTorqueForceGenerator.h; sourceTree = "<group>"; };
 		03FD1E631D44238B00687FD0 /* uvExample.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = uvExample.png; path = Resources/uvExample.png; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
@@ -1194,8 +1188,6 @@
 			isa = PBXGroup;
 			children = (
 				039174FD1CD56C0200FD2674 /* RestingForces */,
-				03FBE3F11BFB934A007E837F /* Torque */,
-				03FBE3ED1BF6EBB2007E837F /* Normal */,
 				03E6EDC11943D816007AD131 /* Drag */,
 				03E6EDC41943D816007AD131 /* Gravity */,
 				03E6EDC71943D816007AD131 /* U4DBodyForceGenerator.h */,
@@ -1306,24 +1298,6 @@
 			name = OpenGLManager;
 			path = UntoldEngine4D/OpenGLManager;
 			sourceTree = SOURCE_ROOT;
-		};
-		03FBE3ED1BF6EBB2007E837F /* Normal */ = {
-			isa = PBXGroup;
-			children = (
-				03FBE3EF1BF6EC1B007E837F /* U4DNormalForceGenerator.h */,
-				03FBE3EE1BF6EC1B007E837F /* U4DNormalForceGenerator.mm */,
-			);
-			name = Normal;
-			sourceTree = "<group>";
-		};
-		03FBE3F11BFB934A007E837F /* Torque */ = {
-			isa = PBXGroup;
-			children = (
-				03FBE3F31BFB9394007E837F /* U4DTorqueForceGenerator.h */,
-				03FBE3F21BFB9394007E837F /* U4DTorqueForceGenerator.mm */,
-			);
-			name = Torque;
-			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
@@ -1464,13 +1438,11 @@
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
-				03FBE3F01BF6EC1B007E837F /* U4DNormalForceGenerator.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03D559DC1D53D14A00E567D5 /* Planet.mm in Sources */,
-				03FBE3F41BFB9394007E837F /* U4DTorqueForceGenerator.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,

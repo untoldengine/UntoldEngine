@@ -33,9 +33,6 @@ namespace U4DEngine {
         //set the physics engine
         physicsEngine=new U4DPhysicsEngine();
         
-        U4DVector3n gravity(0,-10,0);
-        physicsEngine->setGravity(gravity);
-        
         //set the integrator method
         integratorMethod=new U4DRungaKuttaMethod();
         physicsEngine->setIntegrator(integratorMethod);
@@ -71,12 +68,6 @@ namespace U4DEngine {
     void U4DEntityManager::setRootEntity(U4DVisibleEntity* uRootEntity){
         
         rootEntity=uRootEntity;
-        
-    }
-
-    void U4DEntityManager::setGravity(U4DVector3n& uGravity){
-        
-        physicsEngine->setGravity(uGravity);
         
     }
 

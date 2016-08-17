@@ -26,13 +26,11 @@ namespace U4DEngine {
         
         ~U4DRestingForcesGenerator();
         
-        void updateForce(U4DDynamicModel *uModel, float dt){};
+        void updateForce(U4DDynamicModel *uModel, float dt);
         
-        void updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt);
+        void generateNormalForce(U4DDynamicModel *uModel);
         
-        void generateNormalForce(U4DDynamicModel *uModel, U4DVector3n& uGravity);
-        
-        void generateTorqueForce(U4DDynamicModel *uModel, U4DVector3n& uGravity);
+        void generateTorqueForce(U4DDynamicModel *uModel);
         
     };
 }
