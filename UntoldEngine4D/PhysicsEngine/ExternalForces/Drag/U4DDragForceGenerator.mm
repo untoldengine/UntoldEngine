@@ -10,7 +10,7 @@
 
 namespace U4DEngine {
     
-    U4DDragForceGenerator::U4DDragForceGenerator():k1(0.9),k2(0.9){
+    U4DDragForceGenerator::U4DDragForceGenerator(){
     
     }
     
@@ -20,17 +20,22 @@ namespace U4DEngine {
     
     void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
 
+        U4DVector2n dragCoefficient=uModel->getDragCoefficient();
+        
+        float k1=dragCoefficient.x;
+        float k2=dragCoefficient.y;
+        
         U4DVector3n linearDrag;
-        float dragCoeff;
+        float forceDragCoeff;
         
         linearDrag=uModel->getVelocity();
-        dragCoeff=linearDrag.magnitude();
+        forceDragCoeff=linearDrag.magnitude();
         
-        dragCoeff=k1*dragCoeff+k2*dragCoeff*dragCoeff;
+        forceDragCoeff=k1*forceDragCoeff+k2*forceDragCoeff*forceDragCoeff;
         
         //calculate the final force and apply it
         linearDrag.normalize();
-        linearDrag*=-dragCoeff;
+        linearDrag*=-forceDragCoeff;
         
         uModel->addForce(linearDrag);
         

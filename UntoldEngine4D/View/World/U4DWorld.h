@@ -36,10 +36,7 @@ private:
     
     U4DControllerInterface *gameController;
     
-    bool gridEnabled;
     bool shadowsEnabled;
-    
-    U4DVector3n gravity;
     
 public:
     U4DEntityManager *entityManager;
@@ -77,12 +74,7 @@ public:
     void endShadowMapPass();
     
     void getShadows();
-    
-    void setGravity(U4DVector3n& uGravity);
-    
-    U4DVector3n getGravity();
-    
-    
+
 };
     
 }

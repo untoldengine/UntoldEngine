@@ -33,8 +33,6 @@ namespace U4DEngine {
         
         U4DRestingForcesGenerator restingForces;
         
-        U4DVector3n gravity;
-        
     protected:
 
         
@@ -50,10 +48,6 @@ namespace U4DEngine {
         void setIntegrator(U4DIntegrator *uIntegrator);
         
         void integrate(U4DDynamicModel *uModel,float dt);
-        
-        void setGravity(U4DVector3n& uGravity);
-        
-        U4DVector3n getGravity();
         
         void update(float dt);
         

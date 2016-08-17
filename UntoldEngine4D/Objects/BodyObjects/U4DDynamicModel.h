@@ -42,6 +42,10 @@ protected:
     U4DVector3n moment;
     
     U4DVector3n axisOfRotation; //axis of rotation for the model.
+    
+    U4DVector3n gravity;
+    
+    U4DVector2n dragCoefficient;
 
     float modelKineticEnergy; //kinetic energy of the model
 
@@ -97,7 +101,11 @@ public:
     
     void setAwake(bool uValue);
     
-     void setEquilibrium(bool uValue);
+    void setEquilibrium(bool uValue);
+    
+    void setGravity(U4DVector3n& uGravity);
+    
+    void setDragCoefficient(U4DVector2n& uDragCoefficient);
     
     //Compute operations
     
@@ -105,6 +113,10 @@ public:
     
     //Reset operations
     void resetTimeOfImpact();
+    
+    void resetGravity();
+    
+    void resetDragCoefficient();
     
     //Get operations
     
@@ -125,6 +137,10 @@ public:
     U4DVector3n getAxisOfRotation();
     
     bool getEquilibrium();
+    
+    U4DVector3n getGravity();
+    
+    U4DVector2n getDragCoefficient();
     
 };
 

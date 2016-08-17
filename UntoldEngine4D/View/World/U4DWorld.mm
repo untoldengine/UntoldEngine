@@ -14,7 +14,7 @@
 namespace U4DEngine {
     
     //constructor
-    U4DWorld::U4DWorld():gravity(0.0,0.0,0.0),gridEnabled(false),shadowsEnabled(false){
+    U4DWorld::U4DWorld():shadowsEnabled(false){
         
         entityManager=new U4DEntityManager();
         entityManager->setRootEntity(this);
@@ -122,20 +122,6 @@ namespace U4DEngine {
             child=child->next;
         }
         
-    }
-
-    void U4DWorld::setGravity(U4DVector3n& uGravity){
-     
-        gravity=uGravity;
-        
-        entityManager->setGravity(gravity);
-        
-    }
-
-    U4DVector3n U4DWorld::getGravity(){
-        
-       return gravity;
-
     }
 
 }

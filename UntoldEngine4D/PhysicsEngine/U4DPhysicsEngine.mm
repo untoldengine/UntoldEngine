@@ -32,12 +32,12 @@ namespace U4DEngine {
         if (uModel->getAwake()) {
             
             //add all the forces for that body
-            gravityForce.updateForce(uModel, gravity, dt);
+            gravityForce.updateForce(uModel, dt);
             
             if (uModel->getModelHasCollided()) {
                 
                 //determine resting forces
-                restingForces.updateForce(uModel, gravity, dt);
+                restingForces.updateForce(uModel, dt);
                 
             }
             
@@ -74,20 +74,6 @@ namespace U4DEngine {
         
         integrator=uIntegrator;
         
-    }
-
-    void U4DPhysicsEngine::setGravity(U4DVector3n& uGravity){
-        
-        gravity=uGravity;
-        
-        
-    }
-
-    U4DVector3n U4DPhysicsEngine::getGravity(){
-        
-        return gravity;
-        
-    }
-    
+    }    
 
 }

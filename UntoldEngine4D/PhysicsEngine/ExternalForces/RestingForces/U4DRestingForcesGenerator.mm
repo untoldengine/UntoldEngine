@@ -19,22 +19,22 @@ namespace U4DEngine {
         
     }
     
-    void U4DRestingForcesGenerator::updateForce(U4DDynamicModel *uModel, U4DVector3n& uGravity, float dt){
+    void U4DRestingForcesGenerator::updateForce(U4DDynamicModel *uModel, float dt){
         
         if (uModel->getEquilibrium()==true) {
             
-            generateNormalForce(uModel, uGravity);
+            generateNormalForce(uModel);
             
         }else{
             
-            //generateNormalForce(uModel, uGravity);
-            generateTorqueForce(uModel, uGravity);
+            
+            generateTorqueForce(uModel);
             
         }
         
     }
     
-    void U4DRestingForcesGenerator::generateNormalForce(U4DDynamicModel *uModel, U4DVector3n& uGravity){
+    void U4DRestingForcesGenerator::generateNormalForce(U4DDynamicModel *uModel){
         
         //get normal collision vector
         U4DVector3n contactCollisionNormal=uModel->getCollisionNormalFaceDirection();
@@ -48,15 +48,15 @@ namespace U4DEngine {
         //calculate the normal force at each contact point
         U4DVector3n normalForce(0.0,0.0,0.0);
         
-        float angle=uGravity.angle(contactCollisionNormal);
+        float angle=uModel->getGravity().angle(contactCollisionNormal);
         
-        normalForce=uGravity*mass*cos(angle)*-1.0;
+        normalForce=uModel->getGravity()*mass*cos(angle)*-1.0;
         
         uModel->addForce(normalForce);
         
     }
     
-    void U4DRestingForcesGenerator::generateTorqueForce(U4DDynamicModel *uModel, U4DVector3n& uGravity){
+    void U4DRestingForcesGenerator::generateTorqueForce(U4DDynamicModel *uModel){
         
         //get center of mass
         U4DVector3n centerOfMass=uModel->getCenterOfMass()+uModel->getAbsolutePosition();
@@ -75,7 +75,7 @@ namespace U4DEngine {
             //get the radius from the contact manifold to the center of mass
             U4DVector3n radius=centerOfMass-n;
             
-            torque+=(radius).cross(uGravity*mass);
+            torque+=(radius).cross(uModel->getGravity()*mass);
         }
         
         uModel->addMoment(torque);

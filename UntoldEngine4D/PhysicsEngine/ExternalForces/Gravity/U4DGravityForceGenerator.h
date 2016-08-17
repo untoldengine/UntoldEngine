@@ -33,9 +33,7 @@ namespace U4DEngine {
         
         ~U4DGravityForceGenerator();
         
-        void updateForce(U4DDynamicModel *uModel,U4DVector3n& uGravity, float dt);
-        
-        void updateForce(U4DDynamicModel *uModel, float dt){};
+        void updateForce(U4DDynamicModel *uModel, float dt);
 
     };
         
