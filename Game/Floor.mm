@@ -23,9 +23,9 @@ void Floor::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         initAsInfinitePlatform(true);
-        initMass(10.0);
+        initMass(1000.0);
         enableCollisionBehavior();
-        
+        initCoefficientOfRestitution(0.8);
         //setShader("gouraudShader");
     }
 }

@@ -26,7 +26,7 @@ void Planet::init(const char* uName, const char* uBlenderFile){
         
         initMass(10.0);
         
-        initCoefficientOfRestitution(0.9);
+        //initCoefficientOfRestitution(0.9);
         enableCollisionBehavior();
         
         setShader("gouraudShader");

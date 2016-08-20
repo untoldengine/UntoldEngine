@@ -40,8 +40,6 @@ void Earth::init(){
     camera->translateBy(0.0, 3.0, 10.0);
     //camera->rotateTo(0.0,-20.0,0.0);
 
-    setName("earth");
-
     //create the floor
     floor=new Floor();
     floor->init("GroundFloor","blenderscript.u4d");
@@ -93,7 +91,7 @@ void Earth::init(){
 //    addChild(mountain2);
 //    addChild(mountain3);
 //    addChild(mountain4);
-    //addChild(planet);
+    addChild(planet);
 //    addChild(meteor1);
 //    addChild(meteor2);
     addChild(meteor3);
@@ -115,7 +113,7 @@ void Earth::update(double dt){
 
 void Earth::action(){
     
-    //setEntityControlledByController(rocket);
+    setEntityControlledByController(this);
     
 }
 
