@@ -176,7 +176,6 @@ namespace U4DEngine {
                 
             }else{
                 
-                
                 //Inertia Tensor for cubic bodies
                 Ixx=(uY*uY+uZ*uZ)*massProperties.mass/12.0;
                 Iyy=(uX*uX+uZ*uZ)*massProperties.mass/12.0;

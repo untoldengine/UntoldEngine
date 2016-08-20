@@ -79,7 +79,7 @@ vec4 phongShading(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition){
     if(specularFactor>0.0){
 
         //compute specular shininess factor
-        specularFactor=pow(specularFactor,SpecularMaterialHardness[colorIndex]);
+        //specularFactor=pow(specularFactor,SpecularMaterialHardness[colorIndex]);
 
     }
 

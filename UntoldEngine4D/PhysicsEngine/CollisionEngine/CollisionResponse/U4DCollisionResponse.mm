@@ -85,7 +85,9 @@ namespace U4DEngine {
             float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
             //Compute coefficient of restitution for both bodies
-            float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution();
+            //I multiply the coefficient of restitution times two to avoid any penetration when the object is rotating. I.e., when it lands
+            //at an angle.
+            float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution()*2.0;
             
             float j=MAX(-1*(vR.dot(normalCollisionVector))*(coefficientOfRestitution+1.0)/(totalInverseMasses+totalAngularEffect),U4DEngine::impulseCollisionMinimum);
             
