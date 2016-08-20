@@ -13,6 +13,18 @@
 
 namespace U4DEngine {
     
+
+U4DOpenGLCubeMap::U4DOpenGLCubeMap(U4DSkyBox *uU4DSkyBox){
+    
+    u4dObject=uU4DSkyBox;
+    
+}
+
+
+U4DOpenGLCubeMap::~U4DOpenGLCubeMap(){
+
+}
+    
 U4DDualQuaternion U4DOpenGLCubeMap::getEntitySpace(){
     
   return u4dObject->getAbsoluteSpace();

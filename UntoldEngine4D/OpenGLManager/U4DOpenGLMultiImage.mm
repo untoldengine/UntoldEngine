@@ -11,6 +11,10 @@
 
 namespace U4DEngine {
     
+U4DOpenGLMultiImage::U4DOpenGLMultiImage(U4DImage *uU4DImage):U4DOpenGLImage(uU4DImage),activateMultiTextureImage(FALSE){
+
+}
+    
 U4DOpenGLMultiImage::~U4DOpenGLMultiImage(){
     
 }

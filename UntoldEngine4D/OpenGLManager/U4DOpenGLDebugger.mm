@@ -12,6 +12,16 @@
 
 namespace U4DEngine {
     
+U4DOpenGLDebugger::U4DOpenGLDebugger(U4DDebugger *uDebugger){
+    
+    u4dDebugger=uDebugger;
+    
+}
+
+U4DOpenGLDebugger::~U4DOpenGLDebugger(){
+
+}
+    
 void U4DOpenGLDebugger::draw(){
     
     glUseProgram(shader);
@@ -47,7 +57,7 @@ void U4DOpenGLDebugger::draw(){
     }
     
     glBindVertexArray(0);
-    //I should delete the buffer  glDeleteBuffers
+    
     
 }
 

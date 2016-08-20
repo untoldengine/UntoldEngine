@@ -33,15 +33,9 @@ private:
     
 public:
     
-
-    U4DOpenGLCubeMap(U4DSkyBox *uU4DSkyBox){
+    U4DOpenGLCubeMap(U4DSkyBox *uU4DSkyBox);
     
-        u4dObject=uU4DSkyBox;
-    
-    };
-    
-    
-    ~U4DOpenGLCubeMap(){};
+    ~U4DOpenGLCubeMap();
     
     void loadTextureObjectBuffer();
     

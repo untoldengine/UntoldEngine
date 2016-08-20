@@ -11,6 +11,18 @@
 
 namespace U4DEngine {
     
+    U4DOpenGLGeometry::U4DOpenGLGeometry(U4DBoundingVolume* uU4DGeometricObject){
+        
+        u4dObject=uU4DGeometricObject;
+    }
+    
+    
+    U4DOpenGLGeometry::~U4DOpenGLGeometry(){
+    
+        //delete index buffer
+        glDeleteBuffers(1, &elementBuffer);
+    }
+    
     U4DDualQuaternion U4DOpenGLGeometry::getEntitySpace(){
         
         return u4dObject->getAbsoluteSpace();
@@ -51,8 +63,6 @@ namespace U4DEngine {
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*3*u4dObject->bodyCoordinates.verticesContainer.size(), &u4dObject->bodyCoordinates.verticesContainer[0]);
         
         //load the index into index buffer
-        
-        GLuint elementBuffer;
         
         glGenBuffers(1, &elementBuffer);
         glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);

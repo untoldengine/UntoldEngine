@@ -17,6 +17,17 @@
 
 namespace U4DEngine {
     
+U4DOpenGL3DModel::U4DOpenGL3DModel(U4DModel *uU4DModel){
+    
+    u4dObject=uU4DModel;
+}
+
+
+U4DOpenGL3DModel::~U4DOpenGL3DModel(){
+    //delete the element index buffer
+    glDeleteBuffers(1, &elementBuffer);
+}
+    
 U4DDualQuaternion U4DOpenGL3DModel::getEntitySpace(){
     
     return u4dObject->getAbsoluteSpace();
@@ -77,13 +88,10 @@ void U4DOpenGL3DModel::loadVertexObjectBuffer(){
     
     //load the index into index buffer
     
-    GLuint elementBuffer;
-    
     glGenBuffers(1, &elementBuffer);
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size(), &u4dObject->bodyCoordinates.indexContainer[0], GL_STATIC_DRAW);
 
-    
 }
 
 void U4DOpenGL3DModel::loadMaterialsUniforms(){
@@ -312,7 +320,6 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     drawElements();
     
     glBindVertexArrayOES(0);
-    //I should delete the buffer  glDeleteBuffers
     
     glUseProgram(shader);
 }

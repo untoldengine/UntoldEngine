@@ -29,7 +29,18 @@ U4DOpenGLManager::U4DOpenGLManager(){
 
 U4DOpenGLManager::~U4DOpenGLManager(){
 
+    //delete the buffer
+    glDeleteBuffers(1, &vertexObjectBuffer);
     
+}
+    
+U4DOpenGLManager::U4DOpenGLManager(const U4DOpenGLManager& value){
+
+}
+
+U4DOpenGLManager& U4DOpenGLManager::operator=(const U4DOpenGLManager& value){
+    
+    return *this;
 }
 
 
@@ -304,7 +315,6 @@ void U4DOpenGLManager::draw(){
     drawElements();
     
     glBindVertexArrayOES(0);
-    //I should delete the buffer  glDeleteBuffers
     
 }
 
