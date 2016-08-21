@@ -26,6 +26,7 @@ private:
     
     U4DWorld *u4dWorld;
     
+    GLuint offscreenFramebuffer;
     
 public:
     

@@ -24,6 +24,7 @@ U4DOpenGLWorld::U4DOpenGLWorld(U4DWorld *uWorld){
 
 U4DOpenGLWorld::~U4DOpenGLWorld(){
 
+    glDeleteFramebuffers(1, &offscreenFramebuffer);
 }
     
 U4DDualQuaternion U4DOpenGLWorld::getEntitySpace(){

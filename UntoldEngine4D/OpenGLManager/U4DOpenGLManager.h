@@ -142,8 +142,6 @@ protected:
 
     GLuint vertexObjectBuffer;
     
-    GLuint offscreenFramebuffer;
-    
     GLuint depthRenderbuffer;
     
     std::vector<CUSTOMUNIFORMS> customUniforms;
