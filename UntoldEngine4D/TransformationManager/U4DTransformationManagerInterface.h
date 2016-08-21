@@ -53,7 +53,7 @@ public:
     
     virtual void rotateAboutAxis(float angle, U4DVector3n& axisOrientation, U4DVector3n& axisPosition)=0;
     
-    virtual void viewInDirection(U4DVector3n& uDestinationPoint)=0;
+    //virtual void viewInDirection(U4DVector3n& uDestinationPoint)=0;
 };
     
 }

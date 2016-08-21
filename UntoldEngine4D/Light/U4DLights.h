@@ -52,6 +52,7 @@ namespace U4DEngine {
          */
         static U4DLights* sharedInstance();
         
+        void viewInDirection(U4DVector3n& uDestinationPoint);
     };
     
 }

@@ -279,55 +279,55 @@ namespace U4DEngine {
         
     }
 
-    void U4DTransformation::viewInDirection(U4DVector3n& uDestinationPoint){
-        
-        
-        U4DVector3n upVector(0,1,0);
-        float oneEightyAngle=180.0;
-        U4DVector3n entityPosition;
-        
-        //if entity is camera, then get the local position
-        if (uEntity->getEntityType()==CAMERA) {
-            
-            entityPosition=uEntity->getLocalPosition();
-            
-        }else{
-            //else get the absolute position
-            entityPosition=uEntity->getAbsolutePosition();
-        }
-
-        //calculate the forward vector
-        U4DVector3n forwardVector=uDestinationPoint-entityPosition;
-        
-        //calculate the angle
-        float angle=uEntity->getForwardVector().angle(forwardVector);
-       
-        //calculate the rotation axis
-        U4DVector3n rotationAxis=forwardVector.cross(uEntity->getForwardVector());
-        
-        if (uEntity->getEntityType()==CAMERA ) {
-            rotationAxis=uEntity->getForwardVector().cross(forwardVector);
-        }
-        
-        //if angle is 180 it means that both vectors are pointing opposite to each other.
-        //this means that there is no rotation axis. so set the Up Vector as the rotation axis
-        
-        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
-            
-            rotationAxis=upVector;
-            angle=180.0;
-        
-        }
-        
-        rotationAxis.normalize();
-        
-        U4DQuaternion rotationQuaternion(angle,rotationAxis);
-        
-        rotationQuaternion.convertToUnitNormQuaternion();
-        
-        updateSpaceMatrixOrientation(rotationQuaternion);
-        
-        
-    }
+//    void U4DTransformation::viewInDirection(U4DVector3n& uDestinationPoint){
+//        
+//        
+//        U4DVector3n upVector(0,1,0);
+//        float oneEightyAngle=180.0;
+//        U4DVector3n entityPosition;
+//        
+//        //if entity is camera, then get the local position
+//        if (uEntity->getEntityType()==CAMERA) {
+//            
+//            entityPosition=uEntity->getLocalPosition();
+//            
+//        }else{
+//            //else get the absolute position
+//            entityPosition=uEntity->getAbsolutePosition();
+//        }
+//
+//        //calculate the forward vector
+//        U4DVector3n forwardVector=uDestinationPoint-entityPosition;
+//        
+//        //calculate the angle
+//        float angle=uEntity->getForwardVector().angle(forwardVector);
+//       
+//        //calculate the rotation axis
+//        U4DVector3n rotationAxis=forwardVector.cross(uEntity->getForwardVector());
+//        
+//        if (uEntity->getEntityType()==CAMERA ) {
+//            rotationAxis=uEntity->getForwardVector().cross(forwardVector);
+//        }
+//        
+//        //if angle is 180 it means that both vectors are pointing opposite to each other.
+//        //this means that there is no rotation axis. so set the Up Vector as the rotation axis
+//        
+//        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+//            
+//            rotationAxis=upVector;
+//            angle=180.0;
+//        
+//        }
+//        
+//        rotationAxis.normalize();
+//        
+//        U4DQuaternion rotationQuaternion(angle,rotationAxis);
+//        
+//        rotationQuaternion.convertToUnitNormQuaternion();
+//        
+//        updateSpaceMatrixOrientation(rotationQuaternion);
+//        
+//        
+//    }
     
 }

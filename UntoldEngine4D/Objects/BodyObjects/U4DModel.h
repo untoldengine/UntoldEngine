@@ -93,7 +93,11 @@ namespace U4DEngine {
          @return Self-shadow bias value
          */
         float getSelfShadowBias();
+        
+        U4DVector3n getViewInDirection();
      
+        void viewInDirection(U4DVector3n& uDestinationPoint);
+        
     };
     
 }

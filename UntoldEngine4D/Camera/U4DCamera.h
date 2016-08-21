@@ -56,6 +56,8 @@ namespace U4DEngine {
         void followModel(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset);
         
         U4DVector3n getViewInDirection();
+        
+        void viewInDirection(U4DVector3n& uDestinationPoint);
     };
     
 }

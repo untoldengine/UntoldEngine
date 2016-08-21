@@ -22,7 +22,8 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-
+        U4DEngine::U4DVector3n n(-2.0,2.0,-2.0);
+        viewInDirection(n);
     }
     
     
@@ -30,5 +31,8 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
 
 void Rocket::update(double dt){
     
+    
+    U4DEngine::U4DVector3n dir=getViewInDirection();
+    dir.show();
  
 }

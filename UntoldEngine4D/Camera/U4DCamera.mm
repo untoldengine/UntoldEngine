@@ -92,6 +92,44 @@ namespace U4DEngine {
         return orientationMatrix*forward;
         
     }
+    
+    void U4DCamera::viewInDirection(U4DVector3n& uDestinationPoint){
+        
+        
+        U4DVector3n upVector(0,1,0);
+        float oneEightyAngle=180.0;
+        U4DVector3n entityPosition;
+        
+        //if entity is camera, then get the local position
+        entityPosition=getLocalPosition();
+        
+        //calculate the forward vector
+        U4DVector3n forwardVector=uDestinationPoint-entityPosition;
+        
+        //calculate the angle
+        float angle=getForwardVector().angle(forwardVector);
+        
+        //calculate the rotation axis
+        U4DVector3n rotationAxis=getForwardVector().cross(forwardVector);
+        
+        //if angle is 180 it means that both vectors are pointing opposite to each other.
+        //this means that there is no rotation axis. so set the Up Vector as the rotation axis
+        
+        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+            
+            rotationAxis=upVector;
+            angle=180.0;
+            
+        }
+        
+        rotationAxis.normalize();
+        
+        U4DQuaternion rotationQuaternion(angle,rotationAxis);
+        
+        rotateTo(rotationQuaternion);
+        
+        
+    }
 
 }
 

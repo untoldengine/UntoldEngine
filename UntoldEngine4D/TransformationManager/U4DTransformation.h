@@ -58,7 +58,7 @@ public:
     
     void rotateAboutAxis(U4DQuaternion& uOrientation, U4DVector3n& axisPosition);
     
-    void viewInDirection(U4DVector3n& uDestinationPoint);
+    //void viewInDirection(U4DVector3n& uDestinationPoint);
     
     
 };
