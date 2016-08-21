@@ -21,6 +21,8 @@ class Floor;
 class Mountain;
 class Planet;
 class Meteor;
+class Tree;
+class Cloud;
 
 class Earth:public U4DEngine::U4DWorld{
 
@@ -35,6 +37,17 @@ private:
     Meteor *meteor1;
     Meteor *meteor2;
     Meteor *meteor3;
+    Meteor *meteor4;
+    Meteor *meteor5;
+    Tree *tree1;
+    Tree *tree2;
+    Tree *tree3;
+    Tree *tree4;
+    Cloud *cloud1;
+    Cloud *cloud2;
+    Cloud *cloud3;
+    Cloud *cloud4;
+    Cloud *cloud5;
     
 public:
    

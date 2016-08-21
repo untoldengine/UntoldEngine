@@ -31,7 +31,8 @@
 #include "Mountain.h"
 #include "Planet.h"
 #include "Meteor.h"
-#include "U4DDebugger.h"
+#include "Tree.h"
+#include "Cloud.h"
 
 using namespace U4DEngine;
 
@@ -43,7 +44,7 @@ void Earth::init(){
 
     //create the floor
     floor=new Floor();
-    floor->init("GroundFloor","blenderscript.u4d");
+    floor->init("Platform","blenderscript.u4d");
     
     //create the rocket
     rocket=new Rocket();
@@ -51,16 +52,16 @@ void Earth::init(){
     
     //create mountain
     mountain=new Mountain();
-    mountain->init("Mountain", "blenderscript.u4d");
+    mountain->init("Mountains", "blenderscript.u4d");
     
-    mountain2=new Mountain();
-    mountain2->init("Mountain2", "blenderscript.u4d");
-    
-    mountain3=new Mountain();
-    mountain3->init("Mountain3", "blenderscript.u4d");
-    
-    mountain4=new Mountain();
-    mountain4->init("Mountain4", "blenderscript.u4d");
+//    mountain2=new Mountain();
+//    mountain2->init("Mountain2", "blenderscript.u4d");
+//    
+//    mountain3=new Mountain();
+//    mountain3->init("Mountain3", "blenderscript.u4d");
+//    
+//    mountain4=new Mountain();
+//    mountain4->init("Mountain4", "blenderscript.u4d");
     
     //create planet
     planet=new Planet();
@@ -76,7 +77,39 @@ void Earth::init(){
     
     meteor3=new Meteor();
     meteor3->init("Meteor3", "blenderscript.u4d");
+    
+    meteor4=new Meteor();
+    meteor4->init("Meteor4", "blenderscript.u4d");
+    
+    meteor5=new Meteor();
+    meteor5->init("Meteor5", "blenderscript.u4d");
+    
+    tree1=new Tree();
+    tree1->init("Tree1", "blenderscript.u4d");
    
+    tree2=new Tree();
+    tree2->init("Tree2", "blenderscript.u4d");
+    
+    tree3=new Tree();
+    tree3->init("Tree3", "blenderscript.u4d");
+    
+    tree4=new Tree();
+    tree4->init("Tree4", "blenderscript.u4d");
+    
+    cloud1=new Cloud();
+    cloud1->init("Cloud1", "blenderscript.u4d");
+    
+    cloud2=new Cloud();
+    cloud2->init("Cloud2", "blenderscript.u4d");
+    
+    cloud3=new Cloud();
+    cloud3->init("Cloud3", "blenderscript.u4d");
+    
+    cloud4=new Cloud();
+    cloud4->init("Cloud4", "blenderscript.u4d");
+    
+    cloud5=new Cloud();
+    cloud5->init("Cloud5", "blenderscript.u4d");
     
     U4DVector3n origin(0,0,0);
     
@@ -89,21 +122,27 @@ void Earth::init(){
     addChild(floor);
     addChild(rocket);
     addChild(mountain);
-    addChild(mountain2);
-    addChild(mountain3);
-    addChild(mountain4);
+
     addChild(planet);
     addChild(meteor1);
     addChild(meteor2);
     addChild(meteor3);
-
-    U4DDebugger *debugger=new U4DDebugger();
-    debugger->addEntityToDebug(rocket);
-    addChild(debugger);
+    addChild(meteor4);
+    addChild(meteor5);
+    
+    addChild(tree1);
+    addChild(tree2);
+    addChild(tree3);
+    addChild(tree4);
+    
+    addChild(cloud1);
+    addChild(cloud2);
+    addChild(cloud3);
+    
+    addChild(cloud4);
+    addChild(cloud5);
     
     initLoadingModels();
-    
-
     
     
 }
@@ -111,14 +150,14 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    //camera->followModel(rocket, 0.0, 2.0, 10.0);
+    camera->followModel(rocket, 0.0, 2.0, 10.0);
     
 
 }
 
 void Earth::action(){
     
-    //setEntityControlledByController(this);
+    setEntityControlledByController(rocket);
     
 }
 
