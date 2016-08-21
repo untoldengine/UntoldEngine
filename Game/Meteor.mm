@@ -21,15 +21,15 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        translateTo(0.0,5.0,0.0);
-        rotateTo(0.0,0.0,60.0);
-    
-        initMass(1.0);
-       
-        
-        //initCoefficientOfRestitution(0.7);
-        enableCollisionBehavior();
-        enableKineticsBehavior();
+//        translateTo(0.0,5.0,0.0);
+//        rotateTo(0.0,0.0,60.0);
+//    
+//        initMass(1.0);
+//       
+//        
+//        //initCoefficientOfRestitution(0.7);
+//        enableCollisionBehavior();
+//        enableKineticsBehavior();
         //setBroadPhaseBoundingVolumeVisibility(true);
         
         setShader("gouraudShader");

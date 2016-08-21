@@ -21,13 +21,13 @@ void Planet::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
-        //initialize everything else here
-        translateTo(0.0,1.5,0.0);
-        
-        initMass(10.0);
-        
-        //initCoefficientOfRestitution(0.9);
-        enableCollisionBehavior();
+//        //initialize everything else here
+//        translateTo(0.0,1.5,0.0);
+//        
+//        initMass(10.0);
+//        
+//        //initCoefficientOfRestitution(0.9);
+//        enableCollisionBehavior();
         
         setShader("gouraudShader");
     }

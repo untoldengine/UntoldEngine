@@ -300,11 +300,11 @@ namespace U4DEngine {
         
     }
 
-    void U4DEntity::viewInDirection(U4DVector3n& uDestinationPoint){
-        
-        transformation->viewInDirection(uDestinationPoint);
-        
-    }
+//    void U4DEntity::viewInDirection(U4DVector3n& uDestinationPoint){
+//        
+//        transformation->viewInDirection(uDestinationPoint);
+//        
+//    }
     //scenegraph methods
     void U4DEntity::addChild(U4DEntity *uChild){
         

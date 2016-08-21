@@ -15,11 +15,11 @@ void main(void)
     
     }else if(vec3(Vertex)==vec3(0,0,3)){
     
-    axisColor=vec4(0.0,1.0,0.0,1.0);  //green-y
+    axisColor=vec4(0.0,1.0,0.0,1.0);  //green-z
 
     }else if(vec3(Vertex)==vec3(0,3,0)){
     
-    axisColor=vec4(0.0,0.0,1.0,1.0); //blue-z
+    axisColor=vec4(0.0,0.0,1.0,1.0); //blue-y
 
     }else{
 

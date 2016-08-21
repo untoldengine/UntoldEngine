@@ -15,8 +15,8 @@
 #include "U4DOpenGLManager.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
+#include "Constants.h"
 
-#import <GLKit/GLKit.h>
 
 #pragma mark-set up the body vertices
 
@@ -97,6 +97,56 @@ namespace U4DEngine {
     
     float U4DModel::getSelfShadowBias(){
         return selfShadowBias;
+    }
+    
+    U4DVector3n U4DModel::getViewInDirection(){
+        
+        //get forward vector
+        U4DVector3n forward=getForwardVector();
+        
+        //get the entity rotation matrix
+        U4DMatrix3n orientationMatrix=getLocalMatrixOrientation();
+        
+        return orientationMatrix*forward;
+        
+    }
+    
+    void U4DModel::viewInDirection(U4DVector3n& uDestinationPoint){
+        
+        U4DVector3n upVector(0,1,0);
+        float oneEightyAngle=180.0;
+        U4DVector3n entityPosition;
+        
+        //if entity is camera, then get the local position
+        
+        entityPosition=getAbsolutePosition();
+        
+        
+        //calculate the forward vector
+        U4DVector3n forwardVector=uDestinationPoint-entityPosition;
+        
+        //calculate the angle
+        float angle=getForwardVector().angle(forwardVector);
+        
+        //calculate the rotation axis
+        U4DVector3n rotationAxis=getForwardVector().cross(forwardVector);
+        
+        //if angle is 180 it means that both vectors are pointing opposite to each other.
+        //this means that there is no rotation axis. so set the Up Vector as the rotation axis
+        
+        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+            
+            rotationAxis=upVector;
+            angle=180.0;
+            
+        }
+        
+        rotationAxis.normalize();
+        
+        U4DQuaternion rotationQuaternion(angle,rotationAxis);
+        
+        rotateTo(rotationQuaternion);
+        
     }
 
 }
