@@ -27,12 +27,9 @@ private:
     
 public:
     
-    U4DOpenGLFont(U4DImage* uU4DImage):U4DOpenGLImage(uU4DImage){
-        u4dObject=uU4DImage; //attach the object to render
-    };
+    U4DOpenGLFont(U4DImage* uU4DImage);
 
-    
-    ~U4DOpenGLFont(){};
+    ~U4DOpenGLFont();
     
     void updateVertexObjectBuffer();
     

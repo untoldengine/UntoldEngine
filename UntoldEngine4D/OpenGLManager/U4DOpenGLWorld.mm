@@ -16,6 +16,17 @@
 
 namespace U4DEngine {
     
+U4DOpenGLWorld::U4DOpenGLWorld(U4DWorld *uWorld){
+    
+    u4dWorld=uWorld;
+    
+}
+
+U4DOpenGLWorld::~U4DOpenGLWorld(){
+
+    glDeleteFramebuffers(1, &offscreenFramebuffer);
+}
+    
 U4DDualQuaternion U4DOpenGLWorld::getEntitySpace(){
     
     return u4dWorld->getLocalSpace();

@@ -28,13 +28,9 @@ protected:
     
 public:
     
-    U4DOpenGLImage(U4DImage *uU4DImage){
+    U4DOpenGLImage(U4DImage *uU4DImage);
     
-        u4dObject=uU4DImage;
-        
-    };
-    
-    ~U4DOpenGLImage(){};
+    ~U4DOpenGLImage();
     
     U4DMatrix4n getCameraProjection();
     

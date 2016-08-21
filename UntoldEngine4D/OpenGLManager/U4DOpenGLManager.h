@@ -142,8 +142,6 @@ protected:
 
     GLuint vertexObjectBuffer;
     
-    GLuint offscreenFramebuffer;
-    
     GLuint depthRenderbuffer;
     
     std::vector<CUSTOMUNIFORMS> customUniforms;
@@ -177,12 +175,9 @@ public:
 
     ~U4DOpenGLManager();
 
-    U4DOpenGLManager(const U4DOpenGLManager& value){};
+    U4DOpenGLManager(const U4DOpenGLManager& value);
  
-    U4DOpenGLManager& operator=(const U4DOpenGLManager& value){
-        
-        return *this;
-    };
+    U4DOpenGLManager& operator=(const U4DOpenGLManager& value);
     
     void setShader(std::string uShader);
 
@@ -243,8 +238,11 @@ public:
     void loadRenderingInformation();
     
     void addCustomUniforms(CUSTOMUNIFORMS uCustomUniforms);
+    
     void enableCustomUniforms();
+    
     void getCustomUniforms();
+    
     void updateCustomUniforms(const char* uName,std::vector<float> uData);
     
     virtual void setImageDimension(float uWidth,float uHeight){};

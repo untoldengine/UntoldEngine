@@ -22,7 +22,7 @@ private:
     bool activateMultiTextureImage;
     
 public:
-    U4DOpenGLMultiImage(U4DImage *uU4DImage):U4DOpenGLImage(uU4DImage),activateMultiTextureImage(FALSE){};
+    U4DOpenGLMultiImage(U4DImage *uU4DImage);
     ~U4DOpenGLMultiImage();
     
     void activateTexturesUniforms();

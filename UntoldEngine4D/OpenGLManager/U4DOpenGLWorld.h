@@ -26,16 +26,13 @@ private:
     
     U4DWorld *u4dWorld;
     
+    GLuint offscreenFramebuffer;
     
 public:
     
-    U4DOpenGLWorld(U4DWorld *uWorld){
-        
-        u4dWorld=uWorld;
-        
-    }
+    U4DOpenGLWorld(U4DWorld *uWorld);
     
-    ~U4DOpenGLWorld(){}
+    ~U4DOpenGLWorld();
     
     void loadVertexObjectBuffer();
     

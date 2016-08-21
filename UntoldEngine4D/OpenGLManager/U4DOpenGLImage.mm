@@ -13,6 +13,16 @@
 
 namespace U4DEngine {
     
+U4DOpenGLImage::U4DOpenGLImage(U4DImage *uU4DImage){
+    
+    u4dObject=uU4DImage;
+    
+}
+
+U4DOpenGLImage::~U4DOpenGLImage(){
+
+}
+    
 U4DDualQuaternion U4DOpenGLImage::getEntitySpace(){
     return u4dObject->getLocalSpace();
 }

@@ -25,21 +25,17 @@ class U4DOpenGL3DModel:public U4DOpenGLManager{
 private:
     
     U4DModel *u4dObject;
+    
     U4DMatrix4n lightSpaceMatrix;
     
+    GLuint elementBuffer;
+    
 public:
-    
    
-    U4DOpenGL3DModel(U4DModel *uU4DModel){
+    U4DOpenGL3DModel(U4DModel *uU4DModel);
     
-        u4dObject=uU4DModel;
-    };
+    ~U4DOpenGL3DModel();
     
-    
-    ~U4DOpenGL3DModel(){};
-    
-    
-
     //BUFFERS Methods
     
     void loadVertexObjectBuffer();

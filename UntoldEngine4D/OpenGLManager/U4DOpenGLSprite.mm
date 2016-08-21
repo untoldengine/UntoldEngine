@@ -12,6 +12,14 @@
 
 namespace U4DEngine {
     
+U4DOpenGLSprite::U4DOpenGLSprite(U4DImage* uU4DImage):U4DOpenGLImage(uU4DImage){
+    u4dObject=uU4DImage; //attach the object to render
+}
+
+U4DOpenGLSprite::~U4DOpenGLSprite(){
+
+}
+    
 void U4DOpenGLSprite::setImageDimension(float uWidth,float uHeight, float uAtlasWidth,float uAtlasHeight){
     
     U4DDirector *director=U4DDirector::sharedInstance();

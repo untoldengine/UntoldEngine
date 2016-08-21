@@ -26,13 +26,9 @@ private:
     
 public:
     
-    U4DOpenGLDebugger(U4DDebugger *uDebugger){
+    U4DOpenGLDebugger(U4DDebugger *uDebugger);
     
-        u4dDebugger=uDebugger;
-    
-    };
-    
-    ~U4DOpenGLDebugger(){};
+    ~U4DOpenGLDebugger();
     
     void loadVertexObjectBuffer();
     

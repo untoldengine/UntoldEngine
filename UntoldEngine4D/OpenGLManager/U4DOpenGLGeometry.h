@@ -23,16 +23,14 @@ private:
     
     U4DBoundingVolume* u4dObject;
     
+    GLuint elementBuffer;
+    
 public:
     
     
-    U4DOpenGLGeometry(U4DBoundingVolume* uU4DGeometricObject){
-    
-        u4dObject=uU4DGeometricObject;
-    };
-    
+    U4DOpenGLGeometry(U4DBoundingVolume* uU4DGeometricObject);
    
-    ~U4DOpenGLGeometry(){};
+    ~U4DOpenGLGeometry();
     
     void drawElements();
     
