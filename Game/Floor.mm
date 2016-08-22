@@ -22,11 +22,9 @@ void Floor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-//        initAsInfinitePlatform(true);
-//        initMass(1000.0);
-//        enableCollisionBehavior();
-//        initCoefficientOfRestitution(0.8);
-        //setShader("gouraudShader");
+        initAsInfinitePlatform(true);
+        initMass(1000.0);
+        enableCollisionBehavior();
     }
 }
 
