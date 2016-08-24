@@ -38,6 +38,8 @@
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
 		0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */; };
 		0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0328EE9917F5C88C00560A63 /* U4DOpenGLSprite.mm */; };
+		032E0A241D6A5C8A00D527B6 /* Tree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032E0A221D6A5C8A00D527B6 /* Tree.mm */; settings = {ASSET_TAGS = (); }; };
+		032E0A271D6A5E4600D527B6 /* Cloud.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032E0A251D6A5E4600D527B6 /* Cloud.mm */; settings = {ASSET_TAGS = (); }; };
 		034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */; };
 		034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
@@ -244,6 +246,10 @@
 		0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingSphere.mm; path = BoundingVolumes/U4DBoundingSphere.mm; sourceTree = "<group>"; };
 		0328EE9917F5C88C00560A63 /* U4DOpenGLSprite.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLSprite.mm; sourceTree = "<group>"; };
 		0328EE9A17F5C88C00560A63 /* U4DOpenGLSprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLSprite.h; sourceTree = "<group>"; };
+		032E0A221D6A5C8A00D527B6 /* Tree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Tree.mm; sourceTree = "<group>"; };
+		032E0A231D6A5C8A00D527B6 /* Tree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tree.h; sourceTree = "<group>"; };
+		032E0A251D6A5E4600D527B6 /* Cloud.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Cloud.mm; sourceTree = "<group>"; };
+		032E0A261D6A5E4600D527B6 /* Cloud.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Cloud.h; sourceTree = "<group>"; };
 		034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.fp; sourceTree = "<group>"; };
 		034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.vp; sourceTree = "<group>"; };
 		0346862A1B1A4DA400B2105B /* U4DPlane.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlane.mm; sourceTree = "<group>"; };
@@ -646,6 +652,10 @@
 				03D559DA1D53D14A00E567D5 /* Planet.mm */,
 				03D559DE1D53D15700E567D5 /* Meteor.h */,
 				03D559DD1D53D15700E567D5 /* Meteor.mm */,
+				032E0A231D6A5C8A00D527B6 /* Tree.h */,
+				032E0A221D6A5C8A00D527B6 /* Tree.mm */,
+				032E0A261D6A5E4600D527B6 /* Cloud.h */,
+				032E0A251D6A5E4600D527B6 /* Cloud.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -1453,6 +1463,7 @@
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
+				032E0A241D6A5C8A00D527B6 /* Tree.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,
 				036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */,
@@ -1512,6 +1523,7 @@
 				035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */,
 				03E6ED6C1943D6FE007AD131 /* U4DJoyStick.mm in Sources */,
 				03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */,
+				032E0A271D6A5E4600D527B6 /* Cloud.mm in Sources */,
 				036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkyBox.mm in Sources */,
 				03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */,
