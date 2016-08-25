@@ -111,7 +111,7 @@ namespace U4DEngine{
         getBVHLongestDimensionVector(nodeLeaf.get());
         
         //check if the node leaf has more than 2 models, if it does then split it recursively, else stop
-        if (nodeLeaf->getModelsContainer().size()>1) {
+        if (nodeLeaf->getModelsContainer().size()>2) {
             
             //4. sort objects along the longest dimension
             heapSorting(nodeLeaf.get());
@@ -124,6 +124,26 @@ namespace U4DEngine{
             buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
         
         
+        }else{
+            
+            std::shared_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
+            
+            treeContainer.push_back(nodeLeaf);
+            
+            //add it as child
+            uNode->addChild(nodeLeaf.get());
+            
+            //load models in to container
+            for (auto n:nodeLeaf->getModelsContainer()) {
+                
+                nodeLeaf->addModelToContainer(n);
+                
+            }
+            
+            calculateBVHVolume(nodeLeaf.get());
+            
+            getBVHLongestDimensionVector(nodeLeaf.get());
+            
         }
         
     }
