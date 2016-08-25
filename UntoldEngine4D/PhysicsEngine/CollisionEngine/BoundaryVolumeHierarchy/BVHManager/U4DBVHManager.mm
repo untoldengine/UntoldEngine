@@ -243,7 +243,7 @@ namespace U4DEngine{
             
             float broadPhaseBoundingVolumePositionAlongVector=n->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());
             
-            float distance=broadPhaseBoundingVolumePositionAlongVector-halfDistance;
+            float distance=std::fabs(broadPhaseBoundingVolumePositionAlongVector-halfDistance);
             
             tempVectorOfModelPosition.push_back(distance);
         
