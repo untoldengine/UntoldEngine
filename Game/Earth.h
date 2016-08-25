@@ -29,6 +29,7 @@ class Earth:public U4DEngine::U4DWorld{
 private:
     Rocket *rocket;
     Floor *floor;
+    Floor *floor2;
     Mountain *mountain;
     Mountain *mountain2;
     Mountain *mountain3;

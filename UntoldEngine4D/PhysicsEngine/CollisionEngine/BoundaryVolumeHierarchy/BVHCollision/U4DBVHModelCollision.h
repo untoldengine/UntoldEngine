@@ -14,6 +14,18 @@
 
 namespace U4DEngine {
     class U4DBVHTree;
+    class U4DDynamicModel;
+    class U4DBoundingVolume;
+}
+
+namespace U4DEngine {
+    
+    typedef struct{
+        
+        U4DDynamicModel *model;
+        U4DBoundingVolume *boundingVolume;
+        
+    }ModelBoundingVolumePair;
 }
 
 namespace U4DEngine {

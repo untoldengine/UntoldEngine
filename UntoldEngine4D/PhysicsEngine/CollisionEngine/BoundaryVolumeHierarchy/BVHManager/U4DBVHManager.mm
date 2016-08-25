@@ -123,32 +123,38 @@ namespace U4DEngine{
             buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
             buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
         
-        
-        }else{
-            
-            std::shared_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
-            
-            treeContainer.push_back(nodeLeaf);
-            
-            //add it as child
-            uNode->addChild(nodeLeaf.get());
-            
-            //load models in to container
-            for (auto n:nodeLeaf->getModelsContainer()) {
-                
-                nodeLeaf->addModelToContainer(n);
-                
-            }
-            
-            calculateBVHVolume(nodeLeaf.get());
-            
-            getBVHLongestDimensionVector(nodeLeaf.get());
-            
         }
         
     }
     
     void U4DBVHManager::startCollision(){
+        
+        
+        //get root tree
+        U4DBVHTree *child=treeContainer.at(0).get()->next;
+        
+        while (child!=NULL) {
+            
+            if(child->isRoot()){
+                
+                
+            }else{
+                
+                std::cout<<"NODES"<<std::endl;
+                for(auto n:child->getModelsContainer()){
+                    std::cout<<n->getName()<<std::endl;
+                    
+                }
+                
+                if (child->isLeaf()) {
+                    std::cout<<"Im leaf"<<std::endl;
+                }
+                
+            }
+            
+            child=child->next;
+        }
+        
         
         //check sphere vs spher collisions
         bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
