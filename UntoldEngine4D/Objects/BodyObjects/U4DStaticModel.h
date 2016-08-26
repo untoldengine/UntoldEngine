@@ -72,7 +72,7 @@ namespace U4DEngine {
             U4DBoundingVolume *convexHullBoundingVolume;
         
             //Broad Phase Bounding Volume
-            U4DBoundingVolume *sphereBoundingVolume;
+            U4DBoundingVolume *broadPhaseBoundingVolume;
         
             MassProperties massProperties;
         
@@ -82,7 +82,7 @@ namespace U4DEngine {
         
             float coefficientOfRestitution;
         
-            bool isInfinitePlatform;
+            bool isPlatform;
         
         protected:
             
@@ -105,7 +105,7 @@ namespace U4DEngine {
             
             void initInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType);
             
-            void initAsInfinitePlatform(bool uValue);
+            void initAsPlatform(bool uValue);
         
             //Set Operations
         
@@ -162,7 +162,7 @@ namespace U4DEngine {
             
             INERTIATENSORTYPE getInertiaTensorType();
             
-            bool getIsInfinitePlatform();
+            bool getIsPlatform();
         
             U4DMatrix3n getMomentOfInertiaTensor();
             

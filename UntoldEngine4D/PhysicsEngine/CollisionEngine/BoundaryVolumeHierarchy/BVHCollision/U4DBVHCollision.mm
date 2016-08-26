@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DBVHCollision::U4DBVHCollision():groundPresent(false){
+    U4DBVHCollision::U4DBVHCollision(){
         
     }
     
@@ -34,14 +34,5 @@ namespace U4DEngine {
         return value;
         
     }
-    
-    void U4DBVHCollision::setIsGroundPresent(bool uValue){
-        groundPresent=uValue;
-    }
-    
-    bool U4DBVHCollision::getIsGroundPresent(){
-        return groundPresent;
-    }
-    
     
 }

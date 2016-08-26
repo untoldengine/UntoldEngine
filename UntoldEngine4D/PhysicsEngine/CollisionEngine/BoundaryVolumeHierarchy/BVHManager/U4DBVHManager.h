@@ -35,7 +35,6 @@ namespace U4DEngine {
         
         std::vector<U4DDynamicModel *> modelsContainer;
         U4DBVHCollision *bvhModelCollision;
-        U4DBVHCollision *bvhGroundCollision;
         
     public:
         

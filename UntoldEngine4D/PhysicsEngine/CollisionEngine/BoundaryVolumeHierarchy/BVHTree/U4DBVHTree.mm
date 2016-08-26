@@ -195,7 +195,7 @@ namespace U4DEngine {
     
     bool U4DBVHTree::isLeaf(){
         
-        return lastDescendant=this;
+        return (lastDescendant==this);
         
     }
     

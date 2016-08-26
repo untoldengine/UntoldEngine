@@ -46,6 +46,9 @@ void Earth::init(){
     floor=new Floor();
     floor->init("Platform","blenderscript.u4d");
     
+    floor2=new Floor();
+    floor2->init("Platform2","blenderscript.u4d");
+    
     //create the rocket
     rocket=new Rocket();
     rocket->init("Rocket","blenderscript.u4d");
@@ -53,15 +56,6 @@ void Earth::init(){
     //create mountain
     mountain=new Mountain();
     mountain->init("Mountains", "blenderscript.u4d");
-    
-//    mountain2=new Mountain();
-//    mountain2->init("Mountain2", "blenderscript.u4d");
-//    
-//    mountain3=new Mountain();
-//    mountain3->init("Mountain3", "blenderscript.u4d");
-//    
-//    mountain4=new Mountain();
-//    mountain4->init("Mountain4", "blenderscript.u4d");
     
     //create planet
     planet=new Planet();
@@ -120,15 +114,19 @@ void Earth::init(){
     light->viewInDirection(origin);
     
     addChild(floor);
+    addChild(floor2);
+    
     addChild(rocket);
     addChild(mountain);
-
-    addChild(planet);
-    addChild(meteor1);
-    addChild(meteor2);
     addChild(meteor3);
     addChild(meteor4);
     addChild(meteor5);
+    addChild(planet);
+    
+    
+    
+    addChild(meteor1);
+    addChild(meteor2);
     
     addChild(tree1);
     addChild(tree2);
