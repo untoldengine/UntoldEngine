@@ -22,8 +22,7 @@ void Floor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        //initAsInfinitePlatform(true);
-        translateBy(1.0, 0.0, 0.0);
+        initAsPlatform(true);
         initMass(1000.0);
         enableCollisionBehavior();
         setBroadPhaseBoundingVolumeVisibility(true);

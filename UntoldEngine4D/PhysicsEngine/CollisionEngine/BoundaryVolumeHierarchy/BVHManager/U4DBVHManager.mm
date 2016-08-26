@@ -13,7 +13,6 @@
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBVHModelCollision.h"
-#include "U4DBVHGroundCollision.h"
 #include "U4DNumerical.h"
 #include <cmath>
 #include <cstdlib>
@@ -27,15 +26,12 @@ namespace U4DEngine{
         //deals with model vs model collision
         bvhModelCollision=new U4DBVHModelCollision();
         
-        //deals with ground vs model collision
-        bvhGroundCollision=new U4DBVHGroundCollision();
-        
     }
     
     U4DBVHManager::~U4DBVHManager(){
         //delete all classes
         delete bvhModelCollision;
-        delete bvhGroundCollision;
+        
     }
     
     std::vector<U4DDynamicModel *> U4DBVHManager::getModelsContainer(){
@@ -45,27 +41,8 @@ namespace U4DEngine{
     
     void U4DBVHManager::addModelToTreeContainer(U4DDynamicModel* uModel){
         
-        if (!uModel->getIsInfinitePlatform()) {
             
-            modelsContainer.push_back(uModel);
-            
-        }else{
-            
-            std::shared_ptr<U4DBVHTree> groundNode(new U4DBVHTree());
-            
-            groundNode->addModelToContainer(uModel);
-            
-            U4DPoint3n maxPoint=uModel->getBroadPhaseBoundingVolume()->getMaxBoundaryPoint();
-            U4DPoint3n minPoint=uModel->getBroadPhaseBoundingVolume()->getMinBoundaryPoint();
-            
-            groundNode->getAABBVolume()->setMaxPoint(maxPoint);
-            groundNode->getAABBVolume()->setMinPoint(minPoint);
-            
-            bvhGroundCollision->setGroundNode(groundNode);
-            
-            bvhGroundCollision->setIsGroundPresent(true);
-        }
-        
+       modelsContainer.push_back(uModel);
         
     }
     
@@ -161,14 +138,6 @@ namespace U4DEngine{
         //check sphere vs spher collisions
         bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
         
-        //check sphere vs ground collisions
-        if (bvhGroundCollision->getIsGroundPresent()) {
-            
-            bvhGroundCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
-            
-            //reset if ground is present
-            bvhGroundCollision->setIsGroundPresent(false);
-        }
         
     }
     
