@@ -31,8 +31,8 @@ namespace U4DEngine {
         //set the convex hull bounding volume to null
         convexHullBoundingVolume=nullptr;
         
-        //set the sphere bounding volume to null
-        sphereBoundingVolume=nullptr;
+        //set the broad phase bounding volume to null
+        broadPhaseBoundingVolume=nullptr;
         
         //set all collision information to zero
         clearCollisionInformation();
@@ -262,7 +262,7 @@ namespace U4DEngine {
     void U4DStaticModel::enableCollisionBehavior(){
         
         //test if the bounding volume object was previously created
-        if(convexHullBoundingVolume==nullptr && sphereBoundingVolume==nullptr){
+        if(convexHullBoundingVolume==nullptr && broadPhaseBoundingVolume==nullptr){
             
             //compute the inertia tensor
             computeInertiaTensor();
@@ -325,25 +325,25 @@ namespace U4DEngine {
                 if (getIsPlatform()) {
                     
                     //create a AABB bounding volume
-                    sphereBoundingVolume=new U4DBoundingAABB();
+                    broadPhaseBoundingVolume=new U4DBoundingAABB();
                     
                     //get min and max points to create the AABB
                     U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
                     U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
                     
                     //calculate the AABB
-                    sphereBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
+                    broadPhaseBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
                     
                 }else{
                     
                     //create sphere bounding volume
-                    sphereBoundingVolume=new U4DBoundingSphere();
+                    broadPhaseBoundingVolume=new U4DBoundingSphere();
                     
                     //set the radius for the sphere bounding volume
                     float radius=longestModelDimension;
                     
                     //calculate the sphere
-                    sphereBoundingVolume->computeBoundingVolume(radius, 10, 10);
+                    broadPhaseBoundingVolume->computeBoundingVolume(radius, 10, 10);
                 }
                 
                 //enable collision
@@ -355,7 +355,7 @@ namespace U4DEngine {
                 
             }
         
-        }else if(convexHullBoundingVolume!=nullptr && sphereBoundingVolume!=nullptr){
+        }else if(convexHullBoundingVolume!=nullptr && broadPhaseBoundingVolume!=nullptr){
             
             collisionEnabled=true;
             
@@ -416,7 +416,7 @@ namespace U4DEngine {
         //update the broad phase bounding volume space
         updateBroadPhaseBoundingVolumeSpace();
         
-        return sphereBoundingVolume;
+        return broadPhaseBoundingVolume;
         
     }
     
@@ -434,7 +434,7 @@ namespace U4DEngine {
     void U4DStaticModel::updateBroadPhaseBoundingVolumeSpace(){
         
         //update the bounding volume with the model current space dual quaternion (rotation and translation)
-        sphereBoundingVolume->setLocalSpace(absoluteSpace);
+        broadPhaseBoundingVolume->setLocalSpace(absoluteSpace);
         
     }
     

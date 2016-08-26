@@ -72,7 +72,7 @@ namespace U4DEngine {
             U4DBoundingVolume *convexHullBoundingVolume;
         
             //Broad Phase Bounding Volume
-            U4DBoundingVolume *sphereBoundingVolume;
+            U4DBoundingVolume *broadPhaseBoundingVolume;
         
             MassProperties massProperties;
         
