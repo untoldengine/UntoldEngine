@@ -23,8 +23,10 @@ void Floor::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         //initAsInfinitePlatform(true);
+        translateBy(1.0, 0.0, 0.0);
         initMass(1000.0);
         enableCollisionBehavior();
+        setBroadPhaseBoundingVolumeVisibility(true);
     }
 }
 

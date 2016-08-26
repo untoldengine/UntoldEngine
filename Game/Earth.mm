@@ -46,9 +46,6 @@ void Earth::init(){
     floor=new Floor();
     floor->init("Platform","blenderscript.u4d");
     
-    floor2=new Floor();
-    floor2->init("Platform2","blenderscript.u4d");
-    
     //create the rocket
     rocket=new Rocket();
     rocket->init("Rocket","blenderscript.u4d");
@@ -123,7 +120,7 @@ void Earth::init(){
     addChild(planet);
     
     
-    addChild(floor2);
+    
     addChild(meteor1);
     addChild(meteor2);
     

@@ -22,7 +22,7 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        translateBy(3.0,0.0,0.0);
+        //translateBy(3.0,0.0,0.0);
         enableCollisionBehavior();
         enableKineticsBehavior();
         

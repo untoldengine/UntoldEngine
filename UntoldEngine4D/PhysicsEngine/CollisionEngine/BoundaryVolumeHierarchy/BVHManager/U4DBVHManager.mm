@@ -119,6 +119,8 @@ namespace U4DEngine{
             //5. get split index
             getBVHSplitIndex(nodeLeaf.get());
             
+            std::cout<<"Index: "<<nodeLeaf->getSplitIndex()<<std::endl;
+            
             //6. build left and right node
             buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
             buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
@@ -282,10 +284,10 @@ namespace U4DEngine{
         //Get the actual index in the vector which corresponds to the minimum element
         int splitIndex=std::distance(tempVectorOfModelPosition.cbegin(), closestModelToHalfDistance);
         
-        //
+        //make sure that the node doesn't end up with empty nodes.
         float positionOfModelAlongLongestVector=uNode->getModelsContainer().at(splitIndex)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());
         
-        if (positionOfModelAlongLongestVector<=halfDistance) {
+        if ((positionOfModelAlongLongestVector<=halfDistance) && (splitIndex<uNode->getModelsContainer().size()-1)) {
             
             splitIndex++;
             
