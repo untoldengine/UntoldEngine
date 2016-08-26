@@ -96,8 +96,6 @@ namespace U4DEngine{
             //5. get split index
             getBVHSplitIndex(nodeLeaf.get());
             
-            std::cout<<"Index: "<<nodeLeaf->getSplitIndex()<<std::endl;
-            
             //6. build left and right node
             buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
             buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
@@ -107,33 +105,6 @@ namespace U4DEngine{
     }
     
     void U4DBVHManager::startCollision(){
-        
-        
-        //get root tree
-        U4DBVHTree *child=treeContainer.at(0).get()->next;
-        
-        while (child!=NULL) {
-            
-            if(child->isRoot()){
-                
-                
-            }else{
-                
-                std::cout<<"NODES"<<std::endl;
-                for(auto n:child->getModelsContainer()){
-                    std::cout<<n->getName()<<std::endl;
-                    
-                }
-                
-                if (child->isLeaf()) {
-                    std::cout<<"Im leaf"<<std::endl;
-                }
-                
-            }
-            
-            child=child->next;
-        }
-        
         
         //check sphere vs spher collisions
         bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);

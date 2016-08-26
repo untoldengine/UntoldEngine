@@ -172,9 +172,6 @@ namespace U4DEngine {
                     
                 }
                 
-                
-            std::cout<<"Collisions pair: "<<modelBoundingVolumePair.at(i).model->getName()<<" and " <<modelBoundingVolumePair.at(j).model->getName()<<std::endl;
-                
                 if (collisionOccurred) {
                     
                     U4DBroadPhaseCollisionModelPair pairs;
@@ -183,7 +180,6 @@ namespace U4DEngine {
                     
                     uBroadPhaseCollisionPairs.push_back(pairs);
                     
-                    std::cout<<"Collision occurred between: "<<pairs.model1->getName()<<" and "<<pairs.model2->getName()<<std::endl;
                 }
                 
             }
