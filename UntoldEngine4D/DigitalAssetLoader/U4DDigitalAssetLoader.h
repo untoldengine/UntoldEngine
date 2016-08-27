@@ -95,7 +95,7 @@ namespace U4DEngine {
         
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::string uStringData);
         
-        void loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);
+        bool loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);
         
         void stringToFloat(std::string uStringData,std::vector<float> *uFloatData);
         

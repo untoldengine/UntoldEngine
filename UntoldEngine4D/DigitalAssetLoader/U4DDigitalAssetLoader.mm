@@ -930,9 +930,11 @@ namespace U4DEngine {
         
     }
 
-    void U4DDigitalAssetLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
+    bool U4DDigitalAssetLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
         
         tinyxml2::XMLNode *root=doc.FirstChildElement("UntoldEngine");
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        bool animationExist=false;
         int keyframeRange=0;
         
         //Get Mesh ID
@@ -947,6 +949,7 @@ namespace U4DEngine {
                     
                     tinyxml2::XMLElement *animations=child->FirstChildElement("animations");
                     
+                    animationExist=true;
                     
                     if (animations!=NULL) {
                         
@@ -1049,8 +1052,19 @@ namespace U4DEngine {
         
         }
         
-        //store the keyframe range
-        uAnimation->keyframeRange=keyframeRange;
+        if (animationExist) {
+            
+            logger->log("Animation %s has been linked to the model %s.",uAnimationName.c_str(),uAnimation->u4dModel->getName().c_str());
+            
+            //store the keyframe range
+            uAnimation->keyframeRange=keyframeRange;
+            
+            return true;
+        }
+        
+        logger->log("No animation with name %s exist.",uAnimationName.c_str());
+        
+        return false;
         
     }
 
