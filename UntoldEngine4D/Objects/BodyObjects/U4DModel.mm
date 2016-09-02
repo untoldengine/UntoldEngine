@@ -22,12 +22,12 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTextures(false),hasAnimation(false),selfShadowBias(0.005){
+    U4DModel::U4DModel():hasMaterial(false),hasTextures(false),hasAnimation(false),hasArmature(false),selfShadowBias(0.005){
         
         openGlManager=new U4DOpenGL3DModel(this);
         armatureManager=new U4DArmatureData(this);
         
-        openGlManager->setShader("phongShader");
+        openGlManager->setShader("gouraudShader");
         
         setEntityType(MODEL);
         
@@ -79,6 +79,10 @@ namespace U4DEngine {
         hasAnimation=uValue;
     }
     
+    void U4DModel::setHasArmature(bool uValue){
+        hasArmature=uValue;
+    }
+    
     bool U4DModel::getHasMaterial(){
         return hasMaterial;
     }
@@ -89,6 +93,10 @@ namespace U4DEngine {
     
     bool U4DModel::getHasAnimation(){
         return hasAnimation;
+    }
+    
+    bool U4DModel::getHasArmature(){
+        return hasArmature;
     }
     
     void U4DModel::setSelfShadowBias(float uSelfShadowBias){

@@ -112,6 +112,7 @@ typedef struct{
 
 typedef struct{
     
+    GLint hasArmatureUniformLocation;
     GLint boneMatrixUniformLocation;
     
 }ArmatureUniformLocations;

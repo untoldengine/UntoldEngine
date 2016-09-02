@@ -99,6 +99,7 @@ void U4DOpenGLManager::enableUniformsLocations(){
     
     //Animations Uniform Locations
     armatureUniformLocations.boneMatrixUniformLocation=glGetUniformLocation(shader, "BoneMatrix");
+    armatureUniformLocations.hasArmatureUniformLocation=glGetUniformLocation(shader, "HasArmature");
     
     //set up the light position uniform
     lightUniformLocations.lightPositionUniformLocation=glGetUniformLocation(shader, "PointLight");
