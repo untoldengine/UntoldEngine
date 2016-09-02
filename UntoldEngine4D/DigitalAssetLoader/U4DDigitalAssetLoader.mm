@@ -1010,75 +1010,82 @@ namespace U4DEngine {
                                 
                                 //get animation name
                                 std::string animationName=animationChild->Attribute("name");
-                                std::string animationFPS=animationChild->Attribute("fps");
                                 
-                                ANIMATIONDATA animationData;
-                                
-                                //set animation name
-                                animationData.name=animationName;
-                                
-                                uAnimation->name=animationName;
-                                
-                                //set animation fps
-                                uAnimation->fps=stof(animationFPS);
-                                
-                                //iterate through all the keyframes
-                                
-                                keyframeRange=0;
-                                
-                                for (tinyxml2::XMLElement *keyframe=animationChild->FirstChildElement("keyframe"); keyframe!=NULL; keyframe=keyframe->NextSiblingElement("keyframe")) {
+                                //check if the animation exists
+                                if (animationName.compare(uAnimationName)==0) {
                                     
-                                    KEYFRAMEDATA keyframeData;
+                                    std::string animationFPS=animationChild->Attribute("fps");
                                     
-                                    //get keyframe
-                                    float time=std::stof(keyframe->Attribute("time"));
+                                    ANIMATIONDATA animationData;
                                     
-                                    //set keyframe time
-                                    keyframeData.time=time;
+                                    //set animation name
+                                    animationData.name=animationName;
                                     
-                                    //set keyframe name
-                                    std::string keyframeCountString=std::to_string(keyframeRange);
+                                    uAnimation->name=animationName;
                                     
-                                    std::string keyframeName="keyframe";
-                                    keyframeName.append(keyframeCountString);
+                                    //set animation fps
+                                    uAnimation->fps=stof(animationFPS);
                                     
-                                    keyframeData.name=keyframeName;
+                                    //iterate through all the keyframes
                                     
-                                    keyframeRange++;
+                                    keyframeRange=0;
                                     
-                                    
-                                    //iterate through all the bone anim transformations
-                                    
-                                    for (tinyxml2::XMLElement *boneTransform=keyframe->FirstChildElement("pose_matrix"); boneTransform!=NULL; boneTransform=boneTransform->NextSiblingElement("pose_matrix")) {
+                                    for (tinyxml2::XMLElement *keyframe=animationChild->FirstChildElement("keyframe"); keyframe!=NULL; keyframe=keyframe->NextSiblingElement("keyframe")) {
                                         
-                                        //get bone Pose name
-                                        std::string boneAnimationName=boneTransform->Attribute("name");
+                                        KEYFRAMEDATA keyframeData;
                                         
-                                        //compare bone names
-                                        if (boneChild->name.compare(boneAnimationName)==0) {
+                                        //get keyframe
+                                        float time=std::stof(keyframe->Attribute("time"));
+                                        
+                                        //set keyframe time
+                                        keyframeData.time=time;
+                                        
+                                        //set keyframe name
+                                        std::string keyframeCountString=std::to_string(keyframeRange);
+                                        
+                                        std::string keyframeName="keyframe";
+                                        keyframeName.append(keyframeCountString);
+                                        
+                                        keyframeData.name=keyframeName;
+                                        
+                                        keyframeRange++;
+                                        
+                                        
+                                        //iterate through all the bone anim transformations
+                                        
+                                        for (tinyxml2::XMLElement *boneTransform=keyframe->FirstChildElement("pose_matrix"); boneTransform!=NULL; boneTransform=boneTransform->NextSiblingElement("pose_matrix")) {
                                             
-                                            //get bone Pose transform
-                                            std::string boneTransformString=boneTransform->GetText();
+                                            //get bone Pose name
+                                            std::string boneAnimationName=boneTransform->Attribute("name");
                                             
-                                            U4DDualQuaternion animationMatrixSpace;
+                                            //compare bone names
+                                            if (boneChild->name.compare(boneAnimationName)==0) {
+                                                
+                                                //get bone Pose transform
+                                                std::string boneTransformString=boneTransform->GetText();
+                                                
+                                                U4DDualQuaternion animationMatrixSpace;
+                                                
+                                                loadMatrixToBody(animationMatrixSpace, boneTransformString);
+                                                
+                                                //load the bone pose transform
+                                                
+                                                keyframeData.animationSpaceTransform=animationMatrixSpace;
+                                                
+                                            }//end if
                                             
-                                            loadMatrixToBody(animationMatrixSpace, boneTransformString);
-                                            
-                                            //load the bone pose transform
-                                            
-                                            keyframeData.animationSpaceTransform=animationMatrixSpace;
-                                            
-                                        }//end if
+                                        }//end for
+                                        
+                                        //add keyframe into the animationdata container
+                                        animationData.keyframes.push_back(keyframeData);
                                         
                                     }//end for
                                     
-                                    //add keyframe into the animationdata container
-                                    animationData.keyframes.push_back(keyframeData);
+                                    //Add the animation to the animation container
+                                    uAnimation->animationsContainer.push_back(animationData);
                                     
-                                }//end for
+                                }//end if
                                 
-                                //Add the animation to the animation container
-                                uAnimation->animationsContainer.push_back(animationData);
                                 
                             }//end for
                             
