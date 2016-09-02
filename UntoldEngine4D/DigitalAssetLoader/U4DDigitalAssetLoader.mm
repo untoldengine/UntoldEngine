@@ -549,6 +549,40 @@ namespace U4DEngine {
         uSpace.transformMatrix4nToDualQuaternion(tempMatrix);
         
     }
+    
+    void U4DDigitalAssetLoader::loadMatrixToBody(U4DMatrix4n &uMatrix, std::string uStringData){
+        
+        //	0	4	8	12
+        //	1	5	9	13
+        //	2	6	10	14
+        //	3	7	11	15
+        
+        std::vector<float> tempVector;
+        
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        uMatrix.matrixData[0]=tempVector.at(0);
+        uMatrix.matrixData[4]=tempVector.at(1);
+        uMatrix.matrixData[8]=tempVector.at(2);
+        uMatrix.matrixData[12]=tempVector.at(3);
+        
+        uMatrix.matrixData[1]=tempVector.at(4);
+        uMatrix.matrixData[5]=tempVector.at(5);
+        uMatrix.matrixData[9]=tempVector.at(6);
+        uMatrix.matrixData[13]=tempVector.at(7);
+        
+        uMatrix.matrixData[2]=tempVector.at(8);
+        uMatrix.matrixData[6]=tempVector.at(9);
+        uMatrix.matrixData[10]=tempVector.at(10);
+        uMatrix.matrixData[14]=tempVector.at(11);
+        
+        uMatrix.matrixData[3]=tempVector.at(12);
+        uMatrix.matrixData[7]=tempVector.at(13);
+        uMatrix.matrixData[11]=tempVector.at(14);
+        uMatrix.matrixData[15]=tempVector.at(15);
+        
+    }
 
 
 
@@ -952,6 +986,18 @@ namespace U4DEngine {
                     animationExist=true;
                     
                     if (animations!=NULL) {
+                        
+                        //get the modeler animation transform
+                        tinyxml2::XMLElement *modelerAnimationTransform=animations->FirstChildElement("modeler_animation_transform");
+                        
+                        //load the modeler animation transform
+                        if (modelerAnimationTransform!=NULL) {
+                            
+                            std::string modelerAnimationTransformString=modelerAnimationTransform->GetText();
+                            
+                            loadMatrixToBody(uAnimation->modelerAnimationTransform ,modelerAnimationTransformString);
+                            
+                        }
                         
                         //iterate through all bones
                         

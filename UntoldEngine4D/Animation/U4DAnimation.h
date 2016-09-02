@@ -14,6 +14,7 @@
 #include <string>
 #include "CommonProtocols.h"
 #include "U4DCallback.h"
+#include "U4DMatrix4n.h"
 
 namespace U4DEngine {
 class U4DModel;
@@ -42,7 +43,9 @@ public:
     int keyframe;
     int keyframeRange;
     float interpolationTime;
-   
+    
+    U4DMatrix4n modelerAnimationTransform;
+    
     std::vector<ANIMATIONDATA> animationsContainer;
     U4DBoneData* rootBone;
     

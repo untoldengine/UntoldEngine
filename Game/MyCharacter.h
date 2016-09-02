@@ -22,7 +22,7 @@ public:
     
     float x,y,z;
   
-    void init(const char* uName,float xPosition,float yPosition, float zPosition);
+    void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
     

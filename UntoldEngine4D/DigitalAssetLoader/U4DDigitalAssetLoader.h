@@ -93,6 +93,8 @@ namespace U4DEngine {
         
         void loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData);
         
+        void loadMatrixToBody(U4DMatrix4n &uMatrix, std::string uStringData);
+        
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::string uStringData);
         
         bool loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);

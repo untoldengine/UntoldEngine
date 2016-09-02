@@ -98,6 +98,9 @@ void U4DAnimation::runAnimation(){
         //convert F into a 4x4 matrix
         U4DMatrix4n finalMatrixTransform=finalMatrixSpace.transformDualQuaternionToMatrix4n();
         
+        //apply the MODELER animation transform-This is needed. For example, blender has a different bone-armature space than opengl
+        finalMatrixTransform=modelerAnimationTransform.inverse()*finalMatrixTransform*modelerAnimationTransform;
+        
         //F is then loaded into a buffer which will be sent to openGL buffer
         u4dModel->armatureBoneMatrix.push_back(finalMatrixTransform);
         
