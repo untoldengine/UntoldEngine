@@ -47,6 +47,19 @@ namespace U4DEngine {
         return false;
     }
     
+    bool U4DGameObject::loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile){
+        
+        U4DEngine::U4DDigitalAssetLoader *loader=U4DEngine::U4DDigitalAssetLoader::sharedInstance();
+        
+        if (loader->loadDigitalAssetFile(uBlenderFile) && loader->loadAnimationToMesh(uAnimation, uAnimationName)) {
+            
+            return true;
+            
+        }
+        
+        return false;
+    }
+    
 }
 
 

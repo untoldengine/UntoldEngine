@@ -549,6 +549,40 @@ namespace U4DEngine {
         uSpace.transformMatrix4nToDualQuaternion(tempMatrix);
         
     }
+    
+    void U4DDigitalAssetLoader::loadMatrixToBody(U4DMatrix4n &uMatrix, std::string uStringData){
+        
+        //	0	4	8	12
+        //	1	5	9	13
+        //	2	6	10	14
+        //	3	7	11	15
+        
+        std::vector<float> tempVector;
+        
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        uMatrix.matrixData[0]=tempVector.at(0);
+        uMatrix.matrixData[4]=tempVector.at(1);
+        uMatrix.matrixData[8]=tempVector.at(2);
+        uMatrix.matrixData[12]=tempVector.at(3);
+        
+        uMatrix.matrixData[1]=tempVector.at(4);
+        uMatrix.matrixData[5]=tempVector.at(5);
+        uMatrix.matrixData[9]=tempVector.at(6);
+        uMatrix.matrixData[13]=tempVector.at(7);
+        
+        uMatrix.matrixData[2]=tempVector.at(8);
+        uMatrix.matrixData[6]=tempVector.at(9);
+        uMatrix.matrixData[10]=tempVector.at(10);
+        uMatrix.matrixData[14]=tempVector.at(11);
+        
+        uMatrix.matrixData[3]=tempVector.at(12);
+        uMatrix.matrixData[7]=tempVector.at(13);
+        uMatrix.matrixData[11]=tempVector.at(14);
+        uMatrix.matrixData[15]=tempVector.at(15);
+        
+    }
 
 
 
@@ -930,9 +964,11 @@ namespace U4DEngine {
         
     }
 
-    void U4DDigitalAssetLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
+    bool U4DDigitalAssetLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
         
         tinyxml2::XMLNode *root=doc.FirstChildElement("UntoldEngine");
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        bool animationExist=false;
         int keyframeRange=0;
         
         //Get Mesh ID
@@ -947,8 +983,21 @@ namespace U4DEngine {
                     
                     tinyxml2::XMLElement *animations=child->FirstChildElement("animations");
                     
+                    animationExist=true;
                     
                     if (animations!=NULL) {
+                        
+                        //get the modeler animation transform
+                        tinyxml2::XMLElement *modelerAnimationTransform=animations->FirstChildElement("modeler_animation_transform");
+                        
+                        //load the modeler animation transform
+                        if (modelerAnimationTransform!=NULL) {
+                            
+                            std::string modelerAnimationTransformString=modelerAnimationTransform->GetText();
+                            
+                            loadMatrixToBody(uAnimation->modelerAnimationTransform ,modelerAnimationTransformString);
+                            
+                        }
                         
                         //iterate through all bones
                         
@@ -1049,8 +1098,19 @@ namespace U4DEngine {
         
         }
         
-        //store the keyframe range
-        uAnimation->keyframeRange=keyframeRange;
+        if (animationExist) {
+            
+            logger->log("Animation %s has been linked to the model %s.",uAnimationName.c_str(),uAnimation->u4dModel->getName().c_str());
+            
+            //store the keyframe range
+            uAnimation->keyframeRange=keyframeRange;
+            
+            return true;
+        }
+        
+        logger->log("No animation with name %s exist.",uAnimationName.c_str());
+        
+        return false;
         
     }
 

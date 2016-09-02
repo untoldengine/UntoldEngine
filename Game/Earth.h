@@ -49,6 +49,7 @@ private:
     Cloud *cloud3;
     Cloud *cloud4;
     Cloud *cloud5;
+    MyCharacter *uemascot;
     
 public:
    

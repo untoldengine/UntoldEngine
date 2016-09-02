@@ -44,6 +44,8 @@ namespace U4DEngine {
         
         bool loadModel(const char* uModelName, const char* uBlenderFile);
         
+        bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile);
+        
     };
 
 }

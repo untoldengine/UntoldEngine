@@ -13,25 +13,19 @@
 #include "U4DAnimation.h"
 
 
-void MyCharacter::init(const char* uName,float xPosition,float yPosition, float zPosition){
+void MyCharacter::init(const char* uName, const char* uBlenderFile){
     
-
-    U4DEngine::U4DDigitalAssetLoader *loader=U4DEngine::U4DDigitalAssetLoader::sharedInstance();
     
-    if(loader->loadDigitalAssetFile("blenderscript.u4d")){
+    if (loadModel(uName, uBlenderFile)) {
+     
+        anim=new U4DEngine::U4DAnimation(this);
         
-        loader->loadAssetToMesh(this,uName);
-       
+        if (loadAnimationToModel(anim, "ArmatureAction", uBlenderFile)) {
+            
+            replay=0;
+        }
+        
     }
-    
-    //translateTo(xPosition,yPosition,zPosition);
-   
-    anim=new U4DEngine::U4DAnimation(this);
-    
-   loader->loadAnimationToMesh(anim,"ArmatureAction");
-    
-    replay=0;
-    
     
     
 }
@@ -42,15 +36,6 @@ void MyCharacter::update(double dt){
         anim->start();
         replay=1;
     }
-  
-    //U4DVector3n axisPosition(3,3,0);
-    //U4DVector3n axisOrientation(0,0,1);
-    
-    //rotateAboutAxis(rotation,axisOrientation,axisPosition);
-    //U4DQuaternion q(1,axis);
-    
-    //rotateTo(0,rotation,0);
-    //rotation++;
     
     
 }
