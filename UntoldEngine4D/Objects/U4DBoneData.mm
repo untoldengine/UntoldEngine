@@ -168,7 +168,7 @@ namespace U4DEngine {
 
     bool U4DBoneData::isLeaf(){
         
-        return lastDescendant=this;
+        return (lastDescendant==this);
         
     }
 
