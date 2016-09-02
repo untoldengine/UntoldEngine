@@ -228,10 +228,8 @@ namespace U4DEngine {
                     }
                     
                     if (armature!=NULL) {
-                        
-                        //if model has armature, then change the shading
-                        
-                        uModel->openGlManager->setShader("AnimationShader");
+                    
+                        uModel->setHasArmature(true);
                         
                         //read the Bind Shape Matrix
                         tinyxml2::XMLElement *bindShapeMatrix=armature->FirstChildElement("bind_shape_matrix");

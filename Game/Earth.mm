@@ -39,19 +39,19 @@ using namespace U4DEngine;
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 0.0, 10.0);
+    camera->translateBy(0.0, 5.0, 10.0);
     //camera->rotateTo(0.0,-20.0,0.0);
 
     uemascot=new MyCharacter();
     uemascot->init("UEMascot", "blenderscript.u4d");
     
     //create the floor
-//    floor=new Floor();
-//    floor->init("Platform","blenderscript.u4d");
-//    
+    floor=new Floor();
+    floor->init("Platform","blenderscript.u4d");
+    
 //    floor2=new Floor();
 //    floor2->init("Platform2","blenderscript.u4d");
-//    
+//
 //    //create the rocket
 //    rocket=new Rocket();
 //    rocket->init("Rocket","blenderscript.u4d");
@@ -116,9 +116,9 @@ void Earth::init(){
     light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-//    addChild(floor);
+    addChild(floor);
 //    addChild(floor2);
-//    
+//
 //    addChild(rocket);
 //    addChild(mountain);
 //    addChild(meteor3);
@@ -158,7 +158,7 @@ void Earth::update(double dt){
 
 void Earth::action(){
     
-    setEntityControlledByController(this);
+    setEntityControlledByController(uemascot);
     
 }
 

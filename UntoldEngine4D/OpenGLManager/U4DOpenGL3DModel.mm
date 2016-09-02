@@ -273,8 +273,20 @@ void U4DOpenGL3DModel::setNormalBumpTexture(const char* uTexture){
 
 void U4DOpenGL3DModel::loadArmatureUniforms(){
     
-    //load the final space transform
-    glUniformMatrix4fv(armatureUniformLocations.boneMatrixUniformLocation, u4dObject->armatureManager->boneDataContainer.size(), 0, u4dObject->armatureBoneMatrix[0].matrixData);
+    if (u4dObject->getHasArmature()) {
+        
+        //send HasArmature to shaders
+        glUniform1f(armatureUniformLocations.hasArmatureUniformLocation, 1.0);
+        
+        //load the final space transform
+        glUniformMatrix4fv(armatureUniformLocations.boneMatrixUniformLocation, u4dObject->armatureManager->boneDataContainer.size(), 0, u4dObject->armatureBoneMatrix[0].matrixData);
+        
+    }else{
+        
+        glUniform1f(armatureUniformLocations.hasArmatureUniformLocation, 0.0);
+        
+    }
+    
     
 }
 

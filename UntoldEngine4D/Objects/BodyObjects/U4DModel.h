@@ -33,6 +33,8 @@ namespace U4DEngine {
         
         bool hasAnimation;
         
+        bool hasArmature;
+        
         float selfShadowBias;
         
     protected:
@@ -74,11 +76,15 @@ namespace U4DEngine {
         
         void setHasAnimation(bool uValue);
         
+        void setHasArmature(bool uValue);
+        
         bool getHasMaterial();
         
         bool getHasTexture();
         
         bool getHasAnimation();
+        
+        bool getHasArmature();
         
         /**
          @brief Set the bias to reduce self-shadowing

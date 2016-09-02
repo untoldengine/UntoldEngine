@@ -20,7 +20,7 @@ namespace U4DEngine {
         entityManager->setRootEntity(this);
         
         openGlManager=new U4DOpenGLWorld(this);
-        openGlManager->setShader("phongShader");
+        openGlManager->setShader("gouraudShader");
         
         enableShadows();
         
