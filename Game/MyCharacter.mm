@@ -19,11 +19,12 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
      
         anim=new U4DEngine::U4DAnimation(this);
+        translateTo(0.0,4.0,0.0);
         
         if (loadAnimationToModel(anim, "ArmatureAction", uBlenderFile)) {
-            setShader("gouraudShader");
+            
             replay=0;
-            translateTo(0.0,4.0,0.0);
+            
         }
         
     }
