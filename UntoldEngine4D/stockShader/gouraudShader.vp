@@ -77,7 +77,38 @@ void main(void)
 
     if(ShadowCurrentPass==0.0){
 
-    gl_Position = LightShadowSpaceMatrix*ModelMatrix*Vertex;
+        //if aramture exist, compute the shadow mapping
+        if(HasArmature==1.0){
+
+            mediump ivec4 iBones=ivec4(BoneIndices);
+            mediump vec4 newVertex=vec4(0);
+
+            mediump int boneIndicesArray[4];
+            boneIndicesArray[0]=iBones.x;
+            boneIndicesArray[1]=iBones.y;
+            boneIndicesArray[2]=iBones.z;
+            boneIndicesArray[3]=iBones.w;
+
+            mediump float weightArray[4];
+            weightArray[0]=Weights.x;
+            weightArray[1]=Weights.y;
+            weightArray[2]=Weights.z;
+            weightArray[3]=Weights.w;
+
+            for(int i=0;i<4;i++){
+
+                newVertex+=(BoneMatrix[boneIndicesArray[i]]*Vertex)*weightArray[i];
+
+            }
+
+            gl_Position = LightShadowSpaceMatrix*ModelMatrix*newVertex;
+
+        //if no armature exists, then do shadow mapping as normal
+        }else{
+
+            gl_Position = LightShadowSpaceMatrix*ModelMatrix*Vertex;
+
+        }
 
 
     }else{

@@ -327,6 +327,8 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //load the shadow current pass
     glUniform1f(lightUniformLocations.shadowCurrentPassUniformLocation, 0.0);
     
+    //load armature uniform
+    loadArmatureUniforms();
     
     //draw elements
     drawElements();
