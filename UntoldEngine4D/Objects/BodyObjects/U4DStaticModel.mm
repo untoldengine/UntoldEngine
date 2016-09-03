@@ -275,7 +275,7 @@ namespace U4DEngine {
             
             U4DLogger *logger=U4DLogger::sharedInstance();
             
-            logger->log("Computing Convex Hull for Collision Detection for model: %s",getName().c_str());
+            logger->log("In Process: Computing Convex Hull for Collision Detection for model: %s",getName().c_str());
             
             //determine the convex hull of the model
             CONVEXHULL convexHull=convexHullAlgorithm.computeConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
@@ -284,7 +284,7 @@ namespace U4DEngine {
             
             if (convexHull.isValid) {
                 
-                logger->log("Convex Hull was properly computed. Collision Detection is enabled for model: %s.",getName().c_str());
+                logger->log("Success: Convex Hull was properly computed. Collision Detection is enabled for model: %s.",getName().c_str());
                 
                 //set the convex hull for the bounding volume. Note the convex hull is maintained by the U4DBoundingConvex class
                 convexHullBoundingVolume->setConvexHullVertices(convexHull);
@@ -350,7 +350,7 @@ namespace U4DEngine {
                 collisionEnabled=true;
                 
             }else{
-                logger->log("Computed Convex Hull for model %s is not valid",getName().c_str());
+                logger->log("Error: Computed Convex Hull for model %s is not valid",getName().c_str());
                 logger->log("Please visit www.untoldengine.com for a review on Model Topology to produce a valid Convex Hull");
                 
             }

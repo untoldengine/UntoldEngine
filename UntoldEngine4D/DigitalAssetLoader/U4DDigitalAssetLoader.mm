@@ -52,13 +52,13 @@ namespace U4DEngine {
         
         if (!loadOk) {
         
-            logger->log("Digital Asset File %s succesfully Loaded.",uFile);
+            logger->log("Success: Digital Asset File %s succesfully Loaded.",uFile);
             
             loadOk=true;
             
         }else{
             
-            logger->log("Error loading Digital Asset File, No file %s exist.",uFile);
+            logger->log("Error: Couldn't load Digital Asset File, No file %s exist.",uFile);
             
             loadOk=false;
         }
@@ -98,7 +98,7 @@ namespace U4DEngine {
                 if (vertexCount<=9000 && indexCount%3==0) {
                     //The model can be processed since it is below 1000 vertices and it has been properly triangularized
                     
-                    logger->log("Loading Digital Asset Data for model: %s",meshName.c_str());
+                    logger->log("In Process: Loading Digital Asset Data for model: %s",meshName.c_str());
                     
                     //inform that the model does exist
                     modelExist=true;
@@ -237,7 +237,7 @@ namespace U4DEngine {
                         if (bindShapeMatrix!=NULL) {
                             std::string bindShapeMatrixString=bindShapeMatrix->GetText();
                             
-                            loadMatrixToBody(uModel->armatureManager->bindShapeSpace, bindShapeMatrixString);
+                            loadSpaceData(uModel->armatureManager->bindShapeSpace, bindShapeMatrixString);
                             
                         }
                         
@@ -267,7 +267,7 @@ namespace U4DEngine {
                                     
                                     std::string matrixLocalString=boneMatrixLocal->GetText();
                                     
-                                    loadMatrixToBody(rootBone->localSpace, matrixLocalString);
+                                    loadSpaceData(rootBone->localSpace, matrixLocalString);
                                 }
                                 
                                 //add the bind pose Matrix
@@ -277,7 +277,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseMatrixString=bindPoseMatrix->GetText();
                                     
-                                    loadMatrixToBody(rootBone->bindPoseSpace, bindPoseMatrixString);
+                                    loadSpaceData(rootBone->bindPoseSpace, bindPoseMatrixString);
                                 }
                                 
                                 //add the bind pose inverse matrix
@@ -288,7 +288,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseInverseMatrixString=bindPoseInverseMatrix->GetText();
                                    
-                                    loadMatrixToBody(rootBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
+                                    loadSpaceData(rootBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
                                 }
                                 
                                
@@ -329,7 +329,7 @@ namespace U4DEngine {
                                     
                                     std::string matrixLocalString=boneMatrixLocal->GetText();
                                     
-                                    loadMatrixToBody(childBone->localSpace, matrixLocalString);
+                                    loadSpaceData(childBone->localSpace, matrixLocalString);
                                 }
                                 
                                 //add the bind pose Matrix
@@ -339,7 +339,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseMatrixString=bindPoseMatrix->GetText();
                                     
-                                    loadMatrixToBody(childBone->bindPoseSpace, bindPoseMatrixString);
+                                    loadSpaceData(childBone->bindPoseSpace, bindPoseMatrixString);
                                 }
                                 
                                 //add the bind pose inverse matrix
@@ -350,7 +350,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseInverseMatrixString=bindPoseInverseMatrix->GetText();
                                     
-                                    loadMatrixToBody(childBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
+                                    loadSpaceData(childBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
                                 }
                                 
                                 
@@ -394,19 +394,19 @@ namespace U4DEngine {
                 
                 }else if(vertexCount>9000 && indexCount%3!=0){
                     
-                    logger->log("The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500\nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, and that there are no loose vertices. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
+                    logger->log("Error: The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500\nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, and that there are no loose vertices. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
                     
                     return false;
                     
                 }else if(vertexCount>9000){
                     
-                    logger->log("The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500.",meshName.c_str());
+                    logger->log("Error: The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500.",meshName.c_str());
                     
                     return false;
                     
                 }else if(indexCount%3!=0){
                     
-                    logger->log("The character %s has not been properly triangularized. Make sure not to use n-gons in your topology. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
+                    logger->log("Error: The character %s has not been properly triangularized. Make sure not to use n-gons in your topology. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
                     
                     return false;
                 }
@@ -421,12 +421,12 @@ namespace U4DEngine {
         
         if (modelExist) {
         
-            logger->log("Digital Asset Data for model %s has been loaded into the engine.",uMeshID.c_str());
+            logger->log("Success: Digital Asset Data for model %s has been loaded into the engine.",uMeshID.c_str());
 
             return true;
         }
         
-        logger->log("No model with name %s exist.",uMeshID.c_str());
+        logger->log("Error: No model with name %s exist.",uMeshID.c_str());
         
         return false;
         
@@ -511,7 +511,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DDigitalAssetLoader::loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData){
+    void U4DDigitalAssetLoader::loadSpaceData(U4DDualQuaternion &uSpace, std::string uStringData){
         
         //	0	4	8	12
         //	1	5	9	13
@@ -548,7 +548,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DDigitalAssetLoader::loadMatrixToBody(U4DMatrix4n &uMatrix, std::string uStringData){
+    void U4DDigitalAssetLoader::loadSpaceData(U4DMatrix4n &uMatrix, std::string uStringData){
         
         //	0	4	8	12
         //	1	5	9	13
@@ -991,7 +991,7 @@ namespace U4DEngine {
                             
                             std::string modelerAnimationTransformString=modelerAnimationTransform->GetText();
                             
-                            loadMatrixToBody(uAnimation->modelerAnimationTransform ,modelerAnimationTransformString);
+                            loadSpaceData(uAnimation->modelerAnimationTransform ,modelerAnimationTransformString);
                             
                         }
                         
@@ -1066,7 +1066,7 @@ namespace U4DEngine {
                                                     
                                                     U4DDualQuaternion animationMatrixSpace;
                                                     
-                                                    loadMatrixToBody(animationMatrixSpace, boneTransformString);
+                                                    loadSpaceData(animationMatrixSpace, boneTransformString);
                                                     
                                                     //load the bone pose transform
                                                     
@@ -1109,7 +1109,7 @@ namespace U4DEngine {
         
         if (animationExist) {
             
-            logger->log("Animation %s has been linked to the model %s.",uAnimationName.c_str(),uAnimation->u4dModel->getName().c_str());
+            logger->log("Success: Animation %s has been linked to the model %s.",uAnimationName.c_str(),uAnimation->u4dModel->getName().c_str());
             
             //store the keyframe range
             uAnimation->keyframeRange=keyframeRange;
@@ -1117,7 +1117,7 @@ namespace U4DEngine {
             return true;
         }
         
-        logger->log("No animation with name %s exist.",uAnimationName.c_str());
+        logger->log("Error: No animation with name %s exist.",uAnimationName.c_str());
         
         return false;
         
