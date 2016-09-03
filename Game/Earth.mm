@@ -158,7 +158,7 @@ void Earth::update(double dt){
 
 void Earth::action(){
     
-    setEntityControlledByController(uemascot);
+    setEntityControlledByController(this);
     
 }
 
