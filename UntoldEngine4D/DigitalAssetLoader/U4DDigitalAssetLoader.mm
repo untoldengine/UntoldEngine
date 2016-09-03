@@ -46,6 +46,14 @@ namespace U4DEngine {
 
     bool U4DDigitalAssetLoader::loadDigitalAssetFile(const char* uFile){
         
+        //if file exists, simply return. no need to load the file again
+        std::string uStringFile(uFile);
+        if (currentLoadedFile.compare(uStringFile)==0) {
+            
+            return true;
+            
+        }
+        
         bool loadOk=doc.LoadFile(uFile);
         
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -54,11 +62,15 @@ namespace U4DEngine {
         
             logger->log("Success: Digital Asset File %s succesfully Loaded.",uFile);
             
+            currentLoadedFile=uFile;
+            
             loadOk=true;
             
         }else{
             
             logger->log("Error: Couldn't load Digital Asset File, No file %s exist.",uFile);
+            
+            currentLoadedFile.clear();
             
             loadOk=false;
         }
