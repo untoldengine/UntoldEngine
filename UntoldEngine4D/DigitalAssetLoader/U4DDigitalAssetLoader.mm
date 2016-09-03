@@ -1080,10 +1080,15 @@ namespace U4DEngine {
                                             animationData.keyframes.push_back(keyframeData);
                                             
                                         }//end for
-                                        
-                                        //Add the animation to the animation container
-                                        uAnimation->animationsContainer.push_back(animationData);
-                                        
+                                       
+                                        //make sure the animation data keyframe is not empty
+                                        if (animationData.keyframes.size()>0) {
+                                            
+                                            //Add the animation to the animation container
+                                            uAnimation->animationsContainer.push_back(animationData);
+                                            
+                                        }
+                                       
                                         //iterate to the next child
                                         boneChild=boneChild->next;
                                         
