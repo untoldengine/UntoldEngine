@@ -237,7 +237,7 @@ namespace U4DEngine {
                         if (bindShapeMatrix!=NULL) {
                             std::string bindShapeMatrixString=bindShapeMatrix->GetText();
                             
-                            loadMatrixToBody(uModel->armatureManager->bindShapeSpace, bindShapeMatrixString);
+                            loadSpaceData(uModel->armatureManager->bindShapeSpace, bindShapeMatrixString);
                             
                         }
                         
@@ -267,7 +267,7 @@ namespace U4DEngine {
                                     
                                     std::string matrixLocalString=boneMatrixLocal->GetText();
                                     
-                                    loadMatrixToBody(rootBone->localSpace, matrixLocalString);
+                                    loadSpaceData(rootBone->localSpace, matrixLocalString);
                                 }
                                 
                                 //add the bind pose Matrix
@@ -277,7 +277,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseMatrixString=bindPoseMatrix->GetText();
                                     
-                                    loadMatrixToBody(rootBone->bindPoseSpace, bindPoseMatrixString);
+                                    loadSpaceData(rootBone->bindPoseSpace, bindPoseMatrixString);
                                 }
                                 
                                 //add the bind pose inverse matrix
@@ -288,7 +288,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseInverseMatrixString=bindPoseInverseMatrix->GetText();
                                    
-                                    loadMatrixToBody(rootBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
+                                    loadSpaceData(rootBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
                                 }
                                 
                                
@@ -329,7 +329,7 @@ namespace U4DEngine {
                                     
                                     std::string matrixLocalString=boneMatrixLocal->GetText();
                                     
-                                    loadMatrixToBody(childBone->localSpace, matrixLocalString);
+                                    loadSpaceData(childBone->localSpace, matrixLocalString);
                                 }
                                 
                                 //add the bind pose Matrix
@@ -339,7 +339,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseMatrixString=bindPoseMatrix->GetText();
                                     
-                                    loadMatrixToBody(childBone->bindPoseSpace, bindPoseMatrixString);
+                                    loadSpaceData(childBone->bindPoseSpace, bindPoseMatrixString);
                                 }
                                 
                                 //add the bind pose inverse matrix
@@ -350,7 +350,7 @@ namespace U4DEngine {
                                     
                                     std::string bindPoseInverseMatrixString=bindPoseInverseMatrix->GetText();
                                     
-                                    loadMatrixToBody(childBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
+                                    loadSpaceData(childBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
                                 }
                                 
                                 
@@ -511,7 +511,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DDigitalAssetLoader::loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData){
+    void U4DDigitalAssetLoader::loadSpaceData(U4DDualQuaternion &uSpace, std::string uStringData){
         
         //	0	4	8	12
         //	1	5	9	13
@@ -548,7 +548,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DDigitalAssetLoader::loadMatrixToBody(U4DMatrix4n &uMatrix, std::string uStringData){
+    void U4DDigitalAssetLoader::loadSpaceData(U4DMatrix4n &uMatrix, std::string uStringData){
         
         //	0	4	8	12
         //	1	5	9	13
@@ -991,7 +991,7 @@ namespace U4DEngine {
                             
                             std::string modelerAnimationTransformString=modelerAnimationTransform->GetText();
                             
-                            loadMatrixToBody(uAnimation->modelerAnimationTransform ,modelerAnimationTransformString);
+                            loadSpaceData(uAnimation->modelerAnimationTransform ,modelerAnimationTransformString);
                             
                         }
                         
@@ -1066,7 +1066,7 @@ namespace U4DEngine {
                                                     
                                                     U4DDualQuaternion animationMatrixSpace;
                                                     
-                                                    loadMatrixToBody(animationMatrixSpace, boneTransformString);
+                                                    loadSpaceData(animationMatrixSpace, boneTransformString);
                                                     
                                                     //load the bone pose transform
                                                     

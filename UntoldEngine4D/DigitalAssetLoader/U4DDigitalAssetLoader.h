@@ -91,9 +91,9 @@ namespace U4DEngine {
         
         void loadDimensionDataToBody(U4DModel *uModel,std::string uStringData);
         
-        void loadMatrixToBody(U4DDualQuaternion &uSpace, std::string uStringData);
+        void loadSpaceData(U4DDualQuaternion &uSpace, std::string uStringData);
         
-        void loadMatrixToBody(U4DMatrix4n &uMatrix, std::string uStringData);
+        void loadSpaceData(U4DMatrix4n &uMatrix, std::string uStringData);
         
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::string uStringData);
         
