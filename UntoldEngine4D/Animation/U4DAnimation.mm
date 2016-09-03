@@ -11,6 +11,7 @@
 #include "U4DBoneData.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -44,6 +45,8 @@ U4DAnimation::~U4DAnimation(){
 
 void U4DAnimation::start(){
     
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    
     if (animationsContainer.size()>0) {
         
         //set interpolation time to zero
@@ -51,6 +54,8 @@ void U4DAnimation::start(){
         
         scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,(1/fps), true);
 
+    }else{
+        logger->log("Error: The animation %s could not be started because it has no keyframes",name.c_str());
     }
     
 }

@@ -105,25 +105,25 @@ void U4DOpenGLWorld::initShadowMapFramebuffer(){
                 
             case GL_FRAMEBUFFER_INCOMPLETE_ATTACHMENT:
                 
-                logger->log("The framebuffer is incomplete attachment.");
+                logger->log("Error: The framebuffer is incomplete attachment.");
                 
                 break;
                 
             case GL_FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT:
                 
-                logger->log("The framebuffer is missing attachment.");
+                logger->log("Error: The framebuffer is missing attachment.");
                 
                 break;
                 
             default:
                 
-                logger->log("There is an error with the framebuffer, but was not able to detect why.");
+                logger->log("Error: There is an error with the framebuffer, but was not able to detect why.");
                 
                 break;
         }
     }else{
         
-        logger->log("The framebuffer has been set properly for Shadow effects.");
+        logger->log("Success: The framebuffer has been set properly for Shadow effects.");
         
     }
     
