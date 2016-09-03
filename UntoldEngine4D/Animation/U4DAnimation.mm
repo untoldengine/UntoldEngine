@@ -44,11 +44,15 @@ U4DAnimation::~U4DAnimation(){
 
 void U4DAnimation::start(){
     
-    //set interpolation time to zero
-    interpolationTime=0.0;
-    
-    scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,(1/fps), true);
+    if (animationsContainer.size()>0) {
+        
+        //set interpolation time to zero
+        interpolationTime=0.0;
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,(1/fps), true);
 
+    }
+    
 }
 
 void U4DAnimation::stop(){
