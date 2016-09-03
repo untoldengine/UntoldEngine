@@ -37,6 +37,7 @@ namespace U4DEngine {
     private:
         
         tinyxml2::XMLDocument doc;
+        std::string currentLoadedFile;
         
     protected:
         
