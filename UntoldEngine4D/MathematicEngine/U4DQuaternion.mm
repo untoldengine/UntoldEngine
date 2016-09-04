@@ -16,28 +16,15 @@
 namespace U4DEngine {
     
     
-/**
- *  Constructor
- */
 U4DQuaternion::U4DQuaternion(){};
 
-/**
- *  Constructor
- */
 U4DQuaternion::U4DQuaternion(float uS,U4DVector3n& uV):s(uS),v(uV){
 
 }
 
-/**
- *  Destructor
- */
 U4DQuaternion::~U4DQuaternion(){
 
 };
-
-/**
- *  Copy Constructor
- */
 
 U4DQuaternion::U4DQuaternion(const U4DQuaternion & value){
     
@@ -46,9 +33,6 @@ U4DQuaternion::U4DQuaternion(const U4DQuaternion & value){
     
 };
 
-/**
- *  Copy Constructor
- */
 U4DQuaternion& U4DQuaternion::operator=(const U4DQuaternion& value){
     
     s=value.s;
@@ -57,8 +41,6 @@ U4DQuaternion& U4DQuaternion::operator=(const U4DQuaternion& value){
     return *this;
 };
     
-#pragma mark-add
-//add
 void U4DQuaternion::operator+=(const U4DQuaternion& q){
     
     s+=q.s;
@@ -74,8 +56,6 @@ U4DQuaternion U4DQuaternion::operator+(const U4DQuaternion& q)const{
     return U4DQuaternion(scalar,imaginary);
 }
 
-#pragma mark-substract
-//substract
 void U4DQuaternion::operator-=(const U4DQuaternion& q){
     
     s-=q.s;
@@ -90,8 +70,6 @@ U4DQuaternion U4DQuaternion::operator-(const U4DQuaternion& q)const{
     return U4DQuaternion(scalar,imaginary);
 }
 
-#pragma mark-multiply
-//multiply
 void U4DQuaternion::operator*=(const U4DQuaternion& q){
     
     (*this)=multiply(q);
@@ -117,7 +95,7 @@ U4DQuaternion U4DQuaternion::multiply(const U4DQuaternion& q)const{
     
 }
 
-//multiply scalar
+
 void U4DQuaternion::operator*=(const float value){
     
     s*=value;
@@ -155,8 +133,6 @@ float U4DQuaternion::dot(U4DQuaternion& q){
     
 }
 
-#pragma mark-norm
-//norm
 float U4DQuaternion::norm(){
     
     float scalar=s*s;
@@ -165,8 +141,6 @@ float U4DQuaternion::norm(){
     return sqrt(scalar+imaginary);
 }
 
-#pragma mark-normalize
-//unit-norm
 void U4DQuaternion::normalize(){
  
     if (norm()!=0) {
@@ -180,9 +154,6 @@ void U4DQuaternion::normalize(){
     
 }
 
-
-#pragma mark-conjugate
-//conjugate
 U4DQuaternion U4DQuaternion::conjugate(){
     
     float scalar=s;
@@ -192,8 +163,6 @@ U4DQuaternion U4DQuaternion::conjugate(){
 }
 
 
-#pragma mark-inverse
-//inverse
 U4DQuaternion U4DQuaternion::inverse(){
     
     float absoluteValue=norm();
@@ -215,8 +184,7 @@ void U4DQuaternion::inverse(U4DQuaternion& q){
     q=dummy;
 }
 
-#pragma mark-Hamilton
-//hamilton
+    
 void U4DQuaternion::convertToUnitNormQuaternion(){
     
     U4DTrigonometry trigonometry;
@@ -230,8 +198,6 @@ void U4DQuaternion::convertToUnitNormQuaternion(){
 }
 
 
-#pragma mark-Matrix Transform
-//matrixTransform
 U4DMatrix3n U4DQuaternion::transformQuaternionToMatrix3n(){
     
     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
@@ -258,8 +224,6 @@ U4DMatrix3n U4DQuaternion::transformQuaternionToMatrix3n(){
     return m;
 }
 
-#pragma mark-Euler To Quaternion
-//euler to quaternion
 void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
     
     U4DTrigonometry trigonometry;
@@ -280,7 +244,6 @@ void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
    
 }
 
-#pragma mark-Quaternion to Euler
 U4DVector3n U4DQuaternion::transformQuaternionToEulerAngles(){
     
     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
@@ -392,7 +355,6 @@ U4DQuaternion U4DQuaternion::slerp(U4DQuaternion&q, float time){
     
 }
 
-#pragma mark-show
 void U4DQuaternion::show(){
     
     float x=v.x;
