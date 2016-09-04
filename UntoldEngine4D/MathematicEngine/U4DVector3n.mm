@@ -16,6 +16,31 @@
 
 namespace U4DEngine {
     
+    U4DVector3n::U4DVector3n(){
+        
+        x=0.0;
+        y=0.0;
+        z=0.0;
+    }
+    
+    U4DVector3n::U4DVector3n(float nx,float ny,float nz):x(nx),y(ny),z(nz){}
+    
+    U4DVector3n::~U4DVector3n(){}
+    
+    U4DVector3n::U4DVector3n(const U4DVector3n& a):x(a.x),y(a.y),z(a.z){
+        
+    }
+    
+    U4DVector3n& U4DVector3n::operator=(const U4DVector3n& a){
+        
+        x=a.x;
+        y=a.y;
+        z=a.z;
+        
+        return *this;
+        
+    }
+    
     bool U4DVector3n::operator==(const U4DVector3n& a){
         
         U4DNumerical comparison;
@@ -27,8 +52,6 @@ namespace U4DEngine {
         }
         
     }
-
-    #pragma mark-add
 
     void U4DVector3n::operator+=(const U4DVector3n& v){
         
@@ -44,7 +67,6 @@ namespace U4DEngine {
         return U4DVector3n(x+v.x,y+v.y,z+v.z);
     }
 
-    #pragma mark-subtract
     void U4DVector3n::operator-=(const U4DVector3n& v){
         
         x-=v.x;
@@ -57,7 +79,7 @@ namespace U4DEngine {
         return U4DVector3n(x-v.x,y-v.y,z-v.z);
     }
 
-    #pragma mark-multiply scalar
+    
     void U4DVector3n::operator*=(const float s){
         
         x*=s;
@@ -71,7 +93,6 @@ namespace U4DEngine {
         return U4DVector3n(s*x,s*y,s*z);
     }
 
-    #pragma mark-multiply times a matrix
 
     //multiply times a matrix
     U4DVector3n U4DVector3n::operator*(const U4DMatrix3n& m)const{
@@ -88,7 +109,7 @@ namespace U4DEngine {
         return result;
     }
 
-    #pragma mark-multiply times a quaternion
+    
     U4DQuaternion U4DVector3n::operator*(U4DQuaternion& q) const{
         
         float sPart=-(q.v.x*x + q.v.y*y + q.v.z*z);
@@ -104,7 +125,7 @@ namespace U4DEngine {
         
     }
 
-    #pragma mark-divide by scalar
+    
     //divide by scalar
     void U4DVector3n::operator /=(const float s){
         
@@ -118,7 +139,7 @@ namespace U4DEngine {
         return U4DVector3n(x/s,y/s,z/s);
     }
 
-    #pragma mark-dot product
+    
     float U4DVector3n::operator*(const U4DVector3n& v) const{
         
         return x*v.x+y*v.y+z*v.z;
@@ -155,7 +176,6 @@ namespace U4DEngine {
         
     }
 
-    #pragma mark-cross product
     U4DVector3n U4DVector3n::cross(const U4DVector3n& v) const{
      
         return U4DVector3n(y*v.z-z*v.y,
@@ -178,7 +198,7 @@ namespace U4DEngine {
         
     }
 
-    #pragma mark-normalize
+
     void U4DVector3n::normalize(){
         
         float mag=sqrt(x*x+y*y+z*z);
@@ -196,7 +216,7 @@ namespace U4DEngine {
         
     }
 
-    #pragma mark-conjugate
+    
     void U4DVector3n::conjugate(){
         
         x=-1*x;
@@ -205,7 +225,6 @@ namespace U4DEngine {
             
     }
 
-    #pragma mark-magnitude
 
     float U4DVector3n::magnitude(){
 
@@ -223,7 +242,6 @@ namespace U4DEngine {
     }
 
 
-    #pragma mark-to point
     U4DPoint3n U4DVector3n::toPoint(){
         
         U4DPoint3n q(x,y,z);
@@ -231,8 +249,6 @@ namespace U4DEngine {
         return q;
     }
 
-    #pragma mark-clear
-    //clear
     void U4DVector3n::zero(){
         x=0;
         y=0;
@@ -270,8 +286,6 @@ namespace U4DEngine {
         
     }
 
-
-    #pragma mark-show
     void U4DVector3n::show(){
         
         std::cout<<"("<<x<<","<<y<<","<<z<<")"<<std::endl;

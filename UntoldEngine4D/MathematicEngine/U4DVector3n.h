@@ -18,9 +18,11 @@ class U4DQuaternion;
 }
 
 namespace U4DEngine {
+    
 /*!
  * @class U4DVector3n
- * @brief The U4DVector3n class implements all mathematical vector operations in 3-Dimensional space.
+ * @brief The U4DVector3n class is in charge of implementing 3D Linear Algebra Vector operations. These operations include: Addition, subtraction,
+ * scalar multiplication, dot product, cross product, among others.
  */
 
 class U4DVector3n{
@@ -28,71 +30,6 @@ class U4DVector3n{
 private:
     
 public:
-    
-    #pragma mark-constructors
-    
-    /**
-     @brief  Constructor to create a 3D vector with zero vector components.
-    
-     */
-    U4DVector3n(){
-    
-        x=0.0;
-        y=0.0;
-        z=0.0;
-    };
-    
-    
-    /**
-     @brief  Constructor to create a 3D vector with x,y, and z components
-     
-     @param nx x component
-     @param ny y component
-     @param nz z component
-     
-     @return Creates a vector with the given x,y and z components
-     
-     */
-    U4DVector3n(float nx,float ny,float nz):x(nx),y(ny),z(nz){};
-    
-    /**
-     @brief  3D vector desctructor
-     
-     */
-    ~U4DVector3n(){};
-    
-    #pragma mark-copy constructors
-    
-    /*!
-     *  @brief  Copy constructor for 3D vector
-     *
-     *  @param a 3D vector to copy
-     *
-     *  @return Copies the values of the vector
-     */
-    U4DVector3n(const U4DVector3n& a):x(a.x),y(a.y),z(a.z){
-    
-    };
-    
-    /*!
-     *  @brief  Copy constructor for 3D vector
-     *
-     *  @param a 3D vector to copy
-     *
-     *  @return Copies the values of the vector
-     *
-     */
-    inline U4DVector3n& operator=(const U4DVector3n& a){
-        
-        x=a.x;
-        y=a.y;
-        z=a.z;
-        
-        return *this;
-    
-    };
-    
-    bool operator==(const U4DVector3n& a);
     
     #pragma mark-Data Members
     
@@ -113,16 +50,73 @@ public:
     
     float z;
     
-    #pragma mark-Methods
+    
+    #pragma mark-constructors
+    
+    /**
+     @brief  Constructor which creates a default 3D vector. That is, it creates a vector with x, y and z components equal to zero.
+    
+     */
+    U4DVector3n();
+    
+    
+    /**
+     @brief  Constructor which creates a 3D vector with x,y, and z components.
+     
+     @param nx x component
+     @param ny y component
+     @param nz z component
+     
+     @return Constructs a vector with the given x,y and z components
+     
+     */
+    U4DVector3n(float nx,float ny,float nz);
+    
+    /**
+     @brief  Default destructor of a vector
+     */
+    ~U4DVector3n();
+    
+    #pragma mark-copy constructors
+    
+    /*!
+     *  @brief  Copy Constructor for a 3D vector
+     *
+     *  @param  3D vector to copy
+     *
+     *  @return A copy of the 3D vector
+     */
+    U4DVector3n(const U4DVector3n& a);
+    
+    /*!
+     *  @brief  Copy Constructor for 3D vector
+     *
+     *  @param  3D vector to copy
+     *
+     *  @return A copy of the 3D vector
+     *
+     */
+    U4DVector3n& operator=(const U4DVector3n& a);
+    
+    #pragma mark-comparison
+    /**
+     @brief Operation to compare if two 3D vectors are equal
+     
+     @param a 3D vector to compare to
+     
+     @return Returs true if both vectors contain the same components
+     */
+    bool operator==(const U4DVector3n& a);
+    
     
     #pragma mark-add
     
     /*!
-     *  @brief  It calculates the addition of two vectors.
+     *  @brief  Calculates the addition of two vectors.
      *
      *  @param v Vector to add.
      *
-     *  @return Resultant of two vectors.
+     *  @return Returns the addition of two vectors.
      *
      */
     void operator+=(const U4DVector3n& v); //add vectors
@@ -228,9 +222,9 @@ public:
     #pragma mark-dot product
     
     /*!
-     *  @brief  Calculate dot product
+     *  @brief  Calculates dot product of two 3D vectors
      *
-     *  @param v Vector
+     *  @param v A 3D vector to compute the dot product with
      *
      *  @return Dot product result
      *
@@ -238,9 +232,9 @@ public:
     float operator*(const U4DVector3n& v) const;
     
     /*!
-     *  @brief  Calculate dot product
+     *  @brief  Calculate dot product of two 3D vectors
      *
-     *  @param v Vector
+     *  @param v A 3D vector to compute the dot product with
      *
      *  @return Dot product result
      *
@@ -250,7 +244,7 @@ public:
     /*!
      *  @brief  Calculates the angle between vectors
      *
-     *  @param v Vector
+     *  @param v A 3D vector to compute the dot product with
      *
      *  @return Returns the angle between vectors in degrees
      *
@@ -260,9 +254,9 @@ public:
     #pragma mark-cross product
     
     /*!
-     *  @brief  Calculate cross product
+     *  @brief  Calculates cross product of two vectors
      *
-     *  @param v Vector
+     *  @param v A 3D vector to compute the cross product with
      *
      *  @return Cross product result
      *
@@ -272,7 +266,7 @@ public:
     /*!
      *  @brief  Calculate cross product
      *
-     *  @param v Vector
+     *  @param v A 3D vector to compute the cross product with
      *
      *  @return Cross product result
      *
@@ -282,7 +276,7 @@ public:
     /*!
      *  @brief  Calculate cross product
      *
-     *  @param v Vector
+     *  @param v A 3D vector to compute the cross product with
      *
      *  @return Cross product result
      *
@@ -290,20 +284,22 @@ public:
     
     U4DVector3n cross(const U4DVector3n& v) const;
     
+    #pragma mark-utility Vector Methods
+    
     /*!
-     *  @brief  Conjugate the vector
+     *  @brief  Method to conjugate a 3D vector
      *
      */
     void conjugate();
     
     /*!
-     *  @brief  Normalize the vector
+     *  @brief  Method to normalize a 3D vector
      *
      */
     void normalize();
     
     /*!
-     *  @brief  Calculate magnitude of vector
+     *  @brief  Method which calculates magnitude of a 3D vector
      *
      *  @return Magnitude value
      *
@@ -312,7 +308,7 @@ public:
     float magnitude();
     
     /*!
-     *  @brief  Calculate the magnitude square of vector
+     *  @brief  Method which calculates the magnitude square of vector
      *
      *  @return Magnitude squared value
      *
@@ -320,34 +316,49 @@ public:
     float magnitudeSquare();
     
     /*!
-     *  @brief  Convert vector to point
+     *  @brief  Method to convert 3D vector to a 3D point
      *
-     *  @return Point representation of vector
+     *  @return 3D point representation of a 3D vector
      *
      */
     U4DPoint3n toPoint();
     
     /*!
-     *  @brief  Convert vector to a zero vector
+     *  @brief  Method to set the current 3D vector to a zero-value 3D vector. That is, it sets all its components to zero.
      *
      */
     void zero();
     
     /*!
-     *  @brief  Calculate absolute value of vector
+     *  @brief  Method which calculates absolute value of a 3D vector
      *
      */
     void absolute();
     
-    /*!
-     *  @brief  Print vector components
-     *
+    /**
+     @brief Method which rotates the 3D vector about an axis by the specified angle amount
+     
+     @param uAngle Angle in degrees to rotate
+     @param uAxis  Axis to rotate vector about
+     
+     @return Rotation of the vector about a given axis by the angle amount
      */
+    U4DVector3n rotateVectorAboutAngleAndAxis(float uAngle, U4DVector3n& uAxis);
     
-    void show();
+    /**
+     @brief Method which computes the Orthonormal Basis of the 3D vector given two tangential 3D vectors
+     
+     @param uTangent1 Tangential 3D Vector
+     @param uTangent2 Tangential 3D Vector
+     */
+    void computeOrthonormalBasis(U4DVector3n& uTangent1, U4DVector3n& uTangent2);
     
-    void show(std::string uString);
+    /**
+     @brief Method which negates the 3D vector components of the vector.
+     */
+    void negate();
     
+    #pragma mark-get components methods
     /*!
      *  @brief  returns the x component of the vector
      *
@@ -368,13 +379,20 @@ public:
      *  @return z-component of vector
      */
     float getZ();
-
-    U4DVector3n rotateVectorAboutAngleAndAxis(float uAngle, U4DVector3n& uAxis);
     
-    void computeOrthonormalBasis(U4DVector3n& uTangent1, U4DVector3n& uTangent2);
+    #pragma mark-Print Methods
+    /*!
+     *  @brief  Method which prints the components value of the 3D vector to the console log window
+     *
+     */
+    void show();
     
-    //Negate all components
-    void negate();
+    /**
+     @brief Method which prints the components value of the 3D vector to the console log window with a user message
+     
+     @param uString Message to pring along with the vector components
+     */
+    void show(std::string uString);
     
     
 };

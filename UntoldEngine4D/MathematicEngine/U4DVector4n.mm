@@ -10,30 +10,57 @@
 
 namespace U4DEngine {
     
-#pragma mark-show
-void U4DVector4n::show(){
+
+    U4DVector4n::U4DVector4n(){
     
-    std::cout<<"("<<x<<","<<y<<","<<z<<","<<w<<")"<<std::endl;
-}
-
-float U4DVector4n::getX(){
+        x=0.0;
+        y=0.0;
+        z=0.0;
+        w=0.0;
+        
+    }
     
-    return x;
-}
-
-float U4DVector4n::getY(){
+    U4DVector4n::U4DVector4n(float nx,float ny,float nz,float nw):x(nx),y(ny),z(nz),w(nw){}
     
-    return y;
-}
-
-float U4DVector4n::getZ(){
-
-    return z;
-}
-
-float U4DVector4n::getW(){
+    U4DVector4n::~U4DVector4n(){}
     
-    return w;
-}
+    U4DVector4n::U4DVector4n(const U4DVector4n& a):x(a.x),y(a.y),z(a.z),w(a.w){}
+    
+    U4DVector4n& U4DVector4n::operator=(const U4DVector4n& a){
+        
+        x=a.x;
+        y=a.y;
+        z=a.z;
+        w=a.w;
+        
+        return *this;
+        
+    }
+
+    float U4DVector4n::getX(){
+        
+        return x;
+    }
+
+    float U4DVector4n::getY(){
+        
+        return y;
+    }
+
+    float U4DVector4n::getZ(){
+
+        return z;
+    }
+
+    float U4DVector4n::getW(){
+        
+        return w;
+    }
+    
+    
+    void U4DVector4n::show(){
+        
+        std::cout<<"("<<x<<","<<y<<","<<z<<","<<w<<")"<<std::endl;
+    }
 
 }

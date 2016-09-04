@@ -13,70 +13,106 @@
 
 namespace U4DEngine {
     
+    /*!
+     * @class U4DVector4n
+     * @brief The U4DVector4n class represents a 4D vector in space. Note: This class does not perform any linear algebra operations. It simply serves as a representation and is used as a helper in class.
+     */
+    
 class U4DVector4n{
     
 public:
     
     /**
-     *  x-component
+     @brief x-component
      */
     float x;
     
     /**
-     *  y-component
+     @brief y-component
      */
     float y;
     
     /**
-     *  z-component
+     @brief z-component
      */
     float z;
     
+    /**
+     @brief w-component
+     */
     float w;
     
     /**
-     *  Constructor
+     @brief Constructor which creates a default 4D vector. That is, it creates a 4D vector with x, y, z and w components equal to zero.
      */
-    U4DVector4n(){};
+    U4DVector4n();
     
     /**
-     *  Constructor initialized with three components
+     @brief Constructor which creates a 4D vector with x, y, z and w components
+     
+     @param nx x component
+     @param ny y component
+     @param nz z component
+     @param nw w component
+     
+     @return Constructs a vector with the given x,y, z and w components
      */
-    
-    U4DVector4n(float nx,float ny,float nz,float nw):x(nx),y(ny),z(nz),w(nw){}
+    U4DVector4n(float nx,float ny,float nz,float nw);
     
     /**
-     *  Destructor
+     @brief Default destructor for a 4D vector
      */
-    ~U4DVector4n(){};
+    ~U4DVector4n();
     
     /**
-     *  Copy constructor
+     @brief Copy constructor
+     
+     @param a 4D vector to copy
+     
+     @return A copy of the 4D vector
      */
-    U4DVector4n(const U4DVector4n& a):x(a.x),y(a.y),z(a.z),w(a.w){};
+    U4DVector4n(const U4DVector4n& a);
     
     /**
-     *  Copy constructor
+     @brief Copy constructor
+     
+     @param a 4D vector to copy
+     
+     @return A copy of the 4D vector
      */
-    inline U4DVector4n& operator=(const U4DVector4n& a){
-        
-        x=a.x;
-        y=a.y;
-        z=a.z;
-        w=a.w;
-        
-        return *this;
-        
-    };
+    U4DVector4n& operator=(const U4DVector4n& a);
     
     /**
-     *  Debug-show the vector on the output log
+     @brief Method which prints the components of the 4D vector
      */
     void show();
     
+    /**
+     @brief Method to get the x component value of the vector
+     
+     @return returns the x-component value
+     */
     float getX();
+    
+    /**
+     @brief Method to get the y component value of the vector
+     
+     @return returns the y-component value
+     */
     float getY();
+    
+    /**
+     @brief Method to get the z component value of the vector
+     
+     @return returns the z-component value
+     */
     float getZ();
+    
+    /**
+     @brief Method to get the y component value of the vector
+     
+     @return returns the w-component value
+     */
     float getW();
     
 };
