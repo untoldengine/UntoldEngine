@@ -194,7 +194,6 @@ public:
      *  @return Quaternion representing product
      *
      */
-    
     U4DQuaternion operator*(U4DQuaternion& q) const;
 
     #pragma mark-division

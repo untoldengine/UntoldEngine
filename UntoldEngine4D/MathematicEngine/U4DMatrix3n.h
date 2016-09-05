@@ -16,10 +16,11 @@ class U4DVector3n;
 class U4DQuaternion;
 }
 
+
 namespace U4DEngine {
 
 /**
- *  Class in charge of 3N matrix
+ @brief The U4DMatrix3n is in charge of implementing linear algebra matrix operations such as addition, subtraction, transformations, etc.
  */
 class U4DMatrix3n{
 
@@ -28,193 +29,185 @@ private:
 public:
     
     /**
-     *  Matrix data elements
+     @brief component values of the 3x3 matrix
      */
     float matrixData[9]={0};
     
     /**
-     *  Constructor
+     @brief Constructor which creates a 3x3 default matrix. That is, it creates a 3x3 matrix
      */
-    U4DMatrix3n(){
-        
-        // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
-        //	0	3	6	
-        //	1	4	7	
-        //	2	5	8	
-      
-        
-        for (int i=0; i<9; i++) {
-            matrixData[i]=0.0f;
-        }
-        
-        matrixData[0]=matrixData[4]=matrixData[8]=1.0f;
-        
-    };
+    U4DMatrix3n();
     
     /**
-     *  Constructor
+     @brief Constructor which creates a 3x3 matrix with the given values
      */
-    U4DMatrix3n(float m0,float m3,float m6,float m1,float m4,float m7,float m2,float m5,float m8){
-    
-        matrixData[0]=m0;
-        matrixData[3]=m3;
-        matrixData[6]=m6;
-        
-        matrixData[1]=m1;
-        matrixData[4]=m4;
-        matrixData[7]=m7;
-        
-        matrixData[2]=m2;
-        matrixData[5]=m5;
-        matrixData[8]=m8;
-        
-    };
-    
+    U4DMatrix3n(float m0,float m3,float m6,float m1,float m4,float m7,float m2,float m5,float m8);
     
     /**
-     *  Copy Constructor
-    */
-    U4DMatrix3n& operator=(const U4DMatrix3n& value){
-        
-        for (int i=0; i<9; i++) {
-            matrixData[i]=value.matrixData[i];
-        }
-        
-        return *this;
-    };
-    
-    /**
-     *  Destructor
+     @brief Creates a copy of the 3x3 matrix
+     
+     @param value 3x3 matrix to copy
+     
+     @return Returns a copy of the 3x3 matrix
      */
-    ~U4DMatrix3n(){}
-    
+    U4DMatrix3n& operator=(const U4DMatrix3n& value);
     
     /**
-     *  transform the given vector by this matrix
-     *
-     *  @param v Vector
-     *
-     *  @return new transform vector
+     @brief default 3x3 destructor
+     */
+    ~U4DMatrix3n();
+    
+    /**
+     @brief Method which transforms the given vector by the matrix
+     
+     @param v 3D vector to transform
+     
+     @return Returns the transformation of the vector
      */
     U4DVector3n operator*(const U4DVector3n & v) const;
     
     /**
-     *  transform the given vector by this matrix
-     *
-     *  @param v Vector
-     *
-     *  @return new transform vector
+     @brief Method which transforms the given vector by the matrix
+     
+     @param v 3D vector to transform
+     
+     @return Returns the transformation of the vector
      */
     U4DVector3n transform(const U4DVector3n& v) const;
     
     /**
-     *  Multiply matrix
-     *
-     *  @param m matrix
-     *
-     *  @return matrix product
+     @brief Method which multiplies two 3x3 matrices
+     
+     @param m Matrix to multiply with
+     
+     @return Returns the multiplication product between the two 3x3 matrices
      */
     U4DMatrix3n operator*(const U4DMatrix3n& m) const;
     
     /**
-     *  Multiply matrix
-     *
-     *  @param m matrix
+     @brief Method which multiplies two 3x3 matrices
+     
+     @param m Matrix to multiply with
+     
+     @return Returns the multiplication product between the two 3x3 matrices
      */
     void operator*=(const U4DMatrix3n& m);
     
-    /*!
-     *  @brief  set matrix to identity
+    /**
+     @brief Method which sets a 3x3 matrix to an identity 3x3 matrix
      */
     void setIdentity();
     
-    /*!
-     *  @brief  transform matrix about x axis
-     *
-     *  @param uAngle angle of rotation
+    /**
+     @brief Method which transforms a matrix about the x-axis
+     
+     @param uAngle Angle to apply the rotation by
      */
     void transformMatrixAboutXAxis(float uAngle);
     
-    /*!
-     *  @brief  transform matrix about y axis
-     *
-     *  @param uAngle angle of rotation
+    /**
+     @brief Method which transforms a matrix about the y-axis
+     
+     @param uAngle Angle to apply the rotation by
      */
     void transformMatrixAboutYAxis(float uAngle);
     
-    /*!
-     *  @brief  transform matrix about z axis
-     *
-     *  @param uAngle angle of rotation
+    /**
+     @brief Method which transforms a matrix about the z-axis
+     
+     @param uAngle Angle to apply the rotation by
      */
     void transformMatrixAboutZAxis(float uAngle);
     
     /**
-     *  Set the matrix to be the inverse of the given matrix
-     *
-     *  @param m matrix
+     @brief Method which sets current matrix with the inverse of the given matrix
+     
+     @param m 3x3 matrix to use as the inverse
      */
     void setInverse(const U4DMatrix3n& m);
     
     /**
-     *  returns a new matrix containing the inverse of the matrix
-     *
-     *  @return Matrix inverse
+     @brief Method which computes the inverse of the matrix
+     
+     @return Returns the inverse of the matrix
      */
     U4DMatrix3n inverse() const;
     
     /**
-     *  Inverts the matrix
+     @brief Method which sets the matrix to its inverse
      */
     void invert();
     
     /**
-     *  Gets matrix determinant
-     *
-     *  @return matrix determinant
+     @brief Method which computes the determinant of the 3x3 matrix
+     
+     @return Returns the determinant of the matrix
      */
     float getDeterminant() const;
     
     /**
-     *  Inverts and transpose the matrix
+     @brief Method that computes the inverse and transpose of the matrix
      */
     void invertAndTranspose();
     
     /**
-     *  Set the matrix as the transpose of the given matrix
-     *
-     *  @param m matrix
+     @brief Method that sets the current matrix to a transpose matrix
+     
+     @param m 3x3 Matrix to use as the transpose
      */
     void setTranspose(const U4DMatrix3n& m);
     
     /**
-     *  Transpose the matrix
-     *
-     *  @return matrix transpose
+     @brief Method which returns the transpose of the matrix
+     
+     @return Returns the transpose of the matrix
      */
     U4DMatrix3n transpose() const;
     
     /**
-     *  Set the matrix orientation
-     *
-     *  @param q quaternion
+     @brief Method to get the first row of the 3x3 matrix
+     
+     @return Returns the first row of the 3x3 matrix
      */
-    void setOrientation(const U4DQuaternion& q);
-    
     U4DVector3n getFirstRowVector();
     
+    /**
+     @brief Method to get the second row of the 3x3 matrix
+     
+     @return Returns the second row of the 3x3 matrix
+     */
     U4DVector3n getSecondRowVector();
     
+    /**
+     @brief Method to get the third row of the 3x3 matrix
+     
+     @return Returns the third row of the 3x3 matrix
+     */
     U4DVector3n getThirdRowVector();
     
+    /**
+     @brief Method to get the first column of the 3x3 matrix
+     
+     @return Returns the first column of the 3x3 matrix
+     */
     U4DVector3n getFirstColumnVector();
     
+    /**
+     @brief Method to get the second column of the 3x3 matrix
+     
+     @return Returns the second column of the 3x3 matrix
+     */
     U4DVector3n getSecondColumnVector();
     
+    /**
+     @brief Method to get the third column of the 3x3 matrix
+     
+     @return Returns the third column of the 3x3 matrix
+     */
     U4DVector3n getThirdColumnVector();
     
     /**
-     *  Debug, show the matrix in the console log
+     @brief Method which prints the 3x3 matrix components in the window console log
      */
     void show();
     

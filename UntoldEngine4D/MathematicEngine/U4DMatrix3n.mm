@@ -13,14 +13,55 @@
 #include "U4DTrigonometry.h"
 
 namespace U4DEngine {
+
+    
+U4DMatrix3n::U4DMatrix3n(){
+    
+    // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
+    //	0	3	6
+    //	1	4	7
+    //	2	5	8
     
     
-// 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
-//	0	3	6
-//	1	4	7
-//	2	5	8
+    for (int i=0; i<9; i++) {
+        matrixData[i]=0.0f;
+    }
+    
+    matrixData[0]=matrixData[4]=matrixData[8]=1.0f;
+    
+}
 
 
+U4DMatrix3n::U4DMatrix3n(float m0,float m3,float m6,float m1,float m4,float m7,float m2,float m5,float m8){
+    
+    matrixData[0]=m0;
+    matrixData[3]=m3;
+    matrixData[6]=m6;
+    
+    matrixData[1]=m1;
+    matrixData[4]=m4;
+    matrixData[7]=m7;
+    
+    matrixData[2]=m2;
+    matrixData[5]=m5;
+    matrixData[8]=m8;
+    
+}
+
+
+U4DMatrix3n& U4DMatrix3n::operator=(const U4DMatrix3n& value){
+    
+    for (int i=0; i<9; i++) {
+        matrixData[i]=value.matrixData[i];
+    }
+    
+    return *this;
+}
+
+
+U4DMatrix3n::~U4DMatrix3n(){
+}
+    
 #pragma mark-Transform vector
 U4DVector3n U4DMatrix3n::operator*(const U4DVector3n & v) const{
     
