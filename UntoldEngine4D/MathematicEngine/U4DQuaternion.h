@@ -26,7 +26,7 @@ namespace U4DEngine {
 
 /**
  @brief The 4DQuaternion class is responsible for implementing Quaternion operations in the engine. These operations include: Quaternion addition,
- * subtraction, multiplication, normalization, etc.
+  subtraction, multiplication, normalization, etc.
  */
 class U4DQuaternion{
     

@@ -19,118 +19,160 @@ class U4DQuaternion;
 
 
 namespace U4DEngine {
+
 /**
- *  Class in charge of 4N matrix
+ @brief The U4DMatrix4n class is in charge of implementing a representation of a 4x4 matrix. The class implements matrix operations such as addition, subtraction, transformation, inverse, transponse, etc.
  */
 class U4DMatrix4n{
     
 public:
     
     /**
-     *  Matrix data elements
+     @brief Data elements of the 4x4 matrix. Note, the data elements are ordered in Column Major format.
      */
     float matrixData[16]={0};
     
     /**
-     *  Constructor
+     @brief Contructor which constructs a 4x4 identity matrix.
      */
-    U4DMatrix4n(){
-      
-        // 4x4 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
-        //	0	4	8	12
-        //	1	5	9	13
-        //	2	6	10	14
-        //	3	7	11	15
-        
-        for (int i=0; i<16; i++) {
-            matrixData[i]=0.0f;
-        }
-        
-        matrixData[0]=matrixData[5]=matrixData[10]=matrixData[15]=1.0f;
-        
-    };
+    U4DMatrix4n();
     
     /**
-     *  Constructor
+     @brief Contructor which constructs a 4x4 matrix in column major format
      */
-    U4DMatrix4n(float m0,float m4,float m8,float m12,float m1,float m5,float m9,float m13,float m2,float m6,float m10,float m14,float m3,float m7, float m11,float m15){
-        
-        matrixData[0]=m0;
-        matrixData[4]=m4;
-        matrixData[8]=m8;
-        matrixData[12]=m12;
-        
-        matrixData[1]=m1;
-        matrixData[5]=m5;
-        matrixData[9]=m9;
-        matrixData[13]=m13;
-        
-        matrixData[2]=m2;
-        matrixData[6]=m6;
-        matrixData[10]=m10;
-        matrixData[14]=m14;
-        
-        matrixData[3]=m3;
-        matrixData[7]=m7;
-        matrixData[11]=m11;
-        matrixData[15]=m15;
-        
-    }
+    U4DMatrix4n(float m0,float m4,float m8,float m12,float m1,float m5,float m9,float m13,float m2,float m6,float m10,float m14,float m3,float m7, float m11,float m15);
     
     /**
-     *  Copy Constructor
+     @brief Copy constructor for a 4x4 matrix
+     
+     @param value 4x4 matrix to copy
+     
+     @return Returns a copy of the 4x4 matrix
      */
-    U4DMatrix4n& operator=(const U4DMatrix4n& value){
-   
-        for (int i=0; i<16; i++) {
-            matrixData[i]=value.matrixData[i];
-        }
+    U4DMatrix4n& operator=(const U4DMatrix4n& value);
     
-        return *this;
-    };
+    /**
+     @brief Desctructor for the 4x4 matrix
+     */
+    ~U4DMatrix4n();
     
-    
-    ~U4DMatrix4n(){}
-    
+    /**
+     @brief Method which multiplies two 4x4 matrices
+     
+     @param m 4x4 matrix to multiply
+     
+     @return Returns the product of two 4x4 matrices
+     */
     U4DMatrix4n operator*(const U4DMatrix4n& m)const;
     
-    
+    /**
+     @brief Method which multiplies two 4x4 matrices
+     
+     @param m 4x4 matrix to multiply
+     
+     @return Returns the product of two 4x4 matrices
+     */
     U4DMatrix4n multiply(const U4DMatrix4n& m)const;
     
-    
+    /**
+     @brief Method which multiplies two 4x4 matrices
+     
+     @param m 4x4 matrix to multiply
+     
+     @return Returns the product of two 4x4 matrices
+     */
     void operator*=(const U4DMatrix4n& m);
     
-    
+    /**
+     @brief Method which transforms a 3D vector by the 4x4 matrix
+     
+     @param v 3D vector to transform
+     
+     @return Returns the transformation of the 3D vector
+     */
     U4DVector3n operator*(const U4DVector3n& v) const;
     
-    
+    /**
+     @brief Method which transforms a 3D vector by the 4x4 matrix
+     
+     @param v 3D vector to transform
+     
+     @return Returns the transformation of the 3D vector
+     */
     U4DVector3n transform(const U4DVector3n& v) const;
     
-    
+    /**
+     @brief Method which gets the determinant of the 4x4 matrix
+     
+     @return Returns the determinant of the 4x4 matrix
+     */
     float getDeterminant() const;
     
-    
+    /**
+     @brief Method that sets the inverse of a 4x4 matrix
+     
+     @param m 4x4 matrix to compute its inverse and apply it to the current 4x4 matrix
+     */
     void setInverse(const U4DMatrix4n& m);
     
-    
+    /**
+     @brief Method that computes the inverse of a 4x4 matrix
+     
+     @return Returns the inverse representation of the 4x4 matrix
+     */
     U4DMatrix4n inverse()const;
     
-    
+    /**
+     @brief Inverts the 4x4 matrix
+     */
     void invert();
     
-    
+    /**
+     @brief Method that returns a 3x3 representation of the 4x4 matrix
+     
+     @return Returns the rotational part of the 4x4 matrix
+     */
     U4DMatrix3n extract3x3Matrix();
     
-    
+    /**
+     @brief Method that sets the transpose to a 4x4 matrix
+     
+     @param m 4x4 matrix to compute its transpose and set it to the current 4x4 matrix
+     */
     void setTranspose(const U4DMatrix4n& m);
     
-    
+    /**
+     @brief Method that computes the transpose of a 4x4 matrix
+     
+     @return Returns the transpose representation of a 4x4 matrix
+     */
     U4DMatrix4n transpose() const;
     
+    /**
+     @brief Method that transforms the 4x4 matrix into a perspective projection 4x4 matrix
+     
+     @param fov    Field of view
+     @param aspect Ratio of the display
+     @param near   Near plane
+     @param far    Far lane
+     */
     void computePerspectiveMatrix(float fov, float aspect, float near, float far);
     
+    /**
+     @brief Method that transforms the 4x4 matrix into an orthographic projection 4x4 matrix
+     
+     @param left   Left plane
+     @param right  Right plane
+     @param bottom Bottom plane
+     @param top    Top plane
+     @param near   Near plane
+     @param far    Far plane
+     */
     void computeOrthographicMatrix(float left, float right,float bottom,float top,float near, float far);
     
+    /**
+     @brief Method that prints the 4x4 matrix components to the console log window
+     */
     void show();
     
 };

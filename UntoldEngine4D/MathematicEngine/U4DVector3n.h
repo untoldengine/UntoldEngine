@@ -19,10 +19,9 @@ class U4DQuaternion;
 
 namespace U4DEngine {
     
-/*!
- * @class U4DVector3n
- * @brief The U4DVector3n class is in charge of implementing 3D Linear Algebra Vector operations. These operations include: Addition, subtraction,
- * scalar multiplication, dot product, cross product, among others.
+/**
+ @brief The U4DVector3n class is in charge of implementing 3D Linear Algebra Vector operations. These operations include: Addition, subtraction,
+  scalar multiplication, dot product, cross product, among others.
  */
 
 class U4DVector3n{
@@ -33,19 +32,19 @@ public:
     
     #pragma mark-Data Members
     
-    /*!
-     *  @brief  x vector component
+    /**
+       @brief  x vector component
      */
     float x;
     
-    /*!
-     *  @brief  y vector component
+    /**
+       @brief  y vector component
      */
     
     float y;
     
-    /*!
-     *  @brief  z vector component
+    /**
+       @brief  z vector component
      */
     
     float z;
@@ -55,7 +54,6 @@ public:
     
     /**
      @brief  Constructor which creates a default 3D vector. That is, it creates a vector with x, y and z components equal to zero.
-    
      */
     U4DVector3n();
     
@@ -79,28 +77,27 @@ public:
     
     #pragma mark-copy constructors
     
-    /*!
-     *  @brief  Copy Constructor for a 3D vector
-     *
-     *  @param  3D vector to copy
-     *
-     *  @return A copy of the 3D vector
+    /**
+       @brief  Copy Constructor for a 3D vector
+     
+       @param  3D vector to copy
+     
+       @return A copy of the 3D vector
      */
     U4DVector3n(const U4DVector3n& a);
     
-    /*!
-     *  @brief  Copy Constructor for 3D vector
-     *
-     *  @param  3D vector to copy
-     *
-     *  @return A copy of the 3D vector
-     *
+    /**
+       @brief  Copy Constructor for 3D vector
+     
+       @param  3D vector to copy
+     
+       @return A copy of the 3D vector
      */
     U4DVector3n& operator=(const U4DVector3n& a);
     
     #pragma mark-comparison
     /**
-     @brief Operation to compare if two 3D vectors are equal
+     @brief Method which compares if two 3D vectors are equal
      
      @param a 3D vector to compare to
      
@@ -110,206 +107,188 @@ public:
     
     
     #pragma mark-add
-    
-    /*!
-     *  @brief  Calculates the addition of two vectors.
-     *
-     *  @param v Vector to add.
-     *
-     *  @return Returns the addition of two vectors.
-     *
+   
+    /**
+     @brief Method that calculates the addition of two vectors.
+     
+     @param v Vector to add.
+     
+     @return Returns the addition of two vectors.
      */
-    void operator+=(const U4DVector3n& v); //add vectors
+    void operator+=(const U4DVector3n& v);
     
-    /*!
-     *  @brief  Calculates the addition of two vectors.
-     *
-     *  @param v 3D vector to add
-     *
-     *  @return Returns a third vector representing the addition of two 3D vectors
-     *
+    /**
+     @brief Method that calculates the addition of two vectors.
+     
+     @param v 3D vector to add
+     
+     @return Returns a third vector representing the addition of two 3D vectors
      */
-    U4DVector3n operator+(const U4DVector3n& v)const; //add vectors
+    U4DVector3n operator+(const U4DVector3n& v)const;
     
     #pragma mark-subraction
-    
-    /*!
-     *  @brief  Calculates the subtraction of two vectors.
-     *
-     *  @param v 3D vector to subtract
-     *
-     *  @return Subtraction result of two vectors
-     *
+
+    /**
+     @brief Method that Calculates the difference between of two vectors.
+     
+     @param v 3D vector to subtract
+     
+     @return Returns the subtraction of two 3D vectors
      */
-    void operator-=(const U4DVector3n& v); //subtract vectors
+    void operator-=(const U4DVector3n& v);
     
-    /*!
-     *  @brief  Calculates the subtraction of two vectors.
-     *
-     *  @param v 3D vector to subtract
-     *
-     *  @return Returns a third vector representing the subtraction of two 3D vectors
-     *
+    /**
+     @brief Method that calculates the difference of two vectors.
+     
+     @param v 3D vector to subtract
+     
+     @return Returns a third vector representing the subtraction of two 3D vectors
      */
-   
-    U4DVector3n operator-(const U4DVector3n& v)const; //subtract vectors
+    U4DVector3n operator-(const U4DVector3n& v)const;
     
     #pragma mark-multiplication
-    
-    /*!
-     *  @brief  Multiply vector by scalar
-     *
-     *  @param s Scalar
-     *
-     *  @return Product of multiplication
-     *
+
+    /**
+     @brief Method which multiplies a 3D vector by a scalar
+     
+     @param s Scalar value to multiply
+     
+     @return Returns the multiplication product betweent the 3D vector and scalar
      */
     void operator*=(const float s);
     
-    /*!
-     *  @brief  Multiply vector by scalar
-     *
-     *  @param s Scalar
-     *
-     *  @return Vector representing product
-     *
+    /**
+     @brief Method which multiplies a 3D vector by a scalar
+     
+     @param s Scalar value to multiply
+     
+     @return Returns the multiplication product betweent the 3D vector and scalar
      */
     U4DVector3n operator*(const float s)const;
 
-    /*!
-     *  @brief  Multiply vector by matrix
-     *
-     *  @param m Matrix
-     *
-     *  @return Vector representing product
-     *
+   
+    /**
+     @brief Method which multiplies a 3D vector by a 3x3 matrix
+     
+     @param m 3x3 matrix to multiply
+     
+     @return Returns the transformation of the vector by the 3x3 matrix
      */
     U4DVector3n operator*(const U4DMatrix3n& m)const;
     
-    /*!
-     *  @brief  Multiply vector by quaternion
-     *
-     *  @param q Quaternion
-     *
-     *  @return Quaternion representing product
-     *
+    /**
+     @brief Method which multiplies a 3D vector by a quaternion
+     
+     @param q Quaternion to multiply
+     
+     @return Returns a quaternion representing the product of a 3D vector by a quaternion
      */
     U4DQuaternion operator*(U4DQuaternion& q) const;
 
     #pragma mark-division
     
-    /*!
-     *  @brief  Division of vector by scalar
-     *
-     *  @param s Scalar
-     *
-     *  @return Quotient of division
-     *
+    /**
+     @brief Method which divides a 3D vector by a scalar
+     
+     @param s Scalar value to divide
+     
+     @return Returns the division of the 3D vector by a scalar
      */
     void operator /=(const float s);
   
-    /*!
-     *  @brief  Division of vector by scalar
-     *
-     *  @param s Scalar
-     *
-     *  @return Quotient of division
-     *
+    /**
+     @brief Method which divides a 3D vector by a scalar
+     
+     @param s Scalar value to divide
+     
+     @return Returns the division of the 3D vector by a scalar
      */
     U4DVector3n operator/(const float s)const;
     
     #pragma mark-dot product
     
-    /*!
-     *  @brief  Calculates dot product of two 3D vectors
-     *
-     *  @param v A 3D vector to compute the dot product with
-     *
-     *  @return Dot product result
-     *
+    /**
+     @brief Method that calculates the dot product between two 3D vectors
+     
+     @param v A 3D vector to compute the dot product with
+     
+     @return Returns the dot product between two 3D vectors
      */
     float operator*(const U4DVector3n& v) const;
     
-    /*!
-     *  @brief  Calculate dot product of two 3D vectors
-     *
-     *  @param v A 3D vector to compute the dot product with
-     *
-     *  @return Dot product result
-     *
+    /**
+     @brief Method that calculates the dot product between two 3D vectors
+     
+     @param v A 3D vector to compute the dot product with
+     
+     @return Returns the dot product between two 3D vectors
      */
     float dot(const U4DVector3n& v) const;
 
-    /*!
-     *  @brief  Calculates the angle between vectors
-     *
-     *  @param v A 3D vector to compute the dot product with
-     *
-     *  @return Returns the angle between vectors in degrees
-     *
+    /**
+     @brief Method that calculates the angle between two 3D vectors
+     
+     @param v A 3D vector to compute the dot product with
+     
+     @return Returns the angle between two 3D vectors in degrees.
      */
     float angle(const U4DVector3n& v);
     
     #pragma mark-cross product
     
-    /*!
-     *  @brief  Calculates cross product of two vectors
-     *
-     *  @param v A 3D vector to compute the cross product with
-     *
-     *  @return Cross product result
-     *
+    /**
+     @brief Method that calculates the cross product of two 3D vectors
+     
+     @param v A 3D vector to compute the cross product with
+     
+     @return Returns the cross product between two 3D vectors
      */
     void operator %=(const U4DVector3n& v);
     
-    /*!
-     *  @brief  Calculate cross product
-     *
-     *  @param v A 3D vector to compute the cross product with
-     *
-     *  @return Cross product result
-     *
+    /**
+     @brief Method that calculates the cross product of two 3D vectors
+     
+     @param v A 3D vector to compute the cross product with
+     
+     @return Returns the cross product between two 3D vectors
      */
     U4DVector3n operator %(const U4DVector3n& v) const;
     
-    /*!
-     *  @brief  Calculate cross product
-     *
-     *  @param v A 3D vector to compute the cross product with
-     *
-     *  @return Cross product result
-     *
+    /**
+     @brief Method that calculates the cross product of two 3D vectors
+     
+     @param v A 3D vector to compute the cross product with
+     
+     @return Returns the cross product between two 3D vectors
      */
-    
     U4DVector3n cross(const U4DVector3n& v) const;
     
     #pragma mark-utility Vector Methods
     
     /*!
-     *  @brief  Method to conjugate a 3D vector
+     *  @brief  Method that computes the conjugate of a 3D vector
      *
      */
     void conjugate();
     
     /*!
-     *  @brief  Method to normalize a 3D vector
+     *  @brief  Method that computes that normalizes a 3D vector
      *
      */
     void normalize();
     
     /*!
-     *  @brief  Method which calculates magnitude of a 3D vector
+     *  @brief  Method which calculates the magnitude of a 3D vector
      *
-     *  @return Magnitude value
+     *  @return Returns the magnitude(distance) of a 3D vector
      *
      */
-    
     float magnitude();
     
     /*!
-     *  @brief  Method which calculates the magnitude square of vector
+     *  @brief  Method which calculates the magnitude square of vector. That is, the square root of the magnitude is not computed
      *
-     *  @return Magnitude squared value
+     *  @return Returns the magnitude square of a 3D vector. That is, the square root of the magnitude is not computed
      *
      */
     float magnitudeSquare();
@@ -358,31 +337,30 @@ public:
     void negate();
     
     #pragma mark-get components methods
-    /*!
-     *  @brief  returns the x component of the vector
-     *
-     *  @return x-component of vector
+    /**
+       @brief  returns the x component of the vector
+     
+       @return x-component of vector
      */
     float getX();
     
-    /*!
-     *  @brief  returns the y component of the vector
-     *
-     *  @return y-component of vector
+    /**
+       @brief  returns the y component of the vector
+     
+       @return y-component of vector
      */
     float getY();
     
-    /*!
-     *  @brief  returns the z component of the vector
-     *
-     *  @return z-component of vector
+    /**
+       @brief  returns the z component of the vector
+     
+       @return z-component of vector
      */
     float getZ();
     
     #pragma mark-Print Methods
-    /*!
-     *  @brief  Method which prints the components value of the 3D vector to the console log window
-     *
+    /**
+       @brief  Method which prints the components value of the 3D vector to the console log window
      */
     void show();
     

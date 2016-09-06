@@ -17,11 +17,12 @@ class U4DVector3n;
 
 }
 
+
+namespace U4DEngine {
+
 /**
  @brief The U4DPoint3n implements a 3D point representation in space.
  */
-namespace U4DEngine {
-
 class U4DPoint3n{
 
 private:

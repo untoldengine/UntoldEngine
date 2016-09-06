@@ -13,10 +13,9 @@
 
 namespace U4DEngine {
     
-    /*!
-     * @class U4DVector4n
-     * @brief The U4DVector4n class represents a 4D vector in space. Note: This class does not perform any linear algebra operations. It simply serves as a representation and is used as a helper in class.
-     */
+/**
+ @brief The U4DVector4n class represents a 4D vector in space. Note: This class does not perform any linear algebra operations. It simply serves as a representation and is used as a helper in class.
+ */
     
 class U4DVector4n{
     
