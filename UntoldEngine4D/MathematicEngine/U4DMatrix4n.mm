@@ -19,6 +19,60 @@ namespace U4DEngine {
 //	1	5	9	13
 //	2	6	10	14
 //	3	7	11	15
+    
+    
+U4DMatrix4n::U4DMatrix4n(){
+    
+    // 4x4 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
+    //	0	4	8	12
+    //	1	5	9	13
+    //	2	6	10	14
+    //	3	7	11	15
+    
+    for (int i=0; i<16; i++) {
+        matrixData[i]=0.0f;
+    }
+    
+    matrixData[0]=matrixData[5]=matrixData[10]=matrixData[15]=1.0f;
+    
+};
+
+
+U4DMatrix4n::U4DMatrix4n(float m0,float m4,float m8,float m12,float m1,float m5,float m9,float m13,float m2,float m6,float m10,float m14,float m3,float m7, float m11,float m15){
+    
+    matrixData[0]=m0;
+    matrixData[4]=m4;
+    matrixData[8]=m8;
+    matrixData[12]=m12;
+    
+    matrixData[1]=m1;
+    matrixData[5]=m5;
+    matrixData[9]=m9;
+    matrixData[13]=m13;
+    
+    matrixData[2]=m2;
+    matrixData[6]=m6;
+    matrixData[10]=m10;
+    matrixData[14]=m14;
+    
+    matrixData[3]=m3;
+    matrixData[7]=m7;
+    matrixData[11]=m11;
+    matrixData[15]=m15;
+    
+}
+
+U4DMatrix4n& U4DMatrix4n::operator=(const U4DMatrix4n& value){
+    
+    for (int i=0; i<16; i++) {
+        matrixData[i]=value.matrixData[i];
+    }
+    
+    return *this;
+}
+
+
+U4DMatrix4n::~U4DMatrix4n(){}
 
 //multiply
 #pragma mark-multiply

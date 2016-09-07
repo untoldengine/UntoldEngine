@@ -12,9 +12,12 @@
 #include <stdio.h>
 #include "Constants.h"
 
+
 namespace U4DEngine {
     
-    /// The U4DNumerical provides numerical robustness in floating point comparison and rounding errors
+    /**
+     @brief The U4DNumerical provides numerical robustness in floating point comparison and rounding errors
+     */
     class U4DNumerical {
         
     private:
@@ -31,13 +34,39 @@ namespace U4DEngine {
          */
         ~U4DNumerical();
         
-
+        /**
+         @brief Method which compares if two floating value are equal using absolute comparison
+         
+         @param uNumber1 Floating value to compare
+         @param uNumber2 Floating value to compare
+         @param uEpsilon Epsilon used in comparison
+         
+         @return Returns true if two floating value are equal
+         */
         bool areEqualAbs(float uNumber1, float uNumber2, float uEpsilon);
         
+        /**
+         @brief Method which compares if two floating value are equal using relative comparison
+         
+         @param uNumber1 Floating value to compare
+         @param uNumber2 Floating value to compare
+         @param uEpsilon Epsilon used in comparison
+         
+         @return Returns true if two floating value are equal
+         */
         bool areEqualRel(float uNumber1, float uNumber2, float uEpsilon);
         
+        /**
+         @brief Method which compares if two floating value are equal
+         
+         @param uNumber1 Floating value to compare
+         @param uNumber2 Floating value to compare
+         @param uEpsilon Epsilon used in comparison
+         
+         @return Returns true if two floating value are equal
+         */
         bool areEqual(float uNumber1, float uNumber2, float uEpsilon);
-        
+            
     };
 
 }

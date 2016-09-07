@@ -17,9 +17,11 @@ class U4DVector3n;
 
 }
 
+
 namespace U4DEngine {
+
 /**
- *  Class in charge of 3D point
+ @brief The U4DPoint3n implements a 3D point representation in space.
  */
 class U4DPoint3n{
 
@@ -28,59 +30,61 @@ private:
 public:
     
     /**
-     *  x-component
+     @brief x-component
      */
     float x;
     
     /**
-     *  y-component
+     @brief y-component
      */
     float y;
     
     /**
-     *  z-component
+     @brief z-component
      */
     float z;
     
     /**
-     *  Constructor
+     @brief Contructor which creates a default 3D point. That is, its componets are initialized to zero.
      */
-    U4DPoint3n():x(0.0),y(0.0),z(0.0){}
+    U4DPoint3n();
     
     /**
-     *  Constructor
-     *
-     *  @param nx     x-component
-     *  @param ny     y-component
-     *  @param nz     z-component
+     @brief Contructor which creates a default 3D point with the given x, y and z component values.
+     
+     @param nx x-component
+     @param ny y-component
+     @param nz z-component
      */
-    U4DPoint3n(float nx,float ny,float nz):x(nx),y(ny),z(nz){};
+    U4DPoint3n(float nx,float ny,float nz);
     
     /**
-     *  Destructor
+     @brief Destructor for the class
      */
-    ~U4DPoint3n(){};
+    ~U4DPoint3n();
     
     /**
-     *  Copy constructor
+     @brief Copy constructor for the class
+     @param a 3D point to copy to
      */
-    U4DPoint3n(const U4DPoint3n& a):x(a.x),y(a.y),z(a.z){};
+    U4DPoint3n(const U4DPoint3n& a);
     
     /**
-     *  Copy assignment
+     @brief Copy constructor for the class
+     
+     @param a 3D point to copy to
+     
+     @return returns a copy of the 3D point
      */
+    U4DPoint3n& operator=(const U4DPoint3n& a);
     
-    inline U4DPoint3n& operator=(const U4DPoint3n& a){
-    
-       x=a.x;
-       y=a.y;
-       z=a.z;
-       
-      return *this;
-    
-    };
-    
-    
+    /**
+     @brief Method which compares if two 3D points are equal
+     
+     @param a 3D point to compare with
+     
+     @return Returns true if two points are equal
+     */
     bool operator==(const U4DPoint3n& a);
     
     bool operator!=(const U4DPoint3n& a);

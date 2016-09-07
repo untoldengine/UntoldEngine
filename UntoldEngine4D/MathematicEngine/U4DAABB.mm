@@ -13,6 +13,9 @@ namespace U4DEngine {
 
     U4DAABB::U4DAABB(){
         
+        minPoint.zero();
+        maxPoint.zero();
+        longestAABBDimensionVector.zero();
         
     }
     

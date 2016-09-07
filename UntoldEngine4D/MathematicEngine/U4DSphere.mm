@@ -11,8 +11,8 @@
 
 namespace U4DEngine {
     
-    U4DSphere::U4DSphere():radius(0.0){
-        
+    U4DSphere::U4DSphere():radius(0.0),center(0.0,0.0,0.0){
+            
     }
     
     U4DSphere::U4DSphere(U4DPoint3n &uCenter, float uRadius){

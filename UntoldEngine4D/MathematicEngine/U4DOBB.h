@@ -17,84 +17,103 @@
 #include "U4DPoint3n.h"
 #include "U4DPlane.h"
 
+
 namespace U4DEngine {
-    
+
+/**
+ @brief The U4DOBB class implements a represenatation of an Oriented-Bounding Box.
+ */
 class U4DOBB{
     
 private:
     
 public:
-    
-    U4DOBB();
-    
-    U4DOBB(U4DVector3n& uHalfWidth);
-    
-    U4DOBB(U4DVector3n& uHalfWidth, U4DVector3n& uCenter, U4DMatrix3n& uOrientation);
-    
-    ~U4DOBB(){};
-    
-    /*!
-     *  @brief  Positive halfwidth extents of OBB along each axis
+   
+    /**
+    @brief  Positive halfwidth of the OBB along each axis
      */
     U4DVector3n halfwidth;
     
-    /*!
-     *  @brief  Local x,y and z axis
+    /**
+    @brief  Matrix containing the local orientation of the OBB
      */
     U4DMatrix3n orientation;
     
-    /*!
-     *  @brief  OBB Center point
+    /**
+    @brief  3D Vector containing the center point of the OBB
      */
     U4DVector3n center;
     
-    /*!
-     *  @brief  Test if OBB intersects plane
-     *
-     *  @param uPlane plane
-     *
-     *  @return true if intersection exist
+    /**
+     @brief Constructor which creates an OBB with zero halfwidth, center at zero position, with an identity orientation
+     */
+    U4DOBB();
+    
+    /**
+     @brief Constructor which createas an OBB with the given halfwidth, center at zero position, with an identity orientation
+     */
+    U4DOBB(U4DVector3n& uHalfWidth);
+    
+    /**
+     @brief Constructor which creates an OBB with the given halfwidth, center position and orientation
+     */
+    U4DOBB(U4DVector3n& uHalfWidth, U4DVector3n& uCenter, U4DMatrix3n& uOrientation);
+    
+    /**
+     @brief Destructor for the class
+     */
+    ~U4DOBB();
+    
+    /**
+     @brief Method which testes if the OBB intersects with a 3D plane
+     
+     @param uPlane 3D plane to test intersection
+     
+     @return Returns true if OBB intersects with 3D plane
      */
     bool intersectionWithVolume(U4DPlane& uPlane);
     
-    /*!
-     * @brief Test if OBB intersects OBB
-     * 
-     * @param OBB box
-     *
-     * @return true if intersection exist;
+    /**
+     @brief Method which tests if OBB intersects another OBB
+     
+     @param uOBB OBB to test intersection
+     
+     @return Returns true if OBB intersects another OBB
      */
-    
     bool intersectionWithVolume(U4DOBB* uOBB);
     
-    /*!
-     *  @brief  Given point uPoint, return point on (or in) OBB, closest to uPoint
-     *
-     *  @param uPoint Point uPoint
-     *
-     *  @return Closest point on OBB closest to uPoint
+    /**
+     @brief Method which computes closest 3D vector to OBB from a given 3D point
+     
+     @param uPoint 3D point to compute proximity
+     
+     @return Returns the closest 3D vector to OBB
      */
     U4DVector3n closestPointToOBB(U4DVector3n& uPoint);
     
-    /*!
-     *  @brief  Computes the square distance between point uPoint and OBB
-     *
-     *  @param point value
-     *
-     *  @return distance of point and OBB
+    /**
+     @brief Method which computes the square magnitude between a 3D point and a OBB
+     
+     @param uPoint 3D point to compute square magnitude
+     
+     @return Returns square magnitude of 3D point to OBB. That is, it does not compute the square root of the magnitude
      */
     float sqDistPointOBB(U4DVector3n& uPoint);
     
-    
-    /*!
-     *  @brief  Computes the OBB vertex intersecting the plane
-     *
-     *  @param uPlane plane
-     *
-     *  @return average point intersecting plane
+    /**
+     @brief Method which computes 3D vector produced by a intersecting plane
+     
+     @param uPlane 3D plane to compute intersection
+     
+     @return Returns intersecting vectors produced by the plane intersection
      */
     std::vector<U4DVector3n> computeVertexIntersectingPlane(U4DPlane& uPlane);
 
+    /**
+     @brief Method which sets the OBB vector halfwidth
+     
+     @param uHalfwidth Vector halfwidth for the OBB
+     */
     void setHalfwidth(U4DVector3n& uHalfwidth);
     
 };

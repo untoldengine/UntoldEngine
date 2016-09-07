@@ -10,11 +10,29 @@
 
 namespace U4DEngine {
     
-#pragma mark-show
-void U4DBoneIndices::show(){
+    U4DBoneIndices::U4DBoneIndices():x(0),y(0),z(0),w(0){}
     
-    std::cout<<"("<<x<<","<<y<<","<<z<<","<<w<<")"<<std::endl;
+    U4DBoneIndices::U4DBoneIndices(int nx,int ny,int nz,int nw):x(nx),y(ny),z(nz),w(nw){}
     
-}
+    U4DBoneIndices::~U4DBoneIndices(){}
+    
+    U4DBoneIndices::U4DBoneIndices(const U4DBoneIndices& a):x(a.x),y(a.y),z(a.z),w(a.w){}
+    
+    U4DBoneIndices& U4DBoneIndices::operator=(const U4DBoneIndices& a){
+        
+        x=a.x;
+        y=a.y;
+        z=a.z;
+        w=a.w;
+        
+        return *this;
+        
+    }
+    
+    void U4DBoneIndices::show(){
+        
+        std::cout<<"("<<x<<","<<y<<","<<z<<","<<w<<")"<<std::endl;
+        
+    }
 
 }

@@ -11,7 +11,26 @@
 #include "U4DNumerical.h"
 
 namespace U4DEngine {
+
+    U4DPoint3n::U4DPoint3n():x(0.0),y(0.0),z(0.0){}
     
+
+    U4DPoint3n::U4DPoint3n(float nx,float ny,float nz):x(nx),y(ny),z(nz){}
+
+    U4DPoint3n::~U4DPoint3n(){}
+
+    U4DPoint3n::U4DPoint3n(const U4DPoint3n& a):x(a.x),y(a.y),z(a.z){}
+
+    
+    U4DPoint3n& U4DPoint3n::operator=(const U4DPoint3n& a){
+        
+        x=a.x;
+        y=a.y;
+        z=a.z;
+        
+        return *this;
+        
+    }
 
     bool U4DPoint3n::operator==(const U4DPoint3n& a){
         

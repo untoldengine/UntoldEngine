@@ -15,6 +15,62 @@
 
 namespace U4DEngine {
     
+U4DDualQuaternion::U4DDualQuaternion(){
+    
+    U4DVector3n vec(0,0,0);
+    U4DQuaternion q(0,vec);
+    q.convertToUnitNormQuaternion();
+    
+    qReal=q;
+    
+    U4DQuaternion t(0,vec);
+    
+    U4DQuaternion d=(t*qReal)*0.5;
+    
+    qPure=d;
+    
+}
+
+
+U4DDualQuaternion::U4DDualQuaternion(const U4DQuaternion &q,U4DVector3n& v){
+    
+    qReal=q;
+    
+    U4DQuaternion t(0,v);
+    
+    U4DQuaternion d=(t*qReal)*0.5;
+    
+    qPure=d;
+}
+
+
+
+U4DDualQuaternion::U4DDualQuaternion(const U4DQuaternion &q,U4DQuaternion& v){
+    
+    qReal=q;
+    qPure=v;
+    
+}
+
+
+U4DDualQuaternion::U4DDualQuaternion(const U4DDualQuaternion& value){
+    
+    qReal=value.qReal;
+    qPure=value.qPure;
+    
+}
+
+
+U4DDualQuaternion& U4DDualQuaternion::operator=(const U4DDualQuaternion& value){
+    
+    qReal=value.qReal;
+    qPure=value.qPure;
+    
+    return *this;
+}
+
+U4DDualQuaternion::~U4DDualQuaternion(){}
+    
 void U4DDualQuaternion::setRealQuaternionPart(U4DQuaternion &uqReal){
     
     qReal=uqReal;
