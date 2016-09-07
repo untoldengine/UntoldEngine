@@ -14,6 +14,10 @@ namespace U4DEngine {
     
     U4DOBB::U4DOBB(){
         
+        halfwidth.zero();
+        center.zero();
+        orientation.setIdentity();
+        
     }
     
     U4DOBB::U4DOBB(U4DVector3n& uHalfWidth){
@@ -31,6 +35,8 @@ namespace U4DEngine {
         orientation=uOrientation;
         
     }
+    
+    U4DOBB::~U4DOBB(){}
 
     bool U4DOBB::intersectionWithVolume(U4DPlane& uPlane){
         
