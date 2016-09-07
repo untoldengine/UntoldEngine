@@ -20,6 +20,20 @@ namespace U4DEngine {
         pointA=uPointA;
         pointB=uPointB;
     }
+    
+    U4DSegment::U4DSegment(const U4DSegment& a):pointA(a.pointA),pointB(a.pointB){
+        
+    }
+    
+    
+    U4DSegment& U4DSegment::operator=(const U4DSegment& a){
+        
+        pointA=a.pointA;
+        pointB=a.pointB;
+        
+        return *this;
+        
+    }
 
     U4DSegment::~U4DSegment(){
         

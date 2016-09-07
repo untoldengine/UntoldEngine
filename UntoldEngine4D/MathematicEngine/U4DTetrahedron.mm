@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DTetrahedron::U4DTetrahedron(){}
+    U4DTetrahedron::U4DTetrahedron():pointA(0.0,0.0,0.0),pointB(0.0,0.0,0.0),pointC(0.0,0.0,0.0),pointD(0.0,0.0,0.0){}
     
     U4DTetrahedron::U4DTetrahedron(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC, U4DPoint3n& uPointD){
         
@@ -37,6 +37,24 @@ namespace U4DEngine {
 
     U4DTetrahedron::~U4DTetrahedron(){
         
+    }
+    
+    U4DTetrahedron::U4DTetrahedron(const U4DTetrahedron& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),pointD(a.pointD),triangleABC(a.triangleABC),triangleACD(a.triangleACD),triangleADB(a.triangleADB),triangleBDC(a.triangleBDC){};
+    
+    
+    U4DTetrahedron& U4DTetrahedron::operator=(const U4DTetrahedron& a){
+        
+        pointA=a.pointA;
+        pointB=a.pointB;
+        pointC=a.pointC;
+        pointD=a.pointD;
+        
+        triangleABC=a.triangleABC;
+        triangleACD=a.triangleACD;
+        triangleADB=a.triangleADB;
+        triangleBDC=a.triangleBDC;
+        
+        return *this;
     }
 
     bool U4DTetrahedron::pointOutsideOfPlane(U4DPoint3n&p, U4DPoint3n& a, U4DPoint3n& b, U4DPoint3n& c){

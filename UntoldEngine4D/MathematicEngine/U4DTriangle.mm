@@ -14,6 +14,8 @@
 
 namespace U4DEngine {
     
+    U4DTriangle::U4DTriangle():pointA(0.0,0.0,0.0),pointB(0.0,0.0,0.0),pointC(0.0,0.0,0.0){}
+    
     U4DTriangle::U4DTriangle(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC){
         
         pointA=uPointA;
@@ -22,9 +24,9 @@ namespace U4DEngine {
 
     }
 
-    U4DTriangle::~U4DTriangle(){
-        
-    }
+    U4DTriangle::~U4DTriangle(){}
+    
+    U4DTriangle::U4DTriangle(const U4DTriangle& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC){}
     
     U4DTriangle& U4DTriangle::operator=(const U4DTriangle& a){
         
@@ -33,7 +35,7 @@ namespace U4DEngine {
         pointC=a.pointC;
         
         return *this;
-    };
+    }
     
     bool U4DTriangle::operator==(const U4DTriangle& a){
         
