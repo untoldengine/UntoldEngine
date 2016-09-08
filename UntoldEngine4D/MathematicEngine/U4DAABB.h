@@ -125,7 +125,7 @@ namespace U4DEngine {
          
          @return Returns the square magnitude of a 3D point to the AABB. That is, it does not compute the square root of the magnitude.
          */
-        float squarDistanceToPoint(U4DPoint3n& uPoint);
+        float squareDistanceToPoint(U4DPoint3n& uPoint);
         
     };
     
