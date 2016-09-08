@@ -11,6 +11,7 @@
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
 #include "U4DTransformation.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -308,45 +309,53 @@ namespace U4DEngine {
     //scenegraph methods
     void U4DEntity::addChild(U4DEntity *uChild){
         
-        U4DEntity* lastAddedChild=getFirstChild();
-        
-        if(lastAddedChild==0){ //add as first child
+        if (uChild!=NULL) {
             
-            uChild->parent=this;
+            U4DEntity* lastAddedChild=getFirstChild();
             
-            uChild->lastDescendant->next=lastDescendant->next;
-            
-            lastDescendant->next=uChild;
-            
-            uChild->prevSibling=getLastChild();
-            
-            if (isLeaf()) {
+            if(lastAddedChild==0){ //add as first child
                 
-                next=uChild;
+                uChild->parent=this;
+                
+                uChild->lastDescendant->next=lastDescendant->next;
+                
+                lastDescendant->next=uChild;
+                
+                uChild->prevSibling=getLastChild();
+                
+                if (isLeaf()) {
+                    
+                    next=uChild;
+                    
+                }
+                
+                getFirstChild()->prevSibling=uChild;
+                
+                changeLastDescendant(uChild->lastDescendant);
+                
+                
+            }else{
+                
+                uChild->parent=lastAddedChild->parent;
+                
+                uChild->prevSibling=lastAddedChild->prevSibling;
+                
+                uChild->lastDescendant->next=lastAddedChild;
+                
+                if (lastAddedChild->parent->next==lastAddedChild) {
+                    lastAddedChild->parent->next=uChild;
+                }else{
+                    lastAddedChild->prevSibling->lastDescendant->next=uChild;
+                }
+                
+                lastAddedChild->prevSibling=uChild;
                 
             }
-            
-            getFirstChild()->prevSibling=uChild;
-            
-            changeLastDescendant(uChild->lastDescendant);
-            
             
         }else{
+            U4DLogger *logger=U4DLogger::sharedInstance();
             
-            uChild->parent=lastAddedChild->parent;
-            
-            uChild->prevSibling=lastAddedChild->prevSibling;
-            
-            uChild->lastDescendant->next=lastAddedChild;
-            
-            if (lastAddedChild->parent->next==lastAddedChild) {
-                lastAddedChild->parent->next=uChild;
-            }else{
-                lastAddedChild->prevSibling->lastDescendant->next=uChild;
-            }
-            
-            lastAddedChild->prevSibling=uChild;
-            
+            logger->log("Error: An entity seems to be un-initialized. This entity was not loaded into the scenegraph");
         }
         
     }
