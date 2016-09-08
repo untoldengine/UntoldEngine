@@ -63,7 +63,7 @@ namespace U4DEngine {
         return true;
     }
     
-    float U4DAABB::squarDistanceToPoint(U4DPoint3n& uPoint){
+    float U4DAABB::squareDistanceToPoint(U4DPoint3n& uPoint){
         float sqDistance=0.0;
         
         //for each axix count any excess distance outside box extents. See page 131 in Real-Time Collision Detection
@@ -89,7 +89,7 @@ namespace U4DEngine {
         
         //Compute squared distance between sphere center and AABB
         
-        float sqDistance=squarDistanceToPoint(uSphere.center);
+        float sqDistance=squareDistanceToPoint(uSphere.center);
         
         //Sphere and AABB intersect if the (squared) distance
         //between them is less than the (squared) sphere radius
