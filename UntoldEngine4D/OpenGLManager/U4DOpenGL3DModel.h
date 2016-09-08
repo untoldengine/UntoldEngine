@@ -47,7 +47,7 @@ public:
     /**
      @brief Constructor for the class
      
-     @param uWorld It takes as a paramenter the entity representing the 3D model entity
+     @param uU4DModel It takes as a paramenter the entity representing the 3D model entity
      */
     U4DOpenGL3DModel(U4DModel *uU4DModel);
     
