@@ -11,6 +11,12 @@
 
 namespace U4DEngine {
     
+U4DSpriteLoader::U4DSpriteLoader(){
+}
+
+U4DSpriteLoader::~U4DSpriteLoader(){
+}
+    
 void U4DSpriteLoader::loadSpritesAssetFile(std::string uSpriteAtlasFile,std::string uSpriteAtlasImage){
     
     const char * atlasFile = uSpriteAtlasFile.c_str();

@@ -67,7 +67,7 @@ public:
     void loadFont();
     
     /**
-     @brief Method which load the font file into the engine
+     @brief Method which loads the font file into the engine
      
      @param uFontAtlasFile  Font Atlas file name
      @param uFontAtlasImage Font Atlas image name
