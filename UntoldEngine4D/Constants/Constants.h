@@ -25,6 +25,7 @@ namespace U4DEngine {
     const float planeBoundaryEpsilon=1.0e-4f; //epsilon to determine if point is inside/outside plane
     const float depthShadowWidth=1024;
     const float depthShadowHeight=1024;
+    const int   maxShaderLength=8192;
 }
 
 #endif
