@@ -42,14 +42,14 @@ namespace U4DEngine {
     public:
         
         /**
-         @brief Instance for the Logger Singleton
+         @brief Instance for the U4DLogger Singleton
          */
         static U4DLogger* instance;
 
         /**
-         @brief Shared instance for the Logger Singleton
+         @brief Method which returns a instance of the U4DLogger Singleton
          
-         @return Returns an instance of the Logger
+         @return Returns an instance of the U4DLogger
          */
         static U4DLogger* sharedInstance();
 

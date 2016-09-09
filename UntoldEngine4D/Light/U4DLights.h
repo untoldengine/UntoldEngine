@@ -36,12 +36,14 @@ namespace U4DEngine {
     public:
         
         /**
-         @brief Instance for Lights Singleton
+         @brief Instance for U4DLights Singleton
          */
         static U4DLights* instance;
         
         /**
-         @brief Shared Instance for Lights Singleton
+         @brief Method which returns an instance for the U4DLights Singleton
+         
+         @return Returns an instance of the U4DLights Singleton
          */
         static U4DLights* sharedInstance();
         

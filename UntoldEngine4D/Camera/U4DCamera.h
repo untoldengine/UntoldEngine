@@ -63,9 +63,9 @@ namespace U4DEngine {
     public:
 
         /**
-         @brief Shared instace of the camera singleton
+         @brief Method which returns an instace of the U4DCamera singleton
          
-         @return instance of the camera singleton
+         @return instance of the U4DCamera singleton
          */
         static U4DCamera* sharedInstance();
         
