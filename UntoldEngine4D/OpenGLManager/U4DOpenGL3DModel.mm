@@ -58,8 +58,8 @@ void U4DOpenGL3DModel::loadVertexObjectBuffer(){
     
     
     //init OPENGLBUFFERS
-    glGenVertexArraysOES(1,&vertexObjectArray);
-    glBindVertexArrayOES(vertexObjectArray);
+    glGenVertexArrays(1,&vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     
     //load the vertex
     glGenBuffers(1, &vertexObjectBuffer);
@@ -296,7 +296,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     
     glUseProgram(shader);
     
-    glBindVertexArrayOES(vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     
     //compute ortho space
     U4DMatrix4n depthOrthoMatrix;
@@ -333,7 +333,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //draw elements
     drawElements();
     
-    glBindVertexArrayOES(0);
+    glBindVertexArray(0);
     
     glUseProgram(shader);
 }
