@@ -97,12 +97,14 @@ protected:
 public:
     
     /**
-     @brief Instance for U4DDirector Singleton
+     @brief Instance for director Singleton
      */
     static U4DDirector* instance;
     
     /**
-     @brief Shared Instance for U4DDirector Singleton
+     @brief Shared instance of the director singleton
+     
+     @return instance of the director singleton
      */
     static U4DDirector* sharedInstance();
     
