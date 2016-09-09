@@ -11,6 +11,14 @@
 
 namespace U4DEngine {
     
+U4DFontLoader::U4DFontLoader(){
+
+}
+
+U4DFontLoader::~U4DFontLoader(){
+
+}
+    
 void U4DFontLoader::loadFontAssetFile(std::string uFontAtlasFile,std::string uFontAtlasImage){
     
     const char * atlasFile = uFontAtlasFile.c_str();
