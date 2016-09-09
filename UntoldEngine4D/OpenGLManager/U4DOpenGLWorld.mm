@@ -36,8 +36,8 @@ U4DDualQuaternion U4DOpenGLWorld::getEntitySpace(){
 void U4DOpenGLWorld::loadVertexObjectBuffer(){
     
     //init OPENGLBUFFERS
-    glGenVertexArraysOES(1,&vertexObjectArray);
-    glBindVertexArrayOES(vertexObjectArray);
+    glGenVertexArrays(1,&vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     
     //load the vertex
     glGenBuffers(1, &vertexObjectBuffer);

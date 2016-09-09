@@ -58,7 +58,7 @@ void U4DOpenGLManager::loadRenderingInformation(){
     enableVerticesAttributeLocations();
     enableUniformsLocations();
     
-    glBindVertexArrayOES(0);
+    glBindVertexArray(0);
     
 }
 
@@ -241,7 +241,7 @@ void U4DOpenGLManager::draw(){
     
     glUseProgram(shader);
     
-    glBindVertexArrayOES(vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     
     loadMaterialsUniforms();
     
@@ -313,7 +313,7 @@ void U4DOpenGLManager::draw(){
     //draw elements
     drawElements();
     
-    glBindVertexArrayOES(0);
+    glBindVertexArray(0);
     
 }
 

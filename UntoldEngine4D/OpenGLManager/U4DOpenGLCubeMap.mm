@@ -33,8 +33,8 @@ void U4DOpenGLCubeMap::loadVertexObjectBuffer(){
     
     
     //init OPENGLBUFFERS
-    glGenVertexArraysOES(1,&vertexObjectArray);
-    glBindVertexArrayOES(vertexObjectArray);
+    glGenVertexArrays(1,&vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     
     //load the vertex
     glGenBuffers(1, &vertexObjectBuffer);

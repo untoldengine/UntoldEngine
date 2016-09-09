@@ -25,7 +25,7 @@ U4DOpenGLFont::~U4DOpenGLFont(){
 void U4DOpenGLFont::updateVertexObjectBuffer(){
     
     
-    glBindVertexArrayOES(vertexObjectArray);
+    glBindVertexArray(vertexObjectArray);
     glBindBuffer(GL_ARRAY_BUFFER, vertexObjectBuffer);
     glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(float)*3*u4dObject->bodyCoordinates.verticesContainer.size(), &u4dObject->bodyCoordinates.verticesContainer[0]);
     
