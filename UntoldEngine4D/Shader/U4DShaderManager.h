@@ -14,9 +14,6 @@
 #import <OpenGLES/ES2/gl.h>
 #import <OpenGLES/ES2/glext.h>
 
-// prevent heap fragmentation
-#define MAX_SHADER_LENGTH   8192
-
 namespace U4DEngine {
 
 /**

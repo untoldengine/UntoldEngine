@@ -7,11 +7,12 @@
 //
 
 #include "U4DShaderManager.h"
+#include "Constants.h"
 #include <iostream>
 
 namespace U4DEngine {
     
-static GLubyte shaderText[MAX_SHADER_LENGTH];
+static GLubyte shaderText[maxShaderLength];
     
 U4DShaderManager::U4DShaderManager(){
 }
@@ -125,8 +126,8 @@ bool U4DShaderManager::gltLoadShaderFile(const char *szFile, GLuint shader)
             shaderLength++;
 		
         // Allocate a block of memory to send in the shader
-        //assert(shaderLength < MAX_SHADER_LENGTH);   // make me bigger!
-        if(shaderLength > MAX_SHADER_LENGTH)
+        //assert(shaderLength < maxShaderLength);   // make me bigger!
+        if(shaderLength > maxShaderLength)
         {
             fclose(fp);
             return false;
