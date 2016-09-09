@@ -31,16 +31,6 @@ namespace U4DEngine {
         
     };
     
-    U4DLights::U4DLights(const U4DLights& value){
-        
-    }
-    
-    U4DLights& U4DLights::operator=(const U4DLights& value){
-        
-        return *this;
-        
-    };
-    
     U4DLights* U4DLights::sharedInstance(){
         
         if (instance==0) {
