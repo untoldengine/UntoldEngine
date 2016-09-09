@@ -12,6 +12,12 @@
 namespace U4DEngine {
     
 static GLubyte shaderText[MAX_SHADER_LENGTH];
+    
+U4DShaderManager::U4DShaderManager(){
+}
+    
+U4DShaderManager::~U4DShaderManager(){
+}
 
 GLuint U4DShaderManager::loadShaderPair(const char *szVertexProg, const char *szFragmentProg)
 {
