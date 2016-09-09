@@ -34,8 +34,7 @@ class U4DTouches;
 namespace U4DEngine {
     
 /**
- *  U4DDirector- This class is GOD. It controls the world and the universe of the game. It is in charge of loading the shaders, updating and drawing.
- *  This class is a singleton.
+ @brief  The U4DDirector class takes the role of a director in a game. It controls the updates and rendering of every game entity. It informs the engine of any touch event. It loads every shader used in the engine.
  */
 
 class U4DDirector{
@@ -44,143 +43,167 @@ private:
     
     
     /**
-     *  Current Universe of the game
+     @brief Pointer representing the scene of the game
      */
     U4DScene *scene;
     
     /**
-     *  Current Shader Manager. The shader manager is in charge of loading and compiling the shaders
+     @brief The shader manager is in charge of loading and compiling the shaders
      */
     U4DShaderManager shaderManager;
     
+    /**
+     @brief ios device display width
+     */
     float displayWidth;
     
+    /**
+     @brief ios device display height
+     */
     float displayHeight;
     
+    /**
+     @brief Container for all shader programs
+     */
     std::vector<GLuint> shaderProgram;
     
-    //time step accumulator
+    /**
+     @brief Time step accumulator
+     */
     float accumulator;
     
 protected:
     
     /**
-     *  Director Constructor
+     @brief Director Constructor
      */
     U4DDirector();
     
     /**
-     *  Director Destructor
+     @brief Director Destructor
      */
     ~U4DDirector();
     
     /**
-     *  Copy constructor
+     @brief Copy constructor
      */
     U4DDirector(const U4DDirector& value);
 
     /**
-     *  Copy constructor
+     @brief Copy constructor
      */
     U4DDirector& operator=(const U4DDirector& value);
     
 public:
     
     /**
-     *  Instance for U4DDirector Singleton
+     @brief Instance for U4DDirector Singleton
      */
     static U4DDirector* instance;
     
     /**
-     *  SharedInstance for U4DDirector Singleton
+     @brief Shared Instance for U4DDirector Singleton
      */
     static U4DDirector* sharedInstance();
     
     /**
-     *  Draw object
+     @brief Method in charge of starting the rendering process.
      */
     void draw();
     
     /**
-     *  Update
-     *
-     *  @param dt time update
+     @brief Method in charge of updating the states of each entity
+     
+     @param dt time value
      */
     void update(double dt);
     
     /**
-     *  Init
+     @brief  Init
+     @todo  This method is empty
      */
     void init();
     
     /**
-     *  Load the openGL shaders
+     @brief Method which loads all OpenGL Shaders 
      */
     void loadShaders();
     
-    
     /**
-     *  Set game universe
-     *
-     *  @param uUniverse Universe
+     @brief Method which sets the active scene for the game
+     
+     @param uScene Pointer to the scene to make active
      */
     void setScene(U4DScene *uScene);
     
-    
-    //loading shaders
     /**
-     *  Add openGL shader program
-     *
-     *  @param uShaderValue shader program int value
+     @brief Method which adds a shader into the shader vector-container
+     
+     @param uShaderValue shader to add into the vector-container
      */
     void addShaderProgram(GLuint uShaderValue);
-    
+
     /**
-     *  Get shader program
-     *
-     *  @param uShader shader name
-     *
-     *  @return shader program int value
+     @brief Method which returns the current index position of the shader in the shader vector-container
+     
+     @param uShader Name of shader
+     
+     @return Index position of the shader in the vector-container
      */
     GLuint getShaderProgram(std::string uShader);
 
-    //set display widht and height;
     
     /**
-     *  Set display width and height
-     *
-     *  @param uWidth  display width
-     *  @param uHeight display height
+     @brief Method which sets the dimension of the display screen
+     
+     @param uWidth  display width
+     @param uHeight display height
      */
     void setDisplayWidthHeight(float uWidth,float uHeight);
-    
+   
     /**
-     *  Get display height
-     *
-     *  @return display height
+     @brief Method which returns the height of the display screen
+     
+     @return Returns the height of the display screen
      */
     float getDisplayHeight();
     
     /**
-     *  Get display width
-     *
-     *  @return display width
+     @brief Method which returns the width of the display screen
+     
+     @return Returns the width of the display screen
      */
     float getDisplayWidth();
     
-    
     /**
-     *  convert screen point to opengl point
-     *
-     *  @param xPoint x-coordinate point
-     *  @param yPoint y-coordinate point
-     *
-     *  @return Vector2N point
+     @brief Method which converts a screen point coordinate into an opengl point coordinate
+     
+     @param xPoint x-coordinate in screen space
+     @param yPoint y-coordinate in screen space
+     
+     @return Returns a 2D vector of the point in opengl coordinate space
      */
     U4DVector2n pointToOpenGL(float xPoint,float yPoint);
     
+    /**
+     @brief Method which informs the engine that a touch event has started
+     
+     @param touches touch event
+     */
     void touchBegan(const U4DTouches &touches);
+    
+    /**
+     @brief Method which informs the engine that a touch event has ended
+     
+     @param touches touch event
+     */
     void touchEnded(const U4DTouches &touches);
+    
+    /**
+     @brief Method which informs the engine that a touch event is moving
+     
+     @param touches touch event
+     */
     void touchMoved(const U4DTouches &touches);
     
 };
