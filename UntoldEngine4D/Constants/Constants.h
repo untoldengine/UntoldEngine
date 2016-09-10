@@ -11,20 +11,79 @@
 
 namespace U4DEngine {
     
+    /**
+     @brief Constant representing the value of Pi
+     */
     const float PI=3.141592653589793;
+    
+    /**
+     @brief Constant representing a sleep-epsilon value used to bring a 3D model to sleep
+     */
     const float sleepEpsilon=0.96;
+    
+    /**
+     @brief Constant which represents a sleep bias used to bring a 3D model to sleep. This bias is used to slowly bring the model to sleep instead of doing it abruptaly
+     */
     const float sleepBias=0.5;
+    
+    /**
+     @brief Constant which represents the distance epsilon the engine will interpret as a collision
+     */
     const float collisionDistanceEpsilon=1.0e-4f;
+    
+    /**
+     @brief Constant which represents the minimum time of impact during a collision
+     */
     const float minimumTimeOfImpact=0.5;
+    
+    /**
+     @brief Constant which represents a barycentric epsilon
+     */
     const float barycentricEpsilon=1.0;
+    
+    /**
+     @brief Constant which represents the time-step used in the engine
+     */
     const float timeStep=0.01;
+    
+    /**
+     @brief Constant which represents a zero in the engine
+     */
     const float zeroEpsilon=1.0e-4f;
+    
+    /**
+     @brief Constant used during plane intersection tests. It represents a zero distance
+     */
     const float zeroPlaneIntersectionEpsilon=1.0e-3f;
-    const float impulseCollisionMinimum=0.0; //sets the minimum impulse allowed between collisions
+    
+    /**
+     @brief Constant used to represent the minimum impulse allowed between collisions
+     */
+    const float impulseCollisionMinimum=0.0;
+    
+    /**
+     @brief Constant which represents the Runga-Kutta correction coefficient
+     */
     const float rungaKuttaCorrectionCoefficient=0.7;
-    const float planeBoundaryEpsilon=1.0e-4f; //epsilon to determine if point is inside/outside plane
+    
+    /**
+     @brief Constant used to represent if a point is inside/outside a plane
+     */
+    const float planeBoundaryEpsilon=1.0e-4f;
+    
+    /**
+     @brief Constant used as the shadow mapping texture width
+     */
     const float depthShadowWidth=1024;
+    
+    /**
+     @brief Constant used as the shadow mapping texture height
+     */
     const float depthShadowHeight=1024;
+    
+    /**
+     @brief Constant used as maximum file size of a shader
+     */
     const int   maxShaderLength=8192;
 }
 
