@@ -17,7 +17,7 @@
 namespace U4DEngine {
 
 /**
- @brief The U4DTouches class is in charge of interpreting all touches
+ @brief The U4DTouches class is in charge of interpreting all touch inputs
  */
 class U4DTouches{
   
