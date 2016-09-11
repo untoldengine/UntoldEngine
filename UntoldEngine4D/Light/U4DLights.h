@@ -13,7 +13,10 @@
 #include "U4DEntity.h"
 
 namespace U4DEngine {
-    
+
+    /**
+     @brief The U4DLights class implements a light entity used for providing light and shadows to a game
+     */
     class U4DLights:public U4DEntity{
         
     private:
@@ -21,37 +24,34 @@ namespace U4DEngine {
     protected:
         
         /**
-         *  Light Constructor
+         @brief Light Constructor which sets the light position to (5.0,5.0,5.0) and its view direction to (0.0,0.0,0.0)
          */
         U4DLights();
         
         /**
-         *  Light Destructor
+         @brief Light Destructor
          */
         ~U4DLights();
-        
-        /**
-         *  Copy constructor
-         */
-        U4DLights(const U4DLights& value);
-        
-        /**
-         *  Copy constructor
-         */
-        U4DLights& operator=(const U4DLights& value);
         
     public:
         
         /**
-         *  Instance for U4DLights Singleton
+         @brief Instance for U4DLights Singleton
          */
         static U4DLights* instance;
         
         /**
-         *  SharedInstance for U4DLights Singleton
+         @brief Method which returns an instance for the U4DLights Singleton
+         
+         @return Returns an instance of the U4DLights Singleton
          */
         static U4DLights* sharedInstance();
         
+        /**
+         @brief Method which sets the view direction of the light
+         
+         @param uDestinationPoint Destination point where the light should be directed
+         */
         void viewInDirection(U4DVector3n& uDestinationPoint);
     };
     

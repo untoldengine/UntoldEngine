@@ -12,18 +12,7 @@ namespace U4DEngine {
 
     U4DLogger* U4DLogger::instance=0;
     
-    U4DLogger::U4DLogger():debugMode(true),engineMode(true){
-    }
-    
-    
-    U4DLogger::U4DLogger(const U4DLogger& value){
-        
-    }
-    
-    U4DLogger& U4DLogger::operator=(const U4DLogger& value){
-        
-        return *this;
-        
+    U4DLogger::U4DLogger():debugMode(true){
     }
     
     U4DLogger::~U4DLogger(){
@@ -58,10 +47,5 @@ namespace U4DEngine {
     void U4DLogger::setDebugMode(bool uValue){
         debugMode=uValue;
     }
-    
-    void U4DLogger::setEngineMode(bool uValue){
-        engineMode=uValue;
-    }
-    
     
 }

@@ -15,52 +15,58 @@
 
 namespace U4DEngine {
     
+    /**
+     @brief The U4DLogger class implements messages notifications sent to the console log window
+     */
     class U4DLogger {
         
     private:
         
+        /**
+         @brief If set to true, the logger prints notifications to the console window.
+         */
         bool debugMode;
-        bool engineMode;
         
     protected:
         
         /**
-         *  Logger Constructor
+         @brief Constructor for the Logger
          */
         U4DLogger();
         
         /**
-         *  Copy constructor
-         */
-        U4DLogger(const U4DLogger& value);
-        
-        /**
-         *  Copy constructor
-         */
-        U4DLogger& operator=(const U4DLogger& value);
-        
-        /**
-         *  Logger Destructor
+         @brief Destructor for the Logger
          */
         ~U4DLogger();
         
     public:
         
         /**
-         *  Instance for U4DLogger Singleton
+         @brief Instance for the U4DLogger Singleton
          */
         static U4DLogger* instance;
-        
+
         /**
-         *  SharedInstance for U4DLogger Singleton
+         @brief Method which returns a instance of the U4DLogger Singleton
+         
+         @return Returns an instance of the U4DLogger
          */
         static U4DLogger* sharedInstance();
 
+        /**
+         @brief Method which prints notifications to the console log window
+         
+         @param uLog Message to print
+         @param ...  Message to print
+         */
         void log(const char* uLog, ...);
         
+        /**
+         @brief Method which enables printing to the console window
+         
+         @param uValue Boolean value which enables printint to the console
+         */
         void setDebugMode(bool uValue);
-        
-        void setEngineMode(bool uValue);
         
     };
 

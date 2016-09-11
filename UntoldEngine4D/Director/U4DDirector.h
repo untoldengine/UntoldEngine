@@ -34,7 +34,7 @@ class U4DTouches;
 namespace U4DEngine {
     
 /**
- @brief  The U4DDirector class takes the role of a director in a game. It controls the updates and rendering of every game entity. It informs the engine of any touch event. It loads every shader used in the engine.
+ @brief  The U4DDirector class controls the updates and rendering of every game entity. It informs the engine of any touch event. It loads every shader used in the engine.
  */
 
 class U4DDirector{
@@ -97,14 +97,14 @@ protected:
 public:
     
     /**
-     @brief Instance for director Singleton
+     @brief Instance for U4DDirector Singleton
      */
     static U4DDirector* instance;
     
     /**
-     @brief Shared instance of the director singleton
+     @brief Method which returns an instance of the U4DDirector singleton
      
-     @return instance of the director singleton
+     @return instance of the U4DDirector singleton
      */
     static U4DDirector* sharedInstance();
     
