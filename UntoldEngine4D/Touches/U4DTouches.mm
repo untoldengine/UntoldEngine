@@ -11,6 +11,24 @@
 
 namespace U4DEngine {
     
+    U4DTouches::U4DTouches(float uXTouch,float uYTouch):xTouch(uXTouch),yTouch(uYTouch){}
+    
+    U4DTouches::~U4DTouches(){}
+    
+    void U4DTouches::setPoint(float uXTouch,float uYTouch){
+        xTouch=uXTouch;
+        yTouch=uYTouch;
+    }
+    
+    U4DVector2n U4DTouches::getPoint(){
+        U4DVector2n touch;
+        
+        touch.x=this->xTouch;
+        touch.y=this->yTouch;
+        
+        return touch;
+    }
+    
 /*
 void U4DTouches::update(float xPos,float yPos,TouchState touchState){
     

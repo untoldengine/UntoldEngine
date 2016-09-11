@@ -13,31 +13,55 @@
 #include "CommonProtocols.h"
 #include "U4DVector2n.h"
 
+
 namespace U4DEngine {
-    
+
+/**
+ @brief The U4DTouches class is in charge of interpreting all touches
+ */
 class U4DTouches{
   
 private:
+    
 public:
-    float xTouch,yTouch;
 
-    U4DTouches(float uXTouch,float uYTouch):xTouch(uXTouch),yTouch(uYTouch){};
+    /**
+     @brief Touch representing the x-coordinate
+     */
+    float xTouch;
     
-    ~U4DTouches(){}
-    
-    inline void setPoint(float uXTouch,float uYTouch){
-        xTouch=uXTouch;
-        yTouch=uYTouch;
-    }
-    
-    inline U4DVector2n getPoint(){
-        U4DVector2n touch;
-        
-        touch.x=this->xTouch;
-        touch.y=this->yTouch;
+    /**
+     @brief Touch representing the y-coordinate
+     */
+    float yTouch;
 
-        return touch;
-    }
+    /**
+     @brief Touch constructor
+     @param uXTouch Touch x-Coordinate
+     @param uYTouch Touch y-Coordinate
+     */
+    U4DTouches(float uXTouch,float uYTouch);
+    
+    /**
+     @brief Touch destructor
+     */
+    ~U4DTouches();
+    
+    /**
+     @brief Method which sets the current touch point
+     
+     @param uXTouch x-coordinate touch position
+     @param uYTouch y-coordinate touch positition
+     */
+    void setPoint(float uXTouch,float uYTouch);
+    
+    /**
+     @brief Method which returns the current touch position
+     
+     @return Returns a 2D vector representing the current touch position
+     */
+    U4DVector2n getPoint();
+    
 };
     
 }
