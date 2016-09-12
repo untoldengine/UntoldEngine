@@ -10,6 +10,14 @@
 
 namespace U4DEngine {
     
+    U4DVertexData::U4DVertexData(){
+    
+    }
+    
+    U4DVertexData::~U4DVertexData(){
+    
+    }
+    
     void U4DVertexData::addVerticesDataToContainer(U4DVector3n& uData){
         
         verticesContainer.push_back(uData);
