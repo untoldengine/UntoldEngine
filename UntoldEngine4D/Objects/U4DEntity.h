@@ -470,14 +470,14 @@ public:
     U4DEntity *nextInPreOrderTraversal();
     
     /**
-     @brief Method which returns if the entity represents a leaf node in the scenegraph
+     @brief Method which returns true if the entity represents a leaf node in the scenegraph
      
      @return Returns true if the entity represents a leaf node in the scenegraph
      */
     bool isLeaf();
     
     /**
-     @brief Method which returns if the entity represents a root node in the scenegraph
+     @brief Method which returns true if the entity represents a root node in the scenegraph
      
      @return Returns true if the entity represents a root node in the scenegraph
      */

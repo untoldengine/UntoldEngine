@@ -172,22 +172,6 @@ namespace U4DEngine {
         
     }
 
-    void U4DBoneData::iterateChildren(){
-        
-        /*
-        U4DBoneData* iterate;
-        
-        for (iterate=getFirstChild(); iterate!=NULL;iterate=iterate->getNextSibling()) {
-            
-            cout<<iterate->name;
-            iterate->iterateChildren();
-        
-            
-        }
-        */
-    }
-
-
     U4DBoneData *U4DBoneData::searchChildrenBone(std::string uBoneName){
         
         U4DBoneData *boneChild;
