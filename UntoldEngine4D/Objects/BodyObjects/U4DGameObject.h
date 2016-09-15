@@ -17,11 +17,11 @@
 #include "CommonProtocols.h"
 #include "U4DDynamicModel.h"
 
-/**
- @brief The U4DGameObject class represents all characters in a game
- */
 namespace U4DEngine {
-    
+
+    /**
+     @brief The U4DGameObject class represents all characters in a game
+     */
     class U4DGameObject:public U4DDynamicModel{
         
     private:
