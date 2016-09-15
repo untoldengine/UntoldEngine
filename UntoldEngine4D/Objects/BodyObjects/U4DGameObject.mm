@@ -16,11 +16,7 @@ namespace U4DEngine {
 
     
     }
-    
-    U4DGameObject::U4DGameObject(const char*){
-    
-    }
-    
+
     U4DGameObject::~U4DGameObject(){
     
     }
