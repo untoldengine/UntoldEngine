@@ -20,6 +20,10 @@ U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader){
     spriteLoader=uSpriteLoader;
     
 };
+    
+U4DSprite::~U4DSprite(){
+
+}
 
 void U4DSprite::setSprite(const char* uSprite){
 
