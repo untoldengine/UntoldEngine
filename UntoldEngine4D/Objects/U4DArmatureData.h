@@ -18,11 +18,11 @@ class U4DBoneData;
 class U4DModel;
 }
 
+namespace U4DEngine {
+
 /**
  @brief The U4DArmatureData class represents the bone armature of the 3D entity
  */
-namespace U4DEngine {
-    
 class U4DArmatureData{
     
 private:
