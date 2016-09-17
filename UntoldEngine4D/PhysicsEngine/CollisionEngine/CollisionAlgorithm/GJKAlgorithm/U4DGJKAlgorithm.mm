@@ -18,6 +18,13 @@
 
 namespace U4DEngine {
     
+    U4DGJKAlgorithm::U4DGJKAlgorithm(){
+    
+    }
+    
+    U4DGJKAlgorithm::~U4DGJKAlgorithm(){
+    
+    }
     
     bool U4DGJKAlgorithm::collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){
         
