@@ -20,6 +20,9 @@ namespace U4DEngine {
 
 namespace U4DEngine {
 
+    /**
+     @brief The U4DBodyForceGenerator class is in charge of updating all external forces acting on a 3D entity
+     */
     class U4DBodyForceGenerator{
         
     public:
