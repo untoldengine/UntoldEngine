@@ -27,7 +27,23 @@ U4DFont::U4DFont(U4DFontLoader* uFontLoader){
    
     setFont();
     
-};
+}
+    
+U4DFont::~U4DFont(){
+    
+    delete fontLoader;
+    
+}
+
+U4DFont::U4DFont(const U4DFont& value){
+
+}
+
+U4DFont& U4DFont::operator=(const U4DFont& value){
+    
+    return *this;
+
+}
 
 void U4DFont::setFont(){
     

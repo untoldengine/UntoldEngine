@@ -10,6 +10,10 @@
 
 namespace U4DEngine {
     
+    U4DMaterialData::U4DMaterialData(){}
+    
+    U4DMaterialData::~U4DMaterialData(){}
+    
     void U4DMaterialData::addDiffuseMaterialDataToContainer(U4DColorData& uData){
         
         diffuseMaterialColorContainer.push_back(uData);

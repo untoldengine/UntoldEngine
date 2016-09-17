@@ -16,8 +16,12 @@ namespace U4DEngine {
 U4DSkyBox::U4DSkyBox(){
     openGlManager=new U4DOpenGLCubeMap(this);
     openGlManager->setShader("SkyBoxShader");
-};
+}
+    
+U4DSkyBox::~U4DSkyBox(){
 
+}
+    
 void U4DSkyBox::initSkyBox(float uSize,const char* positiveXImage,const char* negativeXImage,const char* positiveYImage,const char* negativeYImage,const char* positiveZImage, const char* negativeZImage){
     
     //add the images to the vector

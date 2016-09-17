@@ -10,6 +10,19 @@
 
 namespace U4DEngine {
     
+U4DVisibleEntity::U4DVisibleEntity(){
+    
+}
+
+U4DVisibleEntity::U4DVisibleEntity(const U4DVisibleEntity& value){
+
+}
+
+U4DVisibleEntity& U4DVisibleEntity::operator=(const U4DVisibleEntity& value){
+    
+    return *this;
+}
+    
 void U4DVisibleEntity::loadRenderingInformation(){
     openGlManager->loadRenderingInformation();
 }
