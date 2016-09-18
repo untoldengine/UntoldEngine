@@ -545,8 +545,8 @@
 		0314B0B51C6FC05D00EB8C34 /* BVHTree */ = {
 			isa = PBXGroup;
 			children = (
-				0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */,
 				0314B0B81C6FC09100EB8C34 /* U4DBVHTree.h */,
+				0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */,
 			);
 			name = BVHTree;
 			sourceTree = "<group>";
@@ -554,8 +554,8 @@
 		0314B0B61C6FC06D00EB8C34 /* BVHManager */ = {
 			isa = PBXGroup;
 			children = (
-				0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */,
 				0314B0BB1C6FE8F600EB8C34 /* U4DBVHManager.h */,
+				0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */,
 			);
 			name = BVHManager;
 			sourceTree = "<group>";

@@ -165,11 +165,11 @@ namespace U4DEngine {
     
 }
 
-/**
- @brief The U4DSHAlgorithm class is in charge of implementing the Sutherland-Hodgman algorithm
- */
 namespace U4DEngine {
     
+    /**
+     @brief The U4DSHAlgorithm class is in charge of implementing the Sutherland-Hodgman algorithm
+     */
     class U4DSHAlgorithm:public U4DManifoldGeneration{
         
     private:

@@ -15,18 +15,36 @@ namespace U4DEngine {
     class U4DDynamicModel;
 }
 
+
 namespace U4DEngine {
-   
+
+    /**
+     @brief The U4DBroadPhaseCollisionModelPair class contains collision entity pairs
+     */
     class U4DBroadPhaseCollisionModelPair {
         
     private:
         
     public:
+        
+        /**
+         @brief Constructor of the class
+         */
         U4DBroadPhaseCollisionModelPair();
         
+        /**
+         @brief Destructor of the class
+         */
         ~U4DBroadPhaseCollisionModelPair();
         
+        /**
+         @brief 3D model entity
+         */
         U4DDynamicModel *model1;
+        
+        /**
+         @brief 3D model entity
+         */
         U4DDynamicModel *model2;
     };
     
