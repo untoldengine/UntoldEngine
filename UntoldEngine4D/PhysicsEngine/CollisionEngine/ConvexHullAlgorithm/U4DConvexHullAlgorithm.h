@@ -17,11 +17,12 @@
 #include "CommonProtocols.h"
 #include "U4DVector3n.h"
 
-/**
- @brief The U4DConvexHullAlgorithm class computes the convex-hull of a 3D model entity
- */
+
 namespace U4DEngine {
     
+    /**
+     @brief The U4DConvexHullAlgorithm class computes the convex-hull of a 3D model entity
+     */
     class U4DConvexHullAlgorithm{
         
     private:
