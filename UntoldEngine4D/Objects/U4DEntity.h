@@ -199,7 +199,7 @@ public:
      
      @return Returns the local space position of the Entity
      */
-    U4DQuaternion getLocalSpaceTranslation();
+    U4DQuaternion getLocalSpacePosition();
     
     /**
      @brief Method which returns the absolute orientation space of the Entity
@@ -213,7 +213,7 @@ public:
      
      @return Returns the absolute space position of the Entity
      */
-    U4DQuaternion getAbsoluteSpaceTranslation();
+    U4DQuaternion getAbsoluteSpacePosition();
     
     /**
      @brief Method which sets the local space orientation of the Entity

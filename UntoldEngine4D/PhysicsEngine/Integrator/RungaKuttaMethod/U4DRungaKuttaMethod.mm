@@ -71,7 +71,7 @@ namespace U4DEngine {
         U4DQuaternion rotation(orientationNew);
         
         //get the current translation
-        U4DQuaternion t=uModel->getLocalSpaceTranslation();
+        U4DQuaternion t=uModel->getLocalSpacePosition();
         
         uModel->setLocalSpaceOrientation(rotation);
         
