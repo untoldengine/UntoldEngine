@@ -215,7 +215,7 @@ U4DMatrix4n U4DOpenGLManager::getCameraPerspectiveView(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     
-    return camera->getCameraProjectionView();
+    return camera->getCameraPerspectiveView();
 }
 
 U4DDualQuaternion U4DOpenGLManager::getCameraSpace(){

@@ -39,10 +39,10 @@ namespace U4DEngine {
         return instance;
     }
 
-    void U4DCamera::setCameraProjectionView(float fov, float aspect, float near, float far){
+    void U4DCamera::setCameraPerspectiveView(float fov, float aspect, float near, float far){
         
         
-        projectionView.computePerspectiveMatrix(fov, aspect, near, far);
+        perspectiveView.computePerspectiveMatrix(fov, aspect, near, far);
         
     }
 
@@ -53,9 +53,9 @@ namespace U4DEngine {
         
     }
 
-    U4DMatrix4n U4DCamera::getCameraProjectionView(){
+    U4DMatrix4n U4DCamera::getCameraPerspectiveView(){
         
-        return projectionView;
+        return perspectiveView;
     }
 
     U4DMatrix4n U4DCamera::getCameraOrthographicView(){

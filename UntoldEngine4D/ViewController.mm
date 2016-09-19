@@ -59,7 +59,7 @@
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
     //set perspectiveMatrix
-    camera->setCameraProjectionView(49.134f, view.frame.size.height/view.frame.size.width, 1.0f, 100.0f);
+    camera->setCameraPerspectiveView(49.134f, view.frame.size.height/view.frame.size.width, 1.0f, 100.0f);
  
     
     //set orthographicView

@@ -36,7 +36,7 @@ namespace U4DEngine {
         /**
          @brief Camera Perspective projection view space
          */
-        U4DMatrix4n projectionView;
+        U4DMatrix4n perspectiveView;
         
         /**
          @brief Camera Orthographic projection view space
@@ -77,14 +77,14 @@ namespace U4DEngine {
          @param near   near plane
          @param far    far plane
          */
-        void setCameraProjectionView(float fov, float aspect, float near, float far);
+        void setCameraPerspectiveView(float fov, float aspect, float near, float far);
         
         /**
          @brief Method which returns the camera perspective projection view space
          
          @return Returns the camera perspecive projection space
          */
-        U4DMatrix4n getCameraProjectionView();
+        U4DMatrix4n getCameraPerspectiveView();
         
         /**
          @brief Method which sets the camera orthographic projection space
