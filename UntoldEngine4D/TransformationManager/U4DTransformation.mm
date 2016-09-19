@@ -35,7 +35,7 @@ namespace U4DEngine {
     void U4DTransformation::updateSpaceMatrixOrientation(U4DQuaternion& orientation){
         
         //get the current translation
-        U4DQuaternion t=uEntity->getLocalSpaceTranslation();
+        U4DQuaternion t=uEntity->getLocalSpacePosition();
         
         uEntity->setLocalSpaceOrientation(orientation);
         
@@ -221,7 +221,7 @@ namespace U4DEngine {
         rotation.convertToUnitNormQuaternion();
         
         //get the current translation
-        U4DQuaternion t=uEntity->getLocalSpaceTranslation();
+        U4DQuaternion t=uEntity->getLocalSpacePosition();
         
         uEntity->setLocalSpaceOrientation(rotation);
         

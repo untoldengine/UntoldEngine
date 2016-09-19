@@ -87,7 +87,7 @@ namespace U4DEngine {
         return localSpace.getRealQuaternionPart();
     }
 
-    U4DQuaternion U4DEntity::getLocalSpaceTranslation(){
+    U4DQuaternion U4DEntity::getLocalSpacePosition(){
         
         return localSpace.getPureQuaternionPart();
     }
@@ -130,7 +130,7 @@ namespace U4DEngine {
         return space.getRealQuaternionPart();
     }
 
-    U4DQuaternion U4DEntity::getAbsoluteSpaceTranslation(){
+    U4DQuaternion U4DEntity::getAbsoluteSpacePosition(){
 
         U4DDualQuaternion space;
         
@@ -148,7 +148,7 @@ namespace U4DEngine {
 
     U4DVector3n U4DEntity::getLocalPosition(){
         
-        U4DQuaternion pos=getLocalSpaceTranslation();
+        U4DQuaternion pos=getLocalSpacePosition();
         
         localPosition.x=pos.v.x;
         localPosition.y=pos.v.y;
