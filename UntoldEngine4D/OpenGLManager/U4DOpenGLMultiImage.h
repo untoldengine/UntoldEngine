@@ -63,7 +63,7 @@ public:
      
      @param value Boolean variable to enable/disable multi-image support
      */
-    void setMultiImageActiveImage(bool value);
+    void enableMultiTextures(bool value);
 };
     
 }

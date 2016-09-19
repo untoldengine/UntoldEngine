@@ -63,7 +63,7 @@ void U4DOpenGLMultiImage::activateTexturesUniforms(){
     
 }
 
-void U4DOpenGLMultiImage::setMultiImageActiveImage(bool value){
+void U4DOpenGLMultiImage::enableMultiTextures(bool value){
     
     activateMultiTextureImage=value;
 }
