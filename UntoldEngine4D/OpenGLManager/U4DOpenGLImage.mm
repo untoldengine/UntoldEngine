@@ -76,7 +76,7 @@ void U4DOpenGLImage::enableVerticesAttributeLocations(){
     
 }
 
-U4DMatrix4n U4DOpenGLImage::getCameraProjection(){
+U4DMatrix4n U4DOpenGLImage::getCameraPerspectiveView(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     

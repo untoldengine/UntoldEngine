@@ -446,7 +446,7 @@ public:
     /**
      @brief Method which returns the camera perspective projection space
      */
-    virtual U4DMatrix4n getCameraProjection();
+    virtual U4DMatrix4n getCameraPerspectiveView();
 
     /**
      @brief Method which starts the glDrawElements routine

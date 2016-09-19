@@ -211,7 +211,7 @@ void U4DOpenGLManager::getCustomUniforms(){
 }
 
 
-U4DMatrix4n U4DOpenGLManager::getCameraProjection(){
+U4DMatrix4n U4DOpenGLManager::getCameraPerspectiveView(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     
@@ -276,7 +276,7 @@ void U4DOpenGLManager::draw(){
     //get the mvp
     U4DMatrix4n mModelViewProjection;
 
-    mModelViewProjection=getCameraProjection()*mModelViewMatrix;
+    mModelViewProjection=getCameraPerspectiveView()*mModelViewMatrix;
     
     //get the camera view direction
     U4DVector3n cameraViewDirection=getCameraViewDirection();

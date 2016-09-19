@@ -49,7 +49,7 @@ public:
     /**
      @brief Method which returns the camera perspective projection space
      */
-    U4DMatrix4n getCameraProjection();
+    U4DMatrix4n getCameraPerspectiveView();
     
     /**
      @brief Method which returns the absolute space of the entity
