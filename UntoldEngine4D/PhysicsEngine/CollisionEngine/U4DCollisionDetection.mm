@@ -14,6 +14,9 @@
 
 namespace U4DEngine {
     
+    U4DCollisionDetection::U4DCollisionDetection(){
+        
+    }
     
     SIMPLEXDATA U4DCollisionDetection::calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection){
         

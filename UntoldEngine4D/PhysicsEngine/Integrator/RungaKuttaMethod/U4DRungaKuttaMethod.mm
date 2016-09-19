@@ -12,6 +12,14 @@
 
 namespace U4DEngine {
     
+    U4DRungaKuttaMethod::U4DRungaKuttaMethod(){
+    
+    }
+    
+    U4DRungaKuttaMethod::~U4DRungaKuttaMethod(){
+    
+    }
+    
     #pragma mark-integrate
     void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
         

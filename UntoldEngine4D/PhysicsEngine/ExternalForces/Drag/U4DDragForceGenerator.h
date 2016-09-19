@@ -14,17 +14,32 @@
 
 namespace U4DEngine {
     
+/**
+ @brief The U4DGravityForceGenerator class is in charge of updating gravitational forces acting on a 3D entity
+ */
 class U4DDragForceGenerator:public U4DBodyForceGenerator{
   
     private:
         
     public:
-        
-        U4DDragForceGenerator();
-        
-        ~U4DDragForceGenerator();
+
+    /**
+     @brief Constructor for the class
+     */
+    U4DDragForceGenerator();
     
-        void updateForce(U4DDynamicModel *uModel, float dt);
+    /**
+     @brief Destructor for the class
+     */
+    ~U4DDragForceGenerator();
+
+    /**
+     @brief Method which updates the force acting on the entity
+     
+     @param uModel 3D model entity
+     @param dt     Time-step value
+     */
+    void updateForce(U4DDynamicModel *uModel, float dt);
         
     };
 
