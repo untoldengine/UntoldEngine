@@ -47,7 +47,7 @@ void U4DOpenGLDebugger::draw(){
         
         //get the camera matrix
         
-        mModelViewProjection=getCameraProjection()*mModelViewMatrix;
+        mModelViewProjection=getCameraPerspectiveView()*mModelViewMatrix;
         
         glUniformMatrix4fv(modelViewUniformLocations.modelViewProjectionUniformLocation,1,0,mModelViewProjection.matrixData);
         
@@ -57,6 +57,7 @@ void U4DOpenGLDebugger::draw(){
     }
     
     glBindVertexArray(0);
+    
     
     
 }
