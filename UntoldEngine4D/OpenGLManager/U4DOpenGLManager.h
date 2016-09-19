@@ -607,7 +607,7 @@ public:
      
      @param value Boolean value to activate or deactivate multi-texture rendering
      */
-    virtual void setMultiImageActiveImage(bool value){};
+    virtual void enableMultiTextures(bool value){};
     
     /**
      @brief Method which loads the Depth-Shadow uniform for shadow operations
