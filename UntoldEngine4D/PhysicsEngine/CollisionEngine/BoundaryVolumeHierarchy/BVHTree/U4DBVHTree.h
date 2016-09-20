@@ -84,17 +84,17 @@ namespace U4DEngine {
         /**
          @brief Method which adds 3D models to the node container
          
-         @param uModelsContainer 3D model entity
+         @param uModel 3D model entity
          */
-        void addModelToContainer(U4DDynamicModel *uModelsContainer);
+        void addModelToContainer(U4DDynamicModel *uModel);
         
         /**
          @brief Method which add a 3D model at a particular index
          
          @param uIndex           index
-         @param uModelsContainer 3D model entity
+         @param uModel 3D model entity
          */
-        void addModelToContainerAtIndex(int uIndex, U4DDynamicModel *uModelsContainer);
+        void addModelToContainerAtIndex(int uIndex, U4DDynamicModel *uModel);
         
         /**
          @brief Method which makes a copy of the model container
