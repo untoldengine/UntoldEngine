@@ -34,14 +34,14 @@ namespace U4DEngine {
     
     }
     
-    void U4DBVHTree::addModelToContainer(U4DDynamicModel *uModelsContainer){
+    void U4DBVHTree::addModelToContainer(U4DDynamicModel *uModel){
         
-        modelsContainer.push_back(uModelsContainer);
+        modelsContainer.push_back(uModel);
     }
     
-    void U4DBVHTree::addModelToContainerAtIndex(int uIndex, U4DDynamicModel *uModelsContainer){
+    void U4DBVHTree::addModelToContainerAtIndex(int uIndex, U4DDynamicModel *uModel){
         
-        modelsContainer.at(uIndex)=uModelsContainer;
+        modelsContainer.at(uIndex)=uModel;
     }
     
     void U4DBVHTree::copyModelsContainer(std::vector<U4DDynamicModel *> uModelsContainer){
