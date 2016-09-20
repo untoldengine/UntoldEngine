@@ -82,7 +82,7 @@ typedef struct{
      */
     GLint materialIndexAttributeLocation;
     
-}AttibuteLocations;
+}AttributeLocations;
 
     /**
      @brief The ModelViewUniformLocations structure contains OpenGL Uniforms space information for rendering.
@@ -274,7 +274,7 @@ protected:
     /**
      @brief Attribute locations
      */
-    AttibuteLocations attributeLocations;
+    AttributeLocations attributeLocations;
     
     /**
      @brief Space Uniform locations
