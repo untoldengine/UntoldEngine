@@ -72,16 +72,18 @@ namespace U4DEngine {
          
          @param uTreeLeftNode  Left tree node
          @param uTreeRightNode Right tree node
+         @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        virtual void collision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){};
+        virtual void collision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
         
         /**
          @brief Method which detects broad-phase collision among tree nodes
          
          @param uTreeLeftNode  Left tree node
          @param uTreeRightNode Right tree node
+         @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        virtual void collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){};
+        virtual void collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
         
     };
 }
