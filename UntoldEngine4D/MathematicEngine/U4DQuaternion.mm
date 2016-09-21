@@ -16,7 +16,7 @@
 namespace U4DEngine {
     
     
-U4DQuaternion::U4DQuaternion(){};
+U4DQuaternion::U4DQuaternion():s(1.0),v(0.0,0.0,0.0){};
 
 U4DQuaternion::U4DQuaternion(float uS,U4DVector3n& uV):s(uS),v(uV){
 

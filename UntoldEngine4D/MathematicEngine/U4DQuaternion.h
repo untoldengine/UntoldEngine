@@ -43,7 +43,7 @@ public:
     U4DVector3n v;
     
     /**
-     @brief Default Constructor which creates a quaternion
+     @brief Default Constructor which creates a Real Quaternion. That is, it creates a quaternion with a scalar equal to 1.0 and a zero vector
      */
     U4DQuaternion();
     
