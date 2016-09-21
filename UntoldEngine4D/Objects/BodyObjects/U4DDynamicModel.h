@@ -277,7 +277,7 @@ public:
      
      @return Returns the velocity of the model
      */
-    U4DVector3n getVelocity() const;
+    U4DVector3n getVelocity();
     
     /**
      @brief Method which returns the angular velocity of the model

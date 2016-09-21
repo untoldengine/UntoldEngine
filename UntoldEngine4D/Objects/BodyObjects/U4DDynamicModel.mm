@@ -66,7 +66,7 @@ namespace U4DEngine {
 
     #pragma mark-get velocity
     //set and get velocity
-    U4DVector3n U4DDynamicModel::getVelocity() const{
+    U4DVector3n U4DDynamicModel::getVelocity(){
         
         return velocity;
     }
