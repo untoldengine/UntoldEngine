@@ -24,7 +24,7 @@ void Meteor::init(const char* uName, const char* uBlenderFile){
         
         enableCollisionBehavior();
         enableKineticsBehavior();
-        
+        //setBroadPhaseBoundingVolumeVisibility(true);
         U4DEngine::U4DVector3n grav(0.0,0.0,0.0);
         setGravity(grav);
         

@@ -23,6 +23,7 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         //translateBy(3.0,0.0,0.0);
+        //rotateBy(0.0, 5.0, 0.0);
         enableCollisionBehavior();
         enableKineticsBehavior();
         
