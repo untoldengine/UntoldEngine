@@ -22,10 +22,11 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        //translateBy(3.0,0.0,0.0);
+        //translateBy(2.0,0.0,0.0);
+        //rotateTo(0.0, 5.0, 0.0);
         enableCollisionBehavior();
         enableKineticsBehavior();
-        
+        //setBroadPhaseBoundingVolumeVisibility(true);
         setShader("gouraudShader");
         
     }
@@ -35,5 +36,5 @@ void Rocket::init(const char* uName, const char* uBlenderFile){
 
 void Rocket::update(double dt){
     
- 
+        //rotateBy(0.0,1.0,0.0);
 }

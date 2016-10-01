@@ -87,8 +87,8 @@ namespace U4DEngine{
         //3. get longest dimension
         getBVHLongestDimensionVector(nodeLeaf.get());
         
-        //check if the node leaf has more than 2 models, if it does then split it recursively, else stop
-        if (nodeLeaf->getModelsContainer().size()>2) {
+        //check if the node leaf has more than 1 models, if it does then split it recursively, else stop
+        if (nodeLeaf->getModelsContainer().size()>1) {
             
             //4. sort objects along the longest dimension
             heapSorting(nodeLeaf.get());
@@ -233,6 +233,10 @@ namespace U4DEngine{
             
         }
         
+        //the split index can't be zero. If it is, then the bvh tree will go into an infinitite recursion loop.
+        if (splitIndex==0) {
+            splitIndex++;
+        }
         
         uNode->setSplitIndex(splitIndex);
         
