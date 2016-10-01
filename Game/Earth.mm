@@ -117,7 +117,7 @@ void Earth::init(){
     light->viewInDirection(origin);
     
     addChild(floor);
-//    addChild(floor2);
+    addChild(floor2);
 
     addChild(rocket);
     addChild(mountain);
@@ -150,8 +150,8 @@ void Earth::init(){
 
 void Earth::update(double dt){
     
-    //U4DCamera *camera=U4DCamera::sharedInstance();
-    //camera->followModel(rocket, 0.0, 2.0, 6.0);
+    U4DCamera *camera=U4DCamera::sharedInstance();
+    camera->followModel(rocket, 0.0, 2.0, 6.0);
     
 
 }

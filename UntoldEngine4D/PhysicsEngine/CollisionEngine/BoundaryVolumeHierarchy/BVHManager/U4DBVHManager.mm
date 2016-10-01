@@ -233,6 +233,10 @@ namespace U4DEngine{
             
         }
         
+        //the split index can't be zero. If it is, then the bvh tree will go into an infinitite recursion loop.
+        if (splitIndex==0) {
+            splitIndex++;
+        }
         
         uNode->setSplitIndex(splitIndex);
         
