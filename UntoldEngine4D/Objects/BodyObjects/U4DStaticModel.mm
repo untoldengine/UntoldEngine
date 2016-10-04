@@ -340,7 +340,7 @@ namespace U4DEngine {
                     broadPhaseBoundingVolume=new U4DBoundingSphere();
                     
                     //set the radius for the sphere bounding volume
-                    float radius=longestModelDimension;
+                    float radius=sqrt(longestModelDimension);
                     
                     //calculate the sphere
                     broadPhaseBoundingVolume->computeBoundingVolume(radius, 10, 10);
