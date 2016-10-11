@@ -18,14 +18,14 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
      
-        anim=new U4DEngine::U4DAnimation(this);
-        translateTo(0.0,4.0,0.0);
+        //anim=new U4DEngine::U4DAnimation(this);
+        translateTo(0.0,1.0,0.0);
         
-        if (loadAnimationToModel(anim, "ArmatureAction", uBlenderFile)) {
-            
-            replay=0;
-            
-        }
+//        if (loadAnimationToModel(anim, "ArmatureAction", uBlenderFile)) {
+//            
+//            replay=0;
+//            
+//        }
         
     }
     
@@ -34,10 +34,10 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
 
 void MyCharacter::update(double dt){
    
-    if (replay==0) {
-        anim->start();
-        replay=1;
-    }
+//    if (replay==0) {
+//        anim->start();
+//        replay=1;
+//    }
     
     
 }

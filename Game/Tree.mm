@@ -20,7 +20,7 @@ void Tree::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
-        setShader("gouraudShader");
+        
         
     }
 }

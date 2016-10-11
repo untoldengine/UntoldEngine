@@ -1,28 +1,28 @@
 //
-//  Mountain.hpp
+//  Castle.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 8/4/16.
+//  Created by Harold Serrano on 10/10/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
 //
 
-#ifndef Mountain_hpp
-#define Mountain_hpp
+#ifndef Castle_hpp
+#define Castle_hpp
 
 #include <stdio.h>
 #include "U4DGameObject.h"
 
-class Mountain:public U4DEngine::U4DGameObject {
+class Castle:public U4DEngine::U4DGameObject {
     
 private:
     
 public:
-    Mountain();
-    ~Mountain();
+    Castle();
+    ~Castle();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
     
 };
-#endif /* Mountain_hpp */
+#endif /* Castle_hpp */

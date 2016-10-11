@@ -18,38 +18,46 @@ class MyCharacter;
 class GameController;
 class Rocket;
 class Floor;
-class Mountain;
-class Planet;
-class Meteor;
 class Tree;
-class Cloud;
+class Fountain;
+class Castle;
+class Bench;
+class Steps;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
-    Rocket *rocket;
+    
+    MyCharacter *ninja;
+    
     Floor *floor;
     Floor *floor2;
-    Mountain *mountain;
-    Mountain *mountain2;
-    Mountain *mountain3;
-    Mountain *mountain4;
-    Planet *planet;
-    Meteor *meteor1;
-    Meteor *meteor2;
-    Meteor *meteor3;
-    Meteor *meteor4;
-    Meteor *meteor5;
+    Floor *floor3;
+    Fountain *fountain;
+    Castle *castle;
     Tree *tree1;
     Tree *tree2;
     Tree *tree3;
     Tree *tree4;
-    Cloud *cloud1;
-    Cloud *cloud2;
-    Cloud *cloud3;
-    Cloud *cloud4;
-    Cloud *cloud5;
-    MyCharacter *uemascot;
+    Tree *tree5;
+    Tree *tree6;
+    Tree *tree7;
+    Bench *bench1;
+    Bench *bench2;
+    Bench *bench3;
+    Bench *bench4;
+    Bench *bench5;
+    Bench *bench6;
+    
+    Steps *steps1;
+    Steps *steps2;
+    Steps *steps3;
+    Steps *steps4;
+    Steps *steps5;
+    Steps *steps6;
+    Steps *steps7;
+    Steps *steps8;
+    Steps *steps9;
     
 public:
    

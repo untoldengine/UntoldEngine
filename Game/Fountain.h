@@ -1,28 +1,30 @@
 //
-//  Planet.hpp
+//  Fountain.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 8/4/16.
+//  Created by Harold Serrano on 10/10/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
 //
 
-#ifndef Planet_hpp
-#define Planet_hpp
+#ifndef Fountain_hpp
+#define Fountain_hpp
 
 #include <stdio.h>
+
 #include "U4DGameObject.h"
 
-class Planet:public U4DEngine::U4DGameObject {
+class Fountain:public U4DEngine::U4DGameObject {
     
 private:
     
 public:
-    Planet();
-    ~Planet();
+    Fountain();
+    ~Fountain();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
     
 };
-#endif /* Planet_hpp */
+
+#endif /* Fountain_hpp */
