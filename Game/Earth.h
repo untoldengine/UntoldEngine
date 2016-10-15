@@ -18,11 +18,6 @@ class MyCharacter;
 class GameController;
 class Rocket;
 class Floor;
-class Tree;
-class Fountain;
-class Castle;
-class Bench;
-class Steps;
 
 class Earth:public U4DEngine::U4DWorld{
 
@@ -31,33 +26,6 @@ private:
     MyCharacter *ninja;
     
     Floor *floor;
-    Floor *floor2;
-    Floor *floor3;
-    Fountain *fountain;
-    Castle *castle;
-    Tree *tree1;
-    Tree *tree2;
-    Tree *tree3;
-    Tree *tree4;
-    Tree *tree5;
-    Tree *tree6;
-    Tree *tree7;
-    Bench *bench1;
-    Bench *bench2;
-    Bench *bench3;
-    Bench *bench4;
-    Bench *bench5;
-    Bench *bench6;
-    
-    Steps *steps1;
-    Steps *steps2;
-    Steps *steps3;
-    Steps *steps4;
-    Steps *steps5;
-    Steps *steps6;
-    Steps *steps7;
-    Steps *steps8;
-    Steps *steps9;
     
 public:
    

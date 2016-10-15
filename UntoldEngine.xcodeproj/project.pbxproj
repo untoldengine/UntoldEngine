@@ -38,7 +38,6 @@
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
 		0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */; };
 		0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0328EE9917F5C88C00560A63 /* U4DOpenGLSprite.mm */; };
-		032E0A241D6A5C8A00D527B6 /* Tree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032E0A221D6A5C8A00D527B6 /* Tree.mm */; settings = {ASSET_TAGS = (); }; };
 		034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */; };
 		034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
@@ -52,10 +51,7 @@
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
 		035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */; };
 		036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */; };
-		03659C551DAC8F51003E38E9 /* Castle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03659C531DAC8F51003E38E9 /* Castle.mm */; settings = {ASSET_TAGS = (); }; };
-		03659C581DAC8F70003E38E9 /* Fountain.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03659C561DAC8F70003E38E9 /* Fountain.mm */; settings = {ASSET_TAGS = (); }; };
-		03659C5B1DAC9351003E38E9 /* Bench.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03659C591DAC9351003E38E9 /* Bench.mm */; settings = {ASSET_TAGS = (); }; };
-		03659C5E1DAC935E003E38E9 /* Steps.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03659C5C1DAC935E003E38E9 /* Steps.mm */; settings = {ASSET_TAGS = (); }; };
+		03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03659C5F1DACB1AD003E38E9 /* characterscript.u4d */; settings = {ASSET_TAGS = (); }; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -245,8 +241,6 @@
 		0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingSphere.mm; path = BoundingVolumes/U4DBoundingSphere.mm; sourceTree = "<group>"; };
 		0328EE9917F5C88C00560A63 /* U4DOpenGLSprite.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLSprite.mm; sourceTree = "<group>"; };
 		0328EE9A17F5C88C00560A63 /* U4DOpenGLSprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLSprite.h; sourceTree = "<group>"; };
-		032E0A221D6A5C8A00D527B6 /* Tree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Tree.mm; sourceTree = "<group>"; };
-		032E0A231D6A5C8A00D527B6 /* Tree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tree.h; sourceTree = "<group>"; };
 		034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.fp; sourceTree = "<group>"; };
 		034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.vp; sourceTree = "<group>"; };
 		0346862A1B1A4DA400B2105B /* U4DPlane.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlane.mm; sourceTree = "<group>"; };
@@ -267,14 +261,7 @@
 		035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLMultiImage.mm; sourceTree = "<group>"; };
 		036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLFont.mm; sourceTree = "<group>"; };
 		036435C31863D88900E2A6F6 /* U4DOpenGLFont.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLFont.h; sourceTree = "<group>"; };
-		03659C531DAC8F51003E38E9 /* Castle.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Castle.mm; sourceTree = "<group>"; };
-		03659C541DAC8F51003E38E9 /* Castle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Castle.h; sourceTree = "<group>"; };
-		03659C561DAC8F70003E38E9 /* Fountain.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Fountain.mm; sourceTree = "<group>"; };
-		03659C571DAC8F70003E38E9 /* Fountain.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Fountain.h; sourceTree = "<group>"; };
-		03659C591DAC9351003E38E9 /* Bench.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Bench.mm; sourceTree = "<group>"; };
-		03659C5A1DAC9351003E38E9 /* Bench.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Bench.h; sourceTree = "<group>"; };
-		03659C5C1DAC935E003E38E9 /* Steps.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Steps.mm; sourceTree = "<group>"; };
-		03659C5D1DAC935E003E38E9 /* Steps.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Steps.h; sourceTree = "<group>"; };
+		03659C5F1DACB1AD003E38E9 /* characterscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = characterscript.u4d; path = Game/characterscript.u4d; sourceTree = SOURCE_ROOT; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModelInterface.mm; sourceTree = "<group>"; };
@@ -643,16 +630,6 @@
 				03D559D11D53D11900E567D5 /* Rocket.mm */,
 				03D559D51D53D12D00E567D5 /* Floor.h */,
 				03D559D41D53D12D00E567D5 /* Floor.mm */,
-				032E0A231D6A5C8A00D527B6 /* Tree.h */,
-				032E0A221D6A5C8A00D527B6 /* Tree.mm */,
-				03659C541DAC8F51003E38E9 /* Castle.h */,
-				03659C531DAC8F51003E38E9 /* Castle.mm */,
-				03659C571DAC8F70003E38E9 /* Fountain.h */,
-				03659C561DAC8F70003E38E9 /* Fountain.mm */,
-				03659C5A1DAC9351003E38E9 /* Bench.h */,
-				03659C591DAC9351003E38E9 /* Bench.mm */,
-				03659C5D1DAC935E003E38E9 /* Steps.h */,
-				03659C5C1DAC935E003E38E9 /* Steps.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -922,6 +899,7 @@
 			children = (
 				03FD1E631D44238B00687FD0 /* uvExample.png */,
 				03EB59901AEF7D8C00A5F7DA /* floorTexture.png */,
+				03659C5F1DACB1AD003E38E9 /* characterscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
@@ -1407,6 +1385,7 @@
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03A9F6F21AD9D1B700E81A00 /* well.png in Resources */,
+				03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
 				03A9F6EC1AD9D1A000E81A00 /* small_house_01.png in Resources */,
@@ -1438,7 +1417,6 @@
 				034DBC7C1A73E08C00AC43EB /* U4DDebugger.mm in Sources */,
 				0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */,
 				03E6EDEE1943D8A2007AD131 /* U4DTimer.mm in Sources */,
-				03659C5E1DAC935E003E38E9 /* Steps.mm in Sources */,
 				03E6EDDE1943D816007AD131 /* U4DIntegrator.mm in Sources */,
 				03759B5A175B0135002EB5D9 /* ViewController.mm in Sources */,
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
@@ -1458,8 +1436,6 @@
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
-				032E0A241D6A5C8A00D527B6 /* Tree.mm in Sources */,
-				03659C551DAC8F51003E38E9 /* Castle.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,
 				036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */,
@@ -1473,7 +1449,6 @@
 				03D559D61D53D12D00E567D5 /* Floor.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
-				03659C5B1DAC9351003E38E9 /* Bench.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
@@ -1504,7 +1479,6 @@
 				0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */,
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
-				03659C581DAC8F70003E38E9 /* Fountain.mm in Sources */,
 				03D559D31D53D11900E567D5 /* Rocket.mm in Sources */,
 				03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,

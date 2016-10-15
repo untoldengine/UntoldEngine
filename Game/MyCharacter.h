@@ -28,6 +28,8 @@ public:
     
     U4DEngine::U4DAnimation *anim;
     
+    int replay;
+    
 private:
    
     
