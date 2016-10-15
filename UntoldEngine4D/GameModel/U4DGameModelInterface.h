@@ -18,6 +18,8 @@ class U4DWorld;
 class U4DControllerInterface;
 class U4DEntityManager;
 class U4DTouches;
+class U4DEntity;
+    
 }
 
 namespace U4DEngine {
@@ -28,7 +30,7 @@ public:
     
     U4DWorld *gameWorld;
     U4DControllerInterface *gameController;
-    U4DEntityManager *gameObjectManager;
+    U4DEntityManager *gameEntityManager;
     
     U4DGameModelInterface(){};
     virtual ~U4DGameModelInterface(){};
@@ -39,7 +41,8 @@ public:
     virtual void subscribe(U4DWorld* uGameWorld)=0;
     virtual void subscribe(U4DControllerInterface *uGameController)=0;
     
-    virtual void setGameObjectManager(U4DEntityManager *uGameObjectManager)=0;
+    virtual void setGameEntityManager(U4DEntityManager *uGameEntityManager)=0;
+    
     virtual void setGameWorld(U4DWorld *uGameWorld)=0;
     
     virtual void notify(U4DWorld *uGameWorld)=0;
@@ -47,6 +50,8 @@ public:
     
     virtual void controllerAction(U4DVector3n& uData)=0;
     virtual void controllerAction(std::string uData)=0;
+    
+    virtual U4DEntity* searchChild(std::string uName)=0;
 };
     
 }

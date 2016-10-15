@@ -34,7 +34,7 @@ public:
     void subscribe(U4DWorld* uGameWorld);
     void subscribe(U4DControllerInterface *uGameController);
     
-    void setGameObjectManager(U4DEntityManager *uGameObjectManager);
+    void setGameEntityManager(U4DEntityManager *uGameEntityManager);
     
     void setGameWorld(U4DWorld *uGameWorld);
     
@@ -43,6 +43,8 @@ public:
     
     virtual void controllerAction(U4DVector3n& uData){};
     virtual void controllerAction(std::string uData){};
+    
+    U4DEntity* searchChild(std::string uName);
     
     
 private:

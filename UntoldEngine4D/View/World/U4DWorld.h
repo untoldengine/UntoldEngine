@@ -40,6 +40,7 @@ private:
     
 public:
     U4DEntityManager *entityManager;
+    
     U4DVertexData bodyCoordinates;
     
     //constructor
@@ -59,8 +60,6 @@ public:
     
     void setGameController(U4DControllerInterface* uGameController);
     
-    void setEntityControlledByController(U4DEntity *uEntity);
-    
     void initLoadingModels();
     
     void draw();
@@ -74,7 +73,9 @@ public:
     void endShadowMapPass();
     
     void getShadows();
-
+    
+    U4DEntityManager *getEntityManager();
+    
 };
     
 }

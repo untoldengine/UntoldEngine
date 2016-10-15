@@ -58,7 +58,7 @@ public:
     
     //inline void setGameWorld(U4DWorld *uGameWorld){ gameWorld=uGameWorld;}
     inline void setGameModel(U4DGameModelInterface *uGameModel){gameModel=uGameModel;}
-    void setEntityToControl(U4DEntity *uEntity);
+    
 };
 
 }

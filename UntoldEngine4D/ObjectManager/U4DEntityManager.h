@@ -80,6 +80,8 @@ namespace U4DEngine {
         
         void setRootEntity(U4DVisibleEntity* uRootEntity);
         
+        U4DEntity *searchChild(std::string uName);
+        
     };
     
 }

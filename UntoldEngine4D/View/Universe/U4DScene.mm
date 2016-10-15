@@ -37,9 +37,13 @@ namespace U4DEngine {
         gameModel=uGameModel;
         
         gameWorld->setGameController(gameController);
+        
         gameController->setGameModel(gameModel);
+        
         gameModel->setGameWorld(gameWorld);
         
+        gameModel->setGameEntityManager(gameWorld->getEntityManager());
+    
     }
 
 
