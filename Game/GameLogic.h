@@ -25,5 +25,8 @@ public:
     void update(double dt);
     void init();
     
+    void controllerAction(U4DEngine::U4DVector3n& uData);
+    void controllerAction(std::string uData);
+    
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

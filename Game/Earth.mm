@@ -69,11 +69,6 @@ void Earth::update(double dt){
 
 }
 
-void Earth::action(){
-    
-    setEntityControlledByController(ninja);
-    
-}
 
 
 

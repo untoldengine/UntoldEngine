@@ -34,7 +34,6 @@ public:
     };
     
     void init();
-    void action();
     void update(double dt);
 
 };

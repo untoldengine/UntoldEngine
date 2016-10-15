@@ -10,28 +10,31 @@
 
 namespace U4DEngine {
     
-void U4DGameModel::subscribe(U4DWorld* uGameWorld){
-    
-    gameWorld=uGameWorld;
-}
+    void U4DGameModel::subscribe(U4DWorld* uGameWorld){
+        
+        gameWorld=uGameWorld;
+    }
 
-void U4DGameModel::subscribe(U4DControllerInterface *uGameController){
-    
-    gameController=uGameController;
-}
+    void U4DGameModel::subscribe(U4DControllerInterface *uGameController){
+        
+        gameController=uGameController;
+    }
 
-void U4DGameModel::setGameObjectManager(U4DEntityManager *uGameObjectManager){
-    
-    gameObjectManager=uGameObjectManager;
-}
+    void U4DGameModel::setGameObjectManager(U4DEntityManager *uGameObjectManager){
+        
+        gameObjectManager=uGameObjectManager;
+    }
 
-void U4DGameModel::notify(U4DWorld *uGameWorld){
-    
-    
-}
+    void U4DGameModel::notify(U4DWorld *uGameWorld){
+        
+        
+    }
 
-void U4DGameModel::notify(U4DControllerInterface *uGameController){
-    
-}
+    void U4DGameModel::notify(U4DControllerInterface *uGameController){
+        
+    }
 
+    void U4DGameModel::setGameWorld(U4DWorld *uGameWorld){
+        gameWorld=uGameWorld;
+    }
 }

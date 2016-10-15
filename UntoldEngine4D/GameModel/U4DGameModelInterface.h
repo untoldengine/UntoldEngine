@@ -40,10 +40,13 @@ public:
     virtual void subscribe(U4DControllerInterface *uGameController)=0;
     
     virtual void setGameObjectManager(U4DEntityManager *uGameObjectManager)=0;
+    virtual void setGameWorld(U4DWorld *uGameWorld)=0;
     
     virtual void notify(U4DWorld *uGameWorld)=0;
     virtual void notify(U4DControllerInterface *uGameController)=0;
     
+    virtual void controllerAction(U4DVector3n& uData)=0;
+    virtual void controllerAction(std::string uData)=0;
 };
     
 }

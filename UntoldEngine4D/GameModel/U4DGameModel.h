@@ -24,9 +24,11 @@ class U4DGameModel:public U4DGameModelInterface{
   
 public:
     U4DGameModel(){};
+    
     ~U4DGameModel(){};
     
     virtual void update(double dt){};
+    
     virtual void init(){};
     
     void subscribe(U4DWorld* uGameWorld);
@@ -34,8 +36,14 @@ public:
     
     void setGameObjectManager(U4DEntityManager *uGameObjectManager);
     
+    void setGameWorld(U4DWorld *uGameWorld);
+    
     void notify(U4DWorld *uGameWorld);
     void notify(U4DControllerInterface *uGameController);
+    
+    virtual void controllerAction(U4DVector3n& uData){};
+    virtual void controllerAction(std::string uData){};
+    
     
 private:
     

@@ -13,6 +13,7 @@
 
 void GameLogic::update(double dt){
 
+    
 }
 
 void GameLogic::init(){
@@ -20,3 +21,15 @@ void GameLogic::init(){
     //set my main actor and attach camera to follow it
     
 }
+
+void GameLogic::controllerAction(U4DEngine::U4DVector3n& uData){
+    
+    std::cout<<"I'm moving joystick"<<std::endl;
+    
+}
+
+void GameLogic::controllerAction(std::string uData){
+    
+    std::cout<<"I'm pressing button"<<std::endl;
+}
+
