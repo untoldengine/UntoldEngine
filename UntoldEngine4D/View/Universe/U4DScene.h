@@ -14,6 +14,7 @@
 #include "U4DEntityManager.h"
 #include "U4DWorld.h"
 #include "U4DControllerInterface.h"
+#include "U4DGameModelInterface.h"
 
 namespace U4DEngine {
 class U4DTouches;
@@ -27,6 +28,7 @@ private:
     
     U4DControllerInterface *gameController;
     U4DWorld* gameWorld;
+    U4DGameModelInterface *gameModel;
     
 public:
     

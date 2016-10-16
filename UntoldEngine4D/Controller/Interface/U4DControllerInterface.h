@@ -37,8 +37,6 @@ public:
     //U4DWorld *gameWorld;
     U4DGameModelInterface *gameModel;
     
-    U4DEntity *controlledU4DObject;
-    
     std::vector<U4DButton*> buttonsArray;
     std::vector<U4DJoyStick*> joyStickArray;
     
@@ -64,7 +62,7 @@ public:
     
     virtual inline void setGameWorld(U4DWorld *uGameWorld){}
     virtual inline void setGameModel(U4DGameModelInterface *uGameModel){gameModel=uGameModel;}
-    virtual void setEntityToControl(U4DEntity *uEntity)=0;
+    
 };
 
 }

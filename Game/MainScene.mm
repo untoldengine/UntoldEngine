@@ -23,6 +23,4 @@ void MainScene::init(){
     
     setGameWorldControllerAndModel(earth, control, model);
     
-    earth->action();
-     
 }

@@ -26,10 +26,9 @@ public:
     
     void update(double dt);
     
-    
-    int rotation;
-    int replay;
     U4DEngine::U4DAnimation *anim;
+    
+    int replay;
     
 private:
    

@@ -9,6 +9,7 @@
 #include "GameController.h"
 #include <vector>
 #include "CommonProtocols.h"
+#include "GameLogic.h"
 #include "U4DEntity.h"
 #include "U4DCallback.h"
 #include "U4DButton.h"
@@ -56,36 +57,40 @@ void GameController::action(){
     data.y*=0.1;
     
     U4DEngine::U4DVector3n axisOrientation(0,1,0);
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //camera->rotateBy(-data.x, axisOrientation);
-    controlledU4DObject->rotateBy(-data.x, axisOrientation);
+//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+//    //camera->rotateBy(-data.x, axisOrientation);
+//    controlledU4DObject->rotateBy(-data.x, axisOrientation);
+ 
+    gameModel->controllerAction(data);
 }
 
 void GameController::forward(){
+ 
+//    /*
+//    U4DVector3n moveBy(0,0,0.0);
+//    moveBy=moveBy+controlledU4DObject->viewDirection;
+//    
+//    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
+//    
+//    U4DVector3n pos=controlledU4DObject->getAbsolutePosition();
+//    */
+//    
+//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+//    //camera->translateBy(0.0,0.0,0.2);
+//    controlledU4DObject->translateBy(0.0,0.0,0.2);
     
-    /*
-    U4DVector3n moveBy(0,0,0.0);
-    moveBy=moveBy+controlledU4DObject->viewDirection;
-    
-    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
-    
-    U4DVector3n pos=controlledU4DObject->getAbsolutePosition();
-    */
-    
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //camera->translateBy(0.0,0.0,0.2);
-    controlledU4DObject->translateBy(0.0,0.05,0.0);
+    gameModel->controllerAction("Forward");
 }
 
 void GameController::backward(){
-    /*
-    U4DVector3n moveBy(0,0,0.0);
-    moveBy=moveBy-controlledU4DObject->viewDirection;
-    
-    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
- */
-  U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-   //camera->translateBy(0.0,0.0,-0.2);
-    controlledU4DObject->translateBy(0.0,-0.2,0.0);
+//    /*
+//    U4DVector3n moveBy(0,0,0.0);
+//    moveBy=moveBy-controlledU4DObject->viewDirection;
+//    
+//    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
+// */
+//  U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+//   //camera->translateBy(0.0,0.0,-0.2);
+//    controlledU4DObject->translateBy(0.0,0.0,-0.2);
    
 }

@@ -18,38 +18,14 @@ class MyCharacter;
 class GameController;
 class Rocket;
 class Floor;
-class Mountain;
-class Planet;
-class Meteor;
-class Tree;
-class Cloud;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
-    Rocket *rocket;
+    
+    MyCharacter *ninja;
+    
     Floor *floor;
-    Floor *floor2;
-    Mountain *mountain;
-    Mountain *mountain2;
-    Mountain *mountain3;
-    Mountain *mountain4;
-    Planet *planet;
-    Meteor *meteor1;
-    Meteor *meteor2;
-    Meteor *meteor3;
-    Meteor *meteor4;
-    Meteor *meteor5;
-    Tree *tree1;
-    Tree *tree2;
-    Tree *tree3;
-    Tree *tree4;
-    Cloud *cloud1;
-    Cloud *cloud2;
-    Cloud *cloud3;
-    Cloud *cloud4;
-    Cloud *cloud5;
-    MyCharacter *uemascot;
     
 public:
    
@@ -58,7 +34,6 @@ public:
     };
     
     void init();
-    void action();
     void update(double dt);
 
 };

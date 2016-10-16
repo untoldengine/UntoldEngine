@@ -129,9 +129,5 @@ void U4DTouchesController::draw(){
     
 }
 
-void U4DTouchesController::setEntityToControl(U4DEntity *uEntity){
-    
-    controlledU4DObject=uEntity;
-}
 
 }

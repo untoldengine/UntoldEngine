@@ -223,6 +223,20 @@ namespace U4DEngine {
         
     }
     
+    U4DEntity *U4DEntityManager::searchChild(std::string uName){
+        
+        //set the root entity
+        U4DEntity* child=rootEntity;
+        
+        while (child->getName().compare(uName)!=0) {
+            
+            child=child->next;
+            
+        }
+        
+        return child;
+    }
+    
     
 }
 

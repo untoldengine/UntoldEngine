@@ -38,6 +38,9 @@ namespace U4DEngine {
     
     }
     
+    U4DEntityManager* U4DWorld::getEntityManager(){
+        return entityManager;
+    }
     
     void U4DWorld::draw(){
         
@@ -78,13 +81,6 @@ namespace U4DEngine {
         
         gameController=uGameController;
         
-    }
-
-
-    void U4DWorld::setEntityControlledByController(U4DEntity *uEntity){
-       
-        gameController->setEntityToControl(uEntity);
-
     }
 
     void U4DWorld::enableShadows(){
