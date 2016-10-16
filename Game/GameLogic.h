@@ -12,6 +12,8 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "CommonProtocols.h"
+#include "U4DGameObject.h"
+
 
 namespace U4DEngine {
     class U4DTouches;
@@ -19,6 +21,8 @@ namespace U4DEngine {
 
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
+    U4DEngine::U4DGameObject *ninja;
+    
     GameLogic(){};
     ~GameLogic(){};
     

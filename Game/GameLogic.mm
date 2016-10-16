@@ -18,7 +18,7 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    
+    ninja=dynamic_cast<U4DEngine::U4DGameObject*>(searchChild("ninja"));
 }
 
 void GameLogic::controllerAction(U4DEngine::U4DVector3n& uData){
@@ -30,8 +30,6 @@ void GameLogic::controllerAction(U4DEngine::U4DVector3n& uData){
 void GameLogic::controllerAction(std::string uData){
     
     std::cout<<"I'm pressing button"<<std::endl;
-    
-    U4DEngine::U4DGameObject *ninja=dynamic_cast<U4DEngine::U4DGameObject*>(searchChild("ninja"));
     
     ninja->translateBy(0.0, 0.0, 0.2);
 }
