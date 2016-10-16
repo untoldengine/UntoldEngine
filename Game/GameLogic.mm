@@ -7,8 +7,8 @@
 //
 
 #include "GameLogic.h"
-#include "U4DGameObject.h"
-
+#include "MyCharacter.h"
+#include "UserCommonProtocols.h"
 
 void GameLogic::update(double dt){
 
@@ -18,19 +18,30 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    ninja=dynamic_cast<U4DEngine::U4DGameObject*>(searchChild("ninja"));
+    ninja=dynamic_cast<MyCharacter*>(searchChild("ninja"));
 }
 
-void GameLogic::controllerAction(U4DEngine::U4DVector3n& uData){
-    
-    std::cout<<"I'm moving joystick"<<std::endl;
-    
-}
 
-void GameLogic::controllerAction(std::string uData){
+void GameLogic::controllerAction(void* uControllerAction){
     
-    std::cout<<"I'm pressing button"<<std::endl;
+    ControllerSource source=*static_cast<ControllerSource*>(uControllerAction);
     
-    ninja->translateBy(0.0, 0.0, 0.2);
+    switch (source) {
+        case joystick:
+            std::cout<<"Input from joystick"<<std::endl;
+            break;
+            
+        case buttonA:
+            std::cout<<"Input from Button A"<<std::endl;
+            break;
+            
+        case buttonB:
+            std::cout<<"Input from Button B"<<std::endl;
+            break;
+            
+        default:
+            break;
+    }
+    
 }
 

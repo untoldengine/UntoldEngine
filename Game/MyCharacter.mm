@@ -46,5 +46,20 @@ void MyCharacter::update(double dt){
    
 }
 
+void MyCharacter::changeState(U4DEngine::ENTITYDATASTATE uEntityDataState){
+    
+    if (uEntityDataState.state.compare("Rotate")==0) {
+        
+        U4DEngine::U4DVector3n axisOrientation(0,1,0);
+        rotateBy(-uEntityDataState.data.x, axisOrientation);
+        
+        
+    }else if(uEntityDataState.state.compare("WalkForward")==0){
+        
+        translateBy(0.0, 0.0, 0.2);
+    }
+    
+}
+
 
 

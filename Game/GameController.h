@@ -12,8 +12,7 @@
 #include <iostream>
 #include "U4DTouchesController.h"
 #include "U4DVector3n.h"
-#include "U4DQuaternion.h"
-
+#include "UserCommonProtocols.h"
 
 class GameController:public U4DEngine::U4DTouchesController{
   
@@ -25,6 +24,7 @@ private:
     U4DEngine::U4DButton *myButtonB;
     
     U4DEngine::U4DVector3n data;
+    ControllerSource controllerSource;
     
 public:
     

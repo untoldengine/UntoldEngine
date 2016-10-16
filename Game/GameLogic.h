@@ -12,7 +12,7 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "CommonProtocols.h"
-#include "U4DGameObject.h"
+#include "MyCharacter.h"
 
 
 namespace U4DEngine {
@@ -21,7 +21,7 @@ namespace U4DEngine {
 
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
-    U4DEngine::U4DGameObject *ninja;
+    MyCharacter *ninja;
     
     GameLogic(){};
     ~GameLogic(){};
@@ -29,8 +29,7 @@ public:
     void update(double dt);
     void init();
     
-    void controllerAction(U4DEngine::U4DVector3n& uData);
-    void controllerAction(std::string uData);
+    void controllerAction(void* uControllerAction);
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */
