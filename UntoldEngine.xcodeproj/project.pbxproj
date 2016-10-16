@@ -264,6 +264,7 @@
 		03659C5F1DACB1AD003E38E9 /* characterscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = characterscript.u4d; path = Game/characterscript.u4d; sourceTree = SOURCE_ROOT; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
+		036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserCommonProtocols.h; sourceTree = "<group>"; };
 		036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModelInterface.mm; sourceTree = "<group>"; };
 		036C244B176790F100ADC1A6 /* U4DGameModelInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DGameModelInterface.h; sourceTree = "<group>"; };
 		036C244D176798D700ADC1A6 /* U4DGameModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModel.mm; sourceTree = "<group>"; };
@@ -630,6 +631,7 @@
 				03D559D11D53D11900E567D5 /* Rocket.mm */,
 				03D559D51D53D12D00E567D5 /* Floor.h */,
 				03D559D41D53D12D00E567D5 /* Floor.mm */,
+				036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */,
 			);
 			path = Game;
 			sourceTree = "<group>";

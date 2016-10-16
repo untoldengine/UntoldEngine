@@ -41,8 +41,7 @@ public:
     void notify(U4DWorld *uGameWorld);
     void notify(U4DControllerInterface *uGameController);
     
-    virtual void controllerAction(U4DVector3n& uData){};
-    virtual void controllerAction(std::string uData){};
+    virtual void controllerAction(void* uControllerAction){};
     
     U4DEntity* searchChild(std::string uName);
     

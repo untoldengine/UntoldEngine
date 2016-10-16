@@ -7,7 +7,7 @@
 //
 
 #include "MyCharacter.h"
-#include "CommonProtocols.h"
+#include "UserCommonProtocols.h"
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
@@ -44,6 +44,32 @@ void MyCharacter::update(double dt){
     }
     
    
+}
+
+void MyCharacter::changeState(void* uState){
+    
+    kGameEntityState state=*static_cast<kGameEntityState*>(uState);
+    
+    switch (state) {
+        case kRotating:
+            std::cout<<"Rotating"<<std::endl;
+            
+            break;
+            
+        case kWalking:
+            std::cout<<"Walking"<<std::endl;
+            
+            break;
+            
+        case kJumping:
+            std::cout<<"Jumping"<<std::endl;
+            
+            break;
+            
+        default:
+            break;
+    }
+    
 }
 
 

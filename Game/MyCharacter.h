@@ -12,6 +12,7 @@
 #include <iostream>
 #include <string>
 #include "U4DGameObject.h"
+#include "CommonProtocols.h"
 
 
 class MyCharacter:public U4DEngine::U4DGameObject{
@@ -25,6 +26,8 @@ public:
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
+    
+    void changeState(void* uState);
     
     U4DEngine::U4DAnimation *anim;
     
