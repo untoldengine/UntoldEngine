@@ -15,5 +15,13 @@ typedef enum{
     buttonB
 }ControllerSource;
 
+typedef enum{
+    
+    kWalking,
+    kRotating,
+    kJumping
+    
+}kGameEntityState;
+
 
 #endif /* UserCommonProtocols_h */

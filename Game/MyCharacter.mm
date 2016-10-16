@@ -7,7 +7,7 @@
 //
 
 #include "MyCharacter.h"
-#include "CommonProtocols.h"
+#include "UserCommonProtocols.h"
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
@@ -46,17 +46,28 @@ void MyCharacter::update(double dt){
    
 }
 
-void MyCharacter::changeState(U4DEngine::ENTITYDATASTATE uEntityDataState){
+void MyCharacter::changeState(void* uState){
     
-    if (uEntityDataState.state.compare("Rotate")==0) {
-        
-        U4DEngine::U4DVector3n axisOrientation(0,1,0);
-        rotateBy(-uEntityDataState.data.x, axisOrientation);
-        
-        
-    }else if(uEntityDataState.state.compare("WalkForward")==0){
-        
-        translateBy(0.0, 0.0, 0.2);
+    kGameEntityState state=*static_cast<kGameEntityState*>(uState);
+    
+    switch (state) {
+        case kRotating:
+            std::cout<<"Rotating"<<std::endl;
+            
+            break;
+            
+        case kWalking:
+            std::cout<<"Walking"<<std::endl;
+            
+            break;
+            
+        case kJumping:
+            std::cout<<"Jumping"<<std::endl;
+            
+            break;
+            
+        default:
+            break;
     }
     
 }

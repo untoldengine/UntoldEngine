@@ -539,19 +539,6 @@ namespace U4DEngine {
         
     }INERTIATENSORTYPE;
     
-    /**
-     @todo document this
-     */
-    typedef struct{
-        
-        std::string dataSource;  //joystick or button
-        
-        U4DVector3n data;
-        
-        std::string state;
-        
-    }ENTITYDATASTATE;
-
 }
 
 

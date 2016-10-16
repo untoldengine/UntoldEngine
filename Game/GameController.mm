@@ -64,39 +64,19 @@ void GameController::action(){
     
     controllerSource=joystick;
     gameModel->controllerAction(&controllerSource);
+
 }
 
 void GameController::forward(){
  
-//    /*
-//    U4DVector3n moveBy(0,0,0.0);
-//    moveBy=moveBy+controlledU4DObject->viewDirection;
-//    
-//    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
-//    
-//    U4DVector3n pos=controlledU4DObject->getAbsolutePosition();
-//    */
-//    
-//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-//    //camera->translateBy(0.0,0.0,0.2);
-//    controlledU4DObject->translateBy(0.0,0.0,0.2);
-    
-    
     controllerSource=buttonA;
     gameModel->controllerAction(&controllerSource);
 
 }
 
 void GameController::backward(){
-//    /*
-//    U4DVector3n moveBy(0,0,0.0);
-//    moveBy=moveBy-controlledU4DObject->viewDirection;
-//    
-//    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
-// */
-//  U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-//   //camera->translateBy(0.0,0.0,-0.2);
-//    controlledU4DObject->translateBy(0.0,0.0,-0.2);
+
     controllerSource=buttonB;
     gameModel->controllerAction(&controllerSource);
+
 }

@@ -11,7 +11,7 @@
 
 #include <iostream>
 #include "U4DGameModel.h"
-#include "CommonProtocols.h"
+#include "UserCommonProtocols.h"
 #include "MyCharacter.h"
 
 
@@ -22,6 +22,7 @@ namespace U4DEngine {
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
     MyCharacter *ninja;
+    kGameEntityState gameEntityState;
     
     GameLogic(){};
     ~GameLogic(){};

@@ -27,7 +27,7 @@ public:
     
     void update(double dt);
     
-    void changeState(U4DEngine::ENTITYDATASTATE uEntityDataState);
+    void changeState(void* uState);
     
     U4DEngine::U4DAnimation *anim;
     

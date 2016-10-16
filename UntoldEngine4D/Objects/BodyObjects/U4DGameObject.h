@@ -80,7 +80,7 @@ namespace U4DEngine {
         /**
          @todo Document this
          */
-        virtual void changeState(ENTITYDATASTATE uEntityDataState){};
+        virtual void changeState(void* uState){};
         
     };
 
