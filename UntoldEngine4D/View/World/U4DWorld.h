@@ -24,6 +24,7 @@ namespace U4DEngine {
     
     class U4DEntity;
     class U4DControllerInterface;
+    class U4DGameModelInterface;
     class U4DEntityManager;
     class U4DLights;
 }
@@ -35,6 +36,8 @@ class U4DWorld:public U4DVisibleEntity{
 private:
     
     U4DControllerInterface *gameController;
+    
+    U4DGameModelInterface *gameModel;
     
     bool shadowsEnabled;
     
@@ -59,6 +62,12 @@ public:
     void update(double dt){};
     
     void setGameController(U4DControllerInterface* uGameController);
+    
+    void setGameModel(U4DGameModelInterface *uGameModel);
+    
+    U4DControllerInterface* getGameController();
+    
+    U4DGameModelInterface* getGameModel();
     
     void initLoadingModels();
     

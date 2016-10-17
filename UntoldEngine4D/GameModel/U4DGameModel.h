@@ -22,6 +22,12 @@ namespace U4DEngine {
     
 class U4DGameModel:public U4DGameModelInterface{
   
+private:
+    
+    U4DWorld *gameWorld;
+    U4DControllerInterface *gameController;
+    U4DEntityManager *gameEntityManager;
+
 public:
     U4DGameModel(){};
     
@@ -31,12 +37,14 @@ public:
     
     virtual void init(){};
     
-    void subscribe(U4DWorld* uGameWorld);
-    void subscribe(U4DControllerInterface *uGameController);
-    
     void setGameEntityManager(U4DEntityManager *uGameEntityManager);
     
     void setGameWorld(U4DWorld *uGameWorld);
+    void setGameController(U4DControllerInterface *uGameController);
+    
+    U4DWorld* getGameWorld();
+    U4DControllerInterface* getGameController();
+    U4DEntityManager* getGameEntityManager();
     
     void notify(U4DWorld *uGameWorld);
     void notify(U4DControllerInterface *uGameController);
@@ -44,9 +52,6 @@ public:
     virtual void controllerAction(void* uControllerAction){};
     
     U4DEntity* searchChild(std::string uName);
-    
-    
-private:
     
 };
     

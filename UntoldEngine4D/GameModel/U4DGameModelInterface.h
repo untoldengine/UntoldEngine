@@ -25,25 +25,23 @@ class U4DEntity;
 namespace U4DEngine {
     
 class U4DGameModelInterface{
-  
+    
 public:
-    
-    U4DWorld *gameWorld;
-    U4DControllerInterface *gameController;
-    U4DEntityManager *gameEntityManager;
-    
+
     U4DGameModelInterface(){};
     virtual ~U4DGameModelInterface(){};
     
     virtual void update(double dt)=0;
     virtual void init()=0;
-    
-    virtual void subscribe(U4DWorld* uGameWorld)=0;
-    virtual void subscribe(U4DControllerInterface *uGameController)=0;
-    
+        
     virtual void setGameEntityManager(U4DEntityManager *uGameEntityManager)=0;
     
     virtual void setGameWorld(U4DWorld *uGameWorld)=0;
+    virtual void setGameController(U4DControllerInterface *uGameController)=0;
+    
+    virtual U4DWorld* getGameWorld()=0;
+    virtual U4DControllerInterface* getGameController()=0;
+    virtual U4DEntityManager* getGameEntityManager()=0;
     
     virtual void notify(U4DWorld *uGameWorld)=0;
     virtual void notify(U4DControllerInterface *uGameController)=0;

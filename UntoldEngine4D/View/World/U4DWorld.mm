@@ -8,6 +8,7 @@
 
 #include "U4DWorld.h"
 #include "U4DControllerInterface.h"
+#include "U4DGameModelInterface.h"
 #include "U4DEntityManager.h"
 #include "CommonProtocols.h"
 
@@ -81,6 +82,22 @@ namespace U4DEngine {
         
         gameController=uGameController;
         
+    }
+    
+    void U4DWorld::setGameModel(U4DGameModelInterface *uGameModel){
+        
+        gameModel=uGameModel;
+        
+    }
+    
+    U4DControllerInterface* U4DWorld::getGameController(){
+        
+        return gameController;
+    }
+    
+    U4DGameModelInterface* U4DWorld::getGameModel(){
+        
+        return gameModel;
     }
 
     void U4DWorld::enableShadows(){

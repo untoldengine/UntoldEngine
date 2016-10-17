@@ -32,6 +32,9 @@ class U4DTouchesController:public U4DControllerInterface{
   
 private:
     
+    U4DWorld *gameWorld;
+    U4DGameModelInterface *gameModel;
+    
 public:
     //constructor
     U4DTouchesController(){};
@@ -56,8 +59,11 @@ public:
     void draw();
     void update(float dt);
     
-    //inline void setGameWorld(U4DWorld *uGameWorld){ gameWorld=uGameWorld;}
-    inline void setGameModel(U4DGameModelInterface *uGameModel){gameModel=uGameModel;}
+    void setGameWorld(U4DWorld *uGameWorld);
+    void setGameModel(U4DGameModelInterface *uGameModel);
+    
+    U4DWorld* getGameWorld();
+    U4DGameModelInterface* getGameModel();
     
 };
 

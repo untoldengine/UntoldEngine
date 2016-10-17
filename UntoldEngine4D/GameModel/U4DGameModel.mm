@@ -11,16 +11,6 @@
 #include "U4DEntityManager.h"
 
 namespace U4DEngine {
-    
-    void U4DGameModel::subscribe(U4DWorld* uGameWorld){
-        
-        gameWorld=uGameWorld;
-    }
-
-    void U4DGameModel::subscribe(U4DControllerInterface *uGameController){
-        
-        gameController=uGameController;
-    }
 
     void U4DGameModel::setGameEntityManager(U4DEntityManager *uGameEntityManager){
         
@@ -40,8 +30,29 @@ namespace U4DEngine {
         gameWorld=uGameWorld;
     }
     
+    void U4DGameModel::setGameController(U4DControllerInterface *uGameController){
+        gameController=uGameController;
+    }
+    
     U4DEntity* U4DGameModel::searchChild(std::string uName){
         
         return gameEntityManager->searchChild(uName);
     }
+    
+    U4DWorld* U4DGameModel::getGameWorld(){
+        
+        return gameWorld;
+    }
+    
+    U4DControllerInterface* U4DGameModel::getGameController(){
+        
+        return gameController;
+    }
+    
+    U4DEntityManager* U4DGameModel::getGameEntityManager(){
+        
+        return gameEntityManager;
+    
+    }
+    
 }

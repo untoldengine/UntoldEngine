@@ -63,20 +63,20 @@ void GameController::action(){
 
     
     controllerSource=joystick;
-    gameModel->controllerAction(&controllerSource);
+    getGameModel()->controllerAction(&controllerSource);
 
 }
 
 void GameController::forward(){
  
     controllerSource=buttonA;
-    gameModel->controllerAction(&controllerSource);
+    getGameModel()->controllerAction(&controllerSource);
 
 }
 
 void GameController::backward(){
 
     controllerSource=buttonB;
-    gameModel->controllerAction(&controllerSource);
+    getGameModel()->controllerAction(&controllerSource);
 
 }
