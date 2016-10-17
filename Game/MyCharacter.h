@@ -17,6 +17,10 @@
 
 class MyCharacter:public U4DEngine::U4DGameObject{
 
+private:
+    
+    U4DEngine::U4DVector3n joyStickData;
+    
 public:
     
     MyCharacter(){};
@@ -33,8 +37,7 @@ public:
     
     int replay;
     
-private:
-   
+    inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     
 };
 

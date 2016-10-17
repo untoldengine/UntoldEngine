@@ -52,8 +52,13 @@ void MyCharacter::changeState(void* uState){
     
     switch (state) {
         case kRotating:
-            std::cout<<"Rotating"<<std::endl;
             
+            std::cout<<"Rotating"<<std::endl;
+            {
+            U4DEngine::U4DVector3n axisOrientation(0,1,0);
+            
+            rotateBy(joyStickData.x, axisOrientation);
+            }
             break;
             
         case kWalking:

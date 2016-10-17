@@ -65,6 +65,8 @@ public:
     U4DWorld* getGameWorld();
     U4DGameModelInterface* getGameModel();
     
+    U4DVector3n getJoyStickData(std::string uName);
+    
 };
 
 }

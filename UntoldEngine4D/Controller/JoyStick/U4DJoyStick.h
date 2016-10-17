@@ -51,8 +51,10 @@ public:
     U4DImage backgroundImage;
     U4DImage joyStickImage;
     
-    U4DJoyStick(float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction):joyStickState(rTouchesNull){
+    U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction):joyStickState(rTouchesNull){
     
+        
+        setName(uName);
         
         joyStickWidth=uJoyStickWidth;
         joyStickHeight=uJoyStickHeight;
@@ -121,6 +123,7 @@ public:
     
     inline void setDataMagnitude(float uValue){dataMagnitude=uValue;};
     inline float getDataMagnitude(){return dataMagnitude;};
+    
 };
 
 }

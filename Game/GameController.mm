@@ -23,7 +23,7 @@ void GameController::init(){
     
     action3Callback->scheduleClassWithMethod(this, &GameController::action);
     
-    joyStick=new U4DEngine::U4DJoyStick(-0.5,-0.5,"joyStickBackground.png",124,124,"joystickDriver.png",76,76,action3Callback);
+    joyStick=new U4DEngine::U4DJoyStick("myJoystick", -0.5,-0.5,"joyStickBackground.png",124,124,"joystickDriver.png",76,76,action3Callback);
     
     add(joyStick);
 
@@ -50,18 +50,7 @@ void GameController::init(){
 
 
 void GameController::action(){
-    
-    data+=joyStick->getDataPosition();
-    
-    data.x*=0.5;
-    data.y*=0.1;
-    
-    U4DEngine::U4DVector3n axisOrientation(0,1,0);
-//    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-//    //camera->rotateBy(-data.x, axisOrientation);
-//    controlledU4DObject->rotateBy(-data.x, axisOrientation);
 
-    
     controllerSource=joystick;
     getGameModel()->controllerAction(&controllerSource);
 
