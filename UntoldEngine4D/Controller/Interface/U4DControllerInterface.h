@@ -33,10 +33,7 @@ private:
     
     
 public:
-    
-    //U4DWorld *gameWorld;
-    U4DGameModelInterface *gameModel;
-    
+
     std::vector<U4DButton*> buttonsArray;
     std::vector<U4DJoyStick*> joyStickArray;
     
@@ -60,8 +57,11 @@ public:
     virtual void update(float dt)=0;
     virtual void init()=0;
     
-    virtual inline void setGameWorld(U4DWorld *uGameWorld){}
-    virtual inline void setGameModel(U4DGameModelInterface *uGameModel){gameModel=uGameModel;}
+    virtual void setGameWorld(U4DWorld *uGameWorld)=0;
+    virtual void setGameModel(U4DGameModelInterface *uGameModel)=0;
+    
+    virtual U4DWorld* getGameWorld()=0;
+    virtual U4DGameModelInterface* getGameModel()=0;
     
 };
 

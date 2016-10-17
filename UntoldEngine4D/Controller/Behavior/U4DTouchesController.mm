@@ -15,6 +15,31 @@
 
 namespace U4DEngine {
     
+    
+void U4DTouchesController::setGameWorld(U4DWorld *uGameWorld){
+    
+    gameWorld=uGameWorld;
+
+}
+
+
+void U4DTouchesController::setGameModel(U4DGameModelInterface *uGameModel){
+    
+    gameModel=uGameModel;
+
+}
+    
+U4DWorld* U4DTouchesController::getGameWorld(){
+
+    return gameWorld;
+}
+
+U4DGameModelInterface* U4DTouchesController::getGameModel(){
+    
+    return gameModel;
+}
+    
+    
 void U4DTouchesController::touchBegan(const U4DTouches &touches){
     
     changeState(touches, rTouchesBegan);
