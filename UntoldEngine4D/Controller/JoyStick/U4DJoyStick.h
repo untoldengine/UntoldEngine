@@ -51,68 +51,25 @@ public:
     U4DImage backgroundImage;
     U4DImage joyStickImage;
     
-    U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction):joyStickState(rTouchesNull){
+    U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction);
     
-        
-        setName(uName);
-        
-        joyStickWidth=uJoyStickWidth;
-        joyStickHeight=uJoyStickHeight;
-        
-        //copy the width and height of the image to the button
-        backgroundWidth=uBackgroundWidth;
-        backgroundHeight=uBackgroundHeight;
-        
-        
-        backgroundImage.setImage(uBackGroundImage,uBackgroundWidth,uBackgroundHeight);
-        
-        
-        U4DVector3n translation(xPosition,yPosition,0.0);
-        translateTo(translation);     //move the joyStick
-        
-        
-        backgroundImage.translateTo(translation);  //move the image
-        
-        //add the joy stick
-        joyStickImage.setImage(uJoyStickImage,uJoyStickWidth,uJoyStickHeight);
-        joyStickImage.translateTo(translation);
-        
-        
-        //set the callback
-        pCallback=uAction;
-        
-        //get the original center position of the joystick
-        originalPosition=getLocalPosition();
-        
-        
-        //get the coordinates of the box
-        centerBackgroundPosition=backgroundImage.getLocalPosition();
-        centerImagePosition=getLocalPosition();
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        backgroundImageRadius=getJoyStickBackgroundWidth()/director->getDisplayWidth();;
-        joyStickImageRadius=getJoyStickWidth()/director->getDisplayWidth();
-        
-
-    };
-    
-    ~U4DJoyStick(){};
+    ~U4DJoyStick();
     
     void draw();
     void update(float dt);
     void action();
     
-    inline void setJoyStickWidth(float uJoyStickWidth){ joyStickWidth=uJoyStickWidth;};
-    inline void setJoyStickHeight(float uJoyStickHeight){joyStickHeight=uJoyStickHeight;};
-    inline float getJoyStickWidth(){return joyStickWidth;};
-    inline float getJoyStickHeight(){return joyStickHeight;};
+    void setJoyStickWidth(float uJoyStickWidth);
+    void setJoyStickHeight(float uJoyStickHeight);
+    float getJoyStickWidth();
+    float getJoyStickHeight();
     
     
-    void setJoyStickBackgroundWidth(float uJoyStickBackgroundWidth){backgroundWidth=uJoyStickBackgroundWidth;};
-    void setJoyStickBackgroundHeight(float uJoyStickBackgroundHeight){backgroundHeight=uJoyStickBackgroundHeight;};
-    inline float getJoyStickBackgroundWidth(){return backgroundWidth;};
-    inline float getJoyStickBackgroundHeight(){return backgroundHeight;};
+    void setJoyStickBackgroundWidth(float uJoyStickBackgroundWidth);
+    void setJoyStickBackgroundHeight(float uJoyStickBackgroundHeight);
+    
+    float getJoyStickBackgroundWidth();
+    float getJoyStickBackgroundHeight();
     
     void changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition);
     void changeState(TOUCHSTATE uTouchState);
@@ -121,8 +78,8 @@ public:
     void setDataPosition(U4DVector3n uData);
     U4DVector3n getDataPosition();
     
-    inline void setDataMagnitude(float uValue){dataMagnitude=uValue;};
-    inline float getDataMagnitude(){return dataMagnitude;};
+    void setDataMagnitude(float uValue);
+    float getDataMagnitude();
     
 };
 
