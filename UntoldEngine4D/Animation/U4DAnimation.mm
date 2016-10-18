@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
     
-U4DAnimation::U4DAnimation(U4DModel *uModel){
+U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false){
     
     u4dModel=uModel;
     
@@ -49,11 +49,17 @@ void U4DAnimation::start(){
     
     if (animationsContainer.size()>0) {
         
-        //set interpolation time to zero
-        interpolationTime=0.0;
+        if (animationPlaying==false) {
+            logger->log("Playing");
+            //set interpolation time to zero
+            interpolationTime=0.0;
+            
+            animationPlaying=true;
+            
+            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,(1/fps), true);
+            
+        }
         
-        scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,(1/fps), true);
-
     }else{
         logger->log("Error: The animation %s could not be started because it has no keyframes",name.c_str());
     }
@@ -62,9 +68,23 @@ void U4DAnimation::start(){
 
 void U4DAnimation::stop(){
     
+    animationPlaying=false;
     timer->setRepeat(false);
+    timer->timerExpire();
+    
+}
+    
+void U4DAnimation::pause(){
+
+    animationPlaying=false;
+    timer->setRepeat(false);
+
 }
 
+bool U4DAnimation::isAnimationPlaying(){
+
+    return animationPlaying;
+}
 
 void U4DAnimation::runAnimation(){
     

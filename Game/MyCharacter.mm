@@ -50,10 +50,11 @@ void MyCharacter::changeState(void* uState){
     
     kGameEntityState state=*static_cast<kGameEntityState*>(uState);
     
+    stopAllAnimations();
+    
     switch (state) {
         case kRotating:
             
-            std::cout<<"Rotating"<<std::endl;
             {
             U4DEngine::U4DVector3n axisOrientation(0,1,0);
             
@@ -62,17 +63,24 @@ void MyCharacter::changeState(void* uState){
             break;
             
         case kWalking:
-            std::cout<<"Walking"<<std::endl;
+            
+            setAnimation(anim);
             
             break;
             
         case kJumping:
-            std::cout<<"Jumping"<<std::endl;
             
             break;
             
         default:
+            
             break;
+    }
+    
+    if (getAnimation()!=NULL) {
+        
+        playAnimation();
+        
     }
     
 }

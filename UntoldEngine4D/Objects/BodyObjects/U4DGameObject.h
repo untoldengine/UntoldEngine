@@ -26,6 +26,7 @@ namespace U4DEngine {
         
     private:
         
+        U4DAnimation* currentAnimation;
            
     public:
         
@@ -81,6 +82,31 @@ namespace U4DEngine {
          @todo Document this
          */
         virtual void changeState(void* uState){};
+        
+        /**
+         @todo documetn this
+         */
+        void setAnimation(U4DAnimation* uAnimation);
+        
+        /**
+         @todo document this
+         */
+        void pauseAnimation();
+        
+        /**
+         @todo document this
+         */
+        void playAnimation();
+        
+        /**
+         @todo document this
+         */
+        U4DAnimation* getAnimation();
+        
+        /**
+         @todo document this
+         */
+        void stopAllAnimations();
         
     };
 
