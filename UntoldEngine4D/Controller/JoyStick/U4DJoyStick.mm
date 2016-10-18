@@ -12,6 +12,117 @@
 
 namespace U4DEngine {
     
+    
+U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction):joyStickState(rTouchesNull){
+    
+    
+    setName(uName);
+    
+    joyStickWidth=uJoyStickWidth;
+    joyStickHeight=uJoyStickHeight;
+    
+    //copy the width and height of the image to the button
+    backgroundWidth=uBackgroundWidth;
+    backgroundHeight=uBackgroundHeight;
+    
+    
+    backgroundImage.setImage(uBackGroundImage,uBackgroundWidth,uBackgroundHeight);
+    
+    
+    U4DVector3n translation(xPosition,yPosition,0.0);
+    translateTo(translation);     //move the joyStick
+    
+    
+    backgroundImage.translateTo(translation);  //move the image
+    
+    //add the joy stick
+    joyStickImage.setImage(uJoyStickImage,uJoyStickWidth,uJoyStickHeight);
+    joyStickImage.translateTo(translation);
+    
+    
+    //set the callback
+    pCallback=uAction;
+    
+    //get the original center position of the joystick
+    originalPosition=getLocalPosition();
+    
+    
+    //get the coordinates of the box
+    centerBackgroundPosition=backgroundImage.getLocalPosition();
+    centerImagePosition=getLocalPosition();
+    
+    U4DDirector *director=U4DDirector::sharedInstance();
+    
+    backgroundImageRadius=getJoyStickBackgroundWidth()/director->getDisplayWidth();;
+    joyStickImageRadius=getJoyStickWidth()/director->getDisplayWidth();
+    
+    
+}
+    
+U4DJoyStick::~U4DJoyStick(){
+
+}
+    
+void U4DJoyStick::setJoyStickBackgroundWidth(float uJoyStickBackgroundWidth){
+    
+    backgroundWidth=uJoyStickBackgroundWidth;
+
+}
+
+void U4DJoyStick::setJoyStickBackgroundHeight(float uJoyStickBackgroundHeight){
+    
+    backgroundHeight=uJoyStickBackgroundHeight;
+
+}
+    
+void U4DJoyStick::setJoyStickWidth(float uJoyStickWidth){
+    
+    joyStickWidth=uJoyStickWidth;
+
+}
+
+void U4DJoyStick::setJoyStickHeight(float uJoyStickHeight){
+    
+    joyStickHeight=uJoyStickHeight;
+
+}
+
+float U4DJoyStick::getJoyStickWidth(){
+    
+    return joyStickWidth;
+
+}
+
+float U4DJoyStick::getJoyStickHeight(){
+    
+    return joyStickHeight;
+
+}
+
+float U4DJoyStick::getJoyStickBackgroundWidth(){
+    
+    return backgroundWidth;
+
+}
+
+float U4DJoyStick::getJoyStickBackgroundHeight(){
+    
+    return backgroundHeight;
+
+}
+
+void U4DJoyStick::setDataMagnitude(float uValue){
+    
+    dataMagnitude=uValue;
+
+}
+
+float U4DJoyStick::getDataMagnitude(){
+    
+    return dataMagnitude;
+
+}
+    
 void U4DJoyStick::draw(){
     
     backgroundImage.draw();
