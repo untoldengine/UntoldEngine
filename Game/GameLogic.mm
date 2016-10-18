@@ -9,6 +9,7 @@
 #include "GameLogic.h"
 #include "MyCharacter.h"
 #include "UserCommonProtocols.h"
+#include "U4DControllerInterface.h"
 
 void GameLogic::update(double dt){
 
@@ -26,11 +27,14 @@ void GameLogic::controllerAction(void* uControllerAction){
     
     ControllerSource source=*static_cast<ControllerSource*>(uControllerAction);
     
+    U4DEngine::U4DVector3n joystickData=getGameController()->getJoyStickData("myJoystick");
+    
     switch (source) {
         case joystick:
             std::cout<<"Input from joystick"<<std::endl;
-            
             gameEntityState=kRotating;
+            
+            ninja->setJoystickData(joystickData);
             ninja->changeState(&gameEntityState);
             
             break;

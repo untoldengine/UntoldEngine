@@ -24,6 +24,7 @@ public:
     MyCharacter *ninja;
     kGameEntityState gameEntityState;
     
+    
     GameLogic(){};
     ~GameLogic(){};
     
