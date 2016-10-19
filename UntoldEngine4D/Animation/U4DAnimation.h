@@ -41,6 +41,11 @@ private:
      */
     U4DTimer *timer;
     
+    /**
+     @todo document this
+     */
+    bool animationPlaying;
+    
 public:
 
     /**
@@ -110,10 +115,19 @@ public:
     void stop();
     
     /**
+     @todo document this
+     */
+    void pause();
+    
+    /**
      @brief Method which runs the 3D animation
      */
     void runAnimation();
     
+    /**
+     @todo document this
+     */
+    bool isAnimationPlaying();
     
 };
 

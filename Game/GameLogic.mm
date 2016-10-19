@@ -31,7 +31,7 @@ void GameLogic::controllerAction(void* uControllerAction){
     
     switch (source) {
         case joystick:
-            std::cout<<"Input from joystick"<<std::endl;
+        
             gameEntityState=kRotating;
             
             ninja->setJoystickData(joystickData);
@@ -40,16 +40,14 @@ void GameLogic::controllerAction(void* uControllerAction){
             break;
             
         case buttonA:
-            std::cout<<"Input from Button A"<<std::endl;
-           
+            
             gameEntityState=kWalking;
             ninja->changeState(&gameEntityState);
             
             break;
             
         case buttonB:
-            std::cout<<"Input from Button B"<<std::endl;
-           
+
             gameEntityState=kJumping;
             ninja->changeState(&gameEntityState);
             break;

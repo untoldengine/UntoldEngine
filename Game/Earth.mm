@@ -33,7 +33,7 @@ using namespace U4DEngine;
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 1.0, 6.0);
+    camera->translateBy(0.0, 2.0, 10.0);
     //camera->rotateTo(0.0,-20.0,0.0);
    
     //create character
@@ -64,7 +64,7 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->followModel(ninja, 0.0, 1.0, 2.0);
+    camera->followModel(ninja, 0.0, 2.0, 6.0);
     
 
 }

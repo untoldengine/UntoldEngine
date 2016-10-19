@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DGameObject::U4DGameObject(){
+    U4DGameObject::U4DGameObject():currentAnimation(NULL){
         
 
     
@@ -54,6 +54,49 @@ namespace U4DEngine {
         }
         
         return false;
+    }
+    
+    
+    void U4DGameObject::setAnimation(U4DAnimation* uAnimation){
+        
+        currentAnimation=uAnimation;
+    }
+    
+    void U4DGameObject::pauseAnimation(){
+        
+        if (currentAnimation!=NULL) {
+           
+            currentAnimation->pause();
+            
+        }
+        
+    }
+    
+    void U4DGameObject::stopAllAnimations(){
+        
+        if (currentAnimation!=NULL) {
+            currentAnimation->stop();
+        }
+        
+        currentAnimation=NULL;
+    }
+    
+    void U4DGameObject::playAnimation(){
+        
+        if (currentAnimation!=NULL) {
+            
+            if (currentAnimation->isAnimationPlaying()==false) {
+                
+                currentAnimation->start();
+            }
+
+        }
+        
+    }
+
+    U4DAnimation* U4DGameObject::getAnimation(){
+        
+        return currentAnimation;
     }
     
 }
