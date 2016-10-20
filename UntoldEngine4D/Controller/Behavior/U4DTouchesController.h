@@ -34,10 +34,11 @@ private:
     
     U4DWorld *gameWorld;
     U4DGameModelInterface *gameModel;
+    bool receivedAction;
     
 public:
     //constructor
-    U4DTouchesController(){};
+    U4DTouchesController():receivedAction(false){};
     
     //destructor
     ~U4DTouchesController(){};
@@ -67,6 +68,9 @@ public:
     
     U4DVector3n getJoyStickData(std::string uName);
     
+    void sendTouchUpdateToModel();
+    
+    void setReceivedAction(bool uValue);
 };
 
 }

@@ -33,5 +33,6 @@ public:
     
     void controllerAction(void* uControllerAction);
     
+    void receiveTouchUpdate();
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

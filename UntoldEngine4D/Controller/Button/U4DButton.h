@@ -20,6 +20,7 @@
 
 namespace U4DEngine {
 class U4DImage;
+class U4DControllerInterface;
 }
 
 namespace U4DEngine {
@@ -30,11 +31,14 @@ private:
     TOUCHSTATE buttonState;
     TOUCHSTATE buttonActionOn;
     U4DCallbackInterface *pCallback;
+    U4DControllerInterface *controllerInterface;
     
     float left,right,bottom,top;
     U4DVector3n centerPosition;
     
     U4DMultiImage buttonImages;
+    
+    bool isActive;
 
 public:
     
@@ -50,6 +54,10 @@ public:
     void changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition);
     void changeState(TOUCHSTATE uTouchState);
     TOUCHSTATE getState();
+    
+    bool getIsActive();
+    
+    void setControllerInterface(U4DControllerInterface* uControllerInterface);
 };
 
 }

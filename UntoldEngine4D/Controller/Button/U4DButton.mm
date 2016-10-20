@@ -10,10 +10,11 @@
 #include "U4DVector2n.h"
 #include "U4DTouches.h"
 #include "U4DDirector.h"
+#include "U4DControllerInterface.h"
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2,U4DCallbackInterface *uAction,TOUCHSTATE uButtonActionOn):buttonState(rTouchesNull){
+U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2,U4DCallbackInterface *uAction,TOUCHSTATE uButtonActionOn):buttonState(rTouchesNull),isActive(false),controllerInterface(NULL){
     
     buttonImages.setImages(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
@@ -51,10 +52,25 @@ void U4DButton::draw(){
 
 void U4DButton::update(float dt){
     
-    if (getState()==getButtonActionOn()) {
+    if (getState()!=rTouchesNull) {
+        
+        if (getState()==rTouchesBegan || getState()==rTouchesMoved) {
+            
+            isActive=true;
+        
+        }else{
+            
+            isActive=false;
+        
+        }
         
         action();
         
+        if (controllerInterface !=NULL) {
+            controllerInterface->setReceivedAction(true);
+        }
+        
+        buttonState=rTouchesNull;
     }
     
 }
@@ -106,5 +122,16 @@ TOUCHSTATE U4DButton::getButtonActionOn(){
     
     return buttonActionOn;
 }
+    
+bool U4DButton::getIsActive(){
+
+    return isActive;
+}
+    
+void U4DButton::setControllerInterface(U4DControllerInterface* uControllerInterface){
+
+    controllerInterface=uControllerInterface;
+}
+    
 
 }

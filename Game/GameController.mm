@@ -33,6 +33,9 @@ void GameController::init(){
     action2Callback->scheduleClassWithMethod(this, &GameController::forward);
     
     myButton=new U4DEngine::U4DButton(0.5,-0.5,102,102,"ButtonA.png","ButtonAPressed.png",action2Callback,U4DEngine::rTouchesBegan);
+    
+    myButton->setControllerInterface(this);
+    
     add(myButton);
     
    
@@ -42,6 +45,9 @@ void GameController::init(){
     actionCallback->scheduleClassWithMethod(this, &GameController::backward);
     
     myButtonB=new U4DEngine::U4DButton(0.2,-0.5,102,102,"ButtonB.png","ButtonBPressed.png",actionCallback,U4DEngine::rTouchesBegan);
+    
+    myButtonB->setControllerInterface(this);
+    
     add(myButtonB);
     
 
@@ -51,21 +57,21 @@ void GameController::init(){
 
 void GameController::action(){
 
-    controllerSource=joystick;
-    getGameModel()->controllerAction(&controllerSource);
+//    controllerSource=joystick;
+//    getGameModel()->controllerAction(&controllerSource);
 
 }
 
 void GameController::forward(){
  
-    controllerSource=buttonA;
-    getGameModel()->controllerAction(&controllerSource);
+//    controllerSource=buttonA;
+//    getGameModel()->controllerAction(&controllerSource);
 
 }
 
 void GameController::backward(){
 
-    controllerSource=buttonB;
-    getGameModel()->controllerAction(&controllerSource);
+//    controllerSource=buttonB;
+//    getGameModel()->controllerAction(&controllerSource);
 
 }

@@ -49,6 +49,8 @@ public:
     virtual void controllerAction(void* uControllerAction)=0;
     
     virtual U4DEntity* searchChild(std::string uName)=0;
+    
+    virtual void receiveTouchUpdate()=0;
 };
     
 }

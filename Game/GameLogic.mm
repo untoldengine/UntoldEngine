@@ -10,6 +10,7 @@
 #include "MyCharacter.h"
 #include "UserCommonProtocols.h"
 #include "U4DControllerInterface.h"
+#include "GameController.h"
 
 void GameLogic::update(double dt){
 
@@ -22,6 +23,10 @@ void GameLogic::init(){
     ninja=dynamic_cast<MyCharacter*>(searchChild("ninja"));
 }
 
+void GameLogic::receiveTouchUpdate(){
+
+    std::cout<<"Recieved touch"<<std::endl;
+}
 
 void GameLogic::controllerAction(void* uControllerAction){
     

@@ -64,6 +64,9 @@ public:
     virtual U4DGameModelInterface* getGameModel()=0;
     
     virtual U4DVector3n getJoyStickData(std::string uName)=0;
+    
+    virtual void setReceivedAction(bool uValue)=0;
+    virtual void sendTouchUpdateToModel()=0;
 };
 
 }
