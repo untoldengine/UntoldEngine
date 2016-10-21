@@ -143,28 +143,17 @@ void U4DJoyStick::update(float dt){
             //magnitude the distance
             float distanceMagnitude=distance.magnitude();
             
-            float distancePlusJoyStick=distanceMagnitude+joyStickImageRadius;
+            U4DVector3n data=(currentPosition-centerBackgroundPosition)/backgroundImageRadius;
+            data.normalize();
+            setDataPosition(data);
             
-            if (distancePlusJoyStick<=backgroundImageRadius) {
-                
-                U4DVector3n data=(currentPosition-centerBackgroundPosition)/backgroundImageRadius;
-                data.normalize();
-                setDataPosition(data);
-                
-                translateTo(currentPosition);
-                joyStickImage.translateTo(currentPosition);
-                
-                dataMagnitude=distanceMagnitude+dataMagnitude;
-                
-                isActive=true;
-                
-                validTouch=true;
-                
-                
-            }else{
-                changeState(rTouchesEnded);
-                
-            }
+            translateTo(currentPosition);
+            joyStickImage.translateTo(currentPosition);
+            
+            dataMagnitude=distanceMagnitude+dataMagnitude;
+            
+            isActive=true;
+            validTouch=true;
             
         }if (joyStickState==rTouchesEnded){
             
@@ -193,7 +182,6 @@ void U4DJoyStick::update(float dt){
         
     }
     
-    
 }
 
 void U4DJoyStick::action(){
@@ -204,8 +192,31 @@ void U4DJoyStick::action(){
 
 void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
     
-    joyStickState=uTouchState;
+    
     currentPosition=uNewPosition;
+    
+    U4DVector3n distance=(currentPosition-centerBackgroundPosition);
+    
+    float distanceMagnitude=distance.magnitude();
+    
+    float distancePlusJoyStick=distanceMagnitude+joyStickImageRadius;
+    
+    if (distancePlusJoyStick<=(backgroundImageRadius+backgroundImageRadius*0.5)){
+        
+        joyStickState=uTouchState;
+        
+    }else{
+        
+        //if the joystick goes beyond boundary, reset it to original position
+        
+        joyStickState=rTouchesNull;
+        translateTo(originalPosition);
+        joyStickImage.translateTo(originalPosition);
+        
+        dataPosition=originalPosition;
+        dataMagnitude=0.0;
+        
+    }
     
 }
 
@@ -215,7 +226,7 @@ void U4DJoyStick::changeState(TOUCHSTATE uTouchState){
     
     if ( joyStickState==rTouchesEnded){
         
-               
+        
     }
     
 }
