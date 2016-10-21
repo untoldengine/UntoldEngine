@@ -24,7 +24,7 @@ namespace U4DEngine {
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
     MyCharacter *ninja;
-    kGameEntityState gameEntityState;
+    GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
     U4DEngine::U4DJoyStick *joystick;

@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
     
-U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false){
+U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0){
     
     u4dModel=uModel;
     
@@ -25,14 +25,7 @@ U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false){
     scheduler=new U4DCallback<U4DAnimation>;
     
     timer=new U4DTimer(scheduler);
-    
-    //set keyframe to zero
-    keyframe=0;
-    
-    //set interpolation time to zero
-    interpolationTime=0.0;
 
-    
 };
 
 U4DAnimation::~U4DAnimation(){
@@ -43,14 +36,14 @@ U4DAnimation::~U4DAnimation(){
 };
 
 
-void U4DAnimation::start(){
+void U4DAnimation::play(){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     
     if (animationsContainer.size()>0) {
         
         if (animationPlaying==false) {
-            logger->log("Playing");
+            
             //set interpolation time to zero
             interpolationTime=0.0;
             
@@ -71,7 +64,6 @@ void U4DAnimation::stop(){
     animationPlaying=false;
     timer->setRepeat(false);
     timer->timerExpire();
-    
 }
     
 void U4DAnimation::pause(){

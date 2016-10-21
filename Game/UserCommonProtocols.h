@@ -15,7 +15,7 @@ typedef enum{
     kRotating,
     kJumping
     
-}kGameEntityState;
+}GameEntityState;
 
 
 #endif /* UserCommonProtocols_h */

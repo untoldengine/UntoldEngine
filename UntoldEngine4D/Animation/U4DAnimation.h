@@ -105,9 +105,9 @@ public:
     U4DBoneData* rootBone;
     
     /**
-     @brief Method which starts the 3D animation
+     @brief Method which plays the 3D animation
      */
-    void start();
+    void play();
     
     /**
      @brief Method which stops the 3D animation

@@ -37,11 +37,14 @@ void GameLogic::receiveTouchUpdate(){
     if (buttonA->getIsPressed()) {
         
         std::cout<<"Pressed button A"<<std::endl;
+        GameEntityState state=kWalking;
+        ninja->changeState(&state);
         
     }else if(buttonA->getIsReleased()){
         
         std::cout<<"Released button A"<<std::endl;
-        
+        GameEntityState state=kJumping;
+        ninja->changeState(&state);
     }
     
     if (buttonB->getIsPressed()) {
