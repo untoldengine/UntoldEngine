@@ -55,6 +55,8 @@ namespace U4DEngine {
 
     void U4DScene::update(float dt){
         
+        gameModel->update(dt);
+        
         //update the entity manager
         gameWorld->entityManager->update(dt); //need to add dt to view
         
