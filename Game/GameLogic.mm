@@ -10,6 +10,7 @@
 #include "MyCharacter.h"
 #include "UserCommonProtocols.h"
 #include "U4DControllerInterface.h"
+#include "GameController.h"
 
 void GameLogic::update(double dt){
 
@@ -22,39 +23,11 @@ void GameLogic::init(){
     ninja=dynamic_cast<MyCharacter*>(searchChild("ninja"));
 }
 
+void GameLogic::receiveTouchUpdate(){
 
-void GameLogic::controllerAction(void* uControllerAction){
-    
-    ControllerSource source=*static_cast<ControllerSource*>(uControllerAction);
-    
-    U4DEngine::U4DVector3n joystickData=getGameController()->getJoyStickData("myJoystick");
-    
-    switch (source) {
-        case joystick:
-        
-            gameEntityState=kRotating;
-            
-            ninja->setJoystickData(joystickData);
-            ninja->changeState(&gameEntityState);
-            
-            break;
-            
-        case buttonA:
-            
-            gameEntityState=kWalking;
-            ninja->changeState(&gameEntityState);
-            
-            break;
-            
-        case buttonB:
-
-            gameEntityState=kJumping;
-            ninja->changeState(&gameEntityState);
-            break;
-            
-        default:
-            break;
-    }
+    std::cout<<"Recieved touch"<<std::endl;
     
 }
+
+
 

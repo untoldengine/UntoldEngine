@@ -46,9 +46,9 @@ public:
     virtual void notify(U4DWorld *uGameWorld)=0;
     virtual void notify(U4DControllerInterface *uGameController)=0;
     
-    virtual void controllerAction(void* uControllerAction)=0;
-    
     virtual U4DEntity* searchChild(std::string uName)=0;
+    
+    virtual void receiveTouchUpdate()=0;
 };
     
 }

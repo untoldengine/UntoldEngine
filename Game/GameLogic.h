@@ -31,7 +31,6 @@ public:
     void update(double dt);
     void init();
     
-    void controllerAction(void* uControllerAction);
-    
+    void receiveTouchUpdate();
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

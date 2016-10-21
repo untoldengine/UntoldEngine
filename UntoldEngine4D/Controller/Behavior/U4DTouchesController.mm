@@ -126,7 +126,12 @@ void U4DTouchesController::update(float dt){
         joyStick->update(dt);
     }
     
-    
+    if (receivedAction==true) {
+        
+        sendTouchUpdateToModel();
+        
+        receivedAction=false;
+    }
 }
 
 void U4DTouchesController::draw(){
@@ -173,6 +178,16 @@ U4DVector3n U4DTouchesController::getJoyStickData(std::string uName){
     }
     
     return joyStickData;
+}
+    
+void U4DTouchesController::sendTouchUpdateToModel(){
+
+    gameModel->receiveTouchUpdate();
+}
+    
+void U4DTouchesController::setReceivedAction(bool uValue){
+
+    receivedAction=uValue;
 }
 
 }

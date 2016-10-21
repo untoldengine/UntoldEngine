@@ -9,11 +9,12 @@
 #include "U4DJoyStick.h"
 #include "U4DVector2n.h"
 #include "U4DDirector.h"
+#include "U4DControllerInterface.h"
 
 namespace U4DEngine {
     
     
-U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction):joyStickState(rTouchesNull){
+U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL){
     
     
     setName(uName);
@@ -131,42 +132,68 @@ void U4DJoyStick::draw(){
 
 void U4DJoyStick::update(float dt){
     
-    if ( joyStickState==rTouchesBegan ||  joyStickState==rTouchesMoved) {
+    bool validTouch=false;
+    
+    if (getState()!=rTouchesNull) {
         
-        U4DVector3n distance=(currentPosition-centerBackgroundPosition);
-        
-        //magnitude the distance
-        float distanceMagnitude=distance.magnitude();
-        
-        float distancePlusJoyStick=distanceMagnitude+joyStickImageRadius;
-        
-        if (distancePlusJoyStick<=backgroundImageRadius) {
+        if ( joyStickState==rTouchesBegan ||  joyStickState==rTouchesMoved) {
             
-            U4DVector3n data=(currentPosition-centerBackgroundPosition)/backgroundImageRadius;
-            data.normalize();
-            setDataPosition(data);
+            U4DVector3n distance=(currentPosition-centerBackgroundPosition);
             
-            translateTo(currentPosition);
-            joyStickImage.translateTo(currentPosition);
+            //magnitude the distance
+            float distanceMagnitude=distance.magnitude();
             
-            dataMagnitude=distanceMagnitude+dataMagnitude;
+            float distancePlusJoyStick=distanceMagnitude+joyStickImageRadius;
+            
+            if (distancePlusJoyStick<=backgroundImageRadius) {
+                
+                U4DVector3n data=(currentPosition-centerBackgroundPosition)/backgroundImageRadius;
+                data.normalize();
+                setDataPosition(data);
+                
+                translateTo(currentPosition);
+                joyStickImage.translateTo(currentPosition);
+                
+                dataMagnitude=distanceMagnitude+dataMagnitude;
+                
+                isActive=true;
+                
+                validTouch=true;
+                
+                
+            }else{
+                changeState(rTouchesEnded);
+                
+            }
+            
+        }if (joyStickState==rTouchesEnded){
+            
+            translateTo(originalPosition);
+            joyStickImage.translateTo(originalPosition);
+            
+            dataPosition=originalPosition;
+            dataMagnitude=0.0;
+            
+            isActive=false;
+            validTouch=true;
+            
+        }
+        
+        if (validTouch==true) {
             
             action();
             
-        }else{
-            changeState(rTouchesEnded);
+            if (controllerInterface!=NULL) {
+                controllerInterface->setReceivedAction(true);
+            }
+            
         }
-        
-        
-    }if ( joyStickState==rTouchesEnded){
-        
-        translateTo(originalPosition);
-        joyStickImage.translateTo(originalPosition);
-        
-        dataPosition=originalPosition;
-        dataMagnitude=0.0;
-    }
 
+        joyStickState=rTouchesNull;
+        
+    }
+    
+    
 }
 
 void U4DJoyStick::action(){
@@ -206,6 +233,16 @@ void U4DJoyStick::setDataPosition(U4DVector3n uData){
 U4DVector3n U4DJoyStick::getDataPosition(){
     
     return dataPosition;
+}
+    
+bool U4DJoyStick::getIsActive(){
+    
+    return isActive;
+}
+
+void U4DJoyStick::setControllerInterface(U4DControllerInterface* uControllerInterface){
+    
+    controllerInterface=uControllerInterface;
 }
     
 }
