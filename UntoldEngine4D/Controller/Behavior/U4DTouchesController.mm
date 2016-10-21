@@ -152,9 +152,9 @@ void U4DTouchesController::draw(){
     
 }
 
-U4DVector3n U4DTouchesController::getJoyStickData(std::string uName){
+U4DJoyStick* U4DTouchesController::getJoyStickWithName(std::string uName){
     
-    U4DVector3n joyStickData;
+    U4DJoyStick *rJoystick=NULL;
     
     std::vector<U4DJoyStick*>::iterator joyStickPos;
     
@@ -164,13 +164,13 @@ U4DVector3n U4DTouchesController::getJoyStickData(std::string uName){
         
         if (joyStick->getName().compare(uName)==0) {
             
-            joyStickData=joyStick->getDataPosition();
+            rJoystick=joyStick;
             
             break;
         }
     }
     
-    return joyStickData;
+    return rJoystick;
 }
     
 U4DButton* U4DTouchesController::getButtonWithName(std::string uName){

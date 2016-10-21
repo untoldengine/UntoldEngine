@@ -12,6 +12,7 @@
 #include "U4DControllerInterface.h"
 #include "GameController.h"
 #include "U4DButton.h"
+#include "U4DJoyStick.h"
 #include "CommonProtocols.h"
 
 void GameLogic::update(double dt){
@@ -26,6 +27,8 @@ void GameLogic::init(){
     
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
+    joystick=getGameController()->getJoyStickWithName("joystick");
+    
 }
 
 void GameLogic::receiveTouchUpdate(){
@@ -49,6 +52,11 @@ void GameLogic::receiveTouchUpdate(){
         
         std::cout<<"Released button B"<<std::endl;
         
+    }
+    
+    if(joystick->getIsActive()){
+        
+        std::cout<<"moving joystick"<<std::endl;
     }
     
 }
