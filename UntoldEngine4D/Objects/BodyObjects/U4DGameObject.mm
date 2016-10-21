@@ -87,7 +87,7 @@ namespace U4DEngine {
             
             if (currentAnimation->isAnimationPlaying()==false) {
                 
-                currentAnimation->start();
+                currentAnimation->play();
             }
 
         }

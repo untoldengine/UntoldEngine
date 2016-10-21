@@ -37,18 +37,11 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
 
 void MyCharacter::update(double dt){
    
-    
-    if (replay==0) {
-        //anim->start();
-        replay=1;
-    }
-    
-   
 }
 
 void MyCharacter::changeState(void* uState){
     
-    kGameEntityState state=*static_cast<kGameEntityState*>(uState);
+    GameEntityState state=*static_cast<GameEntityState*>(uState);
     
     stopAllAnimations();
     
