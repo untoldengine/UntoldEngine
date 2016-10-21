@@ -25,14 +25,14 @@ void GameController::init(){
     
     add(joyStick);
     
-    myButton=new U4DEngine::U4DButton(0.5,-0.5,102,102,"ButtonA.png","ButtonAPressed.png");
+    myButton=new U4DEngine::U4DButton("buttonA",0.5,-0.5,102,102,"ButtonA.png","ButtonAPressed.png");
     
     myButton->setControllerInterface(this);
     
     add(myButton);
     
     
-    myButtonB=new U4DEngine::U4DButton(0.2,-0.5,102,102,"ButtonB.png","ButtonBPressed.png");
+    myButtonB=new U4DEngine::U4DButton("buttonB",0.2,-0.5,102,102,"ButtonB.png","ButtonBPressed.png");
     
     myButtonB->setControllerInterface(this);
     

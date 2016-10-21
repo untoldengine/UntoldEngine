@@ -17,13 +17,15 @@
 
 namespace U4DEngine {
     class U4DTouches;
+    class U4DButton;
 }
 
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
     MyCharacter *ninja;
     kGameEntityState gameEntityState;
-    
+    U4DEngine::U4DButton *buttonA;
+    U4DEngine::U4DButton *buttonB;
     
     GameLogic(){};
     ~GameLogic(){};
