@@ -19,59 +19,25 @@
 
 void GameController::init(){
     
-    U4DEngine::U4DCallback<GameController>* action3Callback=new U4DEngine::U4DCallback<GameController>;
+    joyStick=new U4DEngine::U4DJoyStick("myJoystick", -0.5,-0.5,"joyStickBackground.png",124,124,"joystickDriver.png",76,76);
     
-    action3Callback->scheduleClassWithMethod(this, &GameController::action);
-    
-    joyStick=new U4DEngine::U4DJoyStick("myJoystick", -0.5,-0.5,"joyStickBackground.png",124,124,"joystickDriver.png",76,76,action3Callback);
+    joyStick->setControllerInterface(this);
     
     add(joyStick);
-
-    joyStick->setControllerInterface(this);
- 
-    U4DEngine::U4DCallback<GameController>* action2Callback=new U4DEngine::U4DCallback<GameController>;
     
-    action2Callback->scheduleClassWithMethod(this, &GameController::forward);
-    
-    myButton=new U4DEngine::U4DButton(0.5,-0.5,102,102,"ButtonA.png","ButtonAPressed.png",action2Callback,U4DEngine::rTouchesBegan);
+    myButton=new U4DEngine::U4DButton(0.5,-0.5,102,102,"ButtonA.png","ButtonAPressed.png");
     
     myButton->setControllerInterface(this);
     
     add(myButton);
     
-   
     
-    U4DEngine::U4DCallback<GameController>* actionCallback=new U4DEngine::U4DCallback<GameController>;
-    
-    actionCallback->scheduleClassWithMethod(this, &GameController::backward);
-    
-    myButtonB=new U4DEngine::U4DButton(0.2,-0.5,102,102,"ButtonB.png","ButtonBPressed.png",actionCallback,U4DEngine::rTouchesBegan);
+    myButtonB=new U4DEngine::U4DButton(0.2,-0.5,102,102,"ButtonB.png","ButtonBPressed.png");
     
     myButtonB->setControllerInterface(this);
     
     add(myButtonB);
     
-
 }
 
 
-
-void GameController::action(){
-//    controllerSource=joystick;
-//    getGameModel()->controllerAction(&controllerSource);
-
-}
-
-void GameController::forward(){
- 
-//    controllerSource=buttonA;
-//    getGameModel()->controllerAction(&controllerSource);
-
-}
-
-void GameController::backward(){
-
-//    controllerSource=buttonB;
-//    getGameModel()->controllerAction(&controllerSource);
-
-}

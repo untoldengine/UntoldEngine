@@ -14,7 +14,7 @@
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2,U4DCallbackInterface *uAction,TOUCHSTATE uButtonActionOn):buttonState(rTouchesNull),isActive(false),controllerInterface(NULL){
+U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):buttonState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL){
     
     buttonImages.setImages(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
@@ -23,13 +23,6 @@ U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,
     translateTo(translation);     //move the button
     
     buttonImages.translateTo(translation);  //move the image
-    
-    
-    //set the callback
-    pCallback=uAction;
-    
-    //set where to do the action on the button
-    buttonActionOn=uButtonActionOn;
     
     //get the coordinates of the box
     centerPosition=getLocalPosition();
@@ -71,7 +64,10 @@ void U4DButton::update(float dt){
         
         if (validTouch==true) {
             
-            action();
+            if (pCallback!=NULL) {
+                action();
+            }
+            
             
             if (controllerInterface !=NULL) {
                 controllerInterface->setReceivedAction(true);
@@ -122,16 +118,14 @@ void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
 TOUCHSTATE U4DButton::getState(){
     return buttonState;
 }
-
-void U4DButton::setButtonActionOn(TOUCHSTATE &uButtonActionOn){
     
-    buttonActionOn=uButtonActionOn;
+void U4DButton::setCallbackAction(U4DCallbackInterface *uAction){
+    
+    //set the callback
+    pCallback=uAction;
+    
 }
 
-TOUCHSTATE U4DButton::getButtonActionOn(){
-    
-    return buttonActionOn;
-}
     
 bool U4DButton::getIsActive(){
 
@@ -141,6 +135,7 @@ bool U4DButton::getIsActive(){
 void U4DButton::setControllerInterface(U4DControllerInterface* uControllerInterface){
 
     controllerInterface=uControllerInterface;
+    
 }
     
 

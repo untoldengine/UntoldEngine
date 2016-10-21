@@ -29,7 +29,6 @@ class U4DButton:public U4DEntity{
 private:
     
     TOUCHSTATE buttonState;
-    TOUCHSTATE buttonActionOn;
     U4DCallbackInterface *pCallback;
     U4DControllerInterface *controllerInterface;
     
@@ -42,12 +41,12 @@ private:
 
 public:
     
-    U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2,U4DCallbackInterface *uAction,TOUCHSTATE uButtonActionOn);
+    U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2);
     
     void draw();
     void update(float dt);
     void action();
-    void setButtonActionOn(TOUCHSTATE &uButtonActionOn);
+    
     TOUCHSTATE getButtonActionOn();
     
 
@@ -56,6 +55,8 @@ public:
     TOUCHSTATE getState();
     
     bool getIsActive();
+    
+    void setCallbackAction(U4DCallbackInterface *uAction);
     
     void setControllerInterface(U4DControllerInterface* uControllerInterface);
 };

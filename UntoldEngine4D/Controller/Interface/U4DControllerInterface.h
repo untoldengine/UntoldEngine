@@ -46,7 +46,6 @@ public:
     
     virtual void keyboardInput(int key)=0;
     
-    virtual void add(U4DButton *uButton,U4DVector2n &buttonPosition,TOUCHSTATE touchActionOn)=0;
     virtual void add(U4DButton *uButton)=0;
     
     virtual void add(U4DJoyStick *uJoyStick)=0;
