@@ -52,23 +52,33 @@ void U4DButton::draw(){
 
 void U4DButton::update(float dt){
     
+    bool validTouch=false;
+    
     if (getState()!=rTouchesNull) {
         
         if (getState()==rTouchesBegan || getState()==rTouchesMoved) {
             
             isActive=true;
-        
+            
+            validTouch=true;
+            
         }else{
             
             isActive=false;
-        
+            
+            validTouch=true;
         }
         
-        action();
-        
-        if (controllerInterface !=NULL) {
-            controllerInterface->setReceivedAction(true);
+        if (validTouch==true) {
+            
+            action();
+            
+            if (controllerInterface !=NULL) {
+                controllerInterface->setReceivedAction(true);
+            }
+            
         }
+        
         
         buttonState=rTouchesNull;
     }

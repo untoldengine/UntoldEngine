@@ -10,12 +10,6 @@
 #define UserCommonProtocols_h
 
 typedef enum{
-    joystick,
-    buttonA,
-    buttonB
-}ControllerSource;
-
-typedef enum{
     
     kWalking,
     kRotating,

@@ -24,7 +24,6 @@ private:
     U4DEngine::U4DButton *myButtonB;
     
     U4DEngine::U4DVector3n data;
-    ControllerSource controllerSource;
     
 public:
     

@@ -26,40 +26,8 @@ void GameLogic::init(){
 void GameLogic::receiveTouchUpdate(){
 
     std::cout<<"Recieved touch"<<std::endl;
-}
-
-void GameLogic::controllerAction(void* uControllerAction){
-    
-    ControllerSource source=*static_cast<ControllerSource*>(uControllerAction);
-    
-    U4DEngine::U4DVector3n joystickData=getGameController()->getJoyStickData("myJoystick");
-    
-    switch (source) {
-        case joystick:
-        
-            gameEntityState=kRotating;
-            
-            ninja->setJoystickData(joystickData);
-            ninja->changeState(&gameEntityState);
-            
-            break;
-            
-        case buttonA:
-            
-            gameEntityState=kWalking;
-            ninja->changeState(&gameEntityState);
-            
-            break;
-            
-        case buttonB:
-
-            gameEntityState=kJumping;
-            ninja->changeState(&gameEntityState);
-            break;
-            
-        default:
-            break;
-    }
     
 }
+
+
 

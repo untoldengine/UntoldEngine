@@ -18,13 +18,18 @@
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
 
+
+namespace U4DEngine {
+    class U4DControllerInterface;
+}
+
 namespace U4DEngine {
     
 class U4DJoyStick:public U4DEntity{
   
 private:
     U4DCallbackInterface *pCallback;
-    
+    U4DControllerInterface *controllerInterface;
     float backgroundWidth;
     float backgroundHeight;
     
@@ -45,6 +50,7 @@ private:
     float backgroundImageRadius;
     float joyStickImageRadius;
     
+    bool isActive;
     
 public:
     
@@ -81,6 +87,9 @@ public:
     void setDataMagnitude(float uValue);
     float getDataMagnitude();
     
+    bool getIsActive();
+    
+    void setControllerInterface(U4DControllerInterface* uControllerInterface);
 };
 
 }

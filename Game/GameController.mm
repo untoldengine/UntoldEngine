@@ -27,6 +27,7 @@ void GameController::init(){
     
     add(joyStick);
 
+    joyStick->setControllerInterface(this);
  
     U4DEngine::U4DCallback<GameController>* action2Callback=new U4DEngine::U4DCallback<GameController>;
     
@@ -56,7 +57,6 @@ void GameController::init(){
 
 
 void GameController::action(){
-
 //    controllerSource=joystick;
 //    getGameModel()->controllerAction(&controllerSource);
 
