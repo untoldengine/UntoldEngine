@@ -37,16 +37,6 @@ namespace U4DEngine {
         rTouchesEnded,
         
         /**
-         @brief Touch event pressed
-         */
-        rTouchesPressed,
-        
-        /**
-         @brief Touch event released
-         */
-        rTouchesReleased,
-        
-        /**
          @brief Touch event is null
          */
         rTouchesNull
