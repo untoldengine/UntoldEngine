@@ -13,13 +13,14 @@
 #include <string>
 #include "U4DGameObject.h"
 #include "CommonProtocols.h"
-
+#include "UserCommonProtocols.h"
 
 class MyCharacter:public U4DEngine::U4DGameObject{
 
 private:
     
     U4DEngine::U4DVector3n joyStickData;
+    GameEntityState entityState;
     
 public:
     
@@ -31,7 +32,11 @@ public:
     
     void update(double dt);
     
-    void changeState(void* uState);
+    void changeState(GameEntityState uState);
+    
+    void setState(GameEntityState uState);
+    
+    GameEntityState getState();
     
     U4DEngine::U4DAnimation *anim;
     

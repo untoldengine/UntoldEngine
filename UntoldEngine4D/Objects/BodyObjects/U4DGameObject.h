@@ -27,7 +27,7 @@ namespace U4DEngine {
     private:
         
         U4DAnimation* currentAnimation;
-           
+        
     public:
         
         /**
@@ -77,11 +77,6 @@ namespace U4DEngine {
          @return Returns true if the animation was successfully loaded
          */
         bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile);
-        
-        /**
-         @todo Document this
-         */
-        virtual void changeState(void* uState){};
         
         /**
          @todo documetn this

@@ -17,21 +17,14 @@
 class GameController:public U4DEngine::U4DTouchesController{
   
 private:
-    
-    float z;
+
     U4DEngine::U4DJoyStick *joyStick;
     U4DEngine::U4DButton *myButton;
     U4DEngine::U4DButton *myButtonB;
     
-    U4DEngine::U4DVector3n data;
-    
 public:
     
-    GameController():z(0.0){
-        
-        
-      
-    };
+    GameController(){};
     
     
     ~GameController(){};

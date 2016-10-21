@@ -7,7 +7,7 @@
 //
 
 #include "MyCharacter.h"
-#include "UserCommonProtocols.h"
+
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
@@ -39,20 +39,23 @@ void MyCharacter::update(double dt){
    
 }
 
-void MyCharacter::changeState(void* uState){
-    
-    GameEntityState state=*static_cast<GameEntityState*>(uState);
+void MyCharacter::setState(GameEntityState uState){
+    entityState=uState;
+}
+
+GameEntityState MyCharacter::getState(){
+    return entityState;
+}
+
+void MyCharacter::changeState(GameEntityState uState){
     
     stopAllAnimations();
     
-    switch (state) {
+    setState(uState);
+    
+    switch (uState) {
         case kRotating:
             
-            {
-            U4DEngine::U4DVector3n axisOrientation(0,1,0);
-            
-            rotateBy(joyStickData.x, axisOrientation);
-            }
             break;
             
         case kWalking:
