@@ -129,7 +129,6 @@ void U4DJoyStick::draw(){
 
 void U4DJoyStick::update(float dt){
     
-    bool validTouch=false;
     
     if (getState()!=rTouchesNull) {
         
@@ -150,7 +149,7 @@ void U4DJoyStick::update(float dt){
             dataMagnitude=distanceMagnitude+dataMagnitude;
             
             isActive=true;
-            validTouch=true;
+            
             
         }if (joyStickState==rTouchesEnded){
             
@@ -161,21 +160,18 @@ void U4DJoyStick::update(float dt){
             dataMagnitude=0.0;
             
             isActive=false;
-            validTouch=true;
+        
             
+        }
+ 
+        if (pCallback!=NULL) {
+            action();
         }
         
-        if (validTouch==true) {
-            
-            if (pCallback!=NULL) {
-                action();
-            }
-            
-            if (controllerInterface!=NULL) {
-                controllerInterface->setReceivedAction(true);
-            }
-            
+        if (controllerInterface!=NULL) {
+            controllerInterface->setReceivedAction(true);
         }
+          
 
         joyStickState=rTouchesNull;
         

@@ -173,6 +173,29 @@ U4DVector3n U4DTouchesController::getJoyStickData(std::string uName){
     return joyStickData;
 }
     
+U4DButton* U4DTouchesController::getButtonWithName(std::string uName){
+    
+    U4DButton *rButton=NULL;
+    
+    std::vector<U4DButton*>::iterator buttonPos;
+    
+    for(buttonPos=buttonsArray.begin();buttonPos !=buttonsArray.end();++buttonPos){
+        
+        U4DButton *button=*buttonPos;
+        
+        if (button->getName().compare(uName)==0) {
+            
+            rButton=button;
+            
+            break;
+        }
+        
+    }
+    
+    return rButton;
+    
+}
+    
 void U4DTouchesController::sendTouchUpdateToModel(){
 
     gameModel->receiveTouchUpdate();

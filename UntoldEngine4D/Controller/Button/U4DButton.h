@@ -38,10 +38,12 @@ private:
     U4DMultiImage buttonImages;
     
     bool isActive;
+    
+    bool receivedAction;
 
 public:
     
-    U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2);
+    U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2);
     
     void draw();
     void update(float dt);
@@ -55,6 +57,10 @@ public:
     TOUCHSTATE getState();
     
     bool getIsActive();
+    bool getReceivedAction();
+    
+    bool getIsPressed();
+    bool getIsReleased();
     
     void setCallbackAction(U4DCallbackInterface *uAction);
     

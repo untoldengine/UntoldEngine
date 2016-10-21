@@ -14,7 +14,9 @@
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):buttonState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL){
+U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):buttonState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL),receivedAction(false){
+    
+    setName(uName);
     
     buttonImages.setImages(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
@@ -45,38 +47,37 @@ void U4DButton::draw(){
 
 void U4DButton::update(float dt){
     
-    bool validTouch=false;
     
     if (getState()!=rTouchesNull) {
         
-        if (getState()==rTouchesBegan || getState()==rTouchesMoved) {
+        receivedAction=true;
+        
+        if (getState()==rTouchesBegan ) {
             
             isActive=true;
+           
             
-            validTouch=true;
-            
-        }else{
+        }else if(getState()==rTouchesEnded){
             
             isActive=false;
-            
-            validTouch=true;
+           
         }
         
-        if (validTouch==true) {
-            
-            if (pCallback!=NULL) {
-                action();
-            }
-            
-            
-            if (controllerInterface !=NULL) {
-                controllerInterface->setReceivedAction(true);
-            }
-            
+        if (pCallback!=NULL) {
+            action();
         }
         
         
+        if (controllerInterface !=NULL) {
+            controllerInterface->setReceivedAction(true);
+        }
+       
         buttonState=rTouchesNull;
+        
+    }else{
+        receivedAction=NULL;
+        isActive=NULL;
+        
     }
     
 }
@@ -99,14 +100,14 @@ void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
             
            if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
 
-               buttonState=uTouchState;
-               
-               if (buttonState==rTouchesBegan || buttonState==rTouchesMoved) {
+               if (uTouchState==rTouchesBegan) {
                 
+                   buttonState=uTouchState;
                    buttonImages.changeImage();
                    
-               }else if (buttonState==rTouchesEnded){
+               }else if (uTouchState==rTouchesEnded){
                    
+                   buttonState=uTouchState;
                    buttonImages.changeImage();  //select default image
                    
                }
@@ -125,11 +126,22 @@ void U4DButton::setCallbackAction(U4DCallbackInterface *uAction){
     pCallback=uAction;
     
 }
-
-    
+   
 bool U4DButton::getIsActive(){
 
     return isActive;
+}
+    
+bool U4DButton::getReceivedAction(){
+    return receivedAction;
+}
+    
+bool U4DButton::getIsPressed(){
+    return (getReceivedAction()==true && getIsActive()==true);
+}
+
+bool U4DButton::getIsReleased(){
+    return (getReceivedAction()==true && getIsActive()==false);
 }
     
 void U4DButton::setControllerInterface(U4DControllerInterface* uControllerInterface){

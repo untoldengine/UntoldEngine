@@ -66,6 +66,7 @@ public:
     U4DGameModelInterface* getGameModel();
     
     U4DVector3n getJoyStickData(std::string uName);
+    U4DButton* getButtonWithName(std::string uName);
     
     void sendTouchUpdateToModel();
     
