@@ -56,13 +56,6 @@ void U4DTouchesController::touchEnded(const U4DTouches &touches){
     changeState(touches, rTouchesEnded);
 }
 
-void U4DTouchesController::add(U4DButton *uButton,U4DVector2n &buttonPosition,TOUCHSTATE touchActionOn){
-    
-    uButton->translateTo(buttonPosition);
-    uButton->setButtonActionOn(touchActionOn);
-    buttonsArray.push_back(uButton);
-    
-}
 
 void U4DTouchesController::add(U4DButton *uButton){
     

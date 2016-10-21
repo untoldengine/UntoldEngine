@@ -14,7 +14,7 @@
 namespace U4DEngine {
     
     
-U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight,U4DCallbackInterface *uAction):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL){
+U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL){
     
     
     setName(uName);
@@ -39,10 +39,7 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
     //add the joy stick
     joyStickImage.setImage(uJoyStickImage,uJoyStickWidth,uJoyStickHeight);
     joyStickImage.translateTo(translation);
-    
-    
-    //set the callback
-    pCallback=uAction;
+
     
     //get the original center position of the joystick
     originalPosition=getLocalPosition();
@@ -170,7 +167,9 @@ void U4DJoyStick::update(float dt){
         
         if (validTouch==true) {
             
-            action();
+            if (pCallback!=NULL) {
+                action();
+            }
             
             if (controllerInterface!=NULL) {
                 controllerInterface->setReceivedAction(true);
@@ -251,9 +250,17 @@ bool U4DJoyStick::getIsActive(){
     return isActive;
 }
 
+void U4DJoyStick::setCallbackAction(U4DCallbackInterface *uAction){
+    
+    //set the callback
+    pCallback=uAction;
+    
+}
+    
 void U4DJoyStick::setControllerInterface(U4DControllerInterface* uControllerInterface){
     
     controllerInterface=uControllerInterface;
+    
 }
     
 }

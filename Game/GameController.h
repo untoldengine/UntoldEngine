@@ -37,10 +37,7 @@ public:
     ~GameController(){};
     
     void init();
-    
-    void action();
-    void forward();
-    void backward();
+
 };
 
 #endif /* defined(__UntoldEngine__GameController__) */
