@@ -38,18 +38,17 @@ private:
     
 public:
     //constructor
-    U4DTouchesController():receivedAction(false){};
+    U4DTouchesController();
     
     //destructor
-    ~U4DTouchesController(){};
+    ~U4DTouchesController();
 
     virtual void init(){};
+    void keyboardInput(int key){};
+    
     void touchBegan(const U4DTouches &touches);
     void touchMoved(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);
-    
-    
-    void keyboardInput(int key){};
     
     void add(U4DButton *uButton);
     void changeState(const U4DTouches &touches,TOUCHSTATE touchState);

@@ -15,6 +15,11 @@
 
 namespace U4DEngine {
     
+//constructor
+U4DTouchesController::U4DTouchesController():receivedAction(false){}
+
+//destructor
+U4DTouchesController::~U4DTouchesController(){}
     
 void U4DTouchesController::setGameWorld(U4DWorld *uGameWorld){
     
