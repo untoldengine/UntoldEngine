@@ -19,7 +19,7 @@
 
 void GameController::init(){
     
-    joyStick=new U4DEngine::U4DJoyStick("myJoystick", -0.5,-0.5,"joyStickBackground.png",124,124,"joystickDriver.png",76,76);
+    joyStick=new U4DEngine::U4DJoyStick("joystick", -0.5,-0.5,"joyStickBackground.png",124,124,"joystickDriver.png",76,76);
     
     joyStick->setControllerInterface(this);
     
