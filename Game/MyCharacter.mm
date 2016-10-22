@@ -18,17 +18,21 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
      
-        anim=new U4DEngine::U4DAnimation(this);
-        enableCollisionBehavior();
-        enableKineticsBehavior();
-        translateTo(0.0,3.0,0.0);
-        initCoefficientOfRestitution(0.5);
-        
-        if (loadAnimationToModel(anim, "walking", uBlenderFile)) {
-            
-            replay=0;
+        walking=new U4DEngine::U4DAnimation(this);
+        bow=new U4DEngine::U4DAnimation(this);
+        //enableCollisionBehavior();
+        //enableKineticsBehavior();
+        //translateTo(0.0,3.0,0.0);
+        //initCoefficientOfRestitution(0.5);
+        if (loadAnimationToModel(bow, "bow", uBlenderFile)) {
             
         }
+        
+        if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
+            
+        }
+        
+        
         
     }
     
@@ -49,7 +53,7 @@ GameEntityState MyCharacter::getState(){
 
 void MyCharacter::changeState(GameEntityState uState){
     
-    stopAllAnimations();
+    removeAnimation();
     
     setState(uState);
     
@@ -60,11 +64,13 @@ void MyCharacter::changeState(GameEntityState uState){
             
         case kWalking:
             
-            setAnimation(anim);
+            setAnimation(walking);
             
             break;
             
-        case kJumping:
+        case kBow:
+            
+            setAnimation(bow);
             
             break;
             

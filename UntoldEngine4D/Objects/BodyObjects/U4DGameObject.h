@@ -101,7 +101,12 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        void stopAllAnimations();
+        void stopAnimation();
+        
+        /**
+         @todo document this
+         */
+        void removeAnimation();
         
     };
 
