@@ -39,22 +39,23 @@ void GameLogic::receiveTouchUpdate(){
         
     }else if(buttonA->getIsReleased()){
         
-        ninja->changeState(kJumping);
+        ninja->changeState(kNull);
     }
     
     if (buttonB->getIsPressed()) {
         
-        std::cout<<"Pressed button B"<<std::endl;
+        ninja->changeState(kBow);
+        
         
     }else if(buttonB->getIsReleased()){
         
-        std::cout<<"Released button B"<<std::endl;
+        ninja->changeState(kNull);
         
     }
     
     if(joystick->getIsActive()){
         
-        std::cout<<"moving joystick"<<std::endl;
+       
     }
     
 }

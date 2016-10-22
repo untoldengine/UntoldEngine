@@ -72,7 +72,15 @@ namespace U4DEngine {
         
     }
     
-    void U4DGameObject::stopAllAnimations(){
+    void U4DGameObject::stopAnimation(){
+        
+        if (currentAnimation!=NULL) {
+            currentAnimation->stop();
+        }
+        
+    }
+    
+    void U4DGameObject::removeAnimation(){
         
         if (currentAnimation!=NULL) {
             currentAnimation->stop();
