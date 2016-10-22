@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
     
-    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),forwardVector(0,0,-1),parent(nullptr),next(nullptr){
+    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),entityForwardVector(0,0,-1),parent(nullptr),next(nullptr){
         
         prevSibling=this;
         lastDescendant=this;
@@ -158,16 +158,16 @@ namespace U4DEngine {
         
     }
 
-    U4DVector3n U4DEntity::getForwardVector(){
+    U4DVector3n U4DEntity::getEntityForwardVector(){
         
-        return forwardVector;
+        return entityForwardVector;
         
     }
     
-    void U4DEntity::setForwardVector(U4DVector3n &uForwardVector){
+    void U4DEntity::setEntityForwardVector(U4DVector3n &uForwardVector){
         
         uForwardVector.normalize();
-        forwardVector=uForwardVector;
+        entityForwardVector=uForwardVector;
     }
 
     void U4DEntity::setLocalSpaceOrientation(U4DQuaternion &uOrientation){

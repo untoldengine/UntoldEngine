@@ -90,7 +90,7 @@ public:
     /**
      @brief Forward vector of the entity. This is used to compute the view-direction vector
      */
-    U4DVector3n forwardVector;
+    U4DVector3n entityForwardVector;
     
     /**
      @brief Entity parent pointer
@@ -262,14 +262,14 @@ public:
      
      @return Forward vector of the Entity
      */
-    U4DVector3n getForwardVector();
+    U4DVector3n getEntityForwardVector();
     
     /**
      @brief Method which sets the forward vectof of the Entity. The default value is (0.0,0.0,-1.0)
      
      @param uForwardVector Forward vector for entity
      */
-    void setForwardVector(U4DVector3n &uForwardVector);
+    void setEntityForwardVector(U4DVector3n &uForwardVector);
     
     /**
      @brief Method which returns the absolute orientation of the Entity

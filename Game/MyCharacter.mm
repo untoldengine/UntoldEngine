@@ -26,8 +26,8 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
         //initCoefficientOfRestitution(0.5);
         setState(kNull);
         
-        U4DEngine::U4DVector3n fVector(0,0,1);
-        //setForwardVector(fVector);
+        U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
+        setEntityForwardVector(viewDirectionVector);
         
         if (loadAnimationToModel(bow, "bow", uBlenderFile)) {
             
@@ -48,7 +48,7 @@ void MyCharacter::update(double dt){
    
     if (getState()==kRotating) {
         
-        U4DEngine::U4DVector3n setView(joyStickData.x*10.0,getAbsolutePosition().y,10.0);
+        U4DEngine::U4DVector3n setView(joyStickData.x*10.0,getAbsolutePosition().y,-joyStickData.y*10.0);
         
         viewInDirection(setView);
         
