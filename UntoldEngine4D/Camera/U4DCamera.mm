@@ -82,7 +82,7 @@ namespace U4DEngine {
     U4DVector3n U4DCamera::getViewInDirection(){
         
         //get forward vector
-        U4DVector3n forward=getForwardVector();
+        U4DVector3n forward=getEntityForwardVector();
         
         //get the entity rotation matrix
         U4DMatrix3n orientationMatrix=getLocalMatrixOrientation();
@@ -107,10 +107,10 @@ namespace U4DEngine {
         U4DVector3n forwardVector=uDestinationPoint-entityPosition;
         
         //calculate the angle
-        float angle=getForwardVector().angle(forwardVector);
+        float angle=getEntityForwardVector().angle(forwardVector);
         
         //calculate the rotation axis
-        U4DVector3n rotationAxis=getForwardVector().cross(forwardVector);
+        U4DVector3n rotationAxis=getEntityForwardVector().cross(forwardVector);
         
         //if angle is 180 it means that both vectors are pointing opposite to each other.
         //this means that there is no rotation axis. so set the Up Vector as the rotation axis
