@@ -47,8 +47,6 @@ namespace U4DEngine {
         float oneEightyAngle=180.0;
         U4DVector3n entityPosition;
         
-        //if entity is camera, then get the local position
-        
         entityPosition=getAbsolutePosition();
         
         

@@ -107,6 +107,11 @@ namespace U4DEngine {
         return currentAnimation;
     }
     
+    void U4DGameObject::moveBy(){
+        
+        
+        
+    }
     
 }
 

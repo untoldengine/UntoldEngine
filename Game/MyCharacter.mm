@@ -24,6 +24,8 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
         //enableKineticsBehavior();
         //translateTo(0.0,3.0,0.0);
         //initCoefficientOfRestitution(0.5);
+        setState(kNull);
+        
         if (loadAnimationToModel(bow, "bow", uBlenderFile)) {
             
         }
@@ -41,6 +43,21 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
 
 void MyCharacter::update(double dt){
    
+    if (getState()==kRotating) {
+        
+        U4DEngine::U4DVector3n setView(joyStickData.x*10.0,getAbsolutePosition().y,joyStickData.y*10.0);
+        
+        viewInDirection(setView);
+        
+        
+    }else if(getState()==kWalking){
+        
+        U4DEngine::U4DVector3n view=getViewInDirection()*dt*-1.0;
+        
+        translateBy(view);
+        
+    }
+    
 }
 
 void MyCharacter::setState(GameEntityState uState){
