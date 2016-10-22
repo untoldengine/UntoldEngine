@@ -108,6 +108,10 @@ namespace U4DEngine {
          */
         void removeAnimation();
         
+        /**
+         @todo document this
+         */
+        void moveBy();
     };
 
 }

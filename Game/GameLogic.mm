@@ -55,6 +55,9 @@ void GameLogic::receiveTouchUpdate(){
     
     if(joystick->getIsActive()){
         
+        ninja->changeState(kRotating);
+        U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
+        ninja->setJoystickData(joyData);
        
     }
     

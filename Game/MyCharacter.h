@@ -24,7 +24,7 @@ private:
     
 public:
     
-    MyCharacter(){};
+    MyCharacter():joyStickData(0.0,0.0,0.0){};
     
     float x,y,z;
   
@@ -39,7 +39,10 @@ public:
     GameEntityState getState();
     
     U4DEngine::U4DAnimation *walking;
+    
     U4DEngine::U4DAnimation *bow;
+    
+    
     int replay;
     
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
