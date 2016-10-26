@@ -63,7 +63,7 @@ void U4DAnimation::stop(){
     
     animationPlaying=false;
     timer->setRepeat(false);
-    timer->timerExpire();
+    
 }
     
 void U4DAnimation::pause(){
@@ -148,6 +148,27 @@ void U4DAnimation::runAnimation(){
 
     
 }
+    
+int U4DAnimation::getCurrentKeyframe(){
+
+    return keyframe;
+}
+
+float U4DAnimation::getFPS(){
+
+    return fps;
+}
+
+float U4DAnimation::getCurrentInterpolationTime(){
+    
+    return interpolationTime;
+}
+
+bool U4DAnimation::getIsUpdatingKeyframe(){
+
+    return timer->getHasTimerExpired();
+}
+    
 
 }
 

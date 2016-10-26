@@ -23,6 +23,8 @@ private:
     double currentTime;
     int index;
     
+    bool hasTimerExpired;
+    
 public:
     
     //constructor
@@ -45,6 +47,8 @@ public:
     inline void setDelay(double uDelay){delay=uDelay;};
     inline double getDelay() const{return delay;};
     inline void setRepeat(bool uRepeat){repeat=uRepeat;}
+    
+    bool getHasTimerExpired();
 };
 
 }

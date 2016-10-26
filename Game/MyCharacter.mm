@@ -20,10 +20,10 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
      
         walking=new U4DEngine::U4DAnimation(this);
         bow=new U4DEngine::U4DAnimation(this);
-        //enableCollisionBehavior();
-        //enableKineticsBehavior();
+        enableCollisionBehavior();
+        enableKineticsBehavior();
         //translateTo(0.0,0.0,-3.0);
-        //initCoefficientOfRestitution(0.5);
+        initCoefficientOfRestitution(0.5);
         setState(kNull);
         
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
@@ -55,9 +55,13 @@ void MyCharacter::update(double dt){
         
     }else if(getState()==kWalking){
         
-        U4DEngine::U4DVector3n view=getViewInDirection()*dt;
-        
-        translateBy(view);
+        if(getIsAnimationUpdatingKeyframe()){
+            
+            U4DEngine::U4DVector3n view=getViewInDirection()*(1.0/getAnimationFPS());
+            
+            translateBy(view);
+                
+        }
         
     }
     
