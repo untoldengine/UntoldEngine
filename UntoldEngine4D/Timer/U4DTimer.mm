@@ -18,8 +18,12 @@ void U4DTimer::tick(double dt){
     if (currentTime>=delay) {
         
         timerExpire();
-        
+        hasTimerExpired=true;
+    }else{
+
+            hasTimerExpired=false;
     }
+
 }
 
 void U4DTimer::timerExpire(){
@@ -37,6 +41,10 @@ void U4DTimer::timerExpire(){
         scheduler->unscheduleTimer(this);
     }
     
+}
+    
+bool U4DTimer::getHasTimerExpired(){
+    return hasTimerExpired;
 }
 
 }

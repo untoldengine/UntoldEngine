@@ -42,7 +42,6 @@ public:
     
     U4DEngine::U4DAnimation *bow;
     
-    
     int replay;
     
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}

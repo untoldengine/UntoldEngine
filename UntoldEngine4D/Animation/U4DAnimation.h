@@ -46,6 +46,7 @@ private:
      */
     bool animationPlaying;
     
+
 public:
 
     /**
@@ -128,6 +129,26 @@ public:
      @todo document this
      */
     bool isAnimationPlaying();
+    
+    /**
+     @todo document this
+     */
+    int getCurrentKeyframe();
+    
+    /**
+     @todo document this
+     */
+    float getCurrentInterpolationTime();
+    
+    /**
+     @todo document this
+     */
+    float getFPS();
+    
+    /**
+     @todo document this
+     */
+    bool getIsUpdatingKeyframe();
     
 };
 

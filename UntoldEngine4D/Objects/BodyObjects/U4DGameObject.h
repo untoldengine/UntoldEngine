@@ -111,7 +111,22 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        void moveBy();
+        bool getIsAnimationUpdatingKeyframe();
+        
+        /**
+         @todo document this
+         */
+        int getAnimationCurrentKeyframe();
+        
+        /**
+         @todo document this
+         */
+        float getAnimationCurrentInterpolationTime();
+        
+        /**
+         @todo document this
+         */
+        float getAnimationFPS();
     };
 
 }

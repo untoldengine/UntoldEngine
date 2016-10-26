@@ -106,13 +106,43 @@ namespace U4DEngine {
         
         return currentAnimation;
     }
-    
-    void U4DGameObject::moveBy(){
+
+    bool U4DGameObject::getIsAnimationUpdatingKeyframe(){
         
+        if (currentAnimation!=NULL) {
+            return currentAnimation->getIsUpdatingKeyframe();
+        }
         
-        
+        return false;
     }
     
+    int U4DGameObject::getAnimationCurrentKeyframe(){
+        
+        if (currentAnimation!=NULL) {
+            return currentAnimation->getCurrentKeyframe();
+        }
+        
+        return 0;
+    }
+    
+    float U4DGameObject::getAnimationCurrentInterpolationTime(){
+        if (currentAnimation!=NULL) {
+            return currentAnimation->getCurrentInterpolationTime();
+        }
+        
+        return 0.0;
+    }
+    
+    float U4DGameObject::getAnimationFPS(){
+        
+        if (currentAnimation!=NULL) {
+           
+            return currentAnimation->getFPS();
+    
+        }
+        
+        return 0.0;
+    }
 }
 
 
