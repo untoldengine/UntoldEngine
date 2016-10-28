@@ -164,6 +164,16 @@ namespace U4DEngine {
         //clean up all collision containers
         collisionEngine->clearContainers();
         
+        //update the positions
+        child=rootEntity;
+        
+        while (child!=NULL) {
+            
+            child->update(dt);
+            
+            child=child->next;
+        }
+
         
         //update the physics
         child=rootEntity;
@@ -180,17 +190,6 @@ namespace U4DEngine {
                 }
                 
             }
-            
-            child=child->next;
-        }
-        
-        
-        //update the positions
-        child=rootEntity;
-        
-        while (child!=NULL) {
-            
-            child->update(dt);
             
             child=child->next;
         }
