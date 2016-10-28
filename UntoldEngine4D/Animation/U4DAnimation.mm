@@ -63,7 +63,8 @@ void U4DAnimation::stop(){
     
     animationPlaying=false;
     timer->setRepeat(false);
-    
+    keyframe=0;
+    interpolationTime=0.0;
 }
     
 void U4DAnimation::pause(){
