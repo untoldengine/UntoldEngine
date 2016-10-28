@@ -22,8 +22,8 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
         bow=new U4DEngine::U4DAnimation(this);
         enableCollisionBehavior();
         enableKineticsBehavior();
-        //translateTo(0.0,0.0,-3.0);
-        initCoefficientOfRestitution(0.5);
+        translateTo(0.0,3.0,0.0);
+        initCoefficientOfRestitution(0.2);
         setState(kNull);
         
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
@@ -57,10 +57,13 @@ void MyCharacter::update(double dt){
         
         if(getIsAnimationUpdatingKeyframe()){
             
-            U4DEngine::U4DVector3n view=getViewInDirection()*(1.0/getAnimationFPS());
+            setAwake(true);
             
-            translateBy(view);
-                
+            U4DEngine::U4DVector3n view=getViewInDirection()*(1.0/getAnimationFPS());
+            view*=50.0;
+            view.y=0;
+            addForce(view);
+            
         }
         
     }

@@ -23,8 +23,8 @@ void Floor::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         initAsPlatform(true);
-        initMass(1000.0);
-        initCoefficientOfRestitution(0.5);
+        initMass(10.0);
+        initCoefficientOfRestitution(0.2);
         enableCollisionBehavior();
     }
 }
