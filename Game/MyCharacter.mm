@@ -57,12 +57,10 @@ void MyCharacter::update(double dt){
         
         if(getIsAnimationUpdatingKeyframe()){
             
-            setAwake(true);
-            
             U4DEngine::U4DVector3n view=getViewInDirection()*(1.0/getAnimationFPS());
             view*=50.0;
             view.y=0;
-            addForce(view);
+            applyForce(view);
             
         }
         

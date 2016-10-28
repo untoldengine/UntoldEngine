@@ -127,6 +127,12 @@ namespace U4DEngine {
          @todo document this
          */
         float getAnimationFPS();
+        
+        /**
+         @todo document this
+         */
+        void applyForce(U4DVector3n &uForce);
+        
     };
 
 }
