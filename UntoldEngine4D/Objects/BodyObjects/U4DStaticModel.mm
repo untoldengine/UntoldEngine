@@ -13,6 +13,7 @@
 #include "U4DBoundingAABB.h"
 #include "U4DConvexHullAlgorithm.h"
 #include "U4DLogger.h"
+#include <algorithm>
 
 namespace U4DEngine {
     
@@ -319,8 +320,8 @@ namespace U4DEngine {
                 float zDimension=bodyCoordinates.getModelDimension().z;
                 
                 //set model longest dimension
-                float longestModelDimension=MAX(xDimension, yDimension);
-                longestModelDimension=MAX(longestModelDimension, zDimension);
+                float longestModelDimension=std::max(xDimension, yDimension);
+                longestModelDimension=std::max(longestModelDimension, zDimension);
                 
                 if (getIsPlatform()) {
                     

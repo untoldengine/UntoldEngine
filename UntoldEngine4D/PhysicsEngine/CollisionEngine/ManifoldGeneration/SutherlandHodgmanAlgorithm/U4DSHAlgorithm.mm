@@ -12,6 +12,8 @@
 #include "U4DTriangle.h"
 #include "Constants.h"
 #include "U4DLogger.h"
+#include <float.h>
+#include <algorithm>
 
 namespace U4DEngine {
 
@@ -138,13 +140,13 @@ namespace U4DEngine {
         //Get the most dot product parallel to plane for each model
         for(auto n:parallelFacesModel1){
             
-            maxFaceParallelToPlaneInModel1=MAX(n.dotProduct,maxFaceParallelToPlaneInModel1);
+            maxFaceParallelToPlaneInModel1=std::max(n.dotProduct,maxFaceParallelToPlaneInModel1);
             
         }
         
         for(auto n:parallelFacesModel2){
             
-            maxFaceParallelToPlaneInModel2=MAX(n.dotProduct,maxFaceParallelToPlaneInModel2);
+            maxFaceParallelToPlaneInModel2=std::max(n.dotProduct,maxFaceParallelToPlaneInModel2);
             
         }
         
@@ -245,7 +247,7 @@ namespace U4DEngine {
             
             
             //remove all segment with dot product not equal to most parallel segment to intersection vector
-            incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * MAX(1.0f, MAX(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
+            incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
             
             if (incidentSegments.size()<1) {
                 
@@ -404,7 +406,7 @@ namespace U4DEngine {
         }
 
         //remove all faces with dot product not equal to most parallel face to plane
-        modelFaces.erase(std::remove_if(modelFaces.begin(), modelFaces.end(),[parallelToPlane](CONTACTFACES &e){ return !(fabs(e.dotProduct - parallelToPlane) <= U4DEngine::zeroEpsilon * MAX(1.0f, MAX(e.dotProduct, parallelToPlane)));} ),modelFaces.end());
+        modelFaces.erase(std::remove_if(modelFaces.begin(), modelFaces.end(),[parallelToPlane](CONTACTFACES &e){ return !(fabs(e.dotProduct - parallelToPlane) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, parallelToPlane)));} ),modelFaces.end());
         
         
         return modelFaces;

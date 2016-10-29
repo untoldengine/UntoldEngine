@@ -7,7 +7,7 @@
 //
 
 #include "U4DBoundingConvex.h"
-
+#include <float.h>
 
 namespace U4DEngine {
     

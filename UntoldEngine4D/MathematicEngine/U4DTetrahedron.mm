@@ -14,6 +14,7 @@
 #include "U4DTriangle.h"
 #include "Constants.h"
 #include "U4DNumerical.h"
+#include <float.h>
 
 namespace U4DEngine {
     

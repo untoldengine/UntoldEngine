@@ -13,6 +13,8 @@
 #include "U4DDualQuaternion.h"
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
+#import <OpenGLES/ES3/gl.h>
+#import <OpenGLES/ES3/glext.h>
 
 namespace U4DEngine {
     

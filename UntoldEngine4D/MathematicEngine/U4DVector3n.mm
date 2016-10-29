@@ -323,7 +323,7 @@ namespace U4DEngine {
     void U4DVector3n::computeOrthonormalBasis(U4DVector3n& uTangent1, U4DVector3n& uTangent2){
         
         //From Erin Catto
-        if (ABS(x)>=0.57735f) {
+        if (std::fabs(x)>=0.57735f) {
             
             uTangent1.x=y;
             uTangent1.y=-x;

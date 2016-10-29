@@ -26,6 +26,7 @@ void Floor::init(const char* uName, const char* uBlenderFile){
         initMass(10.0);
         initCoefficientOfRestitution(0.2);
         enableCollisionBehavior();
+        translateBy(10.0, 0.0, 0.0);
     }
 }
 

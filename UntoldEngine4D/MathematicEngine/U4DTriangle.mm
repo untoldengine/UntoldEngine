@@ -11,6 +11,7 @@
 #include "U4DVector3n.h"
 #include "U4DNumerical.h"
 #include <cmath>
+#include <algorithm>
 
 namespace U4DEngine {
     
@@ -226,8 +227,8 @@ namespace U4DEngine {
         float pointBDistance=uPlane.magnitudeOfPointToPlane(pointB);
         float pointCDistance=uPlane.magnitudeOfPointToPlane(pointC);
         
-        float minDistace=MIN(pointADistance, pointBDistance);
-        minDistace=MIN(pointCDistance,minDistace);
+        float minDistace=std::min(pointADistance, pointBDistance);
+        minDistace=std::min(pointCDistance,minDistace);
         
         return minDistace;
     }
@@ -238,8 +239,8 @@ namespace U4DEngine {
         float pointBDistance=uPlane.magnitudeSquareOfPointToPlane(pointB);
         float pointCDistance=uPlane.magnitudeSquareOfPointToPlane(pointC);
         
-        float minDistace=MIN(pointADistance, pointBDistance);
-        minDistace=MIN(pointCDistance,minDistace);
+        float minDistace=std::min(pointADistance, pointBDistance);
+        minDistace=std::min(pointCDistance,minDistace);
         
         return minDistace;
     }
