@@ -54,7 +54,6 @@
     
     glViewport(0, 0, view.frame.size.height, view.frame.size.width);
     
-   
     //set the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
@@ -151,6 +150,7 @@
  
     for (UITouch *myTouch in touches) {
         CGPoint touchPosition = [myTouch locationInView: [myTouch view]];
+        
         
         //convert the point to openGL
         U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
