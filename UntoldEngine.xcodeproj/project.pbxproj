@@ -26,13 +26,13 @@
 		030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030C3DFB19298226009EF31B /* U4DDirector.mm */; };
 		030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3E12192C7016009EF31B /* multiImageShader.fp */; };
 		030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3E13192C7016009EF31B /* multiImageShader.vp */; };
-		0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */; settings = {ASSET_TAGS = (); }; };
-		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; settings = {ASSET_TAGS = (); }; };
+		0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */; };
+		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
-		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; settings = {ASSET_TAGS = (); }; };
-		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; settings = {ASSET_TAGS = (); }; };
-		0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */; settings = {ASSET_TAGS = (); }; };
+		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; };
+		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; };
+		0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */; };
 		0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19D1B0BBC370087BACC /* U4DBoundingAABB.mm */; };
 		0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19F1B0BBC370087BACC /* U4DBoundingOBB.mm */; };
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
@@ -51,7 +51,7 @@
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
 		035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */; };
 		036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */; };
-		03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03659C5F1DACB1AD003E38E9 /* characterscript.u4d */; settings = {ASSET_TAGS = (); }; };
+		03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03659C5F1DACB1AD003E38E9 /* characterscript.u4d */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -87,10 +87,10 @@
 		03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DGameObject.mm */; };
-		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; settings = {ASSET_TAGS = (); }; };
-		039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */; settings = {ASSET_TAGS = (); }; };
-		039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175021CE190C300FD2674 /* U4DBVHCollision.mm */; settings = {ASSET_TAGS = (); }; };
-		039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */; settings = {ASSET_TAGS = (); }; };
+		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; };
+		039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */; };
+		039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175021CE190C300FD2674 /* U4DBVHCollision.mm */; };
+		039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */; };
 		03A9F6E81AD9D19300E81A00 /* fort.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E71AD9D19300E81A00 /* fort.png */; };
 		03A9F6EA1AD9D19A00E81A00 /* little_mansion.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6E91AD9D19A00E81A00 /* little_mansion.png */; };
 		03A9F6EC1AD9D1A000E81A00 /* small_house_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6EB1AD9D1A000E81A00 /* small_house_01.png */; };
@@ -119,21 +119,21 @@
 		03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B718E91A0AA83000C94651 /* U4DLights.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
-		03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D1FBC41D50442200B3CF6E /* U4DColorData.mm */; settings = {ASSET_TAGS = (); }; };
+		03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D1FBC41D50442200B3CF6E /* U4DColorData.mm */; };
 		03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D3740A1AE9E76A000D8535 /* U4DSpriteAnimation.mm */; };
 		03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740D1AE9FE8F000D8535 /* spriteExample.png */; };
 		03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740E1AE9FE8F000D8535 /* spriteExample.xml */; };
-		03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
-		03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559C91D53CAA200E567D5 /* gouraudShader.fp */; settings = {ASSET_TAGS = (); }; };
-		03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CA1D53CAA200E567D5 /* gouraudShader.vp */; settings = {ASSET_TAGS = (); }; };
-		03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CB1D53CAA200E567D5 /* phongShader.fp */; settings = {ASSET_TAGS = (); }; };
-		03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CC1D53CAA200E567D5 /* phongShader.vp */; settings = {ASSET_TAGS = (); }; };
-		03D559D31D53D11900E567D5 /* Rocket.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D11D53D11900E567D5 /* Rocket.mm */; settings = {ASSET_TAGS = (); }; };
-		03D559D61D53D12D00E567D5 /* Floor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D41D53D12D00E567D5 /* Floor.mm */; settings = {ASSET_TAGS = (); }; };
-		03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E01D5630AC00E567D5 /* U4DNumerical.mm */; settings = {ASSET_TAGS = (); }; };
-		03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E41D58248A00E567D5 /* U4DLogger.mm */; settings = {ASSET_TAGS = (); }; };
-		03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */; settings = {ASSET_TAGS = (); }; };
-		03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3E1D6165A800E567D5 /* U4DTrigonometry.mm */; settings = {ASSET_TAGS = (); }; };
+		03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */; };
+		03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559C91D53CAA200E567D5 /* gouraudShader.fp */; };
+		03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CA1D53CAA200E567D5 /* gouraudShader.vp */; };
+		03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CB1D53CAA200E567D5 /* phongShader.fp */; };
+		03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CC1D53CAA200E567D5 /* phongShader.vp */; };
+		03D559D31D53D11900E567D5 /* Rocket.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D11D53D11900E567D5 /* Rocket.mm */; };
+		03D559D61D53D12D00E567D5 /* Floor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D41D53D12D00E567D5 /* Floor.mm */; };
+		03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E01D5630AC00E567D5 /* U4DNumerical.mm */; };
+		03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E41D58248A00E567D5 /* U4DLogger.mm */; };
+		03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3B1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm */; };
+		03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3E1D6165A800E567D5 /* U4DTrigonometry.mm */; };
 		03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332C19EEFF7F00261B4E /* modelShader.fp */; };
 		03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03DB332D19EEFF7F00261B4E /* modelShader.vp */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
@@ -167,7 +167,7 @@
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
 		03EB59911AEF7D8C00A5F7DA /* floorTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03EB59901AEF7D8C00A5F7DA /* floorTexture.png */; };
 		03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
-		03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */; settings = {ASSET_TAGS = (); }; };
+		03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */; };
 		03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03EF7A4517F908A60023F0FD /* spriteShader.fp */; };
 		03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03EF7A4617F908A60023F0FD /* spriteShader.vp */; };
 		03EF85411791E426007D6152 /* U4DIndex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF853F1791E426007D6152 /* U4DIndex.mm */; };
@@ -179,7 +179,7 @@
 		03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A417EE29FD00712ECD /* U4DOpenGLGeometry.mm */; };
 		03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */; };
 		03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */; };
-		03FD1E641D44238B00687FD0 /* uvExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03FD1E631D44238B00687FD0 /* uvExample.png */; settings = {ASSET_TAGS = (); }; };
+		03FD1E641D44238B00687FD0 /* uvExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03FD1E631D44238B00687FD0 /* uvExample.png */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1310,7 +1310,7 @@
 		03759B2B175B0135002EB5D9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
-				LastUpgradeCheck = 0450;
+				LastUpgradeCheck = 0810;
 				ORGANIZATIONNAME = "Untold Game Studio";
 			};
 			buildConfigurationList = 03759B2E175B0135002EB5D9 /* Build configuration list for PBXProject "UntoldEngine" */;
@@ -1552,25 +1552,41 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
 				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
 				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREFIX_HEADER = "$(SRCROOT)/$(PROJECT_NAME)/UntoldEngine-Prefix.pch";
 				GCC_PREPROCESSOR_DEFINITIONS = (
 					"DEBUG=1",
 					"$(inherited)",
 				);
 				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				ONLY_ACTIVE_ARCH = YES;
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
+				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 			};
 			name = Debug;
@@ -1581,18 +1597,33 @@
 				ALWAYS_SEARCH_USER_PATHS = NO;
 				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
 				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
 				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				"CODE_SIGN_IDENTITY[sdk=iphoneos*]" = "iPhone Developer";
+				COMPRESS_PNG_FILES = NO;
 				COPY_PHASE_STRIP = YES;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_PREFIX_HEADER = "$(SRCROOT)/$(PROJECT_NAME)/UntoldEngine-Prefix.pch";
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 6.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
+				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
 			};
@@ -1609,7 +1640,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				INFOPLIST_FILE = "UntoldEngine4D/UntoldEngine-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/haroldserrano/Downloads/Simple,
@@ -1617,6 +1648,7 @@
 					Image,
 					Library/lib,
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bps.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = UntoldEngine;
 				WRAPPER_EXTENSION = app;
 			};
@@ -1633,7 +1665,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				INFOPLIST_FILE = "UntoldEngine4D/UntoldEngine-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 7.1;
+				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/haroldserrano/Downloads/Simple,
@@ -1641,6 +1673,7 @@
 					Image,
 					Library/lib,
 				);
+				PRODUCT_BUNDLE_IDENTIFIER = "com.bps.${PRODUCT_NAME:rfc1034identifier}";
 				PRODUCT_NAME = UntoldEngine;
 				WRAPPER_EXTENSION = app;
 			};

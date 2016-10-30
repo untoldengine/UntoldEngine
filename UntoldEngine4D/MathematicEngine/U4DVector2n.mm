@@ -7,6 +7,7 @@
 //
 
 #include "U4DVector2n.h"
+#include <cmath>
 
 namespace U4DEngine {
     

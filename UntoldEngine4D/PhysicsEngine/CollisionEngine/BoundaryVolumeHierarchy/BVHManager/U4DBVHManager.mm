@@ -17,6 +17,8 @@
 #include <cmath>
 #include <cstdlib>
 #include <stack>
+#include <float.h>
+#include <algorithm>
 
 
 namespace U4DEngine{
@@ -138,13 +140,13 @@ namespace U4DEngine{
             U4DPoint3n minPoints=sphere->getMinBoundaryPoint();
             U4DPoint3n maxPoints=sphere->getMaxBoundaryPoint();
             
-            xMin=MIN(minPoints.x, xMin);
-            yMin=MIN(minPoints.y, yMin);
-            zMin=MIN(minPoints.z, zMin);
+            xMin=std::min(minPoints.x, xMin);
+            yMin=std::min(minPoints.y, yMin);
+            zMin=std::min(minPoints.z, zMin);
 
-            xMax=MAX(maxPoints.x, xMax);
-            yMax=MAX(maxPoints.y, yMax);
-            zMax=MAX(maxPoints.z, zMax);
+            xMax=std::max(maxPoints.x, xMax);
+            yMax=std::max(maxPoints.y, yMax);
+            zMax=std::max(maxPoints.z, zMax);
             
         }
         
@@ -167,8 +169,8 @@ namespace U4DEngine{
         float longestDimension=0.0;
         U4DVector3n longestDimensionVector(0,0,0);
         
-        longestDimension=MAX(xDimension, yDimension);
-        longestDimension=MAX(zDimension, longestDimension);
+        longestDimension=std::max(xDimension, yDimension);
+        longestDimension=std::max(zDimension, longestDimension);
         
         U4DNumerical comparison;
         

@@ -9,6 +9,7 @@
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
 #include "U4DNumerical.h"
+#include <cmath>
 
 namespace U4DEngine {
 

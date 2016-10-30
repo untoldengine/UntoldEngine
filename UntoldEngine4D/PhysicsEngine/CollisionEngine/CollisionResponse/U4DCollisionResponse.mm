@@ -9,7 +9,7 @@
 #include "U4DCollisionResponse.h"
 #include "Constants.h"
 #include "U4DDynamicModel.h"
-
+#include <algorithm>
 
 namespace U4DEngine {
     
@@ -89,7 +89,9 @@ namespace U4DEngine {
             //at an angle.I HAVE TO REMOVE THIS MULTIPLIER.
             float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution()*2.0;
             
-            float j=MAX(-1*(vR.dot(normalCollisionVector))*(coefficientOfRestitution+1.0)/(totalInverseMasses+totalAngularEffect),U4DEngine::impulseCollisionMinimum);
+            float impulse=-1*(vR.dot(normalCollisionVector))*(coefficientOfRestitution+1.0)/(totalInverseMasses+totalAngularEffect);
+            
+            float j=std::max(impulse,U4DEngine::impulseCollisionMinimum);
             
             
             /*

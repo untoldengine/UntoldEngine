@@ -156,13 +156,13 @@ namespace U4DEngine {
 
     float U4DDirector::getDisplayHeight(){
         
-        return displayHeight;
+        return displayHeight*2.0;
 
     }
 
     float U4DDirector::getDisplayWidth(){
         
-        return displayWidth;
+        return displayWidth*2.0;
         
     }
 

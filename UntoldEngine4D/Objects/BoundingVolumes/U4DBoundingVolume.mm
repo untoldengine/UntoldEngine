@@ -11,6 +11,7 @@
 #include "U4DDirector.h"
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
+#include <float.h>
 
 namespace U4DEngine {
     
