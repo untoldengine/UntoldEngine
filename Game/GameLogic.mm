@@ -22,7 +22,7 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    ninja=dynamic_cast<MyCharacter*>(searchChild("ninja"));
+    robot=dynamic_cast<MyCharacter*>(searchChild("robot"));
     
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -35,29 +35,29 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
-        ninja->changeState(kWalking);
+        robot->changeState(kWalking);
         
     }else if(buttonA->getIsReleased()){
         
-        ninja->changeState(kNull);
+        robot->changeState(kNull);
     }
     
     if (buttonB->getIsPressed()) {
         
-        ninja->changeState(kBow);
+        robot->changeState(kJump);
         
         
     }else if(buttonB->getIsReleased()){
         
-        ninja->changeState(kNull);
+        robot->changeState(kNull);
         
     }
     
     if(joystick->getIsActive()){
         
-        ninja->changeState(kRotating);
+        robot->changeState(kRotating);
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        ninja->setJoystickData(joyData);
+        robot->setJoystickData(joyData);
        
     }
     

@@ -27,21 +27,39 @@
 #include "U4DLights.h"
 #include "U4DLogger.h"
 #include "Floor.h"
+#include "GameAsset.h"
+#include "Rock.h"
+
 
 using namespace U4DEngine;
 
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 2.0, 6.0);
+    camera->translateBy(0.0, 3.5, 12.0);
    
     //create character
-    ninja=new MyCharacter();
-    ninja->init("ninja", "characterscript.u4d");
+    robot=new MyCharacter();
+    robot->init("robot", "characterscript.u4d");
     
     //create the floor
     floor=new Floor();
-    floor->init("platform1","characterscript.u4d");
+    floor->init("platform","blenderscript.u4d");
+    
+    //create rock
+    rock=new Rock();
+    rock->init("rock","blenderscript.u4d");
+    
+    //create tree
+    tree=new GameAsset();
+    tree->init("tree","blenderscript.u4d");
+    
+    //create clouds
+    cloud=new GameAsset();
+    cloud->init("cloud","blenderscript.u4d");
+    
+    cloud2=new GameAsset();
+    cloud2->init("cloud2","blenderscript.u4d");
     
     U4DVector3n origin(0,0,0);
     
@@ -51,9 +69,17 @@ void Earth::init(){
     light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-    addChild(ninja);
+    addChild(robot);
     
     addChild(floor);
+    
+    addChild(rock);
+    
+    addChild(tree);
+    
+    addChild(cloud2);
+    
+    addChild(cloud);
     
     initLoadingModels();
     
@@ -62,8 +88,8 @@ void Earth::init(){
 
 void Earth::update(double dt){
     
-//    U4DCamera *camera=U4DCamera::sharedInstance();
-//    camera->followModel(ninja, 0.0, 2.0, 6.0);
+    U4DCamera *camera=U4DCamera::sharedInstance();
+    camera->followModel(robot, 0.0, 2.0, 12.0);
     
 
 }

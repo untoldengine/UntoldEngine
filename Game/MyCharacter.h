@@ -40,9 +40,8 @@ public:
     
     U4DEngine::U4DAnimation *walking;
     
-    U4DEngine::U4DAnimation *bow;
+    U4DEngine::U4DAnimation *jump;
     
-    int replay;
     
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     

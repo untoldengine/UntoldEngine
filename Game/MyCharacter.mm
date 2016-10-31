@@ -19,25 +19,23 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
      
         walking=new U4DEngine::U4DAnimation(this);
-        bow=new U4DEngine::U4DAnimation(this);
+        jump=new U4DEngine::U4DAnimation(this);
+        
+        setState(kNull);
         enableCollisionBehavior();
         enableKineticsBehavior();
-        translateTo(0.0,3.0,0.0);
-        initCoefficientOfRestitution(0.2);
-        setState(kNull);
-        
+        initCoefficientOfRestitution(0.0);
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
         setEntityForwardVector(viewDirectionVector);
-        
-        if (loadAnimationToModel(bow, "bow", uBlenderFile)) {
-            
-        }
+        translateTo(0.0, 3.0, 0.0);
         
         if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
             
         }
         
-        
+        if (loadAnimationToModel(jump, "jump", uBlenderFile)) {
+            
+        }
         
     }
     
@@ -55,15 +53,20 @@ void MyCharacter::update(double dt){
         
     }else if(getState()==kWalking){
         
-        if(getIsAnimationUpdatingKeyframe()){
+        U4DEngine::U4DVector3n view=getViewInDirection()*dt;
+        
+        translateBy(view);
+    }else if (getState()==kJump){
+        
+        
+        if (getIsAnimationUpdatingKeyframe()) {
             
-            U4DEngine::U4DVector3n view=getViewInDirection()*(1.0/getAnimationFPS());
-            view*=50.0;
-            view.y=0;
-            applyForce(view);
+            U4DEngine::U4DVector3n view=getViewInDirection();
+            U4DEngine::U4DVector3n jumpForce(view.x*50.0,100.0,view.z*50.0);
+            
+            applyForce(jumpForce);
             
         }
-        
     }
     
 }
@@ -93,9 +96,9 @@ void MyCharacter::changeState(GameEntityState uState){
             
             break;
             
-        case kBow:
+        case kJump:
             
-            setAnimation(bow);
+            setAnimation(jump);
             
             break;
             
