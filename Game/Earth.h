@@ -16,16 +16,20 @@
 class MyCharacter;
 
 class GameController;
-class Rocket;
+class GameAsset;
 class Floor;
+class Rock;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    MyCharacter *ninja;
-    
+    MyCharacter *robot;
     Floor *floor;
+    GameAsset *tree;
+    GameAsset *cloud;
+    GameAsset *cloud2;
+    Rock *rock;
     
 public:
    

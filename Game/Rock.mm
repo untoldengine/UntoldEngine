@@ -1,36 +1,34 @@
 //
-//  Floor.cpp
+//  Rock.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 8/4/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
 //
 
-#include "Floor.h"
+#include "Rock.h"
+#include "U4DDigitalAssetLoader.h"
 
-
-Floor::Floor(){
+Rock::Rock(){
     
 }
 
-Floor::~Floor(){
+Rock::~Rock(){
     
 }
 
-void Floor::init(const char* uName, const char* uBlenderFile){
+void Rock::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-       
-        initAsPlatform(true);
-        initMass(10.0);
-        initCoefficientOfRestitution(0.0);
         enableCollisionBehavior();
-        
+        initCoefficientOfRestitution(0.0);
     }
+    
+    
 }
 
-void Floor::update(double dt){
+void Rock::update(double dt){
     
 }

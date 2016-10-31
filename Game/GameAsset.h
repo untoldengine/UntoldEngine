@@ -1,26 +1,24 @@
 //
-//  Rocket.hpp
+//  GameAsset.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 8/4/16.
+//  Created by Harold Serrano on 10/30/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
 //
 
-#ifndef Rocket_hpp
-#define Rocket_hpp
+#ifndef GameAsset_hpp
+#define GameAsset_hpp
 
 #include <stdio.h>
 #include "U4DGameObject.h"
 
-class Rocket:public U4DEngine::U4DGameObject {
+class GameAsset:public U4DEngine::U4DGameObject {
     
-private:
+    
     
 public:
-    
-    Rocket();
-    
-    ~Rocket();
+    GameAsset(){};
+    ~GameAsset(){};
     
     void init(const char* uName, const char* uBlenderFile);
     
@@ -28,4 +26,4 @@ public:
     
 };
 
-#endif /* Rocket_hpp */
+#endif /* GameAsset_hpp */
