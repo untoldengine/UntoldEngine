@@ -144,6 +144,16 @@ namespace U4DEngine {
         return 0.0;
     }
     
+    void U4DGameObject::setPlayAnimationContinuously(bool uValue){
+        
+        if (currentAnimation!=NULL) {
+            
+            currentAnimation->setPlayContinuously(uValue);
+            
+        }
+
+    }
+    
     void U4DGameObject::applyForce(U4DVector3n &uForce){
         
         setAwake(true);
@@ -151,6 +161,8 @@ namespace U4DEngine {
         addForce(uForce);
         
     }
+    
+
 }
 
 

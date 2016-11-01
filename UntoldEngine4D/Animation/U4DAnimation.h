@@ -46,7 +46,11 @@ private:
      */
     bool animationPlaying;
     
-
+    /**
+     @todo document this
+     */
+    bool playContinuously;
+    
 public:
 
     /**
@@ -149,6 +153,16 @@ public:
      @todo document this
      */
     bool getIsUpdatingKeyframe();
+    
+    /**
+     @todo document this
+     */
+    void setPlayContinuously(bool uValue);
+    
+    /**
+     @todo document this
+     */
+    bool getPlayContinuously();
     
 };
 

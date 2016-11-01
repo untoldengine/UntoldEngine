@@ -93,12 +93,15 @@ void MyCharacter::changeState(GameEntityState uState){
         case kWalking:
             
             setAnimation(walking);
+            setPlayAnimationContinuously(false);
             
             break;
             
         case kJump:
             
             setAnimation(jump);
+            setPlayAnimationContinuously(false);
+            
             
             break;
             
