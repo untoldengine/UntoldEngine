@@ -133,6 +133,11 @@ namespace U4DEngine {
          */
         void applyForce(U4DVector3n &uForce);
         
+        /**
+         @todo document this
+         */
+        void setPlayAnimationContinuously(bool uValue);
+        
     };
 
 }

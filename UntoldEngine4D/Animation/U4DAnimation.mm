@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
     
-U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0){
+U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0),playContinuousLoop(true){
     
     u4dModel=uModel;
     
@@ -139,6 +139,10 @@ void U4DAnimation::runAnimation(){
         if (keyframe>=keyframeRange-2) {
             keyframe=0;
             
+            if (getPlayContinuousLoop()==false) {
+                stop();
+            }
+            
         }else{
             keyframe++;
         }
@@ -168,6 +172,14 @@ float U4DAnimation::getCurrentInterpolationTime(){
 bool U4DAnimation::getIsUpdatingKeyframe(){
 
     return timer->getHasTimerExpired();
+}
+    
+void U4DAnimation::setPlayContinuousLoop(bool uValue){
+    playContinuousLoop=uValue;
+}
+
+bool U4DAnimation::getPlayContinuousLoop(){
+    return playContinuousLoop;
 }
     
 
