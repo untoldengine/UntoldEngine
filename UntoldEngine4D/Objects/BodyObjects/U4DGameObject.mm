@@ -148,7 +148,7 @@ namespace U4DEngine {
         
         if (currentAnimation!=NULL) {
             
-            currentAnimation->setPlayContinuously(uValue);
+            currentAnimation->setPlayContinuousLoop(uValue);
             
         }
 

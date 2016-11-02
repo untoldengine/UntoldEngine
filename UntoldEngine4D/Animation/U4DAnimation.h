@@ -49,7 +49,7 @@ private:
     /**
      @todo document this
      */
-    bool playContinuously;
+    bool playContinuousLoop;
     
 public:
 
@@ -157,12 +157,12 @@ public:
     /**
      @todo document this
      */
-    void setPlayContinuously(bool uValue);
+    void setPlayContinuousLoop(bool uValue);
     
     /**
      @todo document this
      */
-    bool getPlayContinuously();
+    bool getPlayContinuousLoop();
     
 };
 

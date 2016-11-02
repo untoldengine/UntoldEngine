@@ -100,7 +100,7 @@ void MyCharacter::changeState(GameEntityState uState){
         case kJump:
             
             setAnimation(jump);
-            setPlayAnimationContinuously(false);
+            setPlayAnimationContinuously(true);
             
             
             break;
