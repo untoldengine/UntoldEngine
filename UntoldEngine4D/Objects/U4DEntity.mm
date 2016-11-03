@@ -463,5 +463,10 @@ namespace U4DEngine {
         return (lastDescendant==this);
         
     }
+    
+    U4DEntity* U4DEntity::getParent(){
+        
+        return parent;
+    }
 
 }
