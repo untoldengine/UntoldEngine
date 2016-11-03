@@ -520,6 +520,11 @@ public:
      */
     virtual void loadRenderingInformation(){};
     
+    /**
+     @todo document this
+     */
+    U4DEntity* getParent();
+    
 };
 
 }
