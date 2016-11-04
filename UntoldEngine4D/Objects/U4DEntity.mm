@@ -468,5 +468,50 @@ namespace U4DEngine {
         
         return parent;
     }
+    
+    U4DEntity* U4DEntity::getRootParent(){
+        
+        U4DEntity *rootParent=parent;
+        
+        while (rootParent->isRoot()==false) {
+            
+            rootParent=rootParent->parent;
+        }
+        
+        return rootParent;
+    }
 
+    U4DEntity *U4DEntity::searchChild(std::string uName){
+        
+        //get the first child
+        U4DEntity* child=next;
+        U4DEntity* childWithName=nullptr;
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        while (child!=NULL) {
+            
+            if (child->getName().compare(uName)!=0) {
+                
+                child=child->next;
+                
+            }else if (child->getName().compare(uName)==0){
+                
+                childWithName=child;
+                
+                break;
+                
+            }
+            
+        }
+        
+        if (childWithName==nullptr) {
+            
+            logger->log("Error: Child with name %s was not found.", uName.c_str());
+            
+        }
+        
+        return childWithName;
+        
+    }
 }

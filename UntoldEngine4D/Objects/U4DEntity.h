@@ -525,6 +525,15 @@ public:
      */
     U4DEntity* getParent();
     
+    /**
+     @todo document this
+     */
+    U4DEntity* getRootParent();
+    
+    /**
+     @todo document this
+     */
+    U4DEntity *searchChild(std::string uName);
 };
 
 }

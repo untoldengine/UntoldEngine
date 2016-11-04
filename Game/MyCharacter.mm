@@ -11,7 +11,8 @@
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
-
+#include "GameAsset.h"
+#include "U4DWorld.h"
 
 void MyCharacter::init(const char* uName, const char* uBlenderFile){
     
@@ -91,9 +92,15 @@ void MyCharacter::changeState(GameEntityState uState){
             break;
             
         case kWalking:
-            
+        {
             setAnimation(walking);
+         
+            GameAsset *tree=dynamic_cast<GameAsset*>(getRootParent()->searchChild("tree"));
             
+            std::cout<<tree->getName()<<std::endl;
+            
+            
+        }
             break;
             
         case kJump:
