@@ -9,6 +9,7 @@
 #include "U4DGameModel.h"
 #include "U4DEntity.h"
 #include "U4DEntityManager.h"
+#include "U4DWorld.h"
 
 namespace U4DEngine {
 
@@ -36,7 +37,7 @@ namespace U4DEngine {
     
     U4DEntity* U4DGameModel::searchChild(std::string uName){
         
-        return gameEntityManager->searchChild(uName);
+        return gameWorld->searchChild(uName);
     }
     
     U4DWorld* U4DGameModel::getGameWorld(){

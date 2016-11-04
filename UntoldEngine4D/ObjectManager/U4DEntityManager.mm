@@ -22,7 +22,7 @@
 #include "U4DCollisionResponse.h"
 #include "U4DBVHManager.h"
 #include "U4DVector3n.h"
-#include "U4DLogger.h"
+
 
 namespace U4DEngine {
     
@@ -222,41 +222,6 @@ namespace U4DEngine {
         
         
     }
-    
-    U4DEntity *U4DEntityManager::searchChild(std::string uName){
-        
-        //set the root entity
-        U4DEntity* child=rootEntity;
-        U4DEntity* childWithName=nullptr;
-        
-        U4DLogger *logger=U4DLogger::sharedInstance();
-        
-        while (child!=NULL) {
-            
-            if (child->getName().compare(uName)!=0) {
-                
-                child=child->next;
-                
-            }else if (child->getName().compare(uName)==0){
-            
-                childWithName=child;
-                
-                break;
-                
-            }
-            
-        }
-        
-        if (childWithName==nullptr) {
-        
-            logger->log("Error: Child with name %s was not found.", uName.c_str());
-            
-        }
-        
-        return childWithName;
-    
-    }
-    
     
 }
 
