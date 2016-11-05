@@ -28,66 +28,24 @@ public:
         
     typedef void (T::*pAction)();
     
-    U4DCallback(){
-        pClass=0;
-        pMethod=0;
-        
-    };
+    U4DCallback();
     
-    inline void setTimer(U4DTimer *uTimer){
-        
-        timer=uTimer;
-    }
+    void setTimer(U4DTimer *uTimer);
     
-    inline void setClass(T* uClass){
-        
-        pClass=uClass;
-        
-    }
+    void setClass(T* uClass);
     
-    inline void setMethod(pAction uMethod){
-        
-        pMethod=uMethod;
-        
-    }
+    void setMethod(pAction uMethod);
     
-    inline void scheduleClassWithMethodAndDelay(T* uClass, pAction uMethod,U4DTimer* uTimer,bool repeat){
-        
-    }
+    void scheduleClassWithMethodAndDelay(T* uClass, pAction uMethod,U4DTimer* uTimer,bool repeat);
     
-    inline void scheduleClassWithMethodAndDelay(T* uClass, pAction uMethod,U4DTimer* uTimer, double delay,bool repeat)
-    {
-        pClass=uClass;
-        pMethod=uMethod;
-        timer=uTimer;
-        
-        timer->setDelay(delay);
-        timer->setRepeat(repeat);
-        
-        //register U4DTimer with U4DScheduler
-        U4DScheduler *scheduler=U4DScheduler::sharedInstance();
-        scheduler->scheduleTimer(timer);
-    }
+    void scheduleClassWithMethodAndDelay(T* uClass, pAction uMethod,U4DTimer* uTimer, double delay,bool repeat);
     
-    inline void scheduleClassWithMethod(T* uClass, pAction uMethod)
-    {
-        pClass=uClass;
-        pMethod=uMethod;
-    }
+    void scheduleClassWithMethod(T* uClass, pAction uMethod);
     
-    inline void unScheduleTimer(U4DTimer* uTimer){
-        
-        //register U4DTimer with U4DScheduler
-        U4DScheduler *scheduler=U4DScheduler::sharedInstance();
-        scheduler->unscheduleTimer(uTimer);
-    }
+    void unScheduleTimer(U4DTimer* uTimer);
     
+    void action();
     
-    inline void action(){
-        
-        (pClass->*pMethod)();
-    }
-
 private:
     T* pClass;
     pAction pMethod;
@@ -97,4 +55,5 @@ private:
 
 }
 
+#include "U4DCallback.mm"
 #endif /* defined(__UntoldEngine__U4DCallback__) */
