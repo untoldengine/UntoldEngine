@@ -92,15 +92,8 @@ void MyCharacter::changeState(GameEntityState uState){
             break;
             
         case kWalking:
-        {
             setAnimation(walking);
          
-            GameAsset *tree=dynamic_cast<GameAsset*>(getRootParent()->searchChild("tree"));
-            
-            std::cout<<tree->getName()<<std::endl;
-            
-            
-        }
             break;
             
         case kJump:
