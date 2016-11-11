@@ -40,13 +40,18 @@ public:
     }
     
     void timerExpire(); //called when the timer has reached duration
-    void tick(double dt);
-    inline void setIndex(int uIndex){index=uIndex;};
-    inline int getIndex(){return index;};
     
-    inline void setDelay(double uDelay){delay=uDelay;};
-    inline double getDelay() const{return delay;};
-    inline void setRepeat(bool uRepeat){repeat=uRepeat;}
+    void tick(double dt);
+    
+    void setIndex(int uIndex);
+    
+    int getIndex();
+    
+    void setDelay(double uDelay);
+    
+    double getDelay() const;
+    
+    void setRepeat(bool uRepeat);
     
     bool getHasTimerExpired();
 };
