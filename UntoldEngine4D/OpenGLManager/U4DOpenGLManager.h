@@ -618,6 +618,11 @@ public:
      @brief Method which loads the shadow-bias uniform for shadow operations
      */
     virtual void loadSelfShadowBiasUniform(){};
+    
+    /**
+     @todo document this
+     */
+    void checkErrors(std::string uEntityName, std::string uOpenGLStage);
 };
 
 }
