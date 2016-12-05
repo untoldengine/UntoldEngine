@@ -13,6 +13,7 @@
 #include "U4DCamera.h"
 #include "U4DLights.h"
 #include "U4DDualQuaternion.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -404,6 +405,54 @@ void U4DOpenGLManager::loadPNGTexture(std::string uTexture, GLenum minFilter, GL
     
     image.clear();
 }
+    
+    void U4DOpenGLManager::checkErrors(std::string uEntityName, std::string uOpenGLStage){
+        
+        GLenum errorCode;
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        
+        while ( ( errorCode = glGetError() ) != GL_NO_ERROR) {
+            
+            std::string error;
+            
+            switch (errorCode) {
+                case GL_INVALID_ENUM:
+                    
+                    error="The enum argument is out of range (GL_INVALID_ENUM)";
+                    
+                    break;
+                    
+                case GL_INVALID_VALUE:
+                    
+                    error="The numeric argument is out of range (GL_INVALID_VALUE)";
+                    
+                    break;
+                    
+                case GL_INVALID_OPERATION:
+                    
+                    error="The operation is illegal in its current state (GL_INVALID_OPERATION)";
+                    
+                    break;
+                    
+                case GL_OUT_OF_MEMORY:
+                    
+                    error="Not enough memory is left to execute the command (GL_OUT_OF_MEMORY)";
+                    
+                    break;
+                    
+                default:
+                    
+                    error="There was an error but couldn't determine it what";
+                    
+                    break;
+            }
+            
+            logger->log("OPENGL ERROR: %s for entity %s while performing %s",error.c_str(), uEntityName.c_str(), uOpenGLStage.c_str());
+            
+        }
+    }
 
 }
 
