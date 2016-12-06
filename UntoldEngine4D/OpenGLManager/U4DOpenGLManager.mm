@@ -54,6 +54,8 @@ void U4DOpenGLManager::setShader(std::string uShader){
 #pragma mark-body assembly
 void U4DOpenGLManager::loadRenderingInformation(){
     
+    glUseProgram(shader);
+    
     loadVertexObjectBuffer();
     loadTextureObjectBuffer();
     enableVerticesAttributeLocations();
@@ -122,6 +124,8 @@ void U4DOpenGLManager::addCustomUniforms(CUSTOMUNIFORMS uCustomUniforms){
 
 void U4DOpenGLManager::enableCustomUniforms(){
     
+    glUseProgram(shader);
+    
     for (int i=0; i<customUniforms.size(); i++) {
         
         customUniforms[i].location=glGetUniformLocation(shader, customUniforms[i].name);
@@ -152,6 +156,8 @@ void U4DOpenGLManager::enableCustomUniforms(){
 }
 
 void U4DOpenGLManager::updateCustomUniforms(const char* uName,std::vector<float> uData){
+    
+    glUseProgram(shader);
     
     for (int i=0; i<customUniforms.size(); i++) {
         
@@ -184,6 +190,8 @@ void U4DOpenGLManager::updateCustomUniforms(const char* uName,std::vector<float>
 }
 
 void U4DOpenGLManager::getCustomUniforms(){
+    
+    glUseProgram(shader);
     
     for (int i=0; i<customUniforms.size(); i++) {
         

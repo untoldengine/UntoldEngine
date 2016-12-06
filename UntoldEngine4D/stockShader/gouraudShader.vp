@@ -6,6 +6,7 @@ in vec2 TextureCoord;
 in float MaterialIndex;
 in vec4 Weights;
 in vec4 BoneIndices;
+in vec4 TangentVector;
 
 uniform mat4 MVPMatrix;
 uniform mat3 NormalMatrix;
@@ -74,6 +75,9 @@ vec4 gouraudShading(vec3 surfaceNormal, vec4 surfacePosition, vec4 lightPosition
 
 void main(void)
 {
+
+    //Making use of the TangentVector attribute to silence the GL_INVALID_VALUE error. 
+    mediump vec4 dummy=TangentVector;
 
     if(ShadowCurrentPass==0.0){
 
