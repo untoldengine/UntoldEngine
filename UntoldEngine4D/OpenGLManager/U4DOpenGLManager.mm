@@ -54,6 +54,8 @@ void U4DOpenGLManager::setShader(std::string uShader){
 #pragma mark-body assembly
 void U4DOpenGLManager::loadRenderingInformation(){
     
+    glUseProgram(shader);
+    
     loadVertexObjectBuffer();
     loadTextureObjectBuffer();
     enableVerticesAttributeLocations();
@@ -121,6 +123,8 @@ void U4DOpenGLManager::addCustomUniforms(CUSTOMUNIFORMS uCustomUniforms){
 }
 
 void U4DOpenGLManager::enableCustomUniforms(){
+    
+    glUseProgram(shader);
     
     for (int i=0; i<customUniforms.size(); i++) {
         

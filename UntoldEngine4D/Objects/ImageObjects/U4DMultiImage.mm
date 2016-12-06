@@ -16,10 +16,6 @@ U4DMultiImage::U4DMultiImage():changeTheImage(false){
      openGlManager=new U4DOpenGLMultiImage(this);
      openGlManager->setShader("multiImageShader");
     
-     std::vector<float> data={0.0};
-    
-     addCustomUniform("ChangeImage", data);
-    
 };
 
 U4DMultiImage::~U4DMultiImage(){
@@ -33,6 +29,10 @@ void U4DMultiImage::setImages(const char* uTextureOne,const char* uTextureTwo,fl
     openGlManager->setAmbientTexture(uTextureTwo);
     openGlManager->setImageDimension(uWidth, uHeight);
     openGlManager->loadRenderingInformation();
+    
+    std::vector<float> data={0.0};
+    
+    addCustomUniform("ChangeImage", data);
     
 }
 
