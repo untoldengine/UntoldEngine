@@ -157,6 +157,8 @@ void U4DOpenGLManager::enableCustomUniforms(){
 
 void U4DOpenGLManager::updateCustomUniforms(const char* uName,std::vector<float> uData){
     
+    glUseProgram(shader);
+    
     for (int i=0; i<customUniforms.size(); i++) {
         
         if (customUniforms[i].name==uName) {
@@ -188,6 +190,8 @@ void U4DOpenGLManager::updateCustomUniforms(const char* uName,std::vector<float>
 }
 
 void U4DOpenGLManager::getCustomUniforms(){
+    
+    glUseProgram(shader);
     
     for (int i=0; i<customUniforms.size(); i++) {
         
