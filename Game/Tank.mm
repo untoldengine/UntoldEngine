@@ -22,9 +22,11 @@ void Tank::init(const char* uName, const char* uBlenderFile){
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
         setEntityForwardVector(viewDirectionVector);
         
+        translateTo(0.0, 1.2,-7.0);
+        
         tankHead=new TankHead();
         
-        tankHead->init("tankhead", "blenderscript.u4d");
+        tankHead->init("tankhead", "tankscript.u4d");
         
         addChild(tankHead);
     }
@@ -34,10 +36,6 @@ void Tank::init(const char* uName, const char* uBlenderFile){
 
 void Tank::update(double dt){
     
-    if (getState()==kRotating) {
-        
-        
-    }
     
 }
 

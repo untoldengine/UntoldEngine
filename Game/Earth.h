@@ -16,14 +16,22 @@
 class GameController;
 class Tank;
 class Floor;
+class GameAsset;
 
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    Floor *floor;
+    Floor *road;
     Tank *tankBody;
+    GameAsset *rubble;
+    GameAsset *sack1;
+    GameAsset *sack2;
+    GameAsset *tire;
+    GameAsset *landscape;
+    GameAsset *house1;
+    GameAsset *house2;
     
 public:
    

@@ -45,13 +45,12 @@ void GameLogic::receiveTouchUpdate(){
         
         bullet->init("bullet", "characterscript.u4d");
         
-        bullet->translateTo(0.0, tankBody->getAbsolutePosition().y, 0.0);
+        bullet->translateTo(tankHead->getAbsolutePosition().x,tankHead->getAbsolutePosition().y,tankHead->getAbsolutePosition().z);
         
         U4DEngine::U4DVector3n viewDirection(tankHead->getViewInDirection().x,tankHead->getAbsolutePosition().y,tankHead->getViewInDirection().z);
         
         bullet->setEntityForwardVector(viewDirection);
        
-        
         bullet->changeState(kShooting);
         
         world->addChild(bullet);
