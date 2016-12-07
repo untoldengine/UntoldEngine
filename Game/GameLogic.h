@@ -12,7 +12,7 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "MyCharacter.h"
+#include "Tank.h"
 
 
 namespace U4DEngine {
@@ -22,8 +22,11 @@ namespace U4DEngine {
 }
 
 class GameLogic:public U4DEngine::U4DGameModel{
+    
 public:
-    MyCharacter *robot;
+    
+    Tank *tankBody;
+    
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;

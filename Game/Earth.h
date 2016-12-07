@@ -13,23 +13,17 @@
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
 
-class MyCharacter;
-
 class GameController;
-class GameAsset;
+class Tank;
 class Floor;
-class Rock;
+
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    MyCharacter *robot;
     Floor *floor;
-    GameAsset *tree;
-    GameAsset *cloud;
-    GameAsset *cloud2;
-    Rock *rock;
+    Tank *tankBody;
     
 public:
    

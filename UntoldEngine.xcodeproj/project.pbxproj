@@ -50,6 +50,12 @@
 		03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */; };
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
 		035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */; };
+		03611CC31DF7424400BC356E /* Tank.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CC11DF7424400BC356E /* Tank.mm */; };
+		03611CC71DF7440C00BC356E /* tankBodyFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CC41DF7440C00BC356E /* tankBodyFinalTexture.png */; };
+		03611CC81DF7440C00BC356E /* tankHeadFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CC51DF7440C00BC356E /* tankHeadFinalTexture.png */; };
+		03611CC91DF7440C00BC356E /* tankNozzleFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CC61DF7440C00BC356E /* tankNozzleFinalTexture.png */; };
+		03611CCC1DF745DC00BC356E /* Bullet.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CCA1DF745DC00BC356E /* Bullet.mm */; };
+		03611CCF1DF792BF00BC356E /* TankHead.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CCD1DF792BF00BC356E /* TankHead.mm */; };
 		036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */; };
 		03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03659C5F1DACB1AD003E38E9 /* characterscript.u4d */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
@@ -251,6 +257,15 @@
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
 		035D65EC195F4EEF002E2BCF /* U4DOpenGLMultiImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLMultiImage.h; sourceTree = "<group>"; };
 		035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLMultiImage.mm; sourceTree = "<group>"; };
+		03611CC11DF7424400BC356E /* Tank.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Tank.mm; sourceTree = "<group>"; };
+		03611CC21DF7424400BC356E /* Tank.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Tank.h; sourceTree = "<group>"; };
+		03611CC41DF7440C00BC356E /* tankBodyFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = tankBodyFinalTexture.png; path = Resources/tankBodyFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03611CC51DF7440C00BC356E /* tankHeadFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = tankHeadFinalTexture.png; path = Resources/tankHeadFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03611CC61DF7440C00BC356E /* tankNozzleFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = tankNozzleFinalTexture.png; path = Resources/tankNozzleFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03611CCA1DF745DC00BC356E /* Bullet.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Bullet.mm; sourceTree = "<group>"; };
+		03611CCB1DF745DC00BC356E /* Bullet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Bullet.h; sourceTree = "<group>"; };
+		03611CCD1DF792BF00BC356E /* TankHead.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TankHead.mm; sourceTree = "<group>"; };
+		03611CCE1DF792BF00BC356E /* TankHead.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TankHead.h; sourceTree = "<group>"; };
 		036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLFont.mm; sourceTree = "<group>"; };
 		036435C31863D88900E2A6F6 /* U4DOpenGLFont.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLFont.h; sourceTree = "<group>"; };
 		03659C5F1DACB1AD003E38E9 /* characterscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = characterscript.u4d; path = Game/characterscript.u4d; sourceTree = SOURCE_ROOT; };
@@ -619,6 +634,12 @@
 				036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */,
 				03B502031DC69B2D00A6DD0A /* GameAsset.h */,
 				03B502021DC69B2D00A6DD0A /* GameAsset.mm */,
+				03611CC21DF7424400BC356E /* Tank.h */,
+				03611CC11DF7424400BC356E /* Tank.mm */,
+				03611CCB1DF745DC00BC356E /* Bullet.h */,
+				03611CCA1DF745DC00BC356E /* Bullet.mm */,
+				03611CCE1DF792BF00BC356E /* TankHead.h */,
+				03611CCD1DF792BF00BC356E /* TankHead.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -886,6 +907,9 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03611CC41DF7440C00BC356E /* tankBodyFinalTexture.png */,
+				03611CC51DF7440C00BC356E /* tankHeadFinalTexture.png */,
+				03611CC61DF7440C00BC356E /* tankNozzleFinalTexture.png */,
 				03659C5F1DACB1AD003E38E9 /* characterscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
@@ -1355,11 +1379,14 @@
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */,
+				03611CC71DF7440C00BC356E /* tankBodyFinalTexture.png in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
+				03611CC81DF7440C00BC356E /* tankHeadFinalTexture.png in Resources */,
+				03611CC91DF7440C00BC356E /* tankNozzleFinalTexture.png in Resources */,
 				03A9F6FA1ADB0BC800E81A00 /* BottomImage.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1438,6 +1465,7 @@
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
 				036FB58218CE9CB8000EA639 /* MyCharacter.mm in Sources */,
+				03611CCC1DF745DC00BC356E /* Bullet.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
@@ -1463,6 +1491,7 @@
 				03EF85411791E426007D6152 /* U4DIndex.mm in Sources */,
 				035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */,
 				03E6ED6C1943D6FE007AD131 /* U4DJoyStick.mm in Sources */,
+				03611CCF1DF792BF00BC356E /* TankHead.mm in Sources */,
 				03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */,
 				036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkyBox.mm in Sources */,
@@ -1479,6 +1508,7 @@
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
+				03611CC31DF7424400BC356E /* Tank.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
 				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03E6ED841943D78C007AD131 /* U4DSprite.mm in Sources */,

@@ -7,13 +7,16 @@
 //
 
 #include "GameLogic.h"
-#include "MyCharacter.h"
+#include "Tank.h"
 #include "UserCommonProtocols.h"
 #include "U4DControllerInterface.h"
 #include "GameController.h"
 #include "U4DButton.h"
 #include "U4DJoyStick.h"
 #include "CommonProtocols.h"
+#include "Bullet.h"
+#include "U4DWorld.h"
+#include "TankHead.h"
 
 void GameLogic::update(double dt){
 
@@ -22,8 +25,8 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    robot=dynamic_cast<MyCharacter*>(searchChild("robot"));
-    
+    tankBody=dynamic_cast<Tank*>(searchChild("tankbody"));
+        
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
     joystick=getGameController()->getJoyStickWithName("joystick");
@@ -32,32 +35,52 @@ void GameLogic::init(){
 
 void GameLogic::receiveTouchUpdate(){
 
+    TankHead * tankHead=tankBody->getTankHead();
     
     if (buttonA->getIsPressed()) {
         
-        robot->changeState(kWalking);
+        U4DEngine::U4DWorld *world=getGameWorld();
+        
+        Bullet *bullet=new Bullet();
+        
+        bullet->init("bullet", "characterscript.u4d");
+        
+        bullet->translateTo(0.0, tankBody->getAbsolutePosition().y, 0.0);
+        
+        U4DEngine::U4DVector3n viewDirection(tankHead->getViewInDirection().x,tankHead->getAbsolutePosition().y,tankHead->getViewInDirection().z);
+        
+        bullet->setEntityForwardVector(viewDirection);
+       
+        
+        bullet->changeState(kShooting);
+        
+        world->addChild(bullet);
+        
+        bullet->loadRenderingInformation();
+        
+        //robot->changeState(kWalking);
         
     }else if(buttonA->getIsReleased()){
         
-        robot->changeState(kNull);
+        //robot->changeState(kNull);
     }
     
     if (buttonB->getIsPressed()) {
         
-        robot->changeState(kJump);
+        //robot->changeState(kJump);
         
         
     }else if(buttonB->getIsReleased()){
         
-        robot->changeState(kNull);
+        //robot->changeState(kNull);
         
     }
     
     if(joystick->getIsActive()){
         
-        robot->changeState(kRotating);
+        tankHead->changeState(kRotating);
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        robot->setJoystickData(joyData);
+        tankHead->setJoystickData(joyData);
        
     }
     
