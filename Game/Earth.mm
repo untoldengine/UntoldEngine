@@ -38,8 +38,8 @@ void Earth::init(){
    
     setName("earth");
     
-    tankBody=new Tank();
-    tankBody->init("tankbody", "tankscript.u4d");
+    tank=new Tank();
+    tank->init("tankbody", "tankscript.u4d");
     
     road=new Floor();
     road->init("road", "blenderscript.u4d");
@@ -73,7 +73,7 @@ void Earth::init(){
     light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-    addChild(tankBody);
+    addChild(tank);
     
     addChild(road);
     

@@ -7,12 +7,18 @@
 //
 
 #include "Tank.h"
-#include "TankHead.h"
-#include "U4DCamera.h"
-#include "U4DDigitalAssetLoader.h"
-#include "U4DAnimation.h"
-#include "GameAsset.h"
-#include "U4DWorld.h"
+#include "TankGun.h"
+
+Tank::Tank(){
+    
+    
+}
+
+Tank::~Tank(){
+    
+    
+}
+
 
 void Tank::init(const char* uName, const char* uBlenderFile){
     
@@ -20,15 +26,19 @@ void Tank::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
+        
         setEntityForwardVector(viewDirectionVector);
         
-        translateTo(0.0, 1.2,-7.0);
+        translateTo(0.0, 0.5, -6.0);
         
-        tankHead=new TankHead();
+        tankGun=new TankGun();
         
-        tankHead->init("tankhead", "tankscript.u4d");
+        tankGun->init("tankhead", "tankscript.u4d");
         
-        addChild(tankHead);
+        tankGun->setEntityForwardVector(viewDirectionVector);
+        
+        addChild(tankGun);
+        
     }
     
     
@@ -36,45 +46,9 @@ void Tank::init(const char* uName, const char* uBlenderFile){
 
 void Tank::update(double dt){
     
-    
-}
-
-void Tank::setState(GameEntityState uState){
-    entityState=uState;
-}
-
-GameEntityState Tank::getState(){
-    return entityState;
-}
-
-void Tank::changeState(GameEntityState uState){
-    
-    
-    setState(uState);
-    
-    switch (uState) {
-        case kRotating:
-            
-            break;
-            
-        case kWalking:
-            
-            
-            break;
-            
-        case kJump:
-            
-            
-            break;
-            
-        default:
-            
-            break;
+    if (getState()==kAiming) {
+        
+        tankGun->setJoystickData(joyStickData);
+        tankGun->changeState(kAiming);
     }
-    
 }
-
-TankHead* Tank::getTankHead(){
-    return tankHead;
-}
-

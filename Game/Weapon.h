@@ -1,36 +1,44 @@
 //
-//  TankHead.hpp
+//  Weapon.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 12/6/16.
+//  Created by Harold Serrano on 12/7/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
 //
 
-#ifndef TankHead_hpp
-#define TankHead_hpp
+#ifndef Weapon_hpp
+#define Weapon_hpp
 
 #include <stdio.h>
-#include <string>
 #include "U4DGameObject.h"
-#include "CommonProtocols.h"
+#include "WeaponBehavior.h"
 #include "UserCommonProtocols.h"
 
-class TankHead:public U4DEngine::U4DGameObject{
+class Weapon:public U4DEngine::U4DGameObject {
     
 private:
     
-    U4DEngine::U4DVector3n joyStickData;
     GameEntityState entityState;
+    
+    WeaponBehavior *aimBehavior;
+    
+protected:
+    
+    U4DEngine::U4DVector3n joyStickData;
     
 public:
     
-    TankHead():joyStickData(0.0,0.0,0.0){};
+    Weapon();
     
-    float x,y,z;
+    ~Weapon();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
+    
+    void setWeaponBehavior(WeaponBehavior *uWeaponBehavior);
+    
+    void aim(U4DEngine::U4DVector3n &uTarget);
     
     void changeState(GameEntityState uState);
     
@@ -38,8 +46,7 @@ public:
     
     GameEntityState getState();
     
-    
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     
 };
-#endif /* TankHead_hpp */
+#endif /* Weapon_hpp */

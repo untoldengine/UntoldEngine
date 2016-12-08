@@ -11,10 +11,8 @@
 
 typedef enum{
     
-    kWalking,
-    kRotating,
-    kJump,
     kShooting,
+    kAiming,
     kNull
     
 }GameEntityState;

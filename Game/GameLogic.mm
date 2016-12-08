@@ -16,7 +16,7 @@
 #include "CommonProtocols.h"
 #include "Bullet.h"
 #include "U4DWorld.h"
-#include "TankHead.h"
+
 
 void GameLogic::update(double dt){
 
@@ -25,7 +25,7 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    tankBody=dynamic_cast<Tank*>(searchChild("tankbody"));
+    tank=dynamic_cast<Tank*>(searchChild("tankbody"));
         
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -34,11 +34,9 @@ void GameLogic::init(){
 }
 
 void GameLogic::receiveTouchUpdate(){
-
-    TankHead * tankHead=tankBody->getTankHead();
     
     if (buttonA->getIsPressed()) {
-        
+        /*
         U4DEngine::U4DWorld *world=getGameWorld();
         
         Bullet *bullet=new Bullet();
@@ -56,7 +54,7 @@ void GameLogic::receiveTouchUpdate(){
         world->addChild(bullet);
         
         bullet->loadRenderingInformation();
-        
+        */
         //robot->changeState(kWalking);
         
     }else if(buttonA->getIsReleased()){
@@ -77,9 +75,9 @@ void GameLogic::receiveTouchUpdate(){
     
     if(joystick->getIsActive()){
         
-        tankHead->changeState(kRotating);
+        tank->changeState(kAiming);
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        tankHead->setJoystickData(joyData);
+        tank->setJoystickData(joyData);
        
     }
     

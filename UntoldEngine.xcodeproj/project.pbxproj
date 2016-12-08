@@ -55,7 +55,6 @@
 		03611CC81DF7440C00BC356E /* tankHeadFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CC51DF7440C00BC356E /* tankHeadFinalTexture.png */; };
 		03611CC91DF7440C00BC356E /* tankNozzleFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CC61DF7440C00BC356E /* tankNozzleFinalTexture.png */; };
 		03611CCC1DF745DC00BC356E /* Bullet.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CCA1DF745DC00BC356E /* Bullet.mm */; };
-		03611CCF1DF792BF00BC356E /* TankHead.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CCD1DF792BF00BC356E /* TankHead.mm */; };
 		03611CD11DF7B9B200BC356E /* tankscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03611CD01DF7B9B200BC356E /* tankscript.u4d */; };
 		03611CDA1DF7C0FB00BC356E /* house1FinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CD21DF7C0FB00BC356E /* house1FinalTexture.png */; };
 		03611CDB1DF7C0FB00BC356E /* house2FinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CD31DF7C0FB00BC356E /* house2FinalTexture.png */; };
@@ -65,6 +64,12 @@
 		03611CDF1DF7C0FB00BC356E /* sack1FinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CD71DF7C0FB00BC356E /* sack1FinalTexture.png */; };
 		03611CE01DF7C0FB00BC356E /* sack2FinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CD81DF7C0FB00BC356E /* sack2FinalTexture.png */; };
 		03611CE11DF7C0FB00BC356E /* tireFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03611CD91DF7C0FB00BC356E /* tireFinalTexture.png */; };
+		03611CE41DF8FDFE00BC356E /* Artillery.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CE21DF8FDFE00BC356E /* Artillery.mm */; };
+		03611CE71DF8FE6700BC356E /* WeaponBehavior.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CE51DF8FE6700BC356E /* WeaponBehavior.mm */; };
+		03611CEA1DF8FF9D00BC356E /* AimUpDown.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CE81DF8FF9D00BC356E /* AimUpDown.mm */; };
+		03611CED1DF9054800BC356E /* Weapon.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CEB1DF9054800BC356E /* Weapon.mm */; };
+		03611CF01DF90EAC00BC356E /* TankGun.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CEE1DF90EAC00BC356E /* TankGun.mm */; };
+		03611CF31DF9152C00BC356E /* AimLeftRight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CF11DF9152C00BC356E /* AimLeftRight.mm */; };
 		036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */; };
 		03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03659C5F1DACB1AD003E38E9 /* characterscript.u4d */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
@@ -273,8 +278,6 @@
 		03611CC61DF7440C00BC356E /* tankNozzleFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = tankNozzleFinalTexture.png; path = Resources/tankNozzleFinalTexture.png; sourceTree = SOURCE_ROOT; };
 		03611CCA1DF745DC00BC356E /* Bullet.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Bullet.mm; sourceTree = "<group>"; };
 		03611CCB1DF745DC00BC356E /* Bullet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Bullet.h; sourceTree = "<group>"; };
-		03611CCD1DF792BF00BC356E /* TankHead.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TankHead.mm; sourceTree = "<group>"; };
-		03611CCE1DF792BF00BC356E /* TankHead.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TankHead.h; sourceTree = "<group>"; };
 		03611CD01DF7B9B200BC356E /* tankscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = tankscript.u4d; path = Resources/tankscript.u4d; sourceTree = SOURCE_ROOT; };
 		03611CD21DF7C0FB00BC356E /* house1FinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = house1FinalTexture.png; path = Resources/house1FinalTexture.png; sourceTree = SOURCE_ROOT; };
 		03611CD31DF7C0FB00BC356E /* house2FinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = house2FinalTexture.png; path = Resources/house2FinalTexture.png; sourceTree = SOURCE_ROOT; };
@@ -284,6 +287,18 @@
 		03611CD71DF7C0FB00BC356E /* sack1FinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = sack1FinalTexture.png; path = Resources/sack1FinalTexture.png; sourceTree = SOURCE_ROOT; };
 		03611CD81DF7C0FB00BC356E /* sack2FinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = sack2FinalTexture.png; path = Resources/sack2FinalTexture.png; sourceTree = SOURCE_ROOT; };
 		03611CD91DF7C0FB00BC356E /* tireFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = tireFinalTexture.png; path = Resources/tireFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03611CE21DF8FDFE00BC356E /* Artillery.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Artillery.mm; sourceTree = "<group>"; };
+		03611CE31DF8FDFE00BC356E /* Artillery.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Artillery.h; sourceTree = "<group>"; };
+		03611CE51DF8FE6700BC356E /* WeaponBehavior.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = WeaponBehavior.mm; sourceTree = "<group>"; };
+		03611CE61DF8FE6700BC356E /* WeaponBehavior.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = WeaponBehavior.h; sourceTree = "<group>"; };
+		03611CE81DF8FF9D00BC356E /* AimUpDown.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AimUpDown.mm; sourceTree = "<group>"; };
+		03611CE91DF8FF9D00BC356E /* AimUpDown.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AimUpDown.h; sourceTree = "<group>"; };
+		03611CEB1DF9054800BC356E /* Weapon.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Weapon.mm; sourceTree = "<group>"; };
+		03611CEC1DF9054800BC356E /* Weapon.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Weapon.h; sourceTree = "<group>"; };
+		03611CEE1DF90EAC00BC356E /* TankGun.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = TankGun.mm; sourceTree = "<group>"; };
+		03611CEF1DF90EAC00BC356E /* TankGun.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TankGun.h; sourceTree = "<group>"; };
+		03611CF11DF9152C00BC356E /* AimLeftRight.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AimLeftRight.mm; sourceTree = "<group>"; };
+		03611CF21DF9152C00BC356E /* AimLeftRight.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AimLeftRight.h; sourceTree = "<group>"; };
 		036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLFont.mm; sourceTree = "<group>"; };
 		036435C31863D88900E2A6F6 /* U4DOpenGLFont.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLFont.h; sourceTree = "<group>"; };
 		03659C5F1DACB1AD003E38E9 /* characterscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = characterscript.u4d; path = Game/characterscript.u4d; sourceTree = SOURCE_ROOT; };
@@ -656,8 +671,18 @@
 				03611CC11DF7424400BC356E /* Tank.mm */,
 				03611CCB1DF745DC00BC356E /* Bullet.h */,
 				03611CCA1DF745DC00BC356E /* Bullet.mm */,
-				03611CCE1DF792BF00BC356E /* TankHead.h */,
-				03611CCD1DF792BF00BC356E /* TankHead.mm */,
+				03611CE31DF8FDFE00BC356E /* Artillery.h */,
+				03611CE21DF8FDFE00BC356E /* Artillery.mm */,
+				03611CE61DF8FE6700BC356E /* WeaponBehavior.h */,
+				03611CE51DF8FE6700BC356E /* WeaponBehavior.mm */,
+				03611CE91DF8FF9D00BC356E /* AimUpDown.h */,
+				03611CE81DF8FF9D00BC356E /* AimUpDown.mm */,
+				03611CF21DF9152C00BC356E /* AimLeftRight.h */,
+				03611CF11DF9152C00BC356E /* AimLeftRight.mm */,
+				03611CEC1DF9054800BC356E /* Weapon.h */,
+				03611CEB1DF9054800BC356E /* Weapon.mm */,
+				03611CEF1DF90EAC00BC356E /* TankGun.h */,
+				03611CEE1DF90EAC00BC356E /* TankGun.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -1438,6 +1463,7 @@
 				036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */,
 				0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */,
 				03759B49175B0135002EB5D9 /* main.m in Sources */,
+				03611CF01DF90EAC00BC356E /* TankGun.mm in Sources */,
 				03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */,
 				0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
@@ -1448,6 +1474,7 @@
 				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
 				0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */,
 				03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */,
+				03611CF31DF9152C00BC356E /* AimLeftRight.mm in Sources */,
 				034DBC7C1A73E08C00AC43EB /* U4DDebugger.mm in Sources */,
 				0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */,
 				03E6EDEE1943D8A2007AD131 /* U4DTimer.mm in Sources */,
@@ -1467,11 +1494,13 @@
 				03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */,
 				03759BB6175B0383002EB5D9 /* U4DQuaternion.mm in Sources */,
 				03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */,
+				03611CED1DF9054800BC356E /* Weapon.mm in Sources */,
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,
+				03611CE41DF8FDFE00BC356E /* Artillery.mm in Sources */,
 				036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */,
 				03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */,
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
@@ -1487,6 +1516,7 @@
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
+				03611CEA1DF8FF9D00BC356E /* AimUpDown.mm in Sources */,
 				03E6ED9F1943D799007AD131 /* U4DFont.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
@@ -1527,7 +1557,6 @@
 				03EF85411791E426007D6152 /* U4DIndex.mm in Sources */,
 				035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */,
 				03E6ED6C1943D6FE007AD131 /* U4DJoyStick.mm in Sources */,
-				03611CCF1DF792BF00BC356E /* TankHead.mm in Sources */,
 				03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */,
 				036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkyBox.mm in Sources */,
@@ -1544,6 +1573,7 @@
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
+				03611CE71DF8FE6700BC356E /* WeaponBehavior.mm in Sources */,
 				03611CC31DF7424400BC356E /* Tank.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
 				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,

@@ -50,16 +50,9 @@ void Bullet::changeState(GameEntityState uState){
     setState(uState);
     
     switch (uState) {
-        case kRotating:
+        case kShooting:
             
             break;
-            
-        case kWalking:
-            
-            
-            break;
-            
-        case kJump:
             
             
             break;

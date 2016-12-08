@@ -24,7 +24,7 @@ class Earth:public U4DEngine::U4DWorld{
 private:
     
     Floor *road;
-    Tank *tankBody;
+    Tank *tank;
     GameAsset *rubble;
     GameAsset *sack1;
     GameAsset *sack2;

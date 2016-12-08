@@ -25,7 +25,7 @@ class GameLogic:public U4DEngine::U4DGameModel{
     
 public:
     
-    Tank *tankBody;
+    Tank *tank;
     
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;

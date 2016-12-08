@@ -11,38 +11,29 @@
 
 #include <stdio.h>
 #include <string>
-#include "U4DGameObject.h"
+#include "Artillery.h"
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
-#include "TankHead.h"
 
-class Tank:public U4DEngine::U4DGameObject{
+
+class TankGun;
+
+class Tank:public Artillery{
     
 private:
-    
-    U4DEngine::U4DVector3n joyStickData;
-    GameEntityState entityState;
-    TankHead *tankHead;
+
+    TankGun *tankGun;
     
 public:
+
+    Tank();
     
-    Tank():joyStickData(0.0,0.0,0.0){};
-    
-    float x,y,z;
+    ~Tank();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
     
-    void changeState(GameEntityState uState);
-    
-    void setState(GameEntityState uState);
-    
-    GameEntityState getState();
-    
-    TankHead* getTankHead();
-    
-    inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     
 };
 
