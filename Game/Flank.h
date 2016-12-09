@@ -14,10 +14,11 @@
 #include "Artillery.h"
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
-
+#include "U4DWorld.h"
 
 class FlankGun;
 class FlankRotor;
+
 
 class Flank:public Artillery{
     
@@ -25,6 +26,7 @@ private:
     
     FlankGun *flankGun;
     FlankRotor *flankRotor;
+    U4DEngine::U4DWorld *world;
     
 public:
     
@@ -41,5 +43,7 @@ public:
     FlankGun* getFlankGun();
     
     FlankRotor* getFlankRotor();
+    
+    void setWorld(U4DEngine::U4DWorld *uWorld);
 };
 #endif /* Flank_hpp */

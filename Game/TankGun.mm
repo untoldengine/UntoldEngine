@@ -27,6 +27,12 @@ void TankGun::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
+        enableCollisionBehavior();
+        
+        initCoefficientOfRestitution(0.0);
+        
+        initMass(10.0);
+        
         changeState(kNull);
         
     }

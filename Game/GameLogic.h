@@ -13,8 +13,6 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 
-
-class Tank;
 class Flank;
 class Bullet;
 
@@ -27,8 +25,7 @@ namespace U4DEngine {
 class GameLogic:public U4DEngine::U4DGameModel{
     
 public:
-    
-    Tank *tank;
+
     Flank *flank;
     
     GameEntityState gameEntityState;

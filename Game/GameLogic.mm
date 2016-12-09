@@ -27,7 +27,7 @@ void GameLogic::update(double dt){
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
     U4DEngine::U4DVector3n cameraAimVector=flank->getAimVector();
-    
+    cameraAimVector.y*=5.0;
     camera->viewInDirection(cameraAimVector);
     
     
@@ -36,8 +36,6 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    tank=dynamic_cast<Tank*>(searchChild("tankbody"));
-    
     flank=dynamic_cast<Flank*>(searchChild("flankbase"));
         
     buttonA=getGameController()->getButtonWithName("buttonA");
@@ -50,26 +48,7 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
-        U4DEngine::U4DWorld *world=getGameWorld();
-        
-        Bullet *bullet=new Bullet();
-        
-        bullet->init("bullet", "characterscript.u4d");
-        
-        bullet->translateTo(flank->getAbsolutePosition().x,flank->getAbsolutePosition().y,flank->getAbsolutePosition().z);
-        
-        U4DEngine::U4DVector3n viewDirection=flank->getAimVector();
-        
-        bullet->setEntityForwardVector(viewDirection);
-       
-        bullet->changeState(kShooting);
-        
-        world->addChild(bullet);
-        
-        bullet->loadRenderingInformation();
-        
-        bullet->setWorld(world);
-        
+        flank->changeState(kShooting);
         
     }else if(buttonA->getIsReleased()){
         

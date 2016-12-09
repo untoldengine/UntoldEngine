@@ -24,6 +24,8 @@ void Bullet::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         enableKineticsBehavior();
+        enableCollisionBehavior();
+        
         
         U4DEngine::U4DVector3n gravityForce(0.0,0.0,0.0);
         setGravity(gravityForce);
@@ -51,6 +53,15 @@ void Bullet::update(double dt){
         
     }
     
+    if(getModelHasCollided()){
+        
+        scheduler->unScheduleTimer(timer);
+        selfDestroy();
+        
+    }
+    
+    
+    
 }
 
 void Bullet::setState(GameEntityState uState){
@@ -67,10 +78,14 @@ void Bullet::changeState(GameEntityState uState){
     setState(uState);
     
     switch (uState) {
+            
         case kShooting:
             
             break;
             
+        case kCollided:
+            
+            resetGravity();
             
             break;
             
@@ -81,9 +96,22 @@ void Bullet::changeState(GameEntityState uState){
     
 }
 
-void Bullet::setWorld(U4DEngine::U4DWorld *uWorld){
+
+void Bullet::setShootingParameters(U4DEngine::U4DWorld *uWorld, U4DEngine::U4DVector3n &uPosition, U4DEngine::U4DVector3n &uViewDirection){
     
+    translateTo(uPosition);
     world=uWorld;
+    setEntityForwardVector(uViewDirection);
+
+}
+
+void Bullet::shoot(){
+    
+    changeState(kShooting);
+    
+    world->addChild(this);
+    
+    loadRenderingInformation();
 }
 
 void Bullet::selfDestroy(){

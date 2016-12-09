@@ -9,9 +9,9 @@
 #include "Flank.h"
 #include "FlankRotor.h"
 #include "FlankGun.h"
+#include "Bullet.h"
 
-
-Flank::Flank(){
+Flank::Flank():world(NULL){
     
     
 }
@@ -64,7 +64,32 @@ void Flank::update(double dt){
         flankGun->setJoystickData(joyStickData);
         flankGun->changeState(kAiming);
       
-    }    
+    }else if (getState()==kShooting){
+        
+        
+        if(world!=NULL){
+            
+            //create the bullet
+            Bullet *bullet=new Bullet();
+            
+            bullet->init("bullet", "characterscript.u4d");
+            
+            U4DEngine::U4DVector3n position=getAbsolutePosition();
+            U4DEngine::U4DVector3n aimVector=getAimVector();
+            
+            bullet->setShootingParameters(world, position, aimVector);
+            
+            bullet->shoot();
+            
+        }
+        
+        changeState(kNull);
+    }
+}
+
+void Flank::setWorld(U4DEngine::U4DWorld *uWorld){
+ 
+    world=uWorld;
 }
 
 U4DEngine::U4DVector3n Flank::getAimVector(){

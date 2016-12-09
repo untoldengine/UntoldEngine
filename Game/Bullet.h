@@ -44,8 +44,9 @@ public:
     
     GameEntityState getState();
     
-    void setWorld(U4DEngine::U4DWorld *uWorld);
+    void setShootingParameters(U4DEngine::U4DWorld *uWorld,U4DEngine::U4DVector3n &uPosition, U4DEngine::U4DVector3n &uViewDirection);
     
+    void shoot();
     
     void selfDestroy();
     

@@ -35,15 +35,19 @@ using namespace U4DEngine;
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0,2.5,7.0);
+    camera->translateBy(0.0,4.0,7.5);
    
     setName("earth");
     
-    //tank=new Tank();
-    //tank->init("tankbody", "tankscript.u4d");
+    tank=new Tank();
+    tank->init("tankbody", "tankscript.u4d");
+    
+    tank->setWorld(this);
     
     flank=new Flank();
     flank->init("flankbase", "flankscript.u4d");
+    
+    flank->setWorld(this);
     
     road=new Floor();
     road->init("road", "blenderscript.u4d");
@@ -78,7 +82,7 @@ void Earth::init(){
     light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-    //addChild(tank);
+    addChild(tank);
     
     addChild(flank);
     
@@ -99,7 +103,6 @@ void Earth::init(){
     addChild(house2);
     
     initLoadingModels();
-    
     
 }
 
