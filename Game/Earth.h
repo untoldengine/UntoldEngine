@@ -17,6 +17,7 @@ class GameController;
 class Tank;
 class Floor;
 class GameAsset;
+class Flank;
 
 
 class Earth:public U4DEngine::U4DWorld{
@@ -25,6 +26,7 @@ private:
     
     Floor *road;
     Tank *tank;
+    Flank *flank;
     GameAsset *rubble;
     GameAsset *sack1;
     GameAsset *sack2;

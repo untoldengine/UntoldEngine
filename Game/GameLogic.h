@@ -12,8 +12,10 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "Tank.h"
 
+
+class Tank;
+class Flank;
 
 namespace U4DEngine {
     class U4DTouches;
@@ -26,6 +28,7 @@ class GameLogic:public U4DEngine::U4DGameModel{
 public:
     
     Tank *tank;
+    Flank *flank;
     
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;

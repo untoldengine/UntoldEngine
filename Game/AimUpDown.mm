@@ -20,9 +20,25 @@ AimUpDown::~AimUpDown(){
 }
 
 void AimUpDown::aim(Weapon *uWeapon, U4DEngine::U4DVector3n &uTarget){
+        
+    U4DEngine::U4DVector3n view=uWeapon->getViewInDirection();
+    U4DEngine::U4DVector3n targetView;
     
-    U4DEngine::U4DVector3n setAim(uTarget.x,uWeapon->getAbsolutePosition().y,0.0);
+    float scalar=2.0;
     
-    uWeapon->viewInDirection(setAim);
+    if (uTarget.y<=0.0) {
+        targetView.y=uWeapon->getAbsolutePosition().y;
+        scalar=1.0;
+        
+    }else{
+        
+        targetView.y=uWeapon->getAbsolutePosition().y*uTarget.y*scalar;
+        
+    }
+    
+    targetView.x=uWeapon->getAbsolutePosition().x;
+    targetView.z=view.z;
+    
+    uWeapon->viewInDirection(targetView);
     
 }

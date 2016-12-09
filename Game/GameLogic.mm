@@ -16,16 +16,27 @@
 #include "CommonProtocols.h"
 #include "Bullet.h"
 #include "U4DWorld.h"
-
+#include "Tank.h"
+#include "Flank.h"
+#include "U4DCamera.h"
 
 void GameLogic::update(double dt){
 
+    
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    
+    U4DEngine::U4DVector3n cameraAimVector=flank->getAimVector();
+    
+    camera->viewInDirection(cameraAimVector);
+    
 }
 
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
     tank=dynamic_cast<Tank*>(searchChild("tankbody"));
+    
+    flank=dynamic_cast<Flank*>(searchChild("flankbase"));
         
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -75,10 +86,12 @@ void GameLogic::receiveTouchUpdate(){
     
     if(joystick->getIsActive()){
         
-        tank->changeState(kAiming);
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        tank->setJoystickData(joyData);
-       
+        
+        flank->changeState(kAiming);
+        
+        flank->setJoystickData(joyData);
+    
     }
     
 }

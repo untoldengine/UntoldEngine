@@ -27,6 +27,7 @@
 #include "U4DLogger.h"
 #include "Floor.h"
 #include "Tank.h"
+#include "Flank.h"
 #include "GameAsset.h"
 
 using namespace U4DEngine;
@@ -34,40 +35,44 @@ using namespace U4DEngine;
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(2.0, 6.0, 8.0);
+    camera->translateBy(0.0,2.5,7.0);
    
     setName("earth");
     
     tank=new Tank();
     tank->init("tankbody", "tankscript.u4d");
     
+    flank=new Flank();
+    flank->init("flankbase", "flankscript.u4d");
+    
     road=new Floor();
     road->init("road", "blenderscript.u4d");
     
     rubble=new GameAsset();
     rubble->init("rubble", "blenderscript.u4d");
-    
+   
     sack1=new GameAsset();
     sack1->init("sack1", "blenderscript.u4d");
     
     sack2=new GameAsset();
     sack2->init("sack2", "blenderscript.u4d");
-    
-    tire=new GameAsset();
-    tire->init("tire", "blenderscript.u4d");
-    
+
     house1=new GameAsset();
     house1->init("house1", "blenderscript.u4d");
+    
+
+    tire=new GameAsset();
+    tire->init("tire", "blenderscript.u4d");
     
     house2=new GameAsset();
     house2->init("house2", "blenderscript.u4d");
     
     landscape=new GameAsset();
     landscape->init("landscape", "blenderscript.u4d");
-    
+  
     U4DVector3n origin(0,0,0);
     
-    camera->viewInDirection(origin);
+    //camera->viewInDirection(origin);
 
     U4DLights *light=U4DLights::sharedInstance();
     light->translateTo(5.0,5.0,5.0);
@@ -75,8 +80,10 @@ void Earth::init(){
     
     addChild(tank);
     
-    addChild(road);
+    addChild(flank);
     
+    addChild(road);
+   
     addChild(rubble);
     
     addChild(sack1);

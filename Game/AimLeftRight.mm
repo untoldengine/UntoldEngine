@@ -19,9 +19,16 @@ AimLeftRight::~AimLeftRight(){
 }
 
 void AimLeftRight::aim(Weapon *uWeapon, U4DEngine::U4DVector3n &uTarget){
+   
+    U4DEngine::U4DVector3n view=uWeapon->getViewInDirection();
+    U4DEngine::U4DVector3n targetView;
     
-    U4DEngine::U4DVector3n setAim(uTarget.x,uWeapon->getAbsolutePosition().y,0.0);
+    float scalar=2.5;
     
-    uWeapon->viewInDirection(setAim);
+    targetView.y=uWeapon->getAbsolutePosition().y;
+    targetView.x=uTarget.x*scalar;
+    targetView.z=view.z;
+    
+    uWeapon->viewInDirection(targetView);
     
 }
