@@ -16,6 +16,7 @@
 
 class Tank;
 class Flank;
+class Bullet;
 
 namespace U4DEngine {
     class U4DTouches;

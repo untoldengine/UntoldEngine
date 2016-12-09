@@ -39,8 +39,8 @@ void Earth::init(){
    
     setName("earth");
     
-    tank=new Tank();
-    tank->init("tankbody", "tankscript.u4d");
+    //tank=new Tank();
+    //tank->init("tankbody", "tankscript.u4d");
     
     flank=new Flank();
     flank->init("flankbase", "flankscript.u4d");
@@ -78,7 +78,7 @@ void Earth::init(){
     light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-    addChild(tank);
+    //addChild(tank);
     
     addChild(flank);
     

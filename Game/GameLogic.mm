@@ -18,6 +18,7 @@
 #include "U4DWorld.h"
 #include "Tank.h"
 #include "Flank.h"
+#include "FlankGun.h"
 #include "U4DCamera.h"
 
 void GameLogic::update(double dt){
@@ -28,6 +29,7 @@ void GameLogic::update(double dt){
     U4DEngine::U4DVector3n cameraAimVector=flank->getAimVector();
     
     camera->viewInDirection(cameraAimVector);
+    
     
 }
 
@@ -47,16 +49,16 @@ void GameLogic::init(){
 void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
-        /*
+        
         U4DEngine::U4DWorld *world=getGameWorld();
         
         Bullet *bullet=new Bullet();
         
         bullet->init("bullet", "characterscript.u4d");
         
-        bullet->translateTo(tankHead->getAbsolutePosition().x,tankHead->getAbsolutePosition().y,tankHead->getAbsolutePosition().z);
+        bullet->translateTo(flank->getAbsolutePosition().x,flank->getAbsolutePosition().y,flank->getAbsolutePosition().z);
         
-        U4DEngine::U4DVector3n viewDirection(tankHead->getViewInDirection().x,tankHead->getAbsolutePosition().y,tankHead->getViewInDirection().z);
+        U4DEngine::U4DVector3n viewDirection=flank->getAimVector();
         
         bullet->setEntityForwardVector(viewDirection);
        
@@ -65,22 +67,19 @@ void GameLogic::receiveTouchUpdate(){
         world->addChild(bullet);
         
         bullet->loadRenderingInformation();
-        */
-        //robot->changeState(kWalking);
+        
+        bullet->setWorld(world);
+        
         
     }else if(buttonA->getIsReleased()){
         
-        //robot->changeState(kNull);
     }
     
     if (buttonB->getIsPressed()) {
         
-        //robot->changeState(kJump);
-        
         
     }else if(buttonB->getIsReleased()){
         
-        //robot->changeState(kNull);
         
     }
     

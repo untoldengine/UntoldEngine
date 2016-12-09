@@ -8,6 +8,16 @@
 
 #include "Bullet.h"
 
+Bullet::Bullet():shouldDestroy(false){
+    
+}
+
+Bullet::~Bullet(){
+    
+    delete scheduler;
+    delete timer;
+}
+
 void Bullet::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
@@ -17,6 +27,13 @@ void Bullet::init(const char* uName, const char* uBlenderFile){
         
         U4DEngine::U4DVector3n gravityForce(0.0,0.0,0.0);
         setGravity(gravityForce);
+        
+        scheduler=new U4DEngine::U4DCallback<Bullet>;
+        
+        timer=new U4DEngine::U4DTimer(scheduler);
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &Bullet::selfDestroy, timer, 4.0,false);
+        
     }
     
     
@@ -28,7 +45,7 @@ void Bullet::update(double dt){
         
         U4DEngine::U4DVector3n view=getViewInDirection();
         
-        U4DEngine::U4DVector3n shootingForce(view.x*50.0,view.y,view.z*50.0);
+        U4DEngine::U4DVector3n shootingForce(view.x*50.0,view.y*50.0,view.z*50.0);
         
         applyForce(shootingForce);
         
@@ -62,6 +79,17 @@ void Bullet::changeState(GameEntityState uState){
             break;
     }
     
+}
+
+void Bullet::setWorld(U4DEngine::U4DWorld *uWorld){
     
+    world=uWorld;
+}
+
+void Bullet::selfDestroy(){
     
+    //remove from world
+    world->removeChild(this);
+    
+    delete this;
 }

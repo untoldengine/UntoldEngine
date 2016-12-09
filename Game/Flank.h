@@ -37,5 +37,9 @@ public:
     void update(double dt);
     
     U4DEngine::U4DVector3n getAimVector();
+    
+    FlankGun* getFlankGun();
+    
+    FlankRotor* getFlankRotor();
 };
 #endif /* Flank_hpp */

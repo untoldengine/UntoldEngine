@@ -78,3 +78,8 @@ U4DEngine::U4DVector3n Flank::getAimVector(){
     return aimVector;
     
 }
+
+FlankGun* Flank::getFlankGun(){
+    
+    return flankGun;
+}
