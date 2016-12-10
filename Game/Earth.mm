@@ -27,7 +27,7 @@
 #include "U4DLogger.h"
 #include "Floor.h"
 #include "Tank.h"
-#include "Flank.h"
+#include "AntiAircraft.h"
 #include "GameAsset.h"
 
 using namespace U4DEngine;
@@ -44,10 +44,10 @@ void Earth::init(){
     
     tank->setWorld(this);
     
-    flank=new Flank();
-    flank->init("flankbase", "flankscript.u4d");
+    antiAircraft=new AntiAircraft();
+    antiAircraft->init("antiaircraftbase", "antiaircraftscript.u4d");
     
-    flank->setWorld(this);
+    antiAircraft->setWorld(this);
     
     road=new Floor();
     road->init("road", "blenderscript.u4d");
@@ -84,7 +84,7 @@ void Earth::init(){
     
     addChild(tank);
     
-    addChild(flank);
+    addChild(antiAircraft);
     
     addChild(road);
    

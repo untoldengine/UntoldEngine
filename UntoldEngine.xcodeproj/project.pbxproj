@@ -70,10 +70,10 @@
 		03611CED1DF9054800BC356E /* Weapon.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CEB1DF9054800BC356E /* Weapon.mm */; };
 		03611CF01DF90EAC00BC356E /* TankGun.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CEE1DF90EAC00BC356E /* TankGun.mm */; };
 		03611CF31DF9152C00BC356E /* AimLeftRight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CF11DF9152C00BC356E /* AimLeftRight.mm */; };
-		03611CF61DF9A3C300BC356E /* Flank.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CF41DF9A3C300BC356E /* Flank.mm */; };
-		03611CF91DF9A47F00BC356E /* FlankRotor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CF71DF9A47F00BC356E /* FlankRotor.mm */; };
-		03611CFC1DF9A48F00BC356E /* FlankGun.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CFA1DF9A48F00BC356E /* FlankGun.mm */; };
-		03611CFE1DF9A69B00BC356E /* flankscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03611CFD1DF9A69B00BC356E /* flankscript.u4d */; };
+		03611CF61DF9A3C300BC356E /* AntiAircraft.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CF41DF9A3C300BC356E /* AntiAircraft.mm */; };
+		03611CF91DF9A47F00BC356E /* AntiAircraftRotor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CF71DF9A47F00BC356E /* AntiAircraftRotor.mm */; };
+		03611CFC1DF9A48F00BC356E /* AntiAircraftGun.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03611CFA1DF9A48F00BC356E /* AntiAircraftGun.mm */; };
+		03611CFE1DF9A69B00BC356E /* antiaircraftscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03611CFD1DF9A69B00BC356E /* antiaircraftscript.u4d */; };
 		036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */; };
 		03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03659C5F1DACB1AD003E38E9 /* characterscript.u4d */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
@@ -303,13 +303,13 @@
 		03611CEF1DF90EAC00BC356E /* TankGun.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = TankGun.h; sourceTree = "<group>"; };
 		03611CF11DF9152C00BC356E /* AimLeftRight.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AimLeftRight.mm; sourceTree = "<group>"; };
 		03611CF21DF9152C00BC356E /* AimLeftRight.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AimLeftRight.h; sourceTree = "<group>"; };
-		03611CF41DF9A3C300BC356E /* Flank.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Flank.mm; sourceTree = "<group>"; };
-		03611CF51DF9A3C300BC356E /* Flank.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Flank.h; sourceTree = "<group>"; };
-		03611CF71DF9A47F00BC356E /* FlankRotor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = FlankRotor.mm; sourceTree = "<group>"; };
-		03611CF81DF9A47F00BC356E /* FlankRotor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FlankRotor.h; sourceTree = "<group>"; };
-		03611CFA1DF9A48F00BC356E /* FlankGun.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = FlankGun.mm; sourceTree = "<group>"; };
-		03611CFB1DF9A48F00BC356E /* FlankGun.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = FlankGun.h; sourceTree = "<group>"; };
-		03611CFD1DF9A69B00BC356E /* flankscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = flankscript.u4d; path = Resources/flankscript.u4d; sourceTree = SOURCE_ROOT; };
+		03611CF41DF9A3C300BC356E /* AntiAircraft.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AntiAircraft.mm; sourceTree = "<group>"; };
+		03611CF51DF9A3C300BC356E /* AntiAircraft.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AntiAircraft.h; sourceTree = "<group>"; };
+		03611CF71DF9A47F00BC356E /* AntiAircraftRotor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AntiAircraftRotor.mm; sourceTree = "<group>"; };
+		03611CF81DF9A47F00BC356E /* AntiAircraftRotor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AntiAircraftRotor.h; sourceTree = "<group>"; };
+		03611CFA1DF9A48F00BC356E /* AntiAircraftGun.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AntiAircraftGun.mm; sourceTree = "<group>"; };
+		03611CFB1DF9A48F00BC356E /* AntiAircraftGun.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AntiAircraftGun.h; sourceTree = "<group>"; };
+		03611CFD1DF9A69B00BC356E /* antiaircraftscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = antiaircraftscript.u4d; path = Resources/antiaircraftscript.u4d; sourceTree = SOURCE_ROOT; };
 		036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLFont.mm; sourceTree = "<group>"; };
 		036435C31863D88900E2A6F6 /* U4DOpenGLFont.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLFont.h; sourceTree = "<group>"; };
 		03659C5F1DACB1AD003E38E9 /* characterscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = characterscript.u4d; path = Game/characterscript.u4d; sourceTree = SOURCE_ROOT; };
@@ -694,12 +694,12 @@
 				03611CEB1DF9054800BC356E /* Weapon.mm */,
 				03611CEF1DF90EAC00BC356E /* TankGun.h */,
 				03611CEE1DF90EAC00BC356E /* TankGun.mm */,
-				03611CF51DF9A3C300BC356E /* Flank.h */,
-				03611CF41DF9A3C300BC356E /* Flank.mm */,
-				03611CF81DF9A47F00BC356E /* FlankRotor.h */,
-				03611CF71DF9A47F00BC356E /* FlankRotor.mm */,
-				03611CFB1DF9A48F00BC356E /* FlankGun.h */,
-				03611CFA1DF9A48F00BC356E /* FlankGun.mm */,
+				03611CF51DF9A3C300BC356E /* AntiAircraft.h */,
+				03611CF41DF9A3C300BC356E /* AntiAircraft.mm */,
+				03611CF81DF9A47F00BC356E /* AntiAircraftRotor.h */,
+				03611CF71DF9A47F00BC356E /* AntiAircraftRotor.mm */,
+				03611CFB1DF9A48F00BC356E /* AntiAircraftGun.h */,
+				03611CFA1DF9A48F00BC356E /* AntiAircraftGun.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -980,7 +980,7 @@
 				03611CC61DF7440C00BC356E /* tankNozzleFinalTexture.png */,
 				03659C5F1DACB1AD003E38E9 /* characterscript.u4d */,
 				03611CD01DF7B9B200BC356E /* tankscript.u4d */,
-				03611CFD1DF9A69B00BC356E /* flankscript.u4d */,
+				03611CFD1DF9A69B00BC356E /* antiaircraftscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
@@ -1422,7 +1422,7 @@
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
-				03611CFE1DF9A69B00BC356E /* flankscript.u4d in Resources */,
+				03611CFE1DF9A69B00BC356E /* antiaircraftscript.u4d in Resources */,
 				03611CDA1DF7C0FB00BC356E /* house1FinalTexture.png in Resources */,
 				03A9F6FD1ADB0BC800E81A00 /* RightImage.png in Resources */,
 				03611CDC1DF7C0FB00BC356E /* landFinalTexture.png in Resources */,
@@ -1495,7 +1495,7 @@
 				03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */,
 				03611CF31DF9152C00BC356E /* AimLeftRight.mm in Sources */,
 				034DBC7C1A73E08C00AC43EB /* U4DDebugger.mm in Sources */,
-				03611CF91DF9A47F00BC356E /* FlankRotor.mm in Sources */,
+				03611CF91DF9A47F00BC356E /* AntiAircraftRotor.mm in Sources */,
 				0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */,
 				03E6EDEE1943D8A2007AD131 /* U4DTimer.mm in Sources */,
 				03E6EDDE1943D816007AD131 /* U4DIntegrator.mm in Sources */,
@@ -1514,11 +1514,11 @@
 				03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */,
 				03759BB6175B0383002EB5D9 /* U4DQuaternion.mm in Sources */,
 				03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */,
-				03611CF61DF9A3C300BC356E /* Flank.mm in Sources */,
+				03611CF61DF9A3C300BC356E /* AntiAircraft.mm in Sources */,
 				03611CED1DF9054800BC356E /* Weapon.mm in Sources */,
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
-				03611CFC1DF9A48F00BC356E /* FlankGun.mm in Sources */,
+				03611CFC1DF9A48F00BC356E /* AntiAircraftGun.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,

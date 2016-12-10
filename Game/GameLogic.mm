@@ -17,8 +17,8 @@
 #include "Bullet.h"
 #include "U4DWorld.h"
 #include "Tank.h"
-#include "Flank.h"
-#include "FlankGun.h"
+#include "AntiAircraft.h"
+#include "AntiAircraftGun.h"
 #include "U4DCamera.h"
 
 void GameLogic::update(double dt){
@@ -26,7 +26,7 @@ void GameLogic::update(double dt){
     
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
-    U4DEngine::U4DVector3n cameraAimVector=flank->getAimVector();
+    U4DEngine::U4DVector3n cameraAimVector=antiAircraft->getAimVector();
     cameraAimVector.y*=5.0;
     camera->viewInDirection(cameraAimVector);
     
@@ -36,7 +36,7 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    flank=dynamic_cast<Flank*>(searchChild("flankbase"));
+    antiAircraft=dynamic_cast<AntiAircraft*>(searchChild("antiaircraftbase"));
         
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -48,7 +48,7 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
-        flank->changeState(kShooting);
+        antiAircraft->changeState(kShooting);
         
     }else if(buttonA->getIsReleased()){
         
@@ -66,9 +66,9 @@ void GameLogic::receiveTouchUpdate(){
         
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
         
-        flank->changeState(kAiming);
+        antiAircraft->changeState(kAiming);
         
-        flank->setJoystickData(joyData);
+        antiAircraft->setJoystickData(joyData);
     
     }
     

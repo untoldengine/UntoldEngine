@@ -1,28 +1,28 @@
 //
-//  FlankGun.cpp
+//  AntiAircraftRotor.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 12/8/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
 //
 
-#include "FlankGun.h"
-#include "AimUpDown.h"
+#include "AntiAircraftRotor.h"
+#include "AimLeftRight.h"
 
 
-FlankGun::FlankGun(){
+AntiAircraftRotor::AntiAircraftRotor(){
     
-    WeaponBehavior* aimLeftRight=new AimUpDown();
+    WeaponBehavior* aimLeftRight=new AimLeftRight();
     
     setWeaponBehavior(aimLeftRight);
     
 }
 
-FlankGun::~FlankGun(){
+AntiAircraftRotor::~AntiAircraftRotor(){
     
 }
 
-void FlankGun::init(const char* uName, const char* uBlenderFile){
+void AntiAircraftRotor::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
@@ -34,9 +34,10 @@ void FlankGun::init(const char* uName, const char* uBlenderFile){
     
 }
 
-void FlankGun::update(double dt){
+void AntiAircraftRotor::update(double dt){
     
     if (getState()==kAiming) {
+        
         
         aim(joyStickData);
         

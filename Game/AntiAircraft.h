@@ -1,13 +1,13 @@
 //
-//  Flank.hpp
+//  AntiAircraft.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 12/8/16.
 //  Copyright © 2016 Untold Game Studio. All rights reserved.
 //
 
-#ifndef Flank_hpp
-#define Flank_hpp
+#ifndef AntiAircraft_hpp
+#define AntiAircraft_hpp
 
 #include <stdio.h>
 #include <string>
@@ -16,23 +16,23 @@
 #include "UserCommonProtocols.h"
 #include "U4DWorld.h"
 
-class FlankGun;
-class FlankRotor;
+class AntiAircraftGun;
+class AntiAircraftRotor;
 
 
-class Flank:public Artillery{
+class AntiAircraft:public Artillery{
     
 private:
     
-    FlankGun *flankGun;
-    FlankRotor *flankRotor;
+    AntiAircraftGun *antiAircraftGun;
+    AntiAircraftRotor *antiAircraftRotor;
     U4DEngine::U4DWorld *world;
     
 public:
     
-    Flank();
+    AntiAircraft();
     
-    ~Flank();
+    ~AntiAircraft();
     
     void init(const char* uName, const char* uBlenderFile);
     
@@ -40,10 +40,10 @@ public:
     
     U4DEngine::U4DVector3n getAimVector();
     
-    FlankGun* getFlankGun();
+    AntiAircraftGun* getAntiAircraftGun();
     
-    FlankRotor* getFlankRotor();
+    AntiAircraftRotor* getAntiAircraftRotor();
     
     void setWorld(U4DEngine::U4DWorld *uWorld);
 };
-#endif /* Flank_hpp */
+#endif /* AntiAircraft_hpp */

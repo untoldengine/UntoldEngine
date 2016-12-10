@@ -13,7 +13,7 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 
-class Flank;
+class AntiAircraft;
 class Bullet;
 
 namespace U4DEngine {
@@ -26,7 +26,7 @@ class GameLogic:public U4DEngine::U4DGameModel{
     
 public:
 
-    Flank *flank;
+    AntiAircraft *antiAircraft;
     
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;
