@@ -10,7 +10,7 @@
 #include "TankGun.h"
 #include "Bullet.h"
 
-Tank::Tank():isDestroyed(false){
+Tank::Tank(){
     
     
 }
@@ -90,7 +90,7 @@ void Tank::update(double dt){
             //create the bullet
             Bullet *bullet=new Bullet();
             
-            bullet->init("bullet", "characterscript.u4d");
+            bullet->init("bullet", "bulletscript.u4d");
             
             U4DEngine::U4DVector3n position=tankGun->getAbsolutePosition();
             position.z=-2.0;
@@ -115,10 +115,6 @@ void Tank::update(double dt){
     }
 }
 
-void Tank::shoot(){
-    
-    changeState(kShooting);
-}
 
 void Tank::setSelfDestroyTimer(){
     
@@ -126,10 +122,6 @@ void Tank::setSelfDestroyTimer(){
     
 }
 
-void Tank::setWorld(U4DEngine::U4DWorld *uWorld){
-    
-    world=uWorld;
-}
 
 U4DEngine::U4DVector3n Tank::getAimVector(){
     
@@ -148,8 +140,6 @@ void Tank::selfDestroy(){
     removeChild(tankGun);
     
     delete tankGun;
-    
-    world->removeChild(this);
     
     delete this;
 }

@@ -11,7 +11,7 @@
 #include "AntiAircraftGun.h"
 #include "Bullet.h"
 
-AntiAircraft::AntiAircraft():world(NULL){
+AntiAircraft::AntiAircraft(){
     
     
 }
@@ -49,6 +49,8 @@ void AntiAircraft::init(const char* uName, const char* uBlenderFile){
         
         antiAircraftRotor->addChild(antiAircraftGun);
         
+        changeState(kNull);
+        
     }
     
     
@@ -72,9 +74,10 @@ void AntiAircraft::update(double dt){
             //create the bullet
             Bullet *bullet=new Bullet();
             
-            bullet->init("bullet", "characterscript.u4d");
+            bullet->init("bullet", "bulletscript.u4d");
             
             U4DEngine::U4DVector3n position=getAbsolutePosition();
+            position.y+=0.5;
             U4DEngine::U4DVector3n aimVector=getAimVector();
             
             bullet->setShootingParameters(world, position, aimVector);
@@ -85,11 +88,6 @@ void AntiAircraft::update(double dt){
         
         changeState(kNull);
     }
-}
-
-void AntiAircraft::setWorld(U4DEngine::U4DWorld *uWorld){
- 
-    world=uWorld;
 }
 
 U4DEngine::U4DVector3n AntiAircraft::getAimVector(){

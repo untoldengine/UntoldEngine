@@ -20,7 +20,6 @@
 #include "U4DTouches.h"
 #include "U4DCamera.h"
 #include "U4DControllerInterface.h"
-
 #include "GameController.h"
 #include "U4DSprite.h"
 #include "U4DLights.h"
@@ -28,6 +27,7 @@
 #include "Floor.h"
 #include "Tank.h"
 #include "AntiAircraft.h"
+#include "Airplane.h"
 #include "GameAsset.h"
 
 using namespace U4DEngine;
@@ -48,6 +48,11 @@ void Earth::init(){
     antiAircraft->init("antiaircraftbase", "antiaircraftscript.u4d");
     
     antiAircraft->setWorld(this);
+    
+    airplane=new Airplane();
+    airplane->init("airplane", "airplanescript.u4d");
+    
+    airplane->setWorld(this);
     
     road=new Floor();
     road->init("road", "blenderscript.u4d");
@@ -85,6 +90,8 @@ void Earth::init(){
     addChild(tank);
     
     addChild(antiAircraft);
+    
+    addChild(airplane);
     
     addChild(road);
    

@@ -14,7 +14,7 @@
 #include "U4DGameObject.h"
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
-
+#include "U4DWorld.h"
 
 class Artillery:public U4DEngine::U4DGameObject{
     
@@ -22,13 +22,18 @@ private:
     
     GameEntityState entityState;
     
+    
 protected:
     
     U4DEngine::U4DVector3n joyStickData;
+    bool isDestroyed;
     
 public:
     
-    Artillery():joyStickData(0.0,0.0,0.0){};
+    Artillery();
+    ~Artillery();
+    
+    U4DEngine::U4DWorld *world;
     
     float x,y,z;
     
@@ -42,7 +47,12 @@ public:
     
     GameEntityState getState();
     
+    void setWorld(U4DEngine::U4DWorld *uWorld);
+    
+    void shoot();
+    
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
 
+    
 };
 #endif /* Artillery_hpp */

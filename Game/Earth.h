@@ -18,6 +18,7 @@ class Tank;
 class Floor;
 class GameAsset;
 class AntiAircraft;
+class Airplane;
 
 
 class Earth:public U4DEngine::U4DWorld{
@@ -26,6 +27,7 @@ private:
     
     Floor *road;
     Tank *tank;
+    Airplane *airplane;
     AntiAircraft *antiAircraft;
     GameAsset *rubble;
     GameAsset *sack1;

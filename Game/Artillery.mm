@@ -14,6 +14,16 @@
 #include "GameAsset.h"
 #include "U4DWorld.h"
 
+
+Artillery::Artillery():joyStickData(0.0,0.0,0.0),world(NULL),isDestroyed(false){
+
+}
+
+Artillery::~Artillery(){
+    
+    world->removeChild(this);
+}
+
 void Artillery::init(const char* uName, const char* uBlenderFile){
     
     
@@ -30,12 +40,22 @@ void Artillery::update(double dt){
     
 }
 
+void Artillery::setWorld(U4DEngine::U4DWorld *uWorld){
+    
+    world=uWorld;
+}
+
 void Artillery::setState(GameEntityState uState){
     entityState=uState;
 }
 
 GameEntityState Artillery::getState(){
     return entityState;
+}
+
+void Artillery::shoot(){
+    
+    changeState(kShooting);
 }
 
 void Artillery::changeState(GameEntityState uState){

@@ -16,7 +16,7 @@
 #include "UserCommonProtocols.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
-#include "U4DWorld.h"
+
 
 class TankGun;
 
@@ -31,10 +31,6 @@ private:
     U4DEngine::U4DCallback<Tank>* shootingScheduler;
     U4DEngine::U4DTimer *shootingTimer;
     
-    bool isDestroyed;
-    
-    U4DEngine::U4DWorld *world;
-    
 public:
 
     Tank();
@@ -48,10 +44,6 @@ public:
     void setSelfDestroyTimer();
     
     void selfDestroy();
-    
-    void setWorld(U4DEngine::U4DWorld *uWorld);
-    
-    void shoot();
     
     U4DEngine::U4DVector3n getAimVector();
 };

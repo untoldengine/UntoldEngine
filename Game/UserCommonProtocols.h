@@ -15,6 +15,7 @@ typedef enum{
     kAiming,
     kCollided,
     kHit,
+    kFlying,
     kNull
     
 }GameEntityState;

@@ -25,7 +25,7 @@ void Bullet::init(const char* uName, const char* uBlenderFile){
         //initialize everything else here
         enableKineticsBehavior();
         enableCollisionBehavior();
-        
+        //setBroadPhaseBoundingVolumeVisibility(true);
         
         U4DEngine::U4DVector3n gravityForce(0.0,0.0,0.0);
         setGravity(gravityForce);

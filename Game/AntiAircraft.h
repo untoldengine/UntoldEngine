@@ -26,7 +26,6 @@ private:
     
     AntiAircraftGun *antiAircraftGun;
     AntiAircraftRotor *antiAircraftRotor;
-    U4DEngine::U4DWorld *world;
     
 public:
     
@@ -44,6 +43,5 @@ public:
     
     AntiAircraftRotor* getAntiAircraftRotor();
     
-    void setWorld(U4DEngine::U4DWorld *uWorld);
 };
 #endif /* AntiAircraft_hpp */
