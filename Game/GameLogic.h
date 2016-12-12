@@ -15,6 +15,7 @@
 
 class AntiAircraft;
 class Bullet;
+class Tank;
 
 namespace U4DEngine {
     class U4DTouches;
@@ -27,7 +28,7 @@ class GameLogic:public U4DEngine::U4DGameModel{
 public:
 
     AntiAircraft *antiAircraft;
-    
+    Tank *tank;
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;

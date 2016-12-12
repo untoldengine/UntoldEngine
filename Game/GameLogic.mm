@@ -37,7 +37,7 @@ void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
     antiAircraft=dynamic_cast<AntiAircraft*>(searchChild("antiaircraftbase"));
-        
+    tank=dynamic_cast<Tank*>(searchChild("tankbody"));
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
     joystick=getGameController()->getJoyStickWithName("joystick");

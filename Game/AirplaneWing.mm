@@ -35,6 +35,13 @@ void AirplaneWing::update(double dt){
     
         
         
+    }else if (kHit){
+        
+        enableKineticsBehavior();
+        
+        U4DEngine::U4DVector3n upForce(0.0,50.0,0.0);
+        
+        applyForce(upForce);
     }
     
 }

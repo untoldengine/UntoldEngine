@@ -46,5 +46,16 @@ void TankGun::update(double dt){
         
         aim(joyStickData);
         
+    }else if (getState()==kHit){
+        
+        enableKineticsBehavior();
+        
+        U4DEngine::U4DVector3n upForce(0.0,1000.0,0.0);
+        
+        applyForce(upForce);
+        
+        rotateBy(5.0, 0.0, 10.0);
+        
+        changeState(kNull);
     }
 }

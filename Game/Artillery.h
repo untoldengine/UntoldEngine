@@ -28,6 +28,7 @@ protected:
     U4DEngine::U4DVector3n joyStickData;
     bool isDestroyed;
     
+    
 public:
     
     Artillery();
@@ -50,6 +51,8 @@ public:
     void setWorld(U4DEngine::U4DWorld *uWorld);
     
     void shoot();
+    
+    
     
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
 

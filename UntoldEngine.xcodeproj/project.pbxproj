@@ -146,7 +146,6 @@
 		03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CA1D53CAA200E567D5 /* gouraudShader.vp */; };
 		03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CB1D53CAA200E567D5 /* phongShader.fp */; };
 		03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CC1D53CAA200E567D5 /* phongShader.vp */; };
-		03D559D31D53D11900E567D5 /* Rock.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D11D53D11900E567D5 /* Rock.mm */; };
 		03D559D61D53D12D00E567D5 /* Floor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559D41D53D12D00E567D5 /* Floor.mm */; };
 		03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E01D5630AC00E567D5 /* U4DNumerical.mm */; };
 		03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D559E41D58248A00E567D5 /* U4DLogger.mm */; };
@@ -188,6 +187,13 @@
 		03E8F1E81DFC978A00F84CF6 /* AirplanePart.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E8F1E61DFC978A00F84CF6 /* AirplanePart.mm */; };
 		03E8F1EB1DFCC7FD00F84CF6 /* AirplaneWing.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E8F1E91DFCC7FD00F84CF6 /* AirplaneWing.mm */; };
 		03E8F1ED1DFCCEA300F84CF6 /* bulletscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1EC1DFCCEA300F84CF6 /* bulletscript.u4d */; };
+		03E8F1F21DFE0B0900F84CF6 /* airplanebodyFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1EE1DFE0B0900F84CF6 /* airplanebodyFinalTexture.png */; };
+		03E8F1F31DFE0B0900F84CF6 /* airplaneleftwingFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1EF1DFE0B0900F84CF6 /* airplaneleftwingFinalTexture.png */; };
+		03E8F1F41DFE0B0900F84CF6 /* airplanerightwingFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1F01DFE0B0900F84CF6 /* airplanerightwingFinalTexture.png */; };
+		03E8F1F51DFE0B0900F84CF6 /* airplanerotorFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1F11DFE0B0900F84CF6 /* airplanerotorFinalTexture.png */; };
+		03E8F1F91DFE0F9C00F84CF6 /* antiaircraftbaseFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1F61DFE0F9C00F84CF6 /* antiaircraftbaseFinalTexture.png */; };
+		03E8F1FA1DFE0F9C00F84CF6 /* antiaircraftgunFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1F71DFE0F9C00F84CF6 /* antiaircraftgunFinalTexture.png */; };
+		03E8F1FB1DFE0F9C00F84CF6 /* antiaircraftrotorFinalTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03E8F1F81DFE0F9C00F84CF6 /* antiaircraftrotorFinalTexture.png */; };
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
 		03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
 		03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */; };
@@ -431,8 +437,6 @@
 		03D559CA1D53CAA200E567D5 /* gouraudShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gouraudShader.vp; sourceTree = "<group>"; };
 		03D559CB1D53CAA200E567D5 /* phongShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = phongShader.fp; sourceTree = "<group>"; };
 		03D559CC1D53CAA200E567D5 /* phongShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = phongShader.vp; sourceTree = "<group>"; };
-		03D559D11D53D11900E567D5 /* Rock.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Rock.mm; sourceTree = "<group>"; };
-		03D559D21D53D11900E567D5 /* Rock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Rock.h; sourceTree = "<group>"; };
 		03D559D41D53D12D00E567D5 /* Floor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Floor.mm; sourceTree = "<group>"; };
 		03D559D51D53D12D00E567D5 /* Floor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Floor.h; sourceTree = "<group>"; };
 		03D559E01D5630AC00E567D5 /* U4DNumerical.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DNumerical.mm; sourceTree = "<group>"; };
@@ -509,6 +513,13 @@
 		03E8F1E91DFCC7FD00F84CF6 /* AirplaneWing.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = AirplaneWing.mm; sourceTree = "<group>"; };
 		03E8F1EA1DFCC7FD00F84CF6 /* AirplaneWing.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = AirplaneWing.h; sourceTree = "<group>"; };
 		03E8F1EC1DFCCEA300F84CF6 /* bulletscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = bulletscript.u4d; path = Resources/bulletscript.u4d; sourceTree = SOURCE_ROOT; };
+		03E8F1EE1DFE0B0900F84CF6 /* airplanebodyFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = airplanebodyFinalTexture.png; path = Resources/airplanebodyFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03E8F1EF1DFE0B0900F84CF6 /* airplaneleftwingFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = airplaneleftwingFinalTexture.png; path = Resources/airplaneleftwingFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03E8F1F01DFE0B0900F84CF6 /* airplanerightwingFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = airplanerightwingFinalTexture.png; path = Resources/airplanerightwingFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03E8F1F11DFE0B0900F84CF6 /* airplanerotorFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = airplanerotorFinalTexture.png; path = Resources/airplanerotorFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03E8F1F61DFE0F9C00F84CF6 /* antiaircraftbaseFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = antiaircraftbaseFinalTexture.png; path = Resources/antiaircraftbaseFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03E8F1F71DFE0F9C00F84CF6 /* antiaircraftgunFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = antiaircraftgunFinalTexture.png; path = Resources/antiaircraftgunFinalTexture.png; sourceTree = SOURCE_ROOT; };
+		03E8F1F81DFE0F9C00F84CF6 /* antiaircraftrotorFinalTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = antiaircraftrotorFinalTexture.png; path = Resources/antiaircraftrotorFinalTexture.png; sourceTree = SOURCE_ROOT; };
 		03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = blenderscript.u4d; path = Resources/blenderscript.u4d; sourceTree = SOURCE_ROOT; };
 		03EF2DFC1B6D5EF200F26945 /* U4DPoint3n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPoint3n.h; sourceTree = "<group>"; };
 		03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPoint3n.mm; sourceTree = "<group>"; };
@@ -687,8 +698,6 @@
 				036FB56D18CE9CB8000EA639 /* MainScene.mm */,
 				036FB56F18CE9CB8000EA639 /* MyCharacter.h */,
 				036FB57018CE9CB8000EA639 /* MyCharacter.mm */,
-				03D559D21D53D11900E567D5 /* Rock.h */,
-				03D559D11D53D11900E567D5 /* Rock.mm */,
 				03D559D51D53D12D00E567D5 /* Floor.h */,
 				03D559D41D53D12D00E567D5 /* Floor.mm */,
 				036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */,
@@ -991,6 +1000,13 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03E8F1F61DFE0F9C00F84CF6 /* antiaircraftbaseFinalTexture.png */,
+				03E8F1F71DFE0F9C00F84CF6 /* antiaircraftgunFinalTexture.png */,
+				03E8F1F81DFE0F9C00F84CF6 /* antiaircraftrotorFinalTexture.png */,
+				03E8F1EE1DFE0B0900F84CF6 /* airplanebodyFinalTexture.png */,
+				03E8F1EF1DFE0B0900F84CF6 /* airplaneleftwingFinalTexture.png */,
+				03E8F1F01DFE0B0900F84CF6 /* airplanerightwingFinalTexture.png */,
+				03E8F1F11DFE0B0900F84CF6 /* airplanerotorFinalTexture.png */,
 				03611CD21DF7C0FB00BC356E /* house1FinalTexture.png */,
 				03611CD31DF7C0FB00BC356E /* house2FinalTexture.png */,
 				03611CD41DF7C0FB00BC356E /* landFinalTexture.png */,
@@ -1441,7 +1457,9 @@
 				03611CE01DF7C0FB00BC356E /* sack2FinalTexture.png in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
+				03E8F1F31DFE0B0900F84CF6 /* airplaneleftwingFinalTexture.png in Resources */,
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
+				03E8F1F91DFE0F9C00F84CF6 /* antiaircraftbaseFinalTexture.png in Resources */,
 				03A9F6FB1ADB0BC800E81A00 /* FrontImage.png in Resources */,
 				03AEF86719CF474D00082589 /* AnimationShader.fp in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
@@ -1469,6 +1487,7 @@
 				03DB6E86192F7B25006E21D0 /* NormalMapping.vp in Resources */,
 				034DBC8A1A74112000AC43EB /* debugShader.vp in Resources */,
 				030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */,
+				03E8F1F21DFE0B0900F84CF6 /* airplanebodyFinalTexture.png in Resources */,
 				03E8F1ED1DFCCEA300F84CF6 /* bulletscript.u4d in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */,
@@ -1480,17 +1499,21 @@
 				034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */,
 				034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */,
 				03611CDE1DF7C0FB00BC356E /* rubbleFinalTexture.png in Resources */,
+				03E8F1FA1DFE0F9C00F84CF6 /* antiaircraftgunFinalTexture.png in Resources */,
 				03DB6E85192F7B25006E21D0 /* NormalMapping.fp in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */,
 				03611CC71DF7440C00BC356E /* tankBodyFinalTexture.png in Resources */,
+				03E8F1FB1DFE0F9C00F84CF6 /* antiaircraftrotorFinalTexture.png in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
+				03E8F1F41DFE0B0900F84CF6 /* airplanerightwingFinalTexture.png in Resources */,
 				03611CDF1DF7C0FB00BC356E /* sack1FinalTexture.png in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */,
 				03611CE11DF7C0FB00BC356E /* tireFinalTexture.png in Resources */,
+				03E8F1F51DFE0B0900F84CF6 /* airplanerotorFinalTexture.png in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
 				03611CC81DF7440C00BC356E /* tankHeadFinalTexture.png in Resources */,
@@ -1597,7 +1620,6 @@
 				0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */,
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
-				03D559D31D53D11900E567D5 /* Rock.mm in Sources */,
 				03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,

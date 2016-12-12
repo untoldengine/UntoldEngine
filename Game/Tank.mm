@@ -12,13 +12,18 @@
 
 Tank::Tank(){
     
+    scheduler=new U4DEngine::U4DCallback<Tank>;
+    
+    selfDestroyTimer=new U4DEngine::U4DTimer(scheduler);
+    
+    shootingTimer=new U4DEngine::U4DTimer(scheduler);
     
 }
 
 Tank::~Tank(){
     
     delete scheduler;
-    delete timer;
+    delete selfDestroyTimer;
     delete shootingTimer;
 }
 
@@ -48,11 +53,7 @@ void Tank::init(const char* uName, const char* uBlenderFile){
         
         addChild(tankGun);
         
-        scheduler=new U4DEngine::U4DCallback<Tank>;
-        
-        timer=new U4DEngine::U4DTimer(scheduler);
-
-        shootingTimer=new U4DEngine::U4DTimer(scheduler);
+        changeState(kAiming);
         
         scheduler->scheduleClassWithMethodAndDelay(this, &Tank::shoot, shootingTimer, 5.0,true);
     }
@@ -61,6 +62,13 @@ void Tank::init(const char* uName, const char* uBlenderFile){
 }
 
 void Tank::update(double dt){
+    
+    if(getModelHasCollided()&&isDestroyed==false){
+        
+        changeState(kHit);
+        
+        isDestroyed=true;
+    }
     
     if (getState()==kAiming) {
         
@@ -71,17 +79,9 @@ void Tank::update(double dt){
         
         scheduler->unScheduleTimer(shootingTimer);
         
-        tankGun->enableKineticsBehavior();
+        tankGun->changeState(kHit);
         
-        U4DEngine::U4DVector3n upForce(0.0,50.0,0.0);
-        
-        tankGun->applyForce(upForce);
-        
-        tankGun->rotateBy(5.0, 0.0, 10.0);
-        
-        setSelfDestroyTimer();
-        
-        changeState(kNull);
+        changeState(kSelfDestroy);
     
     }else if(getState()==kShooting){
         
@@ -105,20 +105,12 @@ void Tank::update(double dt){
         
         changeState(kNull);
         
-    }
-    
-    if(getModelHasCollided()&&isDestroyed==false){
+    }else if(getState()==kSelfDestroy){
         
-        changeState(kHit);
+        scheduler->scheduleClassWithMethodAndDelay(this, &Tank::selfDestroy, selfDestroyTimer, 2.0,false);
         
-        isDestroyed=true;
+        changeState(kNull);
     }
-}
-
-
-void Tank::setSelfDestroyTimer(){
-    
-    scheduler->scheduleClassWithMethodAndDelay(this, &Tank::selfDestroy, timer, 2.0,false);
     
 }
 

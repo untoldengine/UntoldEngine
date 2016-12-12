@@ -25,10 +25,10 @@ class Tank:public Artillery{
 private:
 
     TankGun *tankGun;
-    U4DEngine::U4DCallback<Tank>* scheduler;
-    U4DEngine::U4DTimer *timer;
     
-    U4DEngine::U4DCallback<Tank>* shootingScheduler;
+    U4DEngine::U4DCallback<Tank>* scheduler;
+    
+    U4DEngine::U4DTimer *selfDestroyTimer;
     U4DEngine::U4DTimer *shootingTimer;
     
 public:
@@ -40,8 +40,6 @@ public:
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
-    
-    void setSelfDestroyTimer();
     
     void selfDestroy();
     

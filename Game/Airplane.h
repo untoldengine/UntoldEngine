@@ -28,6 +28,7 @@ private:
     AirplaneWing *rightWing;
     U4DEngine::U4DCallback<Airplane>* scheduler;
     U4DEngine::U4DTimer *shootingTimer;
+    U4DEngine::U4DTimer *selfDestroyTimer;
     
 public:
     
@@ -38,6 +39,8 @@ public:
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
+    
+    void selfDestroy();
     
 };
 #endif /* Airplane_hpp */

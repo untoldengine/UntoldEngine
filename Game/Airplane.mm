@@ -13,10 +13,19 @@
 
 Airplane::Airplane(){
     
+    scheduler=new U4DEngine::U4DCallback<Airplane>;
+    
+    shootingTimer=new U4DEngine::U4DTimer(scheduler);
+
+    selfDestroyTimer=new U4DEngine::U4DTimer(scheduler);
     
 }
 
 Airplane::~Airplane(){
+    
+    delete scheduler;
+    delete selfDestroyTimer;
+    delete shootingTimer;
     
 }
 
@@ -76,10 +85,6 @@ void Airplane::init(const char* uName, const char* uBlenderFile){
         
         //set shooting timer
         
-        scheduler=new U4DEngine::U4DCallback<Airplane>;
-        
-        shootingTimer=new U4DEngine::U4DTimer(scheduler);
-        
         scheduler->scheduleClassWithMethodAndDelay(this, &Airplane::shoot, shootingTimer, 4.0,true);
         
         
@@ -89,6 +94,15 @@ void Airplane::init(const char* uName, const char* uBlenderFile){
 }
 
 void Airplane::update(double dt){
+    
+    if (getAbsolutePosition().z>10.0 && isDestroyed==false) {
+        
+        translateTo(6.0, 5.0, -20.0);
+        
+        U4DEngine::U4DVector3n view(0.0,0.6,6.0);
+        
+        viewInDirection(view);
+    }
     
     if (getState()==kFlying) {
         
@@ -127,13 +141,17 @@ void Airplane::update(double dt){
         
         scheduler->unScheduleTimer(shootingTimer);
         
-        rightWing->enableKineticsBehavior();
-        
-        U4DEngine::U4DVector3n upForce(10.0,50.0,20.0);
-        
-        rightWing->applyForce(upForce);
-        
         rotor->changeState(kNull);
+        
+        //leftWing->changeState(kHit);
+        
+        rightWing->changeState(kHit);
+        
+        changeState(kSelfDestroy);
+        
+    }else if(getState()==kSelfDestroy){
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &Airplane::selfDestroy, selfDestroyTimer, 2.0,false);
         
         changeState(kNull);
         
@@ -147,5 +165,19 @@ void Airplane::update(double dt){
         isDestroyed=true;
         
     }
+    
+}
+
+void Airplane::selfDestroy(){
+    
+    removeChild(rotor);
+    removeChild(leftWing);
+    removeChild(rightWing);
+    
+    delete rotor;
+    delete leftWing;
+    delete rightWing;
+    
+    delete this;
     
 }
