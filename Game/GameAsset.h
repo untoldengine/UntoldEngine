@@ -14,8 +14,6 @@
 
 class GameAsset:public U4DEngine::U4DGameObject {
     
-    
-    
 public:
     GameAsset(){};
     ~GameAsset(){};

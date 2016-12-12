@@ -14,84 +14,107 @@
 
 #include "U4DDirector.h"
 
-#include "MyCharacter.h"
 #include "U4DMatrix3n.h"
 #include "U4DButton.h"
 #include "U4DSkyBox.h"
 #include "U4DTouches.h"
 #include "U4DCamera.h"
 #include "U4DControllerInterface.h"
-
 #include "GameController.h"
 #include "U4DSprite.h"
 #include "U4DLights.h"
 #include "U4DLogger.h"
 #include "Floor.h"
+#include "Tank.h"
+#include "AntiAircraft.h"
+#include "Airplane.h"
 #include "GameAsset.h"
-#include "Rock.h"
-
 
 using namespace U4DEngine;
 
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 3.5, 12.0);
+    camera->translateBy(0.0,4.0,7.5);
    
     setName("earth");
     
-    //create character
-    robot=new MyCharacter();
-    robot->init("robot", "characterscript.u4d");
+    tank=new Tank();
+    tank->init("tankbody", "tankscript.u4d");
     
-    //create the floor
-    floor=new Floor();
-    floor->init("platform","blenderscript.u4d");
+    tank->setWorld(this);
     
-    //create rock
-    rock=new Rock();
-    rock->init("rock","blenderscript.u4d");
+    antiAircraft=new AntiAircraft();
+    antiAircraft->init("antiaircraftbase", "antiaircraftscript.u4d");
     
-    //create tree
-    tree=new GameAsset();
-    tree->init("tree","blenderscript.u4d");
+    antiAircraft->setWorld(this);
     
-    //create clouds
-    cloud=new GameAsset();
-    cloud->init("cloud","blenderscript.u4d");
+    airplane=new Airplane();
+    airplane->init("airplane", "airplanescript.u4d");
     
-    cloud2=new GameAsset();
-    cloud2->init("cloud2","blenderscript.u4d");
+    airplane->setWorld(this);
     
+    road=new Floor();
+    road->init("road", "blenderscript.u4d");
+    
+    rubble=new GameAsset();
+    rubble->init("rubble", "blenderscript.u4d");
+   
+    sack1=new GameAsset();
+    sack1->init("sack1", "blenderscript.u4d");
+    
+    sack2=new GameAsset();
+    sack2->init("sack2", "blenderscript.u4d");
+
+    house1=new GameAsset();
+    house1->init("house1", "blenderscript.u4d");
+    
+
+    tire=new GameAsset();
+    tire->init("tire", "blenderscript.u4d");
+    
+    house2=new GameAsset();
+    house2->init("house2", "blenderscript.u4d");
+    
+    landscape=new GameAsset();
+    landscape->init("landscape", "blenderscript.u4d");
+  
     U4DVector3n origin(0,0,0);
     
-    camera->viewInDirection(origin);
+    //camera->viewInDirection(origin);
 
     U4DLights *light=U4DLights::sharedInstance();
     light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-    addChild(robot);
+    addChild(tank);
     
-    addChild(floor);
+    addChild(antiAircraft);
     
-    addChild(rock);
+    addChild(airplane);
     
-    addChild(tree);
+    addChild(road);
+   
+    addChild(rubble);
     
-    addChild(cloud2);
+    addChild(sack1);
     
-    addChild(cloud);
+    addChild(sack2);
+    
+    addChild(tire);
+    
+    addChild(landscape);
+    
+    addChild(house1);
+    
+    addChild(house2);
     
     initLoadingModels();
-    
     
 }
 
 void Earth::update(double dt){
     
-    U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->followModel(robot, 0.0, 2.0, 12.0);
     
 
 }

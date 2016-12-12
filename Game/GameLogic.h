@@ -12,8 +12,10 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "MyCharacter.h"
 
+class AntiAircraft;
+class Bullet;
+class Tank;
 
 namespace U4DEngine {
     class U4DTouches;
@@ -22,8 +24,11 @@ namespace U4DEngine {
 }
 
 class GameLogic:public U4DEngine::U4DGameModel{
+    
 public:
-    MyCharacter *robot;
+
+    AntiAircraft *antiAircraft;
+    Tank *tank;
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;

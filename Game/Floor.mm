@@ -22,12 +22,13 @@ void Floor::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-       
+       /*
         initAsPlatform(true);
         initMass(10.0);
         initCoefficientOfRestitution(0.0);
         enableCollisionBehavior();
-        
+        setBroadPhaseBoundingVolumeVisibility(true);
+        */
     }
 }
 
