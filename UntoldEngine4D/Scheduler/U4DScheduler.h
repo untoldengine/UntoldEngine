@@ -27,10 +27,11 @@ private:
     
     double timeScale;
     double delta;
+    int timerIndex;
     
 protected:
     
-    U4DScheduler():timeScale(1.0),delta(0.0){};
+    U4DScheduler():timeScale(1.0),delta(0.0),timerIndex(0){};
     
     ~U4DScheduler(){};
     

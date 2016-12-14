@@ -28,7 +28,7 @@ private:
 public:
     
     //constructor
-    U4DTimer():currentTime(0.0),repeat(false),delay(0.0){};
+    U4DTimer():currentTime(0.0),repeat(false),delay(0.0),index(0){};
     
     U4DTimer(U4DCallbackInterface *uPCallback):currentTime(0.0),repeat(false),delay(0.0),pCallback(uPCallback){};
     
