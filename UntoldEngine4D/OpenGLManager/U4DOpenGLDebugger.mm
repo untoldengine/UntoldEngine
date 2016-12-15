@@ -90,7 +90,7 @@ void U4DOpenGLDebugger::enableVerticesAttributeLocations(){
 
 void U4DOpenGLDebugger::drawElements(){
     
-     glDrawArrays(GL_LINES, 0,u4dDebugger->bodyCoordinates.verticesContainer.size());
+     glDrawArrays(GL_LINES, 0,(GLsizei)u4dDebugger->bodyCoordinates.verticesContainer.size());
     
 }
 
