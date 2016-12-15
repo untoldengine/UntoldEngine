@@ -51,6 +51,8 @@ void AntiAircraft::init(const char* uName, const char* uBlenderFile){
         
         changeState(kNull);
         
+        setCollisionFilterGroupIndex(kAllies);
+        
     }
     
     
@@ -77,12 +79,14 @@ void AntiAircraft::update(double dt){
             bullet->init("bullet", "bulletscript.u4d");
             
             U4DEngine::U4DVector3n position=getAbsolutePosition();
-            position.y+=0.5;
+            
             U4DEngine::U4DVector3n aimVector=getAimVector();
             
             bullet->setShootingParameters(world, position, aimVector);
             
             bullet->shoot();
+            
+            setCollisionFilterGroupIndex(kAllies);
             
         }
         

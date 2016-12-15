@@ -35,7 +35,7 @@ void Bullet::init(const char* uName, const char* uBlenderFile){
         timer=new U4DEngine::U4DTimer(scheduler);
         
         scheduler->scheduleClassWithMethodAndDelay(this, &Bullet::selfDestroy, timer, 4.0,false);
-        
+     
     }
     
     

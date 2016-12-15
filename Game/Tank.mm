@@ -56,6 +56,10 @@ void Tank::init(const char* uName, const char* uBlenderFile){
         changeState(kAiming);
         
         scheduler->scheduleClassWithMethodAndDelay(this, &Tank::shoot, shootingTimer, 5.0,true);
+        
+        setCollisionFilterCategory(kTank);
+        setCollisionFilterMask(kBullet|kAirplane);
+        setCollisionFilterGroupIndex(kEnemy);
     }
     
     
@@ -93,7 +97,6 @@ void Tank::update(double dt){
             bullet->init("bullet", "bulletscript.u4d");
             
             U4DEngine::U4DVector3n position=tankGun->getAbsolutePosition();
-            position.z=-2.0;
             
             U4DEngine::U4DVector3n aimVector=getAimVector();
             
@@ -101,6 +104,7 @@ void Tank::update(double dt){
             
             bullet->shoot();
             
+            bullet->setCollisionFilterGroupIndex(kEnemy);
         }
         
         changeState(kNull);

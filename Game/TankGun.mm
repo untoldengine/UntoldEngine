@@ -15,7 +15,7 @@ TankGun::TankGun(){
     WeaponBehavior* aimLeftRight=new AimLeftRight();
     
     setWeaponBehavior(aimLeftRight);
-    
+    setCollisionFilterGroupIndex(kEnemy);
 }
 
 TankGun::~TankGun(){

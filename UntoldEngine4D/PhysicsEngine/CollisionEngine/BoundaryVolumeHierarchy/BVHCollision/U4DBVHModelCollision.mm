@@ -112,63 +112,65 @@ namespace U4DEngine {
         //test for all leaf collisions
         for (int i=0; i<modelBoundingVolumePair.size()-1; i++) {
             
-            
-            
             for (int j=i+1; j<modelBoundingVolumePair.size(); j++) {
                 
                 bool collisionOccurred=false;
                 
+                //determine if the models should collide depending on their category and mask
+                if (shouldModelsCollide(modelBoundingVolumePair.at(i).model,modelBoundingVolumePair.at(j).model)){
                 
-                //check if both models are not platforms
-                if (!modelBoundingVolumePair.at(i).model->getIsPlatform() && !modelBoundingVolumePair.at(j).model->getIsPlatform()) {
-                    
-                    U4DSphere sphereVolume1=modelBoundingVolumePair.at(i).boundingVolume->getSphere();
-                    
-                    U4DSphere sphereVolume2=modelBoundingVolumePair.at(j).boundingVolume->getSphere();
-                    
-                    collisionOccurred=sphereVolume1.intersectionWithVolume(sphereVolume2);
-                    
-                    //check if model 1 is platform and model 2 is not platform
-                }else if(modelBoundingVolumePair.at(i).model->getIsPlatform() && !modelBoundingVolumePair.at(j).model->getIsPlatform()){
-                    
-                    //get AABB for model 1
-                    U4DAABB aabbVolume;
-                    aabbVolume.maxPoint=modelBoundingVolumePair.at(i).boundingVolume->getMaxBoundaryPoint();
-                    aabbVolume.minPoint=modelBoundingVolumePair.at(i).boundingVolume->getMinBoundaryPoint();
-                    
-                    U4DSphere sphereVolume=modelBoundingVolumePair.at(j).boundingVolume->getSphere();
-                    
-                    collisionOccurred=aabbVolume.intersectionWithVolume(sphereVolume);
-                    
-                    
-                    
-                    //check if model 1 is not platform and model 2 is a platform
-                }else if(!modelBoundingVolumePair.at(i).model->getIsPlatform() && modelBoundingVolumePair.at(j).model->getIsPlatform()){
-                    
-                    //get AABB for model 2
-                    U4DAABB aabbVolume;
-                    aabbVolume.maxPoint=modelBoundingVolumePair.at(j).boundingVolume->getMaxBoundaryPoint();
-                    aabbVolume.minPoint=modelBoundingVolumePair.at(j).boundingVolume->getMinBoundaryPoint();
-                    
-                    U4DSphere sphereVolume=modelBoundingVolumePair.at(i).boundingVolume->getSphere();
-                    
-                    collisionOccurred=aabbVolume.intersectionWithVolume(sphereVolume);
-                    
-                    
-                    //both models are platforms
-                }else{
-                    
-                    //get AABB for model 1
-                    U4DAABB aabbVolume1;
-                    aabbVolume1.maxPoint=modelBoundingVolumePair.at(i).boundingVolume->getMaxBoundaryPoint();
-                    aabbVolume1.minPoint=modelBoundingVolumePair.at(i).boundingVolume->getMinBoundaryPoint();
-                    
-                    //get AABB for model 2
-                    U4DAABB aabbVolume2;
-                    aabbVolume2.maxPoint=modelBoundingVolumePair.at(j).boundingVolume->getMaxBoundaryPoint();
-                    aabbVolume2.minPoint=modelBoundingVolumePair.at(j).boundingVolume->getMinBoundaryPoint();
-                    
-                    collisionOccurred=aabbVolume1.intersectionWithVolume(&aabbVolume2);
+                    //check if both models are not platforms
+                    if (!modelBoundingVolumePair.at(i).model->getIsPlatform() && !modelBoundingVolumePair.at(j).model->getIsPlatform()) {
+                        
+                        U4DSphere sphereVolume1=modelBoundingVolumePair.at(i).boundingVolume->getSphere();
+                        
+                        U4DSphere sphereVolume2=modelBoundingVolumePair.at(j).boundingVolume->getSphere();
+                        
+                        collisionOccurred=sphereVolume1.intersectionWithVolume(sphereVolume2);
+                        
+                        //check if model 1 is platform and model 2 is not platform
+                    }else if(modelBoundingVolumePair.at(i).model->getIsPlatform() && !modelBoundingVolumePair.at(j).model->getIsPlatform()){
+                        
+                        //get AABB for model 1
+                        U4DAABB aabbVolume;
+                        aabbVolume.maxPoint=modelBoundingVolumePair.at(i).boundingVolume->getMaxBoundaryPoint();
+                        aabbVolume.minPoint=modelBoundingVolumePair.at(i).boundingVolume->getMinBoundaryPoint();
+                        
+                        U4DSphere sphereVolume=modelBoundingVolumePair.at(j).boundingVolume->getSphere();
+                        
+                        collisionOccurred=aabbVolume.intersectionWithVolume(sphereVolume);
+                        
+                        
+                        
+                        //check if model 1 is not platform and model 2 is a platform
+                    }else if(!modelBoundingVolumePair.at(i).model->getIsPlatform() && modelBoundingVolumePair.at(j).model->getIsPlatform()){
+                        
+                        //get AABB for model 2
+                        U4DAABB aabbVolume;
+                        aabbVolume.maxPoint=modelBoundingVolumePair.at(j).boundingVolume->getMaxBoundaryPoint();
+                        aabbVolume.minPoint=modelBoundingVolumePair.at(j).boundingVolume->getMinBoundaryPoint();
+                        
+                        U4DSphere sphereVolume=modelBoundingVolumePair.at(i).boundingVolume->getSphere();
+                        
+                        collisionOccurred=aabbVolume.intersectionWithVolume(sphereVolume);
+                        
+                        
+                        //both models are platforms
+                    }else{
+                        
+                        //get AABB for model 1
+                        U4DAABB aabbVolume1;
+                        aabbVolume1.maxPoint=modelBoundingVolumePair.at(i).boundingVolume->getMaxBoundaryPoint();
+                        aabbVolume1.minPoint=modelBoundingVolumePair.at(i).boundingVolume->getMinBoundaryPoint();
+                        
+                        //get AABB for model 2
+                        U4DAABB aabbVolume2;
+                        aabbVolume2.maxPoint=modelBoundingVolumePair.at(j).boundingVolume->getMaxBoundaryPoint();
+                        aabbVolume2.minPoint=modelBoundingVolumePair.at(j).boundingVolume->getMinBoundaryPoint();
+                        
+                        collisionOccurred=aabbVolume1.intersectionWithVolume(&aabbVolume2);
+                        
+                    }
                     
                 }
                 
