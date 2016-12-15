@@ -15,6 +15,7 @@
 namespace U4DEngine {
     class U4DBVHTree;
     class U4DBroadPhaseCollisionModelPair;
+    class U4DDynamicModel;
 }
 
 
@@ -84,6 +85,11 @@ namespace U4DEngine {
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
         virtual void collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
+        
+        /**
+         @brief Document this
+         */
+        bool shouldModelsCollide(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2);
         
     };
 }

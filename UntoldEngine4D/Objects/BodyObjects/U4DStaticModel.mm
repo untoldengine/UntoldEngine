@@ -514,4 +514,35 @@ namespace U4DEngine {
         return isPlatform;
     }
     
+    void U4DStaticModel::setCollisionFilterCategory(int uFilterCategory){
+        
+        collisionFilter.category=uFilterCategory;
+    }
+    
+
+    void U4DStaticModel::setCollisionFilterMask(int uFilterMask){
+        
+        collisionFilter.mask=uFilterMask;
+    }
+    
+    void U4DStaticModel::setCollisionFilterGroupIndex(signed int uGroupIndex){
+        
+        collisionFilter.groupIndex=uGroupIndex;
+    }
+    
+    int U4DStaticModel::getCollisionFilterCategory(){
+        
+        return collisionFilter.category;
+    }
+    
+    int U4DStaticModel::getCollisionFilterMask(){
+        
+        return collisionFilter.mask;
+    }
+
+    signed int U4DStaticModel::getCollisionFilterGroupIndex(){
+     
+        return collisionFilter.groupIndex;
+    }
+    
 }

@@ -111,6 +111,19 @@ namespace U4DEngine {
         bool collided=false;
         
     }CollisionProperties;
+    
+    /**
+     @brief Document this
+     */
+    typedef struct{
+        
+        int category=1;
+        
+        int mask=1;
+        
+        signed int groupIndex=0;
+        
+    }CollisionFilter;
 }
 
 
@@ -172,6 +185,11 @@ namespace U4DEngine {
          @brief Variable stating if the model should be consider a platform. For example, a model which will serve as a floor or ground in a game should be set to platform. This is important for collision detection.
          */
         bool isPlatform;
+        
+        /**
+         @brief document this
+         */
+        CollisionFilter collisionFilter;
         
         protected:
             
@@ -484,6 +502,37 @@ namespace U4DEngine {
          @return Returns true if the model has collided
          */
         bool getModelHasCollided();
+        
+        /**
+         @brief document this
+         */
+        void setCollisionFilterCategory(int uFilterCategory);
+
+        /**
+         @brief document this-Who can the model collide with
+         */
+        void setCollisionFilterMask(int uFilterMask);
+        
+        /**
+         @brief document this
+         */
+        void setCollisionFilterGroupIndex(signed int uGroupIndex);
+        
+        /**
+         @brief document this
+         */
+        int getCollisionFilterCategory();
+        
+        /**
+         @brief document this
+         */
+        int getCollisionFilterMask();
+        
+        /**
+         @brief document this
+         */
+        signed int getCollisionFilterGroupIndex();
+        
         
         };
     

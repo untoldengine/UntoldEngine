@@ -87,7 +87,7 @@ void Airplane::init(const char* uName, const char* uBlenderFile){
         
         scheduler->scheduleClassWithMethodAndDelay(this, &Airplane::shoot, shootingTimer, 4.0,true);
         
-        
+        setCollisionFilterGroupIndex(kEnemy);
     }
     
     
@@ -125,13 +125,13 @@ void Airplane::update(double dt){
             
             U4DEngine::U4DVector3n position=rotor->getAbsolutePosition();
             
-            position.z+=1.5;
-            
             U4DEngine::U4DVector3n aimVector=getViewInDirection();
             
             bullet->setShootingParameters(world, position, aimVector);
             
             bullet->shoot();
+            
+            setCollisionFilterGroupIndex(kEnemy);
             
         }
         
