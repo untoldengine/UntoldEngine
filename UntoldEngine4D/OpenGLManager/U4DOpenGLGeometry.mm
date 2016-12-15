@@ -83,7 +83,7 @@ namespace U4DEngine {
 
     void U4DOpenGLGeometry::drawElements(){
          
-        glDrawElements(GL_LINE_STRIP,3*u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
+        glDrawElements(GL_LINE_STRIP,3*(GLsizei)u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
         
     }
 

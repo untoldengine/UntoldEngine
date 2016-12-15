@@ -110,7 +110,7 @@ void U4DOpenGLCubeMap::drawElements(){
     
    //glDepthFunc(GL_LEQUAL);
     
-  glDrawElements(GL_TRIANGLES,3*u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
+  glDrawElements(GL_TRIANGLES,3*(GLsizei)u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
 
    //glDepthFunc(GL_LESS);
 }

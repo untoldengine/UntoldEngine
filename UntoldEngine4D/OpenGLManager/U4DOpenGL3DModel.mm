@@ -99,23 +99,23 @@ void U4DOpenGL3DModel::loadVertexObjectBuffer(){
 void U4DOpenGL3DModel::loadMaterialsUniforms(){
         
     if (!u4dObject->materialInformation.diffuseMaterialColorContainer.empty()) {
-        glUniform4fv(materialUniformLocations.diffuseColorMaterialUniformLocation, u4dObject->materialInformation.diffuseMaterialColorContainer.size(), u4dObject->materialInformation.diffuseMaterialColorContainer[0].colorData);
+        glUniform4fv(materialUniformLocations.diffuseColorMaterialUniformLocation, (GLsizei)u4dObject->materialInformation.diffuseMaterialColorContainer.size(), u4dObject->materialInformation.diffuseMaterialColorContainer[0].colorData);
     }
     
     if (!u4dObject->materialInformation.specularMaterialColorContainer.empty()) {
-        glUniform4fv(materialUniformLocations.specularColorMaterialUniformLocation, u4dObject->materialInformation.specularMaterialColorContainer.size(), u4dObject->materialInformation.specularMaterialColorContainer[0].colorData);
+        glUniform4fv(materialUniformLocations.specularColorMaterialUniformLocation, (GLsizei)u4dObject->materialInformation.specularMaterialColorContainer.size(), u4dObject->materialInformation.specularMaterialColorContainer[0].colorData);
     }
     
     if (!u4dObject->materialInformation.diffuseMaterialIntensityContainer.empty()) {
-        glUniform1fv(materialUniformLocations.diffuseIntensityMaterialUniformLocation, u4dObject->materialInformation.diffuseMaterialIntensityContainer.size(), &u4dObject->materialInformation.diffuseMaterialIntensityContainer[0]);
+        glUniform1fv(materialUniformLocations.diffuseIntensityMaterialUniformLocation, (GLsizei)u4dObject->materialInformation.diffuseMaterialIntensityContainer.size(), &u4dObject->materialInformation.diffuseMaterialIntensityContainer[0]);
     }
     
     if (!u4dObject->materialInformation.specularMaterialIntensityContainer.empty()) {
-        glUniform1fv(materialUniformLocations.specularIntensityMaterialUniformLocation, u4dObject->materialInformation.specularMaterialIntensityContainer.size(), &u4dObject->materialInformation.specularMaterialIntensityContainer[0]);
+        glUniform1fv(materialUniformLocations.specularIntensityMaterialUniformLocation, (GLsizei)u4dObject->materialInformation.specularMaterialIntensityContainer.size(), &u4dObject->materialInformation.specularMaterialIntensityContainer[0]);
     }
     
     if (!u4dObject->materialInformation.specularMaterialHardnessContainer.empty()) {
-        glUniform1fv(materialUniformLocations.specularHardnessMaterialUniformLocation, u4dObject->materialInformation.specularMaterialHardnessContainer.size(), &u4dObject->materialInformation.specularMaterialHardnessContainer[0]);
+        glUniform1fv(materialUniformLocations.specularHardnessMaterialUniformLocation, (GLsizei)u4dObject->materialInformation.specularMaterialHardnessContainer.size(), &u4dObject->materialInformation.specularMaterialHardnessContainer[0]);
     }
 
     checkErrors(u4dObject->getName(), "Loading Materials Uniform");
@@ -231,7 +231,7 @@ void U4DOpenGL3DModel::enableVerticesAttributeLocations(){
 
 void U4DOpenGL3DModel::drawElements(){
     
-    glDrawElements(GL_TRIANGLES,3*u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
+    glDrawElements(GL_TRIANGLES,3*(GLsizei)u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
     
 }
 
@@ -286,7 +286,7 @@ void U4DOpenGL3DModel::loadArmatureUniforms(){
         glUniform1f(armatureUniformLocations.hasArmatureUniformLocation, 1.0);
         
         //load the final space transform
-        glUniformMatrix4fv(armatureUniformLocations.boneMatrixUniformLocation, u4dObject->armatureManager->boneDataContainer.size(), 0, u4dObject->armatureBoneMatrix[0].matrixData);
+        glUniformMatrix4fv(armatureUniformLocations.boneMatrixUniformLocation, (GLsizei)u4dObject->armatureManager->boneDataContainer.size(), 0, u4dObject->armatureBoneMatrix[0].matrixData);
         
     }else{
         

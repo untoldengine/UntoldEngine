@@ -85,7 +85,7 @@ U4DMatrix4n U4DOpenGLImage::getCameraPerspectiveView(){
 
 void U4DOpenGLImage::drawElements(){
     
-    glDrawElements(GL_TRIANGLES,3*u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,&u4dObject->bodyCoordinates.indexContainer[0]);
+    glDrawElements(GL_TRIANGLES,3*(GLsizei)u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,&u4dObject->bodyCoordinates.indexContainer[0]);
     
     glDisable(GL_BLEND);
     glEnable(GL_DEPTH_TEST);

@@ -61,7 +61,7 @@ void U4DOpenGLWorld::enableVerticesAttributeLocations(){
 
 void U4DOpenGLWorld::drawElements(){
     
-    glDrawArrays(GL_LINES, 0, u4dWorld->bodyCoordinates.verticesContainer.size());
+    glDrawArrays(GL_LINES, 0, (GLsizei)u4dWorld->bodyCoordinates.verticesContainer.size());
 
 }
 
