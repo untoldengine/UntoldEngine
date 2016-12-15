@@ -54,11 +54,22 @@ void U4DScheduler::scheduleTimer(U4DTimer *uTimer){
 
 void U4DScheduler::unscheduleTimer(U4DTimer *uTimer){
     
-    //remove the timer
+    //get timer index to remove
     int uTimerIndex=uTimer->getIndex();
-    std::cout<<"before removal: "<<timersArray.size()<<" with index: "<<uTimerIndex<<std::endl;
+    
+    //remove the timer
     timersArray.erase(std::remove_if(timersArray.begin(),timersArray.end(),[uTimerIndex](U4DTimer *timerToRemove){return timerToRemove->getIndex()==uTimerIndex;}),timersArray.end());
-        std::cout<<"after removal: "<<timersArray.size()<<std::endl;
+    
+    //reset the timer index to zero and reassign new value to each timer
+    timerIndex=0;
+    
+    for(auto &n:timersArray){
+        
+        n->setIndex(timerIndex);
+        
+        timerIndex++;
+    }
+    
 }
 
 void U4DScheduler::unscheduleAllTimers(){
