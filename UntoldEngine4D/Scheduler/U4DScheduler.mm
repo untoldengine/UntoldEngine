@@ -10,6 +10,7 @@
 #include "U4DTimer.h"
 #include <string>
 
+
 namespace U4DEngine {
     
 U4DScheduler* U4DScheduler::instance=0;
@@ -45,28 +46,30 @@ double U4DScheduler::getTick(){
 
 void U4DScheduler::scheduleTimer(U4DTimer *uTimer){
     
+    uTimer->setIndex(timerIndex);
     timersArray.push_back(uTimer);
     
-    //set the timer index
-    for (int i=0; i<timersArray.size(); i++) {
-    
-        U4DTimer *timer=timersArray.at(i);
-        timer->setIndex(i);
-    
-    }
+    timerIndex++;
 }
 
 void U4DScheduler::unscheduleTimer(U4DTimer *uTimer){
     
-    //remove the timer
-    timersArray.erase(timersArray.begin()+uTimer->getIndex());
+    //get timer index to remove
+    int uTimerIndex=uTimer->getIndex();
     
-    //update the timer index
-    for (int i=0; i<timersArray.size(); i++) {
+    //remove the timer
+    timersArray.erase(std::remove_if(timersArray.begin(),timersArray.end(),[uTimerIndex](U4DTimer *timerToRemove){return timerToRemove->getIndex()==uTimerIndex;}),timersArray.end());
+    
+    //reset the timer index to zero and reassign new value to each timer
+    timerIndex=0;
+    
+    for(auto &n:timersArray){
         
-        U4DTimer *timer=timersArray.at(i);
-        timer->setIndex(i);
+        n->setIndex(timerIndex);
+        
+        timerIndex++;
     }
+    
 }
 
 void U4DScheduler::unscheduleAllTimers(){
