@@ -13,29 +13,23 @@
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
 
-class GameController;
-class Tank;
-class Floor;
-class GameAsset;
-class AntiAircraft;
-class Airplane;
+class MyCharacter;
 
+class GameController;
+class GameAsset;
+class Floor;
+class Rock;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    Floor *road;
-    Tank *tank;
-    Airplane *airplane;
-    AntiAircraft *antiAircraft;
-    GameAsset *rubble;
-    GameAsset *sack1;
-    GameAsset *sack2;
-    GameAsset *tire;
-    GameAsset *landscape;
-    GameAsset *house1;
-    GameAsset *house2;
+    MyCharacter *robot;
+    Floor *floor;
+    GameAsset *tree;
+    GameAsset *cloud;
+    GameAsset *cloud2;
+    Rock *rock;
     
 public:
    
