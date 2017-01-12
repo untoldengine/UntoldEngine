@@ -11,8 +11,14 @@
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
-#include "GameAsset.h"
-#include "U4DWorld.h"
+
+MyCharacter::MyCharacter():joyStickData(0.0,0.0,0.0){
+    
+}
+
+MyCharacter::~MyCharacter(){
+    
+}
 
 void MyCharacter::init(const char* uName, const char* uBlenderFile){
     
@@ -44,7 +50,7 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
 }
 
 void MyCharacter::update(double dt){
-   /*
+   
     if (getState()==kRotating) {
         
         U4DEngine::U4DVector3n setView(joyStickData.x*10.0,getAbsolutePosition().y,-joyStickData.y*10.0);
@@ -69,7 +75,7 @@ void MyCharacter::update(double dt){
             
         }
     }
-    */
+    
 }
 
 void MyCharacter::setState(GameEntityState uState){
@@ -81,7 +87,7 @@ GameEntityState MyCharacter::getState(){
 }
 
 void MyCharacter::changeState(GameEntityState uState){
-    /*
+    
     removeAnimation();
     
     setState(uState);
@@ -92,8 +98,9 @@ void MyCharacter::changeState(GameEntityState uState){
             break;
             
         case kWalking:
+            
             setAnimation(walking);
-         
+            
             break;
             
         case kJump:
@@ -112,7 +119,7 @@ void MyCharacter::changeState(GameEntityState uState){
         playAnimation();
         
     }
-    */
+    
 }
 
 

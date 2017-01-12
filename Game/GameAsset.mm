@@ -22,5 +22,5 @@ void GameAsset::init(const char* uName, const char* uBlenderFile){
 
 void GameAsset::update(double dt){
     
-    
+    //rotateBy(0.0,1.0,0.0);
 }

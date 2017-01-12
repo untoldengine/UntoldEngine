@@ -11,26 +11,12 @@
 
 typedef enum{
     
-    kShooting,
-    kAiming,
-    kCollided,
-    kHit,
-    kFlying,
-    kSelfDestroy,
+    kWalking,
+    kRotating,
+    kJump,
     kNull
     
 }GameEntityState;
-
-typedef enum{
-    
-    kTank=1,
-    kAirplane=2,
-    kBullet=3,
-    kAntiaircraft=4,
-    kEnemy=-10,
-    kAllies=-11
-    
-}GameEntityCollision;
 
 
 #endif /* UserCommonProtocols_h */
