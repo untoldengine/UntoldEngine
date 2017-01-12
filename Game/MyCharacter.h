@@ -24,7 +24,9 @@ private:
     
 public:
     
-    MyCharacter():joyStickData(0.0,0.0,0.0){};
+    MyCharacter();
+    
+    ~MyCharacter();
     
     float x,y,z;
   

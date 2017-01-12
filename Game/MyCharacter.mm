@@ -12,6 +12,13 @@
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
 
+MyCharacter::MyCharacter():joyStickData(0.0,0.0,0.0){
+    
+}
+
+MyCharacter::~MyCharacter(){
+    
+}
 
 void MyCharacter::init(const char* uName, const char* uBlenderFile){
     

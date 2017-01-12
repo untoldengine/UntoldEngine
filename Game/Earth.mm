@@ -37,6 +37,8 @@ void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     camera->translateBy(0.0, 3.5, 12.0);
+    
+    setName("earth");
    
     //create character
     robot=new MyCharacter();
@@ -75,7 +77,7 @@ void Earth::init(){
     
     addChild(rock);
     
-    addChild(tree);
+//    addChild(tree);
     
     addChild(cloud2);
     

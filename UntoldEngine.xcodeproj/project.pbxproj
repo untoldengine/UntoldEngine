@@ -1290,6 +1290,11 @@
 			attributes = {
 				LastUpgradeCheck = 0810;
 				ORGANIZATIONNAME = "Untold Game Studio";
+				TargetAttributes = {
+					03759B33175B0135002EB5D9 = {
+						DevelopmentTeam = W9GCJ3HCHT;
+					};
+				};
 			};
 			buildConfigurationList = 03759B2E175B0135002EB5D9 /* Build configuration list for PBXProject "UntoldEngine" */;
 			compatibilityVersion = "Xcode 3.2";
@@ -1603,6 +1608,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMPRESS_PNG_FILES = NO;
+				DEVELOPMENT_TEAM = W9GCJ3HCHT;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "UntoldEngine4D/UntoldEngine-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
@@ -1610,7 +1616,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				INFOPLIST_FILE = "UntoldEngine4D/UntoldEngine-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.2;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/haroldserrano/Downloads/Simple,
@@ -1628,6 +1634,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMPRESS_PNG_FILES = NO;
+				DEVELOPMENT_TEAM = W9GCJ3HCHT;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "UntoldEngine4D/UntoldEngine-Prefix.pch";
 				HEADER_SEARCH_PATHS = (
@@ -1635,7 +1642,7 @@
 					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
 				);
 				INFOPLIST_FILE = "UntoldEngine4D/UntoldEngine-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 8.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 10.2;
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					/Users/haroldserrano/Downloads/Simple,
