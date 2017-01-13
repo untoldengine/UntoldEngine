@@ -15,6 +15,7 @@ void GameAsset::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         
+        loadRenderingInformation();
     }
     
     

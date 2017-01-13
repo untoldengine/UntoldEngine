@@ -23,7 +23,9 @@ namespace U4DEngine {
         openGlManager=new U4DOpenGLWorld(this);
         openGlManager->setShader("gouraudShader");
         
-        enableShadows();
+        openGlManager->loadRenderingInformation();
+        
+        openGlManager->initShadowMapFramebuffer();
         
     }
     
@@ -103,7 +105,7 @@ namespace U4DEngine {
     void U4DWorld::enableShadows(){
         
         shadowsEnabled=true;
-        openGlManager->initShadowMapFramebuffer();
+        
         
     }
 
@@ -121,20 +123,6 @@ namespace U4DEngine {
     void U4DWorld::endShadowMapPass(){
         
         openGlManager->endShadowMapPass();
-    }
-
-
-    void U4DWorld::initLoadingModels(){
-        
-        U4DEntity *child=this;
-        
-        //load rendering info for every child
-        while (child!=NULL) {
-            
-            child->loadRenderingInformation();
-            child=child->next;
-        }
-        
     }
 
 }

@@ -69,8 +69,6 @@ public:
     
     U4DGameModelInterface* getGameModel();
     
-    void initLoadingModels();
-    
     void draw();
     
     void enableShadows();
