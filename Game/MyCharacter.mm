@@ -44,6 +44,8 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
             
         }
         
+        loadRenderingInformation();
+        
     }
     
     

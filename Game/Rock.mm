@@ -24,6 +24,8 @@ void Rock::init(const char* uName, const char* uBlenderFile){
         //initialize everything else here
         enableCollisionBehavior();
         initCoefficientOfRestitution(0.0);
+        
+        loadRenderingInformation();
     }
     
     

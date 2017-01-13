@@ -39,6 +39,8 @@ void Earth::init(){
     camera->translateBy(0.0, 3.5, 12.0);
     
     setName("earth");
+    
+    enableShadows();
    
     //create character
     robot=new MyCharacter();
@@ -77,14 +79,11 @@ void Earth::init(){
     
     addChild(rock);
     
-//    addChild(tree);
+    //addChild(tree);
     
     addChild(cloud2);
     
     addChild(cloud);
-    
-    initLoadingModels();
-    
     
 }
 

@@ -28,6 +28,8 @@ void Floor::init(const char* uName, const char* uBlenderFile){
         initCoefficientOfRestitution(0.0);
         enableCollisionBehavior();
         
+        loadRenderingInformation();
+        
     }
 }
 
