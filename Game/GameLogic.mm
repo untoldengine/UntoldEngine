@@ -32,6 +32,7 @@ void GameLogic::init(){
 
 void GameLogic::receiveTouchUpdate(){
 
+
     
     if (buttonA->getIsPressed()) {
         
@@ -55,10 +56,14 @@ void GameLogic::receiveTouchUpdate(){
     
     if(joystick->getIsActive()){
         
-        robot->changeState(kRotating);
+        //robot->changeState(kRotating);
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        robot->setJoystickData(joyData);
-       
+        //robot->setJoystickData(joyData);
+        
+        U4DEngine::U4DVector3n setView(joyData.x*10.0,robot->getAbsolutePosition().y,-joyData.y*10.0);
+        
+        robot->viewInDirection(setView);
+        
     }
     
 }

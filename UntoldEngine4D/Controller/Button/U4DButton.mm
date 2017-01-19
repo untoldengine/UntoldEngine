@@ -75,6 +75,7 @@ void U4DButton::update(float dt){
         buttonState=rTouchesNull;
         
     }else{
+        
         receivedAction=NULL;
         isActive=NULL;
         
@@ -100,15 +101,10 @@ void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
             
            if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
 
-               if (uTouchState==rTouchesBegan) {
+               if (uTouchState==rTouchesBegan || uTouchState==rTouchesEnded) {
                 
                    buttonState=uTouchState;
                    buttonImages.changeImage();
-                   
-               }else if (uTouchState==rTouchesEnded){
-                   
-                   buttonState=uTouchState;
-                   buttonImages.changeImage();  //select default image
                    
                }
             }
