@@ -55,9 +55,7 @@ void MyCharacter::update(double dt){
    
     if (getState()==kRotating) {
         
-        U4DEngine::U4DVector3n setView(joyStickData.x*10.0,getAbsolutePosition().y,-joyStickData.y*10.0);
         
-        viewInDirection(setView);
         
         
     }else if(getState()==kWalking){

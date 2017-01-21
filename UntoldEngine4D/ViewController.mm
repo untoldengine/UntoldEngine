@@ -71,6 +71,8 @@
     //record the display height and width
     director->setDisplayWidthHeight(view.frame.size.height, view.frame.size.width);
     
+    view.multipleTouchEnabled=YES;
+    
     //attach the game model to the director and initialize
     //gameLogic=new GameLogic();
     //director->setGameModel(gameLogic);
