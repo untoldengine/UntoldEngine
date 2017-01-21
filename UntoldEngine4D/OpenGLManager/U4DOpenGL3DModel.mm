@@ -214,13 +214,15 @@ void U4DOpenGL3DModel::enableVerticesAttributeLocations(){
     glEnableVertexAttribArray(attributeLocations.tangetVectorAttributeLocation);
     glVertexAttribPointer(attributeLocations.tangetVectorAttributeLocation, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size())));
     
-    //vertex weights
-    glEnableVertexAttribArray(attributeLocations.vertexWeightAttributeLocation);
-    glVertexAttribPointer(attributeLocations.vertexWeightAttributeLocation, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size())));
-    
-    //bone indices
-    glEnableVertexAttribArray(attributeLocations.boneIndicesAttributeLocation);
-    glVertexAttribPointer(attributeLocations.boneIndicesAttributeLocation, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size())));
+    if (u4dObject->getHasArmature()) {
+        //vertex weights
+        glEnableVertexAttribArray(attributeLocations.vertexWeightAttributeLocation);
+        glVertexAttribPointer(attributeLocations.vertexWeightAttributeLocation, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size())));
+        
+        //bone indices
+        glEnableVertexAttribArray(attributeLocations.boneIndicesAttributeLocation);
+        glVertexAttribPointer(attributeLocations.boneIndicesAttributeLocation, 4, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size())));
+    }
     
     //material index
     glEnableVertexAttribArray(attributeLocations.materialIndexAttributeLocation);
