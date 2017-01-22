@@ -12,6 +12,7 @@
 #include <iostream>
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
+#include "U4DParticleDust.h"
 
 class MyCharacter;
 
@@ -30,6 +31,8 @@ private:
     GameAsset *cloud;
     GameAsset *cloud2;
     Rock *rock;
+    
+    U4DEngine::U4DParticleDust *particle;
     
 public:
    

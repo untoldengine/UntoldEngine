@@ -28,7 +28,7 @@ public:
     /**
      @brief Array containing the shader programs names
      */
-    std::string shaders[12]={"SkyBoxShader","imageShader","spriteShader","geometricShader","multiImageShader","NormalMapping","AnimationShader","modelShader","phongShader","lightShader","debugShader","gouraudShader"};
+    std::string shaders[13]={"SkyBoxShader","imageShader","spriteShader","geometricShader","multiImageShader","NormalMapping","AnimationShader","modelShader","phongShader","lightShader","debugShader","gouraudShader","particleDustShader"};
     
     /**
      @brief Shader manager constructor
