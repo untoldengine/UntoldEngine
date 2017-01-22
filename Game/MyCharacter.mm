@@ -11,6 +11,8 @@
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
+#include "Missile.h"
+#include "U4DWorld.h"
 
 MyCharacter::MyCharacter():joyStickData(0.0,0.0,0.0){
     
@@ -55,9 +57,7 @@ void MyCharacter::update(double dt){
     if(getState()==kTraveling){
             
             U4DEngine::U4DVector3n view=getViewInDirection()*dt;
-            
             translateBy(view);
-            
     }
     
 }
@@ -72,16 +72,20 @@ GameEntityState MyCharacter::getState(){
 
 void MyCharacter::changeState(GameEntityState uState){
     
-    //removeAnimation();
+    removeAnimation();
     
     setState(uState);
     
     switch (uState) {
             
         case kTraveling:
+        
+            break;
+        
+        case kShoot:
             
-            //setAnimation(walking);
-            
+            //shoot missile
+            shoot();
             
             break;
             
@@ -90,11 +94,34 @@ void MyCharacter::changeState(GameEntityState uState){
             break;
     }
     
-//    if (getAnimation()!=NULL) {
-//        
-//        playAnimation();
-//        
-//    }
+    if (getAnimation()!=NULL) {
+        
+        playAnimation();
+        
+    }
+    
+}
+
+
+void MyCharacter::shoot(){
+    
+    Missile *missile=new Missile();
+    
+    missile->init("bullet", "bulletscript.u4d");
+    
+    U4DEngine::U4DVector3n view=getViewInDirection();
+    U4DEngine::U4DVector3n pos=getAbsolutePosition();
+    
+    missile->translateTo(pos);
+    
+    missile->setEntityForwardVector(view);
+    
+    //get the world
+    U4DEngine::U4DWorld *world=dynamic_cast<U4DEngine::U4DWorld*>(getRootParent());
+    
+    world->addChild(missile);
+    
+    missile->setState(kShoot);
     
 }
 

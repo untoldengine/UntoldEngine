@@ -40,6 +40,8 @@ public:
     
     GameEntityState getState();
     
+    void shoot();
+    
     U4DEngine::U4DAnimation *walking;
     
     U4DEngine::U4DAnimation *jump;

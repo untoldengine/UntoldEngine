@@ -45,12 +45,12 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonB->getIsPressed()) {
         
-        //robot->changeState(kJump);
+        rocket->changeState(kShoot);
         
         
     }else if(buttonB->getIsReleased()){
         
-        //robot->changeState(kNull);
+        rocket->changeState(kNull);
         
     }
     

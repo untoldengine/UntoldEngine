@@ -30,7 +30,6 @@
 #include "GameAsset.h"
 #include "Rock.h"
 
-
 using namespace U4DEngine;
 
 void Earth::init(){
@@ -96,6 +95,7 @@ void Earth::init(){
     addChild(rock3);
     
     addChild(rock4);
+    
     
 //    addChild(floor);
 //    
