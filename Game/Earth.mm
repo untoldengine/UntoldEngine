@@ -41,6 +41,8 @@ void Earth::init(){
     setName("earth");
     
     enableShadows();
+    
+   
    
     //create character
 //    robot=new MyCharacter();
@@ -84,6 +86,14 @@ void Earth::init(){
 //    addChild(cloud2);
 //    
 //    addChild(cloud);
+    
+    particle=new U4DParticleDust();
+    
+    particle->rotateTo(-90.0, 0.0, 0.0);
+    
+    particle->createParticles(0.25,0.05,100,0.1);
+    
+    addChild(particle);
     
 }
 

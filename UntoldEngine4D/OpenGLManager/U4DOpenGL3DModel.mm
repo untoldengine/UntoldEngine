@@ -270,7 +270,7 @@ void U4DOpenGL3DModel::activateTexturesUniforms(){
         glUniform1i(textureUniformLocations.normalBumpTextureUniformLocation, 4);
         }
     
-    checkErrors(u4dObject->getName(), "Loading Vertex Object Buffer");
+    checkErrors(u4dObject->getName(), "Loading Texture Uniforms");
     
 }
 

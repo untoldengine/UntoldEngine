@@ -60,20 +60,21 @@ void MyCharacter::update(double dt){
         
     }else if(getState()==kWalking){
         
-        U4DEngine::U4DVector3n view=getViewInDirection()*dt;
+//        U4DEngine::U4DVector3n view=getViewInDirection()*dt;
+//        
+//        translateBy(view);
         
-        translateBy(view);
     }else if (getState()==kJump){
         
         
-        if (getIsAnimationUpdatingKeyframe()) {
-            
-            U4DEngine::U4DVector3n view=getViewInDirection();
-            U4DEngine::U4DVector3n jumpForce(view.x*50.0,100.0,view.z*50.0);
-            
-            applyForce(jumpForce);
-            
-        }
+//        if (getIsAnimationUpdatingKeyframe()) {
+//            
+//            U4DEngine::U4DVector3n view=getViewInDirection();
+//            U4DEngine::U4DVector3n jumpForce(view.x*50.0,100.0,view.z*50.0);
+//            
+//            applyForce(jumpForce);
+//            
+//        }
     }
     
 }
@@ -99,13 +100,14 @@ void MyCharacter::changeState(GameEntityState uState){
             
         case kWalking:
             
-            setAnimation(walking);
+            //setAnimation(walking);
+            
             
             break;
             
         case kJump:
             
-            setAnimation(jump);
+            //setAnimation(jump);
             
             break;
             

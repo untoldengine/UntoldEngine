@@ -231,6 +231,19 @@ typedef struct{
     GLint lightShadowDepthUniformLocation;
     
 }LightsUniformLocations;
+    
+typedef struct{
+    /**
+     @brief Attribute location for vertices
+     */
+    GLint verticesAttributeLocation;
+    
+    GLint velocityAttributeLocation;
+    
+    GLint startTimeAttributeLocation;
+    
+}ParticleAttributeLocations;
+
 
 }
 
@@ -328,6 +341,11 @@ public:
      @brief Light Uniform location
      */
     LightsUniformLocations lightUniformLocations;
+    
+    /**
+     @brief Document this
+     */
+    ParticleAttributeLocations particleAttributeLocations;
     
     /**
      @brief Container holding all textures used in a skybox

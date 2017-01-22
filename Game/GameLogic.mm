@@ -24,9 +24,9 @@ void GameLogic::init(){
 //    //set my main actor and attach camera to follow it
 //    robot=dynamic_cast<MyCharacter*>(searchChild("robot"));
     
-    buttonA=getGameController()->getButtonWithName("buttonA");
-    buttonB=getGameController()->getButtonWithName("buttonB");
-    joystick=getGameController()->getJoyStickWithName("joystick");
+//    buttonA=getGameController()->getButtonWithName("buttonA");
+//    buttonB=getGameController()->getButtonWithName("buttonB");
+//    joystick=getGameController()->getJoyStickWithName("joystick");
     
 }
 
