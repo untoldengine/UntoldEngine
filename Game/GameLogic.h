@@ -23,7 +23,7 @@ namespace U4DEngine {
 
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
-    MyCharacter *robot;
+    MyCharacter *rocket;
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;

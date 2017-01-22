@@ -31,6 +31,8 @@
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
 		031E32A61E275412000ACD1A /* Rock.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031E32A51E275412000ACD1A /* Rock.mm */; };
+		032584081E352AFA00639BA1 /* bulletscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032584071E352AFA00639BA1 /* bulletscript.u4d */; };
+		0325840B1E352B1700639BA1 /* Missile.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032584091E352B1700639BA1 /* Missile.mm */; };
 		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; };
 		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; };
 		0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */; };
@@ -99,12 +101,6 @@
 		039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */; };
 		039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175021CE190C300FD2674 /* U4DBVHCollision.mm */; };
 		039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */; };
-		03A9F6F91ADB0BC800E81A00 /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6F31ADB0BC800E81A00 /* BackImage.png */; };
-		03A9F6FA1ADB0BC800E81A00 /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6F41ADB0BC800E81A00 /* BottomImage.png */; };
-		03A9F6FB1ADB0BC800E81A00 /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6F51ADB0BC800E81A00 /* FrontImage.png */; };
-		03A9F6FC1ADB0BC800E81A00 /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6F61ADB0BC800E81A00 /* LeftImage.png */; };
-		03A9F6FD1ADB0BC800E81A00 /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6F71ADB0BC800E81A00 /* RightImage.png */; };
-		03A9F6FE1ADB0BC800E81A00 /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F6F81ADB0BC800E81A00 /* TopImage.png */; };
 		03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7071ADF82A300E81A00 /* ArialFont.png */; };
 		03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7081ADF82A300E81A00 /* ArialFont.xml */; };
@@ -228,6 +224,9 @@
 		03196B3717659EBC008BA0B8 /* U4DTouches.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouches.h; sourceTree = "<group>"; };
 		031E32A41E275412000ACD1A /* Rock.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Rock.h; path = game/Rock.h; sourceTree = SOURCE_ROOT; };
 		031E32A51E275412000ACD1A /* Rock.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Rock.mm; path = game/Rock.mm; sourceTree = SOURCE_ROOT; };
+		032584071E352AFA00639BA1 /* bulletscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = bulletscript.u4d; path = Resources/bulletscript.u4d; sourceTree = SOURCE_ROOT; };
+		032584091E352B1700639BA1 /* Missile.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Missile.mm; sourceTree = "<group>"; };
+		0325840A1E352B1700639BA1 /* Missile.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Missile.h; sourceTree = "<group>"; };
 		0325D20C1C836D9200F1B9BE /* U4DAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAABB.mm; sourceTree = "<group>"; };
 		0325D20D1C836D9200F1B9BE /* U4DAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAABB.h; sourceTree = "<group>"; };
 		0325D2121C83D5B900F1B9BE /* U4DSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSphere.mm; sourceTree = "<group>"; };
@@ -345,12 +344,6 @@
 		039175031CE190C300FD2674 /* U4DBVHCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHCollision.h; sourceTree = "<group>"; };
 		039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHModelCollision.mm; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHModelCollision.mm; sourceTree = "<group>"; };
 		039175061CE1933100FD2674 /* U4DBVHModelCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHModelCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHModelCollision.h; sourceTree = "<group>"; };
-		03A9F6F31ADB0BC800E81A00 /* BackImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = BackImage.png; path = Resources/BackImage.png; sourceTree = SOURCE_ROOT; };
-		03A9F6F41ADB0BC800E81A00 /* BottomImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = BottomImage.png; path = Resources/BottomImage.png; sourceTree = SOURCE_ROOT; };
-		03A9F6F51ADB0BC800E81A00 /* FrontImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FrontImage.png; path = Resources/FrontImage.png; sourceTree = SOURCE_ROOT; };
-		03A9F6F61ADB0BC800E81A00 /* LeftImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = LeftImage.png; path = Resources/LeftImage.png; sourceTree = SOURCE_ROOT; };
-		03A9F6F71ADB0BC800E81A00 /* RightImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = RightImage.png; path = Resources/RightImage.png; sourceTree = SOURCE_ROOT; };
-		03A9F6F81ADB0BC800E81A00 /* TopImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = TopImage.png; path = Resources/TopImage.png; sourceTree = SOURCE_ROOT; };
 		03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFontLoader.h; sourceTree = "<group>"; };
 		03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DFontLoader.mm; sourceTree = "<group>"; };
 		03A9F7071ADF82A300E81A00 /* ArialFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ArialFont.png; path = Resources/ArialFont.png; sourceTree = SOURCE_ROOT; };
@@ -644,6 +637,8 @@
 				036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */,
 				03B502031DC69B2D00A6DD0A /* GameAsset.h */,
 				03B502021DC69B2D00A6DD0A /* GameAsset.mm */,
+				0325840A1E352B1700639BA1 /* Missile.h */,
+				032584091E352B1700639BA1 /* Missile.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -918,16 +913,11 @@
 			children = (
 				03659C5F1DACB1AD003E38E9 /* characterscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
+				032584071E352AFA00639BA1 /* bulletscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
 				03A9F7081ADF82A300E81A00 /* ArialFont.xml */,
-				03A9F6F31ADB0BC800E81A00 /* BackImage.png */,
-				03A9F6F41ADB0BC800E81A00 /* BottomImage.png */,
-				03A9F6F51ADB0BC800E81A00 /* FrontImage.png */,
-				03A9F6F61ADB0BC800E81A00 /* LeftImage.png */,
-				03A9F6F71ADB0BC800E81A00 /* RightImage.png */,
-				03A9F6F81ADB0BC800E81A00 /* TopImage.png */,
 				03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */,
 				03C737A21A4F1D9F001B4F77 /* joystickDriver.png */,
 				03798F871934DA8E00CF0600 /* ButtonA.png */,
@@ -1367,28 +1357,25 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03A9F6F91ADB0BC800E81A00 /* BackImage.png in Resources */,
 				034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */,
 				03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */,
 				03759B4F175B0135002EB5D9 /* Default.png in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
-				03A9F6FB1ADB0BC800E81A00 /* FrontImage.png in Resources */,
 				03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */,
 				03AEF86719CF474D00082589 /* AnimationShader.fp in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
-				03A9F6FD1ADB0BC800E81A00 /* RightImage.png in Resources */,
 				03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */,
 				03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */,
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
-				03A9F6FE1ADB0BC800E81A00 /* TopImage.png in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */,
+				032584081E352AFA00639BA1 /* bulletscript.u4d in Resources */,
 				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
@@ -1401,7 +1388,6 @@
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */,
 				034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */,
-				03A9F6FC1ADB0BC800E81A00 /* LeftImage.png in Resources */,
 				03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */,
 				034DBC891A74112000AC43EB /* debugShader.fp in Resources */,
 				034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */,
@@ -1416,7 +1402,6 @@
 				03659C601DACB1AD003E38E9 /* characterscript.u4d in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
-				03A9F6FA1ADB0BC800E81A00 /* BottomImage.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1493,6 +1478,7 @@
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
+				0325840B1E352B1700639BA1 /* Missile.mm in Sources */,
 				0390C7CD1E3432910028AC20 /* U4DParticleData.mm in Sources */,
 				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,

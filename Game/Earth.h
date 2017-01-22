@@ -25,12 +25,15 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    MyCharacter *robot;
+    MyCharacter *rocket;
     Floor *floor;
     GameAsset *tree;
     GameAsset *cloud;
     GameAsset *cloud2;
-    Rock *rock;
+    Rock *rock1;
+    Rock *rock2;
+    Rock *rock3;
+    Rock *rock4;
     
     U4DEngine::U4DParticleDust *particle;
     
