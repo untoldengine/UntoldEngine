@@ -36,6 +36,7 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
         //initCoefficientOfRestitution(0.0);
         U4DEngine::U4DVector3n viewDirectionVector(0,0,-1);
         setEntityForwardVector(viewDirectionVector);
+        //translateTo(0.0, 2.0, 0.0);
         
 //        if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
 //            
@@ -117,7 +118,9 @@ void MyCharacter::shoot(){
     missile->setEntityForwardVector(view);
     
     //get the world
-    U4DEngine::U4DWorld *world=dynamic_cast<U4DEngine::U4DWorld*>(getRootParent());
+    //U4DEngine::U4DWorld *world=dynamic_cast<U4DEngine::U4DWorld*>(getRootParent());
+    
+    U4DEngine::U4DEntity *world=getRootParent();
     
     world->addChild(missile);
     

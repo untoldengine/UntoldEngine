@@ -55,10 +55,18 @@ void Earth::init(){
     rock3=new Rock();
     rock3->init("rock3","blenderscript.u4d");
     
-    rock4=new Rock();
-    rock4->init("rock4","blenderscript.u4d");
-
-
+//
+//    planetEarth=new GameAsset();
+//    planetEarth->init("earth", "blenderscript.u4d");
+//    
+//    planetSaturn=new GameAsset();
+//    planetSaturn->init("planet", "blenderscript.u4d");
+//    
+//    belt=new GameAsset();
+//    belt->init("belt", "blenderscript.u4d");
+//    
+//    land=new GameAsset();
+//    land->init("land", "blenderscript.u4d");
     
 //
 //    //create the floor
@@ -83,7 +91,7 @@ void Earth::init(){
     camera->viewInDirection(origin);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(0.0,0.0,5.0);
+    light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
     addChild(rocket);
@@ -94,7 +102,14 @@ void Earth::init(){
     
     addChild(rock3);
     
-    addChild(rock4);
+//    addChild(planetEarth);
+//    
+//    addChild(planetSaturn);
+//    
+//    addChild(belt);
+//    
+//    addChild(land);
+    
     
     
 //    addChild(floor);
@@ -107,13 +122,7 @@ void Earth::init(){
 //    
 //    addChild(cloud);
     
-//    particle=new U4DParticleDust();
-//    
-//    particle->rotateTo(-90.0, 0.0, 0.0);
-//    
-//    particle->createParticles(0.25,0.05,100,0.1);
-//    
-//    addChild(particle);
+
     
 }
 

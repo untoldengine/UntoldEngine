@@ -22,6 +22,7 @@ private:
     GameEntityState entityState;
     U4DEngine::U4DCallback<Missile>* scheduler;
     U4DEngine::U4DTimer *timer;
+    bool isDestroyed;
     
 public:
     
@@ -38,6 +39,10 @@ public:
     void setState(GameEntityState uState);
     
     GameEntityState getState();
+    
+    void createExplosion();
+    
+    void selfDestroy();
     
 };
 #endif /* Missile_hpp */

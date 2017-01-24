@@ -14,6 +14,7 @@ typedef enum{
     kTraveling,
     kShoot,
     kSelfDestroy,
+    kHit,
     kNull
     
 }GameEntityState;

@@ -8,14 +8,17 @@
 
 #include "Missile.h"
 #include "U4DDigitalAssetLoader.h"
+#include "U4DParticleDust.h"
 
 
-Missile::Missile():entityState(kNull){
+Missile::Missile():entityState(kNull),isDestroyed(false){
     
 }
 
 Missile::~Missile(){
     
+    delete scheduler;
+    delete timer;
 }
 
 void Missile::init(const char* uName, const char* uBlenderFile){
@@ -34,7 +37,7 @@ void Missile::init(const char* uName, const char* uBlenderFile){
         
         timer=new U4DEngine::U4DTimer(scheduler);
         
-        //scheduler->scheduleClassWithMethodAndDelay(this, &Missile::selfDestroy, timer, 4.0,false);
+        scheduler->scheduleClassWithMethodAndDelay(this, &Missile::selfDestroy, timer, 4.0,false);
         
         loadRenderingInformation();
     }
@@ -53,6 +56,33 @@ void Missile::update(double dt){
         applyForce(shootingForce);
         
     }
+    
+    if (getModelHasCollided()&&isDestroyed==false) {
+        
+        //create explosion effect
+        createExplosion();
+        
+        isDestroyed=true;
+    }
+    
+}
+
+void Missile::createExplosion(){
+    
+    U4DEngine::U4DParticleDust *particle=new U4DEngine::U4DParticleDust();
+
+    particle->rotateTo(-90.0, 0.0, 0.0);
+
+    particle->createParticles(0.25,0.05,100,0.1);
+    
+    U4DEngine::U4DVector3n pos=getAbsolutePosition();
+    
+    particle->translateTo(pos);
+    //get root parent
+    
+    U4DEngine::U4DEntity *world=getRootParent();
+
+    world->addChild(particle);
     
 }
 
@@ -87,4 +117,15 @@ void Missile::setState(GameEntityState uState){
 GameEntityState Missile::getState(){
     
     return entityState;
+}
+
+void Missile::selfDestroy(){
+    
+    scheduler->unScheduleTimer(timer);
+    
+    U4DEngine::U4DEntity *world=getRootParent();
+    
+    world->removeChild(this);
+    
+    delete this;
 }
