@@ -11,6 +11,8 @@
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
+#include "Missile.h"
+#include "U4DWorld.h"
 
 MyCharacter::MyCharacter():joyStickData(0.0,0.0,0.0){
     
@@ -29,20 +31,20 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
         jump=new U4DEngine::U4DAnimation(this);
         
         setState(kNull);
-        enableCollisionBehavior();
-        enableKineticsBehavior();
-        initCoefficientOfRestitution(0.0);
-        U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
+       enableCollisionBehavior();
+        //enableKineticsBehavior();
+        //initCoefficientOfRestitution(0.0);
+        U4DEngine::U4DVector3n viewDirectionVector(0,0,-1);
         setEntityForwardVector(viewDirectionVector);
-        translateTo(0.0, 3.0, 0.0);
+        translateTo(0.0, 2.5, 5.0);
         
-        if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
-            
-        }
-        
-        if (loadAnimationToModel(jump, "jump", uBlenderFile)) {
-            
-        }
+//        if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
+//            
+//        }
+//        
+//        if (loadAnimationToModel(jump, "jump", uBlenderFile)) {
+//            
+//        }
         
         loadRenderingInformation();
         
@@ -53,28 +55,10 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
 
 void MyCharacter::update(double dt){
    
-    if (getState()==kRotating) {
-        
-        
-        
-        
-    }else if(getState()==kWalking){
-        
-//        U4DEngine::U4DVector3n view=getViewInDirection()*dt;
-//        
-//        translateBy(view);
-        
-    }else if (getState()==kJump){
-        
-        
-//        if (getIsAnimationUpdatingKeyframe()) {
-//            
-//            U4DEngine::U4DVector3n view=getViewInDirection();
-//            U4DEngine::U4DVector3n jumpForce(view.x*50.0,100.0,view.z*50.0);
-//            
-//            applyForce(jumpForce);
-//            
-//        }
+    if(getState()==kTraveling){
+            
+            U4DEngine::U4DVector3n view=getViewInDirection()*dt;
+            translateBy(view);
     }
     
 }
@@ -94,20 +78,15 @@ void MyCharacter::changeState(GameEntityState uState){
     setState(uState);
     
     switch (uState) {
-        case kRotating:
             
+        case kTraveling:
+        
             break;
+        
+        case kShoot:
             
-        case kWalking:
-            
-            //setAnimation(walking);
-            
-            
-            break;
-            
-        case kJump:
-            
-            //setAnimation(jump);
+            //shoot missile
+            shoot();
             
             break;
             
@@ -121,6 +100,31 @@ void MyCharacter::changeState(GameEntityState uState){
         playAnimation();
         
     }
+    
+}
+
+
+void MyCharacter::shoot(){
+    
+    Missile *missile=new Missile();
+    
+    missile->init("bullet", "bulletscript.u4d");
+    
+    U4DEngine::U4DVector3n view=getViewInDirection();
+    U4DEngine::U4DVector3n pos=getAbsolutePosition();
+    
+    missile->translateTo(pos);
+    
+    missile->setEntityForwardVector(view);
+    
+    //get the world
+    //U4DEngine::U4DWorld *world=dynamic_cast<U4DEngine::U4DWorld*>(getRootParent());
+    
+    U4DEngine::U4DEntity *world=getRootParent();
+    
+    world->addChild(missile);
+    
+    missile->setState(kShoot);
     
 }
 

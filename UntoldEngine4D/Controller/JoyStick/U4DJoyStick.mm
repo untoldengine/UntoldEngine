@@ -208,9 +208,6 @@ void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
         translateTo(originalPosition);
         joyStickImage.translateTo(originalPosition);
         
-        dataPosition=originalPosition;
-        dataMagnitude=0.0;
-        
     }
     
 }

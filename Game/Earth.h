@@ -12,7 +12,7 @@
 #include <iostream>
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
-#include "U4DParticleDust.h"
+
 
 class MyCharacter;
 
@@ -25,14 +25,18 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    MyCharacter *robot;
+    MyCharacter *rocket;
     Floor *floor;
-    GameAsset *tree;
-    GameAsset *cloud;
-    GameAsset *cloud2;
-    Rock *rock;
+    GameAsset *moon1;
+    GameAsset *moon2;
+    GameAsset *moon3;
+    GameAsset *moon4;
+    Rock *rock1;
+    Rock *rock2;
+    Rock *rock3;
+    Rock *rock4;
     
-    U4DEngine::U4DParticleDust *particle;
+    
     
 public:
    

@@ -30,77 +30,80 @@
 #include "GameAsset.h"
 #include "Rock.h"
 
-
 using namespace U4DEngine;
 
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 2.5, 1.0);
+    camera->translateBy(0.0, 2.0, 3.5);
     
     setName("earth");
     
     enableShadows();
     
-   
-   
     //create character
-//    robot=new MyCharacter();
-//    robot->init("robot", "characterscript.u4d");
-//    
-//    //create the floor
-//    floor=new Floor();
-//    floor->init("platform","blenderscript.u4d");
-//    
-//    //create rock
-//    rock=new Rock();
-//    rock->init("rock","blenderscript.u4d");
+    rocket=new MyCharacter();
+    rocket->init("rocket", "characterscript.u4d");
     
-    //create tree
-    tree=new GameAsset();
-    tree->init("tree","blenderscript.u4d");
+    //create rock
+    rock1=new Rock();
+    rock1->init("rock1","blenderscript.u4d");
+ 
+    rock2=new Rock();
+    rock2->init("rock2","blenderscript.u4d");
     
-//    //create clouds
-//    cloud=new GameAsset();
-//    cloud->init("cloud","blenderscript.u4d");
-//    
-//    cloud2=new GameAsset();
-//    cloud2->init("cloud2","blenderscript.u4d");
+    rock3=new Rock();
+    rock3->init("rock3","blenderscript.u4d");
+    
+    rock4=new Rock();
+    rock4->init("rock4", "blenderscript.u4d");
+    
+    moon1=new GameAsset();
+    moon1->init("moon1", "blenderscript.u4d");
+    
+    moon2=new GameAsset();
+    moon2->init("moon2", "blenderscript.u4d");
+    
+    moon3=new GameAsset();
+    moon3->init("moon3", "blenderscript.u4d");
+    
+    moon4=new GameAsset();
+    moon4->init("moon4", "blenderscript.u4d");
+    
     
     U4DVector3n origin(0,0,0);
     
     camera->viewInDirection(origin);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(5.0,5.0,5.0);
+    light->translateTo(5.0,5.0,-5.0);
     light->viewInDirection(origin);
     
-//    addChild(robot);
-//    
-//    addChild(floor);
-//    
-//    addChild(rock);
+    addChild(rocket);
     
-    addChild(tree);
+    addChild(rock1);
     
-//    addChild(cloud2);
-//    
-//    addChild(cloud);
+    addChild(rock2);
     
-    particle=new U4DParticleDust();
+    addChild(rock3);
     
-    particle->rotateTo(-90.0, 0.0, 0.0);
+    addChild(rock4);
     
-    particle->createParticles(0.25,0.05,100,0.1);
+    addChild(moon1);
     
-    addChild(particle);
+    addChild(moon2);
+    
+    addChild(moon3);
+    
+    addChild(moon4);
+
     
 }
 
 void Earth::update(double dt){
     
-//    U4DCamera *camera=U4DCamera::sharedInstance();
-//    camera->followModel(robot, 0.0, 3.0, 6.0);
+    U4DCamera *camera=U4DCamera::sharedInstance();
+    camera->followModel(rocket, 0.0, 2.0, 3.5);
     
 
 }
