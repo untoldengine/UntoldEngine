@@ -48,50 +48,35 @@ void Earth::init(){
     //create rock
     rock1=new Rock();
     rock1->init("rock1","blenderscript.u4d");
-    
+ 
     rock2=new Rock();
     rock2->init("rock2","blenderscript.u4d");
-
+    
     rock3=new Rock();
     rock3->init("rock3","blenderscript.u4d");
     
-//
-//    planetEarth=new GameAsset();
-//    planetEarth->init("earth", "blenderscript.u4d");
-//    
-//    planetSaturn=new GameAsset();
-//    planetSaturn->init("planet", "blenderscript.u4d");
-//    
-//    belt=new GameAsset();
-//    belt->init("belt", "blenderscript.u4d");
-//    
-//    land=new GameAsset();
-//    land->init("land", "blenderscript.u4d");
+    rock4=new Rock();
+    rock4->init("rock4", "blenderscript.u4d");
     
-//
-//    //create the floor
-//    floor=new Floor();
-//    floor->init("platform","blenderscript.u4d");
-//    
-
+    moon1=new GameAsset();
+    moon1->init("moon1", "blenderscript.u4d");
     
-    //create tree
-//    tree=new GameAsset();
-//    tree->init("tree","blenderscript.u4d");
+    moon2=new GameAsset();
+    moon2->init("moon2", "blenderscript.u4d");
     
-//    //create clouds
-//    cloud=new GameAsset();
-//    cloud->init("cloud","blenderscript.u4d");
-//    
-//    cloud2=new GameAsset();
-//    cloud2->init("cloud2","blenderscript.u4d");
+    moon3=new GameAsset();
+    moon3->init("moon3", "blenderscript.u4d");
+    
+    moon4=new GameAsset();
+    moon4->init("moon4", "blenderscript.u4d");
+    
     
     U4DVector3n origin(0,0,0);
     
     camera->viewInDirection(origin);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(5.0,5.0,5.0);
+    light->translateTo(5.0,5.0,-5.0);
     light->viewInDirection(origin);
     
     addChild(rocket);
@@ -102,26 +87,15 @@ void Earth::init(){
     
     addChild(rock3);
     
-//    addChild(planetEarth);
-//    
-//    addChild(planetSaturn);
-//    
-//    addChild(belt);
-//    
-//    addChild(land);
+    addChild(rock4);
     
+    addChild(moon1);
     
+    addChild(moon2);
     
-//    addChild(floor);
-//    
-//
+    addChild(moon3);
     
-//    addChild(tree);
-    
-//    addChild(cloud2);
-//    
-//    addChild(cloud);
-    
+    addChild(moon4);
 
     
 }

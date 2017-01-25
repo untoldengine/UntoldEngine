@@ -14,6 +14,7 @@
 #include "UserCommonProtocols.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
+#include "U4DParticleDust.h"
 
 class Missile:public U4DEngine::U4DGameObject {
     
@@ -22,7 +23,9 @@ private:
     GameEntityState entityState;
     U4DEngine::U4DCallback<Missile>* scheduler;
     U4DEngine::U4DTimer *timer;
+    U4DEngine::U4DTimer *explosionTimer;
     bool isDestroyed;
+    U4DEngine::U4DParticleDust *particle;
     
 public:
     
@@ -43,6 +46,8 @@ public:
     void createExplosion();
     
     void selfDestroy();
+    
+    void missileAndParticleDestroy();
     
 };
 #endif /* Missile_hpp */

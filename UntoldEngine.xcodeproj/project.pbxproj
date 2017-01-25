@@ -50,6 +50,7 @@
 		034DBC861A74002F00AC43EB /* U4DOpenGLDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034DBC841A74002F00AC43EB /* U4DOpenGLDebugger.mm */; };
 		034DBC891A74112000AC43EB /* debugShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC871A74112000AC43EB /* debugShader.fp */; };
 		034DBC8A1A74112000AC43EB /* debugShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC881A74112000AC43EB /* debugShader.vp */; };
+		035803551E37DF5500550D11 /* asteroids_d_3.png in Resources */ = {isa = PBXBuildFile; fileRef = 035803541E37DF5500550D11 /* asteroids_d_3.png */; };
 		03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */; };
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
 		035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */; };
@@ -91,6 +92,7 @@
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DGameObject.mm */; };
 		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; };
+		0386855D1E385CF600B332A5 /* asteroids_d_2.png in Resources */ = {isa = PBXBuildFile; fileRef = 0386855C1E385CF600B332A5 /* asteroids_d_2.png */; };
 		0390C7BA1E3432380028AC20 /* U4DOpenGLParticle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0390C7B91E3432380028AC20 /* U4DOpenGLParticle.mm */; };
 		0390C7BD1E3432400028AC20 /* U4DOpenGLParticleDust.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0390C7BC1E3432400028AC20 /* U4DOpenGLParticleDust.mm */; };
 		0390C7C01E3432490028AC20 /* U4DOpenGLParticleExplosion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0390C7BF1E3432490028AC20 /* U4DOpenGLParticleExplosion.mm */; };
@@ -255,6 +257,7 @@
 		034DBC851A74002F00AC43EB /* U4DOpenGLDebugger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLDebugger.h; sourceTree = "<group>"; };
 		034DBC871A74112000AC43EB /* debugShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = debugShader.fp; sourceTree = "<group>"; };
 		034DBC881A74112000AC43EB /* debugShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = debugShader.vp; sourceTree = "<group>"; };
+		035803541E37DF5500550D11 /* asteroids_d_3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = asteroids_d_3.png; path = Resources/asteroids_d_3.png; sourceTree = SOURCE_ROOT; };
 		03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformationManagerInterface.mm; sourceTree = "<group>"; };
 		03584D971951FB8900C974A2 /* U4DTransformationManagerInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformationManagerInterface.h; sourceTree = "<group>"; };
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
@@ -272,7 +275,7 @@
 		036C244D176798D700ADC1A6 /* U4DGameModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModel.mm; sourceTree = "<group>"; };
 		036C244E176798D700ADC1A6 /* U4DGameModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DGameModel.h; sourceTree = "<group>"; };
 		036FB55E18CE9CB8000EA639 /* Earth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Earth.h; sourceTree = "<group>"; };
-		036FB55F18CE9CB8000EA639 /* Earth.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Earth.mm; sourceTree = "<group>"; };
+		036FB55F18CE9CB8000EA639 /* Earth.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Earth.mm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		036FB56C18CE9CB8000EA639 /* MainScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainScene.h; sourceTree = "<group>"; };
 		036FB56D18CE9CB8000EA639 /* MainScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MainScene.mm; sourceTree = "<group>"; };
 		036FB56F18CE9CB8000EA639 /* MyCharacter.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MyCharacter.h; sourceTree = "<group>"; };
@@ -324,6 +327,7 @@
 		037C473D17B597CB007B8283 /* U4DGameObject.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameObject.mm; sourceTree = "<group>"; };
 		038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingConvex.mm; path = BoundingVolumes/U4DBoundingConvex.mm; sourceTree = "<group>"; };
 		038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingConvex.h; path = BoundingVolumes/U4DBoundingConvex.h; sourceTree = "<group>"; };
+		0386855C1E385CF600B332A5 /* asteroids_d_2.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = asteroids_d_2.png; path = Resources/asteroids_d_2.png; sourceTree = SOURCE_ROOT; };
 		0390C7B81E3432380028AC20 /* U4DOpenGLParticle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLParticle.h; sourceTree = "<group>"; };
 		0390C7B91E3432380028AC20 /* U4DOpenGLParticle.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLParticle.mm; sourceTree = "<group>"; };
 		0390C7BB1E3432400028AC20 /* U4DOpenGLParticleDust.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLParticleDust.h; sourceTree = "<group>"; };
@@ -911,6 +915,8 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0386855C1E385CF600B332A5 /* asteroids_d_2.png */,
+				035803541E37DF5500550D11 /* asteroids_d_3.png */,
 				03659C5F1DACB1AD003E38E9 /* characterscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				032584071E352AFA00639BA1 /* bulletscript.u4d */,
@@ -1360,7 +1366,9 @@
 				034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */,
 				03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */,
 				03759B4F175B0135002EB5D9 /* Default.png in Resources */,
+				035803551E37DF5500550D11 /* asteroids_d_3.png in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
+				0386855D1E385CF600B332A5 /* asteroids_d_2.png in Resources */,
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
 				03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */,

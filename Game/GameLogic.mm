@@ -60,7 +60,11 @@ void GameLogic::receiveTouchUpdate(){
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
         //robot->setJoystickData(joyData);
         
-        U4DEngine::U4DVector3n setView(joyData.x*10.0,joyData.y*1.0,-20.0);
+        joyPosition+=joyData;
+        
+        joyPosition.z=-50.0;
+        
+        U4DEngine::U4DVector3n setView(joyPosition);
         
         rocket->viewInDirection(setView);
         

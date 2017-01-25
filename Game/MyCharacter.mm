@@ -36,7 +36,7 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
         //initCoefficientOfRestitution(0.0);
         U4DEngine::U4DVector3n viewDirectionVector(0,0,-1);
         setEntityForwardVector(viewDirectionVector);
-        //translateTo(0.0, 2.0, 0.0);
+        translateTo(0.0, 2.5, 5.0);
         
 //        if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
 //            

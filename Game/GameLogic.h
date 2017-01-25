@@ -28,6 +28,7 @@ public:
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
     U4DEngine::U4DJoyStick *joystick;
+    U4DEngine::U4DVector3n joyPosition;
     
     GameLogic(){};
     ~GameLogic(){};

@@ -27,10 +27,10 @@ private:
     
     MyCharacter *rocket;
     Floor *floor;
-    GameAsset *planetSaturn;
-    GameAsset *planetEarth;
-    GameAsset *belt;
-    GameAsset *land;
+    GameAsset *moon1;
+    GameAsset *moon2;
+    GameAsset *moon3;
+    GameAsset *moon4;
     Rock *rock1;
     Rock *rock2;
     Rock *rock3;

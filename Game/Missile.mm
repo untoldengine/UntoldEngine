@@ -8,7 +8,7 @@
 
 #include "Missile.h"
 #include "U4DDigitalAssetLoader.h"
-#include "U4DParticleDust.h"
+
 
 
 Missile::Missile():entityState(kNull),isDestroyed(false){
@@ -19,6 +19,7 @@ Missile::~Missile(){
     
     delete scheduler;
     delete timer;
+    delete explosionTimer;
 }
 
 void Missile::init(const char* uName, const char* uBlenderFile){
@@ -36,6 +37,8 @@ void Missile::init(const char* uName, const char* uBlenderFile){
         scheduler=new U4DEngine::U4DCallback<Missile>;
         
         timer=new U4DEngine::U4DTimer(scheduler);
+        
+        explosionTimer=new U4DEngine::U4DTimer(scheduler);
         
         scheduler->scheduleClassWithMethodAndDelay(this, &Missile::selfDestroy, timer, 4.0,false);
         
@@ -59,17 +62,25 @@ void Missile::update(double dt){
     
     if (getModelHasCollided()&&isDestroyed==false) {
         
+        
+        scheduler->unScheduleTimer(timer);
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &Missile::missileAndParticleDestroy, explosionTimer, 3.0,false);
+        
+        changeState(kNull);
+        
+        isDestroyed=true;
+        
         //create explosion effect
         createExplosion();
         
-        isDestroyed=true;
     }
     
 }
 
 void Missile::createExplosion(){
     
-    U4DEngine::U4DParticleDust *particle=new U4DEngine::U4DParticleDust();
+    particle=new U4DEngine::U4DParticleDust();
 
     particle->rotateTo(-90.0, 0.0, 0.0);
 
@@ -124,6 +135,21 @@ void Missile::selfDestroy(){
     scheduler->unScheduleTimer(timer);
     
     U4DEngine::U4DEntity *world=getRootParent();
+    
+    world->removeChild(this);
+    
+    delete this;
+}
+
+void Missile::missileAndParticleDestroy(){
+    
+    scheduler->unScheduleTimer(explosionTimer);
+    
+    U4DEngine::U4DEntity *world=getRootParent();
+    
+    world->removeChild(particle);
+    
+    delete particle;
     
     world->removeChild(this);
     
