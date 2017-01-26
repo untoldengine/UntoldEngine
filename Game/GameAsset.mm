@@ -14,6 +14,9 @@ void GameAsset::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
+        enableCollisionBehavior();
+        //setBroadPhaseBoundingVolumeVisibility(true);
+        setNarrowPhaseBoundingVolumeVisibility(true);
         
         loadRenderingInformation();
     }
@@ -23,5 +26,5 @@ void GameAsset::init(const char* uName, const char* uBlenderFile){
 
 void GameAsset::update(double dt){
     
-    //rotateBy(0.0,1.0,0.0);
+    rotateBy(0.0,1.0,0.0);
 }

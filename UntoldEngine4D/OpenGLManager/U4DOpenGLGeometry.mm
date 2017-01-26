@@ -82,9 +82,15 @@ namespace U4DEngine {
 
 
     void U4DOpenGLGeometry::drawElements(){
-         
-        glDrawElements(GL_LINE_STRIP,3*(GLsizei)u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
         
+        glEnable(GL_BLEND);
+        glDisable(GL_DEPTH_TEST);
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+        
+        glDrawElements(GL_TRIANGLES,3*(GLsizei)u4dObject->bodyCoordinates.indexContainer.size(),GL_UNSIGNED_INT,(void*)0);
+        
+        glDisable(GL_BLEND);
+        glEnable(GL_DEPTH_TEST);
     }
 
 }

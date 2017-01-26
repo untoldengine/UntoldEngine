@@ -58,13 +58,6 @@ namespace U4DEngine {
         void setConvexHullVertices(CONVEXHULL &uConvexHull);
         
         /**
-         @brief Method which computes a OBB bounding volume
-         
-         @param uHalfwidth 3D vector representing the positive halfwidth of the bounding volume. Halfwidth extends along each axis (rx,ry,rz)
-         */
-        void computeBoundingVolume();
-        
-        /**
          @brief Method which returns the convex-hull vertices
          
          @return Returns the convex-hull vertices
