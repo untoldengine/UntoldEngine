@@ -35,7 +35,7 @@ using namespace U4DEngine;
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 2.0, 3.5);
+    camera->translateBy(0.0, 2.0, 5.5);
     
     setName("earth");
     

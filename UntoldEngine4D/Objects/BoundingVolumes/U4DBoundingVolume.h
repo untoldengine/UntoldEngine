@@ -131,11 +131,6 @@ namespace U4DEngine {
          @brief Method which starts the rendering operation of the entity
          */
         void draw();
-        
-        /**
-         @todo Check if this method should be deleted
-         */
-        int determineRenderingIndex(std::vector<U4DVector3n>& uVertices, U4DVector3n& uVector, U4DVector3n& uDirection);
 
         /**
          @brief Method which sets the radius for the spherical bounding volume

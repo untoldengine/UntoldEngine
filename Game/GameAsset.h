@@ -14,6 +14,7 @@
 
 class GameAsset:public U4DEngine::U4DGameObject {
     
+private:
     
     
 public:
