@@ -22,7 +22,7 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    rocket=dynamic_cast<MyCharacter*>(searchChild("rocket"));
+    //rocket=dynamic_cast<MyCharacter*>(searchChild("rocket"));
     
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -33,7 +33,7 @@ void GameLogic::init(){
 void GameLogic::receiveTouchUpdate(){
 
 
-    
+    /*
     if (buttonA->getIsPressed()) {
         
         rocket->changeState(kTraveling);
@@ -69,7 +69,7 @@ void GameLogic::receiveTouchUpdate(){
         rocket->viewInDirection(setView);
         
     }
-    
+    */
 }
 
 

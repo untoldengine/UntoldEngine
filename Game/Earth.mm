@@ -41,69 +41,26 @@ void Earth::init(){
     
     enableShadows();
     
-    //create character
-    rocket=new MyCharacter();
-    rocket->init("rocket", "characterscript.u4d");
-    
-    //create rock
-    rock1=new Rock();
-    rock1->init("rock1","blenderscript.u4d");
- 
-    rock2=new Rock();
-    rock2->init("rock2","blenderscript.u4d");
-    
-    rock3=new Rock();
-    rock3->init("rock3","blenderscript.u4d");
-    
-    rock4=new Rock();
-    rock4->init("rock4", "blenderscript.u4d");
-    
-    moon1=new GameAsset();
-    moon1->init("moon1", "blenderscript.u4d");
-    
-    moon2=new GameAsset();
-    moon2->init("moon2", "blenderscript.u4d");
-    
-    moon3=new GameAsset();
-    moon3->init("moon3", "blenderscript.u4d");
-    
-    moon4=new GameAsset();
-    moon4->init("moon4", "blenderscript.u4d");
-    
+    cube=new GameAsset();
+    cube->init("Cube", "blenderscript.u4d");
     
     U4DVector3n origin(0,0,0);
     
     camera->viewInDirection(origin);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(5.0,5.0,-5.0);
+    light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-    addChild(rocket);
-    
-    addChild(rock1);
-    
-    addChild(rock2);
-    
-    addChild(rock3);
-    
-    addChild(rock4);
-    
-    addChild(moon1);
-    
-    addChild(moon2);
-    
-    addChild(moon3);
-    
-    addChild(moon4);
+    addChild(cube);
 
     
 }
 
 void Earth::update(double dt){
     
-    U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->followModel(rocket, 0.0, 2.0, 3.5);
+    //U4DCamera *camera=U4DCamera::sharedInstance();
+    //camera->followModel(rocket, 0.0, 2.0, 3.5);
     
 
 }

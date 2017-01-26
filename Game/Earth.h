@@ -13,31 +13,15 @@
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
 
-
-class MyCharacter;
-
 class GameController;
 class GameAsset;
-class Floor;
-class Rock;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
-    
-    MyCharacter *rocket;
-    Floor *floor;
-    GameAsset *moon1;
-    GameAsset *moon2;
-    GameAsset *moon3;
-    GameAsset *moon4;
-    Rock *rock1;
-    Rock *rock2;
-    Rock *rock3;
-    Rock *rock4;
-    
-    
-    
+
+    GameAsset *cube;
+
 public:
    
     Earth(){
