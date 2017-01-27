@@ -15,7 +15,7 @@ void GameAsset::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         enableCollisionBehavior();
-        //setBroadPhaseBoundingVolumeVisibility(true);
+        setBroadPhaseBoundingVolumeVisibility(true);
         setNarrowPhaseBoundingVolumeVisibility(true);
         
         loadRenderingInformation();
