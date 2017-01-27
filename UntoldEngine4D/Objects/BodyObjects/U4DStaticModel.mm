@@ -323,14 +323,14 @@ namespace U4DEngine {
                 float longestModelDimension=std::max(xDimension, yDimension);
                 longestModelDimension=std::max(longestModelDimension, zDimension);
                 
+                //get min and max points to create the AABB
+                U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
+                U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
+                
                 if (getIsPlatform()) {
                     
                     //create a AABB bounding volume
                     broadPhaseBoundingVolume=new U4DBoundingAABB();
-                    
-                    //get min and max points to create the AABB
-                    U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
-                    U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
                     
                     //calculate the AABB
                     broadPhaseBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
@@ -341,7 +341,7 @@ namespace U4DEngine {
                     broadPhaseBoundingVolume=new U4DBoundingSphere();
                     
                     //set the radius for the sphere bounding volume
-                    float radius=sqrt(longestModelDimension);
+                    float radius=maxPoints.distanceBetweenPoints(minPoints)/2.0;
                     
                     //calculate the sphere
                     broadPhaseBoundingVolume->computeBoundingVolume(radius, 10, 10);

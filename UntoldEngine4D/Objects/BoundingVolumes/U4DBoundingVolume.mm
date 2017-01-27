@@ -21,7 +21,7 @@ namespace U4DEngine {
         openGlManager=new U4DOpenGLGeometry(this);
         openGlManager->setShader("geometricShader");
         
-        U4DVector4n color(1.0,0.0,0.0,1.0);
+        U4DVector4n color(1.0,0.0,0.0,0.1);
         addCustomUniform("Color", color);
     };
     
