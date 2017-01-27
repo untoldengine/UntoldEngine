@@ -682,17 +682,17 @@ namespace U4DEngine {
         int V = 0, E = 0 , F = 0;
         
         //count all vertices, edges and faces
-        if ( v == vertexHead )
+        if ( (v = vertexHead) )
             do {
                 if (v->processed) V++;
                 v = v->next;
             } while ( v != vertexHead);
-        if ( e == edgeHead)
+        if ( (e = edgeHead))
             do {
                 E++;
                 e = e->next;
             } while ( e != edgeHead);
-        if ( f == faceHead)
+        if ( (f = faceHead))
             do {
                 F++;
                 f  = f ->next;
