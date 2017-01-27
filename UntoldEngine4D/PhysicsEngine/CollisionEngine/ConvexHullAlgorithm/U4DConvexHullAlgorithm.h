@@ -162,7 +162,7 @@ namespace U4DEngine {
          
          @return Returns the volume sign of the tetrahedron
          */
-        int volumeSign(CONVEXHULLFACE f, CONVEXHULLVERTEX p);
+        double volumeSign(CONVEXHULLFACE f, CONVEXHULLVERTEX p);
         
         /**
          @brief MakeConeFace makes a new face and two new edges between the

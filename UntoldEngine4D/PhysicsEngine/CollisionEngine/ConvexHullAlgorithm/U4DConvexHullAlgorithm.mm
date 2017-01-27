@@ -155,7 +155,7 @@ namespace U4DEngine {
         CONVEXHULLVERTEX  v0, v1, v2, v3;
         CONVEXHULLFACE    f0, f1 = NULL;
         
-        int      vol=0;
+        double vol=0.0;
         
         U4DLogger *logger=U4DLogger::sharedInstance();
         
@@ -283,7 +283,7 @@ namespace U4DEngine {
         return true;
     }
     
-    int U4DConvexHullAlgorithm::volumeSign(CONVEXHULLFACE f, CONVEXHULLVERTEX p){
+    double U4DConvexHullAlgorithm::volumeSign(CONVEXHULLFACE f, CONVEXHULLVERTEX p){
         
         double  vol;
         double  ax, ay, az, bx, by, bz, cx, cy, cz;
@@ -303,15 +303,19 @@ namespace U4DEngine {
         + az * (bx*cy - by*cx);
         
         /* The volume should be an integer. */
+        /*
         if      ( vol >  0.5 )  return  1;
         else if ( vol < -0.5 )  return -1;
         else                    return  0;
+         */
+        
+        return vol;
     }
     
     bool U4DConvexHullAlgorithm::addOne(CONVEXHULLVERTEX p){
         CONVEXHULLFACE  f;
         CONVEXHULLEDGE  e, temp;
-        int 	  vol;
+        double 	  vol;
         bool	  vis = false;
         
         /* Mark faces visible from p. */
@@ -641,7 +645,7 @@ namespace U4DEngine {
         
         CONVEXHULLFACE    f;
         CONVEXHULLVERTEX  v;
-        int               vol;
+        double               vol;
         
         U4DLogger *logger=U4DLogger::sharedInstance();
         
