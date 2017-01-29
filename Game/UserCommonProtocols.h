@@ -11,13 +11,11 @@
 
 typedef enum{
     
-    kTraveling,
+    kPass,
+    kVolley,
     kShoot,
-    kSelfDestroy,
-    kHit,
     kNull
     
 }GameEntityState;
-
 
 #endif /* UserCommonProtocols_h */
