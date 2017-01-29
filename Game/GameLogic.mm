@@ -16,13 +16,13 @@
 #include "CommonProtocols.h"
 
 void GameLogic::update(double dt){
-
+    
 }
 
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    //rocket=dynamic_cast<MyCharacter*>(searchChild("rocket"));
+    ball=dynamic_cast<SoccerBall*>(searchChild("ball"));
     
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -31,46 +31,38 @@ void GameLogic::init(){
 }
 
 void GameLogic::receiveTouchUpdate(){
-
-
-    /*
+    
     if (buttonA->getIsPressed()) {
         
-        rocket->changeState(kTraveling);
+        ball->setState(kPass);
+        
         
     }else if(buttonA->getIsReleased()){
         
-        rocket->changeState(kNull);
+        ball->setState(kNull);
+        
     }
     
     if (buttonB->getIsPressed()) {
         
-        rocket->changeState(kShoot);
-        
+        ball->setState(kVolley);
         
     }else if(buttonB->getIsReleased()){
         
-        rocket->changeState(kNull);
+        ball->setState(kNull);
         
     }
     
     if(joystick->getIsActive()){
         
-        //robot->changeState(kRotating);
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        //robot->setJoystickData(joyData);
         
-        joyPosition+=joyData;
+        joyPosition=joyData;
         
-        joyPosition.z=-50.0;
+        U4DEngine::U4DVector3n setView(joyPosition.x*10.0,ball->getAbsolutePosition().y,-joyPosition.y*10.0);
         
-        U4DEngine::U4DVector3n setView(joyPosition);
-        
-        rocket->viewInDirection(setView);
+        ball->viewInDirection(setView);
         
     }
-    */
+    
 }
-
-
-

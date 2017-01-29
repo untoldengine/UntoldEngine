@@ -13,7 +13,7 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 #include "MyCharacter.h"
-
+#include "SoccerBall.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -23,7 +23,7 @@ namespace U4DEngine {
 
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
-    MyCharacter *rocket;
+    SoccerBall *ball;
     GameEntityState gameEntityState;
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;

@@ -15,12 +15,15 @@
 
 class GameController;
 class GameAsset;
+class SoccerBall;
+class SoccerField;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    GameAsset *cube;
+    SoccerBall *ball;
+    SoccerField *field;
 
 public:
    

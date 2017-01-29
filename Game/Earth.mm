@@ -26,23 +26,25 @@
 #include "U4DSprite.h"
 #include "U4DLights.h"
 #include "U4DLogger.h"
-#include "Floor.h"
-#include "GameAsset.h"
-#include "Rock.h"
+#include "SoccerBall.h"
+#include "SoccerField.h"
 
 using namespace U4DEngine;
 
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 2.0, 10.5);
+    camera->translateBy(0.0, 5.0, 10.5);
     
     setName("earth");
     
     enableShadows();
     
-    cube=new GameAsset();
-    cube->init("Cube", "blenderscript.u4d");
+    ball=new SoccerBall();
+    ball->init("ball", "blenderscript.u4d");
+    
+    field=new SoccerField();
+    field->init("field", "blenderscript.u4d");
     
     U4DVector3n origin(0,0,0);
     
@@ -52,7 +54,9 @@ void Earth::init(){
     light->translateTo(5.0,5.0,5.0);
     light->viewInDirection(origin);
     
-    addChild(cube);
+    addChild(ball);
+    
+    addChild(field);
 
     
 }

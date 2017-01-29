@@ -11,7 +11,6 @@
 #include "U4DCamera.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimation.h"
-#include "Missile.h"
 #include "U4DWorld.h"
 
 MyCharacter::MyCharacter():joyStickData(0.0,0.0,0.0){
@@ -54,13 +53,13 @@ void MyCharacter::init(const char* uName, const char* uBlenderFile){
 }
 
 void MyCharacter::update(double dt){
-   
+   /*
     if(getState()==kTraveling){
             
             U4DEngine::U4DVector3n view=getViewInDirection()*dt;
             translateBy(view);
     }
-    
+    */
 }
 
 void MyCharacter::setState(GameEntityState uState){
@@ -72,7 +71,7 @@ GameEntityState MyCharacter::getState(){
 }
 
 void MyCharacter::changeState(GameEntityState uState){
-    
+    /*
     removeAnimation();
     
     setState(uState);
@@ -100,12 +99,12 @@ void MyCharacter::changeState(GameEntityState uState){
         playAnimation();
         
     }
-    
+    */
 }
 
 
 void MyCharacter::shoot(){
-    
+    /*
     Missile *missile=new Missile();
     
     missile->init("bullet", "bulletscript.u4d");
@@ -125,7 +124,7 @@ void MyCharacter::shoot(){
     world->addChild(missile);
     
     missile->setState(kShoot);
-    
+    */
 }
 
 
