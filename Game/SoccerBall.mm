@@ -12,7 +12,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         initInertiaTensorType(U4DEngine::sphericalInertia);
-        initCoefficientOfRestitution(0.5);
+        initCoefficientOfRestitution(0.0);
         initMass(1.0);
         //initialize everything else here
         enableCollisionBehavior();
@@ -24,7 +24,6 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         setState(kNull);
         //setBroadPhaseBoundingVolumeVisibility(true);
         //setNarrowPhaseBoundingVolumeVisibility(true);
-        translateBy(-3.0, 0.0, -3.0);
         
         //U4DEngine::U4DVector2n drag(0.6,0.5);
         //setDragCoefficient(drag);
@@ -43,7 +42,7 @@ void SoccerBall::update(double dt){
     if (getState()==kPass) {
         
         U4DEngine::U4DVector3n view=getViewInDirection();
-        U4DEngine::U4DVector3n pass(view.x*5000.0,0.0,view.z*5000.0);
+        U4DEngine::U4DVector3n pass(view.x*500.0,0.0,view.z*500.0);
         
         applyForce(pass);
         
@@ -54,6 +53,7 @@ void SoccerBall::update(double dt){
         U4DEngine::U4DVector3n view=getViewInDirection();
         U4DEngine::U4DVector3n kick(view.x*5000.0,5000.0,view.z*5000.0);
         //U4DEngine::U4DVector3n kick(0.0,5000.0,0.0);
+        
         applyForce(kick);
         
         changeState(kNull);

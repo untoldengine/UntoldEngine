@@ -88,6 +88,7 @@
 		03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DGameObject.mm */; };
+		03848A411E3E5DE4007DD1C9 /* Floor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03848A401E3E5DE4007DD1C9 /* Floor.mm */; };
 		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; };
 		0384E5941E3D65DB0074232D /* SoccerBall.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0384E5921E3D65DB0074232D /* SoccerBall.mm */; };
 		0384E5971E3D65E80074232D /* SoccerField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0384E5951E3D65E80074232D /* SoccerField.mm */; };
@@ -316,6 +317,8 @@
 		037C473B17B597CB007B8283 /* U4DModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DModel.mm; sourceTree = "<group>"; };
 		037C473C17B597CB007B8283 /* U4DGameObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DGameObject.h; sourceTree = "<group>"; };
 		037C473D17B597CB007B8283 /* U4DGameObject.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameObject.mm; sourceTree = "<group>"; };
+		03848A3F1E3E5DE4007DD1C9 /* Floor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Floor.h; path = game/Floor.h; sourceTree = SOURCE_ROOT; };
+		03848A401E3E5DE4007DD1C9 /* Floor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Floor.mm; path = game/Floor.mm; sourceTree = SOURCE_ROOT; };
 		038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingConvex.mm; path = BoundingVolumes/U4DBoundingConvex.mm; sourceTree = "<group>"; };
 		038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingConvex.h; path = BoundingVolumes/U4DBoundingConvex.h; sourceTree = "<group>"; };
 		0384E5921E3D65DB0074232D /* SoccerBall.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerBall.mm; sourceTree = "<group>"; };
@@ -629,6 +632,8 @@
 				0384E5921E3D65DB0074232D /* SoccerBall.mm */,
 				0384E5961E3D65E80074232D /* SoccerField.h */,
 				0384E5951E3D65E80074232D /* SoccerField.mm */,
+				03848A3F1E3E5DE4007DD1C9 /* Floor.h */,
+				03848A401E3E5DE4007DD1C9 /* Floor.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -1459,6 +1464,7 @@
 				03E6ED9F1943D799007AD131 /* U4DFont.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
+				03848A411E3E5DE4007DD1C9 /* Floor.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,

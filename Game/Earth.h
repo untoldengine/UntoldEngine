@@ -17,6 +17,7 @@ class GameController;
 class GameAsset;
 class SoccerBall;
 class SoccerField;
+class Floor;
 
 class Earth:public U4DEngine::U4DWorld{
 
@@ -24,6 +25,10 @@ private:
 
     SoccerBall *ball;
     SoccerField *field;
+    Floor *box1;
+    Floor *box2;
+    Floor *box3;
+    Floor *box4;
 
 public:
    
