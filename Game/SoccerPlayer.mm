@@ -15,8 +15,8 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         initCoefficientOfRestitution(0.9);
         initMass(100.0);
         enableCollisionBehavior();
-        setBroadPhaseBoundingVolumeVisibility(true);
-        setNarrowPhaseBoundingVolumeVisibility(true);
+        //setBroadPhaseBoundingVolumeVisibility(true);
+        //setNarrowPhaseBoundingVolumeVisibility(true);
         loadRenderingInformation();
     }
     
