@@ -39,7 +39,7 @@ void GameLogic::receiveTouchUpdate(){
         
     }else if(buttonA->getIsReleased()){
         
-        ball->setState(kNull);
+        //ball->setState(kNull);
         
     }
     
@@ -49,20 +49,20 @@ void GameLogic::receiveTouchUpdate(){
         
     }else if(buttonB->getIsReleased()){
         
-        ball->setState(kNull);
+        //ball->setState(kNull);
         
     }
     
     if(joystick->getIsActive()){
         
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        
         joyPosition=joyData;
+        ball->setJoystickData(joyPosition);
         
-        U4DEngine::U4DVector3n setView(joyPosition.x*10.0,ball->getAbsolutePosition().y,-joyPosition.y*10.0);
+        //U4DEngine::U4DVector3n setView(joyPosition.x*10.0,ball->getAbsolutePosition().y,-joyPosition.y*10.0);
         
-        ball->viewInDirection(setView);
-        
+        //ball->viewInDirection(setView);
+        ball->setState(kNull);
     }
     
 }

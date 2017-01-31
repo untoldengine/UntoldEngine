@@ -422,9 +422,11 @@ namespace U4DEngine {
     
     void U4DGJKAlgorithm::cleanUp(){
         Q.clear();
-        closestPointToOrigin.zero();
-        closestCollisionPoint.zero();
-        contactCollisionNormal=U4DVector3n(0,1,0);
+        
+        //Commented these values
+        //closestPointToOrigin.zero();
+        //closestCollisionPoint.zero();
+        //contactCollisionNormal=U4DVector3n(0,1,0);
     }
     
 }

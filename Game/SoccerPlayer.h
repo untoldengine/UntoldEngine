@@ -1,28 +1,27 @@
 //
-//  SoccerBall.hpp
+//  SoccerPlayer.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 1/28/17.
+//  Created by Harold Serrano on 1/30/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef SoccerBall_hpp
-#define SoccerBall_hpp
+#ifndef SoccerPlayer_hpp
+#define SoccerPlayer_hpp
 
 #include <stdio.h>
-
 #include "U4DGameObject.h"
 #include "UserCommonProtocols.h"
 
-class SoccerBall:public U4DEngine::U4DGameObject {
+class SoccerPlayer:public U4DEngine::U4DGameObject {
     
 private:
     GameEntityState entityState;
     U4DEngine::U4DVector3n joyStickData;
     
 public:
-    SoccerBall(){};
-    ~SoccerBall(){};
+    SoccerPlayer(){};
+    ~SoccerPlayer(){};
     
     void init(const char* uName, const char* uBlenderFile);
     
@@ -37,5 +36,4 @@ public:
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     
 };
-
-#endif /* SoccerBall_hpp */
+#endif /* SoccerPlayer_hpp */
