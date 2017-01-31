@@ -22,8 +22,8 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         setEntityForwardVector(viewDirectionVector);
         
         setState(kNull);
-        setBroadPhaseBoundingVolumeVisibility(true);
-        setNarrowPhaseBoundingVolumeVisibility(true);
+        //setBroadPhaseBoundingVolumeVisibility(true);
+        //setNarrowPhaseBoundingVolumeVisibility(true);
         
         //U4DEngine::U4DVector2n drag(0.0,0.0);
         //setDragCoefficient(drag);
