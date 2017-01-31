@@ -12,7 +12,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         initInertiaTensorType(U4DEngine::sphericalInertia);
-        initCoefficientOfRestitution(0.5);
+        initCoefficientOfRestitution(0.9);
         initMass(1.0);
         //initialize everything else here
         enableCollisionBehavior();
@@ -22,15 +22,14 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         setEntityForwardVector(viewDirectionVector);
         
         setState(kNull);
-        //setBroadPhaseBoundingVolumeVisibility(true);
-        //setNarrowPhaseBoundingVolumeVisibility(true);
-        translateBy(-3.0, 0.0, -3.0);
+        setBroadPhaseBoundingVolumeVisibility(true);
+        setNarrowPhaseBoundingVolumeVisibility(true);
         
-        //U4DEngine::U4DVector2n drag(0.6,0.5);
+        //U4DEngine::U4DVector2n drag(0.0,0.0);
         //setDragCoefficient(drag);
         
-        //U4DEngine::U4DVector3n grav(0,0,0);
-        //setGravity(grav);
+        U4DEngine::U4DVector3n grav(0,0,0);
+        setGravity(grav);
         
         loadRenderingInformation();
     }
@@ -40,23 +39,53 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
 
 void SoccerBall::update(double dt){
     
+    float forceMagnitude=20.0;
+    
+    if (getModelHasCollided()) {
+        changeState(kNull);
+        clearForce();
+        clearMoment();
+    }
+    
     if (getState()==kPass) {
         
-        U4DEngine::U4DVector3n view=getViewInDirection();
-        U4DEngine::U4DVector3n pass(view.x*5000.0,0.0,view.z*5000.0);
+        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
         
-        applyForce(pass);
+        U4DEngine::U4DVector3n pass(forceDirection.x,0.0,-forceDirection.y);
         
-        changeState(kNull);
+        addForce(pass);
+        
+        //rotate
+        U4DEngine::U4DVector3n up(0.0,1.0,0.0);
+        
+        U4DEngine::U4DVector3n passVector=pass;
+        
+        //passVector.normalize();
+        
+        U4DEngine::U4DVector3n axis=up.cross(passVector);
+        
+        addMoment(axis);
+        
+        //changeState(kNull);
         
     }else if (getState()==kVolley){
+    
+        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude*-1.0;
         
-        U4DEngine::U4DVector3n view=getViewInDirection();
-        U4DEngine::U4DVector3n kick(view.x*5000.0,5000.0,view.z*5000.0);
-        //U4DEngine::U4DVector3n kick(0.0,5000.0,0.0);
-        applyForce(kick);
+        U4DEngine::U4DVector3n pass(forceDirection.x,0.0,-forceDirection.y);
         
-        changeState(kNull);
+        addForce(pass);
+        
+        //rotate
+        U4DEngine::U4DVector3n up(0.0,1.0,0.0);
+        
+        U4DEngine::U4DVector3n passVector=pass;
+        
+        //passVector.normalize();
+        
+        U4DEngine::U4DVector3n axis=up.cross(passVector);
+        
+        addMoment(axis);
         
     }else if (getState()==kShoot){
         

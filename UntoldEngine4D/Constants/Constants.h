@@ -29,7 +29,7 @@ namespace U4DEngine {
     /**
      @brief Constant which represents the distance epsilon the engine will interpret as a collision: This value used to be 1.0e-4f. This value needs to change depending on the shape of the objects. For a sphere to cube plane, the best value is 1.0f. For cube to cube is 1.0e-4f. for cube to cube plane is somewhere around 1.0e-2f to 1.0e-3f. If wrong values are used, sinking will occur.
      */
-    const float collisionDistanceEpsilon=1.0f;
+    const float collisionDistanceEpsilon=1.0e-4f;
     
     /**
      @brief Constant which represents the minimum time of impact during a collision

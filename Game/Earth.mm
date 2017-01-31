@@ -28,13 +28,15 @@
 #include "U4DLogger.h"
 #include "SoccerBall.h"
 #include "SoccerField.h"
+#include "SoccerPlayer.h"
+#include "Floor.h"
 
 using namespace U4DEngine;
 
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 5.0, 10.5);
+    camera->translateBy(0.0, 5.0, 10.0);
     
     setName("earth");
     
@@ -46,6 +48,21 @@ void Earth::init(){
     field=new SoccerField();
     field->init("field", "blenderscript.u4d");
     
+    player=new SoccerPlayer();
+    player->init("player", "blenderscript.u4d");
+    
+    box1=new Floor();
+    box1->init("box1", "blenderscript.u4d");
+    
+    box2=new Floor();
+    box2->init("box2", "blenderscript.u4d");
+    
+    box3=new Floor();
+    box3->init("box3", "blenderscript.u4d");
+    
+    box4=new Floor();
+    box4->init("box4", "blenderscript.u4d");
+    
     U4DVector3n origin(0,0,0);
     
     camera->viewInDirection(origin);
@@ -56,9 +73,18 @@ void Earth::init(){
     
     addChild(ball);
     
-    addChild(field);
-
+    //addChild(field);
     
+    addChild(player);
+/*
+    addChild(box1);
+    
+    addChild(box2);
+    
+    addChild(box3);
+    
+    addChild(box4);
+    */
 }
 
 void Earth::update(double dt){
