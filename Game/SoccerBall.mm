@@ -53,6 +53,7 @@ void SoccerBall::update(double dt){
         
         U4DEngine::U4DVector3n pass(forceDirection.x,0.0,-forceDirection.y);
         
+        setAwake(true);
         addForce(pass);
         
         //rotate

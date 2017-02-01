@@ -27,7 +27,7 @@ namespace U4DEngine {
             
         }else{
             
-            
+            generateNormalForce(uModel);
             generateTorqueForce(uModel);
             
         }
@@ -42,16 +42,25 @@ namespace U4DEngine {
         //get mass of model
         float mass=uModel->getMass();
         
-        //get center of mass
-        U4DVector3n centerOfMass=uModel->getCenterOfMass()+uModel->getAbsolutePosition();
-        
         //calculate the normal force at each contact point
         U4DVector3n normalForce(0.0,0.0,0.0);
         
-        float angle=uModel->getGravity().angle(contactCollisionNormal);
+        //normalize plane
+        contactCollisionNormal.normalize();
         
-        normalForce=uModel->getGravity()*mass*cos(angle)*-1.0;
+        //normalize gravity vector
+        U4DVector3n normGravity=uModel->getGravity();
+        normGravity.normalize();
         
+        //get the dot product
+        float normalDotGravity=contactCollisionNormal.dot(normGravity);
+        
+        normalForce=uModel->getGravity()*mass*normalDotGravity;
+        
+        if (normalDotGravity>0) {
+            normalForce*=-1.0;
+        }
+
         uModel->addForce(normalForce);
         
     }
