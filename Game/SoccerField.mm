@@ -22,12 +22,12 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         
-        //initAsPlatform(true);
+        initAsPlatform(true);
         //setBroadPhaseBoundingVolumeVisibility(true);
         //setNarrowPhaseBoundingVolumeVisibility(true);
-        //initMass(1.0);
-        //initCoefficientOfRestitution(0.2);
-        //enableCollisionBehavior();
+        initMass(1000.0);
+        initCoefficientOfRestitution(0.0);
+        enableCollisionBehavior();
         
         loadRenderingInformation();
         
