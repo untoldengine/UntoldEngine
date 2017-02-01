@@ -144,6 +144,8 @@ namespace U4DEngine {
         //closest collision point
         std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
         
+        //Assign the closest collision point to use depending on the dot product of the point to the collision normal vector.
+        
         if (contactCollisionNormal.dot(closestCollisionPoints.at(0).toVector())<0.0) {
             
             closestCollisionPoint=closestCollisionPoints.at(0);
