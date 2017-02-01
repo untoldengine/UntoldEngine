@@ -50,7 +50,7 @@ void Earth::init(){
     
     player=new SoccerPlayer();
     player->init("player", "blenderscript.u4d");
-    
+    /*
     box1=new Floor();
     box1->init("box1", "blenderscript.u4d");
     
@@ -62,7 +62,7 @@ void Earth::init(){
     
     box4=new Floor();
     box4->init("box4", "blenderscript.u4d");
-    
+    */
     U4DVector3n origin(0,0,0);
     
     camera->viewInDirection(origin);
@@ -73,9 +73,9 @@ void Earth::init(){
     
     addChild(ball);
     
-    //addChild(field);
+    addChild(field);
     
-    addChild(player);
+    //addChild(player);
 /*
     addChild(box1);
     
