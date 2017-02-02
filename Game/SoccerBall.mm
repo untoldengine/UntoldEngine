@@ -44,7 +44,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
 
 void SoccerBall::update(double dt){
     
-    float forceMagnitude=6000.0;
+    float forceMagnitude=1000.0;
     
     U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
     
