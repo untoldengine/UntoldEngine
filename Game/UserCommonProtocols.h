@@ -11,11 +11,25 @@
 
 typedef enum{
     
-    kPass,
-    kVolley,
-    kShoot,
+    kGroundPass,
+    kAirPass,
+    kStopped,
+    kStabilize,
+    kSleep,
+    kCollided,
     kNull
     
 }GameEntityState;
+
+typedef enum{
+
+    kSoccerBall=1,
+    kSoccerField=2,
+    kSoccerPlayer=3,
+    kNegativeGroupIndex=-10,
+    kPositiveGroupIndex=10,
+    kZeroGroupIndex=0,
+
+}GameEntityCollision;
 
 #endif /* UserCommonProtocols_h */

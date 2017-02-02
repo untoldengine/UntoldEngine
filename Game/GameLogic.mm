@@ -23,6 +23,7 @@ void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
     ball=dynamic_cast<SoccerBall*>(searchChild("ball"));
+    field=dynamic_cast<SoccerField*>(searchChild("field"));
     
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -34,7 +35,7 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
-        ball->setState(kPass);
+        ball->setState(kGroundPass);
         
         
     }else if(buttonA->getIsReleased()){
@@ -45,7 +46,8 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonB->getIsPressed()) {
         
-        ball->setState(kVolley);
+        ball->setState(kAirPass);
+        
         
     }else if(buttonB->getIsReleased()){
         

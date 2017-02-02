@@ -7,6 +7,7 @@
 //
 
 #include "SoccerField.h"
+#include "UserCommonProtocols.h"
 
 SoccerField::SoccerField(){
     
@@ -23,11 +24,13 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
         //initialize everything else here
         
         initAsPlatform(true);
-        //setBroadPhaseBoundingVolumeVisibility(true);
-        //setNarrowPhaseBoundingVolumeVisibility(true);
         initMass(1000.0);
-        initCoefficientOfRestitution(0.0);
+        initCoefficientOfRestitution(0.2);
         enableCollisionBehavior();
+        
+        setCollisionFilterCategory(kSoccerField);
+        setCollisionFilterMask(kSoccerBall);
+        setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         loadRenderingInformation();
         

@@ -7,6 +7,8 @@
 //
 
 #include "SoccerBall.h"
+#include "U4DNumerical.h"
+
 void SoccerBall::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
@@ -14,6 +16,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         initInertiaTensorType(U4DEngine::sphericalInertia);
         initCoefficientOfRestitution(0.5);
         initMass(1.0);
+        
         //initialize everything else here
         enableCollisionBehavior();
         enableKineticsBehavior();
@@ -22,14 +25,16 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         setEntityForwardVector(viewDirectionVector);
         
         setState(kNull);
-        //setBroadPhaseBoundingVolumeVisibility(true);
-        //setNarrowPhaseBoundingVolumeVisibility(true);
         
-        //U4DEngine::U4DVector2n drag(0.0,0.0);
-        //setDragCoefficient(drag);
+        ballRadius=getModelDimensions().z/2.0;
         
-        U4DEngine::U4DVector3n grav(0,0,0);
-        //setGravity(grav);
+        setCollisionFilterCategory(kSoccerBall);
+        setCollisionFilterMask(kSoccerField);
+        setCollisionFilterGroupIndex(kNegativeGroupIndex);
+        
+        //turn off gravity
+        U4DEngine::U4DVector3n gravityForce(0,0,0);
+        setGravity(gravityForce);
         
         loadRenderingInformation();
     }
@@ -39,58 +44,118 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
 
 void SoccerBall::update(double dt){
     
-    float forceMagnitude=20.0;
+    float forceMagnitude=2000.0;
     
-    if (getModelHasCollided()) {
-        //changeState(kNull);
-        //clearForce();
-        //clearMoment();
+    U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
+    
+    
+    setEquilibrium(true);
+    
+    if (getState()==kStabilize) {
+        
+        if (isBallWithinRange()) {
+            
+            changeState(kStopped);
+            
+        }else{
+            
+            moveBallWithinRange(dt);
+            
+        }
+        
     }
     
-    if (getState()==kPass) {
+    //check if the ball is sleeping
+    if (getAwake()==false && getState()==kNull) {
         
-        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
+        //turn on filter with ground
+        setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
-        U4DEngine::U4DVector3n pass(forceDirection.x,0.0,-forceDirection.y);
+        //turn off all forces
+        clearForce();
+        clearMoment();
         
-        setAwake(true);
-        addForce(pass);
-        
-        //rotate
-        U4DEngine::U4DVector3n up(0.0,1.0,0.0);
-        
-        U4DEngine::U4DVector3n passVector=pass;
-        
-        //passVector.normalize();
-        
-        U4DEngine::U4DVector3n axis=up.cross(passVector);
-        
-        addMoment(axis);
-        
-        //changeState(kNull);
-        
-    }else if (getState()==kVolley){
+        changeState(kStabilize);
+    }
     
-        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude*-1.0;
+    //check if ball collided with anything
+    
+    if (getModelHasCollided()) {
         
-        U4DEngine::U4DVector3n pass(forceDirection.x,0.0,-forceDirection.y);
+        changeState(kCollided);
+    }
+    
+    if (getState()==kCollided) {
         
-        addForce(pass);
+        //Turn on drag
+        U4DEngine::U4DVector2n drag(5.0,5.0);
+        setDragCoefficient(drag);
         
-        //rotate
-        U4DEngine::U4DVector3n up(0.0,1.0,0.0);
+        changeState(kNull);
         
-        U4DEngine::U4DVector3n passVector=pass;
+    }else if (getState()==kGroundPass){
         
-        //passVector.normalize();
+        //awake the ball
+        setAwake(true);
         
-        U4DEngine::U4DVector3n axis=up.cross(passVector);
+        //turn on the collision filter with the ground
+        setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
-        addMoment(axis);
+        //turn off drag
+        resetDragCoefficient();
         
-    }else if (getState()==kShoot){
+        //turn off gravity
+        U4DEngine::U4DVector3n gravityForce(0,0,0);
+        setGravity(gravityForce);
         
+        //apply force to ball
         
+        U4DEngine::U4DVector3n groundPassForce(forceDirection.x,0.0,-forceDirection.y);
+        
+        addForce(groundPassForce);
+        
+        //apply moment to ball
+        U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
+        
+        U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(groundPassForce);
+        
+        addMoment(groundPassMoment);
+        
+        changeState(kNull);
+        
+    }else if (getState()==kAirPass){
+        
+        //awake the ball
+        setAwake(true);
+        
+        //turn off the collisin filter with the ground
+        setCollisionFilterGroupIndex(kZeroGroupIndex);
+        
+        //turn on gravity
+        resetGravity();
+        
+        //turn off drag
+        resetDragCoefficient();
+        
+        //apply force to ball
+        
+        U4DEngine::U4DVector3n airPassForce(forceDirection.x,forceMagnitude,-forceDirection.y);
+        
+        addForce(airPassForce);
+        
+        //apply moment to ball
+        U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
+        
+        U4DEngine::U4DVector3n airPassMoment=upAxis.cross(airPassForce);
+        
+        addMoment(airPassMoment);
+        
+        changeState(kNull);
+        
+    }else if (getState()==kStopped){
+        
+        std::cout<<"Ball Stopped"<<std::endl;
+    
     }
     
 }
@@ -101,23 +166,29 @@ void SoccerBall::changeState(GameEntityState uState){
     
     switch (uState) {
             
-        case kPass:
-            
-            
-            break;
-            
-        case kVolley:
-            
-            break;
-            
-        case kShoot:
-            
-            break;
             
         default:
             
             break;
     }
+    
+}
+
+bool SoccerBall::isBallWithinRange(){
+ 
+    float epsilonValue=1.0e-1f;
+    
+    U4DEngine::U4DNumerical compareValues;
+    
+    return compareValues.areEqual(ballRadius, getAbsolutePosition().y, epsilonValue);
+    
+}
+
+void SoccerBall::moveBallWithinRange(double dt){
+    
+    float offset=ballRadius-getAbsolutePosition().y;
+    
+    translateBy(0.0,offset*dt, 0.0);
     
 }
 
@@ -127,4 +198,9 @@ void SoccerBall::setState(GameEntityState uState){
 
 GameEntityState SoccerBall::getState(){
     return entityState;
+}
+
+void SoccerBall::setJoystickData(U4DEngine::U4DVector3n& uData){
+    
+    joyStickData=uData;
 }
