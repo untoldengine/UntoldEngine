@@ -44,10 +44,9 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
 
 void SoccerBall::update(double dt){
     
-    float forceMagnitude=2000.0;
+    float forceMagnitude=6000.0;
     
     U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
-    
     
     setEquilibrium(true);
     
@@ -102,7 +101,8 @@ void SoccerBall::update(double dt){
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         //turn off drag
-        resetDragCoefficient();
+        U4DEngine::U4DVector2n drag(0.1,0.2);
+        setDragCoefficient(drag);
         
         //turn off gravity
         U4DEngine::U4DVector3n gravityForce(0,0,0);
@@ -135,7 +135,8 @@ void SoccerBall::update(double dt){
         resetGravity();
         
         //turn off drag
-        resetDragCoefficient();
+        U4DEngine::U4DVector2n drag(0.1,0.2);
+        setDragCoefficient(drag);
         
         //apply force to ball
         
@@ -154,7 +155,7 @@ void SoccerBall::update(double dt){
         
     }else if (getState()==kStopped){
         
-        std::cout<<"Ball Stopped"<<std::endl;
+       
     
     }
     
