@@ -545,4 +545,9 @@ namespace U4DEngine {
         return collisionFilter.groupIndex;
     }
     
+    U4DVector3n U4DStaticModel::getModelDimensions(){
+        
+        return bodyCoordinates.getModelDimension();
+    }
+    
 }

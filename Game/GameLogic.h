@@ -14,6 +14,7 @@
 #include "UserCommonProtocols.h"
 #include "MyCharacter.h"
 #include "SoccerBall.h"
+#include "SoccerField.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -23,8 +24,12 @@ namespace U4DEngine {
 
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
+    
     SoccerBall *ball;
+    SoccerField *field;
+    
     GameEntityState gameEntityState;
+    
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
     U4DEngine::U4DJoyStick *joystick;

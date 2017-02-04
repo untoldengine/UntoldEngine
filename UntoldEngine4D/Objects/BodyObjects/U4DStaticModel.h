@@ -187,7 +187,7 @@ namespace U4DEngine {
         bool isPlatform;
         
         /**
-         @brief document this
+         @todo document this
          */
         CollisionFilter collisionFilter;
         
@@ -504,35 +504,39 @@ namespace U4DEngine {
         bool getModelHasCollided();
         
         /**
-         @brief document this
+         @todo document this
          */
         void setCollisionFilterCategory(int uFilterCategory);
 
         /**
-         @brief document this-Who can the model collide with
+         @todo document this-Who can the model collide with
          */
         void setCollisionFilterMask(int uFilterMask);
         
         /**
-         @brief document this
+         @todo document this
          */
         void setCollisionFilterGroupIndex(signed int uGroupIndex);
         
         /**
-         @brief document this
+         @todo document this
          */
         int getCollisionFilterCategory();
         
         /**
-         @brief document this
+         @todo document this
          */
         int getCollisionFilterMask();
         
         /**
-         @brief document this
+         @todo document this
          */
         signed int getCollisionFilterGroupIndex();
         
+        /**
+         @todo document this
+         */
+        U4DVector3n getModelDimensions();
         
         };
     

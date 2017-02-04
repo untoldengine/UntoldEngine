@@ -35,19 +35,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
     
     switch (uState) {
             
-        case kPass:
-            
-            
-            break;
-            
-        case kVolley:
-            
-            break;
-            
-        case kShoot:
-            
-            break;
-            
+
         default:
             
             break;

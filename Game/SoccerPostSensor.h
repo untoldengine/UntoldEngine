@@ -1,28 +1,26 @@
 //
-//  SoccerField.hpp
+//  SoccerPostSensor.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 1/28/17.
+//  Created by Harold Serrano on 2/2/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef SoccerField_hpp
-#define SoccerField_hpp
+#ifndef SoccerPostSensor_hpp
+#define SoccerPostSensor_hpp
 
 #include <stdio.h>
 #include "U4DGameObject.h"
+#include "UserCommonProtocols.h"
 #include "SoccerBall.h"
 
-class SoccerField:public U4DEngine::U4DGameObject {
+class SoccerPostSensor:public U4DEngine::U4DGameObject {
     
 private:
-    
     SoccerBall *soccerBallEntity;
-    
 public:
-    SoccerField();
-    
-    ~SoccerField();
+    SoccerPostSensor(){};
+    ~SoccerPostSensor(){};
     
     void init(const char* uName, const char* uBlenderFile);
     
@@ -30,6 +28,5 @@ public:
     
     void update(double dt);
     
-    
 };
-#endif /* SoccerField_hpp */
+#endif /* SoccerPostSensor_hpp */

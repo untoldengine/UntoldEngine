@@ -43,7 +43,7 @@ namespace U4DEngine {
             
             dragForce.updateForce(uModel,dt);
             
-            if (uModel->getEquilibrium()) {
+            if (uModel->getEquilibrium() && uModel->getInertiaTensorType()!=sphericalInertia) {
                 
                 U4DVector3n zero(0,0,0);
                 uModel->setAngularVelocity(zero);

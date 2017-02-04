@@ -14,11 +14,14 @@
 #include "U4DGameObject.h"
 #include "UserCommonProtocols.h"
 
+
 class SoccerBall:public U4DEngine::U4DGameObject {
     
 private:
     GameEntityState entityState;
     U4DEngine::U4DVector3n joyStickData;
+    float ballRadius;
+    
     
 public:
     SoccerBall(){};
@@ -34,7 +37,11 @@ public:
     
     GameEntityState getState();
     
-    inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
+    bool isBallWithinRange();
+    
+    void moveBallWithinRange(double dt);
+    
+    void setJoystickData(U4DEngine::U4DVector3n& uData);
     
 };
 
