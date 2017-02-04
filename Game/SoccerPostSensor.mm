@@ -17,7 +17,7 @@ void SoccerPostSensor::init(const char* uName, const char* uBlenderFile){
         initMass(10000.0);
         initCoefficientOfRestitution(0.9);
         enableCollisionBehavior();
-        setNarrowPhaseBoundingVolumeVisibility(true);
+        //setNarrowPhaseBoundingVolumeVisibility(true);
         
         setCollisionFilterCategory(kSoccerPostSensor);
         setCollisionFilterMask(kSoccerBall);

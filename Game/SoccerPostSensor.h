@@ -19,7 +19,12 @@ class SoccerPostSensor:public U4DEngine::U4DGameObject {
 private:
     SoccerBall *soccerBallEntity;
 public:
-    SoccerPostSensor(){};
+    SoccerPostSensor(){
+    
+        setShader("nonVisibleShader");
+    
+    };
+    
     ~SoccerPostSensor(){};
     
     void init(const char* uName, const char* uBlenderFile);
