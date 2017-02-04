@@ -46,7 +46,9 @@ namespace U4DEngine {
         
         relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
         
-        relativeCSOTranslation.normalize();
+        //Removing this normalization. It seems to fix the issue with sinking when colliding objects are of
+        //disproportionate size.
+        //relativeCSOTranslation.normalize();
         
         U4DVector3n dir(1,1,1);
         
