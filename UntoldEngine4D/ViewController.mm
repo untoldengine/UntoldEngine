@@ -57,8 +57,8 @@
     //set the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
-    //set perspectiveMatrix
-    camera->setCameraPerspectiveView(49.134f, view.frame.size.height/view.frame.size.width, 1.0f, 100.0f);
+    //set perspectiveMatrix: Default FOV: 49.134f
+    camera->setCameraPerspectiveView(30.0f, view.frame.size.height/view.frame.size.width, 1.0f, 100.0f);
  
     
     //set orthographicView
