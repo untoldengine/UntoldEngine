@@ -15,7 +15,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         
         initInertiaTensorType(U4DEngine::sphericalInertia);
         initCoefficientOfRestitution(0.9);
-        initMass(1.0);
+        initMass(5.0);
         
         
         //initialize everything else here
@@ -43,11 +43,8 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
 
 void SoccerBall::update(double dt){
     
-    float forceMagnitude=6000.0;
-    
-    U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
-    
     setEquilibrium(true);
+    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
     
     if (getState()==kStabilize) {
         
@@ -103,6 +100,20 @@ void SoccerBall::update(double dt){
     
     if (getState()==kGroundPass){
         
+        //zero out the velocities
+        setAngularVelocity(zero);
+        setVelocity(zero);
+        
+        //move ball to proper position
+        float offset=ballRadius-getAbsolutePosition().y;
+        
+        translateBy(0.0,offset, 0.0);
+        
+        //set kick force
+        float forceMagnitude=4000.0;
+        
+        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
+   
         //awake the ball
         setAwake(true);
         
@@ -134,6 +145,15 @@ void SoccerBall::update(double dt){
         
     }else if (getState()==kAirPass){
         
+        //zero out the velocities
+        setAngularVelocity(zero);
+        setVelocity(zero);
+        
+        //set kick force
+        float forceMagnitude=8000.0;
+        
+        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
+        
         //awake the ball
         setAwake(true);
         
@@ -149,7 +169,7 @@ void SoccerBall::update(double dt){
         
         //apply force to ball
         
-        U4DEngine::U4DVector3n airPassForce(forceDirection.x,forceMagnitude,-forceDirection.y);
+        U4DEngine::U4DVector3n airPassForce(forceDirection.x,forceMagnitude/1.5,-forceDirection.y);
         
         addForce(airPassForce);
         

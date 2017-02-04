@@ -59,12 +59,15 @@ void GameLogic::receiveTouchUpdate(){
         
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
         joyPosition=joyData;
+        
+        joyPosition.normalize();
+        
         ball->setJoystickData(joyPosition);
         
         //U4DEngine::U4DVector3n setView(joyPosition.x*10.0,ball->getAbsolutePosition().y,-joyPosition.y*10.0);
         
         //ball->viewInDirection(setView);
-        ball->setState(kNull);
+        //ball->setState(kNull);
     }
     
 }

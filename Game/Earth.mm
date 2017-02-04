@@ -48,6 +48,8 @@ void Earth::init(){
     ball=new SoccerBall();
     ball->init("ball", "blenderscript.u4d");
     
+    
+    
     field=new SoccerField();
     field->init("field", "blenderscript.u4d");
     
