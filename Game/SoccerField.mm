@@ -25,7 +25,7 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
         
         initAsPlatform(true);
         initMass(1000.0);
-        initCoefficientOfRestitution(0.2);
+        initCoefficientOfRestitution(0.9);
         enableCollisionBehavior();
         
         setCollisionFilterCategory(kSoccerField);
@@ -39,4 +39,12 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
 
 void SoccerField::update(double dt){
     
+    if (getModelHasCollided() && soccerBallEntity->getAwake()==true) {
+        soccerBallEntity->changeState(kBallHitGround);
+    }
+}
+
+void SoccerField::setBallEntity(SoccerBall *uSoccerBall){
+    
+    soccerBallEntity=uSoccerBall;
 }

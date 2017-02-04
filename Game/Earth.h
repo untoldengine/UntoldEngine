@@ -19,6 +19,9 @@ class SoccerBall;
 class SoccerField;
 class Floor;
 class SoccerPlayer;
+class SoccerPost;
+class SoccerPostSensor;
+class SoccerGoalSensor;
 
 class Earth:public U4DEngine::U4DWorld{
 
@@ -27,10 +30,13 @@ private:
     SoccerBall *ball;
     SoccerField *field;
     SoccerPlayer *player;
-    Floor *box1;
-    Floor *box2;
-    Floor *box3;
-    Floor *box4;
+    SoccerPost *post;
+    SoccerPostSensor *postSensorLeft;
+    SoccerPostSensor *postSensorRight;
+    SoccerPostSensor *postSensorTop;
+    SoccerPostSensor *postSensorBack;
+    SoccerGoalSensor *goalSensor;
+    
 
 public:
    

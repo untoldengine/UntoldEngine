@@ -14,22 +14,21 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         initInertiaTensorType(U4DEngine::sphericalInertia);
-        initCoefficientOfRestitution(0.5);
+        initCoefficientOfRestitution(0.9);
         initMass(1.0);
+        
         
         //initialize everything else here
         enableCollisionBehavior();
         enableKineticsBehavior();
         
-        U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
-        setEntityForwardVector(viewDirectionVector);
-        
+    
         setState(kNull);
         
         ballRadius=getModelDimensions().z/2.0;
         
         setCollisionFilterCategory(kSoccerBall);
-        setCollisionFilterMask(kSoccerField);
+        setCollisionFilterMask(kSoccerField|kSoccerPostSensor|kSoccerGoalSensor);
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         //turn off gravity
@@ -44,7 +43,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
 
 void SoccerBall::update(double dt){
     
-    float forceMagnitude=1000.0;
+    float forceMagnitude=6000.0;
     
     U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
     
@@ -77,14 +76,12 @@ void SoccerBall::update(double dt){
         changeState(kStabilize);
     }
     
-    //check if ball collided with anything
-    
-    if (getModelHasCollided()) {
+    if (getState()==kGoal) {
         
-        changeState(kCollided);
+        changeState(kNull);
     }
     
-    if (getState()==kCollided) {
+    if (getState()==kBallHitGround) {
         
         //Turn on drag
         U4DEngine::U4DVector2n drag(5.0,5.0);
@@ -92,7 +89,19 @@ void SoccerBall::update(double dt){
         
         changeState(kNull);
         
-    }else if (getState()==kGroundPass){
+    }
+    
+    if (getState()==kBallHitPostSensor){
+        
+        //reset drag
+        
+        resetDragCoefficient();
+        
+        changeState(kNull);
+        
+    }
+    
+    if (getState()==kGroundPass){
         
         //awake the ball
         setAwake(true);
@@ -155,9 +164,11 @@ void SoccerBall::update(double dt){
         
     }else if (getState()==kStopped){
         
-       
+        changeState(kNull);
     
     }
+    
+
     
 }
 
