@@ -92,7 +92,7 @@ void U4DOpenGL3DModel::loadVertexObjectBuffer(){
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, elementBuffer);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size(), &u4dObject->bodyCoordinates.indexContainer[0], GL_STATIC_DRAW);
 
-    checkErrors(u4dObject->getName(), "Loading Vertex Object Buffer");
+    //checkErrors(u4dObject->getName(), "Loading Vertex Object Buffer");
     
 }
 
@@ -118,7 +118,7 @@ void U4DOpenGL3DModel::loadMaterialsUniforms(){
         glUniform1fv(materialUniformLocations.specularHardnessMaterialUniformLocation, (GLsizei)u4dObject->materialInformation.specularMaterialHardnessContainer.size(), &u4dObject->materialInformation.specularMaterialHardnessContainer[0]);
     }
 
-    checkErrors(u4dObject->getName(), "Loading Materials Uniform");
+    //checkErrors(u4dObject->getName(), "Loading Materials Uniform");
     
 }
 
@@ -165,7 +165,7 @@ void U4DOpenGL3DModel::loadTextureObjectBuffer(){
             loadPNGTexture(u4dObject->textureInformation.normalBumpTexture, GL_LINEAR, GL_LINEAR, GL_CLAMP_TO_EDGE);
         }
     
-    checkErrors(u4dObject->getName(), "Loading Texture Object Buffer");
+    //checkErrors(u4dObject->getName(), "Loading Texture Object Buffer");
 }
 
 void U4DOpenGL3DModel::loadLightsUniforms(){
@@ -228,7 +228,7 @@ void U4DOpenGL3DModel::enableVerticesAttributeLocations(){
     glEnableVertexAttribArray(attributeLocations.materialIndexAttributeLocation);
     glVertexAttribPointer(attributeLocations.materialIndexAttributeLocation, 1, GL_FLOAT, GL_FALSE, 0, (const GLvoid*)(sizeof(float)*(3*u4dObject->bodyCoordinates.verticesContainer.size()+3*u4dObject->bodyCoordinates.normalContainer.size()+2*u4dObject->bodyCoordinates.uVContainer.size()+4*u4dObject->bodyCoordinates.tangentContainer.size()+4*u4dObject->bodyCoordinates.vertexWeightsContainer.size()+4*u4dObject->bodyCoordinates.boneIndicesContainer.size())));
     
-    checkErrors(u4dObject->getName(), "Enabling Vertices Attributes");
+    //checkErrors(u4dObject->getName(), "Enabling Vertices Attributes");
 }
 
 void U4DOpenGL3DModel::drawElements(){
@@ -270,7 +270,7 @@ void U4DOpenGL3DModel::activateTexturesUniforms(){
         glUniform1i(textureUniformLocations.normalBumpTextureUniformLocation, 4);
         }
     
-    checkErrors(u4dObject->getName(), "Loading Texture Uniforms");
+    //checkErrors(u4dObject->getName(), "Loading Texture Uniforms");
     
 }
 
