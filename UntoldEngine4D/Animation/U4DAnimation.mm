@@ -149,7 +149,7 @@ void U4DAnimation::runAnimation(){
         }
         
     }else{
-        interpolationTime+=0.5;
+        interpolationTime+=0.10;
     }
 
     
