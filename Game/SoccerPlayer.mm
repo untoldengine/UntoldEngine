@@ -13,14 +13,22 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
-        walking=new U4DEngine::U4DAnimation(this);
-        loadRenderingInformation();
+        kick=new U4DEngine::U4DAnimation(this);
         
-        if (loadAnimationToModel(walking, "ArmatureAction", uBlenderFile)) {
+        U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
+        
+        setEntityForwardVector(viewDirectionVector);
+        
+        if (loadAnimationToModel(kick, "ArmatureAction", uBlenderFile)) {
 
             
             
         }
+        
+        
+        loadRenderingInformation();
+        
+        translateBy(0.0, getModelDimensions().y/2.0, 0.0);
         
     }
     
@@ -30,6 +38,21 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
 void SoccerPlayer::update(double dt){
     
     
+    
+    if (getState()==kGroundPass) {
+        
+        if (getIsAnimationUpdatingKeyframe()) {
+            
+            if (getAnimationCurrentKeyframe()==1 && getAnimationCurrentInterpolationTime()==0) {
+                
+                soccerBallEntity->changeState(kGroundPass);
+                soccerBallEntity->setKickDirection(joyStickData);
+                
+                
+            }
+        }
+        
+    }
     
 }
 
@@ -43,7 +66,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
             
         case kWalking:
             
-            setAnimation(walking);
+            
             
             break;
             
@@ -57,6 +80,10 @@ void SoccerPlayer::changeState(GameEntityState uState){
             break;
             
         case kGroundPass:
+        {
+            setAnimation(kick);
+            setPlayAnimationContinuously(false);
+        }
             
             break;
             
@@ -79,4 +106,9 @@ void SoccerPlayer::setState(GameEntityState uState){
 
 GameEntityState SoccerPlayer::getState(){
     return entityState;
+}
+
+void SoccerPlayer::setBallEntity(SoccerBall *uSoccerBall){
+    
+    soccerBallEntity=uSoccerBall;
 }

@@ -24,6 +24,7 @@ void GameLogic::init(){
     //set my main actor and attach camera to follow it
     ball=dynamic_cast<SoccerBall*>(searchChild("ball"));
     field=dynamic_cast<SoccerField*>(searchChild("field"));
+    player=dynamic_cast<SoccerPlayer*>(searchChild("pele"));
     
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
@@ -35,39 +36,40 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
-        ball->setState(kGroundPass);
+        player->changeState(kGroundPass);
         
         
     }else if(buttonA->getIsReleased()){
         
-        //ball->setState(kNull);
+        
         
     }
     
     if (buttonB->getIsPressed()) {
         
-        ball->setState(kAirPass);
+        player->changeState(kAirPass);
         
         
     }else if(buttonB->getIsReleased()){
         
-        //ball->setState(kNull);
+        
         
     }
     
     if(joystick->getIsActive()){
         
         U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
+        
         joyPosition=joyData;
         
         joyPosition.normalize();
         
-        ball->setJoystickData(joyPosition);
+        U4DEngine::U4DVector3n setView(joyPosition.x*10.0,player->getAbsolutePosition().y,-joyPosition.y*10.0);
         
-        //U4DEngine::U4DVector3n setView(joyPosition.x*10.0,ball->getAbsolutePosition().y,-joyPosition.y*10.0);
+        player->viewInDirection(setView);
         
-        //ball->viewInDirection(setView);
-        //ball->setState(kNull);
+        player->setJoystickData(joyPosition);
+       
     }
     
 }

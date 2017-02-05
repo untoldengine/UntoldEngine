@@ -86,6 +86,8 @@ void Earth::init(){
     
     //goalSensor->setBallEntity(ball);
     
+    player->setBallEntity(ball);
+    
     U4DVector3n origin(0,0,0);
     
     //camera->viewInDirection(origin);
@@ -96,7 +98,7 @@ void Earth::init(){
     
     addChild(ball);
     
-    //addChild(field);
+    addChild(field);
     
     addChild(post);
 
@@ -111,8 +113,7 @@ void Earth::init(){
     //addChild(goalSensor);
     
     addChild(player);
-    //player->rotateBy(0.0, 90.0, 0.0);
-    player->changeState(kWalking);
+    
 
 }
 

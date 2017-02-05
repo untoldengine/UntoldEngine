@@ -112,7 +112,7 @@ void SoccerBall::update(double dt){
         //set kick force
         float forceMagnitude=4000.0;
         
-        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
+        U4DEngine::U4DVector3n forceDirection=kickDirection*forceMagnitude;
    
         //awake the ball
         setAwake(true);
@@ -152,7 +152,7 @@ void SoccerBall::update(double dt){
         //set kick force
         float forceMagnitude=8000.0;
         
-        U4DEngine::U4DVector3n forceDirection=joyStickData*forceMagnitude;
+        U4DEngine::U4DVector3n forceDirection=kickDirection*forceMagnitude;
         
         //awake the ball
         setAwake(true);
@@ -232,7 +232,8 @@ GameEntityState SoccerBall::getState(){
     return entityState;
 }
 
-void SoccerBall::setJoystickData(U4DEngine::U4DVector3n& uData){
+void SoccerBall::setKickDirection(U4DEngine::U4DVector3n &uDirection){
     
-    joyStickData=uData;
+    kickDirection=uDirection;
 }
+

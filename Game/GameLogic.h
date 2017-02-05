@@ -15,6 +15,7 @@
 #include "MyCharacter.h"
 #include "SoccerBall.h"
 #include "SoccerField.h"
+#include "SoccerPlayer.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -27,6 +28,7 @@ public:
     
     SoccerBall *ball;
     SoccerField *field;
+    SoccerPlayer *player;
     
     GameEntityState gameEntityState;
     
