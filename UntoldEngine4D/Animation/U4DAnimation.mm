@@ -97,12 +97,6 @@ void U4DAnimation::runAnimation(){
         
         //compute the interpolation here
         
-        if (boneChild->name.compare("foot.L")==0) {
-            
-            std::cout<<interpolationTime<<std::endl;
-            std::cout<<"stop"<<std::endl;
-        }
-        
         U4DDualQuaternion animationFrom=animationData.keyframes.at(keyframe).animationSpaceTransform;
         U4DDualQuaternion animationTo=animationData.keyframes.at(keyframe+1).animationSpaceTransform;
         
