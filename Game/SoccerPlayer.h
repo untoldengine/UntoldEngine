@@ -33,6 +33,8 @@ public:
     
     GameEntityState getState();
     
+    U4DEngine::U4DAnimation *walking;
+    
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     
 };

@@ -19,6 +19,9 @@ typedef enum{
     kBallHitGround,
     kBallHitPostSensor,
     kGoal,
+    kWalking,
+    kRunning,
+    kAdvancingWithBall,
     kNull
     
 }GameEntityState;
