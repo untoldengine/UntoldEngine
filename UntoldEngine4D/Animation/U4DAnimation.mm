@@ -109,6 +109,7 @@ void U4DAnimation::runAnimation(){
             
         }else{
             
+
             boneChild->animationPoseSpace=animationInterpolation*boneChild->parent->animationPoseSpace;
             
         }
@@ -148,7 +149,7 @@ void U4DAnimation::runAnimation(){
         }
         
     }else{
-        interpolationTime+=0.5;
+        interpolationTime+=0.10;
     }
 
     

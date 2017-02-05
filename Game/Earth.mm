@@ -56,6 +56,8 @@ void Earth::init(){
     post=new SoccerPost();
     post->init("goalpost", "blenderscript.u4d");
 
+    player=new SoccerPlayer();
+    player->init("pele", "characterscript.u4d");
     
     postSensorLeft=new SoccerPostSensor();
     postSensorLeft->init("leftpostsensor", "blenderscript.u4d");
@@ -84,9 +86,6 @@ void Earth::init(){
     
     //goalSensor->setBallEntity(ball);
     
-    //player=new SoccerPlayer();
-    //player->init("player", "blenderscript.u4d");
-    
     U4DVector3n origin(0,0,0);
     
     //camera->viewInDirection(origin);
@@ -97,7 +96,7 @@ void Earth::init(){
     
     addChild(ball);
     
-    addChild(field);
+    //addChild(field);
     
     addChild(post);
 
@@ -111,7 +110,9 @@ void Earth::init(){
     
     //addChild(goalSensor);
     
-    //addChild(player);
+    addChild(player);
+    //player->rotateBy(0.0, 90.0, 0.0);
+    player->changeState(kWalking);
 
 }
 

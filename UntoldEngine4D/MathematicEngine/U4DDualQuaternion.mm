@@ -275,17 +275,27 @@ U4DDualQuaternion U4DDualQuaternion::sclerp(U4DDualQuaternion& uToDualQuaternion
     U4DVector3n vr(diff.qReal.v.x,diff.qReal.v.y,diff.qReal.v.z);
     U4DVector3n vd(diff.qPure.v.x,diff.qPure.v.y,diff.qPure.v.z);
     
-    float invr;
-    
-    if (vr.magnitude()==0) {
-        invr=1.0;
-    }else{
-        invr=1/vr.magnitude();
-    }
+    float invr = 0.0;
     
     //Screw parameters
     float angle=2*acos(diff.qReal.s);
     float pitch=-2*diff.qPure.s*invr;
+    
+    if (vr.magnitude()==0) {
+        
+        invr=1.0;
+        
+        angle=0.0;
+        pitch=0.0;
+        
+    }else{
+        invr=1/vr.magnitude();
+        
+        angle=2*acos(diff.qReal.s);
+        pitch=-2*diff.qPure.s*invr;
+        
+    }
+    
     
     U4DVector3n direction=vr*invr;
     U4DVector3n moment=(vd-direction*pitch*diff.qReal.s*0.5)*invr;
