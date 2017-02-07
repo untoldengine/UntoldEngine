@@ -228,17 +228,17 @@ namespace U4DEngine {
 
     float U4DVector3n::magnitude(){
 
-        float magnitude=sqrt(x*x+y*y+z*z);
+        float mag=sqrt(x*x+y*y+z*z);
         
-        return magnitude;
+        return mag;
         
     }
 
     float U4DVector3n::magnitudeSquare(){
         
-        float magnitude=x*x+y*y+z*z;
+        float mag=x*x+y*y+z*z;
         
-        return magnitude;
+        return mag;
     }
 
 
