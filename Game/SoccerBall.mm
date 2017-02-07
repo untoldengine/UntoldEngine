@@ -35,6 +35,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         U4DEngine::U4DVector3n gravityForce(0,0,0);
         setGravity(gravityForce);
         
+        
         loadRenderingInformation();
     }
     
@@ -63,7 +64,7 @@ void SoccerBall::update(double dt){
     //check if the ball is sleeping
     if (getAwake()==false && getState()==kNull) {
         
-        //turn on filter with ground
+        //set collision with ground not to occur
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         //turn off all forces
@@ -117,7 +118,7 @@ void SoccerBall::update(double dt){
         //awake the ball
         setAwake(true);
         
-        //turn on the collision filter with the ground
+        //set collision with field not to occur
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         //turn off drag
@@ -157,7 +158,7 @@ void SoccerBall::update(double dt){
         //awake the ball
         setAwake(true);
         
-        //turn off the collisin filter with the ground
+        //set collision with the ground to occur
         setCollisionFilterGroupIndex(kZeroGroupIndex);
         
         //turn on gravity

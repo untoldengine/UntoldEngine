@@ -36,7 +36,12 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
-        player->changeState(kGroundPass);
+        if (player->getState()==kInPossesionOfBall) {
+            
+            player->changeState(kGroundPass);
+        }else{
+            player->changeState(kWalking);
+        }
         
         
     }else if(buttonA->getIsReleased()){

@@ -38,6 +38,8 @@ public:
     
     U4DEngine::U4DAnimation *kick;
     
+    U4DEngine::U4DAnimation *walking;
+    
     void setBallEntity(SoccerBall *uSoccerBall);
     
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
