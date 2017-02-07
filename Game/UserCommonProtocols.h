@@ -22,6 +22,7 @@ typedef enum{
     kWalking,
     kRunning,
     kAdvancingWithBall,
+    kInPossesionOfBall,
     kNull
     
 }GameEntityState;

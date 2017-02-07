@@ -12,12 +12,15 @@
 #include <stdio.h>
 #include "U4DGameObject.h"
 #include "UserCommonProtocols.h"
+#include "SoccerBall.h"
 
 class SoccerPlayer:public U4DEngine::U4DGameObject {
     
 private:
+    
     GameEntityState entityState;
     U4DEngine::U4DVector3n joyStickData;
+    SoccerBall *soccerBallEntity;
     
 public:
     SoccerPlayer(){};
@@ -33,7 +36,11 @@ public:
     
     GameEntityState getState();
     
+    U4DEngine::U4DAnimation *kick;
+    
     U4DEngine::U4DAnimation *walking;
+    
+    void setBallEntity(SoccerBall *uSoccerBall);
     
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     

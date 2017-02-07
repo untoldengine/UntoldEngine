@@ -19,7 +19,7 @@ class SoccerBall:public U4DEngine::U4DGameObject {
     
 private:
     GameEntityState entityState;
-    U4DEngine::U4DVector3n joyStickData;
+    U4DEngine::U4DVector3n kickDirection;
     float ballRadius;
     
     
@@ -40,8 +40,8 @@ public:
     bool isBallWithinRange();
     
     void moveBallWithinRange(double dt);
-    
-    void setJoystickData(U4DEngine::U4DVector3n& uData);
+
+    void setKickDirection(U4DEngine::U4DVector3n &uDirection);
     
 };
 
