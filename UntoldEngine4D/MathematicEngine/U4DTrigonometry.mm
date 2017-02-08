@@ -27,4 +27,12 @@ namespace U4DEngine {
     float U4DTrigonometry::radToDegrees(float uAngle){
         return (uAngle*180.0/M_PI);
     }
+    
+    double U4DTrigonometry::safeAcos(double x){
+        
+        if (x < -1.0) x = -1.0 ;
+        else if (x > 1.0) x = 1.0 ;
+        return acos (x) ;
+        
+    }
 }

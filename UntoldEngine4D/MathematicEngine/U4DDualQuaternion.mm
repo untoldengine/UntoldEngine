@@ -11,6 +11,8 @@
 #include "U4DVector3n.h"
 #include "U4DMatrix3n.h"
 #include "U4DMatrix4n.h"
+#include "U4DTrigonometry.h"
+#include "U4DNumerical.h"
 #include <cmath>
 
 namespace U4DEngine {
@@ -258,11 +260,12 @@ void U4DDualQuaternion::transformMatrix4nToDualQuaternion(U4DMatrix4n &uMatrix){
 
 U4DDualQuaternion U4DDualQuaternion::sclerp(U4DDualQuaternion& uToDualQuaternion,float t){
     
-    //U4DDualQuaternion uFrom(qReal,qPure);
+    U4DTrigonometry trigonometry;
+    U4DNumerical numerical;
     
     //Shortest path
     float dot=(*this).dot(uToDualQuaternion);
-    
+ 
     if (dot<0.0) {
       
         uToDualQuaternion=uToDualQuaternion*-1.0;
@@ -277,25 +280,15 @@ U4DDualQuaternion U4DDualQuaternion::sclerp(U4DDualQuaternion& uToDualQuaternion
     
     float invr = 0.0;
     
-    //Screw parameters
-    float angle=2*acos(diff.qReal.s);
-    float pitch=-2*diff.qPure.s*invr;
-    
-    if (vr.magnitude()==0) {
+    if (!numerical.areEqual(vr.magnitude(), 0.0, U4DEngine::zeroEpsilon)) {
         
-        invr=1.0;
-        
-        angle=0.0;
-        pitch=0.0;
-        
-    }else{
-        invr=1/vr.magnitude();
-        
-        angle=2*acos(diff.qReal.s);
-        pitch=-2*diff.qPure.s*invr;
+         invr=1.0/sqrt(vr.dot(vr));
         
     }
     
+    //Screw parameters
+    float angle=2*trigonometry.safeAcos(diff.qReal.s);
+    float pitch=-2*diff.qPure.s*invr;
     
     U4DVector3n direction=vr*invr;
     U4DVector3n moment=(vd-direction*pitch*diff.qReal.s*0.5)*invr;

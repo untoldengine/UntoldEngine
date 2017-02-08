@@ -50,6 +50,11 @@ namespace U4DEngine {
          @return Returns the degree value fo the given angle
          */
         float radToDegrees(float uAngle);
+        
+        /*
+         @todo document this
+         */
+        double safeAcos(double x);
     };
 }
 
