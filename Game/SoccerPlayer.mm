@@ -51,7 +51,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         loadRenderingInformation();
         
         //translate the player
-        translateBy(0.0, getModelDimensions().y/2.0+0.2, 0.0);
+        translateBy(0.0, getModelDimensions().y/2.0+1.3, 0.0);
         
     }
     
@@ -92,7 +92,7 @@ void SoccerPlayer::update(double dt){
         //if (getIsAnimationUpdatingKeyframe()) {
             
             U4DEngine::U4DVector3n view=getViewInDirection()*dt;
-            translateBy(view);
+            //translateBy(view);
         
         //}
         
