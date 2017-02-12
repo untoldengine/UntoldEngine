@@ -40,7 +40,7 @@ void U4DAnimation::play(){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     
-    if (animationsContainer.size()>0) {
+    if (animationsContainer.size()>1) {
         
         if (animationPlaying==false) {
             
@@ -49,12 +49,17 @@ void U4DAnimation::play(){
             
             animationPlaying=true;
             
-            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,(1/fps), true);
+            ANIMATIONDATA animationData=animationsContainer.at(0);
+            
+            //get the time length for initial keyframe
+            float durationOfKeyframe=animationData.keyframes.at(1).time-animationData.keyframes.at(0).time;
+            
+            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,durationOfKeyframe/100.0, true);
             
         }
         
     }else{
-        logger->log("Error: The animation %s could not be started because it has no keyframes",name.c_str());
+        logger->log("Error: The animation %s could not be started because it has no keyframes or only 1 keyframe.",name.c_str());
     }
     
 }
@@ -90,6 +95,7 @@ void U4DAnimation::runAnimation(){
     
     ANIMATIONDATA animationData;
    
+    float durationOfKeyframe;
     
     while (boneChild!=NULL) {
         
@@ -145,7 +151,14 @@ void U4DAnimation::runAnimation(){
             }
             
         }else{
+            
+            //increase the keyframe
             keyframe++;
+            
+            //get the new duration of keyframe
+            float durationOfKeyframe=animationData.keyframes.at(keyframe).time-animationData.keyframes.at(keyframe-1).time;
+            
+            timer->setDelay(durationOfKeyframe/100.0);
         }
         
     }else{
