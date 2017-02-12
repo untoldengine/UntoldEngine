@@ -41,7 +41,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
             
         }
         
-        if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
+        if (loadAnimationToModel(walking, "walking", "walkinganimationscript.u4d")) {
             
             
             
