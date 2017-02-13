@@ -69,7 +69,7 @@ void GameLogic::receiveTouchUpdate(){
         
         joyPosition.normalize();
         
-        U4DEngine::U4DVector3n setView(joyPosition.x*10.0,player->getAbsolutePosition().y,-joyPosition.y*10.0);
+        U4DEngine::U4DVector3n setView(joyPosition.x*field->getModelDimensions().x,player->getAbsolutePosition().y,-joyPosition.y*field->getModelDimensions().z);
         
         player->viewInDirection(setView);
         
