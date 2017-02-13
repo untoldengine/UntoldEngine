@@ -52,39 +52,13 @@ void Earth::init(){
     
     field=new SoccerField();
     field->init("field", "blenderscript.u4d");
-    
-    post=new SoccerPost();
-    post->init("goalpost", "blenderscript.u4d");
 
     player=new SoccerPlayer();
     player->init("pele", "characterscript.u4d");
     
-    postSensorLeft=new SoccerPostSensor();
-    postSensorLeft->init("leftpostsensor", "blenderscript.u4d");
-    
-    postSensorRight=new SoccerPostSensor();
-    postSensorRight->init("rightpostsensor", "blenderscript.u4d");
-    
-    postSensorTop=new SoccerPostSensor();
-    postSensorTop->init("toppostsensor", "blenderscript.u4d");
-    
-    postSensorBack=new SoccerPostSensor();
-    postSensorBack->init("backpostsensor", "blenderscript.u4d");
-    
-    //goalSensor=new SoccerGoalSensor();
-    //goalSensor->init("goalsensor", "blenderscript.u4d");
-    
     
     //set ball entity
     field->setBallEntity(ball);
-    
-    postSensorLeft->setBallEntity(ball);
-    postSensorRight->setBallEntity(ball);
-    postSensorTop->setBallEntity(ball);
-    postSensorBack->setBallEntity(ball);
-    
-    
-    //goalSensor->setBallEntity(ball);
     
     player->setBallEntity(ball);
     
@@ -99,19 +73,7 @@ void Earth::init(){
     addChild(ball);
     
     addChild(field);
-    
-    addChild(post);
 
-    addChild(postSensorLeft);
-    
-    addChild(postSensorRight);
-    
-    addChild(postSensorBack);
-    
-    addChild(postSensorTop);
-    
-    //addChild(goalSensor);
-    
     addChild(player);
     
 

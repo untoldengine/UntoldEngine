@@ -13,8 +13,15 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
-        kick=new U4DEngine::U4DAnimation(this);
+        forwardKick=new U4DEngine::U4DAnimation(this);
         walking=new U4DEngine::U4DAnimation(this);
+        running=new U4DEngine::U4DAnimation(this);
+        
+        sidePass=new U4DEngine::U4DAnimation(this);
+        forwardCarry=new U4DEngine::U4DAnimation(this);
+        sideCarryRight=new U4DEngine::U4DAnimation(this);
+        sideCarryLeft=new U4DEngine::U4DAnimation(this);
+        
         
         //set collision info
         initMass(10.0);
@@ -34,14 +41,43 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         
         setEntityForwardVector(viewDirectionVector);
         
+        if (loadAnimationToModel(walking, "walking", "walkinganimationscript.u4d")) {
+            
+            
+            
+        }
         
-        if (loadAnimationToModel(kick, "kick", uBlenderFile)) {
+        if (loadAnimationToModel(forwardKick, "forwardkick", "forwardkickanimationscript.u4d")) {
 
             
             
         }
         
-        if (loadAnimationToModel(walking, "walking", uBlenderFile)) {
+        if (loadAnimationToModel(running, "running", "runninganimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(sidePass, "sidepass", "sidepassanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(forwardCarry, "forwardcarry", "forwardcarryanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(sideCarryLeft, "sidecarryleft", "sidecarryleftanimationscript.u4d")) {
+            
+            
+            
+        }
+
+        if (loadAnimationToModel(sideCarryRight, "sidecarryright", "sidecarryrightanimationscript.u4d")) {
             
             
             
@@ -107,7 +143,7 @@ void SoccerPlayer::update(double dt){
         if (getIsAnimationUpdatingKeyframe()) {
             
             //set the kick pass at this keyframe and interpolation time
-            if (getAnimationCurrentKeyframe()==1 && getAnimationCurrentInterpolationTime()==0) {
+            if (getAnimationCurrentKeyframe()==3 && getAnimationCurrentInterpolationTime()==0) {
                 
                 soccerBallEntity->changeState(kGroundPass);
                 soccerBallEntity->setKickDirection(joyStickData);
@@ -115,7 +151,7 @@ void SoccerPlayer::update(double dt){
                 //apply collision with ball
                 //setCollisionFilterGroupIndex(kZeroGroupIndex);
                 
-                changeState(kNull);
+                //changeState(kNull);
             }
         }
         
@@ -148,7 +184,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
             
         case kGroundPass:
         {
-            setAnimation(kick);
+            setAnimation(sidePass);
             setPlayAnimationContinuously(false);
         }
             
