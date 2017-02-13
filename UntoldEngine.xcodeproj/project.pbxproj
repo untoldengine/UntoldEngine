@@ -112,6 +112,9 @@
 		03929DDA1E50BFE100D63361 /* forwardcarryanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03929DD91E50BFE100D63361 /* forwardcarryanimationscript.u4d */; };
 		03929DDC1E50C03E00D63361 /* sidecarryleftanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03929DDB1E50C03E00D63361 /* sidecarryleftanimationscript.u4d */; };
 		03929DDE1E50C08900D63361 /* sidecarryrightanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03929DDD1E50C08900D63361 /* sidecarryrightanimationscript.u4d */; };
+		03929DE01E50CE4D00D63361 /* cesped.png in Resources */ = {isa = PBXBuildFile; fileRef = 03929DDF1E50CE4D00D63361 /* cesped.png */; };
+		03929DE21E51483200D63361 /* ball.png in Resources */ = {isa = PBXBuildFile; fileRef = 03929DE11E51483200D63361 /* ball.png */; };
+		03929DE41E515A5300D63361 /* socceruniform.png in Resources */ = {isa = PBXBuildFile; fileRef = 03929DE31E515A5300D63361 /* socceruniform.png */; };
 		03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7071ADF82A300E81A00 /* ArialFont.png */; };
 		03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7081ADF82A300E81A00 /* ArialFont.xml */; };
@@ -369,6 +372,9 @@
 		03929DD91E50BFE100D63361 /* forwardcarryanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = forwardcarryanimationscript.u4d; path = Resources/forwardcarryanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		03929DDB1E50C03E00D63361 /* sidecarryleftanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sidecarryleftanimationscript.u4d; path = Resources/sidecarryleftanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		03929DDD1E50C08900D63361 /* sidecarryrightanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sidecarryrightanimationscript.u4d; path = Resources/sidecarryrightanimationscript.u4d; sourceTree = SOURCE_ROOT; };
+		03929DDF1E50CE4D00D63361 /* cesped.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = cesped.png; path = Resources/cesped.png; sourceTree = SOURCE_ROOT; };
+		03929DE11E51483200D63361 /* ball.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ball.png; path = Resources/ball.png; sourceTree = SOURCE_ROOT; };
+		03929DE31E515A5300D63361 /* socceruniform.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = socceruniform.png; path = Resources/socceruniform.png; sourceTree = SOURCE_ROOT; };
 		03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFontLoader.h; sourceTree = "<group>"; };
 		03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DFontLoader.mm; sourceTree = "<group>"; };
 		03A9F7071ADF82A300E81A00 /* ArialFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ArialFont.png; path = Resources/ArialFont.png; sourceTree = SOURCE_ROOT; };
@@ -944,6 +950,9 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03929DE31E515A5300D63361 /* socceruniform.png */,
+				03929DE11E51483200D63361 /* ball.png */,
+				03929DDF1E50CE4D00D63361 /* cesped.png */,
 				03929DCF1E50BC2500D63361 /* characterscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				03929DD11E50BCB700D63361 /* walkinganimationscript.u4d */,
@@ -952,6 +961,7 @@
 				03929DD71E50BF7F00D63361 /* forwardkickanimationscript.u4d */,
 				03929DD91E50BFE100D63361 /* forwardcarryanimationscript.u4d */,
 				03929DDB1E50C03E00D63361 /* sidecarryleftanimationscript.u4d */,
+				03929DDD1E50C08900D63361 /* sidecarryrightanimationscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
@@ -962,7 +972,6 @@
 				03798F881934DA8E00CF0600 /* ButtonAPressed.png */,
 				03798F891934DA8E00CF0600 /* ButtonB.png */,
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
-				03929DDD1E50C08900D63361 /* sidecarryrightanimationscript.u4d */,
 			);
 			name = Resources;
 			path = Game/Resources;
@@ -1399,6 +1408,7 @@
 				034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */,
 				03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */,
 				03759B4F175B0135002EB5D9 /* Default.png in Resources */,
+				03929DE41E515A5300D63361 /* socceruniform.png in Resources */,
 				031585931E45C17900424D4D /* nonVisibleShader.fp in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
@@ -1411,6 +1421,7 @@
 				03929DDE1E50C08900D63361 /* sidecarryrightanimationscript.u4d in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
+				03929DE01E50CE4D00D63361 /* cesped.png in Resources */,
 				03929DD61E50BF2900D63361 /* sidepassanimationscript.u4d in Resources */,
 				03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */,
 				03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */,
@@ -1441,6 +1452,7 @@
 				03DB6E85192F7B25006E21D0 /* NormalMapping.fp in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
+				03929DE21E51483200D63361 /* ball.png in Resources */,
 				031585941E45C17900424D4D /* nonVisibleShader.vp in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */,

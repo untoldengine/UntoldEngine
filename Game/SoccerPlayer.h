@@ -36,9 +36,19 @@ public:
     
     GameEntityState getState();
     
-    U4DEngine::U4DAnimation *kick;
+    U4DEngine::U4DAnimation *forwardKick;
     
     U4DEngine::U4DAnimation *walking;
+    
+    U4DEngine::U4DAnimation *sidePass;
+    
+    U4DEngine::U4DAnimation *running;
+    
+    U4DEngine::U4DAnimation *forwardCarry;
+    
+    U4DEngine::U4DAnimation *sideCarryLeft;
+    
+    U4DEngine::U4DAnimation *sideCarryRight;
     
     void setBallEntity(SoccerBall *uSoccerBall);
     
