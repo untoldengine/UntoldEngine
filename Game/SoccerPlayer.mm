@@ -87,7 +87,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         loadRenderingInformation();
         
         //translate the player
-        translateBy(0.0, getModelDimensions().y/2.0+1.3, 0.0);
+        translateBy(-9.0, getModelDimensions().y/2.0+1.3, 0.0);
         
     }
     
@@ -98,6 +98,9 @@ void SoccerPlayer::update(double dt){
     
     //check if model has collided with ball
     if (getModelHasCollided()) {
+        
+        std::cout<<"Keyframe: "<<getAnimationCurrentKeyframe()<<std::endl;
+        std::cout<<"inter: "<<getAnimationCurrentInterpolationTime()<<std::endl;
         
         U4DEngine::U4DVector3n view=getViewInDirection();
         
@@ -112,7 +115,7 @@ void SoccerPlayer::update(double dt){
             
             //set player collision with ball filter not to occur
             setCollisionFilterGroupIndex(kNegativeGroupIndex);
-            changeState(kInPossesionOfBall);
+            changeState(kGroundPass);
             
         }else{
             //apply collision with ball
@@ -125,12 +128,23 @@ void SoccerPlayer::update(double dt){
 
     if (getState()==kWalking) {
         
-        //if (getIsAnimationUpdatingKeyframe()) {
+        if (getIsAnimationUpdatingKeyframe()) {
             
-            U4DEngine::U4DVector3n view=getViewInDirection()*dt;
-            //translateBy(view);
+        U4DEngine::U4DVector3n view=getViewInDirection();
+        //view.normalize();
+        view*=5.0*dt;
         
-        //}
+        translateBy(view);
+        
+        }
+        
+    }else if (getState()==kRunning) {
+        
+        U4DEngine::U4DVector3n view=getViewInDirection();
+        //view.normalize();
+        view*=10.0*dt;
+        
+        translateBy(view);
         
     }else if (getState()==kInPossesionOfBall) {
         
@@ -145,6 +159,7 @@ void SoccerPlayer::update(double dt){
             //set the kick pass at this keyframe and interpolation time
             if (getAnimationCurrentKeyframe()==3 && getAnimationCurrentInterpolationTime()==0) {
                 
+                joyStickData.normalize();
                 soccerBallEntity->changeState(kGroundPass);
                 soccerBallEntity->setKickDirection(joyStickData);
                 
@@ -162,6 +177,7 @@ void SoccerPlayer::update(double dt){
 void SoccerPlayer::changeState(GameEntityState uState){
     
     removeAnimation();
+    int keyframe=0;
     
     setState(uState);
     
@@ -170,11 +186,14 @@ void SoccerPlayer::changeState(GameEntityState uState){
         case kWalking:
             
             setAnimation(walking);
+            keyframe=0;
             
             break;
             
         case kRunning:
             
+            setAnimation(running);
+            keyframe=0;
             
             break;
             
@@ -186,6 +205,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
         {
             setAnimation(sidePass);
             setPlayAnimationContinuously(false);
+            keyframe=1;
         }
             
             break;
@@ -201,7 +221,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
     
     if (getAnimation()!=NULL) {
         
-        playAnimation();
+        playAnimationFromKeyframe(keyframe);
         
     }
     

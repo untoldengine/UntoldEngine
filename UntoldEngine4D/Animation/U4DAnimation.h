@@ -115,6 +115,11 @@ public:
     void play();
     
     /**
+     @brief Method which plays the 3D animation
+     */
+    void playFromKeyframe(int uKeyframe);
+    
+    /**
      @brief Method which stops the 3D animation
      */
     void stop();

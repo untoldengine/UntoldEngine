@@ -101,6 +101,19 @@ namespace U4DEngine {
         }
         
     }
+    
+    void U4DGameObject::playAnimationFromKeyframe(int uKeyframe){
+        
+        if (currentAnimation!=NULL) {
+            
+            if (currentAnimation->isAnimationPlaying()==false) {
+                
+                currentAnimation->playFromKeyframe(uKeyframe);
+            }
+            
+        }
+        
+    }
 
     U4DAnimation* U4DGameObject::getAnimation(){
         

@@ -85,6 +85,11 @@ namespace U4DEngine {
      @brief Constant used as maximum file size of a shader
      */
     const int   maxShaderLength=8192;
+    
+    /**
+     @todo document this
+     */
+    const float animationKeyframeDivisor=10.0;
 }
 
 #endif
