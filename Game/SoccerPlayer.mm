@@ -99,9 +99,6 @@ void SoccerPlayer::update(double dt){
     //check if model has collided with ball
     if (getModelHasCollided()) {
         
-        std::cout<<"Keyframe: "<<getAnimationCurrentKeyframe()<<std::endl;
-        std::cout<<"inter: "<<getAnimationCurrentInterpolationTime()<<std::endl;
-        
         U4DEngine::U4DVector3n view=getViewInDirection();
         
         U4DEngine::U4DVector3n relativePositionOfBall=soccerBallEntity->getAbsolutePosition()-getAbsolutePosition();
