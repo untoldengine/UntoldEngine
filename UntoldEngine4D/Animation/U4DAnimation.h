@@ -51,6 +51,11 @@ private:
      */
     bool playContinuousLoop;
     
+    /**
+     @todo document this
+     */
+    float durationOfKeyframe;
+    
 public:
 
     /**
@@ -168,6 +173,11 @@ public:
      @todo document this
      */
     bool getPlayContinuousLoop();
+    
+    /**
+     @todo document this
+     */
+    float getDurationOfKeyframe();
     
 };
 

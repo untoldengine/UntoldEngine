@@ -175,6 +175,17 @@ namespace U4DEngine {
         
     }
     
+    float U4DGameObject::getdurationOfKeyframe(){
+        
+        if (currentAnimation!=NULL) {
+            
+            return currentAnimation->getDurationOfKeyframe();
+            
+        }
+        
+        return 0.0;
+    }
+    
 
 }
 

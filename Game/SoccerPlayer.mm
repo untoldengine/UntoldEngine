@@ -127,22 +127,37 @@ void SoccerPlayer::update(double dt){
         
         if (getIsAnimationUpdatingKeyframe()) {
             
-        U4DEngine::U4DVector3n view=getViewInDirection();
-        //view.normalize();
-        view*=5.0*dt;
-        
-        translateBy(view);
+            U4DEngine::U4DVector3n view=getViewInDirection();
+            
+            view.normalize();
+            
+            float velocity=0.5;
+            
+            float distance=velocity*getdurationOfKeyframe();
+            
+            view*=distance;
+            
+            translateBy(view);
         
         }
         
     }else if (getState()==kRunning) {
         
-        U4DEngine::U4DVector3n view=getViewInDirection();
-        //view.normalize();
-        view*=10.0*dt;
-        
-        translateBy(view);
-        
+        if (getIsAnimationUpdatingKeyframe()) {
+            
+            U4DEngine::U4DVector3n view=getViewInDirection();
+
+            view.normalize();
+            
+            float velocity=1.0;
+            
+            float distance=velocity*getdurationOfKeyframe();
+            
+            view*=distance;
+            
+            translateBy(view);
+        }
+            
     }else if (getState()==kInPossesionOfBall) {
         
         

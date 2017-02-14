@@ -16,7 +16,7 @@
 
 namespace U4DEngine {
     
-U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0),playContinuousLoop(true){
+U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0),playContinuousLoop(true),durationOfKeyframe(0.0){
     
     u4dModel=uModel;
     
@@ -53,9 +53,9 @@ void U4DAnimation::play(){
             ANIMATIONDATA animationData=animationsContainer.at(0);
             
             //get the time length for initial keyframe
-            float durationOfKeyframe=animationData.keyframes.at(keyframe+1).time-animationData.keyframes.at(keyframe).time;
+            durationOfKeyframe=animationData.keyframes.at(keyframe+1).time-animationData.keyframes.at(keyframe).time;
             
-            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,durationOfKeyframe/animationKeyframeDivisor, true);
+            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,durationOfKeyframe/fps, true);
             
         }
         
@@ -103,8 +103,6 @@ void U4DAnimation::runAnimation(){
     U4DBoneData *boneChild=rootBone;
     
     ANIMATIONDATA animationData;
-   
-    float durationOfKeyframe;
     
     while (boneChild!=NULL) {
         
@@ -165,9 +163,9 @@ void U4DAnimation::runAnimation(){
             keyframe++;
             
             //get the new duration of keyframe
-            float durationOfKeyframe=animationData.keyframes.at(keyframe).time-animationData.keyframes.at(keyframe-1).time;
+            durationOfKeyframe=animationData.keyframes.at(keyframe).time-animationData.keyframes.at(keyframe-1).time;
             
-            timer->setDelay(durationOfKeyframe/animationKeyframeDivisor);
+            timer->setDelay(durationOfKeyframe/fps);
         }
         
     }else{
@@ -204,7 +202,12 @@ void U4DAnimation::setPlayContinuousLoop(bool uValue){
 bool U4DAnimation::getPlayContinuousLoop(){
     return playContinuousLoop;
 }
+
+float U4DAnimation::getDurationOfKeyframe(){
     
+    return durationOfKeyframe;
+    
+}
 
 }
 

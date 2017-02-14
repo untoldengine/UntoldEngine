@@ -143,6 +143,11 @@ namespace U4DEngine {
          */
         void setPlayAnimationContinuously(bool uValue);
         
+        /**
+         @todo document this
+         */
+        float getdurationOfKeyframe();
+        
     };
 
 }
