@@ -89,7 +89,7 @@ namespace U4DEngine {
     /**
      @todo document this
      */
-    const float animationKeyframeDivisor=10.0;
+    const float animationKeyframeDivisor=100.0;
 }
 
 #endif
