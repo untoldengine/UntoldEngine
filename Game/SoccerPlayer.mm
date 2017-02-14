@@ -87,7 +87,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         loadRenderingInformation();
         
         //translate the player
-        translateBy(0.0, getModelDimensions().y/2.0+1.3, 0.0);
+        translateBy(-9.0, getModelDimensions().y/2.0+1.3, 0.0);
         
     }
     
@@ -112,7 +112,7 @@ void SoccerPlayer::update(double dt){
             
             //set player collision with ball filter not to occur
             setCollisionFilterGroupIndex(kNegativeGroupIndex);
-            changeState(kInPossesionOfBall);
+            changeState(kGroundPass);
             
         }else{
             //apply collision with ball
@@ -125,12 +125,23 @@ void SoccerPlayer::update(double dt){
 
     if (getState()==kWalking) {
         
-        //if (getIsAnimationUpdatingKeyframe()) {
+        if (getIsAnimationUpdatingKeyframe()) {
             
-            U4DEngine::U4DVector3n view=getViewInDirection()*dt;
-            //translateBy(view);
+        U4DEngine::U4DVector3n view=getViewInDirection();
+        //view.normalize();
+        view*=5.0*dt;
         
-        //}
+        translateBy(view);
+        
+        }
+        
+    }else if (getState()==kRunning) {
+        
+        U4DEngine::U4DVector3n view=getViewInDirection();
+        //view.normalize();
+        view*=10.0*dt;
+        
+        translateBy(view);
         
     }else if (getState()==kInPossesionOfBall) {
         
@@ -145,6 +156,7 @@ void SoccerPlayer::update(double dt){
             //set the kick pass at this keyframe and interpolation time
             if (getAnimationCurrentKeyframe()==3 && getAnimationCurrentInterpolationTime()==0) {
                 
+                joyStickData.normalize();
                 soccerBallEntity->changeState(kGroundPass);
                 soccerBallEntity->setKickDirection(joyStickData);
                 
@@ -163,6 +175,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
     
     removeAnimation();
     
+    
     setState(uState);
     
     switch (uState) {
@@ -171,9 +184,12 @@ void SoccerPlayer::changeState(GameEntityState uState){
             
             setAnimation(walking);
             
+            
             break;
             
         case kRunning:
+            
+            setAnimation(running);
             
             
             break;
@@ -186,6 +202,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
         {
             setAnimation(sidePass);
             setPlayAnimationContinuously(false);
+            
         }
             
             break;

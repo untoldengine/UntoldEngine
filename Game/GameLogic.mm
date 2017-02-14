@@ -38,9 +38,9 @@ void GameLogic::receiveTouchUpdate(){
         
         if (player->getState()==kInPossesionOfBall) {
             
-            player->changeState(kGroundPass);
+            //player->changeState(kGroundPass);
         }else{
-            player->changeState(kWalking);
+            player->changeState(kRunning);
         }
         
         

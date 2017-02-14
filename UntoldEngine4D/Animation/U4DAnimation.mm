@@ -12,6 +12,7 @@
 #include "U4DCallback.h"
 #include "U4DTimer.h"
 #include "U4DLogger.h"
+#include "Constants.h"
 
 namespace U4DEngine {
     
@@ -52,15 +53,23 @@ void U4DAnimation::play(){
             ANIMATIONDATA animationData=animationsContainer.at(0);
             
             //get the time length for initial keyframe
-            float durationOfKeyframe=animationData.keyframes.at(1).time-animationData.keyframes.at(0).time;
+            float durationOfKeyframe=animationData.keyframes.at(keyframe+1).time-animationData.keyframes.at(keyframe).time;
             
-            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,durationOfKeyframe/100.0, true);
+            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,durationOfKeyframe/animationKeyframeDivisor, true);
             
         }
         
     }else{
         logger->log("Error: The animation %s could not be started because it has no keyframes or only 1 keyframe.",name.c_str());
     }
+    
+}
+    
+void U4DAnimation::playFromKeyframe(int uKeyframe){
+    
+    keyframe=uKeyframe;
+    
+    play();
     
 }
 
@@ -158,7 +167,7 @@ void U4DAnimation::runAnimation(){
             //get the new duration of keyframe
             float durationOfKeyframe=animationData.keyframes.at(keyframe).time-animationData.keyframes.at(keyframe-1).time;
             
-            timer->setDelay(durationOfKeyframe/100.0);
+            timer->setDelay(durationOfKeyframe/animationKeyframeDivisor);
         }
         
     }else{

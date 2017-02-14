@@ -96,6 +96,11 @@ namespace U4DEngine {
         /**
          @todo document this
          */
+        void playAnimationFromKeyframe(int uKeyframe);
+        
+        /**
+         @todo document this
+         */
         U4DAnimation* getAnimation();
         
         /**
