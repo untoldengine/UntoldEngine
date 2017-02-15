@@ -125,13 +125,13 @@ void SoccerPlayer::update(double dt){
 
     if (getState()==kWalking) {
         
-        if (getIsAnimationUpdatingKeyframe()) {
+        if (getIsAnimationUpdatingKeyframe()&&getAnimationCurrentInterpolationTime()==0) {
             
             U4DEngine::U4DVector3n view=getViewInDirection();
             
             view.normalize();
             
-            float velocity=0.5;
+            float velocity=5.0;
             
             float distance=velocity*getdurationOfKeyframe();
             
@@ -143,13 +143,13 @@ void SoccerPlayer::update(double dt){
         
     }else if (getState()==kRunning) {
         
-        if (getIsAnimationUpdatingKeyframe()) {
+        if (getIsAnimationUpdatingKeyframe()&&getAnimationCurrentInterpolationTime()==0) {
             
             U4DEngine::U4DVector3n view=getViewInDirection();
 
             view.normalize();
             
-            float velocity=1.0;
+            float velocity=10.0;
             
             float distance=velocity*getdurationOfKeyframe();
             
