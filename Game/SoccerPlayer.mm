@@ -24,9 +24,14 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         
         
         //set collision info
-        initMass(10.0);
+        initMass(80.0);
         initCoefficientOfRestitution(0.9);
         enableCollisionBehavior();
+        enableKineticsBehavior();
+        
+        //set gravity to zero
+        U4DEngine::U4DVector3n zeroGravity(0.0,0.0,0.0);
+        setGravity(zeroGravity);
         
         //set collision filters
         setCollisionFilterCategory(kSoccerPlayer);
@@ -127,17 +132,9 @@ void SoccerPlayer::update(double dt){
         
         if (getIsAnimationUpdatingKeyframe()&&getAnimationCurrentInterpolationTime()==0) {
             
-            U4DEngine::U4DVector3n view=getViewInDirection();
-            
-            view.normalize();
-            
             float velocity=5.0;
             
-            float distance=velocity*getdurationOfKeyframe();
-            
-            view*=distance;
-            
-            translateBy(view);
+            applyForceToPlayer(velocity, dt);
         
         }
         
@@ -145,17 +142,10 @@ void SoccerPlayer::update(double dt){
         
         if (getIsAnimationUpdatingKeyframe()&&getAnimationCurrentInterpolationTime()==0) {
             
-            U4DEngine::U4DVector3n view=getViewInDirection();
-
-            view.normalize();
-            
             float velocity=10.0;
             
-            float distance=velocity*getdurationOfKeyframe();
+            applyForceToPlayer(velocity, dt);
             
-            view*=distance;
-            
-            translateBy(view);
         }
             
     }else if (getState()==kInPossesionOfBall) {
@@ -250,4 +240,20 @@ GameEntityState SoccerPlayer::getState(){
 void SoccerPlayer::setBallEntity(SoccerBall *uSoccerBall){
     
     soccerBallEntity=uSoccerBall;
+}
+
+void SoccerPlayer::applyForceToPlayer(float uVelocity, double dt){
+    
+    U4DEngine::U4DVector3n heading=getViewInDirection();
+    
+    heading.normalize();
+    
+    U4DEngine::U4DVector3n forceToPlayer=(heading*uVelocity*getMass())/dt;
+    
+    addForce(forceToPlayer);
+    
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+    
+    setVelocity(initialVelocity);
+    
 }
