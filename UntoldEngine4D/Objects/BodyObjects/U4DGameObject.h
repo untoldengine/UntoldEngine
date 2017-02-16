@@ -17,6 +17,11 @@
 #include "CommonProtocols.h"
 #include "U4DDynamicModel.h"
 
+
+namespace U4DEngine {
+    class U4DAnimationManager;
+}
+
 namespace U4DEngine {
 
     /**
@@ -26,7 +31,7 @@ namespace U4DEngine {
         
     private:
         
-        U4DAnimation* currentAnimation;
+        U4DAnimationManager* animationManager;
         
     public:
         
@@ -146,7 +151,7 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        float getdurationOfKeyframe();
+        float getDurationOfKeyframe();
         
     };
 

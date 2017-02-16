@@ -221,11 +221,8 @@ void SoccerPlayer::changeState(GameEntityState uState){
             break;
     }
     
-    if (getAnimation()!=NULL) {
-        
-        playAnimation();
-        
-    }
+    playAnimation();
+    
     
 }
 
