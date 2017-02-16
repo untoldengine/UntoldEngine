@@ -40,7 +40,7 @@ void GameLogic::receiveTouchUpdate(){
             
             //player->changeState(kGroundPass);
         }else{
-            player->changeState(kRunning);
+            player->changeState(kWalking);
         }
         
         
@@ -52,7 +52,7 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonB->getIsPressed()) {
         
-        player->changeState(kAirPass);
+        player->changeState(kRunning);
         
         
     }else if(buttonB->getIsReleased()){

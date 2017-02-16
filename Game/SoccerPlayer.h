@@ -52,6 +52,8 @@ public:
     
     void setBallEntity(SoccerBall *uSoccerBall);
     
+    void applyForceToPlayer(float uVelocity, double dt);
+    
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     
 };

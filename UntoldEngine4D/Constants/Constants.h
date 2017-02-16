@@ -86,10 +86,6 @@ namespace U4DEngine {
      */
     const int   maxShaderLength=8192;
     
-    /**
-     @todo document this
-     */
-    const float animationKeyframeDivisor=100.0;
 }
 
 #endif
