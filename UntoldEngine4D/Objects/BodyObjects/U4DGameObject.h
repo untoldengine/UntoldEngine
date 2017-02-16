@@ -86,12 +86,12 @@ namespace U4DEngine {
         /**
          @todo documetn this
          */
-        void setAnimation(U4DAnimation* uAnimation);
+        void setNextAnimationToPlay(U4DAnimation* uAnimation);
         
         /**
          @todo document this
          */
-        void pauseAnimation();
+        void pauseCurrentPlayingAnimation();
         
         /**
          @todo document this
@@ -106,17 +106,17 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        U4DAnimation* getAnimation();
+        U4DAnimation* getCurrentPlayingAnimation();
         
         /**
          @todo document this
          */
-        void stopAnimation();
+        void stopCurrentPlayingAnimation();
         
         /**
          @todo document this
          */
-        void removeAnimation();
+        void removeCurrentPlayingAnimation();
         
         /**
          @todo document this
@@ -146,12 +146,12 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        void setPlayAnimationContinuously(bool uValue);
+        void setPlayNextAnimationContinuously(bool uValue);
         
         /**
          @todo document this
          */
-        float getDurationOfKeyframe();
+        float getDurationOfCurrentAnimationKeyframe();
         
     };
 

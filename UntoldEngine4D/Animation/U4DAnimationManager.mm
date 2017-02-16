@@ -55,6 +55,17 @@ namespace U4DEngine {
 
     void U4DAnimationManager::playAnimationFromKeyframe(int uKeyframe){
         
+        if (nextAnimation!=NULL) {
+            
+            currentAnimation=nextAnimation;
+            
+            if (currentAnimation->isAnimationPlaying()==false) {
+                
+                currentAnimation->playFromKeyframe(uKeyframe);
+            }
+            
+        }
+        
     }
     
 
@@ -66,6 +77,10 @@ namespace U4DEngine {
     
 
     void U4DAnimationManager::stopCurrentPlayingAnimation(){
+        
+        if (currentAnimation!=NULL) {
+            currentAnimation->stop();
+        }
         
     }
     
@@ -130,11 +145,11 @@ namespace U4DEngine {
     }
     
 
-    void U4DAnimationManager::setPlayAnimationContinuously(bool uValue){
+    void U4DAnimationManager::setPlayNextAnimationContinuously(bool uValue){
         
-        if (currentAnimation!=NULL) {
+        if (nextAnimation!=NULL) {
             
-            currentAnimation->setPlayContinuousLoop(uValue);
+            nextAnimation->setPlayContinuousLoop(uValue);
             
         }
 

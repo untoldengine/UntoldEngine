@@ -89,7 +89,7 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        void setPlayAnimationContinuously(bool uValue);
+        void setPlayNextAnimationContinuously(bool uValue);
         
         /**
          @todo document this

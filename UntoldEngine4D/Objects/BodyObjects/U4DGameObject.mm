@@ -59,24 +59,24 @@ namespace U4DEngine {
     }
     
     
-    void U4DGameObject::setAnimation(U4DAnimation* uAnimation){
+    void U4DGameObject::setNextAnimationToPlay(U4DAnimation* uAnimation){
         
         animationManager->setNextAnimationToPlay(uAnimation);
     }
     
-    void U4DGameObject::pauseAnimation(){
+    void U4DGameObject::pauseCurrentPlayingAnimation(){
         
         animationManager->pauseCurrentPlayingAnimation();
         
     }
     
-    void U4DGameObject::stopAnimation(){
+    void U4DGameObject::stopCurrentPlayingAnimation(){
         
         animationManager->stopCurrentPlayingAnimation();
         
     }
     
-    void U4DGameObject::removeAnimation(){
+    void U4DGameObject::removeCurrentPlayingAnimation(){
         
         animationManager->removeCurrentPlayingAnimation();
         
@@ -88,8 +88,13 @@ namespace U4DEngine {
         
     }
     
+    void U4DGameObject::playAnimationFromKeyframe(int uKeyframe){
+        
+        animationManager->playAnimationFromKeyframe(uKeyframe);
+    }
+    
 
-    U4DAnimation* U4DGameObject::getAnimation(){
+    U4DAnimation* U4DGameObject::getCurrentPlayingAnimation(){
         
         return animationManager->getCurrentPlayingAnimation();
         
@@ -116,9 +121,9 @@ namespace U4DEngine {
         
     }
     
-    void U4DGameObject::setPlayAnimationContinuously(bool uValue){
+    void U4DGameObject::setPlayNextAnimationContinuously(bool uValue){
         
-        animationManager->setPlayAnimationContinuously(uValue);
+        animationManager->setPlayNextAnimationContinuously(uValue);
 
     }
     
@@ -130,7 +135,7 @@ namespace U4DEngine {
         
     }
     
-    float U4DGameObject::getDurationOfKeyframe(){
+    float U4DGameObject::getDurationOfCurrentAnimationKeyframe(){
         
         return animationManager->getDurationOfCurrentAnimationKeyframe();
     }
