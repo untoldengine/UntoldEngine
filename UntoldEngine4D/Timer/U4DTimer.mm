@@ -13,17 +13,20 @@ namespace U4DEngine {
     
 void U4DTimer::tick(double dt){
     
-    currentTime=currentTime+dt;
-    
-    if (currentTime>=delay) {
+    if (getPause()==false) {
         
-        timerExpire();
-        hasTimerExpired=true;
-    }else{
-
+        currentTime=currentTime+dt;
+        
+        if (currentTime>=delay) {
+            
+            timerExpire();
+            hasTimerExpired=true;
+        }else{
+            
             hasTimerExpired=false;
+        }
+        
     }
-
 }
 
 void U4DTimer::timerExpire(){
@@ -65,6 +68,14 @@ double U4DTimer::getDelay() const{
 
 void U4DTimer::setRepeat(bool uRepeat){
     repeat=uRepeat;
+}
+    
+void U4DTimer::setPause(bool uValue){
+    pause=uValue;
+}
+
+bool U4DTimer::getPause(){
+    return pause;
 }
 
 }

@@ -76,7 +76,7 @@ void U4DAnimation::playFromKeyframe(int uKeyframe){
 void U4DAnimation::stop(){
     
     animationPlaying=false;
-    timer->setRepeat(false);
+    scheduler->unScheduleTimer(timer);
     keyframe=0;
     interpolationTime=0.0;
 }
@@ -84,7 +84,7 @@ void U4DAnimation::stop(){
 void U4DAnimation::pause(){
 
     animationPlaying=false;
-    timer->setRepeat(false);
+    timer->setPause(true);
 
 }
 
