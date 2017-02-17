@@ -18,17 +18,23 @@ class U4DTimer{
   
 private:
     U4DCallbackInterface *pCallback;
+    
     bool repeat;
+    
     double delay;
+    
     double currentTime;
+    
     int index;
+    
+    bool pause;
     
     bool hasTimerExpired;
     
 public:
     
     //constructor
-    U4DTimer():currentTime(0.0),repeat(false),delay(0.0),index(0){};
+    U4DTimer():currentTime(0.0),repeat(false),delay(0.0),index(0),pause(false){};
     
     U4DTimer(U4DCallbackInterface *uPCallback):currentTime(0.0),repeat(false),delay(0.0),pCallback(uPCallback){};
     
@@ -54,6 +60,10 @@ public:
     void setRepeat(bool uRepeat);
     
     bool getHasTimerExpired();
+    
+    void setPause(bool uValue);
+    
+    bool getPause();
 };
 
 }

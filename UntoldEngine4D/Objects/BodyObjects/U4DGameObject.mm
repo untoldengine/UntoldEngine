@@ -8,17 +8,19 @@
 
 #include "U4DGameObject.h"
 #include "U4DDigitalAssetLoader.h"
+#include "U4DAnimationManager.h"
 
 namespace U4DEngine {
     
-    U4DGameObject::U4DGameObject():currentAnimation(NULL){
+    U4DGameObject::U4DGameObject(){
+     
+        animationManager=new U4DAnimationManager();
         
-
-    
     }
 
     U4DGameObject::~U4DGameObject(){
     
+        delete animationManager;
     }
     
     U4DGameObject::U4DGameObject(const U4DGameObject& value){
@@ -57,113 +59,71 @@ namespace U4DEngine {
     }
     
     
-    void U4DGameObject::setAnimation(U4DAnimation* uAnimation){
+    void U4DGameObject::setNextAnimationToPlay(U4DAnimation* uAnimation){
         
-        currentAnimation=uAnimation;
+        animationManager->setNextAnimationToPlay(uAnimation);
     }
     
-    void U4DGameObject::pauseAnimation(){
+    void U4DGameObject::pauseCurrentPlayingAnimation(){
         
-        if (currentAnimation!=NULL) {
-           
-            currentAnimation->pause();
-            
-        }
+        animationManager->pauseCurrentPlayingAnimation();
         
     }
     
-    void U4DGameObject::stopAnimation(){
+    void U4DGameObject::stopCurrentPlayingAnimation(){
         
-        if (currentAnimation!=NULL) {
-            currentAnimation->stop();
-        }
+        animationManager->stopCurrentPlayingAnimation();
         
     }
     
-    void U4DGameObject::removeAnimation(){
+    void U4DGameObject::removeCurrentPlayingAnimation(){
         
-        if (currentAnimation!=NULL) {
-            currentAnimation->stop();
-        }
+        animationManager->removeCurrentPlayingAnimation();
         
-        currentAnimation=NULL;
     }
     
     void U4DGameObject::playAnimation(){
         
-        if (currentAnimation!=NULL) {
-            
-            if (currentAnimation->isAnimationPlaying()==false) {
-                
-                currentAnimation->play();
-            }
-
-        }
+        animationManager->playAnimation();
         
     }
     
     void U4DGameObject::playAnimationFromKeyframe(int uKeyframe){
         
-        if (currentAnimation!=NULL) {
-            
-            if (currentAnimation->isAnimationPlaying()==false) {
-                
-                currentAnimation->playFromKeyframe(uKeyframe);
-            }
-            
-        }
-        
+        animationManager->playAnimationFromKeyframe(uKeyframe);
     }
+    
 
-    U4DAnimation* U4DGameObject::getAnimation(){
+    U4DAnimation* U4DGameObject::getCurrentPlayingAnimation(){
         
-        return currentAnimation;
+        return animationManager->getCurrentPlayingAnimation();
+        
     }
 
     bool U4DGameObject::getIsAnimationUpdatingKeyframe(){
         
-        if (currentAnimation!=NULL) {
-            return currentAnimation->getIsUpdatingKeyframe();
-        }
-        
-        return false;
+        return animationManager->getIsAnimationUpdatingKeyframe();
     }
     
     int U4DGameObject::getAnimationCurrentKeyframe(){
         
-        if (currentAnimation!=NULL) {
-            return currentAnimation->getCurrentKeyframe();
-        }
-        
-        return 0;
+        return animationManager->getAnimationCurrentKeyframe();
     }
     
     float U4DGameObject::getAnimationCurrentInterpolationTime(){
-        if (currentAnimation!=NULL) {
-            return currentAnimation->getCurrentInterpolationTime();
-        }
         
-        return 0.0;
+        return animationManager->getAnimationCurrentInterpolationTime();
     }
     
     float U4DGameObject::getAnimationFPS(){
         
-        if (currentAnimation!=NULL) {
-           
-            return currentAnimation->getFPS();
-    
-        }
+        return animationManager->getAnimationFPS();
         
-        return 0.0;
     }
     
-    void U4DGameObject::setPlayAnimationContinuously(bool uValue){
+    void U4DGameObject::setPlayNextAnimationContinuously(bool uValue){
         
-        if (currentAnimation!=NULL) {
-            
-            currentAnimation->setPlayContinuousLoop(uValue);
-            
-        }
+        animationManager->setPlayNextAnimationContinuously(uValue);
 
     }
     
@@ -175,15 +135,9 @@ namespace U4DEngine {
         
     }
     
-    float U4DGameObject::getdurationOfKeyframe(){
+    float U4DGameObject::getDurationOfCurrentAnimationKeyframe(){
         
-        if (currentAnimation!=NULL) {
-            
-            return currentAnimation->getDurationOfKeyframe();
-            
-        }
-        
-        return 0.0;
+        return animationManager->getDurationOfCurrentAnimationKeyframe();
     }
     
 

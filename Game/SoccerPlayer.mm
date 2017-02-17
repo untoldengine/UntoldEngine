@@ -178,7 +178,7 @@ void SoccerPlayer::update(double dt){
 
 void SoccerPlayer::changeState(GameEntityState uState){
     
-    removeAnimation();
+    removeCurrentPlayingAnimation();
     
     
     setState(uState);
@@ -187,14 +187,14 @@ void SoccerPlayer::changeState(GameEntityState uState){
             
         case kWalking:
             
-            setAnimation(walking);
+            setNextAnimationToPlay(walking);
             
             
             break;
             
         case kRunning:
             
-            setAnimation(running);
+            setNextAnimationToPlay(running);
             
             
             break;
@@ -205,8 +205,8 @@ void SoccerPlayer::changeState(GameEntityState uState){
             
         case kGroundPass:
         {
-            setAnimation(sidePass);
-            setPlayAnimationContinuously(false);
+            setNextAnimationToPlay(sidePass);
+            setPlayNextAnimationContinuously(false);
             
         }
             
@@ -221,11 +221,8 @@ void SoccerPlayer::changeState(GameEntityState uState){
             break;
     }
     
-    if (getAnimation()!=NULL) {
-        
-        playAnimation();
-        
-    }
+    playAnimation();
+    
     
 }
 

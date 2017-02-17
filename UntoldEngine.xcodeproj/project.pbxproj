@@ -132,6 +132,7 @@
 		03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03CC83681E342F6300DA9180 /* particleDustShader.fp */; };
 		03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03CC83691E342F6300DA9180 /* particleDustShader.vp */; };
+		03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */; };
 		03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D1FBC41D50442200B3CF6E /* U4DColorData.mm */; };
 		03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D3740A1AE9E76A000D8535 /* U4DSpriteAnimation.mm */; };
 		03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740D1AE9FE8F000D8535 /* spriteExample.png */; };
@@ -403,6 +404,8 @@
 		03CC83681E342F6300DA9180 /* particleDustShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = particleDustShader.fp; sourceTree = "<group>"; };
 		03CC83691E342F6300DA9180 /* particleDustShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = particleDustShader.vp; sourceTree = "<group>"; };
 		03CEE28F1775324000B09A52 /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
+		03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAnimationManager.mm; sourceTree = "<group>"; };
+		03CF11F51E56313400E47C67 /* U4DAnimationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimationManager.h; sourceTree = "<group>"; };
 		03D1FBC41D50442200B3CF6E /* U4DColorData.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DColorData.mm; sourceTree = "<group>"; };
 		03D1FBC51D50442300B3CF6E /* U4DColorData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DColorData.h; sourceTree = "<group>"; };
 		03D3740A1AE9E76A000D8535 /* U4DSpriteAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSpriteAnimation.mm; sourceTree = "<group>"; };
@@ -1302,6 +1305,8 @@
 			children = (
 				03068D6A19BFFFC400ABDC55 /* U4DAnimation.h */,
 				03068D6919BFFFC400ABDC55 /* U4DAnimation.mm */,
+				03CF11F51E56313400E47C67 /* U4DAnimationManager.h */,
+				03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -1499,6 +1504,7 @@
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
+				03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
