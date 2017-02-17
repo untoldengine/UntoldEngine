@@ -180,7 +180,6 @@ void SoccerPlayer::changeState(GameEntityState uState){
     
     removeCurrentPlayingAnimation();
     
-    
     setState(uState);
     
     switch (uState) {
@@ -188,14 +187,14 @@ void SoccerPlayer::changeState(GameEntityState uState){
         case kWalking:
             
             setNextAnimationToPlay(walking);
-            
+            setPlayBlendedAnimation(true);
             
             break;
             
         case kRunning:
             
             setNextAnimationToPlay(running);
-            
+            setPlayBlendedAnimation(true);
             
             break;
             
@@ -207,7 +206,7 @@ void SoccerPlayer::changeState(GameEntityState uState){
         {
             setNextAnimationToPlay(sidePass);
             setPlayNextAnimationContinuously(false);
-            
+            setPlayBlendedAnimation(true);
         }
             
             break;

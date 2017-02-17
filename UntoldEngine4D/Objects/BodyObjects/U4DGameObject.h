@@ -153,6 +153,11 @@ namespace U4DEngine {
          */
         float getDurationOfCurrentAnimationKeyframe();
         
+        /**
+         @todo document this
+         */
+        void setPlayBlendedAnimation(bool uValue);
+        
     };
 
 }

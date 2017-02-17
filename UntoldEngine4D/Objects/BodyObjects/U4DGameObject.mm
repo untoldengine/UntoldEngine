@@ -140,6 +140,11 @@ namespace U4DEngine {
         return animationManager->getDurationOfCurrentAnimationKeyframe();
     }
     
+    void U4DGameObject::setPlayBlendedAnimation(bool uValue){
+        
+        animationManager->setPlayBlendedAnimation(uValue);
+        
+    }
 
 }
 
