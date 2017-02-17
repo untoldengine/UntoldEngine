@@ -69,7 +69,7 @@ void main(void)
 
             mediump vec4 textureColor=texture(DiffuseTexture,vVaryingTexCoords.st);
 
-            finalColor=vec4(mix(textureColor,finalColor,0.3));
+            finalColor=vec4(mix(textureColor,finalColor,0.2));
 
         }
 

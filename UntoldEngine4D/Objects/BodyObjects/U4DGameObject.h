@@ -121,6 +121,11 @@ namespace U4DEngine {
         /**
          @todo document this
          */
+        void removeAllAnimations();
+        
+        /**
+         @todo document this
+         */
         bool getIsAnimationUpdatingKeyframe();
         
         /**
@@ -157,6 +162,8 @@ namespace U4DEngine {
          @todo document this
          */
         void setPlayBlendedAnimation(bool uValue);
+        
+        
         
     };
 

@@ -168,7 +168,7 @@ void SoccerPlayer::update(double dt){
                 //apply collision with ball
                 //setCollisionFilterGroupIndex(kZeroGroupIndex);
                 
-                //changeState(kNull);
+                changeState(kRunning);
             }
         }
         
@@ -212,6 +212,12 @@ void SoccerPlayer::changeState(GameEntityState uState){
             break;
             
         case kInPossesionOfBall:
+            
+            break;
+            
+        case kNull:
+            
+            removeAllAnimations();
             
             break;
             

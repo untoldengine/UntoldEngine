@@ -75,6 +75,11 @@ namespace U4DEngine {
         /**
          @todo document this
          */
+        void removeAllAnimations();
+        
+        /**
+         @todo document this
+         */
         bool getIsAnimationUpdatingKeyframe();
         
         /**

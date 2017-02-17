@@ -82,6 +82,12 @@ namespace U4DEngine {
         
     }
     
+    void U4DGameObject::removeAllAnimations(){
+        
+        animationManager->removeAllAnimations();
+        
+    }
+    
     void U4DGameObject::playAnimation(){
         
         animationManager->playAnimation();

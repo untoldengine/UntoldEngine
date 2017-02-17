@@ -114,6 +114,14 @@ namespace U4DEngine {
         
     }
     
+    void U4DAnimationManager::removeAllAnimations(){
+        
+        currentAnimation=NULL;
+        previousAnimation=NULL;
+        nextAnimation=NULL;
+        
+    }
+    
 
     bool U4DAnimationManager::getIsAnimationUpdatingKeyframe(){
         
