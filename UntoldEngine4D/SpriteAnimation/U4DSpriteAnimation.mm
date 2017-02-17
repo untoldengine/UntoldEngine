@@ -42,8 +42,7 @@ void U4DSpriteAnimation::start(){
 
 void U4DSpriteAnimation::stop(){
     
-    timer->setRepeat(false);
-
+    scheduler->unScheduleTimer(timer);
 }
 
 void U4DSpriteAnimation::runAnimation(){
