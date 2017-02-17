@@ -40,6 +40,7 @@
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
 		0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */; };
 		0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0328EE9917F5C88C00560A63 /* U4DOpenGLSprite.mm */; };
+		032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */; };
 		034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */; };
 		034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
@@ -255,6 +256,8 @@
 		0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingSphere.mm; path = BoundingVolumes/U4DBoundingSphere.mm; sourceTree = "<group>"; };
 		0328EE9917F5C88C00560A63 /* U4DOpenGLSprite.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLSprite.mm; sourceTree = "<group>"; };
 		0328EE9A17F5C88C00560A63 /* U4DOpenGLSprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLSprite.h; sourceTree = "<group>"; };
+		032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBlendAnimation.mm; sourceTree = "<group>"; };
+		032BD8A01E567FC300C158A1 /* U4DBlendAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBlendAnimation.h; sourceTree = "<group>"; };
 		034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.fp; sourceTree = "<group>"; };
 		034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.vp; sourceTree = "<group>"; };
 		0346862A1B1A4DA400B2105B /* U4DPlane.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlane.mm; sourceTree = "<group>"; };
@@ -1307,6 +1310,8 @@
 				03068D6919BFFFC400ABDC55 /* U4DAnimation.mm */,
 				03CF11F51E56313400E47C67 /* U4DAnimationManager.h */,
 				03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */,
+				032BD8A01E567FC300C158A1 /* U4DBlendAnimation.h */,
+				032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -1541,6 +1546,7 @@
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				0390C7BD1E3432400028AC20 /* U4DOpenGLParticleDust.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
+				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,

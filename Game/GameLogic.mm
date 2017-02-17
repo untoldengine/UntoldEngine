@@ -40,7 +40,7 @@ void GameLogic::receiveTouchUpdate(){
             
             //player->changeState(kGroundPass);
         }else{
-            player->changeState(kWalking);
+            player->changeState(kGroundPass);
         }
         
         

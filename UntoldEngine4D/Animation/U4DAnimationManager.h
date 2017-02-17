@@ -14,6 +14,8 @@
 namespace U4DEngine {
     
     class U4DAnimation;
+    class U4DBlendAnimation;
+    
 }
 
 namespace U4DEngine {
@@ -24,6 +26,10 @@ namespace U4DEngine {
         U4DAnimation *currentAnimation;
         U4DAnimation *previousAnimation;
         U4DAnimation *nextAnimation;
+        
+        U4DBlendAnimation* blendedAnimation;
+        
+        bool playBlendedAnimation;
         
     public:
         
@@ -69,6 +75,11 @@ namespace U4DEngine {
         /**
          @todo document this
          */
+        void removeAllAnimations();
+        
+        /**
+         @todo document this
+         */
         bool getIsAnimationUpdatingKeyframe();
         
         /**
@@ -96,6 +107,25 @@ namespace U4DEngine {
          */
         float getDurationOfCurrentAnimationKeyframe();
         
+        /**
+         @todo document this
+         */
+        void setPlayBlendedAnimation(bool uValue);
+        
+        /**
+         @todo document this
+         */
+        bool getPlayBlendedAnimation();
+        
+        /**
+         @todo document this
+         */
+        U4DAnimation* getPreviousAnimation();
+        
+        /**
+         @todo document this
+         */
+        U4DAnimation* getNextAnimation();
     };
     
 }

@@ -8,14 +8,19 @@
 
 #include "U4DAnimationManager.h"
 #include "U4DAnimation.h"
+#include "U4DBlendAnimation.h"
 
 namespace U4DEngine {
     
     U4DAnimationManager::U4DAnimationManager():currentAnimation(NULL),previousAnimation(NULL),nextAnimation(NULL){
         
+        blendedAnimation=new U4DBlendAnimation(this);
+        
     }
     
     U4DAnimationManager::~U4DAnimationManager(){
+        
+        delete blendedAnimation;
         
     }
     
@@ -41,11 +46,22 @@ namespace U4DEngine {
         
         if (nextAnimation!=NULL) {
             
-            currentAnimation=nextAnimation;
             
-            if (currentAnimation->isAnimationPlaying()==false) {
+            if (previousAnimation!=NULL && getPlayBlendedAnimation()==true) {
                 
-                currentAnimation->play();
+                //play blended animation
+                blendedAnimation->playBlendedAnimation();
+                
+            }else{
+                
+                //play next animation
+                currentAnimation=nextAnimation;
+                
+                if (currentAnimation->isAnimationPlaying()==false) {
+                    
+                    currentAnimation->play();
+                }
+                
             }
             
         }
@@ -95,6 +111,14 @@ namespace U4DEngine {
         }
         
         currentAnimation=NULL;
+        
+    }
+    
+    void U4DAnimationManager::removeAllAnimations(){
+        
+        currentAnimation=NULL;
+        previousAnimation=NULL;
+        nextAnimation=NULL;
         
     }
     
@@ -166,6 +190,27 @@ namespace U4DEngine {
         
         return 0.0;
     
+    }
+    
+    void U4DAnimationManager::setPlayBlendedAnimation(bool uValue){
+        
+        playBlendedAnimation=uValue;
+    }
+    
+    bool U4DAnimationManager::getPlayBlendedAnimation(){
+        
+        return playBlendedAnimation;
+        
+    }
+    
+    U4DAnimation* U4DAnimationManager::getPreviousAnimation(){
+        
+        return previousAnimation;
+    }
+    
+    U4DAnimation* U4DAnimationManager::getNextAnimation(){
+        
+        return nextAnimation;
     }
 
 }

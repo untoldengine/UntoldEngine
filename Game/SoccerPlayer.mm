@@ -168,7 +168,7 @@ void SoccerPlayer::update(double dt){
                 //apply collision with ball
                 //setCollisionFilterGroupIndex(kZeroGroupIndex);
                 
-                //changeState(kNull);
+                changeState(kRunning);
             }
         }
         
@@ -180,7 +180,6 @@ void SoccerPlayer::changeState(GameEntityState uState){
     
     removeCurrentPlayingAnimation();
     
-    
     setState(uState);
     
     switch (uState) {
@@ -188,14 +187,14 @@ void SoccerPlayer::changeState(GameEntityState uState){
         case kWalking:
             
             setNextAnimationToPlay(walking);
-            
+            setPlayBlendedAnimation(true);
             
             break;
             
         case kRunning:
             
             setNextAnimationToPlay(running);
-            
+            setPlayBlendedAnimation(true);
             
             break;
             
@@ -207,12 +206,18 @@ void SoccerPlayer::changeState(GameEntityState uState){
         {
             setNextAnimationToPlay(sidePass);
             setPlayNextAnimationContinuously(false);
-            
+            setPlayBlendedAnimation(true);
         }
             
             break;
             
         case kInPossesionOfBall:
+            
+            break;
+            
+        case kNull:
+            
+            removeAllAnimations();
             
             break;
             
