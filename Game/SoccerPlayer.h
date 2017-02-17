@@ -56,5 +56,9 @@ public:
     
     inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
     
+    U4DEngine::U4DAnimation *getRunningAnimation();
+    
+    U4DEngine::U4DAnimation *getSidePassAnimation();
+    
 };
 #endif /* SoccerPlayer_hpp */

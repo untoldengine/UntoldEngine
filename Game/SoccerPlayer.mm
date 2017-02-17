@@ -259,3 +259,12 @@ void SoccerPlayer::applyForceToPlayer(float uVelocity, double dt){
     setVelocity(initialVelocity);
     
 }
+
+U4DEngine::U4DAnimation *SoccerPlayer::getRunningAnimation(){
+    return running;
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getSidePassAnimation(){
+ 
+    return sidePass;
+}
