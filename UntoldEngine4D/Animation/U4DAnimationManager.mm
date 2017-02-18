@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
     
-    U4DAnimationManager::U4DAnimationManager():currentAnimation(NULL),previousAnimation(NULL),nextAnimation(NULL){
+    U4DAnimationManager::U4DAnimationManager():currentAnimation(NULL),previousAnimation(NULL),nextAnimation(NULL), blendedStartKeyframe(0),blendedStartInterpolationTime(0.0){
         
         blendedAnimation=new U4DBlendAnimation(this);
         
@@ -106,6 +106,10 @@ namespace U4DEngine {
         if (currentAnimation!=NULL) {
             
             previousAnimation=currentAnimation;
+            
+            blendedStartKeyframe=currentAnimation->getCurrentKeyframe();
+            blendedStartInterpolationTime=currentAnimation->getCurrentInterpolationTime();
+            
             currentAnimation->stop();
             
         }
@@ -115,6 +119,12 @@ namespace U4DEngine {
     }
     
     void U4DAnimationManager::removeAllAnimations(){
+        
+        if (currentAnimation!=NULL) {
+            
+            currentAnimation->stop();
+            
+        }
         
         currentAnimation=NULL;
         previousAnimation=NULL;
@@ -212,5 +222,15 @@ namespace U4DEngine {
         
         return nextAnimation;
     }
-
+    
+    int U4DAnimationManager::getBlendedStartKeyframe(){
+        
+        return blendedStartKeyframe;
+    }
+    
+    int U4DAnimationManager::getBlendedStartInterpolationTime(){
+        
+        return blendedStartInterpolationTime;
+    }
+    
 }

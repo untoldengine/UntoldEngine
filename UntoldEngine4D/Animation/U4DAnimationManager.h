@@ -31,6 +31,10 @@ namespace U4DEngine {
         
         bool playBlendedAnimation;
         
+        int blendedStartKeyframe;
+        
+        float blendedStartInterpolationTime;
+        
     public:
         
         U4DAnimationManager();
@@ -126,6 +130,17 @@ namespace U4DEngine {
          @todo document this
          */
         U4DAnimation* getNextAnimation();
+        
+        /**
+         @todo document this
+         */
+        int getBlendedStartKeyframe();
+        
+        /**
+         @todo document this
+         */
+        int getBlendedStartInterpolationTime();
+        
     };
     
 }
