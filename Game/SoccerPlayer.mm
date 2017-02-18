@@ -8,6 +8,23 @@
 
 #include "SoccerPlayer.h"
 #include "UserCommonProtocols.h"
+#include "SoccerPlayerStateManager.h"
+#include "SoccerPlayerStateInterface.h"
+#include "SoccerPlayerIdleState.h"
+#include "SoccerPlayerChaseBallState.h"
+#include "SoccerPlayerDribbleState.h"
+#include "SoccerBall.h"
+
+SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false){
+    
+    stateManager=new SoccerPlayerStateManager(this);
+    
+}
+SoccerPlayer::~SoccerPlayer(){
+    
+    delete stateManager;
+    
+}
 
 void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
     
@@ -26,7 +43,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         //set collision info
         initMass(80.0);
         initCoefficientOfRestitution(0.9);
-        enableCollisionBehavior();
+        //enableCollisionBehavior();
         enableKineticsBehavior();
         
         //set gravity to zero
@@ -34,13 +51,11 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         setGravity(zeroGravity);
         
         //set collision filters
-        setCollisionFilterCategory(kSoccerPlayer);
-        setCollisionFilterMask(kSoccerBall);
+        //setCollisionFilterCategory(kSoccerPlayer);
+        //setCollisionFilterMask(kSoccerBall);
         
         //set player collision with ball filter to occur
         setCollisionFilterGroupIndex(kZeroGroupIndex);
-        
-        changeState(kNull);
         
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
         
@@ -88,19 +103,35 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
             
         }
         
+        SoccerPlayerStateInterface *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
         
+        //set initial state
+        changeState(chaseBallState);
+        
+        //render information
         loadRenderingInformation();
         
         //translate the player
-        translateBy(-9.0, getModelDimensions().y/2.0+1.3, 0.0);
+        translateBy(35.0, getModelDimensions().y/2.0+1.3, 0.0);
         
     }
     
+    
+    
+}
+
+void SoccerPlayer::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
+    
+    //set view heading of player
+    viewInDirection(uHeading);
     
 }
 
 void SoccerPlayer::update(double dt){
     
+    stateManager->execute(dt);
+    
+    /*
     //check if model has collided with ball
     if (getModelHasCollided()) {
         
@@ -173,11 +204,16 @@ void SoccerPlayer::update(double dt){
         }
         
     }
-    
+    */
 }
 
-void SoccerPlayer::changeState(GameEntityState uState){
+
+
+void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
     
+    stateManager->changeState(uState);
+    
+ /*
     removeCurrentPlayingAnimation();
     
     setState(uState);
@@ -228,15 +264,22 @@ void SoccerPlayer::changeState(GameEntityState uState){
     
     playAnimation();
     
+*/
+}
+
+
+void SoccerPlayer::trackBall(){
     
-}
-
-void SoccerPlayer::setState(GameEntityState uState){
-    entityState=uState;
-}
-
-GameEntityState SoccerPlayer::getState(){
-    return entityState;
+    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
+    
+    U4DEngine::U4DVector3n directionToLook(distanceVector.x*fieldLength,playerPosition.y,distanceVector.z*fieldWidth);
+    
+    viewInDirection(directionToLook);
+    
 }
 
 void SoccerPlayer::setBallEntity(SoccerBall *uSoccerBall){
@@ -260,6 +303,28 @@ void SoccerPlayer::applyForceToPlayer(float uVelocity, double dt){
     
 }
 
+bool SoccerPlayer::hasReachedTheBall(){
+    
+    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+   
+    //set the height position equal to the ball y position
+    playerPosition.y=ballPosition.y;
+    
+    float ballRadius=soccerBallEntity->getBallRadius();
+    
+    float distanceToBall=(ballPosition-playerPosition).magnitude();
+    
+    if (distanceToBall<(ballRadius+3.0)) {
+        
+        return true;
+    }
+    
+    return false;
+    
+}
+
 U4DEngine::U4DAnimation *SoccerPlayer::getRunningAnimation(){
     return running;
 }
@@ -267,4 +332,62 @@ U4DEngine::U4DAnimation *SoccerPlayer::getRunningAnimation(){
 U4DEngine::U4DAnimation *SoccerPlayer::getSidePassAnimation(){
  
     return sidePass;
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getForwardCarryAnimation(){
+    
+    return forwardCarry;
+}
+
+void SoccerPlayer::receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive){
+    
+    buttonAPressed=uButtonAPressed;
+    buttonBPressed=uButtonBPressed;
+    joystickActive=uJoystickActive;
+    
+}
+
+void SoccerPlayer::setButtonAPressed(bool uValue){
+    
+    buttonAPressed=uValue;
+}
+
+void SoccerPlayer::setButtonBPressed(bool uValue){
+    
+    buttonBPressed=uValue;
+}
+
+bool SoccerPlayer::getButtonAPressed(){
+ 
+    return buttonAPressed;
+}
+
+bool SoccerPlayer::getButtonBPressed(){
+    
+    return buttonBPressed;
+}
+
+void SoccerPlayer::setJoystickActive(bool uValue){
+    
+    joystickActive=uValue;
+}
+
+bool SoccerPlayer::getJoystickActive(){
+    
+    return joystickActive;
+}
+
+void SoccerPlayer::removeKineticForces(){
+    
+    clearForce();
+    clearMoment();
+    
+    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+    setVelocity(zero);
+    setAngularVelocity(zero);
+}
+
+void SoccerPlayer::kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n uDirection){
+    
+    soccerBallEntity->kickBallToGround(uForceMagnitude, uDirection);
 }

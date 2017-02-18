@@ -21,7 +21,7 @@ public:
     
     virtual void enter(SoccerPlayer *uPlayer)=0;
     
-    virtual void execute(SoccerPlayer *uPlayer)=0;
+    virtual void execute(SoccerPlayer *uPlayer, double dt)=0;
     
     virtual void exit(SoccerPlayer *uPlayer)=0;
     

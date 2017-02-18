@@ -40,4 +40,7 @@ typedef enum{
 
 }GameEntityCollision;
 
+const float fieldWidth=64.0;
+const float fieldLength=128.0;
+
 #endif /* UserCommonProtocols_h */

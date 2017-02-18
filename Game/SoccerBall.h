@@ -18,8 +18,11 @@
 class SoccerBall:public U4DEngine::U4DGameObject {
     
 private:
+    
     GameEntityState entityState;
+    
     U4DEngine::U4DVector3n kickDirection;
+    
     float ballRadius;
     
     
@@ -43,6 +46,9 @@ public:
 
     void setKickDirection(U4DEngine::U4DVector3n &uDirection);
     
+    float getBallRadius();
+    
+    void kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n uDirection);
 };
 
 #endif /* SoccerBall_hpp */

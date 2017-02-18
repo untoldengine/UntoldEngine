@@ -63,8 +63,6 @@ void Earth::init(){
     player->setBallEntity(ball);
     
     U4DVector3n origin(0,0,0);
-    
-    //camera->viewInDirection(origin);
 
     U4DLights *light=U4DLights::sharedInstance();
     light->translateTo(5.0,5.0,5.0);
@@ -76,7 +74,7 @@ void Earth::init(){
 
     addChild(player);
     
-
+    
 }
 
 void Earth::update(double dt){

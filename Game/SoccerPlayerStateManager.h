@@ -24,6 +24,7 @@ private:
     
     SoccerPlayerStateInterface *currentState;
     
+    
 public:
     
     SoccerPlayerStateManager(SoccerPlayer *uPlayer);
@@ -32,7 +33,7 @@ public:
     
     void changeState(SoccerPlayerStateInterface *uState);
     
-    void execute();
+    void execute(double dt);
     
     void setInitialState(SoccerPlayerStateInterface *uState);
 };

@@ -34,15 +34,13 @@ void GameLogic::init(){
 
 void GameLogic::receiveTouchUpdate(){
     
+    bool buttonAPressed=false;
+    bool buttonBPressed=false;
+    bool joystickActive=false;
+    
     if (buttonA->getIsPressed()) {
         
-        if (player->getState()==kInPossesionOfBall) {
-            
-            //player->changeState(kGroundPass);
-        }else{
-            player->changeState(kGroundPass);
-        }
-        
+        buttonAPressed=true;
         
     }else if(buttonA->getIsReleased()){
         
@@ -52,7 +50,7 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonB->getIsPressed()) {
         
-        player->changeState(kRunning);
+        buttonBPressed=true;
         
         
     }else if(buttonB->getIsReleased()){
@@ -63,18 +61,17 @@ void GameLogic::receiveTouchUpdate(){
     
     if(joystick->getIsActive()){
         
-        U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
-        
-        joyPosition=joyData;
+        U4DEngine::U4DVector3n joyPosition=joystick->getDataPosition();
         
         joyPosition.normalize();
         
-        U4DEngine::U4DVector3n setView(joyPosition.x*field->getModelDimensions().x,player->getAbsolutePosition().y,-joyPosition.y*field->getModelDimensions().z);
+        U4DEngine::U4DVector3n heading(joyPosition.x*fieldLength,player->getAbsolutePosition().y,-joyPosition.y*fieldWidth);
         
-        player->viewInDirection(setView);
+        player->setPlayerHeading(heading);
         
-        player->setJoystickData(joyPosition);
-       
+        joystickActive=true;
     }
+    
+    player->receiveTouchUpdate(buttonAPressed, buttonBPressed, joystickActive);
     
 }

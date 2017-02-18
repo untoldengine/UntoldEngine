@@ -14,27 +14,32 @@
 #include "UserCommonProtocols.h"
 #include "SoccerBall.h"
 
+class SoccerPlayerStateInterface;
+class SoccerPlayerStateManager;
+
 class SoccerPlayer:public U4DEngine::U4DGameObject {
     
 private:
     
-    GameEntityState entityState;
-    U4DEngine::U4DVector3n joyStickData;
     SoccerBall *soccerBallEntity;
     
+    SoccerPlayerStateManager *stateManager;
+    
+    bool buttonAPressed;
+    
+    bool buttonBPressed;
+    
+    bool joystickActive;
+    
 public:
-    SoccerPlayer(){};
-    ~SoccerPlayer(){};
+    
+    SoccerPlayer();
+    
+    ~SoccerPlayer();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
-    
-    void changeState(GameEntityState uState);
-    
-    void setState(GameEntityState uState);
-    
-    GameEntityState getState();
     
     U4DEngine::U4DAnimation *forwardKick;
     
@@ -50,15 +55,41 @@ public:
     
     U4DEngine::U4DAnimation *sideCarryRight;
     
+    void changeState(SoccerPlayerStateInterface* uState);
+    
     void setBallEntity(SoccerBall *uSoccerBall);
     
     void applyForceToPlayer(float uVelocity, double dt);
     
-    inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
+    void setPlayerHeading(U4DEngine::U4DVector3n& uHeading);
     
     U4DEngine::U4DAnimation *getRunningAnimation();
     
     U4DEngine::U4DAnimation *getSidePassAnimation();
+    
+    U4DEngine::U4DAnimation *getForwardCarryAnimation();
+    
+    void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
+    
+    void setButtonAPressed(bool uValue);
+    
+    void setButtonBPressed(bool uValue);
+    
+    bool getButtonAPressed();
+    
+    bool getButtonBPressed();
+    
+    void setJoystickActive(bool uValue);
+    
+    bool getJoystickActive();
+    
+    void trackBall();
+    
+    bool hasReachedTheBall();
+    
+    void removeKineticForces();
+    
+    void kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n uDirection);
     
 };
 #endif /* SoccerPlayer_hpp */

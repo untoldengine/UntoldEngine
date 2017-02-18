@@ -14,15 +14,21 @@
 
 class SoccerPlayerDribbleState:public SoccerPlayerStateInterface {
     
-public:
+protected:
     
     SoccerPlayerDribbleState();
     
     ~SoccerPlayerDribbleState();
     
+public:
+    
+    static SoccerPlayerDribbleState* instance;
+    
+    static SoccerPlayerDribbleState* sharedInstance();
+    
     void enter(SoccerPlayer *uPlayer);
     
-    void execute(SoccerPlayer *uPlayer);
+    void execute(SoccerPlayer *uPlayer, double dt);
     
     void exit(SoccerPlayer *uPlayer);
     
