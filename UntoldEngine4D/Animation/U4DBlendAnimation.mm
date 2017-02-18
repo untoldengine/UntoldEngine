@@ -43,9 +43,14 @@ namespace U4DEngine {
         //copy the root bone
         rootBone=u4dModel->armatureManager->rootBone;
         
-        keyframe=previousAnimation->getCurrentKeyframe();
+        keyframe=animationManager->getBlendedStartKeyframe();
         
-        interpolationTime=1.0-previousAnimation->getCurrentInterpolationTime();
+        //if the keyframe is equalt to the keyframe range, then decrease it to one so it can get the correct duration of the keyframe
+        if (keyframe>=previousAnimation->keyframeRange) {
+            keyframe=previousAnimation->keyframeRange-2;
+        }
+        
+        interpolationTime=1.0-animationManager->getBlendedStartInterpolationTime();
         
     }
     
@@ -61,7 +66,7 @@ namespace U4DEngine {
             ANIMATIONDATA animationData=previousAnimation->animationsContainer.at(0);
             
             //get the time length for initial keyframe
-            float durationOfKeyframe=animationData.keyframes.at(keyframe).time;
+            float durationOfKeyframe=animationData.keyframes.at(keyframe+1).time-animationData.keyframes.at(keyframe).time;
             
             scheduler->scheduleClassWithMethodAndDelay(this, &U4DBlendAnimation::runAnimation, timer,durationOfKeyframe/previousAnimation->getFPS(), true);
     

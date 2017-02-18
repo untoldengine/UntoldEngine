@@ -151,6 +151,7 @@ void U4DAnimation::runAnimation(){
         interpolationTime=0.0;  //reset interpolation
        
         if (keyframe>=keyframeRange-2) {
+            
             keyframe=0;
             
             if (getPlayContinuousLoop()==false) {
