@@ -47,7 +47,7 @@ public:
     
     U4DEngine::U4DAnimation *walkingAnimation;
     
-    U4DEngine::U4DAnimation *sidePassAnimation;
+    U4DEngine::U4DAnimation *groundPassAnimation;
     
     U4DEngine::U4DAnimation *runningAnimation;
     
@@ -75,7 +75,7 @@ public:
     
     U4DEngine::U4DAnimation *getRunningAnimation();
     
-    U4DEngine::U4DAnimation *getSidePassAnimation();
+    U4DEngine::U4DAnimation *getGroundPassAnimation();
     
     U4DEngine::U4DAnimation *getForwardCarryAnimation();
     

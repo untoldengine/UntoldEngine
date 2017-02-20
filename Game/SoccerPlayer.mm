@@ -34,7 +34,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         runningAnimation=new U4DEngine::U4DAnimation(this);
         
-        sidePassAnimation=new U4DEngine::U4DAnimation(this);
+        groundPassAnimation=new U4DEngine::U4DAnimation(this);
         forwardCarryAnimation=new U4DEngine::U4DAnimation(this);
         sideCarryRightAnimation=new U4DEngine::U4DAnimation(this);
         sideCarryLeftAnimation=new U4DEngine::U4DAnimation(this);
@@ -80,7 +80,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
             
         }
         
-        if (loadAnimationToModel(sidePassAnimation, "sidepass", "sidepassanimationscript.u4d")) {
+        if (loadAnimationToModel(groundPassAnimation, "sidepass", "sidepassanimationscript.u4d")) {
             
             
             
@@ -375,9 +375,9 @@ U4DEngine::U4DAnimation *SoccerPlayer::getRunningAnimation(){
     return runningAnimation;
 }
 
-U4DEngine::U4DAnimation *SoccerPlayer::getSidePassAnimation(){
+U4DEngine::U4DAnimation *SoccerPlayer::getGroundPassAnimation(){
  
-    return sidePassAnimation;
+    return groundPassAnimation;
 }
 
 U4DEngine::U4DAnimation *SoccerPlayer::getForwardCarryAnimation(){

@@ -244,6 +244,8 @@ float SoccerBall::getBallRadius(){
 
 void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
     
+    uDirection.normalize();
+    
     //move ball to proper position
     float offset=ballRadius-getAbsolutePosition().y;
     

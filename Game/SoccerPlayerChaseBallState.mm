@@ -32,7 +32,7 @@ void SoccerPlayerChaseBallState::enter(SoccerPlayer *uPlayer){
  
     //set run animation
     uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
-    //uPlayer->setPlayBlendedAnimation(true);
+    uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(true);
 }
 

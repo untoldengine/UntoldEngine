@@ -34,7 +34,7 @@ void SoccerPlayerTakeBallControlState::enter(SoccerPlayer *uPlayer){
     
     //set the control ball animation
     uPlayer->setNextAnimationToPlay(uPlayer->getTakingBallControlAnimation());
-    //uPlayer->setPlayBlendedAnimation(true);
+    uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(false);
 }
 

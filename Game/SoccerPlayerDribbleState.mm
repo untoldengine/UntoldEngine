@@ -8,6 +8,7 @@
 
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerPlayerChaseBallState.h"
+#include "SoccerPlayerGroundPassState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerDribbleState* SoccerPlayerDribbleState::instance=0;
@@ -35,15 +36,22 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
     //set dribble animation
     uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
     uPlayer->setPlayNextAnimationContinuously(true);
-    //uPlayer->setPlayBlendedAnimation(true);
+    uPlayer->setPlayBlendedAnimation(true);
     
 }
 
 void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     
-    U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
+    //check if player should pass
+    if (uPlayer->getButtonAPressed()) {
+        
+        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
+        
+        uPlayer->changeState(groundPassState);
+        
+    }
     
-    directionToKick.normalize();
+    U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
     
     //if the joystick is active, set the new direction of the kick
     if (uPlayer->getJoystickActive()) {
@@ -59,7 +67,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     if (uPlayer->getIsAnimationUpdatingKeyframe()) {
         
         //set the kick pass at this keyframe and interpolation time
-        if (uPlayer->getAnimationCurrentKeyframe()==0 || uPlayer->getAnimationCurrentKeyframe()==6) {
+        if ((uPlayer->getAnimationCurrentKeyframe()==0 || uPlayer->getAnimationCurrentKeyframe()==6) && uPlayer->getAnimationCurrentInterpolationTime()==0.0) {
             
             uPlayer->kickBallToGround(15.0, directionToKick,dt);
             
