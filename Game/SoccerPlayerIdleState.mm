@@ -31,6 +31,7 @@ SoccerPlayerIdleState* SoccerPlayerIdleState::sharedInstance(){
 void SoccerPlayerIdleState::enter(SoccerPlayer *uPlayer){
     
     //set the standing animation
+    uPlayer->setNextAnimationToPlay(uPlayer->getIdleAnimation());
 }
 
 void SoccerPlayerIdleState::execute(SoccerPlayer *uPlayer, double dt){

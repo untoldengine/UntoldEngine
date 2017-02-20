@@ -7,7 +7,7 @@
 //
 
 #include "SoccerPlayerChaseBallState.h"
-#include "SoccerPlayerDribbleState.h"
+#include "SoccerPlayerTakeBallControlState.h"
 
 SoccerPlayerChaseBallState* SoccerPlayerChaseBallState::instance=0;
 
@@ -32,7 +32,8 @@ void SoccerPlayerChaseBallState::enter(SoccerPlayer *uPlayer){
  
     //set run animation
     uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
-    
+    //uPlayer->setPlayBlendedAnimation(true);
+    uPlayer->setPlayNextAnimationContinuously(true);
 }
 
 void SoccerPlayerChaseBallState::execute(SoccerPlayer *uPlayer, double dt){
@@ -48,9 +49,11 @@ void SoccerPlayerChaseBallState::execute(SoccerPlayer *uPlayer, double dt){
         
     }else{
         
-        SoccerPlayerStateInterface *dribbleState=SoccerPlayerDribbleState::sharedInstance();
+        uPlayer->removeKineticForces();
         
-        uPlayer->changeState(dribbleState);
+        SoccerPlayerStateInterface *takeBallControlState=SoccerPlayerTakeBallControlState::sharedInstance();
+        
+        uPlayer->changeState(takeBallControlState);
         
         
     }

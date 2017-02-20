@@ -30,15 +30,16 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
-        forwardKick=new U4DEngine::U4DAnimation(this);
-        walking=new U4DEngine::U4DAnimation(this);
-        running=new U4DEngine::U4DAnimation(this);
+        forwardKickAnimation=new U4DEngine::U4DAnimation(this);
+        walkingAnimation=new U4DEngine::U4DAnimation(this);
+        runningAnimation=new U4DEngine::U4DAnimation(this);
         
-        sidePass=new U4DEngine::U4DAnimation(this);
-        forwardCarry=new U4DEngine::U4DAnimation(this);
-        sideCarryRight=new U4DEngine::U4DAnimation(this);
-        sideCarryLeft=new U4DEngine::U4DAnimation(this);
-        
+        sidePassAnimation=new U4DEngine::U4DAnimation(this);
+        forwardCarryAnimation=new U4DEngine::U4DAnimation(this);
+        sideCarryRightAnimation=new U4DEngine::U4DAnimation(this);
+        sideCarryLeftAnimation=new U4DEngine::U4DAnimation(this);
+        idleAnimation=new U4DEngine::U4DAnimation(this);
+        takingBallControlAnimation=new U4DEngine::U4DAnimation(this);
         
         //set collision info
         initMass(80.0);
@@ -61,49 +62,62 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         
         setEntityForwardVector(viewDirectionVector);
         
-        if (loadAnimationToModel(walking, "walking", "walkinganimationscript.u4d")) {
+        if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimationscript.u4d")) {
             
             
             
         }
         
-        if (loadAnimationToModel(forwardKick, "forwardkick", "forwardkickanimationscript.u4d")) {
+        if (loadAnimationToModel(forwardKickAnimation, "forwardkick", "forwardkickanimationscript.u4d")) {
 
             
             
         }
         
-        if (loadAnimationToModel(running, "running", "runninganimationscript.u4d")) {
+        if (loadAnimationToModel(runningAnimation, "running", "runninganimationscript.u4d")) {
             
             
             
         }
         
-        if (loadAnimationToModel(sidePass, "sidepass", "sidepassanimationscript.u4d")) {
+        if (loadAnimationToModel(sidePassAnimation, "sidepass", "sidepassanimationscript.u4d")) {
             
             
             
         }
         
-        if (loadAnimationToModel(forwardCarry, "forwardcarry", "forwardcarryanimationscript.u4d")) {
+        if (loadAnimationToModel(forwardCarryAnimation, "forwardcarry", "forwardcarryanimationscript.u4d")) {
             
             
             
         }
         
-        if (loadAnimationToModel(sideCarryLeft, "sidecarryleft", "sidecarryleftanimationscript.u4d")) {
+        if (loadAnimationToModel(sideCarryLeftAnimation, "sidecarryleft", "sidecarryleftanimationscript.u4d")) {
             
             
             
         }
 
-        if (loadAnimationToModel(sideCarryRight, "sidecarryright", "sidecarryrightanimationscript.u4d")) {
+        if (loadAnimationToModel(sideCarryRightAnimation, "sidecarryright", "sidecarryrightanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(idleAnimation, "idle", "idleanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(takingBallControlAnimation, "takingballcontrol", "takingballcontrolanimationscript.u4d")) {
             
             
             
         }
         
         SoccerPlayerStateInterface *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
+        SoccerPlayerStateInterface *idleState=SoccerPlayerIdleState::sharedInstance();
         
         //set initial state
         changeState(chaseBallState);
@@ -112,7 +126,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         loadRenderingInformation();
         
         //translate the player
-        translateBy(35.0, getModelDimensions().y/2.0+1.3, 0.0);
+        translateBy(-9.0, getModelDimensions().y/2.0+1.3, 0.0);
         
     }
     
@@ -316,7 +330,7 @@ bool SoccerPlayer::hasReachedTheBall(){
     
     float distanceToBall=(ballPosition-playerPosition).magnitude();
     
-    if (distanceToBall<(ballRadius+3.0)) {
+    if (distanceToBall<=ballRadius) {
         
         return true;
     }
@@ -326,17 +340,28 @@ bool SoccerPlayer::hasReachedTheBall(){
 }
 
 U4DEngine::U4DAnimation *SoccerPlayer::getRunningAnimation(){
-    return running;
+    return runningAnimation;
 }
 
 U4DEngine::U4DAnimation *SoccerPlayer::getSidePassAnimation(){
  
-    return sidePass;
+    return sidePassAnimation;
 }
 
 U4DEngine::U4DAnimation *SoccerPlayer::getForwardCarryAnimation(){
     
-    return forwardCarry;
+    return forwardCarryAnimation;
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getIdleAnimation(){
+    
+    return idleAnimation;
+    
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getTakingBallControlAnimation(){
+    
+    return takingBallControlAnimation;
 }
 
 void SoccerPlayer::receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive){
@@ -387,7 +412,7 @@ void SoccerPlayer::removeKineticForces(){
     setAngularVelocity(zero);
 }
 
-void SoccerPlayer::kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n uDirection){
+void SoccerPlayer::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
     
-    soccerBallEntity->kickBallToGround(uForceMagnitude, uDirection);
+    soccerBallEntity->kickBallToGround(uVelocity, uDirection, dt);
 }

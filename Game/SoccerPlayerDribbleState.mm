@@ -33,8 +33,8 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
     
     //set dribble animation
     uPlayer->setNextAnimationToPlay(uPlayer->getForwardCarryAnimation());
-    uPlayer->setPlayNextAnimationContinuously(false);
-    uPlayer->setPlayBlendedAnimation(true);
+    uPlayer->setPlayNextAnimationContinuously(true);
+    //uPlayer->setPlayBlendedAnimation(true);
     
 }
 
@@ -43,15 +43,15 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     if (uPlayer->getIsAnimationUpdatingKeyframe()) {
         
         //set the kick pass at this keyframe and interpolation time
-        if (uPlayer->getAnimationCurrentKeyframe()==3 && uPlayer->getAnimationCurrentInterpolationTime()==0) {
+        if (uPlayer->getAnimationCurrentKeyframe()==3) {
             
-            uPlayer->kickBallToGround(4000.0, uPlayer->getViewInDirection());
+            uPlayer->kickBallToGround(7.0, uPlayer->getViewInDirection(),dt);
             
-            SoccerPlayerStateInterface *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
-            
-            uPlayer->changeState(chaseBallState);
         }
     }
+    
+    //chase the ball
+    uPlayer->applyForceToPlayer(5.0, dt);
     
 }
 

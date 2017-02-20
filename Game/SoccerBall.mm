@@ -242,14 +242,12 @@ float SoccerBall::getBallRadius(){
     return ballRadius;
 }
 
-void SoccerBall::kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n uDirection){
+void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
     
     //move ball to proper position
     float offset=ballRadius-getAbsolutePosition().y;
     
     translateBy(0.0,offset, 0.0);
-    
-    U4DEngine::U4DVector3n forceDirection=uDirection*uForceMagnitude;
     
     //awake the ball
     setAwake(true);
@@ -257,24 +255,22 @@ void SoccerBall::kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n 
     //set collision with field not to occur
     setCollisionFilterGroupIndex(kNegativeGroupIndex);
     
-    //turn off drag
-    U4DEngine::U4DVector2n drag(0.1,0.2);
-    setDragCoefficient(drag);
-    
     //turn off gravity
     U4DEngine::U4DVector3n gravityForce(0,0,0);
     setGravity(gravityForce);
     
     //apply force to ball
     
-    U4DEngine::U4DVector3n groundPassForce(forceDirection.x,0.0,-forceDirection.y);
+    U4DEngine::U4DVector3n forceToBall=(uDirection*uVelocity*getMass())/dt;
     
-    addForce(groundPassForce);
+    addForce(forceToBall);
+    
+    
     
     //apply moment to ball
     U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
     
-    U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(groundPassForce);
+    U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(forceToBall);
     
     addMoment(groundPassMoment);
     

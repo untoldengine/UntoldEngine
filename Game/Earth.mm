@@ -74,7 +74,7 @@ void Earth::init(){
 
     addChild(player);
     
-    
+   
 }
 
 void Earth::update(double dt){

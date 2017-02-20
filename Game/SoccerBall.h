@@ -48,7 +48,7 @@ public:
     
     float getBallRadius();
     
-    void kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n uDirection);
+    void kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
 };
 
 #endif /* SoccerBall_hpp */

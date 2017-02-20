@@ -41,19 +41,23 @@ public:
     
     void update(double dt);
     
-    U4DEngine::U4DAnimation *forwardKick;
+    U4DEngine::U4DAnimation *forwardKickAnimation;
     
-    U4DEngine::U4DAnimation *walking;
+    U4DEngine::U4DAnimation *walkingAnimation;
     
-    U4DEngine::U4DAnimation *sidePass;
+    U4DEngine::U4DAnimation *sidePassAnimation;
     
-    U4DEngine::U4DAnimation *running;
+    U4DEngine::U4DAnimation *runningAnimation;
     
-    U4DEngine::U4DAnimation *forwardCarry;
+    U4DEngine::U4DAnimation *forwardCarryAnimation;
     
-    U4DEngine::U4DAnimation *sideCarryLeft;
+    U4DEngine::U4DAnimation *sideCarryLeftAnimation;
     
-    U4DEngine::U4DAnimation *sideCarryRight;
+    U4DEngine::U4DAnimation *sideCarryRightAnimation;
+    
+    U4DEngine::U4DAnimation *idleAnimation;
+    
+    U4DEngine::U4DAnimation *takingBallControlAnimation;
     
     void changeState(SoccerPlayerStateInterface* uState);
     
@@ -68,6 +72,10 @@ public:
     U4DEngine::U4DAnimation *getSidePassAnimation();
     
     U4DEngine::U4DAnimation *getForwardCarryAnimation();
+    
+    U4DEngine::U4DAnimation *getIdleAnimation();
+    
+    U4DEngine::U4DAnimation *getTakingBallControlAnimation();
     
     void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
     
@@ -89,7 +97,7 @@ public:
     
     void removeKineticForces();
     
-    void kickBallToGround(float uForceMagnitude, U4DEngine::U4DVector3n uDirection);
+    void kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
     
 };
 #endif /* SoccerPlayer_hpp */

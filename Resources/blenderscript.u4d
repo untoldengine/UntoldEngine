@@ -18,10 +18,9 @@
                 <diffuse_color>0.800000 0.800000 0.800000 1.0 </diffuse_color>
                 <specular_color>1.000000 1.000000 1.000000 1.0 </specular_color>
                 <diffuse_intensity>0.800000 </diffuse_intensity>
-                <specular_intensity>0.500000 </specular_intensity>
+                <specular_intensity>0.000000 </specular_intensity>
                 <specular_hardness>50.000000 </specular_hardness>
                 
-                <texture_image>cesped.png</texture_image>
                 
                 <local_matrix>1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 -1.000000 0.000000 0.000000 1.000000 -0.000000 0.000000 0.000000 0.000000 1.000000</local_matrix>
                 
@@ -45,10 +44,9 @@
                 <diffuse_color>0.800000 0.800000 0.800000 1.0 </diffuse_color>
                 <specular_color>1.000000 1.000000 1.000000 1.0 </specular_color>
                 <diffuse_intensity>0.800000 </diffuse_intensity>
-                <specular_intensity>0.500000 </specular_intensity>
+                <specular_intensity>0.000000 </specular_intensity>
                 <specular_hardness>50.000000 </specular_hardness>
                 
-                <texture_image>ball.png</texture_image>
                 
                 <local_matrix>1.000000 0.000000 0.000000 13.617479 0.000000 1.000000 0.000000 1.328534 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000</local_matrix>
                 

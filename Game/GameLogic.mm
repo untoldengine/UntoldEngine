@@ -15,6 +15,10 @@
 #include "U4DJoyStick.h"
 #include "CommonProtocols.h"
 
+#include "SoccerPlayerDribbleState.h"
+#include "SoccerPlayerChaseBallState.h"
+#include "SoccerPlayerStateInterface.h"
+
 void GameLogic::update(double dt){
     
 }
@@ -42,6 +46,10 @@ void GameLogic::receiveTouchUpdate(){
         
         buttonAPressed=true;
         
+        SoccerPlayerStateInterface *dribbleState=SoccerPlayerDribbleState::sharedInstance();
+        
+        player->changeState(dribbleState);
+        
     }else if(buttonA->getIsReleased()){
         
         
@@ -51,6 +59,10 @@ void GameLogic::receiveTouchUpdate(){
     if (buttonB->getIsPressed()) {
         
         buttonBPressed=true;
+        
+        SoccerPlayerStateInterface *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
+        
+        player->changeState(chaseBallState);
         
         
     }else if(buttonB->getIsReleased()){
