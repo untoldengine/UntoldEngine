@@ -46,10 +46,6 @@ void GameLogic::receiveTouchUpdate(){
         
         buttonAPressed=true;
         
-        SoccerPlayerStateInterface *dribbleState=SoccerPlayerDribbleState::sharedInstance();
-        
-        player->changeState(dribbleState);
-        
     }else if(buttonA->getIsReleased()){
         
         
@@ -60,10 +56,6 @@ void GameLogic::receiveTouchUpdate(){
         
         buttonBPressed=true;
         
-        SoccerPlayerStateInterface *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
-        
-        player->changeState(chaseBallState);
-        
         
     }else if(buttonB->getIsReleased()){
         
@@ -73,13 +65,11 @@ void GameLogic::receiveTouchUpdate(){
     
     if(joystick->getIsActive()){
         
-        U4DEngine::U4DVector3n joyPosition=joystick->getDataPosition();
+        U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
         
-        joyPosition.normalize();
-        
-        U4DEngine::U4DVector3n heading(joyPosition.x*fieldLength,player->getAbsolutePosition().y,-joyPosition.y*fieldWidth);
-        
-        player->setPlayerHeading(heading);
+        joystickDirection.normalize();
+    
+        player->setJoystickDirection(joystickDirection);
         
         joystickActive=true;
     }

@@ -21,6 +21,7 @@
                 <specular_intensity>0.000000 </specular_intensity>
                 <specular_hardness>50.000000 </specular_hardness>
                 
+                <texture_image>cesped.png</texture_image>
                 
                 <local_matrix>1.000000 0.000000 0.000000 0.000000 0.000000 1.000000 0.000000 -1.000000 0.000000 0.000000 1.000000 -0.000000 0.000000 0.000000 0.000000 1.000000</local_matrix>
                 
@@ -47,6 +48,7 @@
                 <specular_intensity>0.000000 </specular_intensity>
                 <specular_hardness>50.000000 </specular_hardness>
                 
+                <texture_image>ball.png</texture_image>
                 
                 <local_matrix>1.000000 0.000000 0.000000 13.617479 0.000000 1.000000 0.000000 1.328534 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 1.000000</local_matrix>
                 

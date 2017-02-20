@@ -281,3 +281,14 @@ void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirec
     setAngularVelocity(initialVelocity);
 }
 
+void SoccerBall::removeKineticForces(){
+    
+    clearForce();
+    clearMoment();
+    
+    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+    setVelocity(zero);
+    setAngularVelocity(zero);
+    
+}
+

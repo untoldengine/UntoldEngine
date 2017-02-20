@@ -31,6 +31,8 @@ private:
     
     bool joystickActive;
     
+    U4DEngine::U4DVector3n joystickDirection;
+    
 public:
     
     SoccerPlayer();
@@ -63,9 +65,13 @@ public:
     
     void setBallEntity(SoccerBall *uSoccerBall);
     
+    SoccerBall *getBallEntity();
+    
     void applyForceToPlayer(float uVelocity, double dt);
     
     void setPlayerHeading(U4DEngine::U4DVector3n& uHeading);
+    
+    U4DEngine::U4DVector3n getPlayerHeading();
     
     U4DEngine::U4DAnimation *getRunningAnimation();
     
@@ -98,6 +104,12 @@ public:
     void removeKineticForces();
     
     void kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
+    
+    void setJoystickDirection(U4DEngine::U4DVector3n uJoystickDirection);
+    
+    U4DEngine::U4DVector3n getJoystickDirection();
+    
+    float distanceToBall();
     
 };
 #endif /* SoccerPlayer_hpp */

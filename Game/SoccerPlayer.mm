@@ -141,6 +141,17 @@ void SoccerPlayer::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
     
 }
 
+U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
+    
+    U4DEngine::U4DVector3n heading=getViewInDirection();
+    
+    heading.x*=fieldLength;
+    heading.z*=fieldWidth;
+    
+    return heading;
+    
+}
+
 void SoccerPlayer::update(double dt){
     
     stateManager->execute(dt);
@@ -301,6 +312,11 @@ void SoccerPlayer::setBallEntity(SoccerBall *uSoccerBall){
     soccerBallEntity=uSoccerBall;
 }
 
+SoccerBall *SoccerPlayer::getBallEntity(){
+    
+    return soccerBallEntity;
+}
+
 void SoccerPlayer::applyForceToPlayer(float uVelocity, double dt){
     
     U4DEngine::U4DVector3n heading=getViewInDirection();
@@ -317,6 +333,22 @@ void SoccerPlayer::applyForceToPlayer(float uVelocity, double dt){
     
 }
 
+float SoccerPlayer::distanceToBall(){
+    
+    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    
+    //set the height position equal to the ball y position
+    playerPosition.y=ballPosition.y;
+    
+    float ballRadius=soccerBallEntity->getBallRadius();
+    
+    float distance=(ballPosition-playerPosition).magnitude();
+    
+    return distance;
+}
+
 bool SoccerPlayer::hasReachedTheBall(){
     
     U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
@@ -330,7 +362,7 @@ bool SoccerPlayer::hasReachedTheBall(){
     
     float distanceToBall=(ballPosition-playerPosition).magnitude();
     
-    if (distanceToBall<=ballRadius) {
+    if (distanceToBall<=(ballRadius+2.5)) {
         
         return true;
     }
@@ -415,4 +447,15 @@ void SoccerPlayer::removeKineticForces(){
 void SoccerPlayer::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
     
     soccerBallEntity->kickBallToGround(uVelocity, uDirection, dt);
+}
+
+void SoccerPlayer::setJoystickDirection(U4DEngine::U4DVector3n uJoystickDirection){
+    
+    joystickDirection=uJoystickDirection;
+}
+
+U4DEngine::U4DVector3n SoccerPlayer::getJoystickDirection(){
+    
+    return joystickDirection;
+
 }

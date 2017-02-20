@@ -8,6 +8,7 @@
 
 #include "SoccerPlayerTakeBallControlState.h"
 #include "SoccerPlayerDribbleState.h"
+#include "SoccerBall.h"
 
 SoccerPlayerTakeBallControlState* SoccerPlayerTakeBallControlState::instance=0;
 
@@ -44,7 +45,17 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
         //set the kick pass at this keyframe and interpolation time
         if (uPlayer->getAnimationCurrentKeyframe()==3 && uPlayer->getAnimationCurrentInterpolationTime()==0) {
             
-            uPlayer->kickBallToGround(5.0, uPlayer->getViewInDirection(),dt);
+            U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
+            
+            playerHeading.normalize();
+            
+            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+            
+            U4DEngine::U4DVector3n direction=playerHeading.cross(upVector);
+            
+            direction.y=0.0;
+            
+            uPlayer->kickBallToGround(3.0, direction,dt);
             
             SoccerPlayerStateInterface *dribbleState=SoccerPlayerDribbleState::sharedInstance();
             

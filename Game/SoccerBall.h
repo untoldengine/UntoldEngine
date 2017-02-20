@@ -48,6 +48,8 @@ public:
     
     float getBallRadius();
     
+    void removeKineticForces();
+    
     void kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
 };
 
