@@ -15,7 +15,7 @@
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerBall.h"
 
-SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false){
+SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0){
     
     stateManager=new SoccerPlayerStateManager(this);
     
@@ -126,7 +126,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         loadRenderingInformation();
         
         //translate the player
-        translateBy(-9.0, getModelDimensions().y/2.0+1.3, 0.0);
+        translateBy(-40.0, getModelDimensions().y/2.0+1.3, 0.0);
         
     }
     
@@ -155,81 +155,7 @@ U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
 void SoccerPlayer::update(double dt){
     
     stateManager->execute(dt);
-    
-    /*
-    //check if model has collided with ball
-    if (getModelHasCollided()) {
-        
-        U4DEngine::U4DVector3n view=getViewInDirection();
-        
-        U4DEngine::U4DVector3n relativePositionOfBall=soccerBallEntity->getAbsolutePosition()-getAbsolutePosition();
-        
-        view.normalize();
-        relativePositionOfBall.normalize();
-        
-        float inSameDirection=view.dot(relativePositionOfBall);
-        
-        if (inSameDirection>=0) {
-            
-            //set player collision with ball filter not to occur
-            setCollisionFilterGroupIndex(kNegativeGroupIndex);
-            changeState(kGroundPass);
-            
-        }else{
-            //apply collision with ball
-            setCollisionFilterGroupIndex(kZeroGroupIndex);
-            changeState(kNull);
-        }
-        
-    }
-    
 
-    if (getState()==kWalking) {
-        
-        if (getIsAnimationUpdatingKeyframe()&&getAnimationCurrentInterpolationTime()==0) {
-            
-            float velocity=5.0;
-            
-            applyForceToPlayer(velocity, dt);
-        
-        }
-        
-    }else if (getState()==kRunning) {
-        
-        if (getIsAnimationUpdatingKeyframe()&&getAnimationCurrentInterpolationTime()==0) {
-            
-            float velocity=10.0;
-            
-            applyForceToPlayer(velocity, dt);
-            
-        }
-            
-    }else if (getState()==kInPossesionOfBall) {
-        
-        
-    }else if (getState()==kAdvancingWithBall){
-    
-        
-    }else if (getState()==kGroundPass) {
-        
-        if (getIsAnimationUpdatingKeyframe()) {
-            
-            //set the kick pass at this keyframe and interpolation time
-            if (getAnimationCurrentKeyframe()==3 && getAnimationCurrentInterpolationTime()==0) {
-                
-                joyStickData.normalize();
-                soccerBallEntity->changeState(kGroundPass);
-                soccerBallEntity->setKickDirection(joyStickData);
-                
-                //apply collision with ball
-                //setCollisionFilterGroupIndex(kZeroGroupIndex);
-                
-                changeState(kRunning);
-            }
-        }
-        
-    }
-    */
 }
 
 
@@ -238,68 +164,33 @@ void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
     
     stateManager->changeState(uState);
     
- /*
-    removeCurrentPlayingAnimation();
-    
-    setState(uState);
-    
-    switch (uState) {
-            
-        case kWalking:
-            
-            setNextAnimationToPlay(walking);
-            setPlayBlendedAnimation(true);
-            
-            break;
-            
-        case kRunning:
-            
-            setNextAnimationToPlay(running);
-            setPlayBlendedAnimation(true);
-            
-            break;
-            
-        case kAirPass:
-            
-            break;
-            
-        case kGroundPass:
-        {
-            setNextAnimationToPlay(sidePass);
-            setPlayNextAnimationContinuously(false);
-            setPlayBlendedAnimation(true);
-        }
-            
-            break;
-            
-        case kInPossesionOfBall:
-            
-            break;
-            
-        case kNull:
-            
-            removeAllAnimations();
-            
-            break;
-            
-        default:
-            
-            break;
-    }
-    
-    playAnimation();
-    
-*/
 }
 
 
 void SoccerPlayer::trackBall(){
+    
+    U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
+    
+    playerHeading.normalize();
+    
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+    
+    U4DEngine::U4DVector3n directionOffset=playerHeading.cross(upVector);
+    
+    directionOffset+=playerHeading;
+    
+    directionOffset.y=0.0;
+    
+    //multiply the direction offset by the distance of the foot to the body
+    directionOffset*leftRightFootOffset;
     
     U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
     U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
+    
+    distanceVector-=directionOffset;
     
     U4DEngine::U4DVector3n directionToLook(distanceVector.x*fieldLength,playerPosition.y,distanceVector.z*fieldWidth);
     
@@ -344,7 +235,7 @@ float SoccerPlayer::distanceToBall(){
     
     float ballRadius=soccerBallEntity->getBallRadius();
     
-    float distance=(ballPosition-playerPosition).magnitude();
+    float distance=(ballPosition-playerPosition).magnitude()-ballRadius;
     
     return distance;
 }

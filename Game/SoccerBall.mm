@@ -268,7 +268,6 @@ void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirec
     addForce(forceToBall);
     
     
-    
     //apply moment to ball
     U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
     

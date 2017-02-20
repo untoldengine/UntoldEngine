@@ -33,6 +33,8 @@ private:
     
     U4DEngine::U4DVector3n joystickDirection;
     
+    float leftRightFootOffset;
+    
 public:
     
     SoccerPlayer();

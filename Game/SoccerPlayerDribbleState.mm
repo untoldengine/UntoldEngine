@@ -42,8 +42,24 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
 
 void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     
+    float distanceToBall=uPlayer->distanceToBall();
+    SoccerBall *ball=uPlayer->getBallEntity();
+    
+    //get angle between player and ball
+    U4DEngine::U4DVector3n heading=uPlayer->getPlayerHeading();
+    heading.normalize();
+    
+    U4DEngine::U4DVector3n ballPosition=ball->getAbsolutePosition();
+    U4DEngine::U4DVector3n playerPosition=uPlayer->getAbsolutePosition();
+    
+    playerPosition.y=ballPosition.y;
+    
+    U4DEngine::U4DVector3n pos=ballPosition-playerPosition;
+    
+    std::cout<<"angle: "<<pos.angle(heading)<<std::endl;
+    
     //check if player should pass
-    if (uPlayer->getButtonAPressed()) {
+    if (uPlayer->getButtonAPressed() && (distanceToBall<=ball->getBallRadius()+3.0)) {
         
         SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
         
@@ -75,9 +91,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     }
     
     //check the distance between the ball and the player
-    if (uPlayer->distanceToBall()>7.0) {
-        
-        SoccerBall *ball=uPlayer->getBallEntity();
+    if (distanceToBall>5.0) {
         
         ball->removeKineticForces();
     }

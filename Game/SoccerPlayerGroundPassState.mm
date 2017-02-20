@@ -42,11 +42,11 @@ void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
     if (uPlayer->getIsAnimationUpdatingKeyframe()) {
         
         //set the kick pass at this keyframe and interpolation time
-        if (uPlayer->getAnimationCurrentKeyframe()==3 && uPlayer->getAnimationCurrentInterpolationTime()==0.0) {
+        if (uPlayer->getAnimationCurrentKeyframe()==3) {
             
             U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
             
-            uPlayer->kickBallToGround(200.0, direction,dt);
+            uPlayer->kickBallToGround(300.0, direction,dt);
             
             SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
             
