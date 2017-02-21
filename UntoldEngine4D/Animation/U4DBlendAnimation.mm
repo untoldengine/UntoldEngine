@@ -137,6 +137,23 @@ namespace U4DEngine {
             //unschedule the timer
             scheduler->unScheduleTimer(timer);
             
+            //set playing animations to false
+            previousAnimation->setAnimationIsPlaying(false);
+            
+            nextAnimation->setAnimationIsPlaying(false);
+            
+            //set keyframes to zero
+            previousAnimation->keyframe=0;
+            
+            nextAnimation->keyframe=0;
+            
+            //set interpolation time to zero
+            
+            previousAnimation->interpolationTime=0.0;
+            
+            nextAnimation->interpolationTime=0.0;
+            
+            //clear the play blended animation
             animationManager->setPlayBlendedAnimation(false);
             
             //call the manager and play next animation

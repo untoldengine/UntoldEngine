@@ -57,6 +57,8 @@ void U4DAnimation::play(){
             
             scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,durationOfKeyframe/fps, true);
             
+        }else{
+            logger->log("Error: The animation %s is currently playing. Can't play it again until it finishes.",name.c_str());
         }
         
     }else{
@@ -91,6 +93,12 @@ void U4DAnimation::pause(){
 bool U4DAnimation::isAnimationPlaying(){
 
     return animationPlaying;
+}
+    
+void U4DAnimation::setAnimationIsPlaying(bool uValue){
+    
+    animationPlaying=uValue;
+    
 }
 
 void U4DAnimation::runAnimation(){
