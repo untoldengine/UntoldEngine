@@ -14,51 +14,121 @@
 #include "UserCommonProtocols.h"
 #include "SoccerBall.h"
 
+class SoccerPlayerStateInterface;
+class SoccerPlayerStateManager;
+class SoccerPlayerFeet;
+
 class SoccerPlayer:public U4DEngine::U4DGameObject {
     
 private:
     
-    GameEntityState entityState;
-    U4DEngine::U4DVector3n joyStickData;
     SoccerBall *soccerBallEntity;
     
+    SoccerPlayerStateManager *stateManager;
+    
+    bool buttonAPressed;
+    
+    bool buttonBPressed;
+    
+    bool joystickActive;
+    
+    U4DEngine::U4DVector3n joystickDirection;
+    
+    float leftRightFootOffset;
+    
+    SoccerPlayerFeet *rightFoot;
+    
+    float footSwingAngle;
+    
+    bool flagToPassBall;
+    
 public:
-    SoccerPlayer(){};
-    ~SoccerPlayer(){};
+    
+    SoccerPlayer();
+    
+    ~SoccerPlayer();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
     
-    void changeState(GameEntityState uState);
+    U4DEngine::U4DAnimation *forwardKickAnimation;
     
-    void setState(GameEntityState uState);
+    U4DEngine::U4DAnimation *walkingAnimation;
     
-    GameEntityState getState();
+    U4DEngine::U4DAnimation *groundPassAnimation;
     
-    U4DEngine::U4DAnimation *forwardKick;
+    U4DEngine::U4DAnimation *runningAnimation;
     
-    U4DEngine::U4DAnimation *walking;
+    U4DEngine::U4DAnimation *forwardCarryAnimation;
     
-    U4DEngine::U4DAnimation *sidePass;
+    U4DEngine::U4DAnimation *sideCarryLeftAnimation;
     
-    U4DEngine::U4DAnimation *running;
+    U4DEngine::U4DAnimation *sideCarryRightAnimation;
     
-    U4DEngine::U4DAnimation *forwardCarry;
+    U4DEngine::U4DAnimation *idleAnimation;
     
-    U4DEngine::U4DAnimation *sideCarryLeft;
+    U4DEngine::U4DAnimation *takingBallControlAnimation;
     
-    U4DEngine::U4DAnimation *sideCarryRight;
+    void changeState(SoccerPlayerStateInterface* uState);
     
     void setBallEntity(SoccerBall *uSoccerBall);
     
+    SoccerBall *getBallEntity();
+    
     void applyForceToPlayer(float uVelocity, double dt);
     
-    inline void setJoystickData(U4DEngine::U4DVector3n& uData){joyStickData=uData;}
+    void setPlayerHeading(U4DEngine::U4DVector3n& uHeading);
+    
+    U4DEngine::U4DVector3n getPlayerHeading();
     
     U4DEngine::U4DAnimation *getRunningAnimation();
     
-    U4DEngine::U4DAnimation *getSidePassAnimation();
+    U4DEngine::U4DAnimation *getGroundPassAnimation();
+    
+    U4DEngine::U4DAnimation *getForwardCarryAnimation();
+    
+    U4DEngine::U4DAnimation *getIdleAnimation();
+    
+    U4DEngine::U4DAnimation *getTakingBallControlAnimation();
+    
+    void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
+    
+    void setButtonAPressed(bool uValue);
+    
+    void setButtonBPressed(bool uValue);
+    
+    bool getButtonAPressed();
+    
+    bool getButtonBPressed();
+    
+    void setJoystickActive(bool uValue);
+    
+    bool getJoystickActive();
+    
+    void trackBall();
+    
+    bool hasReachedTheBall();
+    
+    void removeKineticForces();
+    
+    void kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
+    
+    void setJoystickDirection(U4DEngine::U4DVector3n uJoystickDirection);
+    
+    U4DEngine::U4DVector3n getJoystickDirection();
+    
+    float distanceToBall();
+    
+    void swingFeet(float uCycleAngle, float uAmplitude,double dt);
+    
+    bool getFootCollidedWithBall();
+    
+    void setFlagToPassBall(bool uValue);
+    
+    bool getFlagToPassBall();
+    
+    void setFootSwingInitAngle(float uAngle);
     
 };
 #endif /* SoccerPlayer_hpp */

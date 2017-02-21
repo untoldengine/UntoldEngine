@@ -193,7 +193,7 @@ float U4DAnimation::getCurrentInterpolationTime(){
 
 bool U4DAnimation::getIsUpdatingKeyframe(){
 
-    return timer->getHasTimerExpired();
+    return (isAnimationPlaying() && getCurrentInterpolationTime()==0);
 }
     
 void U4DAnimation::setPlayContinuousLoop(bool uValue){

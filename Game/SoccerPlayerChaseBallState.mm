@@ -7,6 +7,9 @@
 //
 
 #include "SoccerPlayerChaseBallState.h"
+#include "SoccerPlayerTakeBallControlState.h"
+
+SoccerPlayerChaseBallState* SoccerPlayerChaseBallState::instance=0;
 
 SoccerPlayerChaseBallState::SoccerPlayerChaseBallState(){
     
@@ -16,12 +19,46 @@ SoccerPlayerChaseBallState::~SoccerPlayerChaseBallState(){
     
 }
 
-void SoccerPlayerChaseBallState::enter(SoccerPlayer *uPlayer){
+SoccerPlayerChaseBallState* SoccerPlayerChaseBallState::sharedInstance(){
     
+    if (instance==0) {
+        instance=new SoccerPlayerChaseBallState();
+    }
+    
+    return instance;
 }
 
-void SoccerPlayerChaseBallState::execute(SoccerPlayer *uPlayer){
+void SoccerPlayerChaseBallState::enter(SoccerPlayer *uPlayer){
+ 
+    //set run animation
+    uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
+    uPlayer->setPlayBlendedAnimation(true);
+    uPlayer->setPlayNextAnimationContinuously(true);
+}
+
+void SoccerPlayerChaseBallState::execute(SoccerPlayer *uPlayer, double dt){
     
+    //track the ball
+    uPlayer->trackBall();
+    
+    
+    //has the player reached the ball
+    if (!uPlayer->hasReachedTheBall()) {
+        
+        //chase the ball
+        uPlayer->applyForceToPlayer(10.0, dt);
+        
+    }else{
+        
+        uPlayer->removeKineticForces();
+        
+        SoccerPlayerStateInterface *takeBallControlState=SoccerPlayerTakeBallControlState::sharedInstance();
+        
+        uPlayer->changeState(takeBallControlState);
+        
+        
+    }
+     
 }
 
 void SoccerPlayerChaseBallState::exit(SoccerPlayer *uPlayer){

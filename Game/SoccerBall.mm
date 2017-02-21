@@ -37,6 +37,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         
         
         loadRenderingInformation();
+        
     }
     
     
@@ -236,5 +237,60 @@ GameEntityState SoccerBall::getState(){
 void SoccerBall::setKickDirection(U4DEngine::U4DVector3n &uDirection){
     
     kickDirection=uDirection;
+}
+
+float SoccerBall::getBallRadius(){
+    return ballRadius;
+}
+
+void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
+    
+    uDirection.normalize();
+    
+    //move ball to proper position
+    float offset=ballRadius-getAbsolutePosition().y;
+    
+    translateBy(0.0,offset, 0.0);
+    
+    //awake the ball
+    setAwake(true);
+    
+    //set collision with field not to occur
+    setCollisionFilterGroupIndex(kNegativeGroupIndex);
+    
+    //turn off gravity
+    U4DEngine::U4DVector3n gravityForce(0,0,0);
+    setGravity(gravityForce);
+    
+    //apply force to ball
+    
+    U4DEngine::U4DVector3n forceToBall=(uDirection*uVelocity*getMass())/dt;
+    
+    addForce(forceToBall);
+    
+    
+    //apply moment to ball
+    U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
+    
+    U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(forceToBall);
+    
+    addMoment(groundPassMoment);
+    
+    //zero out the velocities
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+    
+    setVelocity(initialVelocity);
+    setAngularVelocity(initialVelocity);
+}
+
+void SoccerBall::removeKineticForces(){
+    
+    clearForce();
+    clearMoment();
+    
+    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+    setVelocity(zero);
+    setAngularVelocity(zero);
+    
 }
 

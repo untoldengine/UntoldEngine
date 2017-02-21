@@ -9,6 +9,7 @@
 #include "SoccerPlayerStateManager.h"
 #include "SoccerPlayer.h"
 
+
 SoccerPlayerStateManager::SoccerPlayerStateManager(SoccerPlayer *uPlayer):player(uPlayer),previousState(NULL),currentState(NULL){
     
 }
@@ -17,25 +18,36 @@ SoccerPlayerStateManager::~SoccerPlayerStateManager(){
     
 }
 
-void SoccerPlayerStateManager::execute(){
+void SoccerPlayerStateManager::execute(double dt){
     
-    currentState->execute(player);
+    currentState->execute(player, dt);
     
 }
 
 void SoccerPlayerStateManager::changeState(SoccerPlayerStateInterface *uState){
     
+    //remove animation
+    player->removeCurrentPlayingAnimation();
+    
+    //remove all kinetic forces
+    player->removeKineticForces();
+    
     //keep a record of previous state
     previousState=currentState;
     
     //call the exit method of the existing state
-    currentState->exit(player);
+    if (currentState!=NULL) {
+        currentState->exit(player);
+    }
     
     //change state to new state
     currentState=uState;
     
     //call the entry method of the new state
     currentState->enter(player);
+    
+    //play new animation
+    player->playAnimation();
     
 }
 

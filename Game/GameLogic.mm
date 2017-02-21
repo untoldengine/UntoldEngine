@@ -15,6 +15,10 @@
 #include "U4DJoyStick.h"
 #include "CommonProtocols.h"
 
+#include "SoccerPlayerDribbleState.h"
+#include "SoccerPlayerChaseBallState.h"
+#include "SoccerPlayerStateInterface.h"
+
 void GameLogic::update(double dt){
     
 }
@@ -34,15 +38,13 @@ void GameLogic::init(){
 
 void GameLogic::receiveTouchUpdate(){
     
+    bool buttonAPressed=false;
+    bool buttonBPressed=false;
+    bool joystickActive=false;
+    
     if (buttonA->getIsPressed()) {
         
-        if (player->getState()==kInPossesionOfBall) {
-            
-            //player->changeState(kGroundPass);
-        }else{
-            player->changeState(kGroundPass);
-        }
-        
+        buttonAPressed=true;
         
     }else if(buttonA->getIsReleased()){
         
@@ -52,7 +54,7 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonB->getIsPressed()) {
         
-        player->changeState(kRunning);
+        buttonBPressed=true;
         
         
     }else if(buttonB->getIsReleased()){
@@ -63,18 +65,15 @@ void GameLogic::receiveTouchUpdate(){
     
     if(joystick->getIsActive()){
         
-        U4DEngine::U4DVector3n joyData=joystick->getDataPosition();
+        U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
         
-        joyPosition=joyData;
+        joystickDirection.normalize();
+    
+        player->setJoystickDirection(joystickDirection);
         
-        joyPosition.normalize();
-        
-        U4DEngine::U4DVector3n setView(joyPosition.x*field->getModelDimensions().x,player->getAbsolutePosition().y,-joyPosition.y*field->getModelDimensions().z);
-        
-        player->viewInDirection(setView);
-        
-        player->setJoystickData(joyPosition);
-       
+        joystickActive=true;
     }
+    
+    player->receiveTouchUpdate(buttonAPressed, buttonBPressed, joystickActive);
     
 }

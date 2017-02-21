@@ -14,15 +14,23 @@
 
 class SoccerPlayerChaseBallState:public SoccerPlayerStateInterface {
     
-public:
+private:
+    
+protected:
     
     SoccerPlayerChaseBallState();
     
     ~SoccerPlayerChaseBallState();
     
+public:
+    
+    static SoccerPlayerChaseBallState* instance;
+    
+    static SoccerPlayerChaseBallState* sharedInstance();
+    
     void enter(SoccerPlayer *uPlayer);
     
-    void execute(SoccerPlayer *uPlayer);
+    void execute(SoccerPlayer *uPlayer, double dt);
     
     void exit(SoccerPlayer *uPlayer);
     
