@@ -38,6 +38,9 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
     uPlayer->setPlayNextAnimationContinuously(true);
     uPlayer->setPlayBlendedAnimation(true);
     
+    //set the initial angle for the foot swing
+    uPlayer->setFootSwingInitAngle(90.0);
+    
 }
 
 void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
@@ -46,11 +49,9 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     SoccerBall *ball=uPlayer->getBallEntity();
     
     //check if player should pass
-    if (uPlayer->getButtonAPressed() && (distanceToBall<=ball->getBallRadius()+3.0)) {
+    if (uPlayer->getButtonAPressed()) {
         
-        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
-        
-        uPlayer->changeState(groundPassState);
+        uPlayer->setFlagToPassBall(true);
         
     }
     
@@ -67,14 +68,24 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     
     //dribble
     
-    if (uPlayer->getIsAnimationUpdatingKeyframe()) {
+    uPlayer->swingFeet(50.0,3.0,dt);
+    
+    //check if player should pass
+    if (uPlayer->getFlagToPassBall()) {
         
-        //set the kick pass at this keyframe and interpolation time
-        if ((uPlayer->getAnimationCurrentKeyframe()==0 || uPlayer->getAnimationCurrentKeyframe()==6) && uPlayer->getAnimationCurrentInterpolationTime()==0.0) {
-            
-            uPlayer->kickBallToGround(15.0, directionToKick,dt);
-            
-        }
+        //ball->removeKineticForces();
+        
+        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
+        
+        uPlayer->changeState(groundPassState);
+        
+    }
+    
+    //keep dribbling
+    if (!uPlayer->getFlagToPassBall()&&uPlayer->getFootCollidedWithBall()) {
+        
+        uPlayer->kickBallToGround(15.0, directionToKick,dt);
+    
     }
     
     //check the distance between the ball and the player

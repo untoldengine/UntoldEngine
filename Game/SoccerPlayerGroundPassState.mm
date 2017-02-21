@@ -8,6 +8,7 @@
 
 #include "SoccerPlayerGroundPassState.h"
 #include "SoccerPlayerChaseBallState.h"
+#include "SoccerPlayerIdleState.h"
 
 SoccerPlayerGroundPassState* SoccerPlayerGroundPassState::instance=0;
 
@@ -34,27 +35,32 @@ void SoccerPlayerGroundPassState::enter(SoccerPlayer *uPlayer){
     //set the ground pass animation
     uPlayer->setNextAnimationToPlay(uPlayer->getGroundPassAnimation());
     uPlayer->setPlayNextAnimationContinuously(false);
-    uPlayer->setPlayBlendedAnimation(true);
+    //uPlayer->setPlayBlendedAnimation(true);
+    
+    uPlayer->setFlagToPassBall(false);
+    uPlayer->setFootSwingInitAngle(90.0);
 }
 
 void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
     
-    if (uPlayer->getIsAnimationUpdatingKeyframe()) {
+    uPlayer->swingFeet(90.0,3.0, dt);
+    
+    if(uPlayer->getFootCollidedWithBall()){
         
-        //set the kick pass at this keyframe and interpolation time
-        if (uPlayer->getAnimationCurrentKeyframe()==3) {
-            
-            U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
-            
-            uPlayer->kickBallToGround(300.0, direction,dt);
-            
-            SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
-            
-            uPlayer->changeState(chaseBallState);
-            
-        }
+        U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
+        
+        uPlayer->kickBallToGround(300.0, direction,dt);
+        
+        SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
+        //SoccerPlayerIdleState *idleState=SoccerPlayerIdleState::sharedInstance();
+        
+        uPlayer->changeState(chaseBallState);
     }
-
+    
+    //chase the ball
+//    uPlayer->applyForceToPlayer(10.0, dt);
+//    
+//    uPlayer->trackBall();
 }
 
 void SoccerPlayerGroundPassState::exit(SoccerPlayer *uPlayer){

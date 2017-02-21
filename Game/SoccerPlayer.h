@@ -16,6 +16,7 @@
 
 class SoccerPlayerStateInterface;
 class SoccerPlayerStateManager;
+class SoccerPlayerFeet;
 
 class SoccerPlayer:public U4DEngine::U4DGameObject {
     
@@ -34,6 +35,12 @@ private:
     U4DEngine::U4DVector3n joystickDirection;
     
     float leftRightFootOffset;
+    
+    SoccerPlayerFeet *rightFoot;
+    
+    float footSwingAngle;
+    
+    bool flagToPassBall;
     
 public:
     
@@ -112,6 +119,16 @@ public:
     U4DEngine::U4DVector3n getJoystickDirection();
     
     float distanceToBall();
+    
+    void swingFeet(float uCycleAngle, float uAmplitude,double dt);
+    
+    bool getFootCollidedWithBall();
+    
+    void setFlagToPassBall(bool uValue);
+    
+    bool getFlagToPassBall();
+    
+    void setFootSwingInitAngle(float uAngle);
     
 };
 #endif /* SoccerPlayer_hpp */

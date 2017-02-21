@@ -38,6 +38,7 @@ void SoccerPlayerIdleState::execute(SoccerPlayer *uPlayer, double dt){
     
     //track the ball
     uPlayer->trackBall();
+    
 }
 
 void SoccerPlayerIdleState::exit(SoccerPlayer *uPlayer){

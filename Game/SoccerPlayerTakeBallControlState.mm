@@ -51,14 +51,14 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
             
             playerHeading.normalize();
             
-            uPlayer->kickBallToGround(3.0, playerHeading,dt);
+            uPlayer->kickBallToGround(5.0, playerHeading,dt);
             
             
         }
     }
     
     //wait until the ball is this distance away from the player before it can go into dribble state.
-    if (uPlayer->distanceToBall()>3.5) {
+    if (uPlayer->distanceToBall()>3.0) {
         
         SoccerPlayerStateInterface *dribbleState=SoccerPlayerDribbleState::sharedInstance();
         

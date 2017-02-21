@@ -37,6 +37,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         
         
         loadRenderingInformation();
+        
     }
     
     

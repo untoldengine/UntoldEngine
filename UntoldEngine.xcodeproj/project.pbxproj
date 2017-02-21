@@ -64,6 +64,7 @@
 		036848ED1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848EB1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm */; };
 		036848EF1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848EE1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d */; };
 		036848F21E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */; };
+		036848F51E5B65D80087BBBD /* SoccerPlayerFeet.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848F31E5B65D80087BBBD /* SoccerPlayerFeet.mm */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -305,6 +306,8 @@
 		036848EE1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = takingballcontrolanimationscript.u4d; path = Resources/takingballcontrolanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerGroundPassState.mm; sourceTree = "<group>"; };
 		036848F11E5AB0510087BBBD /* SoccerPlayerGroundPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerGroundPassState.h; sourceTree = "<group>"; };
+		036848F31E5B65D80087BBBD /* SoccerPlayerFeet.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerFeet.mm; sourceTree = "<group>"; };
+		036848F41E5B65D80087BBBD /* SoccerPlayerFeet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerFeet.h; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserCommonProtocols.h; sourceTree = "<group>"; };
@@ -701,6 +704,8 @@
 				03848A401E3E5DE4007DD1C9 /* Floor.mm */,
 				03848A481E3FCD47007DD1C9 /* SoccerPlayer.h */,
 				03848A471E3FCD47007DD1C9 /* SoccerPlayer.mm */,
+				036848F41E5B65D80087BBBD /* SoccerPlayerFeet.h */,
+				036848F31E5B65D80087BBBD /* SoccerPlayerFeet.mm */,
 				035DD7791E43C4BC0042BE33 /* SoccerPost.h */,
 				035DD7781E43C4BC0042BE33 /* SoccerPost.mm */,
 				03EE34151E444BF7001F6FCF /* SoccerPostSensor.h */,
@@ -1620,6 +1625,7 @@
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
 				03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */,
+				036848F51E5B65D80087BBBD /* SoccerPlayerFeet.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
 				030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */,
