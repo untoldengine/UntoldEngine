@@ -22,7 +22,7 @@ void SoccerPlayerFeet::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        //setShader("nonVisibleShader");
+        setShader("nonVisibleShader");
         initMass(0.0);
         initCoefficientOfRestitution(0.0);
         enableCollisionBehavior();

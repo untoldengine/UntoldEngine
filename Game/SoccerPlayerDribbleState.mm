@@ -38,15 +38,10 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
     uPlayer->setPlayNextAnimationContinuously(true);
     uPlayer->setPlayBlendedAnimation(true);
     
-    //set the initial angle for the foot swing
-    uPlayer->setFootSwingInitAngle(90.0);
     
 }
 
 void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
-    
-    float distanceToBall=uPlayer->distanceToBall();
-    SoccerBall *ball=uPlayer->getBallEntity();
     
     //check if player should pass
     if (uPlayer->getButtonAPressed()) {
@@ -66,10 +61,6 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
         directionToKick.y=0;
     }
     
-    //dribble
-    
-    uPlayer->swingFeet(50.0,3.0,dt);
-    
     //check if player should pass
     if (uPlayer->getFlagToPassBall()) {
         
@@ -82,16 +73,10 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     }
     
     //keep dribbling
-    if (!uPlayer->getFlagToPassBall()&&uPlayer->getFootCollidedWithBall()) {
+    if (uPlayer->getFootCollidedWithBall()) {
         
-        uPlayer->kickBallToGround(15.0, directionToKick,dt);
+        uPlayer->kickBallToGround(20.0, directionToKick,dt);
     
-    }
-    
-    //check the distance between the ball and the player
-    if (distanceToBall>5.0) {
-        
-        ball->removeKineticForces();
     }
     
     //chase the ball

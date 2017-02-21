@@ -38,8 +38,6 @@ private:
     
     SoccerPlayerFeet *rightFoot;
     
-    float footSwingAngle;
-    
     bool flagToPassBall;
     
 public:
@@ -120,15 +118,11 @@ public:
     
     float distanceToBall();
     
-    void swingFeet(float uCycleAngle, float uAmplitude,double dt);
-    
     bool getFootCollidedWithBall();
     
     void setFlagToPassBall(bool uValue);
     
     bool getFlagToPassBall();
-    
-    void setFootSwingInitAngle(float uAngle);
     
     void updateBoneSpace(std::string uBoneName, U4DModel *uModel);
     
