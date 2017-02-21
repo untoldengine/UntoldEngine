@@ -17,6 +17,7 @@
 #include "SoccerBall.h"
 #include "SoccerPlayerFeet.h"
 #include "U4DTrigonometry.h"
+#include "U4DBoneData.h"
 
 SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),footSwingAngle(90.0),flagToPassBall(false){
     
@@ -137,6 +138,9 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         rightFoot->init("rightfoot", "characterscript.u4d");
         
         addChild(rightFoot);
+        
+        
+        
     }
     
     
@@ -163,10 +167,30 @@ U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
 
 void SoccerPlayer::update(double dt){
     
+    updateBoneSpace("foot.R", rightFoot);
+    
     stateManager->execute(dt);
 
 }
 
+
+void SoccerPlayer::updateBoneSpace(std::string uBoneName, U4DModel *uModel){
+    
+    //if (getCurrentPlayingAnimation()!=NULL) {
+        
+        U4DEngine::U4DMatrix4n animationBlenderMatrix=getCurrentPlayingAnimation()->modelerAnimationTransform;
+        
+        U4DEngine::U4DDualQuaternion boneSpace=getBoneAnimationSpace(uBoneName);
+        
+        U4DEngine::U4DMatrix4n boneMatrix=boneSpace.transformDualQuaternionToMatrix4n();
+        
+        boneMatrix=animationBlenderMatrix.inverse()*boneMatrix*animationBlenderMatrix;
+        
+        uModel->setLocalSpace(boneMatrix);
+        
+    //}
+    
+}
 
 
 void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
@@ -361,7 +385,7 @@ U4DEngine::U4DVector3n SoccerPlayer::getJoystickDirection(){
 }
 
 void SoccerPlayer::swingFeet(float uCycleAngle, float uAmplitude,double dt){
-    
+    /*
     if (getIsAnimationUpdatingKeyframe()) {
         
         U4DEngine::U4DTrigonometry trig;
@@ -400,6 +424,7 @@ void SoccerPlayer::swingFeet(float uCycleAngle, float uAmplitude,double dt){
         rightFoot->translateTo(newFootPosition);
         
     }
+     */
 }
 
 bool SoccerPlayer::getFootCollidedWithBall(){

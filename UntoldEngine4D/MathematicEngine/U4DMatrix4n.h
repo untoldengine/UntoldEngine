@@ -135,6 +135,11 @@ public:
     U4DMatrix3n extract3x3Matrix();
     
     /**
+     @todo document this
+     */
+    U4DVector3n extractAffineVector();
+    
+    /**
      @brief Method that sets the transpose to a 4x4 matrix
      
      @param m 4x4 matrix to compute its transpose and set it to the current 4x4 matrix

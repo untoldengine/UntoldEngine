@@ -22,7 +22,7 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        
+        /*
         initAsPlatform(true);
         initMass(1000.0);
         initCoefficientOfRestitution(0.9);
@@ -31,7 +31,8 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
         setCollisionFilterCategory(kSoccerField);
         setCollisionFilterMask(kSoccerBall);
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
-        
+        */
+        setShader("nonVisibleShader");
         loadRenderingInformation();
         
     }

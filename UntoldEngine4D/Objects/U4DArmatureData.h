@@ -140,6 +140,8 @@ public:
      @brief Method which sets the rest pose matrix of each bone
      */
     void setRestPoseMatrix();
+    
+    
 };
     
 }

@@ -376,6 +376,24 @@ U4DMatrix3n U4DMatrix4n::extract3x3Matrix(){
     return result;
     
 }
+    
+U4DVector3n U4DMatrix4n::extractAffineVector(){
+    
+    //4x4 Matrix
+    //	0	4	8	12
+    //	1	5	9	13
+    //	2	6	10	14
+    //	3	7	11	15
+    
+    U4DVector3n result;
+    
+    result.x=matrixData[12];
+    result.y=matrixData[13];
+    result.z=matrixData[14];
+    
+    return result;
+    
+}
 
 #pragma mark-Transpose
 //transpose
