@@ -46,6 +46,8 @@ namespace U4DEngine {
         
         if (nextAnimation!=NULL) {
             
+            //play next animation
+            currentAnimation=nextAnimation;
             
             if (previousAnimation!=NULL && getPlayBlendedAnimation()==true) {
                 
@@ -53,9 +55,6 @@ namespace U4DEngine {
                 blendedAnimation->playBlendedAnimation();
                 
             }else{
-                
-                //play next animation
-                currentAnimation=nextAnimation;
                 
                 if (currentAnimation->isAnimationPlaying()==false) {
                     

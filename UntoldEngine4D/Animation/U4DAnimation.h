@@ -147,6 +147,11 @@ public:
     /**
      @todo document this
      */
+    void setAnimationIsPlaying(bool uValue);
+    
+    /**
+     @todo document this
+     */
     int getCurrentKeyframe();
     
     /**
