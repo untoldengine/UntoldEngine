@@ -19,7 +19,7 @@
 #include "U4DTrigonometry.h"
 #include "U4DBoneData.h"
 
-SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),footSwingAngle(90.0),flagToPassBall(false){
+SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),flagToPassBall(false){
     
     stateManager=new SoccerPlayerStateManager(this);
     
@@ -176,7 +176,7 @@ void SoccerPlayer::update(double dt){
 
 void SoccerPlayer::updateBoneSpace(std::string uBoneName, U4DModel *uModel){
     
-    //if (getCurrentPlayingAnimation()!=NULL) {
+    if (getCurrentPlayingAnimation()!=NULL) {
         
         U4DEngine::U4DMatrix4n animationBlenderMatrix=getCurrentPlayingAnimation()->modelerAnimationTransform;
         
@@ -188,7 +188,7 @@ void SoccerPlayer::updateBoneSpace(std::string uBoneName, U4DModel *uModel){
         
         uModel->setLocalSpace(boneMatrix);
         
-    //}
+    }
     
 }
 
@@ -384,48 +384,6 @@ U4DEngine::U4DVector3n SoccerPlayer::getJoystickDirection(){
 
 }
 
-void SoccerPlayer::swingFeet(float uCycleAngle, float uAmplitude,double dt){
-    /*
-    if (getIsAnimationUpdatingKeyframe()) {
-        
-        U4DEngine::U4DTrigonometry trig;
-        
-        float angle=trig.degreesToRad(footSwingAngle);
-        
-        float yFootPosition=rightFoot->getLocalPosition().y;
-        
-        U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
-        
-        playerHeading.normalize();
-        
-        U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-        
-        U4DEngine::U4DVector3n directionOffsetVector=playerHeading.cross(upVector);
-        
-        directionOffsetVector*=leftRightFootOffset;
-        
-        U4DEngine::U4DVector3n newFootPosition=playerHeading*uAmplitude*cos(angle);
-        
-        footSwingAngle+=uCycleAngle;
-        
-        if (footSwingAngle>360.0) {
-            footSwingAngle=0.0;
-        }
-    
-        newFootPosition+=directionOffsetVector;
-        
-        newFootPosition.y=yFootPosition;
-        
-        //transform the new foot location into the player coordinate system
-        U4DEngine::U4DMatrix3n m=getLocalMatrixOrientation();
-        
-        newFootPosition=newFootPosition*m;
-        
-        rightFoot->translateTo(newFootPosition);
-        
-    }
-     */
-}
 
 bool SoccerPlayer::getFootCollidedWithBall(){
     
@@ -445,8 +403,3 @@ bool SoccerPlayer::getFlagToPassBall(){
     
 }
 
-void SoccerPlayer::setFootSwingInitAngle(float uAngle){
-    
-    footSwingAngle=uAngle;
-    
-}

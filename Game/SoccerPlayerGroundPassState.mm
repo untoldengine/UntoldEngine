@@ -38,12 +38,10 @@ void SoccerPlayerGroundPassState::enter(SoccerPlayer *uPlayer){
     //uPlayer->setPlayBlendedAnimation(true);
     
     uPlayer->setFlagToPassBall(false);
-    uPlayer->setFootSwingInitAngle(90.0);
+   
 }
 
 void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
-    
-    uPlayer->swingFeet(90.0,3.0, dt);
     
     if(uPlayer->getFootCollidedWithBall()){
         
@@ -58,9 +56,9 @@ void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
     }
     
     //chase the ball
-//    uPlayer->applyForceToPlayer(10.0, dt);
-//    
-//    uPlayer->trackBall();
+    uPlayer->applyForceToPlayer(10.0, dt);
+    
+    uPlayer->trackBall();
 }
 
 void SoccerPlayerGroundPassState::exit(SoccerPlayer *uPlayer){

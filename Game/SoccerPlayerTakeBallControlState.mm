@@ -40,22 +40,20 @@ void SoccerPlayerTakeBallControlState::enter(SoccerPlayer *uPlayer){
 
 void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt){
     
-    if (uPlayer->getIsAnimationUpdatingKeyframe()) {
+    //set the kick pass at this keyframe and interpolation time
+    if (uPlayer->getFootCollidedWithBall()) {
         
-        //set the kick pass at this keyframe and interpolation time
-        if (uPlayer->getAnimationCurrentKeyframe()==3 && uPlayer->getAnimationCurrentInterpolationTime()==0) {
-            
-            //adjust the ball to a good location to start dribbling
-            
-            U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
-            
-            playerHeading.normalize();
-            
-            uPlayer->kickBallToGround(5.0, playerHeading,dt);
-            
-            
-        }
+        //adjust the ball to a good location to start dribbling
+        
+        U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
+        
+        playerHeading.normalize();
+        
+        uPlayer->kickBallToGround(5.0, playerHeading,dt);
+        
+        
     }
+    
     
     //wait until the ball is this distance away from the player before it can go into dribble state.
     if (uPlayer->distanceToBall()>3.0) {
