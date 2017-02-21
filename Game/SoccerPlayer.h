@@ -130,5 +130,7 @@ public:
     
     void setFootSwingInitAngle(float uAngle);
     
+    void updateBoneSpace(std::string uBoneName, U4DModel *uModel);
+    
 };
 #endif /* SoccerPlayer_hpp */

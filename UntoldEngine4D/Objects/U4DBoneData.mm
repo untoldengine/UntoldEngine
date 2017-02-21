@@ -186,5 +186,26 @@ namespace U4DEngine {
         
         return boneChild;
     }
+    
+    int U4DBoneData::getChildrenBoneIndex(std::string uBoneName){
+        
+        U4DBoneData *boneChild;
+        
+        boneChild=this;
+        
+        while (boneChild->name.compare(uBoneName)!=0) {
+            
+            boneChild=boneChild->next;
+            
+        }
+        
+        return boneChild->index;
+        
+    }
+    
+    U4DDualQuaternion U4DBoneData::getBoneAnimationPoseSpace(){
+        
+        return animationPoseSpace;
+    }
 
 }

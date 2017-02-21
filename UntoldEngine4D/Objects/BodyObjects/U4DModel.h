@@ -216,6 +216,11 @@ namespace U4DEngine {
          */
         void viewInDirection(U4DVector3n& uDestinationPoint);
         
+        /**
+         @todo document this
+         */
+        U4DDualQuaternion getBoneAnimationSpace(std::string uName);
+        
     };
     
 }

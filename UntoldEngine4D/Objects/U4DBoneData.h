@@ -183,6 +183,11 @@ public:
     U4DBoneData *searchChildrenBone(std::string uBoneName);
     
     /**
+     @todo document this
+     */
+    int getChildrenBoneIndex(std::string uBoneName);
+    
+    /**
      @brief Method which returns true if the bone represents a leaf node in the scenegraph
      
      @return Returns true if the bone represents a leaf node in the scenegraph
@@ -195,6 +200,11 @@ public:
      @return Returns true if the bone represents a root node in the scenegraph
      */
     bool isRoot();
+    
+    /**
+     @todo document this
+     */
+    U4DDualQuaternion getBoneAnimationPoseSpace();
     
 };
     

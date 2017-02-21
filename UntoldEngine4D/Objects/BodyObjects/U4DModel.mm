@@ -153,6 +153,16 @@ namespace U4DEngine {
         rotateTo(rotationQuaternion);
         
     }
+    
+    U4DDualQuaternion U4DModel::getBoneAnimationSpace(std::string uName){
+        
+        U4DBoneData *bone=armatureManager->rootBone->searchChildrenBone(uName);
+        
+        return bone->getBoneAnimationPoseSpace();
+        
+    }
+    
+    
 
 }
 
