@@ -1,5 +1,5 @@
 //
-//  SoccerPlayerFeet.hpp
+//  SoccerPlayerExtremity.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/20/17.
@@ -12,18 +12,24 @@
 #include <stdio.h>
 #include "U4DGameObject.h"
 
-class SoccerPlayerFeet:public U4DEngine::U4DGameObject {
+class SoccerPlayerExtremity:public U4DEngine::U4DGameObject {
     
 private:
     
-public:
-    SoccerPlayerFeet();
+    std::string boneToFollow;
     
-    ~SoccerPlayerFeet();
+public:
+    SoccerPlayerExtremity();
+    
+    ~SoccerPlayerExtremity();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
+    
+    void setBoneToFollow(std::string uBoneName);
+    
+    std::string getBoneToFollow();
     
     
 };

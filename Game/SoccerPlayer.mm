@@ -15,7 +15,7 @@
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerPlayerGroundPassState.h"
 #include "SoccerBall.h"
-#include "SoccerPlayerFeet.h"
+#include "SoccerPlayerExtremity.h"
 #include "U4DTrigonometry.h"
 #include "U4DBoneData.h"
 
@@ -134,16 +134,18 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         translateBy(0.0, getModelDimensions().y/2.0+1.3, 0.0);
         
         //add right foot as a child
-        rightFoot=new SoccerPlayerFeet();
+        rightFoot=new SoccerPlayerExtremity();
         rightFoot->init("rightfoot", "characterscript.u4d");
-        
+        rightFoot->setBoneToFollow("foot.R");
         addChild(rightFoot);
         
-        
+        //add left foot as a child
+        leftFoot=new SoccerPlayerExtremity();
+        leftFoot->init("leftfoot", "characterscript.u4d");
+        leftFoot->setBoneToFollow("foot.L");
+        addChild(leftFoot);
         
     }
-    
-    
     
 }
 
@@ -167,26 +169,27 @@ U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
 
 void SoccerPlayer::update(double dt){
     
-    updateBoneSpace("foot.R", rightFoot);
+    updatePlayerExtremity(rightFoot);
+    updatePlayerExtremity(leftFoot);
     
     stateManager->execute(dt);
 
 }
 
 
-void SoccerPlayer::updateBoneSpace(std::string uBoneName, U4DModel *uModel){
+void SoccerPlayer::updatePlayerExtremity(SoccerPlayerExtremity *uPlayerExtremity){
     
     if (getCurrentPlayingAnimation()!=NULL) {
         
         U4DEngine::U4DMatrix4n animationBlenderMatrix=getCurrentPlayingAnimation()->modelerAnimationTransform;
         
-        U4DEngine::U4DDualQuaternion boneSpace=getBoneAnimationSpace(uBoneName);
+        U4DEngine::U4DDualQuaternion boneSpace=getBoneAnimationSpace(uPlayerExtremity->getBoneToFollow());
         
         U4DEngine::U4DMatrix4n boneMatrix=boneSpace.transformDualQuaternionToMatrix4n();
         
         boneMatrix=animationBlenderMatrix.inverse()*boneMatrix*animationBlenderMatrix;
         
-        uModel->setLocalSpace(boneMatrix);
+        uPlayerExtremity->setLocalSpace(boneMatrix);
         
     }
     
@@ -223,7 +226,7 @@ void SoccerPlayer::trackBall(){
     
     U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
     
-    distanceVector-=directionOffset;
+    //distanceVector-=directionOffset;
     
     U4DEngine::U4DVector3n directionToLook(distanceVector.x*fieldLength,playerPosition.y,distanceVector.z*fieldWidth);
     

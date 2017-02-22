@@ -16,7 +16,7 @@
 
 class SoccerPlayerStateInterface;
 class SoccerPlayerStateManager;
-class SoccerPlayerFeet;
+class SoccerPlayerExtremity;
 
 class SoccerPlayer:public U4DEngine::U4DGameObject {
     
@@ -36,7 +36,9 @@ private:
     
     float leftRightFootOffset;
     
-    SoccerPlayerFeet *rightFoot;
+    SoccerPlayerExtremity *rightFoot;
+    
+    SoccerPlayerExtremity *leftFoot;
     
     bool flagToPassBall;
     
@@ -124,7 +126,7 @@ public:
     
     bool getFlagToPassBall();
     
-    void updateBoneSpace(std::string uBoneName, U4DModel *uModel);
+    void updatePlayerExtremity(SoccerPlayerExtremity *uPlayerExtremity);
     
 };
 #endif /* SoccerPlayer_hpp */

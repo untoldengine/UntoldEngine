@@ -1,29 +1,30 @@
 //
-//  SoccerPlayerFeet.cpp
+//  SoccerPlayerExtremity.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/20/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#include "SoccerPlayerFeet.h"
+#include "SoccerPlayerExtremity.h"
 #include "UserCommonProtocols.h"
 
-SoccerPlayerFeet::SoccerPlayerFeet(){
+SoccerPlayerExtremity::SoccerPlayerExtremity(){
     
 }
 
-SoccerPlayerFeet::~SoccerPlayerFeet(){
+SoccerPlayerExtremity::~SoccerPlayerExtremity(){
     
 }
 
-void SoccerPlayerFeet::init(const char* uName, const char* uBlenderFile){
+void SoccerPlayerExtremity::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
         setShader("nonVisibleShader");
         initMass(0.0);
+        initAsPlatform(true);
         initCoefficientOfRestitution(0.0);
         enableCollisionBehavior();
         
@@ -31,7 +32,7 @@ void SoccerPlayerFeet::init(const char* uName, const char* uBlenderFile){
         setCollisionFilterMask(kSoccerBall);
         
         //set player collision with ball filter to occur
-        setCollisionFilterGroupIndex(kZeroGroupIndex);
+        setCollisionFilterGroupIndex(kPlayerExtremitiesGroupIndex);
         
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
         
@@ -43,10 +44,21 @@ void SoccerPlayerFeet::init(const char* uName, const char* uBlenderFile){
     
 }
 
-void SoccerPlayerFeet::update(double dt){
+void SoccerPlayerExtremity::update(double dt){
     
     if (getModelHasCollided()) {
         
     }
     
+}
+
+void SoccerPlayerExtremity::setBoneToFollow(std::string uBoneName){
+    
+    boneToFollow=uBoneName;
+    
+}
+
+std::string SoccerPlayerExtremity::getBoneToFollow(){
+ 
+    return boneToFollow;
 }

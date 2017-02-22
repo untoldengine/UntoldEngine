@@ -36,6 +36,7 @@ typedef enum{
     kSoccerGoalSensor=5,
     kNegativeGroupIndex=-10,
     kPositiveGroupIndex=10,
+    kPlayerExtremitiesGroupIndex=-6,
     kZeroGroupIndex=0,
 
 }GameEntityCollision;
