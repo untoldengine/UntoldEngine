@@ -119,37 +119,37 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         
         if (loadAnimationToModel(haltBallWithRightFootAnimation, "haltballwithrightfoot", "haltballwithrightfootanimationscript.u4d")) {
             
-            
+            haltBallWithRightFootAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(haltBallWithLeftFootAnimation, "haltballwithleftfoot", "haltballwithleftfootanimationscript.u4d")) {
             
-            
+            haltBallWithLeftFootAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(rightFootSidePassAnimation, "rightfootsidepass", "rightfootsidepassanimationscript.u4d")) {
             
-            
+            rightFootSidePassAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(leftFootSidePassAnimation, "leftfootsidepass", "leftfootsidepassanimationscript.u4d")) {
             
-            
+            leftFootSidePassAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(rightFootForwardKickAnimation, "rightfootforwardkick", "rightfootforwardkickanimationscript.u4d")) {
             
-            
+            rightFootForwardKickAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(leftFootForwardKickAnimation, "leftfootforwardkick", "leftfootforwardkickanimationscript.u4d")) {
             
-            
+            leftFootForwardKickAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
@@ -190,11 +190,11 @@ U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
 }
 
 void SoccerPlayer::update(double dt){
-    
+
     updatePlayerExtremity(rightFoot);
     updatePlayerExtremity(leftFoot);
     
-    stateManager->execute(dt);
+    stateManager->update(dt);
 
 }
 
@@ -220,10 +220,9 @@ void SoccerPlayer::updatePlayerExtremity(SoccerPlayerExtremity *uPlayerExtremity
 
 void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
     
-    stateManager->changeState(uState);
+    stateManager->safeChangeState(uState);
     
 }
-
 
 void SoccerPlayer::trackBall(){
     

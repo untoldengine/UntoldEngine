@@ -24,6 +24,9 @@ private:
     
     SoccerPlayerStateInterface *currentState;
     
+    SoccerPlayerStateInterface *nextState;
+    
+    bool changeStateRequest;
     
 public:
     
@@ -33,9 +36,11 @@ public:
     
     void changeState(SoccerPlayerStateInterface *uState);
     
-    void execute(double dt);
+    void update(double dt);
     
-    void setInitialState(SoccerPlayerStateInterface *uState);
+    bool isSafeToChangeState();
+    
+    void safeChangeState(SoccerPlayerStateInterface *uState);
 };
 
 #endif /* SoccerPlayerStateManager_hpp */

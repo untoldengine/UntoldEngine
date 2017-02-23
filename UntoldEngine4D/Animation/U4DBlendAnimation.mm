@@ -62,7 +62,9 @@ namespace U4DEngine {
         
         if (nextAnimation->animationsContainer.size()>1) {
             
-        
+            previousAnimation->setAnimationIsPlaying(true);
+            nextAnimation->setAnimationIsPlaying(true);
+            
             ANIMATIONDATA animationData=previousAnimation->animationsContainer.at(0);
             
             //get the time length for initial keyframe

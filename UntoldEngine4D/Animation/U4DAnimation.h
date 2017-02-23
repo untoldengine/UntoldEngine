@@ -56,6 +56,8 @@ private:
      */
     float durationOfKeyframe;
     
+    bool isAllowedToBeInterrupted;
+    
 public:
 
     /**
@@ -152,6 +154,11 @@ public:
     /**
      @todo document this
      */
+    bool getAnimationIsPlaying();
+    
+    /**
+     @todo document this
+     */
     int getCurrentKeyframe();
     
     /**
@@ -183,6 +190,16 @@ public:
      @todo document this
      */
     float getDurationOfKeyframe();
+    
+    /**
+     @todo document this
+     */
+    void setIsAllowedToBeInterrupted(bool uValue);
+    
+    /**
+     @todo document this
+     */
+    bool getIsAllowedToBeInterrupted();
     
 };
 

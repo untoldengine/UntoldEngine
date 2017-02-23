@@ -64,3 +64,7 @@ void SoccerPlayerChaseBallState::execute(SoccerPlayer *uPlayer, double dt){
 void SoccerPlayerChaseBallState::exit(SoccerPlayer *uPlayer){
     
 }
+
+bool SoccerPlayerChaseBallState::isSafeToChangeState(SoccerPlayer *uPlayer){
+    return true;
+}

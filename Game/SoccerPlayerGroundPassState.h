@@ -32,5 +32,7 @@ public:
     
     void exit(SoccerPlayer *uPlayer);
     
+    bool isSafeToChangeState(SoccerPlayer *uPlayer);
+    
 };
 #endif /* SoccerPlayerGroundPassState_hpp */

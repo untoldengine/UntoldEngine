@@ -52,3 +52,8 @@ void SoccerPlayerIdleState::execute(SoccerPlayer *uPlayer, double dt){
 void SoccerPlayerIdleState::exit(SoccerPlayer *uPlayer){
     
 }
+
+bool SoccerPlayerIdleState::isSafeToChangeState(SoccerPlayer *uPlayer){
+    
+    return true;
+}

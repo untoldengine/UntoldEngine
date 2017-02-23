@@ -70,3 +70,14 @@ void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
 void SoccerPlayerGroundPassState::exit(SoccerPlayer *uPlayer){
     
 }
+
+bool SoccerPlayerGroundPassState::isSafeToChangeState(SoccerPlayer *uPlayer){
+    
+    //check if animation can be interrupted or if the animation has stopped
+    if (uPlayer->getCurrentPlayingAnimation()->getIsAllowedToBeInterrupted()==true || !uPlayer->getCurrentPlayingAnimation()->getAnimationIsPlaying()) {
+        
+        return true;
+    }
+    
+    return false;
+}

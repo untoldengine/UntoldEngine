@@ -10,7 +10,7 @@
 #include "SoccerPlayer.h"
 
 
-SoccerPlayerStateManager::SoccerPlayerStateManager(SoccerPlayer *uPlayer):player(uPlayer),previousState(NULL),currentState(NULL){
+SoccerPlayerStateManager::SoccerPlayerStateManager(SoccerPlayer *uPlayer):player(uPlayer),previousState(NULL),currentState(NULL),changeStateRequest(false){
     
 }
 
@@ -18,9 +18,24 @@ SoccerPlayerStateManager::~SoccerPlayerStateManager(){
     
 }
 
-void SoccerPlayerStateManager::execute(double dt){
+void SoccerPlayerStateManager::update(double dt){
     
-    currentState->execute(player, dt);
+    if (changeStateRequest==false) {
+        
+        currentState->execute(player, dt);
+    
+    }else if(isSafeToChangeState()){
+        
+        changeState(nextState);
+    }
+    
+    
+}
+
+void SoccerPlayerStateManager::safeChangeState(SoccerPlayerStateInterface *uState){
+    
+    changeStateRequest=true;
+    nextState=uState;
     
 }
 
@@ -46,11 +61,18 @@ void SoccerPlayerStateManager::changeState(SoccerPlayerStateInterface *uState){
     //play new animation
     player->playAnimation();
     
+    changeStateRequest=false;
+    
 }
 
-void SoccerPlayerStateManager::setInitialState(SoccerPlayerStateInterface *uState){
+bool SoccerPlayerStateManager::isSafeToChangeState(){
     
-    currentState=uState;
-    
+    if (currentState!=NULL) {
+        return currentState->isSafeToChangeState(player);
+    }else{
+        return true;
+    }
+
 }
+
 
