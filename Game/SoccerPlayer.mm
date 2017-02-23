@@ -442,11 +442,19 @@ bool SoccerPlayer::isBallOnRightSidePlane(){
     
     U4DEngine::U4DVector3n directionVector=playerHeading.cross(upVector);
     
+    directionVector.normalize();
+    
     U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
     
-    ballPosition.normalize();
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
-    if (directionVector.dot(ballPosition)>=0.0) {
+    playerPosition.y=ballPosition.y;
+    
+    U4DEngine::U4DVector3n ballPlayerPosition=ballPosition-playerPosition;
+    
+    ballPlayerPosition.normalize();
+    
+    if (directionVector.dot(ballPlayerPosition)>=0.0) {
         return true;
     }else{
         return false;
