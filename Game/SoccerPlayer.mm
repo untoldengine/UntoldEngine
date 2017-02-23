@@ -19,7 +19,7 @@
 #include "U4DTrigonometry.h"
 #include "U4DBoneData.h"
 
-SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),flagToPassBall(false){
+SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),flagToPassBall(false),changeStateRequest(false){
     
     stateManager=new SoccerPlayerStateManager(this);
     
@@ -119,37 +119,37 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         
         if (loadAnimationToModel(haltBallWithRightFootAnimation, "haltballwithrightfoot", "haltballwithrightfootanimationscript.u4d")) {
             
-            
+            haltBallWithRightFootAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(haltBallWithLeftFootAnimation, "haltballwithleftfoot", "haltballwithleftfootanimationscript.u4d")) {
             
-            
+            haltBallWithLeftFootAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(rightFootSidePassAnimation, "rightfootsidepass", "rightfootsidepassanimationscript.u4d")) {
             
-            
+            rightFootSidePassAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(leftFootSidePassAnimation, "leftfootsidepass", "leftfootsidepassanimationscript.u4d")) {
             
-            
+            leftFootSidePassAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(rightFootForwardKickAnimation, "rightfootforwardkick", "rightfootforwardkickanimationscript.u4d")) {
             
-            
+            rightFootForwardKickAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
         if (loadAnimationToModel(leftFootForwardKickAnimation, "leftfootforwardkick", "leftfootforwardkickanimationscript.u4d")) {
             
-            
+            leftFootForwardKickAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
@@ -191,6 +191,8 @@ U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
 
 void SoccerPlayer::update(double dt){
     
+    isSafeToChangeState();
+    
     updatePlayerExtremity(rightFoot);
     updatePlayerExtremity(leftFoot);
     
@@ -220,7 +222,36 @@ void SoccerPlayer::updatePlayerExtremity(SoccerPlayerExtremity *uPlayerExtremity
 
 void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
     
-    stateManager->changeState(uState);
+    changeStateRequest=true;
+    
+    nextState=uState;
+    
+}
+
+void SoccerPlayer::isSafeToChangeState(){
+    
+    if (changeStateRequest==true) {
+        
+        
+        //check if animation is not null
+        if (getCurrentPlayingAnimation()!=NULL) {
+            
+            //check if animation can be interrupted or if the animation has stopped
+            if (getCurrentPlayingAnimation()->getIsAllowedToBeInterrupted()==true || !getIsAnimationUpdatingKeyframe()) {
+                
+                stateManager->changeState(nextState);
+            }
+            
+            
+        }else{
+            
+            stateManager->changeState(nextState);
+            
+        }
+        
+        changeStateRequest=false;
+        
+    }
     
 }
 

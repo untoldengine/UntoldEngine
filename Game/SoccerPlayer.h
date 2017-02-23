@@ -42,6 +42,11 @@ private:
     
     bool flagToPassBall;
     
+    bool changeStateRequest;
+    
+    SoccerPlayerStateInterface* nextState;
+    
+    
 public:
     
     SoccerPlayer();
@@ -147,6 +152,8 @@ public:
     bool isRightFootCloserToBall();
     
     bool isBallOnRightSidePlane();
+    
+    void isSafeToChangeState();
     
 };
 #endif /* SoccerPlayer_hpp */

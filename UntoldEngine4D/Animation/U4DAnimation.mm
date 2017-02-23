@@ -16,7 +16,7 @@
 
 namespace U4DEngine {
     
-U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0),playContinuousLoop(true),durationOfKeyframe(0.0){
+U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0),playContinuousLoop(true),durationOfKeyframe(0.0),isAllowedToBeInterrupted(true){
     
     u4dModel=uModel;
     
@@ -216,6 +216,15 @@ float U4DAnimation::getDurationOfKeyframe(){
     
     return durationOfKeyframe;
     
+}
+    
+void U4DAnimation::setIsAllowedToBeInterrupted(bool uValue){
+    isAllowedToBeInterrupted=uValue;
+}
+
+
+bool U4DAnimation::getIsAllowedToBeInterrupted(){
+    return isAllowedToBeInterrupted;
 }
 
 }
