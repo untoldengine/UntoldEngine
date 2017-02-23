@@ -40,6 +40,8 @@ private:
     
     SoccerPlayerExtremity *leftFoot;
     
+    SoccerPlayerExtremity *activeExtremity;
+    
     bool flagToPassBall;
     
 public:
@@ -134,10 +136,6 @@ public:
     
     float distanceToBall();
     
-    bool getRightFootCollidedWithBall();
-    
-    bool getLeftFootCollidedWithBall();
-    
     void setFlagToPassBall(bool uValue);
     
     bool getFlagToPassBall();
@@ -147,6 +145,20 @@ public:
     bool isRightFootCloserToBall();
     
     bool isBallOnRightSidePlane();
+    
+    void setActiveExtremity(SoccerPlayerExtremity *uActiveExtremity);
+    
+    SoccerPlayerExtremity *getActiveExtremity();
+    
+    SoccerPlayerExtremity *getRightFoot();
+    
+    SoccerPlayerExtremity *getLeftFoot();
+    
+    bool getActiveExtremityCollidedWithBall();
+    
+    bool getRightFootCollidedWithBall();
+    
+    bool getLeftFootCollidedWithBall();
     
 };
 #endif /* SoccerPlayer_hpp */

@@ -37,11 +37,11 @@ void SoccerPlayerForwardKickState::enter(SoccerPlayer *uPlayer){
     if (uPlayer->isBallOnRightSidePlane()) {
         
         uPlayer->setNextAnimationToPlay(uPlayer->getRightFootForwardKickAnimation());
-        
+        uPlayer->setActiveExtremity(uPlayer->getRightFoot());
     }else{
         
         uPlayer->setNextAnimationToPlay(uPlayer->getLeftFootForwardKickAnimation());
-        
+        uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
     }
     uPlayer->setPlayNextAnimationContinuously(false);
     uPlayer->setPlayBlendedAnimation(true);
@@ -50,7 +50,7 @@ void SoccerPlayerForwardKickState::enter(SoccerPlayer *uPlayer){
 void SoccerPlayerForwardKickState::execute(SoccerPlayer *uPlayer, double dt){
     
     //track the ball
-    if(uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()){
+    if(uPlayer->getActiveExtremityCollidedWithBall()){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         

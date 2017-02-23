@@ -429,15 +429,30 @@ U4DEngine::U4DVector3n SoccerPlayer::getJoystickDirection(){
 }
 
 
+SoccerPlayerExtremity *SoccerPlayer::getRightFoot(){
+    
+    return rightFoot;
+}
+
+SoccerPlayerExtremity *SoccerPlayer::getLeftFoot(){
+    
+    return leftFoot;
+    
+}
+
 bool SoccerPlayer::getRightFootCollidedWithBall(){
     
     return rightFoot->getModelHasCollided();
-    
 }
 
 bool SoccerPlayer::getLeftFootCollidedWithBall(){
     
     return leftFoot->getModelHasCollided();
+}
+
+bool SoccerPlayer::getActiveExtremityCollidedWithBall(){
+    
+    return activeExtremity->getModelHasCollided();
 }
 
 void SoccerPlayer::setFlagToPassBall(bool uValue){
@@ -489,4 +504,13 @@ bool SoccerPlayer::isBallOnRightSidePlane(){
     }
     
 }
+
+void SoccerPlayer::setActiveExtremity(SoccerPlayerExtremity *uActiveExtremity){
+    activeExtremity=uActiveExtremity;
+}
+
+SoccerPlayerExtremity *SoccerPlayer::getActiveExtremity(){
+    return activeExtremity;
+}
+
 
