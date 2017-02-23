@@ -95,3 +95,8 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
 void SoccerPlayerTakeBallControlState::exit(SoccerPlayer *uPlayer){
     
 }
+
+bool SoccerPlayerTakeBallControlState::isSafeToChangeState(SoccerPlayer *uPlayer){
+    
+    return true;
+}

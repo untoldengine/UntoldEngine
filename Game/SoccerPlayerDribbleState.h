@@ -32,6 +32,8 @@ public:
     
     void exit(SoccerPlayer *uPlayer);
     
+    bool isSafeToChangeState(SoccerPlayer *uPlayer);
+    
 };
 
 #endif /* SoccerPlayerDribbleState_hpp */

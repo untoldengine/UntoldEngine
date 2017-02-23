@@ -97,3 +97,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
 void SoccerPlayerDribbleState::exit(SoccerPlayer *uPlayer){
     
 }
+
+bool SoccerPlayerDribbleState::isSafeToChangeState(SoccerPlayer *uPlayer){
+    return true;
+}

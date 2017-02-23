@@ -19,7 +19,7 @@
 #include "U4DTrigonometry.h"
 #include "U4DBoneData.h"
 
-SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),flagToPassBall(false),changeStateRequest(false){
+SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),flagToPassBall(false){
     
     stateManager=new SoccerPlayerStateManager(this);
     
@@ -190,13 +190,11 @@ U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
 }
 
 void SoccerPlayer::update(double dt){
-    
-    isSafeToChangeState();
-    
+
     updatePlayerExtremity(rightFoot);
     updatePlayerExtremity(leftFoot);
     
-    stateManager->execute(dt);
+    stateManager->update(dt);
 
 }
 
@@ -222,39 +220,9 @@ void SoccerPlayer::updatePlayerExtremity(SoccerPlayerExtremity *uPlayerExtremity
 
 void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
     
-    changeStateRequest=true;
-    
-    nextState=uState;
+    stateManager->safeChangeState(uState);
     
 }
-
-void SoccerPlayer::isSafeToChangeState(){
-    
-    if (changeStateRequest==true) {
-        
-        
-        //check if animation is not null
-        if (getCurrentPlayingAnimation()!=NULL) {
-            
-            //check if animation can be interrupted or if the animation has stopped
-            if (getCurrentPlayingAnimation()->getIsAllowedToBeInterrupted()==true || !getIsAnimationUpdatingKeyframe()) {
-                
-                stateManager->changeState(nextState);
-            }
-            
-            
-        }else{
-            
-            stateManager->changeState(nextState);
-            
-        }
-        
-        changeStateRequest=false;
-        
-    }
-    
-}
-
 
 void SoccerPlayer::trackBall(){
     

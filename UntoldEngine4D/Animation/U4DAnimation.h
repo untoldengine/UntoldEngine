@@ -154,6 +154,11 @@ public:
     /**
      @todo document this
      */
+    bool getAnimationIsPlaying();
+    
+    /**
+     @todo document this
+     */
     int getCurrentKeyframe();
     
     /**

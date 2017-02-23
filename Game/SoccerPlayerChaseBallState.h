@@ -34,6 +34,8 @@ public:
     
     void exit(SoccerPlayer *uPlayer);
     
+    bool isSafeToChangeState(SoccerPlayer *uPlayer);
+    
 };
 
 #endif /* SoccerPlayerChaseBallState_hpp */

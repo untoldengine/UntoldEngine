@@ -198,6 +198,10 @@ float U4DAnimation::getCurrentInterpolationTime(){
     
     return interpolationTime;
 }
+    
+bool U4DAnimation::getAnimationIsPlaying(){
+    return animationPlaying;
+}
 
 bool U4DAnimation::getIsUpdatingKeyframe(){
 

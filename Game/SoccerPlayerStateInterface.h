@@ -25,6 +25,8 @@ public:
     
     virtual void exit(SoccerPlayer *uPlayer)=0;
     
+    virtual bool isSafeToChangeState(SoccerPlayer *uPlayer)=0;
+    
 };
 
 #endif /* SoccerPlayerStateInterface_hpp */
