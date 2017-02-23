@@ -52,11 +52,11 @@ public:
     
     void update(double dt);
     
-    U4DEngine::U4DAnimation *forwardKickAnimation;
-    
     U4DEngine::U4DAnimation *walkingAnimation;
     
-    U4DEngine::U4DAnimation *groundPassAnimation;
+    U4DEngine::U4DAnimation *rightFootSidePassAnimation;
+    
+    U4DEngine::U4DAnimation *leftFootSidePassAnimation;
     
     U4DEngine::U4DAnimation *runningAnimation;
     
@@ -68,7 +68,13 @@ public:
     
     U4DEngine::U4DAnimation *idleAnimation;
     
-    U4DEngine::U4DAnimation *takingBallControlAnimation;
+    U4DEngine::U4DAnimation *haltBallWithRightFootAnimation;
+    
+    U4DEngine::U4DAnimation *haltBallWithLeftFootAnimation;
+    
+    U4DEngine::U4DAnimation *rightFootForwardKickAnimation;
+    
+    U4DEngine::U4DAnimation *leftFootForwardKickAnimation;
     
     void changeState(SoccerPlayerStateInterface* uState);
     
@@ -84,13 +90,21 @@ public:
     
     U4DEngine::U4DAnimation *getRunningAnimation();
     
-    U4DEngine::U4DAnimation *getGroundPassAnimation();
-    
     U4DEngine::U4DAnimation *getForwardCarryAnimation();
     
     U4DEngine::U4DAnimation *getIdleAnimation();
     
-    U4DEngine::U4DAnimation *getTakingBallControlAnimation();
+    U4DEngine::U4DAnimation *getHaltBallWithRightFootAnimation();
+    
+    U4DEngine::U4DAnimation *getHaltBallWithLeftFootAnimation();
+    
+    U4DEngine::U4DAnimation *getRightFootSidePassAnimation();
+    
+    U4DEngine::U4DAnimation *getLeftFootSidePassAnimation();
+    
+    U4DEngine::U4DAnimation *getRightFootForwardKickAnimation();
+    
+    U4DEngine::U4DAnimation *getLeftFootForwardKickAnimation();
     
     void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
     
@@ -120,13 +134,19 @@ public:
     
     float distanceToBall();
     
-    bool getFootCollidedWithBall();
+    bool getRightFootCollidedWithBall();
+    
+    bool getLeftFootCollidedWithBall();
     
     void setFlagToPassBall(bool uValue);
     
     bool getFlagToPassBall();
     
     void updatePlayerExtremity(SoccerPlayerExtremity *uPlayerExtremity);
+    
+    bool isRightFootCloserToBall();
+    
+    bool isBallOnRightSidePlane();
     
 };
 #endif /* SoccerPlayer_hpp */

@@ -8,6 +8,8 @@
 
 #include "SoccerPlayerTakeBallControlState.h"
 #include "SoccerPlayerDribbleState.h"
+#include "SoccerPlayerGroundPassState.h"
+#include "SoccerPlayerForwardKickState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerTakeBallControlState* SoccerPlayerTakeBallControlState::instance=0;
@@ -33,30 +35,52 @@ SoccerPlayerTakeBallControlState* SoccerPlayerTakeBallControlState::sharedInstan
 void SoccerPlayerTakeBallControlState::enter(SoccerPlayer *uPlayer){
     
     //set the control ball animation
-    uPlayer->setNextAnimationToPlay(uPlayer->getTakingBallControlAnimation());
+    if (uPlayer->isBallOnRightSidePlane()) {
+        
+        uPlayer->setNextAnimationToPlay(uPlayer->getHaltBallWithRightFootAnimation());
+        
+    }else{
+     
+        uPlayer->setNextAnimationToPlay(uPlayer->getHaltBallWithLeftFootAnimation());
+        
+    }
+    
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(false);
 }
 
 void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt){
     
-    //set the kick pass at this keyframe and interpolation time
-    if (uPlayer->getFootCollidedWithBall()) {
+    //stop ball motion if the feet collide with the ball and if it matches a keyframe 
+    if ((uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) && uPlayer->getAnimationCurrentKeyframe()==3) {
         
         //adjust the ball to a good location to start dribbling
         
-        U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
+        SoccerBall *ball=uPlayer->getBallEntity();
         
-        playerHeading.normalize();
-        
-        uPlayer->kickBallToGround(5.0, playerHeading,dt);
-        
+        ball->removeKineticForces();
         
     }
     
     
-    //wait until the ball is this distance away from the player before it can go into dribble state.
-    if (uPlayer->distanceToBall()>3.0) {
+    if (uPlayer->getButtonAPressed()) {
+        
+        SoccerPlayerGroundPassState *sidePassState=SoccerPlayerGroundPassState::sharedInstance();
+        
+        uPlayer->changeState(sidePassState);
+    }
+    
+    //check if player should shoot
+    if (uPlayer->getButtonBPressed()) {
+        
+        SoccerPlayerForwardKickState *forwardKickState=SoccerPlayerForwardKickState::sharedInstance();
+        
+        uPlayer->changeState(forwardKickState);
+        
+    }
+    
+    //if joystick is active go into dribble state
+    if (uPlayer->getJoystickActive()) {
         
         SoccerPlayerStateInterface *dribbleState=SoccerPlayerDribbleState::sharedInstance();
         
@@ -64,6 +88,7 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
         
     }
     
+
     
 }
 

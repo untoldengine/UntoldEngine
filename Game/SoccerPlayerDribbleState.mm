@@ -9,6 +9,8 @@
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerGroundPassState.h"
+#include "SoccerPlayerTakeBallControlState.h"
+#include "SoccerPlayerForwardKickState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerDribbleState* SoccerPlayerDribbleState::instance=0;
@@ -43,14 +45,26 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
 
 void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     
+    U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
+    
     //check if player should pass
     if (uPlayer->getButtonAPressed()) {
         
-        uPlayer->setFlagToPassBall(true);
+        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
+        
+        uPlayer->changeState(groundPassState);
         
     }
     
-    U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
+    //check if player should shoot
+    if (uPlayer->getButtonBPressed()) {
+        
+        SoccerPlayerForwardKickState *forwardKickState=SoccerPlayerForwardKickState::sharedInstance();
+        
+        uPlayer->changeState(forwardKickState);
+        
+    }
+
     
     //if the joystick is active, set the new direction of the kick
     if (uPlayer->getJoystickActive()) {
@@ -59,21 +73,16 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
         directionToKick.z=-directionToKick.y;
         
         directionToKick.y=0;
-    }
-    
-    //check if player should pass
-    if (uPlayer->getFlagToPassBall()) {
         
-        //ball->removeKineticForces();
+    }else{
         
-        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
+        SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
         
-        uPlayer->changeState(groundPassState);
-        
+        uPlayer->changeState(chaseBallState);
     }
     
     //keep dribbling
-    if (uPlayer->getFootCollidedWithBall()) {
+    if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
         
         uPlayer->kickBallToGround(20.0, directionToKick,dt);
     

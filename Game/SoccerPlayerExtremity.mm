@@ -8,6 +8,7 @@
 
 #include "SoccerPlayerExtremity.h"
 #include "UserCommonProtocols.h"
+#include "SoccerBall.h"
 
 SoccerPlayerExtremity::SoccerPlayerExtremity(){
     
@@ -61,4 +62,18 @@ void SoccerPlayerExtremity::setBoneToFollow(std::string uBoneName){
 std::string SoccerPlayerExtremity::getBoneToFollow(){
  
     return boneToFollow;
+}
+
+float SoccerPlayerExtremity::distanceToBall(SoccerBall *uSoccerBall){
+    
+    U4DEngine::U4DVector3n ballPosition=uSoccerBall->getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n extremityPosition=getAbsolutePosition();
+    
+    float ballRadius=uSoccerBall->getBallRadius();
+    
+    float distance=(ballPosition-extremityPosition).magnitude()-ballRadius;
+    
+    return distance;
+    
 }

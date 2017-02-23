@@ -74,6 +74,7 @@ void GameLogic::receiveTouchUpdate(){
         joystickActive=true;
     }
     
+    
     player->receiveTouchUpdate(buttonAPressed, buttonBPressed, joystickActive);
     
 }

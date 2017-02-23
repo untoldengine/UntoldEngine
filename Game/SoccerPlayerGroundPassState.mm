@@ -33,32 +33,38 @@ SoccerPlayerGroundPassState* SoccerPlayerGroundPassState::sharedInstance(){
 void SoccerPlayerGroundPassState::enter(SoccerPlayer *uPlayer){
     
     //set the ground pass animation
-    uPlayer->setNextAnimationToPlay(uPlayer->getGroundPassAnimation());
-    uPlayer->setPlayNextAnimationContinuously(false);
-    //uPlayer->setPlayBlendedAnimation(true);
     
-    uPlayer->setFlagToPassBall(false);
-   
+    if (uPlayer->isBallOnRightSidePlane()) {
+        
+        uPlayer->setNextAnimationToPlay(uPlayer->getRightFootSidePassAnimation());
+        
+    }else{
+        
+        uPlayer->setNextAnimationToPlay(uPlayer->getLeftFootSidePassAnimation());
+        
+    }
+    uPlayer->setPlayNextAnimationContinuously(false);
+    uPlayer->setPlayBlendedAnimation(true);
+    
 }
 
 void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
     
-    if(uPlayer->getFootCollidedWithBall()){
+    if(uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         
-        uPlayer->kickBallToGround(300.0, direction,dt);
+        uPlayer->kickBallToGround(50.0, direction,dt);
         
-        SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
-        //SoccerPlayerIdleState *idleState=SoccerPlayerIdleState::sharedInstance();
+        uPlayer->removeKineticForces();
         
-        uPlayer->changeState(chaseBallState);
+        SoccerPlayerIdleState *idleState=SoccerPlayerIdleState::sharedInstance();
+        
+        uPlayer->changeState(idleState);
     }
-    
-    //chase the ball
-    uPlayer->applyForceToPlayer(10.0, dt);
-    
+
     uPlayer->trackBall();
+    
 }
 
 void SoccerPlayerGroundPassState::exit(SoccerPlayer *uPlayer){
