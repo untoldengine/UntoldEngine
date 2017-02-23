@@ -29,9 +29,6 @@ void SoccerPlayerStateManager::changeState(SoccerPlayerStateInterface *uState){
     //remove animation
     player->removeCurrentPlayingAnimation();
     
-    //remove all kinetic forces
-    player->removeKineticForces();
-    
     //keep a record of previous state
     previousState=currentState;
     

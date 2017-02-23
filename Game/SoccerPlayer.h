@@ -56,7 +56,9 @@ public:
     
     U4DEngine::U4DAnimation *walkingAnimation;
     
-    U4DEngine::U4DAnimation *groundPassAnimation;
+    U4DEngine::U4DAnimation *rightFootSidePassAnimation;
+    
+    U4DEngine::U4DAnimation *leftFootSidePassAnimation;
     
     U4DEngine::U4DAnimation *runningAnimation;
     
@@ -95,6 +97,10 @@ public:
     U4DEngine::U4DAnimation *getHaltBallWithRightFootAnimation();
     
     U4DEngine::U4DAnimation *getHaltBallWithLeftFootAnimation();
+    
+    U4DEngine::U4DAnimation *getRightFootSidePassAnimation();
+    
+    U4DEngine::U4DAnimation *getLeftFootSidePassAnimation();
     
     void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
     

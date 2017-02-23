@@ -38,13 +38,14 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         runningAnimation=new U4DEngine::U4DAnimation(this);
         
-        groundPassAnimation=new U4DEngine::U4DAnimation(this);
         forwardCarryAnimation=new U4DEngine::U4DAnimation(this);
         sideCarryRightAnimation=new U4DEngine::U4DAnimation(this);
         sideCarryLeftAnimation=new U4DEngine::U4DAnimation(this);
         idleAnimation=new U4DEngine::U4DAnimation(this);
         haltBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
         haltBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
+        rightFootSidePassAnimation=new U4DEngine::U4DAnimation(this);
+        leftFootSidePassAnimation=new U4DEngine::U4DAnimation(this);
         
         //set collision info
         initMass(80.0);
@@ -97,12 +98,6 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
             
         }
         
-        if (loadAnimationToModel(groundPassAnimation, "sidepass", "sidepassanimationscript.u4d")) {
-            
-            
-            
-        }
-        
         if (loadAnimationToModel(forwardCarryAnimation, "forwardcarry", "forwardcarryanimationscript.u4d")) {
             
             
@@ -134,6 +129,18 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         }
         
         if (loadAnimationToModel(haltBallWithLeftFootAnimation, "haltballwithleftfoot", "haltballwithleftfootanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(rightFootSidePassAnimation, "rightfootsidepass", "rightfootsidepassanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(leftFootSidePassAnimation, "leftfootsidepass", "leftfootsidepassanimationscript.u4d")) {
             
             
             
@@ -310,9 +317,12 @@ U4DEngine::U4DAnimation *SoccerPlayer::getRunningAnimation(){
     return runningAnimation;
 }
 
-U4DEngine::U4DAnimation *SoccerPlayer::getGroundPassAnimation(){
- 
-    return groundPassAnimation;
+U4DEngine::U4DAnimation *SoccerPlayer::getRightFootSidePassAnimation(){
+    return rightFootSidePassAnimation;
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getLeftFootSidePassAnimation(){
+    return leftFootSidePassAnimation;
 }
 
 U4DEngine::U4DAnimation *SoccerPlayer::getForwardCarryAnimation(){
