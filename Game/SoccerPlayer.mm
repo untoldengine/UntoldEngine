@@ -43,7 +43,8 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         sideCarryRightAnimation=new U4DEngine::U4DAnimation(this);
         sideCarryLeftAnimation=new U4DEngine::U4DAnimation(this);
         idleAnimation=new U4DEngine::U4DAnimation(this);
-        takingBallControlAnimation=new U4DEngine::U4DAnimation(this);
+        haltBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
+        haltBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
         
         //set collision info
         initMass(80.0);
@@ -65,6 +66,18 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
         
         setEntityForwardVector(viewDirectionVector);
+        
+        //add right foot as a child
+        rightFoot=new SoccerPlayerExtremity();
+        rightFoot->init("rightfoot", "characterscript.u4d");
+        rightFoot->setBoneToFollow("foot.R");
+        addChild(rightFoot);
+        
+        //add left foot as a child
+        leftFoot=new SoccerPlayerExtremity();
+        leftFoot->init("leftfoot", "characterscript.u4d");
+        leftFoot->setBoneToFollow("foot.L");
+        addChild(leftFoot);
         
         if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimationscript.u4d")) {
             
@@ -114,7 +127,13 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
             
         }
         
-        if (loadAnimationToModel(takingBallControlAnimation, "takingballcontrol", "takingballcontrolanimationscript.u4d")) {
+        if (loadAnimationToModel(haltBallWithRightFootAnimation, "haltballwithrightfoot", "haltballwithrightfootanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(haltBallWithLeftFootAnimation, "haltballwithleftfoot", "haltballwithleftfootanimationscript.u4d")) {
             
             
             
@@ -123,6 +142,7 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         SoccerPlayerStateInterface *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
         SoccerPlayerStateInterface *idleState=SoccerPlayerIdleState::sharedInstance();
         SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
+        SoccerPlayerDribbleState *dribbleState=SoccerPlayerDribbleState::sharedInstance();
         
         //set initial state
         changeState(chaseBallState);
@@ -132,18 +152,6 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         
         //translate the player
         translateBy(0.0, getModelDimensions().y/2.0+1.3, 0.0);
-        
-        //add right foot as a child
-        rightFoot=new SoccerPlayerExtremity();
-        rightFoot->init("rightfoot", "characterscript.u4d");
-        rightFoot->setBoneToFollow("foot.R");
-        addChild(rightFoot);
-        
-        //add left foot as a child
-        leftFoot=new SoccerPlayerExtremity();
-        leftFoot->init("leftfoot", "characterscript.u4d");
-        leftFoot->setBoneToFollow("foot.L");
-        addChild(leftFoot);
         
     }
     
@@ -318,9 +326,14 @@ U4DEngine::U4DAnimation *SoccerPlayer::getIdleAnimation(){
     
 }
 
-U4DEngine::U4DAnimation *SoccerPlayer::getTakingBallControlAnimation(){
+U4DEngine::U4DAnimation *SoccerPlayer::getHaltBallWithRightFootAnimation(){
     
-    return takingBallControlAnimation;
+    return haltBallWithRightFootAnimation;
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getHaltBallWithLeftFootAnimation(){
+    
+    return haltBallWithLeftFootAnimation;
 }
 
 void SoccerPlayer::receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive){
@@ -388,10 +401,15 @@ U4DEngine::U4DVector3n SoccerPlayer::getJoystickDirection(){
 }
 
 
-bool SoccerPlayer::getFootCollidedWithBall(){
+bool SoccerPlayer::getRightFootCollidedWithBall(){
     
     return rightFoot->getModelHasCollided();
     
+}
+
+bool SoccerPlayer::getLeftFootCollidedWithBall(){
+    
+    return leftFoot->getModelHasCollided();
 }
 
 void SoccerPlayer::setFlagToPassBall(bool uValue){
@@ -403,6 +421,36 @@ void SoccerPlayer::setFlagToPassBall(bool uValue){
 bool SoccerPlayer::getFlagToPassBall(){
     
     return flagToPassBall;
+    
+}
+
+bool SoccerPlayer::isRightFootCloserToBall(){
+    
+    //check which foot is closer to the ball
+    
+    return (rightFoot->distanceToBall(getBallEntity())<=leftFoot->distanceToBall(getBallEntity()));
+    
+}
+
+bool SoccerPlayer::isBallOnRightSidePlane(){
+    
+    U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
+    
+    playerHeading.normalize();
+    
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+    
+    U4DEngine::U4DVector3n directionVector=playerHeading.cross(upVector);
+    
+    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    
+    ballPosition.normalize();
+    
+    if (directionVector.dot(ballPosition)>=0.0) {
+        return true;
+    }else{
+        return false;
+    }
     
 }
 

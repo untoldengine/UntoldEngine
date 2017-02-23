@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include "U4DGameObject.h"
 
+class SoccerBall;
+
 class SoccerPlayerExtremity:public U4DEngine::U4DGameObject {
     
 private:
@@ -31,6 +33,7 @@ public:
     
     std::string getBoneToFollow();
     
+    float distanceToBall(SoccerBall *uSoccerBall);
     
 };
 

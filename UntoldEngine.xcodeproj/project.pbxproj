@@ -62,9 +62,10 @@
 		036848E81E58D51E0087BBBD /* SoccerPlayerIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848E61E58D51E0087BBBD /* SoccerPlayerIdleState.mm */; };
 		036848EA1E59FCCF0087BBBD /* idleanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848E91E59FCCF0087BBBD /* idleanimationscript.u4d */; };
 		036848ED1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848EB1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm */; };
-		036848EF1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848EE1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d */; };
 		036848F21E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */; };
 		036848F51E5B65D80087BBBD /* SoccerPlayerExtremity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848F31E5B65D80087BBBD /* SoccerPlayerExtremity.mm */; };
+		036848F91E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848F81E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d */; };
+		036848FB1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848FA1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -303,11 +304,12 @@
 		036848E91E59FCCF0087BBBD /* idleanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = idleanimationscript.u4d; path = Resources/idleanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036848EB1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerTakeBallControlState.mm; sourceTree = "<group>"; };
 		036848EC1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerTakeBallControlState.h; sourceTree = "<group>"; };
-		036848EE1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = takingballcontrolanimationscript.u4d; path = Resources/takingballcontrolanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerGroundPassState.mm; sourceTree = "<group>"; };
 		036848F11E5AB0510087BBBD /* SoccerPlayerGroundPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerGroundPassState.h; sourceTree = "<group>"; };
 		036848F31E5B65D80087BBBD /* SoccerPlayerExtremity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerExtremity.mm; sourceTree = "<group>"; };
 		036848F41E5B65D80087BBBD /* SoccerPlayerExtremity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerExtremity.h; sourceTree = "<group>"; };
+		036848F81E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = haltballwithleftfootanimationscript.u4d; path = Resources/haltballwithleftfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
+		036848FA1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = haltballwithrightfootanimationscript.u4d; path = Resources/haltballwithrightfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserCommonProtocols.h; sourceTree = "<group>"; };
@@ -1013,7 +1015,6 @@
 				03929DDB1E50C03E00D63361 /* sidecarryleftanimationscript.u4d */,
 				03929DDD1E50C08900D63361 /* sidecarryrightanimationscript.u4d */,
 				036848E91E59FCCF0087BBBD /* idleanimationscript.u4d */,
-				036848EE1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
@@ -1024,6 +1025,8 @@
 				03798F881934DA8E00CF0600 /* ButtonAPressed.png */,
 				03798F891934DA8E00CF0600 /* ButtonB.png */,
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
+				036848F81E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d */,
+				036848FA1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d */,
 			);
 			name = Resources;
 			path = Game/Resources;
@@ -1475,6 +1478,7 @@
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03929DD41E50BCDF00D63361 /* runninganimationscript.u4d in Resources */,
 				03929DDE1E50C08900D63361 /* sidecarryrightanimationscript.u4d in Resources */,
+				036848FB1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
 				03929DE01E50CE4D00D63361 /* cesped.png in Resources */,
@@ -1499,6 +1503,7 @@
 				034DBC8A1A74112000AC43EB /* debugShader.vp in Resources */,
 				030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
+				036848F91E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d in Resources */,
 				03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */,
 				034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */,
 				03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */,
@@ -1517,7 +1522,6 @@
 				03929DD21E50BCB700D63361 /* walkinganimationscript.u4d in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
-				036848EF1E5A66AF0087BBBD /* takingballcontrolanimationscript.u4d in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

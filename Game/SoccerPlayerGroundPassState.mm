@@ -43,7 +43,7 @@ void SoccerPlayerGroundPassState::enter(SoccerPlayer *uPlayer){
 
 void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
     
-    if(uPlayer->getFootCollidedWithBall()){
+    if(uPlayer->getRightFootCollidedWithBall()){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         
@@ -56,7 +56,7 @@ void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
     }
     
     //chase the ball
-    uPlayer->applyForceToPlayer(10.0, dt);
+    uPlayer->applyForceToPlayer(15.0, dt);
     
     uPlayer->trackBall();
 }

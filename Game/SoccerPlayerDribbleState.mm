@@ -9,6 +9,7 @@
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerGroundPassState.h"
+#include "SoccerPlayerTakeBallControlState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerDribbleState* SoccerPlayerDribbleState::instance=0;
@@ -43,13 +44,6 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
 
 void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     
-    //check if player should pass
-    if (uPlayer->getButtonAPressed()) {
-        
-        uPlayer->setFlagToPassBall(true);
-        
-    }
-    
     U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
     
     //if the joystick is active, set the new direction of the kick
@@ -59,10 +53,16 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
         directionToKick.z=-directionToKick.y;
         
         directionToKick.y=0;
+        
+    }else{
+        
+        SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
+        
+        uPlayer->changeState(chaseBallState);
     }
     
     //check if player should pass
-    if (uPlayer->getFlagToPassBall()) {
+    if (uPlayer->getButtonAPressed()) {
         
         //ball->removeKineticForces();
         
@@ -73,7 +73,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     }
     
     //keep dribbling
-    if (uPlayer->getFootCollidedWithBall()) {
+    if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
         
         uPlayer->kickBallToGround(20.0, directionToKick,dt);
     
