@@ -38,9 +38,12 @@ void SoccerPlayerGroundPassState::enter(SoccerPlayer *uPlayer){
         
         uPlayer->setNextAnimationToPlay(uPlayer->getRightFootSidePassAnimation());
         
+        uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+        
     }else{
         
         uPlayer->setNextAnimationToPlay(uPlayer->getLeftFootSidePassAnimation());
+        uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
         
     }
     uPlayer->setPlayNextAnimationContinuously(false);
@@ -50,7 +53,7 @@ void SoccerPlayerGroundPassState::enter(SoccerPlayer *uPlayer){
 
 void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
     
-    if(uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()){
+    if(uPlayer->getActiveExtremityCollidedWithBall()){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         
