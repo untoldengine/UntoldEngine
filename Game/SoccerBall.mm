@@ -15,8 +15,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         
         initInertiaTensorType(U4DEngine::sphericalInertia);
         initCoefficientOfRestitution(0.9);
-        initMass(5.0);
-        
+        initMass(1.0);
         
         //initialize everything else here
         enableCollisionBehavior();
@@ -35,6 +34,9 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         U4DEngine::U4DVector3n gravityForce(0,0,0);
         setGravity(gravityForce);
         
+        U4DEngine::U4DVector2n dragCoefficients(0.25,0.05);
+        setDragCoefficient(dragCoefficients);
+        
         
         loadRenderingInformation();
         
@@ -47,7 +49,7 @@ void SoccerBall::update(double dt){
     
     setEquilibrium(true);
     U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-    
+  /*
     if (getState()==kStabilize) {
         
         if (isBallWithinRange()) {
@@ -190,7 +192,7 @@ void SoccerBall::update(double dt){
     
     }
     
-
+*/
     
 }
 

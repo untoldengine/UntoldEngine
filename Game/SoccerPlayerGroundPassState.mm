@@ -54,19 +54,16 @@ void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         
-        uPlayer->kickBallToGround(300.0, direction,dt);
+        uPlayer->kickBallToGround(50.0, direction,dt);
         
         uPlayer->removeKineticForces();
         
-        SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
+        SoccerPlayerIdleState *idleState=SoccerPlayerIdleState::sharedInstance();
         
-        uPlayer->changeState(chaseBallState);
+        uPlayer->changeState(idleState);
     }
 
     uPlayer->trackBall();
-    
-    uPlayer->applyForceToPlayer(5.0, dt);
-    
     
 }
 

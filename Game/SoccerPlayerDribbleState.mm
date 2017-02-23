@@ -10,6 +10,7 @@
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerGroundPassState.h"
 #include "SoccerPlayerTakeBallControlState.h"
+#include "SoccerPlayerForwardKickState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerDribbleState* SoccerPlayerDribbleState::instance=0;
@@ -46,6 +47,25 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     
     U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
     
+    //check if player should pass
+    if (uPlayer->getButtonAPressed()) {
+        
+        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
+        
+        uPlayer->changeState(groundPassState);
+        
+    }
+    
+    //check if player should shoot
+    if (uPlayer->getButtonBPressed()) {
+        
+        SoccerPlayerForwardKickState *forwardKickState=SoccerPlayerForwardKickState::sharedInstance();
+        
+        uPlayer->changeState(forwardKickState);
+        
+    }
+
+    
     //if the joystick is active, set the new direction of the kick
     if (uPlayer->getJoystickActive()) {
         
@@ -59,17 +79,6 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
         SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
         
         uPlayer->changeState(chaseBallState);
-    }
-    
-    //check if player should pass
-    if (uPlayer->getButtonAPressed()) {
-        
-        //ball->removeKineticForces();
-        
-        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
-        
-        uPlayer->changeState(groundPassState);
-        
     }
     
     //keep dribbling

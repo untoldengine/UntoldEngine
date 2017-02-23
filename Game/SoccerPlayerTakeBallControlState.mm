@@ -9,6 +9,7 @@
 #include "SoccerPlayerTakeBallControlState.h"
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerPlayerGroundPassState.h"
+#include "SoccerPlayerForwardKickState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerTakeBallControlState* SoccerPlayerTakeBallControlState::instance=0;
@@ -62,6 +63,22 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
     }
     
     
+    if (uPlayer->getButtonAPressed()) {
+        
+        SoccerPlayerGroundPassState *sidePassState=SoccerPlayerGroundPassState::sharedInstance();
+        
+        uPlayer->changeState(sidePassState);
+    }
+    
+    //check if player should shoot
+    if (uPlayer->getButtonBPressed()) {
+        
+        SoccerPlayerForwardKickState *forwardKickState=SoccerPlayerForwardKickState::sharedInstance();
+        
+        uPlayer->changeState(forwardKickState);
+        
+    }
+    
     //if joystick is active go into dribble state
     if (uPlayer->getJoystickActive()) {
         
@@ -71,12 +88,7 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
         
     }
     
-    if (uPlayer->getButtonAPressed()) {
-        
-        SoccerPlayerGroundPassState *sidePassState=SoccerPlayerGroundPassState::sharedInstance();
-        
-        uPlayer->changeState(sidePassState);
-    }
+
     
 }
 

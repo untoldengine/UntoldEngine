@@ -73,6 +73,9 @@
 		036849061E5E7C440087BBBD /* runninganimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036849041E5E7C440087BBBD /* runninganimationscript.u4d */; };
 		036849071E5E7C440087BBBD /* sidecarryleftanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036849051E5E7C440087BBBD /* sidecarryleftanimationscript.u4d */; };
 		036849091E5E7C570087BBBD /* walkinganimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036849081E5E7C570087BBBD /* walkinganimationscript.u4d */; };
+		0368490B1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0368490A1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d */; };
+		0368490D1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0368490C1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d */; };
+		036849101E5EADE10087BBBD /* SoccerPlayerForwardKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0368490E1E5EADE10087BBBD /* SoccerPlayerForwardKickState.mm */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -318,6 +321,10 @@
 		036849041E5E7C440087BBBD /* runninganimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = runninganimationscript.u4d; path = Resources/runninganimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036849051E5E7C440087BBBD /* sidecarryleftanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = sidecarryleftanimationscript.u4d; path = Resources/sidecarryleftanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036849081E5E7C570087BBBD /* walkinganimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = walkinganimationscript.u4d; path = Resources/walkinganimationscript.u4d; sourceTree = SOURCE_ROOT; };
+		0368490A1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightfootforwardkickanimationscript.u4d; path = Resources/rightfootforwardkickanimationscript.u4d; sourceTree = SOURCE_ROOT; };
+		0368490C1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftfootforwardkickanimationscript.u4d; path = Resources/leftfootforwardkickanimationscript.u4d; sourceTree = SOURCE_ROOT; };
+		0368490E1E5EADE10087BBBD /* SoccerPlayerForwardKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerForwardKickState.mm; sourceTree = "<group>"; };
+		0368490F1E5EADE10087BBBD /* SoccerPlayerForwardKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerForwardKickState.h; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserCommonProtocols.h; sourceTree = "<group>"; };
@@ -730,6 +737,8 @@
 				036848E01E573EA10087BBBD /* SoccerPlayerDribbleState.mm */,
 				036848F11E5AB0510087BBBD /* SoccerPlayerGroundPassState.h */,
 				036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */,
+				0368490F1E5EADE10087BBBD /* SoccerPlayerForwardKickState.h */,
+				0368490E1E5EADE10087BBBD /* SoccerPlayerForwardKickState.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -1012,14 +1021,16 @@
 				036849081E5E7C570087BBBD /* walkinganimationscript.u4d */,
 				036849041E5E7C440087BBBD /* runninganimationscript.u4d */,
 				036849051E5E7C440087BBBD /* sidecarryleftanimationscript.u4d */,
+				03929DDD1E50C08900D63361 /* sidecarryrightanimationscript.u4d */,
 				036849001E5E7C1B0087BBBD /* forwardcarryanimationscript.u4d */,
 				036849011E5E7C1B0087BBBD /* forwardkickanimationscript.u4d */,
-				03929DDD1E50C08900D63361 /* sidecarryrightanimationscript.u4d */,
 				036848E91E59FCCF0087BBBD /* idleanimationscript.u4d */,
 				036848F81E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d */,
 				036848FA1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d */,
 				036848FC1E5E783D0087BBBD /* rightfootsidepassanimationscript.u4d */,
 				036848FE1E5E787B0087BBBD /* leftfootsidepassanimationscript.u4d */,
+				0368490A1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d */,
+				0368490C1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
@@ -1483,6 +1494,7 @@
 				03929DDE1E50C08900D63361 /* sidecarryrightanimationscript.u4d in Resources */,
 				036849071E5E7C440087BBBD /* sidecarryleftanimationscript.u4d in Resources */,
 				036848FB1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d in Resources */,
+				0368490B1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
 				03929DE01E50CE4D00D63361 /* cesped.png in Resources */,
@@ -1500,6 +1512,7 @@
 				03929DD01E50BC2500D63361 /* characterscript.u4d in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
+				0368490D1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */,
 				030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */,
@@ -1609,6 +1622,7 @@
 				0390C7BD1E3432400028AC20 /* U4DOpenGLParticleDust.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
+				036849101E5EADE10087BBBD /* SoccerPlayerForwardKickState.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,

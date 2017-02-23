@@ -52,8 +52,6 @@ public:
     
     void update(double dt);
     
-    U4DEngine::U4DAnimation *forwardKickAnimation;
-    
     U4DEngine::U4DAnimation *walkingAnimation;
     
     U4DEngine::U4DAnimation *rightFootSidePassAnimation;
@@ -74,6 +72,10 @@ public:
     
     U4DEngine::U4DAnimation *haltBallWithLeftFootAnimation;
     
+    U4DEngine::U4DAnimation *rightFootForwardKickAnimation;
+    
+    U4DEngine::U4DAnimation *leftFootForwardKickAnimation;
+    
     void changeState(SoccerPlayerStateInterface* uState);
     
     void setBallEntity(SoccerBall *uSoccerBall);
@@ -88,8 +90,6 @@ public:
     
     U4DEngine::U4DAnimation *getRunningAnimation();
     
-    U4DEngine::U4DAnimation *getGroundPassAnimation();
-    
     U4DEngine::U4DAnimation *getForwardCarryAnimation();
     
     U4DEngine::U4DAnimation *getIdleAnimation();
@@ -101,6 +101,10 @@ public:
     U4DEngine::U4DAnimation *getRightFootSidePassAnimation();
     
     U4DEngine::U4DAnimation *getLeftFootSidePassAnimation();
+    
+    U4DEngine::U4DAnimation *getRightFootForwardKickAnimation();
+    
+    U4DEngine::U4DAnimation *getLeftFootForwardKickAnimation();
     
     void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
     

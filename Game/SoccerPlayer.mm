@@ -34,7 +34,6 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
-        forwardKickAnimation=new U4DEngine::U4DAnimation(this);
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         runningAnimation=new U4DEngine::U4DAnimation(this);
         
@@ -46,6 +45,8 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         haltBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
         rightFootSidePassAnimation=new U4DEngine::U4DAnimation(this);
         leftFootSidePassAnimation=new U4DEngine::U4DAnimation(this);
+        rightFootForwardKickAnimation=new U4DEngine::U4DAnimation(this);
+        leftFootForwardKickAnimation=new U4DEngine::U4DAnimation(this);
         
         //set collision info
         initMass(80.0);
@@ -82,12 +83,6 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         
         if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimationscript.u4d")) {
             
-            
-            
-        }
-        
-        if (loadAnimationToModel(forwardKickAnimation, "forwardkick", "forwardkickanimationscript.u4d")) {
-
             
             
         }
@@ -141,6 +136,18 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         }
         
         if (loadAnimationToModel(leftFootSidePassAnimation, "leftfootsidepass", "leftfootsidepassanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(rightFootForwardKickAnimation, "rightfootforwardkick", "rightfootforwardkickanimationscript.u4d")) {
+            
+            
+            
+        }
+        
+        if (loadAnimationToModel(leftFootForwardKickAnimation, "leftfootforwardkick", "leftfootforwardkickanimationscript.u4d")) {
             
             
             
@@ -344,6 +351,18 @@ U4DEngine::U4DAnimation *SoccerPlayer::getHaltBallWithRightFootAnimation(){
 U4DEngine::U4DAnimation *SoccerPlayer::getHaltBallWithLeftFootAnimation(){
     
     return haltBallWithLeftFootAnimation;
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getRightFootForwardKickAnimation(){
+    
+    return rightFootForwardKickAnimation;
+
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getLeftFootForwardKickAnimation(){
+   
+    return leftFootForwardKickAnimation;
+
 }
 
 void SoccerPlayer::receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive){
