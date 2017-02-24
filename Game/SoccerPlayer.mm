@@ -513,4 +513,11 @@ SoccerPlayerExtremity *SoccerPlayer::getActiveExtremity(){
     return activeExtremity;
 }
 
+void SoccerPlayer::decelerateBall(float uScale, double dt){
+    
+    soccerBallEntity->decelerate(uScale, dt);
+    
+}
+
+
 

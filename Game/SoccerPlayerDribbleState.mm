@@ -89,7 +89,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     }
     
     //chase the ball
-    uPlayer->applyForceToPlayer(10.0, dt);
+    uPlayer->applyForceToPlayer(16.0, dt);
     
     uPlayer->trackBall();
 }

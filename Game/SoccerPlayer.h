@@ -160,5 +160,8 @@ public:
     
     bool getLeftFootCollidedWithBall();
     
+    void decelerateBall(float uScale, double dt);
+    
+    
 };
 #endif /* SoccerPlayer_hpp */

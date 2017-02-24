@@ -38,11 +38,11 @@ void SoccerPlayerTakeBallControlState::enter(SoccerPlayer *uPlayer){
     if (uPlayer->isBallOnRightSidePlane()) {
         
         uPlayer->setNextAnimationToPlay(uPlayer->getHaltBallWithRightFootAnimation());
-        
+        uPlayer->setActiveExtremity(uPlayer->getRightFoot());
     }else{
      
         uPlayer->setNextAnimationToPlay(uPlayer->getHaltBallWithLeftFootAnimation());
-        
+        uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
     }
     
     uPlayer->setPlayBlendedAnimation(true);
@@ -51,14 +51,18 @@ void SoccerPlayerTakeBallControlState::enter(SoccerPlayer *uPlayer){
 
 void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt){
     
+    SoccerBall *ball=uPlayer->getBallEntity();
+    
     //stop ball motion if the feet collide with the ball and if it matches a keyframe 
-    if ((uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) && uPlayer->getAnimationCurrentKeyframe()==3) {
-        
-        //adjust the ball to a good location to start dribbling
-        
-        SoccerBall *ball=uPlayer->getBallEntity();
+    if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()>=3) {
         
         ball->removeKineticForces();
+        
+    }else{
+        
+        if (ball->getVelocity().magnitude()>8.0) {
+            uPlayer->decelerateBall(0.5, dt);
+        }
         
     }
     
