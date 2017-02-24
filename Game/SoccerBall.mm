@@ -49,6 +49,8 @@ void SoccerBall::update(double dt){
     
     setEquilibrium(true);
     U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+    
+    moveBallWithinRange(dt);
   /*
     if (getState()==kStabilize) {
         
@@ -293,6 +295,34 @@ void SoccerBall::removeKineticForces(){
     U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
     setVelocity(zero);
     setAngularVelocity(zero);
+    
+}
+
+void SoccerBall::decelerate(float uScale, double dt){
+    
+    //awake the ball
+    setAwake(true);
+    
+    U4DEngine::U4DVector3n ballVelocity=getVelocity();
+    
+    ballVelocity*=uScale;
+    
+    U4DEngine::U4DVector3n forceToBall=(ballVelocity*getMass())/dt;
+    
+    addForce(forceToBall);
+    
+    //apply moment to ball
+    U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
+    
+    U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(forceToBall);
+    
+    addMoment(groundPassMoment);
+    
+    //zero out the velocities
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+
+    setVelocity(initialVelocity);
+    setAngularVelocity(initialVelocity);
     
 }
 
