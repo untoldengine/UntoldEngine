@@ -13,6 +13,7 @@
 #include "U4DCallback.h"
 #include "U4DTimer.h"
 #include "U4DLogger.h"
+#include "Constants.h"
 
 namespace U4DEngine {
     
@@ -50,7 +51,7 @@ namespace U4DEngine {
             keyframe=previousAnimation->keyframeRange-2;
         }
         
-        interpolationTime=1.0-animationManager->getBlendedStartInterpolationTime();
+        interpolationTime=0.0;
         
     }
     
@@ -67,10 +68,7 @@ namespace U4DEngine {
             
             ANIMATIONDATA animationData=previousAnimation->animationsContainer.at(0);
             
-            //get the time length for initial keyframe
-            float durationOfKeyframe=animationData.keyframes.at(keyframe+1).time-animationData.keyframes.at(keyframe).time;
-            
-            scheduler->scheduleClassWithMethodAndDelay(this, &U4DBlendAnimation::runAnimation, timer,durationOfKeyframe/previousAnimation->getFPS(), true);
+            scheduler->scheduleClassWithMethodAndDelay(this, &U4DBlendAnimation::runAnimation, timer,U4DEngine::animationBlendingDelay, true);
     
             
         }else{

@@ -40,7 +40,6 @@ void SoccerPlayerDribbleState::enter(SoccerPlayer *uPlayer){
     uPlayer->setPlayNextAnimationContinuously(true);
     uPlayer->setPlayBlendedAnimation(true);
     
-    
 }
 
 void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
@@ -84,12 +83,12 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     //keep dribbling
     if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
         
-        uPlayer->kickBallToGround(20.0, directionToKick,dt);
+        uPlayer->kickBallToGround(25.0, directionToKick,dt);
     
     }
     
     //chase the ball
-    uPlayer->applyForceToPlayer(16.0, dt);
+    uPlayer->applyForceToPlayer(15.0, dt);
     
     uPlayer->trackBall();
 }

@@ -86,6 +86,11 @@ namespace U4DEngine {
      */
     const int   maxShaderLength=8192;
     
+    /**
+     @brief Animation blending delay
+     */
+    const float animationBlendingDelay=0.001;
+    
 }
 
 #endif
