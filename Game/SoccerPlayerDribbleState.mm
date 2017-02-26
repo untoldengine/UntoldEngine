@@ -11,6 +11,7 @@
 #include "SoccerPlayerGroundPassState.h"
 #include "SoccerPlayerTakeBallControlState.h"
 #include "SoccerPlayerForwardKickState.h"
+#include "SoccerPlayerReverseKickState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerDribbleState* SoccerPlayerDribbleState::instance=0;
@@ -68,6 +69,14 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     //if the joystick is active, set the new direction of the kick
     if (uPlayer->getJoystickActive()) {
         
+        //check if the joystick changed directions
+        
+        if (uPlayer->getDirectionReversal()) {
+            
+            uPlayer->changeState(SoccerPlayerReverseKickState::sharedInstance());
+            
+        }
+        
         directionToKick=uPlayer->getJoystickDirection();
         directionToKick.z=-directionToKick.y;
         
@@ -83,7 +92,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     //keep dribbling
     if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
         
-        uPlayer->kickBallToGround(25.0, directionToKick,dt);
+        uPlayer->kickBallToGround(23.0, directionToKick,dt);
     
     }
     

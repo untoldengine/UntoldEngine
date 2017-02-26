@@ -192,6 +192,9 @@
 		03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDF31943D8C7007AD131 /* U4DCallbackInterface.mm */; };
 		03E6EE081943DA1D007AD131 /* GameController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EE071943DA1D007AD131 /* GameController.mm */; };
 		03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EE0A1943DA42007AD131 /* GameLogic.mm */; };
+		03EA5ECA1E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EA5EC81E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm */; };
+		03EA5ECC1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d */; };
+		03EA5ECE1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d */; };
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
 		03EE34161E444BF8001F6FCF /* SoccerPostSensor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EE34141E444BF7001F6FCF /* SoccerPostSensor.mm */; };
 		03EE34191E444C06001F6FCF /* SoccerGoalSensor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EE34171E444C06001F6FCF /* SoccerGoalSensor.mm */; };
@@ -524,6 +527,10 @@
 		03E6EE071943DA1D007AD131 /* GameController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GameController.mm; sourceTree = "<group>"; };
 		03E6EE091943DA42007AD131 /* GameLogic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GameLogic.h; sourceTree = "<group>"; };
 		03E6EE0A1943DA42007AD131 /* GameLogic.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GameLogic.mm; sourceTree = "<group>"; };
+		03EA5EC81E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerReverseKickState.mm; sourceTree = "<group>"; };
+		03EA5EC91E614BCF000FBCF2 /* SoccerPlayerReverseKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerReverseKickState.h; sourceTree = "<group>"; };
+		03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithrightfootanimationscript.u4d; path = Resources/reverseballwithrightfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
+		03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithleftfootanimationscript.u4d; path = Resources/reverseballwithleftfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = blenderscript.u4d; path = Resources/blenderscript.u4d; sourceTree = SOURCE_ROOT; };
 		03EE34141E444BF7001F6FCF /* SoccerPostSensor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPostSensor.mm; sourceTree = "<group>"; };
 		03EE34151E444BF7001F6FCF /* SoccerPostSensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPostSensor.h; sourceTree = "<group>"; };
@@ -739,6 +746,8 @@
 				036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */,
 				0368490F1E5EADE10087BBBD /* SoccerPlayerForwardKickState.h */,
 				0368490E1E5EADE10087BBBD /* SoccerPlayerForwardKickState.mm */,
+				03EA5EC91E614BCF000FBCF2 /* SoccerPlayerReverseKickState.h */,
+				03EA5EC81E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -1031,6 +1040,8 @@
 				036848FE1E5E787B0087BBBD /* leftfootsidepassanimationscript.u4d */,
 				0368490A1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d */,
 				0368490C1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d */,
+				03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d */,
+				03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
@@ -1505,6 +1516,7 @@
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
 				036848FF1E5E787B0087BBBD /* leftfootsidepassanimationscript.u4d in Resources */,
+				03EA5ECC1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d in Resources */,
 				036849061E5E7C440087BBBD /* runninganimationscript.u4d in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */,
@@ -1516,6 +1528,7 @@
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */,
 				030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */,
+				03EA5ECE1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d in Resources */,
 				036849031E5E7C1B0087BBBD /* forwardkickanimationscript.u4d in Resources */,
 				03DB6E86192F7B25006E21D0 /* NormalMapping.vp in Resources */,
 				034DBC8A1A74112000AC43EB /* debugShader.vp in Resources */,
@@ -1577,6 +1590,7 @@
 				03759B5A175B0135002EB5D9 /* ViewController.mm in Sources */,
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
+				03EA5ECA1E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,

@@ -72,6 +72,9 @@ void GameLogic::receiveTouchUpdate(){
         player->setJoystickDirection(joystickDirection);
         
         joystickActive=true;
+        
+        player->setDirectionReversal(joystick->getDirectionReversal());
+        
     }
     
     

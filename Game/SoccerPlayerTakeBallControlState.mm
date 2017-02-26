@@ -10,6 +10,7 @@
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerPlayerGroundPassState.h"
 #include "SoccerPlayerForwardKickState.h"
+#include "SoccerPlayerReverseKickState.h"
 #include "SoccerBall.h"
 
 SoccerPlayerTakeBallControlState* SoccerPlayerTakeBallControlState::instance=0;
@@ -85,6 +86,14 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
     
     //if joystick is active go into dribble state
     if (uPlayer->getJoystickActive()) {
+        
+        //check if the joystick changed directions
+        
+        if ((uPlayer->getDirectionReversal())) {
+            
+            uPlayer->changeState(SoccerPlayerReverseKickState::sharedInstance());
+            
+        }
         
         SoccerPlayerStateInterface *dribbleState=SoccerPlayerDribbleState::sharedInstance();
         
