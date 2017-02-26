@@ -220,6 +220,13 @@ void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
         translateTo(originalPosition);
         joyStickImage.translateTo(originalPosition);
         
+        dataMagnitude=0.0;
+        
+        isActive=false;
+     
+        if (controllerInterface!=NULL) {
+            controllerInterface->setReceivedAction(true);
+        }
     }
     
 }
