@@ -14,7 +14,7 @@
 namespace U4DEngine {
     
     
-U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL){
+U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0){
     
     
     setName(uName);
@@ -141,6 +141,19 @@ void U4DJoyStick::update(float dt){
             
             U4DVector3n data=(currentPosition-centerBackgroundPosition)/backgroundImageRadius;
             data.normalize();
+            
+            //get previous data
+            U4DVector3n previousData=getDataPosition();
+            
+            //get the direction between previous data and new data
+            
+            if (previousData.dot(data)<0.0) {
+                
+                directionReversal=true;
+            }else{
+                directionReversal=false;
+            }
+            
             setDataPosition(data);
             
             translateTo(currentPosition);
@@ -156,7 +169,6 @@ void U4DJoyStick::update(float dt){
             translateTo(originalPosition);
             joyStickImage.translateTo(originalPosition);
             
-            dataPosition=originalPosition;
             dataMagnitude=0.0;
             
             isActive=false;
@@ -253,6 +265,12 @@ void U4DJoyStick::setCallbackAction(U4DCallbackInterface *uAction){
 void U4DJoyStick::setControllerInterface(U4DControllerInterface* uControllerInterface){
     
     controllerInterface=uControllerInterface;
+    
+}
+    
+bool U4DJoyStick::getDirectionReversal(){
+    
+    return directionReversal;
     
 }
     

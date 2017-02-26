@@ -52,6 +52,8 @@ private:
     
     bool isActive;
     
+    bool directionReversal;
+    
 public:
     
     U4DImage backgroundImage;
@@ -92,6 +94,8 @@ public:
     void setCallbackAction(U4DCallbackInterface *uAction);
     
     void setControllerInterface(U4DControllerInterface* uControllerInterface);
+    
+    bool getDirectionReversal();
 };
 
 }

@@ -34,8 +34,6 @@ private:
     
     U4DEngine::U4DVector3n joystickDirection;
     
-    float leftRightFootOffset;
-    
     SoccerPlayerExtremity *rightFoot;
     
     SoccerPlayerExtremity *leftFoot;
@@ -43,6 +41,8 @@ private:
     SoccerPlayerExtremity *activeExtremity;
     
     bool flagToPassBall;
+    
+    bool directionReversal;
     
 public:
     
@@ -78,6 +78,10 @@ public:
     
     U4DEngine::U4DAnimation *leftFootForwardKickAnimation;
     
+    U4DEngine::U4DAnimation *reverseBallWithLeftFootAnimation;
+    
+    U4DEngine::U4DAnimation *reverseBallWithRightFootAnimation;
+    
     void changeState(SoccerPlayerStateInterface* uState);
     
     void setBallEntity(SoccerBall *uSoccerBall);
@@ -107,6 +111,10 @@ public:
     U4DEngine::U4DAnimation *getRightFootForwardKickAnimation();
     
     U4DEngine::U4DAnimation *getLeftFootForwardKickAnimation();
+    
+    U4DEngine::U4DAnimation *getReverseBallWithLeftFootAnimation();
+    
+    U4DEngine::U4DAnimation *getReverseBallWithRightFootAnimation();
     
     void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
     
@@ -161,6 +169,12 @@ public:
     bool getLeftFootCollidedWithBall();
     
     void decelerateBall(float uScale, double dt);
+    
+    void decelerate(float uScale, double dt);
+    
+    void setDirectionReversal(bool uValue);
+    
+    bool getDirectionReversal();
     
     
 };

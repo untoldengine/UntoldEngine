@@ -19,7 +19,7 @@
 #include "U4DTrigonometry.h"
 #include "U4DBoneData.h"
 
-SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),leftRightFootOffset(1.0),flagToPassBall(false){
+SoccerPlayer::SoccerPlayer():buttonAPressed(false),buttonBPressed(false),joystickActive(false),flagToPassBall(false){
     
     stateManager=new SoccerPlayerStateManager(this);
     
@@ -47,6 +47,8 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         leftFootSidePassAnimation=new U4DEngine::U4DAnimation(this);
         rightFootForwardKickAnimation=new U4DEngine::U4DAnimation(this);
         leftFootForwardKickAnimation=new U4DEngine::U4DAnimation(this);
+        reverseBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
+        reverseBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
         
         //set collision info
         initMass(80.0);
@@ -153,6 +155,18 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
             
         }
         
+        if (loadAnimationToModel(reverseBallWithRightFootAnimation, "reverseballwithrightfoot", "reverseballwithrightfootanimationscript.u4d")) {
+            
+            reverseBallWithRightFootAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(reverseBallWithLeftFootAnimation, "reverseballwithleftfoot", "reverseballwithleftfootanimationscript.u4d")) {
+            
+            reverseBallWithLeftFootAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
         SoccerPlayerStateInterface *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
         SoccerPlayerStateInterface *idleState=SoccerPlayerIdleState::sharedInstance();
         SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
@@ -173,6 +187,9 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
 
 void SoccerPlayer::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
     
+    uHeading.x*=fieldLength;
+    uHeading.z*=fieldWidth;
+    
     //set view heading of player
     viewInDirection(uHeading);
     
@@ -180,12 +197,7 @@ void SoccerPlayer::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
 
 U4DEngine::U4DVector3n SoccerPlayer::getPlayerHeading(){
     
-    U4DEngine::U4DVector3n heading=getViewInDirection();
-    
-    heading.x*=fieldLength;
-    heading.z*=fieldWidth;
-    
-    return heading;
+    return getViewInDirection();
     
 }
 
@@ -226,32 +238,15 @@ void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
 
 void SoccerPlayer::trackBall(){
     
-    U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
-    
-    playerHeading.normalize();
-    
-    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-    
-    U4DEngine::U4DVector3n directionOffset=playerHeading.cross(upVector);
-    
-    directionOffset+=playerHeading;
-    
-    directionOffset.y=0.0;
-    
-    //multiply the direction offset by the distance of the foot to the body
-    directionOffset*leftRightFootOffset;
-    
     U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
     U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
     
-    //distanceVector-=directionOffset;
+    U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
     
-    U4DEngine::U4DVector3n directionToLook(distanceVector.x*fieldLength,playerPosition.y,distanceVector.z*fieldWidth);
-    
-    viewInDirection(directionToLook);
+    setPlayerHeading(directionToLook);
     
 }
 
@@ -362,6 +357,18 @@ U4DEngine::U4DAnimation *SoccerPlayer::getLeftFootForwardKickAnimation(){
    
     return leftFootForwardKickAnimation;
 
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getReverseBallWithLeftFootAnimation(){
+    
+    return reverseBallWithLeftFootAnimation;
+    
+}
+
+U4DEngine::U4DAnimation *SoccerPlayer::getReverseBallWithRightFootAnimation(){
+ 
+    return reverseBallWithRightFootAnimation;
+    
 }
 
 void SoccerPlayer::receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive){
@@ -516,6 +523,34 @@ SoccerPlayerExtremity *SoccerPlayer::getActiveExtremity(){
 void SoccerPlayer::decelerateBall(float uScale, double dt){
     
     soccerBallEntity->decelerate(uScale, dt);
+    
+}
+
+void SoccerPlayer::setDirectionReversal(bool uValue){
+    
+    directionReversal=uValue;
+}
+
+bool SoccerPlayer::getDirectionReversal(){
+    
+    return directionReversal;
+}
+
+void SoccerPlayer::decelerate(float uScale, double dt){
+    
+    U4DEngine::U4DVector3n playerVelocity=getVelocity();
+    
+    playerVelocity*=uScale;
+    
+    U4DEngine::U4DVector3n forceToPlayer=(playerVelocity*getMass())/dt;
+    
+    addForce(forceToPlayer);
+    
+    //zero out the velocities
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+    
+    setVelocity(initialVelocity);
+    setAngularVelocity(initialVelocity);
     
 }
 
