@@ -8,21 +8,33 @@
 
 #include "SoccerBall.h"
 #include "U4DNumerical.h"
+#include "SoccerBallStateManager.h"
+#include "SoccerBallStateInterface.h"
+#include "SoccerBallGroundState.h"
+#include "SoccerBallAirState.h"
+
+SoccerBall::SoccerBall(){
+ 
+    stateManager=new SoccerBallStateManager(this);
+}
+
+SoccerBall::~SoccerBall(){
+    
+    delete stateManager;
+    
+}
 
 void SoccerBall::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
         initInertiaTensorType(U4DEngine::sphericalInertia);
-        initCoefficientOfRestitution(0.9);
+        initCoefficientOfRestitution(0.7);
         initMass(1.0);
         
         //initialize everything else here
         enableCollisionBehavior();
         enableKineticsBehavior();
-        
-    
-        setState(kNull);
         
         ballRadius=getModelDimensions().z/2.0;
         
@@ -30,27 +42,23 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         setCollisionFilterMask(kSoccerField|kSoccerPostSensor|kSoccerGoalSensor);
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
-        //turn off gravity
-        U4DEngine::U4DVector3n gravityForce(0,0,0);
-        setGravity(gravityForce);
-        
         U4DEngine::U4DVector2n dragCoefficients(0.25,0.05);
         setDragCoefficient(dragCoefficients);
         
+        stateManager->safeChangeState(SoccerBallGroundState::sharedInstance());
         
         loadRenderingInformation();
         
     }
-    
     
 }
 
 void SoccerBall::update(double dt){
     
     setEquilibrium(true);
-    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
     
-    moveBallWithinRange(dt);
+    stateManager->update(dt);
+    
   /*
     if (getState()==kStabilize) {
         
@@ -198,18 +206,9 @@ void SoccerBall::update(double dt){
     
 }
 
-void SoccerBall::changeState(GameEntityState uState){
+void SoccerBall::changeState(SoccerBallStateInterface* uState){
     
-    setState(uState);
-    
-    switch (uState) {
-            
-            
-        default:
-            
-            break;
-    }
-    
+    stateManager->safeChangeState(uState);
 }
 
 bool SoccerBall::isBallWithinRange(){
@@ -230,13 +229,6 @@ void SoccerBall::moveBallWithinRange(double dt){
     
 }
 
-void SoccerBall::setState(GameEntityState uState){
-    entityState=uState;
-}
-
-GameEntityState SoccerBall::getState(){
-    return entityState;
-}
 
 void SoccerBall::setKickDirection(U4DEngine::U4DVector3n &uDirection){
     
@@ -247,20 +239,46 @@ float SoccerBall::getBallRadius(){
     return ballRadius;
 }
 
-void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
+void SoccerBall::kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
+    
+    stateManager->changeState(SoccerBallAirState::sharedInstance());
     
     uDirection.normalize();
     
-    //move ball to proper position
-    float offset=ballRadius-getAbsolutePosition().y;
-    
-    translateBy(0.0,offset, 0.0);
+    uDirection.y=0.5;
     
     //awake the ball
     setAwake(true);
     
-    //set collision with field not to occur
-    setCollisionFilterGroupIndex(kNegativeGroupIndex);
+    //apply force to ball
+    
+    U4DEngine::U4DVector3n forceToBall=(uDirection*uVelocity*getMass())/dt;
+    
+    addForce(forceToBall);
+    
+    //apply moment to ball
+    U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
+    
+    U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(forceToBall);
+    
+    addMoment(groundPassMoment);
+    
+    //zero out the velocities
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+    
+    setVelocity(initialVelocity);
+    setAngularVelocity(initialVelocity);
+    
+}
+
+void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
+    
+    stateManager->changeState(SoccerBallGroundState::sharedInstance());
+    
+    uDirection.normalize();
+    
+    //awake the ball
+    setAwake(true);
     
     //turn off gravity
     U4DEngine::U4DVector3n gravityForce(0,0,0);
@@ -271,7 +289,6 @@ void SoccerBall::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirec
     U4DEngine::U4DVector3n forceToBall=(uDirection*uVelocity*getMass())/dt;
     
     addForce(forceToBall);
-    
     
     //apply moment to ball
     U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);

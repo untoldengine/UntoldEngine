@@ -10,7 +10,7 @@
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerGroundPassState.h"
 #include "SoccerPlayerTakeBallControlState.h"
-#include "SoccerPlayerForwardKickState.h"
+#include "SoccerPlayerGroundShotState.h"
 #include "SoccerPlayerReverseKickState.h"
 #include "SoccerBall.h"
 
@@ -50,18 +50,14 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     //check if player should pass
     if (uPlayer->getButtonAPressed()) {
         
-        SoccerPlayerGroundPassState *groundPassState=SoccerPlayerGroundPassState::sharedInstance();
-        
-        uPlayer->changeState(groundPassState);
+        uPlayer->changeState(SoccerPlayerGroundPassState::sharedInstance());
         
     }
     
     //check if player should shoot
     if (uPlayer->getButtonBPressed()) {
         
-        SoccerPlayerForwardKickState *forwardKickState=SoccerPlayerForwardKickState::sharedInstance();
-        
-        uPlayer->changeState(forwardKickState);
+        uPlayer->changeState(SoccerPlayerGroundShotState::sharedInstance());
         
     }
 
@@ -84,9 +80,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
         
     }else{
         
-        SoccerPlayerChaseBallState *chaseBallState=SoccerPlayerChaseBallState::sharedInstance();
-        
-        uPlayer->changeState(chaseBallState);
+        uPlayer->changeState(SoccerPlayerChaseBallState::sharedInstance());
     }
     
     //keep dribbling

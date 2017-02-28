@@ -31,7 +31,7 @@ void SoccerPostSensor::init(const char* uName, const char* uBlenderFile){
 void SoccerPostSensor::update(double dt){
     
     if (getModelHasCollided()) {
-        soccerBallEntity->changeState(kBallHitPostSensor);
+        //soccerBallEntity->changeState(kBallHitPostSensor);
     }
     
 }

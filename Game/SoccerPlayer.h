@@ -138,6 +138,8 @@ public:
     
     void kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
     
+    void kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
+    
     void setJoystickDirection(U4DEngine::U4DVector3n uJoystickDirection);
     
     U4DEngine::U4DVector3n getJoystickDirection();
