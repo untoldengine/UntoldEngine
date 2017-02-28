@@ -424,6 +424,11 @@ void SoccerPlayer::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDir
     soccerBallEntity->kickBallToGround(uVelocity, uDirection, dt);
 }
 
+void SoccerPlayer::kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
+    
+    soccerBallEntity->kickBallToAir(uVelocity, uDirection, dt);
+}
+
 void SoccerPlayer::setJoystickDirection(U4DEngine::U4DVector3n uJoystickDirection){
     
     joystickDirection=uJoystickDirection;

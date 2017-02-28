@@ -14,6 +14,8 @@
 #include "U4DGameObject.h"
 #include "UserCommonProtocols.h"
 
+class SoccerBallStateManager;
+class SoccerBallStateInterface;
 
 class SoccerBall:public U4DEngine::U4DGameObject {
     
@@ -25,20 +27,20 @@ private:
     
     float ballRadius;
     
+    SoccerBallStateManager *stateManager;
+    
     
 public:
-    SoccerBall(){};
-    ~SoccerBall(){};
+    
+    SoccerBall();
+    
+    ~SoccerBall();
     
     void init(const char* uName, const char* uBlenderFile);
     
     void update(double dt);
     
-    void changeState(GameEntityState uState);
-    
-    void setState(GameEntityState uState);
-    
-    GameEntityState getState();
+    void changeState(SoccerBallStateInterface* uState);
     
     bool isBallWithinRange();
     
@@ -49,6 +51,8 @@ public:
     float getBallRadius();
     
     void removeKineticForces();
+    
+    void kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
     
     void kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
     

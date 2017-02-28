@@ -1,36 +1,36 @@
 //
-//  SoccerPlayerForwardKickState.cpp
+//  SoccerPlayerGroundShotState.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/22/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#include "SoccerPlayerForwardKickState.h"
+#include "SoccerPlayerGroundShotState.h"
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerIdleState.h"
 
-SoccerPlayerForwardKickState* SoccerPlayerForwardKickState::instance=0;
+SoccerPlayerGroundShotState* SoccerPlayerGroundShotState::instance=0;
 
-SoccerPlayerForwardKickState::SoccerPlayerForwardKickState(){
+SoccerPlayerGroundShotState::SoccerPlayerGroundShotState(){
     
 }
 
-SoccerPlayerForwardKickState::~SoccerPlayerForwardKickState(){
+SoccerPlayerGroundShotState::~SoccerPlayerGroundShotState(){
     
 }
 
-SoccerPlayerForwardKickState* SoccerPlayerForwardKickState::sharedInstance(){
+SoccerPlayerGroundShotState* SoccerPlayerGroundShotState::sharedInstance(){
     
     if (instance==0) {
-        instance=new SoccerPlayerForwardKickState();
+        instance=new SoccerPlayerGroundShotState();
     }
     
     return instance;
     
 }
 
-void SoccerPlayerForwardKickState::enter(SoccerPlayer *uPlayer){
+void SoccerPlayerGroundShotState::enter(SoccerPlayer *uPlayer){
     
     //set the forward kick animation
     
@@ -47,7 +47,7 @@ void SoccerPlayerForwardKickState::enter(SoccerPlayer *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
 }
 
-void SoccerPlayerForwardKickState::execute(SoccerPlayer *uPlayer, double dt){
+void SoccerPlayerGroundShotState::execute(SoccerPlayer *uPlayer, double dt){
     
     //track the ball
     if(uPlayer->getActiveExtremityCollidedWithBall()){
@@ -67,11 +67,11 @@ void SoccerPlayerForwardKickState::execute(SoccerPlayer *uPlayer, double dt){
     
 }
 
-void SoccerPlayerForwardKickState::exit(SoccerPlayer *uPlayer){
+void SoccerPlayerGroundShotState::exit(SoccerPlayer *uPlayer){
     
 }
 
-bool SoccerPlayerForwardKickState::isSafeToChangeState(SoccerPlayer *uPlayer){
+bool SoccerPlayerGroundShotState::isSafeToChangeState(SoccerPlayer *uPlayer){
     
     //check if animation can be interrupted or if the animation has stopped
     if (uPlayer->getCurrentPlayingAnimation()->getIsAllowedToBeInterrupted()==true || !uPlayer->getCurrentPlayingAnimation()->getAnimationIsPlaying()) {

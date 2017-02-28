@@ -1,5 +1,5 @@
 //
-//  SoccerPlayerForwardKickState.hpp
+//  SoccerPlayerGroundShotState.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/22/17.
@@ -12,19 +12,19 @@
 #include <stdio.h>
 #include "SoccerPlayerStateInterface.h"
 
-class SoccerPlayerForwardKickState:public SoccerPlayerStateInterface {
+class SoccerPlayerGroundShotState:public SoccerPlayerStateInterface {
     
 private:
     
-    SoccerPlayerForwardKickState();
+    SoccerPlayerGroundShotState();
     
-    ~SoccerPlayerForwardKickState();
+    ~SoccerPlayerGroundShotState();
     
 public:
     
-    static SoccerPlayerForwardKickState* instance;
+    static SoccerPlayerGroundShotState* instance;
     
-    static SoccerPlayerForwardKickState* sharedInstance();
+    static SoccerPlayerGroundShotState* sharedInstance();
     
     void enter(SoccerPlayer *uPlayer);
     
