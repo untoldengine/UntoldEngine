@@ -21,8 +21,6 @@ class SoccerBall:public U4DEngine::U4DGameObject {
     
 private:
     
-    GameEntityState entityState;
-    
     U4DEngine::U4DVector3n kickDirection;
     
     float ballRadius;
@@ -51,6 +49,8 @@ public:
     float getBallRadius();
     
     void removeKineticForces();
+    
+    void removeAllVelocities();
     
     void kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt);
     

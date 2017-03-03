@@ -8,6 +8,7 @@
 
 #include "SoccerField.h"
 #include "UserCommonProtocols.h"
+#include "SoccerBallBounceState.h"
 
 SoccerField::SoccerField(){
     
@@ -25,7 +26,7 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
         
         initAsPlatform(true);
         initMass(1000.0);
-        initCoefficientOfRestitution(0.5);
+        initCoefficientOfRestitution(0.0);
         enableCollisionBehavior();
         
         setCollisionFilterCategory(kSoccerField);
@@ -40,8 +41,8 @@ void SoccerField::init(const char* uName, const char* uBlenderFile){
 
 void SoccerField::update(double dt){
     
-    if (getModelHasCollided() && soccerBallEntity->getAwake()==true) {
-        //soccerBallEntity->changeState(kBallHitGround);
+    if (getModelHasCollided()) {
+        soccerBallEntity->changeState(SoccerBallBounceState::sharedInstance());
     }
 }
 

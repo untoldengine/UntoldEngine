@@ -38,6 +38,10 @@ void SoccerBallGroundState::enter(SoccerBall *uBall){
     U4DEngine::U4DVector3n gravityForce(0,0,0);
     uBall->setGravity(gravityForce);
     
+    //reset drag
+    U4DEngine::U4DVector2n dragCoefficients(0.25,0.05);
+    uBall->setDragCoefficient(dragCoefficients);
+    
 }
 
 void SoccerBallGroundState::execute(SoccerBall *uBall, double dt){

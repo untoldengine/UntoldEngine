@@ -132,13 +132,13 @@ namespace U4DEngine {
         
         //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
-        if (uModel1->getEquilibrium()) {
+        if (uModel1->getEquilibrium() && uModel1->getInertiaTensorType()!=sphericalInertia ) {
             
             angularImpulseFactorOfModel1.zero();
             
         }
         
-        if (uModel2->getEquilibrium()) {
+        if (uModel2->getEquilibrium()  && uModel2->getInertiaTensorType()!=sphericalInertia ) {
         
             angularImpulseFactorOfModel2.zero();
             

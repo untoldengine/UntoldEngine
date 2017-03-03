@@ -208,100 +208,102 @@ namespace U4DEngine {
             return false;
         }
         
-        if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
-            //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
+        if (uModel1->getInertiaTensorType()!=sphericalInertia && uModel2->getInertiaTensorType()!=sphericalInertia) {
             
-            //load all segments into a contact edge vector
-            std::vector<CONTACTEDGE> incidentSegments;
-            
-            for(int i=0;i<segments.size();i++){
+            if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
+                //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
                 
-                CONTACTEDGE incidentSegment;
-                incidentSegment.segment=segments.at(i);
+                //load all segments into a contact edge vector
+                std::vector<CONTACTEDGE> incidentSegments;
                 
-                incidentSegments.push_back(incidentSegment);
-                
-            }
-            
-            //find the most parallel segment relative to the intersection vector
-            float segmentParallelToVector=-FLT_MIN;
-            float segmentDotVector=0.0;
-            
-            intersectionVector.normalize();
-            
-            for(int i=0; i<incidentSegments.size();i++){
-                
-                U4DVector3n segmentVector=incidentSegments.at(i).segment.pointA-incidentSegments.at(i).segment.pointB;
-                
-                segmentVector.normalize();
-                
-                segmentDotVector=fabs(segmentVector.dot(intersectionVector));
-                
-                //get the most parallel value from the dot product
-                if (segmentDotVector>=segmentParallelToVector) {
-                    segmentParallelToVector=segmentDotVector;
-                    incidentSegments.at(i).dotProduct=segmentDotVector;
+                for(int i=0;i<segments.size();i++){
+                    
+                    CONTACTEDGE incidentSegment;
+                    incidentSegment.segment=segments.at(i);
+                    
+                    incidentSegments.push_back(incidentSegment);
+                    
                 }
                 
-            }
-            
-            
-            //remove all segment with dot product not equal to most parallel segment to intersection vector
-            incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
-            
-            if (incidentSegments.size()<1) {
+                //find the most parallel segment relative to the intersection vector
+                float segmentParallelToVector=-FLT_MIN;
+                float segmentDotVector=0.0;
                 
-                logger->log("Sutherland-Hodgman algorithm failed: Incident segments equal to less than one");
+                intersectionVector.normalize();
                 
-                return false;
-            }
-            
-            //find the smallest distance between intersection and segments
-            float minimumDistanceToSegment=FLT_MAX;
-            float distanceToSegment=0.0;
-            float distanceIndex=0;
-          
-            for(int i=0;i<incidentSegments.size();i++){
-                
-                distanceToSegment=incidentSegments.at(i).segment.normalizedSquareDistancePointSegment(intersectionPoint);
-                
-                if (distanceToSegment<minimumDistanceToSegment) {
+                for(int i=0; i<incidentSegments.size();i++){
                     
-                    minimumDistanceToSegment=distanceToSegment;
+                    U4DVector3n segmentVector=incidentSegments.at(i).segment.pointA-incidentSegments.at(i).segment.pointB;
                     
-                    distanceIndex=i;
+                    segmentVector.normalize();
+                    
+                    segmentDotVector=fabs(segmentVector.dot(intersectionVector));
+                    
+                    //get the most parallel value from the dot product
+                    if (segmentDotVector>=segmentParallelToVector) {
+                        segmentParallelToVector=segmentDotVector;
+                        incidentSegments.at(i).dotProduct=segmentDotVector;
+                    }
+                    
                 }
                 
-            }
-            
-            if (minimumDistanceToSegment<=1.0) {
                 
-                //return segment
-                U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
-                U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
+                //remove all segment with dot product not equal to most parallel segment to intersection vector
+                incidentSegments.erase(std::remove_if(incidentSegments.begin(), incidentSegments.end(),[segmentParallelToVector](CONTACTEDGE &e){ return !(fabs(e.dotProduct - segmentParallelToVector) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(e.dotProduct, segmentParallelToVector)));} ),incidentSegments.end());
                 
-                uModel1->addCollisionContactPoint(pointA);
-                uModel1->addCollisionContactPoint(pointB);
+                if (incidentSegments.size()<1) {
+                    
+                    logger->log("Sutherland-Hodgman algorithm failed: Incident segments equal to less than one");
+                    
+                    return false;
+                }
                 
-                uModel2->addCollisionContactPoint(pointA);
-                uModel2->addCollisionContactPoint(pointB);
+                //find the smallest distance between intersection and segments
+                float minimumDistanceToSegment=FLT_MAX;
+                float distanceToSegment=0.0;
+                float distanceIndex=0;
                 
-                //set both models equilibrium
+                for(int i=0;i<incidentSegments.size();i++){
+                    
+                    distanceToSegment=incidentSegments.at(i).segment.normalizedSquareDistancePointSegment(intersectionPoint);
+                    
+                    if (distanceToSegment<minimumDistanceToSegment) {
+                        
+                        minimumDistanceToSegment=distanceToSegment;
+                        
+                        distanceIndex=i;
+                    }
+                    
+                }
                 
-                uModel1->setEquilibrium(false);
-                uModel2->setEquilibrium(false);
-                
-                //add points to the collision node
-                uCollisionManifoldNode.contactPoints.push_back(pointA);
-                uCollisionManifoldNode.contactPoints.push_back(pointB);
-            
-                return true;
+                if (minimumDistanceToSegment<=1.0) {
+                    
+                    //return segment
+                    U4DVector3n pointA=incidentSegments.at(distanceIndex).segment.pointA.toVector();
+                    U4DVector3n pointB=incidentSegments.at(distanceIndex).segment.pointB.toVector();
+                    
+                    uModel1->addCollisionContactPoint(pointA);
+                    uModel1->addCollisionContactPoint(pointB);
+                    
+                    uModel2->addCollisionContactPoint(pointA);
+                    uModel2->addCollisionContactPoint(pointB);
+                    
+                    //set both models equilibrium
+                    
+                    uModel1->setEquilibrium(false);
+                    uModel2->setEquilibrium(false);
+                    
+                    //add points to the collision node
+                    uCollisionManifoldNode.contactPoints.push_back(pointA);
+                    uCollisionManifoldNode.contactPoints.push_back(pointB);
+                    
+                    return true;
+                    
+                }
                 
             }
             
         }
-        
-
         
         //If there is no plane intersection, then return all points
         
@@ -318,7 +320,7 @@ namespace U4DEngine {
         
         //check if the center of mass is within the reference planes
         
-        if(!isCenterOfMassWithinReferencePlane(uModel1,polygonEdgesOfModel2)){
+        if(!isCenterOfMassWithinReferencePlane(uModel1,polygonEdgesOfModel2) || uModel1->getInertiaTensorType()==sphericalInertia){
             
             uModel1->setEquilibrium(false);
         
@@ -328,7 +330,7 @@ namespace U4DEngine {
         
         }
         
-        if(!isCenterOfMassWithinReferencePlane(uModel2,polygonEdgesOfModel1)){
+        if(!isCenterOfMassWithinReferencePlane(uModel2,polygonEdgesOfModel1) || uModel2->getInertiaTensorType()==sphericalInertia){
             
             uModel2->setEquilibrium(false);
         

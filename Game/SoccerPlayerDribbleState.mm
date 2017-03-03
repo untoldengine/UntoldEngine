@@ -13,6 +13,7 @@
 #include "SoccerPlayerGroundShotState.h"
 #include "SoccerPlayerReverseKickState.h"
 #include "SoccerBall.h"
+#include "UserCommonProtocols.h"
 
 SoccerPlayerDribbleState* SoccerPlayerDribbleState::instance=0;
 
@@ -86,12 +87,12 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     //keep dribbling
     if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
         
-        uPlayer->kickBallToGround(23.0, directionToKick,dt);
+        uPlayer->kickBallToGround(ballRollingSpeed, directionToKick,dt);
     
     }
     
     //chase the ball
-    uPlayer->applyForceToPlayer(15.0, dt);
+    uPlayer->applyForceToPlayer(dribblingSpeed, dt);
     
     uPlayer->trackBall();
 }

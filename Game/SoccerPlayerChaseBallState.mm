@@ -8,6 +8,7 @@
 
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerTakeBallControlState.h"
+#include "UserCommonProtocols.h"
 
 SoccerPlayerChaseBallState* SoccerPlayerChaseBallState::instance=0;
 
@@ -46,7 +47,7 @@ void SoccerPlayerChaseBallState::execute(SoccerPlayer *uPlayer, double dt){
     if (!uPlayer->hasReachedTheBall()) {
         
         //chase the ball
-        uPlayer->applyForceToPlayer(20.0, dt);
+        uPlayer->applyForceToPlayer(chasingSpeed, dt);
         
         
     }else{

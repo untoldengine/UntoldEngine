@@ -12,7 +12,9 @@
 #include "SoccerPlayerGroundShotState.h"
 #include "SoccerPlayerAirShotState.h"
 #include "SoccerPlayerReverseKickState.h"
+#include "SoccerBallGroundState.h"
 #include "SoccerBall.h"
+#include "UserCommonProtocols.h"
 
 SoccerPlayerTakeBallControlState* SoccerPlayerTakeBallControlState::instance=0;
 
@@ -60,10 +62,15 @@ void SoccerPlayerTakeBallControlState::execute(SoccerPlayer *uPlayer, double dt)
         
         ball->removeKineticForces();
         
+        ball->removeAllVelocities();
+        
+        ball->changeState(SoccerBallGroundState::sharedInstance());
+        
+        
     }else{
         
-        if (ball->getVelocity().magnitude()>8.0) {
-            uPlayer->decelerateBall(0.5, dt);
+        if (ball->getVelocity().magnitude()>ballMaxSpeedMagnitude) {
+            uPlayer->decelerateBall(ballDeceleration, dt);
         }
         
     }

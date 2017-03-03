@@ -152,7 +152,7 @@ namespace U4DEngine {
             
             closestCollisionPoint=closestCollisionPoints.at(0);
         
-        }else if (contactCollisionNormal.dot(closestCollisionPoints.at(1).toVector())<0.0){
+        }else{
         
             closestCollisionPoint=closestCollisionPoints.at(1);
         

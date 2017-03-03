@@ -34,7 +34,7 @@ namespace U4DEngine {
             //add all the forces for that body
             gravityForce.updateForce(uModel, dt);
             
-            if (uModel->getModelHasCollided() && !(uModel->getGravity()==U4DVector3n(0.0,0.0,0.0))) {
+            if (uModel->getModelHasCollided()) {
                 
                 //determine resting forces
                 restingForces.updateForce(uModel, dt);

@@ -14,7 +14,6 @@
 
 #include "U4DDirector.h"
 
-#include "MyCharacter.h"
 #include "U4DMatrix3n.h"
 #include "U4DButton.h"
 #include "U4DSkyBox.h"
@@ -51,7 +50,7 @@ void Earth::init(){
     
     
     field=new SoccerField();
-    field->init("field", "blenderscript.u4d");
+    field->init("field0", "blenderscript.u4d");
 
     player=new SoccerPlayer();
     player->init("pele", "characterscript.u4d");
