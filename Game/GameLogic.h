@@ -12,7 +12,6 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "MyCharacter.h"
 #include "SoccerBall.h"
 #include "SoccerField.h"
 #include "SoccerPlayer.h"
@@ -29,8 +28,6 @@ public:
     SoccerBall *ball;
     SoccerField *field;
     SoccerPlayer *player;
-    
-    GameEntityState gameEntityState;
     
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;

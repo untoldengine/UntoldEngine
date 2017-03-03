@@ -8,8 +8,7 @@
 
 #include "SoccerPlayerReverseKickState.h"
 #include "SoccerPlayerDribbleState.h"
-
-
+#include "UserCommonProtocols.h"
 
 SoccerPlayerReverseKickState* SoccerPlayerReverseKickState::instance=0;
 
@@ -54,8 +53,8 @@ void SoccerPlayerReverseKickState::execute(SoccerPlayer *uPlayer, double dt){
     
     SoccerBall *ball=uPlayer->getBallEntity();
     
-    if (ball->getVelocity().magnitude()>8.0) {
-        uPlayer->decelerateBall(0.5, dt);
+    if (ball->getVelocity().magnitude()>ballMaxSpeedMagnitude) {
+        uPlayer->decelerateBall(ballDeceleration, dt);
     }
     
     if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()>=1) {
@@ -68,7 +67,7 @@ void SoccerPlayerReverseKickState::execute(SoccerPlayer *uPlayer, double dt){
         
         SoccerBall *ball=uPlayer->getBallEntity();
         
-        ball->kickBallToGround(25.0, directionToKick, dt);
+        ball->kickBallToGround(ballReverseRolling, directionToKick, dt);
         
         uPlayer->setDirectionReversal(false);
         uPlayer->changeState(SoccerPlayerDribbleState::sharedInstance());

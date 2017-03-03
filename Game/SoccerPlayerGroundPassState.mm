@@ -9,6 +9,7 @@
 #include "SoccerPlayerGroundPassState.h"
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerIdleState.h"
+#include "UserCommonProtocols.h"
 
 SoccerPlayerGroundPassState* SoccerPlayerGroundPassState::instance=0;
 
@@ -57,7 +58,7 @@ void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         
-        uPlayer->kickBallToGround(50.0, direction,dt);
+        uPlayer->kickBallToGround(ballPassingSpeed, direction,dt);
         
         uPlayer->removeKineticForces();
         

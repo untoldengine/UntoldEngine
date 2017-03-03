@@ -173,13 +173,13 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         SoccerPlayerDribbleState *dribbleState=SoccerPlayerDribbleState::sharedInstance();
         
         //set initial state
-        changeState(chaseBallState);
+        changeState(idleState);
         
         //render information
         loadRenderingInformation();
         
         //translate the player
-        translateBy(0.0, getModelDimensions().y/2.0+1.3, 0.0);
+        translateBy(2.0, getModelDimensions().y/2.0+1.3, -25.0);
         
     }
     

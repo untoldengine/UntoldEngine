@@ -7,7 +7,6 @@
 //
 
 #include "GameLogic.h"
-#include "MyCharacter.h"
 #include "UserCommonProtocols.h"
 #include "U4DControllerInterface.h"
 #include "GameController.h"
@@ -27,7 +26,7 @@ void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
     ball=dynamic_cast<SoccerBall*>(searchChild("ball"));
-    field=dynamic_cast<SoccerField*>(searchChild("field"));
+    //field=dynamic_cast<SoccerField*>(searchChild("field"));
     player=dynamic_cast<SoccerPlayer*>(searchChild("pele"));
     
     buttonA=getGameController()->getButtonWithName("buttonA");
