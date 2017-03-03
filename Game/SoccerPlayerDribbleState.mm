@@ -94,7 +94,7 @@ void SoccerPlayerDribbleState::execute(SoccerPlayer *uPlayer, double dt){
     //chase the ball
     uPlayer->applyForceToPlayer(dribblingSpeed, dt);
     
-    uPlayer->trackBall();
+    uPlayer->seekBall();
 }
 
 void SoccerPlayerDribbleState::exit(SoccerPlayer *uPlayer){

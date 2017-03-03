@@ -67,7 +67,7 @@ void SoccerPlayerGroundPassState::execute(SoccerPlayer *uPlayer, double dt){
         uPlayer->changeState(idleState);
     }
 
-    uPlayer->trackBall();
+    uPlayer->seekBall();
     
 }
 

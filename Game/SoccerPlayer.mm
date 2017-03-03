@@ -14,6 +14,7 @@
 #include "SoccerPlayerChaseBallState.h"
 #include "SoccerPlayerDribbleState.h"
 #include "SoccerPlayerGroundPassState.h"
+#include "SoccerPlayerReceiveBallState.h"
 #include "SoccerBall.h"
 #include "SoccerPlayerExtremity.h"
 #include "U4DTrigonometry.h"
@@ -173,13 +174,13 @@ void SoccerPlayer::init(const char* uName, const char* uBlenderFile){
         SoccerPlayerDribbleState *dribbleState=SoccerPlayerDribbleState::sharedInstance();
         
         //set initial state
-        changeState(idleState);
+        changeState(SoccerPlayerIdleState::sharedInstance());
         
         //render information
         loadRenderingInformation();
         
         //translate the player
-        translateBy(2.0, getModelDimensions().y/2.0+1.3, -25.0);
+        translateBy(-20.0, getModelDimensions().y/2.0+1.3, 30.0);
         
     }
     
@@ -236,7 +237,7 @@ void SoccerPlayer::changeState(SoccerPlayerStateInterface* uState){
     
 }
 
-void SoccerPlayer::trackBall(){
+void SoccerPlayer::seekBall(){
     
     U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
     
@@ -247,6 +248,37 @@ void SoccerPlayer::trackBall(){
     U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
     
     setPlayerHeading(directionToLook);
+    
+}
+
+void SoccerPlayer::interseptBall(){
+    
+    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
+    
+    float distanceMagnitude=distanceVector.magnitude();
+    
+    float ballVelocityMagnitude=soccerBallEntity->getVelocity().magnitude();
+    
+    float playerVelocityMagnitude=getVelocity().magnitude();
+    
+    if (ballVelocityMagnitude!=0 || playerVelocityMagnitude!=0) {
+        
+        float t=distanceMagnitude/(ballVelocityMagnitude+playerVelocityMagnitude);
+        
+        U4DEngine::U4DVector3n interseptPosition=ballPosition+soccerBallEntity->getVelocity()*t;
+        
+        U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
+        
+        directionToLook.x/=fieldLength;
+        directionToLook.z/=fieldWidth;
+        
+        setPlayerHeading(directionToLook);
+        
+    }
     
 }
 

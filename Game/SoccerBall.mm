@@ -46,7 +46,7 @@ void SoccerBall::init(const char* uName, const char* uBlenderFile){
         setDragCoefficient(dragCoefficients);
         
         stateManager->safeChangeState(SoccerBallGroundState::sharedInstance());
-        
+        translateBy(-10.0, 0.0, 0.0);
         loadRenderingInformation();
         
     }

@@ -130,7 +130,9 @@ public:
     
     bool getJoystickActive();
     
-    void trackBall();
+    void seekBall();
+    
+    void interseptBall();
     
     bool hasReachedTheBall();
     

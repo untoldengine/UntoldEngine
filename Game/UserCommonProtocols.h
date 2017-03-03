@@ -9,8 +9,6 @@
 #ifndef UserCommonProtocols_h
 #define UserCommonProtocols_h
 
-
-
 typedef enum{
 
     kSoccerBall=1,
@@ -28,7 +26,7 @@ typedef enum{
 const float fieldWidth=64.0;
 const float fieldLength=128.0;
 
-const float chasingSpeed=20.0;
+const float chasingSpeed=30.0;
 const float dribblingSpeed=20.0;
 const float ballRollingSpeed=24.0;
 const float ballPassingSpeed=50.0;
