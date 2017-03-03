@@ -40,7 +40,7 @@ void SoccerPlayerChaseBallState::enter(SoccerPlayer *uPlayer){
 void SoccerPlayerChaseBallState::execute(SoccerPlayer *uPlayer, double dt){
     
     //track the ball
-    uPlayer->trackBall();
+    uPlayer->seekBall();
     
     
     //has the player reached the ball

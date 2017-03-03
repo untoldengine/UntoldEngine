@@ -8,6 +8,7 @@
 
 #include "SoccerPlayerIdleState.h"
 #include "SoccerPlayerChaseBallState.h"
+#include "SoccerPlayerReceiveBallState.h"
 
 SoccerPlayerIdleState* SoccerPlayerIdleState::instance=0;
 
@@ -38,7 +39,7 @@ void SoccerPlayerIdleState::enter(SoccerPlayer *uPlayer){
 void SoccerPlayerIdleState::execute(SoccerPlayer *uPlayer, double dt){
     
     //track the ball
-    uPlayer->trackBall();
+    uPlayer->seekBall();
     
     if (uPlayer->getJoystickActive()) {
         
@@ -47,6 +48,10 @@ void SoccerPlayerIdleState::execute(SoccerPlayer *uPlayer, double dt){
         uPlayer->changeState(chaseBallState);
     }
     
+    if (uPlayer->getButtonAPressed()) {
+        
+        uPlayer->changeState(SoccerPlayerReceiveBallState::sharedInstance());
+    }
 }
 
 void SoccerPlayerIdleState::exit(SoccerPlayer *uPlayer){
