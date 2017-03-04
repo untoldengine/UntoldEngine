@@ -29,6 +29,7 @@ class U4DGameModelInterface;
 class U4DVector2n;
 class U4DControllerInterface;
 class U4DTouches;
+class U4DEntityManager;
 }
 
 namespace U4DEngine {
@@ -71,6 +72,11 @@ private:
      @brief Time step accumulator
      */
     float accumulator;
+    
+    /**
+     @todo document this
+     */
+    U4DWorld *world;
     
 protected:
     
@@ -207,6 +213,16 @@ public:
      @param touches touch event
      */
     void touchMoved(const U4DTouches &touches);
+    
+    /**
+     @todo document this
+     */
+    void setWorld(U4DWorld *uWorld);
+    
+    /**
+     @todo document this
+     */
+    U4DEntity *searchChild(std::string uName);
     
 };
 

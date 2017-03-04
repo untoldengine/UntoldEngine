@@ -115,3 +115,7 @@ bool U11PlayerTakeBallControlState::isSafeToChangeState(U11Player *uPlayer){
     
     return true;
 }
+
+bool U11PlayerTakeBallControlState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}

@@ -15,6 +15,7 @@
 #include "U4DControllerInterface.h"
 #include "CommonProtocols.h"
 #include "Constants.h"
+#include "U4DWorld.h"
 
 
 namespace U4DEngine {
@@ -193,6 +194,18 @@ namespace U4DEngine {
     void U4DDirector::touchMoved(const U4DTouches &touches){
         
         scene->touchMoved(touches);
+    }
+    
+    void U4DDirector::setWorld(U4DWorld *uWorld){
+        
+        world=uWorld;
+        
+    }
+    
+    U4DEntity *U4DDirector::searchChild(std::string uName){
+        
+        return world->searchChild(uName);
+        
     }
 
 }

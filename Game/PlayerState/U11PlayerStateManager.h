@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "U11PlayerStateInterface.h"
+#include "UserCommonProtocols.h"
 
 class U11Player;
 
@@ -41,6 +42,8 @@ public:
     bool isSafeToChangeState();
     
     void safeChangeState(U11PlayerStateInterface *uState);
+    
+    bool handleMessage(Message &uMsg);
 };
 
 #endif /* U11PlayerStateManager_hpp */

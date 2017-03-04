@@ -82,3 +82,7 @@ bool U11PlayerGroundShotState::isSafeToChangeState(U11Player *uPlayer){
     
     return false;
 }
+
+bool U11PlayerGroundShotState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}

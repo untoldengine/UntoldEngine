@@ -104,3 +104,7 @@ void U11PlayerDribbleState::exit(U11Player *uPlayer){
 bool U11PlayerDribbleState::isSafeToChangeState(U11Player *uPlayer){
     return true;
 }
+
+bool U11PlayerDribbleState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}

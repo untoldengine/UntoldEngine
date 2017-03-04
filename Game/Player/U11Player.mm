@@ -591,5 +591,11 @@ void U11Player::decelerate(float uScale, double dt){
     
 }
 
+bool U11Player::handleMessage(Message &uMsg){
+    
+    stateManager->handleMessage(uMsg);
+    
+}
+
 
 

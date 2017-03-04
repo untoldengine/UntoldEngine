@@ -42,17 +42,18 @@ void Earth::init(){
     
     enableShadows();
     
+    U4DDirector *director=U4DDirector::sharedInstance();
+    
+    director->setWorld(this);   
+    
     ball=new U11Ball();
     ball->init("ball", "blenderscript.u4d");
-    
-    
     
     field=new U11Field();
     field->init("field0", "blenderscript.u4d");
 
     player=new U11Player();
     player->init("pele", "characterscript.u4d");
-    
     
     //set ball entity
     field->setBallEntity(ball);

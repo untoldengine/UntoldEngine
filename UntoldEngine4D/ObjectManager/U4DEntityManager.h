@@ -80,7 +80,6 @@ namespace U4DEngine {
         
         void setRootEntity(U4DVisibleEntity* uRootEntity);
         
-        
     };
     
 }

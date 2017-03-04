@@ -85,3 +85,7 @@ bool U11PlayerGroundPassState::isSafeToChangeState(U11Player *uPlayer){
     
     return false;
 }
+
+bool U11PlayerGroundPassState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}

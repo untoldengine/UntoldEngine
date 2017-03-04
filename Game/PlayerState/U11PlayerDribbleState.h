@@ -34,6 +34,8 @@ public:
     
     bool isSafeToChangeState(U11Player *uPlayer);
     
+    bool handleMessage(U11Player *uPlayer, Message &uMsg);
+    
 };
 
 #endif /* U11PlayerDribbleState_hpp */

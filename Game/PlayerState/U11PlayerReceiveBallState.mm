@@ -47,3 +47,7 @@ bool U11PlayerReceiveBallState::isSafeToChangeState(U11Player *uPlayer){
     
     return true;
 }
+
+bool U11PlayerReceiveBallState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}

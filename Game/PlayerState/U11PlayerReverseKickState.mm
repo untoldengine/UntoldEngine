@@ -90,3 +90,7 @@ bool U11PlayerReverseKickState::isSafeToChangeState(U11Player *uPlayer){
     
     return false;
 }
+
+bool U11PlayerReverseKickState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}

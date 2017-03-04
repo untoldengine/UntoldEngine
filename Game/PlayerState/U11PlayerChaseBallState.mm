@@ -70,3 +70,7 @@ void U11PlayerChaseBallState::exit(U11Player *uPlayer){
 bool U11PlayerChaseBallState::isSafeToChangeState(U11Player *uPlayer){
     return true;
 }
+
+bool U11PlayerChaseBallState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}
