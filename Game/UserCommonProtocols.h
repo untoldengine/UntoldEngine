@@ -11,9 +11,9 @@
 
 typedef enum{
 
-    kSoccerBall=1,
-    kSoccerField=2,
-    kSoccerPlayer=3,
+    kU11Ball=1,
+    kU11Field=2,
+    kU11Player=3,
     kSoccerPostSensor=4,
     kSoccerGoalSensor=5,
     kNegativeGroupIndex=-10,

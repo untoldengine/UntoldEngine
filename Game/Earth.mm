@@ -25,12 +25,10 @@
 #include "U4DSprite.h"
 #include "U4DLights.h"
 #include "U4DLogger.h"
-#include "SoccerBall.h"
-#include "SoccerField.h"
-#include "SoccerPlayer.h"
-#include "SoccerPost.h"
-#include "SoccerPostSensor.h"
-#include "SoccerGoalSensor.h"
+#include "U11Ball.h"
+#include "U11Field.h"
+#include "U11Player.h"
+
 
 using namespace U4DEngine;
 
@@ -44,15 +42,15 @@ void Earth::init(){
     
     enableShadows();
     
-    ball=new SoccerBall();
+    ball=new U11Ball();
     ball->init("ball", "blenderscript.u4d");
     
     
     
-    field=new SoccerField();
+    field=new U11Field();
     field->init("field0", "blenderscript.u4d");
 
-    player=new SoccerPlayer();
+    player=new U11Player();
     player->init("pele", "characterscript.u4d");
     
     

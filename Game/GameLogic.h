@@ -12,9 +12,9 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "SoccerBall.h"
-#include "SoccerField.h"
-#include "SoccerPlayer.h"
+#include "U11Ball.h"
+#include "U11Field.h"
+#include "U11Player.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -25,9 +25,9 @@ namespace U4DEngine {
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
     
-    SoccerBall *ball;
-    SoccerField *field;
-    SoccerPlayer *player;
+    U11Ball *ball;
+    U11Field *field;
+    U11Player *player;
     
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
