@@ -23,6 +23,14 @@ typedef enum{
 
 }GameEntityCollision;
 
+typedef struct{
+    
+    std::string senderName;
+    std::string receivedName;
+    int msg;
+    
+}Message;
+
 const float fieldWidth=64.0;
 const float fieldLength=128.0;
 

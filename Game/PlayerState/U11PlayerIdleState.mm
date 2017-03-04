@@ -9,6 +9,7 @@
 #include "U11PlayerIdleState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerReceiveBallState.h"
+#include "U11MessageDispatcher.h"
 
 U11PlayerIdleState* U11PlayerIdleState::instance=0;
 
@@ -48,10 +49,6 @@ void U11PlayerIdleState::execute(U11Player *uPlayer, double dt){
         uPlayer->changeState(chaseBallState);
     }
     
-    if (uPlayer->getButtonAPressed()) {
-        
-        uPlayer->changeState(U11PlayerReceiveBallState::sharedInstance());
-    }
 }
 
 void U11PlayerIdleState::exit(U11Player *uPlayer){
@@ -61,4 +58,9 @@ void U11PlayerIdleState::exit(U11Player *uPlayer){
 bool U11PlayerIdleState::isSafeToChangeState(U11Player *uPlayer){
     
     return true;
+}
+
+bool U11PlayerIdleState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    
+    return false;
 }

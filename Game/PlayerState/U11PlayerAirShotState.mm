@@ -82,3 +82,7 @@ bool U11PlayerAirShotState::isSafeToChangeState(U11Player *uPlayer){
     
     return false;
 }
+
+bool U11PlayerAirShotState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    return false;
+}

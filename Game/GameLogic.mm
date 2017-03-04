@@ -24,7 +24,6 @@ void GameLogic::update(double dt){
 
 void GameLogic::init(){
     
-    //set my main actor and attach camera to follow it
     ball=dynamic_cast<U11Ball*>(searchChild("ball"));
     //field=dynamic_cast<U11Field*>(searchChild("field"));
     player=dynamic_cast<U11Player*>(searchChild("pele"));

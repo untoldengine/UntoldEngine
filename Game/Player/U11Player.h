@@ -180,6 +180,8 @@ public:
     
     bool getDirectionReversal();
     
+    bool handleMessage(Message &uMsg);
+    
     
 };
 #endif /* U11Player_hpp */

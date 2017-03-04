@@ -75,4 +75,9 @@ bool U11PlayerStateManager::isSafeToChangeState(){
 
 }
 
+bool U11PlayerStateManager::handleMessage(Message &uMsg){
+    
+    return currentState->handleMessage(player, uMsg);
+}
+
 
