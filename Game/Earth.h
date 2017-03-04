@@ -15,27 +15,18 @@
 
 class GameController;
 class GameAsset;
-class SoccerBall;
-class SoccerField;
-class Floor;
-class SoccerPlayer;
-class SoccerPost;
-class SoccerPostSensor;
-class SoccerGoalSensor;
+class U11Ball;
+class U11Field;
+
+class U11Player;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    SoccerBall *ball;
-    SoccerField *field;
-    SoccerPlayer *player;
-    SoccerPost *post;
-    SoccerPostSensor *postSensorLeft;
-    SoccerPostSensor *postSensorRight;
-    SoccerPostSensor *postSensorTop;
-    SoccerPostSensor *postSensorBack;
-    SoccerGoalSensor *goalSensor;
+    U11Ball *ball;
+    U11Field *field;
+    U11Player *player;
     
 
 public:

@@ -21,11 +21,6 @@
 		03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D5A19B96B4400ABDC55 /* U4DBoneData.mm */; };
 		03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D5D19B96B5400ABDC55 /* U4DArmatureData.mm */; };
 		03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D6919BFFFC400ABDC55 /* U4DAnimation.mm */; };
-		03069AE51E64AE7C007F9928 /* SoccerBallStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03069AE31E64AE7C007F9928 /* SoccerBallStateInterface.mm */; };
-		03069AE81E64AE8E007F9928 /* SoccerBallStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03069AE61E64AE8E007F9928 /* SoccerBallStateManager.mm */; };
-		03069AEB1E64B054007F9928 /* SoccerBallGroundState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03069AE91E64B054007F9928 /* SoccerBallGroundState.mm */; };
-		03069AEE1E64B064007F9928 /* SoccerBallAirState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03069AEC1E64B064007F9928 /* SoccerBallAirState.mm */; };
-		03069AF11E64BB5C007F9928 /* SoccerPlayerAirShotState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03069AEF1E64BB5C007F9928 /* SoccerPlayerAirShotState.mm */; };
 		030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3DF51927ED26009EF31B /* geometricShader.fp */; };
 		030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3DF61927ED26009EF31B /* geometricShader.vp */; };
 		030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030C3DFB19298226009EF31B /* U4DDirector.mm */; };
@@ -49,6 +44,26 @@
 		034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */; };
 		034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
+		0348C0651E6A48E5001FFF97 /* U11Ball.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0641E6A48E5001FFF97 /* U11Ball.mm */; };
+		0348C0681E6A48F3001FFF97 /* U11Player.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0671E6A48F3001FFF97 /* U11Player.mm */; };
+		0348C06C1E6A4902001FFF97 /* U11PlayerExtremity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C06B1E6A4902001FFF97 /* U11PlayerExtremity.mm */; };
+		0348C0831E6A4913001FFF97 /* U11PlayerAirShotState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C06E1E6A4913001FFF97 /* U11PlayerAirShotState.mm */; };
+		0348C0841E6A4913001FFF97 /* U11PlayerChaseBallState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0701E6A4913001FFF97 /* U11PlayerChaseBallState.mm */; };
+		0348C0851E6A4913001FFF97 /* U11PlayerDribbleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0721E6A4913001FFF97 /* U11PlayerDribbleState.mm */; };
+		0348C0861E6A4913001FFF97 /* U11PlayerGroundPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0741E6A4913001FFF97 /* U11PlayerGroundPassState.mm */; };
+		0348C0871E6A4913001FFF97 /* U11PlayerGroundShotState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0761E6A4913001FFF97 /* U11PlayerGroundShotState.mm */; };
+		0348C0881E6A4913001FFF97 /* U11PlayerIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0781E6A4913001FFF97 /* U11PlayerIdleState.mm */; };
+		0348C0891E6A4913001FFF97 /* U11PlayerReceiveBallState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C07A1E6A4913001FFF97 /* U11PlayerReceiveBallState.mm */; };
+		0348C08A1E6A4913001FFF97 /* U11PlayerReverseKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C07C1E6A4913001FFF97 /* U11PlayerReverseKickState.mm */; };
+		0348C08B1E6A4913001FFF97 /* U11PlayerStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C07E1E6A4913001FFF97 /* U11PlayerStateInterface.mm */; };
+		0348C08C1E6A4913001FFF97 /* U11PlayerStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0801E6A4913001FFF97 /* U11PlayerStateManager.mm */; };
+		0348C08D1E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0821E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm */; };
+		0348C0981E6A491D001FFF97 /* U11BallAirState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C08F1E6A491D001FFF97 /* U11BallAirState.mm */; };
+		0348C0991E6A491D001FFF97 /* U11BallBounceState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0911E6A491D001FFF97 /* U11BallBounceState.mm */; };
+		0348C09A1E6A491D001FFF97 /* U11BallGroundState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0931E6A491D001FFF97 /* U11BallGroundState.mm */; };
+		0348C09B1E6A491D001FFF97 /* U11BallStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0951E6A491D001FFF97 /* U11BallStateInterface.mm */; };
+		0348C09C1E6A491D001FFF97 /* U11BallStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0971E6A491D001FFF97 /* U11BallStateManager.mm */; };
+		0348C09F1E6A4925001FFF97 /* U11Field.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C09E1E6A4925001FFF97 /* U11Field.mm */; };
 		034DBC7C1A73E08C00AC43EB /* U4DDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034DBC7B1A73E08C00AC43EB /* U4DDebugger.mm */; };
 		034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC801A73FAD200AC43EB /* lightShader.fp */; };
 		034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC811A73FAD200AC43EB /* lightShader.vp */; };
@@ -58,17 +73,8 @@
 		03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */; };
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
 		035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */; };
-		035DD77A1E43C4BC0042BE33 /* SoccerPost.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035DD7781E43C4BC0042BE33 /* SoccerPost.mm */; };
 		036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */; };
-		036848DC1E5739BD0087BBBD /* SoccerPlayerStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848DA1E5739BD0087BBBD /* SoccerPlayerStateInterface.mm */; };
-		036848DF1E573BAF0087BBBD /* SoccerPlayerChaseBallState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848DD1E573BAF0087BBBD /* SoccerPlayerChaseBallState.mm */; };
-		036848E21E573EA10087BBBD /* SoccerPlayerDribbleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848E01E573EA10087BBBD /* SoccerPlayerDribbleState.mm */; };
-		036848E51E573FD30087BBBD /* SoccerPlayerStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848E31E573FD30087BBBD /* SoccerPlayerStateManager.mm */; };
-		036848E81E58D51E0087BBBD /* SoccerPlayerIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848E61E58D51E0087BBBD /* SoccerPlayerIdleState.mm */; };
 		036848EA1E59FCCF0087BBBD /* idleanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848E91E59FCCF0087BBBD /* idleanimationscript.u4d */; };
-		036848ED1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848EB1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm */; };
-		036848F21E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */; };
-		036848F51E5B65D80087BBBD /* SoccerPlayerExtremity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036848F31E5B65D80087BBBD /* SoccerPlayerExtremity.mm */; };
 		036848F91E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848F81E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d */; };
 		036848FB1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848FA1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d */; };
 		036848FD1E5E783D0087BBBD /* rightfootsidepassanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036848FC1E5E783D0087BBBD /* rightfootsidepassanimationscript.u4d */; };
@@ -80,7 +86,6 @@
 		036849091E5E7C570087BBBD /* walkinganimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 036849081E5E7C570087BBBD /* walkinganimationscript.u4d */; };
 		0368490B1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0368490A1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d */; };
 		0368490D1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0368490C1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d */; };
-		036849101E5EADE10087BBBD /* SoccerPlayerGroundShotState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0368490E1E5EADE10087BBBD /* SoccerPlayerGroundShotState.mm */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -115,11 +120,7 @@
 		03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DGameObject.mm */; };
-		03848A411E3E5DE4007DD1C9 /* Floor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03848A401E3E5DE4007DD1C9 /* Floor.mm */; };
-		03848A491E3FCD47007DD1C9 /* SoccerPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03848A471E3FCD47007DD1C9 /* SoccerPlayer.mm */; };
 		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; };
-		0384E5941E3D65DB0074232D /* SoccerBall.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0384E5921E3D65DB0074232D /* SoccerBall.mm */; };
-		0384E5971E3D65E80074232D /* SoccerField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0384E5951E3D65E80074232D /* SoccerField.mm */; };
 		0390C7BA1E3432380028AC20 /* U4DOpenGLParticle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0390C7B91E3432380028AC20 /* U4DOpenGLParticle.mm */; };
 		0390C7BD1E3432400028AC20 /* U4DOpenGLParticleDust.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0390C7BC1E3432400028AC20 /* U4DOpenGLParticleDust.mm */; };
 		0390C7C01E3432490028AC20 /* U4DOpenGLParticleExplosion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0390C7BF1E3432490028AC20 /* U4DOpenGLParticleExplosion.mm */; };
@@ -196,14 +197,9 @@
 		03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EDF31943D8C7007AD131 /* U4DCallbackInterface.mm */; };
 		03E6EE081943DA1D007AD131 /* GameController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EE071943DA1D007AD131 /* GameController.mm */; };
 		03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6EE0A1943DA42007AD131 /* GameLogic.mm */; };
-		03EA5ECA1E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EA5EC81E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm */; };
 		03EA5ECC1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d */; };
 		03EA5ECE1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d */; };
-		03EA8FF51E68A14A0012BDE7 /* SoccerBallBounceState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EA8FF31E68A14A0012BDE7 /* SoccerBallBounceState.mm */; };
-		03EA8FF81E693C3D0012BDE7 /* SoccerPlayerReceiveBallState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EA8FF61E693C3D0012BDE7 /* SoccerPlayerReceiveBallState.mm */; };
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
-		03EE34161E444BF8001F6FCF /* SoccerPostSensor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EE34141E444BF7001F6FCF /* SoccerPostSensor.mm */; };
-		03EE34191E444C06001F6FCF /* SoccerGoalSensor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EE34171E444C06001F6FCF /* SoccerGoalSensor.mm */; };
 		03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
 		03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */; };
 		03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03EF7A4517F908A60023F0FD /* spriteShader.fp */; };
@@ -248,16 +244,6 @@
 		03068D5E19B96B5400ABDC55 /* U4DArmatureData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DArmatureData.h; sourceTree = "<group>"; };
 		03068D6919BFFFC400ABDC55 /* U4DAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAnimation.mm; sourceTree = "<group>"; };
 		03068D6A19BFFFC400ABDC55 /* U4DAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimation.h; sourceTree = "<group>"; };
-		03069AE31E64AE7C007F9928 /* SoccerBallStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerBallStateInterface.mm; sourceTree = "<group>"; };
-		03069AE41E64AE7C007F9928 /* SoccerBallStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerBallStateInterface.h; sourceTree = "<group>"; };
-		03069AE61E64AE8E007F9928 /* SoccerBallStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerBallStateManager.mm; sourceTree = "<group>"; };
-		03069AE71E64AE8E007F9928 /* SoccerBallStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerBallStateManager.h; sourceTree = "<group>"; };
-		03069AE91E64B054007F9928 /* SoccerBallGroundState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerBallGroundState.mm; sourceTree = "<group>"; };
-		03069AEA1E64B054007F9928 /* SoccerBallGroundState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerBallGroundState.h; sourceTree = "<group>"; };
-		03069AEC1E64B064007F9928 /* SoccerBallAirState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerBallAirState.mm; sourceTree = "<group>"; };
-		03069AED1E64B064007F9928 /* SoccerBallAirState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerBallAirState.h; sourceTree = "<group>"; };
-		03069AEF1E64BB5C007F9928 /* SoccerPlayerAirShotState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerAirShotState.mm; sourceTree = "<group>"; };
-		03069AF01E64BB5C007F9928 /* SoccerPlayerAirShotState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerAirShotState.h; sourceTree = "<group>"; };
 		030C3DF51927ED26009EF31B /* geometricShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = geometricShader.fp; sourceTree = "<group>"; };
 		030C3DF61927ED26009EF31B /* geometricShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = geometricShader.vp; sourceTree = "<group>"; };
 		030C3DFA19298226009EF31B /* U4DDirector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDirector.h; sourceTree = "<group>"; };
@@ -296,6 +282,46 @@
 		034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.vp; sourceTree = "<group>"; };
 		0346862A1B1A4DA400B2105B /* U4DPlane.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlane.mm; sourceTree = "<group>"; };
 		0346862B1B1A4DA400B2105B /* U4DPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlane.h; sourceTree = "<group>"; };
+		0348C0631E6A48E5001FFF97 /* U11Ball.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Ball.h; path = game/Ball/U11Ball.h; sourceTree = SOURCE_ROOT; };
+		0348C0641E6A48E5001FFF97 /* U11Ball.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Ball.mm; path = game/Ball/U11Ball.mm; sourceTree = SOURCE_ROOT; };
+		0348C0661E6A48F3001FFF97 /* U11Player.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Player.h; path = game/Player/U11Player.h; sourceTree = SOURCE_ROOT; };
+		0348C0671E6A48F3001FFF97 /* U11Player.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Player.mm; path = game/Player/U11Player.mm; sourceTree = SOURCE_ROOT; };
+		0348C06A1E6A4902001FFF97 /* U11PlayerExtremity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerExtremity.h; path = game/Player/Extremity/U11PlayerExtremity.h; sourceTree = SOURCE_ROOT; };
+		0348C06B1E6A4902001FFF97 /* U11PlayerExtremity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerExtremity.mm; path = game/Player/Extremity/U11PlayerExtremity.mm; sourceTree = SOURCE_ROOT; };
+		0348C06D1E6A4913001FFF97 /* U11PlayerAirShotState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerAirShotState.h; path = game/PlayerState/U11PlayerAirShotState.h; sourceTree = SOURCE_ROOT; };
+		0348C06E1E6A4913001FFF97 /* U11PlayerAirShotState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerAirShotState.mm; path = game/PlayerState/U11PlayerAirShotState.mm; sourceTree = SOURCE_ROOT; };
+		0348C06F1E6A4913001FFF97 /* U11PlayerChaseBallState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerChaseBallState.h; path = game/PlayerState/U11PlayerChaseBallState.h; sourceTree = SOURCE_ROOT; };
+		0348C0701E6A4913001FFF97 /* U11PlayerChaseBallState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerChaseBallState.mm; path = game/PlayerState/U11PlayerChaseBallState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0711E6A4913001FFF97 /* U11PlayerDribbleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDribbleState.h; path = game/PlayerState/U11PlayerDribbleState.h; sourceTree = SOURCE_ROOT; };
+		0348C0721E6A4913001FFF97 /* U11PlayerDribbleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribbleState.mm; path = game/PlayerState/U11PlayerDribbleState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0731E6A4913001FFF97 /* U11PlayerGroundPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerGroundPassState.h; path = game/PlayerState/U11PlayerGroundPassState.h; sourceTree = SOURCE_ROOT; };
+		0348C0741E6A4913001FFF97 /* U11PlayerGroundPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerGroundPassState.mm; path = game/PlayerState/U11PlayerGroundPassState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0751E6A4913001FFF97 /* U11PlayerGroundShotState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerGroundShotState.h; path = game/PlayerState/U11PlayerGroundShotState.h; sourceTree = SOURCE_ROOT; };
+		0348C0761E6A4913001FFF97 /* U11PlayerGroundShotState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerGroundShotState.mm; path = game/PlayerState/U11PlayerGroundShotState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0771E6A4913001FFF97 /* U11PlayerIdleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerIdleState.h; path = game/PlayerState/U11PlayerIdleState.h; sourceTree = SOURCE_ROOT; };
+		0348C0781E6A4913001FFF97 /* U11PlayerIdleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerIdleState.mm; path = game/PlayerState/U11PlayerIdleState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0791E6A4913001FFF97 /* U11PlayerReceiveBallState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerReceiveBallState.h; path = game/PlayerState/U11PlayerReceiveBallState.h; sourceTree = SOURCE_ROOT; };
+		0348C07A1E6A4913001FFF97 /* U11PlayerReceiveBallState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerReceiveBallState.mm; path = game/PlayerState/U11PlayerReceiveBallState.mm; sourceTree = SOURCE_ROOT; };
+		0348C07B1E6A4913001FFF97 /* U11PlayerReverseKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerReverseKickState.h; path = game/PlayerState/U11PlayerReverseKickState.h; sourceTree = SOURCE_ROOT; };
+		0348C07C1E6A4913001FFF97 /* U11PlayerReverseKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerReverseKickState.mm; path = game/PlayerState/U11PlayerReverseKickState.mm; sourceTree = SOURCE_ROOT; };
+		0348C07D1E6A4913001FFF97 /* U11PlayerStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerStateInterface.h; path = game/PlayerState/U11PlayerStateInterface.h; sourceTree = SOURCE_ROOT; };
+		0348C07E1E6A4913001FFF97 /* U11PlayerStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerStateInterface.mm; path = game/PlayerState/U11PlayerStateInterface.mm; sourceTree = SOURCE_ROOT; };
+		0348C07F1E6A4913001FFF97 /* U11PlayerStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerStateManager.h; path = game/PlayerState/U11PlayerStateManager.h; sourceTree = SOURCE_ROOT; };
+		0348C0801E6A4913001FFF97 /* U11PlayerStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerStateManager.mm; path = game/PlayerState/U11PlayerStateManager.mm; sourceTree = SOURCE_ROOT; };
+		0348C0811E6A4913001FFF97 /* U11PlayerTakeBallControlState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerTakeBallControlState.h; path = game/PlayerState/U11PlayerTakeBallControlState.h; sourceTree = SOURCE_ROOT; };
+		0348C0821E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerTakeBallControlState.mm; path = game/PlayerState/U11PlayerTakeBallControlState.mm; sourceTree = SOURCE_ROOT; };
+		0348C08E1E6A491D001FFF97 /* U11BallAirState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallAirState.h; path = game/BallState/U11BallAirState.h; sourceTree = SOURCE_ROOT; };
+		0348C08F1E6A491D001FFF97 /* U11BallAirState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallAirState.mm; path = game/BallState/U11BallAirState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0901E6A491D001FFF97 /* U11BallBounceState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallBounceState.h; path = game/BallState/U11BallBounceState.h; sourceTree = SOURCE_ROOT; };
+		0348C0911E6A491D001FFF97 /* U11BallBounceState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallBounceState.mm; path = game/BallState/U11BallBounceState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0921E6A491D001FFF97 /* U11BallGroundState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallGroundState.h; path = game/BallState/U11BallGroundState.h; sourceTree = SOURCE_ROOT; };
+		0348C0931E6A491D001FFF97 /* U11BallGroundState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallGroundState.mm; path = game/BallState/U11BallGroundState.mm; sourceTree = SOURCE_ROOT; };
+		0348C0941E6A491D001FFF97 /* U11BallStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallStateInterface.h; path = game/BallState/U11BallStateInterface.h; sourceTree = SOURCE_ROOT; };
+		0348C0951E6A491D001FFF97 /* U11BallStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallStateInterface.mm; path = game/BallState/U11BallStateInterface.mm; sourceTree = SOURCE_ROOT; };
+		0348C0961E6A491D001FFF97 /* U11BallStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallStateManager.h; path = game/BallState/U11BallStateManager.h; sourceTree = SOURCE_ROOT; };
+		0348C0971E6A491D001FFF97 /* U11BallStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallStateManager.mm; path = game/BallState/U11BallStateManager.mm; sourceTree = SOURCE_ROOT; };
+		0348C09D1E6A4925001FFF97 /* U11Field.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Field.h; path = game/Field/U11Field.h; sourceTree = SOURCE_ROOT; };
+		0348C09E1E6A4925001FFF97 /* U11Field.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Field.mm; path = game/Field/U11Field.mm; sourceTree = SOURCE_ROOT; };
 		034DBC7A1A73E08C00AC43EB /* U4DDebugger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDebugger.h; sourceTree = "<group>"; };
 		034DBC7B1A73E08C00AC43EB /* U4DDebugger.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDebugger.mm; sourceTree = "<group>"; };
 		034DBC801A73FAD200AC43EB /* lightShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.fp; sourceTree = "<group>"; };
@@ -310,27 +336,9 @@
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
 		035D65EC195F4EEF002E2BCF /* U4DOpenGLMultiImage.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLMultiImage.h; sourceTree = "<group>"; };
 		035D65ED195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLMultiImage.mm; sourceTree = "<group>"; };
-		035DD7781E43C4BC0042BE33 /* SoccerPost.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPost.mm; sourceTree = "<group>"; };
-		035DD7791E43C4BC0042BE33 /* SoccerPost.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPost.h; sourceTree = "<group>"; };
 		036435C21863D88900E2A6F6 /* U4DOpenGLFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLFont.mm; sourceTree = "<group>"; };
 		036435C31863D88900E2A6F6 /* U4DOpenGLFont.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLFont.h; sourceTree = "<group>"; };
-		036848DA1E5739BD0087BBBD /* SoccerPlayerStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerStateInterface.mm; sourceTree = "<group>"; };
-		036848DB1E5739BD0087BBBD /* SoccerPlayerStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerStateInterface.h; sourceTree = "<group>"; };
-		036848DD1E573BAF0087BBBD /* SoccerPlayerChaseBallState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerChaseBallState.mm; sourceTree = "<group>"; };
-		036848DE1E573BAF0087BBBD /* SoccerPlayerChaseBallState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerChaseBallState.h; sourceTree = "<group>"; };
-		036848E01E573EA10087BBBD /* SoccerPlayerDribbleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerDribbleState.mm; sourceTree = "<group>"; };
-		036848E11E573EA10087BBBD /* SoccerPlayerDribbleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerDribbleState.h; sourceTree = "<group>"; };
-		036848E31E573FD30087BBBD /* SoccerPlayerStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerStateManager.mm; sourceTree = "<group>"; };
-		036848E41E573FD30087BBBD /* SoccerPlayerStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerStateManager.h; sourceTree = "<group>"; };
-		036848E61E58D51E0087BBBD /* SoccerPlayerIdleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerIdleState.mm; sourceTree = "<group>"; };
-		036848E71E58D51E0087BBBD /* SoccerPlayerIdleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerIdleState.h; sourceTree = "<group>"; };
 		036848E91E59FCCF0087BBBD /* idleanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = idleanimationscript.u4d; path = Resources/idleanimationscript.u4d; sourceTree = SOURCE_ROOT; };
-		036848EB1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerTakeBallControlState.mm; sourceTree = "<group>"; };
-		036848EC1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerTakeBallControlState.h; sourceTree = "<group>"; };
-		036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerGroundPassState.mm; sourceTree = "<group>"; };
-		036848F11E5AB0510087BBBD /* SoccerPlayerGroundPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerGroundPassState.h; sourceTree = "<group>"; };
-		036848F31E5B65D80087BBBD /* SoccerPlayerExtremity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerExtremity.mm; sourceTree = "<group>"; };
-		036848F41E5B65D80087BBBD /* SoccerPlayerExtremity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerExtremity.h; sourceTree = "<group>"; };
 		036848F81E5DE24C0087BBBD /* haltballwithleftfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = haltballwithleftfootanimationscript.u4d; path = Resources/haltballwithleftfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036848FA1E5DE26A0087BBBD /* haltballwithrightfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = haltballwithrightfootanimationscript.u4d; path = Resources/haltballwithrightfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		036848FC1E5E783D0087BBBD /* rightfootsidepassanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightfootsidepassanimationscript.u4d; path = Resources/rightfootsidepassanimationscript.u4d; sourceTree = SOURCE_ROOT; };
@@ -342,8 +350,6 @@
 		036849081E5E7C570087BBBD /* walkinganimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = walkinganimationscript.u4d; path = Resources/walkinganimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		0368490A1E5EAC250087BBBD /* rightfootforwardkickanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightfootforwardkickanimationscript.u4d; path = Resources/rightfootforwardkickanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		0368490C1E5EAC370087BBBD /* leftfootforwardkickanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftfootforwardkickanimationscript.u4d; path = Resources/leftfootforwardkickanimationscript.u4d; sourceTree = SOURCE_ROOT; };
-		0368490E1E5EADE10087BBBD /* SoccerPlayerGroundShotState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerGroundShotState.mm; sourceTree = "<group>"; };
-		0368490F1E5EADE10087BBBD /* SoccerPlayerGroundShotState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerGroundShotState.h; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserCommonProtocols.h; sourceTree = "<group>"; };
@@ -400,16 +406,8 @@
 		037C473B17B597CB007B8283 /* U4DModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DModel.mm; sourceTree = "<group>"; };
 		037C473C17B597CB007B8283 /* U4DGameObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DGameObject.h; sourceTree = "<group>"; };
 		037C473D17B597CB007B8283 /* U4DGameObject.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameObject.mm; sourceTree = "<group>"; };
-		03848A3F1E3E5DE4007DD1C9 /* Floor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Floor.h; path = game/Floor.h; sourceTree = SOURCE_ROOT; };
-		03848A401E3E5DE4007DD1C9 /* Floor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Floor.mm; path = game/Floor.mm; sourceTree = SOURCE_ROOT; };
-		03848A471E3FCD47007DD1C9 /* SoccerPlayer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayer.mm; sourceTree = "<group>"; };
-		03848A481E3FCD47007DD1C9 /* SoccerPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayer.h; sourceTree = "<group>"; };
 		038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingConvex.mm; path = BoundingVolumes/U4DBoundingConvex.mm; sourceTree = "<group>"; };
 		038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingConvex.h; path = BoundingVolumes/U4DBoundingConvex.h; sourceTree = "<group>"; };
-		0384E5921E3D65DB0074232D /* SoccerBall.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerBall.mm; sourceTree = "<group>"; };
-		0384E5931E3D65DB0074232D /* SoccerBall.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerBall.h; sourceTree = "<group>"; };
-		0384E5951E3D65E80074232D /* SoccerField.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerField.mm; sourceTree = "<group>"; };
-		0384E5961E3D65E80074232D /* SoccerField.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerField.h; sourceTree = "<group>"; };
 		0390C7B81E3432380028AC20 /* U4DOpenGLParticle.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLParticle.h; sourceTree = "<group>"; };
 		0390C7B91E3432380028AC20 /* U4DOpenGLParticle.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLParticle.mm; sourceTree = "<group>"; };
 		0390C7BB1E3432400028AC20 /* U4DOpenGLParticleDust.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLParticleDust.h; sourceTree = "<group>"; };
@@ -541,19 +539,9 @@
 		03E6EE071943DA1D007AD131 /* GameController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GameController.mm; sourceTree = "<group>"; };
 		03E6EE091943DA42007AD131 /* GameLogic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GameLogic.h; sourceTree = "<group>"; };
 		03E6EE0A1943DA42007AD131 /* GameLogic.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GameLogic.mm; sourceTree = "<group>"; };
-		03EA5EC81E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerReverseKickState.mm; sourceTree = "<group>"; };
-		03EA5EC91E614BCF000FBCF2 /* SoccerPlayerReverseKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerReverseKickState.h; sourceTree = "<group>"; };
 		03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithrightfootanimationscript.u4d; path = Resources/reverseballwithrightfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
 		03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimationscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithleftfootanimationscript.u4d; path = Resources/reverseballwithleftfootanimationscript.u4d; sourceTree = SOURCE_ROOT; };
-		03EA8FF31E68A14A0012BDE7 /* SoccerBallBounceState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerBallBounceState.mm; sourceTree = "<group>"; };
-		03EA8FF41E68A14A0012BDE7 /* SoccerBallBounceState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerBallBounceState.h; sourceTree = "<group>"; };
-		03EA8FF61E693C3D0012BDE7 /* SoccerPlayerReceiveBallState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayerReceiveBallState.mm; sourceTree = "<group>"; };
-		03EA8FF71E693C3D0012BDE7 /* SoccerPlayerReceiveBallState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayerReceiveBallState.h; sourceTree = "<group>"; };
 		03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = blenderscript.u4d; path = Resources/blenderscript.u4d; sourceTree = SOURCE_ROOT; };
-		03EE34141E444BF7001F6FCF /* SoccerPostSensor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPostSensor.mm; sourceTree = "<group>"; };
-		03EE34151E444BF7001F6FCF /* SoccerPostSensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPostSensor.h; sourceTree = "<group>"; };
-		03EE34171E444C06001F6FCF /* SoccerGoalSensor.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerGoalSensor.mm; sourceTree = "<group>"; };
-		03EE34181E444C06001F6FCF /* SoccerGoalSensor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerGoalSensor.h; sourceTree = "<group>"; };
 		03EF2DFC1B6D5EF200F26945 /* U4DPoint3n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPoint3n.h; sourceTree = "<group>"; };
 		03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPoint3n.mm; sourceTree = "<group>"; };
 		03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DCollisionResponse.mm; path = CollisionResponse/U4DCollisionResponse.mm; sourceTree = "<group>"; };
@@ -687,6 +675,89 @@
 			name = BoundingVolumes;
 			sourceTree = "<group>";
 		};
+		0348C05E1E6A48A4001FFF97 /* Ball */ = {
+			isa = PBXGroup;
+			children = (
+				0348C0631E6A48E5001FFF97 /* U11Ball.h */,
+				0348C0641E6A48E5001FFF97 /* U11Ball.mm */,
+			);
+			name = Ball;
+			sourceTree = "<group>";
+		};
+		0348C05F1E6A48AD001FFF97 /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				0348C0691E6A48F8001FFF97 /* Extremity */,
+				0348C0661E6A48F3001FFF97 /* U11Player.h */,
+				0348C0671E6A48F3001FFF97 /* U11Player.mm */,
+			);
+			name = Player;
+			sourceTree = "<group>";
+		};
+		0348C0601E6A48B3001FFF97 /* PlayerState */ = {
+			isa = PBXGroup;
+			children = (
+				0348C06D1E6A4913001FFF97 /* U11PlayerAirShotState.h */,
+				0348C06E1E6A4913001FFF97 /* U11PlayerAirShotState.mm */,
+				0348C06F1E6A4913001FFF97 /* U11PlayerChaseBallState.h */,
+				0348C0701E6A4913001FFF97 /* U11PlayerChaseBallState.mm */,
+				0348C0711E6A4913001FFF97 /* U11PlayerDribbleState.h */,
+				0348C0721E6A4913001FFF97 /* U11PlayerDribbleState.mm */,
+				0348C0731E6A4913001FFF97 /* U11PlayerGroundPassState.h */,
+				0348C0741E6A4913001FFF97 /* U11PlayerGroundPassState.mm */,
+				0348C0751E6A4913001FFF97 /* U11PlayerGroundShotState.h */,
+				0348C0761E6A4913001FFF97 /* U11PlayerGroundShotState.mm */,
+				0348C0771E6A4913001FFF97 /* U11PlayerIdleState.h */,
+				0348C0781E6A4913001FFF97 /* U11PlayerIdleState.mm */,
+				0348C0791E6A4913001FFF97 /* U11PlayerReceiveBallState.h */,
+				0348C07A1E6A4913001FFF97 /* U11PlayerReceiveBallState.mm */,
+				0348C07B1E6A4913001FFF97 /* U11PlayerReverseKickState.h */,
+				0348C07C1E6A4913001FFF97 /* U11PlayerReverseKickState.mm */,
+				0348C07D1E6A4913001FFF97 /* U11PlayerStateInterface.h */,
+				0348C07E1E6A4913001FFF97 /* U11PlayerStateInterface.mm */,
+				0348C07F1E6A4913001FFF97 /* U11PlayerStateManager.h */,
+				0348C0801E6A4913001FFF97 /* U11PlayerStateManager.mm */,
+				0348C0811E6A4913001FFF97 /* U11PlayerTakeBallControlState.h */,
+				0348C0821E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm */,
+			);
+			name = PlayerState;
+			sourceTree = "<group>";
+		};
+		0348C0611E6A48BA001FFF97 /* BallState */ = {
+			isa = PBXGroup;
+			children = (
+				0348C08E1E6A491D001FFF97 /* U11BallAirState.h */,
+				0348C08F1E6A491D001FFF97 /* U11BallAirState.mm */,
+				0348C0901E6A491D001FFF97 /* U11BallBounceState.h */,
+				0348C0911E6A491D001FFF97 /* U11BallBounceState.mm */,
+				0348C0921E6A491D001FFF97 /* U11BallGroundState.h */,
+				0348C0931E6A491D001FFF97 /* U11BallGroundState.mm */,
+				0348C0941E6A491D001FFF97 /* U11BallStateInterface.h */,
+				0348C0951E6A491D001FFF97 /* U11BallStateInterface.mm */,
+				0348C0961E6A491D001FFF97 /* U11BallStateManager.h */,
+				0348C0971E6A491D001FFF97 /* U11BallStateManager.mm */,
+			);
+			name = BallState;
+			sourceTree = "<group>";
+		};
+		0348C0621E6A48C5001FFF97 /* Field */ = {
+			isa = PBXGroup;
+			children = (
+				0348C09D1E6A4925001FFF97 /* U11Field.h */,
+				0348C09E1E6A4925001FFF97 /* U11Field.mm */,
+			);
+			name = Field;
+			sourceTree = "<group>";
+		};
+		0348C0691E6A48F8001FFF97 /* Extremity */ = {
+			isa = PBXGroup;
+			children = (
+				0348C06A1E6A4902001FFF97 /* U11PlayerExtremity.h */,
+				0348C06B1E6A4902001FFF97 /* U11PlayerExtremity.mm */,
+			);
+			name = Extremity;
+			sourceTree = "<group>";
+		};
 		034DBC791A73E08C00AC43EB /* Debugger */ = {
 			isa = PBXGroup;
 			children = (
@@ -721,6 +792,11 @@
 		036FB55718CE9CB8000EA639 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				0348C0621E6A48C5001FFF97 /* Field */,
+				0348C0611E6A48BA001FFF97 /* BallState */,
+				0348C0601E6A48B3001FFF97 /* PlayerState */,
+				0348C05F1E6A48AD001FFF97 /* Player */,
+				0348C05E1E6A48A4001FFF97 /* Ball */,
 				03E6EE091943DA42007AD131 /* GameLogic.h */,
 				03E6EE0A1943DA42007AD131 /* GameLogic.mm */,
 				03E6EE061943DA1D007AD131 /* GameController.h */,
@@ -730,54 +806,6 @@
 				036FB56C18CE9CB8000EA639 /* MainScene.h */,
 				036FB56D18CE9CB8000EA639 /* MainScene.mm */,
 				036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */,
-				0384E5931E3D65DB0074232D /* SoccerBall.h */,
-				0384E5921E3D65DB0074232D /* SoccerBall.mm */,
-				0384E5961E3D65E80074232D /* SoccerField.h */,
-				0384E5951E3D65E80074232D /* SoccerField.mm */,
-				03848A3F1E3E5DE4007DD1C9 /* Floor.h */,
-				03848A401E3E5DE4007DD1C9 /* Floor.mm */,
-				03848A481E3FCD47007DD1C9 /* SoccerPlayer.h */,
-				03848A471E3FCD47007DD1C9 /* SoccerPlayer.mm */,
-				036848F41E5B65D80087BBBD /* SoccerPlayerExtremity.h */,
-				036848F31E5B65D80087BBBD /* SoccerPlayerExtremity.mm */,
-				035DD7791E43C4BC0042BE33 /* SoccerPost.h */,
-				035DD7781E43C4BC0042BE33 /* SoccerPost.mm */,
-				03EE34151E444BF7001F6FCF /* SoccerPostSensor.h */,
-				03EE34141E444BF7001F6FCF /* SoccerPostSensor.mm */,
-				03EE34181E444C06001F6FCF /* SoccerGoalSensor.h */,
-				03EE34171E444C06001F6FCF /* SoccerGoalSensor.mm */,
-				036848DB1E5739BD0087BBBD /* SoccerPlayerStateInterface.h */,
-				036848DA1E5739BD0087BBBD /* SoccerPlayerStateInterface.mm */,
-				036848E41E573FD30087BBBD /* SoccerPlayerStateManager.h */,
-				036848E31E573FD30087BBBD /* SoccerPlayerStateManager.mm */,
-				036848E71E58D51E0087BBBD /* SoccerPlayerIdleState.h */,
-				036848E61E58D51E0087BBBD /* SoccerPlayerIdleState.mm */,
-				036848DE1E573BAF0087BBBD /* SoccerPlayerChaseBallState.h */,
-				036848DD1E573BAF0087BBBD /* SoccerPlayerChaseBallState.mm */,
-				036848EC1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.h */,
-				036848EB1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm */,
-				036848E11E573EA10087BBBD /* SoccerPlayerDribbleState.h */,
-				036848E01E573EA10087BBBD /* SoccerPlayerDribbleState.mm */,
-				036848F11E5AB0510087BBBD /* SoccerPlayerGroundPassState.h */,
-				036848F01E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm */,
-				0368490F1E5EADE10087BBBD /* SoccerPlayerGroundShotState.h */,
-				0368490E1E5EADE10087BBBD /* SoccerPlayerGroundShotState.mm */,
-				03069AF01E64BB5C007F9928 /* SoccerPlayerAirShotState.h */,
-				03069AEF1E64BB5C007F9928 /* SoccerPlayerAirShotState.mm */,
-				03EA5EC91E614BCF000FBCF2 /* SoccerPlayerReverseKickState.h */,
-				03EA5EC81E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm */,
-				03EA8FF71E693C3D0012BDE7 /* SoccerPlayerReceiveBallState.h */,
-				03EA8FF61E693C3D0012BDE7 /* SoccerPlayerReceiveBallState.mm */,
-				03069AE41E64AE7C007F9928 /* SoccerBallStateInterface.h */,
-				03069AE31E64AE7C007F9928 /* SoccerBallStateInterface.mm */,
-				03069AE71E64AE8E007F9928 /* SoccerBallStateManager.h */,
-				03069AE61E64AE8E007F9928 /* SoccerBallStateManager.mm */,
-				03069AEA1E64B054007F9928 /* SoccerBallGroundState.h */,
-				03069AE91E64B054007F9928 /* SoccerBallGroundState.mm */,
-				03069AED1E64B064007F9928 /* SoccerBallAirState.h */,
-				03069AEC1E64B064007F9928 /* SoccerBallAirState.mm */,
-				03EA8FF41E68A14A0012BDE7 /* SoccerBallBounceState.h */,
-				03EA8FF31E68A14A0012BDE7 /* SoccerBallBounceState.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -1593,24 +1621,22 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03069AEB1E64B054007F9928 /* SoccerBallGroundState.mm in Sources */,
-				036848E51E573FD30087BBBD /* SoccerPlayerStateManager.mm in Sources */,
+				0348C0831E6A4913001FFF97 /* U11PlayerAirShotState.mm in Sources */,
+				0348C09A1E6A491D001FFF97 /* U11BallGroundState.mm in Sources */,
 				03F862AA17EE29FD00712ECD /* U4DOpenGLCubeMap.mm in Sources */,
+				0348C09F1E6A4925001FFF97 /* U11Field.mm in Sources */,
 				036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */,
 				0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */,
 				03759B49175B0135002EB5D9 /* main.m in Sources */,
-				036848E81E58D51E0087BBBD /* SoccerPlayerIdleState.mm in Sources */,
 				03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */,
 				0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
 				03759B4D175B0135002EB5D9 /* AppDelegate.mm in Sources */,
-				0384E5941E3D65DB0074232D /* SoccerBall.mm in Sources */,
 				038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */,
 				030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */,
 				03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */,
-				03EE34161E444BF8001F6FCF /* SoccerPostSensor.mm in Sources */,
+				0348C09B1E6A491D001FFF97 /* U11BallStateInterface.mm in Sources */,
 				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
-				036848E21E573EA10087BBBD /* SoccerPlayerDribbleState.mm in Sources */,
 				0390C7C91E3432750028AC20 /* U4DParticleDust.mm in Sources */,
 				0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */,
 				03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */,
@@ -1621,32 +1647,28 @@
 				03759B5A175B0135002EB5D9 /* ViewController.mm in Sources */,
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
-				03EA5ECA1E614BCF000FBCF2 /* SoccerPlayerReverseKickState.mm in Sources */,
-				03069AEE1E64B064007F9928 /* SoccerBallAirState.mm in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
+				0348C08D1E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
-				03069AF11E64BB5C007F9928 /* SoccerPlayerAirShotState.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,
 				03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */,
 				03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */,
 				03759BB6175B0383002EB5D9 /* U4DQuaternion.mm in Sources */,
-				03069AE81E64AE8E007F9928 /* SoccerBallStateManager.mm in Sources */,
 				03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */,
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
-				03EA8FF51E68A14A0012BDE7 /* SoccerBallBounceState.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
+				0348C08A1E6A4913001FFF97 /* U11PlayerReverseKickState.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,
 				036435C41863D88900E2A6F6 /* U4DOpenGLFont.mm in Sources */,
 				03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */,
-				036848F21E5AB0510087BBBD /* SoccerPlayerGroundPassState.mm in Sources */,
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				03759BC6175B038C002EB5D9 /* U4DShaderManager.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
@@ -1654,40 +1676,36 @@
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
+				0348C0881E6A4913001FFF97 /* U11PlayerIdleState.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
-				036848DC1E5739BD0087BBBD /* SoccerPlayerStateInterface.mm in Sources */,
+				0348C0851E6A4913001FFF97 /* U11PlayerDribbleState.mm in Sources */,
+				0348C0871E6A4913001FFF97 /* U11PlayerGroundShotState.mm in Sources */,
+				0348C0841E6A4913001FFF97 /* U11PlayerChaseBallState.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
 				03E6ED9F1943D799007AD131 /* U4DFont.mm in Sources */,
-				036848ED1E5A06FB0087BBBD /* SoccerPlayerTakeBallControlState.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
-				03848A411E3E5DE4007DD1C9 /* Floor.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				0390C7BD1E3432400028AC20 /* U4DOpenGLParticleDust.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
-				036849101E5EADE10087BBBD /* SoccerPlayerGroundShotState.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
 				0390C7CD1E3432910028AC20 /* U4DParticleData.mm in Sources */,
 				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
-				03EA8FF81E693C3D0012BDE7 /* SoccerPlayerReceiveBallState.mm in Sources */,
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
-				035DD77A1E43C4BC0042BE33 /* SoccerPost.mm in Sources */,
-				0384E5971E3D65E80074232D /* SoccerField.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
 				03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */,
 				03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */,
-				03848A491E3FCD47007DD1C9 /* SoccerPlayer.mm in Sources */,
 				03068D4D19B8F2A400ABDC55 /* U4DVertexData.mm in Sources */,
 				034DBC861A74002F00AC43EB /* U4DOpenGLDebugger.mm in Sources */,
 				03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */,
@@ -1696,41 +1714,47 @@
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
 				03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */,
-				036848F51E5B65D80087BBBD /* SoccerPlayerExtremity.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
+				0348C08C1E6A4913001FFF97 /* U11PlayerStateManager.mm in Sources */,
+				0348C06C1E6A4902001FFF97 /* U11PlayerExtremity.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
 				030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */,
-				03EE34191E444C06001F6FCF /* SoccerGoalSensor.mm in Sources */,
 				03F862A917EE29FD00712ECD /* U4DOpenGL3DModel.mm in Sources */,
 				0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */,
 				03B5E7E6193A3F4100800EC8 /* U4DDigitalAssetLoader.mm in Sources */,
-				036848DF1E573BAF0087BBBD /* SoccerPlayerChaseBallState.mm in Sources */,
 				03E6EDD71943D816007AD131 /* U4DCollisionEngine.mm in Sources */,
+				0348C0991E6A491D001FFF97 /* U11BallBounceState.mm in Sources */,
 				03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */,
 				03EF85411791E426007D6152 /* U4DIndex.mm in Sources */,
 				0390C7C81E3432750028AC20 /* U4DParticle.mm in Sources */,
 				035D65EE195F4EEF002E2BCF /* U4DOpenGLMultiImage.mm in Sources */,
 				03E6ED6C1943D6FE007AD131 /* U4DJoyStick.mm in Sources */,
-				03069AE51E64AE7C007F9928 /* SoccerBallStateInterface.mm in Sources */,
 				0390C7C01E3432490028AC20 /* U4DOpenGLParticleExplosion.mm in Sources */,
+				0348C0981E6A491D001FFF97 /* U11BallAirState.mm in Sources */,
 				03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */,
 				036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkyBox.mm in Sources */,
 				03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */,
 				030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */,
 				0390C7CA1E3432750028AC20 /* U4DParticleExplosion.mm in Sources */,
+				0348C0651E6A48E5001FFF97 /* U11Ball.mm in Sources */,
 				037C474217B597CB007B8283 /* U4DModel.mm in Sources */,
+				0348C0891E6A4913001FFF97 /* U11PlayerReceiveBallState.mm in Sources */,
 				037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */,
 				03E6ED6A1943D6FE007AD131 /* U4DButton.mm in Sources */,
 				036FB58118CE9CB8000EA639 /* MainScene.mm in Sources */,
 				0390C7BA1E3432380028AC20 /* U4DOpenGLParticle.mm in Sources */,
 				030449A217B8548500A3A2AE /* U4DVector2n.mm in Sources */,
 				03E6EDE61943D866007AD131 /* U4DStaticModel.mm in Sources */,
+				0348C09C1E6A491D001FFF97 /* U11BallStateManager.mm in Sources */,
+				0348C0861E6A4913001FFF97 /* U11PlayerGroundPassState.mm in Sources */,
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
+				0348C0681E6A48F3001FFF97 /* U11Player.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
+				0348C08B1E6A4913001FFF97 /* U11PlayerStateInterface.mm in Sources */,
 				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03E6ED841943D78C007AD131 /* U4DSprite.mm in Sources */,
 				03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */,

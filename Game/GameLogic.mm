@@ -14,9 +14,9 @@
 #include "U4DJoyStick.h"
 #include "CommonProtocols.h"
 
-#include "SoccerPlayerDribbleState.h"
-#include "SoccerPlayerChaseBallState.h"
-#include "SoccerPlayerStateInterface.h"
+#include "U11PlayerDribbleState.h"
+#include "U11PlayerChaseBallState.h"
+#include "U11PlayerStateInterface.h"
 
 void GameLogic::update(double dt){
     
@@ -25,9 +25,9 @@ void GameLogic::update(double dt){
 void GameLogic::init(){
     
     //set my main actor and attach camera to follow it
-    ball=dynamic_cast<SoccerBall*>(searchChild("ball"));
-    //field=dynamic_cast<SoccerField*>(searchChild("field"));
-    player=dynamic_cast<SoccerPlayer*>(searchChild("pele"));
+    ball=dynamic_cast<U11Ball*>(searchChild("ball"));
+    //field=dynamic_cast<U11Field*>(searchChild("field"));
+    player=dynamic_cast<U11Player*>(searchChild("pele"));
     
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
