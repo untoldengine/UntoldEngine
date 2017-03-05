@@ -31,6 +31,13 @@ typedef struct{
     
 }Message;
 
+enum{
+    
+    msgReceiveBall,
+    msgPassToMe
+    
+}MessageEnum;
+
 const float fieldWidth=64.0;
 const float fieldLength=128.0;
 

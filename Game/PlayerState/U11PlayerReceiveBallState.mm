@@ -8,6 +8,7 @@
 
 #include "U11PlayerReceiveBallState.h"
 #include "U11PlayerTakeBallControlState.h"
+#include "U11Team.h"
 
 U11PlayerReceiveBallState* U11PlayerReceiveBallState::instance=0;
 
@@ -31,12 +32,37 @@ U11PlayerReceiveBallState* U11PlayerReceiveBallState::sharedInstance(){
 
 void U11PlayerReceiveBallState::enter(U11Player *uPlayer){
     
-   
+    //set run animation
+    uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
+    uPlayer->setPlayBlendedAnimation(true);
+    uPlayer->setPlayNextAnimationContinuously(true);
+    
+    //set as the receiving player
+    uPlayer->getTeam()->setReceivingPlayer(uPlayer);
 }
 
 void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
     
+    //track the ball
+    uPlayer->interseptBall();
     
+    
+    //has the player reached the ball
+    if (!uPlayer->hasReachedTheBall()) {
+        
+        //chase the ball
+        uPlayer->applyForceToPlayer(chasingSpeed, dt);
+        
+        
+    }else{
+        
+        uPlayer->removeKineticForces();
+        
+        U11PlayerStateInterface *takeBallControlState=U11PlayerTakeBallControlState::sharedInstance();
+        
+        uPlayer->changeState(takeBallControlState);
+        
+    }
 }
 
 void U11PlayerReceiveBallState::exit(U11Player *uPlayer){

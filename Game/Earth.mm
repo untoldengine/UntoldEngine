@@ -28,7 +28,9 @@
 #include "U11Ball.h"
 #include "U11Field.h"
 #include "U11Player.h"
+#include "U11Team.h"
 
+#include "GameLogic.h"
 
 using namespace U4DEngine;
 
@@ -44,7 +46,9 @@ void Earth::init(){
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
-    director->setWorld(this);   
+    director->setWorld(this);
+    
+    team=new U11Team();
     
     ball=new U11Ball();
     ball->init("ball", "blenderscript.u4d");
@@ -52,13 +56,26 @@ void Earth::init(){
     field=new U11Field();
     field->init("field0", "blenderscript.u4d");
 
-    player=new U11Player();
-    player->init("pele", "characterscript.u4d");
+    player10=new U11Player();
+    player10->init("pele", "characterscript.u4d");
+    
+    player10->setName("10");
+    
+    player10->subscribeTeam(team);
+    
+    player11=new U11Player();
+    player11->init("pele", "characterscript.u4d");
+    
+    player11->setName("11");
+    
+    player11->subscribeTeam(team);
     
     //set ball entity
     field->setBallEntity(ball);
     
-    player->setBallEntity(ball);
+    player10->setBallEntity(ball);
+    
+    player11->setBallEntity(ball);
     
     U4DVector3n origin(0,0,0);
 
@@ -70,7 +87,25 @@ void Earth::init(){
     
     addChild(field);
 
-    addChild(player);
+    addChild(player10);
+    
+    addChild(player11);
+    
+    //set the team
+    GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
+    
+    gameModel->setTeamToControl(team);
+    
+    //set controlling player
+    team->setControllingPlayer(player10);
+    
+    team->setSupportingPlayer(player11);
+    
+    //set the player position
+    
+    player10->translateBy(-20.0, player10->getModelDimensions().y/2.0+1.3, 30.0);
+    
+    player11->translateBy(40.0, player11->getModelDimensions().y/2.0+1.3, -30.0);
     
 }
 

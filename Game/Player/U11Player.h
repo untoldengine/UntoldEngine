@@ -17,12 +17,15 @@
 class U11PlayerStateInterface;
 class U11PlayerStateManager;
 class U11PlayerExtremity;
+class U11Team;
 
 class U11Player:public U4DEngine::U4DGameObject {
     
 private:
     
     U11Ball *soccerBallEntity;
+    
+    U11Team *team;
     
     U11PlayerStateManager *stateManager;
     
@@ -50,7 +53,7 @@ public:
     
     ~U11Player();
     
-    void init(const char* uName, const char* uBlenderFile);
+    void init(const char* uModelName, const char* uBlenderFile);
     
     void update(double dt);
     
@@ -182,6 +185,8 @@ public:
     
     bool handleMessage(Message &uMsg);
     
+    void subscribeTeam(U11Team *uTeam);
     
+    U11Team *getTeam();
 };
 #endif /* U11Player_hpp */
