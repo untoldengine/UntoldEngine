@@ -19,6 +19,7 @@
 #include "U11PlayerExtremity.h"
 #include "U4DTrigonometry.h"
 #include "U4DBoneData.h"
+#include "U11Team.h"
 
 U11Player::U11Player():buttonAPressed(false),buttonBPressed(false),joystickActive(false),flagToPassBall(false){
     
@@ -31,9 +32,9 @@ U11Player::~U11Player(){
     
 }
 
-void U11Player::init(const char* uName, const char* uBlenderFile){
+void U11Player::init(const char* uModelName, const char* uBlenderFile){
     
-    if (loadModel(uName, uBlenderFile)) {
+    if (loadModel(uModelName, uBlenderFile)) {
         
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         runningAnimation=new U4DEngine::U4DAnimation(this);
@@ -168,10 +169,7 @@ void U11Player::init(const char* uName, const char* uBlenderFile){
             
         }
         
-        U11PlayerStateInterface *chaseBallState=U11PlayerChaseBallState::sharedInstance();
         U11PlayerStateInterface *idleState=U11PlayerIdleState::sharedInstance();
-        U11PlayerGroundPassState *groundPassState=U11PlayerGroundPassState::sharedInstance();
-        U11PlayerDribbleState *dribbleState=U11PlayerDribbleState::sharedInstance();
         
         //set initial state
         changeState(U11PlayerIdleState::sharedInstance());
@@ -179,10 +177,19 @@ void U11Player::init(const char* uName, const char* uBlenderFile){
         //render information
         loadRenderingInformation();
         
-        //translate the player
-        translateBy(-20.0, getModelDimensions().y/2.0+1.3, 30.0);
-        
     }
+    
+}
+
+void U11Player::subscribeTeam(U11Team *uTeam){
+ 
+    team=uTeam;
+    team->subscribe(this);
+}
+
+U11Team *U11Player::getTeam(){
+    
+    return team;
     
 }
 

@@ -42,13 +42,6 @@ void U11PlayerIdleState::execute(U11Player *uPlayer, double dt){
     //track the ball
     uPlayer->seekBall();
     
-    if (uPlayer->getJoystickActive()) {
-        
-        U11PlayerChaseBallState *chaseBallState=U11PlayerChaseBallState::sharedInstance();
-        
-        uPlayer->changeState(chaseBallState);
-    }
-    
 }
 
 void U11PlayerIdleState::exit(U11Player *uPlayer){
@@ -61,6 +54,22 @@ bool U11PlayerIdleState::isSafeToChangeState(U11Player *uPlayer){
 }
 
 bool U11PlayerIdleState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    
+    switch (uMsg.msg) {
+        case msgReceiveBall:
+            
+            //change state to receive ball
+            uPlayer->changeState(U11PlayerReceiveBallState::sharedInstance());
+            
+            break;
+        
+        case msgPassToMe:
+            
+            break;
+            
+        default:
+            break;
+    }
     
     return false;
 }

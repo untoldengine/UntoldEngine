@@ -25,9 +25,9 @@ namespace U4DEngine {
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
     
-    U11Ball *ball;
-    U11Field *field;
     U11Player *player;
+    
+    U11Team *team;
     
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
@@ -37,8 +37,12 @@ public:
     ~GameLogic(){};
     
     void update(double dt);
+    
     void init();
     
     void receiveTouchUpdate();
+    
+    void setTeamToControl(U11Team *uTeam);
+    
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

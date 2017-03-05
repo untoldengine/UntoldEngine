@@ -17,8 +17,8 @@ class GameController;
 class GameAsset;
 class U11Ball;
 class U11Field;
-
 class U11Player;
+class U11Team;
 
 class Earth:public U4DEngine::U4DWorld{
 
@@ -26,8 +26,9 @@ private:
 
     U11Ball *ball;
     U11Field *field;
-    U11Player *player;
-    
+    U11Player *player10;
+    U11Player *player11;
+    U11Team *team;
 
 public:
    

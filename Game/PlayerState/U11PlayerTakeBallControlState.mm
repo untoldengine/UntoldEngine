@@ -14,6 +14,7 @@
 #include "U11PlayerReverseKickState.h"
 #include "U11BallGroundState.h"
 #include "U11Ball.h"
+#include "U11Team.h"
 #include "UserCommonProtocols.h"
 
 U11PlayerTakeBallControlState* U11PlayerTakeBallControlState::instance=0;
@@ -51,6 +52,10 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(false);
+    
+    //set as the controlling player
+    uPlayer->getTeam()->setControllingPlayer(uPlayer);
+    
 }
 
 void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){

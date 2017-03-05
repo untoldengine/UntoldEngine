@@ -10,6 +10,8 @@
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerIdleState.h"
 #include "UserCommonProtocols.h"
+#include "U11Team.h"
+#include "U11MessageDispatcher.h"
 
 U11PlayerGroundPassState* U11PlayerGroundPassState::instance=0;
 
@@ -61,6 +63,14 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
         uPlayer->kickBallToGround(ballPassingSpeed, direction,dt);
         
         uPlayer->removeKineticForces();
+        
+        //get supporting player and send him a message
+        U11Player* supportPlayer=uPlayer->getTeam()->getSupportingPlayer();
+        
+        //prepare message
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, uPlayer->getName(), supportPlayer->getName(), msgReceiveBall);
         
         U11PlayerIdleState *idleState=U11PlayerIdleState::sharedInstance();
         
