@@ -20,10 +20,7 @@ void U4DTimer::tick(double dt){
         if (currentTime>=delay) {
             
             timerExpire();
-            hasTimerExpired=true;
-        }else{
             
-            hasTimerExpired=false;
         }
         
     }
@@ -46,18 +43,6 @@ void U4DTimer::timerExpire(){
     
 }
     
-bool U4DTimer::getHasTimerExpired(){
-    return hasTimerExpired;
-}
-    
-void U4DTimer::setIndex(int uIndex){
-    index=uIndex;
-}
-
-int U4DTimer::getIndex(){
-    return index;
-}
-
 void U4DTimer::setDelay(double uDelay){
     delay=uDelay;
 }
@@ -76,6 +61,22 @@ void U4DTimer::setPause(bool uValue){
 
 bool U4DTimer::getPause(){
     return pause;
+}
+    
+void U4DTimer::setScheduleTimer(bool uValue){
+    
+    scheduleTimer=uValue;
+}
+    
+bool U4DTimer::getScheduleTimer(){
+    
+    return scheduleTimer;
+}
+    
+void U4DTimer::setCurrentTime(float uValue){
+    
+    currentTime=uValue;
+    
 }
 
 }

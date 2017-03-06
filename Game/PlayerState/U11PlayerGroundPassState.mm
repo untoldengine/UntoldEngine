@@ -64,14 +64,6 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
         
         uPlayer->removeKineticForces();
         
-        //get supporting player and send him a message
-        U11Player* supportPlayer=uPlayer->getTeam()->getSupportingPlayer();
-        
-        //prepare message
-        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-        
-        messageDispatcher->sendMessage(0.0, uPlayer->getName(), supportPlayer->getName(), msgReceiveBall);
-        
         U11PlayerIdleState *idleState=U11PlayerIdleState::sharedInstance();
         
         uPlayer->changeState(idleState);
@@ -82,6 +74,14 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
 }
 
 void U11PlayerGroundPassState::exit(U11Player *uPlayer){
+    
+    //get supporting player and send him a message
+    U11Player* supportPlayer=uPlayer->getTeam()->getSupportingPlayer();
+    
+    //prepare message
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    messageDispatcher->sendMessage(0.0, uPlayer->getName(), supportPlayer->getName(), msgReceiveBall);
     
 }
 

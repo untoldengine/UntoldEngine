@@ -46,29 +46,19 @@ double U4DScheduler::getTick(){
 
 void U4DScheduler::scheduleTimer(U4DTimer *uTimer){
     
-    uTimer->setIndex(timerIndex);
+    uTimer->setScheduleTimer(true);
+    
     timersArray.push_back(uTimer);
     
-    timerIndex++;
 }
 
 void U4DScheduler::unscheduleTimer(U4DTimer *uTimer){
     
     //get timer index to remove
-    int uTimerIndex=uTimer->getIndex();
+    uTimer->setScheduleTimer(false);
     
     //remove the timer
-    timersArray.erase(std::remove_if(timersArray.begin(),timersArray.end(),[uTimerIndex](U4DTimer *timerToRemove){return timerToRemove->getIndex()==uTimerIndex;}),timersArray.end());
-    
-    //reset the timer index to zero and reassign new value to each timer
-    timerIndex=0;
-    
-    for(auto &n:timersArray){
-        
-        n->setIndex(timerIndex);
-        
-        timerIndex++;
-    }
+    timersArray.erase(std::remove_if(timersArray.begin(),timersArray.end(),[](U4DTimer *timerToRemove){return timerToRemove->getScheduleTimer()==false;}),timersArray.end());
     
 }
 
