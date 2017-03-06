@@ -24,17 +24,15 @@ private:
     double delay;
     
     double currentTime;
-    
-    int index;
-    
+
     bool pause;
     
-    bool hasTimerExpired;
+    bool scheduleTimer;
     
 public:
     
     //constructor
-    U4DTimer():currentTime(0.0),repeat(false),delay(0.0),index(0),pause(false),hasTimerExpired(false){};
+    U4DTimer():currentTime(0.0),repeat(false),delay(0.0),pause(false),scheduleTimer(false){};
     
     U4DTimer(U4DCallbackInterface *uPCallback):currentTime(0.0),repeat(false),delay(0.0),pCallback(uPCallback){};
     
@@ -49,21 +47,22 @@ public:
     
     void tick(double dt);
     
-    void setIndex(int uIndex);
-    
-    int getIndex();
-    
     void setDelay(double uDelay);
     
     double getDelay() const;
     
     void setRepeat(bool uRepeat);
     
-    bool getHasTimerExpired();
-    
     void setPause(bool uValue);
     
     bool getPause();
+    
+    void setScheduleTimer(bool uValue);
+    
+    bool getScheduleTimer();
+    
+    void setCurrentTime(float uValue);
+    
 };
 
 }

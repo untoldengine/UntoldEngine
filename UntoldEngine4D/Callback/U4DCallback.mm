@@ -54,6 +54,8 @@ namespace U4DEngine {
         
         timer->setDelay(delay);
         timer->setRepeat(repeat);
+        timer->setCurrentTime(0.0);
+        timer->setPause(false);
         
         //register U4DTimer with U4DScheduler
         U4DScheduler *scheduler=U4DScheduler::sharedInstance();
