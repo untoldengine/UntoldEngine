@@ -66,6 +66,7 @@
 		0348C09F1E6A4925001FFF97 /* U11Field.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C09E1E6A4925001FFF97 /* U11Field.mm */; };
 		0348C0A31E6B4392001FFF97 /* U11MessageDispatcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0A11E6B4392001FFF97 /* U11MessageDispatcher.mm */; };
 		0348C0A71E6B7767001FFF97 /* U11Team.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0A51E6B7767001FFF97 /* U11Team.mm */; };
+		0348C0B51E6E6008001FFF97 /* U11HeapSort.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0348C0B31E6E6008001FFF97 /* U11HeapSort.mm */; };
 		034DBC7C1A73E08C00AC43EB /* U4DDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034DBC7B1A73E08C00AC43EB /* U4DDebugger.mm */; };
 		034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC801A73FAD200AC43EB /* lightShader.fp */; };
 		034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC811A73FAD200AC43EB /* lightShader.vp */; };
@@ -328,6 +329,9 @@
 		0348C0A21E6B4392001FFF97 /* U11MessageDispatcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11MessageDispatcher.h; path = game/messageDispatcher/U11MessageDispatcher.h; sourceTree = SOURCE_ROOT; };
 		0348C0A51E6B7767001FFF97 /* U11Team.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Team.mm; path = game/Team/U11Team.mm; sourceTree = SOURCE_ROOT; };
 		0348C0A61E6B7767001FFF97 /* U11Team.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Team.h; path = game/Team/U11Team.h; sourceTree = SOURCE_ROOT; };
+		0348C0B31E6E6008001FFF97 /* U11HeapSort.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11HeapSort.mm; path = game/DataStructures/U11HeapSort.mm; sourceTree = SOURCE_ROOT; };
+		0348C0B41E6E6008001FFF97 /* U11HeapSort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11HeapSort.h; path = game/DataStructures/U11HeapSort.h; sourceTree = SOURCE_ROOT; };
+		0348C0B61E6E7C61001FFF97 /* U11Node.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U11Node.h; path = game/DataStructures/U11Node.h; sourceTree = SOURCE_ROOT; };
 		034DBC7A1A73E08C00AC43EB /* U4DDebugger.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDebugger.h; sourceTree = "<group>"; };
 		034DBC7B1A73E08C00AC43EB /* U4DDebugger.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDebugger.mm; sourceTree = "<group>"; };
 		034DBC801A73FAD200AC43EB /* lightShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.fp; sourceTree = "<group>"; };
@@ -776,10 +780,28 @@
 		0348C0A41E6B7744001FFF97 /* Team */ = {
 			isa = PBXGroup;
 			children = (
+				0348C0A81E6DE64D001FFF97 /* Support */,
 				0348C0A61E6B7767001FFF97 /* U11Team.h */,
 				0348C0A51E6B7767001FFF97 /* U11Team.mm */,
 			);
 			name = Team;
+			sourceTree = "<group>";
+		};
+		0348C0A81E6DE64D001FFF97 /* Support */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Support;
+			sourceTree = "<group>";
+		};
+		0348C0AF1E6DEF1C001FFF97 /* DataStructures */ = {
+			isa = PBXGroup;
+			children = (
+				0348C0B41E6E6008001FFF97 /* U11HeapSort.h */,
+				0348C0B31E6E6008001FFF97 /* U11HeapSort.mm */,
+				0348C0B61E6E7C61001FFF97 /* U11Node.h */,
+			);
+			name = DataStructures;
 			sourceTree = "<group>";
 		};
 		034DBC791A73E08C00AC43EB /* Debugger */ = {
@@ -816,6 +838,7 @@
 		036FB55718CE9CB8000EA639 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				0348C0AF1E6DEF1C001FFF97 /* DataStructures */,
 				0348C0A41E6B7744001FFF97 /* Team */,
 				0348C0A01E6B4282001FFF97 /* MessageDispatcher */,
 				0348C0621E6A48C5001FFF97 /* Field */,
@@ -1676,6 +1699,7 @@
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				0348C0A31E6B4392001FFF97 /* U11MessageDispatcher.mm in Sources */,
+				0348C0B51E6E6008001FFF97 /* U11HeapSort.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0348C08D1E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
