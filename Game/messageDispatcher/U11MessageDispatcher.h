@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <string>
 
+class U11Player;
+
 class U11MessageDispatcher {
     
 private:
@@ -24,7 +26,7 @@ public:
     static U11MessageDispatcher* instance;
     static U11MessageDispatcher* sharedInstance();
     
-    void sendMessage(double uDelay, std::string uSenderName, std::string uReceiverName, int uMsg);
+    void sendMessage(double uDelay, U11Player *uSenderPlayer, U11Player *uReceiverPlayer, int uMsg);
     
     void sendDelayedMessages();
     
