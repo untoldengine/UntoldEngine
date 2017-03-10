@@ -9,6 +9,8 @@
 #ifndef UserCommonProtocols_h
 #define UserCommonProtocols_h
 
+class U11Player;
+
 typedef enum{
 
     kU11Ball=1,
@@ -25,8 +27,8 @@ typedef enum{
 
 typedef struct{
     
-    std::string senderName;
-    std::string receivedName;
+    U11Player *senderPlayer;
+    U11Player *receiverPlayer;
     int msg;
     
 }Message;

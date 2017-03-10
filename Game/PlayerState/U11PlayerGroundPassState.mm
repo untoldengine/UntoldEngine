@@ -81,7 +81,7 @@ void U11PlayerGroundPassState::exit(U11Player *uPlayer){
     //prepare message
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
-    messageDispatcher->sendMessage(0.0, uPlayer->getName(), supportPlayer->getName(), msgReceiveBall);
+    messageDispatcher->sendMessage(0.0, uPlayer, supportPlayer, msgReceiveBall);
     
 }
 

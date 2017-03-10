@@ -66,8 +66,6 @@ void Earth::init(){
     player11=new U11Player();
     player11->init("pele", "characterscript.u4d");
     
-    player11->setName("11");
-    
     player11->subscribeTeam(team);
     
     //set ball entity

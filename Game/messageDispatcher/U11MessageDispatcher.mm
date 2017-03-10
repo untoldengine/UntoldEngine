@@ -32,24 +32,20 @@ U11MessageDispatcher *U11MessageDispatcher::sharedInstance(){
     
 }
 
-void U11MessageDispatcher::sendMessage(double uDelay, std::string uSenderName, std::string uReceiverName, int uMsg){
+void U11MessageDispatcher::sendMessage(double uDelay, U11Player *uSenderPlayer, U11Player *uReceiverPlayer, int uMsg){
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    //if the receiver player is null, then don't send message
     
-    //get the reciever ID pointer's
-    U11Player *player=dynamic_cast<U11Player*>(director->searchChild(uReceiverName));
-    
-    //if the player is null, then don't send message
-    
-    if (player!=nullptr) {
+    if (uReceiverPlayer!=nullptr) {
         //create the message
         Message message;
         
-        message.senderName=uSenderName;
-        message.receivedName=uReceiverName;
+        message.senderPlayer=uSenderPlayer;
+        message.receiverPlayer=uReceiverPlayer;
         message.msg=uMsg;
         
         //send the message
-        player->handleMessage(message);
+        uReceiverPlayer->handleMessage(message);
+        
     }
 }
