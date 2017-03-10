@@ -19,7 +19,7 @@ U11Team::~U11Team(){
 
 void U11Team::subscribe(U11Player* uPlayer){
     
-    teammates.push_back(uPlayer);
+    players.push_back(uPlayer);
 }
 
 void U11Team::remove(U11Player* uPlayer){
@@ -28,7 +28,7 @@ void U11Team::remove(U11Player* uPlayer){
     std::string name=uPlayer->getName();
     
     //remove player from the container
-    teammates.erase(std::remove_if(teammates.begin(), teammates.end(), [&](U11Player* player){return player->getName().compare(name)==0;}),teammates.end());
+    players.erase(std::remove_if(players.begin(), players.end(), [&](U11Player* player){return player->getName().compare(name)==0;}),players.end());
     
 }
 
@@ -74,4 +74,8 @@ U11Player *U11Team::getSupportingPlayer(){
 U11Player *U11Team::getPlayerClosestToBall(){
     
     return playerClosestToBall;
+}
+
+std::vector<U11Player*> U11Team::getAllPlayers(){
+    
 }

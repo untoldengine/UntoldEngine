@@ -17,7 +17,7 @@ class U11Team {
     
 private:
 
-    std::vector<U11Player*> teammates;
+    std::vector<U11Player*> players;
     
     //pointers to key players
     U11Player *controllingPlayer;
@@ -53,6 +53,8 @@ public:
     U11Player *getSupportingPlayer();
     
     U11Player *getPlayerClosestToBall();
+    
+    std::vector<U11Player*> getAllPlayers();
     
 };
 
