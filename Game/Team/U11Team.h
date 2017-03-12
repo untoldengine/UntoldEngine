@@ -54,7 +54,13 @@ public:
     
     std::vector<U11Player*> getClosestPlayersToBall();
     
+    std::vector<U11Player*> getClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition);
+    
     std::vector<U11Player*> sortPlayersDistanceToPosition(U4DEngine::U4DVector3n &uPosition);
+    
+    std::vector<U11Player*> getClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine);
+    
+    std::vector<U11Player*> getClosestPlayersAlongPassLine();
     
 };
 
