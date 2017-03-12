@@ -7,9 +7,13 @@
 //
 
 #include "U11Team.h"
+#include "U11HeapSort.h"
+#include "U4DVector3n.h"
+#include "U4DSegment.h"
 #include <string>
+#include "U4DNumerical.h"
 
-U11Team::U11Team():controllingPlayer(NULL),receivingPlayer(NULL),playerClosestToBall(NULL),supportingPlayer(NULL){
+U11Team::U11Team():controllingPlayer(NULL){
     
 }
 
@@ -19,63 +23,174 @@ U11Team::~U11Team(){
 
 void U11Team::subscribe(U11Player* uPlayer){
     
-    players.push_back(uPlayer);
+    teammates.push_back(uPlayer);
 }
 
 void U11Team::remove(U11Player* uPlayer){
     
-    //get the player's name
-    std::string name=uPlayer->getName();
+//    //get the player's name
+//    std::string name=uPlayer->getName();
+//    
+//    //remove player from the container
+//    players.erase(std::remove_if(players.begin(), players.end(), [&](U11Player* player){return player->getName().compare(name)==0;}),players.end());
+//    
+}
+
+
+std::vector<U11Player*> U11Team::getTeammates(){
+    return teammates;
+}
+
+U11Team *U11Team::getOppositeTeam(){
     
-    //remove player from the container
-    players.erase(std::remove_if(players.begin(), players.end(), [&](U11Player* player){return player->getName().compare(name)==0;}),players.end());
+    return oppositeTeam;
+}
+
+void U11Team::setSoccerBall(U11Ball *uSoccerBall){
+    
+    soccerBall=uSoccerBall;
     
 }
 
-void U11Team::setControllingPlayer(U11Player *uPlayer){
+U11Ball *U11Team::getSoccerBall(){
+    
+    return soccerBall;
+    
+}
+
+U11Player* U11Team::getControllingPlayer(){
+    
+    return controllingPlayer;
+    
+}
+
+void U11Team::setControllingPlayer(U11Player* uPlayer){
     
     controllingPlayer=uPlayer;
     
 }
 
-void U11Team::setReceivingPlayer(U11Player *uPlayer){
+std::vector<U11Player*> U11Team::sortPlayersDistanceToPosition(U4DEngine::U4DVector3n &uPosition){
     
-    receivingPlayer=uPlayer;
+    //get each support player into a node with its distance to uPosition
+    
+    uPosition.y=0;
+    
+    //set up the heapsort container
+    std::vector<U11Node> heapContainer;
+    
+    for(auto n:teammates){
+        
+        if (n!=n->getTeam()->getControllingPlayer()) {
+            
+            U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
+            playerPosition.y=0;
+            
+            float distance=(uPosition-playerPosition).magnitude();
+            
+            //create a node
+            U11Node node;
+            node.player=n;
+            node.data=distance;
+            
+            heapContainer.push_back(node);
+            
+        }
+        
+    }
+    
+    //sort the players closer to the position
+    
+    U11HeapSort heapSort;
+    heapSort.heapify(heapContainer);
+    
+    std::vector<U11Player*> sortPlayers;
+    
+    for(auto n:heapContainer){
+        
+        sortPlayers.push_back(n.player);
+    }
+    
+    return sortPlayers;
+}
+
+std::vector<U11Player*> U11Team::getClosestPlayersToBall(){
+    
+    //get position of the ball
+    U4DEngine::U4DVector3n ballPosition=soccerBall->getAbsolutePosition();
+    
+    return sortPlayersDistanceToPosition(ballPosition);
     
 }
 
-void U11Team::setSupportingPlayer(U11Player *uPlayer){
+std::vector<U11Player*> U11Team::getClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition){
     
-    supportingPlayer=uPlayer;
     
-}
-
-void U11Team::setPlayerClosestToBall(U11Player *uPlayer){
-    
-    playerClosestToBall=uPlayer;
+    return sortPlayersDistanceToPosition(uPosition);
     
 }
 
-U11Player *U11Team::getControllingPlayer(){
+std::vector<U11Player*> U11Team::getClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine){
     
-    return controllingPlayer;
-}
-
-U11Player *U11Team::getReceivingPlayer(){
- 
-    return receivingPlayer;
-}
-
-U11Player *U11Team::getSupportingPlayer(){
+    //get each support player into a node with its distance to uPosition
     
-    return supportingPlayer;
-}
-
-U11Player *U11Team::getPlayerClosestToBall(){
+    uLine.pointA.y=0.0;
+    uLine.pointB.y=0.0;
     
-    return playerClosestToBall;
+    //set up the heapsort container
+    std::vector<U11Node> heapContainer;
+    
+    for(auto n:teammates){
+        
+        if (n!=n->getTeam()->getControllingPlayer()) {
+            
+            U4DEngine::U4DPoint3n playerPosition=n->getAbsolutePosition().toPoint();
+            playerPosition.y=0;
+            
+            float distance=uLine.sqDistancePointSegment(playerPosition);
+            
+            //create a node
+            U11Node node;
+            node.player=n;
+            node.data=distance;
+            
+            heapContainer.push_back(node);
+            
+        }
+        
+    }
+    
+    //sort the players closer to the position
+    
+    U11HeapSort heapSort;
+    
+    heapSort.heapify(heapContainer);
+    
+    std::vector<U11Player*> sortPlayers;
+    
+    for(auto n:heapContainer){
+        
+        sortPlayers.push_back(n.player);
+    }
+    
+    return sortPlayers;
+    
 }
 
-std::vector<U11Player*> U11Team::getAllPlayers(){
+std::vector<U11Player*> U11Team::getClosestPlayersAlongPassLine(){
+    
+    U4DEngine::U4DSegment passLine;
+    passLine.pointA=getSoccerBall()->getAbsolutePosition().toPoint();
+    passLine.pointB=getSoccerBall()->getVelocity().toPoint();
+   
+    return getClosestPlayersAlongLine(passLine);
+    
+}
+
+std::vector<U11Player*> U11Team::getSupportPlayers(){
+    
+    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
+    
+    return sortPlayersDistanceToPosition(controllingPlayerPosition);
     
 }

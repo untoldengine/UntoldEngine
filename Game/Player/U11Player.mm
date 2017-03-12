@@ -244,9 +244,14 @@ void U11Player::changeState(U11PlayerStateInterface* uState){
     
 }
 
+U11Ball *U11Player::getSoccerBall(){
+    
+    return team->getSoccerBall();
+}
+
 void U11Player::seekBall(){
     
-    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
@@ -260,44 +265,51 @@ void U11Player::seekBall(){
 
 void U11Player::interseptBall(){
     
-    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
     
-    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    //determine the heading of the ball relative to the player
+    U4DEngine::U4DVector3n ballHeading=getSoccerBall()->getVelocity();
+    ballHeading.normalize();
     
-    U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
+    U4DEngine::U4DVector3n headingOfPlayer=getPlayerHeading();
+    headingOfPlayer.normalize();
     
-    float distanceMagnitude=distanceVector.magnitude();
-    
-    float ballVelocityMagnitude=soccerBallEntity->getVelocity().magnitude();
-    
-    float playerVelocityMagnitude=getVelocity().magnitude();
-    
-    if (ballVelocityMagnitude!=0 || playerVelocityMagnitude!=0) {
+    if (ballHeading.dot(headingOfPlayer)<-0.70) {
         
-        float t=distanceMagnitude/(ballVelocityMagnitude+playerVelocityMagnitude);
+        seekBall();
         
-        U4DEngine::U4DVector3n interseptPosition=ballPosition+soccerBallEntity->getVelocity()*t;
+    }else{
         
-        U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
+        U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
         
-        directionToLook.x/=fieldLength;
-        directionToLook.z/=fieldWidth;
+        U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
         
-        setPlayerHeading(directionToLook);
+        U4DEngine::U4DVector3n distanceBallToPlayer=ballPosition-playerPosition;
+        
+        float distanceMagnitude=distanceBallToPlayer.magnitude();
+        
+        float ballVelocityMagnitude=getSoccerBall()->getVelocity().magnitude();
+        
+        float playerVelocityMagnitude=getVelocity().magnitude();
+        
+        if (ballVelocityMagnitude!=0 || playerVelocityMagnitude!=0) {
+            
+            float t=distanceMagnitude/(ballVelocityMagnitude+playerVelocityMagnitude);
+            
+            U4DEngine::U4DVector3n interseptPosition=ballPosition+getSoccerBall()->getVelocity()*t;
+            
+            U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
+            
+            directionToLook.x/=fieldLength;
+            directionToLook.z/=fieldWidth;
+            
+            setPlayerHeading(directionToLook);
+            
+        }
         
     }
-    
+        
 }
 
-void U11Player::setBallEntity(U11Ball *uU11Ball){
-    
-    soccerBallEntity=uU11Ball;
-}
-
-U11Ball *U11Player::getBallEntity(){
-    
-    return soccerBallEntity;
-}
 
 void U11Player::applyForceToPlayer(float uVelocity, double dt){
     
@@ -317,14 +329,14 @@ void U11Player::applyForceToPlayer(float uVelocity, double dt){
 
 float U11Player::distanceToBall(){
     
-    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
     //set the height position equal to the ball y position
     playerPosition.y=ballPosition.y;
     
-    float ballRadius=soccerBallEntity->getBallRadius();
+    float ballRadius=getSoccerBall()->getBallRadius();
     
     float distance=(ballPosition-playerPosition).magnitude()-ballRadius;
     
@@ -333,14 +345,14 @@ float U11Player::distanceToBall(){
 
 bool U11Player::hasReachedTheBall(){
     
-    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    U4DEngine::U4DVector3n ballPosition=team->getSoccerBall()->getAbsolutePosition();
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
    
     //set the height position equal to the ball y position
     playerPosition.y=ballPosition.y;
     
-    float ballRadius=soccerBallEntity->getBallRadius();
+    float ballRadius=team->getSoccerBall()->getBallRadius();
     
     float distanceToBall=(ballPosition-playerPosition).magnitude();
     
@@ -460,12 +472,12 @@ void U11Player::removeKineticForces(){
 
 void U11Player::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
     
-    soccerBallEntity->kickBallToGround(uVelocity, uDirection, dt);
+    getSoccerBall()->kickBallToGround(uVelocity, uDirection, dt);
 }
 
 void U11Player::kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
     
-    soccerBallEntity->kickBallToAir(uVelocity, uDirection, dt);
+    getSoccerBall()->kickBallToAir(uVelocity, uDirection, dt);
 }
 
 void U11Player::setJoystickDirection(U4DEngine::U4DVector3n uJoystickDirection){
@@ -522,7 +534,7 @@ bool U11Player::isRightFootCloserToBall(){
     
     //check which foot is closer to the ball
     
-    return (rightFoot->distanceToBall(getBallEntity())<=leftFoot->distanceToBall(getBallEntity()));
+    return (rightFoot->distanceToBall(getSoccerBall())<=leftFoot->distanceToBall(getSoccerBall()));
     
 }
 
@@ -538,7 +550,7 @@ bool U11Player::isBallOnRightSidePlane(){
     
     directionVector.normalize();
     
-    U4DEngine::U4DVector3n ballPosition=soccerBallEntity->getAbsolutePosition();
+    U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
@@ -566,7 +578,7 @@ U11PlayerExtremity *U11Player::getActiveExtremity(){
 
 void U11Player::decelerateBall(float uScale, double dt){
     
-    soccerBallEntity->decelerate(uScale, dt);
+    getSoccerBall()->decelerate(uScale, dt);
     
 }
 

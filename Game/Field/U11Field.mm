@@ -42,11 +42,11 @@ void U11Field::init(const char* uName, const char* uBlenderFile){
 void U11Field::update(double dt){
     
     if (getModelHasCollided()) {
-        soccerBallEntity->changeState(U11BallBounceState::sharedInstance());
+        soccerBall->changeState(U11BallBounceState::sharedInstance());
     }
 }
 
-void U11Field::setBallEntity(U11Ball *uU11Ball){
+void U11Field::setSoccerBall(U11Ball *uSoccerBall){
     
-    soccerBallEntity=uU11Ball;
+    soccerBall=uSoccerBall;
 }

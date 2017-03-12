@@ -13,20 +13,20 @@
 #include <vector>
 #include "U11Player.h"
 
+class U11Ball;
+
 class U11Team {
     
 private:
 
-    std::vector<U11Player*> players;
+    std::vector<U11Player*> teammates;
     
     //pointers to key players
     U11Player *controllingPlayer;
     
-    U11Player *receivingPlayer;
+    U11Team *oppositeTeam;
     
-    U11Player *playerClosestToBall;
-    
-    U11Player *supportingPlayer;
+    U11Ball *soccerBall;
     
 public:
     
@@ -38,23 +38,29 @@ public:
     
     void remove(U11Player* uPlayer);
     
-    void setControllingPlayer(U11Player *uPlayer);
+    void setSoccerBall(U11Ball *uSoccerBall);
     
-    void setReceivingPlayer(U11Player *uPlayer);
+    U11Ball *getSoccerBall();
+      
+    std::vector<U11Player*> getTeammates();
     
-    void setSupportingPlayer(U11Player *uPlayer);
+    U11Team *getOppositeTeam();
     
-    void setPlayerClosestToBall(U11Player *uPlayer);
+    U11Player* getControllingPlayer();
     
-    U11Player *getControllingPlayer();
+    void setControllingPlayer(U11Player* uPlayer);
     
-    U11Player *getReceivingPlayer();
+    std::vector<U11Player*> getSupportPlayers();
     
-    U11Player *getSupportingPlayer();
+    std::vector<U11Player*> getClosestPlayersToBall();
     
-    U11Player *getPlayerClosestToBall();
+    std::vector<U11Player*> getClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition);
     
-    std::vector<U11Player*> getAllPlayers();
+    std::vector<U11Player*> sortPlayersDistanceToPosition(U4DEngine::U4DVector3n &uPosition);
+    
+    std::vector<U11Player*> getClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine);
+    
+    std::vector<U11Player*> getClosestPlayersAlongPassLine();
     
 };
 

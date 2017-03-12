@@ -51,7 +51,7 @@ void U11PlayerReverseKickState::enter(U11Player *uPlayer){
 
 void U11PlayerReverseKickState::execute(U11Player *uPlayer, double dt){
     
-    U11Ball *ball=uPlayer->getBallEntity();
+    U11Ball *ball=uPlayer->getSoccerBall();
     
     if (ball->getVelocity().magnitude()>ballMaxSpeedMagnitude) {
         uPlayer->decelerateBall(ballDeceleration, dt);
@@ -65,7 +65,7 @@ void U11PlayerReverseKickState::execute(U11Player *uPlayer, double dt){
         
         directionToKick.y=0;
         
-        U11Ball *ball=uPlayer->getBallEntity();
+        U11Ball *ball=uPlayer->getSoccerBall();
         
         ball->kickBallToGround(ballReverseRolling, directionToKick, dt);
         
