@@ -25,8 +25,6 @@ namespace U4DEngine {
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
     
-    U11Player *player;
-    
     U11Team *team;
     
     U4DEngine::U4DButton *buttonA;

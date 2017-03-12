@@ -17,7 +17,7 @@ class U11Field:public U4DEngine::U4DGameObject {
     
 private:
     
-    U11Ball *soccerBallEntity;
+    U11Ball *soccerBall;
     
 public:
     U11Field();
@@ -26,7 +26,7 @@ public:
     
     void init(const char* uName, const char* uBlenderFile);
     
-    void setBallEntity(U11Ball *uU11Ball);
+    void setSoccerBall(U11Ball *uSoccerBall);
     
     void update(double dt);
     

@@ -23,8 +23,6 @@ class U11Player:public U4DEngine::U4DGameObject {
     
 private:
     
-    U11Ball *soccerBallEntity;
-    
     U11Team *team;
     
     U11PlayerStateManager *stateManager;
@@ -86,10 +84,6 @@ public:
     U4DEngine::U4DAnimation *reverseBallWithRightFootAnimation;
     
     void changeState(U11PlayerStateInterface* uState);
-    
-    void setBallEntity(U11Ball *uU11Ball);
-    
-    U11Ball *getBallEntity();
     
     void applyForceToPlayer(float uVelocity, double dt);
     
@@ -188,5 +182,7 @@ public:
     void subscribeTeam(U11Team *uTeam);
     
     U11Team *getTeam();
+    
+    U11Ball *getSoccerBall();
 };
 #endif /* U11Player_hpp */

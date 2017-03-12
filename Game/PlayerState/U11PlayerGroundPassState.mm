@@ -76,7 +76,7 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
 void U11PlayerGroundPassState::exit(U11Player *uPlayer){
     
     //get supporting player and send him a message
-    U11Player* supportPlayer=uPlayer->getTeam()->getSupportingPlayer();
+    U11Player* supportPlayer=uPlayer->getTeam()->getSupportPlayers().at(0);
     
     //prepare message
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();

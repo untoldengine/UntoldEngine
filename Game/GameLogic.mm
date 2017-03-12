@@ -25,10 +25,12 @@ void GameLogic::update(double dt){
 
 void GameLogic::init(){
     
-    player=dynamic_cast<U11Player*>(searchChild("10"));
     buttonA=getGameController()->getButtonWithName("buttonA");
     buttonB=getGameController()->getButtonWithName("buttonB");
     joystick=getGameController()->getJoyStickWithName("joystick");
+    
+    //get the closest player to the ball and change its state to chase the ball
+    U11Player* player=team->getClosestPlayersToBall().at(0);
     
     player->changeState(U11PlayerChaseBallState::sharedInstance());
     
@@ -46,7 +48,7 @@ void GameLogic::receiveTouchUpdate(){
     bool buttonBPressed=false;
     bool joystickActive=false;
     
-    player=team->getControllingPlayer();
+    U11Player *player=team->getControllingPlayer();
     
     if (player!=NULL) {
         

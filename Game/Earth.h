@@ -28,6 +28,7 @@ private:
     U11Field *field;
     U11Player *player10;
     U11Player *player11;
+    U11Player *player9;
     U11Team *team;
 
 public:

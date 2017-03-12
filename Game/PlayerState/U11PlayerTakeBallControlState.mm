@@ -60,7 +60,7 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
 
 void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
     
-    U11Ball *ball=uPlayer->getBallEntity();
+    U11Ball *ball=uPlayer->getSoccerBall();
     
     //stop ball motion if the feet collide with the ball and if it matches a keyframe 
     if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()>=3) {
@@ -107,8 +107,6 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
         uPlayer->changeState(U11PlayerDribbleState::sharedInstance());
         
     }
-    
-
     
 }
 
