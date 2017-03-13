@@ -12,6 +12,7 @@
 #include "U11PlayerGroundShotState.h"
 #include "U11PlayerAirShotState.h"
 #include "U11PlayerReverseKickState.h"
+#include "U11PlayerRunPassState.h"
 #include "U11BallGroundState.h"
 #include "U11Ball.h"
 #include "U11Team.h"
@@ -83,7 +84,15 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
     
     if (uPlayer->getButtonAPressed()) {
     
-        uPlayer->changeState(U11PlayerGroundPassState::sharedInstance());
+        if (uPlayer->hasReachedTheBall()) {
+            
+            uPlayer->changeState(U11PlayerGroundPassState::sharedInstance());
+            
+        }else{
+            uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
+        }
+        
+    
     }
     
     //check if player should shoot
