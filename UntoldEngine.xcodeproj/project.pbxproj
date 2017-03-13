@@ -224,6 +224,7 @@
 		03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A417EE29FD00712ECD /* U4DOpenGLGeometry.mm */; };
 		03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */; };
 		03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */; };
+		03FCC2DB1E765F70000479AC /* U11PlayerRunPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FCC2D91E765F70000479AC /* U11PlayerRunPassState.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -598,6 +599,8 @@
 		03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLImage.mm; sourceTree = "<group>"; };
 		03F862A717EE29FD00712ECD /* U4DOpenGLManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLManager.h; sourceTree = "<group>"; };
 		03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLManager.mm; sourceTree = "<group>"; };
+		03FCC2D91E765F70000479AC /* U11PlayerRunPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunPassState.mm; path = game/PlayerState/U11PlayerRunPassState.mm; sourceTree = SOURCE_ROOT; };
+		03FCC2DA1E765F70000479AC /* U11PlayerRunPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunPassState.h; path = game/PlayerState/U11PlayerRunPassState.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -753,6 +756,8 @@
 				0348C07C1E6A4913001FFF97 /* U11PlayerReverseKickState.mm */,
 				0348C0811E6A4913001FFF97 /* U11PlayerTakeBallControlState.h */,
 				0348C0821E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm */,
+				03FCC2DA1E765F70000479AC /* U11PlayerRunPassState.h */,
+				03FCC2D91E765F70000479AC /* U11PlayerRunPassState.mm */,
 			);
 			name = PlayerState;
 			sourceTree = "<group>";
@@ -1858,6 +1863,7 @@
 				03F395FE1A65A09F007A45BD /* U4DOpenGLWorld.mm in Sources */,
 				0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */,
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
+				03FCC2DB1E765F70000479AC /* U11PlayerRunPassState.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
 				03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
