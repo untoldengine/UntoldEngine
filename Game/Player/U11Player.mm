@@ -265,47 +265,34 @@ void U11Player::seekBall(){
 
 void U11Player::interseptBall(){
     
-    
     //determine the heading of the ball relative to the player
     U4DEngine::U4DVector3n ballHeading=getSoccerBall()->getVelocity();
     ballHeading.normalize();
     
-    U4DEngine::U4DVector3n headingOfPlayer=getPlayerHeading();
-    headingOfPlayer.normalize();
+    U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
     
-    if (ballHeading.dot(headingOfPlayer)<-0.70) {
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n relativePosition=ballPosition-playerPosition;
+    relativePosition.normalize();
+    
+    if (relativePosition.dot(ballHeading)<0.0) {
         
         seekBall();
         
     }else{
         
-        U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
+        float t=(ballPosition-playerPosition).magnitude()/(getSoccerBall()->getVelocity()+getVelocity()).magnitude();
         
-        U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+        U4DEngine::U4DVector3n interseptPosition=ballPosition+getSoccerBall()->getVelocity()*t;
         
-        U4DEngine::U4DVector3n distanceBallToPlayer=ballPosition-playerPosition;
+        U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
         
-        float distanceMagnitude=distanceBallToPlayer.magnitude();
+        directionToLook.x/=fieldLength;
+        directionToLook.z/=fieldWidth;
         
-        float ballVelocityMagnitude=getSoccerBall()->getVelocity().magnitude();
-        
-        float playerVelocityMagnitude=getVelocity().magnitude();
-        
-        if (ballVelocityMagnitude!=0 || playerVelocityMagnitude!=0) {
-            
-            float t=distanceMagnitude/(ballVelocityMagnitude+playerVelocityMagnitude);
-            
-            U4DEngine::U4DVector3n interseptPosition=ballPosition+getSoccerBall()->getVelocity()*t;
-            
-            U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
-            
-            directionToLook.x/=fieldLength;
-            directionToLook.z/=fieldWidth;
-            
-            setPlayerHeading(directionToLook);
-            
-        }
-        
+        setPlayerHeading(directionToLook);
+
     }
         
 }

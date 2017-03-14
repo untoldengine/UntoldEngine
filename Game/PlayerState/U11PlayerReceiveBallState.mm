@@ -46,7 +46,6 @@ void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
     //track the ball
     uPlayer->interseptBall();
     
-    
     //has the player reached the ball
     if (!uPlayer->hasReachedTheBall()) {
         
