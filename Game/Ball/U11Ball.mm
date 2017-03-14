@@ -46,7 +46,7 @@ void U11Ball::init(const char* uName, const char* uBlenderFile){
         setDragCoefficient(dragCoefficients);
         
         stateManager->safeChangeState(U11BallGroundState::sharedInstance());
-        translateBy(-10.0, 0.0, 0.0);
+    
         loadRenderingInformation();
         
     }
