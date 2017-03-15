@@ -71,9 +71,17 @@ public:
     
     U4DEngine::U4DAnimation *idleAnimation;
     
-    U4DEngine::U4DAnimation *haltBallWithRightFootAnimation;
+    U4DEngine::U4DAnimation *forwardHaltBallWithRightFootAnimation;
     
-    U4DEngine::U4DAnimation *haltBallWithLeftFootAnimation;
+    U4DEngine::U4DAnimation *forwardHaltBallWithLeftFootAnimation;
+    
+    U4DEngine::U4DAnimation *backHaltBallWithRightFootAnimation;
+    
+    U4DEngine::U4DAnimation *backHaltBallWithLeftFootAnimation;
+    
+    U4DEngine::U4DAnimation *sideHaltBallWithRightFootAnimation;
+    
+    U4DEngine::U4DAnimation *sideHaltBallWithLeftFootAnimation;
     
     U4DEngine::U4DAnimation *rightFootForwardKickAnimation;
     
@@ -97,9 +105,17 @@ public:
     
     U4DEngine::U4DAnimation *getIdleAnimation();
     
-    U4DEngine::U4DAnimation *getHaltBallWithRightFootAnimation();
+    U4DEngine::U4DAnimation *getForwardHaltBallWithRightFootAnimation();
     
-    U4DEngine::U4DAnimation *getHaltBallWithLeftFootAnimation();
+    U4DEngine::U4DAnimation *getForwardHaltBallWithLeftFootAnimation();
+    
+    U4DEngine::U4DAnimation *getBackHaltBallWithRightFootAnimation();
+    
+    U4DEngine::U4DAnimation *getBackHaltBallWithLeftFootAnimation();
+    
+    U4DEngine::U4DAnimation *getSideHaltBallWithRightFootAnimation();
+    
+    U4DEngine::U4DAnimation *getSideHaltBallWithLeftFootAnimation();
     
     U4DEngine::U4DAnimation *getRightFootSidePassAnimation();
     
@@ -155,6 +171,8 @@ public:
     
     bool isBallOnRightSidePlane();
     
+    bool isBallComingFromRightSidePlane();
+    
     void setActiveExtremity(U11PlayerExtremity *uActiveExtremity);
     
     U11PlayerExtremity *getActiveExtremity();
@@ -184,5 +202,7 @@ public:
     U11Team *getTeam();
     
     U11Ball *getSoccerBall();
+    
+    void removeAllVelocities();
 };
 #endif /* U11Player_hpp */

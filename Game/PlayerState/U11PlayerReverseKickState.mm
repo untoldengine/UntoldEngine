@@ -53,7 +53,7 @@ void U11PlayerReverseKickState::execute(U11Player *uPlayer, double dt){
     
     U11Ball *ball=uPlayer->getSoccerBall();
     
-    if (ball->getVelocity().magnitude()>ballMaxSpeedMagnitude) {
+    if (ball->getVelocity().magnitude()>ballMaxSpeed) {
         uPlayer->decelerateBall(ballDeceleration, dt);
     }
     

@@ -51,6 +51,7 @@ const float ballGroundShotSpeed=70.0;
 const float ballAirShotSpeed=30.0;
 const float ballReverseRolling=15.0;
 const float ballDeceleration=0.5;
-const float ballMaxSpeedMagnitude=8.0;
+const float ballMaxSpeed=8.0;
+const float maximumInterceptionSpeed=80.0;
 
 #endif /* UserCommonProtocols_h */
