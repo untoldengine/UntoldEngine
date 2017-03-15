@@ -99,12 +99,12 @@ void Earth::init(){
     
     
     //set the ball position
-    ball->translateBy(-18.0, 0.0, 20.0);
+    ball->translateBy(-18.0, 0.0, 15.0);
     //set the player position
     
     player10->translateBy(-20.0, player10->getModelDimensions().y/2.0+1.3, 0.0);
     
-    player11->translateBy(20.0, player11->getModelDimensions().y/2.0+1.3, 10.0);
+    player11->translateBy(0.0, player11->getModelDimensions().y/2.0+1.3, -10.0);
     
     //player9->translateBy(20.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
     
