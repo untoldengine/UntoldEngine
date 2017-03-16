@@ -11,7 +11,7 @@
 #include "U11PlayerGroundPassState.h"
 #include "U11PlayerTakeBallControlState.h"
 #include "U11PlayerGroundShotState.h"
-#include "U11PlayerReverseKickState.h"
+#include "U11PlayerRunToReverseKickState.h"
 #include "U11Ball.h"
 #include "UserCommonProtocols.h"
 
@@ -70,7 +70,7 @@ void U11PlayerDribbleState::execute(U11Player *uPlayer, double dt){
         
         if (uPlayer->getDirectionReversal()) {
             
-            uPlayer->changeState(U11PlayerReverseKickState::sharedInstance());
+            uPlayer->changeState(U11PlayerRunToReverseKickState::sharedInstance());
             
         }
         

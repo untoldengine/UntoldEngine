@@ -131,7 +131,7 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
             
         }
         
-    }else if(uPlayer->distanceToBall()>6.0){
+    }else if(uPlayer->distanceToBall()>ballControlMaximumDistance){
         
         uPlayer->decelerateBall(ballDeceleration, dt);
         

@@ -8,6 +8,7 @@
 
 #include "U11PlayerReverseKickState.h"
 #include "U11PlayerDribbleState.h"
+#include "U11PlayerRunToReverseKickState.h"
 #include "UserCommonProtocols.h"
 
 U11PlayerReverseKickState* U11PlayerReverseKickState::instance=0;
@@ -53,19 +54,25 @@ void U11PlayerReverseKickState::execute(U11Player *uPlayer, double dt){
     
     U11Ball *ball=uPlayer->getSoccerBall();
     
+    ball->removeKineticForces();
+    
+    ball->removeAllVelocities();
+    
+    uPlayer->removeAllVelocities();
+    
+    uPlayer->removeKineticForces();
+    
     if (ball->getVelocity().magnitude()>ballMaxSpeed) {
         uPlayer->decelerateBall(ballDeceleration, dt);
     }
     
-    if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()>=1) {
+    if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()>=3) {
         
         U4DEngine::U4DVector3n directionToKick=uPlayer->getJoystickDirection();
         
         directionToKick.z=-directionToKick.y;
         
         directionToKick.y=0;
-        
-        U11Ball *ball=uPlayer->getSoccerBall();
         
         ball->kickBallToGround(ballReverseRolling, directionToKick, dt);
         
