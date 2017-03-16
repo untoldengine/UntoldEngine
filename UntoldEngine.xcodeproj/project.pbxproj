@@ -229,6 +229,7 @@
 		03FCC2DF1E77C448000479AC /* backhaltballwithrightfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FCC2DE1E77C448000479AC /* backhaltballwithrightfootanimation.u4d */; };
 		03FCC2E11E78427E000479AC /* sidehaltballwithleftfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FCC2E01E78427E000479AC /* sidehaltballwithleftfootanimation.u4d */; };
 		03FCC2E31E784298000479AC /* sidehaltballwithrightfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FCC2E21E784298000479AC /* sidehaltballwithrightfootanimation.u4d */; };
+		03FCC2E61E79C558000479AC /* U11PlayerRunToReverseKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FCC2E41E79C558000479AC /* U11PlayerRunToReverseKickState.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -609,6 +610,8 @@
 		03FCC2DE1E77C448000479AC /* backhaltballwithrightfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = backhaltballwithrightfootanimation.u4d; path = Resources/backhaltballwithrightfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03FCC2E01E78427E000479AC /* sidehaltballwithleftfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sidehaltballwithleftfootanimation.u4d; path = Resources/sidehaltballwithleftfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03FCC2E21E784298000479AC /* sidehaltballwithrightfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sidehaltballwithrightfootanimation.u4d; path = Resources/sidehaltballwithrightfootanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03FCC2E41E79C558000479AC /* U11PlayerRunToReverseKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunToReverseKickState.mm; path = game/PlayerState/U11PlayerRunToReverseKickState.mm; sourceTree = SOURCE_ROOT; };
+		03FCC2E51E79C558000479AC /* U11PlayerRunToReverseKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunToReverseKickState.h; path = game/PlayerState/U11PlayerRunToReverseKickState.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -766,6 +769,8 @@
 				0348C0821E6A4913001FFF97 /* U11PlayerTakeBallControlState.mm */,
 				03FCC2DA1E765F70000479AC /* U11PlayerRunPassState.h */,
 				03FCC2D91E765F70000479AC /* U11PlayerRunPassState.mm */,
+				03FCC2E51E79C558000479AC /* U11PlayerRunToReverseKickState.h */,
+				03FCC2E41E79C558000479AC /* U11PlayerRunToReverseKickState.mm */,
 			);
 			name = PlayerState;
 			sourceTree = "<group>";
@@ -1847,6 +1852,7 @@
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				0348C0851E6A4913001FFF97 /* U11PlayerDribbleState.mm in Sources */,
 				0348C0871E6A4913001FFF97 /* U11PlayerGroundShotState.mm in Sources */,
+				03FCC2E61E79C558000479AC /* U11PlayerRunToReverseKickState.mm in Sources */,
 				0348C0841E6A4913001FFF97 /* U11PlayerChaseBallState.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
 				03E6ED9F1943D799007AD131 /* U4DFont.mm in Sources */,

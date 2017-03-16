@@ -144,7 +144,7 @@ void U4DJoyStick::update(float dt){
             
             //get previous data
             U4DVector3n previousData=getDataPosition();
-            
+            previousData.normalize();
             //get the direction between previous data and new data
             
             if (previousData.dot(data)<0.0) {
