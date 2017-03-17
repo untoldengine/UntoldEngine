@@ -36,6 +36,9 @@ typedef struct{
 enum{
     
     msgReceiveBall,
+    msgButtonAPressed,
+    msgButtonBPressed,
+    msgJoystickActive,
     msgPassToMe
     
 }MessageEnum;
@@ -43,13 +46,13 @@ enum{
 const float fieldWidth=64.0;
 const float fieldLength=128.0;
 
-const float chasingSpeed=30.0;
-const float dribblingSpeed=20.0;
-const float ballRollingSpeed=24.0;
+const float chasingSpeed=40.0;
+const float dribblingSpeed=30.0;
+const float ballRollingSpeed=35.0;
 const float ballPassingSpeed=50.0;
 const float ballGroundShotSpeed=70.0;
 const float ballAirShotSpeed=30.0;
-const float ballReverseRolling=30.0;
+const float ballReverseRolling=35.0;
 const float ballDeceleration=0.5;
 const float ballMaxSpeed=8.0;
 const float maximumInterceptionSpeed=80.0;

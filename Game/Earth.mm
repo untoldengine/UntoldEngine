@@ -66,11 +66,11 @@ void Earth::init(){
     
     player11->subscribeTeam(team);
     
-//    player9=new U11Player();
-//    player9->init("pele", "characterscript.u4d");
-//    
-//    player9->subscribeTeam(team);
-//    
+    player9=new U11Player();
+    player9->init("pele", "characterscript.u4d");
+    
+    player9->subscribeTeam(team);
+    
     //set ball entity
     field->setSoccerBall(ball);
     
@@ -90,7 +90,7 @@ void Earth::init(){
     
     addChild(player11);
     
-    //addChild(player9);
+    addChild(player9);
     
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
@@ -106,7 +106,7 @@ void Earth::init(){
     
     player11->translateBy(0.0, player11->getModelDimensions().y/2.0+1.3, -10.0);
     
-    //player9->translateBy(20.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
+    player9->translateBy(20.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
     
 }
 
