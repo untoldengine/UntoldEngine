@@ -18,6 +18,7 @@
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerStateInterface.h"
 #include "U11Team.h"
+#include "U11MessageDispatcher.h"
 
 void GameLogic::update(double dt){
     
@@ -44,17 +45,17 @@ void GameLogic::setTeamToControl(U11Team *uTeam){
 
 void GameLogic::receiveTouchUpdate(){
     
-    bool buttonAPressed=false;
-    bool buttonBPressed=false;
     bool joystickActive=false;
     
     U11Player *player=team->getControllingPlayer();
+    
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
     if (player!=NULL) {
         
         if (buttonA->getIsPressed()) {
             
-            buttonAPressed=true;
+            messageDispatcher->sendMessage(0.0, player, player, msgButtonAPressed);
             
         }else if(buttonA->getIsReleased()){
             
@@ -64,11 +65,9 @@ void GameLogic::receiveTouchUpdate(){
         
         if (buttonB->getIsPressed()) {
             
-            buttonBPressed=true;
-            
+            messageDispatcher->sendMessage(0.0, player, player, msgButtonBPressed);
             
         }else if(buttonB->getIsReleased()){
-            
             
             
         }
@@ -85,10 +84,13 @@ void GameLogic::receiveTouchUpdate(){
             
             player->setDirectionReversal(joystick->getDirectionReversal());
             
+            player->setJoystickActive(true);
+            
+        }else{
+            
+            player->setJoystickActive(false);
+        
         }
-        
-        
-        player->receiveTouchUpdate(buttonAPressed, buttonBPressed, joystickActive);
         
     }
     

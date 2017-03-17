@@ -27,10 +27,6 @@ private:
     
     U11PlayerStateManager *stateManager;
     
-    bool buttonAPressed;
-    
-    bool buttonBPressed;
-    
     bool joystickActive;
     
     U4DEngine::U4DVector3n joystickDirection;
@@ -40,8 +36,6 @@ private:
     U11PlayerExtremity *leftFoot;
     
     U11PlayerExtremity *activeExtremity;
-    
-    bool flagToPassBall;
     
     bool directionReversal;
     
@@ -129,16 +123,6 @@ public:
     
     U4DEngine::U4DAnimation *getReverseBallWithRightFootAnimation();
     
-    void receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive);
-    
-    void setButtonAPressed(bool uValue);
-    
-    void setButtonBPressed(bool uValue);
-    
-    bool getButtonAPressed();
-    
-    bool getButtonBPressed();
-    
     void setJoystickActive(bool uValue);
     
     bool getJoystickActive();
@@ -160,10 +144,6 @@ public:
     U4DEngine::U4DVector3n getJoystickDirection();
     
     float distanceToBall();
-    
-    void setFlagToPassBall(bool uValue);
-    
-    bool getFlagToPassBall();
     
     void updatePlayerExtremity(U11PlayerExtremity *uPlayerExtremity);
     

@@ -21,7 +21,7 @@
 #include "U4DBoneData.h"
 #include "U11Team.h"
 
-U11Player::U11Player():buttonAPressed(false),buttonBPressed(false),joystickActive(false),flagToPassBall(false){
+U11Player::U11Player():joystickActive(false){
     
     stateManager=new U11PlayerStateManager(this);
     
@@ -463,34 +463,6 @@ U4DEngine::U4DAnimation *U11Player::getReverseBallWithRightFootAnimation(){
     
 }
 
-void U11Player::receiveTouchUpdate(bool uButtonAPressed, bool uButtonBPressed, bool uJoystickActive){
-    
-    buttonAPressed=uButtonAPressed;
-    buttonBPressed=uButtonBPressed;
-    joystickActive=uJoystickActive;
-    
-}
-
-void U11Player::setButtonAPressed(bool uValue){
-    
-    buttonAPressed=uValue;
-}
-
-void U11Player::setButtonBPressed(bool uValue){
-    
-    buttonBPressed=uValue;
-}
-
-bool U11Player::getButtonAPressed(){
- 
-    return buttonAPressed;
-}
-
-bool U11Player::getButtonBPressed(){
-    
-    return buttonBPressed;
-}
-
 void U11Player::setJoystickActive(bool uValue){
     
     joystickActive=uValue;
@@ -559,17 +531,6 @@ bool U11Player::getActiveExtremityCollidedWithBall(){
     return activeExtremity->getModelHasCollided();
 }
 
-void U11Player::setFlagToPassBall(bool uValue){
-    
-    flagToPassBall=uValue;
-    
-}
-
-bool U11Player::getFlagToPassBall(){
-    
-    return flagToPassBall;
-    
-}
 
 bool U11Player::isRightFootCloserToBall(){
     

@@ -142,19 +142,6 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
         uPlayer->decelerateBall(ballDeceleration, dt);
     }
     
-    if (uPlayer->getButtonAPressed()) {
-    
-        uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
-    
-    }
-    
-    //check if player should shoot
-    if (uPlayer->getButtonBPressed()) {
-        
-        uPlayer->changeState(U11PlayerAirShotState::sharedInstance());
-        
-    }
-    
     //if joystick is active go into dribble state
     if (uPlayer->getJoystickActive()) {
         
@@ -182,5 +169,24 @@ bool U11PlayerTakeBallControlState::isSafeToChangeState(U11Player *uPlayer){
 }
 
 bool U11PlayerTakeBallControlState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    
+    switch (uMsg.msg) {
+            
+        case msgButtonAPressed:
+            
+            uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
+            
+            break;
+            
+        case msgButtonBPressed:
+            
+            uPlayer->changeState(U11PlayerAirShotState::sharedInstance());
+            
+            break;
+            
+        default:
+            break;
+    }
+    
     return false;
 }

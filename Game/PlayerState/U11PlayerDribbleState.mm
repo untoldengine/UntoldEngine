@@ -47,22 +47,7 @@ void U11PlayerDribbleState::enter(U11Player *uPlayer){
 void U11PlayerDribbleState::execute(U11Player *uPlayer, double dt){
     
     U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
-    
-    //check if player should pass
-    if (uPlayer->getButtonAPressed()) {
-        
-        uPlayer->changeState(U11PlayerGroundPassState::sharedInstance());
-        
-    }
-    
-    //check if player should shoot
-    if (uPlayer->getButtonBPressed()) {
-        
-        uPlayer->changeState(U11PlayerGroundShotState::sharedInstance());
-        
-    }
 
-    
     //if the joystick is active, set the new direction of the kick
     if (uPlayer->getJoystickActive()) {
         
@@ -106,5 +91,27 @@ bool U11PlayerDribbleState::isSafeToChangeState(U11Player *uPlayer){
 }
 
 bool U11PlayerDribbleState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    switch (uMsg.msg) {
+            
+        case msgButtonAPressed:
+            
+            uPlayer->changeState(U11PlayerGroundPassState::sharedInstance());
+            
+            return true;
+            
+            break;
+            
+        case msgButtonBPressed:
+            
+            uPlayer->changeState(U11PlayerGroundShotState::sharedInstance());
+            
+            return true;
+            
+            break;
+            
+        default:
+            break;
+    }
+    
     return false;
 }
