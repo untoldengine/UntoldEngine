@@ -9,6 +9,7 @@
 #include "U11PlayerIdleState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerReceiveBallState.h"
+#include "U11PlayerSupportState.h"
 #include "U11MessageDispatcher.h"
 
 U11PlayerIdleState* U11PlayerIdleState::instance=0;
@@ -64,6 +65,12 @@ bool U11PlayerIdleState::handleMessage(U11Player *uPlayer, Message &uMsg){
             break;
         
         case msgPassToMe:
+            
+            break;
+            
+        case msgSupportPlayer:
+            
+            uPlayer->changeState(U11PlayerSupportState::sharedInstance());
             
             break;
             

@@ -31,7 +31,7 @@ void GameLogic::init(){
     joystick=getGameController()->getJoyStickWithName("joystick");
     
     //get the closest player to the ball and change its state to chase the ball
-    U11Player* player=team->getClosestPlayersToBall().at(0);
+    U11Player* player=team->analyzeClosestPlayersToBall().at(0);
     
     player->changeState(U11PlayerChaseBallState::sharedInstance());
     

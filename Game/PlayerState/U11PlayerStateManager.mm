@@ -80,4 +80,10 @@ bool U11PlayerStateManager::handleMessage(Message &uMsg){
     return currentState->handleMessage(player, uMsg);
 }
 
+U11PlayerStateInterface *U11PlayerStateManager::getCurrentState(){
+    
+    return currentState;
+    
+}
+
 

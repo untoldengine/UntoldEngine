@@ -24,8 +24,8 @@ U11TriangleEntity::~U11TriangleEntity(){
 void U11TriangleEntity::buildTriangleEntity(U11Team *uTeam){
     
     triangleNode.player1=uTeam->getControllingPlayer();
-    triangleNode.player2=uTeam->getSupportPlayers().at(0);
-    triangleNode.player3=uTeam->getSupportPlayers().at(1);
+    triangleNode.player2=uTeam->analyzeSupportPlayers().at(0);
+    triangleNode.player3=uTeam->analyzeSupportPlayers().at(1);
     
 }
 

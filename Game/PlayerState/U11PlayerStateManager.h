@@ -44,6 +44,9 @@ public:
     void safeChangeState(U11PlayerStateInterface *uState);
     
     bool handleMessage(Message &uMsg);
+    
+    U11PlayerStateInterface *getCurrentState();
+    
 };
 
 #endif /* U11PlayerStateManager_hpp */

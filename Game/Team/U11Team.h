@@ -24,6 +24,8 @@ private:
     //pointers to key players
     U11Player *controllingPlayer;
     
+    U11Player *supportPlayer;
+    
     U11Team *oppositeTeam;
     
     U11Ball *soccerBall;
@@ -48,19 +50,25 @@ public:
     
     U11Player* getControllingPlayer();
     
+    U11Player* getSupportPlayer();
+    
     void setControllingPlayer(U11Player* uPlayer);
     
-    std::vector<U11Player*> getSupportPlayers();
+    void setSupportPlayer(U11Player *uPlayer);
     
-    std::vector<U11Player*> getClosestPlayersToBall();
+    void assignSupportPlayer();
     
-    std::vector<U11Player*> getClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition);
+    std::vector<U11Player*> analyzeSupportPlayers();
+    
+    std::vector<U11Player*> analyzeClosestPlayersToBall();
+    
+    std::vector<U11Player*> analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition);
     
     std::vector<U11Player*> sortPlayersDistanceToPosition(U4DEngine::U4DVector3n &uPosition);
     
-    std::vector<U11Player*> getClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine);
+    std::vector<U11Player*> analyzeClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine);
     
-    std::vector<U11Player*> getClosestPlayersAlongPassLine();
+    std::vector<U11Player*> analyzeClosestPlayersAlongPassLine();
     
 };
 
