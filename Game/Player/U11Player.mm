@@ -58,6 +58,10 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         reverseBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
         reverseBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
         
+        reverseRunningAnimation=new U4DEngine::U4DAnimation(this);
+        lateralLeftRunAnimation=new U4DEngine::U4DAnimation(this);
+        lateralRightRunAnimation=new U4DEngine::U4DAnimation(this);
+        
         //set collision info
         initMass(80.0);
         initCoefficientOfRestitution(0.9);
@@ -199,7 +203,24 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
             
         }
         
-        U11PlayerStateInterface *idleState=U11PlayerIdleState::sharedInstance();
+        if (loadAnimationToModel(reverseRunningAnimation, "reverserunning", "reverserunninganimation.u4d")) {
+            
+            reverseRunningAnimation->setIsAllowedToBeInterrupted(true);
+            
+        }
+        
+        if (loadAnimationToModel(lateralRightRunAnimation, "lateralrightrun", "lateralrightrunanimation.u4d")) {
+            
+            lateralRightRunAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(lateralLeftRunAnimation, "lateralleftrun", "lateralleftrunanimation.u4d")) {
+            
+            lateralLeftRunAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
         
         //set initial state
         changeState(U11PlayerIdleState::sharedInstance());
@@ -347,6 +368,22 @@ void U11Player::applyForceToPlayer(float uVelocity, double dt){
     
 }
 
+void U11Player::applyForceToPlayerInDirection(float uVelocity, U4DEngine::U4DVector3n &uDirection, double dt){
+    
+    U4DEngine::U4DVector3n heading=uDirection;
+    
+    heading.normalize();
+    
+    U4DEngine::U4DVector3n forceToPlayer=(heading*uVelocity*getMass())/dt;
+    
+    addForce(forceToPlayer);
+    
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+    
+    setVelocity(initialVelocity);
+    
+}
+
 float U11Player::distanceToBall(){
     
     U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
@@ -385,6 +422,23 @@ bool U11Player::hasReachedTheBall(){
     
 }
 
+bool U11Player::hasReachedSupportPosition(U4DEngine::U4DVector3n &uSupportPosition){
+    
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    
+    //set the height position equal to the y position
+    playerPosition.y=uSupportPosition.y;
+    
+    float distanceToOpenPosition=(uSupportPosition-playerPosition).magnitude();
+    
+    if (distanceToOpenPosition<=2.5) {
+        
+        return true;
+    }
+    
+    return false;
+    
+}
 
 U4DEngine::U4DAnimation *U11Player::getRunningAnimation(){
     return runningAnimation;
@@ -461,6 +515,21 @@ U4DEngine::U4DAnimation *U11Player::getReverseBallWithRightFootAnimation(){
  
     return reverseBallWithRightFootAnimation;
     
+}
+
+U4DEngine::U4DAnimation *U11Player::getReverseRunningAnimation(){
+    
+    return reverseRunningAnimation;
+}
+
+U4DEngine::U4DAnimation *U11Player::getLateralRightRunAnimation(){
+ 
+    return lateralRightRunAnimation;
+}
+
+U4DEngine::U4DAnimation *U11Player::getLateralLeftRunAnimation(){
+    
+    return lateralLeftRunAnimation;
 }
 
 void U11Player::setJoystickActive(bool uValue){
@@ -650,5 +719,20 @@ void U11Player::removeAllVelocities(){
     setAngularVelocity(zero);
 }
 
+void U11Player::setSupportPosition(U4DEngine::U4DVector3n &uSupportPosition){
+    
+    supportPosition=uSupportPosition;
+    
+}
 
+U4DEngine::U4DVector3n &U11Player::getSupportPosition(){
+    
+    return supportPosition;
+    
+}
+
+U11PlayerStateInterface *U11Player::getCurrentState(){
+    
+    return stateManager->getCurrentState();
+}
 

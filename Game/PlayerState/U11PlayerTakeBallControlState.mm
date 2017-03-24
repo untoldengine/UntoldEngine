@@ -100,6 +100,8 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     //set as the controlling player
     uPlayer->getTeam()->setControllingPlayer(uPlayer);
     
+    //assign support player
+    uPlayer->getTeam()->assignSupportPlayer();
 }
 
 void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){

@@ -12,8 +12,9 @@
 #include "U4DSegment.h"
 #include <string>
 #include "U4DNumerical.h"
+#include "U11MessageDispatcher.h"
 
-U11Team::U11Team():controllingPlayer(NULL){
+U11Team::U11Team():controllingPlayer(NULL),supportPlayer(NULL){
     
 }
 
@@ -70,6 +71,18 @@ void U11Team::setControllingPlayer(U11Player* uPlayer){
     
 }
 
+U11Player* U11Team::getSupportPlayer(){
+    
+    return supportPlayer;
+    
+}
+
+void U11Team::setSupportPlayer(U11Player* uPlayer){
+    
+    supportPlayer=uPlayer;
+    
+}
+
 std::vector<U11Player*> U11Team::sortPlayersDistanceToPosition(U4DEngine::U4DVector3n &uPosition){
     
     //get each support player into a node with its distance to uPosition
@@ -114,7 +127,7 @@ std::vector<U11Player*> U11Team::sortPlayersDistanceToPosition(U4DEngine::U4DVec
     return sortPlayers;
 }
 
-std::vector<U11Player*> U11Team::getClosestPlayersToBall(){
+std::vector<U11Player*> U11Team::analyzeClosestPlayersToBall(){
     
     //get position of the ball
     U4DEngine::U4DVector3n ballPosition=soccerBall->getAbsolutePosition();
@@ -123,14 +136,14 @@ std::vector<U11Player*> U11Team::getClosestPlayersToBall(){
     
 }
 
-std::vector<U11Player*> U11Team::getClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition){
+std::vector<U11Player*> U11Team::analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition){
     
     
     return sortPlayersDistanceToPosition(uPosition);
     
 }
 
-std::vector<U11Player*> U11Team::getClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine){
+std::vector<U11Player*> U11Team::analyzeClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine){
     
     //get each support player into a node with its distance to uPosition
     
@@ -177,20 +190,30 @@ std::vector<U11Player*> U11Team::getClosestPlayersAlongLine(U4DEngine::U4DSegmen
     
 }
 
-std::vector<U11Player*> U11Team::getClosestPlayersAlongPassLine(){
+std::vector<U11Player*> U11Team::analyzeClosestPlayersAlongPassLine(){
     
     U4DEngine::U4DSegment passLine;
     passLine.pointA=getSoccerBall()->getAbsolutePosition().toPoint();
     passLine.pointB=getSoccerBall()->getVelocity().toPoint();
    
-    return getClosestPlayersAlongLine(passLine);
+    return analyzeClosestPlayersAlongLine(passLine);
     
 }
 
-std::vector<U11Player*> U11Team::getSupportPlayers(){
+std::vector<U11Player*> U11Team::analyzeSupportPlayers(){
     
     U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
     
     return sortPlayersDistanceToPosition(controllingPlayerPosition);
     
+}
+
+void U11Team::assignSupportPlayer(){
+    
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    //send message to new support player to support
+    supportPlayer=analyzeSupportPlayers().at(0);
+    
+    messageDispatcher->sendMessage(0.0, NULL, supportPlayer, msgSupportPlayer);
 }

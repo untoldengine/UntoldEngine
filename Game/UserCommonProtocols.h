@@ -38,13 +38,13 @@ enum{
     msgReceiveBall,
     msgButtonAPressed,
     msgButtonBPressed,
-    msgJoystickActive,
+    msgSupportPlayer,
     msgPassToMe
     
 }MessageEnum;
 
-const float fieldWidth=64.0;
-const float fieldLength=128.0;
+const float fieldWidth=256.0;
+const float fieldLength=256.0;
 
 const float chasingSpeed=40.0;
 const float dribblingSpeed=30.0;
@@ -58,5 +58,9 @@ const float ballMaxSpeed=8.0;
 const float maximumInterceptionSpeed=80.0;
 const float ballControlMaximumDistance=6.0;
 const float reverseBallMaximumDistance=2.0;
+const float reverseRunningSpeed=20.0;
+const float lateralRunningSpeed=20.0;
+const float supportMinimumDistanceToPlayer=25.0;
+const float supportMaximumDistanceToPlayer=50.0;
 
 #endif /* UserCommonProtocols_h */

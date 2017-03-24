@@ -39,6 +39,8 @@ private:
     
     bool directionReversal;
     
+    U4DEngine::U4DVector3n supportPosition;
+    
 public:
     
     U11Player();
@@ -85,9 +87,17 @@ public:
     
     U4DEngine::U4DAnimation *reverseBallWithRightFootAnimation;
     
+    U4DEngine::U4DAnimation *reverseRunningAnimation;
+    
+    U4DEngine::U4DAnimation *lateralRightRunAnimation;
+    
+    U4DEngine::U4DAnimation *lateralLeftRunAnimation;
+    
     void changeState(U11PlayerStateInterface* uState);
     
     void applyForceToPlayer(float uVelocity, double dt);
+    
+    void applyForceToPlayerInDirection(float uVelocity, U4DEngine::U4DVector3n &uDirection, double dt);
     
     void setPlayerHeading(U4DEngine::U4DVector3n& uHeading);
     
@@ -122,6 +132,12 @@ public:
     U4DEngine::U4DAnimation *getReverseBallWithLeftFootAnimation();
     
     U4DEngine::U4DAnimation *getReverseBallWithRightFootAnimation();
+    
+    U4DEngine::U4DAnimation *getReverseRunningAnimation();
+    
+    U4DEngine::U4DAnimation *getLateralRightRunAnimation();
+    
+    U4DEngine::U4DAnimation *getLateralLeftRunAnimation();
     
     void setJoystickActive(bool uValue);
     
@@ -184,5 +200,15 @@ public:
     U11Ball *getSoccerBall();
     
     void removeAllVelocities();
+    
+    bool hasReachedSupportPosition(U4DEngine::U4DVector3n &uSupportPosition);
+    
+    void setSupportPosition(U4DEngine::U4DVector3n &uSupportPosition);
+    
+    U4DEngine::U4DVector3n &getSupportPosition();
+    
+    U11PlayerStateInterface *getCurrentState();
+    
+    
 };
 #endif /* U11Player_hpp */

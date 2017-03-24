@@ -47,7 +47,7 @@ void U11PlayerDribbleState::enter(U11Player *uPlayer){
 void U11PlayerDribbleState::execute(U11Player *uPlayer, double dt){
     
     U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
-
+    
     //if the joystick is active, set the new direction of the kick
     if (uPlayer->getJoystickActive()) {
         

@@ -37,7 +37,7 @@ using namespace U4DEngine;
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 70.0, 90.0);
+    camera->translateBy(0.0, 80.0, 100.0);
     camera->rotateBy(-36.0, 0.0, 0.0);
     
     setName("earth");
@@ -66,10 +66,10 @@ void Earth::init(){
     
     player11->subscribeTeam(team);
     
-    player9=new U11Player();
-    player9->init("pele", "characterscript.u4d");
-    
-    player9->subscribeTeam(team);
+//    player9=new U11Player();
+//    player9->init("pele", "characterscript.u4d");
+//    
+//    player9->subscribeTeam(team);
     
     //set ball entity
     field->setSoccerBall(ball);
@@ -90,7 +90,7 @@ void Earth::init(){
     
     addChild(player11);
     
-    addChild(player9);
+    //addChild(player9);
     
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
@@ -99,21 +99,21 @@ void Earth::init(){
     
     
     //set the ball position
-    ball->translateBy(-18.0, 0.0, 15.0);
+    ball->translateBy(-25.0, 0.0, 15.0);
     //set the player position
     
-    player10->translateBy(-20.0, player10->getModelDimensions().y/2.0+1.3, 0.0);
+    player10->translateBy(-40.0, player10->getModelDimensions().y/2.0+1.3, 0.0);
     
-    player11->translateBy(0.0, player11->getModelDimensions().y/2.0+1.3, -10.0);
+    player11->translateBy(0.0, player11->getModelDimensions().y/2.0+1.3, -20.0);
     
-    player9->translateBy(20.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
+    //player9->translateBy(40.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
     
 }
 
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    //camera->followModel(player, 0.0, 40.0, 0.0);
+    //camera->followModel(ball, 0.0, 70.0, 90.0);
     
 
 }
