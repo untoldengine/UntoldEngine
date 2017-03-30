@@ -41,6 +41,7 @@ void U11PlayerSupportState::enter(U11Player *uPlayer){
     //set run animation
     uPlayer->setNextAnimationToPlay(uPlayer->getIdleAnimation());
     uPlayer->setPlayBlendedAnimation(true);
+    
 }
 
 void U11PlayerSupportState::execute(U11Player *uPlayer, double dt){
@@ -52,49 +53,43 @@ void U11PlayerSupportState::execute(U11Player *uPlayer, double dt){
     U11Player *controllingPlayer=team->getControllingPlayer();
     
     //check if the controlling player is dribbling
-    if (controllingPlayer->getCurrentState()==U11PlayerDribbleState::sharedInstance()) {
+    
+    U4DEngine::U4DVector3n controllingPlayerHeading=controllingPlayer->getPlayerHeading();
+    
+    U4DEngine::U4DVector3n distanceVector=controllingPlayer->getAbsolutePosition()-uPlayer->getAbsolutePosition();
+    
+    float distanceMagnitude=distanceVector.magnitude();
+    
+    controllingPlayerHeading.normalize();
+    
+    distanceVector.normalize();
+    
+    float headingDotDistance=controllingPlayerHeading.dot(distanceVector);
+    
+    if (distanceMagnitude<=supportMinimumDistanceToPlayer) {
         
-        //if is dribbling, check the moving direction
+        //Run to support
+        uPlayer->changeState(U11PlayerRunToSupportState::sharedInstance());
         
-        U4DEngine::U4DVector3n controllingPlayerHeading=controllingPlayer->getPlayerHeading();
+    }else if (distanceMagnitude>supportMinimumDistanceToPlayer && distanceMagnitude<=supportMaximumDistanceToPlayer){
         
-        U4DEngine::U4DVector3n distanceVector=controllingPlayer->getAbsolutePosition()-uPlayer->getAbsolutePosition();
-        
-        float distanceMagnitude=distanceVector.magnitude();
-        
-        controllingPlayerHeading.normalize();
-        
-        distanceVector.normalize();
-        
-        float headingDotDistance=controllingPlayerHeading.dot(distanceVector);
-        
-        
-        if (distanceMagnitude<=supportMinimumDistanceToPlayer) {
+        if (headingDotDistance<-0.5 && headingDotDistance>-0.95) {
+            
+            //run in reverse
+            uPlayer->changeState(U11PlayerReverseRunState::sharedInstance());
+            
+        }else if (headingDotDistance<0.0 && headingDotDistance>=-0.5){
+            
+            //run laterally
+            uPlayer->changeState(U11PlayerLateralRunState::sharedInstance());
+            
+        }else if(headingDotDistance>=0){
             
             //Run to support
             uPlayer->changeState(U11PlayerRunToSupportState::sharedInstance());
             
-        }else if (distanceMagnitude>supportMinimumDistanceToPlayer && distanceMagnitude<=supportMaximumDistanceToPlayer){
-            
-            if (headingDotDistance<-0.5 && headingDotDistance>-0.95) {
-                
-                //run in reverse
-                uPlayer->changeState(U11PlayerReverseRunState::sharedInstance());
-                
-            }else if (headingDotDistance<0.0 && headingDotDistance>=-0.5){
-                
-                //run laterally
-                uPlayer->changeState(U11PlayerLateralRunState::sharedInstance());
-                
-            }else if(headingDotDistance>=0){
-                
-                //Run to support
-                uPlayer->changeState(U11PlayerRunToSupportState::sharedInstance());
-                
-            }
-            
         }
-                
+        
     }
     
     //faceball

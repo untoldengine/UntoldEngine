@@ -62,5 +62,7 @@ const float reverseRunningSpeed=20.0;
 const float lateralRunningSpeed=20.0;
 const float supportMinimumDistanceToPlayer=25.0;
 const float supportMaximumDistanceToPlayer=50.0;
+const int   maximumSupportPoints=18;
+const int   supportPointsSeparation=10;
 
 #endif /* UserCommonProtocols_h */

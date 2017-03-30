@@ -13,6 +13,7 @@
 #include "U4DGameObject.h"
 #include "UserCommonProtocols.h"
 #include "U11Ball.h"
+#include "U4DAABB.h"
 
 class U11PlayerStateInterface;
 class U11PlayerStateManager;
@@ -39,7 +40,9 @@ private:
     
     bool directionReversal;
     
-    U4DEngine::U4DVector3n supportPosition;
+    U4DEngine::U4DPoint3n supportPosition;
+    
+    U4DEngine::U4DAABB playerSpaceBox;
     
 public:
     
@@ -201,13 +204,17 @@ public:
     
     void removeAllVelocities();
     
-    bool hasReachedSupportPosition(U4DEngine::U4DVector3n &uSupportPosition);
+    bool hasReachedSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition);
     
-    void setSupportPosition(U4DEngine::U4DVector3n &uSupportPosition);
+    void setSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition);
     
-    U4DEngine::U4DVector3n &getSupportPosition();
+    U4DEngine::U4DPoint3n &getSupportPosition();
     
     U11PlayerStateInterface *getCurrentState();
+    
+    U4DEngine::U4DAABB getPlayerSpaceBox();
+    
+    void seekSupportPosition();
     
     
 };

@@ -217,6 +217,7 @@
 		03EA5ECC1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d */; };
 		03EA5ECE1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d */; };
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
+		03EDEFA81E8C363000F58873 /* U11SpaceAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EDEFA61E8C363000F58873 /* U11SpaceAnalyzer.mm */; };
 		03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
 		03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */; };
 		03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03EF7A4517F908A60023F0FD /* spriteShader.fp */; };
@@ -237,7 +238,6 @@
 		03FCC2E11E78427E000479AC /* sidehaltballwithleftfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FCC2E01E78427E000479AC /* sidehaltballwithleftfootanimation.u4d */; };
 		03FCC2E31E784298000479AC /* sidehaltballwithrightfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FCC2E21E784298000479AC /* sidehaltballwithrightfootanimation.u4d */; };
 		03FCC2E61E79C558000479AC /* U11PlayerRunToReverseKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FCC2E41E79C558000479AC /* U11PlayerRunToReverseKickState.mm */; };
-		03FCC2E91E7DA3B5000479AC /* U11SupportAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FCC2E71E7DA3B5000479AC /* U11SupportAnalyzer.mm */; };
 		03FCC2EC1E7DA6D7000479AC /* U11PlayerSupportState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FCC2EA1E7DA6D7000479AC /* U11PlayerSupportState.mm */; };
 /* End PBXBuildFile section */
 
@@ -600,6 +600,8 @@
 		03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithrightfootanimation.u4d; path = Resources/reverseballwithrightfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithleftfootanimation.u4d; path = Resources/reverseballwithleftfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = blenderscript.u4d; path = Resources/blenderscript.u4d; sourceTree = SOURCE_ROOT; };
+		03EDEFA61E8C363000F58873 /* U11SpaceAnalyzer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11SpaceAnalyzer.mm; path = game/SpaceAnalyzer/U11SpaceAnalyzer.mm; sourceTree = SOURCE_ROOT; };
+		03EDEFA71E8C363000F58873 /* U11SpaceAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11SpaceAnalyzer.h; path = game/SpaceAnalyzer/U11SpaceAnalyzer.h; sourceTree = SOURCE_ROOT; };
 		03EF2DFC1B6D5EF200F26945 /* U4DPoint3n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPoint3n.h; sourceTree = "<group>"; };
 		03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPoint3n.mm; sourceTree = "<group>"; };
 		03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DCollisionResponse.mm; path = CollisionResponse/U4DCollisionResponse.mm; sourceTree = "<group>"; };
@@ -632,8 +634,6 @@
 		03FCC2E21E784298000479AC /* sidehaltballwithrightfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = sidehaltballwithrightfootanimation.u4d; path = Resources/sidehaltballwithrightfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03FCC2E41E79C558000479AC /* U11PlayerRunToReverseKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunToReverseKickState.mm; path = game/PlayerState/U11PlayerRunToReverseKickState.mm; sourceTree = SOURCE_ROOT; };
 		03FCC2E51E79C558000479AC /* U11PlayerRunToReverseKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunToReverseKickState.h; path = game/PlayerState/U11PlayerRunToReverseKickState.h; sourceTree = SOURCE_ROOT; };
-		03FCC2E71E7DA3B5000479AC /* U11SupportAnalyzer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11SupportAnalyzer.mm; path = game/Team/Support/U11SupportAnalyzer.mm; sourceTree = SOURCE_ROOT; };
-		03FCC2E81E7DA3B5000479AC /* U11SupportAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11SupportAnalyzer.h; path = game/Team/Support/U11SupportAnalyzer.h; sourceTree = SOURCE_ROOT; };
 		03FCC2EA1E7DA6D7000479AC /* U11PlayerSupportState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerSupportState.mm; path = game/PlayerState/U11PlayerSupportState.mm; sourceTree = SOURCE_ROOT; };
 		03FCC2EB1E7DA6D7000479AC /* U11PlayerSupportState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerSupportState.h; path = game/PlayerState/U11PlayerSupportState.h; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
@@ -856,20 +856,10 @@
 		0348C0A41E6B7744001FFF97 /* Team */ = {
 			isa = PBXGroup;
 			children = (
-				0348C0A81E6DE64D001FFF97 /* Support */,
 				0348C0A61E6B7767001FFF97 /* U11Team.h */,
 				0348C0A51E6B7767001FFF97 /* U11Team.mm */,
 			);
 			name = Team;
-			sourceTree = "<group>";
-		};
-		0348C0A81E6DE64D001FFF97 /* Support */ = {
-			isa = PBXGroup;
-			children = (
-				03FCC2E81E7DA3B5000479AC /* U11SupportAnalyzer.h */,
-				03FCC2E71E7DA3B5000479AC /* U11SupportAnalyzer.mm */,
-			);
-			name = Support;
 			sourceTree = "<group>";
 		};
 		0348C0AF1E6DEF1C001FFF97 /* DataStructures */ = {
@@ -981,6 +971,7 @@
 			children = (
 				0348C0B71E727F7C001FFF97 /* AISystem */,
 				0348C0AF1E6DEF1C001FFF97 /* DataStructures */,
+				03EDEFA51E8C361400F58873 /* SpaceAnalyzer */,
 				0348C0A41E6B7744001FFF97 /* Team */,
 				0348C0A01E6B4282001FFF97 /* MessageDispatcher */,
 				0348C0621E6A48C5001FFF97 /* Field */,
@@ -1646,6 +1637,15 @@
 			path = Animation;
 			sourceTree = "<group>";
 		};
+		03EDEFA51E8C361400F58873 /* SpaceAnalyzer */ = {
+			isa = PBXGroup;
+			children = (
+				03EDEFA71E8C363000F58873 /* U11SpaceAnalyzer.h */,
+				03EDEFA61E8C363000F58873 /* U11SpaceAnalyzer.mm */,
+			);
+			name = SpaceAnalyzer;
+			sourceTree = "<group>";
+		};
 		03EF780A1CD32FBF00BA0C87 /* CollisionResponse */ = {
 			isa = PBXGroup;
 			children = (
@@ -1886,7 +1886,6 @@
 				03759BC6175B038C002EB5D9 /* U4DShaderManager.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
 				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
-				03FCC2E91E7DA3B5000479AC /* U11SupportAnalyzer.mm in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				03D3740C1AE9E76A000D8535 /* U4DSpriteAnimation.mm in Sources */,
@@ -1928,6 +1927,7 @@
 				034DBC861A74002F00AC43EB /* U4DOpenGLDebugger.mm in Sources */,
 				03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */,
 				03F395FE1A65A09F007A45BD /* U4DOpenGLWorld.mm in Sources */,
+				03EDEFA81E8C363000F58873 /* U11SpaceAnalyzer.mm in Sources */,
 				0328EE9B17F5C88C00560A63 /* U4DOpenGLSprite.mm in Sources */,
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03FCC2DB1E765F70000479AC /* U11PlayerRunPassState.mm in Sources */,

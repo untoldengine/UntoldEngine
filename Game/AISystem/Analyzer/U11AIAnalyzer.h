@@ -11,21 +11,15 @@
 
 #include <stdio.h>
 
-class U11AIStrategyInterface;
-
 class U11AIAnalyzer {
 
 private:
-    
-    U11AIStrategyInterface *aiStrategy;
     
 public:
     
     U11AIAnalyzer();
     
     ~U11AIAnalyzer();
-    
-    void setAIStrategy(U11AIStrategyInterface *uStrategy);
     
 };
 

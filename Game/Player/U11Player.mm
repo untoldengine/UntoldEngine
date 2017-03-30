@@ -300,6 +300,18 @@ U11Ball *U11Player::getSoccerBall(){
     return team->getSoccerBall();
 }
 
+void U11Player::seekSupportPosition(){
+    
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n distanceVector=supportPosition.toVector()-playerPosition;
+    
+    U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
+    
+    setPlayerHeading(directionToLook);
+    
+}
+
 void U11Player::seekBall(){
     
     U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
@@ -422,14 +434,14 @@ bool U11Player::hasReachedTheBall(){
     
 }
 
-bool U11Player::hasReachedSupportPosition(U4DEngine::U4DVector3n &uSupportPosition){
+bool U11Player::hasReachedSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition){
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
     //set the height position equal to the y position
     playerPosition.y=uSupportPosition.y;
     
-    float distanceToOpenPosition=(uSupportPosition-playerPosition).magnitude();
+    float distanceToOpenPosition=(uSupportPosition.toVector()-playerPosition).magnitude();
     
     if (distanceToOpenPosition<=2.5) {
         
@@ -719,13 +731,13 @@ void U11Player::removeAllVelocities(){
     setAngularVelocity(zero);
 }
 
-void U11Player::setSupportPosition(U4DEngine::U4DVector3n &uSupportPosition){
+void U11Player::setSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition){
     
     supportPosition=uSupportPosition;
     
 }
 
-U4DEngine::U4DVector3n &U11Player::getSupportPosition(){
+U4DEngine::U4DPoint3n &U11Player::getSupportPosition(){
     
     return supportPosition;
     
@@ -736,3 +748,8 @@ U11PlayerStateInterface *U11Player::getCurrentState(){
     return stateManager->getCurrentState();
 }
 
+U4DEngine::U4DAABB U11Player::getPlayerSpaceBox(){
+    
+    return playerSpaceBox;
+    
+}

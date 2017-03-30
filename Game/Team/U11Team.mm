@@ -13,12 +13,15 @@
 #include <string>
 #include "U4DNumerical.h"
 #include "U11MessageDispatcher.h"
+#include "U11SpaceAnalyzer.h"
 
-U11Team::U11Team():controllingPlayer(NULL),supportPlayer(NULL){
+U11Team::U11Team():controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL){
+    
     
 }
 
 U11Team::~U11Team(){
+    
     
 }
 
@@ -29,12 +32,12 @@ void U11Team::subscribe(U11Player* uPlayer){
 
 void U11Team::remove(U11Player* uPlayer){
     
-//    //get the player's name
-//    std::string name=uPlayer->getName();
-//    
-//    //remove player from the container
-//    players.erase(std::remove_if(players.begin(), players.end(), [&](U11Player* player){return player->getName().compare(name)==0;}),players.end());
-//    
+    //get the player's name
+    std::string name=uPlayer->getName();
+    
+    //remove player from the container
+    teammates.erase(std::remove_if(teammates.begin(), teammates.end(), [&](U11Player* player){return player->getName().compare(name)==0;}),teammates.end());
+    
 }
 
 
@@ -71,60 +74,28 @@ void U11Team::setControllingPlayer(U11Player* uPlayer){
     
 }
 
-U11Player* U11Team::getSupportPlayer(){
+U11Player* U11Team::getSupportPlayer1(){
     
-    return supportPlayer;
-    
-}
-
-void U11Team::setSupportPlayer(U11Player* uPlayer){
-    
-    supportPlayer=uPlayer;
+    return supportPlayer1;
     
 }
 
-std::vector<U11Player*> U11Team::sortPlayersDistanceToPosition(U4DEngine::U4DVector3n &uPosition){
+void U11Team::setSupportPlayer1(U11Player* uPlayer){
     
-    //get each support player into a node with its distance to uPosition
+    supportPlayer1=uPlayer;
     
-    uPosition.y=0;
+}
+
+U11Player* U11Team::getSupportPlayer2(){
     
-    //set up the heapsort container
-    std::vector<U11Node> heapContainer;
+    return supportPlayer2;
     
-    for(auto n:teammates){
-        
-        if (n!=n->getTeam()->getControllingPlayer()) {
-            
-            U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
-            playerPosition.y=0;
-            
-            float distance=(uPosition-playerPosition).magnitude();
-            
-            //create a node
-            U11Node node;
-            node.player=n;
-            node.data=distance;
-            
-            heapContainer.push_back(node);
-            
-        }
-        
-    }
+}
+
+void U11Team::setSupportPlayer2(U11Player* uPlayer){
     
-    //sort the players closer to the position
+    supportPlayer2=uPlayer;
     
-    U11HeapSort heapSort;
-    heapSort.heapify(heapContainer);
-    
-    std::vector<U11Player*> sortPlayers;
-    
-    for(auto n:heapContainer){
-        
-        sortPlayers.push_back(n.player);
-    }
-    
-    return sortPlayers;
 }
 
 std::vector<U11Player*> U11Team::analyzeClosestPlayersToBall(){
@@ -132,61 +103,17 @@ std::vector<U11Player*> U11Team::analyzeClosestPlayersToBall(){
     //get position of the ball
     U4DEngine::U4DVector3n ballPosition=soccerBall->getAbsolutePosition();
     
-    return sortPlayersDistanceToPosition(ballPosition);
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, ballPosition);
     
 }
 
 std::vector<U11Player*> U11Team::analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition){
     
+    U11SpaceAnalyzer spaceAnalyzer;
     
-    return sortPlayersDistanceToPosition(uPosition);
-    
-}
-
-std::vector<U11Player*> U11Team::analyzeClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine){
-    
-    //get each support player into a node with its distance to uPosition
-    
-    uLine.pointA.y=0.0;
-    uLine.pointB.y=0.0;
-    
-    //set up the heapsort container
-    std::vector<U11Node> heapContainer;
-    
-    for(auto n:teammates){
-        
-        if (n!=n->getTeam()->getControllingPlayer()) {
-            
-            U4DEngine::U4DPoint3n playerPosition=n->getAbsolutePosition().toPoint();
-            playerPosition.y=0;
-            
-            float distance=uLine.sqDistancePointSegment(playerPosition);
-            
-            //create a node
-            U11Node node;
-            node.player=n;
-            node.data=distance;
-            
-            heapContainer.push_back(node);
-            
-        }
-        
-    }
-    
-    //sort the players closer to the position
-    
-    U11HeapSort heapSort;
-    
-    heapSort.heapify(heapContainer);
-    
-    std::vector<U11Player*> sortPlayers;
-    
-    for(auto n:heapContainer){
-        
-        sortPlayers.push_back(n.player);
-    }
-    
-    return sortPlayers;
+    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, uPosition);
     
 }
 
@@ -196,7 +123,9 @@ std::vector<U11Player*> U11Team::analyzeClosestPlayersAlongPassLine(){
     passLine.pointA=getSoccerBall()->getAbsolutePosition().toPoint();
     passLine.pointB=getSoccerBall()->getVelocity().toPoint();
    
-    return analyzeClosestPlayersAlongLine(passLine);
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    return spaceAnalyzer.analyzeClosestPlayersAlongLine(this,passLine);
     
 }
 
@@ -204,7 +133,9 @@ std::vector<U11Player*> U11Team::analyzeSupportPlayers(){
     
     U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
     
-    return sortPlayersDistanceToPosition(controllingPlayerPosition);
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, controllingPlayerPosition);
     
 }
 
@@ -213,7 +144,30 @@ void U11Team::assignSupportPlayer(){
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
     //send message to new support player to support
-    supportPlayer=analyzeSupportPlayers().at(0);
+    supportPlayer1=analyzeSupportPlayers().at(0);
     
-    messageDispatcher->sendMessage(0.0, NULL, supportPlayer, msgSupportPlayer);
+    messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgSupportPlayer);
+    
+    if (analyzeSupportPlayers().size()>1) {
+        
+        supportPlayer2=analyzeSupportPlayers().at(1);
+        
+        messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgSupportPlayer);
+    }
+    
+    
+}
+
+void U11Team::computeSupportSpace(){
+    
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    std::vector<U4DEngine::U4DPoint3n> supportSpace=spaceAnalyzer.computeOptimalSupportSpace(this);
+    
+    supportPlayer1->setSupportPosition(supportSpace.at(0));
+    
+    if (supportSpace.size()>1) {
+        
+        supportPlayer2->setSupportPosition(supportSpace.at(1));
+    }
 }

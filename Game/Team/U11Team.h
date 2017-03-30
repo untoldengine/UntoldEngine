@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include "U11Player.h"
+#include "U11AIAnalyzer.h"
 
 class U11Ball;
 
@@ -24,7 +25,9 @@ private:
     //pointers to key players
     U11Player *controllingPlayer;
     
-    U11Player *supportPlayer;
+    U11Player *supportPlayer1;
+    
+    U11Player *supportPlayer2;
     
     U11Team *oppositeTeam;
     
@@ -50,11 +53,15 @@ public:
     
     U11Player* getControllingPlayer();
     
-    U11Player* getSupportPlayer();
-    
     void setControllingPlayer(U11Player* uPlayer);
     
-    void setSupportPlayer(U11Player *uPlayer);
+    void setSupportPlayer1(U11Player *uPlayer);
+    
+    U11Player* getSupportPlayer1();
+    
+    void setSupportPlayer2(U11Player *uPlayer);
+    
+    U11Player* getSupportPlayer2();
     
     void assignSupportPlayer();
     
@@ -64,11 +71,9 @@ public:
     
     std::vector<U11Player*> analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition);
     
-    std::vector<U11Player*> sortPlayersDistanceToPosition(U4DEngine::U4DVector3n &uPosition);
-    
-    std::vector<U11Player*> analyzeClosestPlayersAlongLine(U4DEngine::U4DSegment &uLine);
-    
     std::vector<U11Player*> analyzeClosestPlayersAlongPassLine();
+    
+    void computeSupportSpace();
     
 };
 

@@ -102,6 +102,10 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     
     //assign support player
     uPlayer->getTeam()->assignSupportPlayer();
+    
+    //compute best support positions
+    uPlayer->getTeam()->computeSupportSpace();
+    
 }
 
 void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
