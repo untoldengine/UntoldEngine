@@ -50,6 +50,10 @@ void Earth::init(){
     
     team=new U11Team();
     
+    oppositeTeam=new U11Team();
+    
+    team->setOppositeTeam(oppositeTeam);
+    
     ball=new U11Ball();
     ball->init("ball", "blenderscript.u4d");
     
@@ -66,15 +70,23 @@ void Earth::init(){
     
     player11->subscribeTeam(team);
     
-//    player9=new U11Player();
-//    player9->init("pele", "characterscript.u4d");
-//    
-//    player9->subscribeTeam(team);
+    player9=new U11Player();
+    player9->init("pele", "characterscript.u4d");
+    
+    player9->subscribeTeam(team);
+    
+    //opposite team
+    oppositePlayer10=new U11Player();
+    oppositePlayer10->init("pele", "characterscript.u4d");
+    
+    oppositePlayer10->subscribeTeam(oppositeTeam);
     
     //set ball entity
     field->setSoccerBall(ball);
     
     team->setSoccerBall(ball);
+    
+    oppositeTeam->setSoccerBall(ball);
     
     U4DVector3n origin(0,0,0);
 
@@ -90,7 +102,9 @@ void Earth::init(){
     
     addChild(player11);
     
-    //addChild(player9);
+    addChild(player9);
+    
+    addChild(oppositePlayer10);
     
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
@@ -106,8 +120,9 @@ void Earth::init(){
     
     player11->translateBy(0.0, player11->getModelDimensions().y/2.0+1.3, -20.0);
     
-    //player9->translateBy(40.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
+    player9->translateBy(40.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
     
+    oppositePlayer10->translateBy(-10.0, oppositePlayer10->getModelDimensions().y/2+1.3, 0.0);
 }
 
 void Earth::update(double dt){

@@ -30,6 +30,9 @@ private:
     U11Player *player11;
     U11Player *player9;
     U11Team *team;
+    
+    U11Player *oppositePlayer10;
+    U11Team *oppositeTeam;
 
 public:
    

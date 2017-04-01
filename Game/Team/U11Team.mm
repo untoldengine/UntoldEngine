@@ -50,6 +50,11 @@ U11Team *U11Team::getOppositeTeam(){
     return oppositeTeam;
 }
 
+void U11Team::setOppositeTeam(U11Team *uTeam){
+    
+    oppositeTeam=uTeam;
+}
+
 void U11Team::setSoccerBall(U11Ball *uSoccerBall){
     
     soccerBall=uSoccerBall;
@@ -164,10 +169,13 @@ void U11Team::computeSupportSpace(){
     
     std::vector<U4DEngine::U4DPoint3n> supportSpace=spaceAnalyzer.computeOptimalSupportSpace(this);
     
-    supportPlayer1->setSupportPosition(supportSpace.at(0));
+    U4DEngine::U4DPoint3n supportSpace1=supportSpace.at(0);
+    U4DEngine::U4DPoint3n supportSpace2=supportSpace.at(1);
+
+    supportPlayer1->setSupportPosition(supportSpace1);
     
     if (supportSpace.size()>1) {
         
-        supportPlayer2->setSupportPosition(supportSpace.at(1));
+        supportPlayer2->setSupportPosition(supportSpace2);
     }
 }

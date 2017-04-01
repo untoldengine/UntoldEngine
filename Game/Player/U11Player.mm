@@ -95,6 +95,19 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         leftFoot->setBoneToFollow("foot.L");
         addChild(leftFoot);
         
+        //set up the player space box
+        //Get body dimensions
+        float xDimension=2.0*bodyCoordinates.getModelDimension().x;
+        float yDimension=bodyCoordinates.getModelDimension().y;
+        float zDimension=2.0*bodyCoordinates.getModelDimension().z;
+        
+        //get min and max points to create the AABB
+        U4DEngine::U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
+        U4DEngine::U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
+        
+        playerSpaceBox.setMinPoint(minPoints);
+        playerSpaceBox.setMaxPoint(maxPoints);
+        
         if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimation.u4d")) {
             
             

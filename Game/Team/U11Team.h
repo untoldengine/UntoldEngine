@@ -51,6 +51,8 @@ public:
     
     U11Team *getOppositeTeam();
     
+    void setOppositeTeam(U11Team *uTeam);
+    
     U11Player* getControllingPlayer();
     
     void setControllingPlayer(U11Player* uPlayer);
