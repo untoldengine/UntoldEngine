@@ -111,7 +111,7 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersAlongLine(U11Team
 }
 
 
-U4DEngine::U4DPoint3n U11SpaceAnalyzer::analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes){
+U4DEngine::U4DPoint3n U11SpaceAnalyzer::analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes, U4DEngine::U4DVector3n &uControllingPlayerPosition){
     
     U4DEngine::U4DVector3n lineVector=uLine;
     lineVector.normalize();
@@ -124,11 +124,12 @@ U4DEngine::U4DPoint3n U11SpaceAnalyzer::analyzeClosestSupportSpaceAlongLine(U4DE
     for(auto n:uSupportNodes){
         
         positionVector=n.position.toVector();
-        
+        positionVector=(positionVector-uControllingPlayerPosition)/supportMaximumDistanceToPlayer;
         positionVector.normalize();
         
         float dotProduct=positionVector.dot(uLine);
-        dotProduct=1.0-std::abs(dotProduct);
+        dotProduct=1.0-dotProduct;
+        
         //create a node
         U11Node node;
         node.data=dotProduct;
@@ -153,21 +154,25 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     //get the controlling player heading
     U11Player *controllingPlayer=uTeam->getControllingPlayer();
     U4DEngine::U4DVector3n playerHeading=controllingPlayer->getPlayerHeading();
+    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
+    controllingPlayerPosition.y=0.0;
     
     playerHeading.normalize();
+    
     
     //get the right hand heading of the player
     U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
     
     U4DEngine::U4DVector3n rightHandHeading=playerHeading.cross(upVector);
     
-    for(int i=0;i<=maximumSupportPoints;i++){
+    rightHandHeading.normalize();
+    
+    for(int i=0;i<maximumSupportPoints;i++){
         
         U4DEngine::U4DVector3n position=rightHandHeading.rotateVectorAboutAngleAndAxis(i*supportPointsSeparation, upVector);
         
         SupportNode supportNode;
-        supportNode.position=position.toPoint()*supportMaximumDistanceToPlayer+controllingPlayer->getAbsolutePosition().toPoint();
-        supportNode.position.y=0.0;
+        supportNode.position=position.toPoint()*supportMaximumDistanceToPlayer+controllingPlayerPosition.toPoint();
         
         supportNodes.push_back(supportNode);
         
@@ -177,7 +182,6 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     
     //get opposite players
     U11Team *oppositeTeam=uTeam->getOppositeTeam();
-    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
     
     //compute closest players to controlling player
     std::vector<U11Player*> oppositePlayers=analyzePlayersDistanceToPosition(oppositeTeam, controllingPlayerPosition);
@@ -196,13 +200,13 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
             U4DEngine::U4DPoint3n pointB=n.position;
             U4DEngine::U4DSegment passingAngle(pointB,pointA);
             
-            
             if (!m->getPlayerSpaceBox().intersectionWithSegment(passingAngle)) {
                 
                 //set it as good angle pass
                 n.goodAnglePass=true;
                 
             }else{
+                
                 n.goodAnglePass=false;
             }
             
@@ -215,7 +219,6 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     //remove all non passing angle positions
     supportNodes.erase(std::remove_if(supportNodes.begin(), supportNodes.end(), [&](SupportNode node){return node.goodAnglePass==false;}),supportNodes.end());
     
-    
     //get the closest support positions
     U4DEngine::U4DPoint3n supportSpace1;
     U4DEngine::U4DPoint3n supportSpace2;
@@ -224,20 +227,18 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     
     U4DEngine::U4DVector3n supportAngle=rightHandHeading.rotateVectorAboutAngleAndAxis(45.0, upVector);
     
-    supportSpace1=analyzeClosestSupportSpaceAlongLine(supportAngle, supportNodes);
+    supportSpace1=analyzeClosestSupportSpaceAlongLine(supportAngle, supportNodes,controllingPlayerPosition);
     
     //get the support position closest to 135 degree angle
     
     supportAngle=rightHandHeading.rotateVectorAboutAngleAndAxis(135.0, upVector);
     
-    supportSpace2=analyzeClosestSupportSpaceAlongLine(supportAngle, supportNodes);
+    supportSpace2=analyzeClosestSupportSpaceAlongLine(supportAngle, supportNodes,controllingPlayerPosition);
     
     std::vector<U4DEngine::U4DPoint3n> supportSpace;
     
     supportSpace.push_back(supportSpace1);
     supportSpace.push_back(supportSpace2);
-    
-
     
     return supportSpace;
 }

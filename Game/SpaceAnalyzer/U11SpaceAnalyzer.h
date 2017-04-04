@@ -42,7 +42,7 @@ public:
     
     std::vector<U11Player*> analyzeClosestPlayersAlongLine(U11Team *uTeam, U4DEngine::U4DSegment &uLine);
     
-    U4DEngine::U4DPoint3n analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes);
+    U4DEngine::U4DPoint3n analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes, U4DEngine::U4DVector3n &uControllingPlayerPosition);
     
     std::vector<U4DEngine::U4DPoint3n> computeOptimalSupportSpace(U11Team *uTeam);
     
