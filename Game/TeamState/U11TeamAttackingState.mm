@@ -33,8 +33,7 @@ void U11TeamAttackingState::enter(U11Team *uTeam){
     
     //initialize the timer to compute the best supporting position
     uTeam->startComputeSupportSpaceTimer();
-    
-    std::cout<<"entered attacking state"<<std::endl;
+
 }
 
 void U11TeamAttackingState::execute(U11Team *uTeam, double dt){

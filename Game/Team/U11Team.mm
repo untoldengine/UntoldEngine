@@ -165,20 +165,14 @@ void U11Team::assignSupportPlayer(){
     
     messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgSupportPlayer);
     
-    if (analyzeSupportPlayers().size()>1) {
-        
-        supportPlayer2=analyzeSupportPlayers().at(1);
-        
-        messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgSupportPlayer);
-    }
+    supportPlayer2=analyzeSupportPlayers().at(1);
     
-    
+    messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgSupportPlayer);
+
 }
 
 void U11Team::computeSupportSpace(){
-    
-    std::cout<<"computing support position"<<std::endl;
-    
+
     U11SpaceAnalyzer spaceAnalyzer;
     
     std::vector<U4DEngine::U4DPoint3n> supportSpace=spaceAnalyzer.computeOptimalSupportSpace(this);
@@ -186,20 +180,27 @@ void U11Team::computeSupportSpace(){
     U4DEngine::U4DPoint3n supportSpace1=supportSpace.at(0);
     U4DEngine::U4DPoint3n supportSpace2=supportSpace.at(1);
 
-    supportPlayer1->setSupportPosition(supportSpace1);
+    //compute closest support point to support player
     
+    U4DEngine::U4DVector3n supportPlayer1Position=supportPlayer1->getAbsolutePosition();
+    U4DEngine::U4DVector3n supportPlayer2Position=supportPlayer2->getAbsolutePosition();
+    
+    if ((supportPlayer1Position-supportSpace1.toVector()).magnitudeSquare()<(supportPlayer1Position-supportSpace2.toVector()).magnitudeSquare()) {
+        
+        supportPlayer1->setSupportPosition(supportSpace1);
+        supportPlayer2->setSupportPosition(supportSpace2);
+        
+    }else{
+        
+        supportPlayer1->setSupportPosition(supportSpace2);
+        supportPlayer2->setSupportPosition(supportSpace1);
+        
+    }
+
     //send message to player to run to position
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgRunToSupport);
-    
-    
-    if (supportSpace.size()>1) {
-        
-        supportPlayer2->setSupportPosition(supportSpace2);
-        messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgRunToSupport);
-        
-    }
-    
+    messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgRunToSupport);
     
 }
 
