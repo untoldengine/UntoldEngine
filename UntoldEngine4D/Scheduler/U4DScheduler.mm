@@ -46,9 +46,26 @@ double U4DScheduler::getTick(){
 
 void U4DScheduler::scheduleTimer(U4DTimer *uTimer){
     
-    uTimer->setScheduleTimer(true);
+    //check if the timer exist before adding it
+    bool timerPresent=false;
     
-    timersArray.push_back(uTimer);
+    for(auto n:timersArray){
+        
+        if (n==uTimer) {
+            
+            timerPresent=true;
+        }
+        
+    }
+    
+    if (timerPresent==false) {
+        
+        uTimer->setScheduleTimer(true);
+        
+        timersArray.push_back(uTimer);
+        
+    }
+    
     
 }
 

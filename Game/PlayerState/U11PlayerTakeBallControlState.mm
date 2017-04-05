@@ -18,6 +18,7 @@
 #include "U11Ball.h"
 #include "U11Team.h"
 #include "UserCommonProtocols.h"
+#include "U11TeamAttackingState.h"
 
 U11PlayerTakeBallControlState* U11PlayerTakeBallControlState::instance=0;
 
@@ -103,8 +104,8 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     //assign support player
     uPlayer->getTeam()->assignSupportPlayer();
     
-    //compute best support positions
-    uPlayer->getTeam()->computeSupportSpace();
+    //compute the support positions
+    uPlayer->getTeam()->changeState(U11TeamAttackingState::sharedInstance());
     
 }
 

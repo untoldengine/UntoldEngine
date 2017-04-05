@@ -85,13 +85,13 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         
         //add right foot as a child
         rightFoot=new U11PlayerExtremity();
-        rightFoot->init("rightfoot", "characterscript.u4d");
+        rightFoot->init("rightfoot", uBlenderFile);
         rightFoot->setBoneToFollow("foot.R");
         addChild(rightFoot);
         
         //add left foot as a child
         leftFoot=new U11PlayerExtremity();
-        leftFoot->init("leftfoot", "characterscript.u4d");
+        leftFoot->init("leftfoot", uBlenderFile);
         leftFoot->setBoneToFollow("foot.L");
         addChild(leftFoot);
         
@@ -761,8 +761,20 @@ U11PlayerStateInterface *U11Player::getCurrentState(){
     return stateManager->getCurrentState();
 }
 
-U4DEngine::U4DAABB U11Player::getPlayerSpaceBox(){
+U4DEngine::U4DAABB U11Player::getUpdatedPlayerSpaceBox(){
     
-    return playerSpaceBox;
+    U4DEngine::U4DPoint3n minPoint=playerSpaceBox.getMinPoint();
+    U4DEngine::U4DPoint3n maxPoint=playerSpaceBox.getMaxPoint();
+    
+    U4DEngine::U4DPoint3n position=getAbsolutePosition().toPoint();
+    
+    position.y=0;
+    
+    minPoint+=position;
+    maxPoint+=position;
+    
+    return U4DEngine::U4DAABB(minPoint,maxPoint);
     
 }
+
+

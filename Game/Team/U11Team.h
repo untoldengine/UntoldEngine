@@ -13,8 +13,12 @@
 #include <vector>
 #include "U11Player.h"
 #include "U11AIAnalyzer.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
 
 class U11Ball;
+class U11TeamStateManager;
+class U11TeamStateInterface;
 
 class U11Team {
     
@@ -32,6 +36,12 @@ private:
     U11Team *oppositeTeam;
     
     U11Ball *soccerBall;
+    
+    U4DEngine::U4DTimer *supportAnalysisTimer;
+    
+    U4DEngine::U4DCallback<U11Team> *scheduler;
+    
+    U11TeamStateManager *stateManager;
     
 public:
     
@@ -76,6 +86,12 @@ public:
     std::vector<U11Player*> analyzeClosestPlayersAlongPassLine();
     
     void computeSupportSpace();
+    
+    void startComputeSupportSpaceTimer();
+    
+    void removeComputeSupportStateTimer();
+    
+    void changeState(U11TeamStateInterface* uState);
     
 };
 

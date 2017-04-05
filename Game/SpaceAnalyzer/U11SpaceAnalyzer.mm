@@ -200,7 +200,7 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
             U4DEngine::U4DPoint3n pointB=n.position;
             U4DEngine::U4DSegment passingAngle(pointB,pointA);
             
-            if (!m->getPlayerSpaceBox().intersectionWithSegment(passingAngle)) {
+            if (!m->getUpdatedPlayerSpaceBox().intersectionWithSegment(passingAngle)) {
                 
                 //set it as good angle pass
                 n.goodAnglePass=true;

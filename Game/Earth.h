@@ -26,13 +26,14 @@ private:
 
     U11Ball *ball;
     U11Field *field;
-    U11Player *player10;
-    U11Player *player11;
-    U11Player *player9;
-    U11Team *team;
+    U11Player *emelecPlayer10;
+    U11Player *emelecPlayer11;
+    U11Player *emelecPlayer9;
+    U11Team *emelec;
     
-    U11Player *oppositePlayer10;
-    U11Team *oppositeTeam;
+    U11Player *barcelonaPlayer10;
+    U11Player *barcelonaPlayer11;
+    U11Team *barcelona;
 
 public:
    

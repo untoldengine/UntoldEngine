@@ -55,8 +55,8 @@ void U11PlayerRunToSupportState::execute(U11Player *uPlayer, double dt){
         uPlayer->removeAllVelocities();
         uPlayer->removeKineticForces();
         
-        uPlayer->changeState(U11PlayerIdleState::sharedInstance());
-        //uPlayer->changeState(U11PlayerSupportState::sharedInstance());
+        //uPlayer->changeState(U11PlayerIdleState::sharedInstance());
+        uPlayer->changeState(U11PlayerSupportState::sharedInstance());
         
     }
     

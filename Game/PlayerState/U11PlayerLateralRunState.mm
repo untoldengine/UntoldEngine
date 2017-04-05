@@ -113,7 +113,17 @@ bool U11PlayerLateralRunState::isSafeToChangeState(U11Player *uPlayer){
 
 bool U11PlayerLateralRunState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
-    
+    switch (uMsg.msg) {
+            
+        case msgRunToSupport:
+            
+            uPlayer->changeState(U11PlayerRunToSupportState::sharedInstance());
+            
+            break;
+            
+        default:
+            break;
+    }
     
     return false;
 }

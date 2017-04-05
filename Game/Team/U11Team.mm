@@ -14,14 +14,21 @@
 #include "U4DNumerical.h"
 #include "U11MessageDispatcher.h"
 #include "U11SpaceAnalyzer.h"
+#include "U11TeamStateManager.h"
+#include "U11TeamStateInterface.h"
 
 U11Team::U11Team():controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL){
     
+    stateManager=new U11TeamStateManager(this);
+    scheduler=new U4DEngine::U4DCallback<U11Team>;
+    supportAnalysisTimer=new U4DEngine::U4DTimer(scheduler);
     
 }
 
 U11Team::~U11Team(){
     
+    delete scheduler;
+    delete supportAnalysisTimer;
     
 }
 
@@ -38,6 +45,11 @@ void U11Team::remove(U11Player* uPlayer){
     //remove player from the container
     teammates.erase(std::remove_if(teammates.begin(), teammates.end(), [&](U11Player* player){return player->getName().compare(name)==0;}),teammates.end());
     
+}
+
+void U11Team::changeState(U11TeamStateInterface* uState){
+    
+    stateManager->changeState(uState);
 }
 
 
@@ -165,6 +177,8 @@ void U11Team::assignSupportPlayer(){
 
 void U11Team::computeSupportSpace(){
     
+    std::cout<<"computing support position"<<std::endl;
+    
     U11SpaceAnalyzer spaceAnalyzer;
     
     std::vector<U4DEngine::U4DPoint3n> supportSpace=spaceAnalyzer.computeOptimalSupportSpace(this);
@@ -174,8 +188,29 @@ void U11Team::computeSupportSpace(){
 
     supportPlayer1->setSupportPosition(supportSpace1);
     
+    //send message to player to run to position
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgRunToSupport);
+    
+    
     if (supportSpace.size()>1) {
         
         supportPlayer2->setSupportPosition(supportSpace2);
+        messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgRunToSupport);
+        
     }
+    
+    
+}
+
+void U11Team::startComputeSupportSpaceTimer(){
+    
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeSupportSpace, supportAnalysisTimer, 1.0, true);
+    
+}
+
+void U11Team::removeComputeSupportStateTimer(){
+    
+    scheduler->unScheduleTimer(supportAnalysisTimer);
+    
 }

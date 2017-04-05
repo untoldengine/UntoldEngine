@@ -39,7 +39,8 @@ enum{
     msgButtonAPressed,
     msgButtonBPressed,
     msgSupportPlayer,
-    msgPassToMe
+    msgPassToMe,
+    msgRunToSupport,
     
 }MessageEnum;
 

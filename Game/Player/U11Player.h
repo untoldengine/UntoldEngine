@@ -212,7 +212,7 @@ public:
     
     U11PlayerStateInterface *getCurrentState();
     
-    U4DEngine::U4DAABB getPlayerSpaceBox();
+    U4DEngine::U4DAABB getUpdatedPlayerSpaceBox();
     
     void seekSupportPosition();
     
