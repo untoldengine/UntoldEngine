@@ -85,15 +85,28 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         
         //add right foot as a child
         rightFoot=new U11PlayerExtremity();
-        rightFoot->init("rightfoot", "characterscript.u4d");
+        rightFoot->init("rightfoot", uBlenderFile);
         rightFoot->setBoneToFollow("foot.R");
         addChild(rightFoot);
         
         //add left foot as a child
         leftFoot=new U11PlayerExtremity();
-        leftFoot->init("leftfoot", "characterscript.u4d");
+        leftFoot->init("leftfoot", uBlenderFile);
         leftFoot->setBoneToFollow("foot.L");
         addChild(leftFoot);
+        
+        //set up the player space box
+        //Get body dimensions
+        float xDimension=bodyCoordinates.getModelDimension().x;
+        float yDimension=bodyCoordinates.getModelDimension().y;
+        float zDimension=bodyCoordinates.getModelDimension().z;
+        
+        //get min and max points to create the AABB
+        U4DEngine::U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
+        U4DEngine::U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
+        
+        playerSpaceBox.setMinPoint(minPoints);
+        playerSpaceBox.setMaxPoint(maxPoints);
         
         if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimation.u4d")) {
             
@@ -300,6 +313,18 @@ U11Ball *U11Player::getSoccerBall(){
     return team->getSoccerBall();
 }
 
+void U11Player::seekSupportPosition(){
+    
+    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n distanceVector=supportPosition.toVector()-playerPosition;
+    
+    U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
+    
+    setPlayerHeading(directionToLook);
+    
+}
+
 void U11Player::seekBall(){
     
     U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
@@ -422,14 +447,14 @@ bool U11Player::hasReachedTheBall(){
     
 }
 
-bool U11Player::hasReachedSupportPosition(U4DEngine::U4DVector3n &uSupportPosition){
+bool U11Player::hasReachedSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition){
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
     //set the height position equal to the y position
     playerPosition.y=uSupportPosition.y;
     
-    float distanceToOpenPosition=(uSupportPosition-playerPosition).magnitude();
+    float distanceToOpenPosition=(uSupportPosition.toVector()-playerPosition).magnitude();
     
     if (distanceToOpenPosition<=2.5) {
         
@@ -719,13 +744,13 @@ void U11Player::removeAllVelocities(){
     setAngularVelocity(zero);
 }
 
-void U11Player::setSupportPosition(U4DEngine::U4DVector3n &uSupportPosition){
+void U11Player::setSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition){
     
     supportPosition=uSupportPosition;
     
 }
 
-U4DEngine::U4DVector3n &U11Player::getSupportPosition(){
+U4DEngine::U4DPoint3n &U11Player::getSupportPosition(){
     
     return supportPosition;
     
@@ -735,4 +760,21 @@ U11PlayerStateInterface *U11Player::getCurrentState(){
     
     return stateManager->getCurrentState();
 }
+
+U4DEngine::U4DAABB U11Player::getUpdatedPlayerSpaceBox(){
+    
+    U4DEngine::U4DPoint3n minPoint=playerSpaceBox.getMinPoint();
+    U4DEngine::U4DPoint3n maxPoint=playerSpaceBox.getMaxPoint();
+    
+    U4DEngine::U4DPoint3n position=getAbsolutePosition().toPoint();
+    
+    position.y=0;
+    
+    minPoint+=position;
+    maxPoint+=position;
+    
+    return U4DEngine::U4DAABB(minPoint,maxPoint);
+    
+}
+
 

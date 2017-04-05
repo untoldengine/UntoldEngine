@@ -12,6 +12,7 @@
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
 #include "U11MessageDispatcher.h"
+#include "U11TeamIdleState.h"
 
 U11PlayerGroundPassState* U11PlayerGroundPassState::instance=0;
 
@@ -51,6 +52,8 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
     }
     uPlayer->setPlayNextAnimationContinuously(false);
     uPlayer->setPlayBlendedAnimation(true);
+    
+    uPlayer->getTeam()->changeState(U11TeamIdleState::sharedInstance());
     
 }
 

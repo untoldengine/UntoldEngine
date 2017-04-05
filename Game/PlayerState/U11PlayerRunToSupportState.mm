@@ -9,6 +9,7 @@
 #include "U11PlayerRunToSupportState.h"
 #include "U11PlayerDribbleState.h"
 #include "U11PlayerSupportState.h"
+#include "U11PlayerIdleState.h"
 #include "U11Team.h"
 
 U11PlayerRunToSupportState* U11PlayerRunToSupportState::instance=0;
@@ -42,19 +43,10 @@ void U11PlayerRunToSupportState::enter(U11Player *uPlayer){
 
 void U11PlayerRunToSupportState::execute(U11Player *uPlayer, double dt){
     
-    //get the team
-    U11Team *team=uPlayer->getTeam();
+    uPlayer->seekSupportPosition();
     
-    U11Player *controllingPlayer=team->getControllingPlayer();
-   
-    if(controllingPlayer->getCurrentState()==U11PlayerDribbleState::sharedInstance()) {
-        
-        U4DEngine::U4DVector3n playerHeading=controllingPlayer->getPlayerHeading();
-        
-        playerHeading.y=controllingPlayer->getAbsolutePosition().y;
-        
-        uPlayer->setPlayerHeading(playerHeading);
-        
+    if (!uPlayer->hasReachedSupportPosition(uPlayer->getSupportPosition())) {
+    
         //make the player run
         uPlayer->applyForceToPlayer(chasingSpeed, dt);
         
@@ -63,10 +55,10 @@ void U11PlayerRunToSupportState::execute(U11Player *uPlayer, double dt){
         uPlayer->removeAllVelocities();
         uPlayer->removeKineticForces();
         
+        //uPlayer->changeState(U11PlayerIdleState::sharedInstance());
         uPlayer->changeState(U11PlayerSupportState::sharedInstance());
+        
     }
-    
-
     
 }
 

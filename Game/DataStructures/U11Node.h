@@ -14,6 +14,7 @@
 struct U11Node {
     
     U11Player *player;
+    U4DEngine::U4DPoint3n supportPoint;
     float data;
     U11Node *leftChild;
     U11Node *rightChild;

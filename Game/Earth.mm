@@ -48,7 +48,11 @@ void Earth::init(){
     
     director->setWorld(this);
     
-    team=new U11Team();
+    emelec=new U11Team();
+    
+    barcelona=new U11Team();
+    
+    emelec->setOppositeTeam(barcelona);
     
     ball=new U11Ball();
     ball->init("ball", "blenderscript.u4d");
@@ -56,25 +60,38 @@ void Earth::init(){
     field=new U11Field();
     field->init("field0", "blenderscript.u4d");
 
-    player10=new U11Player();
-    player10->init("pele", "characterscript.u4d");
+    emelecPlayer10=new U11Player();
+    emelecPlayer10->init("pele", "playerscript.u4d");
     
-    player10->subscribeTeam(team);
+    emelecPlayer10->subscribeTeam(emelec);
     
-    player11=new U11Player();
-    player11->init("pele", "characterscript.u4d");
+    emelecPlayer11=new U11Player();
+    emelecPlayer11->init("pele", "playerscript.u4d");
     
-    player11->subscribeTeam(team);
+    emelecPlayer11->subscribeTeam(emelec);
     
-//    player9=new U11Player();
-//    player9->init("pele", "characterscript.u4d");
-//    
-//    player9->subscribeTeam(team);
+    emelecPlayer9=new U11Player();
+    emelecPlayer9->init("pele", "playerscript.u4d");
+    
+    emelecPlayer9->subscribeTeam(emelec);
+    
+    //opposite team
+    barcelonaPlayer10=new U11Player();
+    barcelonaPlayer10->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer10->subscribeTeam(barcelona);
+    
+    barcelonaPlayer11=new U11Player();
+    barcelonaPlayer11->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer11->subscribeTeam(barcelona);
     
     //set ball entity
     field->setSoccerBall(ball);
     
-    team->setSoccerBall(ball);
+    emelec->setSoccerBall(ball);
+    
+    barcelona->setSoccerBall(ball);
     
     U4DVector3n origin(0,0,0);
 
@@ -86,34 +103,41 @@ void Earth::init(){
     
     addChild(field);
 
-    addChild(player10);
+    addChild(emelecPlayer10);
     
-    addChild(player11);
+    addChild(emelecPlayer11);
     
-    //addChild(player9);
+    addChild(emelecPlayer9);
+    
+    addChild(barcelonaPlayer10);
+    
+    addChild(barcelonaPlayer11);
     
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     
-    gameModel->setTeamToControl(team);
+    gameModel->setTeamToControl(emelec);
     
     
     //set the ball position
     ball->translateBy(-25.0, 0.0, 15.0);
     //set the player position
     
-    player10->translateBy(-40.0, player10->getModelDimensions().y/2.0+1.3, 0.0);
+    emelecPlayer10->translateBy(-40.0, emelecPlayer10->getModelDimensions().y/2.0+1.3, 0.0);
     
-    player11->translateBy(0.0, player11->getModelDimensions().y/2.0+1.3, -20.0);
+    emelecPlayer11->translateBy(0.0, emelecPlayer11->getModelDimensions().y/2.0+1.3, -20.0);
     
-    //player9->translateBy(40.0, player9->getModelDimensions().y/2.0+1.3, 15.0);
+    emelecPlayer9->translateBy(40.0, emelecPlayer9->getModelDimensions().y/2.0+1.3, 15.0);
     
+    barcelonaPlayer10->translateBy(-10.0, barcelonaPlayer10->getModelDimensions().y/2+1.3, 0.0);
+    
+    barcelonaPlayer11->translateBy(0.0, barcelonaPlayer10->getModelDimensions().y/2+1.3, 20.0);
 }
 
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    //camera->followModel(ball, 0.0, 70.0, 90.0);
+    camera->followModel(ball, 0.0, 80.0, 100.0);
     
 
 }

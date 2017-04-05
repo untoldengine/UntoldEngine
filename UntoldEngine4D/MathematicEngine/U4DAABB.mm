@@ -8,6 +8,9 @@
 
 #include "U4DAABB.h"
 #include "U4DSphere.h"
+#include "U4DSegment.h"
+#include <cmath>
+#include "Constants.h"
 
 namespace U4DEngine {
 
@@ -104,6 +107,40 @@ namespace U4DEngine {
     
     U4DVector3n U4DAABB::getLongestAABBDimensionVector(){
         return longestAABBDimensionVector;
+    }
+    
+    bool U4DAABB::intersectionWithSegment(U4DSegment &uSegment){
+        
+        U4DPoint3n c=(minPoint+maxPoint)*0.5;  //box center point
+        U4DVector3n e=maxPoint.toVector()-c.toVector();    //box halflengths extends
+        U4DPoint3n m=(uSegment.pointA+uSegment.pointB)*0.5; //segment midpoint
+        U4DVector3n d=uSegment.pointB.toVector()-m.toVector();  //segment halflength vector
+        m=(m-c).toPoint();  //Translate box and segment to origin
+        
+        //try world coordinates axes as separating axis
+        
+        float adx=std::abs(d.x);
+        if(std::abs(m.x)>e.x+adx) return false;
+        
+        float ady=std::abs(d.y);
+        if(std::abs(m.y)>e.y+ady) return false;
+        
+        float adz=std::abs(d.z);
+        if(std::abs(m.z)>e.z+adz) return false;
+        
+        //add in epsilon to counteract arithmetic errors when segment is near or parallel to a coordinate axis
+        
+        adx+=U4DEngine::zeroEpsilon;
+        ady+=U4DEngine::zeroEpsilon;
+        adz+=U4DEngine::zeroEpsilon;
+        
+        //try cross product of segment direction vector with coordinate axis
+        if (std::abs(m.y*d.z-m.z*d.y)>(e.y*adz+e.z*ady)) return false;
+        if (std::abs(m.z*d.x-m.x*d.z)>(e.x*adz+e.z*adx)) return false;
+        if (std::abs(m.x*d.y-m.y*d.x)>(e.x*ady+e.y*adx)) return false;
+        
+        //no separating axis found; segment must be overlapping AABB
+        return true;
     }
     
 }
