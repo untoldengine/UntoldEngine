@@ -64,20 +64,22 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         
         //set collision info
         initMass(80.0);
+        initAsPlatform(true);
         initCoefficientOfRestitution(0.9);
         //enableCollisionBehavior();
         enableKineticsBehavior();
+        
         
         //set gravity to zero
         U4DEngine::U4DVector3n zeroGravity(0.0,0.0,0.0);
         setGravity(zeroGravity);
         
         //set collision filters
-        //setCollisionFilterCategory(kU11Player);
-        //setCollisionFilterMask(kU11Ball);
-        
-        //set player collision with ball filter to occur
-        setCollisionFilterGroupIndex(kZeroGroupIndex);
+//        setCollisionFilterCategory(kU11Player);
+//        setCollisionFilterMask(kU11Ball);
+//        
+//        //set player collision with ball filter not to occur
+//        setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
         

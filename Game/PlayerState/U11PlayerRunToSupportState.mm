@@ -10,6 +10,7 @@
 #include "U11PlayerDribbleState.h"
 #include "U11PlayerSupportState.h"
 #include "U11PlayerIdleState.h"
+#include "U11PlayerReceiveBallState.h"
 #include "U11Team.h"
 
 U11PlayerRunToSupportState* U11PlayerRunToSupportState::instance=0;
@@ -72,6 +73,23 @@ bool U11PlayerRunToSupportState::isSafeToChangeState(U11Player *uPlayer){
 }
 
 bool U11PlayerRunToSupportState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    
+    switch (uMsg.msg) {
+        case msgReceiveBall:
+            
+            //change state to receive ball
+            uPlayer->changeState(U11PlayerReceiveBallState::sharedInstance());
+            
+            break;
+            
+        case msgPassToMe:
+            
+            break;
+        
+            
+        default:
+            break;
+    }
     
     return false;
 }

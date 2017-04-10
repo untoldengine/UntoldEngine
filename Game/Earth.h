@@ -33,6 +33,7 @@ private:
     
     U11Player *barcelonaPlayer10;
     U11Player *barcelonaPlayer11;
+    U11Player *barcelonaPlayer9;
     U11Team *barcelona;
 
 public:
