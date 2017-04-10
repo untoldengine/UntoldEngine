@@ -29,7 +29,7 @@ void U11PlayerExtremity::init(const char* uName, const char* uBlenderFile){
         initCoefficientOfRestitution(0.0);
         enableCollisionBehavior();
         
-        setCollisionFilterCategory(kU11Player);
+        setCollisionFilterCategory(kU11PlayerExtremity);
         setCollisionFilterMask(kU11Ball);
         
         //set player collision with ball filter to occur

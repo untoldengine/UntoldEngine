@@ -10,6 +10,7 @@
 #include "U11PlayerDribbleState.h"
 #include "U11PlayerRunToSupportState.h"
 #include "U11PlayerSupportState.h"
+#include "U11PlayerReceiveBallState.h"
 #include "U11Team.h"
 
 U11PlayerLateralRunState* U11PlayerLateralRunState::instance=0;
@@ -114,6 +115,13 @@ bool U11PlayerLateralRunState::isSafeToChangeState(U11Player *uPlayer){
 bool U11PlayerLateralRunState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
+            
+        case msgReceiveBall:
+            
+            //change state to receive ball
+            uPlayer->changeState(U11PlayerReceiveBallState::sharedInstance());
+            
+            break;
             
         case msgRunToSupport:
             

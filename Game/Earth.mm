@@ -86,6 +86,11 @@ void Earth::init(){
     
     barcelonaPlayer11->subscribeTeam(barcelona);
     
+    barcelonaPlayer9=new U11Player();
+    barcelonaPlayer9->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer9->subscribeTeam(barcelona);
+    
     //set ball entity
     field->setSoccerBall(ball);
     
@@ -113,6 +118,8 @@ void Earth::init(){
     
     addChild(barcelonaPlayer11);
     
+    addChild(barcelonaPlayer9);
+    
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     
@@ -131,7 +138,9 @@ void Earth::init(){
     
     barcelonaPlayer10->translateBy(-10.0, barcelonaPlayer10->getModelDimensions().y/2+1.3, 0.0);
     
-    barcelonaPlayer11->translateBy(0.0, barcelonaPlayer10->getModelDimensions().y/2+1.3, 20.0);
+    barcelonaPlayer11->translateBy(0.0, barcelonaPlayer11->getModelDimensions().y/2+1.3, 20.0);
+    
+    barcelonaPlayer9->translateBy(40.0, barcelonaPlayer9->getModelDimensions().y/2+1.3, 30.0);
 }
 
 void Earth::update(double dt){

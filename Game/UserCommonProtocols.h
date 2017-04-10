@@ -18,6 +18,7 @@ typedef enum{
     kU11Player=3,
     kSoccerPostSensor=4,
     kSoccerGoalSensor=5,
+    kU11PlayerExtremity=6,
     kNegativeGroupIndex=-10,
     kPositiveGroupIndex=10,
     kPlayerExtremitiesGroupIndex=-6,
@@ -45,7 +46,7 @@ enum{
 }MessageEnum;
 
 const float fieldWidth=256.0;
-const float fieldLength=256.0;
+const float fieldLength=300.0;
 
 const float chasingSpeed=40.0;
 const float dribblingSpeed=30.0;

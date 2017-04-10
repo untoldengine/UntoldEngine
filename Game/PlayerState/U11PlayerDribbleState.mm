@@ -12,6 +12,8 @@
 #include "U11PlayerTakeBallControlState.h"
 #include "U11PlayerGroundShotState.h"
 #include "U11PlayerRunToReverseKickState.h"
+#include "U11PlayerRunPassState.h"
+#include "U11PlayerDribblePassState.h"
 #include "U11Ball.h"
 #include "UserCommonProtocols.h"
 
@@ -95,7 +97,7 @@ bool U11PlayerDribbleState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
         case msgButtonAPressed:
             
-            uPlayer->changeState(U11PlayerGroundPassState::sharedInstance());
+            uPlayer->changeState(U11PlayerDribblePassState::sharedInstance());
             
             return true;
             

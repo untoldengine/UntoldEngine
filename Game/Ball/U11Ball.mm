@@ -39,7 +39,7 @@ void U11Ball::init(const char* uName, const char* uBlenderFile){
         ballRadius=getModelDimensions().z/2.0;
         
         setCollisionFilterCategory(kU11Ball);
-        setCollisionFilterMask(kU11Field|kSoccerPostSensor|kSoccerGoalSensor);
+        setCollisionFilterMask(kU11Field|kSoccerPostSensor|kSoccerGoalSensor|kU11PlayerExtremity);
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         U4DEngine::U4DVector2n dragCoefficients(0.25,0.05);

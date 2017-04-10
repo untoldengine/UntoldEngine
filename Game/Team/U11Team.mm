@@ -206,7 +206,7 @@ void U11Team::computeSupportSpace(){
 
 void U11Team::startComputeSupportSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeSupportSpace, supportAnalysisTimer, 1.0, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeSupportSpace, supportAnalysisTimer, 2.0, true);
     
 }
 
