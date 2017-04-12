@@ -224,6 +224,7 @@
 		03ECCC021E9534300057C20B /* oppositesocceruniform.png in Resources */ = {isa = PBXBuildFile; fileRef = 03ECCC011E9534300057C20B /* oppositesocceruniform.png */; };
 		03ECCC041E9534610057C20B /* oppositeplayerscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */; };
 		03ECCC071E9BCF780057C20B /* U11PlayerDribblePassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ECCC051E9BCF780057C20B /* U11PlayerDribblePassState.mm */; };
+		03ECCC0A1E9E6FDC0057C20B /* U11PlayerDribbleTurnState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ECCC081E9E6FDC0057C20B /* U11PlayerDribbleTurnState.mm */; };
 		03EDEFA81E8C363000F58873 /* U11SpaceAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EDEFA61E8C363000F58873 /* U11SpaceAnalyzer.mm */; };
 		03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
 		03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF780B1CD32FF500BA0C87 /* U4DCollisionResponse.mm */; };
@@ -619,6 +620,8 @@
 		03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = oppositeplayerscript.u4d; path = Resources/oppositeplayerscript.u4d; sourceTree = SOURCE_ROOT; };
 		03ECCC051E9BCF780057C20B /* U11PlayerDribblePassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribblePassState.mm; path = game/PlayerState/U11PlayerDribblePassState.mm; sourceTree = SOURCE_ROOT; };
 		03ECCC061E9BCF780057C20B /* U11PlayerDribblePassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDribblePassState.h; path = game/PlayerState/U11PlayerDribblePassState.h; sourceTree = SOURCE_ROOT; };
+		03ECCC081E9E6FDC0057C20B /* U11PlayerDribbleTurnState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribbleTurnState.mm; path = game/PlayerState/U11PlayerDribbleTurnState.mm; sourceTree = SOURCE_ROOT; };
+		03ECCC091E9E6FDC0057C20B /* U11PlayerDribbleTurnState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDribbleTurnState.h; path = game/PlayerState/U11PlayerDribbleTurnState.h; sourceTree = SOURCE_ROOT; };
 		03EDEFA61E8C363000F58873 /* U11SpaceAnalyzer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11SpaceAnalyzer.mm; path = game/SpaceAnalyzer/U11SpaceAnalyzer.mm; sourceTree = SOURCE_ROOT; };
 		03EDEFA71E8C363000F58873 /* U11SpaceAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11SpaceAnalyzer.h; path = game/SpaceAnalyzer/U11SpaceAnalyzer.h; sourceTree = SOURCE_ROOT; };
 		03EF2DFC1B6D5EF200F26945 /* U4DPoint3n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPoint3n.h; sourceTree = "<group>"; };
@@ -826,6 +829,8 @@
 				0306F0B71E81BF730048B23B /* U11PlayerOpenUpState.mm */,
 				03ECCC061E9BCF780057C20B /* U11PlayerDribblePassState.h */,
 				03ECCC051E9BCF780057C20B /* U11PlayerDribblePassState.mm */,
+				03ECCC091E9E6FDC0057C20B /* U11PlayerDribbleTurnState.h */,
+				03ECCC081E9E6FDC0057C20B /* U11PlayerDribbleTurnState.mm */,
 			);
 			name = PlayerState;
 			sourceTree = "<group>";
@@ -1949,6 +1954,7 @@
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				0348C0A71E6B7767001FFF97 /* U11Team.mm in Sources */,
+				03ECCC0A1E9E6FDC0057C20B /* U11PlayerDribbleTurnState.mm in Sources */,
 				0348C0C21E72819E001FFF97 /* U11TriangleEntity.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				0390C7BD1E3432400028AC20 /* U4DOpenGLParticleDust.mm in Sources */,

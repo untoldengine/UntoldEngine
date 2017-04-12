@@ -490,6 +490,16 @@ U4DEngine::U4DAnimation *U11Player::getIdleAnimation(){
     
 }
 
+U4DEngine::U4DAnimation *U11Player::getSideCarryLeftAnimation(){
+    
+    return sideCarryLeftAnimation;
+}
+
+U4DEngine::U4DAnimation *U11Player::getSideCarryRightAnimation(){
+    
+    return sideCarryRightAnimation;
+}
+
 U4DEngine::U4DAnimation *U11Player::getForwardHaltBallWithRightFootAnimation(){
     
     return forwardHaltBallWithRightFootAnimation;
@@ -779,4 +789,21 @@ U4DEngine::U4DAABB U11Player::getUpdatedPlayerSpaceBox(){
     
 }
 
+bool U11Player::isHeadingWithinRange(){
+    
+    U4DEngine::U4DVector3n joystickDirection=getJoystickDirection();
+    
+    joystickDirection.z=-joystickDirection.y;
+    
+    joystickDirection.y=0;
+    
+    if (getPlayerHeading().angle(joystickDirection)<30.0) {
+        
+        return true;
+        
+    }else{
+        
+        return false;
+    }
+}
 

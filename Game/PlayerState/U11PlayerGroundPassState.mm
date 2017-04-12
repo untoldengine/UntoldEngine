@@ -59,17 +59,22 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
 
 void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
     
-    if(uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==3){
+    if(uPlayer->getActiveExtremityCollidedWithBall()){
         
-        U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
+        if (uPlayer->getAnimationCurrentKeyframe()==3) {
+            
+            U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
+            
+            uPlayer->kickBallToGround(ballPassingSpeed, direction,dt);
+            
+            uPlayer->removeKineticForces();
+            
+            U11PlayerIdleState *idleState=U11PlayerIdleState::sharedInstance();
+            
+            uPlayer->changeState(idleState);
+            
+        }
         
-        uPlayer->kickBallToGround(ballPassingSpeed, direction,dt);
-        
-        uPlayer->removeKineticForces();
-        
-        U11PlayerIdleState *idleState=U11PlayerIdleState::sharedInstance();
-        
-        uPlayer->changeState(idleState);
     }
     
 }
