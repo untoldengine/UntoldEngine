@@ -44,6 +44,8 @@ private:
     
     U4DEngine::U4DAABB playerSpaceBox;
     
+    bool missedTheBall;
+    
 public:
     
     U11Player();
@@ -221,6 +223,10 @@ public:
     void seekSupportPosition();
     
     bool isHeadingWithinRange();
+    
+    void setMissedTheBall(bool uValue);
+    
+    bool getMissedTheBall();
     
     
 };

@@ -21,7 +21,7 @@
 #include "U4DBoneData.h"
 #include "U11Team.h"
 
-U11Player::U11Player():joystickActive(false){
+U11Player::U11Player():joystickActive(false),missedTheBall(false){
     
     stateManager=new U11PlayerStateManager(this);
     
@@ -805,5 +805,16 @@ bool U11Player::isHeadingWithinRange(){
         
         return false;
     }
+}
+
+void U11Player::setMissedTheBall(bool uValue){
+    
+    missedTheBall=uValue;
+    
+}
+
+bool U11Player::getMissedTheBall(){
+    
+    return missedTheBall;
 }
 
