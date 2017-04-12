@@ -44,6 +44,8 @@ private:
     
     U4DEngine::U4DAABB playerSpaceBox;
     
+    bool missedTheBall;
+    
 public:
     
     U11Player();
@@ -142,6 +144,10 @@ public:
     
     U4DEngine::U4DAnimation *getLateralLeftRunAnimation();
     
+    U4DEngine::U4DAnimation *getSideCarryLeftAnimation();
+    
+    U4DEngine::U4DAnimation *getSideCarryRightAnimation();
+    
     void setJoystickActive(bool uValue);
     
     bool getJoystickActive();
@@ -215,6 +221,12 @@ public:
     U4DEngine::U4DAABB getUpdatedPlayerSpaceBox();
     
     void seekSupportPosition();
+    
+    bool isHeadingWithinRange();
+    
+    void setMissedTheBall(bool uValue);
+    
+    bool getMissedTheBall();
     
     
 };

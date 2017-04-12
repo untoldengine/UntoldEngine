@@ -9,6 +9,7 @@
 #include "U11PlayerGroundPassState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerIdleState.h"
+#include "U11PlayerDribblePassState.h"
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
 #include "U11MessageDispatcher.h"
@@ -59,31 +60,49 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
 
 void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
     
-    if(uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==3){
+    if(uPlayer->getActiveExtremityCollidedWithBall()){
         
-        U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
+        if (uPlayer->getAnimationCurrentKeyframe()==3) {
+            
+            U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
+            
+            uPlayer->kickBallToGround(ballPassingSpeed, direction,dt);
+            
+            uPlayer->removeKineticForces();
+            
+            uPlayer->setMissedTheBall(false);
+            
+            U11PlayerIdleState *idleState=U11PlayerIdleState::sharedInstance();
+            
+            uPlayer->changeState(idleState);
+            
+        }
         
-        uPlayer->kickBallToGround(ballPassingSpeed, direction,dt);
+    }
+    
+    //if missed the kick, go get the ball
+    if (!uPlayer->getCurrentPlayingAnimation()->isAnimationPlaying()) {
         
-        uPlayer->removeKineticForces();
+        uPlayer->setMissedTheBall(true);
+        uPlayer->changeState(U11PlayerDribblePassState::sharedInstance());
         
-        U11PlayerIdleState *idleState=U11PlayerIdleState::sharedInstance();
-        
-        uPlayer->changeState(idleState);
     }
     
 }
 
 void U11PlayerGroundPassState::exit(U11Player *uPlayer){
     
-    //get supporting player and send him a message
-    U11Player* supportPlayer=uPlayer->getTeam()->analyzeClosestPlayersAlongPassLine().at(0);
-    
-    //prepare message
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    messageDispatcher->sendMessage(0.0, uPlayer, supportPlayer, msgReceiveBall);
-    
+    if (uPlayer->getMissedTheBall()==false) {
+     
+        //get supporting player and send him a message
+        U11Player* supportPlayer=uPlayer->getTeam()->analyzeClosestPlayersAlongPassLine().at(0);
+        
+        //prepare message
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, uPlayer, supportPlayer, msgReceiveBall);
+        
+    }
 }
 
 bool U11PlayerGroundPassState::isSafeToChangeState(U11Player *uPlayer){
