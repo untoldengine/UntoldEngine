@@ -66,5 +66,6 @@ const float supportMinimumDistanceToPlayer=25.0;
 const float supportMaximumDistanceToPlayer=50.0;
 const int   maximumSupportPoints=18;
 const int   supportPointsSeparation=10;
+const float ballSegmentDirection=10.0;
 
 #endif /* UserCommonProtocols_h */
