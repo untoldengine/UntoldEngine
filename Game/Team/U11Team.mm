@@ -138,7 +138,7 @@ std::vector<U11Player*> U11Team::analyzeClosestPlayersAlongPassLine(){
     
     U4DEngine::U4DSegment passLine;
     passLine.pointA=getSoccerBall()->getAbsolutePosition().toPoint();
-    passLine.pointB=getSoccerBall()->getVelocity().toPoint();
+    passLine.pointB=getSoccerBall()->getVelocity().toPoint()*ballSegmentDirection;
    
     U11SpaceAnalyzer spaceAnalyzer;
     
