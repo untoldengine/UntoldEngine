@@ -46,6 +46,8 @@ public:
     
     std::vector<U4DEngine::U4DPoint3n> computeOptimalSupportSpace(U11Team *uTeam);
     
+    U4DEngine::U4DPoint3n computeOptimalDefenseSpace(U11Team *uTeam);
+    
 };
 
 #endif /* U11SpaceAnalyzer_hpp */

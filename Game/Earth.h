@@ -19,6 +19,7 @@ class U11Ball;
 class U11Field;
 class U11Player;
 class U11Team;
+class U11FieldGoal;
 
 class Earth:public U4DEngine::U4DWorld{
 
@@ -35,6 +36,9 @@ private:
     U11Player *barcelonaPlayer11;
     U11Player *barcelonaPlayer9;
     U11Team *barcelona;
+    
+    U11FieldGoal *fieldGoal1;
+    U11FieldGoal *fieldGoal2;
 
 public:
    

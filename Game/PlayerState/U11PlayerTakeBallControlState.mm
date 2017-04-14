@@ -19,6 +19,7 @@
 #include "U11Team.h"
 #include "UserCommonProtocols.h"
 #include "U11TeamAttackingState.h"
+#include "U11TeamDefendingState.h"
 
 U11PlayerTakeBallControlState* U11PlayerTakeBallControlState::instance=0;
 
@@ -98,15 +99,20 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(false);
     
+    //get team
+    U11Team *team=uPlayer->getTeam();
+    
     //set as the controlling player
-    uPlayer->getTeam()->setControllingPlayer(uPlayer);
+    team->setControllingPlayer(uPlayer);
     
     //assign support player
-    uPlayer->getTeam()->assignSupportPlayer();
+    team->assignSupportPlayer();
     
-    //compute the support positions
-    uPlayer->getTeam()->changeState(U11TeamAttackingState::sharedInstance());
+    //change state to attacking
+    team->changeState(U11TeamAttackingState::sharedInstance());
     
+    //inform the opposite team to change to defending state
+    team->getOppositeTeam()->changeState(U11TeamDefendingState::sharedInstance());
 }
 
 void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){

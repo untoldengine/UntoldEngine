@@ -9,6 +9,8 @@
 #include "U11SpaceAnalyzer.h"
 #include "U11HeapSort.h"
 #include "U11Team.h"
+#include "U11FieldGoal.h"
+#include "U4DSegment.h"
 
 U11SpaceAnalyzer::U11SpaceAnalyzer(){
     
@@ -241,4 +243,27 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     supportSpace.push_back(supportSpace2);
     
     return supportSpace;
+}
+
+U4DEngine::U4DPoint3n U11SpaceAnalyzer::computeOptimalDefenseSpace(U11Team *uTeam){
+    
+    //get the field goal
+    U11FieldGoal *fieldGoal=uTeam->getFieldGoal();
+    
+    //get opponent controlling player position
+    U11Team *oppositeTeam=uTeam->getOppositeTeam();
+    
+    U11Player *oppositeControllingPlayer=oppositeTeam->getControllingPlayer();
+    
+    U4DEngine::U4DPoint3n oppositePlayerPosition=oppositeControllingPlayer->getAbsolutePosition().toPoint();
+    
+    oppositePlayerPosition.y=0.0;
+    
+    //get closest point on the field goal to player position
+    U4DEngine::U4DPoint3n closestPointOnFieldGoal=fieldGoal->getFieldGoalWidthSegment().closestPointOnSegmentToPoint(oppositePlayerPosition);
+    
+    U4DEngine::U4DPoint3n defenseSpace=(oppositePlayerPosition.toVector()+(oppositePlayerPosition-closestPointOnFieldGoal)*0.25).toPoint();
+    
+    return defenseSpace;
+    
 }
