@@ -44,9 +44,11 @@ void U11PlayerRunToSupportState::enter(U11Player *uPlayer){
 
 void U11PlayerRunToSupportState::execute(U11Player *uPlayer, double dt){
     
-    uPlayer->seekSupportPosition();
+    U4DEngine::U4DPoint3n supportPosition=uPlayer->getSupportPosition();
     
-    if (!uPlayer->hasReachedSupportPosition(uPlayer->getSupportPosition())) {
+    uPlayer->seekPosition(supportPosition);
+    
+    if (!uPlayer->hasReachedPosition(supportPosition,withinSupportDistance)) {
     
         //make the player run
         uPlayer->applyForceToPlayer(chasingSpeed, dt);

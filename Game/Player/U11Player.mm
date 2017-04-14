@@ -315,11 +315,11 @@ U11Ball *U11Player::getSoccerBall(){
     return team->getSoccerBall();
 }
 
-void U11Player::seekSupportPosition(){
+void U11Player::seekPosition(U4DEngine::U4DPoint3n &uPosition){
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
-    U4DEngine::U4DVector3n distanceVector=supportPosition.toVector()-playerPosition;
+    U4DEngine::U4DVector3n distanceVector=uPosition.toVector()-playerPosition;
     
     U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
     
@@ -449,16 +449,16 @@ bool U11Player::hasReachedTheBall(){
     
 }
 
-bool U11Player::hasReachedSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition){
+bool U11Player::hasReachedPosition(U4DEngine::U4DPoint3n &uPosition, float uWithinDistance){
     
     U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
     
     //set the height position equal to the y position
-    playerPosition.y=uSupportPosition.y;
+    playerPosition.y=uPosition.y;
     
-    float distanceToOpenPosition=(uSupportPosition.toVector()-playerPosition).magnitude();
+    float distanceToOpenPosition=(uPosition.toVector()-playerPosition).magnitude();
     
-    if (distanceToOpenPosition<=2.5) {
+    if (distanceToOpenPosition<=uWithinDistance) {
         
         return true;
     }
@@ -768,6 +768,16 @@ U4DEngine::U4DPoint3n &U11Player::getSupportPosition(){
     
 }
 
+void U11Player::setDefendingPosition(U4DEngine::U4DPoint3n &uDefendingPosition){
+    
+    defendingPosition=uDefendingPosition;
+}
+
+U4DEngine::U4DPoint3n &U11Player::getDefendingPosition(){
+    
+    return defendingPosition;
+}
+
 U11PlayerStateInterface *U11Player::getCurrentState(){
     
     return stateManager->getCurrentState();
@@ -816,5 +826,11 @@ void U11Player::setMissedTheBall(bool uValue){
 bool U11Player::getMissedTheBall(){
     
     return missedTheBall;
+}
+
+U4DEngine::U4DPoint3n U11Player::getHomePosition(){
+    
+    return homePosition;
+    
 }
 

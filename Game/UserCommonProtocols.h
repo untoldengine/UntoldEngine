@@ -42,6 +42,7 @@ enum{
     msgSupportPlayer,
     msgPassToMe,
     msgRunToSupport,
+    msgRunToDefend,
     
 }MessageEnum;
 
@@ -67,5 +68,8 @@ const float supportMaximumDistanceToPlayer=50.0;
 const int   maximumSupportPoints=18;
 const int   supportPointsSeparation=10;
 const float ballSegmentDirection=10.0;
+const float withinSupportDistance=2.5;
+const float withinHomeDistance=0.0;
+const float withinDefenseDistance=0.5;
 
 #endif /* UserCommonProtocols_h */

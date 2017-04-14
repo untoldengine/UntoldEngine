@@ -125,7 +125,7 @@ bool U11PlayerSupportState::handleMessage(U11Player *uPlayer, Message &uMsg){
         
         case msgRunToSupport:
             
-            if (!uPlayer->hasReachedSupportPosition(uPlayer->getSupportPosition())) {
+            if (!uPlayer->hasReachedPosition(uPlayer->getSupportPosition(),withinSupportDistance)) {
                 uPlayer->changeState(U11PlayerRunToSupportState::sharedInstance());
             }
             

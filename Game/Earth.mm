@@ -29,6 +29,7 @@
 #include "U11Field.h"
 #include "U11Player.h"
 #include "U11Team.h"
+#include "U11FieldGoal.h"
 
 #include "GameLogic.h"
 
@@ -53,12 +54,13 @@ void Earth::init(){
     barcelona=new U11Team();
     
     emelec->setOppositeTeam(barcelona);
+    barcelona->setOppositeTeam(emelec);
     
     ball=new U11Ball();
     ball->init("ball", "blenderscript.u4d");
     
     field=new U11Field();
-    field->init("field0", "blenderscript.u4d");
+    field->init("field", "blenderscript.u4d");
 
     emelecPlayer10=new U11Player();
     emelecPlayer10->init("pele", "playerscript.u4d");
@@ -98,6 +100,22 @@ void Earth::init(){
     
     barcelona->setSoccerBall(ball);
     
+    //set the field goals
+    fieldGoal1=new U11FieldGoal();
+    fieldGoal1->init("fieldgoal1","blenderscript.u4d");
+    
+    fieldGoal2=new U11FieldGoal();
+    fieldGoal2->init("fieldgoal2","blenderscript.u4d");
+    
+    //set field goals to team
+    emelec->setFieldGoal(fieldGoal2);
+    
+    barcelona->setFieldGoal(fieldGoal1);
+    
+    
+    //TEMP
+    barcelona->setDefendingPlayer(barcelonaPlayer9);
+    
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
@@ -119,6 +137,10 @@ void Earth::init(){
     addChild(barcelonaPlayer11);
     
     addChild(barcelonaPlayer9);
+    
+    addChild(fieldGoal1);
+    
+    addChild(fieldGoal2);
     
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());

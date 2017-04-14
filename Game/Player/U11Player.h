@@ -42,9 +42,13 @@ private:
     
     U4DEngine::U4DPoint3n supportPosition;
     
+    U4DEngine::U4DPoint3n defendingPosition;
+    
     U4DEngine::U4DAABB playerSpaceBox;
     
     bool missedTheBall;
+    
+    U4DEngine::U4DPoint3n homePosition;
     
 public:
     
@@ -210,17 +214,21 @@ public:
     
     void removeAllVelocities();
     
-    bool hasReachedSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition);
+    bool hasReachedPosition(U4DEngine::U4DPoint3n &uPosition, float uWithinDistance);
     
     void setSupportPosition(U4DEngine::U4DPoint3n &uSupportPosition);
     
     U4DEngine::U4DPoint3n &getSupportPosition();
     
+    void setDefendingPosition(U4DEngine::U4DPoint3n &uDefendingPosition);
+    
+    U4DEngine::U4DPoint3n &getDefendingPosition();
+    
     U11PlayerStateInterface *getCurrentState();
     
     U4DEngine::U4DAABB getUpdatedPlayerSpaceBox();
     
-    void seekSupportPosition();
+    void seekPosition(U4DEngine::U4DPoint3n &uPosition);
     
     bool isHeadingWithinRange();
     
@@ -228,6 +236,7 @@ public:
     
     bool getMissedTheBall();
     
+    U4DEngine::U4DPoint3n getHomePosition();
     
 };
 #endif /* U11Player_hpp */

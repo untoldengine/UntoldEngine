@@ -19,6 +19,7 @@
 class U11Ball;
 class U11TeamStateManager;
 class U11TeamStateInterface;
+class U11FieldGoal;
 
 class U11Team {
     
@@ -33,15 +34,21 @@ private:
     
     U11Player *supportPlayer2;
     
+    U11Player *defendingPlayer;
+    
     U11Team *oppositeTeam;
     
     U11Ball *soccerBall;
     
     U4DEngine::U4DTimer *supportAnalysisTimer;
+
+    U4DEngine::U4DTimer *defendAnalysisTimer;
     
     U4DEngine::U4DCallback<U11Team> *scheduler;
     
     U11TeamStateManager *stateManager;
+    
+    U11FieldGoal *fieldGoal;
     
 public:
     
@@ -55,7 +62,11 @@ public:
     
     void setSoccerBall(U11Ball *uSoccerBall);
     
+    void setFieldGoal(U11FieldGoal *uFieldGoal);
+    
     U11Ball *getSoccerBall();
+    
+    U11FieldGoal *getFieldGoal();
       
     std::vector<U11Player*> getTeammates();
     
@@ -75,6 +86,10 @@ public:
     
     U11Player* getSupportPlayer2();
     
+    void setDefendingPlayer(U11Player *uPlayer);
+    
+    U11Player *getDefendingPlayer();
+    
     void assignSupportPlayer();
     
     std::vector<U11Player*> analyzeSupportPlayers();
@@ -87,9 +102,15 @@ public:
     
     void computeSupportSpace();
     
+    void computeDefendingSpace();
+    
     void startComputeSupportSpaceTimer();
     
     void removeComputeSupportStateTimer();
+    
+    void startComputeDefendingSpaceTimer();
+    
+    void removeComputeDefendingStateTimer();
     
     void changeState(U11TeamStateInterface* uState);
     

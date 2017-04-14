@@ -22,6 +22,7 @@ U11Team::U11Team():controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(N
     stateManager=new U11TeamStateManager(this);
     scheduler=new U4DEngine::U4DCallback<U11Team>;
     supportAnalysisTimer=new U4DEngine::U4DTimer(scheduler);
+    defendAnalysisTimer=new U4DEngine::U4DTimer(scheduler);
     
 }
 
@@ -29,6 +30,7 @@ U11Team::~U11Team(){
     
     delete scheduler;
     delete supportAnalysisTimer;
+    delete defendAnalysisTimer;
     
 }
 
@@ -73,10 +75,20 @@ void U11Team::setSoccerBall(U11Ball *uSoccerBall){
     
 }
 
+void U11Team::setFieldGoal(U11FieldGoal *uFieldGoal){
+    
+    fieldGoal=uFieldGoal;
+}
+
 U11Ball *U11Team::getSoccerBall(){
     
     return soccerBall;
     
+}
+
+U11FieldGoal *U11Team::getFieldGoal(){
+    
+    return fieldGoal;
 }
 
 U11Player* U11Team::getControllingPlayer(){
@@ -113,6 +125,16 @@ void U11Team::setSupportPlayer2(U11Player* uPlayer){
     
     supportPlayer2=uPlayer;
     
+}
+
+void U11Team::setDefendingPlayer(U11Player *uPlayer){
+    
+    defendingPlayer=uPlayer;
+}
+
+U11Player *U11Team::getDefendingPlayer(){
+    
+    return defendingPlayer;
 }
 
 std::vector<U11Player*> U11Team::analyzeClosestPlayersToBall(){
@@ -204,6 +226,23 @@ void U11Team::computeSupportSpace(){
     
 }
 
+void U11Team::computeDefendingSpace(){
+    
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    U4DEngine::U4DPoint3n defendingSpace=spaceAnalyzer.computeOptimalDefenseSpace(this);
+    
+    defendingPlayer->setDefendingPosition(defendingSpace);
+    
+    //send message to main defender
+    
+    //prepare message
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    messageDispatcher->sendMessage(0.0, NULL, defendingPlayer, msgRunToDefend);
+    
+}
+
 void U11Team::startComputeSupportSpaceTimer(){
     
     scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeSupportSpace, supportAnalysisTimer, 2.0, true);
@@ -213,5 +252,17 @@ void U11Team::startComputeSupportSpaceTimer(){
 void U11Team::removeComputeSupportStateTimer(){
     
     scheduler->unScheduleTimer(supportAnalysisTimer);
+    
+}
+
+void U11Team::startComputeDefendingSpaceTimer(){
+    
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeDefendingSpace, defendAnalysisTimer, 1.0, true);
+    
+}
+
+void U11Team::removeComputeDefendingStateTimer(){
+    
+    scheduler->unScheduleTimer(defendAnalysisTimer);
     
 }
