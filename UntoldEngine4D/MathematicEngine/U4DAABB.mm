@@ -33,6 +33,21 @@ namespace U4DEngine {
         
     }
     
+    U4DAABB::U4DAABB(float uX, float uY, float uZ, U4DPoint3n &uCenter){
+        
+        U4DVector3n halfwidth(uX, uY, uZ);
+        
+        maxPoint=uCenter+halfwidth.toPoint();
+        minPoint=(halfwidth.toPoint()-uCenter).toPoint();
+        
+    }
+    
+    U4DPoint3n U4DAABB::getCenter(){
+        
+        return (maxPoint+minPoint)*0.5;
+        
+    }
+    
     void U4DAABB::setMinPoint(U4DPoint3n& uMinPoint){
         
         minPoint=uMinPoint;
@@ -141,6 +156,14 @@ namespace U4DEngine {
         
         //no separating axis found; segment must be overlapping AABB
         return true;
+    }
+    
+    
+    bool U4DAABB::isPointInsideAABB(U4DPoint3n &uPoint){
+        
+        return (uPoint.x>=minPoint.x && uPoint.x<=maxPoint.x &&
+                uPoint.y>=minPoint.y && uPoint.y<=maxPoint.y &&
+                uPoint.z>=minPoint.z && uPoint.z<=maxPoint.z);
     }
     
 }
