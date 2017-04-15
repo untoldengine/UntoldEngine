@@ -55,6 +55,11 @@ namespace U4DEngine {
         U4DAABB(U4DPoint3n &uMinPoint, U4DPoint3n &uMaxPoint);
         
         /**
+         @brief Constructor which creates a AABB with given minimum 3D point halfwidth
+         */
+        U4DAABB(float uX, float uY, float uZ, U4DPoint3n &uCenter);
+        
+        /**
          @brief Destructor for the class
          */
         ~U4DAABB();
@@ -132,6 +137,16 @@ namespace U4DEngine {
          @todo document this
          */
         bool intersectionWithSegment(U4DSegment &uSegment);
+        
+        /**
+         @todo document this
+         */
+        U4DPoint3n getCenter();
+        
+        /**
+         @todo document this
+         */
+        bool isPointInsideAABB(U4DPoint3n &uPoint);
         
     };
     
