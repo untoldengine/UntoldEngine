@@ -34,6 +34,18 @@ void U11Field::init(const char* uName, const char* uBlenderFile){
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
         
+        float width=getModelDimensions().x;
+        float depth=getModelDimensions().z;
+        float height=getModelDimensions().y;
+        
+        U4DEngine::U4DPoint3n fieldCenter=getAbsolutePosition().toPoint();
+        fieldCenter.y=0.0;
+        
+        U4DEngine::U4DAABB aabb(width/2.0, height/2.0, depth/2.0, fieldCenter);
+        
+        fieldAABB.minPoint=aabb.minPoint;
+        fieldAABB.maxPoint=aabb.maxPoint;
+        
         loadRenderingInformation();
         
     }
@@ -49,4 +61,10 @@ void U11Field::update(double dt){
 void U11Field::setSoccerBall(U11Ball *uSoccerBall){
     
     soccerBall=uSoccerBall;
+}
+
+U4DEngine::U4DAABB &U11Field::getFieldAABB(){
+    
+    return fieldAABB;
+    
 }

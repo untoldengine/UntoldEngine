@@ -15,6 +15,7 @@
 #include "U11PlayerDribbleState.h"
 #include "U11PlayerGroundPassState.h"
 #include "U11PlayerReceiveBallState.h"
+#include "U11PlayerFormationPositionState.h"
 #include "U11Ball.h"
 #include "U11PlayerExtremity.h"
 #include "U4DTrigonometry.h"
@@ -24,6 +25,7 @@
 U11Player::U11Player():joystickActive(false),missedTheBall(false){
     
     stateManager=new U11PlayerStateManager(this);
+    
     
 }
 U11Player::~U11Player(){
@@ -236,9 +238,8 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
             
         }
         
-        
         //set initial state
-        changeState(U11PlayerIdleState::sharedInstance());
+        changeState(U11PlayerFormationPositionState::sharedInstance());
         
         //render information
         loadRenderingInformation();
@@ -828,9 +829,47 @@ bool U11Player::getMissedTheBall(){
     return missedTheBall;
 }
 
+void U11Player::setFormationSpace(U4DEngine::U4DAABB &uFormationSpace){
+    
+    formationSpace=uFormationSpace;
+    
+}
+
+U4DEngine::U4DAABB U11Player::getFormationSpace(){
+ 
+    return formationSpace;
+}
+
+void U11Player::setFormationPosition(U4DEngine::U4DPoint3n &uFormationPosition){
+    
+    formationPosition=uFormationPosition;
+    
+}
+
+U4DEngine::U4DPoint3n U11Player::getFormationPosition(){
+    
+    return formationPosition;
+}
+
+void U11Player::setHomePosition(U4DEngine::U4DPoint3n &uHomePosition){
+    
+    homePosition=uHomePosition;
+}
+
 U4DEngine::U4DPoint3n U11Player::getHomePosition(){
     
     return homePosition;
     
 }
+
+void U11Player::setPlayerRole(int uPlayerRole){
+    
+    playerRole=uPlayerRole;
+}
+
+int U11Player::getPlayerRole(){
+    
+    return playerRole;
+}
+
 

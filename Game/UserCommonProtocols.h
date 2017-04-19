@@ -71,5 +71,6 @@ const float ballSegmentDirection=10.0;
 const float withinSupportDistance=2.5;
 const float withinHomeDistance=0.0;
 const float withinDefenseDistance=0.5;
+const float withinFormationDistance=10.0;
 
 #endif /* UserCommonProtocols_h */

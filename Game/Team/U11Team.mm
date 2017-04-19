@@ -16,6 +16,10 @@
 #include "U11SpaceAnalyzer.h"
 #include "U11TeamStateManager.h"
 #include "U11TeamStateInterface.h"
+#include "UserCommonProtocols.h"
+#include "U11FormationInterface.h"
+#include "U11Player.h"
+
 
 U11Team::U11Team():controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL){
     
@@ -266,3 +270,62 @@ void U11Team::removeComputeDefendingStateTimer(){
     scheduler->unScheduleTimer(defendAnalysisTimer);
     
 }
+
+void U11Team::setTeamFormation(U11FormationInterface *uTeamFormation){
+    
+    teamFormation=uTeamFormation;
+    
+}
+
+U11FormationInterface *U11Team::getTeamFormation(){
+ 
+    return teamFormation;
+    
+}
+
+void U11Team::assignTeamFormation(U11Field *uField){
+    
+    std::vector<U11PlayerSpace> playerSpaceContainer=teamFormation->partitionField(uField, getFieldSide());
+    
+    for(int i=0;i<teammates.size();i++){
+        
+        U11Player *player=teammates.at(i);
+        
+        //if (player->getPlayerRole()!=goalie) {
+           
+            U4DEngine::U4DAABB formationSpace=playerSpaceContainer.at(i).getFormationSpace();
+            U4DEngine::U4DPoint3n formationPosition=playerSpaceContainer.at(i).getFormationPosition();
+            U4DEngine::U4DPoint3n homePosition=playerSpaceContainer.at(i).getHomePosition();
+        
+            homePosition.y=player->getModelDimensions().y/2.0+1.3;
+            formationPosition.y=player->getModelDimensions().y/2.0+1.3;
+        
+            player->setFormationPosition(formationPosition);
+            player->setHomePosition(homePosition);
+            player->setFormationSpace(formationSpace);
+        
+       // }
+    }
+}
+
+void U11Team::setFieldSide(std::string uString){
+    
+    fieldSide=uString;
+    
+}
+
+std::string U11Team::getFieldSide(){
+ 
+    return fieldSide;
+}
+
+void U11Team::positionPlayersPerHomeFormation(){
+    
+    for(auto n:teammates){
+        
+        U4DEngine::U4DVector3n playerPosition=n->getHomePosition().toVector();
+        
+        n->translateTo(playerPosition);
+    }
+}
+

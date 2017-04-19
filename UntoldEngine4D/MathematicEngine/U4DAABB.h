@@ -148,6 +148,11 @@ namespace U4DEngine {
          */
         bool isPointInsideAABB(U4DPoint3n &uPoint);
         
+        /**
+         @todo document this
+         */
+        U4DVector3n getHalfWidth();
+        
     };
     
 }

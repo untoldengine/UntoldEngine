@@ -166,4 +166,10 @@ namespace U4DEngine {
                 uPoint.z>=minPoint.z && uPoint.z<=maxPoint.z);
     }
     
+    U4DVector3n U4DAABB::getHalfWidth(){
+        
+        return (getCenter()-getMaxPoint());
+        
+    }
+    
 }
