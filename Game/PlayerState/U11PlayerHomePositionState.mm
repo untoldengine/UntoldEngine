@@ -39,7 +39,7 @@ void U11PlayerHomePositionState::enter(U11Player *uPlayer){
 
 void U11PlayerHomePositionState::execute(U11Player *uPlayer, double dt){
     
-    U4DEngine::U4DPoint3n homePosition=uPlayer->getHomePosition();
+    U4DEngine::U4DPoint3n homePosition=uPlayer->getFormationPosition();
     
     uPlayer->seekPosition(homePosition);
     

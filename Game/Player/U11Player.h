@@ -46,9 +46,15 @@ private:
     
     U4DEngine::U4DAABB playerSpaceBox;
     
+    U4DEngine::U4DAABB formationSpace;
+    
     bool missedTheBall;
     
     U4DEngine::U4DPoint3n homePosition;
+    
+    U4DEngine::U4DPoint3n formationPosition;
+    
+    int playerRole;
     
 public:
     
@@ -236,7 +242,22 @@ public:
     
     bool getMissedTheBall();
     
+
+    void setFormationSpace(U4DEngine::U4DAABB &uFormationSpace);
+    
+    U4DEngine::U4DAABB getFormationSpace();
+    
+    void setFormationPosition(U4DEngine::U4DPoint3n &uFormationPosition);
+    
+    U4DEngine::U4DPoint3n getFormationPosition();
+    
+    void setHomePosition(U4DEngine::U4DPoint3n &uHomePosition);
+    
     U4DEngine::U4DPoint3n getHomePosition();
+    
+    void setPlayerRole(int uPlayerRole);
+    
+    int getPlayerRole();
     
 };
 #endif /* U11Player_hpp */

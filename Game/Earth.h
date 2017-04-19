@@ -30,11 +30,15 @@ private:
     U11Player *emelecPlayer10;
     U11Player *emelecPlayer11;
     U11Player *emelecPlayer9;
+    U11Player *emelecPlayer8;
+    U11Player *emelecPlayer7;
     U11Team *emelec;
     
     U11Player *barcelonaPlayer10;
     U11Player *barcelonaPlayer11;
     U11Player *barcelonaPlayer9;
+    U11Player *barcelonaPlayer8;
+    U11Player *barcelonaPlayer7;
     U11Team *barcelona;
     
     U11FieldGoal *fieldGoal1;

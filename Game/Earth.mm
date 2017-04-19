@@ -32,6 +32,9 @@
 #include "U11FieldGoal.h"
 
 #include "GameLogic.h"
+#include "U11Formation.h"
+#include "U11FormationInterface.h"
+#include "U11212Formation.h"
 
 using namespace U4DEngine;
 
@@ -77,6 +80,16 @@ void Earth::init(){
     
     emelecPlayer9->subscribeTeam(emelec);
     
+    emelecPlayer8=new U11Player();
+    emelecPlayer8->init("pele", "playerscript.u4d");
+    
+    emelecPlayer8->subscribeTeam(emelec);
+    
+    emelecPlayer7=new U11Player();
+    emelecPlayer7->init("pele", "playerscript.u4d");
+    
+    emelecPlayer7->subscribeTeam(emelec);
+    
     //opposite team
     barcelonaPlayer10=new U11Player();
     barcelonaPlayer10->init("pele", "oppositeplayerscript.u4d");
@@ -92,6 +105,16 @@ void Earth::init(){
     barcelonaPlayer9->init("pele", "oppositeplayerscript.u4d");
     
     barcelonaPlayer9->subscribeTeam(barcelona);
+    
+    barcelonaPlayer8=new U11Player();
+    barcelonaPlayer8->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer8->subscribeTeam(barcelona);
+    
+    barcelonaPlayer7=new U11Player();
+    barcelonaPlayer7->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer7->subscribeTeam(barcelona);
     
     //set ball entity
     field->setSoccerBall(ball);
@@ -116,6 +139,20 @@ void Earth::init(){
     //TEMP
     barcelona->setDefendingPlayer(barcelonaPlayer9);
     
+    //set field side
+    emelec->setFieldSide("leftside");
+    barcelona->setFieldSide("rightside");
+    
+    //set formation
+    U11FormationInterface *formation212=new U11212Formation();
+    
+    emelec->setTeamFormation(formation212);
+    barcelona->setTeamFormation(formation212);
+    
+    emelec->assignTeamFormation(field);
+    barcelona->assignTeamFormation(field);
+    
+    
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
@@ -132,11 +169,19 @@ void Earth::init(){
     
     addChild(emelecPlayer9);
     
+    addChild(emelecPlayer8);
+    
+    addChild(emelecPlayer7);
+    
     addChild(barcelonaPlayer10);
     
     addChild(barcelonaPlayer11);
     
     addChild(barcelonaPlayer9);
+    
+    addChild(barcelonaPlayer8);
+    
+    addChild(barcelonaPlayer7);
     
     addChild(fieldGoal1);
     
@@ -152,17 +197,9 @@ void Earth::init(){
     ball->translateBy(-25.0, 0.0, 15.0);
     //set the player position
     
-    emelecPlayer10->translateBy(-40.0, emelecPlayer10->getModelDimensions().y/2.0+1.3, 0.0);
+    emelec->positionPlayersPerHomeFormation();
+    barcelona->positionPlayersPerHomeFormation();
     
-    emelecPlayer11->translateBy(0.0, emelecPlayer11->getModelDimensions().y/2.0+1.3, -20.0);
-    
-    emelecPlayer9->translateBy(40.0, emelecPlayer9->getModelDimensions().y/2.0+1.3, 15.0);
-    
-    barcelonaPlayer10->translateBy(-10.0, barcelonaPlayer10->getModelDimensions().y/2+1.3, 0.0);
-    
-    barcelonaPlayer11->translateBy(0.0, barcelonaPlayer11->getModelDimensions().y/2+1.3, 20.0);
-    
-    barcelonaPlayer9->translateBy(40.0, barcelonaPlayer9->getModelDimensions().y/2+1.3, 30.0);
 }
 
 void Earth::update(double dt){

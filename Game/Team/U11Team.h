@@ -20,6 +20,8 @@ class U11Ball;
 class U11TeamStateManager;
 class U11TeamStateInterface;
 class U11FieldGoal;
+class U11FormationInterface;
+class U11Field;
 
 class U11Team {
     
@@ -49,6 +51,10 @@ private:
     U11TeamStateManager *stateManager;
     
     U11FieldGoal *fieldGoal;
+    
+    U11FormationInterface *teamFormation;
+    
+    std::string fieldSide;
     
 public:
     
@@ -113,6 +119,18 @@ public:
     void removeComputeDefendingStateTimer();
     
     void changeState(U11TeamStateInterface* uState);
+    
+    void setTeamFormation(U11FormationInterface *uTeamFormation);
+    
+    U11FormationInterface *getTeamFormation();
+    
+    void assignTeamFormation(U11Field *uField);
+    
+    void positionPlayersPerHomeFormation();
+    
+    void setFieldSide(std::string uString);
+    
+    std::string getFieldSide();
     
 };
 
