@@ -182,6 +182,16 @@ std::vector<U11Player*> U11Team::analyzeSupportPlayers(){
     
 }
 
+std::vector<U11Player*> U11Team::analyzeDefendingPlayer(){
+    
+    U4DEngine::U4DVector3n ballPosition=soccerBall->getAbsolutePosition();
+    
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, ballPosition);
+    
+}
+
 void U11Team::assignSupportPlayer(){
     
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
@@ -196,6 +206,18 @@ void U11Team::assignSupportPlayer(){
     messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgSupportPlayer);
 
 }
+
+void U11Team::assignDefendingPlayer(){
+    
+    //send message to defending player
+    defendingPlayer=analyzeDefendingPlayer().at(0);
+    
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    messageDispatcher->sendMessage(0.0, NULL, defendingPlayer, msgRunToDefend);
+    
+}
+
 
 void U11Team::computeSupportSpace(){
 
@@ -236,20 +258,15 @@ void U11Team::computeDefendingSpace(){
     
     U4DEngine::U4DPoint3n defendingSpace=spaceAnalyzer.computeOptimalDefenseSpace(this);
     
+    //get defending player closer to ball
+    assignDefendingPlayer();
+    
     defendingPlayer->setDefendingPosition(defendingSpace);
-    
-    //send message to main defender
-    
-    //prepare message
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    messageDispatcher->sendMessage(0.0, NULL, defendingPlayer, msgRunToDefend);
-    
 }
 
 void U11Team::startComputeSupportSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeSupportSpace, supportAnalysisTimer, 2.0, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeSupportSpace, supportAnalysisTimer, 0.8, true);
     
 }
 
@@ -261,7 +278,7 @@ void U11Team::removeComputeSupportStateTimer(){
 
 void U11Team::startComputeDefendingSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeDefendingSpace, defendAnalysisTimer, 1.0, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeDefendingSpace, defendAnalysisTimer, 0.5, true);
     
 }
 

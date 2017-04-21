@@ -98,7 +98,11 @@ public:
     
     void assignSupportPlayer();
     
+    void assignDefendingPlayer();
+    
     std::vector<U11Player*> analyzeSupportPlayers();
+    
+    std::vector<U11Player*> analyzeDefendingPlayer();
     
     std::vector<U11Player*> analyzeClosestPlayersToBall();
     
