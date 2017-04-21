@@ -136,9 +136,6 @@ void Earth::init(){
     barcelona->setFieldGoal(fieldGoal1);
     
     
-    //TEMP
-    barcelona->setDefendingPlayer(barcelonaPlayer9);
-    
     //set field side
     emelec->setFieldSide("leftside");
     barcelona->setFieldSide("rightside");

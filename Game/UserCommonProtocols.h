@@ -42,6 +42,7 @@ enum{
     msgSupportPlayer,
     msgPassToMe,
     msgRunToSupport,
+    msgPressControllingPlayer,
     msgRunToDefend,
     
 }MessageEnum;
