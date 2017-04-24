@@ -15,6 +15,7 @@
 #include "U11AIAnalyzer.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
+#include "U4DWorld.h"
 
 class U11Ball;
 class U11TeamStateManager;
@@ -22,6 +23,7 @@ class U11TeamStateInterface;
 class U11FieldGoal;
 class U11FormationInterface;
 class U11Field;
+
 
 class U11Team {
     
@@ -54,11 +56,11 @@ private:
     
     U11FormationInterface *teamFormation;
     
-    std::string fieldSide;
+    int fieldQuadrant;
     
 public:
     
-    U11Team();
+    U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant);
     
     ~U11Team();
     
@@ -123,18 +125,10 @@ public:
     void removeComputeDefendingStateTimer();
     
     void changeState(U11TeamStateInterface* uState);
+
+    void translateTeamToFormationPosition();
     
-    void setTeamFormation(U11FormationInterface *uTeamFormation);
-    
-    U11FormationInterface *getTeamFormation();
-    
-    void assignTeamFormation(U11Field *uField);
-    
-    void positionPlayersPerHomeFormation();
-    
-    void setFieldSide(std::string uString);
-    
-    std::string getFieldSide();
+    void updateTeamFormationPosition();
     
 };
 

@@ -32,9 +32,8 @@
 #include "U11FieldGoal.h"
 
 #include "GameLogic.h"
-#include "U11Formation.h"
+#include "U11Formation32.h"
 #include "U11FormationInterface.h"
-#include "U11212Formation.h"
 
 using namespace U4DEngine;
 
@@ -52,9 +51,12 @@ void Earth::init(){
     
     director->setWorld(this);
     
-    emelec=new U11Team();
+    U11FormationInterface *emelecFormation=new U11Formation32();
+    U11FormationInterface *barcelonaFormation=new U11Formation32();
     
-    barcelona=new U11Team();
+    emelec=new U11Team(emelecFormation, this, -1);
+    
+    barcelona=new U11Team(barcelonaFormation, this, 1);
     
     emelec->setOppositeTeam(barcelona);
     barcelona->setOppositeTeam(emelec);
@@ -136,20 +138,6 @@ void Earth::init(){
     barcelona->setFieldGoal(fieldGoal1);
     
     
-    //set field side
-    emelec->setFieldSide("leftside");
-    barcelona->setFieldSide("rightside");
-    
-    //set formation
-    U11FormationInterface *formation212=new U11212Formation();
-    
-    emelec->setTeamFormation(formation212);
-    barcelona->setTeamFormation(formation212);
-    
-    emelec->assignTeamFormation(field);
-    barcelona->assignTeamFormation(field);
-    
-    
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
@@ -189,13 +177,11 @@ void Earth::init(){
     
     gameModel->setTeamToControl(emelec);
     
-    
-    //set the ball position
-    ball->translateBy(-25.0, 0.0, 15.0);
     //set the player position
     
-    emelec->positionPlayersPerHomeFormation();
-    barcelona->positionPlayersPerHomeFormation();
+    emelec->translateTeamToFormationPosition();
+    barcelona->translateTeamToFormationPosition();
+    
     
 }
 
