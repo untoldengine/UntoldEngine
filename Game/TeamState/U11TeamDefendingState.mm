@@ -33,6 +33,9 @@ U11TeamDefendingState *U11TeamDefendingState::sharedInstance(){
 
 void U11TeamDefendingState::enter(U11Team *uTeam){
     
+    //set all players to defending state
+    
+    
     //initialize the timer to compute the best defending position
     uTeam->startComputeDefendingSpaceTimer();
     

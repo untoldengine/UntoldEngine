@@ -8,6 +8,7 @@
 
 #include "U11PlayerRunToDefendState.h"
 #include "U11PlayerDefendState.h"
+#include "U11PlayerDefenseFormationState.h"
 
 U11PlayerRunToDefendState* U11PlayerRunToDefendState::instance=0;
 
@@ -39,11 +40,9 @@ void U11PlayerRunToDefendState::enter(U11Player *uPlayer){
 
 void U11PlayerRunToDefendState::execute(U11Player *uPlayer, double dt){
     
-    U4DEngine::U4DPoint3n defendPosition=uPlayer->getDefendingPosition();
+    uPlayer->seekBall();
     
-    uPlayer->seekPosition(defendPosition);
-    
-    if (!uPlayer->hasReachedPosition(defendPosition,withinDefenseDistance)) {
+    if (!uPlayer->hasReachedTheBall()) {
         
         //make the player run
         uPlayer->applyForceToPlayer(chasingSpeed, dt);
@@ -68,7 +67,6 @@ bool U11PlayerRunToDefendState::isSafeToChangeState(U11Player *uPlayer){
 }
 
 bool U11PlayerRunToDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
-    
     
     
     return false;

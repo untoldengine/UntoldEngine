@@ -19,6 +19,7 @@ class U11PlayerStateInterface;
 class U11PlayerStateManager;
 class U11PlayerExtremity;
 class U11Team;
+class U11FormationEntity;
 
 class U11Player:public U4DEngine::U4DGameObject {
     
@@ -46,15 +47,11 @@ private:
     
     U4DEngine::U4DAABB playerSpaceBox;
     
-    U4DEngine::U4DAABB formationSpace;
-    
     bool missedTheBall;
     
-    U4DEngine::U4DPoint3n homePosition;
+    U11FormationEntity *formationEntity;
     
     U4DEngine::U4DPoint3n formationPosition;
-    
-    int playerRole;
     
 public:
     
@@ -242,22 +239,13 @@ public:
     
     bool getMissedTheBall();
     
-
-    void setFormationSpace(U4DEngine::U4DAABB &uFormationSpace);
+    void setFormationEntity(U11FormationEntity *uFormationEntity);
     
-    U4DEngine::U4DAABB getFormationSpace();
+    U11FormationEntity *getFormationEntity();
     
     void setFormationPosition(U4DEngine::U4DPoint3n &uFormationPosition);
     
-    U4DEngine::U4DPoint3n getFormationPosition();
-    
-    void setHomePosition(U4DEngine::U4DPoint3n &uHomePosition);
-    
-    U4DEngine::U4DPoint3n getHomePosition();
-    
-    void setPlayerRole(int uPlayerRole);
-    
-    int getPlayerRole();
+    U4DEngine::U4DPoint3n &getFormationPosition();
     
 };
 #endif /* U11Player_hpp */

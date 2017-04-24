@@ -11,6 +11,7 @@
 #include "U11PlayerReceiveBallState.h"
 #include "U11PlayerSupportState.h"
 #include "U11PlayerDefendState.h"
+#include "U11PlayerDefenseFormationState.h"
 #include "U11MessageDispatcher.h"
 #include "UserCommonProtocols.h"
 
@@ -79,6 +80,15 @@ bool U11PlayerIdleState::handleMessage(U11Player *uPlayer, Message &uMsg){
         case msgRunToDefend:
             
             uPlayer->changeState(U11PlayerDefendState::sharedInstance());
+            
+            break;
+            
+        case msgRunToDefendingFormation:
+            
+            if (!uPlayer->hasReachedPosition(uPlayer->getFormationPosition(),withinDefenseDistance)) {
+                uPlayer->changeState(U11PlayerDefenseFormationState::sharedInstance());
+
+            }
             
             break;
             

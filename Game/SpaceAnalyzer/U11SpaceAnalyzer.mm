@@ -245,7 +245,7 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     return supportSpace;
 }
 
-U4DEngine::U4DPoint3n U11SpaceAnalyzer::computeOptimalDefenseSpace(U11Team *uTeam){
+U4DEngine::U4DPoint3n U11SpaceAnalyzer::computeFormationDefenseSpace(U11Team *uTeam){
     
     //get the field goal
     U11FieldGoal *fieldGoal=uTeam->getFieldGoal();
@@ -262,7 +262,7 @@ U4DEngine::U4DPoint3n U11SpaceAnalyzer::computeOptimalDefenseSpace(U11Team *uTea
     //get closest point on the field goal to player position
     U4DEngine::U4DPoint3n closestPointOnFieldGoal=fieldGoal->getFieldGoalWidthSegment().closestPointOnSegmentToPoint(oppositePlayerPosition);
     
-    U4DEngine::U4DPoint3n defenseSpace=(oppositePlayerPosition.toVector()+(oppositePlayerPosition-closestPointOnFieldGoal)*0.25).toPoint();
+    U4DEngine::U4DPoint3n defenseSpace=(oppositePlayerPosition.toVector()+(oppositePlayerPosition-closestPointOnFieldGoal)*0.50).toPoint();
     
     return defenseSpace;
     

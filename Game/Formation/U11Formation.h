@@ -10,14 +10,21 @@
 #define U11Formation_hpp
 
 #include <stdio.h>
-#include "U11FormationInterface.h"
 #include <vector>
-#include "U11PlayerSpace.h"
-#include "UserCommonProtocols.h"
+#include "U11FormationInterface.h"
+#include "U4DWorld.h"
+
+class U11FormationEntity;
 
 class U11Formation:public U11FormationInterface {
     
 private:
+    
+protected:
+    
+    U11FormationEntity *mainParent;
+    
+    int fieldQuadrant;
     
 public:
     
@@ -25,15 +32,13 @@ public:
     
     ~U11Formation();
     
-    std::vector<U11PlayerSpace> partitionField(U11Field *uField, std::string uFieldSide){};
+    void init(U4DEngine::U4DWorld *uWorld, int uFieldQuadrant){};
     
-    std::vector<U11PlayerSpace> partitionFieldFromLeftSide(U11Field *uField){};
+    void translateAllEntitiesToOrigin();
     
-    std::vector<U11PlayerSpace> partitionFieldFromRightSide(U11Field *uField){};
+    U11FormationEntity *assignFormationEntity();
     
-    std::vector<U4DEngine::U4DAABB> partitionAABBAlongDirection(U4DEngine::U4DAABB &uAABB,U4DEngine::U4DVector3n &uDirection, int uSpaces);
-    
-    
+    void translateFormation(U4DEngine::U4DVector3n &uPosition);
 };
 
 #endif /* U11Formation_hpp */
