@@ -20,6 +20,7 @@
 #include "U11FormationInterface.h"
 #include "U11FormationEntity.h"
 #include "U11Player.h"
+#include "UserCommonProtocols.h"
 
 
 U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL){
@@ -144,14 +145,14 @@ void U11Team::setSupportPlayer2(U11Player* uPlayer){
     
 }
 
-void U11Team::setDefendingPlayer(U11Player *uPlayer){
+void U11Team::setMainDefendingPlayer(U11Player *uPlayer){
     
-    defendingPlayer=uPlayer;
+    mainDefendingPlayer=uPlayer;
 }
 
-U11Player *U11Team::getDefendingPlayer(){
+U11Player *U11Team::getMainDefendingPlayer(){
     
-    return defendingPlayer;
+    return mainDefendingPlayer;
 }
 
 std::vector<U11Player*> U11Team::analyzeClosestPlayersToBall(){
@@ -197,11 +198,12 @@ std::vector<U11Player*> U11Team::analyzeSupportPlayers(){
 
 std::vector<U11Player*> U11Team::analyzeDefendingPlayer(){
     
-    U4DEngine::U4DVector3n ballPosition=soccerBall->getAbsolutePosition();
+    U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
+    U4DEngine::U4DVector3n oppositePlayerPosition=oppositeControllingPlayer->getAbsolutePosition();
     
     U11SpaceAnalyzer spaceAnalyzer;
     
-    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, ballPosition);
+    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, oppositePlayerPosition);
     
 }
 
@@ -222,12 +224,22 @@ void U11Team::assignSupportPlayer(){
 
 void U11Team::assignDefendingPlayer(){
     
-    //send message to defending player
-    defendingPlayer=analyzeDefendingPlayer().at(0);
+    U11SpaceAnalyzer spaceAnalyzer;
     
+    mainDefendingPlayer=analyzeDefendingPlayer().at(0);
+    
+    //Set the defending position
+    
+    U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
+    
+    U4DEngine::U4DPoint3n defendingSpace=spaceAnalyzer.computeDefenseSpace(this, oppositeControllingPlayer,defenseSpace);
+    
+    mainDefendingPlayer->setDefendingPosition(defendingSpace);
+    
+    //send message to defending player
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
-    messageDispatcher->sendMessage(0.0, NULL, defendingPlayer, msgRunToDefend);
+    messageDispatcher->sendMessage(0.0, NULL, mainDefendingPlayer, msgRunToDefend);
     
 }
 
@@ -269,7 +281,9 @@ void U11Team::computeDefendingSpace(){
     
     U11SpaceAnalyzer spaceAnalyzer;
     
-    U4DEngine::U4DVector3n defendingSpace=(spaceAnalyzer.computeFormationDefenseSpace(this)).toVector();
+    U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
+    
+    U4DEngine::U4DVector3n defendingSpace=(spaceAnalyzer.computeDefenseSpace(this, oppositeControllingPlayer,formationDefenseSpace)).toVector();
     
     teamFormation->translateFormation(defendingSpace);
     
@@ -277,19 +291,24 @@ void U11Team::computeDefendingSpace(){
     
     updateTeamFormationPosition();
     
+    //get defending player closer to ball
+    assignDefendingPlayer();
+    
+    //get the support defending players
+    assignDefendingSupportPlayers();
+    
     //message all the players to get to their home position
     
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
     for(auto n:teammates){
         
-        messageDispatcher->sendMessage(0.0, NULL, n, msgRunToDefendingFormation);
+        if (n!=mainDefendingPlayer && n!=supportDefendingPlayer1 && n!=supportDefendingPlayer2) {
+            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToDefendingFormation);
+        }
+        
     }
-    
-    
-    //get defending player closer to ball
-    assignDefendingPlayer();
-    
+
 }
 
 void U11Team::startComputeSupportSpaceTimer(){
@@ -345,5 +364,79 @@ void U11Team::updateTeamFormationPosition(){
     
 }
 
+void U11Team::assignDefendingSupportPlayers(){
+    
+    U11SpaceAnalyzer spaceAnalyzer;
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    //get threatening players
+    std::vector<U11Player*> threateningPlayers=spaceAnalyzer.analyzeThreateningPlayers(this);
+    
+    if (threateningPlayers.size()>2) {
+        
+        threateningPlayers.resize(2);
+        
+    }
+    
+    if (threateningPlayers.size()==1) {
+        
+        U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(0));
+        
+        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeDefenseSpace(this, threateningPlayers.at(0),defenseSpace);
+        
+        defendingPlayer1->setDefendingPosition(defendingPosition1);
+        
+        setSupportDefendingPlayer1(defendingPlayer1);
+        
+        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer1, msgRunToDefend);
+        
+    }else if (threateningPlayers.size()==2){
+        
+        U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(0));
+        
+        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeDefenseSpace(this, threateningPlayers.at(0),defenseSpace);
+        
+        defendingPlayer1->setDefendingPosition(defendingPosition1);
+        
+        setSupportDefendingPlayer1(defendingPlayer1);
+        
+        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer1, msgRunToDefend);
+        
+        
+        
+        U11Player *defendingPlayer2=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(1));
+        
+        U4DEngine::U4DPoint3n defendingPosition2=spaceAnalyzer.computeDefenseSpace(this, threateningPlayers.at(1),defenseSpace);
+        
+        
+        defendingPlayer2->setDefendingPosition(defendingPosition2);
+        
+        setSupportDefendingPlayer2(defendingPlayer2);
+        
+        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer2, msgRunToDefend);
+    }
+    
+}
+
+void U11Team::setSupportDefendingPlayer1(U11Player *uPlayer){
+    
+    supportDefendingPlayer1=uPlayer;
+}
+
+U11Player *U11Team::getSupportDefendingPlayer1(){
+    
+    return supportDefendingPlayer1;
+}
+
+void U11Team::setSupportDefendingPlayer2(U11Player *uPlayer){
+    
+    supportDefendingPlayer2=uPlayer;
+    
+}
+
+U11Player *U11Team::getSupportDefendingPlayer2(){
+ 
+    return supportDefendingPlayer2;
+}
 
 

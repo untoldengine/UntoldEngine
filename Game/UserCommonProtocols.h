@@ -72,5 +72,7 @@ const int   supportPointsSeparation=10;
 const float ballSegmentDirection=10.0;
 const float withinSupportDistance=2.5;
 const float withinDefenseDistance=2.5;
+const float defenseSpace=0.15;
+const float formationDefenseSpace=0.5;
 
 #endif /* UserCommonProtocols_h */
