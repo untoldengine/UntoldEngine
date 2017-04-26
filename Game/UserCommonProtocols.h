@@ -54,7 +54,7 @@ const float fieldLength=300.0;
 const float chasingSpeed=40.0;
 const float dribblingSpeed=30.0;
 const float ballRollingSpeed=35.0;
-const float ballPassingSpeed=50.0;
+const float ballPassingSpeed=70.0;
 const float ballGroundShotSpeed=70.0;
 const float ballAirShotSpeed=30.0;
 const float ballReverseRolling=35.0;
@@ -72,5 +72,7 @@ const int   supportPointsSeparation=10;
 const float ballSegmentDirection=10.0;
 const float withinSupportDistance=2.5;
 const float withinDefenseDistance=2.5;
+const float defenseSpace=0.15;
+const float formationDefenseSpace=0.5;
 
 #endif /* UserCommonProtocols_h */

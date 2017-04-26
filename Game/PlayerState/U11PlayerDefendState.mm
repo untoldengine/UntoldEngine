@@ -10,6 +10,7 @@
 #include "U11PlayerRunToDefendState.h"
 #include "U11PlayerDefenseFormationState.h"
 
+
 U11PlayerDefendState* U11PlayerDefendState::instance=0;
 
 U11PlayerDefendState::U11PlayerDefendState(){
@@ -58,7 +59,7 @@ bool U11PlayerDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
               
         case msgRunToDefend:
             
-            if (!uPlayer->hasReachedTheBall()) {
+            if (!uPlayer->hasReachedPosition(uPlayer->getDefendingPosition(),withinDefenseDistance)) {
                 uPlayer->changeState(U11PlayerRunToDefendState::sharedInstance());
             }
             

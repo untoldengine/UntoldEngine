@@ -40,9 +40,11 @@ void U11PlayerRunToDefendState::enter(U11Player *uPlayer){
 
 void U11PlayerRunToDefendState::execute(U11Player *uPlayer, double dt){
     
-    uPlayer->seekBall();
+    U4DEngine::U4DPoint3n defenseSupportPosition=uPlayer->getDefendingPosition();
     
-    if (!uPlayer->hasReachedTheBall()) {
+    uPlayer->seekPosition(defenseSupportPosition);
+    
+    if (!uPlayer->hasReachedPosition(defenseSupportPosition,withinDefenseDistance)) {
         
         //make the player run
         uPlayer->applyForceToPlayer(chasingSpeed, dt);
@@ -55,6 +57,7 @@ void U11PlayerRunToDefendState::execute(U11Player *uPlayer, double dt){
         uPlayer->changeState(U11PlayerDefendState::sharedInstance());
         
     }
+
 }
 
 void U11PlayerRunToDefendState::exit(U11Player *uPlayer){

@@ -46,7 +46,11 @@ public:
     
     std::vector<U4DEngine::U4DPoint3n> computeOptimalSupportSpace(U11Team *uTeam);
     
-    U4DEngine::U4DPoint3n computeFormationDefenseSpace(U11Team *uTeam);
+    U4DEngine::U4DPoint3n computeDefenseSpace(U11Team *uTeam, U11Player *uOppositePlayer, float uDistance);
+    
+    std::vector<U11Player*> analyzeThreateningPlayers(U11Team *uTeam);
+    
+    U11Player *getDefensePlayerClosestToThreatingPlayer(U11Team *uTeam, U11Player *uThreateningPlayer);
     
 };
 

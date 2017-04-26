@@ -38,7 +38,11 @@ private:
     
     U11Player *supportPlayer2;
     
-    U11Player *defendingPlayer;
+    U11Player *mainDefendingPlayer;
+    
+    U11Player *supportDefendingPlayer1;
+    
+    U11Player *supportDefendingPlayer2;
     
     U11Team *oppositeTeam;
     
@@ -94,13 +98,23 @@ public:
     
     U11Player* getSupportPlayer2();
     
-    void setDefendingPlayer(U11Player *uPlayer);
+    void setMainDefendingPlayer(U11Player *uPlayer);
     
-    U11Player *getDefendingPlayer();
+    U11Player *getMainDefendingPlayer();
+    
+    void setSupportDefendingPlayer1(U11Player *uPlayer);
+    
+    U11Player *getSupportDefendingPlayer1();
+    
+    void setSupportDefendingPlayer2(U11Player *uPlayer);
+    
+    U11Player *getSupportDefendingPlayer2();
     
     void assignSupportPlayer();
     
     void assignDefendingPlayer();
+    
+    void assignDefendingSupportPlayers();
     
     std::vector<U11Player*> analyzeSupportPlayers();
     
