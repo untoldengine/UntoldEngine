@@ -48,6 +48,8 @@
 		03254BBA1EABB33C009850D4 /* U11FormationEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03254BB81EABB33C009850D4 /* U11FormationEntity.mm */; };
 		03254BBC1EABBA32009850D4 /* formation32.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03254BBB1EABBA32009850D4 /* formation32.u4d */; };
 		03254BC01EAE4697009850D4 /* U11PlayerDefenseFormationState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03254BBE1EAE4697009850D4 /* U11PlayerDefenseFormationState.mm */; };
+		03254BC61EB0EEB7009850D4 /* U11PlayerAttackFormationState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03254BC41EB0EEB7009850D4 /* U11PlayerAttackFormationState.mm */; };
+		03254BCC1EB145C1009850D4 /* soccerfield.png in Resources */ = {isa = PBXBuildFile; fileRef = 03254BCB1EB145C1009850D4 /* soccerfield.png */; };
 		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; };
 		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; };
 		0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */; };
@@ -160,7 +162,6 @@
 		039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */; };
 		03929DD01E50BC2500D63361 /* playerscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03929DCF1E50BC2500D63361 /* playerscript.u4d */; };
 		03929DDE1E50C08900D63361 /* sidecarryrightanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03929DDD1E50C08900D63361 /* sidecarryrightanimation.u4d */; };
-		03929DE01E50CE4D00D63361 /* cesped.png in Resources */ = {isa = PBXBuildFile; fileRef = 03929DDF1E50CE4D00D63361 /* cesped.png */; };
 		03929DE21E51483200D63361 /* ball.png in Resources */ = {isa = PBXBuildFile; fileRef = 03929DE11E51483200D63361 /* ball.png */; };
 		03929DE41E515A5300D63361 /* socceruniform.png in Resources */ = {isa = PBXBuildFile; fileRef = 03929DE31E515A5300D63361 /* socceruniform.png */; };
 		03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
@@ -332,6 +333,9 @@
 		03254BBB1EABBA32009850D4 /* formation32.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = formation32.u4d; path = Resources/formation32.u4d; sourceTree = SOURCE_ROOT; };
 		03254BBE1EAE4697009850D4 /* U11PlayerDefenseFormationState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDefenseFormationState.mm; path = game/PlayerState/U11PlayerDefenseFormationState.mm; sourceTree = SOURCE_ROOT; };
 		03254BBF1EAE4697009850D4 /* U11PlayerDefenseFormationState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDefenseFormationState.h; path = game/PlayerState/U11PlayerDefenseFormationState.h; sourceTree = SOURCE_ROOT; };
+		03254BC41EB0EEB7009850D4 /* U11PlayerAttackFormationState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerAttackFormationState.mm; path = game/PlayerState/U11PlayerAttackFormationState.mm; sourceTree = SOURCE_ROOT; };
+		03254BC51EB0EEB7009850D4 /* U11PlayerAttackFormationState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerAttackFormationState.h; path = game/PlayerState/U11PlayerAttackFormationState.h; sourceTree = SOURCE_ROOT; };
+		03254BCB1EB145C1009850D4 /* soccerfield.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = soccerfield.png; path = Resources/soccerfield.png; sourceTree = SOURCE_ROOT; };
 		0325D20C1C836D9200F1B9BE /* U4DAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAABB.mm; sourceTree = "<group>"; };
 		0325D20D1C836D9200F1B9BE /* U4DAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAABB.h; sourceTree = "<group>"; };
 		0325D2121C83D5B900F1B9BE /* U4DSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSphere.mm; sourceTree = "<group>"; };
@@ -525,7 +529,6 @@
 		039175061CE1933100FD2674 /* U4DBVHModelCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHModelCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHModelCollision.h; sourceTree = "<group>"; };
 		03929DCF1E50BC2500D63361 /* playerscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = playerscript.u4d; path = Resources/playerscript.u4d; sourceTree = SOURCE_ROOT; };
 		03929DDD1E50C08900D63361 /* sidecarryrightanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = sidecarryrightanimation.u4d; path = Resources/sidecarryrightanimation.u4d; sourceTree = SOURCE_ROOT; };
-		03929DDF1E50CE4D00D63361 /* cesped.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = cesped.png; path = Resources/cesped.png; sourceTree = SOURCE_ROOT; };
 		03929DE11E51483200D63361 /* ball.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ball.png; path = Resources/ball.png; sourceTree = SOURCE_ROOT; };
 		03929DE31E515A5300D63361 /* socceruniform.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = socceruniform.png; path = Resources/socceruniform.png; sourceTree = SOURCE_ROOT; };
 		03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFontLoader.h; sourceTree = "<group>"; };
@@ -905,6 +908,8 @@
 				03254B8F1EA11600009850D4 /* U11PlayerRunToDefendState.mm */,
 				03254BBF1EAE4697009850D4 /* U11PlayerDefenseFormationState.h */,
 				03254BBE1EAE4697009850D4 /* U11PlayerDefenseFormationState.mm */,
+				03254BC51EB0EEB7009850D4 /* U11PlayerAttackFormationState.h */,
+				03254BC41EB0EEB7009850D4 /* U11PlayerAttackFormationState.mm */,
 			);
 			name = PlayerState;
 			sourceTree = "<group>";
@@ -1366,10 +1371,10 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03254BCB1EB145C1009850D4 /* soccerfield.png */,
 				03ECCC011E9534300057C20B /* oppositesocceruniform.png */,
 				03929DE31E515A5300D63361 /* socceruniform.png */,
 				03929DE11E51483200D63361 /* ball.png */,
-				03929DDF1E50CE4D00D63361 /* cesped.png */,
 				03929DCF1E50BC2500D63361 /* playerscript.u4d */,
 				03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
@@ -1891,7 +1896,6 @@
 				0368490B1E5EAC250087BBBD /* rightfootforwardkickanimation.u4d in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
-				03929DE01E50CE4D00D63361 /* cesped.png in Resources */,
 				036848EA1E59FCCF0087BBBD /* idleanimation.u4d in Resources */,
 				03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */,
 				03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */,
@@ -1909,6 +1913,7 @@
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
 				0368490D1E5EAC370087BBBD /* leftfootforwardkickanimation.u4d in Resources */,
+				03254BCC1EB145C1009850D4 /* soccerfield.png in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */,
 				030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */,
@@ -2055,6 +2060,7 @@
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
+				03254BC61EB0EEB7009850D4 /* U11PlayerAttackFormationState.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
 				0348C0BE1E7280D7001FFF97 /* U11TriangleNode.mm in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,

@@ -172,6 +172,7 @@ void Earth::init(){
     
     addChild(fieldGoal2);
     
+    
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     

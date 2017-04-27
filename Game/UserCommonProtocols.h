@@ -45,6 +45,7 @@ enum{
     msgPressControllingPlayer,
     msgRunToDefend,
     msgRunToDefendingFormation,
+    msgRunToAttackFormation,
     
 }MessageEnum;
 

@@ -14,6 +14,7 @@
 #include "U11PlayerReceiveBallState.h"
 #include "U11PlayerReverseRunState.h"
 #include "U11PlayerLateralRunState.h"
+#include "U11PlayerAttackFormationState.h"
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
 
@@ -127,6 +128,15 @@ bool U11PlayerSupportState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
             if (!uPlayer->hasReachedPosition(uPlayer->getSupportPosition(),withinSupportDistance)) {
                 uPlayer->changeState(U11PlayerRunToSupportState::sharedInstance());
+            }
+            
+            break;
+            
+        case msgRunToAttackFormation:
+            
+            if (!uPlayer->hasReachedPosition(uPlayer->getFormationPosition(),withinDefenseDistance)) {
+                uPlayer->changeState(U11PlayerAttackFormationState::sharedInstance());
+                
             }
             
             break;
