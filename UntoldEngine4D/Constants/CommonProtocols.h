@@ -281,7 +281,12 @@ namespace U4DEngine {
         /**
          @brief Entity is a 3D parent model entity
          */
-        PARENT
+        PARENT,
+        
+        /**
+         @brief Entity of a 3D model with no shadows enabled
+         **/
+        MODELNOSHADOWS
         
     }ENTITYTYPE;
 

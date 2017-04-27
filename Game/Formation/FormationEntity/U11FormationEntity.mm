@@ -24,6 +24,8 @@ void U11FormationEntity::init(const char* uModelName, const char* uBlenderFile){
         
         setShader("nonVisibleShader");
         
+        setEntityType(U4DEngine::MODELNOSHADOWS);
+        
         loadRenderingInformation();
     }
 }
