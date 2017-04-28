@@ -22,7 +22,9 @@ void U11FormationEntity::init(const char* uModelName, const char* uBlenderFile){
         
         originPosition=getAbsolutePosition();
         
-        //setShader("nonVisibleShader");
+        setShader("nonVisibleShader");
+        
+        setEntityType(U4DEngine::MODELNOSHADOWS);
         
         loadRenderingInformation();
     }

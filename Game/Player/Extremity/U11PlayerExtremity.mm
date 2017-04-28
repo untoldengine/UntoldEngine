@@ -24,6 +24,9 @@ void U11PlayerExtremity::init(const char* uName, const char* uBlenderFile){
         
         //initialize everything else here
         setShader("nonVisibleShader");
+        
+        setEntityType(U4DEngine::MODELNOSHADOWS);
+        
         initMass(0.0);
         initAsPlatform(true);
         initCoefficientOfRestitution(0.0);

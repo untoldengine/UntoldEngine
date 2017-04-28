@@ -232,7 +232,7 @@ void U11Team::assignDefendingPlayer(){
     
     U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
     
-    U4DEngine::U4DPoint3n defendingSpace=spaceAnalyzer.computeDefenseSpace(this, oppositeControllingPlayer,defenseSpace);
+    U4DEngine::U4DPoint3n defendingSpace=spaceAnalyzer.computeMovementRelToFieldGoal(this, oppositeControllingPlayer,defenseSpace);
     
     mainDefendingPlayer->setDefendingPosition(defendingSpace);
     
@@ -248,6 +248,18 @@ void U11Team::computeSupportSpace(){
 
     U11SpaceAnalyzer spaceAnalyzer;
     
+    //translate the formation
+    U11Player *controllingPlayer=getControllingPlayer();
+    
+    U4DEngine::U4DVector3n formationSupportSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(this, controllingPlayer,formationDefenseSpace)).toVector();
+    
+    teamFormation->translateFormation(formationSupportSpace);
+    
+    //change the home position for each player
+    
+    updateTeamFormationPosition();
+    
+    //assign the support players
     std::vector<U4DEngine::U4DPoint3n> supportSpace=spaceAnalyzer.computeOptimalSupportSpace(this);
     
     U4DEngine::U4DPoint3n supportSpace1=supportSpace.at(0);
@@ -275,6 +287,16 @@ void U11Team::computeSupportSpace(){
     messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgRunToSupport);
     messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgRunToSupport);
     
+    //message all the players to get to their home position
+    
+    for(auto n:teammates){
+        
+        if (n!=controllingPlayer && n!=supportPlayer1 && n!=supportPlayer2) {
+            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToAttackFormation);
+        }
+        
+    }
+    
 }
 
 void U11Team::computeDefendingSpace(){
@@ -283,7 +305,7 @@ void U11Team::computeDefendingSpace(){
     
     U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
     
-    U4DEngine::U4DVector3n defendingSpace=(spaceAnalyzer.computeDefenseSpace(this, oppositeControllingPlayer,formationDefenseSpace)).toVector();
+    U4DEngine::U4DVector3n defendingSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(this, oppositeControllingPlayer,formationDefenseSpace)).toVector();
     
     teamFormation->translateFormation(defendingSpace);
     
@@ -325,7 +347,7 @@ void U11Team::removeComputeSupportStateTimer(){
 
 void U11Team::startComputeDefendingSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeDefendingSpace, defendAnalysisTimer, 1.5, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeDefendingSpace, defendAnalysisTimer, 0.8, true);
     
 }
 
@@ -382,7 +404,7 @@ void U11Team::assignDefendingSupportPlayers(){
         
         U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(0));
         
-        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeDefenseSpace(this, threateningPlayers.at(0),defenseSpace);
+        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeMovementRelToFieldGoal(this, threateningPlayers.at(0),defenseSpace);
         
         defendingPlayer1->setDefendingPosition(defendingPosition1);
         
@@ -394,7 +416,7 @@ void U11Team::assignDefendingSupportPlayers(){
         
         U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(0));
         
-        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeDefenseSpace(this, threateningPlayers.at(0),defenseSpace);
+        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeMovementRelToFieldGoal(this, threateningPlayers.at(0),defenseSpace);
         
         defendingPlayer1->setDefendingPosition(defendingPosition1);
         
@@ -406,7 +428,7 @@ void U11Team::assignDefendingSupportPlayers(){
         
         U11Player *defendingPlayer2=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(1));
         
-        U4DEngine::U4DPoint3n defendingPosition2=spaceAnalyzer.computeDefenseSpace(this, threateningPlayers.at(1),defenseSpace);
+        U4DEngine::U4DPoint3n defendingPosition2=spaceAnalyzer.computeMovementRelToFieldGoal(this, threateningPlayers.at(1),defenseSpace);
         
         
         defendingPlayer2->setDefendingPosition(defendingPosition2);

@@ -46,7 +46,7 @@ public:
     
     std::vector<U4DEngine::U4DPoint3n> computeOptimalSupportSpace(U11Team *uTeam);
     
-    U4DEngine::U4DPoint3n computeDefenseSpace(U11Team *uTeam, U11Player *uOppositePlayer, float uDistance);
+    U4DEngine::U4DPoint3n computeMovementRelToFieldGoal(U11Team *uTeam, U11Player *uPlayer, float uDistance);
     
     std::vector<U11Player*> analyzeThreateningPlayers(U11Team *uTeam);
     
