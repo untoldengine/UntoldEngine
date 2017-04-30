@@ -152,7 +152,7 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
     }
         
     if (ball->getVelocity().magnitude()>ballMaxSpeed) {
-        uPlayer->decelerateBall(ballDeceleration, dt);
+        //uPlayer->decelerateBall(ballDeceleration, dt);
     }
     
     //if joystick is active go into dribble state

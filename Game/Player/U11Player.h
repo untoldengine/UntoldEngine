@@ -53,16 +53,6 @@ private:
     
     U4DEngine::U4DPoint3n formationPosition;
     
-public:
-    
-    U11Player();
-    
-    ~U11Player();
-    
-    void init(const char* uModelName, const char* uBlenderFile);
-    
-    void update(double dt);
-    
     U4DEngine::U4DAnimation *walkingAnimation;
     
     U4DEngine::U4DAnimation *rightFootSidePassAnimation;
@@ -104,6 +94,20 @@ public:
     U4DEngine::U4DAnimation *lateralRightRunAnimation;
     
     U4DEngine::U4DAnimation *lateralLeftRunAnimation;
+    
+    U4DEngine::U4DAnimation *markingAnimation;
+    
+    U4DEngine::U4DAnimation *stealingAnimation;
+    
+public:
+    
+    U11Player();
+    
+    ~U11Player();
+    
+    void init(const char* uModelName, const char* uBlenderFile);
+    
+    void update(double dt);
     
     void changeState(U11PlayerStateInterface* uState);
     
@@ -154,6 +158,10 @@ public:
     U4DEngine::U4DAnimation *getSideCarryLeftAnimation();
     
     U4DEngine::U4DAnimation *getSideCarryRightAnimation();
+    
+    U4DEngine::U4DAnimation *getMarkingAnimation();
+    
+    U4DEngine::U4DAnimation *getStealingAnimation();
     
     void setJoystickActive(bool uValue);
     
