@@ -9,7 +9,10 @@
 #include "U11PlayerDefendState.h"
 #include "U11PlayerRunToDefendState.h"
 #include "U11PlayerDefenseFormationState.h"
-
+#include "U11PlayerMarkingState.h"
+#include "U11PlayerStealingState.h"
+#include "U11PlayerRunToStealState.h"
+#include "U11Team.h"
 
 U11PlayerDefendState* U11PlayerDefendState::instance=0;
 
@@ -42,6 +45,8 @@ void U11PlayerDefendState::execute(U11Player *uPlayer, double dt){
     
     uPlayer->seekBall();
     
+    
+    
 }
 
 void U11PlayerDefendState::exit(U11Player *uPlayer){
@@ -71,6 +76,13 @@ bool U11PlayerDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
                 uPlayer->changeState(U11PlayerDefenseFormationState::sharedInstance());
                 
             }
+            
+            break;
+            
+        case msgRunToSteal:
+            
+            uPlayer->changeState(U11PlayerRunToStealState::sharedInstance());
+            
             
             break;
             

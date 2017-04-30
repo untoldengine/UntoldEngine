@@ -64,6 +64,9 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         lateralLeftRunAnimation=new U4DEngine::U4DAnimation(this);
         lateralRightRunAnimation=new U4DEngine::U4DAnimation(this);
         
+        markingAnimation=new U4DEngine::U4DAnimation(this);
+        stealingAnimation=new U4DEngine::U4DAnimation(this);
+        
         //set collision info
         initMass(80.0);
         initAsPlatform(true);
@@ -235,6 +238,18 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         if (loadAnimationToModel(lateralLeftRunAnimation, "lateralleftrun", "lateralleftrunanimation.u4d")) {
             
             lateralLeftRunAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(markingAnimation, "marking", "markinganimation.u4d")) {
+            
+            markingAnimation->setIsAllowedToBeInterrupted(true);
+            
+        }
+        
+        if (loadAnimationToModel(stealingAnimation, "stealing", "stealinganimation.u4d")) {
+            
+            stealingAnimation->setIsAllowedToBeInterrupted(true);
             
         }
         
@@ -568,6 +583,16 @@ U4DEngine::U4DAnimation *U11Player::getLateralRightRunAnimation(){
 U4DEngine::U4DAnimation *U11Player::getLateralLeftRunAnimation(){
     
     return lateralLeftRunAnimation;
+}
+
+U4DEngine::U4DAnimation *U11Player::getMarkingAnimation(){
+    
+    return markingAnimation;
+}
+
+U4DEngine::U4DAnimation *U11Player::getStealingAnimation(){
+    
+    return stealingAnimation;
 }
 
 void U11Player::setJoystickActive(bool uValue){

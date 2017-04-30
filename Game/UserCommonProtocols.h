@@ -46,6 +46,7 @@ enum{
     msgRunToDefend,
     msgRunToDefendingFormation,
     msgRunToAttackFormation,
+    msgRunToSteal,
     
 }MessageEnum;
 
@@ -54,8 +55,10 @@ const float fieldLength=300.0;
 
 const float chasingSpeed=40.0;
 const float dribblingSpeed=30.0;
+const float markingSpeed=20.0;
 const float ballRollingSpeed=35.0;
 const float ballPassingSpeed=50.0;
+const float ballStealingSpeed=50.0;
 const float ballGroundShotSpeed=70.0;
 const float ballAirShotSpeed=30.0;
 const float ballReverseRolling=35.0;
@@ -73,6 +76,8 @@ const int   supportPointsSeparation=10;
 const float ballSegmentDirection=10.0;
 const float withinSupportDistance=2.5;
 const float withinDefenseDistance=2.5;
+const float stealingDistanceToBall=1.0;
+const float markingDistanceToBall=5.0;
 const float defenseSpace=0.15;
 const float formationDefenseSpace=0.5;
 

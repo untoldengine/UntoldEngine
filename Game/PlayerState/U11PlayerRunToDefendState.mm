@@ -8,7 +8,6 @@
 
 #include "U11PlayerRunToDefendState.h"
 #include "U11PlayerDefendState.h"
-#include "U11PlayerDefenseFormationState.h"
 
 U11PlayerRunToDefendState* U11PlayerRunToDefendState::instance=0;
 
@@ -44,6 +43,7 @@ void U11PlayerRunToDefendState::execute(U11Player *uPlayer, double dt){
     
     uPlayer->seekPosition(defenseSupportPosition);
     
+    
     if (!uPlayer->hasReachedPosition(defenseSupportPosition,withinDefenseDistance)) {
         
         //make the player run
@@ -53,8 +53,9 @@ void U11PlayerRunToDefendState::execute(U11Player *uPlayer, double dt){
         
         uPlayer->removeAllVelocities();
         uPlayer->removeKineticForces();
-        
+            
         uPlayer->changeState(U11PlayerDefendState::sharedInstance());
+        
         
     }
 
