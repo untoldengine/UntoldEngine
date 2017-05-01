@@ -69,6 +69,12 @@ void main(void)
 
             mediump vec4 textureColor=texture(DiffuseTexture,vVaryingTexCoords.st);
 
+            //discard the alpha to discard the texture
+            if(textureColor.a<0.15){
+
+                discard;
+            }
+
             finalColor=vec4(mix(textureColor,finalColor,0.2));
 
         }

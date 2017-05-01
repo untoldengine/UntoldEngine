@@ -310,7 +310,7 @@ void U4DOpenGL3DModel::drawDepthOnFrameBuffer(){
     //compute ortho space
     U4DMatrix4n depthOrthoMatrix;
     
-    depthOrthoMatrix.computeOrthographicMatrix(-150.0, 150.0, -150.0, 150.0, -150.0f, 150.0f);
+    depthOrthoMatrix.computeOrthographicMatrix(-300.0, 300.0, -150.0, 150.0, -250.0f, 250.0f);
     
     U4DLights *light=U4DLights::sharedInstance();
     
