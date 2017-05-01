@@ -20,8 +20,6 @@ void U11FieldGoal::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
-        setShader("nonVisibleShader");
-        
         setEntityType(U4DEngine::MODELNOSHADOWS);
         
         computeFieldGoalWidthSegment();
