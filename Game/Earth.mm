@@ -32,7 +32,7 @@
 #include "U11FieldGoal.h"
 
 #include "GameLogic.h"
-#include "U11Formation32.h"
+#include "U11Formation442.h"
 #include "U11FormationInterface.h"
 
 using namespace U4DEngine;
@@ -51,8 +51,8 @@ void Earth::init(){
     
     director->setWorld(this);
     
-    U11FormationInterface *emelecFormation=new U11Formation32();
-    U11FormationInterface *barcelonaFormation=new U11Formation32();
+    U11FormationInterface *emelecFormation=new U11Formation442();
+    U11FormationInterface *barcelonaFormation=new U11Formation442();
     
     emelec=new U11Team(emelecFormation, this, -1);
     
@@ -92,6 +92,36 @@ void Earth::init(){
     
     emelecPlayer7->subscribeTeam(emelec);
     
+    
+    emelecPlayer6=new U11Player();
+    emelecPlayer6->init("pele", "playerscript.u4d");
+    
+    emelecPlayer6->subscribeTeam(emelec);
+    
+    
+    emelecPlayer5=new U11Player();
+    emelecPlayer5->init("pele", "playerscript.u4d");
+    
+    emelecPlayer5->subscribeTeam(emelec);
+    
+    
+    emelecPlayer4=new U11Player();
+    emelecPlayer4->init("pele", "playerscript.u4d");
+    
+    emelecPlayer4->subscribeTeam(emelec);
+    
+    
+    emelecPlayer3=new U11Player();
+    emelecPlayer3->init("pele", "playerscript.u4d");
+    
+    emelecPlayer3->subscribeTeam(emelec);
+    
+    emelecPlayer2=new U11Player();
+    emelecPlayer2->init("pele", "playerscript.u4d");
+    
+    emelecPlayer2->subscribeTeam(emelec);
+    
+    
     //opposite team
     barcelonaPlayer10=new U11Player();
     barcelonaPlayer10->init("pele", "oppositeplayerscript.u4d");
@@ -117,6 +147,37 @@ void Earth::init(){
     barcelonaPlayer7->init("pele", "oppositeplayerscript.u4d");
     
     barcelonaPlayer7->subscribeTeam(barcelona);
+    
+    
+    barcelonaPlayer6=new U11Player();
+    barcelonaPlayer6->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer6->subscribeTeam(barcelona);
+    
+    
+    barcelonaPlayer5=new U11Player();
+    barcelonaPlayer5->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer5->subscribeTeam(barcelona);
+    
+    barcelonaPlayer4=new U11Player();
+    barcelonaPlayer4->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer4->subscribeTeam(barcelona);
+    
+    
+    barcelonaPlayer3=new U11Player();
+    barcelonaPlayer3->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer3->subscribeTeam(barcelona);
+    
+    
+    
+    barcelonaPlayer2=new U11Player();
+    barcelonaPlayer2->init("pele", "oppositeplayerscript.u4d");
+    
+    barcelonaPlayer2->subscribeTeam(barcelona);
+    
     
     //set ball entity
     field->setSoccerBall(ball);
@@ -158,6 +219,18 @@ void Earth::init(){
     
     addChild(emelecPlayer7);
     
+    addChild(emelecPlayer6);
+    
+    addChild(emelecPlayer5);
+    
+    addChild(emelecPlayer4);
+    
+    addChild(emelecPlayer3);
+    
+    addChild(emelecPlayer2);
+    
+    
+    
     addChild(barcelonaPlayer10);
     
     addChild(barcelonaPlayer11);
@@ -167,6 +240,17 @@ void Earth::init(){
     addChild(barcelonaPlayer8);
     
     addChild(barcelonaPlayer7);
+    
+    addChild(barcelonaPlayer6);
+    
+    addChild(barcelonaPlayer5);
+    
+    addChild(barcelonaPlayer4);
+    
+    addChild(barcelonaPlayer3);
+
+    addChild(barcelonaPlayer2);
+    
     
     addChild(fieldGoal1);
     

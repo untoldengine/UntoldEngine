@@ -153,6 +153,8 @@
 		037BCBD01EB4FE73004CD2F1 /* U11PlayerRunToStealState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037BCBCE1EB4FE73004CD2F1 /* U11PlayerRunToStealState.mm */; };
 		037BCBDA1EB5877D004CD2F1 /* fullsoccerfield.png in Resources */ = {isa = PBXBuildFile; fileRef = 037BCBD91EB5877D004CD2F1 /* fullsoccerfield.png */; };
 		037BCBDC1EB64AC5004CD2F1 /* stadium_el.png in Resources */ = {isa = PBXBuildFile; fileRef = 037BCBDB1EB64AC5004CD2F1 /* stadium_el.png */; };
+		037BCBDF1EB77FF5004CD2F1 /* U11Formation442.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037BCBDD1EB77FF5004CD2F1 /* U11Formation442.mm */; };
+		037BCBE11EB78814004CD2F1 /* formation442.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 037BCBE01EB78814004CD2F1 /* formation442.u4d */; };
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DGameObject.mm */; };
 		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; };
@@ -516,6 +518,9 @@
 		037BCBCF1EB4FE73004CD2F1 /* U11PlayerRunToStealState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunToStealState.h; path = game/PlayerState/U11PlayerRunToStealState.h; sourceTree = SOURCE_ROOT; };
 		037BCBD91EB5877D004CD2F1 /* fullsoccerfield.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = fullsoccerfield.png; path = Resources/fullsoccerfield.png; sourceTree = SOURCE_ROOT; };
 		037BCBDB1EB64AC5004CD2F1 /* stadium_el.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = stadium_el.png; path = Resources/stadium_el.png; sourceTree = SOURCE_ROOT; };
+		037BCBDD1EB77FF5004CD2F1 /* U11Formation442.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Formation442.mm; path = game/Formation/U11Formation442.mm; sourceTree = SOURCE_ROOT; };
+		037BCBDE1EB77FF5004CD2F1 /* U11Formation442.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Formation442.h; path = game/Formation/U11Formation442.h; sourceTree = SOURCE_ROOT; };
+		037BCBE01EB78814004CD2F1 /* formation442.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = formation442.u4d; path = Resources/formation442.u4d; sourceTree = SOURCE_ROOT; };
 		037C473A17B597CB007B8283 /* U4DModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DModel.h; sourceTree = "<group>"; };
 		037C473B17B597CB007B8283 /* U4DModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DModel.mm; sourceTree = "<group>"; };
 		037C473C17B597CB007B8283 /* U4DGameObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DGameObject.h; sourceTree = "<group>"; };
@@ -818,6 +823,8 @@
 				03254BA71EA29230009850D4 /* U11Formation.mm */,
 				03254BB41EABAFE9009850D4 /* U11Formation32.h */,
 				03254BB31EABAFE9009850D4 /* U11Formation32.mm */,
+				037BCBDE1EB77FF5004CD2F1 /* U11Formation442.h */,
+				037BCBDD1EB77FF5004CD2F1 /* U11Formation442.mm */,
 			);
 			name = Formation;
 			sourceTree = "<group>";
@@ -1435,6 +1442,7 @@
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
 				037BCBCA1EB3CE7B004CD2F1 /* markinganimation.u4d */,
 				037BCBCC1EB3CEC0004CD2F1 /* stealinganimation.u4d */,
+				037BCBE01EB78814004CD2F1 /* formation442.u4d */,
 			);
 			name = Resources;
 			path = Game/Resources;
@@ -1898,6 +1906,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				037BCBE11EB78814004CD2F1 /* formation442.u4d in Resources */,
 				034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */,
 				03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */,
 				03759B4F175B0135002EB5D9 /* Default.png in Resources */,
@@ -2005,6 +2014,7 @@
 				03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */,
 				0348C09B1E6A491D001FFF97 /* U11BallStateInterface.mm in Sources */,
 				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
+				037BCBDF1EB77FF5004CD2F1 /* U11Formation442.mm in Sources */,
 				0348C0D31E7338A0001FFF97 /* U11AIAnalyzer.mm in Sources */,
 				03254B911EA11600009850D4 /* U11PlayerRunToDefendState.mm in Sources */,
 				0390C7C91E3432750028AC20 /* U4DParticleDust.mm in Sources */,
