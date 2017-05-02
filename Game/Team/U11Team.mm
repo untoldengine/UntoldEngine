@@ -23,7 +23,7 @@
 #include "UserCommonProtocols.h"
 
 
-U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL){
+U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL){
     
     stateManager=new U11TeamStateManager(this);
     scheduler=new U4DEngine::U4DCallback<U11Team>;
@@ -117,7 +117,12 @@ U11Player* U11Team::getControllingPlayer(){
 
 void U11Team::setControllingPlayer(U11Player* uPlayer){
     
+    if (previousMainControllingPlayer!=NULL) {
+        previousMainControllingPlayer->pauseExtremityCollision();
+    }
     controllingPlayer=uPlayer;
+    
+    controllingPlayer->resumeExtremityCollision();
     
 }
 
@@ -147,7 +152,11 @@ void U11Team::setSupportPlayer2(U11Player* uPlayer){
 
 void U11Team::setMainDefendingPlayer(U11Player *uPlayer){
     
+    if (previousMainDefendingPlayer!=NULL) {
+        previousMainDefendingPlayer->pauseExtremityCollision();
+    }
     mainDefendingPlayer=uPlayer;
+    mainDefendingPlayer->resumeExtremityCollision();
 }
 
 U11Player *U11Team::getMainDefendingPlayer(){
