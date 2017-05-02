@@ -75,7 +75,7 @@ void main(void)
                 discard;
             }
 
-            finalColor=vec4(mix(textureColor,finalColor,0.2));
+            finalColor=vec4(mix(textureColor,finalColor,0.3));
 
         }
 

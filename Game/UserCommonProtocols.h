@@ -50,17 +50,17 @@ enum{
     
 }MessageEnum;
 
-const float fieldWidth=256.0;
-const float fieldLength=300.0;
+const float fieldWidth=360.0;
+const float fieldLength=540.0;
 
-const float chasingSpeed=40.0;
-const float dribblingSpeed=30.0;
+const float chasingSpeed=50.0;
+const float dribblingSpeed=40.0;
 const float markingSpeed=20.0;
-const float ballRollingSpeed=35.0;
-const float ballPassingSpeed=50.0;
+const float ballRollingSpeed=43.0;
+const float ballPassingSpeed=60.0;
 const float ballStealingSpeed=50.0;
 const float ballGroundShotSpeed=70.0;
-const float ballAirShotSpeed=30.0;
+const float ballAirShotSpeed=80.0;
 const float ballReverseRolling=35.0;
 const float ballDeceleration=0.5;
 const float ballMaxSpeed=8.0;

@@ -44,6 +44,10 @@ private:
     
     U11Player *supportDefendingPlayer2;
     
+    U11Player *previousMainControllingPlayer;
+    
+    U11Player *previousMainDefendingPlayer;
+    
     U11Team *oppositeTeam;
     
     U11Ball *soccerBall;

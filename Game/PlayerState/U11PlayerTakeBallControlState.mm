@@ -43,6 +43,21 @@ U11PlayerTakeBallControlState* U11PlayerTakeBallControlState::sharedInstance(){
 
 void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     
+    //get team
+    U11Team *team=uPlayer->getTeam();
+    
+    //set as the controlling player
+    team->setControllingPlayer(uPlayer);
+    
+    //assign support player
+    team->assignSupportPlayer();
+    
+    //change state to attacking
+    team->changeState(U11TeamAttackingState::sharedInstance());
+    
+    //inform the opposite team to change to defending state
+    team->getOppositeTeam()->changeState(U11TeamDefendingState::sharedInstance());
+    
     //determine the direction of the ball
     U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
     playerHeading.normalize();
@@ -99,20 +114,7 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(false);
     
-    //get team
-    U11Team *team=uPlayer->getTeam();
-    
-    //set as the controlling player
-    team->setControllingPlayer(uPlayer);
-    
-    //assign support player
-    team->assignSupportPlayer();
-    
-    //change state to attacking
-    team->changeState(U11TeamAttackingState::sharedInstance());
-    
-    //inform the opposite team to change to defending state
-    team->getOppositeTeam()->changeState(U11TeamDefendingState::sharedInstance());
+   
 }
 
 void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
@@ -152,7 +154,7 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
     }
         
     if (ball->getVelocity().magnitude()>ballMaxSpeed) {
-        //uPlayer->decelerateBall(ballDeceleration, dt);
+        uPlayer->decelerateBall(ballDeceleration, dt);
     }
     
     //if joystick is active go into dribble state

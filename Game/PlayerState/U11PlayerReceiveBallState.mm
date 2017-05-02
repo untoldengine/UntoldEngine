@@ -37,8 +37,6 @@ void U11PlayerReceiveBallState::enter(U11Player *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(true);
     
-    //set as the receiving player
-//    uPlayer->getTeam()->setReceivingPlayer(uPlayer);
 }
 
 void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){

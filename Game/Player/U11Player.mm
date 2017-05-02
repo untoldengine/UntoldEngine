@@ -253,6 +253,8 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
             
         }
         
+        pauseExtremityCollision();
+        
         //set initial state
         changeState(U11PlayerIdleState::sharedInstance());
         
@@ -875,6 +877,19 @@ U4DEngine::U4DPoint3n &U11Player::getFormationPosition(){
     
     return formationPosition;
     
+}
+
+void U11Player::pauseExtremityCollision(){
+    
+    rightFoot->pauseCollisionBehavior();
+    leftFoot->pauseCollisionBehavior();
+    
+}
+
+void U11Player::resumeExtremityCollision(){
+    
+    rightFoot->resumeCollisionBehavior();
+    leftFoot->resumeCollisionBehavior();
 }
 
 

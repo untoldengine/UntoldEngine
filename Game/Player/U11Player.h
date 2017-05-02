@@ -255,5 +255,9 @@ public:
     
     U4DEngine::U4DPoint3n &getFormationPosition();
     
+    void pauseExtremityCollision();
+    
+    void resumeExtremityCollision();
+    
 };
 #endif /* U11Player_hpp */

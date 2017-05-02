@@ -40,8 +40,8 @@ using namespace U4DEngine;
 void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 80.0, 100.0);
-    camera->rotateBy(-36.0, 0.0, 0.0);
+    camera->translateBy(0.0, 70.0, 150.0);
+    camera->rotateBy(-30.0, 0.0, 0.0);
     
     setName("earth");
     
@@ -172,11 +172,11 @@ void Earth::init(){
     barcelonaPlayer3->subscribeTeam(barcelona);
     
     
-    
     barcelonaPlayer2=new U11Player();
     barcelonaPlayer2->init("pele", "oppositeplayerscript.u4d");
     
     barcelonaPlayer2->subscribeTeam(barcelona);
+    
     
     
     //set ball entity
@@ -273,7 +273,7 @@ void Earth::init(){
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->followModel(ball, 0.0, 80.0, 100.0);
+    camera->followModel(ball, 0.0, 70.0, 150.0);
     
 
 }
