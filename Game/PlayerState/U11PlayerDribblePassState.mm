@@ -48,7 +48,7 @@ void U11PlayerDribblePassState::execute(U11Player *uPlayer, double dt){
     if (uPlayer->distanceToBall()>1.5) {
         
         //chase the ball
-        uPlayer->applyForceToPlayer(30.0, dt);
+        uPlayer->applyForceToPlayer(chasingSpeed, dt);
         
     }else{
         
