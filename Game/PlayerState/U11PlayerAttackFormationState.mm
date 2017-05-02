@@ -8,6 +8,8 @@
 
 #include "U11PlayerAttackFormationState.h"
 #include "U11PlayerIdleState.h"
+#include "U11PlayerReceiveBallState.h"
+#include "U11PlayerSupportState.h"
 
 U11PlayerAttackFormationState* U11PlayerAttackFormationState::instance=0;
 
@@ -70,7 +72,28 @@ bool U11PlayerAttackFormationState::isSafeToChangeState(U11Player *uPlayer){
 
 bool U11PlayerAttackFormationState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
-    
+    switch (uMsg.msg) {
+        case msgReceiveBall:
+            
+            //change state to receive ball
+            uPlayer->changeState(U11PlayerReceiveBallState::sharedInstance());
+            
+            break;
+            
+        case msgPassToMe:
+            
+            break;
+            
+        case msgSupportPlayer:
+            
+            uPlayer->changeState(U11PlayerSupportState::sharedInstance());
+            
+            break;
+            
+        default:
+            break;
+    }
+
     return false;
     
 }
