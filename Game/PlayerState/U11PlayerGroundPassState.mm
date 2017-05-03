@@ -10,6 +10,7 @@
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerIdleState.h"
 #include "U11PlayerDribblePassState.h"
+#include "U11PlayerTakeBallControlState.h"
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
 #include "U11MessageDispatcher.h"
@@ -84,7 +85,7 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
     if (!uPlayer->getCurrentPlayingAnimation()->isAnimationPlaying()) {
         
         uPlayer->setMissedTheBall(true);
-        uPlayer->changeState(U11PlayerDribblePassState::sharedInstance());
+        uPlayer->changeState(U11PlayerTakeBallControlState::sharedInstance());
         
     }
     
