@@ -13,6 +13,7 @@
 #include <vector>
 #include "U11FormationInterface.h"
 #include "U4DWorld.h"
+#include "U4DAABB.h"
 
 class U11FormationEntity;
 
@@ -23,6 +24,8 @@ private:
 protected:
     
     U11FormationEntity *mainParent;
+    
+    U4DEngine::U4DAABB formationAABB;
     
     int fieldQuadrant;
     

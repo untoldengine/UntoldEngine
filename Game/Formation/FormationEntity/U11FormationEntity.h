@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "U4DGameObject.h"
+#include "U4DAABB.h"
 
 class U11FormationEntity:public U4DEngine::U4DGameObject {
     
@@ -19,6 +20,9 @@ private:
     U4DEngine::U4DVector3n originPosition;
     
     bool assigned;
+    
+    U4DEngine::U4DAABB aabbBox;
+    
     
 public:
     
@@ -35,6 +39,8 @@ public:
     bool isAssigned();
     
     void setAssigned(bool uValue);
+    
+    U4DEngine::U4DAABB &getAABBBox();
 };
 
 #endif /* U11FormationEntity_hpp */

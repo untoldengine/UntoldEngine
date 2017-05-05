@@ -119,10 +119,14 @@ void U11Team::setControllingPlayer(U11Player* uPlayer){
     
     if (previousMainControllingPlayer!=NULL) {
         previousMainControllingPlayer->pauseExtremityCollision();
+        previousMainControllingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
     }
     controllingPlayer=uPlayer;
     
     controllingPlayer->resumeExtremityCollision();
+    controllingPlayer->setEntityType(U4DEngine::MODEL);
+    
+    previousMainControllingPlayer=controllingPlayer;
     
 }
 
@@ -154,9 +158,13 @@ void U11Team::setMainDefendingPlayer(U11Player *uPlayer){
     
     if (previousMainDefendingPlayer!=NULL) {
         previousMainDefendingPlayer->pauseExtremityCollision();
+        previousMainDefendingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
     }
     mainDefendingPlayer=uPlayer;
     mainDefendingPlayer->resumeExtremityCollision();
+    mainDefendingPlayer->setEntityType(U4DEngine::MODEL);
+    
+    previousMainDefendingPlayer=mainDefendingPlayer;
 }
 
 U11Player *U11Team::getMainDefendingPlayer(){

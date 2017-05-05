@@ -8,6 +8,7 @@
 
 #include "U11Formation442.h"
 #include "U11FormationEntity.h"
+#include "UserCommonProtocols.h"
 
 U11Formation442::U11Formation442(){
     
@@ -86,4 +87,9 @@ void U11Formation442::init(U4DEngine::U4DWorld *uWorld, int uFieldQuadrant){
     
     mainParent->translateBy(fieldQuadrant*225.0, 0.0, 0.0);
     
+    U4DEngine::U4DPoint3n min(-formationSpaceBoundaryLength/2.0,-1.0,-formationSpaceBoundaryWidth/2.0);
+    U4DEngine::U4DPoint3n max(formationSpaceBoundaryLength/2.0,1.0,formationSpaceBoundaryWidth/2.0);
+    
+    formationAABB.setMaxPoint(max);
+    formationAABB.setMinPoint(min);
 }

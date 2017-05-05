@@ -20,8 +20,6 @@ private:
     
     U11Ball *soccerBall;
     
-    U4DEngine::U4DAABB fieldAABB;
-    
 public:
     U11Field();
     
@@ -32,8 +30,6 @@ public:
     void setSoccerBall(U11Ball *uSoccerBall);
     
     void update(double dt);
-    
-    U4DEngine::U4DAABB &getFieldAABB();
     
 };
 #endif /* U11Field_hpp */

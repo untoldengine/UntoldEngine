@@ -38,6 +38,7 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
+        setEntityType(U4DEngine::MODELNOSHADOWS);
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         runningAnimation=new U4DEngine::U4DAnimation(this);
         
