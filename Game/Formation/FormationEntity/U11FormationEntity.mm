@@ -26,6 +26,18 @@ void U11FormationEntity::init(const char* uModelName, const char* uBlenderFile){
         
         setEntityType(U4DEngine::MODELNOSHADOWS);
         
+        //Get body dimensions
+        float xDimension=bodyCoordinates.getModelDimension().x;
+        float yDimension=bodyCoordinates.getModelDimension().y;
+        float zDimension=bodyCoordinates.getModelDimension().z;
+        
+        //get min and max points to create the AABB
+        U4DEngine::U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
+        U4DEngine::U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
+        
+        aabbBox.setMinPoint(minPoints);
+        aabbBox.setMaxPoint(maxPoints);
+        
         loadRenderingInformation();
     }
 }
@@ -49,5 +61,10 @@ bool U11FormationEntity::isAssigned(){
 void U11FormationEntity::setAssigned(bool uValue){
     
     assigned=uValue;
+}
+
+U4DEngine::U4DAABB &U11FormationEntity::getAABBBox(){
+
+    return aabbBox;
 }
 

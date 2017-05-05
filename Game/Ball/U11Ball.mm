@@ -28,6 +28,7 @@ void U11Ball::init(const char* uName, const char* uBlenderFile){
     
     if (loadModel(uName, uBlenderFile)) {
         
+        setEntityType(U4DEngine::MODELNOSHADOWS);
         initInertiaTensorType(U4DEngine::sphericalInertia);
         initCoefficientOfRestitution(0.7);
         initMass(5.0);

@@ -11,8 +11,17 @@
 #include "U11Team.h"
 #include "U11FieldGoal.h"
 #include "U4DSegment.h"
+#include "UserCommonProtocols.h"
 
 U11SpaceAnalyzer::U11SpaceAnalyzer(){
+    
+    //set the playing field aabb
+    
+    U4DEngine::U4DPoint3n minPlayingFieldBound(-playingFieldLength/2.0, -1.0, -playingFieldWidth/2.0);
+    U4DEngine::U4DPoint3n maxPlayingFieldBound(playingFieldLength/2.0, 1.0, playingFieldWidth/2.0);
+    
+    playingField.setMinPoint(minPlayingFieldBound);
+    playingField.setMaxPoint(maxPlayingFieldBound);
     
 }
 
@@ -192,7 +201,7 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
         oppositePlayers.resize(4);
     }
     
-    //Test 1. check if it passing angle does not intersept an opponent
+    //Test 1. check if it passing angle does not intersept an opponent and if it lands outside the playing field
     for(auto &n:supportNodes){
         
         for(auto m:oppositePlayers){
@@ -202,7 +211,7 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
             U4DEngine::U4DPoint3n pointB=n.position;
             U4DEngine::U4DSegment passingAngle(pointB,pointA);
             
-            if (!m->getUpdatedPlayerSpaceBox().intersectionWithSegment(passingAngle)) {
+            if (!m->getUpdatedPlayerSpaceBox().intersectionWithSegment(passingAngle) && playingField.isPointInsideAABB(pointB)) {
                 
                 //set it as good angle pass
                 n.goodAnglePass=true;

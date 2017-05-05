@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "U4DWorld.h"
-
+#include "U4DAABB.h"
 
 class U11FormationEntity;
 

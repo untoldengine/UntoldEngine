@@ -37,6 +37,8 @@ void U11BallAirState::enter(U11Ball *uBall){
     uBall->resetGravity();
     
     uBall->setAwake(true);
+    
+    uBall->setEntityType(U4DEngine::MODEL);
 }
 
 void U11BallAirState::execute(U11Ball *uBall, double dt){
@@ -45,7 +47,8 @@ void U11BallAirState::execute(U11Ball *uBall, double dt){
 }
 
 void U11BallAirState::exit(U11Ball *uBall){
-    
+ 
+    uBall->setEntityType(U4DEngine::MODELNOSHADOWS);
 }
 
 bool U11BallAirState::isSafeToChangeState(U11Ball *uBall){

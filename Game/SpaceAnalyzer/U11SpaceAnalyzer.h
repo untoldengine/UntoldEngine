@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DVector3n.h"
+#include "U4DAABB.h"
 #include "U4DSegment.h"
 
 class U11Player;
@@ -31,6 +32,7 @@ class U11SpaceAnalyzer {
 private:
     
     std::vector<SupportNode> supportNodes;
+    U4DEngine::U4DAABB playingField;
     
 public:
     

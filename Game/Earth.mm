@@ -41,7 +41,7 @@ void Earth::init(){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     camera->translateBy(0.0, 70.0, 150.0);
-    camera->rotateBy(-30.0, 0.0, 0.0);
+    camera->rotateBy(-36.0, 0.0, 0.0);
     
     setName("earth");
     

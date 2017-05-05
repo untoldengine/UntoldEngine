@@ -52,6 +52,8 @@ enum{
 
 const float fieldWidth=360.0;
 const float fieldLength=540.0;
+const float playingFieldLength=480.0;
+const float playingFieldWidth=310.0;
 
 const float chasingSpeed=50.0;
 const float dribblingSpeed=40.0;
@@ -71,7 +73,7 @@ const float reverseRunningSpeed=20.0;
 const float lateralRunningSpeed=20.0;
 const float supportMinimumDistanceToPlayer=25.0;
 const float supportMaximumDistanceToPlayer=50.0;
-const int   maximumSupportPoints=18;
+const int   maximumSupportPoints=36;
 const int   supportPointsSeparation=10;
 const float ballSegmentDirection=10.0;
 const float withinSupportDistance=2.5;
@@ -80,5 +82,8 @@ const float stealingDistanceToBall=1.0;
 const float markingDistanceToBall=5.0;
 const float defenseSpace=0.15;
 const float formationDefenseSpace=0.5;
+const float formationSpaceBoundaryLength=420.0;
+const float formationSpaceBoundaryWidth=70.0;
+
 
 #endif /* UserCommonProtocols_h */

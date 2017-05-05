@@ -37,6 +37,8 @@ void U11PlayerReceiveBallState::enter(U11Player *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(true);
     
+    uPlayer->setEntityType(U4DEngine::MODEL);
+    
 }
 
 void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
@@ -63,6 +65,8 @@ void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
 }
 
 void U11PlayerReceiveBallState::exit(U11Player *uPlayer){
+    
+    uPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
     
 }
 
