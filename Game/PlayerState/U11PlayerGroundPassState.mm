@@ -97,13 +97,30 @@ void U11PlayerGroundPassState::exit(U11Player *uPlayer){
     
     if (uPlayer->getMissedTheBall()==false) {
      
-        //get supporting player and send him a message
-        U11Player* supportPlayer=uPlayer->getTeam()->analyzeClosestPlayersAlongPassLine().at(0);
+        //get controlling player position
+        U4DEngine::U4DPoint3n pointA=uPlayer->getAbsolutePosition().toPoint();
+        
+        //get ball heading
+        U4DEngine::U4DVector3n ballVelocity=uPlayer->getSoccerBall()->getVelocity();
+        
+        ballVelocity.normalize();
+        
+        U4DEngine::U4DPoint3n ballDirection=ballVelocity.toPoint();
+        
+        //get ball kick speed
+        float t=uPlayer->getBallKickSpeed();
+        
+        //get the destination point
+        U4DEngine::U4DVector3n pointB=(pointA+ballDirection*t).toVector();
+        
+        //get receiving player and send him a message
+        
+        U11Player* receivingPlayer=uPlayer->getTeam()->analyzeClosestPlayersToPosition(pointB).at(0);
         
         //prepare message
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
-        messageDispatcher->sendMessage(0.0, uPlayer, supportPlayer, msgReceiveBall);
+        messageDispatcher->sendMessage(0.0, uPlayer, receivingPlayer, msgReceiveBall);
         
     }
 }
