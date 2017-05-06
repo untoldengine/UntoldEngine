@@ -59,7 +59,7 @@ void U11PlayerGroundShotState::execute(U11Player *uPlayer, double dt){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         
-        uPlayer->kickBallToGround(ballGroundShotSpeed, direction,dt);
+        uPlayer->kickBallToGround(uPlayer->getBallKickSpeed(), direction,dt);
         
         uPlayer->removeKineticForces();
         

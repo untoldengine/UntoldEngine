@@ -22,7 +22,7 @@
 #include "U11Team.h"
 #include "U11FormationEntity.h"
 
-U11Player::U11Player():joystickActive(false),missedTheBall(false){
+U11Player::U11Player():joystickActive(false),missedTheBall(false),ballKickSpeed(0){
     
     stateManager=new U11PlayerStateManager(this);
     
@@ -891,6 +891,15 @@ void U11Player::resumeExtremityCollision(){
     
     rightFoot->resumeCollisionBehavior();
     leftFoot->resumeCollisionBehavior();
+}
+
+void U11Player::setBallKickSpeed(float uBallKickSpeed){
+    
+    ballKickSpeed=uBallKickSpeed;
+}
+
+float U11Player::getBallKickSpeed(){
+    return ballKickSpeed;
 }
 
 

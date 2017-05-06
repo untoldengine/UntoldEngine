@@ -49,6 +49,8 @@ private:
     
     bool missedTheBall;
     
+    int ballKickSpeed;
+    
     U11FormationEntity *formationEntity;
     
     U4DEngine::U4DPoint3n formationPosition;
@@ -258,6 +260,10 @@ public:
     void pauseExtremityCollision();
     
     void resumeExtremityCollision();
+    
+    void setBallKickSpeed(float uBallKickSpeed);
+    
+    float getBallKickSpeed();
     
 };
 #endif /* U11Player_hpp */

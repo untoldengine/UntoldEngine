@@ -199,10 +199,7 @@ void U4DJoyStick::action(){
 
 void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
     
-    
-    currentPosition=uNewPosition;
-    
-    U4DVector3n distance=(currentPosition-centerBackgroundPosition);
+    U4DVector3n distance=(uNewPosition-centerBackgroundPosition);
     
     float distanceMagnitude=distance.magnitude();
     
@@ -210,23 +207,8 @@ void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
     
     if (distancePlusJoyStick<=(backgroundImageRadius+backgroundImageRadius*0.5)){
         
+        currentPosition=uNewPosition;
         joyStickState=uTouchState;
-        
-    }else{
-        
-        //if the joystick goes beyond boundary, reset it to original position
-        
-        joyStickState=rTouchesNull;
-        translateTo(originalPosition);
-        joyStickImage.translateTo(originalPosition);
-        
-        dataMagnitude=0.0;
-        
-        isActive=false;
-     
-        if (controllerInterface!=NULL) {
-            controllerInterface->setReceivedAction(true);
-        }
     }
     
 }

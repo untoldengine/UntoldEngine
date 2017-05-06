@@ -15,6 +15,8 @@
 #include "U11Ball.h"
 #include "U11Field.h"
 #include "U11Player.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -26,13 +28,20 @@ class GameLogic:public U4DEngine::U4DGameModel{
 public:
     
     U11Team *team;
+    U11Ball *soccerBall;
+    
+    int ballKickSpeed;
     
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
     U4DEngine::U4DJoyStick *joystick;
     
-    GameLogic(){};
-    ~GameLogic(){};
+    U4DEngine::U4DTimer *ballKickSpeedTimer;
+    
+    U4DEngine::U4DCallback<GameLogic> *scheduler;
+    
+    GameLogic();
+    ~GameLogic();
     
     void update(double dt);
     
@@ -41,6 +50,12 @@ public:
     void receiveTouchUpdate();
     
     void setTeamToControl(U11Team *uTeam);
+    
+    void increaseBallKickSpeed();
+    
+    void startBallKickSpeedTimer();
+
+    void stopBallKickSpeedTimer();
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */
