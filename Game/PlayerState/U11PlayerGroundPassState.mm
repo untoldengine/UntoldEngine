@@ -67,7 +67,9 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
             
             U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
             
-            uPlayer->kickBallToGround(ballPassingSpeed, direction,dt);
+            float ballPassSpeed=uPlayer->getBallKickSpeed();
+            
+            uPlayer->kickBallToGround(ballPassSpeed, direction,dt);
             
             uPlayer->removeKineticForces();
             
