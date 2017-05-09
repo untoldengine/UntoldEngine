@@ -50,8 +50,8 @@ enum{
     
 }MessageEnum;
 
-const float fieldWidth=360.0;
-const float fieldLength=540.0;
+const float fieldWidth=1000.0;
+const float fieldLength=1000.0;
 const float playingFieldLength=480.0;
 const float playingFieldWidth=310.0;
 
@@ -66,7 +66,7 @@ const float ballAirShotSpeed=80.0;
 const float ballReverseRolling=35.0;
 const float ballDeceleration=0.5;
 const float ballMaxSpeed=8.0;
-const float maximumInterceptionSpeed=80.0;
+const float maximumInterceptionSpeed=100.0;
 const float ballControlMaximumDistance=6.0;
 const float reverseBallMaximumDistance=2.0;
 const float reverseRunningSpeed=20.0;

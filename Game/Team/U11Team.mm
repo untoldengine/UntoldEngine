@@ -256,7 +256,7 @@ void U11Team::assignDefendingPlayer(){
     //send message to defending player
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
-    //messageDispatcher->sendMessage(0.0, NULL, mainDefendingPlayer, msgRunToSteal);
+    messageDispatcher->sendMessage(0.0, NULL, mainDefendingPlayer, msgRunToSteal);
     
 }
 
