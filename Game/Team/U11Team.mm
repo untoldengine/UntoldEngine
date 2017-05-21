@@ -243,7 +243,7 @@ void U11Team::assignDefendingPlayer(){
     
     U11SpaceAnalyzer spaceAnalyzer;
     
-    mainDefendingPlayer=analyzeDefendingPlayer().at(0);
+    setMainDefendingPlayer(analyzeDefendingPlayer().at(0));
     
     //Set the defending position
     
@@ -256,7 +256,7 @@ void U11Team::assignDefendingPlayer(){
     //send message to defending player
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
-    messageDispatcher->sendMessage(0.0, NULL, mainDefendingPlayer, msgRunToSteal);
+    //messageDispatcher->sendMessage(0.0, NULL, mainDefendingPlayer, msgRunToSteal);
     
 }
 
@@ -478,4 +478,47 @@ U11Player *U11Team::getSupportDefendingPlayer2(){
     return supportDefendingPlayer2;
 }
 
+bool U11Team::handleMessage(Message &uMsg){
+ 
+    return stateManager->handleMessage(uMsg);
+    
+}
 
+void U11Team::interceptPass(){
+    
+    //1. get the ball future position
+    //get controlling player position
+    
+    U11Player *oppositeControllingPlayer=oppositeTeam->getControllingPlayer();
+    
+    U4DEngine::U4DPoint3n pointA=oppositeControllingPlayer->getAbsolutePosition().toPoint();
+    
+    //get ball heading
+    U4DEngine::U4DVector3n ballVelocity=soccerBall->getVelocity();
+    
+    ballVelocity.normalize();
+    
+    U4DEngine::U4DPoint3n ballDirection=ballVelocity.toPoint();
+    
+    //get ball kick speed
+    float t=oppositeControllingPlayer->getBallKickSpeed();
+    
+    //get the destination point
+    U4DEngine::U4DVector3n pointB=(pointA+ballDirection*t).toVector();
+    
+    //2. get closest player to end point
+    U11Player* interceptPlayer=analyzeClosestPlayersToPosition(pointB).at(0);
+    
+    //3. if the player is closed enough to intercept, then send message to intercept pass
+ 
+    U4DEngine::U4DVector3n playerPosition=interceptPlayer->getAbsolutePosition();
+    
+    if ((playerPosition-pointB).magnitude()<minimumInterceptionDistance) {
+        
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, NULL, interceptPlayer, msgInterceptPass);
+        
+    }
+    
+}

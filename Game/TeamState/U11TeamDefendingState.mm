@@ -54,4 +54,23 @@ void U11TeamDefendingState::exit(U11Team *uTeam){
 
 bool U11TeamDefendingState::handleMessage(U11Team *uTeam, Message &uMsg){
     
+    switch (uMsg.msg) {
+       
+        case msgBallPassed:
+            
+            //get message that the ball was passed
+            uTeam->interceptPass();
+            
+            break;
+            
+        case msgBallRelinquished:
+            
+            break;
+            
+        default:
+            break;
+    }
+    
+    return false;
+    
 }

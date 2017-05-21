@@ -8,6 +8,7 @@
 
 #include "U11MessageDispatcher.h"
 #include "U11Player.h"
+#include "U11Team.h"
 #include "U4DDirector.h"
 #include "UserCommonProtocols.h"
 
@@ -49,3 +50,20 @@ void U11MessageDispatcher::sendMessage(double uDelay, U11Player *uSenderPlayer, 
         
     }
 }
+
+void U11MessageDispatcher::sendMessage(double uDelay, U11Team *uReceiverTeam, int uMsg){
+    
+    if (uReceiverTeam!=nullptr) {
+        //create the message
+        Message message;
+        
+        message.receiverTeam=uReceiverTeam;
+        message.msg=uMsg;
+        
+        //send the message
+        uReceiverTeam->handleMessage(message);
+        
+    }
+    
+}
+

@@ -148,6 +148,10 @@ public:
     
     void updateTeamFormationPosition();
     
+    bool handleMessage(Message &uMsg);
+    
+    void interceptPass();
+    
 };
 
 #endif /* U11Team_hpp */
