@@ -114,13 +114,19 @@ void U11PlayerGroundPassState::exit(U11Player *uPlayer){
         U4DEngine::U4DVector3n pointB=(pointA+ballDirection*t).toVector();
         
         //get receiving player and send him a message
+        U11Team *team=uPlayer->getTeam();
         
-        U11Player* receivingPlayer=uPlayer->getTeam()->analyzeClosestPlayersToPosition(pointB).at(0);
+        U11Player* receivingPlayer=team->analyzeClosestPlayersToPosition(pointB).at(0);
         
         //prepare message
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
         messageDispatcher->sendMessage(0.0, uPlayer, receivingPlayer, msgReceiveBall);
+        
+        //send message to opposite team
+        U11Team *oppositeTeam=team->getOppositeTeam();
+        
+        messageDispatcher->sendMessage(0.0, oppositeTeam, msgBallPassed);
         
     }
 }

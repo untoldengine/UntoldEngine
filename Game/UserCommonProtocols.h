@@ -10,6 +10,7 @@
 #define UserCommonProtocols_h
 
 class U11Player;
+class U11Team;
 
 typedef enum{
 
@@ -30,6 +31,7 @@ typedef struct{
     
     U11Player *senderPlayer;
     U11Player *receiverPlayer;
+    U11Team *receiverTeam;
     int msg;
     
 }Message;
@@ -47,6 +49,9 @@ enum{
     msgRunToDefendingFormation,
     msgRunToAttackFormation,
     msgRunToSteal,
+    msgBallRelinquished,
+    msgBallPassed,
+    msgInterceptPass,
     
 }MessageEnum;
 
@@ -84,6 +89,7 @@ const float defenseSpace=0.15;
 const float formationDefenseSpace=0.5;
 const float formationSpaceBoundaryLength=420.0;
 const float formationSpaceBoundaryWidth=70.0;
+const float minimumInterceptionDistance=30.0;
 
 
 #endif /* UserCommonProtocols_h */

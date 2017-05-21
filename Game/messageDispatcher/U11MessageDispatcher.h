@@ -13,6 +13,7 @@
 #include <string>
 
 class U11Player;
+class U11Team;
 
 class U11MessageDispatcher {
     
@@ -27,6 +28,8 @@ public:
     static U11MessageDispatcher* sharedInstance();
     
     void sendMessage(double uDelay, U11Player *uSenderPlayer, U11Player *uReceiverPlayer, int uMsg);
+    
+    void sendMessage(double uDelay, U11Team *uReceiverTeam, int uMsg);
     
     void sendDelayedMessages();
     

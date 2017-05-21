@@ -8,6 +8,7 @@
 
 #include "U11PlayerDefenseFormationState.h"
 #include "U11PlayerDefendState.h"
+#include "U11PlayerInterceptPassState.h"
 
 U11PlayerDefenseFormationState* U11PlayerDefenseFormationState::instance=0;
 
@@ -70,6 +71,17 @@ bool U11PlayerDefenseFormationState::isSafeToChangeState(U11Player *uPlayer){
 
 bool U11PlayerDefenseFormationState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
+    switch (uMsg.msg) {
+            
+        case msgInterceptPass:
+            
+            uPlayer->changeState(U11PlayerInterceptPassState::sharedInstance());
+            
+            break;
+            
+        default:
+            break;
+    }
     
     return false;
     

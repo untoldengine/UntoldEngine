@@ -27,6 +27,7 @@
 		0306F0BB1E822E570048B23B /* reverserunninganimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0306F0BA1E822E570048B23B /* reverserunninganimation.u4d */; };
 		0306F0BD1E8301E70048B23B /* lateralrightrunanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0306F0BC1E8301E70048B23B /* lateralrightrunanimation.u4d */; };
 		0306F0BF1E83020F0048B23B /* lateralleftrunanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0306F0BE1E83020F0048B23B /* lateralleftrunanimation.u4d */; };
+		030803F91EC3662800D9DD60 /* U11PlayerInterceptPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030803F71EC3662800D9DD60 /* U11PlayerInterceptPassState.mm */; };
 		030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3DF51927ED26009EF31B /* geometricShader.fp */; };
 		030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 030C3DF61927ED26009EF31B /* geometricShader.vp */; };
 		030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030C3DFB19298226009EF31B /* U4DDirector.mm */; };
@@ -306,6 +307,8 @@
 		0306F0BA1E822E570048B23B /* reverserunninganimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = reverserunninganimation.u4d; path = Resources/reverserunninganimation.u4d; sourceTree = SOURCE_ROOT; };
 		0306F0BC1E8301E70048B23B /* lateralrightrunanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lateralrightrunanimation.u4d; path = Resources/lateralrightrunanimation.u4d; sourceTree = SOURCE_ROOT; };
 		0306F0BE1E83020F0048B23B /* lateralleftrunanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = lateralleftrunanimation.u4d; path = Resources/lateralleftrunanimation.u4d; sourceTree = SOURCE_ROOT; };
+		030803F71EC3662800D9DD60 /* U11PlayerInterceptPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerInterceptPassState.mm; path = game/PlayerState/U11PlayerInterceptPassState.mm; sourceTree = SOURCE_ROOT; };
+		030803F81EC3662800D9DD60 /* U11PlayerInterceptPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerInterceptPassState.h; path = game/PlayerState/U11PlayerInterceptPassState.h; sourceTree = SOURCE_ROOT; };
 		030C3DF51927ED26009EF31B /* geometricShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = geometricShader.fp; sourceTree = "<group>"; };
 		030C3DF61927ED26009EF31B /* geometricShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = geometricShader.vp; sourceTree = "<group>"; };
 		030C3DFA19298226009EF31B /* U4DDirector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDirector.h; sourceTree = "<group>"; };
@@ -938,6 +941,8 @@
 				037BCBC41EB39441004CD2F1 /* U11PlayerMarkingState.mm */,
 				037BCBC81EB3946E004CD2F1 /* U11PlayerStealingState.h */,
 				037BCBC71EB3946E004CD2F1 /* U11PlayerStealingState.mm */,
+				030803F81EC3662800D9DD60 /* U11PlayerInterceptPassState.h */,
+				030803F71EC3662800D9DD60 /* U11PlayerInterceptPassState.mm */,
 			);
 			name = PlayerState;
 			sourceTree = "<group>";
@@ -2115,6 +2120,7 @@
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03ECCC071E9BCF780057C20B /* U11PlayerDribblePassState.mm in Sources */,
 				03FCC2DB1E765F70000479AC /* U11PlayerRunPassState.mm in Sources */,
+				030803F91EC3662800D9DD60 /* U11PlayerInterceptPassState.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
 				03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
