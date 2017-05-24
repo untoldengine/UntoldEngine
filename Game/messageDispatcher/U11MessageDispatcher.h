@@ -28,6 +28,8 @@ public:
     static U11MessageDispatcher* sharedInstance();
     
     void sendMessage(double uDelay, U11Player *uSenderPlayer, U11Player *uReceiverPlayer, int uMsg);
+
+    void sendMessage(double uDelay, U11Player *uSenderPlayer, U11Player *uReceiverPlayer, int uMsg, void* uExtraInfo);
     
     void sendMessage(double uDelay, U11Team *uReceiverTeam, int uMsg);
     

@@ -10,10 +10,10 @@
 #define U11TikiTaka_hpp
 
 #include <stdio.h>
-#include "U11AIStrategyInterface.h"
+#include "U11AIAttackStrategyInterface.h"
 
 
-class U11AITikiTaka:public U11AIStrategyInteface {
+class U11AITikiTaka:public U11AIAttackStrategyInteface {
     
 public:
     

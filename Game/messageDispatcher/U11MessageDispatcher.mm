@@ -51,6 +51,26 @@ void U11MessageDispatcher::sendMessage(double uDelay, U11Player *uSenderPlayer, 
     }
 }
 
+void U11MessageDispatcher::sendMessage(double uDelay, U11Player *uSenderPlayer, U11Player *uReceiverPlayer, int uMsg, void* uExtraInfo){
+    
+    //if the receiver player is null, then don't send message
+    
+    if (uReceiverPlayer!=nullptr) {
+        //create the message
+        Message message;
+        
+        message.senderPlayer=uSenderPlayer;
+        message.receiverPlayer=uReceiverPlayer;
+        message.msg=uMsg;
+        message.extraInfo=uExtraInfo;
+        
+        //send the message
+        uReceiverPlayer->handleMessage(message);
+        
+    }
+    
+}
+
 void U11MessageDispatcher::sendMessage(double uDelay, U11Team *uReceiverTeam, int uMsg){
     
     if (uReceiverTeam!=nullptr) {

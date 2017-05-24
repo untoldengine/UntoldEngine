@@ -54,6 +54,16 @@ public:
     
     U11Player *getDefensePlayerClosestToThreatingPlayer(U11Team *uTeam, U11Player *uThreateningPlayer);
     
+    std::vector<U11Player*> analyzeSupportPlayers(U11Team *uTeam);
+    
+    std::vector<U11Player*> analyzeDefendingPlayer(U11Team *uTeam);
+    
+    std::vector<U11Player*> analyzeClosestPlayersToBall(U11Team *uTeam);
+    
+    std::vector<U11Player*> analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition, U11Team *uTeam);
+    
+    std::vector<U11Player*> analyzeClosestPlayersAlongPassLine(U11Team *uTeam);
+    
 };
 
 #endif /* U11SpaceAnalyzer_hpp */

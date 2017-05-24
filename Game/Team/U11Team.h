@@ -18,11 +18,11 @@
 #include "U4DWorld.h"
 
 class U11Ball;
-class U11TeamStateManager;
-class U11TeamStateInterface;
 class U11FieldGoal;
 class U11FormationInterface;
 class U11Field;
+class U11AISystem;
+class U11AIStateInterface;
 
 
 class U11Team {
@@ -52,19 +52,13 @@ private:
     
     U11Ball *soccerBall;
     
-    U4DEngine::U4DTimer *supportAnalysisTimer;
-
-    U4DEngine::U4DTimer *defendAnalysisTimer;
-    
-    U4DEngine::U4DCallback<U11Team> *scheduler;
-    
-    U11TeamStateManager *stateManager;
-    
     U11FieldGoal *fieldGoal;
     
     U11FormationInterface *teamFormation;
     
     int fieldQuadrant;
+    
+    U11AISystem *aiSystem;
     
 public:
     
@@ -94,6 +88,8 @@ public:
     
     void setControllingPlayer(U11Player* uPlayer);
     
+    U11Player* getActivePlayer();
+    
     void setSupportPlayer1(U11Player *uPlayer);
     
     U11Player* getSupportPlayer1();
@@ -114,35 +110,7 @@ public:
     
     U11Player *getSupportDefendingPlayer2();
     
-    void assignSupportPlayer();
-    
-    void assignDefendingPlayer();
-    
-    void assignDefendingSupportPlayers();
-    
-    std::vector<U11Player*> analyzeSupportPlayers();
-    
-    std::vector<U11Player*> analyzeDefendingPlayer();
-    
-    std::vector<U11Player*> analyzeClosestPlayersToBall();
-    
-    std::vector<U11Player*> analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition);
-    
-    std::vector<U11Player*> analyzeClosestPlayersAlongPassLine();
-    
-    void computeSupportSpace();
-    
-    void computeDefendingSpace();
-    
-    void startComputeSupportSpaceTimer();
-    
-    void removeComputeSupportStateTimer();
-    
-    void startComputeDefendingSpaceTimer();
-    
-    void removeComputeDefendingStateTimer();
-    
-    void changeState(U11TeamStateInterface* uState);
+    void changeState(U11AIStateInterface* uState);
 
     void translateTeamToFormationPosition();
     
@@ -150,7 +118,9 @@ public:
     
     bool handleMessage(Message &uMsg);
     
-    void interceptPass();
+    U11FormationInterface *getTeamFormation();
+    
+    U11AISystem *getAISystem();
     
 };
 
