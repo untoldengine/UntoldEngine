@@ -33,6 +33,7 @@ typedef struct{
     U11Player *receiverPlayer;
     U11Team *receiverTeam;
     int msg;
+    void* extraInfo;
     
 }Message;
 

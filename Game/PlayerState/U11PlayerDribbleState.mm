@@ -100,22 +100,28 @@ bool U11PlayerDribbleState::isSafeToChangeState(U11Player *uPlayer){
 }
 
 bool U11PlayerDribbleState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    
     switch (uMsg.msg) {
             
         case msgButtonAPressed:
+        {
+            int passBallSpeed=*((int*)uMsg.extraInfo);
+            
+            uPlayer->setBallKickSpeed(passBallSpeed);
             
             uPlayer->changeState(U11PlayerDribblePassState::sharedInstance());
-            
-            return true;
-            
+        }
             break;
             
         case msgButtonBPressed:
+        {
+            int passBallSpeed=*((int*)uMsg.extraInfo);
+            
+            uPlayer->setBallKickSpeed(passBallSpeed);
             
             uPlayer->changeState(U11PlayerAirShotState::sharedInstance());
             
-            return true;
-            
+        }
             break;
             
         default:

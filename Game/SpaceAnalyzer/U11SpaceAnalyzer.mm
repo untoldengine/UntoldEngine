@@ -349,3 +349,46 @@ U11Player *U11SpaceAnalyzer::getDefensePlayerClosestToThreatingPlayer(U11Team *u
     return sortPlayers.at(0);
     
 }
+
+std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersToBall(U11Team *uTeam){
+    
+    //get position of the ball
+    U4DEngine::U4DVector3n ballPosition=uTeam->getSoccerBall()->getAbsolutePosition();
+    
+    return analyzePlayersDistanceToPosition(uTeam, ballPosition);
+    
+}
+
+std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition, U11Team *uTeam){
+    
+    return analyzePlayersDistanceToPosition(uTeam, uPosition);
+    
+}
+
+std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersAlongPassLine(U11Team *uTeam){
+    
+    U4DEngine::U4DSegment passLine;
+    passLine.pointA=uTeam->getSoccerBall()->getAbsolutePosition().toPoint();
+    passLine.pointB=uTeam->getSoccerBall()->getVelocity().toPoint()*ballSegmentDirection;
+    
+    return analyzeClosestPlayersAlongLine(uTeam,passLine);
+    
+}
+
+std::vector<U11Player*> U11SpaceAnalyzer::analyzeSupportPlayers(U11Team *uTeam){
+    
+    U4DEngine::U4DVector3n controllingPlayerPosition=uTeam->getControllingPlayer()->getAbsolutePosition();
+    
+    return analyzePlayersDistanceToPosition(uTeam, controllingPlayerPosition);
+    
+}
+
+std::vector<U11Player*> U11SpaceAnalyzer::analyzeDefendingPlayer(U11Team *uTeam){
+    
+    U11Player *oppositeControllingPlayer=uTeam->getOppositeTeam()->getControllingPlayer();
+    U4DEngine::U4DVector3n oppositePlayerPosition=oppositeControllingPlayer->getAbsolutePosition();
+    
+    return analyzePlayersDistanceToPosition(uTeam, oppositePlayerPosition);
+    
+}
+

@@ -21,6 +21,7 @@ U11TriangleEntity::~U11TriangleEntity(){
     
 }
 
+/*
 void U11TriangleEntity::buildTriangleEntity(U11Team *uTeam){
     
     triangleNode.player1=uTeam->getControllingPlayer();
@@ -106,3 +107,4 @@ bool U11TriangleEntity::getIsTriangleEntitySafe(){
     return isTriangleEntitySafe;
 
 }
+ */

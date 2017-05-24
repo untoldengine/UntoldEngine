@@ -7,5 +7,14 @@
 //
 
 #include "U11AIAnalyzer.h"
+#include "U11SpaceAnalyzer.h"
+#include "U11Team.h"
 
+U11AIAnalyzer::U11AIAnalyzer(){
+    
+}
+
+U11AIAnalyzer::~U11AIAnalyzer(){
+    
+}
 

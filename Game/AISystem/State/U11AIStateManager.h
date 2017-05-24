@@ -12,11 +12,14 @@
 #include <stdio.h>
 #include "U11AIStateInterface.h"
 
-class U11AIStrategyInterface;
+class U11AISystem;
+class U11AIStateInterface;
 
 class U11AIStateManager {
     
 private:
+    
+    U11AISystem *aiSystem;
     
     U11AIStateInterface *previousState;
     
@@ -27,13 +30,17 @@ private:
 
 public:
     
-    U11AIStateManager();
+    U11AIStateManager(U11AISystem *uAISystem);
     
     ~U11AIStateManager();
     
     void changeState(U11AIStateInterface *uState);
     
     void update(double dt);
+    
+    bool handleMessage(Message &uMsg);
+    
+    U11AIStateInterface *getCurrentState();
 
 };
 

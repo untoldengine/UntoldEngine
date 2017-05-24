@@ -10,6 +10,11 @@
 #define U11AIAnalyzer_hpp
 
 #include <stdio.h>
+#include <vector>
+#include "U4DVector3n.h"
+
+class U11Player;
+class U11Team;
 
 class U11AIAnalyzer {
 
@@ -20,6 +25,8 @@ public:
     U11AIAnalyzer();
     
     ~U11AIAnalyzer();
+    
+    
     
 };
 

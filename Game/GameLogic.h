@@ -12,7 +12,6 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "U11Ball.h"
 #include "U11Field.h"
 #include "U11Player.h"
 #include "U4DCallback.h"
@@ -28,15 +27,14 @@ class GameLogic:public U4DEngine::U4DGameModel{
 public:
     
     U11Team *team;
-    U11Ball *soccerBall;
     
-    int ballKickSpeed;
+    int buttonHoldTime;
     
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
     U4DEngine::U4DJoyStick *joystick;
     
-    U4DEngine::U4DTimer *ballKickSpeedTimer;
+    U4DEngine::U4DTimer *buttonHoldTimer;
     
     U4DEngine::U4DCallback<GameLogic> *scheduler;
     
@@ -51,11 +49,11 @@ public:
     
     void setTeamToControl(U11Team *uTeam);
     
-    void increaseBallKickSpeed();
+    void increaseButtonHoldTime();
     
-    void startBallKickSpeedTimer();
+    void startButtonHoldTimer();
 
-    void stopBallKickSpeedTimer();
+    void stopButtonHoldTimer();
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

@@ -11,11 +11,11 @@
 
 #include <stdio.h>
 
-class U11AIStrategyInteface {
+class U11AIAttackStrategyInteface {
     
 public:
     
-    virtual ~U11AIStrategyInteface(){};
+    virtual ~U11AIAttackStrategyInteface(){};
     
 };
 

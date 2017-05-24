@@ -13,7 +13,7 @@
 #include "U4DButton.h"
 #include "U4DJoyStick.h"
 #include "CommonProtocols.h"
-
+#include "U11SpaceAnalyzer.h"
 #include "U11PlayerDribbleState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerStateInterface.h"
@@ -21,15 +21,17 @@
 #include "U11MessageDispatcher.h"
 #include "U11Ball.h"
 
-GameLogic::GameLogic():ballKickSpeed(0){
+GameLogic::GameLogic():buttonHoldTime(0){
 
     scheduler=new U4DEngine::U4DCallback<GameLogic>;
-    ballKickSpeedTimer=new U4DEngine::U4DTimer(scheduler);
+    buttonHoldTimer=new U4DEngine::U4DTimer(scheduler);
     
 }
 
 GameLogic::~GameLogic(){
 
+    delete scheduler;
+    delete buttonHoldTimer;
 }
 
 void GameLogic::update(double dt){
@@ -42,11 +44,9 @@ void GameLogic::init(){
     buttonB=getGameController()->getButtonWithName("buttonB");
     joystick=getGameController()->getJoyStickWithName("joystick");
     
-    //get the ball
-    soccerBall=team->getSoccerBall();
-    
     //get the closest player to the ball and change its state to chase the ball
-    U11Player* player=team->analyzeClosestPlayersToBall().at(0);
+    U11SpaceAnalyzer spaceAnalyzer;
+    U11Player* player=spaceAnalyzer.analyzeClosestPlayersToBall(team).at(0);
     
     player->changeState(U11PlayerChaseBallState::sharedInstance());
     
@@ -62,7 +62,7 @@ void GameLogic::receiveTouchUpdate(){
     
     bool joystickActive=false;
     
-    U11Player *player=team->getControllingPlayer();
+    U11Player *player=team->getActivePlayer();
     
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
@@ -70,30 +70,26 @@ void GameLogic::receiveTouchUpdate(){
         
         if (buttonA->getIsPressed()) {
             
-            startBallKickSpeedTimer();
+            startButtonHoldTimer();
             
             
         }else if(buttonA->getIsReleased()){
             
-            stopBallKickSpeedTimer();
+            stopButtonHoldTimer();
             
-            player->setBallKickSpeed(ballKickSpeed);
-            
-            messageDispatcher->sendMessage(0.0, player, player, msgButtonAPressed);
+            messageDispatcher->sendMessage(0.0, player, player, msgButtonAPressed,(void*)&buttonHoldTime);
             
         }
         
         if (buttonB->getIsPressed()) {
             
-            startBallKickSpeedTimer();
+            startButtonHoldTimer();
             
         }else if(buttonB->getIsReleased()){
             
-            stopBallKickSpeedTimer();
+            stopButtonHoldTimer();
             
-            player->setBallKickSpeed(ballKickSpeed);
-            
-            messageDispatcher->sendMessage(0.0, player, player, msgButtonBPressed);
+            messageDispatcher->sendMessage(0.0, player, player, msgButtonBPressed, (void*)&buttonHoldTime);
         }
         
         if(joystick->getIsActive()){
@@ -120,32 +116,32 @@ void GameLogic::receiveTouchUpdate(){
     
 }
 
-void GameLogic::increaseBallKickSpeed(){
+void GameLogic::increaseButtonHoldTime(){
     
-    ballKickSpeed++;
+    buttonHoldTime++;
     
  
 }
 
-void GameLogic::startBallKickSpeedTimer(){
+void GameLogic::startButtonHoldTimer(){
     
-    ballKickSpeed=4;
+    buttonHoldTime=4;
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &GameLogic::increaseBallKickSpeed, ballKickSpeedTimer,0.1, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &GameLogic::increaseButtonHoldTime, buttonHoldTimer,0.1, true);
     
 }
 
-void GameLogic::stopBallKickSpeedTimer(){
+void GameLogic::stopButtonHoldTimer(){
     
-    scheduler->unScheduleTimer(ballKickSpeedTimer);
+    scheduler->unScheduleTimer(buttonHoldTimer);
     
-    if (ballKickSpeed>10) {
+    if (buttonHoldTime>10) {
         
-        ballKickSpeed=10;
+        buttonHoldTime=10;
         
     }
     
     //multiply the speed by 10
-    ballKickSpeed*=10;
+    buttonHoldTime*=10;
     
 }

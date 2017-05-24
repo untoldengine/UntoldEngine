@@ -13,22 +13,18 @@
 #include <string>
 #include "U4DNumerical.h"
 #include "U11MessageDispatcher.h"
-#include "U11SpaceAnalyzer.h"
-#include "U11TeamStateManager.h"
-#include "U11TeamStateInterface.h"
 #include "UserCommonProtocols.h"
 #include "U11FormationInterface.h"
 #include "U11FormationEntity.h"
 #include "U11Player.h"
+#include "U11AISystem.h"
+#include "U11AIStateInterface.h"
+#include "U11AIStateManager.h"
 #include "UserCommonProtocols.h"
-
+#include "U11AIAttackState.h"
+#include "U11AIDefenseState.h"
 
 U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL){
-    
-    stateManager=new U11TeamStateManager(this);
-    scheduler=new U4DEngine::U4DCallback<U11Team>;
-    supportAnalysisTimer=new U4DEngine::U4DTimer(scheduler);
-    defendAnalysisTimer=new U4DEngine::U4DTimer(scheduler);
     
     fieldQuadrant=uFieldQuadrant;
     
@@ -36,14 +32,13 @@ U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWo
     
     teamFormation->init(uWorld, fieldQuadrant);
     
+    aiSystem=new U11AISystem(this);
+    
 }
 
 U11Team::~U11Team(){
     
-    delete scheduler;
-    delete supportAnalysisTimer;
-    delete defendAnalysisTimer;
-    
+    delete aiSystem;
 }
 
 void U11Team::subscribe(U11Player* uPlayer){
@@ -67,9 +62,9 @@ void U11Team::remove(U11Player* uPlayer){
     
 }
 
-void U11Team::changeState(U11TeamStateInterface* uState){
+void U11Team::changeState(U11AIStateInterface* uState){
     
-    stateManager->changeState(uState);
+    aiSystem->getStateManager()->changeState(uState);
 }
 
 
@@ -172,207 +167,6 @@ U11Player *U11Team::getMainDefendingPlayer(){
     return mainDefendingPlayer;
 }
 
-std::vector<U11Player*> U11Team::analyzeClosestPlayersToBall(){
-    
-    //get position of the ball
-    U4DEngine::U4DVector3n ballPosition=soccerBall->getAbsolutePosition();
-    
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, ballPosition);
-    
-}
-
-std::vector<U11Player*> U11Team::analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition){
-    
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, uPosition);
-    
-}
-
-std::vector<U11Player*> U11Team::analyzeClosestPlayersAlongPassLine(){
-    
-    U4DEngine::U4DSegment passLine;
-    passLine.pointA=getSoccerBall()->getAbsolutePosition().toPoint();
-    passLine.pointB=getSoccerBall()->getVelocity().toPoint()*ballSegmentDirection;
-   
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    return spaceAnalyzer.analyzeClosestPlayersAlongLine(this,passLine);
-    
-}
-
-std::vector<U11Player*> U11Team::analyzeSupportPlayers(){
-    
-    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
-    
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, controllingPlayerPosition);
-    
-}
-
-std::vector<U11Player*> U11Team::analyzeDefendingPlayer(){
-    
-    U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
-    U4DEngine::U4DVector3n oppositePlayerPosition=oppositeControllingPlayer->getAbsolutePosition();
-    
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    return spaceAnalyzer.analyzePlayersDistanceToPosition(this, oppositePlayerPosition);
-    
-}
-
-void U11Team::assignSupportPlayer(){
-    
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    //send message to new support player to support
-    supportPlayer1=analyzeSupportPlayers().at(0);
-    
-    messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgSupportPlayer);
-    
-    supportPlayer2=analyzeSupportPlayers().at(1);
-    
-    messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgSupportPlayer);
-
-}
-
-void U11Team::assignDefendingPlayer(){
-    
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    setMainDefendingPlayer(analyzeDefendingPlayer().at(0));
-    
-    //Set the defending position
-    
-    U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
-    
-    U4DEngine::U4DPoint3n defendingSpace=spaceAnalyzer.computeMovementRelToFieldGoal(this, oppositeControllingPlayer,defenseSpace);
-    
-    mainDefendingPlayer->setDefendingPosition(defendingSpace);
-    
-    //send message to defending player
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    //messageDispatcher->sendMessage(0.0, NULL, mainDefendingPlayer, msgRunToSteal);
-    
-}
-
-
-void U11Team::computeSupportSpace(){
-
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    //translate the formation
-    U11Player *controllingPlayer=getControllingPlayer();
-    
-    U4DEngine::U4DVector3n formationSupportSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(this, controllingPlayer,formationDefenseSpace)).toVector();
-    
-    teamFormation->translateFormation(formationSupportSpace);
-    
-    //change the home position for each player
-    
-    updateTeamFormationPosition();
-    
-    //assign the support players
-    std::vector<U4DEngine::U4DPoint3n> supportSpace=spaceAnalyzer.computeOptimalSupportSpace(this);
-    
-    U4DEngine::U4DPoint3n supportSpace1=supportSpace.at(0);
-    U4DEngine::U4DPoint3n supportSpace2=supportSpace.at(1);
-
-    //compute closest support point to support player
-    
-    U4DEngine::U4DVector3n supportPlayer1Position=supportPlayer1->getAbsolutePosition();
-    U4DEngine::U4DVector3n supportPlayer2Position=supportPlayer2->getAbsolutePosition();
-    
-    if ((supportPlayer1Position-supportSpace1.toVector()).magnitudeSquare()<(supportPlayer1Position-supportSpace2.toVector()).magnitudeSquare()) {
-        
-        supportPlayer1->setSupportPosition(supportSpace1);
-        supportPlayer2->setSupportPosition(supportSpace2);
-        
-    }else{
-        
-        supportPlayer1->setSupportPosition(supportSpace2);
-        supportPlayer2->setSupportPosition(supportSpace1);
-        
-    }
-
-    //send message to player to run to position
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgRunToSupport);
-    messageDispatcher->sendMessage(0.0, NULL, supportPlayer2, msgRunToSupport);
-    
-    //message all the players to get to their home position
-    
-    for(auto n:teammates){
-        
-        if (n!=controllingPlayer && n!=supportPlayer1 && n!=supportPlayer2) {
-            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToAttackFormation);
-        }
-        
-    }
-    
-}
-
-void U11Team::computeDefendingSpace(){
-    
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    U11Player *oppositeControllingPlayer=getOppositeTeam()->getControllingPlayer();
-    
-    U4DEngine::U4DVector3n defendingSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(this, oppositeControllingPlayer,formationDefenseSpace)).toVector();
-    
-    teamFormation->translateFormation(defendingSpace);
-    
-    //change the home position for each player
-    
-    updateTeamFormationPosition();
-    
-    //get defending player closer to ball
-    assignDefendingPlayer();
-    
-    //get the support defending players
-    assignDefendingSupportPlayers();
-    
-    //message all the players to get to their home position
-    
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    for(auto n:teammates){
-        
-        if (n!=mainDefendingPlayer && n!=supportDefendingPlayer1 && n!=supportDefendingPlayer2) {
-            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToDefendingFormation);
-        }
-        
-    }
-
-}
-
-void U11Team::startComputeSupportSpaceTimer(){
-    
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeSupportSpace, supportAnalysisTimer, 0.8, true);
-    
-}
-
-void U11Team::removeComputeSupportStateTimer(){
-    
-    scheduler->unScheduleTimer(supportAnalysisTimer);
-    
-}
-
-void U11Team::startComputeDefendingSpaceTimer(){
-    
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11Team::computeDefendingSpace, defendAnalysisTimer, 0.8, true);
-    
-}
-
-void U11Team::removeComputeDefendingStateTimer(){
-    
-    scheduler->unScheduleTimer(defendAnalysisTimer);
-    
-}
 
 void U11Team::translateTeamToFormationPosition(){
     
@@ -403,59 +197,6 @@ void U11Team::updateTeamFormationPosition(){
     
 }
 
-void U11Team::assignDefendingSupportPlayers(){
-    
-    U11SpaceAnalyzer spaceAnalyzer;
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    //get threatening players
-    std::vector<U11Player*> threateningPlayers=spaceAnalyzer.analyzeThreateningPlayers(this);
-    
-    if (threateningPlayers.size()>2) {
-        
-        threateningPlayers.resize(2);
-        
-    }
-    
-    if (threateningPlayers.size()==1) {
-        
-        U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(0));
-        
-        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeMovementRelToFieldGoal(this, threateningPlayers.at(0),defenseSpace);
-        
-        defendingPlayer1->setDefendingPosition(defendingPosition1);
-        
-        setSupportDefendingPlayer1(defendingPlayer1);
-        
-        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer1, msgRunToDefend);
-        
-    }else if (threateningPlayers.size()==2){
-        
-        U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(0));
-        
-        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeMovementRelToFieldGoal(this, threateningPlayers.at(0),defenseSpace);
-        
-        defendingPlayer1->setDefendingPosition(defendingPosition1);
-        
-        setSupportDefendingPlayer1(defendingPlayer1);
-        
-        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer1, msgRunToDefend);
-        
-        
-        
-        U11Player *defendingPlayer2=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(this, threateningPlayers.at(1));
-        
-        U4DEngine::U4DPoint3n defendingPosition2=spaceAnalyzer.computeMovementRelToFieldGoal(this, threateningPlayers.at(1),defenseSpace);
-        
-        
-        defendingPlayer2->setDefendingPosition(defendingPosition2);
-        
-        setSupportDefendingPlayer2(defendingPlayer2);
-        
-        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer2, msgRunToDefend);
-    }
-    
-}
 
 void U11Team::setSupportDefendingPlayer1(U11Player *uPlayer){
     
@@ -480,45 +221,32 @@ U11Player *U11Team::getSupportDefendingPlayer2(){
 
 bool U11Team::handleMessage(Message &uMsg){
  
-    return stateManager->handleMessage(uMsg);
+    return aiSystem->getStateManager()->handleMessage(uMsg);
     
 }
 
-void U11Team::interceptPass(){
+U11FormationInterface *U11Team::getTeamFormation(){
     
-    //1. get the ball future position
-    //get controlling player position
+    return teamFormation;
+}
+
+U11AISystem *U11Team::getAISystem(){
     
-    U11Player *oppositeControllingPlayer=oppositeTeam->getControllingPlayer();
+    return aiSystem;
+}
+
+U11Player *U11Team::getActivePlayer(){
     
-    U4DEngine::U4DPoint3n pointA=oppositeControllingPlayer->getAbsolutePosition().toPoint();
+    U11Player *player=nullptr;
     
-    //get ball heading
-    U4DEngine::U4DVector3n ballVelocity=soccerBall->getVelocity();
-    
-    ballVelocity.normalize();
-    
-    U4DEngine::U4DPoint3n ballDirection=ballVelocity.toPoint();
-    
-    //get ball kick speed
-    float t=oppositeControllingPlayer->getBallKickSpeed();
-    
-    //get the destination point
-    U4DEngine::U4DVector3n pointB=(pointA+ballDirection*t).toVector();
-    
-    //2. get closest player to end point
-    U11Player* interceptPlayer=analyzeClosestPlayersToPosition(pointB).at(0);
-    
-    //3. if the player is closed enough to intercept, then send message to intercept pass
- 
-    U4DEngine::U4DVector3n playerPosition=interceptPlayer->getAbsolutePosition();
-    
-    if ((playerPosition-pointB).magnitude()<minimumInterceptionDistance) {
+    if (aiSystem->getStateManager()->getCurrentState()==U11AIDefenseState::sharedInstance()) {
         
-        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        player=getMainDefendingPlayer();
         
-        messageDispatcher->sendMessage(0.0, NULL, interceptPlayer, msgInterceptPass);
+    }else if (aiSystem->getStateManager()->getCurrentState()==U11AIAttackState::sharedInstance()){
         
+        player=getControllingPlayer();
     }
     
+    return player;
 }

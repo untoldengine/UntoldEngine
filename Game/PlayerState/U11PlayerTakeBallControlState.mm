@@ -15,11 +15,13 @@
 #include "U11PlayerRunPassState.h"
 #include "U11BallGroundState.h"
 #include "U11PlayerChaseBallState.h"
+#include "U11AIAttackState.h"
+#include "U11AIDefenseState.h"
 #include "U11Ball.h"
 #include "U11Team.h"
+#include "U11AISystem.h"
 #include "UserCommonProtocols.h"
-#include "U11TeamAttackingState.h"
-#include "U11TeamDefendingState.h"
+
 
 U11PlayerTakeBallControlState* U11PlayerTakeBallControlState::instance=0;
 
@@ -50,13 +52,13 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     team->setControllingPlayer(uPlayer);
     
     //assign support player
-    team->assignSupportPlayer();
+    team->getAISystem()->getAttackAISystem().assignSupportPlayer();
     
     //change state to attacking
-    team->changeState(U11TeamAttackingState::sharedInstance());
+    team->changeState(U11AIAttackState::sharedInstance());
     
     //inform the opposite team to change to defending state
-    team->getOppositeTeam()->changeState(U11TeamDefendingState::sharedInstance());
+    team->getOppositeTeam()->changeState(U11AIDefenseState::sharedInstance());
     
     //determine the direction of the ball
     U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
@@ -188,15 +190,23 @@ bool U11PlayerTakeBallControlState::handleMessage(U11Player *uPlayer, Message &u
     switch (uMsg.msg) {
             
         case msgButtonAPressed:
+        {
+            int passBallSpeed=*((int*)uMsg.extraInfo);
+            
+            uPlayer->setBallKickSpeed(passBallSpeed);
             
             uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
-            
+        }
             break;
             
         case msgButtonBPressed:
+        {
+            int passBallSpeed=*((int*)uMsg.extraInfo);
+            
+            uPlayer->setBallKickSpeed(passBallSpeed);
             
             uPlayer->changeState(U11PlayerAirShotState::sharedInstance());
-            
+        }
             break;
             
         default:

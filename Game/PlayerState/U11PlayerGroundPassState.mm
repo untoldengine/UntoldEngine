@@ -14,7 +14,8 @@
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
 #include "U11MessageDispatcher.h"
-#include "U11TeamIdleState.h"
+#include "U11AINoPosessionState.h"
+#include "U11SpaceAnalyzer.h"
 
 U11PlayerGroundPassState* U11PlayerGroundPassState::instance=0;
 
@@ -55,7 +56,7 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
     uPlayer->setPlayNextAnimationContinuously(false);
     uPlayer->setPlayBlendedAnimation(true);
     
-    uPlayer->getTeam()->changeState(U11TeamIdleState::sharedInstance());
+    uPlayer->getTeam()->changeState(U11AINoPosessionState::sharedInstance());
     
 }
 
@@ -116,7 +117,9 @@ void U11PlayerGroundPassState::exit(U11Player *uPlayer){
         //get receiving player and send him a message
         U11Team *team=uPlayer->getTeam();
         
-        U11Player* receivingPlayer=team->analyzeClosestPlayersToPosition(pointB).at(0);
+        U11SpaceAnalyzer spaceAnalyzer;
+        
+        U11Player* receivingPlayer=spaceAnalyzer.analyzeClosestPlayersToPosition(pointB, team).at(0);
         
         //prepare message
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
