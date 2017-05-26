@@ -148,7 +148,7 @@
 		03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F891934DA8E00CF0600 /* ButtonB.png */; };
 		03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		037BCBC61EB39441004CD2F1 /* U11PlayerMarkingState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037BCBC41EB39441004CD2F1 /* U11PlayerMarkingState.mm */; };
-		037BCBC91EB3946E004CD2F1 /* U11PlayerStealingState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037BCBC71EB3946E004CD2F1 /* U11PlayerStealingState.mm */; };
+		037BCBC91EB3946E004CD2F1 /* U11PlayerTapToStealState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037BCBC71EB3946E004CD2F1 /* U11PlayerTapToStealState.mm */; };
 		037BCBCB1EB3CE7B004CD2F1 /* markinganimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 037BCBCA1EB3CE7B004CD2F1 /* markinganimation.u4d */; };
 		037BCBCD1EB3CEC0004CD2F1 /* stealinganimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 037BCBCC1EB3CEC0004CD2F1 /* stealinganimation.u4d */; };
 		037BCBD01EB4FE73004CD2F1 /* U11PlayerRunToStealState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037BCBCE1EB4FE73004CD2F1 /* U11PlayerRunToStealState.mm */; };
@@ -511,8 +511,8 @@
 		03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonBPressed.png; path = Resources/ButtonBPressed.png; sourceTree = SOURCE_ROOT; };
 		037BCBC41EB39441004CD2F1 /* U11PlayerMarkingState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerMarkingState.mm; path = game/PlayerState/U11PlayerMarkingState.mm; sourceTree = SOURCE_ROOT; };
 		037BCBC51EB39441004CD2F1 /* U11PlayerMarkingState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerMarkingState.h; path = game/PlayerState/U11PlayerMarkingState.h; sourceTree = SOURCE_ROOT; };
-		037BCBC71EB3946E004CD2F1 /* U11PlayerStealingState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerStealingState.mm; path = game/PlayerState/U11PlayerStealingState.mm; sourceTree = SOURCE_ROOT; };
-		037BCBC81EB3946E004CD2F1 /* U11PlayerStealingState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerStealingState.h; path = game/PlayerState/U11PlayerStealingState.h; sourceTree = SOURCE_ROOT; };
+		037BCBC71EB3946E004CD2F1 /* U11PlayerTapToStealState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerTapToStealState.mm; path = game/PlayerState/U11PlayerTapToStealState.mm; sourceTree = SOURCE_ROOT; };
+		037BCBC81EB3946E004CD2F1 /* U11PlayerTapToStealState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerTapToStealState.h; path = game/PlayerState/U11PlayerTapToStealState.h; sourceTree = SOURCE_ROOT; };
 		037BCBCA1EB3CE7B004CD2F1 /* markinganimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = markinganimation.u4d; path = Resources/markinganimation.u4d; sourceTree = SOURCE_ROOT; };
 		037BCBCC1EB3CEC0004CD2F1 /* stealinganimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = stealinganimation.u4d; path = Resources/stealinganimation.u4d; sourceTree = SOURCE_ROOT; };
 		037BCBCE1EB4FE73004CD2F1 /* U11PlayerRunToStealState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunToStealState.mm; path = game/PlayerState/U11PlayerRunToStealState.mm; sourceTree = SOURCE_ROOT; };
@@ -951,8 +951,8 @@
 				03254BC41EB0EEB7009850D4 /* U11PlayerAttackFormationState.mm */,
 				037BCBC51EB39441004CD2F1 /* U11PlayerMarkingState.h */,
 				037BCBC41EB39441004CD2F1 /* U11PlayerMarkingState.mm */,
-				037BCBC81EB3946E004CD2F1 /* U11PlayerStealingState.h */,
-				037BCBC71EB3946E004CD2F1 /* U11PlayerStealingState.mm */,
+				037BCBC81EB3946E004CD2F1 /* U11PlayerTapToStealState.h */,
+				037BCBC71EB3946E004CD2F1 /* U11PlayerTapToStealState.mm */,
 				030803F81EC3662800D9DD60 /* U11PlayerInterceptPassState.h */,
 				030803F71EC3662800D9DD60 /* U11PlayerInterceptPassState.mm */,
 			);
@@ -2104,7 +2104,7 @@
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
 				0348C0BE1E7280D7001FFF97 /* U11TriangleNode.mm in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
-				037BCBC91EB3946E004CD2F1 /* U11PlayerStealingState.mm in Sources */,
+				037BCBC91EB3946E004CD2F1 /* U11PlayerTapToStealState.mm in Sources */,
 				03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */,
 				03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */,
 				03068D4D19B8F2A400ABDC55 /* U4DVertexData.mm in Sources */,

@@ -46,12 +46,8 @@ void U11PlayerDribbleTurnState::execute(U11Player *uPlayer, double dt){
     //keep dribbling
     if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
     
-            U4DEngine::U4DVector3n dribbleDirection=uPlayer->getJoystickDirection();
+            U4DEngine::U4DVector3n dribbleDirection=uPlayer->getBallKickDirection();
             U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
-            
-            dribbleDirection.z=-dribbleDirection.y;
-            
-            dribbleDirection.y=0.0;
             
             playerHeading.y=0.0;
             

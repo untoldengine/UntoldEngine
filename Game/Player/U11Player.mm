@@ -831,12 +831,8 @@ U4DEngine::U4DAABB U11Player::getUpdatedPlayerSpaceBox(){
 bool U11Player::isHeadingWithinRange(){
     
     U4DEngine::U4DVector3n joystickDirection=getJoystickDirection();
-    
-    joystickDirection.z=-joystickDirection.y;
-    
-    joystickDirection.y=0;
-    
-    if (getPlayerHeading().angle(joystickDirection)<30.0) {
+       
+    if (getPlayerHeading().angle(joystickDirection)<90.0) {
         
         return true;
         
@@ -902,4 +898,13 @@ float U11Player::getBallKickSpeed(){
     return ballKickSpeed;
 }
 
+void U11Player::setBallKickDirection(U4DEngine::U4DVector3n &uDirection){
+    
+    ballKickDirection=uDirection;
+}
 
+U4DEngine::U4DVector3n U11Player::getBallKickDirection(){
+    
+    return ballKickDirection;
+    
+}

@@ -45,43 +45,19 @@ void U11PlayerDribbleState::enter(U11Player *uPlayer){
     uPlayer->setPlayNextAnimationContinuously(true);
     uPlayer->setPlayBlendedAnimation(true);
     
+    U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
+    
+    uPlayer->setBallKickDirection(directionToKick);
+    
+    
 }
 
 void U11PlayerDribbleState::execute(U11Player *uPlayer, double dt){
     
-    U4DEngine::U4DVector3n directionToKick=uPlayer->getPlayerHeading();
-    
-    //if the joystick is active, set the new direction of the kick
-    if (uPlayer->getJoystickActive()) {
-        
-        //check if the joystick changed directions
-        
-        if (uPlayer->getDirectionReversal()) {
-            
-            uPlayer->changeState(U11PlayerRunToReverseKickState::sharedInstance());
-            
-        }
-        
-        if (uPlayer->isHeadingWithinRange()==false) {
-            
-            uPlayer->changeState(U11PlayerDribbleTurnState::sharedInstance());
-            
-        }
-        
-        directionToKick=uPlayer->getJoystickDirection();
-        directionToKick.z=-directionToKick.y;
-        
-        directionToKick.y=0;
-        
-    }else{
-        
-        uPlayer->changeState(U11PlayerChaseBallState::sharedInstance());
-    }
-    
     //keep dribbling
     if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
         
-        uPlayer->kickBallToGround(ballRollingSpeed, directionToKick,dt);
+        uPlayer->kickBallToGround(ballRollingSpeed, uPlayer->getBallKickDirection(),dt);
     
     }
     
@@ -121,6 +97,37 @@ bool U11PlayerDribbleState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
             uPlayer->changeState(U11PlayerAirShotState::sharedInstance());
             
+        }
+            break;
+            
+        case msgJoystickActive:
+        {
+            JoystickMessageData joystickMessageData=*((JoystickMessageData*)uMsg.extraInfo);
+            
+            uPlayer->setJoystickDirection(joystickMessageData.direction);
+            
+            if (joystickMessageData.changedDirection) {
+                
+                uPlayer->changeState(U11PlayerRunToReverseKickState::sharedInstance());
+                
+            }
+            
+            if (uPlayer->isHeadingWithinRange()==false) {
+                
+                uPlayer->changeState(U11PlayerDribbleTurnState::sharedInstance());
+                
+            }
+
+            
+            uPlayer->setBallKickDirection(joystickMessageData.direction);
+            
+            
+        }
+            break;
+        
+        case msgJoystickNotActive:
+        {
+            uPlayer->changeState(U11PlayerChaseBallState::sharedInstance());
         }
             break;
             

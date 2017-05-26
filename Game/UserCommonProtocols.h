@@ -9,8 +9,11 @@
 #ifndef UserCommonProtocols_h
 #define UserCommonProtocols_h
 
+#include "U4DVector3n.h"
+
 class U11Player;
 class U11Team;
+
 
 typedef enum{
 
@@ -37,11 +40,20 @@ typedef struct{
     
 }Message;
 
+typedef struct{
+    
+    U4DEngine::U4DVector3n direction;
+    bool changedDirection;
+    
+}JoystickMessageData;
+
 enum{
     
     msgReceiveBall,
     msgButtonAPressed,
     msgButtonBPressed,
+    msgJoystickActive,
+    msgJoystickNotActive,
     msgSupportPlayer,
     msgPassToMe,
     msgRunToSupport,
