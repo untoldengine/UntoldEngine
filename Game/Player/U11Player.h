@@ -51,6 +51,8 @@ private:
     
     int ballKickSpeed;
     
+    U4DEngine::U4DVector3n ballKickDirection;
+    
     U11FormationEntity *formationEntity;
     
     U4DEngine::U4DPoint3n formationPosition;
@@ -264,6 +266,10 @@ public:
     void setBallKickSpeed(float uBallKickSpeed);
     
     float getBallKickSpeed();
+    
+    void setBallKickDirection(U4DEngine::U4DVector3n &uDirection);
+    
+    U4DEngine::U4DVector3n getBallKickDirection();
     
 };
 #endif /* U11Player_hpp */

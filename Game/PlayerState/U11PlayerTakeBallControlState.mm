@@ -159,21 +159,6 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
         uPlayer->decelerateBall(ballDeceleration, dt);
     }
     
-    //if joystick is active go into dribble state
-    if (uPlayer->getJoystickActive()) {
-        
-        //check if the joystick changed directions
-        
-        if ((uPlayer->getDirectionReversal())) {
-            
-            uPlayer->changeState(U11PlayerReverseKickState::sharedInstance());
-            
-        }
-    
-        uPlayer->changeState(U11PlayerDribbleState::sharedInstance());
-        
-    }
-    
 }
 
 void U11PlayerTakeBallControlState::exit(U11Player *uPlayer){
@@ -206,6 +191,22 @@ bool U11PlayerTakeBallControlState::handleMessage(U11Player *uPlayer, Message &u
             uPlayer->setBallKickSpeed(passBallSpeed);
             
             uPlayer->changeState(U11PlayerAirShotState::sharedInstance());
+        }
+            break;
+            
+        case msgJoystickActive:
+        {
+            JoystickMessageData joystickMessageData=*((JoystickMessageData*)uMsg.extraInfo);
+            
+            if (joystickMessageData.changedDirection) {
+                
+                uPlayer->changeState(U11PlayerReverseKickState::sharedInstance());
+                
+            }
+            
+            uPlayer->changeState(U11PlayerDribbleState::sharedInstance());
+            
+            
         }
             break;
             

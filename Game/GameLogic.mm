@@ -60,8 +60,6 @@ void GameLogic::setTeamToControl(U11Team *uTeam){
 
 void GameLogic::receiveTouchUpdate(){
     
-    bool joystickActive=false;
-    
     U11Player *player=team->getActivePlayer();
     
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
@@ -96,20 +94,33 @@ void GameLogic::receiveTouchUpdate(){
             
             U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
             
+            joystickDirection.z=-joystickDirection.y;
+        
+            joystickDirection.y=0;
+            
             joystickDirection.normalize();
             
-            player->setJoystickDirection(joystickDirection);
+            JoystickMessageData joystickMessageData;
             
-            joystickActive=true;
+            joystickMessageData.direction=joystickDirection;
             
-            player->setDirectionReversal(joystick->getDirectionReversal());
+            if (joystick->getDirectionReversal()) {
+                
+                joystickMessageData.changedDirection=true;
+                
+            }else{
+                
+                joystickMessageData.changedDirection=false;
+                
+            }
             
-            player->setJoystickActive(true);
+            messageDispatcher->sendMessage(0.0, player, player, msgJoystickActive, (void*)&joystickMessageData);
+            
             
         }else{
             
-            player->setJoystickActive(false);
-        
+            messageDispatcher->sendMessage(0.0, player, player, msgJoystickNotActive);
+            
         }
         
     }

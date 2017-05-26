@@ -31,7 +31,7 @@ U11AINoPosessionState* U11AINoPosessionState::sharedInstance(){
 
 void U11AINoPosessionState::enter(U11AISystem *uAISystem){
 
-    
+    std::cout<<"No Posession"<<std::endl;
 }
 
 void U11AINoPosessionState::execute(U11AISystem *uAISystem, double dt){

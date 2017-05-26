@@ -8,7 +8,7 @@
 
 #include "U11PlayerMarkingState.h"
 #include "U11PlayerDefendState.h"
-#include "U11PlayerStealingState.h"
+#include "U11PlayerTapToStealState.h"
 #include "U11Team.h"
 
 U11PlayerMarkingState* U11PlayerMarkingState::instance=0;
@@ -52,7 +52,7 @@ void U11PlayerMarkingState::execute(U11Player *uPlayer, double dt){
         uPlayer->removeAllVelocities();
         uPlayer->removeKineticForces();
             
-        uPlayer->changeState(U11PlayerStealingState::sharedInstance());
+        uPlayer->changeState(U11PlayerTapToStealState::sharedInstance());
         
     }
     

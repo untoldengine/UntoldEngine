@@ -68,13 +68,7 @@ void U11PlayerReverseKickState::execute(U11Player *uPlayer, double dt){
     
     if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()>=3) {
         
-        U4DEngine::U4DVector3n directionToKick=uPlayer->getJoystickDirection();
-        
-        directionToKick.z=-directionToKick.y;
-        
-        directionToKick.y=0;
-        
-        ball->kickBallToGround(ballReverseRolling, directionToKick, dt);
+        ball->kickBallToGround(ballReverseRolling, uPlayer->getBallKickDirection(), dt);
         
         uPlayer->setDirectionReversal(false);
         uPlayer->changeState(U11PlayerDribbleState::sharedInstance());

@@ -10,7 +10,7 @@
 #include "U11PlayerRunToDefendState.h"
 #include "U11PlayerDefenseFormationState.h"
 #include "U11PlayerMarkingState.h"
-#include "U11PlayerStealingState.h"
+#include "U11PlayerTapToStealState.h"
 #include "U11PlayerRunToStealState.h"
 #include "U11PlayerInterceptPassState.h"
 #include "U11Team.h"

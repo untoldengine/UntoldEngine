@@ -1,30 +1,30 @@
 //
-//  U11PlayerStealingState.hpp
+//  U11PlayerTapToStealState.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 4/28/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef U11PlayerStealingState_hpp
-#define U11PlayerStealingState_hpp
+#ifndef U11PlayerTapToStealState_hpp
+#define U11PlayerTapToStealState_hpp
 
 #include <stdio.h>
 #include "U11PlayerStateInterface.h"
 
-class U11PlayerStealingState:public U11PlayerStateInterface {
+class U11PlayerTapToStealState:public U11PlayerStateInterface {
     
 private:
     
-    U11PlayerStealingState();
+    U11PlayerTapToStealState();
     
-    ~U11PlayerStealingState();
+    ~U11PlayerTapToStealState();
     
 public:
     
-    static U11PlayerStealingState* instance;
+    static U11PlayerTapToStealState* instance;
     
-    static U11PlayerStealingState* sharedInstance();
+    static U11PlayerTapToStealState* sharedInstance();
     
     void enter(U11Player *uPlayer);
     
@@ -37,4 +37,4 @@ public:
     bool handleMessage(U11Player *uPlayer, Message &uMsg);
     
 };
-#endif /* U11PlayerStealingState_hpp */
+#endif /* U11PlayerTapToStealState_hpp */
