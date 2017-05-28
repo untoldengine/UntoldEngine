@@ -8,8 +8,8 @@
 
 #include "U11PlayerTapToStealState.h"
 #include "U11PlayerDefendState.h"
-#include "U11AINoPosessionState.h"
 #include "U11Team.h"
+#include "U11MessageDispatcher.h"
 
 U11PlayerTapToStealState* U11PlayerTapToStealState::instance=0;
 
@@ -49,17 +49,18 @@ void U11PlayerTapToStealState::execute(U11Player *uPlayer, double dt){
         
         uPlayer->kickBallToGround(ballStealingSpeed, direction,dt);
     
-        //change the states to the teams
-//        U11Team *team=uPlayer->getTeam();
-//        
-//        U11Team *oppositeTeam=team->getOppositeTeam();
-//        
-//        team->changeState(U11AINoPosessionState::sharedInstance());
-//        
-//        oppositeTeam->changeState(U11AINoPosessionState::sharedInstance());
+        //change the states of the teams
+        U11Team *team=uPlayer->getTeam();
         
-        uPlayer->changeState(U11PlayerDefendState::sharedInstance());
+        U11Team *oppositeTeam=team->getOppositeTeam();
         
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, team, msgBallRelinquished);
+        
+        messageDispatcher->sendMessage(0.0, oppositeTeam, msgBallRelinquished);
+        
+        //uPlayer->changeState(U11PlayerDefendState::sharedInstance());
         
     }
     

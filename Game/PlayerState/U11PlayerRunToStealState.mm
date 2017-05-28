@@ -8,7 +8,7 @@
 
 #include "U11PlayerRunToStealState.h"
 #include "U11PlayerMarkingState.h"
-#include "U11PlayerInterceptPassState.h"
+#include "U11PlayerInterceptState.h"
 
 U11PlayerRunToStealState* U11PlayerRunToStealState::instance=0;
 
@@ -73,9 +73,9 @@ bool U11PlayerRunToStealState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
             
-        case msgInterceptPass:
+        case msgIntercept:
             
-            uPlayer->changeState(U11PlayerInterceptPassState::sharedInstance());
+            uPlayer->changeState(U11PlayerInterceptState::sharedInstance());
             
             break;
             

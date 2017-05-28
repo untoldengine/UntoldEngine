@@ -13,6 +13,8 @@
 #include "U11PlayerDefendState.h"
 #include "U11PlayerDefenseFormationState.h"
 #include "U11PlayerAttackFormationState.h"
+#include "U11PlayerRunToStealState.h"
+#include "U11PlayerInterceptState.h"
 #include "U11MessageDispatcher.h"
 #include "UserCommonProtocols.h"
 
@@ -40,6 +42,10 @@ void U11PlayerIdleState::enter(U11Player *uPlayer){
     
     //set the standing animation
     uPlayer->setNextAnimationToPlay(uPlayer->getIdleAnimation());
+    
+    uPlayer->removeKineticForces();
+    uPlayer->removeAllVelocities();
+    
 }
 
 void U11PlayerIdleState::execute(U11Player *uPlayer, double dt){
@@ -61,6 +67,19 @@ bool U11PlayerIdleState::isSafeToChangeState(U11Player *uPlayer){
 bool U11PlayerIdleState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
+        
+        case msgChaseBall:
+            
+            uPlayer->changeState(U11PlayerChaseBallState::sharedInstance());
+            
+            break;
+            
+        case msgIntercept:
+            
+            uPlayer->changeState(U11PlayerInterceptState::sharedInstance());
+            
+            break;
+            
         case msgReceiveBall:
             
             //change state to receive ball
@@ -99,6 +118,13 @@ bool U11PlayerIdleState::handleMessage(U11Player *uPlayer, Message &uMsg){
                 uPlayer->changeState(U11PlayerAttackFormationState::sharedInstance());
                 
             }
+            
+            break;
+            
+        case msgRunToSteal:
+            
+            uPlayer->changeState(U11PlayerRunToStealState::sharedInstance());
+            
             
             break;
             

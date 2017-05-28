@@ -49,22 +49,30 @@ typedef struct{
 
 enum{
     
+    //attack
     msgReceiveBall,
+    msgRunToAttackFormation,
+    msgSupportPlayer,
+    msgPassToMe,
+    msgRunToSupport,
+    
+    //defend
+    msgRunToDefend,
+    msgRunToDefendingFormation,
+    msgRunToSteal,
+    msgIntercept,
+    //idle
+    
+    //input
     msgButtonAPressed,
     msgButtonBPressed,
     msgJoystickActive,
     msgJoystickNotActive,
-    msgSupportPlayer,
-    msgPassToMe,
-    msgRunToSupport,
-    msgPressControllingPlayer,
-    msgRunToDefend,
-    msgRunToDefendingFormation,
-    msgRunToAttackFormation,
-    msgRunToSteal,
+    
     msgBallRelinquished,
     msgBallPassed,
-    msgInterceptPass,
+    
+    msgChaseBall,
     
 }MessageEnum;
 

@@ -7,7 +7,6 @@
 //
 
 #include "U11AttackAISystem.h"
-#include "U11AttackAISystem.h"
 #include "U11MessageDispatcher.h"
 #include "U11SpaceAnalyzer.h"
 #include "U11Player.h"

@@ -180,7 +180,7 @@ void U11DefenseAISystem::interceptPass(){
         
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
-        messageDispatcher->sendMessage(0.0, NULL, interceptPlayer, msgInterceptPass);
+        messageDispatcher->sendMessage(0.0, NULL, interceptPlayer, msgIntercept);
         
     }
     

@@ -7,7 +7,7 @@
 //
 
 #include "U11PlayerReceiveBallState.h"
-#include "U11PlayerTakeBallControlState.h"
+#include "U11PlayerHaltBallState.h"
 #include "U11Team.h"
 
 U11PlayerReceiveBallState* U11PlayerReceiveBallState::instance=0;
@@ -57,9 +57,7 @@ void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
         
         uPlayer->removeKineticForces();
         
-        U11PlayerStateInterface *takeBallControlState=U11PlayerTakeBallControlState::sharedInstance();
-        
-        uPlayer->changeState(takeBallControlState);
+        uPlayer->changeState(U11PlayerHaltBallState::sharedInstance());
         
     }
 }

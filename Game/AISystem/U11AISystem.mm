@@ -18,6 +18,7 @@ U11AISystem::U11AISystem(U11Team *uTeam){
     stateManager=new U11AIStateManager(this);
     attackAISystem.setTeam(team);
     defenseAISystem.setTeam(team);
+    recoverAISystem.setTeam(team);
     
 }
 
@@ -57,4 +58,9 @@ U11AttackAISystem &U11AISystem::getAttackAISystem(){
 U11DefenseAISystem &U11AISystem::getDefenseAISystem(){
     
     return defenseAISystem;
+}
+
+U11RecoverAISystem &U11AISystem::getRecoverAISystem(){
+    
+    return recoverAISystem;
 }

@@ -15,11 +15,18 @@
 #include "CommonProtocols.h"
 #include "U11SpaceAnalyzer.h"
 #include "U11PlayerDribbleState.h"
-#include "U11PlayerChaseBallState.h"
+#include "U11PlayerInterceptState.h"
 #include "U11PlayerStateInterface.h"
 #include "U11Team.h"
 #include "U11MessageDispatcher.h"
 #include "U11Ball.h"
+
+
+//#include "U11AIStateManager.h"
+//#include "U11AISystem.h"
+//#include "U11AIDefenseState.h"
+//#include "U11AIAttackState.h"
+//#include "U11AIRecoverState.h"
 
 GameLogic::GameLogic():buttonHoldTime(0){
 
@@ -48,7 +55,7 @@ void GameLogic::init(){
     U11SpaceAnalyzer spaceAnalyzer;
     U11Player* player=spaceAnalyzer.analyzeClosestPlayersToBall(team).at(0);
     
-    player->changeState(U11PlayerChaseBallState::sharedInstance());
+    player->changeState(U11PlayerInterceptState::sharedInstance());
     
 }
 
@@ -63,6 +70,18 @@ void GameLogic::receiveTouchUpdate(){
     U11Player *player=team->getActivePlayer();
     
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+//    if (team->getAISystem()->getStateManager()->getCurrentState()==U11AIDefenseState::sharedInstance()) {
+//        
+//        std::cout<<"In defense state"<<std::endl;
+//        
+//    }else if (team->getAISystem()->getStateManager()->getCurrentState()==U11AIAttackState::sharedInstance()){
+//        
+//        std::cout<<"In attack state"<<std::endl;
+//    }else if (team->getAISystem()->getStateManager()->getCurrentState()==U11AIRecoverState::sharedInstance()){
+//        
+//        std::cout<<"In recover state"<<std::endl;
+//    }
     
     if (player!=NULL) {
         
