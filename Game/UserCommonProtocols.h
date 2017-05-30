@@ -81,7 +81,7 @@ const float fieldLength=1000.0;
 const float playingFieldLength=480.0;
 const float playingFieldWidth=310.0;
 
-const float chasingSpeed=50.0;
+const float chasingSpeed=45.0;
 const float dribblingSpeed=40.0;
 const float markingSpeed=20.0;
 const float ballRollingSpeed=43.0;

@@ -54,6 +54,9 @@ void U11AttackAISystem::computeSupportSpace(){
     
     U11SpaceAnalyzer spaceAnalyzer;
     
+    //assign support player
+    assignSupportPlayer();
+    
     //translate the formation
     U11Player *controllingPlayer=team->getControllingPlayer();
     

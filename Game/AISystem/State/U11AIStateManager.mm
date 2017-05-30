@@ -52,3 +52,8 @@ U11AIStateInterface *U11AIStateManager::getCurrentState(){
     return currentState;
     
 }
+
+U11AIStateInterface *U11AIStateManager::getPreviousState(){
+    
+    return previousState;
+}

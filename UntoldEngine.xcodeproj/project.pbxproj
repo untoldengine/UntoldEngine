@@ -240,7 +240,6 @@
 		03EA5ECC1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d */; };
 		03EA5ECE1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d */; };
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
-		03EC31AD1EDB53F300023539 /* U11PlayerHaltInterceptState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EC31AB1EDB53F300023539 /* U11PlayerHaltInterceptState.mm */; };
 		03ECCC021E9534300057C20B /* oppositesocceruniform.png in Resources */ = {isa = PBXBuildFile; fileRef = 03ECCC011E9534300057C20B /* oppositesocceruniform.png */; };
 		03ECCC041E9534610057C20B /* oppositeplayerscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */; };
 		03ECCC071E9BCF780057C20B /* U11PlayerDribblePassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ECCC051E9BCF780057C20B /* U11PlayerDribblePassState.mm */; };
@@ -671,8 +670,6 @@
 		03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithrightfootanimation.u4d; path = Resources/reverseballwithrightfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithleftfootanimation.u4d; path = Resources/reverseballwithleftfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = blenderscript.u4d; path = Resources/blenderscript.u4d; sourceTree = SOURCE_ROOT; };
-		03EC31AB1EDB53F300023539 /* U11PlayerHaltInterceptState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerHaltInterceptState.mm; path = game/PlayerState/U11PlayerHaltInterceptState.mm; sourceTree = SOURCE_ROOT; };
-		03EC31AC1EDB53F300023539 /* U11PlayerHaltInterceptState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerHaltInterceptState.h; path = game/PlayerState/U11PlayerHaltInterceptState.h; sourceTree = SOURCE_ROOT; };
 		03ECCC011E9534300057C20B /* oppositesocceruniform.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = oppositesocceruniform.png; path = Resources/oppositesocceruniform.png; sourceTree = SOURCE_ROOT; };
 		03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = oppositeplayerscript.u4d; path = Resources/oppositeplayerscript.u4d; sourceTree = SOURCE_ROOT; };
 		03ECCC051E9BCF780057C20B /* U11PlayerDribblePassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribblePassState.mm; path = game/PlayerState/U11PlayerDribblePassState.mm; sourceTree = SOURCE_ROOT; };
@@ -997,8 +994,6 @@
 			children = (
 				0348C0811E6A4913001FFF97 /* U11PlayerHaltBallState.h */,
 				0348C0821E6A4913001FFF97 /* U11PlayerHaltBallState.mm */,
-				03EC31AC1EDB53F300023539 /* U11PlayerHaltInterceptState.h */,
-				03EC31AB1EDB53F300023539 /* U11PlayerHaltInterceptState.mm */,
 			);
 			name = Halt;
 			sourceTree = "<group>";
@@ -2202,7 +2197,6 @@
 				03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */,
 				03068D4D19B8F2A400ABDC55 /* U4DVertexData.mm in Sources */,
 				034DBC861A74002F00AC43EB /* U4DOpenGLDebugger.mm in Sources */,
-				03EC31AD1EDB53F300023539 /* U11PlayerHaltInterceptState.mm in Sources */,
 				03254BB51EABAFE9009850D4 /* U11Formation32.mm in Sources */,
 				03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */,
 				03F395FE1A65A09F007A45BD /* U4DOpenGLWorld.mm in Sources */,

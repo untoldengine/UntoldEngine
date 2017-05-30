@@ -46,7 +46,7 @@ void U11RecoverAISystem::computeClosestPlayerToBall(){
 
 void U11RecoverAISystem::startComputeClosestPlayerTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11RecoverAISystem::computeClosestPlayerToBall, closestPlayerAnalysisTimer, 2.0, false);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11RecoverAISystem::computeClosestPlayerToBall, closestPlayerAnalysisTimer, 0.5, false);
     
 }
 

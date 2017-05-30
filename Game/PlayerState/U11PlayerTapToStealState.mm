@@ -60,7 +60,7 @@ void U11PlayerTapToStealState::execute(U11Player *uPlayer, double dt){
         
         messageDispatcher->sendMessage(0.0, oppositeTeam, msgBallRelinquished);
         
-        //uPlayer->changeState(U11PlayerDefendState::sharedInstance());
+        uPlayer->changeState(U11PlayerDefendState::sharedInstance());
         
     }
     

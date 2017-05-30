@@ -24,7 +24,7 @@
 #include "U11AIAttackState.h"
 #include "U11AIDefenseState.h"
 
-U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL){
+U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL){
     
     fieldQuadrant=uFieldQuadrant;
     
@@ -112,6 +112,8 @@ U11Player* U11Team::getControllingPlayer(){
 
 void U11Team::setControllingPlayer(U11Player* uPlayer){
     
+    resetDefendingPlayers();
+    
     if (previousMainControllingPlayer!=NULL) {
         previousMainControllingPlayer->pauseExtremityCollision();
         previousMainControllingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
@@ -150,6 +152,8 @@ void U11Team::setSupportPlayer2(U11Player* uPlayer){
 }
 
 void U11Team::setMainDefendingPlayer(U11Player *uPlayer){
+    
+    resetAttackingPlayers();
     
     if (previousMainDefendingPlayer!=NULL) {
         previousMainDefendingPlayer->pauseExtremityCollision();
@@ -249,4 +253,36 @@ U11Player *U11Team::getActivePlayer(){
     }
     
     return player;
+}
+
+void U11Team::resetAttackingPlayers(){
+    
+    if (controllingPlayer!=nullptr) {
+        
+        controllingPlayer->pauseExtremityCollision();
+        controllingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
+        previousMainControllingPlayer=nullptr;
+        
+        
+    }
+    controllingPlayer=nullptr;
+    supportPlayer1=nullptr;
+    supportPlayer2=nullptr;
+    
+}
+
+void U11Team::resetDefendingPlayers(){
+    
+    if (mainDefendingPlayer!=nullptr) {
+        
+        mainDefendingPlayer->pauseExtremityCollision();
+        mainDefendingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
+        previousMainDefendingPlayer=nullptr;
+        
+        
+    }
+    
+    mainDefendingPlayer=nullptr;
+    supportDefendingPlayer1=nullptr;
+    supportDefendingPlayer2=nullptr;
 }

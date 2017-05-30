@@ -96,9 +96,6 @@ void U11PlayerRecoverState::enter(U11Player *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(false);
     
-    U11Team *team=uPlayer->getTeam();
-    
-    team->setControllingPlayer(uPlayer);
 }
 
 void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
@@ -130,9 +127,10 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
             
         }
         
-        
         //get team
         U11Team *team=uPlayer->getTeam();
+        
+        team->setControllingPlayer(uPlayer);
         
         //change state to attacking
         team->changeState(U11AIAttackState::sharedInstance());

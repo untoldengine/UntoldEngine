@@ -42,9 +42,6 @@ void U11AIAttackState::enter(U11AISystem *uAISystem){
         
     }
     
-    //assign support player
-    uAISystem->getAttackAISystem().assignSupportPlayer();
-    
     //initialize the timer to compute the best supporting position
     uAISystem->getAttackAISystem().startComputeSupportSpaceTimer();
     

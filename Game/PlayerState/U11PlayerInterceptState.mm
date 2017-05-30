@@ -9,6 +9,11 @@
 #include "U11PlayerInterceptState.h"
 #include "U11PlayerRecoverState.h"
 #include "U11Team.h"
+#include "U11AIStateManager.h"
+#include "U11AISystem.h"
+#include "U11AIDefenseState.h"
+#include "U11AIAttackState.h"
+#include "U11AIRecoverState.h"
 
 
 U11PlayerInterceptState* U11PlayerInterceptState::instance=0;
@@ -38,6 +43,10 @@ void U11PlayerInterceptState::enter(U11Player *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(true);
     
+    U11Team *team=uPlayer->getTeam();
+    
+    team->setControllingPlayer(uPlayer);
+        
     
 }
 
@@ -69,6 +78,7 @@ void U11PlayerInterceptState::execute(U11Player *uPlayer, double dt){
 }
 
 void U11PlayerInterceptState::exit(U11Player *uPlayer){
+    
     
 }
 

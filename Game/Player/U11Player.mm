@@ -459,7 +459,7 @@ bool U11Player::hasReachedTheBall(){
     
     float distanceToBall=(ballPosition-playerPosition).magnitude();
     
-    if (distanceToBall<=(ballRadius+0.5)) {
+    if (distanceToBall<=(ballRadius+2.5)) {
         
         return true;
     }
