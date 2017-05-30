@@ -10,12 +10,12 @@
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerIdleState.h"
 #include "U11PlayerDribblePassState.h"
-#include "U11PlayerTakeBallControlState.h"
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
 #include "U11MessageDispatcher.h"
-#include "U11AINoPosessionState.h"
+#include "U11AIRecoverState.h"
 #include "U11SpaceAnalyzer.h"
+#include "U11PlayerHaltBallState.h"
 
 U11PlayerGroundPassState* U11PlayerGroundPassState::instance=0;
 
@@ -56,8 +56,6 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
     uPlayer->setPlayNextAnimationContinuously(false);
     uPlayer->setPlayBlendedAnimation(true);
     
-    uPlayer->getTeam()->changeState(U11AINoPosessionState::sharedInstance());
-    
 }
 
 void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
@@ -88,7 +86,7 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
     if (!uPlayer->getCurrentPlayingAnimation()->isAnimationPlaying()) {
         
         uPlayer->setMissedTheBall(true);
-        uPlayer->changeState(U11PlayerTakeBallControlState::sharedInstance());
+        uPlayer->changeState(U11PlayerHaltBallState::sharedInstance());
         
     }
     

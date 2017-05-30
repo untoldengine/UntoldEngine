@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "U11AttackAISystem.h"
 #include "U11DefenseAISystem.h"
+#include "U11RecoverAISystem.h"
 #include "U11AIAnalyzer.h"
 
 class U11Team;
@@ -24,6 +25,7 @@ private:
     
     U11AttackAISystem attackAISystem;
     U11DefenseAISystem defenseAISystem;
+    U11RecoverAISystem recoverAISystem;
     U11AIStateManager *stateManager;
     U11Team *team;
     
@@ -46,6 +48,8 @@ public:
     U11AttackAISystem &getAttackAISystem();
     
     U11DefenseAISystem &getDefenseAISystem();
+    
+    U11RecoverAISystem &getRecoverAISystem();
 
     
 };

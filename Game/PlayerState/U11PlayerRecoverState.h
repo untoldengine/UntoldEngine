@@ -1,30 +1,30 @@
 //
-//  U11PlayerInterceptPassState.hpp
+//  U11PlayerRecoverState.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 5/10/17.
+//  Created by Harold Serrano on 5/27/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef U11PlayerInterceptPassState_hpp
-#define U11PlayerInterceptPassState_hpp
+#ifndef U11PlayerRecoverState_hpp
+#define U11PlayerRecoverState_hpp
 
 #include <stdio.h>
 #include "U11PlayerStateInterface.h"
 
-class U11PlayerInterceptPassState:public U11PlayerStateInterface {
+class U11PlayerRecoverState:public U11PlayerStateInterface {
     
 private:
     
-    U11PlayerInterceptPassState();
+    U11PlayerRecoverState();
     
-    ~U11PlayerInterceptPassState();
+    ~U11PlayerRecoverState();
     
 public:
     
-    static U11PlayerInterceptPassState* instance;
+    static U11PlayerRecoverState* instance;
     
-    static U11PlayerInterceptPassState* sharedInstance();
+    static U11PlayerRecoverState* sharedInstance();
     
     void enter(U11Player *uPlayer);
     
@@ -37,4 +37,4 @@ public:
     bool handleMessage(U11Player *uPlayer, Message &uMsg);
     
 };
-#endif /* U11PlayerInterceptPassState_hpp */
+#endif /* U11PlayerRecoverState_hpp */

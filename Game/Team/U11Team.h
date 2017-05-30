@@ -122,6 +122,10 @@ public:
     
     U11AISystem *getAISystem();
     
+    void resetAttackingPlayers();
+    
+    void resetDefendingPlayers();
+    
 };
 
 #endif /* U11Team_hpp */

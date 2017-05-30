@@ -7,7 +7,6 @@
 //
 
 #include "U11AttackAISystem.h"
-#include "U11AttackAISystem.h"
 #include "U11MessageDispatcher.h"
 #include "U11SpaceAnalyzer.h"
 #include "U11Player.h"
@@ -54,6 +53,9 @@ void U11AttackAISystem::assignSupportPlayer(){
 void U11AttackAISystem::computeSupportSpace(){
     
     U11SpaceAnalyzer spaceAnalyzer;
+    
+    //assign support player
+    assignSupportPlayer();
     
     //translate the formation
     U11Player *controllingPlayer=team->getControllingPlayer();

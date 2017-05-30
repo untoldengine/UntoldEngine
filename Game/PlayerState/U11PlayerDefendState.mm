@@ -12,7 +12,7 @@
 #include "U11PlayerMarkingState.h"
 #include "U11PlayerTapToStealState.h"
 #include "U11PlayerRunToStealState.h"
-#include "U11PlayerInterceptPassState.h"
+#include "U11PlayerInterceptState.h"
 #include "U11Team.h"
 
 U11PlayerDefendState* U11PlayerDefendState::instance=0;
@@ -40,13 +40,14 @@ void U11PlayerDefendState::enter(U11Player *uPlayer){
     uPlayer->setNextAnimationToPlay(uPlayer->getIdleAnimation());
     uPlayer->setPlayBlendedAnimation(true);
     
+    uPlayer->removeKineticForces();
+    uPlayer->removeAllVelocities();
+    
 }
 
 void U11PlayerDefendState::execute(U11Player *uPlayer, double dt){
     
     uPlayer->seekBall();
-    
-    
     
 }
 
@@ -87,9 +88,9 @@ bool U11PlayerDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
             break;
             
-        case msgInterceptPass:
+        case msgIntercept:
             
-            uPlayer->changeState(U11PlayerInterceptPassState::sharedInstance());
+            uPlayer->changeState(U11PlayerInterceptState::sharedInstance());
             
             break;
             

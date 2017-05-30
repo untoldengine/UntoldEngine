@@ -1,30 +1,30 @@
 //
-//  U11PlayerTakeBallControlState.hpp
+//  U11PlayerHaltBallState.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/19/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef U11PlayerAdjustBallPositionState_hpp
-#define U11PlayerAdjustBallPositionState_hpp
+#ifndef U11PlayerHaltBallState_hpp
+#define U11PlayerHaltBallState_hpp
 
 #include <stdio.h>
 #include "U11PlayerStateInterface.h"
 
-class U11PlayerTakeBallControlState:public U11PlayerStateInterface {
+class U11PlayerHaltBallState:public U11PlayerStateInterface {
     
 private:
     
-    U11PlayerTakeBallControlState();
+    U11PlayerHaltBallState();
     
-    ~U11PlayerTakeBallControlState();
+    ~U11PlayerHaltBallState();
     
 public:
     
-    static U11PlayerTakeBallControlState* instance;
+    static U11PlayerHaltBallState* instance;
     
-    static U11PlayerTakeBallControlState* sharedInstance();
+    static U11PlayerHaltBallState* sharedInstance();
     
     void enter(U11Player *uPlayer);
     

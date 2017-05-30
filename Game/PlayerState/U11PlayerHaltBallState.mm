@@ -1,12 +1,12 @@
 //
-//  U11PlayerTakeBallControlState.cpp
+//  U11PlayerHaltBallState.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/19/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#include "U11PlayerTakeBallControlState.h"
+#include "U11PlayerHaltBallState.h"
 #include "U11PlayerDribbleState.h"
 #include "U11PlayerGroundPassState.h"
 #include "U11PlayerGroundShotState.h"
@@ -15,50 +15,32 @@
 #include "U11PlayerRunPassState.h"
 #include "U11BallGroundState.h"
 #include "U11PlayerChaseBallState.h"
-#include "U11AIAttackState.h"
-#include "U11AIDefenseState.h"
 #include "U11Ball.h"
 #include "U11Team.h"
-#include "U11AISystem.h"
 #include "UserCommonProtocols.h"
 
 
-U11PlayerTakeBallControlState* U11PlayerTakeBallControlState::instance=0;
+U11PlayerHaltBallState* U11PlayerHaltBallState::instance=0;
 
-U11PlayerTakeBallControlState::U11PlayerTakeBallControlState(){
+U11PlayerHaltBallState::U11PlayerHaltBallState(){
     
 }
 
-U11PlayerTakeBallControlState::~U11PlayerTakeBallControlState(){
+U11PlayerHaltBallState::~U11PlayerHaltBallState(){
     
 }
 
-U11PlayerTakeBallControlState* U11PlayerTakeBallControlState::sharedInstance(){
+U11PlayerHaltBallState* U11PlayerHaltBallState::sharedInstance(){
     
     if (instance==0) {
-        instance=new U11PlayerTakeBallControlState();
+        instance=new U11PlayerHaltBallState();
     }
     
     return instance;
     
 }
 
-void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
-    
-    //get team
-    U11Team *team=uPlayer->getTeam();
-    
-    //set as the controlling player
-    team->setControllingPlayer(uPlayer);
-    
-    //assign support player
-    team->getAISystem()->getAttackAISystem().assignSupportPlayer();
-    
-    //change state to attacking
-    team->changeState(U11AIAttackState::sharedInstance());
-    
-    //inform the opposite team to change to defending state
-    team->getOppositeTeam()->changeState(U11AIDefenseState::sharedInstance());
+void U11PlayerHaltBallState::enter(U11Player *uPlayer){
     
     //determine the direction of the ball
     U4DEngine::U4DVector3n playerHeading=uPlayer->getPlayerHeading();
@@ -116,10 +98,12 @@ void U11PlayerTakeBallControlState::enter(U11Player *uPlayer){
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(false);
     
-   
+    U11Team *team=uPlayer->getTeam();
+    
+    team->setControllingPlayer(uPlayer);
 }
 
-void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
+void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
     
     U11Ball *ball=uPlayer->getSoccerBall();
     
@@ -161,16 +145,16 @@ void U11PlayerTakeBallControlState::execute(U11Player *uPlayer, double dt){
     
 }
 
-void U11PlayerTakeBallControlState::exit(U11Player *uPlayer){
+void U11PlayerHaltBallState::exit(U11Player *uPlayer){
     
 }
 
-bool U11PlayerTakeBallControlState::isSafeToChangeState(U11Player *uPlayer){
+bool U11PlayerHaltBallState::isSafeToChangeState(U11Player *uPlayer){
     
     return true;
 }
 
-bool U11PlayerTakeBallControlState::handleMessage(U11Player *uPlayer, Message &uMsg){
+bool U11PlayerHaltBallState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
             

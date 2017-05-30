@@ -10,7 +10,7 @@
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerIdleState.h"
 #include "UserCommonProtocols.h"
-#include "U11AINoPosessionState.h"
+#include "U11AIRecoverState.h"
 #include "U11Team.h"
 
 U11PlayerGroundShotState* U11PlayerGroundShotState::instance=0;
@@ -49,7 +49,6 @@ void U11PlayerGroundShotState::enter(U11Player *uPlayer){
     uPlayer->setPlayNextAnimationContinuously(false);
     uPlayer->setPlayBlendedAnimation(true);
     
-    uPlayer->getTeam()->changeState(U11AINoPosessionState::sharedInstance());
 }
 
 void U11PlayerGroundShotState::execute(U11Player *uPlayer, double dt){

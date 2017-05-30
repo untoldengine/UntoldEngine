@@ -10,6 +10,7 @@
 #include "U11PlayerIdleState.h"
 #include "U11PlayerReceiveBallState.h"
 #include "U11PlayerSupportState.h"
+#include "U11PlayerAttackState.h"
 
 U11PlayerAttackFormationState* U11PlayerAttackFormationState::instance=0;
 
@@ -55,7 +56,7 @@ void U11PlayerAttackFormationState::execute(U11Player *uPlayer, double dt){
         uPlayer->removeAllVelocities();
         uPlayer->removeKineticForces();
         
-        uPlayer->changeState(U11PlayerIdleState::sharedInstance());
+        uPlayer->changeState(U11PlayerAttackState::sharedInstance());
         
     }
     

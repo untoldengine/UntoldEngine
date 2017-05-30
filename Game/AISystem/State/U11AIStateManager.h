@@ -41,6 +41,8 @@ public:
     bool handleMessage(Message &uMsg);
     
     U11AIStateInterface *getCurrentState();
+    
+    U11AIStateInterface *getPreviousState();
 
 };
 

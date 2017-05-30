@@ -9,7 +9,7 @@
 #include "U11PlayerDribbleState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerGroundPassState.h"
-#include "U11PlayerTakeBallControlState.h"
+#include "U11PlayerHaltBallState.h"
 #include "U11PlayerAirShotState.h"
 #include "U11PlayerRunToReverseKickState.h"
 #include "U11PlayerRunPassState.h"

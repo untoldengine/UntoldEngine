@@ -9,6 +9,10 @@
 #include "U11AIAttackState.h"
 #include "U11AISystem.h"
 #include "U11AttackAISystem.h"
+#include "U11AIRecoverState.h"
+#include "U11Team.h"
+#include "U11Player.h"
+#include "U11PlayerAttackState.h"
 
 U11AIAttackState* U11AIAttackState::instance=0;
 
@@ -32,6 +36,12 @@ U11AIAttackState* U11AIAttackState::sharedInstance(){
 
 void U11AIAttackState::enter(U11AISystem *uAISystem){
     
+    //set all players to idle
+    for(auto n:uAISystem->getTeam()->getTeammates()){
+        n->changeState(U11PlayerAttackState::sharedInstance());
+        
+    }
+    
     //initialize the timer to compute the best supporting position
     uAISystem->getAttackAISystem().startComputeSupportSpaceTimer();
     
@@ -50,6 +60,18 @@ void U11AIAttackState::exit(U11AISystem *uAISystem){
 }
 
 bool U11AIAttackState::handleMessage(U11AISystem *uAISystem, Message &uMsg){
+    
+    switch (uMsg.msg) {
+            
+        case msgBallRelinquished:
+            
+            uAISystem->changeState(U11AIRecoverState::sharedInstance());
+            
+            break;
+            
+        default:
+            break;
+    }
     
     return false;
     
