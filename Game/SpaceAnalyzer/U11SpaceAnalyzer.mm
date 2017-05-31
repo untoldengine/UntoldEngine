@@ -75,6 +75,47 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToPosition(U11Te
     
 }
 
+std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToDefendingPosition(U11Team *uTeam, U4DEngine::U4DVector3n &uPosition){
+    
+    //get each support player into a node with its distance to uPosition
+    
+    uPosition.y=0;
+    
+    //set up the heapsort container
+    std::vector<U11Node> heapContainer;
+    
+    for(auto n:uTeam->getTeammates()){
+        
+        U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
+        playerPosition.y=0;
+        
+        float distance=(uPosition-playerPosition).magnitude();
+        
+        //create a node
+        U11Node node;
+        node.player=n;
+        node.data=distance;
+        
+        heapContainer.push_back(node);
+        
+    }
+    
+    //sort the players closer to the position
+    
+    U11HeapSort heapSort;
+    heapSort.heapify(heapContainer);
+    
+    std::vector<U11Player*> sortPlayers;
+    
+    for(auto n:heapContainer){
+        
+        sortPlayers.push_back(n.player);
+    }
+    
+    return sortPlayers;
+    
+}
+
 std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersAlongLine(U11Team *uTeam, U4DEngine::U4DSegment &uLine){
     
     //get each support player into a node with its distance to uPosition
@@ -388,7 +429,7 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzeDefendingPlayer(U11Team *uTeam)
     U11Player *oppositeControllingPlayer=uTeam->getOppositeTeam()->getControllingPlayer();
     U4DEngine::U4DVector3n oppositePlayerPosition=oppositeControllingPlayer->getAbsolutePosition();
     
-    return analyzePlayersDistanceToPosition(uTeam, oppositePlayerPosition);
+    return analyzePlayersDistanceToDefendingPosition(uTeam, oppositePlayerPosition);
     
 }
 
