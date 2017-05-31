@@ -114,7 +114,17 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
                 ball->removeAllVelocities();
                 
                 ball->changeState(U11BallGroundState::sharedInstance());
+             
+                //get team
+                U11Team *team=uPlayer->getTeam();
                 
+                team->setControllingPlayer(uPlayer);
+                
+                //change state to attacking
+                team->changeState(U11AIAttackState::sharedInstance());
+                
+                //inform the opposite team to change to defending state
+                team->getOppositeTeam()->changeState(U11AIDefenseState::sharedInstance());
             }
             
         }else{
@@ -125,18 +135,17 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
             
             ball->changeState(U11BallGroundState::sharedInstance());
             
+            //get team
+            U11Team *team=uPlayer->getTeam();
+            
+            team->setControllingPlayer(uPlayer);
+            
+            //change state to attacking
+            team->changeState(U11AIAttackState::sharedInstance());
+            
+            //inform the opposite team to change to defending state
+            team->getOppositeTeam()->changeState(U11AIDefenseState::sharedInstance());
         }
-        
-        //get team
-        U11Team *team=uPlayer->getTeam();
-        
-        team->setControllingPlayer(uPlayer);
-        
-        //change state to attacking
-        team->changeState(U11AIAttackState::sharedInstance());
-        
-        //inform the opposite team to change to defending state
-        team->getOppositeTeam()->changeState(U11AIDefenseState::sharedInstance());
         
     }else if(uPlayer->distanceToBall()>ballControlMaximumDistance){
         

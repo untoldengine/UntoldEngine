@@ -47,7 +47,7 @@ void U11PlayerTapToStealState::execute(U11Player *uPlayer, double dt){
         
         U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
         
-        uPlayer->kickBallToGround(ballStealingSpeed, direction,dt);
+        uPlayer->kickBallToGround(ballTapSpeed, direction,dt);
     
         //change the states of the teams
         U11Team *team=uPlayer->getTeam();

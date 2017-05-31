@@ -34,14 +34,16 @@ void U11RecoverAISystem::setTeam(U11Team *uTeam){
 
 void U11RecoverAISystem::computeClosestPlayerToBall(){
     
-        U11SpaceAnalyzer spaceAnalyzer;
+    //Analyze the player closer to the balls trajectory
     
-        U11Player *player=spaceAnalyzer.analyzeClosestPlayersToBall(team).at(0);
-    
-        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-        messageDispatcher->sendMessage(0.0, nullptr, player, msgIntercept);
-    
+    U11SpaceAnalyzer spaceAnalyzer;
+
+    U11Player *player=spaceAnalyzer.analyzeClosestPlayersAlongPassLine(team).at(0);
+
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+
+    messageDispatcher->sendMessage(0.0, nullptr, player, msgIntercept);
+
 }
 
 void U11RecoverAISystem::startComputeClosestPlayerTimer(){
