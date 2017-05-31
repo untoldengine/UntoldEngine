@@ -64,6 +64,7 @@ public:
     
     std::vector<U11Player*> analyzeClosestPlayersAlongPassLine(U11Team *uTeam);
     
+    std::vector<U11Player*> analyzePlayersDistanceToDefendingPosition(U11Team *uTeam, U4DEngine::U4DVector3n &uPosition);
 };
 
 #endif /* U11SpaceAnalyzer_hpp */
