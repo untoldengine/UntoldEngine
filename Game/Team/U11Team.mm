@@ -24,7 +24,7 @@
 #include "U11AIAttackState.h"
 #include "U11AIDefenseState.h"
 
-U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL){
+U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL){
     
     fieldQuadrant=uFieldQuadrant;
     
@@ -121,7 +121,9 @@ void U11Team::setControllingPlayer(U11Player* uPlayer){
     controllingPlayer=uPlayer;
     
     controllingPlayer->resumeExtremityCollision();
+    
     controllingPlayer->setEntityType(U4DEngine::MODEL);
+    setIndicatorForPlayer(controllingPlayer);
     
     previousMainControllingPlayer=controllingPlayer;
     
@@ -160,8 +162,10 @@ void U11Team::setMainDefendingPlayer(U11Player *uPlayer){
         previousMainDefendingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
     }
     mainDefendingPlayer=uPlayer;
+    
     mainDefendingPlayer->resumeExtremityCollision();
     mainDefendingPlayer->setEntityType(U4DEngine::MODEL);
+    setIndicatorForPlayer(mainDefendingPlayer);
     
     previousMainDefendingPlayer=mainDefendingPlayer;
 }
@@ -285,4 +289,16 @@ void U11Team::resetDefendingPlayers(){
     mainDefendingPlayer=nullptr;
     supportDefendingPlayer1=nullptr;
     supportDefendingPlayer2=nullptr;
+}
+
+void U11Team::setIndicatorForPlayer(U11Player *uPlayer){
+    
+    playerWithIndicator=uPlayer;
+}
+
+U11Player *U11Team::getIndicatorForPlayer(){
+    
+    if (playerWithIndicator!=nullptr) {
+        return playerWithIndicator;
+    }
 }

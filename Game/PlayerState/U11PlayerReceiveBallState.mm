@@ -39,6 +39,9 @@ void U11PlayerReceiveBallState::enter(U11Player *uPlayer){
     
     uPlayer->setEntityType(U4DEngine::MODEL);
     
+    U11Team *team=uPlayer->getTeam();
+    team->setIndicatorForPlayer(uPlayer);
+    
 }
 
 void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){

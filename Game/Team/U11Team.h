@@ -48,6 +48,8 @@ private:
     
     U11Player *previousMainDefendingPlayer;
     
+    U11Player *playerWithIndicator;
+    
     U11Team *oppositeTeam;
     
     U11Ball *soccerBall;
@@ -59,6 +61,8 @@ private:
     int fieldQuadrant;
     
     U11AISystem *aiSystem;
+    
+    
     
 public:
     
@@ -125,6 +129,10 @@ public:
     void resetAttackingPlayers();
     
     void resetDefendingPlayers();
+    
+    void setIndicatorForPlayer(U11Player *uPlayer);
+    
+    U11Player *getIndicatorForPlayer();
     
 };
 

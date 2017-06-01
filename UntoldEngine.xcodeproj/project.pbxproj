@@ -240,6 +240,9 @@
 		03EA5ECC1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d */; };
 		03EA5ECE1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d */; };
 		03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */; };
+		03EC31B31EDF9D7400023539 /* miscellaneousscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03EC31B21EDF9D7400023539 /* miscellaneousscript.u4d */; };
+		03EC31B71EDF9ED600023539 /* U11PlayerIndicator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EC31B51EDF9ED600023539 /* U11PlayerIndicator.mm */; };
+		03EC31B91EE0517800023539 /* playerindicatorImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03EC31B81EE0517800023539 /* playerindicatorImage.png */; };
 		03ECCC021E9534300057C20B /* oppositesocceruniform.png in Resources */ = {isa = PBXBuildFile; fileRef = 03ECCC011E9534300057C20B /* oppositesocceruniform.png */; };
 		03ECCC041E9534610057C20B /* oppositeplayerscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */; };
 		03ECCC071E9BCF780057C20B /* U11PlayerDribblePassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ECCC051E9BCF780057C20B /* U11PlayerDribblePassState.mm */; };
@@ -670,6 +673,10 @@
 		03EA5ECB1E614C58000FBCF2 /* reverseballwithrightfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithrightfootanimation.u4d; path = Resources/reverseballwithrightfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03EA5ECD1E614C70000FBCF2 /* reverseballwithleftfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = reverseballwithleftfootanimation.u4d; path = Resources/reverseballwithleftfootanimation.u4d; sourceTree = SOURCE_ROOT; };
 		03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = blenderscript.u4d; path = Resources/blenderscript.u4d; sourceTree = SOURCE_ROOT; };
+		03EC31B21EDF9D7400023539 /* miscellaneousscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = miscellaneousscript.u4d; path = Resources/miscellaneousscript.u4d; sourceTree = SOURCE_ROOT; };
+		03EC31B51EDF9ED600023539 /* U11PlayerIndicator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerIndicator.mm; path = game/PlayerIndicator/U11PlayerIndicator.mm; sourceTree = SOURCE_ROOT; };
+		03EC31B61EDF9ED600023539 /* U11PlayerIndicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerIndicator.h; path = game/PlayerIndicator/U11PlayerIndicator.h; sourceTree = SOURCE_ROOT; };
+		03EC31B81EE0517800023539 /* playerindicatorImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = playerindicatorImage.png; path = Resources/playerindicatorImage.png; sourceTree = SOURCE_ROOT; };
 		03ECCC011E9534300057C20B /* oppositesocceruniform.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = oppositesocceruniform.png; path = Resources/oppositesocceruniform.png; sourceTree = SOURCE_ROOT; };
 		03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = oppositeplayerscript.u4d; path = Resources/oppositeplayerscript.u4d; sourceTree = SOURCE_ROOT; };
 		03ECCC051E9BCF780057C20B /* U11PlayerDribblePassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribblePassState.mm; path = game/PlayerState/U11PlayerDribblePassState.mm; sourceTree = SOURCE_ROOT; };
@@ -1211,6 +1218,7 @@
 		036FB55718CE9CB8000EA639 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				03EC31B41EDF9EA000023539 /* PlayerIndicator */,
 				03254B9C1EA28CB9009850D4 /* Formation */,
 				03254B921EA11F63009850D4 /* FieldGoal */,
 				0348C0B71E727F7C001FFF97 /* AISystem */,
@@ -1511,6 +1519,7 @@
 				03929DE31E515A5300D63361 /* socceruniform.png */,
 				037BCBE41EBAB231004CD2F1 /* fullsoccerfield.png */,
 				03929DE11E51483200D63361 /* ball.png */,
+				03EC31B81EE0517800023539 /* playerindicatorImage.png */,
 				03929DCF1E50BC2500D63361 /* playerscript.u4d */,
 				03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
@@ -1536,6 +1545,7 @@
 				0306F0BA1E822E570048B23B /* reverserunninganimation.u4d */,
 				0306F0BC1E8301E70048B23B /* lateralrightrunanimation.u4d */,
 				0306F0BE1E83020F0048B23B /* lateralleftrunanimation.u4d */,
+				03EC31B21EDF9D7400023539 /* miscellaneousscript.u4d */,
 				03254BBB1EABBA32009850D4 /* formation32.u4d */,
 				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
 				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
@@ -1888,6 +1898,15 @@
 			path = Animation;
 			sourceTree = "<group>";
 		};
+		03EC31B41EDF9EA000023539 /* PlayerIndicator */ = {
+			isa = PBXGroup;
+			children = (
+				03EC31B61EDF9ED600023539 /* U11PlayerIndicator.h */,
+				03EC31B51EDF9ED600023539 /* U11PlayerIndicator.mm */,
+			);
+			name = PlayerIndicator;
+			sourceTree = "<group>";
+		};
 		03EDEFA51E8C361400F58873 /* SpaceAnalyzer */ = {
 			isa = PBXGroup;
 			children = (
@@ -2020,6 +2039,7 @@
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
 				036848EA1E59FCCF0087BBBD /* idleanimation.u4d in Resources */,
+				03EC31B31EDF9D7400023539 /* miscellaneousscript.u4d in Resources */,
 				037BCBCD1EB3CEC0004CD2F1 /* stealinganimation.u4d in Resources */,
 				03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */,
 				03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */,
@@ -2035,6 +2055,7 @@
 				037BCBE51EBAB231004CD2F1 /* fullsoccerfield.png in Resources */,
 				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
 				03929DD01E50BC2500D63361 /* playerscript.u4d in Resources */,
+				03EC31B91EE0517800023539 /* playerindicatorImage.png in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
 				0368490D1E5EAC370087BBBD /* leftfootforwardkickanimation.u4d in Resources */,
@@ -2232,6 +2253,7 @@
 				036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkyBox.mm in Sources */,
 				03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */,
+				03EC31B71EDF9ED600023539 /* U11PlayerIndicator.mm in Sources */,
 				030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */,
 				0390C7CA1E3432750028AC20 /* U4DParticleExplosion.mm in Sources */,
 				0348C0651E6A48E5001FFF97 /* U11Ball.mm in Sources */,

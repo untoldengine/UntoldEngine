@@ -34,6 +34,7 @@
 #include "GameLogic.h"
 #include "U11Formation442.h"
 #include "U11FormationInterface.h"
+#include "U11PlayerIndicator.h"
 
 using namespace U4DEngine;
 
@@ -267,6 +268,12 @@ void Earth::init(){
     emelec->translateTeamToFormationPosition();
     barcelona->translateTeamToFormationPosition();
     
+    //set the player indicator
+    
+    playerIndicator=new U11PlayerIndicator(emelec);
+    playerIndicator->init("indicator", "miscellaneousscript.u4d");
+    
+    addChild(playerIndicator);
     
 }
 
