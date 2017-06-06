@@ -10,38 +10,17 @@
 #define AIAttackSystem_hpp
 
 #include <stdio.h>
-#include "U4DCallback.h"
-#include "U4DTimer.h"
+#include "U11AttackSystem.h"
 
-class U11Team;
-
-class U11AttackAISystem {
+class U11AttackAISystem:public U11AttackSystem {
     
 private:
-    
-    U11Team *team;
-    
-    U4DEngine::U4DTimer *supportAnalysisTimer;
-    
-    U4DEngine::U4DCallback<U11AttackAISystem> *scheduler;
     
 public:
     
     U11AttackAISystem();
     
     ~U11AttackAISystem();
-    
-    void setTeam(U11Team *uTeam);
-        
-    void assignSupportPlayer();
-    
-    void computeSupportSpace();
-    
-    void startComputeSupportSpaceTimer();
-    
-    void removeComputeSupportSpaceTimer();
-
-    
     
 };
 #endif /* AIAttackSystem_hpp */

@@ -23,6 +23,9 @@ class U11FormationInterface;
 class U11Field;
 class U11AISystem;
 class U11AIStateInterface;
+class U11AttackSystemInterface;
+class U11DefenseSystemInterface;
+class U11RecoverSystemInterface;
 
 
 class U11Team {
@@ -62,11 +65,13 @@ private:
     
     U11AISystem *aiSystem;
     
+    int playerSelectionID;
     
+    bool selectManualDefendingPlayer;
     
 public:
     
-    U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant);
+    U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem ,int uFieldQuadrant, U11FormationInterface *uTeamFormation);
     
     ~U11Team();
     
@@ -133,6 +138,14 @@ public:
     void setIndicatorForPlayer(U11Player *uPlayer);
     
     U11Player *getIndicatorForPlayer();
+    
+    int getPlayerSelectionID();
+    
+    void scrollPlayerSelectionID();
+    
+    bool setManualDefendingPlayer(bool uValue);
+    
+    bool getManualDefendingPlayer();
     
 };
 

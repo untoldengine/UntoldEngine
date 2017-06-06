@@ -8,7 +8,7 @@
 
 #include "U11AIAttackState.h"
 #include "U11AISystem.h"
-#include "U11AttackAISystem.h"
+#include "U11AttackSystemInterface.h"
 #include "U11AIRecoverState.h"
 #include "U11Team.h"
 #include "U11Player.h"
@@ -43,7 +43,7 @@ void U11AIAttackState::enter(U11AISystem *uAISystem){
     }
     
     //initialize the timer to compute the best supporting position
-    uAISystem->getAttackAISystem().startComputeSupportSpaceTimer();
+    uAISystem->getAttackAISystem()->startComputeSupportSpaceTimer();
     
 }
 
@@ -55,7 +55,7 @@ void U11AIAttackState::execute(U11AISystem *uAISystem, double dt){
 void U11AIAttackState::exit(U11AISystem *uAISystem){
     
     //remove the timer which computes the best supporting position
-    uAISystem->getAttackAISystem().removeComputeSupportSpaceTimer();
+    uAISystem->getAttackAISystem()->removeComputeSupportSpaceTimer();
     
 }
 

@@ -24,7 +24,7 @@
 #include "U11AIAttackState.h"
 #include "U11AIDefenseState.h"
 
-U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWorld, int uFieldQuadrant):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL){
+U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, int uFieldQuadrant, U11FormationInterface *uTeamFormation):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL),playerSelectionID(0),selectManualDefendingPlayer(true){
     
     fieldQuadrant=uFieldQuadrant;
     
@@ -32,7 +32,7 @@ U11Team::U11Team(U11FormationInterface *uTeamFormation, U4DEngine::U4DWorld *uWo
     
     teamFormation->init(uWorld, fieldQuadrant);
     
-    aiSystem=new U11AISystem(this);
+    aiSystem=new U11AISystem(this, uDefenseSystem, uAttackSystem, uRecoverSystem);
     
 }
 
@@ -289,6 +289,10 @@ void U11Team::resetDefendingPlayers(){
     mainDefendingPlayer=nullptr;
     supportDefendingPlayer1=nullptr;
     supportDefendingPlayer2=nullptr;
+    
+    playerSelectionID=0;
+    
+    setManualDefendingPlayer(true);
 }
 
 void U11Team::setIndicatorForPlayer(U11Player *uPlayer){
@@ -301,4 +305,28 @@ U11Player *U11Team::getIndicatorForPlayer(){
     if (playerWithIndicator!=nullptr) {
         return playerWithIndicator;
     }
+}
+
+int U11Team::getPlayerSelectionID(){
+    
+    return playerSelectionID;
+}
+
+void U11Team::scrollPlayerSelectionID(){
+    
+    playerSelectionID++;
+    
+    if (playerSelectionID>2) {
+        playerSelectionID=0;
+    }
+}
+
+bool U11Team::setManualDefendingPlayer(bool uValue){
+    
+    selectManualDefendingPlayer=uValue;
+}
+
+bool U11Team::getManualDefendingPlayer(){
+    
+    return selectManualDefendingPlayer;
 }

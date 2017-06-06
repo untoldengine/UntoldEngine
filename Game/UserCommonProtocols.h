@@ -61,6 +61,7 @@ enum{
     msgRunToDefendingFormation,
     msgRunToSteal,
     msgIntercept,
+    msgApproachOpponent,
     //idle
     
     //input
@@ -104,6 +105,7 @@ const int   supportPointsSeparation=10;
 const float ballPassSegmentDirection=10.0;
 const float withinSupportDistance=2.5;
 const float withinDefenseDistance=2.5;
+const float withinFormationDistance=2.5;
 const float stealingDistanceToBall=1.0;
 const float markingDistanceToBall=5.0;
 const float defenseSpace=0.15;

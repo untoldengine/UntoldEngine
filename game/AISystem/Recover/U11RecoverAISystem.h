@@ -10,37 +10,17 @@
 #define U11RecoverAISystem_hpp
 
 #include <stdio.h>
+#include "U11RecoverSystem.h"
 
-#include "U4DCallback.h"
-#include "U4DTimer.h"
-
-class U11Team;
-
-class U11RecoverAISystem {
+class U11RecoverAISystem:public U11RecoverSystem {
     
 private:
-    
-    U11Team *team;
-    
-    U4DEngine::U4DTimer *closestPlayerAnalysisTimer;
-    
-    U4DEngine::U4DCallback<U11RecoverAISystem> *scheduler;
     
 public:
     
     U11RecoverAISystem();
     
-    ~U11RecoverAISystem();
-    
-    void setTeam(U11Team *uTeam);
-    
-    void computeClosestPlayerToBall();
-    
-    void startComputeClosestPlayerTimer();
-    
-    void removeComputeClosestPlayerTimer();
-    
-    
+    ~U11RecoverAISystem();   
     
 };
 

@@ -80,7 +80,9 @@ bool U11PlayerAttackState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
         case msgRunToAttackFormation:
             
-            uPlayer->changeState(U11PlayerAttackFormationState::sharedInstance());
+            if (!uPlayer->hasReachedPosition(uPlayer->getFormationPosition(),withinFormationDistance)){
+                uPlayer->changeState(U11PlayerAttackFormationState::sharedInstance());
+            }
             
             break;
             

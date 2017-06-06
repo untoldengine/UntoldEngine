@@ -1,30 +1,30 @@
 //
-//  U11PlayerRunToDefendState.hpp
+//  U11PlayerDefendPositionState.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 4/14/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef U11PlayerRunToDefendState_hpp
-#define U11PlayerRunToDefendState_hpp
+#ifndef U11PlayerDefendPositionState_hpp
+#define U11PlayerDefendPositionState_hpp
 
 #include <stdio.h>
 #include "U11PlayerStateInterface.h"
 
-class U11PlayerRunToDefendState:public U11PlayerStateInterface {
+class U11PlayerDefendPositionState:public U11PlayerStateInterface {
     
 private:
     
-    U11PlayerRunToDefendState();
+    U11PlayerDefendPositionState();
     
-    ~U11PlayerRunToDefendState();
+    ~U11PlayerDefendPositionState();
     
 public:
     
-    static U11PlayerRunToDefendState* instance;
+    static U11PlayerDefendPositionState* instance;
     
-    static U11PlayerRunToDefendState* sharedInstance();
+    static U11PlayerDefendPositionState* sharedInstance();
     
     void enter(U11Player *uPlayer);
     

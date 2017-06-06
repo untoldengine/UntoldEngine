@@ -7,13 +7,15 @@
 //
 
 #include "U11PlayerDefendState.h"
-#include "U11PlayerRunToDefendState.h"
+#include "U11PlayerDefendPositionState.h"
 #include "U11PlayerDefenseFormationState.h"
 #include "U11PlayerMarkingState.h"
 #include "U11PlayerTapToStealState.h"
 #include "U11PlayerRunToStealState.h"
 #include "U11PlayerInterceptState.h"
+#include "U11PlayerApproachOpponent.h"
 #include "U11Team.h"
+
 
 U11PlayerDefendState* U11PlayerDefendState::instance=0;
 
@@ -67,7 +69,7 @@ bool U11PlayerDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
         case msgRunToDefend:
             
             if (!uPlayer->hasReachedPosition(uPlayer->getDefendingPosition(),withinDefenseDistance)) {
-                uPlayer->changeState(U11PlayerRunToDefendState::sharedInstance());
+                uPlayer->changeState(U11PlayerDefendPositionState::sharedInstance());
             }
             
             break;
@@ -92,6 +94,32 @@ bool U11PlayerDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
             uPlayer->changeState(U11PlayerInterceptState::sharedInstance());
             
+            break;
+            
+            
+        case msgButtonAPressed:
+        {
+            //mark
+            uPlayer->changeState(U11PlayerMarkingState::sharedInstance());
+        }
+            break;
+            
+        case msgButtonBPressed:
+        {
+            //switch defenders
+            U11Team *team=uPlayer->getTeam();
+            team->scrollPlayerSelectionID();
+            
+            team->setManualDefendingPlayer(true);
+            
+        }
+            break;
+            
+        case msgJoystickActive:
+        {
+            uPlayer->changeState(U11PlayerApproachOpponent::sharedInstance());
+            
+        }
             break;
             
         default:
