@@ -1,36 +1,36 @@
 //
-//  U11PlayerRunToDefendState.cpp
+//  U11PlayerDefendPositionState.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 4/14/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#include "U11PlayerRunToDefendState.h"
+#include "U11PlayerDefendPositionState.h"
 #include "U11PlayerDefendState.h"
 #include "U11PlayerInterceptState.h"
 
-U11PlayerRunToDefendState* U11PlayerRunToDefendState::instance=0;
+U11PlayerDefendPositionState* U11PlayerDefendPositionState::instance=0;
 
-U11PlayerRunToDefendState::U11PlayerRunToDefendState(){
+U11PlayerDefendPositionState::U11PlayerDefendPositionState(){
     
 }
 
-U11PlayerRunToDefendState::~U11PlayerRunToDefendState(){
+U11PlayerDefendPositionState::~U11PlayerDefendPositionState(){
     
 }
 
-U11PlayerRunToDefendState* U11PlayerRunToDefendState::sharedInstance(){
+U11PlayerDefendPositionState* U11PlayerDefendPositionState::sharedInstance(){
     
     if (instance==0) {
-        instance=new U11PlayerRunToDefendState();
+        instance=new U11PlayerDefendPositionState();
     }
     
     return instance;
     
 }
 
-void U11PlayerRunToDefendState::enter(U11Player *uPlayer){
+void U11PlayerDefendPositionState::enter(U11Player *uPlayer){
     
     uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
     uPlayer->setPlayBlendedAnimation(true);
@@ -38,7 +38,7 @@ void U11PlayerRunToDefendState::enter(U11Player *uPlayer){
     
 }
 
-void U11PlayerRunToDefendState::execute(U11Player *uPlayer, double dt){
+void U11PlayerDefendPositionState::execute(U11Player *uPlayer, double dt){
     
     U4DEngine::U4DPoint3n defenseSupportPosition=uPlayer->getDefendingPosition();
     
@@ -62,16 +62,16 @@ void U11PlayerRunToDefendState::execute(U11Player *uPlayer, double dt){
 
 }
 
-void U11PlayerRunToDefendState::exit(U11Player *uPlayer){
+void U11PlayerDefendPositionState::exit(U11Player *uPlayer){
     
 }
 
-bool U11PlayerRunToDefendState::isSafeToChangeState(U11Player *uPlayer){
+bool U11PlayerDefendPositionState::isSafeToChangeState(U11Player *uPlayer){
     
     return true;
 }
 
-bool U11PlayerRunToDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
+bool U11PlayerDefendPositionState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
             

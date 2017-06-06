@@ -45,7 +45,7 @@ void U11AIRecoverState::enter(U11AISystem *uAISystem){
     
     //initialize the timer to compute the closest player
     
-    uAISystem->getRecoverAISystem().startComputeClosestPlayerTimer();
+    uAISystem->getRecoverAISystem()->startComputeClosestPlayerTimer();
     
 }
 
@@ -58,7 +58,7 @@ void U11AIRecoverState::execute(U11AISystem *uAISystem, double dt){
 void U11AIRecoverState::exit(U11AISystem *uAISystem){
 
     //end timer
-    uAISystem->getRecoverAISystem().removeComputeClosestPlayerTimer();
+    uAISystem->getRecoverAISystem()->removeComputeClosestPlayerTimer();
 }
 
 bool U11AIRecoverState::handleMessage(U11AISystem *uAISystem, Message &uMsg){

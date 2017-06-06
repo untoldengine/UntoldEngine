@@ -46,7 +46,7 @@ void U11PlayerAttackFormationState::execute(U11Player *uPlayer, double dt){
     
     uPlayer->seekPosition(formationPosition);
     
-    if (!uPlayer->hasReachedPosition(formationPosition,withinDefenseDistance)) {
+    if (!uPlayer->hasReachedPosition(formationPosition,withinFormationDistance)) {
         
         //make the player run
         uPlayer->applyForceToPlayer(chasingSpeed, dt);

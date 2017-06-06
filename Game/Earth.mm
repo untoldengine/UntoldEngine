@@ -36,6 +36,18 @@
 #include "U11FormationInterface.h"
 #include "U11PlayerIndicator.h"
 
+#include "U11AttackSystemInterface.h"
+#include "U11DefenseSystemInterface.h"
+#include "U11RecoverSystemInterface.h"
+
+#include "U11AttackAISystem.h"
+#include "U11AttackManualSystem.h"
+#include "U11DefenseAISystem.h"
+#include "U11DefenseManualSystem.h"
+#include "U11RecoverAISystem.h"
+#include "U11RecoverManualSystem.h"
+
+
 using namespace U4DEngine;
 
 void Earth::init(){
@@ -55,9 +67,20 @@ void Earth::init(){
     U11FormationInterface *emelecFormation=new U11Formation442();
     U11FormationInterface *barcelonaFormation=new U11Formation442();
     
-    emelec=new U11Team(emelecFormation, this, -1);
+    U11DefenseSystemInterface *defenseAISystem=new U11DefenseAISystem();
+    U11DefenseSystemInterface *defenseManualSystem=new U11DefenseManualSystem();
     
-    barcelona=new U11Team(barcelonaFormation, this, 1);
+    
+    U11AttackSystemInterface *attackAISystem=new U11AttackAISystem();
+    U11AttackSystemInterface *attackManualSystem=new U11AttackManualSystem();
+    
+    U11RecoverSystemInterface *recoverAISystem=new U11RecoverAISystem();
+    U11RecoverSystemInterface *recoverManualSystem=new U11RecoverManualSystem();
+    
+    
+    emelec=new U11Team(this, attackManualSystem, defenseManualSystem,recoverManualSystem, -1, emelecFormation);
+    
+    barcelona=new U11Team(this,attackAISystem, defenseAISystem, recoverAISystem ,1, barcelonaFormation);
     
     emelec->setOppositeTeam(barcelona);
     barcelona->setOppositeTeam(emelec);

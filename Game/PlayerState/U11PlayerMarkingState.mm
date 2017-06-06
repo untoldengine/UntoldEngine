@@ -55,7 +55,7 @@ void U11PlayerMarkingState::execute(U11Player *uPlayer, double dt){
         uPlayer->changeState(U11PlayerTapToStealState::sharedInstance());
         
     }
-    
+
 }
 
 void U11PlayerMarkingState::exit(U11Player *uPlayer){

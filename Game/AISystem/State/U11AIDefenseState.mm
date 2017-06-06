@@ -8,7 +8,7 @@
 
 #include "U11AIDefenseState.h"
 #include "U11AISystem.h"
-#include "U11DefenseAISystem.h"
+#include "U11DefenseSystemInterface.h"
 #include "UserCommonProtocols.h"
 #include "U11AIRecoverState.h"
 #include "U11Team.h"
@@ -44,7 +44,7 @@ void U11AIDefenseState::enter(U11AISystem *uAISystem){
     }
     
     //initialize the timer to compute the best defending position
-    uAISystem->getDefenseAISystem().startComputeDefendingSpaceTimer();
+    uAISystem->getDefenseAISystem()->startComputeDefendingSpaceTimer();
     
 }
 
@@ -56,7 +56,7 @@ void U11AIDefenseState::execute(U11AISystem *uAISystem, double dt){
 void U11AIDefenseState::exit(U11AISystem *uAISystem){
     
     //remove the timer which computes the best defending position
-    uAISystem->getDefenseAISystem().removeComputeDefendingSpaceTimer();
+    uAISystem->getDefenseAISystem()->removeComputeDefendingSpaceTimer();
     
 }
 
@@ -67,7 +67,7 @@ bool U11AIDefenseState::handleMessage(U11AISystem *uAISystem, Message &uMsg){
         case msgBallPassed:
             
             //get message that the ball was passed
-            uAISystem->getDefenseAISystem().interceptPass();
+            uAISystem->getDefenseAISystem()->interceptPass();
             
             break;
             
