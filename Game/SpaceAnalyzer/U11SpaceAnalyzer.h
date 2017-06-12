@@ -27,11 +27,22 @@ typedef struct{
     
 }SupportNode;
 
+typedef struct{
+    
+    U4DEngine::U4DPoint3n position;
+    bool safeDribblingSpace=false;
+    bool assigned=false;
+    
+}DribblingNode;
+
 class U11SpaceAnalyzer {
     
 private:
     
     std::vector<SupportNode> supportNodes;
+    
+    std::vector<DribblingNode> dribblingNodes;
+    
     U4DEngine::U4DAABB playingField;
     
 public:
@@ -46,7 +57,11 @@ public:
     
     U4DEngine::U4DPoint3n analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes, U4DEngine::U4DVector3n &uControllingPlayerPosition);
     
+    U4DEngine::U4DVector3n analyzeClosestDribblingVectorTowardsGoal(std::vector<DribblingNode> &uDribblingNodes, U4DEngine::U4DVector3n &uPlayerToGoalVector, U4DEngine::U4DVector3n &uControllingPlayerPosition);
+    
     std::vector<U4DEngine::U4DPoint3n> computeOptimalSupportSpace(U11Team *uTeam);
+    
+    U4DEngine::U4DVector3n computeOptimalDribblingVector(U11Team *uTeam);
     
     U4DEngine::U4DPoint3n computeMovementRelToFieldGoal(U11Team *uTeam, U11Player *uPlayer, float uDistance);
     

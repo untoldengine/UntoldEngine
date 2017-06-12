@@ -163,42 +163,6 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersAlongLine(U11Team
 }
 
 
-U4DEngine::U4DPoint3n U11SpaceAnalyzer::analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes, U4DEngine::U4DVector3n &uControllingPlayerPosition){
-    
-    U4DEngine::U4DVector3n lineVector=uLine;
-    lineVector.normalize();
-    
-    U4DEngine::U4DVector3n positionVector;
-    
-    //set up the heapsort container
-    std::vector<U11Node> heapContainer;
-    
-    for(auto n:uSupportNodes){
-        
-        positionVector=n.position.toVector();
-        positionVector=(positionVector-uControllingPlayerPosition)/supportMaximumDistanceToPlayer;
-        positionVector.normalize();
-        
-        float dotProduct=positionVector.dot(uLine);
-        dotProduct=1.0-dotProduct;
-        
-        //create a node
-        U11Node node;
-        node.data=dotProduct;
-        node.supportPoint=n.position;
-        heapContainer.push_back(node);
-        
-    }
-    
-    //sort the dot product from smaller to largest
-    U11HeapSort heapsort;
-    heapsort.heapify(heapContainer);
-    
-    //return the closest dot product
-    return heapContainer.at(0).supportPoint;
-    
-}
-
 std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(U11Team *uTeam){
     
     //compute the nodes position
@@ -294,6 +258,171 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     
     return supportSpace;
 }
+
+U4DEngine::U4DPoint3n U11SpaceAnalyzer::analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes, U4DEngine::U4DVector3n &uControllingPlayerPosition){
+    
+    U4DEngine::U4DVector3n lineVector=uLine;
+    lineVector.normalize();
+    
+    U4DEngine::U4DVector3n positionVector;
+    
+    //set up the heapsort container
+    std::vector<U11Node> heapContainer;
+    
+    for(auto n:uSupportNodes){
+        
+        positionVector=n.position.toVector();
+        positionVector=(positionVector-uControllingPlayerPosition)/supportMaximumDistanceToPlayer;
+        positionVector.normalize();
+        
+        float dotProduct=positionVector.dot(uLine);
+        dotProduct=1.0-dotProduct;
+        
+        //create a node
+        U11Node node;
+        node.data=dotProduct;
+        node.supportPoint=n.position;
+        heapContainer.push_back(node);
+        
+    }
+    
+    //sort the dot product from smaller to largest
+    U11HeapSort heapsort;
+    heapsort.heapify(heapContainer);
+    
+    //return the closest dot product
+    return heapContainer.at(0).supportPoint;
+    
+}
+
+
+U4DEngine::U4DVector3n U11SpaceAnalyzer::computeOptimalDribblingVector(U11Team *uTeam){
+    
+    //get the controlling player heading
+    U11Player *controllingPlayer=uTeam->getControllingPlayer();
+    U4DEngine::U4DVector3n playerHeading=controllingPlayer->getPlayerHeading();
+    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
+    controllingPlayerPosition.y=0.0;
+    
+    playerHeading.normalize();
+    
+    
+    //get the right hand heading of the player
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+    
+    U4DEngine::U4DVector3n rightHandHeading=playerHeading.cross(upVector);
+    
+    rightHandHeading.normalize();
+    
+    for(int i=0;i<maximumDribblingSpace;i++){
+        
+        U4DEngine::U4DVector3n position=rightHandHeading.rotateVectorAboutAngleAndAxis(i*dribblingSpaceSeparation, upVector);
+        
+        DribblingNode dribblingNode;
+        dribblingNode.position=position.toPoint()*dribblingMinimumDistanceToPlayer+controllingPlayerPosition.toPoint();
+        
+        dribblingNodes.push_back(dribblingNode);
+        
+    }
+    
+    //score each position
+    
+    //get opposite players
+    U11Team *oppositeTeam=uTeam->getOppositeTeam();
+    
+    //compute closest players to controlling player
+    U11Player* oppositePlayer=analyzePlayersDistanceToPosition(oppositeTeam, controllingPlayerPosition).at(0);
+    
+    //Test 1. check if it dribbling angle does not intersept an opponent and if it lands outside the playing field
+    for(auto &n:dribblingNodes){
+        
+        //get the segment between the support space and controlling player
+        U4DEngine::U4DPoint3n pointA=controllingPlayerPosition.toPoint();
+        U4DEngine::U4DPoint3n pointB=n.position;
+        U4DEngine::U4DSegment dribblingSpace(pointB,pointA);
+        
+        
+            if (!oppositePlayer->getUpdatedPlayerSpaceBox().intersectionWithSegment(dribblingSpace)) {
+                
+                //set it as good angle pass
+                n.safeDribblingSpace=true;
+                
+            }else{
+                
+                n.safeDribblingSpace=false;
+            }
+        
+    }
+    
+    
+    //Test 2. Do other tests here
+    
+    //remove all non dribbling angle positions
+    dribblingNodes.erase(std::remove_if(dribblingNodes.begin(), dribblingNodes.end(), [&](DribblingNode node){return node.safeDribblingSpace==false;}),dribblingNodes.end());
+    
+    
+    if (dribblingNodes.size()!=0) {
+      
+    //get the dribbling space closest to the goal
+    
+    //get the closest point on the opposite field goal relative to dribbling player
+    
+    //get the field goal
+    U11FieldGoal *fieldGoal=uTeam->getOppositeTeam()->getFieldGoal();
+    
+    U4DEngine::U4DPoint3n playerPosition=controllingPlayerPosition.toPoint();
+    
+    U4DEngine::U4DPoint3n closestPointOnFieldGoal=fieldGoal->getFieldGoalWidthSegment().closestPointOnSegmentToPoint(playerPosition);
+    
+    U4DEngine::U4DVector3n playerToGoal=playerPosition-closestPointOnFieldGoal;
+    
+    return analyzeClosestDribblingVectorTowardsGoal(dribblingNodes, playerToGoal, controllingPlayerPosition);
+        
+    }else{
+        return U4DEngine::U4DVector3n(-1.0,0.0,0.0);
+    }
+}
+
+U4DEngine::U4DVector3n U11SpaceAnalyzer::analyzeClosestDribblingVectorTowardsGoal(std::vector<DribblingNode> &uDribblingNodes, U4DEngine::U4DVector3n &uPlayerToGoalVector, U4DEngine::U4DVector3n &uControllingPlayerPosition){
+    
+    uPlayerToGoalVector.normalize();
+    
+    //set up the heapsort container
+    std::vector<U11Node> heapContainer;
+    
+    //get all the dribbling points
+    for(auto n:uDribblingNodes){
+        
+        //create a segment
+        U4DEngine::U4DPoint3n pointA=n.position;
+        U4DEngine::U4DPoint3n player=uControllingPlayerPosition.toPoint();
+        
+        U4DEngine::U4DVector3n playerToDribbleVector=player-pointA;
+        
+        playerToDribbleVector.normalize();
+        
+        float dotProduct=playerToDribbleVector.dot(uPlayerToGoalVector);
+        dotProduct=1.0-dotProduct;
+        
+        
+        //create a node
+        U11Node node;
+        node.data=dotProduct;
+        node.supportPoint=n.position;
+        heapContainer.push_back(node);
+        
+    }
+    
+    //sort the dot product from smaller to largest
+    U11HeapSort heapsort;
+    heapsort.heapify(heapContainer);
+    
+    //return the closest dot product
+    U4DEngine::U4DVector3n optimalDribblingSpace=heapContainer.at(0).supportPoint.toVector()-uControllingPlayerPosition;
+    
+    return optimalDribblingSpace;
+}
+
 
 U4DEngine::U4DPoint3n U11SpaceAnalyzer::computeMovementRelToFieldGoal(U11Team *uTeam, U11Player *uPlayer, float uDistance){
     

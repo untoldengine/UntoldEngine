@@ -22,5 +22,7 @@ public:
     
     ~U11AttackAISystem();
     
+    void analyzePlay();
+    
 };
 #endif /* AIAttackSystem_hpp */

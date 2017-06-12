@@ -53,6 +53,8 @@ void U11AttackSystem::assignSupportPlayer(){
 
 void U11AttackSystem::computeSupportSpace(){
     
+    analyzePlay();
+    
     U11SpaceAnalyzer spaceAnalyzer;
     
     //assign support player
@@ -114,7 +116,7 @@ void U11AttackSystem::computeSupportSpace(){
 
 void U11AttackSystem::startComputeSupportSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11AttackSystem::computeSupportSpace, supportAnalysisTimer, 0.8, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11AttackSystem::computeSupportSpace, supportAnalysisTimer, 0.3, true);
     
 }
 
@@ -123,3 +125,4 @@ void U11AttackSystem::removeComputeSupportSpaceTimer(){
     scheduler->unScheduleTimer(supportAnalysisTimer);
     
 }
+

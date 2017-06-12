@@ -21,6 +21,7 @@ public:
     
     ~U11AttackManualSystem();
     
+    
 };
 
 #endif /* U11AttackManualSystem_hpp */

@@ -21,6 +21,8 @@ public:
     
     virtual void setTeam(U11Team *uTeam)=0;
     
+    virtual void analyzePlay()=0;
+    
     virtual void assignSupportPlayer()=0;
     
     virtual void computeSupportSpace()=0;
