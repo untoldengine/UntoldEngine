@@ -169,7 +169,7 @@ void U11DefenseSystem::interceptPass(){
 
 void U11DefenseSystem::startComputeDefendingSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11DefenseSystem::computeDefendingSpace, defendAnalysisTimer, 0.5, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11DefenseSystem::computeDefendingSpace, defendAnalysisTimer, 0.3, true);
     
 }
 

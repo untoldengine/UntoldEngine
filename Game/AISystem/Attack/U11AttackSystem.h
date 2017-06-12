@@ -34,6 +34,8 @@ public:
     
     void setTeam(U11Team *uTeam);
     
+    virtual void analyzePlay(){};
+    
     void assignSupportPlayer();
     
     void computeSupportSpace();

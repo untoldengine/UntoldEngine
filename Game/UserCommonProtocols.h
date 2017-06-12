@@ -55,6 +55,8 @@ enum{
     msgSupportPlayer,
     msgPassToMe,
     msgRunToSupport,
+    msgDribble,
+    msgPassBall,
     
     //defend
     msgRunToDefend,
@@ -100,8 +102,11 @@ const float reverseRunningSpeed=20.0;
 const float lateralRunningSpeed=20.0;
 const float supportMinimumDistanceToPlayer=25.0;
 const float supportMaximumDistanceToPlayer=50.0;
+const float dribblingMinimumDistanceToPlayer=25.0;
 const int   maximumSupportPoints=36;
+const int   maximumDribblingSpace=36;
 const int   supportPointsSeparation=10;
+const int   dribblingSpaceSeparation=10;
 const float ballPassSegmentDirection=10.0;
 const float withinSupportDistance=2.5;
 const float withinDefenseDistance=2.5;

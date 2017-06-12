@@ -24,7 +24,7 @@
 #include "U11AIAttackState.h"
 #include "U11AIDefenseState.h"
 
-U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, int uFieldQuadrant, U11FormationInterface *uTeamFormation):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL),playerSelectionID(0),selectManualDefendingPlayer(true){
+U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy,int uFieldQuadrant, U11FormationInterface *uTeamFormation):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL),playerSelectionID(0),selectManualDefendingPlayer(true){
     
     fieldQuadrant=uFieldQuadrant;
     
@@ -32,7 +32,7 @@ U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackS
     
     teamFormation->init(uWorld, fieldQuadrant);
     
-    aiSystem=new U11AISystem(this, uDefenseSystem, uAttackSystem, uRecoverSystem);
+    aiSystem=new U11AISystem(this, uDefenseSystem, uAttackSystem, uRecoverSystem,uAttackStrategy);
     
 }
 
@@ -116,7 +116,7 @@ void U11Team::setControllingPlayer(U11Player* uPlayer){
     
     if (previousMainControllingPlayer!=NULL) {
         previousMainControllingPlayer->pauseExtremityCollision();
-        previousMainControllingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
+        //previousMainControllingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
     }
     controllingPlayer=uPlayer;
     
@@ -159,7 +159,7 @@ void U11Team::setMainDefendingPlayer(U11Player *uPlayer){
     
     if (previousMainDefendingPlayer!=NULL) {
         previousMainDefendingPlayer->pauseExtremityCollision();
-        previousMainDefendingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
+        //previousMainDefendingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
     }
     mainDefendingPlayer=uPlayer;
     
@@ -264,7 +264,7 @@ void U11Team::resetAttackingPlayers(){
     if (controllingPlayer!=nullptr) {
         
         controllingPlayer->pauseExtremityCollision();
-        controllingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
+        //controllingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
         previousMainControllingPlayer=nullptr;
         
         
@@ -280,7 +280,7 @@ void U11Team::resetDefendingPlayers(){
     if (mainDefendingPlayer!=nullptr) {
         
         mainDefendingPlayer->pauseExtremityCollision();
-        mainDefendingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
+        //mainDefendingPlayer->setEntityType(U4DEngine::MODELNOSHADOWS);
         previousMainDefendingPlayer=nullptr;
         
         

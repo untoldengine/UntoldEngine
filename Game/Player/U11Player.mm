@@ -38,7 +38,7 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
-        setEntityType(U4DEngine::MODELNOSHADOWS);
+        //setEntityType(U4DEngine::MODELNOSHADOWS);
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         runningAnimation=new U4DEngine::U4DAnimation(this);
         
@@ -110,8 +110,8 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         float zDimension=bodyCoordinates.getModelDimension().z;
         
         //get min and max points to create the AABB
-        U4DEngine::U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
-        U4DEngine::U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
+        U4DEngine::U4DPoint3n minPoints(-xDimension/4.0,-yDimension/2.0,-zDimension/2.0);
+        U4DEngine::U4DPoint3n maxPoints(xDimension/4.0,yDimension/2.0,zDimension/2.0);
         
         playerSpaceBox.setMinPoint(minPoints);
         playerSpaceBox.setMaxPoint(maxPoints);

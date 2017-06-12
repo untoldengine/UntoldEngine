@@ -26,7 +26,7 @@ class U11AIStateInterface;
 class U11AttackSystemInterface;
 class U11DefenseSystemInterface;
 class U11RecoverSystemInterface;
-
+class U11AIAttackStrategyInterface;
 
 class U11Team {
     
@@ -71,7 +71,7 @@ private:
     
 public:
     
-    U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem ,int uFieldQuadrant, U11FormationInterface *uTeamFormation);
+    U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy ,int uFieldQuadrant, U11FormationInterface *uTeamFormation);
     
     ~U11Team();
     

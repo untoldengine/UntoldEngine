@@ -11,8 +11,9 @@
 #include "U11AIStateManager.h"
 #include "U11AttackAISystem.h"
 #include "U11DefenseAISystem.h"
+#include "U11AIAttackStrategyInterface.h"
 
-U11AISystem::U11AISystem(U11Team *uTeam, U11DefenseSystemInterface *uDefenseSystem, U11AttackSystemInterface *uAttackSystem, U11RecoverSystemInterface *uRecoverSystem){
+U11AISystem::U11AISystem(U11Team *uTeam, U11DefenseSystemInterface *uDefenseSystem, U11AttackSystemInterface *uAttackSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy){
     
     team=uTeam;
     stateManager=new U11AIStateManager(this);
@@ -21,10 +22,16 @@ U11AISystem::U11AISystem(U11Team *uTeam, U11DefenseSystemInterface *uDefenseSyst
     defenseSystem=uDefenseSystem;
     recoverSystem=uRecoverSystem;
     
+    attackStrategy=uAttackStrategy;
+    
     attackSystem->setTeam(team);
     defenseSystem->setTeam(team);
     
     recoverSystem->setTeam(team);
+    
+    if (attackStrategy!=nullptr) {
+        attackStrategy->setTeam(team);
+    }
     
 }
 
@@ -34,15 +41,10 @@ U11AISystem::~U11AISystem(){
     delete attackSystem;
     delete recoverSystem;
     
-}
-
-void U11AISystem::setAttackAISystem(U11AttackSystemInterface *uAttackSystem){
+    delete attackStrategy;
     
 }
 
-void U11AISystem::setDefendAISystem(U11DefenseSystemInterface *uDefenseSystem){
-    
-}
 
 void U11AISystem::changeState(U11AIStateInterface* uState){
     
@@ -73,4 +75,9 @@ U11DefenseSystemInterface *U11AISystem::getDefenseAISystem(){
 U11RecoverSystemInterface *U11AISystem::getRecoverAISystem(){
     
     return recoverSystem;
+}
+
+U11AIAttackStrategyInterface *U11AISystem::getAttackStrategy(){
+ 
+    return attackStrategy;
 }

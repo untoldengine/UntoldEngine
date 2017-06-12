@@ -7,11 +7,21 @@
 //
 
 #include "U11AttackAISystem.h"
+#include "U11Team.h"
+#include "U11AISystem.h"
+#include "U11AIAttackStrategyInterface.h"
 
 U11AttackAISystem::U11AttackAISystem(){
     
 }
 
 U11AttackAISystem::~U11AttackAISystem(){
+    
+}
+
+
+void U11AttackAISystem::analyzePlay(){
+    
+    team->getAISystem()->getAttackStrategy()->analyzePlay();
     
 }

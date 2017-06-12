@@ -39,6 +39,7 @@
 #include "U11AttackSystemInterface.h"
 #include "U11DefenseSystemInterface.h"
 #include "U11RecoverSystemInterface.h"
+#include "U11AIAttackStrategyInterface.h"
 
 #include "U11AttackAISystem.h"
 #include "U11AttackManualSystem.h"
@@ -46,6 +47,8 @@
 #include "U11DefenseManualSystem.h"
 #include "U11RecoverAISystem.h"
 #include "U11RecoverManualSystem.h"
+#include "U11AIAttackStrategy.h"
+
 
 
 using namespace U4DEngine;
@@ -77,10 +80,12 @@ void Earth::init(){
     U11RecoverSystemInterface *recoverAISystem=new U11RecoverAISystem();
     U11RecoverSystemInterface *recoverManualSystem=new U11RecoverManualSystem();
     
+    U11AIAttackStrategyInterface *attackStrategy=new U11AIAttackStrategy();
     
-    emelec=new U11Team(this, attackManualSystem, defenseManualSystem,recoverManualSystem, -1, emelecFormation);
     
-    barcelona=new U11Team(this,attackAISystem, defenseAISystem, recoverAISystem ,1, barcelonaFormation);
+    emelec=new U11Team(this, attackManualSystem, defenseManualSystem,recoverManualSystem, nullptr ,-1, emelecFormation);
+    
+    barcelona=new U11Team(this,attackAISystem, defenseAISystem, recoverAISystem, attackStrategy ,1, barcelonaFormation);
     
     emelec->setOppositeTeam(barcelona);
     barcelona->setOppositeTeam(emelec);
