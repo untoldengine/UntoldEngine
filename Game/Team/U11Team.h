@@ -65,8 +65,6 @@ private:
     
     U11AISystem *aiSystem;
     
-    int playerSelectionID;
-    
     bool selectManualDefendingPlayer;
     
 public:
@@ -138,10 +136,6 @@ public:
     void setIndicatorForPlayer(U11Player *uPlayer);
     
     U11Player *getIndicatorForPlayer();
-    
-    int getPlayerSelectionID();
-    
-    void scrollPlayerSelectionID();
     
     bool setManualDefendingPlayer(bool uValue);
     

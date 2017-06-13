@@ -49,22 +49,7 @@ void U11PlayerRecoverState::enter(U11Player *uPlayer){
     
     float relHeading=playerHeading.dot(ballHeading);
     
-    if (relHeading<-0.90) {
-        //if ball is coming towards player around 18 degrees
-        
-        //set the control ball animation
-        if (uPlayer->isBallOnRightSidePlane()) {
-            
-            uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithRightFootAnimation());
-            uPlayer->setActiveExtremity(uPlayer->getRightFoot());
-        }else{
-            
-            uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithLeftFootAnimation());
-            uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
-        }
-        
-    }else if(relHeading>0.90){
-        //if ball is ahead of player around 18 degrees
+    if (ballHeading.magnitudeSquare()==0) {
         
         //set the control ball animation
         if (uPlayer->isBallOnRightSidePlane()) {
@@ -79,16 +64,48 @@ void U11PlayerRecoverState::enter(U11Player *uPlayer){
         
     }else{
         
-        //set the control ball animation
-        if (uPlayer->isBallComingFromRightSidePlane()) {
+        if (relHeading<-0.90) {
+            //if ball is coming towards player around 18 degrees
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithLeftFootAnimation());
-            uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
+            //set the control ball animation
+            if (uPlayer->isBallOnRightSidePlane()) {
+                
+                uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithRightFootAnimation());
+                uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+            }else{
+                
+                uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithLeftFootAnimation());
+                uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
+            }
+            
+        }else if(relHeading>0.90){
+            //if ball is ahead of player around 18 degrees
+            
+            //set the control ball animation
+            if (uPlayer->isBallOnRightSidePlane()) {
+                
+                uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithRightFootAnimation());
+                uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+            }else{
+                
+                uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithLeftFootAnimation());
+                uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
+            }
             
         }else{
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithRightFootAnimation());
-            uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+            //set the control ball animation
+            if (uPlayer->isBallComingFromRightSidePlane()) {
+                
+                uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithLeftFootAnimation());
+                uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
+                
+            }else{
+                
+                uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithRightFootAnimation());
+                uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+            }
+            
         }
         
     }
@@ -147,11 +164,6 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
             team->getOppositeTeam()->changeState(U11AIDefenseState::sharedInstance());
         }
         
-    }else if(uPlayer->distanceToBall()>ballControlMaximumDistance){
-        
-        uPlayer->decelerateBall(ballDeceleration, dt);
-        
-        uPlayer->changeState(U11PlayerInterceptState::sharedInstance());
     }
     
     if (ball->getVelocity().magnitude()>ballMaxSpeed) {

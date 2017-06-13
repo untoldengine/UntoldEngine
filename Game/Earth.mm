@@ -286,6 +286,13 @@ void Earth::init(){
     addChild(fieldGoal2);
     
     
+    //set the player indicator
+    
+    playerIndicator=new U11PlayerIndicator(emelec);
+    playerIndicator->init("indicator", "miscellaneousscript.u4d");
+    
+    addChild(playerIndicator);
+    
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     
@@ -296,20 +303,12 @@ void Earth::init(){
     emelec->translateTeamToFormationPosition();
     barcelona->translateTeamToFormationPosition();
     
-    //set the player indicator
-    
-    playerIndicator=new U11PlayerIndicator(emelec);
-    playerIndicator->init("indicator", "miscellaneousscript.u4d");
-    
-    addChild(playerIndicator);
-    
 }
 
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     camera->followModel(ball, 0.0, 60.0, 150.0);
-    
 
 }
 

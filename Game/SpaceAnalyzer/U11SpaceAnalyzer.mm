@@ -86,18 +86,22 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToDefendingPosit
     
     for(auto n:uTeam->getTeammates()){
         
-        U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
-        playerPosition.y=0;
-        
-        float distance=(uPosition-playerPosition).magnitude();
-        
-        //create a node
-        U11Node node;
-        node.player=n;
-        node.data=distance;
-        
-        heapContainer.push_back(node);
-        
+        if (n!=uTeam->getMainDefendingPlayer()) {
+            
+            U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
+            playerPosition.y=0;
+            
+            float distance=(uPosition-playerPosition).magnitude();
+            
+            //create a node
+            U11Node node;
+            node.player=n;
+            node.data=distance;
+            
+            heapContainer.push_back(node);
+            
+        }
+       
     }
     
     //sort the players closer to the position
@@ -332,6 +336,9 @@ U4DEngine::U4DVector3n U11SpaceAnalyzer::computeOptimalDribblingVector(U11Team *
     
     //compute closest players to controlling player
     U11Player* oppositePlayer=analyzePlayersDistanceToPosition(oppositeTeam, controllingPlayerPosition).at(0);
+    
+    //assign closest player
+    controllingPlayer->setThreateningPlayer(oppositePlayer);
     
     //Test 1. check if it dribbling angle does not intersept an opponent and if it lands outside the playing field
     for(auto &n:dribblingNodes){
