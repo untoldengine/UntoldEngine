@@ -27,7 +27,7 @@ void U11DefenseManualSystem::assignDefendingPlayer(){
         
         U11SpaceAnalyzer spaceAnalyzer;
         
-        team->setMainDefendingPlayer(spaceAnalyzer.analyzeDefendingPlayer(team).at(team->getPlayerSelectionID()));
+        team->setMainDefendingPlayer(spaceAnalyzer.analyzeDefendingPlayer(team).at(0));
         
         //Set the defending position
         

@@ -20,12 +20,15 @@ class U11PlayerStateManager;
 class U11PlayerExtremity;
 class U11Team;
 class U11FormationEntity;
+class U11PlayerSpace;
 
 class U11Player:public U4DEngine::U4DGameObject {
     
 private:
     
     U11Team *team;
+    
+    U11Player *threateningPlayer;
     
     U11PlayerStateManager *stateManager;
     
@@ -39,13 +42,13 @@ private:
     
     U11PlayerExtremity *activeExtremity;
     
+    U11PlayerSpace *playerSpace;
+    
     bool directionReversal;
     
     U4DEngine::U4DPoint3n supportPosition;
     
     U4DEngine::U4DPoint3n defendingPosition;
-    
-    U4DEngine::U4DAABB playerSpaceBox;
     
     bool missedTheBall;
     
@@ -270,6 +273,10 @@ public:
     void setBallKickDirection(U4DEngine::U4DVector3n &uDirection);
     
     U4DEngine::U4DVector3n getBallKickDirection();
+    
+    void setThreateningPlayer(U11Player* uThreateningPlayer);
+    
+    U11Player* getThreateningPlayer();
     
 };
 #endif /* U11Player_hpp */

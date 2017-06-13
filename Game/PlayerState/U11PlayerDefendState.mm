@@ -108,7 +108,6 @@ bool U11PlayerDefendState::handleMessage(U11Player *uPlayer, Message &uMsg){
         {
             //switch defenders
             U11Team *team=uPlayer->getTeam();
-            team->scrollPlayerSelectionID();
             
             team->setManualDefendingPlayer(true);
             

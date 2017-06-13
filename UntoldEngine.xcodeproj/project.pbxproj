@@ -270,6 +270,7 @@
 		03F2843D1EE9972F009AF891 /* Kit_002.png in Resources */ = {isa = PBXBuildFile; fileRef = 03F2843C1EE9972F009AF891 /* Kit_002.png */; };
 		03F2844B1EEC8A7D009AF891 /* U11AIAttackStrategyInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F284481EEC8A7D009AF891 /* U11AIAttackStrategyInterface.mm */; };
 		03F2844F1EEC8A97009AF891 /* U11AIAttackStrategy.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F2844E1EEC8A97009AF891 /* U11AIAttackStrategy.mm */; };
+		03F284531EEEF227009AF891 /* U11PlayerSpace.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F284511EEEF227009AF891 /* U11PlayerSpace.mm */; };
 		03F395FE1A65A09F007A45BD /* U4DOpenGLWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F395FC1A65A09F007A45BD /* U4DOpenGLWorld.mm */; };
 		03F862A917EE29FD00712ECD /* U4DOpenGL3DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A017EE29FD00712ECD /* U4DOpenGL3DModel.mm */; };
 		03F862AA17EE29FD00712ECD /* U4DOpenGLCubeMap.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A217EE29FD00712ECD /* U4DOpenGLCubeMap.mm */; };
@@ -737,6 +738,8 @@
 		03F284481EEC8A7D009AF891 /* U11AIAttackStrategyInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIAttackStrategyInterface.mm; path = game/AISystem/AttackStrategy/U11AIAttackStrategyInterface.mm; sourceTree = SOURCE_ROOT; };
 		03F2844D1EEC8A97009AF891 /* U11AIAttackStrategy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIAttackStrategy.h; path = game/AISystem/AttackStrategy/U11AIAttackStrategy.h; sourceTree = SOURCE_ROOT; };
 		03F2844E1EEC8A97009AF891 /* U11AIAttackStrategy.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIAttackStrategy.mm; path = game/AISystem/AttackStrategy/U11AIAttackStrategy.mm; sourceTree = SOURCE_ROOT; };
+		03F284511EEEF227009AF891 /* U11PlayerSpace.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerSpace.mm; path = game/Player/PlayerSpace/U11PlayerSpace.mm; sourceTree = SOURCE_ROOT; };
+		03F284521EEEF227009AF891 /* U11PlayerSpace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerSpace.h; path = game/Player/PlayerSpace/U11PlayerSpace.h; sourceTree = SOURCE_ROOT; };
 		03F395FC1A65A09F007A45BD /* U4DOpenGLWorld.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLWorld.mm; sourceTree = "<group>"; };
 		03F395FD1A65A09F007A45BD /* U4DOpenGLWorld.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLWorld.h; sourceTree = "<group>"; };
 		03F8629F17EE29FD00712ECD /* U4DOpenGL3DModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGL3DModel.h; sourceTree = "<group>"; };
@@ -1082,6 +1085,7 @@
 		0348C05F1E6A48AD001FFF97 /* Player */ = {
 			isa = PBXGroup;
 			children = (
+				03F284501EEEF1DB009AF891 /* PlayerSpace */,
 				0348C0691E6A48F8001FFF97 /* Extremity */,
 				0348C0661E6A48F3001FFF97 /* U11Player.h */,
 				0348C0671E6A48F3001FFF97 /* U11Player.mm */,
@@ -1985,6 +1989,15 @@
 			name = CollisionResponse;
 			sourceTree = "<group>";
 		};
+		03F284501EEEF1DB009AF891 /* PlayerSpace */ = {
+			isa = PBXGroup;
+			children = (
+				03F284521EEEF227009AF891 /* U11PlayerSpace.h */,
+				03F284511EEEF227009AF891 /* U11PlayerSpace.mm */,
+			);
+			name = PlayerSpace;
+			sourceTree = "<group>";
+		};
 		03F8629E17EE29FD00712ECD /* OpenGLManager */ = {
 			isa = PBXGroup;
 			children = (
@@ -2184,6 +2197,7 @@
 				030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */,
 				03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */,
 				0348C09B1E6A491D001FFF97 /* U11BallStateInterface.mm in Sources */,
+				03F284531EEEF227009AF891 /* U11PlayerSpace.mm in Sources */,
 				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
 				037BCBDF1EB77FF5004CD2F1 /* U11Formation442.mm in Sources */,
 				0348C0D31E7338A0001FFF97 /* U11AIAnalyzer.mm in Sources */,

@@ -49,18 +49,26 @@ void U11AIAttackStrategy::analyzePlay(){
     
     playerHeading.normalize();
     
-    //imcrease the dribbling angle
-    if (playerHeading.angle(playerDribblingVector)>30.0) {
-        
-        //get the rotation axis
-        U4DEngine::U4DVector3n rotationAxis=playerHeading.cross(playerDribblingVector);
-        
-        rotationAxis.normalize();
-        
-        playerDribblingVector=playerDribblingVector.rotateVectorAboutAngleAndAxis(30.0, rotationAxis);
-        
-    }
+    U11Player* threateningPlayer=controllingPlayer->getThreateningPlayer();
     
+    //get the distance
+    
+    float distance=(controllingPlayer->getAbsolutePosition()-threateningPlayer->getAbsolutePosition()).magnitude();
+    
+    if (distance<15.0) {
+        
+        if (playerHeading.dot(threateningPlayer->getPlayerHeading())<-0.7) {
+            
+            //get the rotation axis
+            U4DEngine::U4DVector3n rotationAxis=playerHeading.cross(playerDribblingVector);
+            
+            rotationAxis.normalize();
+            
+            playerDribblingVector=playerDribblingVector.rotateVectorAboutAngleAndAxis(60.0, rotationAxis);
+            
+        }
+       
+    }
     
     controllingPlayer->setBallKickDirection(playerDribblingVector);
     

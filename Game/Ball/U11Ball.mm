@@ -50,6 +50,9 @@ void U11Ball::init(const char* uName, const char* uBlenderFile){
     
         loadRenderingInformation();
         
+        //place ball here
+        translateTo(200.0,0.0,0.0);
+        
     }
     
 }

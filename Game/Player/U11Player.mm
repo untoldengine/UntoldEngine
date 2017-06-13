@@ -21,8 +21,9 @@
 #include "U4DBoneData.h"
 #include "U11Team.h"
 #include "U11FormationEntity.h"
+#include "U11PlayerSpace.h"
 
-U11Player::U11Player():joystickActive(false),missedTheBall(false),ballKickSpeed(0){
+U11Player::U11Player():joystickActive(false),missedTheBall(false),ballKickSpeed(0),threateningPlayer(nullptr){
     
     stateManager=new U11PlayerStateManager(this);
     
@@ -103,18 +104,10 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         leftFoot->setBoneToFollow("foot.L");
         addChild(leftFoot);
         
-        //set up the player space box
-        //Get body dimensions
-        float xDimension=bodyCoordinates.getModelDimension().x;
-        float yDimension=bodyCoordinates.getModelDimension().y;
-        float zDimension=bodyCoordinates.getModelDimension().z;
-        
-        //get min and max points to create the AABB
-        U4DEngine::U4DPoint3n minPoints(-xDimension/4.0,-yDimension/2.0,-zDimension/2.0);
-        U4DEngine::U4DPoint3n maxPoints(xDimension/4.0,yDimension/2.0,zDimension/2.0);
-        
-        playerSpaceBox.setMinPoint(minPoints);
-        playerSpaceBox.setMaxPoint(maxPoints);
+        //add playerspace object
+        playerSpace=new U11PlayerSpace();
+        playerSpace->init("playerspace", uBlenderFile);
+        addChild(playerSpace);
         
         if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimation.u4d")) {
             
@@ -814,17 +807,7 @@ U11PlayerStateInterface *U11Player::getCurrentState(){
 
 U4DEngine::U4DAABB U11Player::getUpdatedPlayerSpaceBox(){
     
-    U4DEngine::U4DPoint3n minPoint=playerSpaceBox.getMinPoint();
-    U4DEngine::U4DPoint3n maxPoint=playerSpaceBox.getMaxPoint();
-    
-    U4DEngine::U4DPoint3n position=getAbsolutePosition().toPoint();
-    
-    position.y=0;
-    
-    minPoint+=position;
-    maxPoint+=position;
-    
-    return U4DEngine::U4DAABB(minPoint,maxPoint);
+    return playerSpace->getUpdatedPlayerSpaceBox();
     
 }
 
@@ -908,3 +891,14 @@ U4DEngine::U4DVector3n U11Player::getBallKickDirection(){
     return ballKickDirection;
     
 }
+
+void U11Player::setThreateningPlayer(U11Player* uThreateningPlayer){
+    
+    threateningPlayer=uThreateningPlayer;
+}
+
+U11Player* U11Player::getThreateningPlayer(){
+    
+    return threateningPlayer;
+}
+

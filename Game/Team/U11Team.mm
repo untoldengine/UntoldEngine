@@ -24,7 +24,7 @@
 #include "U11AIAttackState.h"
 #include "U11AIDefenseState.h"
 
-U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy,int uFieldQuadrant, U11FormationInterface *uTeamFormation):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL),playerSelectionID(0),selectManualDefendingPlayer(true){
+U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy,int uFieldQuadrant, U11FormationInterface *uTeamFormation):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL),selectManualDefendingPlayer(true){
     
     fieldQuadrant=uFieldQuadrant;
     
@@ -290,8 +290,6 @@ void U11Team::resetDefendingPlayers(){
     supportDefendingPlayer1=nullptr;
     supportDefendingPlayer2=nullptr;
     
-    playerSelectionID=0;
-    
     setManualDefendingPlayer(true);
 }
 
@@ -307,19 +305,6 @@ U11Player *U11Team::getIndicatorForPlayer(){
     }
 }
 
-int U11Team::getPlayerSelectionID(){
-    
-    return playerSelectionID;
-}
-
-void U11Team::scrollPlayerSelectionID(){
-    
-    playerSelectionID++;
-    
-    if (playerSelectionID>2) {
-        playerSelectionID=0;
-    }
-}
 
 bool U11Team::setManualDefendingPlayer(bool uValue){
     
