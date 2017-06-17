@@ -37,15 +37,11 @@ private:
     //pointers to key players
     U11Player *controllingPlayer;
     
-    U11Player *supportPlayer1;
-    
-    U11Player *supportPlayer2;
+    U11Player *supportPlayer;
     
     U11Player *mainDefendingPlayer;
     
-    U11Player *supportDefendingPlayer1;
-    
-    U11Player *supportDefendingPlayer2;
+    U11Player *supportDefendingPlayer;
     
     U11Player *previousMainControllingPlayer;
     
@@ -97,25 +93,17 @@ public:
     
     U11Player* getActivePlayer();
     
-    void setSupportPlayer1(U11Player *uPlayer);
+    void setSupportPlayer(U11Player *uPlayer);
     
-    U11Player* getSupportPlayer1();
-    
-    void setSupportPlayer2(U11Player *uPlayer);
-    
-    U11Player* getSupportPlayer2();
+    U11Player* getSupportPlayer();
     
     void setMainDefendingPlayer(U11Player *uPlayer);
     
     U11Player *getMainDefendingPlayer();
     
-    void setSupportDefendingPlayer1(U11Player *uPlayer);
+    void setSupportDefendingPlayer(U11Player *uPlayer);
     
-    U11Player *getSupportDefendingPlayer1();
-    
-    void setSupportDefendingPlayer2(U11Player *uPlayer);
-    
-    U11Player *getSupportDefendingPlayer2();
+    U11Player *getSupportDefendingPlayer();
     
     void changeState(U11AIStateInterface* uState);
 

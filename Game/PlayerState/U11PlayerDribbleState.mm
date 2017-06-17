@@ -80,6 +80,16 @@ bool U11PlayerDribbleState::handleMessage(U11Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
             
+        case msgPassBall:
+        {
+            int passBallSpeed=*((int*)uMsg.extraInfo);
+            
+            uPlayer->setBallKickSpeed(passBallSpeed);
+            
+            uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
+        }
+            break;
+            
         case msgButtonAPressed:
         {
             int passBallSpeed=*((int*)uMsg.extraInfo);

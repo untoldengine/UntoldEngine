@@ -24,7 +24,7 @@
 #include "U11AIAttackState.h"
 #include "U11AIDefenseState.h"
 
-U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy,int uFieldQuadrant, U11FormationInterface *uTeamFormation):controllingPlayer(NULL),supportPlayer1(NULL),supportPlayer2(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL),selectManualDefendingPlayer(true){
+U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackSystem, U11DefenseSystemInterface *uDefenseSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy,int uFieldQuadrant, U11FormationInterface *uTeamFormation):controllingPlayer(NULL),supportPlayer(NULL),previousMainDefendingPlayer(NULL),previousMainControllingPlayer(NULL),mainDefendingPlayer(NULL),playerWithIndicator(NULL),selectManualDefendingPlayer(true){
     
     fieldQuadrant=uFieldQuadrant;
     
@@ -129,29 +129,18 @@ void U11Team::setControllingPlayer(U11Player* uPlayer){
     
 }
 
-U11Player* U11Team::getSupportPlayer1(){
+U11Player* U11Team::getSupportPlayer(){
     
-    return supportPlayer1;
-    
-}
-
-void U11Team::setSupportPlayer1(U11Player* uPlayer){
-    
-    supportPlayer1=uPlayer;
+    return supportPlayer;
     
 }
 
-U11Player* U11Team::getSupportPlayer2(){
+void U11Team::setSupportPlayer(U11Player* uPlayer){
     
-    return supportPlayer2;
+    supportPlayer=uPlayer;
     
 }
 
-void U11Team::setSupportPlayer2(U11Player* uPlayer){
-    
-    supportPlayer2=uPlayer;
-    
-}
 
 void U11Team::setMainDefendingPlayer(U11Player *uPlayer){
     
@@ -206,26 +195,16 @@ void U11Team::updateTeamFormationPosition(){
 }
 
 
-void U11Team::setSupportDefendingPlayer1(U11Player *uPlayer){
+void U11Team::setSupportDefendingPlayer(U11Player *uPlayer){
     
-    supportDefendingPlayer1=uPlayer;
+    supportDefendingPlayer=uPlayer;
 }
 
-U11Player *U11Team::getSupportDefendingPlayer1(){
+U11Player *U11Team::getSupportDefendingPlayer(){
     
-    return supportDefendingPlayer1;
+    return supportDefendingPlayer;
 }
 
-void U11Team::setSupportDefendingPlayer2(U11Player *uPlayer){
-    
-    supportDefendingPlayer2=uPlayer;
-    
-}
-
-U11Player *U11Team::getSupportDefendingPlayer2(){
- 
-    return supportDefendingPlayer2;
-}
 
 bool U11Team::handleMessage(Message &uMsg){
  
@@ -270,8 +249,7 @@ void U11Team::resetAttackingPlayers(){
         
     }
     controllingPlayer=nullptr;
-    supportPlayer1=nullptr;
-    supportPlayer2=nullptr;
+    supportPlayer=nullptr;
     
 }
 
@@ -287,8 +265,8 @@ void U11Team::resetDefendingPlayers(){
     }
     
     mainDefendingPlayer=nullptr;
-    supportDefendingPlayer1=nullptr;
-    supportDefendingPlayer2=nullptr;
+    supportDefendingPlayer=nullptr;
+    
     
     setManualDefendingPlayer(true);
 }
