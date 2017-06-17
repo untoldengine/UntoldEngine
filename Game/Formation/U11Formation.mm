@@ -55,12 +55,12 @@ U11FormationEntity *U11Formation::assignFormationEntity(){
 
 void U11Formation::translateFormation(U4DEngine::U4DVector3n &uPosition){
     
-    U4DEngine::U4DPoint3n positionPoint=uPosition.toPoint();
-    
-    if (formationAABB.isPointInsideAABB(positionPoint)) {
-        
-        mainParent->translateTo(uPosition);
-        
-    }
+//    U4DEngine::U4DPoint3n positionPoint=uPosition.toPoint();
+//    
+//    if (formationAABB.isPointInsideAABB(positionPoint)) {
+//        
+//        mainParent->translateTo(uPosition);
+//        
+//    }
     
 }

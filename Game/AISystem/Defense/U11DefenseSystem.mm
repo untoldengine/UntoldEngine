@@ -52,22 +52,22 @@ void U11DefenseSystem::computeDefendingSpace(){
     
     //get the support defending players
     assignDefendingSupportPlayers();
-    
-    //message all the players to get to their home position
-    
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    U11Player *mainDefendingPlayer=team->getMainDefendingPlayer();
-    U11Player *supportDefendingPlayer1=team->getSupportDefendingPlayer1();
-    U11Player *supportDefendingPlayer2=team->getSupportDefendingPlayer2();
-    
-    for(auto n:team->getTeammates()){
-        
-        if (n!=mainDefendingPlayer && n!=supportDefendingPlayer1 && n!=supportDefendingPlayer2) {
-            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToDefendingFormation);
-        }
-        
-    }
+//
+//    //message all the players to get to their home position
+//    
+//    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+//    
+//    U11Player *mainDefendingPlayer=team->getMainDefendingPlayer();
+//    U11Player *supportDefendingPlayer=team->getSupportDefendingPlayer();
+//    
+//    
+//    for(auto n:team->getTeammates()){
+//        
+//        if (n!=mainDefendingPlayer && n!=supportDefendingPlayer) {
+//            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToDefendingFormation);
+//        }
+//        
+//    }
     
 }
 
@@ -76,51 +76,22 @@ void U11DefenseSystem::assignDefendingSupportPlayers(){
     U11SpaceAnalyzer spaceAnalyzer;
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
-    //get threatening players
-    std::vector<U11Player*> threateningPlayers=spaceAnalyzer.analyzeThreateningPlayers(team);
     
-    if (threateningPlayers.size()>2) {
-        
-        threateningPlayers.resize(2);
-        
-    }
+    //get threatening support players
+    U11Player* threateningPlayers=team->getOppositeTeam()->getSupportPlayer();
     
-    if (threateningPlayers.size()==1) {
+    U11Player *supportDefendingPlayer=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(team, threateningPlayers);
+    
+    if (supportDefendingPlayer!=nullptr) {
         
-        U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(team, threateningPlayers.at(0));
+        U4DEngine::U4DPoint3n defendingPosition=spaceAnalyzer.computeMovementRelToFieldGoal(team, threateningPlayers,defenseSpace);
         
-        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeMovementRelToFieldGoal(team, threateningPlayers.at(0),defenseSpace);
+        supportDefendingPlayer->setDefendingPosition(defendingPosition);
         
-        defendingPlayer1->setDefendingPosition(defendingPosition1);
+        team->setSupportDefendingPlayer(supportDefendingPlayer);
         
-        team->setSupportDefendingPlayer1(defendingPlayer1);
-        
-        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer1, msgRunToDefend);
-        
-    }else if (threateningPlayers.size()==2){
-        
-        U11Player *defendingPlayer1=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(team, threateningPlayers.at(0));
-        
-        U4DEngine::U4DPoint3n defendingPosition1=spaceAnalyzer.computeMovementRelToFieldGoal(team, threateningPlayers.at(0),defenseSpace);
-        
-        defendingPlayer1->setDefendingPosition(defendingPosition1);
-        
-        team->setSupportDefendingPlayer1(defendingPlayer1);
-        
-        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer1, msgRunToDefend);
-        
-        
-        
-        U11Player *defendingPlayer2=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(team, threateningPlayers.at(1));
-        
-        U4DEngine::U4DPoint3n defendingPosition2=spaceAnalyzer.computeMovementRelToFieldGoal(team, threateningPlayers.at(1),defenseSpace);
-        
-        
-        defendingPlayer2->setDefendingPosition(defendingPosition2);
-        
-        team->setSupportDefendingPlayer2(defendingPlayer2);
-        
-        messageDispatcher->sendMessage(0.0, NULL, defendingPlayer2, msgRunToDefend);
+        messageDispatcher->sendMessage(0.0, NULL, supportDefendingPlayer, msgRunToDefend);
+
     }
     
 }

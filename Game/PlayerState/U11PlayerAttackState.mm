@@ -93,8 +93,13 @@ bool U11PlayerAttackState::handleMessage(U11Player *uPlayer, Message &uMsg){
             break;
             
         case msgPassBall:
+        {
+            int passBallSpeed=*((int*)uMsg.extraInfo);
             
+            uPlayer->setBallKickSpeed(passBallSpeed);
             
+            uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
+        }
             break;
             
         case msgDribble:

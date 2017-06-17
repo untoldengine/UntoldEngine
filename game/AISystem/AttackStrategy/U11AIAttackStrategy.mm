@@ -29,6 +29,88 @@ void U11AIAttackStrategy::setTeam(U11Team *uTeam){
 
 void U11AIAttackStrategy::analyzePlay(){
     
+
+    if (shouldPassForward()) {
+        
+        passForward();
+        
+    }else{
+        
+        dribble();
+        
+    }
+    
+}
+
+bool U11AIAttackStrategy::shouldPassForward(){
+    
+    //space analyzer
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    //get the support players
+    U11Player *support=team->getSupportPlayer();
+    
+    //for each player get the number of opponents threatening && is it closer to the goal than the controlling player
+    
+    if (spaceAnalyzer.analyzeIfPlayerIsCloserToGoalThanMainPlayer(team, support)) {
+        
+        std::cout<<"Should pass"<<std::endl;
+        
+        return true;
+        
+    }
+    
+    return false;
+    
+    
+}
+
+void U11AIAttackStrategy::passForward(){
+    
+    //get the support players
+    U11Player *supportPlayer=team->getSupportPlayer();
+    
+    U11Player *controllingPlayer=team->getControllingPlayer();
+    
+    U4DEngine::U4DVector3n supportPosition=(supportPlayer->getSupportPosition()).toVector();
+    
+    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
+    
+    supportPosition.y=0.0;
+    
+    controllingPlayerPosition.y=0.0;
+    
+    U4DEngine::U4DVector3n distanceBetweenPlayers=supportPosition-controllingPlayerPosition;
+    
+    //get player heading vector
+    U4DEngine::U4DVector3n playerHeading=controllingPlayer->getPlayerHeading();
+    
+    playerHeading.y=0.0;
+    
+    playerHeading.normalize();
+    
+    float angle=controllingPlayerPosition.angle(supportPosition);
+    
+    U4DEngine::U4DVector3n rotationAxis=playerHeading.cross(distanceBetweenPlayers);
+    
+    rotationAxis.normalize();
+
+    U4DEngine::U4DVector3n kickingDirection=playerHeading.rotateVectorAboutAngleAndAxis(angle, rotationAxis);
+    
+    controllingPlayer->setBallKickDirection(kickingDirection);
+    
+    int ballSpeed=50;
+    
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    messageDispatcher->sendMessage(0.0, nullptr, controllingPlayer, msgPassBall,(void*)&ballSpeed);
+    
+    messageDispatcher->sendMessage(0.0, nullptr, supportPlayer, msgReceiveBall);
+    
+}
+
+void U11AIAttackStrategy::dribble(){
+    
     //get controlling player
     U11Player *controllingPlayer=team->getControllingPlayer();
     
@@ -67,7 +149,7 @@ void U11AIAttackStrategy::analyzePlay(){
             playerDribblingVector=playerDribblingVector.rotateVectorAboutAngleAndAxis(60.0, rotationAxis);
             
         }
-       
+        
     }
     
     controllingPlayer->setBallKickDirection(playerDribblingVector);
@@ -75,6 +157,5 @@ void U11AIAttackStrategy::analyzePlay(){
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
     messageDispatcher->sendMessage(0.0, nullptr, controllingPlayer, msgDribble);
-    
     
 }

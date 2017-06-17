@@ -31,6 +31,12 @@ public:
     
     void analyzePlay();
     
+    bool shouldPassForward();
+    
+    void dribble();
+    
+    void passForward();
+    
 };
 
 #endif /* U11AIAttackStrategy_hpp */

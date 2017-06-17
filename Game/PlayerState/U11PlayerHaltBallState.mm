@@ -15,6 +15,7 @@
 #include "U11PlayerRunPassState.h"
 #include "U11BallGroundState.h"
 #include "U11PlayerChaseBallState.h"
+#include "U11PlayerAttackState.h"
 #include "U11Ball.h"
 #include "U11Team.h"
 #include "UserCommonProtocols.h"
@@ -120,6 +121,7 @@ void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
                 
                 ball->changeState(U11BallGroundState::sharedInstance());
                 
+                uPlayer->changeState(U11PlayerAttackState::sharedInstance());
             }
             
         }else{
@@ -130,7 +132,11 @@ void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
             
             ball->changeState(U11BallGroundState::sharedInstance());
             
+            uPlayer->changeState(U11PlayerAttackState::sharedInstance());
+            
         }
+        
+    
         
     }else if(uPlayer->distanceToBall()>ballControlMaximumDistance){
         
@@ -192,6 +198,12 @@ bool U11PlayerHaltBallState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
             
         }
+            break;
+        
+        case msgDribble:
+            
+            uPlayer->changeState(U11PlayerDribbleState::sharedInstance());
+            
             break;
             
         default:

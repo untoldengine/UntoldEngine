@@ -80,6 +80,13 @@ public:
     std::vector<U11Player*> analyzeClosestPlayersAlongPassLine(U11Team *uTeam);
     
     std::vector<U11Player*> analyzePlayersDistanceToDefendingPosition(U11Team *uTeam, U4DEngine::U4DVector3n &uPosition);
+    
+    U4DEngine::U4DVector3n computeOptimalPassingVector(U11Team *uTeam);
+    
+    int getNumberOfThreateningPlayers(U11Team *uTeam, U11Player *uPlayer);
+    
+    bool analyzeIfPlayerIsCloserToGoalThanMainPlayer(U11Team *uTeam, U11Player *uPlayer);
+    
 };
 
 #endif /* U11SpaceAnalyzer_hpp */
