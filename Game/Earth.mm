@@ -106,49 +106,49 @@ void Earth::init(){
     
     emelecPlayer11->subscribeTeam(emelec);
     
-    emelecPlayer9=new U11Player();
-    emelecPlayer9->init("pele", "playerscript.u4d");
-    
-    emelecPlayer9->subscribeTeam(emelec);
-    
-    emelecPlayer8=new U11Player();
-    emelecPlayer8->init("pele", "playerscript.u4d");
-    
-    emelecPlayer8->subscribeTeam(emelec);
-    
-    emelecPlayer7=new U11Player();
-    emelecPlayer7->init("pele", "playerscript.u4d");
-    
-    emelecPlayer7->subscribeTeam(emelec);
-    
-    
-    emelecPlayer6=new U11Player();
-    emelecPlayer6->init("pele", "playerscript.u4d");
-    
-    emelecPlayer6->subscribeTeam(emelec);
-    
-    
-    emelecPlayer5=new U11Player();
-    emelecPlayer5->init("pele", "playerscript.u4d");
-    
-    emelecPlayer5->subscribeTeam(emelec);
-    
-    
-    emelecPlayer4=new U11Player();
-    emelecPlayer4->init("pele", "playerscript.u4d");
-    
-    emelecPlayer4->subscribeTeam(emelec);
-    
-    
-    emelecPlayer3=new U11Player();
-    emelecPlayer3->init("pele", "playerscript.u4d");
-    
-    emelecPlayer3->subscribeTeam(emelec);
-    
-    emelecPlayer2=new U11Player();
-    emelecPlayer2->init("pele", "playerscript.u4d");
-    
-    emelecPlayer2->subscribeTeam(emelec);
+//    emelecPlayer9=new U11Player();
+//    emelecPlayer9->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer9->subscribeTeam(emelec);
+//    
+//    emelecPlayer8=new U11Player();
+//    emelecPlayer8->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer8->subscribeTeam(emelec);
+//    
+//    emelecPlayer7=new U11Player();
+//    emelecPlayer7->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer7->subscribeTeam(emelec);
+//    
+//    
+//    emelecPlayer6=new U11Player();
+//    emelecPlayer6->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer6->subscribeTeam(emelec);
+//    
+//    
+//    emelecPlayer5=new U11Player();
+//    emelecPlayer5->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer5->subscribeTeam(emelec);
+//    
+//    
+//    emelecPlayer4=new U11Player();
+//    emelecPlayer4->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer4->subscribeTeam(emelec);
+//    
+//    
+//    emelecPlayer3=new U11Player();
+//    emelecPlayer3->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer3->subscribeTeam(emelec);
+//    
+//    emelecPlayer2=new U11Player();
+//    emelecPlayer2->init("pele", "playerscript.u4d");
+//    
+//    emelecPlayer2->subscribeTeam(emelec);
     
     
     //opposite team
@@ -162,49 +162,49 @@ void Earth::init(){
     
     barcelonaPlayer11->subscribeTeam(barcelona);
     
-    barcelonaPlayer9=new U11Player();
-    barcelonaPlayer9->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer9->subscribeTeam(barcelona);
-    
-    barcelonaPlayer8=new U11Player();
-    barcelonaPlayer8->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer8->subscribeTeam(barcelona);
-    
-    barcelonaPlayer7=new U11Player();
-    barcelonaPlayer7->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer7->subscribeTeam(barcelona);
-    
-    
-    barcelonaPlayer6=new U11Player();
-    barcelonaPlayer6->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer6->subscribeTeam(barcelona);
-    
-    
-    barcelonaPlayer5=new U11Player();
-    barcelonaPlayer5->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer5->subscribeTeam(barcelona);
-    
-    barcelonaPlayer4=new U11Player();
-    barcelonaPlayer4->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer4->subscribeTeam(barcelona);
-    
-    
-    barcelonaPlayer3=new U11Player();
-    barcelonaPlayer3->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer3->subscribeTeam(barcelona);
-    
-    
-    barcelonaPlayer2=new U11Player();
-    barcelonaPlayer2->init("pele", "oppositeplayerscript.u4d");
-    
-    barcelonaPlayer2->subscribeTeam(barcelona);
+//    barcelonaPlayer9=new U11Player();
+//    barcelonaPlayer9->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer9->subscribeTeam(barcelona);
+//    
+//    barcelonaPlayer8=new U11Player();
+//    barcelonaPlayer8->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer8->subscribeTeam(barcelona);
+//    
+//    barcelonaPlayer7=new U11Player();
+//    barcelonaPlayer7->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer7->subscribeTeam(barcelona);
+//    
+//    
+//    barcelonaPlayer6=new U11Player();
+//    barcelonaPlayer6->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer6->subscribeTeam(barcelona);
+//    
+//    
+//    barcelonaPlayer5=new U11Player();
+//    barcelonaPlayer5->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer5->subscribeTeam(barcelona);
+//    
+//    barcelonaPlayer4=new U11Player();
+//    barcelonaPlayer4->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer4->subscribeTeam(barcelona);
+//    
+//    
+//    barcelonaPlayer3=new U11Player();
+//    barcelonaPlayer3->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer3->subscribeTeam(barcelona);
+//    
+//    
+//    barcelonaPlayer2=new U11Player();
+//    barcelonaPlayer2->init("pele", "oppositeplayerscript.u4d");
+//    
+//    barcelonaPlayer2->subscribeTeam(barcelona);
     
     
     
@@ -242,21 +242,21 @@ void Earth::init(){
     
     addChild(emelecPlayer11);
     
-    addChild(emelecPlayer9);
-    
-    addChild(emelecPlayer8);
-    
-    addChild(emelecPlayer7);
-    
-    addChild(emelecPlayer6);
-    
-    addChild(emelecPlayer5);
-    
-    addChild(emelecPlayer4);
-    
-    addChild(emelecPlayer3);
-    
-    addChild(emelecPlayer2);
+//    addChild(emelecPlayer9);
+//    
+//    addChild(emelecPlayer8);
+//    
+//    addChild(emelecPlayer7);
+//    
+//    addChild(emelecPlayer6);
+//    
+//    addChild(emelecPlayer5);
+//    
+//    addChild(emelecPlayer4);
+//    
+//    addChild(emelecPlayer3);
+//    
+//    addChild(emelecPlayer2);
     
     
     
@@ -264,21 +264,21 @@ void Earth::init(){
     
     addChild(barcelonaPlayer11);
     
-    addChild(barcelonaPlayer9);
-    
-    addChild(barcelonaPlayer8);
-    
-    addChild(barcelonaPlayer7);
-    
-    addChild(barcelonaPlayer6);
-    
-    addChild(barcelonaPlayer5);
-    
-    addChild(barcelonaPlayer4);
-    
-    addChild(barcelonaPlayer3);
-
-    addChild(barcelonaPlayer2);
+//    addChild(barcelonaPlayer9);
+//    
+//    addChild(barcelonaPlayer8);
+//    
+//    addChild(barcelonaPlayer7);
+//    
+//    addChild(barcelonaPlayer6);
+//    
+//    addChild(barcelonaPlayer5);
+//    
+//    addChild(barcelonaPlayer4);
+//    
+//    addChild(barcelonaPlayer3);
+//
+//    addChild(barcelonaPlayer2);
     
     
     addChild(fieldGoal1);
@@ -300,9 +300,19 @@ void Earth::init(){
     
     //set the player position
     
-    emelec->translateTeamToFormationPosition();
-    barcelona->translateTeamToFormationPosition();
+//    emelec->translateTeamToFormationPosition();
+//    barcelona->translateTeamToFormationPosition();
     
+    
+    //move players
+    float yPos=barcelonaPlayer10->getModelDimensions().y/2.0+1.3;
+    
+    barcelonaPlayer10->translateTo(-25.0, yPos, -9.3);
+    barcelonaPlayer11->translateTo(-25.0, yPos, 16.0);
+    
+    
+    emelecPlayer10->translateTo(6.0, yPos, 0.2);
+    emelecPlayer11->translateTo(14.0,yPos, 20.0);
 }
 
 void Earth::update(double dt){

@@ -174,7 +174,6 @@
 		039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */; };
 		03929DD01E50BC2500D63361 /* playerscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03929DCF1E50BC2500D63361 /* playerscript.u4d */; };
 		03929DDE1E50C08900D63361 /* sidecarryrightanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03929DDD1E50C08900D63361 /* sidecarryrightanimation.u4d */; };
-		03929DE21E51483200D63361 /* ball.png in Resources */ = {isa = PBXBuildFile; fileRef = 03929DE11E51483200D63361 /* ball.png */; };
 		03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7071ADF82A300E81A00 /* ArialFont.png */; };
 		03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7081ADF82A300E81A00 /* ArialFont.xml */; };
@@ -277,6 +276,8 @@
 		03F862AB17EE29FD00712ECD /* U4DOpenGLGeometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A417EE29FD00712ECD /* U4DOpenGLGeometry.mm */; };
 		03F862AC17EE29FD00712ECD /* U4DOpenGLImage.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */; };
 		03F862AD17EE29FD00712ECD /* U4DOpenGLManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */; };
+		03F96B4A1EF5E31900ADDEF9 /* Ball_Texture_Diffuse.png in Resources */ = {isa = PBXBuildFile; fileRef = 03F96B491EF5E31900ADDEF9 /* Ball_Texture_Diffuse.png */; };
+		03F96B501EF6CA2500ADDEF9 /* Field_Diffuse.png in Resources */ = {isa = PBXBuildFile; fileRef = 03F96B4F1EF6CA2500ADDEF9 /* Field_Diffuse.png */; };
 		03FCC2DB1E765F70000479AC /* U11PlayerRunPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FCC2D91E765F70000479AC /* U11PlayerRunPassState.mm */; };
 		03FCC2DD1E77C3DE000479AC /* backhaltballwithleftfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FCC2DC1E77C3DE000479AC /* backhaltballwithleftfootanimation.u4d */; };
 		03FCC2DF1E77C448000479AC /* backhaltballwithrightfootanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FCC2DE1E77C448000479AC /* backhaltballwithrightfootanimation.u4d */; };
@@ -575,7 +576,6 @@
 		039175061CE1933100FD2674 /* U4DBVHModelCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHModelCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHModelCollision.h; sourceTree = "<group>"; };
 		03929DCF1E50BC2500D63361 /* playerscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = playerscript.u4d; path = Resources/playerscript.u4d; sourceTree = SOURCE_ROOT; };
 		03929DDD1E50C08900D63361 /* sidecarryrightanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = sidecarryrightanimation.u4d; path = Resources/sidecarryrightanimation.u4d; sourceTree = SOURCE_ROOT; };
-		03929DE11E51483200D63361 /* ball.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ball.png; path = Resources/ball.png; sourceTree = SOURCE_ROOT; };
 		03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFontLoader.h; sourceTree = "<group>"; };
 		03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DFontLoader.mm; sourceTree = "<group>"; };
 		03A9F7071ADF82A300E81A00 /* ArialFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ArialFont.png; path = Resources/ArialFont.png; sourceTree = SOURCE_ROOT; };
@@ -752,6 +752,8 @@
 		03F862A617EE29FD00712ECD /* U4DOpenGLImage.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLImage.mm; sourceTree = "<group>"; };
 		03F862A717EE29FD00712ECD /* U4DOpenGLManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOpenGLManager.h; sourceTree = "<group>"; };
 		03F862A817EE29FD00712ECD /* U4DOpenGLManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOpenGLManager.mm; sourceTree = "<group>"; };
+		03F96B491EF5E31900ADDEF9 /* Ball_Texture_Diffuse.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Ball_Texture_Diffuse.png; path = Resources/Ball_Texture_Diffuse.png; sourceTree = SOURCE_ROOT; };
+		03F96B4F1EF6CA2500ADDEF9 /* Field_Diffuse.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Field_Diffuse.png; path = Resources/Field_Diffuse.png; sourceTree = SOURCE_ROOT; };
 		03FCC2D91E765F70000479AC /* U11PlayerRunPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunPassState.mm; path = game/PlayerState/U11PlayerRunPassState.mm; sourceTree = SOURCE_ROOT; };
 		03FCC2DA1E765F70000479AC /* U11PlayerRunPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunPassState.h; path = game/PlayerState/U11PlayerRunPassState.h; sourceTree = SOURCE_ROOT; };
 		03FCC2DC1E77C3DE000479AC /* backhaltballwithleftfootanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = backhaltballwithleftfootanimation.u4d; path = Resources/backhaltballwithleftfootanimation.u4d; sourceTree = SOURCE_ROOT; };
@@ -1578,11 +1580,12 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03F96B4F1EF6CA2500ADDEF9 /* Field_Diffuse.png */,
+				03F96B491EF5E31900ADDEF9 /* Ball_Texture_Diffuse.png */,
 				037BCBDB1EB64AC5004CD2F1 /* stadium_el.png */,
 				037BCBE41EBAB231004CD2F1 /* fullsoccerfield.png */,
 				03F2843A1EE99727009AF891 /* Kit_001.png */,
 				03F2843C1EE9972F009AF891 /* Kit_002.png */,
-				03929DE11E51483200D63361 /* ball.png */,
 				03EC31B81EE0517800023539 /* playerindicatorImage.png */,
 				03929DCF1E50BC2500D63361 /* playerscript.u4d */,
 				03ECCC031E9534610057C20B /* oppositeplayerscript.u4d */,
@@ -2107,6 +2110,7 @@
 				036849071E5E7C440087BBBD /* sidecarryleftanimation.u4d in Resources */,
 				036848FB1E5DE26A0087BBBD /* forwardhaltballwithrightfootanimation.u4d in Resources */,
 				0368490B1E5EAC250087BBBD /* rightfootforwardkickanimation.u4d in Resources */,
+				03F96B501EF6CA2500ADDEF9 /* Field_Diffuse.png in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
 				036848EA1E59FCCF0087BBBD /* idleanimation.u4d in Resources */,
@@ -2147,13 +2151,13 @@
 				034DBC891A74112000AC43EB /* debugShader.fp in Resources */,
 				034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */,
 				037BCBCB1EB3CE7B004CD2F1 /* markinganimation.u4d in Resources */,
+				03F96B4A1EF5E31900ADDEF9 /* Ball_Texture_Diffuse.png in Resources */,
 				034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */,
 				03DB6E85192F7B25006E21D0 /* NormalMapping.fp in Resources */,
 				03F2843B1EE99727009AF891 /* Kit_001.png in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
 				036849091E5E7C570087BBBD /* walkinganimation.u4d in Resources */,
-				03929DE21E51483200D63361 /* ball.png in Resources */,
 				03ECCC041E9534610057C20B /* oppositeplayerscript.u4d in Resources */,
 				031585941E45C17900424D4D /* nonVisibleShader.vp in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,

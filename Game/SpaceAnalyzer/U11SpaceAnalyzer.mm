@@ -30,7 +30,7 @@ U11SpaceAnalyzer::~U11SpaceAnalyzer(){
     
 }
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToPosition(U11Team *uTeam, U4DEngine::U4DVector3n &uPosition){
+std::vector<U11Player*> U11SpaceAnalyzer::getPlayersClosestToPosition(U11Team *uTeam, U4DEngine::U4DVector3n &uPosition){
     
     //get each support player into a node with its distance to uPosition
     
@@ -40,11 +40,8 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToPosition(U11Te
     std::vector<U11Node> heapContainer;
     
     for(auto n:uTeam->getTeammates()){
-        
-        if (n!=uTeam->getControllingPlayer()) {
             
-            U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
-            playerPosition.y=0;
+            U4DEngine::U4DVector3n playerPosition=n->getCurrentPosition();
             
             float distance=(uPosition-playerPosition).magnitude();
             
@@ -54,8 +51,7 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToPosition(U11Te
             node.data=distance;
             
             heapContainer.push_back(node);
-            
-        }
+
         
     }
     
@@ -75,52 +71,8 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToPosition(U11Te
     
 }
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzePlayersDistanceToDefendingPosition(U11Team *uTeam, U4DEngine::U4DVector3n &uPosition){
-    
-    //get each support player into a node with its distance to uPosition
-    
-    uPosition.y=0;
-    
-    //set up the heapsort container
-    std::vector<U11Node> heapContainer;
-    
-    for(auto n:uTeam->getTeammates()){
-        
-        //if (n!=uTeam->getMainDefendingPlayer()) {
-            
-            U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
-            playerPosition.y=0;
-            
-            float distance=(uPosition-playerPosition).magnitude();
-            
-            //create a node
-            U11Node node;
-            node.player=n;
-            node.data=distance;
-            
-            heapContainer.push_back(node);
-            
-       // }
-       
-    }
-    
-    //sort the players closer to the position
-    
-    U11HeapSort heapSort;
-    heapSort.heapify(heapContainer);
-    
-    std::vector<U11Player*> sortPlayers;
-    
-    for(auto n:heapContainer){
-        
-        sortPlayers.push_back(n.player);
-    }
-    
-    return sortPlayers;
-    
-}
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersAlongLine(U11Team *uTeam, U4DEngine::U4DSegment &uLine){
+std::vector<U11Player*> U11SpaceAnalyzer::getPlayersClosestToLine(U11Team *uTeam, U4DEngine::U4DSegment &uLine){
     
     //get each support player into a node with its distance to uPosition
     
@@ -134,8 +86,7 @@ std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersAlongLine(U11Team
         
         if (n!=uTeam->getControllingPlayer()) {
             
-            U4DEngine::U4DPoint3n playerPosition=n->getAbsolutePosition().toPoint();
-            playerPosition.y=0;
+            U4DEngine::U4DPoint3n playerPosition=n->getCurrentPosition().toPoint();
             
             float distance=uLine.sqDistancePointSegment(playerPosition);
             
@@ -174,11 +125,9 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     //get the controlling player heading
     U11Player *controllingPlayer=uTeam->getControllingPlayer();
     U4DEngine::U4DVector3n playerHeading=controllingPlayer->getPlayerHeading();
-    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getAbsolutePosition();
-    controllingPlayerPosition.y=0.0;
+    U4DEngine::U4DVector3n controllingPlayerPosition=controllingPlayer->getCurrentPosition();
     
     playerHeading.normalize();
-    
     
     //get the right hand heading of the player
     U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
@@ -204,7 +153,7 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     U11Team *oppositeTeam=uTeam->getOppositeTeam();
     
     //compute closest players to controlling player
-    std::vector<U11Player*> oppositePlayers=analyzePlayersDistanceToPosition(oppositeTeam, controllingPlayerPosition);
+    std::vector<U11Player*> oppositePlayers=getPlayersClosestToPosition(oppositeTeam, controllingPlayerPosition);
     
     if (oppositePlayers.size()>4) {
         oppositePlayers.resize(4);
@@ -247,13 +196,13 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     
     U4DEngine::U4DVector3n supportAngle=rightHandHeading.rotateVectorAboutAngleAndAxis(45.0, upVector);
     
-    supportSpace1=analyzeClosestSupportSpaceAlongLine(supportAngle, supportNodes,controllingPlayerPosition);
+    supportSpace1=getClosestSupportSpaceAlongLine(supportAngle, supportNodes,controllingPlayerPosition);
     
     //get the support position closest to 135 degree angle
     
     supportAngle=rightHandHeading.rotateVectorAboutAngleAndAxis(135.0, upVector);
     
-    supportSpace2=analyzeClosestSupportSpaceAlongLine(supportAngle, supportNodes,controllingPlayerPosition);
+    supportSpace2=getClosestSupportSpaceAlongLine(supportAngle, supportNodes,controllingPlayerPosition);
     
     std::vector<U4DEngine::U4DPoint3n> supportSpace;
     
@@ -263,7 +212,7 @@ std::vector<U4DEngine::U4DPoint3n> U11SpaceAnalyzer::computeOptimalSupportSpace(
     return supportSpace;
 }
 
-U4DEngine::U4DPoint3n U11SpaceAnalyzer::analyzeClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes, U4DEngine::U4DVector3n &uControllingPlayerPosition){
+U4DEngine::U4DPoint3n U11SpaceAnalyzer::getClosestSupportSpaceAlongLine(U4DEngine::U4DVector3n &uLine, std::vector<SupportNode> &uSupportNodes, U4DEngine::U4DVector3n &uControllingPlayerPosition){
     
     U4DEngine::U4DVector3n lineVector=uLine;
     lineVector.normalize();
@@ -335,7 +284,7 @@ U4DEngine::U4DVector3n U11SpaceAnalyzer::computeOptimalDribblingVector(U11Team *
     U11Team *oppositeTeam=uTeam->getOppositeTeam();
     
     //compute closest players to controlling player
-    U11Player* oppositePlayer=analyzePlayersDistanceToPosition(oppositeTeam, controllingPlayerPosition).at(0);
+    U11Player* oppositePlayer=getPlayersClosestToPosition(oppositeTeam, controllingPlayerPosition).at(0);
     
     //assign closest player
     controllingPlayer->setThreateningPlayer(oppositePlayer);
@@ -383,7 +332,7 @@ U4DEngine::U4DVector3n U11SpaceAnalyzer::computeOptimalDribblingVector(U11Team *
     
     U4DEngine::U4DVector3n playerToGoal=playerPosition-closestPointOnFieldGoal;
     
-    return analyzeClosestDribblingVectorTowardsGoal(dribblingNodes, playerToGoal, controllingPlayerPosition);
+    return getClosestDribblingVectorTowardsGoal(dribblingNodes, playerToGoal, controllingPlayerPosition);
         
     }else{
         return U4DEngine::U4DVector3n(-1.0,0.0,0.0);
@@ -391,7 +340,7 @@ U4DEngine::U4DVector3n U11SpaceAnalyzer::computeOptimalDribblingVector(U11Team *
     
 }
 
-U4DEngine::U4DVector3n U11SpaceAnalyzer::analyzeClosestDribblingVectorTowardsGoal(std::vector<DribblingNode> &uDribblingNodes, U4DEngine::U4DVector3n &uPlayerToGoalVector, U4DEngine::U4DVector3n &uControllingPlayerPosition){
+U4DEngine::U4DVector3n U11SpaceAnalyzer::getClosestDribblingVectorTowardsGoal(std::vector<DribblingNode> &uDribblingNodes, U4DEngine::U4DVector3n &uPlayerToGoalVector, U4DEngine::U4DVector3n &uControllingPlayerPosition){
     
     uPlayerToGoalVector.normalize();
     
@@ -450,43 +399,8 @@ U4DEngine::U4DPoint3n U11SpaceAnalyzer::computeMovementRelToFieldGoal(U11Team *u
     
 }
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzeThreateningPlayers(U11Team *uTeam){
-    
-    U11Ball *ball=uTeam->getSoccerBall();
-    
-    U11FieldGoal *fieldGoal=uTeam->getFieldGoal();
-    
-    U4DEngine::U4DVector3n ballLine(fieldGoal->getAbsolutePosition().x-ball->getAbsolutePosition().x,0.0,0.0);
-    
-    std::vector<U11Player*> threateningPlayersContainer;
-    
-    U11Team *oppositeTeam=uTeam->getOppositeTeam();
-    
-    ballLine.normalize();
-    
-    for(auto n:oppositeTeam->getTeammates()){
-        
-        if (n!=oppositeTeam->getControllingPlayer()) {
-            
-            U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
-            playerPosition.y=0.0;
-            
-            playerPosition.normalize();
-            
-            if (playerPosition.dot(ballLine)>0.0) {
-                
-                threateningPlayersContainer.push_back(n);
-            }
-            
-        }
-        
-    }
-    
-    return threateningPlayersContainer;
-    
-}
 
-U11Player *U11SpaceAnalyzer::getDefensePlayerClosestToThreatingPlayer(U11Team *uTeam, U11Player *uThreateningPlayer){
+U11Player *U11SpaceAnalyzer::getDefensePlayerClosestToThreatPlayer(U11Team *uTeam, U11Player *uThreatPlayer){
     
     //get each support player into a node with its distance to uPosition
     
@@ -497,13 +411,11 @@ U11Player *U11SpaceAnalyzer::getDefensePlayerClosestToThreatingPlayer(U11Team *u
         
         if (n!=uTeam->getMainDefendingPlayer()) {
             
-            U4DEngine::U4DVector3n playerPosition=n->getAbsolutePosition();
-            playerPosition.y=0;
+            U4DEngine::U4DVector3n playerPosition=n->getCurrentPosition();
             
-            U4DEngine::U4DVector3n threateningPlayerPosition=uThreateningPlayer->getAbsolutePosition();
-            threateningPlayerPosition.y=0.0;
+            U4DEngine::U4DVector3n threatPlayerPosition=uThreatPlayer->getCurrentPosition();
             
-            float distance=(threateningPlayerPosition-playerPosition).magnitude();
+            float distance=(threatPlayerPosition-playerPosition).magnitude();
             
             //create a node
             U11Node node;
@@ -532,45 +444,45 @@ U11Player *U11SpaceAnalyzer::getDefensePlayerClosestToThreatingPlayer(U11Team *u
     
 }
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersToBall(U11Team *uTeam){
+std::vector<U11Player*> U11SpaceAnalyzer::getClosestPlayersToBall(U11Team *uTeam){
     
     //get position of the ball
     U4DEngine::U4DVector3n ballPosition=uTeam->getSoccerBall()->getAbsolutePosition();
     
-    return analyzePlayersDistanceToPosition(uTeam, ballPosition);
+    return getPlayersClosestToPosition(uTeam, ballPosition);
     
 }
 
 std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersToPosition(U4DEngine::U4DVector3n &uPosition, U11Team *uTeam){
     
-    return analyzePlayersDistanceToPosition(uTeam, uPosition);
+    return getPlayersClosestToPosition(uTeam, uPosition);
     
 }
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzeClosestPlayersAlongPassLine(U11Team *uTeam){
+std::vector<U11Player*> U11SpaceAnalyzer::getPlayersClosestToPassLine(U11Team *uTeam){
     
     U4DEngine::U4DSegment passLine;
     passLine.pointA=uTeam->getSoccerBall()->getAbsolutePosition().toPoint();
     passLine.pointB=uTeam->getSoccerBall()->getVelocity().toPoint()*ballPassSegmentDirection;
     
-    return analyzeClosestPlayersAlongLine(uTeam,passLine);
+    return getPlayersClosestToLine(uTeam,passLine);
     
 }
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzeSupportPlayers(U11Team *uTeam){
+std::vector<U11Player*> U11SpaceAnalyzer::getClosestSupportPlayers(U11Team *uTeam){
     
     U4DEngine::U4DVector3n controllingPlayerPosition=uTeam->getControllingPlayer()->getAbsolutePosition();
     
-    return analyzePlayersDistanceToPosition(uTeam, controllingPlayerPosition);
+    return getPlayersClosestToPosition(uTeam, controllingPlayerPosition);
     
 }
 
-std::vector<U11Player*> U11SpaceAnalyzer::analyzeDefendingPlayer(U11Team *uTeam){
+std::vector<U11Player*> U11SpaceAnalyzer::getClosestDefendingPlayers(U11Team *uTeam){
     
     U11Player *oppositeControllingPlayer=uTeam->getOppositeTeam()->getControllingPlayer();
     U4DEngine::U4DVector3n oppositePlayerPosition=oppositeControllingPlayer->getAbsolutePosition();
     
-    return analyzePlayersDistanceToDefendingPosition(uTeam, oppositePlayerPosition);
+    return getPlayersClosestToPosition(uTeam, oppositePlayerPosition);
     
 }
 
@@ -618,10 +530,5 @@ bool U11SpaceAnalyzer::analyzeIfPlayerIsCloserToGoalThanMainPlayer(U11Team *uTea
     }
     
     return false;
-}
-
-U4DEngine::U4DVector3n U11SpaceAnalyzer::computeOptimalPassingVector(U11Team *uTeam){
-    
-    
 }
 

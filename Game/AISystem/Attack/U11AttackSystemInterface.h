@@ -23,8 +23,6 @@ public:
     
     virtual void analyzePlay()=0;
     
-    virtual void assignSupportPlayer()=0;
-    
     virtual void computeSupportSpace()=0;
     
     virtual void startComputeSupportSpaceTimer()=0;
