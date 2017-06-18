@@ -36,8 +36,6 @@ public:
     
     virtual void analyzePlay(){};
     
-    void assignSupportPlayer();
-    
     void computeSupportSpace();
     
     void startComputeSupportSpaceTimer();

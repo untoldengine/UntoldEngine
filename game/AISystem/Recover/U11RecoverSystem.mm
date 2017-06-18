@@ -38,7 +38,7 @@ void U11RecoverSystem::computeClosestPlayerToBall(){
     
     U11SpaceAnalyzer spaceAnalyzer;
     
-    U11Player *player=spaceAnalyzer.analyzeClosestPlayersToBall(team).at(0);
+    U11Player *player=spaceAnalyzer.getClosestPlayersToBall(team).at(0);
     
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     

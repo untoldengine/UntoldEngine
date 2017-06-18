@@ -902,3 +902,12 @@ U11Player* U11Player::getThreateningPlayer(){
     return threateningPlayer;
 }
 
+U4DEngine::U4DVector3n U11Player::getCurrentPosition(){
+    
+    U4DEngine::U4DVector3n position=getAbsolutePosition();
+    
+    position.y=0.0;
+    
+    return position;
+}
+

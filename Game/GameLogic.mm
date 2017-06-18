@@ -53,7 +53,7 @@ void GameLogic::init(){
     //get the closest player to the ball and change its state to chase the ball
     U11SpaceAnalyzer spaceAnalyzer;
     
-    U11Player* player=spaceAnalyzer.analyzeClosestPlayersToBall(team).at(0);
+    U11Player* player=spaceAnalyzer.getClosestPlayersToBall(team).at(0);
     team->setControllingPlayer(player);
     player->changeState(U11PlayerInterceptState::sharedInstance());
     

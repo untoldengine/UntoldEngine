@@ -34,72 +34,72 @@ void U11AttackSystem::setTeam(U11Team *uTeam){
 }
 
 
-void U11AttackSystem::assignSupportPlayer(){
-    
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    U11SpaceAnalyzer  spaceAnalyzer;
-    
-    //send message to new support player to support
-    team->setSupportPlayer(spaceAnalyzer.analyzeSupportPlayers(team).at(0));
-    
-    messageDispatcher->sendMessage(0.0, NULL, team->getSupportPlayer(), msgSupportPlayer);
-    
-}
+//void U11AttackSystem::assignSupportPlayer(){
+//    
+//    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+//    
+//    U11SpaceAnalyzer  spaceAnalyzer;
+//    
+//    //send message to new support player to support
+//    team->setSupportPlayer(spaceAnalyzer.getClosestSupportPlayers(team).at(0));
+//    
+//    messageDispatcher->sendMessage(0.0, NULL, team->getSupportPlayer(), msgSupportPlayer);
+//    
+//}
 
 void U11AttackSystem::computeSupportSpace(){
     
     U11SpaceAnalyzer spaceAnalyzer;
     
     //assign support player
-    assignSupportPlayer();
+    //assignSupportPlayer();
     
     //translate the formation
-    U11Player *controllingPlayer=team->getControllingPlayer();
-    
-    U4DEngine::U4DVector3n formationSupportSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(team, controllingPlayer,formationDefenseSpace)).toVector();
-    
-    team->getTeamFormation()->translateFormation(formationSupportSpace);
-    
-    //change the home position for each player
-    
-    team->updateTeamFormationPosition();
-    
+//    U11Player *controllingPlayer=team->getControllingPlayer();
+//    
+//    U4DEngine::U4DVector3n formationSupportSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(team, controllingPlayer,formationDefenseSpace)).toVector();
+//    
+//    team->getTeamFormation()->translateFormation(formationSupportSpace);
+//    
+//    //change the home position for each player
+//    
+//    team->updateTeamFormationPosition();
+//    
     //assign the support players
-    std::vector<U4DEngine::U4DPoint3n> supportSpace=spaceAnalyzer.computeOptimalSupportSpace(team);
+    std::vector<U4DEngine::U4DPoint3n> optimalSupportSpace=spaceAnalyzer.computeOptimalSupportSpace(team);
     
-    U4DEngine::U4DPoint3n supportSpace1=supportSpace.at(0);
+    U4DEngine::U4DVector3n supportSpaceVector=optimalSupportSpace.at(1).toVector();
+    //get player closest to support space
     
-    //compute closest support point to support player
+    U11Player *supportPlayer=spaceAnalyzer.getPlayersClosestToPosition(team, supportSpaceVector).at(0);
     
-    U11Player *supportPlayer1=team->getSupportPlayer();
-    
-    U4DEngine::U4DVector3n supportPlayer1Position=supportPlayer1->getAbsolutePosition();
-    
-    supportPlayer1->setSupportPosition(supportSpace1);
+    team->setSupportPlayer(supportPlayer);
+
+    supportPlayer->setSupportPosition(optimalSupportSpace.at(1));
     
     
     //send message to player to run to position
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    messageDispatcher->sendMessage(0.0, NULL, supportPlayer1, msgRunToSupport);
+    
+    messageDispatcher->sendMessage(0.0, NULL, supportPlayer, msgRunToSupport);
     
     //message all the players to get to their home position
     
-    for(auto n:team->getTeammates()){
-        
-        if (n!=controllingPlayer && n!=supportPlayer1) {
-            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToAttackFormation);
-        }
-        
-    }
+//    for(auto n:team->getTeammates()){
+//        
+//        if (n!=controllingPlayer && n!=supportPlayer1) {
+//            messageDispatcher->sendMessage(0.0, NULL, n, msgRunToAttackFormation);
+//        }
+//        
+//    }
     
-    analyzePlay();
+    //analyzePlay();
     
 }
 
 void U11AttackSystem::startComputeSupportSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11AttackSystem::computeSupportSpace, supportAnalysisTimer, 0.3, true);
+    //scheduler->scheduleClassWithMethodAndDelay(this, &U11AttackSystem::computeSupportSpace, supportAnalysisTimer, 0.3, true);
     
 }
 

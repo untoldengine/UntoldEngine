@@ -80,7 +80,7 @@ void U11DefenseSystem::assignDefendingSupportPlayers(){
     //get threatening support players
     U11Player* threateningPlayers=team->getOppositeTeam()->getSupportPlayer();
     
-    U11Player *supportDefendingPlayer=spaceAnalyzer.getDefensePlayerClosestToThreatingPlayer(team, threateningPlayers);
+    U11Player *supportDefendingPlayer=spaceAnalyzer.getDefensePlayerClosestToThreatPlayer(team, threateningPlayers);
     
     if (supportDefendingPlayer!=nullptr) {
         
@@ -140,7 +140,7 @@ void U11DefenseSystem::interceptPass(){
 
 void U11DefenseSystem::startComputeDefendingSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11DefenseSystem::computeDefendingSpace, defendAnalysisTimer, 0.3, true);
+    //scheduler->scheduleClassWithMethodAndDelay(this, &U11DefenseSystem::computeDefendingSpace, defendAnalysisTimer, 0.3, true);
     
 }
 

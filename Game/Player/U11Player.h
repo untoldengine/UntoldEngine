@@ -278,5 +278,7 @@ public:
     
     U11Player* getThreateningPlayer();
     
+    U4DEngine::U4DVector3n getCurrentPosition();
+    
 };
 #endif /* U11Player_hpp */
