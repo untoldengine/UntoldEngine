@@ -106,22 +106,22 @@ void Earth::init(){
     
     emelecPlayer11->subscribeTeam(emelec);
     
-//    emelecPlayer9=new U11Player();
-//    emelecPlayer9->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer9->subscribeTeam(emelec);
-//    
-//    emelecPlayer8=new U11Player();
-//    emelecPlayer8->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer8->subscribeTeam(emelec);
-//    
-//    emelecPlayer7=new U11Player();
-//    emelecPlayer7->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer7->subscribeTeam(emelec);
-//    
-//    
+    emelecPlayer9=new U11Player();
+    emelecPlayer9->init("pele", "playerscript.u4d");
+    
+    emelecPlayer9->subscribeTeam(emelec);
+    
+    emelecPlayer8=new U11Player();
+    emelecPlayer8->init("pele", "playerscript.u4d");
+    
+    emelecPlayer8->subscribeTeam(emelec);
+
+    emelecPlayer7=new U11Player();
+    emelecPlayer7->init("pele", "playerscript.u4d");
+    
+    emelecPlayer7->subscribeTeam(emelec);
+    
+    
 //    emelecPlayer6=new U11Player();
 //    emelecPlayer6->init("pele", "playerscript.u4d");
 //    
@@ -242,12 +242,12 @@ void Earth::init(){
     
     addChild(emelecPlayer11);
     
-//    addChild(emelecPlayer9);
-//    
-//    addChild(emelecPlayer8);
-//    
-//    addChild(emelecPlayer7);
-//    
+    addChild(emelecPlayer9);
+    
+    addChild(emelecPlayer8);
+    
+    addChild(emelecPlayer7);
+    
 //    addChild(emelecPlayer6);
 //    
 //    addChild(emelecPlayer5);
@@ -313,12 +313,16 @@ void Earth::init(){
     
     emelecPlayer10->translateTo(6.0, yPos, 0.2);
     emelecPlayer11->translateTo(14.0,yPos, 20.0);
+    emelecPlayer9->translateTo(60.0,yPos, 10.0);
+    emelecPlayer8->translateTo(-40.0, yPos, -40.0);
+    emelecPlayer7->translateTo(40.0, yPos, 40.0);
+    
 }
 
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->followModel(ball, 0.0, 60.0, 150.0);
+    camera->followModel(ball, 0.0, 120.0, 10.0);
 
 }
 

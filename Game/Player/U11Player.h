@@ -106,6 +106,8 @@ private:
     
     U4DEngine::U4DAnimation *stealingAnimation;
     
+    bool processedForTriangleNode;
+    
 public:
     
     U11Player();
@@ -279,6 +281,10 @@ public:
     U11Player* getThreateningPlayer();
     
     U4DEngine::U4DVector3n getCurrentPosition();
+    
+    void setProcessedForTriangleNode(bool uValue);
+    
+    bool getProcessedForTriangleNode();
     
 };
 #endif /* U11Player_hpp */

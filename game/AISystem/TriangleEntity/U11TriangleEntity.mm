@@ -13,12 +13,36 @@
 #include "U11Node.h"
 #include "U11Team.h"
 
-U11TriangleEntity::U11TriangleEntity(){
+U11TriangleEntity::U11TriangleEntity(VertexNode uPointA, VertexNode uPointB, VertexNode uPointC):pointA(uPointA), pointB(uPointB), pointC(uPointC){
     
+    triangle.pointA=uPointA.optimalPosition;
+    triangle.pointB=uPointB.optimalPosition;
+    triangle.pointC=uPointC.optimalPosition;
 }
 
 U11TriangleEntity::~U11TriangleEntity(){
     
+}
+
+std::vector<U4DEngine::U4DSegment> U11TriangleEntity::getTriangleEntitySegments(){
+    
+    return triangle.getSegments();
+}
+
+U4DEngine::U4DVector3n U11TriangleEntity::getTriangleEntityNormal(){
+    
+    return triangle.getTriangleNormal();
+}
+
+U4DEngine::U4DPoint3n U11TriangleEntity::getTriangleEntityCentroid(){
+    
+    //get the distance of opponent players to the triangle entity centroid
+    U4DEngine::U4DPoint3n triangleCentroid=triangle.getCentroid();
+    
+    //to have a universal point of measurement set the centroid y position to zero
+    triangleCentroid.y=0;
+    
+    return triangleCentroid;
 }
 
 /*
@@ -59,17 +83,7 @@ U4DEngine::U4DTriangle U11TriangleEntity::getTriangleGeometry(){
     
 }
 
-U4DEngine::U4DPoint3n U11TriangleEntity::getTriangleCentroid(){
-    
-    //get the distance of opponent players to the triangle entity centroid
-    U4DEngine::U4DTriangle triangleGeometry=getTriangleGeometry();
-    U4DEngine::U4DPoint3n triangleCentroid=triangleGeometry.getCentroid();
-    
-    //to have a universal point of measurement set the centroid y position to zero
-    triangleCentroid.y=0;
-    
-    return triangleCentroid;
-}
+
 
 std::vector<U11Player*> U11TriangleEntity::getThreatPlayersInsideTriangle(){
     

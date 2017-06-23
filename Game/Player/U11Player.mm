@@ -23,7 +23,7 @@
 #include "U11FormationEntity.h"
 #include "U11PlayerSpace.h"
 
-U11Player::U11Player():joystickActive(false),missedTheBall(false),ballKickSpeed(0),threateningPlayer(nullptr){
+U11Player::U11Player():joystickActive(false),missedTheBall(false),ballKickSpeed(0),threateningPlayer(nullptr),processedForTriangleNode(false){
     
     stateManager=new U11PlayerStateManager(this);
     
@@ -909,5 +909,16 @@ U4DEngine::U4DVector3n U11Player::getCurrentPosition(){
     position.y=0.0;
     
     return position;
+}
+
+void U11Player::setProcessedForTriangleNode(bool uValue){
+    
+    processedForTriangleNode=uValue;
+    
+}
+
+bool U11Player::getProcessedForTriangleNode(){
+    
+    return processedForTriangleNode;
 }
 

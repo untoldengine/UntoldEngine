@@ -15,3 +15,9 @@ U11AttackManualSystem::U11AttackManualSystem(){
 U11AttackManualSystem::~U11AttackManualSystem(){
     
 }
+
+void U11AttackManualSystem::analyzePlay(){
+    
+    
+    
+}
