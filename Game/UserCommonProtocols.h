@@ -119,6 +119,8 @@ const float formationSpaceBoundaryLength=420.0;
 const float formationSpaceBoundaryWidth=70.0;
 const float minimumInterceptionDistance=30.0;
 const float threateningDistanceToPlayer=20.0;
+const float playerPersonalArea=5.0;
+const float triangleEntityDistance=30.0;
 
 
 #endif /* UserCommonProtocols_h */

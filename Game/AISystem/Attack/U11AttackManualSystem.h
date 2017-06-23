@@ -21,6 +21,7 @@ public:
     
     ~U11AttackManualSystem();
     
+    void analyzePlay();
     
 };
 

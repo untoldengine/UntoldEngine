@@ -21,12 +21,6 @@
 #include "U11MessageDispatcher.h"
 #include "U11Ball.h"
 
-//#include "U11AISystem.h"
-//#include "U11AIRecoverState.h"
-//#include "U11AIDefenseState.h"
-//#include "U11AIAttackState.h"
-//#include "U11AIStateManager.h"
-
 GameLogic::GameLogic():buttonHoldTime(0){
 
     scheduler=new U4DEngine::U4DCallback<GameLogic>;
@@ -70,17 +64,6 @@ void GameLogic::receiveTouchUpdate(){
     U11Player *player=team->getActivePlayer();
     
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-//    if (team->getAISystem()->getStateManager()->getCurrentState()==U11AIRecoverState::sharedInstance()) {
-//        
-//        std::cout<<"In recover state"<<std::endl;
-//    }else if (team->getAISystem()->getStateManager()->getCurrentState()==U11AIDefenseState::sharedInstance()) {
-//        
-//        std::cout<<"In defense state"<<std::endl;
-//    }else if (team->getAISystem()->getStateManager()->getCurrentState()==U11AIAttackState::sharedInstance()) {
-//        
-//        std::cout<<"In attacking state"<<std::endl;
-//    }
     
     if (player!=NULL) {
         
