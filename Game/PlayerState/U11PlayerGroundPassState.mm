@@ -8,7 +8,7 @@
 
 #include "U11PlayerGroundPassState.h"
 #include "U11PlayerChaseBallState.h"
-#include "U11PlayerIdleState.h"
+#include "U11PlayerAttackState.h"
 #include "U11PlayerDribblePassState.h"
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
@@ -74,9 +74,7 @@ void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
             
             uPlayer->setMissedTheBall(false);
             
-            U11PlayerIdleState *idleState=U11PlayerIdleState::sharedInstance();
-            
-            uPlayer->changeState(idleState);
+            uPlayer->changeState(U11PlayerAttackState::sharedInstance());
             
         }
         
@@ -123,6 +121,9 @@ void U11PlayerGroundPassState::exit(U11Player *uPlayer){
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
         messageDispatcher->sendMessage(0.0, uPlayer, receivingPlayer, msgReceiveBall);
+        
+        //send message to the team
+        messageDispatcher->sendMessage(0.0, team, msgBallPassed);
         
         //send message to opposite team
         U11Team *oppositeTeam=team->getOppositeTeam();

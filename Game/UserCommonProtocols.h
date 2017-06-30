@@ -13,7 +13,7 @@
 
 class U11Player;
 class U11Team;
-
+class U11TriangleEntity;
 
 typedef enum{
 
@@ -74,10 +74,21 @@ enum{
     
     msgBallRelinquished,
     msgBallPassed,
+    msgBallInPossession,
+    
     
     msgChaseBall,
     
 }MessageEnum;
+
+typedef struct{
+    
+    U11TriangleEntity *triangleEntity;
+    int playersInsideEntity;
+    int playersInSightToGoal;
+    float distanceToGoal;
+    
+}TriangleNodeEntity;
 
 const float fieldWidth=1000.0;
 const float fieldLength=1000.0;
@@ -120,7 +131,7 @@ const float formationSpaceBoundaryWidth=70.0;
 const float minimumInterceptionDistance=30.0;
 const float threateningDistanceToPlayer=20.0;
 const float playerPersonalArea=5.0;
-const float triangleEntityDistance=30.0;
+const float triangleEntityDistance=60.0;
 
 
 #endif /* UserCommonProtocols_h */

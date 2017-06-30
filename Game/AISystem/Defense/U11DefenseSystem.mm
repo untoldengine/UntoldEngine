@@ -99,42 +99,42 @@ void U11DefenseSystem::assignDefendingSupportPlayers(){
 void U11DefenseSystem::interceptPass(){
     
     
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    //1. get the ball future position
-    //get controlling player position
-    
-    U11Player *oppositeControllingPlayer=team->getOppositeTeam()->getControllingPlayer();
-    
-    U4DEngine::U4DPoint3n pointA=oppositeControllingPlayer->getAbsolutePosition().toPoint();
-    
-    //get ball heading
-    U4DEngine::U4DVector3n ballVelocity=team->getSoccerBall()->getVelocity();
-    
-    ballVelocity.normalize();
-    
-    U4DEngine::U4DPoint3n ballDirection=ballVelocity.toPoint();
-    
-    //get ball kick speed
-    float t=oppositeControllingPlayer->getBallKickSpeed();
-    
-    //get the destination point
-    U4DEngine::U4DVector3n pointB=(pointA+ballDirection*t).toVector();
-    
-    //2. get closest player to end point
-    U11Player* interceptPlayer=spaceAnalyzer.analyzeClosestPlayersToPosition(pointB,team).at(0);
-    
-    //3. if the player is closed enough to intercept, then send message to intercept pass
-    
-    U4DEngine::U4DVector3n playerPosition=interceptPlayer->getAbsolutePosition();
-    
-    if ((playerPosition-pointB).magnitude()<minimumInterceptionDistance) {
-        
-        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-        
-        messageDispatcher->sendMessage(0.0, NULL, interceptPlayer, msgIntercept);
-        
-    }
+//    U11SpaceAnalyzer spaceAnalyzer;
+//    
+//    //1. get the ball future position
+//    //get controlling player position
+//    
+//    U11Player *oppositeControllingPlayer=team->getOppositeTeam()->getControllingPlayer();
+//    
+//    U4DEngine::U4DPoint3n pointA=oppositeControllingPlayer->getAbsolutePosition().toPoint();
+//    
+//    //get ball heading
+//    U4DEngine::U4DVector3n ballVelocity=team->getSoccerBall()->getVelocity();
+//    
+//    ballVelocity.normalize();
+//    
+//    U4DEngine::U4DPoint3n ballDirection=ballVelocity.toPoint();
+//    
+//    //get ball kick speed
+//    float t=oppositeControllingPlayer->getBallKickSpeed();
+//    
+//    //get the destination point
+//    U4DEngine::U4DVector3n pointB=(pointA+ballDirection*t).toVector();
+//    
+//    //2. get closest player to end point
+//    U11Player* interceptPlayer=spaceAnalyzer.analyzeClosestPlayersToPosition(pointB,team).at(0);
+//    
+//    //3. if the player is closed enough to intercept, then send message to intercept pass
+//    
+//    U4DEngine::U4DVector3n playerPosition=interceptPlayer->getAbsolutePosition();
+//    
+//    if ((playerPosition-pointB).magnitude()<minimumInterceptionDistance) {
+//        
+//        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+//        
+//        messageDispatcher->sendMessage(0.0, NULL, interceptPlayer, msgIntercept);
+//        
+//    }
     
 }
 

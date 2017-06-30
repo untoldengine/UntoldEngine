@@ -43,7 +43,6 @@ void U11PlayerRunPassState::execute(U11Player *uPlayer, double dt){
     //track the ball
     uPlayer->seekBall();
     
-    
     //has the player reached the ball
     if (!uPlayer->hasReachedTheBall()) {
         

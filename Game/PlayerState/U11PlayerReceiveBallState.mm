@@ -9,6 +9,7 @@
 #include "U11PlayerReceiveBallState.h"
 #include "U11PlayerHaltBallState.h"
 #include "U11Team.h"
+#include "U11MessageDispatcher.h"
 
 U11PlayerReceiveBallState* U11PlayerReceiveBallState::instance=0;
 

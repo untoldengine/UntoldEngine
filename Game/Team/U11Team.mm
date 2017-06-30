@@ -34,6 +34,7 @@ U11Team::U11Team(U4DEngine::U4DWorld *uWorld, U11AttackSystemInterface *uAttackS
     
     aiSystem=new U11AISystem(this, uDefenseSystem, uAttackSystem, uRecoverSystem,uAttackStrategy);
     
+    
 }
 
 U11Team::~U11Team(){

@@ -14,6 +14,7 @@
 #include "U11FormationInterface.h"
 #include "U11TriangleManager.h"
 #include "U11TriangleEntity.h"
+#include "U11AISystem.h"
 
 
 U11AttackSystem::U11AttackSystem(){
@@ -51,28 +52,38 @@ void U11AttackSystem::setTeam(U11Team *uTeam){
 
 void U11AttackSystem::computeSupportSpace(){
     
-    U11TriangleManager triangleManager;
     
-    triangleManager.initTriangleEntitiesComputation(team);
-    
-    //set the position for each player
-    
-    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-    
-    for(auto n:triangleManager.getVertexNodeContainer()){
+    if (team->getAISystem()->getPassingTheBall()==false) {
         
-        U11Player *player=n.player;
+        U11TriangleManager triangleManager;
         
-        if (player!=team->getControllingPlayer()) {
+        triangleManager.initTriangleEntitiesComputation(team);
+        
+        //analyze play
+        
+        team->getAISystem()->getAttackStrategy()->analyzePlay(triangleManager.getTriangleEntityRoot());
+        
+        //set the position for each player
+        
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
+        for(auto n:triangleManager.getVertexNodeContainer()){
             
-            player->setSupportPosition(n.optimalPosition);
+            U11Player *player=n.player;
             
-            messageDispatcher->sendMessage(0.0, NULL, player, msgRunToSupport);
+            if (player!=team->getControllingPlayer()) {
+                
+                player->setSupportPosition(n.optimalPosition);
+                
+                messageDispatcher->sendMessage(0.0, NULL, player, msgRunToSupport);
+                
+            }
             
         }
         
+        triangleManager.clearContainers();
+        
     }
-    
     
 //    U11SpaceAnalyzer spaceAnalyzer;
 //    
@@ -118,13 +129,13 @@ void U11AttackSystem::computeSupportSpace(){
 //        
 //    }
 //    
-    analyzePlay();
+    
     
 }
 
 void U11AttackSystem::startComputeSupportSpaceTimer(){
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U11AttackSystem::computeSupportSpace, supportAnalysisTimer, 1.0, true);
+    scheduler->scheduleClassWithMethodAndDelay(this, &U11AttackSystem::computeSupportSpace, supportAnalysisTimer, 2.0, true);
     
 }
 

@@ -10,6 +10,7 @@
 #define U11AIAttackStrategyInterface_hpp
 
 #include <stdio.h>
+#include "U11TriangleManager.h"
 
 class U11Team;
 
@@ -21,7 +22,7 @@ public:
     
     virtual void setTeam(U11Team *uTeam)=0;
     
-    virtual void analyzePlay()=0;
+    virtual void analyzePlay(U11TriangleEntity *uTriangleEntityRoot)=0;
     
 };
 

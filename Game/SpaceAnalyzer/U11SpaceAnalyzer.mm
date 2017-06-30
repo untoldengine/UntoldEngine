@@ -71,6 +71,47 @@ std::vector<U11Player*> U11SpaceAnalyzer::getPlayersClosestToPosition(U11Team *u
     
 }
 
+std::vector<U11Player*> U11SpaceAnalyzer::getPlayersClosestToPosition(U4DEngine::U4DVector3n &uPosition, std::vector<U11Player*> uPlayers){
+    
+    //get each support player into a node with its distance to uPosition
+    
+    uPosition.y=0;
+    
+    //set up the heapsort container
+    std::vector<U11Node> heapContainer;
+    
+    for(auto n:uPlayers){
+        
+        U4DEngine::U4DVector3n playerPosition=n->getCurrentPosition();
+        
+        float distance=(uPosition-playerPosition).magnitude();
+        
+        //create a node
+        U11Node node;
+        node.player=n;
+        node.data=distance;
+        
+        heapContainer.push_back(node);
+        
+        
+    }
+    
+    //sort the players closer to the position
+    
+    U11HeapSort heapSort;
+    heapSort.heapify(heapContainer);
+    
+    std::vector<U11Player*> sortPlayers;
+    
+    for(auto n:heapContainer){
+        
+        sortPlayers.push_back(n.player);
+    }
+    
+    return sortPlayers;
+    
+}
+
 std::vector<U11Player*> U11SpaceAnalyzer::getClosestPlayersToPlayer(U11Team *uTeam, U11Player *uPlayer){
     
     //set up the heapsort container

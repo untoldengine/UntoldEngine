@@ -53,6 +53,8 @@ public:
     
     std::vector<U11Player*> getPlayersClosestToPosition(U11Team *uTeam, U4DEngine::U4DVector3n &uPosition);
     
+    std::vector<U11Player*> getPlayersClosestToPosition(U4DEngine::U4DVector3n &uPosition, std::vector<U11Player*> uPlayers);
+    
     std::vector<U11Player*> getClosestPlayersToPlayer(U11Team *uTeam, U11Player *uPlayer);
     
     std::vector<U11Player*> getPlayersClosestToLine(U11Team *uTeam, U4DEngine::U4DSegment &uLine);

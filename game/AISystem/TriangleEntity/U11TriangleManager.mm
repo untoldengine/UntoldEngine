@@ -15,12 +15,15 @@
 #include "U4DPlane.h"
 #include "U4DNumerical.h"
 
-U11TriangleManager::U11TriangleManager(){
+U11TriangleManager::U11TriangleManager():triangleEntityIndex(0){
+    
+    triangleEntityRoot=new U11TriangleEntity();
     
 }
 
 U11TriangleManager::~U11TriangleManager(){
     
+    delete triangleEntityRoot;
 }
 
 void U11TriangleManager::initTriangleEntitiesComputation(U11Team *uTeam){
@@ -33,9 +36,6 @@ void U11TriangleManager::initTriangleEntitiesComputation(U11Team *uTeam){
 
 void U11TriangleManager::buildInitialTriangleEntity(U11Team *uTeam){
     
-    //clear the container
-    triangleEntityContainer.clear();
-    
     //for all players clear the processed for triangle node flag
     
     for(auto n:uTeam->getTeammates()){
@@ -46,6 +46,7 @@ void U11TriangleManager::buildInitialTriangleEntity(U11Team *uTeam){
     
     //get the controlling player
     U11Player *controllingPlayer=uTeam->getControllingPlayer();
+    
     U4DEngine::U4DVector3n controllerPosition=controllingPlayer->getCurrentPosition();
     
     //get closest teammate to controlling player
@@ -60,18 +61,18 @@ void U11TriangleManager::buildInitialTriangleEntity(U11Team *uTeam){
     //make sure the support Player is not to close to the main controlling player
     float edgeDistance=(supportPosition-controllerPosition).magnitude();
     
-    if (edgeDistance<playerPersonalArea) {
-        
-        supportPlayer=closestPlayersToControllingPlayer.at(1);
-        
-    }
-    
     //get the third closest player relative to the segment
     U4DEngine::U4DVector3n triangleEdgeVector=supportPosition-controllerPosition;
     
     U4DEngine::U4DVector3n triangleEdgeNormalizeVector=triangleEdgeVector;
     
     triangleEdgeNormalizeVector.normalize();
+    
+    if (edgeDistance<triangleEntityDistance) {
+        
+        supportPosition=controllerPosition+(triangleEdgeNormalizeVector)*triangleEntityDistance;
+        
+    }
     
     U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
     
@@ -126,32 +127,35 @@ void U11TriangleManager::buildInitialTriangleEntity(U11Team *uTeam){
     nodeC.optimalPosition=optimalPosition;
     
     //build the triangle entity
-    U11TriangleEntity triangleNodeEntity(nodeA, nodeB, nodeC);
+    U11TriangleEntity *triangleNodeEntity= new U11TriangleEntity (nodeA, nodeB, nodeC);
     
-    triangleEntityContainer.push_back(triangleNodeEntity);
+    triangleEntityRoot->addChild(triangleNodeEntity);
     
     //get the centroid of the triangle
-    U4DEngine::U4DPoint3n triangleCentroid=triangleNodeEntity.getTriangleEntityCentroid();
+    U4DEngine::U4DPoint3n triangleCentroid=triangleNodeEntity->getTriangleEntityCentroid();
     
     //get the segments of the triangle
     
     SegmentNode segmentAB;
-    segmentAB.segment=triangleNodeEntity.getTriangleEntitySegments().at(0);
+    segmentAB.segment=triangleNodeEntity->getTriangleEntitySegments().at(0);
     segmentAB.nodeA=nodeA;
     segmentAB.nodeB=nodeB;
     segmentAB.centroid=triangleCentroid;
+    segmentAB.segmentParent=triangleNodeEntity;
     
     SegmentNode segmentBC;
-    segmentBC.segment=triangleNodeEntity.getTriangleEntitySegments().at(1);
+    segmentBC.segment=triangleNodeEntity->getTriangleEntitySegments().at(1);
     segmentBC.nodeA=nodeB;
     segmentBC.nodeB=nodeC;
     segmentBC.centroid=triangleCentroid;
+    segmentBC.segmentParent=triangleNodeEntity;
     
     SegmentNode segmentCA;
-    segmentCA.segment=triangleNodeEntity.getTriangleEntitySegments().at(2);
+    segmentCA.segment=triangleNodeEntity->getTriangleEntitySegments().at(2);
     segmentCA.nodeA=nodeC;
     segmentCA.nodeB=nodeA;
     segmentCA.centroid=triangleCentroid;
+    segmentCA.segmentParent=triangleNodeEntity;
     
     //push the segments into the queue
     segmentQueue.push(segmentAB);
@@ -222,26 +226,28 @@ void U11TriangleManager::buildTriangleEntities(U11Team *uTeam){
             nodeC.optimalPosition=endPoint;
             
             //build the triangle entity
-            U11TriangleEntity triangleNodeEntity(nodeA, nodeB, nodeC);
+            U11TriangleEntity *triangleNodeEntity=new U11TriangleEntity(nodeA, nodeB, nodeC);
             
-            triangleEntityContainer.push_back(triangleNodeEntity);
+            segmentNode.segmentParent->addChild(triangleNodeEntity);
             
             //get the centroid of the triangle
-            U4DEngine::U4DPoint3n triangleCentroid=triangleNodeEntity.getTriangleEntityCentroid();
+            U4DEngine::U4DPoint3n triangleCentroid=triangleNodeEntity->getTriangleEntityCentroid();
    
             
             //create segments to add to the queue
             SegmentNode segmentBC;
-            segmentBC.segment=triangleNodeEntity.getTriangleEntitySegments().at(1);
+            segmentBC.segment=triangleNodeEntity->getTriangleEntitySegments().at(1);
             segmentBC.nodeA=nodeB;
             segmentBC.nodeB=nodeC;
             segmentBC.centroid=triangleCentroid;
+            segmentBC.segmentParent=triangleNodeEntity;
             
             SegmentNode segmentCA;
-            segmentCA.segment=triangleNodeEntity.getTriangleEntitySegments().at(2);
+            segmentCA.segment=triangleNodeEntity->getTriangleEntitySegments().at(2);
             segmentCA.nodeA=nodeC;
             segmentCA.nodeB=nodeA;
             segmentCA.centroid=triangleCentroid;
+            segmentCA.segmentParent=triangleNodeEntity;
             
             //push the segments into the queue
             segmentQueue.push(segmentBC);
@@ -261,12 +267,6 @@ void U11TriangleManager::buildTriangleEntities(U11Team *uTeam){
 std::vector<VertexNode> U11TriangleManager::getVertexNodeContainer(){
     
     return vertexNodeContainer;
-}
-
-std::vector<U11TriangleEntity> U11TriangleManager::getTriangleEntityContainer(){
-    
-    return triangleEntityContainer;
-    
 }
 
 std::vector<U11Player*> U11TriangleManager::getPlayersInsidePlane(U11Team *uTeam, U4DEngine::U4DVector3n &uNormal, U4DEngine::U4DPoint3n &uPlanePoint){
@@ -303,5 +303,46 @@ std::vector<U11Player*> U11TriangleManager::getPlayersInsidePlane(U11Team *uTeam
     }
     
     return playersInsidePlane;
+    
+}
+
+void U11TriangleManager::removeAllTriangleNodes(){
+    
+    U11TriangleEntity *lastNode=triangleEntityRoot->lastDescendant;
+    U11TriangleEntity *parentNode=lastNode->parent;
+    
+    while (triangleEntityRoot->next !=nullptr) {
+        
+        if (lastNode->isRoot()) {
+            
+            lastNode=nullptr;
+            
+            delete lastNode;
+            
+        }else{
+            
+            parentNode->removeChild(lastNode);
+            
+            delete lastNode;
+            
+            lastNode=triangleEntityRoot->lastDescendant;
+            
+            parentNode=lastNode->parent;
+            
+        }
+        
+    }
+    
+}
+
+U11TriangleEntity *U11TriangleManager::getTriangleEntityRoot(){
+    
+    return triangleEntityRoot;
+}
+
+void U11TriangleManager::clearContainers(){
+    
+    removeAllTriangleNodes();
+    vertexNodeContainer.clear();
     
 }

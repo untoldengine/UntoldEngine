@@ -11,7 +11,8 @@
 
 #include <stdio.h>
 #include "U11AIAttackStrategyInterface.h"
-
+#include "U11TriangleManager.h"
+#include "UserCommonProtocols.h"
 
 class U11Team;
 
@@ -29,13 +30,17 @@ public:
     
     void setTeam(U11Team *uTeam);
     
-    void analyzePlay();
+    void analyzePlay(U11TriangleEntity *uTriangleEntityRoot);
+    
+    bool hasPlayersReachedSupportPosition(U11TriangleEntity *uTriangleEntity);
+    
+    TriangleNodeEntity getOptimalTriangleEntity(U11TriangleEntity *uTriangleEntityRoot);
     
     bool shouldPassForward();
     
     void dribble();
     
-    void passForward();
+    void pass();
     
 };
 

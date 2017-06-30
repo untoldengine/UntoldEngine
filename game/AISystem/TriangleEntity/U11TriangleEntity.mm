@@ -13,11 +13,34 @@
 #include "U11Node.h"
 #include "U11Team.h"
 
-U11TriangleEntity::U11TriangleEntity(VertexNode uPointA, VertexNode uPointB, VertexNode uPointC):pointA(uPointA), pointB(uPointB), pointC(uPointC){
+U11TriangleEntity::U11TriangleEntity(VertexNode uVertexNodeA, VertexNode uVertexNodeB, VertexNode uVertexNodeC):vertexNodeA(uVertexNodeA), vertexNodeB(uVertexNodeB), vertexNodeC(uVertexNodeC){
     
-    triangle.pointA=uPointA.optimalPosition;
-    triangle.pointB=uPointB.optimalPosition;
-    triangle.pointC=uPointC.optimalPosition;
+    parent=NULL;
+    next=NULL;
+    prevSibling=this;
+    lastDescendant=this;
+    
+    triangleGeometry.pointA=uVertexNodeA.optimalPosition;
+    triangleGeometry.pointB=uVertexNodeB.optimalPosition;
+    triangleGeometry.pointC=uVertexNodeC.optimalPosition;
+    
+    vertexNodeA.player=uVertexNodeA.player;
+    vertexNodeB.player=uVertexNodeB.player;
+    vertexNodeC.player=uVertexNodeC.player;
+    
+    vertexNodeA.optimalPosition=uVertexNodeA.optimalPosition;
+    vertexNodeB.optimalPosition=uVertexNodeB.optimalPosition;
+    vertexNodeC.optimalPosition=uVertexNodeC.optimalPosition;
+    
+}
+
+U11TriangleEntity::U11TriangleEntity(){
+    
+    parent=NULL;
+    next=NULL;
+    prevSibling=this;
+    lastDescendant=this;
+    
 }
 
 U11TriangleEntity::~U11TriangleEntity(){
@@ -26,18 +49,31 @@ U11TriangleEntity::~U11TriangleEntity(){
 
 std::vector<U4DEngine::U4DSegment> U11TriangleEntity::getTriangleEntitySegments(){
     
-    return triangle.getSegments();
+    return triangleGeometry.getSegments();
+}
+
+std::vector<U11Player*> U11TriangleEntity::getTriangleEntityPlayers(){
+    
+    std::vector<U11Player*> players{vertexNodeA.player,vertexNodeB.player,vertexNodeC.player};
+    
+    return players;
+    
 }
 
 U4DEngine::U4DVector3n U11TriangleEntity::getTriangleEntityNormal(){
     
-    return triangle.getTriangleNormal();
+    return triangleGeometry.getTriangleNormal();
+}
+
+U4DEngine::U4DTriangle U11TriangleEntity::getTriangleEntityGeometry(){
+    
+    return triangleGeometry;
 }
 
 U4DEngine::U4DPoint3n U11TriangleEntity::getTriangleEntityCentroid(){
     
     //get the distance of opponent players to the triangle entity centroid
-    U4DEngine::U4DPoint3n triangleCentroid=triangle.getCentroid();
+    U4DEngine::U4DPoint3n triangleCentroid=triangleGeometry.getCentroid();
     
     //to have a universal point of measurement set the centroid y position to zero
     triangleCentroid.y=0;
@@ -45,30 +81,180 @@ U4DEngine::U4DPoint3n U11TriangleEntity::getTriangleEntityCentroid(){
     return triangleCentroid;
 }
 
-/*
-void U11TriangleEntity::buildTriangleEntity(U11Team *uTeam){
+
+void U11TriangleEntity::addChild(U11TriangleEntity *uChild){
     
-    triangleNode.player1=uTeam->getControllingPlayer();
-    triangleNode.player2=uTeam->analyzeSupportPlayers().at(0);
-    triangleNode.player3=uTeam->analyzeSupportPlayers().at(1);
+    U11TriangleEntity* lastAddedChild=getFirstChild();
+    
+    if(lastAddedChild==0){ //add as first child
+        
+        uChild->parent=this;
+        
+        uChild->lastDescendant->next=lastDescendant->next;
+        
+        lastDescendant->next=uChild;
+        
+        uChild->prevSibling=getLastChild();
+        
+        if (isLeaf()) {
+            
+            next=uChild;
+            
+        }
+        
+        getFirstChild()->prevSibling=uChild;
+        
+        changeLastDescendant(uChild->lastDescendant);
+        
+        
+    }else{
+        
+        uChild->parent=lastAddedChild->parent;
+        
+        uChild->prevSibling=lastAddedChild->prevSibling;
+        
+        uChild->lastDescendant->next=lastAddedChild;
+        
+        if (lastAddedChild->parent->next==lastAddedChild) {
+            lastAddedChild->parent->next=uChild;
+        }else{
+            lastAddedChild->prevSibling->lastDescendant->next=uChild;
+        }
+        
+        lastAddedChild->prevSibling=uChild;
+        
+    }
     
 }
 
+void U11TriangleEntity::removeChild(U11TriangleEntity *uChild){
+    
+    U11TriangleEntity* sibling = uChild->getNextSibling();
+    
+    if (sibling)
+        sibling->prevSibling = uChild->prevSibling;
+    else
+        getFirstChild()->prevSibling = uChild->prevSibling;
+    
+    if (lastDescendant == uChild->lastDescendant)
+        changeLastDescendant(uChild->prevInPreOrderTraversal());
+    
+    if (next == uChild)	// deleting first child?
+        next = uChild->lastDescendant->next;
+    else
+        uChild->prevSibling->lastDescendant->next = uChild->lastDescendant->next;
+}
+
+U11TriangleEntity *U11TriangleEntity::prevInPreOrderTraversal(){
+    
+    U11TriangleEntity* prev = 0;
+    if (parent)
+    {
+        if (parent->next == this)
+            prev = parent;
+        else
+            prev = prevSibling->lastDescendant;
+    }
+    return prev;
+}
+
+U11TriangleEntity *U11TriangleEntity::nextInPreOrderTraversal(){
+    return next;
+}
+
+U11TriangleEntity *U11TriangleEntity::getFirstChild(){
+    
+    U11TriangleEntity* child=NULL;
+    if(next && (next->parent==this)){
+        child=next;
+    }
+    
+    return child;
+}
+
+U11TriangleEntity *U11TriangleEntity::getLastChild(){
+    
+    U11TriangleEntity *child=getFirstChild();
+    
+    if(child){
+        child=child->prevSibling;
+    }
+    
+    return child;
+}
+
+U11TriangleEntity *U11TriangleEntity::getNextSibling(){
+    
+    U11TriangleEntity* sibling = lastDescendant->next;
+    if (sibling && (sibling->parent != parent))
+        sibling = 0;
+    return sibling;
+}
+
+
+U11TriangleEntity *U11TriangleEntity::getPrevSibling(){
+    U11TriangleEntity* sibling = 0;
+    if (parent && (parent->next != this))
+        sibling =prevSibling;
+    return sibling;
+}
+
+void U11TriangleEntity::changeLastDescendant(U11TriangleEntity *uNewLastDescendant){
+    
+    U11TriangleEntity *oldLast=lastDescendant;
+    U11TriangleEntity *ancestor=this;
+    
+    do{
+        ancestor->lastDescendant=uNewLastDescendant;
+        ancestor=ancestor->parent;
+    }while (ancestor && (ancestor->lastDescendant==oldLast));
+    
+}
+
+bool U11TriangleEntity::isRoot(){
+    
+    bool value=false;
+    
+    if (parent==0) {
+        
+        value=true;
+        
+    }
+    
+    return value;
+}
+
+bool U11TriangleEntity::isLeaf(){
+    
+    return (lastDescendant==this);
+    
+}
+
+
+/*
+void U11TriangleEntity::buildTriangleEntity(U11Team *uTeam){
+ 
+    triangleNode.player1=uTeam->getControllingPlayer();
+    triangleNode.player2=uTeam->analyzeSupportPlayers().at(0);
+    triangleNode.player3=uTeam->analyzeSupportPlayers().at(1);
+ 
+}
+
 TriangleNode &U11TriangleEntity::getTriangleNode(){
-    
+ 
     return triangleNode;
-    
+ 
 }
 
 
 U4DEngine::U4DTriangle U11TriangleEntity::getTriangleGeometry(){
-    
+ 
     //get the nodes
 
     U11Player *player1=triangleNode.player1;
     U11Player *player2=triangleNode.player2;
     U11Player *player3=triangleNode.player3;
-    
+ 
     U4DEngine::U4DPoint3n pos1=player1->getAbsolutePosition().toPoint();
     U4DEngine::U4DPoint3n pos2=player2->getAbsolutePosition().toPoint();
     U4DEngine::U4DPoint3n pos3=player3->getAbsolutePosition().toPoint();

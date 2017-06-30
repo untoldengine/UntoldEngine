@@ -13,7 +13,7 @@
 #include "U11DefenseAISystem.h"
 #include "U11AIAttackStrategyInterface.h"
 
-U11AISystem::U11AISystem(U11Team *uTeam, U11DefenseSystemInterface *uDefenseSystem, U11AttackSystemInterface *uAttackSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy){
+U11AISystem::U11AISystem(U11Team *uTeam, U11DefenseSystemInterface *uDefenseSystem, U11AttackSystemInterface *uAttackSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy):passingTheBall(false){
     
     team=uTeam;
     stateManager=new U11AIStateManager(this);
@@ -55,6 +55,17 @@ void U11AISystem::changeState(U11AIStateInterface* uState){
 U11Team *U11AISystem::getTeam(){
     
     return team;
+}
+
+void U11AISystem::setPassingTheBall(bool uValue){
+    
+    passingTheBall=uValue;
+}
+
+bool U11AISystem::getPassingTheBall(){
+ 
+    return passingTheBall;
+    
 }
 
 U11AIStateManager *U11AISystem::getStateManager(){
