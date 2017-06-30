@@ -15,7 +15,7 @@
 #include "U11PlayerDefendState.h"
 #include "U11PlayerDefenseFormationState.h"
 #include "U11PlayerRunToStealState.h"
-#include "U11PlayerRunPassState.h"
+#include "U11PlayerPassState.h"
 #include "U11PlayerAirShotState.h"
 #include "U11PlayerReverseKickState.h"
 #include "U11PlayerDribbleState.h"
@@ -98,7 +98,7 @@ bool U11PlayerAttackState::handleMessage(U11Player *uPlayer, Message &uMsg){
             
             uPlayer->setBallKickSpeed(passBallSpeed);
             
-            uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
+            uPlayer->changeState(U11PlayerPassState::sharedInstance());
         }
             break;
             
@@ -118,9 +118,13 @@ bool U11PlayerAttackState::handleMessage(U11Player *uPlayer, Message &uMsg){
         {
             int passBallSpeed=*((int*)uMsg.extraInfo);
             
+            U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
+            
+            uPlayer->setBallKickDirection(direction);
+
             uPlayer->setBallKickSpeed(passBallSpeed);
             
-            uPlayer->changeState(U11PlayerRunPassState::sharedInstance());
+            uPlayer->changeState(U11PlayerPassState::sharedInstance());
         }
             break;
             

@@ -19,6 +19,7 @@
 #include "U11Ball.h"
 #include "U11Team.h"
 #include "UserCommonProtocols.h"
+#include "U11MessageDispatcher.h"
 
 
 U11PlayerHaltBallState* U11PlayerHaltBallState::instance=0;
@@ -102,6 +103,7 @@ void U11PlayerHaltBallState::enter(U11Player *uPlayer){
     U11Team *team=uPlayer->getTeam();
     
     team->setControllingPlayer(uPlayer);
+    
 }
 
 void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
@@ -111,21 +113,27 @@ void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
     //stop ball motion if the feet collide with the ball and if it matches a keyframe
     if (uPlayer->getActiveExtremityCollidedWithBall()) {
         
-        if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithLeftFootAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithRightFootAnimation()) {
-            
-            if (uPlayer->getAnimationCurrentKeyframe()==3) {
-                
-                ball->removeKineticForces();
-                
-                ball->removeAllVelocities();
-                
-                ball->changeState(U11BallGroundState::sharedInstance());
-                
-                uPlayer->changeState(U11PlayerAttackState::sharedInstance());
-            }
-            
-        }else{
-            
+//        if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithLeftFootAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithRightFootAnimation()) {
+//            
+//            if (uPlayer->getAnimationCurrentKeyframe()==3) {
+//                
+//                ball->removeKineticForces();
+//                
+//                ball->removeAllVelocities();
+//                
+//                ball->changeState(U11BallGroundState::sharedInstance());
+//                
+//                uPlayer->changeState(U11PlayerAttackState::sharedInstance());
+//            }
+//            
+//        }else{
+        
+       U11Team *team=uPlayer->getTeam();
+        
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
+        
             ball->removeKineticForces();
             
             ball->removeAllVelocities();
@@ -134,7 +142,7 @@ void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
             
             uPlayer->changeState(U11PlayerAttackState::sharedInstance());
             
-        }
+//        }
         
     
         

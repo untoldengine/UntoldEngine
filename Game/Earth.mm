@@ -83,9 +83,9 @@ void Earth::init(){
     U11AIAttackStrategyInterface *attackStrategy=new U11AIAttackStrategy();
     
     
-    emelec=new U11Team(this, attackManualSystem, defenseManualSystem,recoverManualSystem, nullptr ,-1, emelecFormation);
+    emelec=new U11Team(this, attackManualSystem, defenseManualSystem,recoverManualSystem, attackStrategy ,-1, emelecFormation);
     
-    barcelona=new U11Team(this,attackAISystem, defenseAISystem, recoverAISystem, attackStrategy ,1, barcelonaFormation);
+    barcelona=new U11Team(this,attackAISystem, defenseAISystem, recoverAISystem, nullptr ,1, barcelonaFormation);
     
     emelec->setOppositeTeam(barcelona);
     barcelona->setOppositeTeam(emelec);
@@ -307,15 +307,15 @@ void Earth::init(){
     //move players
     float yPos=barcelonaPlayer10->getModelDimensions().y/2.0+1.3;
     
-    barcelonaPlayer10->translateTo(-25.0, yPos, -9.3);
-    barcelonaPlayer11->translateTo(-25.0, yPos, 16.0);
+    barcelonaPlayer10->translateTo(25.0, yPos, -9.3);
+    barcelonaPlayer11->translateTo(25.0, yPos, 16.0);
     
     
-    emelecPlayer10->translateTo(6.0, yPos, 0.2);
-    emelecPlayer11->translateTo(14.0,yPos, 20.0);
-    emelecPlayer9->translateTo(60.0,yPos, 10.0);
-    emelecPlayer8->translateTo(-40.0, yPos, -40.0);
-    emelecPlayer7->translateTo(40.0, yPos, 40.0);
+    emelecPlayer10->translateTo(-6.0, yPos, -1.0);
+    emelecPlayer11->translateTo(-14.0,yPos, 20.0);
+    emelecPlayer9->translateTo(-60.0,yPos, 10.0);
+    emelecPlayer8->translateTo(40.0, yPos, 0.0);
+    emelecPlayer7->translateTo(-40.0, yPos, 40.0);
     
 }
 
@@ -323,7 +323,7 @@ void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
     camera->followModel(ball, 0.0, 120.0, 10.0);
-
+    //camera->followModel(ball, 0.0, 60.0, 150.0);
 }
 
 

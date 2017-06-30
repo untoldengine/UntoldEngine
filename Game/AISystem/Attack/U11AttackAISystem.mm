@@ -25,24 +25,24 @@ U11AttackAISystem::~U11AttackAISystem(){
 
 void U11AttackAISystem::analyzePlay(){
     
-    U11Player *player=team->getControllingPlayer();
-    U4DEngine::U4DVector3n playerPosition=player->getAbsolutePosition();
-    
-    U4DEngine::U4DVector3n goalPosition=team->getOppositeTeam()->getFieldGoal()->getAbsolutePosition();
-    
-    float distance=(playerPosition-goalPosition).magnitude();
-    
-    if (distance>50) {
-        team->getAISystem()->getAttackStrategy()->analyzePlay();
-    }else{
-        
-        player->changeState(U11PlayerAttackState::sharedInstance());
-        U11Ball *ball=player->getSoccerBall();
-        
-        ball->removeAllVelocities();
-        ball->removeKineticForces();
-        
-    }
+//    U11Player *player=team->getControllingPlayer();
+//    U4DEngine::U4DVector3n playerPosition=player->getAbsolutePosition();
+//    
+//    U4DEngine::U4DVector3n goalPosition=team->getOppositeTeam()->getFieldGoal()->getAbsolutePosition();
+//    
+//    float distance=(playerPosition-goalPosition).magnitude();
+//    
+//    if (distance>50) {
+//        team->getAISystem()->getAttackStrategy()->analyzePlay();
+//    }else{
+//        
+//        player->changeState(U11PlayerAttackState::sharedInstance());
+//        U11Ball *ball=player->getSoccerBall();
+//        
+//        ball->removeAllVelocities();
+//        ball->removeKineticForces();
+//        
+//    }
     
     
     

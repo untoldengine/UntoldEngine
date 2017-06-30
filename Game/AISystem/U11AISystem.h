@@ -32,6 +32,8 @@ private:
     U11AIStateManager *stateManager;
     U11Team *team;
     
+    bool passingTheBall;
+    
 public:
     
     U11AISystem(U11Team *uTeam, U11DefenseSystemInterface *uDefenseSystem, U11AttackSystemInterface *uAttackSystem, U11RecoverSystemInterface *uRecoverSystem, U11AIAttackStrategyInterface *uAttackStrategy);
@@ -51,6 +53,10 @@ public:
     U11RecoverSystemInterface *getRecoverAISystem();
     
     U11AIAttackStrategyInterface *getAttackStrategy();
+    
+    void setPassingTheBall(bool uValue);
+    
+    bool getPassingTheBall();
     
 };
 

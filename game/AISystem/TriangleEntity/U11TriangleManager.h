@@ -20,11 +20,13 @@ class U11TriangleManager {
     
 private:
     
-    std::vector<U11TriangleEntity> triangleEntityContainer;
+    U11TriangleEntity* triangleEntityRoot;
     
     std::vector<VertexNode> vertexNodeContainer;
     
     std::queue<SegmentNode> segmentQueue;
+    
+    int triangleEntityIndex;
     
 public:
     
@@ -40,9 +42,13 @@ public:
     
     std::vector<VertexNode> getVertexNodeContainer();
     
-    std::vector<U11TriangleEntity> getTriangleEntityContainer();
-    
     std::vector<U11Player*> getPlayersInsidePlane(U11Team *uTeam, U4DEngine::U4DVector3n &uNormal, U4DEngine::U4DPoint3n &uPlanePoint);
+    
+    void removeAllTriangleNodes();
+    
+    void clearContainers();
+    
+    U11TriangleEntity *getTriangleEntityRoot();
     
 };
 
