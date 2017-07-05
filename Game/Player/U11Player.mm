@@ -375,9 +375,9 @@ void U11Player::interseptBall(){
         
     }else{
         
-        float t=(ballPosition-playerPosition).magnitude()/maximumInterceptionSpeed;
+        float t=(relativePosition).magnitude();
         
-        U4DEngine::U4DVector3n interseptPosition=ballPosition+getSoccerBall()->getVelocity()*t;
+        U4DEngine::U4DVector3n interseptPosition=ballPosition+ballHeading*t;
         
         U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
         

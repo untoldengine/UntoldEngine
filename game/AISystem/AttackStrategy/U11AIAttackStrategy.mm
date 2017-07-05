@@ -59,23 +59,25 @@ void U11AIAttackStrategy::analyzePlay(U11TriangleEntity *uTriangleEntityRoot){
             
             //chose best support player to pass the ball to
             
-//            //get the player closest to the goal
-//            std::vector<U11Player*> closestPlayers=spaceAnalyzer.getPlayersClosestToPosition(fieldGoalPosition,players);
-//            
-//            U11Player *supportPlayer=closestPlayers.at(0);
-//            
-//            if (supportPlayer==team->getControllingPlayer()) {
-//                
-//                supportPlayer=closestPlayers.at(1);
-//                
-//            }
-//            
+            //get the player closest to the goal
+            std::vector<U11Player*> closestPlayers=spaceAnalyzer.getPlayersClosestToPosition(fieldGoalPosition,players);
             
             
-            //eam->setSupportPlayer(supportPlayer);
+            //determine to whom it is safer to pass ball
             
-            //pass the ball
-            //pass();
+            U11Player *supportPlayer=closestPlayers.at(0);
+            
+            if (supportPlayer==team->getControllingPlayer()) {
+                
+                supportPlayer=closestPlayers.at(1);
+                
+            }
+            
+            
+//            team->setSupportPlayer(supportPlayer);
+//            
+//            //pass the ball
+//            pass();
             
         }
         

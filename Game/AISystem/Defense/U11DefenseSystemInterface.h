@@ -29,6 +29,8 @@ public:
     
     virtual void interceptPass()=0;
     
+    virtual void resetInterceptPass()=0;
+    
     virtual void startComputeDefendingSpaceTimer()=0;
     
     virtual void removeComputeDefendingSpaceTimer()=0;

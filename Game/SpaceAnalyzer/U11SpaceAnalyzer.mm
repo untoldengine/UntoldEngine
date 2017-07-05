@@ -643,3 +643,72 @@ bool U11SpaceAnalyzer::analyzeIfPlayerIsCloserToGoalThanMainPlayer(U11Team *uTea
     
     return false;
 }
+
+bool U11SpaceAnalyzer::ballWillBeIntercepted(U11Team *uTeam, U11Player *uControllingPlayer, U11Player* uReceivingPlayer){
+    
+    U4DEngine::U4DPoint3n startingPass=uControllingPlayer->getCurrentPosition().toPoint();
+    U4DEngine::U4DPoint3n endingPass=uReceivingPlayer->getCurrentPosition().toPoint();
+    
+    U4DEngine::U4DSegment segment(startingPass, endingPass);
+    
+    U11Player *threatPlayer=getPlayersClosestToLine(uTeam->getOppositeTeam(), segment).at(0);
+    
+    U4DEngine::U4DPoint3n threatPoint=threatPlayer->getCurrentPosition().toPoint();
+    
+    //getclosest point between segment and threat point
+    U4DEngine::U4DPoint3n closestInterceptionPoint=segment.closestPointOnSegmentToPoint(threatPoint);
+    
+    //get the distance to intercept
+    float distanceToIntercept=(closestInterceptionPoint-threatPoint).magnitude();
+    
+    float timeToIntercept=distanceToIntercept/maximumInterceptionSpeed;
+    
+    //distance between pass
+    
+    float passDistance=(startingPass-endingPass).magnitude();
+    
+    //get time to reach
+    float timeToReachReceiver=passDistance/maximumBallSpeed;
+    
+    if (timeToReachReceiver>timeToIntercept) {
+        return true;
+    }
+
+    return false;
+    
+}
+
+float U11SpaceAnalyzer::passSpeedToAvoidInterception(U11Team *uTeam, U11Player *uControllingPlayer, U11Player* uReceivingPlayer){
+    
+}
+
+std::vector<U11Player*> U11SpaceAnalyzer::getClosestInterceptingPlayers(U11Team *uTeam){
+    
+    //1. get the ball future position
+    //get controlling player position
+    
+    U11Player *oppositeControllingPlayer=uTeam->getOppositeTeam()->getControllingPlayer();
+    
+    U4DEngine::U4DPoint3n startingPass=oppositeControllingPlayer->getAbsolutePosition().toPoint();
+    
+    //get ball heading
+    U4DEngine::U4DVector3n ballVelocity=uTeam->getSoccerBall()->getVelocity();
+    
+    ballVelocity.normalize();
+    
+    U4DEngine::U4DPoint3n ballDirection=ballVelocity.toPoint();
+    
+    //get ball kick speed
+    float t=oppositeControllingPlayer->getBallKickSpeed();
+    
+    //get the destination point
+    U4DEngine::U4DPoint3n endingPass=startingPass+ballDirection*t;
+    
+    U4DEngine::U4DSegment segment(startingPass, endingPass);
+    
+    std::vector<U11Player*> interceptingPlayers=getPlayersClosestToLine(uTeam, segment);
+    
+    return interceptingPlayers;
+    
+}
+

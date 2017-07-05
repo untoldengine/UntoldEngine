@@ -38,6 +38,8 @@ public:
     
     void assignDefendingSupportPlayers();
     
+    virtual void resetInterceptPass();
+    
     void computeDefendingSpace();
     
     virtual void interceptPass();

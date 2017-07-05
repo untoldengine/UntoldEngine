@@ -87,6 +87,11 @@ public:
     
     bool analyzeIfPlayerIsCloserToGoalThanMainPlayer(U11Team *uTeam, U11Player *uPlayer);
     
+    bool ballWillBeIntercepted(U11Team *uTeam, U11Player *uControllingPlayer, U11Player* uReceivingPlayer);
+    
+    float passSpeedToAvoidInterception(U11Team *uTeam, U11Player *uControllingPlayer, U11Player* uReceivingPlayer);
+    
+    std::vector<U11Player*> getClosestInterceptingPlayers(U11Team *uTeam);
 };
 
 #endif /* U11SpaceAnalyzer_hpp */

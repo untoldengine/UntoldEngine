@@ -14,6 +14,7 @@
 #include "U11AIDefenseState.h"
 #include "U11AIAttackState.h"
 #include "U11AIRecoverState.h"
+#include "U11PlayerIdleState.h"
 
 
 U11PlayerInterceptState* U11PlayerInterceptState::instance=0;
@@ -42,12 +43,7 @@ void U11PlayerInterceptState::enter(U11Player *uPlayer){
     uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(true);
-    
-    U11Team *team=uPlayer->getTeam();
-    
-    team->setControllingPlayer(uPlayer);
-        
-    
+
 }
 
 void U11PlayerInterceptState::execute(U11Player *uPlayer, double dt){
@@ -88,5 +84,18 @@ bool U11PlayerInterceptState::isSafeToChangeState(U11Player *uPlayer){
 }
 
 bool U11PlayerInterceptState::handleMessage(U11Player *uPlayer, Message &uMsg){
+    
+    switch (uMsg.msg) {
+            
+        case msgIdle:
+            
+            uPlayer->changeState(U11PlayerIdleState::sharedInstance());
+            
+            break;
+            
+        default:
+            break;
+    }
+    
     return false;
 }

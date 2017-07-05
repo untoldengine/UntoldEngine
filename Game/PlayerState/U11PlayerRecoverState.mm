@@ -121,7 +121,7 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
     
     //stop ball motion if the feet collide with the ball and if it matches a keyframe
     if (uPlayer->getActiveExtremityCollidedWithBall()) {
-        
+        /*
         if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithLeftFootAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithRightFootAnimation()) {
             
             if (uPlayer->getAnimationCurrentKeyframe()==3) {
@@ -145,7 +145,7 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
             }
             
         }else{
-            
+            */
             ball->removeKineticForces();
             
             ball->removeAllVelocities();
@@ -162,7 +162,7 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
             
             //inform the opposite team to change to defending state
             team->getOppositeTeam()->changeState(U11AIDefenseState::sharedInstance());
-        }
+        //}
         
     }
     
