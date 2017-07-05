@@ -32,7 +32,7 @@ private:
     U11AIStateManager *stateManager;
     U11Team *team;
     
-    bool passingTheBall;
+    bool ballIsBeingPassed;
     
 public:
     
@@ -54,9 +54,9 @@ public:
     
     U11AIAttackStrategyInterface *getAttackStrategy();
     
-    void setPassingTheBall(bool uValue);
+    void setBallIsBeingPassed(bool uValue);
     
-    bool getPassingTheBall();
+    bool getBallIsBeingPassed();
     
 };
 

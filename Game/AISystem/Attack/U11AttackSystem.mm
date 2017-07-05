@@ -53,7 +53,7 @@ void U11AttackSystem::setTeam(U11Team *uTeam){
 void U11AttackSystem::computeSupportSpace(){
     
     
-    if (team->getAISystem()->getPassingTheBall()==false) {
+    if (team->getAISystem()->getBallIsBeingPassed()==false) {
         
         U11TriangleManager triangleManager;
         

@@ -12,6 +12,7 @@
 #include "U11FormationInterface.h"
 #include "U11MessageDispatcher.h"
 #include "U11Player.h"
+#include "U11AISystem.h"
 
 U11DefenseSystem::U11DefenseSystem(){
     
@@ -35,23 +36,25 @@ void U11DefenseSystem::setTeam(U11Team *uTeam){
 
 void U11DefenseSystem::computeDefendingSpace(){
     
-    U11SpaceAnalyzer spaceAnalyzer;
-    
-    U11Player *oppositeControllingPlayer=team->getOppositeTeam()->getControllingPlayer();
-    
-    U4DEngine::U4DVector3n defendingSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(team, oppositeControllingPlayer,formationDefenseSpace)).toVector();
-    
-    team->getTeamFormation()->translateFormation(defendingSpace);
-    
-    //change the home position for each player
-    
-    team->updateTeamFormationPosition();
-    
-    //get defending player closer to ball
-    assignDefendingPlayer();
-    
-    //get the support defending players
-    assignDefendingSupportPlayers();
+    if (team->getAISystem()->getBallIsBeingPassed()==false) {
+        
+        U11SpaceAnalyzer spaceAnalyzer;
+        
+        U11Player *oppositeControllingPlayer=team->getOppositeTeam()->getControllingPlayer();
+        
+        U4DEngine::U4DVector3n defendingSpace=(spaceAnalyzer.computeMovementRelToFieldGoal(team, oppositeControllingPlayer,formationDefenseSpace)).toVector();
+        
+        team->getTeamFormation()->translateFormation(defendingSpace);
+        
+        //change the home position for each player
+        
+        team->updateTeamFormationPosition();
+        
+        //get defending player closer to ball
+        assignDefendingPlayer();
+        
+        //get the support defending players
+        assignDefendingSupportPlayers();
 //
 //    //message all the players to get to their home position
 //    
@@ -68,11 +71,14 @@ void U11DefenseSystem::computeDefendingSpace(){
 //        }
 //        
 //    }
+        
+    }
     
 }
 
 void U11DefenseSystem::assignDefendingSupportPlayers(){
     
+        
     U11SpaceAnalyzer spaceAnalyzer;
     U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
@@ -94,47 +100,30 @@ void U11DefenseSystem::assignDefendingSupportPlayers(){
 
     }
     
+    
 }
 
 void U11DefenseSystem::interceptPass(){
     
+    U11SpaceAnalyzer spaceAnalyzer;
     
-//    U11SpaceAnalyzer spaceAnalyzer;
-//    
-//    //1. get the ball future position
-//    //get controlling player position
-//    
-//    U11Player *oppositeControllingPlayer=team->getOppositeTeam()->getControllingPlayer();
-//    
-//    U4DEngine::U4DPoint3n pointA=oppositeControllingPlayer->getAbsolutePosition().toPoint();
-//    
-//    //get ball heading
-//    U4DEngine::U4DVector3n ballVelocity=team->getSoccerBall()->getVelocity();
-//    
-//    ballVelocity.normalize();
-//    
-//    U4DEngine::U4DPoint3n ballDirection=ballVelocity.toPoint();
-//    
-//    //get ball kick speed
-//    float t=oppositeControllingPlayer->getBallKickSpeed();
-//    
-//    //get the destination point
-//    U4DEngine::U4DVector3n pointB=(pointA+ballDirection*t).toVector();
-//    
-//    //2. get closest player to end point
-//    U11Player* interceptPlayer=spaceAnalyzer.analyzeClosestPlayersToPosition(pointB,team).at(0);
-//    
-//    //3. if the player is closed enough to intercept, then send message to intercept pass
-//    
-//    U4DEngine::U4DVector3n playerPosition=interceptPlayer->getAbsolutePosition();
-//    
-//    if ((playerPosition-pointB).magnitude()<minimumInterceptionDistance) {
-//        
-//        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-//        
-//        messageDispatcher->sendMessage(0.0, NULL, interceptPlayer, msgIntercept);
-//        
-//    }
+    U11Player *interceptingPlayer=spaceAnalyzer.getClosestInterceptingPlayers(team).at(0);
+    
+    team->setSupportDefendingPlayer(interceptingPlayer);
+    
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    messageDispatcher->sendMessage(0.0, NULL, interceptingPlayer, msgIntercept);
+
+}
+
+void U11DefenseSystem::resetInterceptPass(){
+    
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+    
+    U11Player *interceptingPlayer=team->getSupportDefendingPlayer();
+    
+    messageDispatcher->sendMessage(0.0, NULL, interceptingPlayer, msgIdle);
     
 }
 

@@ -67,6 +67,7 @@ bool U11AIDefenseState::handleMessage(U11AISystem *uAISystem, Message &uMsg){
         case msgBallPassed:
             
             //get message that the ball was passed
+            uAISystem->setBallIsBeingPassed(true);
             uAISystem->getDefenseAISystem()->interceptPass();
             
             break;
@@ -75,6 +76,15 @@ bool U11AIDefenseState::handleMessage(U11AISystem *uAISystem, Message &uMsg){
 
             uAISystem->changeState(U11AIRecoverState::sharedInstance());
             
+            break;
+            
+        case msgInterceptionFailed:
+        {
+            uAISystem->setBallIsBeingPassed(false);
+            
+            uAISystem->getDefenseAISystem()->resetInterceptPass();
+            
+        }
             break;
             
         default:

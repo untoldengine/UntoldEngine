@@ -128,11 +128,11 @@ void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
 //            
 //        }else{
         
-       U11Team *team=uPlayer->getTeam();
-        
-        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-        
-        messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
+           U11Team *team=uPlayer->getTeam();
+            
+            U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+            
+            messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
         
             ball->removeKineticForces();
             

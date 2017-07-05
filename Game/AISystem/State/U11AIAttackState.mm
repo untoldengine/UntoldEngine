@@ -71,13 +71,13 @@ bool U11AIAttackState::handleMessage(U11AISystem *uAISystem, Message &uMsg){
             
         case msgBallPassed:
             
-            uAISystem->setPassingTheBall(true);
+            uAISystem->setBallIsBeingPassed(true);
             
             break;
             
         case msgBallInPossession:
             
-            uAISystem->setPassingTheBall(false);
+            uAISystem->setBallIsBeingPassed(false);
             
             break;
             

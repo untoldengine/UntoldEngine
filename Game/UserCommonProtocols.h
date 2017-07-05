@@ -64,7 +64,9 @@ enum{
     msgRunToSteal,
     msgIntercept,
     msgApproachOpponent,
+    msgInterceptionFailed,
     //idle
+    msgIdle,
     
     //input
     msgButtonAPressed,
@@ -106,7 +108,7 @@ const float ballAirShotSpeed=80.0;
 const float ballReverseRolling=35.0;
 const float ballDeceleration=0.5;
 const float ballMaxSpeed=8.0;
-const float maximumInterceptionSpeed=100.0;
+
 const float ballControlMaximumDistance=6.0;
 const float reverseBallMaximumDistance=2.0;
 const float reverseRunningSpeed=20.0;
@@ -132,6 +134,10 @@ const float minimumInterceptionDistance=30.0;
 const float threateningDistanceToPlayer=20.0;
 const float playerPersonalArea=5.0;
 const float triangleEntityDistance=60.0;
+
+//maximum
+const float maximumInterceptionSpeed=50.0;
+const float maximumBallSpeed=100.0;
 
 
 #endif /* UserCommonProtocols_h */

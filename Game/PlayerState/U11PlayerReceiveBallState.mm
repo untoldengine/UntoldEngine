@@ -61,6 +61,12 @@ void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
         
         uPlayer->removeKineticForces();
         
+        U11Team *oppositeTeam=uPlayer->getTeam()->getOppositeTeam();
+        
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, oppositeTeam, msgInterceptionFailed);
+        
         uPlayer->changeState(U11PlayerHaltBallState::sharedInstance());
         
     }
