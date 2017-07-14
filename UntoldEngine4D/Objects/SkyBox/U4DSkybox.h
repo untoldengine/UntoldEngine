@@ -12,19 +12,21 @@
 #include <iostream>
 #include <vector>
 #include "U4DVisibleEntity.h"
-#include "U4DOpenGLCubeMap.h"
 #include "U4DVertexData.h"
 #include "U4DTextureData.h"
-
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 
 /**
  @brief The U4DSkyBox class represents skybox (cubemap) entities
  */
-class U4DSkyBox:public U4DVisibleEntity{
+class U4DSkybox:public U4DVisibleEntity{
     
 private:
+   
+    U4DRenderManager *renderManager;
 
 public:
 
@@ -41,12 +43,12 @@ public:
     /**
      @brief Constructor of class
      */
-    U4DSkyBox();
+    U4DSkybox();
     
     /**
      @brief Destructor of class
      */
-    ~U4DSkyBox();
+    ~U4DSkybox();
     
     /**
      @brief Method which initialized the skybox with the six images
@@ -61,10 +63,7 @@ public:
      */
     void initSkyBox(float uSize,const char* positiveXImage,const char* negativeXImage,const char* positiveYImage,const char* negativeYImage,const char* positiveZImage, const char* negativeZImage);
     
-    /**
-     @brief Method which starts the rendering process of the entity
-     */
-    void draw();
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
 };
     

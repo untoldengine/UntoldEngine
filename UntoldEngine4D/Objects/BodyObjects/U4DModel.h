@@ -12,14 +12,14 @@
 #include <iostream>
 #include "U4DVisibleEntity.h"
 #include "U4DMatrix3n.h"
-#include "U4DOpenGL3DModel.h" 
 #include "U4DVertexData.h"
 #include "U4DMaterialData.h"
 #include "U4DTextureData.h"
 #include "U4DArmatureData.h"
 #include "U4DAnimation.h"
 #include "CommonProtocols.h"
-
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 
@@ -38,7 +38,7 @@ namespace U4DEngine {
         /**
          @brief Variable which contains information if the 3D model has textures
          */
-        bool hasTextures;
+        bool hasTexture;
         
         /**
          @brief Variable which contains information if the 3D model has animation
@@ -50,10 +50,13 @@ namespace U4DEngine {
          */
         bool hasArmature;
         
-        /**
-         @brief Self shadow bias value
-         */
-        float selfShadowBias;
+        bool hasNormalMap;
+        
+        bool enableNormalMap;
+        
+        bool enableShadow;
+        
+        bool enableTexture;
         
     protected:
         
@@ -115,22 +118,26 @@ namespace U4DEngine {
          */
         virtual void update(double dt){};
         
-        /**
-         @brief Method which starts the rendering operation of the entity
-         */
-        void draw() final;
         
-        /**
-         @brief Method which starts the rendering on the shadow map
-         */
-        void drawDepthOnFrameBuffer();
-
-        /**
-         @brief Method which sets the shader for the 3D model
-         
-         @param uShader Name of shader to set as active
-         */
-        void setShader(std::string uShader);
+        void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        
+        void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
+        
+        void setNormalMapTexture(std::string uTexture);
+        
+        void setEnableNormalMap(bool uValue);
+        
+        bool getEnableNormalMap();
+        
+        void setEnableShadow(bool uValue);
+        
+        bool getEnableShadow();
+        
+        void setHasNormalMap(bool uValue);
+        
+        bool getHasNormalMap();
+        
+        void computeNormalMapTangent();
         
         /**
          @brief Method to inform the engine that the 3D model contains material color information
@@ -188,19 +195,7 @@ namespace U4DEngine {
          */
         bool getHasArmature();
         
-        /**
-         @brief Method which sets the bias to reduce self-shadowing
-         
-         @param uSelfShadowBias Bias value. Default is 0.005. Optimal range [0.005-0.01]
-         */
-        void setSelfShadowBias(float uSelfShadowBias);
-        
-        /**
-         @brief Method which Returns the bias value used to reduce self-shadowing
-         
-         @return Returns the self-shadow bias value
-         */
-        float getSelfShadowBias();
+       
         
         /**
          @brief Method which returns a 3D vector representing the current view-direction of the 3D model

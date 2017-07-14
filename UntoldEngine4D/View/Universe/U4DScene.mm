@@ -63,10 +63,10 @@ namespace U4DEngine {
         gameController->update(dt);
     }
 
-    void U4DScene::draw(){
+    void U4DScene::render(id <MTLRenderCommandEncoder> uRenderEncoder){
 
-        gameWorld->entityManager->draw();
-        gameController->draw();
+        gameWorld->entityManager->render(uRenderEncoder);
+        gameController->render(uRenderEncoder);
         
     }
 

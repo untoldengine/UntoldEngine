@@ -48,13 +48,11 @@ namespace U4DEngine {
         
         return instance;
     }
-
-
-    void U4DDirector::draw(){
+    
+    void U4DDirector::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         //draw the view
-        scene->draw();
-        
+        scene->render(uRenderEncoder);
     }
 
     void U4DDirector::update(double dt){
@@ -89,27 +87,6 @@ namespace U4DEngine {
         
     }
 
-    void U4DDirector::loadShaders(){
-       
-        //initialize the shaders available
-        
-        int arrayLength=sizeof(shaderManager.shaders)/sizeof(*shaderManager.shaders);
-        
-        for (int i=0; i<arrayLength; i++) {
-            
-            std::string vertexShaderString=shaderManager.shaders[i]+".vp";
-            std::string fragmentShaderString=shaderManager.shaders[i]+".fp";
-            
-            const char *vertexShaderName=vertexShaderString.c_str();
-            const char *fragmentShaderName=fragmentShaderString.c_str();
-            
-            GLuint shaderID=shaderManager.loadShaderPair(vertexShaderName, fragmentShaderName);
-            
-            addShaderProgram(shaderID);
-
-        }
-            
-    }
 
     void U4DDirector::init(){
         
@@ -124,30 +101,6 @@ namespace U4DEngine {
         
     }
 
-    void U4DDirector::addShaderProgram(GLuint uShaderValue){
-        
-        shaderProgram.push_back(uShaderValue);
-    }
-
-
-    GLuint U4DDirector::getShaderProgram(std::string uShader){
-
-        int shaderIndex=0;
-        
-        int arrayLength=sizeof(shaderManager.shaders)/sizeof(*shaderManager.shaders);
-        
-        const char *uShaderName=uShader.c_str();
-        
-        for (int i=0; i<arrayLength; i++) {
-
-            if (uShaderName==shaderManager.shaders[i]) {
-                
-                shaderIndex=i;
-            }
-        }
-        
-        return shaderProgram.at(shaderIndex);
-    }
 
     void U4DDirector::setDisplayWidthHeight(float uWidth,float uHeight){
         
@@ -157,13 +110,13 @@ namespace U4DEngine {
 
     float U4DDirector::getDisplayHeight(){
         
-        return displayHeight*2.0;
+        return displayHeight;
 
     }
 
     float U4DDirector::getDisplayWidth(){
         
-        return displayWidth*2.0;
+        return displayWidth;
         
     }
 
@@ -205,6 +158,157 @@ namespace U4DEngine {
     U4DEntity *U4DDirector::searchChild(std::string uName){
         
         return world->searchChild(uName);
+        
+    }
+    
+    void U4DDirector::setMTLDevice(id <MTLDevice> uMTLDevice){
+        
+        mtlDevice=uMTLDevice;
+    }
+    
+    id <MTLDevice> U4DDirector::getMTLDevice(){
+        
+        return mtlDevice;
+        
+    }
+    
+    void U4DDirector::setAspect(float uAspect){
+        
+        aspect=uAspect;
+    }
+    
+    float U4DDirector::getAspect(){
+        
+        return aspect;
+    }
+    
+    void U4DDirector::setMTLView(MTKView * uMTLView){
+        
+        mtlView=uMTLView;
+    }
+    
+    MTKView *U4DDirector::getMTLView(){
+        
+        return mtlView;
+    }
+    
+    void U4DDirector::setPerspectiveSpace(U4DMatrix4n &uSpace){
+        
+        perspectiveSpace=uSpace;
+        
+    }
+    
+    void U4DDirector::setOrthographicSpace(U4DMatrix4n &uSpace){
+        
+        orthographicSpace=uSpace;
+    }
+    
+    void U4DDirector::setOrthographicShadowSpace(U4DMatrix4n &uSpace){
+        
+        orthographicShadowSpace=uSpace;
+    }
+    
+    U4DEngine::U4DMatrix4n U4DDirector::getPerspectiveSpace(){
+        
+        return perspectiveSpace;
+    }
+    
+    U4DEngine::U4DMatrix4n U4DDirector::getOrthographicSpace(){
+        
+        return orthographicSpace;
+        
+    }
+    
+    U4DEngine::U4DMatrix4n U4DDirector::getOrthographicShadowSpace(){
+        
+        return orthographicShadowSpace;
+    }
+    
+    U4DMatrix4n U4DDirector::computePerspectiveSpace(float fov, float aspect, float near, float far){
+        
+        U4DEngine::U4DMatrix4n m;
+        
+        setAspect(aspect);
+        
+        float fovToRad=fov*(M_PI/180);
+        float yscale = 1.0f / tanf(fovToRad * 0.5f); // 1 / tan == cot
+        float xscale = yscale / aspect;
+        float q = far / (far - near);
+        
+        //	0	4	8	12
+        //	1	5	9	13
+        //	2	6	10	14
+        //	3	7	11	15
+        
+        
+        m.matrixData[0]=xscale;
+        m.matrixData[4]=0.0f;
+        m.matrixData[8]=0.0f;
+        m.matrixData[12]=0.0f;
+        
+        m.matrixData[1]=0.0f;
+        m.matrixData[5]=yscale;
+        m.matrixData[9]=0.0f;
+        m.matrixData[13]=0.0f;
+        
+        m.matrixData[2]=0.0f;
+        m.matrixData[6]=0.0f;
+        m.matrixData[10]=q;
+        m.matrixData[14]=q*-near;
+        
+        m.matrixData[3]=0.0f;
+        m.matrixData[7]=0.0f;
+        m.matrixData[11]=1.0f;
+        m.matrixData[15]=0.0f;
+        
+        return m;
+        
+    }
+    
+    U4DMatrix4n U4DDirector::computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far){
+        
+        U4DEngine::U4DMatrix4n m;
+        
+        float r_l = 2.0/(right - left);
+        float t_b = 2.0/(top - bottom);
+        float f_n = -2.0/(far - near);
+        float tx = (right + left) / (right - left);
+        float ty = (top + bottom) / (top - bottom);
+        float tz = (far + near) / (far - near);
+        
+        //	0	4	8	12
+        //	1	5	9	13
+        //	2	6	10	14
+        //	3	7	11	15
+        
+        
+        m.matrixData[0]=r_l;
+        m.matrixData[4]=0.0f;
+        m.matrixData[8]=0.0f;
+        m.matrixData[12]=-tx;
+        
+        m.matrixData[1]=0.0f;
+        m.matrixData[5]=t_b;
+        m.matrixData[9]=0.0f;
+        m.matrixData[13]=-ty;
+        
+        m.matrixData[2]=0.0f;
+        m.matrixData[6]=0.0f;
+        m.matrixData[10]=f_n;
+        m.matrixData[14]=-tz;
+        
+        m.matrixData[3]=0.0f;
+        m.matrixData[7]=0.0f;
+        m.matrixData[11]=0.0f;
+        m.matrixData[15]=1.0f;
+        
+        //        U4DMatrix4n n(1,0,0,0,
+        //                      0,1,0,0,
+        //                      0,0,0.5,0.5,
+        //                      0,0,0,1);
+        //        m=n*m;
+        
+        return m;
         
     }
 

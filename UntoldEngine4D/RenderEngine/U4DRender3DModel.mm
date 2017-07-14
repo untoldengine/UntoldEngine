@@ -1,0 +1,559 @@
+//
+//  U4DRender3DModel.cpp
+//  MetalRendering
+//
+//  Created by Harold Serrano on 7/4/17.
+//  Copyright © 2017 Harold Serrano. All rights reserved.
+//
+
+#include "U4DRender3DModel.h"
+#include "U4DShaderProtocols.h"
+#include "U4DDirector.h"
+#include "U4DCamera.h"
+#include "U4DLights.h"
+#include "U4DMaterialData.h"
+#include "U4DColorData.h"
+
+namespace U4DEngine {
+
+    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel){
+        
+        u4dObject=uU4DModel;
+        
+        shadowTexture=nullptr;
+        
+        initTextureSamplerObjectNull();
+        
+        
+    }
+    
+    U4DRender3DModel::~U4DRender3DModel(){
+        
+    }
+    
+    U4DDualQuaternion U4DRender3DModel::getEntitySpace(){
+        
+        return u4dObject->getAbsoluteSpace();
+        
+    }
+    
+    U4DDualQuaternion U4DRender3DModel::getEntityLocalSpace(){
+        
+        return u4dObject->getLocalSpace();
+        
+    }
+    
+    U4DVector3n U4DRender3DModel::getEntityAbsolutePosition(){
+        
+        
+        return u4dObject->getAbsolutePosition();
+        
+    }
+    
+    U4DVector3n U4DRender3DModel::getEntityLocalPosition(){
+        
+        return u4dObject->getLocalPosition();
+        
+    }
+
+    
+    void U4DRender3DModel::initMTLRenderLibrary(){
+        
+        mtlLibrary=[mtlDevice newDefaultLibrary];
+        
+        std::string vertexShaderName=u4dObject->getVertexShader();
+        std::string fragmentShaderName=u4dObject->getFragmentShader();
+        
+        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
+        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
+        
+    }
+    
+    void U4DRender3DModel::initMTLRenderPipeline(){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        
+        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
+        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
+        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
+        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
+        
+        
+        //set the vertex descriptors
+        
+        MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
+        
+        //position data
+        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
+        vertexDesc.attributes[0].bufferIndex=0;
+        vertexDesc.attributes[0].offset=0;
+        
+        //normal data
+        vertexDesc.attributes[1].format=MTLVertexFormatFloat4;
+        vertexDesc.attributes[1].bufferIndex=0;
+        vertexDesc.attributes[1].offset=4*sizeof(float);
+        
+        //uv data
+        vertexDesc.attributes[2].format=MTLVertexFormatFloat4;
+        vertexDesc.attributes[2].bufferIndex=0;
+        vertexDesc.attributes[2].offset=8*sizeof(float);
+        
+        //tangent data
+        vertexDesc.attributes[3].format=MTLVertexFormatFloat4;
+        vertexDesc.attributes[3].bufferIndex=0;
+        vertexDesc.attributes[3].offset=12*sizeof(float);
+        
+        //Material data
+        vertexDesc.attributes[4].format=MTLVertexFormatFloat4;
+        vertexDesc.attributes[4].bufferIndex=0;
+        vertexDesc.attributes[4].offset=16*sizeof(float);
+        
+        //stride with padding
+        vertexDesc.layouts[0].stride=20*sizeof(float);
+        
+        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
+        
+        
+        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
+        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
+        
+        
+        MTLDepthStencilDescriptor *depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+        
+        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
+        
+        depthStencilDescriptor.depthWriteEnabled=YES;
+        
+//        //add stencil description
+//        MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
+//        stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
+//        stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
+//        
+//        depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
+//        depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
+        
+        
+        //create depth stencil state
+        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+        
+        
+        //create the rendering pipeline object
+        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
+        
+    }
+    
+    void U4DRender3DModel::loadMTLBuffer(){
+        
+        //Align the attribute data
+        alignedAttributeData();
+        
+        attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedModelData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
+        
+        //create the uniform
+        uniformSpaceBuffer=[mtlDevice newBufferWithLength:sizeof(UniformSpace) options:MTLResourceStorageModeShared];
+        
+        uniformModelRenderFlagsBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelRenderFlags) options:MTLResourceStorageModeShared];
+        
+        lightPositionUniform=[mtlDevice newBufferWithLength:sizeof(vector_float4) options:MTLResourceStorageModeShared];
+        
+        //load the index into the buffer
+        indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
+        
+        //clear the attribute data contatiner
+        attributeAlignedContainer.clear();
+        
+    }
+    
+    void U4DRender3DModel::loadMTLTexture(){
+        
+        if (!u4dObject->textureInformation.diffuseTexture.empty() && u4dObject->bodyCoordinates.uVContainer.size()!=0){
+            
+            decodeImage(u4dObject->textureInformation.diffuseTexture);
+            
+            if (rawImageData.size()>0) {
+                
+                createTextureObject();
+                
+                createSamplerObject();
+                
+                u4dObject->setHasTexture(true);
+                
+            }else{
+                U4DLogger *logger=U4DLogger::sharedInstance();
+                
+                logger->log("ERROR: No data found for the Image Texture");
+            }
+            
+            //after loading the image, clear the vector holding the image in CPU
+            
+            clearRawImageData();
+        }
+        
+    }
+    
+    void U4DRender3DModel::loadMTLAdditionalInformation(){
+        
+        //check if there is normal map data to load
+            
+        loadMTLNormalMapTexture();
+        
+        loadMTLMaterialInformation();
+        
+    }
+    
+    void U4DRender3DModel::loadMTLMaterialInformation(){
+        
+        //create the uniform
+        uniformMaterialBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelMaterial) options:MTLResourceStorageModeShared];
+        
+        
+        if (u4dObject->materialInformation.materialIndexColorContainer.size()!=0) {
+            
+            UniformModelMaterial uniformModelMaterial;
+            
+            for(int i=0;i<u4dObject->materialInformation.diffuseMaterialColorContainer.size();i++){
+                
+                U4DVector4n color;
+                color.x=u4dObject->materialInformation.diffuseMaterialColorContainer.at(i).colorData[0];
+                color.y=u4dObject->materialInformation.diffuseMaterialColorContainer.at(i).colorData[1];
+                color.z=u4dObject->materialInformation.diffuseMaterialColorContainer.at(i).colorData[2];
+                color.w=u4dObject->materialInformation.diffuseMaterialColorContainer.at(i).colorData[3];
+                
+                vector_float4 colorSIMD=convertToSIMD(color);
+                
+                uniformModelMaterial.diffuseMaterialColor[i]=colorSIMD;
+                
+            }
+            
+            for(int i=0;i<u4dObject->materialInformation.specularMaterialColorContainer.size();i++){
+                
+                U4DVector4n color;
+                color.x=u4dObject->materialInformation.specularMaterialColorContainer.at(i).colorData[0];
+                color.y=u4dObject->materialInformation.specularMaterialColorContainer.at(i).colorData[1];
+                color.z=u4dObject->materialInformation.specularMaterialColorContainer.at(i).colorData[2];
+                color.w=u4dObject->materialInformation.specularMaterialColorContainer.at(i).colorData[3];
+                
+                vector_float4 colorSIMD=convertToSIMD(color);
+                
+                uniformModelMaterial.specularMaterialColor[i]=colorSIMD;
+                
+            }
+            
+            for(int i=0;i<u4dObject->materialInformation.diffuseMaterialIntensityContainer.size();i++){
+                
+                float intensity=u4dObject->materialInformation.diffuseMaterialIntensityContainer.at(i);
+                
+                uniformModelMaterial.diffuseMaterialIntensity[i]=intensity;
+                
+            }
+            
+            for(int i=0;i<u4dObject->materialInformation.specularMaterialIntensityContainer.size();i++){
+                
+                float intensity=u4dObject->materialInformation.specularMaterialIntensityContainer.at(i);
+                
+                uniformModelMaterial.specularMaterialIntensity[i]=intensity;
+                
+            }
+            
+            for(int i=0;i<u4dObject->materialInformation.specularMaterialHardnessContainer.size();i++){
+                
+                float hardness=u4dObject->materialInformation.specularMaterialHardnessContainer.at(i);
+                
+                uniformModelMaterial.specularMaterialHardness[i]=hardness;
+                
+            }
+            
+            memcpy(uniformMaterialBuffer.contents, (void*)&uniformModelMaterial, sizeof(UniformModelMaterial));
+        
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("ERROR: The model doesn't have any color material information. Make sure to add this information.");
+            
+        }
+        
+        
+        
+        
+    }
+    
+    void U4DRender3DModel::loadMTLNormalMapTexture(){
+        
+        if (!u4dObject->textureInformation.normalBumpTexture.empty() && u4dObject->bodyCoordinates.tangentContainer.size()!=0){
+            
+            decodeImage(u4dObject->textureInformation.normalBumpTexture);
+            
+            if (rawImageData.size()>0) {
+                
+                createNormalMapTextureObject();
+                
+                createNormalMapSamplerObject();
+                
+                u4dObject->setHasNormalMap(true);
+            }else{
+                U4DLogger *logger=U4DLogger::sharedInstance();
+                
+                logger->log("ERROR: No data found for the Image Normal Map Texture");
+            }
+            
+            //after loading the image, clear the vector holding the image in CPU
+            
+            clearRawImageData();
+
+        }
+        
+    }
+    
+    void U4DRender3DModel::updateSpaceUniforms(){
+        
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        U4DLights *light=U4DLights::sharedInstance();
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
+        
+        U4DMatrix4n worldSpace(1,0,0,0,
+                                0,1,0,0,
+                               0,0,1,0,
+                               0,0,0,1);
+        
+        //YOU NEED TO MODIFY THIS SO THAT IT USES THE U4DCAMERA Position
+        U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
+        viewSpace.invert();
+        
+        U4DMatrix4n modelWorldSpace=worldSpace*modelSpace;
+        
+        U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
+        
+        U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+        
+        U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
+        
+        U4DMatrix3n normalSpace=modelWorldViewSpace.extract3x3Matrix();
+        
+        normalSpace.invert();
+        
+        normalSpace=normalSpace.transpose();
+        
+        //get the light position in view space
+        U4DVector3n lightPos=light->getAbsoluteSpace().transformDualQuaternionToMatrix4n()*light->getAbsolutePosition();
+        
+        U4DVector4n lightPosition(lightPos.x, lightPos.y, lightPos.z, 1.0);
+        
+        //Conver to SIMD
+        matrix_float4x4 modelSpaceSIMD=convertToSIMD(modelSpace);
+        matrix_float4x4 worldModelSpaceSIMD=convertToSIMD(worldSpace);
+        matrix_float4x4 viewWorldModelSpaceSIMD=convertToSIMD(modelWorldViewSpace);
+        matrix_float4x4 viewSpaceSIMD=convertToSIMD(viewSpace);
+        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+        
+        matrix_float3x3 normalSpaceSIMD=convertToSIMD(normalSpace);
+        vector_float4 lightPositionSIMD=convertToSIMD(lightPosition);
+        
+        matrix_float4x4 lightShadowProjectionSpaceSIMD=convertToSIMD(lightShadowProjectionSpace);
+        
+        UniformSpace uniformSpace;
+        uniformSpace.modelSpace=modelSpaceSIMD;
+        uniformSpace.viewSpace=viewSpaceSIMD;
+        uniformSpace.modelViewSpace=viewWorldModelSpaceSIMD;
+        uniformSpace.modelViewProjectionSpace=mvpSpaceSIMD;
+        uniformSpace.normalSpace=normalSpaceSIMD;
+        uniformSpace.lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
+        
+        
+        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
+        memcpy(lightPositionUniform.contents, (void*)&lightPositionSIMD, sizeof(vector_float4));
+        
+        
+        //update the rendering flags
+        UniformModelRenderFlags modelFlags;
+        modelFlags.enableShadows=u4dObject->getEnableShadow();
+        modelFlags.enableNormalMap=u4dObject->getEnableNormalMap();
+        modelFlags.hasTexture=u4dObject->getHasTexture();
+    
+        memcpy(uniformModelRenderFlagsBuffer.contents, (void*)&modelFlags, sizeof(UniformModelRenderFlags));
+        
+    }
+    
+    void U4DRender3DModel::updateShadowSpaceUniforms(){
+        
+        U4DLights *light=U4DLights::sharedInstance();
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
+        
+        U4DMatrix4n lightSpace=light->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+        
+        U4DMatrix4n orthogonalProjection=director->getOrthographicShadowSpace();
+                
+        //Transfom the Model-View Space into the Projection space
+        lightShadowProjectionSpace=orthogonalProjection*lightSpace;
+        
+        //Convert to SIMD
+        matrix_float4x4 lightShadowProjectionSpaceSIMD=convertToSIMD(lightShadowProjectionSpace);
+        
+        matrix_float4x4 modelMatrixSIMD=convertToSIMD(modelSpace);
+        
+        
+        UniformSpace uniformSpace;
+        uniformSpace.modelSpace=modelMatrixSIMD;
+        uniformSpace.lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
+        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
+        
+    }
+    
+    void U4DRender3DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        updateSpaceUniforms();
+        
+        //encode the pipeline
+        [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+        
+        [uRenderEncoder setDepthStencilState:depthStencilState];
+        
+        [uRenderEncoder setFrontFacingWinding:MTLWindingClockwise];
+        
+        [uRenderEncoder setCullMode:MTLCullModeBack];
+        
+        //encode the buffers
+        [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+        
+        [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+        
+        [uRenderEncoder setVertexBuffer:lightPositionUniform offset:0 atIndex:2];
+        
+        [uRenderEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:3];
+        
+        
+        //set texture in fragment
+        [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+        //set the samplers
+        [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+        
+        //set the shadow texture
+        [uRenderEncoder setFragmentTexture:shadowTexture atIndex:1];
+        
+        
+        //set data used in fragment
+        [uRenderEncoder setFragmentBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:1];
+        [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:2];
+        
+        [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
+        [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];
+        
+        
+        //set the draw command
+        [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+        
+    }
+    
+    void U4DRender3DModel::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
+     
+        //set the shadow texture
+        
+        shadowTexture=uShadowTexture;
+        
+        updateShadowSpaceUniforms();
+        
+        [uRenderShadowEncoder setFrontFacingWinding:MTLWindingClockwise];
+        
+        [uRenderShadowEncoder setCullMode: MTLCullModeFront];
+        
+        [uRenderShadowEncoder setDepthBias: 0.1 slopeScale: 1.0f clamp: 0.01];
+        
+        [uRenderShadowEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+        
+        [uRenderShadowEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+        
+        [uRenderShadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+        
+    }
+    
+    void U4DRender3DModel::initTextureSamplerObjectNull(){
+        
+        MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
+        
+        //Create the null texture object
+        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
+        //Create the null normal texture object
+        normalMapTextureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
+        //Create the null shadow texture object
+        shadowTexture=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
+        //Create the null texture sampler object
+        MTLSamplerDescriptor *nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        
+        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        
+    }
+    
+    void U4DRender3DModel::alignedAttributeData(){
+        
+        for(int i=0;i<u4dObject->bodyCoordinates.getVerticesDataFromContainer().size();i++){
+            
+            AttributeAlignedModelData attributeAlignedData;
+            
+            attributeAlignedData.position.x=u4dObject->bodyCoordinates.verticesContainer.at(i).x;
+            attributeAlignedData.position.y=u4dObject->bodyCoordinates.verticesContainer.at(i).y;
+            attributeAlignedData.position.z=u4dObject->bodyCoordinates.verticesContainer.at(i).z;
+            attributeAlignedData.position.w=1.0;
+            
+            attributeAlignedContainer.push_back(attributeAlignedData);
+        }
+        
+        for(int i=0; i<attributeAlignedContainer.size();i++){
+            
+            attributeAlignedContainer.at(i).normal.x=u4dObject->bodyCoordinates.normalContainer.at(i).x;
+            attributeAlignedContainer.at(i).normal.y=u4dObject->bodyCoordinates.normalContainer.at(i).y;
+            attributeAlignedContainer.at(i).normal.z=u4dObject->bodyCoordinates.normalContainer.at(i).z;
+            attributeAlignedContainer.at(i).normal.w=1.0;
+
+        }
+        
+        if (u4dObject->bodyCoordinates.uVContainer.size()>0) {
+            
+            for(int i=0; i<attributeAlignedContainer.size();i++){
+                
+                attributeAlignedContainer.at(i).uv.x=u4dObject->bodyCoordinates.uVContainer.at(i).x;
+                attributeAlignedContainer.at(i).uv.y=u4dObject->bodyCoordinates.uVContainer.at(i).y;
+                attributeAlignedContainer.at(i).uv.z=0.0;
+                attributeAlignedContainer.at(i).uv.w=0.0;
+            }
+            
+        }
+        
+        if (u4dObject->bodyCoordinates.tangentContainer.size()>0) {
+            
+            for(int i=0; i<attributeAlignedContainer.size();i++){
+                
+                attributeAlignedContainer.at(i).tangent.x=u4dObject->bodyCoordinates.tangentContainer.at(i).x;
+                attributeAlignedContainer.at(i).tangent.y=u4dObject->bodyCoordinates.tangentContainer.at(i).y;
+                attributeAlignedContainer.at(i).tangent.z=u4dObject->bodyCoordinates.tangentContainer.at(i).z;
+                attributeAlignedContainer.at(i).tangent.w=u4dObject->bodyCoordinates.tangentContainer.at(i).w;
+                
+            }
+            
+        }
+        
+        //load material data
+        if (u4dObject->materialInformation.materialIndexColorContainer.size()>0) {
+            
+            for(int i=0; i<attributeAlignedContainer.size();i++){
+                
+                attributeAlignedContainer.at(i).materialIndex.x=u4dObject->materialInformation.materialIndexColorContainer.at(i);
+                
+            }
+            
+        }
+        
+    }
+
+
+}
+

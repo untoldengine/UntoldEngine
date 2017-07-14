@@ -17,6 +17,7 @@
 #include "U4DTouches.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
 class U4DImage;
@@ -45,7 +46,7 @@ public:
     
     U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2);
     
-    void draw();
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     void update(float dt);
     void action();
     

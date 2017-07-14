@@ -10,16 +10,24 @@
 #define __UntoldEngine__U4DLights__
 
 #include <iostream>
-#include "U4DEntity.h"
+#include "U4DMatrix4n.h"
+#include "U4DVector3n.h"
+#include "U4DVector2n.h"
+#include "U4DIndex.h"
+#include "U4DVertexData.h"
+#include "U4DRenderManager.h"
+#include "U4DVisibleEntity.h"
 
 namespace U4DEngine {
 
     /**
      @brief The U4DLights class implements a light entity used for providing light and shadows to a game
      */
-    class U4DLights:public U4DEntity{
+    class U4DLights:public U4DVisibleEntity{
         
     private:
+        
+        U4DRenderManager *renderManager;
         
     protected:
         
@@ -34,6 +42,8 @@ namespace U4DEngine {
         ~U4DLights();
         
     public:
+        
+        U4DVertexData bodyCoordinates;
         
         /**
          @brief Instance for U4DLights Singleton
@@ -53,6 +63,10 @@ namespace U4DEngine {
          @param uDestinationPoint Destination point where the light should be directed
          */
         void viewInDirection(U4DVector3n& uDestinationPoint);
+        
+        void computeLightVolume(U4DPoint3n& uMin,U4DPoint3n& uMax);
+        
+        void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     };
     
 }

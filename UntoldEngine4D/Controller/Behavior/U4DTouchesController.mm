@@ -132,7 +132,7 @@ void U4DTouchesController::update(float dt){
     }
 }
 
-void U4DTouchesController::draw(){
+void U4DTouchesController::render(id <MTLRenderCommandEncoder> uRenderEncoder){
     
     std::vector<U4DButton*>::iterator buttonPos;
     
@@ -140,7 +140,7 @@ void U4DTouchesController::draw(){
         
         U4DButton *button=*buttonPos;
         
-        button->draw();
+        button->render(uRenderEncoder);
         
     }
     
@@ -151,7 +151,7 @@ void U4DTouchesController::draw(){
         
         U4DJoyStick *joyStick=*joyStickPos;
         
-        joyStick->draw();
+        joyStick->render(uRenderEncoder);
         
     }
     

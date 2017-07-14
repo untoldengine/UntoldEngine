@@ -18,7 +18,7 @@ U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uW
     
     setName(uName);
     
-    buttonImages.setImages(uButtonImage1,uButtonImage2,uWidth,uHeight);
+    buttonImages.setImage(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
     U4DVector3n translation(xPosition,yPosition,0.0);
     
@@ -39,9 +39,9 @@ U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uW
     
 };
 
-void U4DButton::draw(){
+void U4DButton::render(id <MTLRenderCommandEncoder> uRenderEncoder){
     
-    buttonImages.draw();
+    buttonImages.render(uRenderEncoder);
 
 }
 

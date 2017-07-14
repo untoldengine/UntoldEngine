@@ -190,13 +190,6 @@ namespace U4DEngine {
         void loadSpecularHardnessData(U4DModel *uModel,std::string uStringData);
         
         /**
-         @brief Method which loads the 3D model tangent vector data used for normal-maps
-         
-         @param uModel 3D model entity
-         */
-        void loadTangentDataToBody(U4DModel *uModel);
-        
-        /**
          @brief Method which loads the 3D model dimension information
          
          @param uModel      3D model entity

@@ -17,7 +17,7 @@
 #include "U4DTouches.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
-
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     class U4DControllerInterface;
@@ -63,7 +63,7 @@ public:
     
     ~U4DJoyStick();
     
-    void draw();
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     void update(float dt);
     void action();
     

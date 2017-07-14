@@ -16,7 +16,7 @@ namespace U4DEngine {
         //set convex color to green
         U4DVector4n green(0.0,1.0,0.0,0.1);
         
-        setBoundingVolumeColor(green);
+        setLineColor(green);
     
     }
     

@@ -11,6 +11,7 @@
 
 #include <iostream>
 #include <vector>
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     
@@ -74,7 +75,7 @@ namespace U4DEngine {
 
         U4DEntityManager& operator=(const U4DEntityManager& value){return *this;};
      
-        void draw();
+        void render(id<MTLRenderCommandEncoder> uRenderEncoder);
         
         void update(float dt);
         

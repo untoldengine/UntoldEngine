@@ -13,8 +13,7 @@
 #include "U4DDualQuaternion.h"
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
-#import <OpenGLES/ES3/gl.h>
-#import <OpenGLES/ES3/glext.h>
+
 
 namespace U4DEngine {
     
@@ -44,28 +43,6 @@ namespace U4DEngine {
         rTouchesNull
         
     }TOUCHSTATE;
-
-    /**
-     @brief The CUSTOMUNIFORMS structure holds information for user-defined uniforms
-     */
-    typedef struct{
-        
-        /**
-         @brief Name of user-defined uniform
-         */
-        const char* name;
-        
-        /**
-         @brief Data of user-defined uniform
-         */
-        std::vector<float> data;
-        
-        /**
-         @brief Location of user-defined uniform
-         */
-        GLint location;
-        
-    }CUSTOMUNIFORMS;
 
     /**
      @brief The SPRITEDATA structure holds sprites information

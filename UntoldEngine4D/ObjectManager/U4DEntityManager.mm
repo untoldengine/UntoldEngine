@@ -74,7 +74,7 @@ namespace U4DEngine {
 
     #pragma mark-draw
     //draw
-    void U4DEntityManager::draw(){
+    void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
         
         U4DEntity* child=rootEntity;
         
@@ -85,15 +85,13 @@ namespace U4DEngine {
                 
                 child->absoluteSpace=child->localSpace;
         
-                child->getShadows();
-                
             }else{
                 
                 child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
                
             }
      
-            child->draw();
+            child->render(uRenderEncoder);
             
             
             //    ONLY FOR DEBUGGING PURPOSES
@@ -103,12 +101,12 @@ namespace U4DEngine {
                 
                     if (model->getBroadPhaseBoundingVolumeVisibility()==true) {
                         
-                        model->getBroadPhaseBoundingVolume()->draw();
+                        model->getBroadPhaseBoundingVolume()->render(uRenderEncoder);
                         
                     }
                     
                     if(model->getNarrowPhaseBoundingVolumeVisibility()==true){
-                        model->getNarrowPhaseBoundingVolume()->draw();
+                        model->getNarrowPhaseBoundingVolume()->render(uRenderEncoder);
                     }
                 }
             

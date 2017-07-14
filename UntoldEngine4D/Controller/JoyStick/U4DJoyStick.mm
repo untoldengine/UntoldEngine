@@ -121,10 +121,10 @@ float U4DJoyStick::getDataMagnitude(){
 
 }
     
-void U4DJoyStick::draw(){
+void U4DJoyStick::render(id <MTLRenderCommandEncoder> uRenderEncoder){
     
-    backgroundImage.draw();
-    joyStickImage.draw();
+    backgroundImage.render(uRenderEncoder);
+    joyStickImage.render(uRenderEncoder);
 }
 
 void U4DJoyStick::update(float dt){

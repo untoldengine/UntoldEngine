@@ -17,6 +17,7 @@
 #include "U4DVector4n.h"
 #include "U4DIndex.h"
 #include "CommonProtocols.h"
+#include <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     
@@ -483,30 +484,9 @@ public:
      */
     bool isRoot();
      
-    /**
-     @brief Method which starts the rendering operation of the entity
-     */
-    virtual void draw(){};
+    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder){};
     
-    /**
-     @brief Method which starts the rendering on the shadow map
-     */
-    virtual void drawDepthOnFrameBuffer(){};
-    
-    /**
-     @brief Method which starts the shadow mapping rendering operations
-     */
-    virtual void startShadowMapPass(){};
-    
-    /**
-     @brief Method which ends the shadow mapping rendering operations
-     */
-    virtual void endShadowMapPass(){};
-    
-    /**
-     @brief Method used by the World entity to compute shadows for each entity
-     */
-    virtual void getShadows(){};
+    virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
     
     /**
      @brief Method which updates the state of each entity

@@ -15,6 +15,7 @@
 #include "U4DWorld.h"
 #include "U4DControllerInterface.h"
 #include "U4DGameModelInterface.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
 class U4DTouches;
@@ -47,7 +48,7 @@ public:
     virtual void setGameWorldControllerAndModel(U4DWorld *uGameWorld,U4DControllerInterface *uGameController, U4DGameModelInterface *uGameModel) final;
     
     virtual void update(float dt) final;
-    virtual void draw() final;
+    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder) final;
     
     void touchBegan(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);

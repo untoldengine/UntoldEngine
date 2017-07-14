@@ -12,17 +12,21 @@
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
 #include <float.h>
+#include "U4DRenderGeometry.h"
 
 namespace U4DEngine {
     
     
     U4DBoundingVolume::U4DBoundingVolume(){
         
-        openGlManager=new U4DOpenGLGeometry(this);
-        openGlManager->setShader("geometricShader");
+        renderManager=new U4DRenderGeometry(this);
+        setShader("vertexGeometryShader", "fragmentGeometryShader");
+
+        //set bounding volume color to white
+        U4DVector4n white(1.0,1.0,1.0,1.0);
         
-        U4DVector4n color(1.0,0.0,0.0,0.1);
-        addCustomUniform("Color", color);
+        setLineColor(white);
+        
     };
     
     
@@ -40,18 +44,17 @@ namespace U4DEngine {
     
     void U4DBoundingVolume::loadRenderingInformation(){
 
-        openGlManager->loadRenderingInformation();
+        renderManager->loadRenderingInformation();
     }
 
-    void U4DBoundingVolume::draw(){
-     
-        openGlManager->draw();
+    void U4DBoundingVolume::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
     }
-
-    void U4DBoundingVolume::setBoundingVolumeColor(U4DVector4n& uColor){
+    
+    void U4DBoundingVolume::setLineColor(U4DVector4n &lineColor){
         
-        updateUniforms("Color", uColor);
-        
+        renderManager->setGeometryLineColor(lineColor);
     }
 
 }
