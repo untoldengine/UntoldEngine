@@ -158,16 +158,6 @@ public:
     float getDisplayWidth();
     
     /**
-     @brief Method which converts a screen point coordinate into an opengl point coordinate
-     
-     @param xPoint x-coordinate in screen space
-     @param yPoint y-coordinate in screen space
-     
-     @return Returns a 2D vector of the point in opengl coordinate space
-     */
-    U4DVector2n pointToOpenGL(float xPoint,float yPoint);
-    
-    /**
      @brief Method which informs the engine that a touch event has started
      
      @param touches touch event

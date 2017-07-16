@@ -33,8 +33,11 @@ using namespace U4DEngine;
 
 void Earth::init(){
     
-    U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 2.0, -10.0);
+    //Set camera
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    U4DEngine::U4DVector3n cameraPos(0.0,0.0,-20.0);
+    
+    camera->translateTo(cameraPos);
     
     
     setName("earth");
@@ -54,10 +57,14 @@ void Earth::init(){
     gameAsset->init("fort", "fort.u4d");
     
     addChild(gameAsset);
+    
+    //camera->viewInDirection(origin);
 }
 
 void Earth::update(double dt){
     
+    gameAsset->getAbsolutePosition().show();
+    std::cout<<"stop"<<std::endl;
    
 }
 

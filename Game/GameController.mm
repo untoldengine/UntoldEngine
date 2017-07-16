@@ -19,12 +19,12 @@
 
 void GameController::init(){
     
-//    joyStick=new U4DEngine::U4DJoyStick("joystick", -0.7,-0.6,"joyStickBackground.png",230,230,"joystickDriver.png",140,140);
-//    
-//    joyStick->setControllerInterface(this);
-//    
-//    add(joyStick);
-//    
+    joyStick=new U4DEngine::U4DJoyStick("joystick", -0.7,-0.6,"joyStickBackground.png",130,130,"joystickDriver.png",70,70);
+    
+    joyStick->setControllerInterface(this);
+    
+    add(joyStick);
+    
     myButton=new U4DEngine::U4DButton("buttonA",0.3,-0.6,103,103,"ButtonA.png","ButtonAPressed.png");
     
     myButton->setControllerInterface(this);

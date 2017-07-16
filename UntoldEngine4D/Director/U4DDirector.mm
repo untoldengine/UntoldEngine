@@ -121,18 +121,6 @@ namespace U4DEngine {
     }
 
 
-
-    U4DVector2n U4DDirector::pointToOpenGL(float xPoint,float yPoint){
-        
-        xPoint=(xPoint-displayWidth/2)/(displayWidth/2);
-        yPoint=(displayHeight/2-yPoint)/(displayHeight/2);
-        
-        U4DVector2n point(xPoint,yPoint);
-        
-        return point;
-        
-    }
-
     void U4DDirector::touchBegan(const U4DTouches &touches){
         
         scene->touchBegan(touches);

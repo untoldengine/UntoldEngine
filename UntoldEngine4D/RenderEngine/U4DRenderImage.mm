@@ -79,7 +79,7 @@ namespace U4DEngine {
         
         depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
         
-        depthStencilDescriptor.depthWriteEnabled=YES;
+        depthStencilDescriptor.depthWriteEnabled=NO;
         
         depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
         

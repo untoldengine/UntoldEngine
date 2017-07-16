@@ -86,14 +86,6 @@
         
         [self initShadows];
         
-        
-        //Set camera
-        U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-        U4DEngine::U4DVector3n cameraPos(0.0,5.0,-20.0);
-        
-        camera->translateTo(cameraPos);
-        
-        
         //set the scene
         MainScene *scen1=new MainScene();
         

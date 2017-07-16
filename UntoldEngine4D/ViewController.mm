@@ -119,10 +119,12 @@
     for (UITouch *myTouch in touches) {
         CGPoint touchPosition = [myTouch locationInView: [myTouch view]];
         
+        float xPosition=(touchPosition.x-self.view.bounds.size.width/2)/(self.view.bounds.size.width/2);
+        float yPosition=(self.view.bounds.size.height/2-touchPosition.y)/(self.view.bounds.size.height/2);
         
-        //convert the point to openGL
         U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-        U4DEngine::U4DVector2n point=director->pointToOpenGL(touchPosition.x, touchPosition.y);
+        
+        U4DEngine::U4DVector2n point(xPosition,yPosition);
         
         //make the points U4DTouches
         U4DEngine::U4DTouches touchPoints(point.x,point.y);
@@ -139,9 +141,12 @@
     for (UITouch *myTouch in touches) {
         CGPoint touchPosition = [myTouch locationInView: [myTouch view]];
         
-        //convert the point to openGL
+        float xPosition=(touchPosition.x-self.view.bounds.size.width/2)/(self.view.bounds.size.width/2);
+        float yPosition=(self.view.bounds.size.height/2-touchPosition.y)/(self.view.bounds.size.height/2);
+        
         U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-        U4DEngine::U4DVector2n point=director->pointToOpenGL(touchPosition.x, touchPosition.y);
+        
+        U4DEngine::U4DVector2n point(xPosition,yPosition);
         
         //make the points U4DTouches
         U4DEngine::U4DTouches touchPoints(point.x,point.y);
@@ -158,9 +163,12 @@
     for (UITouch *myTouch in touches) {
         CGPoint touchPosition = [myTouch locationInView: [myTouch view]];
         
-        //convert the point to openGL
+        float xPosition=(touchPosition.x-self.view.bounds.size.width/2)/(self.view.bounds.size.width/2);
+        float yPosition=(self.view.bounds.size.height/2-touchPosition.y)/(self.view.bounds.size.height/2);
+        
         U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-        U4DEngine::U4DVector2n point=director->pointToOpenGL(touchPosition.x, touchPosition.y);
+        
+        U4DEngine::U4DVector2n point(xPosition,yPosition);
         
         //make the points U4DTouches
         U4DEngine::U4DTouches touchPoints(point.x,point.y);
