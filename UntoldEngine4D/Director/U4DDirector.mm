@@ -51,8 +51,14 @@ namespace U4DEngine {
     
     void U4DDirector::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        //draw the view
+        //render
         scene->render(uRenderEncoder);
+    }
+    
+    void U4DDirector::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
+        
+       //render shadows
+        scene->renderShadow(uRenderShadowEncoder, uShadowTexture);
     }
 
     void U4DDirector::update(double dt){

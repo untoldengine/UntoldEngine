@@ -35,7 +35,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,0.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
     
     camera->translateTo(cameraPos);
     
@@ -50,7 +50,7 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(5.0,5.0,5.0);
+    light->translateTo(5.0,5.0,-5.0);
     light->viewInDirection(origin);
     
     gameAsset=new GameAsset();
@@ -58,14 +58,20 @@ void Earth::init(){
     
     addChild(gameAsset);
     
-    //camera->viewInDirection(origin);
+    gameAsset2=new GameAsset();
+    gameAsset2->init("plane", "plane.u4d");
+    
+    addChild(gameAsset2);
+    
+    U4DVector3n planePosition(0.0,-3.0,0.0);
+    gameAsset2->translateTo(planePosition);
+    
+    addChild(light);
+    camera->viewInDirection(origin);
 }
 
 void Earth::update(double dt){
     
-    gameAsset->getAbsolutePosition().show();
-    std::cout<<"stop"<<std::endl;
-   
 }
 
 

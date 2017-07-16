@@ -73,6 +73,8 @@
 		03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B8D175B0383002EB5D9 /* U4DVector3n.mm */; };
 		03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759BA1175B0383002EB5D9 /* U4DScene.mm */; };
 		03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759BA4175B0383002EB5D9 /* U4DWorld.mm */; };
+		03769D221F1B6F0D00981D21 /* plane.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03769D211F1B6F0D00981D21 /* plane.u4d */; };
+		03769D241F1B6F4800981D21 /* planeTexture.png in Resources */ = {isa = PBXBuildFile; fileRef = 03769D231F1B6F4800981D21 /* planeTexture.png */; };
 		03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F871934DA8E00CF0600 /* ButtonA.png */; };
 		03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F881934DA8E00CF0600 /* ButtonAPressed.png */; };
 		03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F891934DA8E00CF0600 /* ButtonB.png */; };
@@ -291,6 +293,8 @@
 		03759BA0175B0383002EB5D9 /* U4DScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DScene.h; sourceTree = "<group>"; };
 		03759BA1175B0383002EB5D9 /* U4DScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DScene.mm; sourceTree = "<group>"; };
 		03759BA4175B0383002EB5D9 /* U4DWorld.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DWorld.mm; sourceTree = "<group>"; };
+		03769D211F1B6F0D00981D21 /* plane.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = plane.u4d; path = Resources/plane.u4d; sourceTree = SOURCE_ROOT; };
+		03769D231F1B6F4800981D21 /* planeTexture.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = planeTexture.png; path = Resources/planeTexture.png; sourceTree = SOURCE_ROOT; };
 		03798F871934DA8E00CF0600 /* ButtonA.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonA.png; path = Resources/ButtonA.png; sourceTree = SOURCE_ROOT; };
 		03798F881934DA8E00CF0600 /* ButtonAPressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonAPressed.png; path = Resources/ButtonAPressed.png; sourceTree = SOURCE_ROOT; };
 		03798F891934DA8E00CF0600 /* ButtonB.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ButtonB.png; path = Resources/ButtonB.png; sourceTree = SOURCE_ROOT; };
@@ -881,6 +885,7 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03769D231F1B6F4800981D21 /* planeTexture.png */,
 				03F2DB151F193B3C00F77B78 /* fort.png */,
 				03F2DB161F193B3C00F77B78 /* fort.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
@@ -894,6 +899,7 @@
 				03798F881934DA8E00CF0600 /* ButtonAPressed.png */,
 				03798F891934DA8E00CF0600 /* ButtonB.png */,
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
+				03769D211F1B6F0D00981D21 /* plane.u4d */,
 			);
 			name = Resources;
 			path = Game/Resources;
@@ -1346,9 +1352,11 @@
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */,
 				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
+				03769D221F1B6F0D00981D21 /* plane.u4d in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
+				03769D241F1B6F4800981D21 /* planeTexture.png in Resources */,
 				03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */,
 				030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */,
 				03DB6E86192F7B25006E21D0 /* NormalMapping.vp in Resources */,

@@ -21,7 +21,7 @@ class Earth:public U4DEngine::U4DWorld{
 private:
 
     GameAsset *gameAsset;
-    
+    GameAsset *gameAsset2;
 public:
    
     Earth(){};

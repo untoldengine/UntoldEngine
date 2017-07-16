@@ -195,6 +195,8 @@
 
 - (void)renderShadows:(id <MTLCommandBuffer>) uCommandBuffer{
     
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
     //create a shadow command buffer
     
     //create a shadow encoder
@@ -208,6 +210,7 @@
     [shadowEncoder setViewport:(MTLViewport){0.0, 0.0, 1024, 1024, 0.0, 1.0 }];
     
     //render every model shadow
+    director->renderShadow(shadowEncoder,shadowTexture);
     
     //end encoding
     [shadowEncoder endEncoding];

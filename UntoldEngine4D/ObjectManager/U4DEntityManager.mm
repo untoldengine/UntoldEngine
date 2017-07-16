@@ -117,6 +117,22 @@ namespace U4DEngine {
         }
         
     }
+    
+    
+    void U4DEntityManager::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
+        
+        U4DEntity* child=rootEntity;
+        
+        
+        while (child!=NULL) {
+            
+            child->renderShadow(uRenderShadowEncoder, uShadowTexture);
+            
+            child=child->next;
+        }
+
+        
+    }
 
 
     #pragma mark-update

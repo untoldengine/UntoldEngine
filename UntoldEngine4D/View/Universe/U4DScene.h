@@ -50,6 +50,7 @@ public:
     virtual void update(float dt) final;
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder) final;
     
+    virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture) final;
     void touchBegan(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);
     void touchMoved(const U4DTouches &touches);

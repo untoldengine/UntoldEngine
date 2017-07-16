@@ -195,6 +195,8 @@ public:
     
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
+    void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
+    
     void setAspect(float uAspect);
     
     float getAspect();

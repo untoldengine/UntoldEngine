@@ -77,6 +77,8 @@ namespace U4DEngine {
      
         void render(id<MTLRenderCommandEncoder> uRenderEncoder);
         
+        void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
+        
         void update(float dt);
         
         void setRootEntity(U4DVisibleEntity* uRootEntity);

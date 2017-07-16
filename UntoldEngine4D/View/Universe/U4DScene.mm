@@ -69,6 +69,11 @@ namespace U4DEngine {
         gameController->render(uRenderEncoder);
         
     }
+    
+    void U4DScene::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
+        
+        gameWorld->entityManager->renderShadow(uRenderShadowEncoder, uShadowTexture);
+    }
 
 
     void U4DScene::touchBegan(const U4DTouches &touches){
