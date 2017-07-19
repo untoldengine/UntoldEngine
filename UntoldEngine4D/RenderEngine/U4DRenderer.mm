@@ -266,20 +266,33 @@
     
     MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
     
+    //position data
     vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
     vertexDesc.attributes[0].bufferIndex=0;
     vertexDesc.attributes[0].offset=0;
     
+    //normal data
     vertexDesc.attributes[1].format=MTLVertexFormatFloat4;
     vertexDesc.attributes[1].bufferIndex=0;
     vertexDesc.attributes[1].offset=4*sizeof(float);
     
-    vertexDesc.attributes[2].format=MTLVertexFormatFloat2;
+    //uv data
+    vertexDesc.attributes[2].format=MTLVertexFormatFloat4;
     vertexDesc.attributes[2].bufferIndex=0;
     vertexDesc.attributes[2].offset=8*sizeof(float);
     
-    //stride is 10 but must provide padding so it makes it 12
-    vertexDesc.layouts[0].stride=12*sizeof(float);
+    //tangent data
+    vertexDesc.attributes[3].format=MTLVertexFormatFloat4;
+    vertexDesc.attributes[3].bufferIndex=0;
+    vertexDesc.attributes[3].offset=12*sizeof(float);
+    
+    //Material data
+    vertexDesc.attributes[4].format=MTLVertexFormatFloat4;
+    vertexDesc.attributes[4].bufferIndex=0;
+    vertexDesc.attributes[4].offset=16*sizeof(float);
+    
+    //stride with padding
+    vertexDesc.layouts[0].stride=20*sizeof(float);
     
     vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
     
@@ -293,12 +306,12 @@
     depthStencilDescriptor.depthWriteEnabled=YES;
     
     //add stencil description
-//    MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
-//    stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
-//    stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
-//
-//    depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
-//    depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
+    MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
+    stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
+    stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
+
+    depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
+    depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
 
     
     mtlShadowDepthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];

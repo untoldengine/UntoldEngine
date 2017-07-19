@@ -45,6 +45,8 @@ namespace U4DEngine {
         
         ~U4DRenderLights();
         
+        U4DDualQuaternion getEntitySpace();
+        
         void initMTLRenderLibrary();
         
         void initMTLRenderPipeline();

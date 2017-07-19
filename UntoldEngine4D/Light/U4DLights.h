@@ -64,6 +64,8 @@ namespace U4DEngine {
          */
         void viewInDirection(U4DVector3n& uDestinationPoint);
         
+        U4DVector3n getViewInDirection();
+        
         void computeLightVolume(U4DPoint3n& uMin,U4DPoint3n& uMax);
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);

@@ -21,7 +21,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(true){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false){
         
         renderManager=new U4DRender3DModel(this);
         

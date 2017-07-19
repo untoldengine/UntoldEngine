@@ -385,7 +385,7 @@ namespace U4DEngine {
         
         U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
         
-        U4DMatrix4n lightSpace=light->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+        U4DMatrix4n lightSpace=light->getLocalSpace().transformDualQuaternionToMatrix4n();
         
         U4DMatrix4n orthogonalProjection=director->getOrthographicShadowSpace();
                 
@@ -460,9 +460,9 @@ namespace U4DEngine {
         
         [uRenderShadowEncoder setFrontFacingWinding:MTLWindingClockwise];
         
-        [uRenderShadowEncoder setCullMode: MTLCullModeFront];
+        [uRenderShadowEncoder setCullMode: MTLCullModeBack];
         
-        [uRenderShadowEncoder setDepthBias: 0.1 slopeScale: 1.0f clamp: 0.01];
+        [uRenderShadowEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
         
         [uRenderShadowEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
         

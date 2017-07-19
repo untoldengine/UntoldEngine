@@ -261,6 +261,7 @@ namespace U4DEngine {
     
     U4DMatrix4n U4DDirector::computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far){
         
+        
         U4DEngine::U4DMatrix4n m;
         
         float r_l = 2.0/(right - left);
@@ -295,12 +296,6 @@ namespace U4DEngine {
         m.matrixData[7]=0.0f;
         m.matrixData[11]=0.0f;
         m.matrixData[15]=1.0f;
-        
-        //        U4DMatrix4n n(1,0,0,0,
-        //                      0,1,0,0,
-        //                      0,0,0.5,0.5,
-        //                      0,0,0,1);
-        //        m=n*m;
         
         return m;
         

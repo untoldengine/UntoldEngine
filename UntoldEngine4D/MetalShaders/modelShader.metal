@@ -134,12 +134,11 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
     //shadow coordinates
     if(uniformModelRenderFlags.enableShadows){
         
-        float4x4 biasSpace=float4x4{{0.5, 0.0, 0.0, 0.0},
-            {0.0, 0.5, 0.0, 0.0},
-            {0.0, 0.0, 0.5, 0.0},
-            {0.5, 0.5, 0.5, 1.0}};
+        vertexOut.shadowCoords=(uniformSpace.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
         
-        vertexOut.shadowCoords=biasSpace*(uniformSpace.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
+        //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
+        //left corner
+        vertexOut.shadowCoords.y=-vertexOut.shadowCoords.y;
         
     }
     
@@ -208,48 +207,32 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     
     if(uniformModelRenderFlags.enableShadows){
         
-        float shadow=0.0;
+        constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
         
-        constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge, compare_func::less);
+        // Compute the direction of the light ray betweent the light position and the vertices of the surface
+        float3 lightRayDirection=normalize(vertexOut.lightPosition.xyz-vertexOut.verticesInMVSpace.xyz);
+        
+        float biasShadow = max(0.05*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.005);
         
         float3 proj=vertexOut.shadowCoords.xyz/vertexOut.shadowCoords.w;
         
+        proj=proj*0.5+0.5;
         
-        float r = shadowTexture.sample_compare(shadowSampler, proj.xy, proj.z);
-        //bias = depthBias * r + slopeScale * maxSlope
+        float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy);
         
-        shadow = proj.z-0.005> r  ? 0.3 : 0.0;
+        float closestDepth=shadowMap.r;
         
-        if(proj.z > 1.0){
-            shadow = 0.0;
+        float currentDepth=proj.z;
+        
+        float visibility=1.0;
+        
+        if(currentDepth-biasShadow>closestDepth){
+            visibility=0.8;
         }
         
-        finalColor*=(1-shadow);
+        finalColor*=visibility;
         
     }
-    
-//    if(r>0.5 && r<1.0){
-//        finalColor=float4(1.0,0.0,0.0,1.0);
-//    }else if(r>0 && r<=0.5){
-//        finalColor=float4(0.0,0.0,1.0,1.0);
-//    }else if(r==0){
-//        finalColor=float4(0.0,1.0,0.0,1.0);
-//    }
-    
-    
-//    constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
-//    
-//    float3 proj=in.shadowCoords.xyz/in.shadowCoords.w;
-//    
-//    float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy, proj.z);
-//    
-//    float visibility=1.0;
-//    float biasS = 0.005;
-//    if(shadowMap.z-biasS<proj.z){
-//        visibility=0.8;
-//    }
-//    
-//    finalColor*=visibility;
     
     return finalColor;
 }

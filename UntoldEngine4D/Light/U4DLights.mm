@@ -24,19 +24,14 @@ namespace U4DEngine {
         
         computeLightVolume(uMax, uMin);
         
+        setEntityType(LIGHT);
+        
+        translateTo(0.0,0.0,0.0);
+        
         setShader("vertexLightShader", "fragmentLightShader");
         
         renderManager->loadRenderingInformation();
-        
-        setEntityType(LIGHT);
-      
-        //set default position
-        translateTo(5.0,5.0,5.0);
-        
-        //view in direction of
-        U4DVector3n origin(0,0,0);
-        viewInDirection(origin);
-        
+       
     };
     
     U4DLights::~U4DLights(){
@@ -106,15 +101,25 @@ namespace U4DEngine {
         
     }
     
-    void U4DLights::viewInDirection(U4DVector3n& uDestinationPoint){
+    U4DVector3n U4DLights::getViewInDirection(){
         
+        //get forward vector
+        U4DVector3n forward=getEntityForwardVector();
+        
+        //get the entity rotation matrix
+        U4DMatrix3n orientationMatrix=getLocalMatrixOrientation();
+        
+        return orientationMatrix*forward;
+        
+    }
+    
+    void U4DLights::viewInDirection(U4DVector3n& uDestinationPoint){
         
         U4DVector3n upVector(0,1,0);
         float oneEightyAngle=180.0;
         U4DVector3n entityPosition;
         
         entityPosition=getAbsolutePosition();
-        
         
         //calculate the forward vector
         U4DVector3n forwardVector=uDestinationPoint-entityPosition;
@@ -123,7 +128,7 @@ namespace U4DEngine {
         float angle=getEntityForwardVector().angle(forwardVector);
         
         //calculate the rotation axis
-        U4DVector3n rotationAxis=forwardVector.cross(getEntityForwardVector());
+        U4DVector3n rotationAxis=getEntityForwardVector().cross(forwardVector);
         
         //if angle is 180 it means that both vectors are pointing opposite to each other.
         //this means that there is no rotation axis. so set the Up Vector as the rotation axis
@@ -140,7 +145,6 @@ namespace U4DEngine {
         U4DQuaternion rotationQuaternion(angle,rotationAxis);
         
         rotateTo(rotationQuaternion);
-        
         
     }
 

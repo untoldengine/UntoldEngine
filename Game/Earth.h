@@ -22,6 +22,8 @@ private:
 
     GameAsset *gameAsset;
     GameAsset *gameAsset2;
+    
+    int rot;
 public:
    
     Earth(){};

@@ -126,6 +126,16 @@ namespace U4DEngine {
         
         while (child!=NULL) {
             
+            if(child->isRoot()){
+                
+                child->absoluteSpace=child->localSpace;
+                
+            }else{
+                
+                child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
+                
+            }
+            
             child->renderShadow(uRenderShadowEncoder, uShadowTexture);
             
             child=child->next;

@@ -23,6 +23,12 @@ namespace U4DEngine {
         
     }
     
+    U4DDualQuaternion U4DRenderLights::getEntitySpace(){
+        
+        return u4dObject->getLocalSpace();
+        
+    }
+    
     void U4DRenderLights::initMTLRenderLibrary(){
         
         mtlLibrary=[mtlDevice newDefaultLibrary];

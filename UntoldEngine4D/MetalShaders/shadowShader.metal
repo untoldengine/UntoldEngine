@@ -36,5 +36,6 @@ vertex VertexOutput vertexShadowShader(VertexInput vert [[stage_in]], constant U
     
     vertexOut.position=position;
     
+    
     return vertexOut;
 }

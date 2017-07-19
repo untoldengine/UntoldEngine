@@ -33,9 +33,11 @@ using namespace U4DEngine;
 
 void Earth::init(){
     
+    rot=0.0;
+    
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(10.0,10.0,-20.0);
     
     camera->translateTo(cameraPos);
     
@@ -50,11 +52,14 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(5.0,5.0,-5.0);
-    light->viewInDirection(origin);
+    light->translateTo(2.0,7.0,0.0);
+    
     
     gameAsset=new GameAsset();
     gameAsset->init("fort", "fort.u4d");
+    
+    U4DVector3n fortPosition(0.0,-0.5,0.0);
+    gameAsset->translateTo(fortPosition);
     
     addChild(gameAsset);
     
@@ -63,11 +68,16 @@ void Earth::init(){
     
     addChild(gameAsset2);
     
-    U4DVector3n planePosition(0.0,-3.0,0.0);
+    U4DVector3n planePosition(0.0,-3.5,0.0);
     gameAsset2->translateTo(planePosition);
     
+    
     addChild(light);
+    
+    
     camera->viewInDirection(origin);
+    light->viewInDirection(origin);
+
 }
 
 void Earth::update(double dt){
