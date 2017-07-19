@@ -21,6 +21,7 @@ void GameAsset::init(const char* uModelName, const char* uBlenderFile){
     if (loadModel(uModelName, uBlenderFile)) {
     
         setEnableShadow(true);
+        
         loadRenderingInformation();
     }
 }

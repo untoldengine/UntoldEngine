@@ -15,12 +15,13 @@
 
 class GameController;
 class GameAsset;
+class SoccerPlayer;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    GameAsset *gameAsset;
+    SoccerPlayer *soccerPlayer;
     GameAsset *gameAsset2;
     
     int rot;

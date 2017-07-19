@@ -25,6 +25,7 @@ typedef struct{
     bool hasTexture;
     bool enableNormalMap;
     bool enableShadows;
+    bool hasArmature;
     
 }UniformModelRenderFlags;
 
@@ -37,6 +38,12 @@ typedef struct{
     float specularMaterialHardness[10];
     
 }UniformModelMaterial;
+
+typedef struct{
+    
+    matrix_float4x4 boneSpace[30];
+    
+}UniformBoneSpace;
 
 typedef struct{
     

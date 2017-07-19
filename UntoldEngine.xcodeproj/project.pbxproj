@@ -175,6 +175,10 @@
 		03F2DB181F193B3C00F77B78 /* fort.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03F2DB161F193B3C00F77B78 /* fort.u4d */; };
 		03F2DB1B1F193B5300F77B78 /* GameAsset.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DB191F193B5300F77B78 /* GameAsset.mm */; };
 		03F2DB211F19471300F77B78 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DB201F19471300F77B78 /* QuartzCore.framework */; };
+		03FE2CD81F1F0FB000D4E2FB /* player.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FE2CD71F1F0FB000D4E2FB /* player.u4d */; };
+		03FE2CDA1F1F108900D4E2FB /* Kit_001.png in Resources */ = {isa = PBXBuildFile; fileRef = 03FE2CD91F1F108900D4E2FB /* Kit_001.png */; };
+		03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */; };
+		03FE2CDF1F1FA9FD00D4E2FB /* walkinganimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -458,6 +462,11 @@
 		03F2DB191F193B5300F77B78 /* GameAsset.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GameAsset.mm; sourceTree = "<group>"; };
 		03F2DB1A1F193B5300F77B78 /* GameAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GameAsset.h; sourceTree = "<group>"; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
+		03FE2CD71F1F0FB000D4E2FB /* player.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = player.u4d; path = Resources/player.u4d; sourceTree = SOURCE_ROOT; };
+		03FE2CD91F1F108900D4E2FB /* Kit_001.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Kit_001.png; path = Resources/Kit_001.png; sourceTree = SOURCE_ROOT; };
+		03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayer.mm; sourceTree = "<group>"; };
+		03FE2CDC1F1FA90100D4E2FB /* SoccerPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayer.h; sourceTree = "<group>"; };
+		03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = walkinganimation.u4d; path = Resources/walkinganimation.u4d; sourceTree = SOURCE_ROOT; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -612,6 +621,8 @@
 				036AE6C11DB3EA7400F0B080 /* UserCommonProtocols.h */,
 				03F2DB1A1F193B5300F77B78 /* GameAsset.h */,
 				03F2DB191F193B5300F77B78 /* GameAsset.mm */,
+				03FE2CDC1F1FA90100D4E2FB /* SoccerPlayer.h */,
+				03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -885,6 +896,8 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */,
+				03FE2CD91F1F108900D4E2FB /* Kit_001.png */,
 				03769D231F1B6F4800981D21 /* planeTexture.png */,
 				03F2DB151F193B3C00F77B78 /* fort.png */,
 				03F2DB161F193B3C00F77B78 /* fort.u4d */,
@@ -900,6 +913,7 @@
 				03798F891934DA8E00CF0600 /* ButtonB.png */,
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
 				03769D211F1B6F0D00981D21 /* plane.u4d */,
+				03FE2CD71F1F0FB000D4E2FB /* player.u4d */,
 			);
 			name = Resources;
 			path = Game/Resources;
@@ -1341,6 +1355,7 @@
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
 				03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */,
 				03AEF86719CF474D00082589 /* AnimationShader.fp in Resources */,
+				03FE2CDA1F1F108900D4E2FB /* Kit_001.png in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
@@ -1359,6 +1374,7 @@
 				03769D241F1B6F4800981D21 /* planeTexture.png in Resources */,
 				03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */,
 				030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */,
+				03FE2CDF1F1FA9FD00D4E2FB /* walkinganimation.u4d in Resources */,
 				03DB6E86192F7B25006E21D0 /* NormalMapping.vp in Resources */,
 				034DBC8A1A74112000AC43EB /* debugShader.vp in Resources */,
 				030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */,
@@ -1378,6 +1394,7 @@
 				03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				03F2DB181F193B3C00F77B78 /* fort.u4d in Resources */,
+				03FE2CD81F1F0FB000D4E2FB /* player.u4d in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
@@ -1453,6 +1470,7 @@
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
+				03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,

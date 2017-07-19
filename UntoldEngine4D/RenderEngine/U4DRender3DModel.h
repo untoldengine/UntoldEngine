@@ -33,6 +33,8 @@ namespace U4DEngine {
         simd::float4 uv; //making it a float4 for padding memory alignment
         simd::float4 tangent;
         simd::float4 materialIndex;
+        simd::float4 vertexWeight;
+        simd::float4 boneIndex;
         
     }AttributeAlignedModelData;
 
@@ -53,6 +55,8 @@ namespace U4DEngine {
         
         //uniforms
         id<MTLBuffer> uniformMaterialBuffer;
+        
+        id<MTLBuffer> uniformBoneBuffer;
         
         std::vector<AttributeAlignedModelData> attributeAlignedContainer;
         
@@ -79,6 +83,10 @@ namespace U4DEngine {
         void updateSpaceUniforms();
         
         void updateShadowSpaceUniforms();
+        
+        void updateBoneSpaceUniforms();
+        
+        void updateModelRenderFlags();
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         

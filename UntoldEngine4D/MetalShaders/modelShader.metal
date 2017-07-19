@@ -19,6 +19,8 @@ struct VertexInput {
     float4    uv       [[ attribute(2) ]];
     float4    tangent  [[ attribute(3) ]];
     float4    materialIndex [[ attribute(4) ]];
+    float4    vertexWeight [[attribute(5)]];
+    float4    boneIndex [[attribute(6)]];
     
 };
 
@@ -70,20 +72,61 @@ constant Light light={
 
 float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial);
 
-vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant float4 &lightPosition[[buffer(2)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(3)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant float4 &lightPosition[[buffer(2)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(3)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(4)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
-    //1. transform the vertices by the mvp transformation
-    float4 position=uniformSpace.modelViewProjectionSpace*float4(vert.position);
+    float4 position;
     
-    //2. transform the normal vectors by the normal matrix space
+    float3 normalVectorInMVSpace;
     
-    float3 normalVectorInMVSpace=normalize(uniformSpace.normalSpace*float3(vert.normal.xyz));
+    float4 verticesInMVSpace;
     
+    //if model has armature, compute the transformation with armature vertices
+    if(uniformModelRenderFlags.hasArmature){
+        
+        float4 newVertex=float4(0);
+        float3 newNormal=float3(0);
+        
+        int boneIndicesArray[4];
+        
+        boneIndicesArray[0]=vert.boneIndex.x;
+        boneIndicesArray[1]=vert.boneIndex.y;
+        boneIndicesArray[2]=vert.boneIndex.z;
+        boneIndicesArray[3]=vert.boneIndex.w;
+        
+        float weightArray[4];
+        
+        weightArray[0]=vert.vertexWeight.x;
+        weightArray[1]=vert.vertexWeight.y;
+        weightArray[2]=vert.vertexWeight.z;
+        weightArray[3]=vert.vertexWeight.w;
+        
+        for(int i=0;i<4;i++){
+            
+            newVertex+=(uniformBoneSpace.boneSpace[boneIndicesArray[i]]*float4(vert.position))*weightArray[i];
+            newNormal+=float3((uniformBoneSpace.boneSpace[boneIndicesArray[i]]*float4(float3(vert.normal.xyz),0.0))*weightArray[i]);
+        }
+        
+        position=uniformSpace.modelViewProjectionSpace*float4(newVertex);
+        
+        normalVectorInMVSpace=normalize(uniformSpace.normalSpace*float3(newNormal));
+        
+        verticesInMVSpace=uniformSpace.modelViewSpace*float4(newVertex);
+        
+        //if no armature exist, then do transformation as usual
+    }else{
+      
+        //1. transform the vertices by the mvp transformation
+        position=uniformSpace.modelViewProjectionSpace*float4(vert.position);
+        
+        //2. transform the normal vectors by the normal matrix space
+        normalVectorInMVSpace=normalize(uniformSpace.normalSpace*float3(vert.normal.xyz));
+        
+        //3. transform the vertices of the surface into the Model-View Space
+        verticesInMVSpace=uniformSpace.modelViewSpace*float4(vert.position);
+    }
     
-    //3. transform the vertices of the surface into the Model-View Space
-    float4 verticesInMVSpace=uniformSpace.modelViewSpace*float4(vert.position);
     
     vertexOut.uvCoords=vert.uv.xy;
     

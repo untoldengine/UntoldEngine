@@ -109,8 +109,18 @@ namespace U4DEngine {
         vertexDesc.attributes[4].bufferIndex=0;
         vertexDesc.attributes[4].offset=16*sizeof(float);
         
+        //vertex weight
+        vertexDesc.attributes[5].format=MTLVertexFormatFloat4;
+        vertexDesc.attributes[5].bufferIndex=0;
+        vertexDesc.attributes[5].offset=20*sizeof(float);
+        
+        //bone index
+        vertexDesc.attributes[6].format=MTLVertexFormatFloat4;
+        vertexDesc.attributes[6].bufferIndex=0;
+        vertexDesc.attributes[6].offset=24*sizeof(float);
+        
         //stride with padding
-        vertexDesc.layouts[0].stride=20*sizeof(float);
+        vertexDesc.layouts[0].stride=28*sizeof(float);
         
         vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
         
@@ -154,6 +164,8 @@ namespace U4DEngine {
         uniformSpaceBuffer=[mtlDevice newBufferWithLength:sizeof(UniformSpace) options:MTLResourceStorageModeShared];
         
         uniformModelRenderFlagsBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelRenderFlags) options:MTLResourceStorageModeShared];
+        
+        uniformBoneBuffer=[mtlDevice newBufferWithLength:sizeof(UniformBoneSpace) options:MTLResourceStorageModeShared];
         
         lightPositionUniform=[mtlDevice newBufferWithLength:sizeof(vector_float4) options:MTLResourceStorageModeShared];
         
@@ -307,6 +319,22 @@ namespace U4DEngine {
         
     }
     
+    void U4DRender3DModel::updateBoneSpaceUniforms(){
+        
+        UniformBoneSpace uniformBoneSpace;
+        
+        for(int i=0;i<u4dObject->armatureBoneMatrix.size();i++){
+            
+            U4DMatrix4n boneSpace=u4dObject->armatureBoneMatrix.at(i);
+            
+            uniformBoneSpace.boneSpace[i]=convertToSIMD(boneSpace);
+            
+        }
+        
+        memcpy(uniformBoneBuffer.contents, (void*)&uniformBoneSpace, sizeof(UniformBoneSpace));
+        
+    }
+    
     void U4DRender3DModel::updateSpaceUniforms(){
         
         U4DCamera *camera=U4DCamera::sharedInstance();
@@ -368,12 +396,17 @@ namespace U4DEngine {
         memcpy(lightPositionUniform.contents, (void*)&lightPositionSIMD, sizeof(vector_float4));
         
         
+    }
+    
+    void U4DRender3DModel::updateModelRenderFlags(){
+        
         //update the rendering flags
         UniformModelRenderFlags modelFlags;
         modelFlags.enableShadows=u4dObject->getEnableShadow();
         modelFlags.enableNormalMap=u4dObject->getEnableNormalMap();
         modelFlags.hasTexture=u4dObject->getHasTexture();
-    
+        modelFlags.hasArmature=u4dObject->getHasArmature();
+        
         memcpy(uniformModelRenderFlagsBuffer.contents, (void*)&modelFlags, sizeof(UniformModelRenderFlags));
         
     }
@@ -408,6 +441,8 @@ namespace U4DEngine {
     void U4DRender3DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         updateSpaceUniforms();
+        updateModelRenderFlags();
+        updateBoneSpaceUniforms();
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
@@ -427,6 +462,7 @@ namespace U4DEngine {
         
         [uRenderEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:3];
         
+        [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:4];
         
         //set texture in fragment
         [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
@@ -457,6 +493,8 @@ namespace U4DEngine {
         shadowTexture=uShadowTexture;
         
         updateShadowSpaceUniforms();
+        updateModelRenderFlags();
+        updateBoneSpaceUniforms();
         
         [uRenderShadowEncoder setFrontFacingWinding:MTLWindingClockwise];
         
@@ -467,6 +505,10 @@ namespace U4DEngine {
         [uRenderShadowEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
         
         [uRenderShadowEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+        
+        [uRenderShadowEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:2];
+        
+        [uRenderShadowEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:3];
         
         [uRenderShadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
         
@@ -551,6 +593,36 @@ namespace U4DEngine {
             }
             
         }
+        
+        //load vertex weights
+        if (u4dObject->bodyCoordinates.vertexWeightsContainer.size()>0) {
+            
+            for(int i=0; i<u4dObject->bodyCoordinates.vertexWeightsContainer.size();i++){
+                
+                attributeAlignedContainer.at(i).vertexWeight.x=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).x;
+                attributeAlignedContainer.at(i).vertexWeight.y=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).y;
+                attributeAlignedContainer.at(i).vertexWeight.z=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).z;
+                attributeAlignedContainer.at(i).vertexWeight.w=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).w;
+                
+            }
+            
+        }
+        
+        
+        //load bone index
+        if (u4dObject->bodyCoordinates.boneIndicesContainer.size()>0) {
+            
+            for(int i=0; i<u4dObject->bodyCoordinates.boneIndicesContainer.size();i++){
+                
+                attributeAlignedContainer.at(i).boneIndex.x=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).x;
+                attributeAlignedContainer.at(i).boneIndex.y=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).y;
+                attributeAlignedContainer.at(i).boneIndex.z=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).w;
+                attributeAlignedContainer.at(i).boneIndex.w=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).z;
+                
+            }
+            
+        }
+        
         
     }
 

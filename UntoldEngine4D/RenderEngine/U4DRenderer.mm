@@ -291,8 +291,18 @@
     vertexDesc.attributes[4].bufferIndex=0;
     vertexDesc.attributes[4].offset=16*sizeof(float);
     
+    //vertex weight
+    vertexDesc.attributes[5].format=MTLVertexFormatFloat4;
+    vertexDesc.attributes[5].bufferIndex=0;
+    vertexDesc.attributes[5].offset=20*sizeof(float);
+    
+    //bone index
+    vertexDesc.attributes[6].format=MTLVertexFormatFloat4;
+    vertexDesc.attributes[6].bufferIndex=0;
+    vertexDesc.attributes[6].offset=24*sizeof(float);
+    
     //stride with padding
-    vertexDesc.layouts[0].stride=20*sizeof(float);
+    vertexDesc.layouts[0].stride=28*sizeof(float);
     
     vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
     

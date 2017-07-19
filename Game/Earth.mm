@@ -28,6 +28,7 @@
 
 #include "GameLogic.h"
 #include "GameAsset.h"
+#include "SoccerPlayer.h"
 
 using namespace U4DEngine;
 
@@ -37,7 +38,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(10.0,10.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,20.0,-50.0);
     
     camera->translateTo(cameraPos);
     
@@ -52,16 +53,16 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(2.0,7.0,0.0);
+    light->translateTo(2.0,30.0,0.0);
     
     
-    gameAsset=new GameAsset();
-    gameAsset->init("fort", "fort.u4d");
+    soccerPlayer=new SoccerPlayer();
+    soccerPlayer->init("pele", "player.u4d");
     
-    U4DVector3n fortPosition(0.0,-0.5,0.0);
-    gameAsset->translateTo(fortPosition);
+    U4DVector3n fortPosition(0.0,11.5,0.0);
+    soccerPlayer->translateTo(fortPosition);
     
-    addChild(gameAsset);
+    addChild(soccerPlayer);
     
     gameAsset2=new GameAsset();
     gameAsset2->init("plane", "plane.u4d");
@@ -78,6 +79,7 @@ void Earth::init(){
     camera->viewInDirection(origin);
     light->viewInDirection(origin);
 
+    soccerPlayer->playAnimation();
 }
 
 void Earth::update(double dt){
