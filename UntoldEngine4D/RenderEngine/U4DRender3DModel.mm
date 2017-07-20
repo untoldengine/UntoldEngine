@@ -449,10 +449,6 @@ namespace U4DEngine {
         
         [uRenderEncoder setDepthStencilState:depthStencilState];
         
-        [uRenderEncoder setFrontFacingWinding:MTLWindingClockwise];
-        
-        [uRenderEncoder setCullMode:MTLCullModeBack];
-        
         //encode the buffers
         [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
         
@@ -495,10 +491,6 @@ namespace U4DEngine {
         updateShadowSpaceUniforms();
         updateModelRenderFlags();
         updateBoneSpaceUniforms();
-        
-        [uRenderShadowEncoder setFrontFacingWinding:MTLWindingClockwise];
-        
-        [uRenderShadowEncoder setCullMode: MTLCullModeBack];
         
         [uRenderShadowEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
         
@@ -592,6 +584,12 @@ namespace U4DEngine {
                 
             }
             
+        }
+        
+        //clear all vertex weights and bone indices
+        for(auto n:attributeAlignedContainer){
+            n.vertexWeight=simd::float4(0.0);
+            n.boneIndex=simd::float4(0.0);
         }
         
         //load vertex weights
