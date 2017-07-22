@@ -85,8 +85,8 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
     //if model has armature, compute the transformation with armature vertices
     if(uniformModelRenderFlags.hasArmature){
         
-        float4 newVertex=float4(0);
-        float3 newNormal=float3(0);
+        float4 newVertex=float4(0.0);
+        float3 newNormal=float3(0.0);
         
         int boneIndicesArray[4];
         

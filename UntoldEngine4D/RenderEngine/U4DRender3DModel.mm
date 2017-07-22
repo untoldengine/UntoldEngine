@@ -586,36 +586,43 @@ namespace U4DEngine {
             
         }
         
-        //clear all vertex weights and bone indices
-        for(auto n:attributeAlignedContainer){
-            n.vertexWeight=simd::float4(0.0);
-            n.boneIndex=simd::float4(0.0);
-        }
-        
-        //load vertex weights
-        if (u4dObject->bodyCoordinates.vertexWeightsContainer.size()>0) {
+        if (u4dObject->getHasArmature()==true) {
             
-            for(int i=0; i<u4dObject->bodyCoordinates.vertexWeightsContainer.size();i++){
+            if (u4dObject->bodyCoordinates.vertexWeightsContainer.size()==u4dObject->bodyCoordinates.verticesContainer.size()) {
                 
-                attributeAlignedContainer.at(i).vertexWeight.x=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).x;
-                attributeAlignedContainer.at(i).vertexWeight.y=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).y;
-                attributeAlignedContainer.at(i).vertexWeight.z=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).z;
-                attributeAlignedContainer.at(i).vertexWeight.w=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).w;
+                //load vertex weights
+                if (u4dObject->bodyCoordinates.vertexWeightsContainer.size()>0) {
+                    
+                    for(int i=0; i<attributeAlignedContainer.size();i++){
+                        
+                        attributeAlignedContainer.at(i).vertexWeight.x=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).x;
+                        attributeAlignedContainer.at(i).vertexWeight.y=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).y;
+                        attributeAlignedContainer.at(i).vertexWeight.z=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).z;
+                        attributeAlignedContainer.at(i).vertexWeight.w=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).w;
+                        
+                    }
+                    
+                }
                 
-            }
-            
-        }
-        
-        
-        //load bone index
-        if (u4dObject->bodyCoordinates.boneIndicesContainer.size()>0) {
-            
-            for(int i=0; i<u4dObject->bodyCoordinates.boneIndicesContainer.size();i++){
                 
-                attributeAlignedContainer.at(i).boneIndex.x=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).x;
-                attributeAlignedContainer.at(i).boneIndex.y=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).y;
-                attributeAlignedContainer.at(i).boneIndex.z=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).w;
-                attributeAlignedContainer.at(i).boneIndex.w=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).z;
+                //load bone index
+                if (u4dObject->bodyCoordinates.boneIndicesContainer.size()>0) {
+                    
+                    for(int i=0; i<attributeAlignedContainer.size();i++){
+                        
+                        attributeAlignedContainer.at(i).boneIndex.x=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).x;
+                        attributeAlignedContainer.at(i).boneIndex.y=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).y;
+                        attributeAlignedContainer.at(i).boneIndex.z=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).w;
+                        attributeAlignedContainer.at(i).boneIndex.w=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).z;
+                        
+                    }
+                    
+                }
+                
+            }else{
+                
+                U4DLogger *logger=U4DLogger::sharedInstance();
+                logger->log("ERROR: Number of vertices does not macth number of vertex weights. Make sure your model's armature is correct");
                 
             }
             
