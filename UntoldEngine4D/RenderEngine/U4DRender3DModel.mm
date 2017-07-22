@@ -153,10 +153,22 @@ namespace U4DEngine {
         
     }
     
-    void U4DRender3DModel::loadMTLBuffer(){
+    bool U4DRender3DModel::loadMTLBuffer(){
         
         //Align the attribute data
         alignedAttributeData();
+        
+        if (attributeAlignedContainer.size()==0) {
+            
+            eligibleToRender=false;
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("ERROR: No attribute data (vertices, normals, etc) was found for the model %s. Make sure you exported all the model's data", u4dObject->getName().c_str());
+            
+            
+            return false;
+        }
         
         attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedModelData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
@@ -175,6 +187,9 @@ namespace U4DEngine {
         //clear the attribute data contatiner
         attributeAlignedContainer.clear();
         
+        eligibleToRender=true;
+        
+        return true;
     }
     
     void U4DRender3DModel::loadMTLTexture(){
@@ -440,69 +455,78 @@ namespace U4DEngine {
     
     void U4DRender3DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        updateSpaceUniforms();
-        updateModelRenderFlags();
-        updateBoneSpaceUniforms();
+        if (eligibleToRender==true) {
+            
+            updateSpaceUniforms();
+            updateModelRenderFlags();
+            updateBoneSpaceUniforms();
+            
+            //encode the pipeline
+            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+            
+            [uRenderEncoder setDepthStencilState:depthStencilState];
+            
+            //encode the buffers
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            
+            [uRenderEncoder setVertexBuffer:lightPositionUniform offset:0 atIndex:2];
+            
+            [uRenderEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:3];
+            
+            [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:4];
+            
+            //set texture in fragment
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            //set the samplers
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            
+            //set the shadow texture
+            [uRenderEncoder setFragmentTexture:shadowTexture atIndex:1];
+            
+            
+            //set data used in fragment
+            [uRenderEncoder setFragmentBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:1];
+            [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:2];
+            
+            [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
+            [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];
+            
+            
+            //set the draw command
+            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+            
+        }
         
-        //encode the pipeline
-        [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-        
-        [uRenderEncoder setDepthStencilState:depthStencilState];
-        
-        //encode the buffers
-        [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
-        
-        [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
-        
-        [uRenderEncoder setVertexBuffer:lightPositionUniform offset:0 atIndex:2];
-        
-        [uRenderEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:3];
-        
-        [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:4];
-        
-        //set texture in fragment
-        [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
-        //set the samplers
-        [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
-        
-        //set the shadow texture
-        [uRenderEncoder setFragmentTexture:shadowTexture atIndex:1];
-        
-        
-        //set data used in fragment
-        [uRenderEncoder setFragmentBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:1];
-        [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:2];
-        
-        [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
-        [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];
-        
-        
-        //set the draw command
-        [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
         
     }
     
     void U4DRender3DModel::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
      
-        //set the shadow texture
-        
-        shadowTexture=uShadowTexture;
-        
-        updateShadowSpaceUniforms();
-        updateModelRenderFlags();
-        updateBoneSpaceUniforms();
-        
-        [uRenderShadowEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
-        
-        [uRenderShadowEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
-        
-        [uRenderShadowEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
-        
-        [uRenderShadowEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:2];
-        
-        [uRenderShadowEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:3];
-        
-        [uRenderShadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+        if (eligibleToRender==true) {
+            
+            //set the shadow texture
+            
+            shadowTexture=uShadowTexture;
+            
+            updateShadowSpaceUniforms();
+            updateModelRenderFlags();
+            updateBoneSpaceUniforms();
+            
+            [uRenderShadowEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
+            
+            [uRenderShadowEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            
+            [uRenderShadowEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            
+            [uRenderShadowEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:2];
+            
+            [uRenderShadowEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:3];
+            
+            [uRenderShadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+            
+        }
         
     }
     

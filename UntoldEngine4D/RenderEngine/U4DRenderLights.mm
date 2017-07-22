@@ -83,10 +83,17 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderLights::loadMTLBuffer(){
+    bool U4DRenderLights::loadMTLBuffer(){
         
         //Align the attribute data
         alignedAttributeData();
+        
+        if (attributeAlignedContainer.size()==0) {
+            
+            eligibleToRender=false;
+            
+            return false;
+        }
         
         attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedLightData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
@@ -98,6 +105,9 @@ namespace U4DEngine {
         
         //clear the attribute data contatiner
         attributeAlignedContainer.clear();
+        eligibleToRender=true;
+        
+        return true;
     }
     
     void U4DRenderLights::updateSpaceUniforms(){
@@ -137,20 +147,25 @@ namespace U4DEngine {
     
     void U4DRenderLights::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        updateSpaceUniforms();
+        if (eligibleToRender==true) {
+            
+            updateSpaceUniforms();
+            
+            //encode the pipeline
+            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+            
+            [uRenderEncoder setDepthStencilState:depthStencilState];
+            
+            //encode the buffers
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            
+            //set the draw command
+            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeLineStrip indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+            
+        }
         
-        //encode the pipeline
-        [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-        
-        [uRenderEncoder setDepthStencilState:depthStencilState];
-        
-        //encode the buffers
-        [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
-        
-        [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
-        
-        //set the draw command
-        [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeLineStrip indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
         
     }
     

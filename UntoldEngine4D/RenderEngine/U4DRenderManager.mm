@@ -11,10 +11,11 @@
 #include "U4DShaderProtocols.h"
 #include <simd/simd.h>
 #include "lodepng.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
 
-    U4DRenderManager::U4DRenderManager(){
+    U4DRenderManager::U4DRenderManager():eligibleToRender(false){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
@@ -30,11 +31,23 @@ namespace U4DEngine {
         
         initMTLRenderLibrary();
         initMTLRenderPipeline();
-        loadMTLBuffer();
-        loadMTLTexture();
         
-        //loads additional information such as normal map, bones, etc if it exists.
-        loadMTLAdditionalInformation();
+        if(loadMTLBuffer()){
+            
+            loadMTLTexture();
+            
+            //loads additional information such as normal map, bones, etc if it exists.
+            loadMTLAdditionalInformation();
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("ERROR: No rendering data was found for the object. This object will not be rendered by the engine");
+            
+        }
+        
+        
     }
     
     void U4DRenderManager::clearRawImageData(){

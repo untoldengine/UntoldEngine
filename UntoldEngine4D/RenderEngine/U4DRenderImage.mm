@@ -89,10 +89,17 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderImage::loadMTLBuffer(){
+    bool U4DRenderImage::loadMTLBuffer(){
         
         //Align the attribute data
         alignedAttributeData();
+        
+        if (attributeAlignedContainer.size()==0) {
+            
+            eligibleToRender=false;
+            
+            return false;
+        }
         
         attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedImageData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
@@ -104,6 +111,10 @@ namespace U4DEngine {
         
         //clear the attribute data contatiner
         attributeAlignedContainer.clear();
+        
+        eligibleToRender=true;
+        
+        return true;
     }
     
     void U4DRenderImage::loadMTLTexture(){
@@ -210,24 +221,29 @@ namespace U4DEngine {
     
     void U4DRenderImage::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        updateSpaceUniforms();
+        if (eligibleToRender==true) {
+            
+            updateSpaceUniforms();
+            
+            //encode the pipeline
+            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+            
+            [uRenderEncoder setDepthStencilState:depthStencilState];
+            
+            //encode the buffers
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            
+            //set the draw command
+            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+            
+        }
         
-        //encode the pipeline
-        [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-        
-        [uRenderEncoder setDepthStencilState:depthStencilState];
-        
-        //encode the buffers
-        [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
-        
-        [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
-        
-        [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
-        
-        [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
-        
-        //set the draw command
-        [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
         
     }
     

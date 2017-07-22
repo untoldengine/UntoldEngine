@@ -69,7 +69,6 @@ namespace U4DEngine {
         
         id<MTLTexture> secondaryTextureObject;
         
-        
         //light
         id<MTLBuffer> lightPositionUniform;
         
@@ -80,6 +79,8 @@ namespace U4DEngine {
         
         //decode skybox raw data
         std::vector<const char*> skyboxTexturesContainer;
+        
+        bool eligibleToRender;
         
     public:
         
@@ -93,7 +94,7 @@ namespace U4DEngine {
         
         virtual void initMTLRenderPipeline(){};
         
-        virtual void loadMTLBuffer(){};
+        virtual bool loadMTLBuffer(){};
         
         virtual void loadMTLTexture(){};
         

@@ -82,10 +82,15 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderWorld::loadMTLBuffer(){
+    bool U4DRenderWorld::loadMTLBuffer(){
         
         //Align the attribute data
         alignedAttributeData();
+        
+        if (attributeAlignedContainer.size()==0) {
+            eligibleToRender=false;
+            return false;
+        }
         
         attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedWorldData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
@@ -94,6 +99,10 @@ namespace U4DEngine {
         
         //clear the attribute data contatiner
         attributeAlignedContainer.clear();
+        
+        eligibleToRender=true;
+        
+        return true;
     }
     
     void U4DRenderWorld::updateSpaceUniforms(){
@@ -133,19 +142,23 @@ namespace U4DEngine {
     
     void U4DRenderWorld::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        updateSpaceUniforms();
-        
-        //encode the pipeline
-        [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-        
-        [uRenderEncoder setDepthStencilState:depthStencilState];
-        
-        //encode the buffers
-        [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
-        
-        [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+        if (eligibleToRender==true) {
             
-        [uRenderEncoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:u4dObject->bodyCoordinates.verticesContainer.size()];
+            updateSpaceUniforms();
+            
+            //encode the pipeline
+            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+            
+            [uRenderEncoder setDepthStencilState:depthStencilState];
+            
+            //encode the buffers
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            
+            [uRenderEncoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:u4dObject->bodyCoordinates.verticesContainer.size()];
+            
+        }
         
     }
     

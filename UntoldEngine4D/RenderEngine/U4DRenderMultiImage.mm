@@ -103,33 +103,38 @@ namespace U4DEngine {
     
     void U4DRenderMultiImage::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        updateSpaceUniforms();
+        if (eligibleToRender==true) {
+            
+            updateSpaceUniforms();
+            
+            updateMultiImage();
+            
+            //encode the pipeline
+            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+            
+            [uRenderEncoder setDepthStencilState:depthStencilState];
+            
+            //encode the buffers
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            
+            //diffuse texture
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            
+            //ambient texture
+            [uRenderEncoder setFragmentTexture:secondaryTextureObject atIndex:1];
+            
+            //image state
+            [uRenderEncoder setFragmentBuffer:uniformMultiImageBuffer offset:0 atIndex:1];
+            
+            //set the draw command
+            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+            
+        }
         
-        updateMultiImage();
-        
-        //encode the pipeline
-        [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-        
-        [uRenderEncoder setDepthStencilState:depthStencilState];
-        
-        //encode the buffers
-        [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
-        
-        [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
-        
-        //diffuse texture
-        [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
-        
-        [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
-        
-        //ambient texture
-        [uRenderEncoder setFragmentTexture:secondaryTextureObject atIndex:1];
-        
-        //image state
-        [uRenderEncoder setFragmentBuffer:uniformMultiImageBuffer offset:0 atIndex:1];
-        
-        //set the draw command
-        [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
         
     }
     

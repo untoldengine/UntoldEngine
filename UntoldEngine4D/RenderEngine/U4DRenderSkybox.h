@@ -52,7 +52,7 @@ namespace U4DEngine {
         
         void initMTLRenderPipeline();
         
-        void loadMTLBuffer();
+        bool loadMTLBuffer();
         
         void loadMTLTexture();
         
