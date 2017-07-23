@@ -45,6 +45,7 @@ namespace U4DEngine {
         
         float R=1.0/(uRings-1);
         float S=1.0/(uSectors-1);
+        int indexLimit=uRings*uSectors-1;
         
         int r,s;
         
@@ -64,17 +65,24 @@ namespace U4DEngine {
                 U4DVector3n vec(uX,uY,uZ);
                 
                 bodyCoordinates.addVerticesDataToContainer(vec);
+                
                
                 //push to index
                 
                 int curRow=r*uSectors;
                 int nextRow=(r+1)*uSectors;
                 
-                U4DIndex index(curRow+s,nextRow+s,nextRow+(s+1));
-                bodyCoordinates.addIndexDataToContainer(index);
+                //make sure the index data does not call vertices which do not exist.
+                if ((curRow+s)<indexLimit && (nextRow+s)<indexLimit) {
+                    
+                    U4DIndex index(curRow+s,nextRow+s,nextRow+(s+1));
+                    bodyCoordinates.addIndexDataToContainer(index);
+                    
+                    U4DIndex index2(curRow+s,nextRow+s,curRow+(s+1));
+                    bodyCoordinates.addIndexDataToContainer(index2);
+                    
+                }
                 
-                U4DIndex index2(curRow+s,nextRow+s,curRow+(s+1));
-                bodyCoordinates.addIndexDataToContainer(index2);
                 
             }
         }
