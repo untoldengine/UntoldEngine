@@ -54,11 +54,7 @@ struct Material{
 };
 
 
-constant Light light={
-    .ambientColor={0.1,0.1,0.1},
-    .diffuseColor={0.5, 0.5, 0.5},
-    .specularColor={1.0,1.0,1.0}
-};
+
 
 //
 //constant Material material={
@@ -282,6 +278,12 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
 
 
 float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial){
+    
+    Light light;
+    light.ambientColor=float3(0.1,0.1,0.1);
+    light.diffuseColor=float3(1.0, 1.0, 1.0);
+    light.specularColor=float3(1.0,1.0,1.0);
+
     
     //2. Compute the direction of the light ray betweent the light position and the vertices of the surface
     float3 lightRayDirection=normalize(uLightPosition.xyz-uVerticesInMVSpace.xyz);

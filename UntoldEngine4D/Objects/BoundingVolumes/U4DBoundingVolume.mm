@@ -21,11 +21,6 @@ namespace U4DEngine {
         
         renderManager=new U4DRenderGeometry(this);
         setShader("vertexGeometryShader", "fragmentGeometryShader");
-
-        //set bounding volume color to white
-        U4DVector4n white(1.0,1.0,1.0,1.0);
-        
-        setLineColor(white);
         
     };
     
