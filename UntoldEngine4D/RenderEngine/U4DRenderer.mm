@@ -80,7 +80,7 @@
         director->setOrthographicSpace(orthographicSpace);
         
         //compute orthographic shadow space
-        U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicSpace(-10.0, 10.0, -10.0, 10.0, -10.0, 10.0f);
+        U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicSpace(-20.0, 20.0, -20.0, 20.0, -10.0, 10.0f);
         director->setOrthographicShadowSpace(orthographicShadowSpace);
         
         

@@ -12,19 +12,26 @@
 #include <iostream>
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
+#include "U4DSkybox.h"
 
 class GameController;
 class GameAsset;
+class ModelAsset;
 class SoccerPlayer;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    SoccerPlayer *soccerPlayer;
-    GameAsset *gameAsset2;
+    ModelAsset *littleMansion;
+    ModelAsset *house1;
+    ModelAsset *house2;
+    ModelAsset *fort;
+    GameAsset *ground;
+    ModelAsset *player;
     
-    int rot;
+    U4DEngine::U4DSkybox *skybox;
+    
 public:
    
     Earth(){};

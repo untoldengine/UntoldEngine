@@ -28,17 +28,16 @@
 
 #include "GameLogic.h"
 #include "GameAsset.h"
+#include "ModelAsset.h"
 #include "SoccerPlayer.h"
 
 using namespace U4DEngine;
 
 void Earth::init(){
     
-    rot=0.0;
-    
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,20.0,-50.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-20.0);
     
     camera->translateTo(cameraPos);
     
@@ -53,37 +52,59 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(2.0,30.0,0.0);
-    
-    
-    soccerPlayer=new SoccerPlayer();
-    soccerPlayer->init("pele", "player.u4d");
-    
-    U4DVector3n fortPosition(0.0,11.5,0.0);
-    soccerPlayer->translateTo(fortPosition);
-    
-    addChild(soccerPlayer);
-    
-    gameAsset2=new GameAsset();
-    gameAsset2->init("plane", "plane.u4d");
-    
-    addChild(gameAsset2);
-    
-    U4DVector3n planePosition(0.0,-3.5,0.0);
-    gameAsset2->translateTo(planePosition);
-    
+    light->translateTo(0.0,10.2,0.0);
     
     addChild(light);
     
     
     camera->viewInDirection(origin);
     light->viewInDirection(origin);
+    
+    
+    house1=new ModelAsset();
+    house1->init("small_house_1", "cityscript.u4d","small_house_normal.png");
+    
+    
+    addChild(house1);
 
-    soccerPlayer->playAnimation();
+    littleMansion=new ModelAsset();
+    littleMansion->init("little_mansion", "cityscript.u4d","little_mansion_NRM.png");
+    
+    addChild(littleMansion);
+  
+    
+    house2=new ModelAsset();
+    house2->init("small_house_2", "cityscript.u4d","small_house_02_NRM.png");
+    
+    addChild(house2);
+    
+    fort=new ModelAsset();
+    fort->init("fort", "cityscript.u4d", "fort_normal.png");
+    
+    addChild(fort);
+    
+    
+    ground=new GameAsset();
+    ground->init("ground","cityscript.u4d");
+    
+    addChild(ground);
+    
+    player=new ModelAsset();
+    player->init("guardian","player.u4d","armor_NRM.png");
+    
+    addChild(player);
+    
+    skybox=new U4DEngine::U4DSkybox();
+    skybox->initSkyBox(50.0, "RightImage.png","LeftImage.png", "TopImage.png","BottomImage.png", "FrontImage.png", "BackImage.png");
+    
+    
+    addChild(skybox);
 }
 
 void Earth::update(double dt){
     
+    //U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    //camera->rotateBy(0.0, 1.0, 0.0);
 }
 
 

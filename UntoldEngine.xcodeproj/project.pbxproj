@@ -32,6 +32,25 @@
 		031585941E45C17900424D4D /* nonVisibleShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 031585921E45C17900424D4D /* nonVisibleShader.vp */; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
+		032567C91F25331F00A5A505 /* small_house_02.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567C81F25331F00A5A505 /* small_house_02.png */; };
+		032567CB1F25333500A5A505 /* cityscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032567CA1F25333500A5A505 /* cityscript.u4d */; };
+		032567CD1F2533CB00A5A505 /* small_house_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567CC1F2533CB00A5A505 /* small_house_01.png */; };
+		032567CF1F25371600A5A505 /* little_mansion.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567CE1F25371600A5A505 /* little_mansion.png */; };
+		032567D11F25690A00A5A505 /* small_house_normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567D01F25690A00A5A505 /* small_house_normal.png */; };
+		032567D31F25691400A5A505 /* fort_normal.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567D21F25691400A5A505 /* fort_normal.png */; };
+		032567D61F256A2800A5A505 /* ModelAsset.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032567D41F256A2800A5A505 /* ModelAsset.mm */; };
+		032567D91F256B4C00A5A505 /* little_mansion_NRM.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567D71F256B4C00A5A505 /* little_mansion_NRM.png */; };
+		032567DA1F256B4C00A5A505 /* small_house_02_NRM.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567D81F256B4C00A5A505 /* small_house_02_NRM.png */; };
+		032567DC1F2572C000A5A505 /* Grass_texture3.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567DB1F2572C000A5A505 /* Grass_texture3.png */; };
+		032567DE1F25747C00A5A505 /* Grass_texture3_NRM.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567DD1F25747C00A5A505 /* Grass_texture3_NRM.png */; };
+		032567E01F2582C500A5A505 /* armor.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567DF1F2582C500A5A505 /* armor.png */; };
+		032567E21F259CD000A5A505 /* armor_NRM.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567E11F259CD000A5A505 /* armor_NRM.png */; };
+		032567E91F25A1B100A5A505 /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567E31F25A1B100A5A505 /* BackImage.png */; };
+		032567EA1F25A1B100A5A505 /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567E41F25A1B100A5A505 /* BottomImage.png */; };
+		032567EB1F25A1B100A5A505 /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567E51F25A1B100A5A505 /* FrontImage.png */; };
+		032567EC1F25A1B100A5A505 /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567E61F25A1B100A5A505 /* LeftImage.png */; };
+		032567ED1F25A1B100A5A505 /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567E71F25A1B100A5A505 /* RightImage.png */; };
+		032567EE1F25A1B100A5A505 /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 032567E81F25A1B100A5A505 /* TopImage.png */; };
 		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; };
 		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; };
 		0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D22C1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm */; };
@@ -226,6 +245,26 @@
 		031723C91933FE54001584B1 /* lodepng.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = lodepng.mm; sourceTree = "<group>"; };
 		03196B3417659BE5008BA0B8 /* U4DTouches.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTouches.mm; sourceTree = "<group>"; };
 		03196B3717659EBC008BA0B8 /* U4DTouches.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouches.h; sourceTree = "<group>"; };
+		032567C81F25331F00A5A505 /* small_house_02.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_house_02.png; path = Resources/small_house_02.png; sourceTree = SOURCE_ROOT; };
+		032567CA1F25333500A5A505 /* cityscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = cityscript.u4d; path = Resources/cityscript.u4d; sourceTree = SOURCE_ROOT; };
+		032567CC1F2533CB00A5A505 /* small_house_01.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_house_01.png; path = Resources/small_house_01.png; sourceTree = SOURCE_ROOT; };
+		032567CE1F25371600A5A505 /* little_mansion.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = little_mansion.png; path = Resources/little_mansion.png; sourceTree = SOURCE_ROOT; };
+		032567D01F25690A00A5A505 /* small_house_normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_house_normal.png; path = Resources/small_house_normal.png; sourceTree = SOURCE_ROOT; };
+		032567D21F25691400A5A505 /* fort_normal.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = fort_normal.png; path = Resources/fort_normal.png; sourceTree = SOURCE_ROOT; };
+		032567D41F256A2800A5A505 /* ModelAsset.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ModelAsset.mm; sourceTree = "<group>"; };
+		032567D51F256A2800A5A505 /* ModelAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelAsset.h; sourceTree = "<group>"; };
+		032567D71F256B4C00A5A505 /* little_mansion_NRM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = little_mansion_NRM.png; path = Resources/little_mansion_NRM.png; sourceTree = SOURCE_ROOT; };
+		032567D81F256B4C00A5A505 /* small_house_02_NRM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = small_house_02_NRM.png; path = Resources/small_house_02_NRM.png; sourceTree = SOURCE_ROOT; };
+		032567DB1F2572C000A5A505 /* Grass_texture3.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Grass_texture3.png; path = Resources/Grass_texture3.png; sourceTree = SOURCE_ROOT; };
+		032567DD1F25747C00A5A505 /* Grass_texture3_NRM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Grass_texture3_NRM.png; path = Resources/Grass_texture3_NRM.png; sourceTree = SOURCE_ROOT; };
+		032567DF1F2582C500A5A505 /* armor.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = armor.png; path = Resources/armor.png; sourceTree = SOURCE_ROOT; };
+		032567E11F259CD000A5A505 /* armor_NRM.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = armor_NRM.png; path = Resources/armor_NRM.png; sourceTree = SOURCE_ROOT; };
+		032567E31F25A1B100A5A505 /* BackImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = BackImage.png; path = Resources/BackImage.png; sourceTree = SOURCE_ROOT; };
+		032567E41F25A1B100A5A505 /* BottomImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = BottomImage.png; path = Resources/BottomImage.png; sourceTree = SOURCE_ROOT; };
+		032567E51F25A1B100A5A505 /* FrontImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = FrontImage.png; path = Resources/FrontImage.png; sourceTree = SOURCE_ROOT; };
+		032567E61F25A1B100A5A505 /* LeftImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = LeftImage.png; path = Resources/LeftImage.png; sourceTree = SOURCE_ROOT; };
+		032567E71F25A1B100A5A505 /* RightImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = RightImage.png; path = Resources/RightImage.png; sourceTree = SOURCE_ROOT; };
+		032567E81F25A1B100A5A505 /* TopImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = TopImage.png; path = Resources/TopImage.png; sourceTree = SOURCE_ROOT; };
 		0325D20C1C836D9200F1B9BE /* U4DAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAABB.mm; sourceTree = "<group>"; };
 		0325D20D1C836D9200F1B9BE /* U4DAABB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAABB.h; sourceTree = "<group>"; };
 		0325D2121C83D5B900F1B9BE /* U4DSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSphere.mm; sourceTree = "<group>"; };
@@ -623,6 +662,8 @@
 				03F2DB191F193B5300F77B78 /* GameAsset.mm */,
 				03FE2CDC1F1FA90100D4E2FB /* SoccerPlayer.h */,
 				03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */,
+				032567D51F256A2800A5A505 /* ModelAsset.h */,
+				032567D41F256A2800A5A505 /* ModelAsset.mm */,
 			);
 			path = Game;
 			sourceTree = "<group>";
@@ -896,9 +937,26 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				032567E31F25A1B100A5A505 /* BackImage.png */,
+				032567E41F25A1B100A5A505 /* BottomImage.png */,
+				032567E51F25A1B100A5A505 /* FrontImage.png */,
+				032567E61F25A1B100A5A505 /* LeftImage.png */,
+				032567E71F25A1B100A5A505 /* RightImage.png */,
+				032567E81F25A1B100A5A505 /* TopImage.png */,
+				032567E11F259CD000A5A505 /* armor_NRM.png */,
+				032567DB1F2572C000A5A505 /* Grass_texture3.png */,
+				032567D71F256B4C00A5A505 /* little_mansion_NRM.png */,
+				032567D81F256B4C00A5A505 /* small_house_02_NRM.png */,
+				032567D21F25691400A5A505 /* fort_normal.png */,
+				032567D01F25690A00A5A505 /* small_house_normal.png */,
+				032567CE1F25371600A5A505 /* little_mansion.png */,
+				032567CC1F2533CB00A5A505 /* small_house_01.png */,
+				032567C81F25331F00A5A505 /* small_house_02.png */,
+				032567DD1F25747C00A5A505 /* Grass_texture3_NRM.png */,
 				03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */,
 				03FE2CD91F1F108900D4E2FB /* Kit_001.png */,
 				03769D231F1B6F4800981D21 /* planeTexture.png */,
+				032567DF1F2582C500A5A505 /* armor.png */,
 				03F2DB151F193B3C00F77B78 /* fort.png */,
 				03F2DB161F193B3C00F77B78 /* fort.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
@@ -914,6 +972,7 @@
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
 				03769D211F1B6F0D00981D21 /* plane.u4d */,
 				03FE2CD71F1F0FB000D4E2FB /* player.u4d */,
+				032567CA1F25333500A5A505 /* cityscript.u4d */,
 			);
 			name = Resources;
 			path = Game/Resources;
@@ -1352,48 +1411,66 @@
 				031585931E45C17900424D4D /* nonVisibleShader.fp in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
+				032567EC1F25A1B100A5A505 /* LeftImage.png in Resources */,
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
 				03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */,
 				03AEF86719CF474D00082589 /* AnimationShader.fp in Resources */,
+				032567EB1F25A1B100A5A505 /* FrontImage.png in Resources */,
+				032567CB1F25333500A5A505 /* cityscript.u4d in Resources */,
 				03FE2CDA1F1F108900D4E2FB /* Kit_001.png in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
+				032567DA1F256B4C00A5A505 /* small_house_02_NRM.png in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
+				032567CF1F25371600A5A505 /* little_mansion.png in Resources */,
 				03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */,
 				03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */,
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
+				032567C91F25331F00A5A505 /* small_house_02.png in Resources */,
 				03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */,
 				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
 				03769D221F1B6F0D00981D21 /* plane.u4d in Resources */,
+				032567E91F25A1B100A5A505 /* BackImage.png in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
+				032567ED1F25A1B100A5A505 /* RightImage.png in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03769D241F1B6F4800981D21 /* planeTexture.png in Resources */,
 				03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */,
+				032567EA1F25A1B100A5A505 /* BottomImage.png in Resources */,
 				030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */,
 				03FE2CDF1F1FA9FD00D4E2FB /* walkinganimation.u4d in Resources */,
 				03DB6E86192F7B25006E21D0 /* NormalMapping.vp in Resources */,
 				034DBC8A1A74112000AC43EB /* debugShader.vp in Resources */,
 				030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
+				032567D11F25690A00A5A505 /* small_house_normal.png in Resources */,
+				032567D31F25691400A5A505 /* fort_normal.png in Resources */,
 				03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */,
 				034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */,
 				03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */,
+				032567DE1F25747C00A5A505 /* Grass_texture3_NRM.png in Resources */,
+				032567D91F256B4C00A5A505 /* little_mansion_NRM.png in Resources */,
 				03F2DB171F193B3C00F77B78 /* fort.png in Resources */,
+				032567E21F259CD000A5A505 /* armor_NRM.png in Resources */,
 				034DBC891A74112000AC43EB /* debugShader.fp in Resources */,
 				034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */,
 				034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */,
 				03DB6E85192F7B25006E21D0 /* NormalMapping.fp in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
+				032567CD1F2533CB00A5A505 /* small_house_01.png in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
+				032567DC1F2572C000A5A505 /* Grass_texture3.png in Resources */,
 				031585941E45C17900424D4D /* nonVisibleShader.vp in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				03F2DB181F193B3C00F77B78 /* fort.u4d in Resources */,
+				032567E01F2582C500A5A505 /* armor.png in Resources */,
+				032567EE1F25A1B100A5A505 /* TopImage.png in Resources */,
 				03FE2CD81F1F0FB000D4E2FB /* player.u4d in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
@@ -1476,6 +1553,7 @@
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
+				032567D61F256A2800A5A505 /* ModelAsset.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,

@@ -20,16 +20,19 @@ void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
-        setEnableShadow(true);
+        setEnableShadow(false);
+        /*
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         
         if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimation.u4d")) {
         
             
         }
+        */
         
-        loadRenderingInformation();
     }
+    
+    loadRenderingInformation();
 }
 
 void SoccerPlayer::update(double dt){
@@ -39,4 +42,5 @@ void SoccerPlayer::update(double dt){
 void SoccerPlayer::playAnimation(){
     
     walkingAnimation->play();
+    //walkingAnimation->setPlayContinuousLoop(false);
 }
