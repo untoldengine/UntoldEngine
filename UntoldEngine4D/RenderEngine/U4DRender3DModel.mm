@@ -382,7 +382,7 @@ namespace U4DEngine {
         normalSpace=normalSpace.transpose();
         
         //get the light position in view space
-        U4DVector3n lightPos=light->getAbsoluteSpace().transformDualQuaternionToMatrix4n()*light->getAbsolutePosition();
+        U4DVector3n lightPos=light->getAbsolutePosition();
         
         U4DVector4n lightPosition(lightPos.x, lightPos.y, lightPos.z, 1.0);
         

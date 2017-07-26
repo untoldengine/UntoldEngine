@@ -30,9 +30,11 @@ void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile){
         }
         */
         
+        loadRenderingInformation();
+        
     }
     
-    loadRenderingInformation();
+    
 }
 
 void SoccerPlayer::update(double dt){
