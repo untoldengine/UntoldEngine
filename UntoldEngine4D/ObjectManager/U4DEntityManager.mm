@@ -93,27 +93,8 @@ namespace U4DEngine {
      
             child->render(uRenderEncoder);
             
-            
-            //    ONLY FOR DEBUGGING PURPOSES
-                U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
-            
-                if (model) {
-                
-                    if (model->getBroadPhaseBoundingVolumeVisibility()==true) {
-                        
-                        model->getBroadPhaseBoundingVolume()->render(uRenderEncoder);
-                        
-                    }
-                    
-                    if(model->getNarrowPhaseBoundingVolumeVisibility()==true){
-                        model->getNarrowPhaseBoundingVolume()->render(uRenderEncoder);
-                    }
-                }
-            
-            //END ONLY FOR DEBUGGING PURPOSES
-            
-            
             child=child->next;
+        
         }
         
     }
