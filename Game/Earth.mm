@@ -52,7 +52,7 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(0.0,10.2,0.0);
+    light->translateTo(0.0,20.2,1.0);
     
     addChild(light);
     
@@ -86,7 +86,6 @@ void Earth::init(){
     
     ground=new GameAsset();
     ground->init("ground","cityscript.u4d");
-    
     addChild(ground);
     
     player=new ModelAsset();
@@ -99,12 +98,15 @@ void Earth::init(){
     
     
     addChild(skybox);
+    
+    
+    
 }
 
 void Earth::update(double dt){
     
-    //U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //camera->rotateBy(0.0, 1.0, 0.0);
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    //rotateBy(0.0, 1.0, 0.0);
 }
 
 
