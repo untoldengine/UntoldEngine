@@ -97,9 +97,6 @@ namespace U4DEngine {
         //load the index into the buffer
         indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
-        //clear the attribute data contatiner
-        attributeAlignedContainer.clear();
-        
         eligibleToRender=true;
         
         return true;
@@ -368,7 +365,14 @@ namespace U4DEngine {
         
     }
     
-
+    void U4DRenderSkybox::clearModelAttributeData(){
+        
+        //clear the attribute data contatiner
+        attributeAlignedContainer.clear();
+        
+        u4dObject->bodyCoordinates.verticesContainer.clear();
+        
+    }
     
     
 }

@@ -16,11 +16,20 @@ SoccerPlayer::~SoccerPlayer(){
     
 }
 
-void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile){
+void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile, const char* uTextureNormal){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
-        setEnableShadow(false);
+        //setEnableShadow(true);
+        
+        setNormalMapTexture(uTextureNormal);
+        
+        //enableKineticsBehavior();
+        //enableCollisionBehavior();
+        
+        //initMass(10.0);
+        //initCoefficientOfRestitution(0.9);
+        
         /*
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         
@@ -44,5 +53,33 @@ void SoccerPlayer::update(double dt){
 void SoccerPlayer::playAnimation(){
     
     walkingAnimation->play();
-    //walkingAnimation->setPlayContinuousLoop(false);
+    
+}
+
+void SoccerPlayer::pauseAnimation(){
+    
+    walkingAnimation->pause();
+}
+
+void SoccerPlayer::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
+    
+    //set view heading of player
+    viewInDirection(uHeading);
+    
+}
+
+void SoccerPlayer::applyForceToPlayer(float uVelocity, double dt){
+    
+    U4DEngine::U4DVector3n heading=getViewInDirection();
+    
+    heading.normalize();
+    
+    U4DEngine::U4DVector3n forceToPlayer=(heading*uVelocity*getMass())/dt;
+    
+    addForce(forceToPlayer);
+    
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+    
+    setVelocity(initialVelocity);
+    
 }

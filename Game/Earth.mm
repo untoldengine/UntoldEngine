@@ -37,13 +37,13 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
     
     camera->translateTo(cameraPos);
     
     
     setName("earth");
-    //setEnableGrid(true);
+    setEnableGrid(true);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -52,7 +52,7 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(0.0,20.2,1.0);
+    light->translateTo(0.0,10.2,1.0);
     
     addChild(light);
     
@@ -84,29 +84,36 @@ void Earth::init(){
     addChild(fort);
     
     
-    ground=new GameAsset();
-    ground->init("ground","cityscript.u4d");
-    addChild(ground);
     
-    player=new ModelAsset();
-    player->init("guardian","player.u4d","armor_NRM.png");
-    
-    addChild(player);
     
     skybox=new U4DEngine::U4DSkybox();
     skybox->initSkyBox(50.0, "RightImage.png","LeftImage.png", "TopImage.png","BottomImage.png", "FrontImage.png", "BackImage.png");
     
+    //addChild(skybox);
     
-    addChild(skybox);
+    
+    ground=new GameAsset();
+    ground->init("ground","cityscript.u4d");
+    addChild(ground);
     
     
+    
+    player=new SoccerPlayer();
+    player->init("guardian","player.u4d","armor_NRM.png");
+    
+    addChild(player);
+    
+    player->translateTo(0.0, 1.8, 0.0);
+    //player->playAnimation();
+    
+    translateTo(0.0, -1.0, 0);
     
 }
 
 void Earth::update(double dt){
     
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //rotateBy(0.0, 1.0, 0.0);
+    player->rotateBy(0.0, 1.0, 0.0);
+    
 }
 
 

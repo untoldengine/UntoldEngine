@@ -96,6 +96,8 @@ namespace U4DEngine {
         
         void alignedAttributeData();
         
+        void clearModelAttributeData();
+        
         /**
          @brief Method which returns the absolute space of the entity
          

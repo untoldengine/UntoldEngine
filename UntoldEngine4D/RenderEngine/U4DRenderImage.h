@@ -71,6 +71,8 @@ namespace U4DEngine {
          @return Returns the entity absolure space-Orientation and Position
          */
         U4DDualQuaternion getEntitySpace();
+        
+        void clearModelAttributeData();
 
     };
 

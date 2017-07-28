@@ -39,6 +39,9 @@ namespace U4DEngine {
             //loads additional information such as normal map, bones, etc if it exists.
             loadMTLAdditionalInformation();
             
+            //clear all model attribute data
+            clearModelAttributeData();
+            
         }else{
             
             U4DLogger *logger=U4DLogger::sharedInstance();
@@ -47,13 +50,12 @@ namespace U4DEngine {
             
         }
         
-        
     }
     
     void U4DRenderManager::clearRawImageData(){
         
-        imageWidth=0.0;
-        imageHeight=0.0;
+        imageWidth=0;
+        imageHeight=0;
         rawImageData.clear();
     }
     
@@ -71,7 +73,6 @@ namespace U4DEngine {
         MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
         
         [textureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
-        
         
     }
     

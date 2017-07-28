@@ -28,7 +28,7 @@ private:
     ModelAsset *house2;
     ModelAsset *fort;
     GameAsset *ground;
-    ModelAsset *player;
+    SoccerPlayer *player;
     
     U4DEngine::U4DSkybox *skybox;
     

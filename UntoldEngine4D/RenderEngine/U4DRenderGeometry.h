@@ -66,6 +66,8 @@ namespace U4DEngine {
         
         void setGeometryLineColor(U4DVector4n &uGeometryLineColor);
         
+        void clearModelAttributeData();
+        
         /**
          @brief Method which returns the absolute space of the entity
          
