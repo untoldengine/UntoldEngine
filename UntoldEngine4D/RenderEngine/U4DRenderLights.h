@@ -59,6 +59,8 @@ namespace U4DEngine {
         
         void alignedAttributeData();
         
+        void clearModelAttributeData();
+        
     };
     
 }

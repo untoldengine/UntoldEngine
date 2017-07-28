@@ -184,9 +184,6 @@ namespace U4DEngine {
         //load the index into the buffer
         indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
-        //clear the attribute data contatiner
-        attributeAlignedContainer.clear();
-        
         eligibleToRender=true;
         
         return true;
@@ -548,6 +545,21 @@ namespace U4DEngine {
         
         samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        
+    }
+    
+    void U4DRender3DModel::clearModelAttributeData(){
+        
+        //clear the attribute data contatiner
+        attributeAlignedContainer.clear();
+        
+        u4dObject->bodyCoordinates.verticesContainer.clear();
+        u4dObject->bodyCoordinates.normalContainer.clear();
+        u4dObject->bodyCoordinates.uVContainer.clear();
+        u4dObject->bodyCoordinates.tangentContainer.clear();
+        u4dObject->materialInformation.materialIndexColorContainer.clear();
+        u4dObject->bodyCoordinates.vertexWeightsContainer.clear();
+        u4dObject->bodyCoordinates.boneIndicesContainer.clear();
         
     }
     

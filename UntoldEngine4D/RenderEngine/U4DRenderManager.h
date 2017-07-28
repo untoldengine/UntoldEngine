@@ -128,6 +128,8 @@ namespace U4DEngine {
         
         void clearRawImageData();
         
+        virtual void clearModelAttributeData(){};
+        
         virtual void initTextureSamplerObjectNull(){};
         
         virtual void setImageDimension(float uWidth,float uHeight){};

@@ -68,6 +68,8 @@ namespace U4DEngine {
         
         void setDiffuseTexture(const char* uTexture);
         
+        void clearModelAttributeData();
+        
         /**
          @brief Method which returns the absolute space of the entity
          

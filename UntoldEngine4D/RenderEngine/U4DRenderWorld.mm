@@ -97,9 +97,6 @@ namespace U4DEngine {
         //create the uniform
         uniformSpaceBuffer=[mtlDevice newBufferWithLength:sizeof(UniformSpace) options:MTLResourceStorageModeShared];
         
-        //clear the attribute data contatiner
-        attributeAlignedContainer.clear();
-        
         eligibleToRender=true;
         
         return true;
@@ -156,7 +153,7 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:u4dObject->bodyCoordinates.verticesContainer.size()];
+            [uRenderEncoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:gridVertexCount];
             
         }
         
@@ -176,7 +173,17 @@ namespace U4DEngine {
             attributeAlignedContainer.push_back(attributeAlignedData);
         }
         
+        gridVertexCount=(int)u4dObject->bodyCoordinates.verticesContainer.size();
+        
     }
     
+    void U4DRenderWorld::clearModelAttributeData(){
+        
+        //clear the attribute data contatiner
+        attributeAlignedContainer.clear();
+        
+        u4dObject->bodyCoordinates.verticesContainer.clear();
+        
+    }
     
 }

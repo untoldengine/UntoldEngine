@@ -41,6 +41,8 @@ namespace U4DEngine {
         
         std::vector<AttributeAlignedWorldData> attributeAlignedContainer;
         
+        int gridVertexCount;
+        
     public:
         
         U4DRenderWorld(U4DWorld *uU4DWorld);
@@ -60,6 +62,8 @@ namespace U4DEngine {
         void alignedAttributeData();
         
         U4DDualQuaternion getEntitySpace();
+        
+        void clearModelAttributeData();
     };
     
 }
