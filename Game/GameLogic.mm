@@ -11,7 +11,7 @@
 #include "U4DButton.h"
 #include "U4DJoyStick.h"
 
-
+#include "U4DLights.h"
 
 GameLogic::GameLogic(){
 
@@ -36,13 +36,18 @@ void GameLogic::init(){
     
 }
 
+void GameLogic::setMainPlayer(SoccerPlayer *uPlayer){
+    
+    player=uPlayer;
+    
+}
+
 
 void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
-        player->playAnimation();
-        
+        //player->translateBy(1.0, 0.0, 0.0);
         
     }else if(buttonA->getIsReleased()){
         
@@ -51,7 +56,7 @@ void GameLogic::receiveTouchUpdate(){
     
     if (buttonB->getIsPressed()) {
         
-        
+        //player->translateBy(-1.0, 0.0, 0.0);
         
     }else if(buttonB->getIsReleased()){
         
@@ -59,7 +64,7 @@ void GameLogic::receiveTouchUpdate(){
     }
     
     if(joystick->getIsActive()){
-        
+        /*
         U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
         
         joystickDirection.z=-joystickDirection.y;
@@ -67,7 +72,7 @@ void GameLogic::receiveTouchUpdate(){
         joystickDirection.y=0;
         
         joystickDirection.normalize();
-        
+        */
         
         
     }else{

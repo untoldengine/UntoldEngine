@@ -39,5 +39,7 @@ public:
     
     void receiveTouchUpdate();
     
+    void setMainPlayer(SoccerPlayer *uPlayer);
+    
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */
