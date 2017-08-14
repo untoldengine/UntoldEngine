@@ -23,12 +23,11 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    ModelAsset *littleMansion;
-    ModelAsset *house1;
-    ModelAsset *house2;
-    ModelAsset *fort;
-    GameAsset *ground;
     SoccerPlayer *player;
+    ModelAsset *ball;
+    GameAsset *fieldGoal1;
+    GameAsset *fieldGoal2;
+    GameAsset *field;
     
     U4DEngine::U4DSkybox *skybox;
     

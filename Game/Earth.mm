@@ -37,83 +37,73 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,15.0,-70.0);
     
     camera->translateTo(cameraPos);
     
     
     setName("earth");
-    setEnableGrid(true);
+    //setEnableGrid(true);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
     director->setWorld(this);
     
+    //compute perspective space
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.1f, 300.0f);
+    director->setPerspectiveSpace(perspectiveSpace);
+    
+    //compute orthographic shadow space
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicSpace(-10.0, 10.0, -10.0, 10.0, -10.0, 10.0f);
+    director->setOrthographicShadowSpace(orthographicShadowSpace);
+    
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(0.0,10.2,1.0);
+    light->translateTo(0.0,50.0,-1.0);
     
     addChild(light);
     
     
     camera->viewInDirection(origin);
-    light->viewInDirection(origin);
-    
-    
-    house1=new ModelAsset();
-    house1->init("small_house_1", "cityscript.u4d","small_house_normal.png");
-    
-    
-    addChild(house1);
 
-    littleMansion=new ModelAsset();
-    littleMansion->init("little_mansion", "cityscript.u4d","little_mansion_NRM.png");
-    
-    addChild(littleMansion);
-  
-    
-    house2=new ModelAsset();
-    house2->init("small_house_2", "cityscript.u4d","small_house_02_NRM.png");
-    
-    addChild(house2);
-    
-    fort=new ModelAsset();
-    fort->init("fort", "cityscript.u4d", "fort_normal.png");
-    
-    addChild(fort);
-    
-    
-    
-    
-    skybox=new U4DEngine::U4DSkybox();
-    skybox->initSkyBox(50.0, "RightImage.png","LeftImage.png", "TopImage.png","BottomImage.png", "FrontImage.png", "BackImage.png");
-    
-    //addChild(skybox);
-    
-    
-    ground=new GameAsset();
-    ground->init("ground","cityscript.u4d");
-    addChild(ground);
-    
-    
-    
     player=new SoccerPlayer();
-    player->init("guardian","player.u4d","armor_NRM.png");
+    player->init("pele","player.u4d","redkitnormal.png");
     
     addChild(player);
     
-    player->translateTo(0.0, 1.8, 0.0);
-    //player->playAnimation();
+    ball=new ModelAsset();
+    ball->init("ball","blenderscript.u4d","Ball_Normal_Map.png");
     
-    translateTo(0.0, -1.0, 0);
+    addChild(ball);
+    
+    fieldGoal1=new GameAsset();
+    fieldGoal1->init("fieldgoal1", "blenderscript.u4d");
+    
+    addChild(fieldGoal1);
+    
+    fieldGoal2=new GameAsset();
+    fieldGoal2->init("fieldgoal2", "blenderscript.u4d");
+    
+    addChild(fieldGoal2);
+    
+    field=new GameAsset();
+    field->init("field", "blenderscript.u4d");
+    
+    addChild(field);
+    
+    light->viewInDirection(origin);
+    
+    //GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
+    //gameModel->setMainPlayer(player);
     
 }
 
 void Earth::update(double dt){
+
+    //U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
-    player->rotateBy(0.0, 1.0, 0.0);
-    
+    //camera->followModel(player, 0.0, 15.0, -70.0);
 }
 
 

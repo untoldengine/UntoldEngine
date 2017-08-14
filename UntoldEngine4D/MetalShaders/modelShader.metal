@@ -234,6 +234,12 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         //sample the texture color
         float4 sampledColor=texture.sample(sam,vertexOut.uvCoords.xy);
         
+        //discard the fragment if the alpha value less than 0.15
+        if(sampledColor.a<0.15){
+            
+            discard_fragment();
+            
+        }
         finalColor=float4(mix(sampledColor,totalLights,0.5));
         
     }else{

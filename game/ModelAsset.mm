@@ -20,7 +20,7 @@ void ModelAsset::init(const char* uModelName, const char* uBlenderFile, const ch
     
     if (loadModel(uModelName, uBlenderFile)) {
         
-        setEnableShadow(true);
+        setEnableShadow(false);
         
         setNormalMapTexture(uTextureNormal);
         
