@@ -57,7 +57,7 @@ public:
     void add(U4DJoyStick *uJoyStick);
     
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
-    void update(float dt);
+    void update(double dt);
     
     void setGameWorld(U4DWorld *uGameWorld);
     void setGameModel(U4DGameModelInterface *uGameModel);

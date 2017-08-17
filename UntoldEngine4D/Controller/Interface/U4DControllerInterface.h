@@ -54,7 +54,7 @@ public:
     virtual void changeState(const U4DTouches &touches,TOUCHSTATE touchState)=0;
     
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder)=0;
-    virtual void update(float dt)=0;
+    virtual void update(double dt)=0;
     virtual void init()=0;
     
     virtual void setGameWorld(U4DWorld *uGameWorld)=0;

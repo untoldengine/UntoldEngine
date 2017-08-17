@@ -11,10 +11,17 @@
 #include "U4DTouches.h"
 #include "U4DDirector.h"
 #include "U4DControllerInterface.h"
+#include "U4DButtonPressedState.h"
+#include "U4DButtonReleasedState.h"
+#include "U4DButtonIdleState.h"
+#include "U4DButtonMovedState.h"
+#include "U4DButtonStateManager.h"
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):buttonState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL),receivedAction(false){
+U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):controllerInterface(NULL),pCallback(NULL){
+    
+    stateManager=new U4DButtonStateManager(this);
     
     setName(uName);
     
@@ -37,7 +44,16 @@ U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uW
     top=centerPosition.y+uHeight/director->getDisplayHeight();
     bottom=centerPosition.y-uHeight/director->getDisplayHeight();
     
-};
+    //set initial state
+    stateManager->changeState(U4DButtonIdleState::sharedInstance());
+    
+}
+    
+U4DButton::~U4DButton(){
+    
+    delete stateManager;
+    
+}
 
 void U4DButton::render(id <MTLRenderCommandEncoder> uRenderEncoder){
     
@@ -45,41 +61,9 @@ void U4DButton::render(id <MTLRenderCommandEncoder> uRenderEncoder){
 
 }
 
-void U4DButton::update(float dt){
+void U4DButton::update(double dt){
     
-    
-    if (getState()!=rTouchesNull) {
-        
-        receivedAction=true;
-        
-        if (getState()==rTouchesBegan ) {
-            
-            isActive=true;
-           
-            
-        }else if(getState()==rTouchesEnded){
-            
-            isActive=false;
-           
-        }
-        
-        if (pCallback!=NULL) {
-            action();
-        }
-        
-        
-        if (controllerInterface !=NULL) {
-            controllerInterface->setReceivedAction(true);
-        }
-       
-        buttonState=rTouchesNull;
-        
-    }else{
-        
-        receivedAction=NULL;
-        isActive=NULL;
-        
-    }
+    stateManager->update(dt);
     
 }
 
@@ -89,31 +73,43 @@ void U4DButton::action(){
 
 }
 
-void U4DButton::changeState(TOUCHSTATE uTouchState){
-    
-    buttonState=uTouchState;
-}
-
 void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
     
     
-        if (uTouchPosition.x>left && uTouchPosition.x<right) {
-            
-           if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
+    if (uTouchPosition.x>left && uTouchPosition.x<right) {
+        
+        if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
 
-               if (uTouchState==rTouchesBegan || uTouchState==rTouchesEnded) {
+            if (uTouchState==rTouchesBegan) {
                 
-                   buttonState=uTouchState;
-                   buttonImages.changeImage();
-                   
-               }
+                stateManager->changeState(U4DButtonPressedState::sharedInstance());
+            
+            }else if(uTouchState==rTouchesMoved && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance())){
+                
+                stateManager->changeState(U4DButtonMovedState::sharedInstance());
+            
+            }else if(uTouchState==rTouchesEnded && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance() || stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance())){
+                
+                stateManager->changeState(U4DButtonReleasedState::sharedInstance());
+                
             }
         }
-
-}
-
-TOUCHSTATE U4DButton::getState(){
-    return buttonState;
+        
+    }
+    
+    
+    if (uTouchPosition.x<left || uTouchPosition.x>right || uTouchPosition.y<bottom || uTouchPosition.y>top ){
+        
+        if (stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance()) {
+            
+            stateManager->changeState(U4DButtonReleasedState::sharedInstance());
+            
+        }
+        
+        
+    }
+    
+    
 }
     
 void U4DButton::setCallbackAction(U4DCallbackInterface *uAction){
@@ -122,22 +118,17 @@ void U4DButton::setCallbackAction(U4DCallbackInterface *uAction){
     pCallback=uAction;
     
 }
-   
-bool U4DButton::getIsActive(){
-
-    return isActive;
-}
-    
-bool U4DButton::getReceivedAction(){
-    return receivedAction;
-}
     
 bool U4DButton::getIsPressed(){
-    return (getReceivedAction()==true && getIsActive()==true);
+    
+    return (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance());
+    
 }
 
 bool U4DButton::getIsReleased(){
-    return (getReceivedAction()==true && getIsActive()==false);
+    
+    return (stateManager->getCurrentState()==U4DButtonReleasedState::sharedInstance());
+    
 }
     
 void U4DButton::setControllerInterface(U4DControllerInterface* uControllerInterface){

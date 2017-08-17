@@ -49,8 +49,11 @@ void GameLogic::receiveTouchUpdate(){
         
         //player->translateBy(1.0, 0.0, 0.0);
         
+        std::cout<<"button A is pressed"<<std::endl;
+        
     }else if(buttonA->getIsReleased()){
         
+        std::cout<<"button A is released"<<std::endl;
         
     }
     
@@ -58,9 +61,11 @@ void GameLogic::receiveTouchUpdate(){
         
         //player->translateBy(-1.0, 0.0, 0.0);
         
+        std::cout<<"button B is pressed"<<std::endl;
+        
     }else if(buttonB->getIsReleased()){
         
-       
+       std::cout<<"button B is released"<<std::endl;
     }
     
     if(joystick->getIsActive()){

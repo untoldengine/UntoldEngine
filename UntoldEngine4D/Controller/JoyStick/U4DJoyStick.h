@@ -64,7 +64,7 @@ public:
     ~U4DJoyStick();
     
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
-    void update(float dt);
+    void update(double dt);
     void action();
     
     void setJoyStickWidth(float uJoyStickWidth);

@@ -104,6 +104,12 @@
 		03C03C361F3A00580001EFA1 /* redkit.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C03C341F3A00580001EFA1 /* redkit.png */; };
 		03C03C381F41156D0001EFA1 /* stadium_el.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C03C371F41156D0001EFA1 /* stadium_el.png */; };
 		03C03C3A1F411B640001EFA1 /* Field_Diffuse.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C03C391F411B640001EFA1 /* Field_Diffuse.png */; };
+		03C03C3D1F43E2780001EFA1 /* U4DButtonStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C3B1F43E2780001EFA1 /* U4DButtonStateInterface.mm */; };
+		03C03C401F43E2A80001EFA1 /* U4DButtonStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C3E1F43E2A80001EFA1 /* U4DButtonStateManager.mm */; };
+		03C03C431F43EA2F0001EFA1 /* U4DButtonPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C411F43EA2F0001EFA1 /* U4DButtonPressedState.mm */; };
+		03C03C461F44070E0001EFA1 /* U4DButtonReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C441F44070E0001EFA1 /* U4DButtonReleasedState.mm */; };
+		03C03C491F44190C0001EFA1 /* U4DButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C471F44190C0001EFA1 /* U4DButtonIdleState.mm */; };
+		03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C4A1F44B3FB0001EFA1 /* U4DButtonMovedState.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03CC83681E342F6300DA9180 /* particleDustShader.fp */; };
@@ -348,6 +354,18 @@
 		03C03C341F3A00580001EFA1 /* redkit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = redkit.png; path = Resources/redkit.png; sourceTree = SOURCE_ROOT; };
 		03C03C371F41156D0001EFA1 /* stadium_el.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = stadium_el.png; path = Resources/stadium_el.png; sourceTree = SOURCE_ROOT; };
 		03C03C391F411B640001EFA1 /* Field_Diffuse.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = Field_Diffuse.png; path = Resources/Field_Diffuse.png; sourceTree = SOURCE_ROOT; };
+		03C03C3B1F43E2780001EFA1 /* U4DButtonStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DButtonStateInterface.mm; sourceTree = "<group>"; };
+		03C03C3C1F43E2780001EFA1 /* U4DButtonStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonStateInterface.h; sourceTree = "<group>"; };
+		03C03C3E1F43E2A80001EFA1 /* U4DButtonStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DButtonStateManager.mm; sourceTree = "<group>"; };
+		03C03C3F1F43E2A80001EFA1 /* U4DButtonStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonStateManager.h; sourceTree = "<group>"; };
+		03C03C411F43EA2F0001EFA1 /* U4DButtonPressedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DButtonPressedState.mm; sourceTree = "<group>"; };
+		03C03C421F43EA2F0001EFA1 /* U4DButtonPressedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonPressedState.h; sourceTree = "<group>"; };
+		03C03C441F44070E0001EFA1 /* U4DButtonReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DButtonReleasedState.mm; sourceTree = "<group>"; };
+		03C03C451F44070E0001EFA1 /* U4DButtonReleasedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonReleasedState.h; sourceTree = "<group>"; };
+		03C03C471F44190C0001EFA1 /* U4DButtonIdleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DButtonIdleState.mm; sourceTree = "<group>"; };
+		03C03C481F44190C0001EFA1 /* U4DButtonIdleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonIdleState.h; sourceTree = "<group>"; };
+		03C03C4A1F44B3FB0001EFA1 /* U4DButtonMovedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DButtonMovedState.mm; sourceTree = "<group>"; };
+		03C03C4B1F44B3FB0001EFA1 /* U4DButtonMovedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonMovedState.h; sourceTree = "<group>"; };
 		03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joyStickBackground.png; path = Resources/joyStickBackground.png; sourceTree = SOURCE_ROOT; };
 		03C737A21A4F1D9F001B4F77 /* joystickDriver.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joystickDriver.png; path = Resources/joystickDriver.png; sourceTree = SOURCE_ROOT; };
 		03CC83681E342F6300DA9180 /* particleDustShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = particleDustShader.fp; sourceTree = "<group>"; };
@@ -1069,6 +1087,18 @@
 			children = (
 				03E6ED601943D6FE007AD131 /* U4DButton.h */,
 				03E6ED611943D6FE007AD131 /* U4DButton.mm */,
+				03C03C3C1F43E2780001EFA1 /* U4DButtonStateInterface.h */,
+				03C03C3B1F43E2780001EFA1 /* U4DButtonStateInterface.mm */,
+				03C03C3F1F43E2A80001EFA1 /* U4DButtonStateManager.h */,
+				03C03C3E1F43E2A80001EFA1 /* U4DButtonStateManager.mm */,
+				03C03C421F43EA2F0001EFA1 /* U4DButtonPressedState.h */,
+				03C03C411F43EA2F0001EFA1 /* U4DButtonPressedState.mm */,
+				03C03C451F44070E0001EFA1 /* U4DButtonReleasedState.h */,
+				03C03C441F44070E0001EFA1 /* U4DButtonReleasedState.mm */,
+				03C03C481F44190C0001EFA1 /* U4DButtonIdleState.h */,
+				03C03C471F44190C0001EFA1 /* U4DButtonIdleState.mm */,
+				03C03C4B1F44B3FB0001EFA1 /* U4DButtonMovedState.h */,
+				03C03C4A1F44B3FB0001EFA1 /* U4DButtonMovedState.mm */,
 			);
 			path = Button;
 			sourceTree = "<group>";
@@ -1447,6 +1477,7 @@
 				03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
+				03C03C431F43EA2F0001EFA1 /* U4DButtonPressedState.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,
@@ -1466,6 +1497,7 @@
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
 				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
+				03C03C461F44070E0001EFA1 /* U4DButtonReleasedState.mm in Sources */,
 				03F2DB141F191F9B00F77B78 /* U4DRenderWorld.mm in Sources */,
 				03F2DB121F191F9B00F77B78 /* U4DRenderMultiImage.mm in Sources */,
 				03F2DB0C1F191F9B00F77B78 /* U4DRender3DModel.mm in Sources */,
@@ -1488,6 +1520,7 @@
 				032567D61F256A2800A5A505 /* ModelAsset.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
+				03C03C401F43E2A80001EFA1 /* U4DButtonStateManager.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
 				0390C7CD1E3432910028AC20 /* U4DParticleData.mm in Sources */,
 				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
@@ -1496,8 +1529,10 @@
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
+				03C03C3D1F43E2780001EFA1 /* U4DButtonStateInterface.mm in Sources */,
 				03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */,
 				03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */,
+				03C03C491F44190C0001EFA1 /* U4DButtonIdleState.mm in Sources */,
 				03068D4D19B8F2A400ABDC55 /* U4DVertexData.mm in Sources */,
 				03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */,
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
@@ -1529,6 +1564,7 @@
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
+				03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
 				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,
