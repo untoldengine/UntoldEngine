@@ -127,7 +127,7 @@ void U4DJoyStick::render(id <MTLRenderCommandEncoder> uRenderEncoder){
     joyStickImage.render(uRenderEncoder);
 }
 
-void U4DJoyStick::update(float dt){
+void U4DJoyStick::update(double dt){
     
     
     if (getState()!=rTouchesNull) {

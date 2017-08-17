@@ -104,7 +104,7 @@ void U4DTouchesController::changeState(const U4DTouches &touches,TOUCHSTATE touc
     
 }
 
-void U4DTouchesController::update(float dt){
+void U4DTouchesController::update(double dt){
     
     std::vector<U4DButton*>::iterator buttonPos;
     
