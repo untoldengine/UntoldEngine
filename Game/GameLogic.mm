@@ -69,7 +69,7 @@ void GameLogic::receiveTouchUpdate(){
     }
     
     if(joystick->getIsActive()){
-        /*
+        
         U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
         
         joystickDirection.z=-joystickDirection.y;
@@ -77,8 +77,8 @@ void GameLogic::receiveTouchUpdate(){
         joystickDirection.y=0;
         
         joystickDirection.normalize();
-        */
         
+        joystickDirection.show();
         
     }else{
         

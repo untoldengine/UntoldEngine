@@ -21,6 +21,8 @@
 
 namespace U4DEngine {
     class U4DControllerInterface;
+    class U4DJoystickStateInterface;
+    class U4DJoystickStateManager;
 }
 
 namespace U4DEngine {
@@ -28,19 +30,35 @@ namespace U4DEngine {
 class U4DJoyStick:public U4DEntity{
   
 private:
-    U4DCallbackInterface *pCallback;
-    U4DControllerInterface *controllerInterface;
+    
+    U4DJoystickStateManager *stateManager;
+    
     float backgroundWidth;
     float backgroundHeight;
     
     float joyStickWidth;
     float joyStickHeight;
     
-    U4DVector3n originalPosition;
+    
     TOUCHSTATE joyStickState;
+    
+public:
+    
+    U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight);
+    
+    ~U4DJoyStick();
+    
+    U4DCallbackInterface *pCallback;
+    
+    U4DControllerInterface *controllerInterface;
+    
+    U4DImage backgroundImage;
+    U4DImage joyStickImage;
     
     U4DVector3n dataPosition;
     float dataMagnitude;
+    
+    U4DVector3n originalPosition;
     
     U4DVector3n currentPosition;
     
@@ -54,14 +72,6 @@ private:
     
     bool directionReversal;
     
-public:
-    
-    U4DImage backgroundImage;
-    U4DImage joyStickImage;
-    
-    U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight);
-    
-    ~U4DJoyStick();
     
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     void update(double dt);

@@ -110,6 +110,11 @@
 		03C03C461F44070E0001EFA1 /* U4DButtonReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C441F44070E0001EFA1 /* U4DButtonReleasedState.mm */; };
 		03C03C491F44190C0001EFA1 /* U4DButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C471F44190C0001EFA1 /* U4DButtonIdleState.mm */; };
 		03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C4A1F44B3FB0001EFA1 /* U4DButtonMovedState.mm */; };
+		03C03C4F1F4540610001EFA1 /* U4DJoystickStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C4D1F4540610001EFA1 /* U4DJoystickStateInterface.mm */; };
+		03C03C521F4540750001EFA1 /* U4DJoystickStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C501F4540750001EFA1 /* U4DJoystickStateManager.mm */; };
+		03C03C551F45408C0001EFA1 /* U4DJoystickIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C531F45408C0001EFA1 /* U4DJoystickIdleState.mm */; };
+		03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C561F45409F0001EFA1 /* U4DJoystickActiveState.mm */; };
+		03C03C5B1F4540B20001EFA1 /* U4DJoystickReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C591F4540B20001EFA1 /* U4DJoystickReleasedState.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03CC83681E342F6300DA9180 /* particleDustShader.fp */; };
@@ -366,6 +371,16 @@
 		03C03C481F44190C0001EFA1 /* U4DButtonIdleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonIdleState.h; sourceTree = "<group>"; };
 		03C03C4A1F44B3FB0001EFA1 /* U4DButtonMovedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DButtonMovedState.mm; sourceTree = "<group>"; };
 		03C03C4B1F44B3FB0001EFA1 /* U4DButtonMovedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DButtonMovedState.h; sourceTree = "<group>"; };
+		03C03C4D1F4540610001EFA1 /* U4DJoystickStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJoystickStateInterface.mm; sourceTree = "<group>"; };
+		03C03C4E1F4540610001EFA1 /* U4DJoystickStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickStateInterface.h; sourceTree = "<group>"; };
+		03C03C501F4540750001EFA1 /* U4DJoystickStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJoystickStateManager.mm; sourceTree = "<group>"; };
+		03C03C511F4540750001EFA1 /* U4DJoystickStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickStateManager.h; sourceTree = "<group>"; };
+		03C03C531F45408C0001EFA1 /* U4DJoystickIdleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJoystickIdleState.mm; sourceTree = "<group>"; };
+		03C03C541F45408C0001EFA1 /* U4DJoystickIdleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickIdleState.h; sourceTree = "<group>"; };
+		03C03C561F45409F0001EFA1 /* U4DJoystickActiveState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJoystickActiveState.mm; sourceTree = "<group>"; };
+		03C03C571F45409F0001EFA1 /* U4DJoystickActiveState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickActiveState.h; sourceTree = "<group>"; };
+		03C03C591F4540B20001EFA1 /* U4DJoystickReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJoystickReleasedState.mm; sourceTree = "<group>"; };
+		03C03C5A1F4540B20001EFA1 /* U4DJoystickReleasedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickReleasedState.h; sourceTree = "<group>"; };
 		03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joyStickBackground.png; path = Resources/joyStickBackground.png; sourceTree = SOURCE_ROOT; };
 		03C737A21A4F1D9F001B4F77 /* joystickDriver.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joystickDriver.png; path = Resources/joystickDriver.png; sourceTree = SOURCE_ROOT; };
 		03CC83681E342F6300DA9180 /* particleDustShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = particleDustShader.fp; sourceTree = "<group>"; };
@@ -1117,6 +1132,16 @@
 			children = (
 				03E6ED661943D6FE007AD131 /* U4DJoyStick.h */,
 				03E6ED671943D6FE007AD131 /* U4DJoyStick.mm */,
+				03C03C4E1F4540610001EFA1 /* U4DJoystickStateInterface.h */,
+				03C03C4D1F4540610001EFA1 /* U4DJoystickStateInterface.mm */,
+				03C03C511F4540750001EFA1 /* U4DJoystickStateManager.h */,
+				03C03C501F4540750001EFA1 /* U4DJoystickStateManager.mm */,
+				03C03C541F45408C0001EFA1 /* U4DJoystickIdleState.h */,
+				03C03C531F45408C0001EFA1 /* U4DJoystickIdleState.mm */,
+				03C03C571F45409F0001EFA1 /* U4DJoystickActiveState.h */,
+				03C03C561F45409F0001EFA1 /* U4DJoystickActiveState.mm */,
+				03C03C5A1F4540B20001EFA1 /* U4DJoystickReleasedState.h */,
+				03C03C591F4540B20001EFA1 /* U4DJoystickReleasedState.mm */,
 			);
 			path = JoyStick;
 			sourceTree = "<group>";
@@ -1483,10 +1508,12 @@
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,
 				03F2DB0D1F191F9B00F77B78 /* U4DRenderer.mm in Sources */,
 				03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */,
+				03C03C551F45408C0001EFA1 /* U4DJoystickIdleState.mm in Sources */,
 				03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */,
 				03759BB6175B0383002EB5D9 /* U4DQuaternion.mm in Sources */,
 				03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */,
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
+				03C03C4F1F4540610001EFA1 /* U4DJoystickStateInterface.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				03F2DAF61F191A2600F77B78 /* worldShader.metal in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
@@ -1503,6 +1530,7 @@
 				03F2DB0C1F191F9B00F77B78 /* U4DRender3DModel.mm in Sources */,
 				03F2DAF51F191A2600F77B78 /* skyboxShader.metal in Sources */,
 				03F2DAF41F191A2600F77B78 /* multiImageShader.metal in Sources */,
+				03C03C521F4540750001EFA1 /* U4DJoystickStateManager.mm in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
@@ -1531,6 +1559,7 @@
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
 				03C03C3D1F43E2780001EFA1 /* U4DButtonStateInterface.mm in Sources */,
 				03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */,
+				03C03C5B1F4540B20001EFA1 /* U4DJoystickReleasedState.mm in Sources */,
 				03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */,
 				03C03C491F44190C0001EFA1 /* U4DButtonIdleState.mm in Sources */,
 				03068D4D19B8F2A400ABDC55 /* U4DVertexData.mm in Sources */,
@@ -1561,6 +1590,7 @@
 				036FB58118CE9CB8000EA639 /* MainScene.mm in Sources */,
 				030449A217B8548500A3A2AE /* U4DVector2n.mm in Sources */,
 				03E6EDE61943D866007AD131 /* U4DStaticModel.mm in Sources */,
+				03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */,
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
