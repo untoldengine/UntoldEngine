@@ -16,10 +16,11 @@
 #include "U4DButtonIdleState.h"
 #include "U4DButtonMovedState.h"
 #include "U4DButtonStateManager.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):controllerInterface(NULL),pCallback(NULL){
+U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):controllerInterface(NULL),pCallback(NULL),currentTouchPosition(0.0,0.0,0.0){
     
     stateManager=new U4DButtonStateManager(this);
     
@@ -80,6 +81,8 @@ void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
         
         if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
 
+            currentTouchPosition=uTouchPosition;
+            
             if (uTouchState==rTouchesBegan) {
                 
                 stateManager->changeState(U4DButtonPressedState::sharedInstance());
@@ -102,10 +105,16 @@ void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
         
         if (stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance()) {
             
-            stateManager->changeState(U4DButtonReleasedState::sharedInstance());
+            float touchDistance=(currentTouchPosition-uTouchPosition).magnitude();
+        
+            U4DNumerical numerical;
+            
+            if (numerical.areEqual(touchDistance, 0.0, buttonTouchEpsilon)) {
+                
+                stateManager->changeState(U4DButtonReleasedState::sharedInstance());
+            }
             
         }
-        
         
     }
     
