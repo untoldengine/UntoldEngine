@@ -34,8 +34,10 @@ private:
     U4DButtonStateManager *stateManager;
     
     float left,right,bottom,top;
+    
     U4DVector3n centerPosition;
     
+    U4DVector3n currentTouchPosition;
     
 
 public:
