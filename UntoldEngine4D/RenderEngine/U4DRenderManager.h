@@ -106,6 +106,10 @@ namespace U4DEngine {
         
         virtual void updateShadowSpaceUniforms(){};
         
+        virtual void updateRenderingInformation(){};
+        
+        virtual void modifyRenderingInformation(){};
+        
         virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder){};
         
         virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
@@ -134,16 +138,20 @@ namespace U4DEngine {
         
         virtual void setImageDimension(float uWidth,float uHeight){};
         
+        virtual void setImageDimension(float uWidth,float uHeight, float uAtlasWidth,float uAtlasHeight){};
+        
         virtual void setSkyboxDimension(float uSize){};
         
         virtual void setDiffuseTexture(const char* uTexture){};
         
-        virtual void setAmbientTexture(const char* uTexture){}
+        virtual void setAmbientTexture(const char* uTexture){};
+        
+        virtual void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight){};
         
         void addTexturesToSkyboxContainer(const char* uTextures);
         
         std::vector<const char*> getSkyboxTexturesContainer();
-        
+
         
         /**
          @brief Method which returns the absolute space of the entity
@@ -179,6 +187,8 @@ namespace U4DEngine {
         matrix_float3x3 convertToSIMD(U4DEngine::U4DMatrix3n &uMatrix);
         
         vector_float4 convertToSIMD(U4DEngine::U4DVector4n &uVector);
+        
+        vector_float2 convertToSIMD(U4DEngine::U4DVector2n &uVector);
         
         vector_float3 vector_make(float x, float y, float z);
     };

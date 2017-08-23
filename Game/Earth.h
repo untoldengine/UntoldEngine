@@ -13,6 +13,7 @@
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
 #include "U4DSkybox.h"
+#include "U4DText.h"
 
 class GameController;
 class GameAsset;
@@ -30,6 +31,8 @@ private:
     GameAsset *field;
     
     U4DEngine::U4DSkybox *skybox;
+    
+    U4DEngine::U4DText *myText1;
     
 public:
    

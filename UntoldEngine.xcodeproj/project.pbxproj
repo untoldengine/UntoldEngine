@@ -44,6 +44,11 @@
 		034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034127AF17C30E2300E4C6D9 /* SkyBoxShader.fp */; };
 		034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
+		03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */; };
+		03494BB11F48AE8600ACE0EC /* U4DText.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BB01F48AE8600ACE0EC /* U4DText.mm */; };
+		03494BB31F48B59E00ACE0EC /* fontShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03494BB21F48B59E00ACE0EC /* fontShader.metal */; };
+		03494BB61F4BF24F00ACE0EC /* myFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03494BB41F4BF24F00ACE0EC /* myFont.png */; };
+		03494BB71F4BF24F00ACE0EC /* myFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03494BB51F4BF24F00ACE0EC /* myFont.xml */; };
 		034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC801A73FAD200AC43EB /* lightShader.fp */; };
 		034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC811A73FAD200AC43EB /* lightShader.vp */; };
 		034DBC891A74112000AC43EB /* debugShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC871A74112000AC43EB /* debugShader.fp */; };
@@ -261,6 +266,13 @@
 		034127B017C30E2300E4C6D9 /* SkyBoxShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = SkyBoxShader.vp; sourceTree = "<group>"; };
 		0346862A1B1A4DA400B2105B /* U4DPlane.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlane.mm; sourceTree = "<group>"; };
 		0346862B1B1A4DA400B2105B /* U4DPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlane.h; sourceTree = "<group>"; };
+		03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRenderFont.mm; path = RenderEngine/U4DRenderFont.mm; sourceTree = "<group>"; };
+		03494BAD1F4723A400ACE0EC /* U4DRenderFont.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DRenderFont.h; path = RenderEngine/U4DRenderFont.h; sourceTree = "<group>"; };
+		03494BAF1F48AE8600ACE0EC /* U4DText.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DText.h; sourceTree = "<group>"; };
+		03494BB01F48AE8600ACE0EC /* U4DText.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DText.mm; sourceTree = "<group>"; };
+		03494BB21F48B59E00ACE0EC /* fontShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = fontShader.metal; path = MetalShaders/fontShader.metal; sourceTree = "<group>"; };
+		03494BB41F4BF24F00ACE0EC /* myFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = myFont.png; path = Resources/myFont.png; sourceTree = SOURCE_ROOT; };
+		03494BB51F4BF24F00ACE0EC /* myFont.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = myFont.xml; path = Resources/myFont.xml; sourceTree = SOURCE_ROOT; };
 		034DBC801A73FAD200AC43EB /* lightShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.fp; sourceTree = "<group>"; };
 		034DBC811A73FAD200AC43EB /* lightShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.vp; sourceTree = "<group>"; };
 		034DBC871A74112000AC43EB /* debugShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = debugShader.fp; sourceTree = "<group>"; };
@@ -824,7 +836,7 @@
 				0390C7C11E3432640028AC20 /* Particles */,
 				0327B19B1B0BBC1D0087BACC /* BoundingVolumes */,
 				03E6EDA01943D79F007AD131 /* SkyBox */,
-				03E6ED981943D799007AD131 /* Fonts */,
+				03E6ED981943D799007AD131 /* Text */,
 				03E6ED7B1943D78C007AD131 /* ImageObjects */,
 				037C473917B597CB007B8283 /* BodyObjects */,
 				03ADFEF21775F3F5002DDD03 /* U4DEntity.h */,
@@ -936,6 +948,8 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03494BB41F4BF24F00ACE0EC /* myFont.png */,
+				03494BB51F4BF24F00ACE0EC /* myFont.xml */,
 				03C03C391F411B640001EFA1 /* Field_Diffuse.png */,
 				03C03C371F41156D0001EFA1 /* stadium_el.png */,
 				03C03C331F3A00580001EFA1 /* redkitnormal.png */,
@@ -1166,10 +1180,13 @@
 			path = ImageObjects;
 			sourceTree = "<group>";
 		};
-		03E6ED981943D799007AD131 /* Fonts */ = {
+		03E6ED981943D799007AD131 /* Text */ = {
 			isa = PBXGroup;
 			children = (
+				03494BAF1F48AE8600ACE0EC /* U4DText.h */,
+				03494BB01F48AE8600ACE0EC /* U4DText.mm */,
 			);
+			name = Text;
 			path = Fonts;
 			sourceTree = "<group>";
 		};
@@ -1333,6 +1350,8 @@
 				03F2DB071F191F9B00F77B78 /* U4DRenderMultiImage.mm */,
 				03F2DB081F191F9B00F77B78 /* U4DRenderSkybox.h */,
 				03F2DB091F191F9B00F77B78 /* U4DRenderSkybox.mm */,
+				03494BAD1F4723A400ACE0EC /* U4DRenderFont.h */,
+				03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */,
 			);
 			name = RenderEngine;
 			sourceTree = "<group>";
@@ -1349,6 +1368,7 @@
 				03F2DAED1F191A2600F77B78 /* multiImageShader.metal */,
 				03F2DAEE1F191A2600F77B78 /* skyboxShader.metal */,
 				03F2DAEF1F191A2600F77B78 /* worldShader.metal */,
+				03494BB21F48B59E00ACE0EC /* fontShader.metal */,
 			);
 			name = MetalShaders;
 			sourceTree = "<group>";
@@ -1433,6 +1453,7 @@
 				03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */,
 				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
+				03494BB61F4BF24F00ACE0EC /* myFont.png in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
 				03C03C381F41156D0001EFA1 /* stadium_el.png in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
@@ -1459,6 +1480,7 @@
 				03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				03FE2CD81F1F0FB000D4E2FB /* player.u4d in Resources */,
+				03494BB71F4BF24F00ACE0EC /* myFont.xml in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
@@ -1493,6 +1515,7 @@
 				03759B5A175B0135002EB5D9 /* ViewController.mm in Sources */,
 				03F2DB0E1F191F9B00F77B78 /* U4DRenderGeometry.mm in Sources */,
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
+				03494BB31F48B59E00ACE0EC /* fontShader.metal in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
@@ -1516,6 +1539,7 @@
 				03C03C4F1F4540610001EFA1 /* U4DJoystickStateInterface.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				03F2DAF61F191A2600F77B78 /* worldShader.metal in Sources */,
+				03494BB11F48AE8600ACE0EC /* U4DText.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				03F2DAE81F1919D400F77B78 /* shadowShader.metal in Sources */,
@@ -1542,6 +1566,7 @@
 				03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
+				03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
