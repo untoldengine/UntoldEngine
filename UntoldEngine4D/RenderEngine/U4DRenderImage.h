@@ -39,6 +39,8 @@ namespace U4DEngine {
         
         U4DImage *u4dObject;
         
+    protected:
+        
         std::vector<AttributeAlignedImageData> attributeAlignedContainer;
         
     public:
@@ -51,7 +53,7 @@ namespace U4DEngine {
         
         void initMTLRenderPipeline();
         
-        bool loadMTLBuffer();
+        virtual bool loadMTLBuffer();
         
         void loadMTLTexture();
         
@@ -61,7 +63,7 @@ namespace U4DEngine {
         
         void alignedAttributeData();
         
-        void setImageDimension(float uWidth,float uHeight);
+        virtual void setImageDimension(float uWidth,float uHeight);
         
         void setDiffuseTexture(const char* uTexture);
         
@@ -72,7 +74,7 @@ namespace U4DEngine {
          */
         U4DDualQuaternion getEntitySpace();
         
-        void clearModelAttributeData();
+        virtual void clearModelAttributeData();
 
     };
 

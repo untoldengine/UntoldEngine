@@ -1,5 +1,5 @@
 //
-//  U4DFont.h
+//  U4DText.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 12/17/13.
@@ -23,9 +23,9 @@ class U4DFontLoader;
 namespace U4DEngine {
 
 /**
- @brief The U4DFont class represents fonts entities
+ @brief The U4DText class represents fonts entities
  */
-class U4DFont:public U4DImage{
+class U4DText:public U4DImage{
     
 private:
 
@@ -49,6 +49,8 @@ private:
      */
     float textSpacing;
     
+    int currentTextContainerSize;
+    
 public:
     
     /**
@@ -56,22 +58,22 @@ public:
      
      @param uFontLoader Font loader object
      */
-    U4DFont(U4DFontLoader* uFontLoader);
+    U4DText(U4DFontLoader* uFontLoader, float uTextSpacing);
 
     /**
      @brief Destructor of class
      */
-    ~U4DFont();
+    ~U4DText();
     
     /**
      @brief Copy constructor
      */
-    U4DFont(const U4DFont& value);
+    U4DText(const U4DText& value);
     
     /**
      @brief Copy constructor
      */
-    U4DFont& operator=(const U4DFont& value);
+    U4DText& operator=(const U4DText& value);
 
     /**
      @brief Name of font image
@@ -90,10 +92,13 @@ public:
      */
     void setText(const char* uText);
     
-    /**
-     @brief Method which starts the rendering process of the entity
-     */
-    void draw();
+    void setTextSpacing(float uTextSpacing);
+    
+    void parseText(const char* uText);
+    
+    void loadText();
+    
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
 };
     

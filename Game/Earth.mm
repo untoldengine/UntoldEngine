@@ -31,6 +31,8 @@
 #include "ModelAsset.h"
 #include "SoccerPlayer.h"
 
+#include "U4DFontLoader.h"
+
 using namespace U4DEngine;
 
 void Earth::init(){
@@ -90,13 +92,26 @@ void Earth::init(){
     field=new GameAsset();
     field->init("field", "blenderscript.u4d");
     
-    addChild(field);
+    
     
     light->viewInDirection(origin);
     
     //GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     //gameModel->setMainPlayer(player);
     
+    U4DFontLoader *fontLoader=new U4DFontLoader();
+    
+    fontLoader->loadFontAssetFile("myFont.xml", "myFont.png");
+    
+    myText1=new U4DText(fontLoader, 30);
+    
+    myText1->setText("Untold Engine");
+    
+    addChild(myText1);
+    
+    myText1->translateTo(0.0, 0.0, 0.0);
+    
+    addChild(field);
 }
 
 void Earth::update(double dt){
@@ -104,6 +119,8 @@ void Earth::update(double dt){
     //U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
     //camera->followModel(player, 0.0, 15.0, -70.0);
+    
+   
 }
 
 
