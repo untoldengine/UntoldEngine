@@ -32,6 +32,9 @@
 #include "SoccerPlayer.h"
 
 #include "U4DFontLoader.h"
+#include "U4DSpriteLoader.h"
+
+#include "U4DSpriteAnimation.h"
 
 using namespace U4DEngine;
 
@@ -96,8 +99,8 @@ void Earth::init(){
     
     light->viewInDirection(origin);
     
-    //GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
-    //gameModel->setMainPlayer(player);
+    
+    
     
     U4DFontLoader *fontLoader=new U4DFontLoader();
     
@@ -109,9 +112,42 @@ void Earth::init(){
     
     addChild(myText1);
     
-    myText1->translateTo(0.0, 0.0, 0.0);
+    myText1->translateTo(-0.8, 0.8, 0.0);
     
-    addChild(field);
+    
+    U4DSpriteLoader *spriteLoader=new U4DSpriteLoader();
+    
+    spriteLoader->loadSpritesAssetFile("walkSprite.xml", "walkSprite.png");
+    
+    mySprite=new U4DSprite(spriteLoader);
+    
+    mySprite->setSprite("0001.png");
+    
+    addChild(mySprite);
+    
+    
+    U4DEngine::SPRITEANIMATIONDATA spriteAnimationData;
+    
+    spriteAnimationData.animationSprites.push_back("0001.png");
+    spriteAnimationData.animationSprites.push_back("0002.png");
+    spriteAnimationData.animationSprites.push_back("0003.png");
+    spriteAnimationData.animationSprites.push_back("0004.png");
+    spriteAnimationData.animationSprites.push_back("0005.png");
+    spriteAnimationData.animationSprites.push_back("0006.png");
+    spriteAnimationData.animationSprites.push_back("0007.png");
+    spriteAnimationData.animationSprites.push_back("0008.png");
+    
+    spriteAnimationData.delay=0.2;
+    
+    U4DSpriteAnimation *spriteAnim=new U4DSpriteAnimation(mySprite,spriteAnimationData);
+    
+    spriteAnim->play();
+    
+    //addChild(field);
+    
+    
+    GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
+    gameModel->setSpriteAnim(spriteAnim);
 }
 
 void Earth::update(double dt){

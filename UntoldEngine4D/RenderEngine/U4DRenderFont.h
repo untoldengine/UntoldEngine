@@ -27,21 +27,13 @@ namespace U4DEngine {
         
         U4DImage *u4dObject;
         
-        U4DVector2n fontOffset;
-        
     public:
         
         U4DRenderFont(U4DImage *uU4DImage);
         
         ~U4DRenderFont();
         
-        bool loadMTLBuffer();
-        
-        void loadMTLTexture();
-        
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
-        
-        void setDiffuseTexture(const char* uTexture);
         
         void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight);
         

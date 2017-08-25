@@ -7,81 +7,74 @@
 //
 
 #include "U4DSprite.h"
-#include "U4DOpenGLSprite.h"
+#include "U4DRenderSprite.h"
 #include <string>
 
 namespace U4DEngine {
     
-U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader){
-    
-    openGlManager=new U4DOpenGLSprite(this);
-    openGlManager->setShader("spriteShader");
-    
-    spriteLoader=uSpriteLoader;
-    
-};
-    
-U4DSprite::~U4DSprite(){
-
-}
-
-void U4DSprite::setSprite(const char* uSprite){
-
-   //search for the sprite in the atlas manager
-    
-    for (int i=0; i<spriteLoader->spriteData.size(); i++) {
+        U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr){
         
-        SPRITEDATA spriteData;
+        renderManager=new U4DRenderSprite(this);
         
-        spriteData=spriteLoader->spriteData.at(i);
+        setShader("vertexSpriteShader", "fragmentSpriteShader");
         
+        spriteLoader=uSpriteLoader;
         
-        if (strcmp(spriteData.name, uSprite)==0) {
-            
-            const char * spriteImage = spriteLoader->spriteAtlasImage.c_str();
-            
-            openGlManager->setDiffuseTexture(spriteImage); 
-
-            //set the rectangle for the sprite
-            openGlManager->setImageDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
-            
-            //set the offset for the sprite
-            std::vector<float> data={spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight};
-            
-            addCustomUniform("offset", data);
-            
-        }
     }
-    
-    openGlManager->loadRenderingInformation();
-   
-}
+        
+    U4DSprite::~U4DSprite(){
 
-void U4DSprite::changeSprite(const char* uSprite){
-    
-    SPRITEDATA spriteData;
-    
-    for (int i=0; i<spriteLoader->spriteData.size(); i++) {
-        
-        spriteData=spriteLoader->spriteData.at(i);
-    
-    
-            if (strcmp(spriteData.name, uSprite)==0) {
-        
-                //set the offset for the sprite
-                std::vector<float> data={spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight};
+    }
+
+    void U4DSprite::setSprite(const char* uSprite){
+
+            //search for the sprite in the atlas manager
+            SPRITEDATA spriteData;
             
-                updateUniforms("offset", data);
+            for (int i=0; i<spriteLoader->spriteData.size(); i++) {
                 
+                spriteData=spriteLoader->spriteData.at(i);
+                
+                if (strcmp(spriteData.name, uSprite)==0) {
+                    
+                    if (spriteAtlasImage==nullptr) {
+                        
+                        spriteAtlasImage = spriteLoader->spriteAtlasImage.c_str();
+                        
+                        renderManager->setDiffuseTexture(spriteAtlasImage);
+                        
+                        //set the rectangle for the sprite
+                        renderManager->setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
+                        
+                        U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
+                        
+                        renderManager->setSpriteOffset(offset);
+                        
+                        renderManager->loadRenderingInformation();
+                        
+                        
+                    }else{
+                     
+                        //set the offset for the sprite
+                        U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
+                        
+                        renderManager->setSpriteOffset(offset);
+                        
+                    }
+                    
+                    break;
+                    
+                }
+            
             }
+        
     }
-}
 
-void U4DSprite::draw(){
-    
-    
-    openGlManager->draw();
-    
-}
+
+    void U4DSprite::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
+        
+    }
 
 }

@@ -18,6 +18,7 @@ namespace U4DEngine {
     class U4DTouches;
     class U4DButton;
     class U4DJoyStick;
+    class U4DSpriteAnimation;
 
 }
 
@@ -30,6 +31,8 @@ public:
     
     SoccerPlayer *player;
     
+    U4DEngine::U4DSpriteAnimation *spriteAnimation;
+    
     GameLogic();
     ~GameLogic();
     
@@ -40,6 +43,8 @@ public:
     void receiveTouchUpdate();
     
     void setMainPlayer(SoccerPlayer *uPlayer);
+    
+    void setSpriteAnim(U4DEngine::U4DSpriteAnimation *uSpriteAnimation);
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

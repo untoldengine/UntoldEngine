@@ -13,6 +13,8 @@
 
 #include "U4DLights.h"
 
+#include "U4DSpriteAnimation.h"
+
 GameLogic::GameLogic(){
 
     
@@ -42,12 +44,18 @@ void GameLogic::setMainPlayer(SoccerPlayer *uPlayer){
     
 }
 
+void GameLogic::setSpriteAnim(U4DEngine::U4DSpriteAnimation *uSpriteAnimation){
+    spriteAnimation=uSpriteAnimation;
+}
+
 
 void GameLogic::receiveTouchUpdate(){
     
     if (buttonA->getIsPressed()) {
         
         //player->translateBy(1.0, 0.0, 0.0);
+        
+        spriteAnimation->stop();
         
     }else if(buttonA->getIsReleased()){
         
@@ -57,6 +65,7 @@ void GameLogic::receiveTouchUpdate(){
     if (buttonB->getIsPressed()) {
         
         //player->translateBy(-1.0, 0.0, 0.0);
+        spriteAnimation->play();
         
     }else if(buttonB->getIsReleased()){
         
