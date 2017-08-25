@@ -92,7 +92,7 @@ namespace U4DEngine {
          */
         float delay;
         
-    }SPRITEANIMATION;
+    }SPRITEANIMATIONDATA;
 
 
     /**

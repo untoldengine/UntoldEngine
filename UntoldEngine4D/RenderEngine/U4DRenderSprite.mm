@@ -1,61 +1,59 @@
 //
-//  U4DRenderFont.cpp
+//  U4DRenderSprite.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 8/18/17.
+//  Created by Harold Serrano on 8/23/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#include "U4DRenderFont.h"
-#include "U4DDirector.h"
+#include "U4DRenderSprite.h"
 #include "U4DShaderProtocols.h"
-#include "U4DCamera.h"
+#include "U4DDirector.h"
 
 namespace U4DEngine {
     
-    U4DRenderFont::U4DRenderFont(U4DImage *uU4DImage):U4DEngine::U4DRenderImage(uU4DImage){
+    U4DRenderSprite::U4DRenderSprite(U4DImage *uU4DImage):U4DEngine::U4DRenderImage(uU4DImage),spriteOffset(0.0,0.0){
         
         u4dObject=uU4DImage;
-    }
-    
-    U4DRenderFont::~U4DRenderFont(){
         
     }
     
-    void U4DRenderFont::updateRenderingInformation(){
-        
-        alignedAttributeData();
-        
-        memcpy(attributeBuffer.contents, (void*)&attributeAlignedContainer[0], sizeof(AttributeAlignedImageData)*attributeAlignedContainer.size());
-        
-        memcpy(indicesBuffer.contents, (void*)&u4dObject->bodyCoordinates.indexContainer[0], sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size());
-        
-        clearModelAttributeData();
+    U4DRenderSprite::~U4DRenderSprite(){
         
     }
     
-    void U4DRenderFont::modifyRenderingInformation(){
+    void U4DRenderSprite::loadMTLAdditionalInformation(){
         
-        alignedAttributeData();
-        
-        attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedImageData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
-        
-        //load the index into the buffer
-        indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
-        
-        clearModelAttributeData();
+        //create the uniform
+        uniformSpriteBuffer=[mtlDevice newBufferWithLength:sizeof(UniformSpriteProperty) options:MTLResourceStorageModeShared];
         
     }
     
-    void U4DRenderFont::setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight){
+    void U4DRenderSprite::setSpriteOffset(U4DVector2n &uSpriteOffset){
+        
+        spriteOffset=uSpriteOffset;
+        
+    }
+    
+    void U4DRenderSprite::updateSpriteBufferUniform(){
+        
+        vector_float2 spriteOffsetSIMD=convertToSIMD(spriteOffset);
+        
+        UniformSpriteProperty spriteProperty;
+        spriteProperty.offset=spriteOffsetSIMD;
+        
+        memcpy(uniformSpriteBuffer.contents, (void*)&spriteProperty, sizeof(UniformSpriteProperty));
+    }
+    
+    void U4DRenderSprite::setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
-        float widthFontTexture=uTextWidth/uAtlasWidth;
-        float heightFontTexture=uTextHeight/uAtlasHeight;
+        float widthFontTexture=uSpriteWidth/uAtlasWidth;
+        float heightFontTexture=uSpriteHeight/uAtlasHeight;
         
-        float width=uTextWidth/director->getDisplayWidth();
-        float height=uTextHeight/director->getDisplayHeight();
+        float width=uSpriteWidth/director->getDisplayWidth();
+        float height=uSpriteHeight/director->getDisplayHeight();
         float depth=0.0;
         
         
@@ -64,11 +62,6 @@ namespace U4DEngine {
         U4DVector3n v4(width,-height,depth);
         U4DVector3n v2(-width,-height,depth);
         U4DVector3n v3(-width,height,depth);
-        
-        v1+=uFontPositionOffset;
-        v2+=uFontPositionOffset;
-        v3+=uFontPositionOffset;
-        v4+=uFontPositionOffset;
         
         u4dObject->bodyCoordinates.addVerticesDataToContainer(v1);
         u4dObject->bodyCoordinates.addVerticesDataToContainer(v4);
@@ -81,10 +74,6 @@ namespace U4DEngine {
         U4DVector2n t3(0.0,1.0*heightFontTexture);  //bottom left
         U4DVector2n t2(1.0*widthFontTexture,1.0*heightFontTexture);  //bottom right
         
-        t4+=uFontUV;
-        t1+=uFontUV;
-        t3+=uFontUV;
-        t2+=uFontUV;
         
         u4dObject->bodyCoordinates.addUVDataToContainer(t1);
         u4dObject->bodyCoordinates.addUVDataToContainer(t2);
@@ -95,27 +84,19 @@ namespace U4DEngine {
         U4DIndex i1(0,1,2);
         U4DIndex i2(2,3,0);
         
-        i1.x=i1.x+4*uTextCount;
-        i1.y=i1.y+4*uTextCount;
-        i1.z=i1.z+4*uTextCount;
-        
-        i2.x=i2.x+4*uTextCount;
-        i2.y=i2.y+4*uTextCount;
-        i2.z=i2.z+4*uTextCount;
-        
         //index
         u4dObject->bodyCoordinates.addIndexDataToContainer(i1);
         u4dObject->bodyCoordinates.addIndexDataToContainer(i2);
         
-        
     }
     
-    
-    void U4DRenderFont::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DRenderSprite::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         if (eligibleToRender==true) {
             
             updateSpaceUniforms();
+            
+            updateSpriteBufferUniform();
             
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
@@ -127,6 +108,8 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
+            [uRenderEncoder setVertexBuffer:uniformSpriteBuffer offset:0 atIndex:2];
+            
             //diffuse texture
             [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
             
@@ -134,21 +117,10 @@ namespace U4DEngine {
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
-        
+            
             
         }
         
-    }
-    
-    
-    void U4DRenderFont::clearModelAttributeData(){
-        
-        //clear the attribute data contatiner
-        attributeAlignedContainer.clear();
-        
-        u4dObject->bodyCoordinates.verticesContainer.clear();
-        u4dObject->bodyCoordinates.uVContainer.clear();
-        u4dObject->bodyCoordinates.indexContainer.clear();
     }
     
 }

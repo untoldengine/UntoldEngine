@@ -138,7 +138,7 @@ namespace U4DEngine {
         
         virtual void setImageDimension(float uWidth,float uHeight){};
         
-        virtual void setImageDimension(float uWidth,float uHeight, float uAtlasWidth,float uAtlasHeight){};
+        virtual void setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight){};
         
         virtual void setSkyboxDimension(float uSize){};
         
@@ -147,6 +147,8 @@ namespace U4DEngine {
         virtual void setAmbientTexture(const char* uTexture){};
         
         virtual void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight){};
+        
+        virtual void setSpriteOffset(U4DVector2n &uSpriteOffset){};
         
         void addTexturesToSkyboxContainer(const char* uTextures);
         
@@ -190,7 +192,6 @@ namespace U4DEngine {
         
         vector_float2 convertToSIMD(U4DEngine::U4DVector2n &uVector);
         
-        vector_float3 vector_make(float x, float y, float z);
     };
     
 }

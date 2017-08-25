@@ -36,7 +36,7 @@ private:
     /**
      @brief Sprite animation
      */
-    SPRITEANIMATION spriteAnimation;
+    SPRITEANIMATIONDATA spriteAnimationData;
     
     /**
      @brief Sprite Animation timer
@@ -48,6 +48,11 @@ private:
      */
     U4DCallback<U4DSpriteAnimation> *scheduler;
     
+    /**
+     @todo document this
+     */
+    bool animationPlaying;
+    
 public:
     
     /**
@@ -56,7 +61,7 @@ public:
      @param uSprite             sprite entity
      @param uSpriteAnimation    sprite animation
      */
-    U4DSpriteAnimation(U4DSprite *uSprite, SPRITEANIMATION &uSpriteAnimation);
+    U4DSpriteAnimation(U4DSprite *uSprite, SPRITEANIMATIONDATA &uSpriteAnimationData);
     
     /**
      @brief Destructor for the class
@@ -71,12 +76,14 @@ public:
     /**
      @brief Method which starts the animation
      */
-    void start();
+    void play();
     
     /**
      @brief Method which stops the animation
      */
     void stop();
+    
+    void pause();
     
 };
 

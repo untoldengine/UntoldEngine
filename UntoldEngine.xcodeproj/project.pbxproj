@@ -49,6 +49,12 @@
 		03494BB31F48B59E00ACE0EC /* fontShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03494BB21F48B59E00ACE0EC /* fontShader.metal */; };
 		03494BB61F4BF24F00ACE0EC /* myFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03494BB41F4BF24F00ACE0EC /* myFont.png */; };
 		03494BB71F4BF24F00ACE0EC /* myFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03494BB51F4BF24F00ACE0EC /* myFont.xml */; };
+		03494BBA1F4D55EF00ACE0EC /* U4DSprite.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BB91F4D55EF00ACE0EC /* U4DSprite.mm */; };
+		03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BBB1F4DC26A00ACE0EC /* U4DRenderSprite.mm */; };
+		03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03494BBE1F4E0C0600ACE0EC /* spriteShader.metal */; };
+		03494BC21F4E5A7800ACE0EC /* walkSprite.png in Resources */ = {isa = PBXBuildFile; fileRef = 03494BC01F4E5A7800ACE0EC /* walkSprite.png */; };
+		03494BC31F4E5A7800ACE0EC /* walkSprite.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03494BC11F4E5A7800ACE0EC /* walkSprite.xml */; };
+		03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BC51F4E838500ACE0EC /* U4DSpriteAnimation.mm */; };
 		034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC801A73FAD200AC43EB /* lightShader.fp */; };
 		034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC811A73FAD200AC43EB /* lightShader.vp */; };
 		034DBC891A74112000AC43EB /* debugShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC871A74112000AC43EB /* debugShader.fp */; };
@@ -126,8 +132,6 @@
 		03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03CC83691E342F6300DA9180 /* particleDustShader.vp */; };
 		03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */; };
 		03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D1FBC41D50442200B3CF6E /* U4DColorData.mm */; };
-		03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740D1AE9FE8F000D8535 /* spriteExample.png */; };
-		03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03D3740E1AE9FE8F000D8535 /* spriteExample.xml */; };
 		03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */; };
 		03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559C91D53CAA200E567D5 /* gouraudShader.fp */; };
 		03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 03D559CA1D53CAA200E567D5 /* gouraudShader.vp */; };
@@ -273,6 +277,15 @@
 		03494BB21F48B59E00ACE0EC /* fontShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = fontShader.metal; path = MetalShaders/fontShader.metal; sourceTree = "<group>"; };
 		03494BB41F4BF24F00ACE0EC /* myFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = myFont.png; path = Resources/myFont.png; sourceTree = SOURCE_ROOT; };
 		03494BB51F4BF24F00ACE0EC /* myFont.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = myFont.xml; path = Resources/myFont.xml; sourceTree = SOURCE_ROOT; };
+		03494BB81F4D55EF00ACE0EC /* U4DSprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSprite.h; sourceTree = "<group>"; };
+		03494BB91F4D55EF00ACE0EC /* U4DSprite.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSprite.mm; sourceTree = "<group>"; };
+		03494BBB1F4DC26A00ACE0EC /* U4DRenderSprite.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRenderSprite.mm; path = RenderEngine/U4DRenderSprite.mm; sourceTree = "<group>"; };
+		03494BBC1F4DC26A00ACE0EC /* U4DRenderSprite.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DRenderSprite.h; path = RenderEngine/U4DRenderSprite.h; sourceTree = "<group>"; };
+		03494BBE1F4E0C0600ACE0EC /* spriteShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = spriteShader.metal; path = MetalShaders/spriteShader.metal; sourceTree = "<group>"; };
+		03494BC01F4E5A7800ACE0EC /* walkSprite.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = walkSprite.png; path = Resources/walkSprite.png; sourceTree = SOURCE_ROOT; };
+		03494BC11F4E5A7800ACE0EC /* walkSprite.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = walkSprite.xml; path = Resources/walkSprite.xml; sourceTree = SOURCE_ROOT; };
+		03494BC41F4E838500ACE0EC /* U4DSpriteAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSpriteAnimation.h; sourceTree = "<group>"; };
+		03494BC51F4E838500ACE0EC /* U4DSpriteAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSpriteAnimation.mm; sourceTree = "<group>"; };
 		034DBC801A73FAD200AC43EB /* lightShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.fp; sourceTree = "<group>"; };
 		034DBC811A73FAD200AC43EB /* lightShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.vp; sourceTree = "<group>"; };
 		034DBC871A74112000AC43EB /* debugShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = debugShader.fp; sourceTree = "<group>"; };
@@ -402,8 +415,6 @@
 		03CF11F51E56313400E47C67 /* U4DAnimationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimationManager.h; sourceTree = "<group>"; };
 		03D1FBC41D50442200B3CF6E /* U4DColorData.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DColorData.mm; sourceTree = "<group>"; };
 		03D1FBC51D50442300B3CF6E /* U4DColorData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DColorData.h; sourceTree = "<group>"; };
-		03D3740D1AE9FE8F000D8535 /* spriteExample.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = spriteExample.png; path = Resources/spriteExample.png; sourceTree = SOURCE_ROOT; };
-		03D3740E1AE9FE8F000D8535 /* spriteExample.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = spriteExample.xml; path = Resources/spriteExample.xml; sourceTree = SOURCE_ROOT; };
 		03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSHAlgorithm.mm; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.mm; sourceTree = "<group>"; };
 		03D4B1CD1CC5DEB0007BE481 /* U4DSHAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DSHAlgorithm.h; path = ManifoldGeneration/SutherlandHodgmanAlgorithm/U4DSHAlgorithm.h; sourceTree = "<group>"; };
 		03D559C91D53CAA200E567D5 /* gouraudShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = gouraudShader.fp; sourceTree = "<group>"; };
@@ -948,6 +959,8 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03494BC01F4E5A7800ACE0EC /* walkSprite.png */,
+				03494BC11F4E5A7800ACE0EC /* walkSprite.xml */,
 				03494BB41F4BF24F00ACE0EC /* myFont.png */,
 				03494BB51F4BF24F00ACE0EC /* myFont.xml */,
 				03C03C391F411B640001EFA1 /* Field_Diffuse.png */,
@@ -958,8 +971,6 @@
 				03C03C2D1F32123B0001EFA1 /* Ball_Texture_Diffuse.png */,
 				03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
-				03D3740D1AE9FE8F000D8535 /* spriteExample.png */,
-				03D3740E1AE9FE8F000D8535 /* spriteExample.xml */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
 				03A9F7081ADF82A300E81A00 /* ArialFont.xml */,
 				03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */,
@@ -1058,6 +1069,8 @@
 		03D374091AE9E746000D8535 /* SpriteAnimation */ = {
 			isa = PBXGroup;
 			children = (
+				03494BC41F4E838500ACE0EC /* U4DSpriteAnimation.h */,
+				03494BC51F4E838500ACE0EC /* U4DSpriteAnimation.mm */,
 			);
 			path = SpriteAnimation;
 			sourceTree = "<group>";
@@ -1176,6 +1189,8 @@
 				03E6ED7D1943D78C007AD131 /* U4DImage.mm */,
 				03E6ED7E1943D78C007AD131 /* U4DMultiImage.h */,
 				03E6ED7F1943D78C007AD131 /* U4DMultiImage.mm */,
+				03494BB81F4D55EF00ACE0EC /* U4DSprite.h */,
+				03494BB91F4D55EF00ACE0EC /* U4DSprite.mm */,
 			);
 			path = ImageObjects;
 			sourceTree = "<group>";
@@ -1352,6 +1367,8 @@
 				03F2DB091F191F9B00F77B78 /* U4DRenderSkybox.mm */,
 				03494BAD1F4723A400ACE0EC /* U4DRenderFont.h */,
 				03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */,
+				03494BBC1F4DC26A00ACE0EC /* U4DRenderSprite.h */,
+				03494BBB1F4DC26A00ACE0EC /* U4DRenderSprite.mm */,
 			);
 			name = RenderEngine;
 			sourceTree = "<group>";
@@ -1369,6 +1386,7 @@
 				03F2DAEE1F191A2600F77B78 /* skyboxShader.metal */,
 				03F2DAEF1F191A2600F77B78 /* worldShader.metal */,
 				03494BB21F48B59E00ACE0EC /* fontShader.metal */,
+				03494BBE1F4E0C0600ACE0EC /* spriteShader.metal */,
 			);
 			name = MetalShaders;
 			sourceTree = "<group>";
@@ -1435,6 +1453,7 @@
 				031585931E45C17900424D4D /* nonVisibleShader.fp in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
+				03494BC31F4E5A7800ACE0EC /* walkSprite.xml in Resources */,
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
 				03C03C2E1F32123B0001EFA1 /* Ball_Texture_Diffuse.png in Resources */,
 				03C03C351F3A00580001EFA1 /* redkitnormal.png in Resources */,
@@ -1451,7 +1470,6 @@
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */,
-				03D3740F1AE9FE8F000D8535 /* spriteExample.png in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				03494BB61F4BF24F00ACE0EC /* myFont.png in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
@@ -1465,7 +1483,6 @@
 				030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				03C03C311F3212950001EFA1 /* Ball_Normal_Map.png in Resources */,
-				03D374101AE9FE8F000D8535 /* spriteExample.xml in Resources */,
 				034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */,
 				03C03C361F3A00580001EFA1 /* redkit.png in Resources */,
 				03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */,
@@ -1474,6 +1491,7 @@
 				034127B217C30E2300E4C6D9 /* SkyBoxShader.vp in Resources */,
 				03DB6E85192F7B25006E21D0 /* NormalMapping.fp in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
+				03494BC21F4E5A7800ACE0EC /* walkSprite.png in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
 				031585941E45C17900424D4D /* nonVisibleShader.vp in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
@@ -1527,6 +1545,7 @@
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				03C03C431F43EA2F0001EFA1 /* U4DButtonPressedState.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
+				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,
 				03F2DB0D1F191F9B00F77B78 /* U4DRenderer.mm in Sources */,
@@ -1571,6 +1590,7 @@
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				032567D61F256A2800A5A505 /* ModelAsset.mm in Sources */,
+				03494BBA1F4D55EF00ACE0EC /* U4DSprite.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03C03C401F43E2A80001EFA1 /* U4DButtonStateManager.mm in Sources */,
@@ -1593,6 +1613,7 @@
 				03F2DB1B1F193B5300F77B78 /* GameAsset.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
 				03F2DAF11F191A2600F77B78 /* imageShader.metal in Sources */,
+				03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03F2DB111F191F9B00F77B78 /* U4DRenderManager.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
@@ -1620,6 +1641,7 @@
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */,
+				03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
 				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,

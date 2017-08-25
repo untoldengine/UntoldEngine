@@ -16,46 +16,46 @@
 
 namespace U4DEngine {
 
-/**
- @brief The U4DMultiImage class represents multi-images entities such as buttons with a pressed and a released image
- */
-class U4DMultiImage:public U4DImage{
-    
-private:
+    /**
+     @brief The U4DMultiImage class represents multi-images entities such as buttons with a pressed and a released image
+     */
+    class U4DMultiImage:public U4DImage{
+        
+    private:
 
-    bool imageState;
-    
-    U4DRenderManager *renderManager;
-    
-public:
-    
-    U4DEngine::U4DVertexData bodyCoordinates;
-    
-    U4DEngine::U4DTextureData textureInformation;
-    
-    /**
-     @brief Constructor of class
-     */
-    U4DMultiImage();
-    
-    /**
-     @brief Destructor of class
-     */
-    ~U4DMultiImage();
-    
-    
-    U4DMultiImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight);
-    
-    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder);
-    
-    void setImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight);
-    
-    bool getImageState();
-    
-    void setImageState(bool uValue);
-    
-    void changeImage();
-};
+        bool imageState;
+        
+        U4DRenderManager *renderManager;
+        
+    public:
+        
+        U4DEngine::U4DVertexData bodyCoordinates;
+        
+        U4DEngine::U4DTextureData textureInformation;
+        
+        /**
+         @brief Constructor of class
+         */
+        U4DMultiImage();
+        
+        /**
+         @brief Destructor of class
+         */
+        ~U4DMultiImage();
+        
+        
+        U4DMultiImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight);
+        
+        virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        
+        void setImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight);
+        
+        bool getImageState();
+        
+        void setImageState(bool uValue);
+        
+        void changeImage();
+    };
 
 }
 

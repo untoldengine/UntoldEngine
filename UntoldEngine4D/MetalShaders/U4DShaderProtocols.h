@@ -53,6 +53,12 @@ typedef struct{
 
 typedef struct{
     
+    vector_float2 offset;
+    
+}UniformSpriteProperty;
+
+typedef struct{
+    
     vector_float4 lineColor;
     
 }UniformGeometryProperty;

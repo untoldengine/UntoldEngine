@@ -14,6 +14,7 @@
 #include "U4DVector3n.h"
 #include "U4DSkybox.h"
 #include "U4DText.h"
+#include "U4DSprite.h"
 
 class GameController;
 class GameAsset;
@@ -33,6 +34,8 @@ private:
     U4DEngine::U4DSkybox *skybox;
     
     U4DEngine::U4DText *myText1;
+    
+    U4DEngine::U4DSprite *mySprite;
     
 public:
    
