@@ -34,12 +34,12 @@ void U11PlayerTurnPassState::enter(U11Player *uPlayer){
     
     if (uPlayer->isBallOnRightSidePlane()) {
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getSideCarryRightAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getRightCarryAnimation());
         uPlayer->setActiveExtremity(uPlayer->getRightFoot());
         
     }else{
     
-        uPlayer->setNextAnimationToPlay(uPlayer->getSideCarryLeftAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getLeftCarryAnimation());
         uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
         
     }

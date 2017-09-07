@@ -54,41 +54,41 @@ void U11PlayerRecoverState::enter(U11Player *uPlayer){
         //set the control ball animation
         if (uPlayer->isBallOnRightSidePlane()) {
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithRightFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getRightSoleHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getRightFoot());
         }else{
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithLeftFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getLeftSoleHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
         }
         
     }else{
         
-        if (relHeading<-0.90) {
+        if (relHeading>0.90) {
             //if ball is coming towards player around 18 degrees
             
             //set the control ball animation
             if (uPlayer->isBallOnRightSidePlane()) {
                 
-                uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithRightFootAnimation());
+                uPlayer->setNextAnimationToPlay(uPlayer->getRightSoleHaltAnimation());
                 uPlayer->setActiveExtremity(uPlayer->getRightFoot());
             }else{
                 
-                uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithLeftFootAnimation());
+                uPlayer->setNextAnimationToPlay(uPlayer->getLeftSoleHaltAnimation());
                 uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
             }
             
-        }else if(relHeading>0.90){
+        }else if(relHeading<-0.90){
             //if ball is ahead of player around 18 degrees
             
             //set the control ball animation
             if (uPlayer->isBallOnRightSidePlane()) {
                 
-                uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithRightFootAnimation());
+                uPlayer->setNextAnimationToPlay(uPlayer->getRightInsideHaltAnimation());
                 uPlayer->setActiveExtremity(uPlayer->getRightFoot());
             }else{
                 
-                uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithLeftFootAnimation());
+                uPlayer->setNextAnimationToPlay(uPlayer->getLeftInsideHaltAnimation());
                 uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
             }
             
@@ -97,12 +97,12 @@ void U11PlayerRecoverState::enter(U11Player *uPlayer){
             //set the control ball animation
             if (uPlayer->isBallComingFromRightSidePlane()) {
                 
-                uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithLeftFootAnimation());
+                uPlayer->setNextAnimationToPlay(uPlayer->getLeftSideHaltAnimation());
                 uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
                 
             }else{
                 
-                uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithRightFootAnimation());
+                uPlayer->setNextAnimationToPlay(uPlayer->getRightSideHaltAnimation());
                 uPlayer->setActiveExtremity(uPlayer->getRightFoot());
             }
             

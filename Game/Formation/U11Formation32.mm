@@ -54,6 +54,6 @@ void U11Formation32::init(U4DEngine::U4DWorld *uWorld, int uFieldQuadrant){
     U4DEngine::U4DVector3n axis(0.0,1.0,0.0);
     mainParent->rotateTo(fieldQuadrant*90.0, axis);
     
-    mainParent->translateBy(fieldQuadrant*120.0, 0.0, 0.0);
+    mainParent->translateBy(fieldQuadrant*1.0, 0.0, 0.0);
     
 }

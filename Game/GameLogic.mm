@@ -7,22 +7,31 @@
 //
 
 #include "GameLogic.h"
+#include "UserCommonProtocols.h"
 #include "U4DControllerInterface.h"
+#include "GameController.h"
 #include "U4DButton.h"
 #include "U4DJoyStick.h"
+#include "CommonProtocols.h"
+#include "U11SpaceAnalyzer.h"
+#include "U11PlayerDribbleState.h"
+#include "U11PlayerInterceptState.h"
+#include "U11PlayerStateInterface.h"
+#include "U11Team.h"
+#include "U11MessageDispatcher.h"
+#include "U11Ball.h"
 
-#include "U4DLights.h"
-
-#include "U4DSpriteAnimation.h"
-
-GameLogic::GameLogic(){
-
+GameLogic::GameLogic():buttonHoldTime(0){
+    
+    scheduler=new U4DEngine::U4DCallback<GameLogic>;
+    buttonHoldTimer=new U4DEngine::U4DTimer(scheduler);
     
 }
 
 GameLogic::~GameLogic(){
-
-
+    
+    delete scheduler;
+    delete buttonHoldTimer;
 }
 
 void GameLogic::update(double dt){
@@ -35,56 +44,116 @@ void GameLogic::init(){
     buttonB=getGameController()->getButtonWithName("buttonB");
     joystick=getGameController()->getJoyStickWithName("joystick");
     
+    //get the closest player to the ball and change its state to chase the ball
+    U11SpaceAnalyzer spaceAnalyzer;
+    
+    U11Player* player=spaceAnalyzer.getClosestPlayersToBall(team).at(0);
+    team->setControllingPlayer(player);
+    player->changeState(U11PlayerInterceptState::sharedInstance());
     
 }
 
-void GameLogic::setMainPlayer(SoccerPlayer *uPlayer){
+void GameLogic::setTeamToControl(U11Team *uTeam){
     
-    player=uPlayer;
+    team=uTeam;
     
 }
-
-void GameLogic::setSpriteAnim(U4DEngine::U4DSpriteAnimation *uSpriteAnimation){
-    spriteAnimation=uSpriteAnimation;
-}
-
 
 void GameLogic::receiveTouchUpdate(){
     
-    if (buttonA->getIsPressed()) {
-        
-        //player->translateBy(1.0, 0.0, 0.0);
-        
-        spriteAnimation->stop();
-        
-    }else if(buttonA->getIsReleased()){
-        
-        
-    }
+    U11Player *player=team->getActivePlayer();
     
-    if (buttonB->getIsPressed()) {
-        
-        //player->translateBy(-1.0, 0.0, 0.0);
-        spriteAnimation->play();
-        
-    }else if(buttonB->getIsReleased()){
-        
-    }
+    U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
     
-    if(joystick->getIsActive()){
+    if (player!=NULL) {
         
-        U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
+        if (buttonA->getIsPressed()) {
+            
+            startButtonHoldTimer();
+            
+            
+        }else if(buttonA->getIsReleased()){
+            
+            stopButtonHoldTimer();
+            
+            messageDispatcher->sendMessage(0.0, player, player, msgButtonAPressed,(void*)&buttonHoldTime);
+            
+        }
         
-        joystickDirection.z=-joystickDirection.y;
+        if (buttonB->getIsPressed()) {
+            
+            startButtonHoldTimer();
+            
+        }else if(buttonB->getIsReleased()){
+            
+            stopButtonHoldTimer();
+            
+            messageDispatcher->sendMessage(0.0, player, player, msgButtonBPressed, (void*)&buttonHoldTime);
+        }
         
-        joystickDirection.y=0;
-        
-        joystickDirection.normalize();
-        
-    }else{
-        
+        if(joystick->getIsActive()){
+            
+            U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
+            
+            joystickDirection.z=joystickDirection.y;
+            
+            joystickDirection.y=0;
+            
+            joystickDirection.normalize();
+            
+            JoystickMessageData joystickMessageData;
+            
+            joystickMessageData.direction=joystickDirection;
+            
+            if (joystick->getDirectionReversal()) {
+                std::cout<<"direction change"<<std::endl;
+                joystickMessageData.changedDirection=true;
+                
+            }else{
+                
+                joystickMessageData.changedDirection=false;
+                
+            }
+            
+            messageDispatcher->sendMessage(0.0, player, player, msgJoystickActive, (void*)&joystickMessageData);
+            
+            
+        }else{
+            
+            messageDispatcher->sendMessage(0.0, player, player, msgJoystickNotActive);
+            
+        }
         
     }
     
 }
 
+void GameLogic::increaseButtonHoldTime(){
+    
+    buttonHoldTime++;
+    
+    
+}
+
+void GameLogic::startButtonHoldTimer(){
+    
+    buttonHoldTime=4;
+    
+    scheduler->scheduleClassWithMethodAndDelay(this, &GameLogic::increaseButtonHoldTime, buttonHoldTimer,0.1, true);
+    
+}
+
+void GameLogic::stopButtonHoldTimer(){
+    
+    scheduler->unScheduleTimer(buttonHoldTimer);
+    
+    if (buttonHoldTime>10) {
+        
+        buttonHoldTime=10;
+        
+    }
+    
+    //multiply the speed by 10
+    buttonHoldTime*=10;
+    
+}

@@ -62,51 +62,70 @@ private:
     
     U4DEngine::U4DAnimation *walkingAnimation;
     
-    U4DEngine::U4DAnimation *rightFootSidePassAnimation;
-    
-    U4DEngine::U4DAnimation *leftFootSidePassAnimation;
-    
     U4DEngine::U4DAnimation *runningAnimation;
-    
-    U4DEngine::U4DAnimation *forwardCarryAnimation;
-    
-    U4DEngine::U4DAnimation *sideCarryLeftAnimation;
-    
-    U4DEngine::U4DAnimation *sideCarryRightAnimation;
     
     U4DEngine::U4DAnimation *idleAnimation;
     
-    U4DEngine::U4DAnimation *forwardHaltBallWithRightFootAnimation;
+    //passing
+    U4DEngine::U4DAnimation *rightPassAnimation;
     
-    U4DEngine::U4DAnimation *forwardHaltBallWithLeftFootAnimation;
+    U4DEngine::U4DAnimation *leftPassAnimation;
     
-    U4DEngine::U4DAnimation *backHaltBallWithRightFootAnimation;
     
-    U4DEngine::U4DAnimation *backHaltBallWithLeftFootAnimation;
+    //dribble
+    U4DEngine::U4DAnimation *rightDribbleAnimation;
     
-    U4DEngine::U4DAnimation *sideHaltBallWithRightFootAnimation;
+    U4DEngine::U4DAnimation *leftDribbleAnimation;
     
-    U4DEngine::U4DAnimation *sideHaltBallWithLeftFootAnimation;
     
-    U4DEngine::U4DAnimation *rightFootForwardKickAnimation;
+    //halt
+    U4DEngine::U4DAnimation *rightSoleHaltAnimation;
     
-    U4DEngine::U4DAnimation *leftFootForwardKickAnimation;
+    U4DEngine::U4DAnimation *leftSoleHaltAnimation;
     
-    U4DEngine::U4DAnimation *reverseBallWithLeftFootAnimation;
+    U4DEngine::U4DAnimation *rightInsideHaltAnimation;
     
-    U4DEngine::U4DAnimation *reverseBallWithRightFootAnimation;
+    U4DEngine::U4DAnimation *leftInsideHaltAnimation;
     
-    U4DEngine::U4DAnimation *reverseRunningAnimation;
+    U4DEngine::U4DAnimation *rightSideHaltAnimation;
+    
+    U4DEngine::U4DAnimation *leftSideHaltAnimation;
+    
+    //kick
+    
+    U4DEngine::U4DAnimation *rightShotAnimation;
+    
+    U4DEngine::U4DAnimation *leftShotAnimation;
+    
+    //change direction
+    
+    U4DEngine::U4DAnimation *leftReverseKickAnimation;
+    
+    U4DEngine::U4DAnimation *rightReverseKickAnimation;
+    
+    //back peddal
+    
+    U4DEngine::U4DAnimation *backPeddalAnimation;
+    
+    //lateral rum
     
     U4DEngine::U4DAnimation *lateralRightRunAnimation;
     
     U4DEngine::U4DAnimation *lateralLeftRunAnimation;
     
+    //defense-mark
+    
     U4DEngine::U4DAnimation *markingAnimation;
+    
+    //defense-stealing
     
     U4DEngine::U4DAnimation *stealingAnimation;
     
     bool processedForTriangleNode;
+    
+    float playerDribblingSpeed;
+    
+    int rightHanded;
     
 public:
     
@@ -130,47 +149,63 @@ public:
     
     U4DEngine::U4DAnimation *getRunningAnimation();
     
-    U4DEngine::U4DAnimation *getForwardCarryAnimation();
-    
     U4DEngine::U4DAnimation *getIdleAnimation();
     
-    U4DEngine::U4DAnimation *getForwardHaltBallWithRightFootAnimation();
+    U4DEngine::U4DAnimation *getRightPassAnimation();
     
-    U4DEngine::U4DAnimation *getForwardHaltBallWithLeftFootAnimation();
+    U4DEngine::U4DAnimation *getLeftPassAnimation();
     
-    U4DEngine::U4DAnimation *getBackHaltBallWithRightFootAnimation();
+    U4DEngine::U4DAnimation *getRightDribbleAnimation();
     
-    U4DEngine::U4DAnimation *getBackHaltBallWithLeftFootAnimation();
+    U4DEngine::U4DAnimation *getLeftDribbleAnimation();
     
-    U4DEngine::U4DAnimation *getSideHaltBallWithRightFootAnimation();
     
-    U4DEngine::U4DAnimation *getSideHaltBallWithLeftFootAnimation();
     
-    U4DEngine::U4DAnimation *getRightFootSidePassAnimation();
     
-    U4DEngine::U4DAnimation *getLeftFootSidePassAnimation();
+    U4DEngine::U4DAnimation *getRightSoleHaltAnimation();
     
-    U4DEngine::U4DAnimation *getRightFootForwardKickAnimation();
+    U4DEngine::U4DAnimation *getLeftSoleHaltAnimation();
     
-    U4DEngine::U4DAnimation *getLeftFootForwardKickAnimation();
+    U4DEngine::U4DAnimation *getRightInsideHaltAnimation();
     
-    U4DEngine::U4DAnimation *getReverseBallWithLeftFootAnimation();
+    U4DEngine::U4DAnimation *getLeftInsideHaltAnimation();
     
-    U4DEngine::U4DAnimation *getReverseBallWithRightFootAnimation();
+    U4DEngine::U4DAnimation *getRightSideHaltAnimation();
     
-    U4DEngine::U4DAnimation *getReverseRunningAnimation();
+    U4DEngine::U4DAnimation *getLeftSideHaltAnimation();
+    
+    
+    
+    U4DEngine::U4DAnimation *getRightShotAnimation();
+    
+    U4DEngine::U4DAnimation *getLeftShotAnimation();
+    
+    
+    
+    U4DEngine::U4DAnimation *getRightReverseKickAnimation();
+    
+    U4DEngine::U4DAnimation *getLeftReverseKickAnimation();
+    
+    
+    
+    U4DEngine::U4DAnimation *getBackPeddalAnimation();
+    
+    
     
     U4DEngine::U4DAnimation *getLateralRightRunAnimation();
     
     U4DEngine::U4DAnimation *getLateralLeftRunAnimation();
     
-    U4DEngine::U4DAnimation *getSideCarryLeftAnimation();
     
-    U4DEngine::U4DAnimation *getSideCarryRightAnimation();
+    U4DEngine::U4DAnimation *getRightCarryAnimation();
+    
+    U4DEngine::U4DAnimation *getLeftCarryAnimation();
     
     U4DEngine::U4DAnimation *getMarkingAnimation();
     
     U4DEngine::U4DAnimation *getStealingAnimation();
+    
+    
     
     void setJoystickActive(bool uValue);
     
@@ -286,5 +321,9 @@ public:
     
     bool getProcessedForTriangleNode();
     
+    void computePlayerDribblingSpeed();
+    
+    float getPlayerDribblingSpeed();
+
 };
 #endif /* U11Player_hpp */

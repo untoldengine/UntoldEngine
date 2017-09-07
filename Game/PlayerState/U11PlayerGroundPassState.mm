@@ -43,13 +43,13 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
     
     if (uPlayer->isBallOnRightSidePlane()) {
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getRightFootSidePassAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getRightPassAnimation());
         
         uPlayer->setActiveExtremity(uPlayer->getRightFoot());
         
     }else{
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getLeftFootSidePassAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getLeftPassAnimation());
         uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
         
     }

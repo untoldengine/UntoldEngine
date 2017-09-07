@@ -35,13 +35,15 @@ U11PlayerDribbleTurnState* U11PlayerDribbleTurnState::sharedInstance(){
 
 void U11PlayerDribbleTurnState::enter(U11Player *uPlayer){
     
-    uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
+    uPlayer->setNextAnimationToPlay(uPlayer->getRightDribbleAnimation());
     uPlayer->setPlayBlendedAnimation(true);
     uPlayer->setPlayNextAnimationContinuously(true);
     
 }
 
 void U11PlayerDribbleTurnState::execute(U11Player *uPlayer, double dt){
+    
+    uPlayer->computePlayerDribblingSpeed();
     
     //keep dribbling
     if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
@@ -81,7 +83,7 @@ void U11PlayerDribbleTurnState::execute(U11Player *uPlayer, double dt){
     }
     
     //chase the ball
-    uPlayer->applyForceToPlayer(dribblingSpeed, dt);
+    uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
     
     uPlayer->seekBall();
     

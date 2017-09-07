@@ -94,28 +94,41 @@ typedef struct{
 
 const float fieldWidth=1000.0;
 const float fieldLength=1000.0;
-const float playingFieldLength=480.0;
-const float playingFieldWidth=310.0;
+const float playingFieldLength=200.0;
+const float playingFieldWidth=135.0;
 
-const float chasingSpeed=55.0;
-const float dribblingSpeed=40.0;
+const float chasingSpeed=14.0;
+
+const float minDribblingSpeed=7.5;
+
+
+const float ballRollingSpeed=14.0;
+
+
 const float markingSpeed=20.0;
-const float ballRollingSpeed=43.0;
-const float ballPassingSpeed=60.0;
+
+const float offsetHandedness=0.38;
+
+
 const float ballTapSpeed=50.0;
 const float ballGroundShotSpeed=70.0;
 const float ballAirShotSpeed=80.0;
-const float ballReverseRolling=35.0;
+const float ballReverseRolling=15.0;
 const float ballDeceleration=0.5;
-const float ballMaxSpeed=8.0;
+const float ballMaxSpeed=4.0;
 
-const float ballControlMaximumDistance=6.0;
-const float reverseBallMaximumDistance=2.0;
+const float ballControlMaximumDistance=0.8;
+
+const float reverseBallMaximumDistance=0.5;
+
+
 const float reverseRunningSpeed=20.0;
 const float lateralRunningSpeed=20.0;
-const float supportMinimumDistanceToPlayer=25.0;
-const float supportMaximumDistanceToPlayer=50.0;
-const float dribblingMinimumDistanceToPlayer=25.0;
+
+const float supportMinimumDistanceToPlayer=5.0;
+const float supportMaximumDistanceToPlayer=15.0;
+
+const float dribblingMinimumDistanceToPlayer=15.0;
 const int   maximumSupportPoints=36;
 const int   maximumDribblingSpace=36;
 const int   supportPointsSeparation=10;
@@ -133,11 +146,11 @@ const float formationSpaceBoundaryWidth=70.0;
 const float minimumInterceptionDistance=30.0;
 const float threateningDistanceToPlayer=20.0;
 const float playerPersonalArea=5.0;
-const float triangleEntityDistance=60.0;
+const float triangleEntityDistance=20.0;
 
 //maximum
-const float maximumInterceptionSpeed=50.0;
-const float maximumBallSpeed=100.0;
+const float maximumInterceptionSpeed=15.0;
+const float maximumBallSpeed=20.0;
 
 
 #endif /* UserCommonProtocols_h */

@@ -22,7 +22,7 @@ void ModelAsset::init(const char* uModelName, const char* uBlenderFile, const ch
         
         setEnableShadow(false);
         
-        setNormalMapTexture(uTextureNormal);
+        //setNormalMapTexture(uTextureNormal);
         
         loadRenderingInformation();
     }

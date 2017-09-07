@@ -171,7 +171,7 @@ void U11Team::translateTeamToFormationPosition(){
     for(auto n:teammates){
         
         U4DEngine::U4DVector3n pos=n->getFormationEntity()->getAbsolutePosition();
-        pos.y=n->getModelDimensions().y/2.0+1.3;
+        pos.y=n->getModelDimensions().y/2.0+0.3;
         
         U4DEngine::U4DPoint3n formationPosition=pos.toPoint();
         

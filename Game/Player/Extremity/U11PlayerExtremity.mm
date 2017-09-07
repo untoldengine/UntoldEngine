@@ -23,7 +23,7 @@ void U11PlayerExtremity::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        setShader("nonVisibleShader");
+        setShader("vertexNonVisibleShader","fragmentNonVisibleShader");
         
         setEntityType(U4DEngine::MODELNOSHADOWS);
         

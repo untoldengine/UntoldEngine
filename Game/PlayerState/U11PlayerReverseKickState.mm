@@ -36,12 +36,12 @@ void U11PlayerReverseKickState::enter(U11Player *uPlayer){
     //set the control ball animation
     if (uPlayer->isBallOnRightSidePlane()) {
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getReverseBallWithRightFootAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getRightReverseKickAnimation());
         uPlayer->setActiveExtremity(uPlayer->getRightFoot());
         
     }else{
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getReverseBallWithLeftFootAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getLeftReverseKickAnimation());
         uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
     }
     

@@ -55,6 +55,106 @@
 		03494BC21F4E5A7800ACE0EC /* walkSprite.png in Resources */ = {isa = PBXBuildFile; fileRef = 03494BC01F4E5A7800ACE0EC /* walkSprite.png */; };
 		03494BC31F4E5A7800ACE0EC /* walkSprite.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03494BC11F4E5A7800ACE0EC /* walkSprite.xml */; };
 		03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BC51F4E838500ACE0EC /* U4DSpriteAnimation.mm */; };
+		03494BC81F566C8500ACE0EC /* runninganimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494BC71F566C8500ACE0EC /* runninganimation.u4d */; };
+		03494BCA1F567DE900ACE0EC /* leftpassanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494BC91F567DE900ACE0EC /* leftpassanimation.u4d */; };
+		03494BCC1F567DF800ACE0EC /* rightpassanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494BCB1F567DF800ACE0EC /* rightpassanimation.u4d */; };
+		03494BCE1F567E0900ACE0EC /* rightdribbleanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494BCD1F567E0900ACE0EC /* rightdribbleanimation.u4d */; };
+		03494BD01F567E1B00ACE0EC /* leftdribbleanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494BCF1F567E1B00ACE0EC /* leftdribbleanimation.u4d */; };
+		03494BD51F56834800ACE0EC /* U11Player.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BD41F56834800ACE0EC /* U11Player.mm */; };
+		03494BDA1F56837300ACE0EC /* U11PlayerStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BD71F56837200ACE0EC /* U11PlayerStateInterface.mm */; };
+		03494BDB1F56837300ACE0EC /* U11PlayerStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BD91F56837200ACE0EC /* U11PlayerStateManager.mm */; };
+		03494BDF1F568E4300ACE0EC /* U11Ball.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BDE1F568E4300ACE0EC /* U11Ball.mm */; };
+		03494BE31F568E5B00ACE0EC /* U11Field.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BE21F568E5B00ACE0EC /* U11Field.mm */; };
+		03494BE71F568E7000ACE0EC /* U11FieldGoal.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BE61F568E7000ACE0EC /* U11FieldGoal.mm */; };
+		03494BF31F568EA700ACE0EC /* U11BallAirState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BEA1F568EA700ACE0EC /* U11BallAirState.mm */; };
+		03494BF41F568EA700ACE0EC /* U11BallBounceState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BEC1F568EA700ACE0EC /* U11BallBounceState.mm */; };
+		03494BF51F568EA700ACE0EC /* U11BallGroundState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BEE1F568EA700ACE0EC /* U11BallGroundState.mm */; };
+		03494BF61F568EA700ACE0EC /* U11BallStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BF01F568EA700ACE0EC /* U11BallStateInterface.mm */; };
+		03494BF71F568EA700ACE0EC /* U11BallStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BF21F568EA700ACE0EC /* U11BallStateManager.mm */; };
+		03494BF91F56903C00ACE0EC /* playerscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494BF81F56903C00ACE0EC /* playerscript.u4d */; };
+		03494BFF1F5741A300ACE0EC /* idleanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494BFE1F5741A300ACE0EC /* idleanimation.u4d */; };
+		03494C021F5744F200ACE0EC /* U11PlayerIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C011F5744F200ACE0EC /* U11PlayerIdleState.mm */; };
+		03494C061F5746D000ACE0EC /* U11MessageDispatcher.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C051F5746D000ACE0EC /* U11MessageDispatcher.mm */; };
+		03494C091F57495B00ACE0EC /* U11PlayerRunState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C071F57495B00ACE0EC /* U11PlayerRunState.mm */; };
+		03494C0C1F57B98D00ACE0EC /* U11PlayerDribbleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C0B1F57B98D00ACE0EC /* U11PlayerDribbleState.mm */; };
+		03494C111F57BA5C00ACE0EC /* U11PlayerExtremity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C101F57BA5C00ACE0EC /* U11PlayerExtremity.mm */; };
+		03494C141F57BA6600ACE0EC /* U11PlayerSpace.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C131F57BA6600ACE0EC /* U11PlayerSpace.mm */; };
+		03494C161F57BD4C00ACE0EC /* nonVisibleShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03494C151F57BD4C00ACE0EC /* nonVisibleShader.metal */; };
+		03494C191F57CC0E00ACE0EC /* U11PlayerChaseBallState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C181F57CC0E00ACE0EC /* U11PlayerChaseBallState.mm */; };
+		03494C1C1F589D0F00ACE0EC /* U11PlayerDribblePassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C1B1F589D0F00ACE0EC /* U11PlayerDribblePassState.mm */; };
+		03494C221F589D5800ACE0EC /* U11PlayerGroundPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C211F589D5800ACE0EC /* U11PlayerGroundPassState.mm */; };
+		03494C251F59FDA500ACE0EC /* U11PlayerHaltBallState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C241F59FDA500ACE0EC /* U11PlayerHaltBallState.mm */; };
+		03494C351F5B2CCC00ACE0EC /* U11PlayerPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C341F5B2CCC00ACE0EC /* U11PlayerPassState.mm */; };
+		03494C381F5B2CEA00ACE0EC /* U11PlayerRunPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C371F5B2CEA00ACE0EC /* U11PlayerRunPassState.mm */; };
+		03494C3B1F5B2D0900ACE0EC /* U11PlayerReceiveBallState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C3A1F5B2D0900ACE0EC /* U11PlayerReceiveBallState.mm */; };
+		03494C3E1F5B2D1D00ACE0EC /* U11PlayerTurnPassState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C3D1F5B2D1D00ACE0EC /* U11PlayerTurnPassState.mm */; };
+		03494C411F5B2D7400ACE0EC /* U11PlayerGroundShotState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C401F5B2D7400ACE0EC /* U11PlayerGroundShotState.mm */; };
+		03494C441F5B2D8300ACE0EC /* U11PlayerAirShotState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C431F5B2D8300ACE0EC /* U11PlayerAirShotState.mm */; };
+		03494C471F5B2DEF00ACE0EC /* U11PlayerDefendState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C461F5B2DEF00ACE0EC /* U11PlayerDefendState.mm */; };
+		03494C4A1F5B2E0C00ACE0EC /* U11PlayerDefendPositionState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C491F5B2E0C00ACE0EC /* U11PlayerDefendPositionState.mm */; };
+		03494C4D1F5B2E2600ACE0EC /* U11PlayerRunToStealState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C4C1F5B2E2600ACE0EC /* U11PlayerRunToStealState.mm */; };
+		03494C501F5B2E3A00ACE0EC /* U11PlayerDefenseFormationState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C4F1F5B2E3A00ACE0EC /* U11PlayerDefenseFormationState.mm */; };
+		03494C531F5B2E5300ACE0EC /* U11PlayerMarkingState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C521F5B2E5300ACE0EC /* U11PlayerMarkingState.mm */; };
+		03494C561F5B2E6300ACE0EC /* U11PlayerTapToStealState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C551F5B2E6300ACE0EC /* U11PlayerTapToStealState.mm */; };
+		03494C591F5B2E7B00ACE0EC /* U11PlayerInterceptState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C581F5B2E7B00ACE0EC /* U11PlayerInterceptState.mm */; };
+		03494C5C1F5B2E8E00ACE0EC /* U11PlayerApproachOpponent.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C5B1F5B2E8E00ACE0EC /* U11PlayerApproachOpponent.mm */; };
+		03494C5F1F5B2F9000ACE0EC /* U11PlayerAttackState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C5E1F5B2F9000ACE0EC /* U11PlayerAttackState.mm */; };
+		03494C621F5B2FA200ACE0EC /* U11PlayerAttackFormationState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C611F5B2FA200ACE0EC /* U11PlayerAttackFormationState.mm */; };
+		03494C651F5B2FBF00ACE0EC /* U11PlayerReverseKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C641F5B2FBF00ACE0EC /* U11PlayerReverseKickState.mm */; };
+		03494C681F5B2FD400ACE0EC /* U11PlayerRunToReverseKickState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C671F5B2FD400ACE0EC /* U11PlayerRunToReverseKickState.mm */; };
+		03494C6B1F5B30EB00ACE0EC /* U11PlayerSupportState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C6A1F5B30EB00ACE0EC /* U11PlayerSupportState.mm */; };
+		03494C6E1F5B30FD00ACE0EC /* U11PlayerRunToSupportState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C6D1F5B30FD00ACE0EC /* U11PlayerRunToSupportState.mm */; };
+		03494C711F5B311500ACE0EC /* U11PlayerReverseRunState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C701F5B311500ACE0EC /* U11PlayerReverseRunState.mm */; };
+		03494C741F5B312800ACE0EC /* U11PlayerLateralRunState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C731F5B312800ACE0EC /* U11PlayerLateralRunState.mm */; };
+		03494C771F5B314100ACE0EC /* U11PlayerOpenUpState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C761F5B314100ACE0EC /* U11PlayerOpenUpState.mm */; };
+		03494C7A1F5B315200ACE0EC /* U11PlayerDribbleTurnState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C791F5B315200ACE0EC /* U11PlayerDribbleTurnState.mm */; };
+		03494C7D1F5B31A800ACE0EC /* U11PlayerIndicator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C7C1F5B31A800ACE0EC /* U11PlayerIndicator.mm */; };
+		03494C871F5B31D700ACE0EC /* U11Formation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C801F5B31D700ACE0EC /* U11Formation.mm */; };
+		03494C881F5B31D700ACE0EC /* U11Formation32.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C821F5B31D700ACE0EC /* U11Formation32.mm */; };
+		03494C891F5B31D700ACE0EC /* U11Formation442.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C841F5B31D700ACE0EC /* U11Formation442.mm */; };
+		03494C8A1F5B31D700ACE0EC /* U11FormationInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C861F5B31D700ACE0EC /* U11FormationInterface.mm */; };
+		03494C8D1F5B31E400ACE0EC /* U11FormationEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C8C1F5B31E400ACE0EC /* U11FormationEntity.mm */; };
+		03494C901F5B321700ACE0EC /* U11AISystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C8F1F5B321700ACE0EC /* U11AISystem.mm */; };
+		03494C9D1F5B370B00ACE0EC /* U11TriangleEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C9A1F5B370B00ACE0EC /* U11TriangleEntity.mm */; };
+		03494C9E1F5B370B00ACE0EC /* U11TriangleManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494C9C1F5B370B00ACE0EC /* U11TriangleManager.mm */; };
+		03494CA91F5B371700ACE0EC /* U11AIAttackState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CA01F5B371700ACE0EC /* U11AIAttackState.mm */; };
+		03494CAA1F5B371700ACE0EC /* U11AIDefenseState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CA21F5B371700ACE0EC /* U11AIDefenseState.mm */; };
+		03494CAB1F5B371700ACE0EC /* U11AIRecoverState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CA41F5B371700ACE0EC /* U11AIRecoverState.mm */; };
+		03494CAC1F5B371700ACE0EC /* U11AIStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CA61F5B371700ACE0EC /* U11AIStateInterface.mm */; };
+		03494CAD1F5B371700ACE0EC /* U11AIStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CA81F5B371700ACE0EC /* U11AIStateManager.mm */; };
+		03494CB01F5B37C800ACE0EC /* U11AIAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CAF1F5B37C800ACE0EC /* U11AIAnalyzer.mm */; };
+		03494CB91F5B37D800ACE0EC /* U11DefenseAISystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CB21F5B37D800ACE0EC /* U11DefenseAISystem.mm */; };
+		03494CBA1F5B37D800ACE0EC /* U11DefenseManualSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CB41F5B37D800ACE0EC /* U11DefenseManualSystem.mm */; };
+		03494CBB1F5B37D800ACE0EC /* U11DefenseSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CB61F5B37D800ACE0EC /* U11DefenseSystem.mm */; };
+		03494CBC1F5B37D800ACE0EC /* U11DefenseSystemInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CB81F5B37D800ACE0EC /* U11DefenseSystemInterface.mm */; };
+		03494CC51F5B37E300ACE0EC /* U11AttackAISystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CBE1F5B37E300ACE0EC /* U11AttackAISystem.mm */; };
+		03494CC61F5B37E300ACE0EC /* U11AttackManualSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CC01F5B37E300ACE0EC /* U11AttackManualSystem.mm */; };
+		03494CC71F5B37E300ACE0EC /* U11AttackSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CC21F5B37E300ACE0EC /* U11AttackSystem.mm */; };
+		03494CC81F5B37E300ACE0EC /* U11AttackSystemInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CC41F5B37E300ACE0EC /* U11AttackSystemInterface.mm */; };
+		03494CCF1F5B37F100ACE0EC /* U11AIAttackStrategy.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CCA1F5B37F100ACE0EC /* U11AIAttackStrategy.mm */; };
+		03494CD01F5B37F100ACE0EC /* U11AIAttackStrategyInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CCC1F5B37F100ACE0EC /* U11AIAttackStrategyInterface.mm */; };
+		03494CD11F5B37F100ACE0EC /* U11AITikiTaka.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CCE1F5B37F100ACE0EC /* U11AITikiTaka.mm */; };
+		03494CDA1F5B380000ACE0EC /* U11RecoverAISystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CD31F5B380000ACE0EC /* U11RecoverAISystem.mm */; };
+		03494CDB1F5B380000ACE0EC /* U11RecoverManualSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CD51F5B380000ACE0EC /* U11RecoverManualSystem.mm */; };
+		03494CDC1F5B380000ACE0EC /* U11RecoverSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CD71F5B380000ACE0EC /* U11RecoverSystem.mm */; };
+		03494CDD1F5B380000ACE0EC /* U11RecoverSystemInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CD91F5B380000ACE0EC /* U11RecoverSystemInterface.mm */; };
+		03494CE11F5B381400ACE0EC /* U11HeapSort.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CDF1F5B381400ACE0EC /* U11HeapSort.mm */; };
+		03494CE41F5B382200ACE0EC /* U11SpaceAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CE31F5B382200ACE0EC /* U11SpaceAnalyzer.mm */; };
+		03494CE71F5B387300ACE0EC /* U11Team.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CE61F5B387300ACE0EC /* U11Team.mm */; };
+		03494CEA1F5B3AE600ACE0EC /* U11PlayerRecoverState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494CE91F5B3AE600ACE0EC /* U11PlayerRecoverState.mm */; };
+		03494CEC1F5B41A200ACE0EC /* oppositeplayerscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494CEB1F5B41A200ACE0EC /* oppositeplayerscript.u4d */; };
+		03494CEE1F5B41E900ACE0EC /* whitekit.png in Resources */ = {isa = PBXBuildFile; fileRef = 03494CED1F5B41E900ACE0EC /* whitekit.png */; };
+		03494CF21F5B431000ACE0EC /* miscellaneousscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494CF11F5B431000ACE0EC /* miscellaneousscript.u4d */; };
+		03494CF61F5C650D00ACE0EC /* rightsolehaltanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494CF51F5C650D00ACE0EC /* rightsolehaltanimation.u4d */; };
+		03494CF91F5C652A00ACE0EC /* leftsolehaltanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494CF81F5C652A00ACE0EC /* leftsolehaltanimation.u4d */; };
+		03494CFB1F5C659000ACE0EC /* rightinsidehaltanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494CFA1F5C659000ACE0EC /* rightinsidehaltanimation.u4d */; };
+		03494CFD1F5C65A100ACE0EC /* leftinsidehaltanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494CFC1F5C65A100ACE0EC /* leftinsidehaltanimation.u4d */; };
+		03494CFF1F5C65BA00ACE0EC /* rightsidehaltanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494CFE1F5C65BA00ACE0EC /* rightsidehaltanimation.u4d */; };
+		03494D011F5C65CB00ACE0EC /* leftsidehaltanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494D001F5C65CB00ACE0EC /* leftsidehaltanimation.u4d */; };
+		03494D031F5C65F300ACE0EC /* leftreversekickanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494D021F5C65F300ACE0EC /* leftreversekickanimation.u4d */; };
+		03494D051F5C660300ACE0EC /* rightreversekickanimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494D041F5C660300ACE0EC /* rightreversekickanimation.u4d */; };
+		03494D071F5C6B1D00ACE0EC /* formation442.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03494D061F5C6B1D00ACE0EC /* formation442.u4d */; };
+		03494D091F5C6B4200ACE0EC /* playerindicatorImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 03494D081F5C6B4200ACE0EC /* playerindicatorImage.png */; };
 		034DBC821A73FAD200AC43EB /* lightShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC801A73FAD200AC43EB /* lightShader.fp */; };
 		034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC811A73FAD200AC43EB /* lightShader.vp */; };
 		034DBC891A74112000AC43EB /* debugShader.fp in Resources */ = {isa = PBXBuildFile; fileRef = 034DBC871A74112000AC43EB /* debugShader.fp */; };
@@ -198,7 +298,6 @@
 		03F2DB141F191F9B00F77B78 /* U4DRenderWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DB0B1F191F9B00F77B78 /* U4DRenderWorld.mm */; };
 		03F2DB1B1F193B5300F77B78 /* GameAsset.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DB191F193B5300F77B78 /* GameAsset.mm */; };
 		03F2DB211F19471300F77B78 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DB201F19471300F77B78 /* QuartzCore.framework */; };
-		03FE2CD81F1F0FB000D4E2FB /* player.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FE2CD71F1F0FB000D4E2FB /* player.u4d */; };
 		03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */; };
 		03FE2CDF1F1FA9FD00D4E2FB /* walkinganimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */; };
 /* End PBXBuildFile section */
@@ -286,6 +385,186 @@
 		03494BC11F4E5A7800ACE0EC /* walkSprite.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = walkSprite.xml; path = Resources/walkSprite.xml; sourceTree = SOURCE_ROOT; };
 		03494BC41F4E838500ACE0EC /* U4DSpriteAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSpriteAnimation.h; sourceTree = "<group>"; };
 		03494BC51F4E838500ACE0EC /* U4DSpriteAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSpriteAnimation.mm; sourceTree = "<group>"; };
+		03494BC71F566C8500ACE0EC /* runninganimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = runninganimation.u4d; path = Resources/runninganimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494BC91F567DE900ACE0EC /* leftpassanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftpassanimation.u4d; path = Resources/leftpassanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494BCB1F567DF800ACE0EC /* rightpassanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightpassanimation.u4d; path = Resources/rightpassanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494BCD1F567E0900ACE0EC /* rightdribbleanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightdribbleanimation.u4d; path = Resources/rightdribbleanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494BCF1F567E1B00ACE0EC /* leftdribbleanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftdribbleanimation.u4d; path = Resources/leftdribbleanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494BD31F56834800ACE0EC /* U11Player.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Player.h; path = game/Player/U11Player.h; sourceTree = SOURCE_ROOT; };
+		03494BD41F56834800ACE0EC /* U11Player.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Player.mm; path = game/Player/U11Player.mm; sourceTree = SOURCE_ROOT; };
+		03494BD61F56837200ACE0EC /* U11PlayerStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerStateInterface.h; path = game/PlayerState/U11PlayerStateInterface.h; sourceTree = SOURCE_ROOT; };
+		03494BD71F56837200ACE0EC /* U11PlayerStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerStateInterface.mm; path = game/PlayerState/U11PlayerStateInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494BD81F56837200ACE0EC /* U11PlayerStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerStateManager.h; path = game/PlayerState/U11PlayerStateManager.h; sourceTree = SOURCE_ROOT; };
+		03494BD91F56837200ACE0EC /* U11PlayerStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerStateManager.mm; path = game/PlayerState/U11PlayerStateManager.mm; sourceTree = SOURCE_ROOT; };
+		03494BDD1F568E4300ACE0EC /* U11Ball.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Ball.h; path = game/Ball/U11Ball.h; sourceTree = SOURCE_ROOT; };
+		03494BDE1F568E4300ACE0EC /* U11Ball.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Ball.mm; path = game/Ball/U11Ball.mm; sourceTree = SOURCE_ROOT; };
+		03494BE11F568E5B00ACE0EC /* U11Field.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Field.h; path = game/Field/U11Field.h; sourceTree = SOURCE_ROOT; };
+		03494BE21F568E5B00ACE0EC /* U11Field.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Field.mm; path = game/Field/U11Field.mm; sourceTree = SOURCE_ROOT; };
+		03494BE51F568E7000ACE0EC /* U11FieldGoal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11FieldGoal.h; path = game/FieldGoal/U11FieldGoal.h; sourceTree = SOURCE_ROOT; };
+		03494BE61F568E7000ACE0EC /* U11FieldGoal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11FieldGoal.mm; path = game/FieldGoal/U11FieldGoal.mm; sourceTree = SOURCE_ROOT; };
+		03494BE91F568EA700ACE0EC /* U11BallAirState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallAirState.h; path = game/BallState/U11BallAirState.h; sourceTree = SOURCE_ROOT; };
+		03494BEA1F568EA700ACE0EC /* U11BallAirState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallAirState.mm; path = game/BallState/U11BallAirState.mm; sourceTree = SOURCE_ROOT; };
+		03494BEB1F568EA700ACE0EC /* U11BallBounceState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallBounceState.h; path = game/BallState/U11BallBounceState.h; sourceTree = SOURCE_ROOT; };
+		03494BEC1F568EA700ACE0EC /* U11BallBounceState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallBounceState.mm; path = game/BallState/U11BallBounceState.mm; sourceTree = SOURCE_ROOT; };
+		03494BED1F568EA700ACE0EC /* U11BallGroundState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallGroundState.h; path = game/BallState/U11BallGroundState.h; sourceTree = SOURCE_ROOT; };
+		03494BEE1F568EA700ACE0EC /* U11BallGroundState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallGroundState.mm; path = game/BallState/U11BallGroundState.mm; sourceTree = SOURCE_ROOT; };
+		03494BEF1F568EA700ACE0EC /* U11BallStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallStateInterface.h; path = game/BallState/U11BallStateInterface.h; sourceTree = SOURCE_ROOT; };
+		03494BF01F568EA700ACE0EC /* U11BallStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallStateInterface.mm; path = game/BallState/U11BallStateInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494BF11F568EA700ACE0EC /* U11BallStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11BallStateManager.h; path = game/BallState/U11BallStateManager.h; sourceTree = SOURCE_ROOT; };
+		03494BF21F568EA700ACE0EC /* U11BallStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11BallStateManager.mm; path = game/BallState/U11BallStateManager.mm; sourceTree = SOURCE_ROOT; };
+		03494BF81F56903C00ACE0EC /* playerscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = playerscript.u4d; path = Resources/playerscript.u4d; sourceTree = SOURCE_ROOT; };
+		03494BFE1F5741A300ACE0EC /* idleanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = idleanimation.u4d; path = Resources/idleanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494C001F5744F200ACE0EC /* U11PlayerIdleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerIdleState.h; path = game/PlayerState/U11PlayerIdleState.h; sourceTree = SOURCE_ROOT; };
+		03494C011F5744F200ACE0EC /* U11PlayerIdleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerIdleState.mm; path = game/PlayerState/U11PlayerIdleState.mm; sourceTree = SOURCE_ROOT; };
+		03494C041F5746D000ACE0EC /* U11MessageDispatcher.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11MessageDispatcher.h; path = game/messageDispatcher/U11MessageDispatcher.h; sourceTree = SOURCE_ROOT; };
+		03494C051F5746D000ACE0EC /* U11MessageDispatcher.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11MessageDispatcher.mm; path = game/messageDispatcher/U11MessageDispatcher.mm; sourceTree = SOURCE_ROOT; };
+		03494C071F57495B00ACE0EC /* U11PlayerRunState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunState.mm; path = game/PlayerState/U11PlayerRunState.mm; sourceTree = SOURCE_ROOT; };
+		03494C081F57495B00ACE0EC /* U11PlayerRunState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunState.h; path = game/PlayerState/U11PlayerRunState.h; sourceTree = SOURCE_ROOT; };
+		03494C0A1F57B98D00ACE0EC /* U11PlayerDribbleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDribbleState.h; path = game/PlayerState/U11PlayerDribbleState.h; sourceTree = SOURCE_ROOT; };
+		03494C0B1F57B98D00ACE0EC /* U11PlayerDribbleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribbleState.mm; path = game/PlayerState/U11PlayerDribbleState.mm; sourceTree = SOURCE_ROOT; };
+		03494C0F1F57BA5C00ACE0EC /* U11PlayerExtremity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerExtremity.h; path = game/Player/Extremity/U11PlayerExtremity.h; sourceTree = SOURCE_ROOT; };
+		03494C101F57BA5C00ACE0EC /* U11PlayerExtremity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerExtremity.mm; path = game/Player/Extremity/U11PlayerExtremity.mm; sourceTree = SOURCE_ROOT; };
+		03494C121F57BA6600ACE0EC /* U11PlayerSpace.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerSpace.h; path = game/Player/PlayerSpace/U11PlayerSpace.h; sourceTree = SOURCE_ROOT; };
+		03494C131F57BA6600ACE0EC /* U11PlayerSpace.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerSpace.mm; path = game/Player/PlayerSpace/U11PlayerSpace.mm; sourceTree = SOURCE_ROOT; };
+		03494C151F57BD4C00ACE0EC /* nonVisibleShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = nonVisibleShader.metal; path = MetalShaders/nonVisibleShader.metal; sourceTree = "<group>"; };
+		03494C171F57CC0E00ACE0EC /* U11PlayerChaseBallState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerChaseBallState.h; path = game/PlayerState/U11PlayerChaseBallState.h; sourceTree = SOURCE_ROOT; };
+		03494C181F57CC0E00ACE0EC /* U11PlayerChaseBallState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerChaseBallState.mm; path = game/PlayerState/U11PlayerChaseBallState.mm; sourceTree = SOURCE_ROOT; };
+		03494C1A1F589D0F00ACE0EC /* U11PlayerDribblePassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDribblePassState.h; path = game/PlayerState/U11PlayerDribblePassState.h; sourceTree = SOURCE_ROOT; };
+		03494C1B1F589D0F00ACE0EC /* U11PlayerDribblePassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribblePassState.mm; path = game/PlayerState/U11PlayerDribblePassState.mm; sourceTree = SOURCE_ROOT; };
+		03494C201F589D5800ACE0EC /* U11PlayerGroundPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerGroundPassState.h; path = game/PlayerState/U11PlayerGroundPassState.h; sourceTree = SOURCE_ROOT; };
+		03494C211F589D5800ACE0EC /* U11PlayerGroundPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerGroundPassState.mm; path = game/PlayerState/U11PlayerGroundPassState.mm; sourceTree = SOURCE_ROOT; };
+		03494C231F59FDA500ACE0EC /* U11PlayerHaltBallState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerHaltBallState.h; path = game/PlayerState/U11PlayerHaltBallState.h; sourceTree = SOURCE_ROOT; };
+		03494C241F59FDA500ACE0EC /* U11PlayerHaltBallState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerHaltBallState.mm; path = game/PlayerState/U11PlayerHaltBallState.mm; sourceTree = SOURCE_ROOT; };
+		03494C331F5B2CCC00ACE0EC /* U11PlayerPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerPassState.h; path = game/PlayerState/U11PlayerPassState.h; sourceTree = SOURCE_ROOT; };
+		03494C341F5B2CCC00ACE0EC /* U11PlayerPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerPassState.mm; path = game/PlayerState/U11PlayerPassState.mm; sourceTree = SOURCE_ROOT; };
+		03494C361F5B2CEA00ACE0EC /* U11PlayerRunPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunPassState.h; path = game/PlayerState/U11PlayerRunPassState.h; sourceTree = SOURCE_ROOT; };
+		03494C371F5B2CEA00ACE0EC /* U11PlayerRunPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunPassState.mm; path = game/PlayerState/U11PlayerRunPassState.mm; sourceTree = SOURCE_ROOT; };
+		03494C391F5B2D0900ACE0EC /* U11PlayerReceiveBallState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerReceiveBallState.h; path = game/PlayerState/U11PlayerReceiveBallState.h; sourceTree = SOURCE_ROOT; };
+		03494C3A1F5B2D0900ACE0EC /* U11PlayerReceiveBallState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerReceiveBallState.mm; path = game/PlayerState/U11PlayerReceiveBallState.mm; sourceTree = SOURCE_ROOT; };
+		03494C3C1F5B2D1D00ACE0EC /* U11PlayerTurnPassState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerTurnPassState.h; path = game/PlayerState/U11PlayerTurnPassState.h; sourceTree = SOURCE_ROOT; };
+		03494C3D1F5B2D1D00ACE0EC /* U11PlayerTurnPassState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerTurnPassState.mm; path = game/PlayerState/U11PlayerTurnPassState.mm; sourceTree = SOURCE_ROOT; };
+		03494C3F1F5B2D7400ACE0EC /* U11PlayerGroundShotState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerGroundShotState.h; path = game/PlayerState/U11PlayerGroundShotState.h; sourceTree = SOURCE_ROOT; };
+		03494C401F5B2D7400ACE0EC /* U11PlayerGroundShotState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerGroundShotState.mm; path = game/PlayerState/U11PlayerGroundShotState.mm; sourceTree = SOURCE_ROOT; };
+		03494C421F5B2D8300ACE0EC /* U11PlayerAirShotState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerAirShotState.h; path = game/PlayerState/U11PlayerAirShotState.h; sourceTree = SOURCE_ROOT; };
+		03494C431F5B2D8300ACE0EC /* U11PlayerAirShotState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerAirShotState.mm; path = game/PlayerState/U11PlayerAirShotState.mm; sourceTree = SOURCE_ROOT; };
+		03494C451F5B2DEF00ACE0EC /* U11PlayerDefendState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDefendState.h; path = game/PlayerState/U11PlayerDefendState.h; sourceTree = SOURCE_ROOT; };
+		03494C461F5B2DEF00ACE0EC /* U11PlayerDefendState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDefendState.mm; path = game/PlayerState/U11PlayerDefendState.mm; sourceTree = SOURCE_ROOT; };
+		03494C481F5B2E0C00ACE0EC /* U11PlayerDefendPositionState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDefendPositionState.h; path = game/PlayerState/U11PlayerDefendPositionState.h; sourceTree = SOURCE_ROOT; };
+		03494C491F5B2E0C00ACE0EC /* U11PlayerDefendPositionState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDefendPositionState.mm; path = game/PlayerState/U11PlayerDefendPositionState.mm; sourceTree = SOURCE_ROOT; };
+		03494C4B1F5B2E2600ACE0EC /* U11PlayerRunToStealState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunToStealState.h; path = game/PlayerState/U11PlayerRunToStealState.h; sourceTree = SOURCE_ROOT; };
+		03494C4C1F5B2E2600ACE0EC /* U11PlayerRunToStealState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunToStealState.mm; path = game/PlayerState/U11PlayerRunToStealState.mm; sourceTree = SOURCE_ROOT; };
+		03494C4E1F5B2E3A00ACE0EC /* U11PlayerDefenseFormationState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDefenseFormationState.h; path = game/PlayerState/U11PlayerDefenseFormationState.h; sourceTree = SOURCE_ROOT; };
+		03494C4F1F5B2E3A00ACE0EC /* U11PlayerDefenseFormationState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDefenseFormationState.mm; path = game/PlayerState/U11PlayerDefenseFormationState.mm; sourceTree = SOURCE_ROOT; };
+		03494C511F5B2E5300ACE0EC /* U11PlayerMarkingState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerMarkingState.h; path = game/PlayerState/U11PlayerMarkingState.h; sourceTree = SOURCE_ROOT; };
+		03494C521F5B2E5300ACE0EC /* U11PlayerMarkingState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerMarkingState.mm; path = game/PlayerState/U11PlayerMarkingState.mm; sourceTree = SOURCE_ROOT; };
+		03494C541F5B2E6300ACE0EC /* U11PlayerTapToStealState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerTapToStealState.h; path = game/PlayerState/U11PlayerTapToStealState.h; sourceTree = SOURCE_ROOT; };
+		03494C551F5B2E6300ACE0EC /* U11PlayerTapToStealState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerTapToStealState.mm; path = game/PlayerState/U11PlayerTapToStealState.mm; sourceTree = SOURCE_ROOT; };
+		03494C571F5B2E7B00ACE0EC /* U11PlayerInterceptState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerInterceptState.h; path = game/PlayerState/U11PlayerInterceptState.h; sourceTree = SOURCE_ROOT; };
+		03494C581F5B2E7B00ACE0EC /* U11PlayerInterceptState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerInterceptState.mm; path = game/PlayerState/U11PlayerInterceptState.mm; sourceTree = SOURCE_ROOT; };
+		03494C5A1F5B2E8E00ACE0EC /* U11PlayerApproachOpponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerApproachOpponent.h; path = game/PlayerState/U11PlayerApproachOpponent.h; sourceTree = SOURCE_ROOT; };
+		03494C5B1F5B2E8E00ACE0EC /* U11PlayerApproachOpponent.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerApproachOpponent.mm; path = game/PlayerState/U11PlayerApproachOpponent.mm; sourceTree = SOURCE_ROOT; };
+		03494C5D1F5B2F9000ACE0EC /* U11PlayerAttackState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerAttackState.h; path = game/PlayerState/U11PlayerAttackState.h; sourceTree = SOURCE_ROOT; };
+		03494C5E1F5B2F9000ACE0EC /* U11PlayerAttackState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerAttackState.mm; path = game/PlayerState/U11PlayerAttackState.mm; sourceTree = SOURCE_ROOT; };
+		03494C601F5B2FA200ACE0EC /* U11PlayerAttackFormationState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerAttackFormationState.h; path = game/PlayerState/U11PlayerAttackFormationState.h; sourceTree = SOURCE_ROOT; };
+		03494C611F5B2FA200ACE0EC /* U11PlayerAttackFormationState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerAttackFormationState.mm; path = game/PlayerState/U11PlayerAttackFormationState.mm; sourceTree = SOURCE_ROOT; };
+		03494C631F5B2FBF00ACE0EC /* U11PlayerReverseKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerReverseKickState.h; path = game/PlayerState/U11PlayerReverseKickState.h; sourceTree = SOURCE_ROOT; };
+		03494C641F5B2FBF00ACE0EC /* U11PlayerReverseKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerReverseKickState.mm; path = game/PlayerState/U11PlayerReverseKickState.mm; sourceTree = SOURCE_ROOT; };
+		03494C661F5B2FD400ACE0EC /* U11PlayerRunToReverseKickState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunToReverseKickState.h; path = game/PlayerState/U11PlayerRunToReverseKickState.h; sourceTree = SOURCE_ROOT; };
+		03494C671F5B2FD400ACE0EC /* U11PlayerRunToReverseKickState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunToReverseKickState.mm; path = game/PlayerState/U11PlayerRunToReverseKickState.mm; sourceTree = SOURCE_ROOT; };
+		03494C691F5B30EB00ACE0EC /* U11PlayerSupportState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerSupportState.h; path = game/PlayerState/U11PlayerSupportState.h; sourceTree = SOURCE_ROOT; };
+		03494C6A1F5B30EB00ACE0EC /* U11PlayerSupportState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerSupportState.mm; path = game/PlayerState/U11PlayerSupportState.mm; sourceTree = SOURCE_ROOT; };
+		03494C6C1F5B30FD00ACE0EC /* U11PlayerRunToSupportState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRunToSupportState.h; path = game/PlayerState/U11PlayerRunToSupportState.h; sourceTree = SOURCE_ROOT; };
+		03494C6D1F5B30FD00ACE0EC /* U11PlayerRunToSupportState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRunToSupportState.mm; path = game/PlayerState/U11PlayerRunToSupportState.mm; sourceTree = SOURCE_ROOT; };
+		03494C6F1F5B311500ACE0EC /* U11PlayerReverseRunState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerReverseRunState.h; path = game/PlayerState/U11PlayerReverseRunState.h; sourceTree = SOURCE_ROOT; };
+		03494C701F5B311500ACE0EC /* U11PlayerReverseRunState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerReverseRunState.mm; path = game/PlayerState/U11PlayerReverseRunState.mm; sourceTree = SOURCE_ROOT; };
+		03494C721F5B312800ACE0EC /* U11PlayerLateralRunState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerLateralRunState.h; path = game/PlayerState/U11PlayerLateralRunState.h; sourceTree = SOURCE_ROOT; };
+		03494C731F5B312800ACE0EC /* U11PlayerLateralRunState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerLateralRunState.mm; path = game/PlayerState/U11PlayerLateralRunState.mm; sourceTree = SOURCE_ROOT; };
+		03494C751F5B314100ACE0EC /* U11PlayerOpenUpState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerOpenUpState.h; path = game/PlayerState/U11PlayerOpenUpState.h; sourceTree = SOURCE_ROOT; };
+		03494C761F5B314100ACE0EC /* U11PlayerOpenUpState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerOpenUpState.mm; path = game/PlayerState/U11PlayerOpenUpState.mm; sourceTree = SOURCE_ROOT; };
+		03494C781F5B315200ACE0EC /* U11PlayerDribbleTurnState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerDribbleTurnState.h; path = game/PlayerState/U11PlayerDribbleTurnState.h; sourceTree = SOURCE_ROOT; };
+		03494C791F5B315200ACE0EC /* U11PlayerDribbleTurnState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerDribbleTurnState.mm; path = game/PlayerState/U11PlayerDribbleTurnState.mm; sourceTree = SOURCE_ROOT; };
+		03494C7B1F5B31A800ACE0EC /* U11PlayerIndicator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerIndicator.h; path = game/PlayerIndicator/U11PlayerIndicator.h; sourceTree = SOURCE_ROOT; };
+		03494C7C1F5B31A800ACE0EC /* U11PlayerIndicator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerIndicator.mm; path = game/PlayerIndicator/U11PlayerIndicator.mm; sourceTree = SOURCE_ROOT; };
+		03494C7F1F5B31D700ACE0EC /* U11Formation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Formation.h; path = game/Formation/U11Formation.h; sourceTree = SOURCE_ROOT; };
+		03494C801F5B31D700ACE0EC /* U11Formation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Formation.mm; path = game/Formation/U11Formation.mm; sourceTree = SOURCE_ROOT; };
+		03494C811F5B31D700ACE0EC /* U11Formation32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Formation32.h; path = game/Formation/U11Formation32.h; sourceTree = SOURCE_ROOT; };
+		03494C821F5B31D700ACE0EC /* U11Formation32.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Formation32.mm; path = game/Formation/U11Formation32.mm; sourceTree = SOURCE_ROOT; };
+		03494C831F5B31D700ACE0EC /* U11Formation442.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Formation442.h; path = game/Formation/U11Formation442.h; sourceTree = SOURCE_ROOT; };
+		03494C841F5B31D700ACE0EC /* U11Formation442.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Formation442.mm; path = game/Formation/U11Formation442.mm; sourceTree = SOURCE_ROOT; };
+		03494C851F5B31D700ACE0EC /* U11FormationInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11FormationInterface.h; path = game/Formation/U11FormationInterface.h; sourceTree = SOURCE_ROOT; };
+		03494C861F5B31D700ACE0EC /* U11FormationInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11FormationInterface.mm; path = game/Formation/U11FormationInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494C8B1F5B31E400ACE0EC /* U11FormationEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11FormationEntity.h; path = game/Formation/FormationEntity/U11FormationEntity.h; sourceTree = SOURCE_ROOT; };
+		03494C8C1F5B31E400ACE0EC /* U11FormationEntity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11FormationEntity.mm; path = game/Formation/FormationEntity/U11FormationEntity.mm; sourceTree = SOURCE_ROOT; };
+		03494C8E1F5B321700ACE0EC /* U11AISystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AISystem.h; path = game/AISystem/U11AISystem.h; sourceTree = SOURCE_ROOT; };
+		03494C8F1F5B321700ACE0EC /* U11AISystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AISystem.mm; path = game/AISystem/U11AISystem.mm; sourceTree = SOURCE_ROOT; };
+		03494C991F5B370B00ACE0EC /* U11TriangleEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11TriangleEntity.h; path = game/AISystem/TriangleEntity/U11TriangleEntity.h; sourceTree = SOURCE_ROOT; };
+		03494C9A1F5B370B00ACE0EC /* U11TriangleEntity.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11TriangleEntity.mm; path = game/AISystem/TriangleEntity/U11TriangleEntity.mm; sourceTree = SOURCE_ROOT; };
+		03494C9B1F5B370B00ACE0EC /* U11TriangleManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11TriangleManager.h; path = game/AISystem/TriangleEntity/U11TriangleManager.h; sourceTree = SOURCE_ROOT; };
+		03494C9C1F5B370B00ACE0EC /* U11TriangleManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11TriangleManager.mm; path = game/AISystem/TriangleEntity/U11TriangleManager.mm; sourceTree = SOURCE_ROOT; };
+		03494C9F1F5B371700ACE0EC /* U11AIAttackState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIAttackState.h; path = game/AISystem/State/U11AIAttackState.h; sourceTree = SOURCE_ROOT; };
+		03494CA01F5B371700ACE0EC /* U11AIAttackState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIAttackState.mm; path = game/AISystem/State/U11AIAttackState.mm; sourceTree = SOURCE_ROOT; };
+		03494CA11F5B371700ACE0EC /* U11AIDefenseState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIDefenseState.h; path = game/AISystem/State/U11AIDefenseState.h; sourceTree = SOURCE_ROOT; };
+		03494CA21F5B371700ACE0EC /* U11AIDefenseState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIDefenseState.mm; path = game/AISystem/State/U11AIDefenseState.mm; sourceTree = SOURCE_ROOT; };
+		03494CA31F5B371700ACE0EC /* U11AIRecoverState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIRecoverState.h; path = game/AISystem/State/U11AIRecoverState.h; sourceTree = SOURCE_ROOT; };
+		03494CA41F5B371700ACE0EC /* U11AIRecoverState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIRecoverState.mm; path = game/AISystem/State/U11AIRecoverState.mm; sourceTree = SOURCE_ROOT; };
+		03494CA51F5B371700ACE0EC /* U11AIStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIStateInterface.h; path = game/AISystem/State/U11AIStateInterface.h; sourceTree = SOURCE_ROOT; };
+		03494CA61F5B371700ACE0EC /* U11AIStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIStateInterface.mm; path = game/AISystem/State/U11AIStateInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494CA71F5B371700ACE0EC /* U11AIStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIStateManager.h; path = game/AISystem/State/U11AIStateManager.h; sourceTree = SOURCE_ROOT; };
+		03494CA81F5B371700ACE0EC /* U11AIStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIStateManager.mm; path = game/AISystem/State/U11AIStateManager.mm; sourceTree = SOURCE_ROOT; };
+		03494CAE1F5B37C800ACE0EC /* U11AIAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIAnalyzer.h; path = game/AISystem/Analyzer/U11AIAnalyzer.h; sourceTree = SOURCE_ROOT; };
+		03494CAF1F5B37C800ACE0EC /* U11AIAnalyzer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIAnalyzer.mm; path = game/AISystem/Analyzer/U11AIAnalyzer.mm; sourceTree = SOURCE_ROOT; };
+		03494CB11F5B37D800ACE0EC /* U11DefenseAISystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11DefenseAISystem.h; path = game/AISystem/Defense/U11DefenseAISystem.h; sourceTree = SOURCE_ROOT; };
+		03494CB21F5B37D800ACE0EC /* U11DefenseAISystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11DefenseAISystem.mm; path = game/AISystem/Defense/U11DefenseAISystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CB31F5B37D800ACE0EC /* U11DefenseManualSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11DefenseManualSystem.h; path = game/AISystem/Defense/U11DefenseManualSystem.h; sourceTree = SOURCE_ROOT; };
+		03494CB41F5B37D800ACE0EC /* U11DefenseManualSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11DefenseManualSystem.mm; path = game/AISystem/Defense/U11DefenseManualSystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CB51F5B37D800ACE0EC /* U11DefenseSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11DefenseSystem.h; path = game/AISystem/Defense/U11DefenseSystem.h; sourceTree = SOURCE_ROOT; };
+		03494CB61F5B37D800ACE0EC /* U11DefenseSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11DefenseSystem.mm; path = game/AISystem/Defense/U11DefenseSystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CB71F5B37D800ACE0EC /* U11DefenseSystemInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11DefenseSystemInterface.h; path = game/AISystem/Defense/U11DefenseSystemInterface.h; sourceTree = SOURCE_ROOT; };
+		03494CB81F5B37D800ACE0EC /* U11DefenseSystemInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11DefenseSystemInterface.mm; path = game/AISystem/Defense/U11DefenseSystemInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494CBD1F5B37E300ACE0EC /* U11AttackAISystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AttackAISystem.h; path = game/AISystem/Attack/U11AttackAISystem.h; sourceTree = SOURCE_ROOT; };
+		03494CBE1F5B37E300ACE0EC /* U11AttackAISystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AttackAISystem.mm; path = game/AISystem/Attack/U11AttackAISystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CBF1F5B37E300ACE0EC /* U11AttackManualSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AttackManualSystem.h; path = game/AISystem/Attack/U11AttackManualSystem.h; sourceTree = SOURCE_ROOT; };
+		03494CC01F5B37E300ACE0EC /* U11AttackManualSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AttackManualSystem.mm; path = game/AISystem/Attack/U11AttackManualSystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CC11F5B37E300ACE0EC /* U11AttackSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AttackSystem.h; path = game/AISystem/Attack/U11AttackSystem.h; sourceTree = SOURCE_ROOT; };
+		03494CC21F5B37E300ACE0EC /* U11AttackSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AttackSystem.mm; path = game/AISystem/Attack/U11AttackSystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CC31F5B37E300ACE0EC /* U11AttackSystemInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AttackSystemInterface.h; path = game/AISystem/Attack/U11AttackSystemInterface.h; sourceTree = SOURCE_ROOT; };
+		03494CC41F5B37E300ACE0EC /* U11AttackSystemInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AttackSystemInterface.mm; path = game/AISystem/Attack/U11AttackSystemInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494CC91F5B37F100ACE0EC /* U11AIAttackStrategy.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIAttackStrategy.h; path = game/AISystem/AttackStrategy/U11AIAttackStrategy.h; sourceTree = SOURCE_ROOT; };
+		03494CCA1F5B37F100ACE0EC /* U11AIAttackStrategy.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIAttackStrategy.mm; path = game/AISystem/AttackStrategy/U11AIAttackStrategy.mm; sourceTree = SOURCE_ROOT; };
+		03494CCB1F5B37F100ACE0EC /* U11AIAttackStrategyInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AIAttackStrategyInterface.h; path = game/AISystem/AttackStrategy/U11AIAttackStrategyInterface.h; sourceTree = SOURCE_ROOT; };
+		03494CCC1F5B37F100ACE0EC /* U11AIAttackStrategyInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AIAttackStrategyInterface.mm; path = game/AISystem/AttackStrategy/U11AIAttackStrategyInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494CCD1F5B37F100ACE0EC /* U11AITikiTaka.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11AITikiTaka.h; path = game/AISystem/AttackStrategy/U11AITikiTaka.h; sourceTree = SOURCE_ROOT; };
+		03494CCE1F5B37F100ACE0EC /* U11AITikiTaka.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11AITikiTaka.mm; path = game/AISystem/AttackStrategy/U11AITikiTaka.mm; sourceTree = SOURCE_ROOT; };
+		03494CD21F5B380000ACE0EC /* U11RecoverAISystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11RecoverAISystem.h; path = game/AISystem/Recover/U11RecoverAISystem.h; sourceTree = SOURCE_ROOT; };
+		03494CD31F5B380000ACE0EC /* U11RecoverAISystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11RecoverAISystem.mm; path = game/AISystem/Recover/U11RecoverAISystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CD41F5B380000ACE0EC /* U11RecoverManualSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11RecoverManualSystem.h; path = game/AISystem/Recover/U11RecoverManualSystem.h; sourceTree = SOURCE_ROOT; };
+		03494CD51F5B380000ACE0EC /* U11RecoverManualSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11RecoverManualSystem.mm; path = game/AISystem/Recover/U11RecoverManualSystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CD61F5B380000ACE0EC /* U11RecoverSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11RecoverSystem.h; path = game/AISystem/Recover/U11RecoverSystem.h; sourceTree = SOURCE_ROOT; };
+		03494CD71F5B380000ACE0EC /* U11RecoverSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11RecoverSystem.mm; path = game/AISystem/Recover/U11RecoverSystem.mm; sourceTree = SOURCE_ROOT; };
+		03494CD81F5B380000ACE0EC /* U11RecoverSystemInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11RecoverSystemInterface.h; path = game/AISystem/Recover/U11RecoverSystemInterface.h; sourceTree = SOURCE_ROOT; };
+		03494CD91F5B380000ACE0EC /* U11RecoverSystemInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11RecoverSystemInterface.mm; path = game/AISystem/Recover/U11RecoverSystemInterface.mm; sourceTree = SOURCE_ROOT; };
+		03494CDE1F5B381400ACE0EC /* U11HeapSort.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11HeapSort.h; path = game/DataStructures/U11HeapSort.h; sourceTree = SOURCE_ROOT; };
+		03494CDF1F5B381400ACE0EC /* U11HeapSort.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11HeapSort.mm; path = game/DataStructures/U11HeapSort.mm; sourceTree = SOURCE_ROOT; };
+		03494CE01F5B381400ACE0EC /* U11Node.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Node.h; path = game/DataStructures/U11Node.h; sourceTree = SOURCE_ROOT; };
+		03494CE21F5B382200ACE0EC /* U11SpaceAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11SpaceAnalyzer.h; path = game/SpaceAnalyzer/U11SpaceAnalyzer.h; sourceTree = SOURCE_ROOT; };
+		03494CE31F5B382200ACE0EC /* U11SpaceAnalyzer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11SpaceAnalyzer.mm; path = game/SpaceAnalyzer/U11SpaceAnalyzer.mm; sourceTree = SOURCE_ROOT; };
+		03494CE51F5B387300ACE0EC /* U11Team.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11Team.h; path = game/Team/U11Team.h; sourceTree = SOURCE_ROOT; };
+		03494CE61F5B387300ACE0EC /* U11Team.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11Team.mm; path = game/Team/U11Team.mm; sourceTree = SOURCE_ROOT; };
+		03494CE81F5B3AE600ACE0EC /* U11PlayerRecoverState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U11PlayerRecoverState.h; path = game/PlayerState/U11PlayerRecoverState.h; sourceTree = SOURCE_ROOT; };
+		03494CE91F5B3AE600ACE0EC /* U11PlayerRecoverState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U11PlayerRecoverState.mm; path = game/PlayerState/U11PlayerRecoverState.mm; sourceTree = SOURCE_ROOT; };
+		03494CEB1F5B41A200ACE0EC /* oppositeplayerscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = oppositeplayerscript.u4d; path = Resources/oppositeplayerscript.u4d; sourceTree = SOURCE_ROOT; };
+		03494CED1F5B41E900ACE0EC /* whitekit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = whitekit.png; path = Resources/whitekit.png; sourceTree = SOURCE_ROOT; };
+		03494CF11F5B431000ACE0EC /* miscellaneousscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = miscellaneousscript.u4d; path = Resources/miscellaneousscript.u4d; sourceTree = SOURCE_ROOT; };
+		03494CF51F5C650D00ACE0EC /* rightsolehaltanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightsolehaltanimation.u4d; path = Resources/rightsolehaltanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494CF81F5C652A00ACE0EC /* leftsolehaltanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftsolehaltanimation.u4d; path = Resources/leftsolehaltanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494CFA1F5C659000ACE0EC /* rightinsidehaltanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightinsidehaltanimation.u4d; path = Resources/rightinsidehaltanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494CFC1F5C65A100ACE0EC /* leftinsidehaltanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftinsidehaltanimation.u4d; path = Resources/leftinsidehaltanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494CFE1F5C65BA00ACE0EC /* rightsidehaltanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = rightsidehaltanimation.u4d; path = Resources/rightsidehaltanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494D001F5C65CB00ACE0EC /* leftsidehaltanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftsidehaltanimation.u4d; path = Resources/leftsidehaltanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494D021F5C65F300ACE0EC /* leftreversekickanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = leftreversekickanimation.u4d; path = Resources/leftreversekickanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494D041F5C660300ACE0EC /* rightreversekickanimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = rightreversekickanimation.u4d; path = Resources/rightreversekickanimation.u4d; sourceTree = SOURCE_ROOT; };
+		03494D061F5C6B1D00ACE0EC /* formation442.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = formation442.u4d; path = Resources/formation442.u4d; sourceTree = SOURCE_ROOT; };
+		03494D081F5C6B4200ACE0EC /* playerindicatorImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = playerindicatorImage.png; path = Resources/playerindicatorImage.png; sourceTree = SOURCE_ROOT; };
 		034DBC801A73FAD200AC43EB /* lightShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.fp; sourceTree = "<group>"; };
 		034DBC811A73FAD200AC43EB /* lightShader.vp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = lightShader.vp; sourceTree = "<group>"; };
 		034DBC871A74112000AC43EB /* debugShader.fp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = debugShader.fp; sourceTree = "<group>"; };
@@ -524,7 +803,6 @@
 		03F2DB191F193B5300F77B78 /* GameAsset.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GameAsset.mm; sourceTree = "<group>"; };
 		03F2DB1A1F193B5300F77B78 /* GameAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GameAsset.h; sourceTree = "<group>"; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
-		03FE2CD71F1F0FB000D4E2FB /* player.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = player.u4d; path = Resources/player.u4d; sourceTree = SOURCE_ROOT; };
 		03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayer.mm; sourceTree = "<group>"; };
 		03FE2CDC1F1FA90100D4E2FB /* SoccerPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayer.h; sourceTree = "<group>"; };
 		03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; name = walkinganimation.u4d; path = Resources/walkinganimation.u4d; sourceTree = SOURCE_ROOT; };
@@ -639,6 +917,408 @@
 			name = BoundingVolumes;
 			sourceTree = "<group>";
 		};
+		03494BD11F56832A00ACE0EC /* Player */ = {
+			isa = PBXGroup;
+			children = (
+				03494C0E1F57BA4C00ACE0EC /* PlayerSpace */,
+				03494C0D1F57BA4000ACE0EC /* Extremety */,
+				03494BD31F56834800ACE0EC /* U11Player.h */,
+				03494BD41F56834800ACE0EC /* U11Player.mm */,
+			);
+			name = Player;
+			sourceTree = "<group>";
+		};
+		03494BD21F56833100ACE0EC /* PlayerState */ = {
+			isa = PBXGroup;
+			children = (
+				03494C321F5B2BCC00ACE0EC /* Attacking */,
+				03494C311F5B2BBF00ACE0EC /* Defending */,
+				03494C301F5B2BB500ACE0EC /* Passing */,
+				03494C2F1F5B2BAB00ACE0EC /* Shooting */,
+				03494C2E1F5B2BA300ACE0EC /* Chasing */,
+				03494C2D1F5B2B9D00ACE0EC /* Idle */,
+				03494C2C1F5B2B9600ACE0EC /* Halt */,
+				03494C2B1F5B2B8B00ACE0EC /* Recover */,
+				03494BD61F56837200ACE0EC /* U11PlayerStateInterface.h */,
+				03494BD71F56837200ACE0EC /* U11PlayerStateInterface.mm */,
+				03494BD81F56837200ACE0EC /* U11PlayerStateManager.h */,
+				03494BD91F56837200ACE0EC /* U11PlayerStateManager.mm */,
+			);
+			name = PlayerState;
+			sourceTree = "<group>";
+		};
+		03494BDC1F568E2B00ACE0EC /* Ball */ = {
+			isa = PBXGroup;
+			children = (
+				03494BDD1F568E4300ACE0EC /* U11Ball.h */,
+				03494BDE1F568E4300ACE0EC /* U11Ball.mm */,
+			);
+			name = Ball;
+			sourceTree = "<group>";
+		};
+		03494BE01F568E4800ACE0EC /* Field */ = {
+			isa = PBXGroup;
+			children = (
+				03494BE11F568E5B00ACE0EC /* U11Field.h */,
+				03494BE21F568E5B00ACE0EC /* U11Field.mm */,
+			);
+			name = Field;
+			sourceTree = "<group>";
+		};
+		03494BE41F568E5F00ACE0EC /* FieldGoal */ = {
+			isa = PBXGroup;
+			children = (
+				03494BE51F568E7000ACE0EC /* U11FieldGoal.h */,
+				03494BE61F568E7000ACE0EC /* U11FieldGoal.mm */,
+			);
+			name = FieldGoal;
+			sourceTree = "<group>";
+		};
+		03494BE81F568E9500ACE0EC /* BallState */ = {
+			isa = PBXGroup;
+			children = (
+				03494BE91F568EA700ACE0EC /* U11BallAirState.h */,
+				03494BEA1F568EA700ACE0EC /* U11BallAirState.mm */,
+				03494BEB1F568EA700ACE0EC /* U11BallBounceState.h */,
+				03494BEC1F568EA700ACE0EC /* U11BallBounceState.mm */,
+				03494BED1F568EA700ACE0EC /* U11BallGroundState.h */,
+				03494BEE1F568EA700ACE0EC /* U11BallGroundState.mm */,
+				03494BEF1F568EA700ACE0EC /* U11BallStateInterface.h */,
+				03494BF01F568EA700ACE0EC /* U11BallStateInterface.mm */,
+				03494BF11F568EA700ACE0EC /* U11BallStateManager.h */,
+				03494BF21F568EA700ACE0EC /* U11BallStateManager.mm */,
+			);
+			name = BallState;
+			sourceTree = "<group>";
+		};
+		03494BFA1F56926200ACE0EC /* Team */ = {
+			isa = PBXGroup;
+			children = (
+				03494CE51F5B387300ACE0EC /* U11Team.h */,
+				03494CE61F5B387300ACE0EC /* U11Team.mm */,
+			);
+			name = Team;
+			sourceTree = "<group>";
+		};
+		03494C031F5746B900ACE0EC /* MessageDispatcher */ = {
+			isa = PBXGroup;
+			children = (
+				03494C041F5746D000ACE0EC /* U11MessageDispatcher.h */,
+				03494C051F5746D000ACE0EC /* U11MessageDispatcher.mm */,
+			);
+			name = MessageDispatcher;
+			sourceTree = "<group>";
+		};
+		03494C0D1F57BA4000ACE0EC /* Extremety */ = {
+			isa = PBXGroup;
+			children = (
+				03494C0F1F57BA5C00ACE0EC /* U11PlayerExtremity.h */,
+				03494C101F57BA5C00ACE0EC /* U11PlayerExtremity.mm */,
+			);
+			name = Extremety;
+			sourceTree = "<group>";
+		};
+		03494C0E1F57BA4C00ACE0EC /* PlayerSpace */ = {
+			isa = PBXGroup;
+			children = (
+				03494C121F57BA6600ACE0EC /* U11PlayerSpace.h */,
+				03494C131F57BA6600ACE0EC /* U11PlayerSpace.mm */,
+			);
+			name = PlayerSpace;
+			sourceTree = "<group>";
+		};
+		03494C261F5B2AD200ACE0EC /* PlayerIndicator */ = {
+			isa = PBXGroup;
+			children = (
+				03494C7B1F5B31A800ACE0EC /* U11PlayerIndicator.h */,
+				03494C7C1F5B31A800ACE0EC /* U11PlayerIndicator.mm */,
+			);
+			name = PlayerIndicator;
+			sourceTree = "<group>";
+		};
+		03494C271F5B2ADC00ACE0EC /* Formation */ = {
+			isa = PBXGroup;
+			children = (
+				03494C7F1F5B31D700ACE0EC /* U11Formation.h */,
+				03494C801F5B31D700ACE0EC /* U11Formation.mm */,
+				03494C811F5B31D700ACE0EC /* U11Formation32.h */,
+				03494C821F5B31D700ACE0EC /* U11Formation32.mm */,
+				03494C831F5B31D700ACE0EC /* U11Formation442.h */,
+				03494C841F5B31D700ACE0EC /* U11Formation442.mm */,
+				03494C851F5B31D700ACE0EC /* U11FormationInterface.h */,
+				03494C861F5B31D700ACE0EC /* U11FormationInterface.mm */,
+				03494C7E1F5B31B800ACE0EC /* FormationEntity */,
+			);
+			name = Formation;
+			sourceTree = "<group>";
+		};
+		03494C281F5B2AE600ACE0EC /* AISystem */ = {
+			isa = PBXGroup;
+			children = (
+				03494C981F5B327B00ACE0EC /* TriangleEntity */,
+				03494C971F5B326E00ACE0EC /* State */,
+				03494C961F5B326700ACE0EC /* Analyzer */,
+				03494C951F5B325E00ACE0EC /* DefenseStrategy */,
+				03494C941F5B325300ACE0EC /* AttackStrategy */,
+				03494C931F5B324B00ACE0EC /* Defense */,
+				03494C921F5B324400ACE0EC /* Attack */,
+				03494C911F5B323C00ACE0EC /* Recover */,
+				03494C8E1F5B321700ACE0EC /* U11AISystem.h */,
+				03494C8F1F5B321700ACE0EC /* U11AISystem.mm */,
+			);
+			name = AISystem;
+			sourceTree = "<group>";
+		};
+		03494C291F5B2AEF00ACE0EC /* DataStructures */ = {
+			isa = PBXGroup;
+			children = (
+				03494CDE1F5B381400ACE0EC /* U11HeapSort.h */,
+				03494CDF1F5B381400ACE0EC /* U11HeapSort.mm */,
+				03494CE01F5B381400ACE0EC /* U11Node.h */,
+			);
+			name = DataStructures;
+			sourceTree = "<group>";
+		};
+		03494C2A1F5B2AF900ACE0EC /* SpaceAnalyzer */ = {
+			isa = PBXGroup;
+			children = (
+				03494CE21F5B382200ACE0EC /* U11SpaceAnalyzer.h */,
+				03494CE31F5B382200ACE0EC /* U11SpaceAnalyzer.mm */,
+			);
+			name = SpaceAnalyzer;
+			sourceTree = "<group>";
+		};
+		03494C2B1F5B2B8B00ACE0EC /* Recover */ = {
+			isa = PBXGroup;
+			children = (
+				03494CE81F5B3AE600ACE0EC /* U11PlayerRecoverState.h */,
+				03494CE91F5B3AE600ACE0EC /* U11PlayerRecoverState.mm */,
+			);
+			name = Recover;
+			sourceTree = "<group>";
+		};
+		03494C2C1F5B2B9600ACE0EC /* Halt */ = {
+			isa = PBXGroup;
+			children = (
+				03494C231F59FDA500ACE0EC /* U11PlayerHaltBallState.h */,
+				03494C241F59FDA500ACE0EC /* U11PlayerHaltBallState.mm */,
+			);
+			name = Halt;
+			sourceTree = "<group>";
+		};
+		03494C2D1F5B2B9D00ACE0EC /* Idle */ = {
+			isa = PBXGroup;
+			children = (
+				03494C001F5744F200ACE0EC /* U11PlayerIdleState.h */,
+				03494C011F5744F200ACE0EC /* U11PlayerIdleState.mm */,
+			);
+			name = Idle;
+			sourceTree = "<group>";
+		};
+		03494C2E1F5B2BA300ACE0EC /* Chasing */ = {
+			isa = PBXGroup;
+			children = (
+				03494C171F57CC0E00ACE0EC /* U11PlayerChaseBallState.h */,
+				03494C181F57CC0E00ACE0EC /* U11PlayerChaseBallState.mm */,
+			);
+			name = Chasing;
+			sourceTree = "<group>";
+		};
+		03494C2F1F5B2BAB00ACE0EC /* Shooting */ = {
+			isa = PBXGroup;
+			children = (
+				03494C3F1F5B2D7400ACE0EC /* U11PlayerGroundShotState.h */,
+				03494C401F5B2D7400ACE0EC /* U11PlayerGroundShotState.mm */,
+				03494C421F5B2D8300ACE0EC /* U11PlayerAirShotState.h */,
+				03494C431F5B2D8300ACE0EC /* U11PlayerAirShotState.mm */,
+			);
+			name = Shooting;
+			sourceTree = "<group>";
+		};
+		03494C301F5B2BB500ACE0EC /* Passing */ = {
+			isa = PBXGroup;
+			children = (
+				03494C331F5B2CCC00ACE0EC /* U11PlayerPassState.h */,
+				03494C341F5B2CCC00ACE0EC /* U11PlayerPassState.mm */,
+				03494C361F5B2CEA00ACE0EC /* U11PlayerRunPassState.h */,
+				03494C371F5B2CEA00ACE0EC /* U11PlayerRunPassState.mm */,
+				03494C1A1F589D0F00ACE0EC /* U11PlayerDribblePassState.h */,
+				03494C1B1F589D0F00ACE0EC /* U11PlayerDribblePassState.mm */,
+				03494C201F589D5800ACE0EC /* U11PlayerGroundPassState.h */,
+				03494C211F589D5800ACE0EC /* U11PlayerGroundPassState.mm */,
+				03494C391F5B2D0900ACE0EC /* U11PlayerReceiveBallState.h */,
+				03494C3A1F5B2D0900ACE0EC /* U11PlayerReceiveBallState.mm */,
+				03494C3C1F5B2D1D00ACE0EC /* U11PlayerTurnPassState.h */,
+				03494C3D1F5B2D1D00ACE0EC /* U11PlayerTurnPassState.mm */,
+			);
+			name = Passing;
+			sourceTree = "<group>";
+		};
+		03494C311F5B2BBF00ACE0EC /* Defending */ = {
+			isa = PBXGroup;
+			children = (
+				03494C451F5B2DEF00ACE0EC /* U11PlayerDefendState.h */,
+				03494C461F5B2DEF00ACE0EC /* U11PlayerDefendState.mm */,
+				03494C481F5B2E0C00ACE0EC /* U11PlayerDefendPositionState.h */,
+				03494C491F5B2E0C00ACE0EC /* U11PlayerDefendPositionState.mm */,
+				03494C4B1F5B2E2600ACE0EC /* U11PlayerRunToStealState.h */,
+				03494C4C1F5B2E2600ACE0EC /* U11PlayerRunToStealState.mm */,
+				03494C4E1F5B2E3A00ACE0EC /* U11PlayerDefenseFormationState.h */,
+				03494C4F1F5B2E3A00ACE0EC /* U11PlayerDefenseFormationState.mm */,
+				03494C511F5B2E5300ACE0EC /* U11PlayerMarkingState.h */,
+				03494C521F5B2E5300ACE0EC /* U11PlayerMarkingState.mm */,
+				03494C541F5B2E6300ACE0EC /* U11PlayerTapToStealState.h */,
+				03494C551F5B2E6300ACE0EC /* U11PlayerTapToStealState.mm */,
+				03494C571F5B2E7B00ACE0EC /* U11PlayerInterceptState.h */,
+				03494C581F5B2E7B00ACE0EC /* U11PlayerInterceptState.mm */,
+				03494C5A1F5B2E8E00ACE0EC /* U11PlayerApproachOpponent.h */,
+				03494C5B1F5B2E8E00ACE0EC /* U11PlayerApproachOpponent.mm */,
+			);
+			name = Defending;
+			sourceTree = "<group>";
+		};
+		03494C321F5B2BCC00ACE0EC /* Attacking */ = {
+			isa = PBXGroup;
+			children = (
+				03494C5D1F5B2F9000ACE0EC /* U11PlayerAttackState.h */,
+				03494C5E1F5B2F9000ACE0EC /* U11PlayerAttackState.mm */,
+				03494C601F5B2FA200ACE0EC /* U11PlayerAttackFormationState.h */,
+				03494C611F5B2FA200ACE0EC /* U11PlayerAttackFormationState.mm */,
+				03494C081F57495B00ACE0EC /* U11PlayerRunState.h */,
+				03494C071F57495B00ACE0EC /* U11PlayerRunState.mm */,
+				03494C0A1F57B98D00ACE0EC /* U11PlayerDribbleState.h */,
+				03494C0B1F57B98D00ACE0EC /* U11PlayerDribbleState.mm */,
+				03494C631F5B2FBF00ACE0EC /* U11PlayerReverseKickState.h */,
+				03494C641F5B2FBF00ACE0EC /* U11PlayerReverseKickState.mm */,
+				03494C661F5B2FD400ACE0EC /* U11PlayerRunToReverseKickState.h */,
+				03494C671F5B2FD400ACE0EC /* U11PlayerRunToReverseKickState.mm */,
+				03494C691F5B30EB00ACE0EC /* U11PlayerSupportState.h */,
+				03494C6A1F5B30EB00ACE0EC /* U11PlayerSupportState.mm */,
+				03494C6C1F5B30FD00ACE0EC /* U11PlayerRunToSupportState.h */,
+				03494C6D1F5B30FD00ACE0EC /* U11PlayerRunToSupportState.mm */,
+				03494C6F1F5B311500ACE0EC /* U11PlayerReverseRunState.h */,
+				03494C701F5B311500ACE0EC /* U11PlayerReverseRunState.mm */,
+				03494C721F5B312800ACE0EC /* U11PlayerLateralRunState.h */,
+				03494C731F5B312800ACE0EC /* U11PlayerLateralRunState.mm */,
+				03494C751F5B314100ACE0EC /* U11PlayerOpenUpState.h */,
+				03494C761F5B314100ACE0EC /* U11PlayerOpenUpState.mm */,
+				03494C781F5B315200ACE0EC /* U11PlayerDribbleTurnState.h */,
+				03494C791F5B315200ACE0EC /* U11PlayerDribbleTurnState.mm */,
+			);
+			name = Attacking;
+			sourceTree = "<group>";
+		};
+		03494C7E1F5B31B800ACE0EC /* FormationEntity */ = {
+			isa = PBXGroup;
+			children = (
+				03494C8B1F5B31E400ACE0EC /* U11FormationEntity.h */,
+				03494C8C1F5B31E400ACE0EC /* U11FormationEntity.mm */,
+			);
+			name = FormationEntity;
+			sourceTree = "<group>";
+		};
+		03494C911F5B323C00ACE0EC /* Recover */ = {
+			isa = PBXGroup;
+			children = (
+				03494CD21F5B380000ACE0EC /* U11RecoverAISystem.h */,
+				03494CD31F5B380000ACE0EC /* U11RecoverAISystem.mm */,
+				03494CD41F5B380000ACE0EC /* U11RecoverManualSystem.h */,
+				03494CD51F5B380000ACE0EC /* U11RecoverManualSystem.mm */,
+				03494CD61F5B380000ACE0EC /* U11RecoverSystem.h */,
+				03494CD71F5B380000ACE0EC /* U11RecoverSystem.mm */,
+				03494CD81F5B380000ACE0EC /* U11RecoverSystemInterface.h */,
+				03494CD91F5B380000ACE0EC /* U11RecoverSystemInterface.mm */,
+			);
+			name = Recover;
+			sourceTree = "<group>";
+		};
+		03494C921F5B324400ACE0EC /* Attack */ = {
+			isa = PBXGroup;
+			children = (
+				03494CBD1F5B37E300ACE0EC /* U11AttackAISystem.h */,
+				03494CBE1F5B37E300ACE0EC /* U11AttackAISystem.mm */,
+				03494CBF1F5B37E300ACE0EC /* U11AttackManualSystem.h */,
+				03494CC01F5B37E300ACE0EC /* U11AttackManualSystem.mm */,
+				03494CC11F5B37E300ACE0EC /* U11AttackSystem.h */,
+				03494CC21F5B37E300ACE0EC /* U11AttackSystem.mm */,
+				03494CC31F5B37E300ACE0EC /* U11AttackSystemInterface.h */,
+				03494CC41F5B37E300ACE0EC /* U11AttackSystemInterface.mm */,
+			);
+			name = Attack;
+			sourceTree = "<group>";
+		};
+		03494C931F5B324B00ACE0EC /* Defense */ = {
+			isa = PBXGroup;
+			children = (
+				03494CB11F5B37D800ACE0EC /* U11DefenseAISystem.h */,
+				03494CB21F5B37D800ACE0EC /* U11DefenseAISystem.mm */,
+				03494CB31F5B37D800ACE0EC /* U11DefenseManualSystem.h */,
+				03494CB41F5B37D800ACE0EC /* U11DefenseManualSystem.mm */,
+				03494CB51F5B37D800ACE0EC /* U11DefenseSystem.h */,
+				03494CB61F5B37D800ACE0EC /* U11DefenseSystem.mm */,
+				03494CB71F5B37D800ACE0EC /* U11DefenseSystemInterface.h */,
+				03494CB81F5B37D800ACE0EC /* U11DefenseSystemInterface.mm */,
+			);
+			name = Defense;
+			sourceTree = "<group>";
+		};
+		03494C941F5B325300ACE0EC /* AttackStrategy */ = {
+			isa = PBXGroup;
+			children = (
+				03494CC91F5B37F100ACE0EC /* U11AIAttackStrategy.h */,
+				03494CCA1F5B37F100ACE0EC /* U11AIAttackStrategy.mm */,
+				03494CCB1F5B37F100ACE0EC /* U11AIAttackStrategyInterface.h */,
+				03494CCC1F5B37F100ACE0EC /* U11AIAttackStrategyInterface.mm */,
+				03494CCD1F5B37F100ACE0EC /* U11AITikiTaka.h */,
+				03494CCE1F5B37F100ACE0EC /* U11AITikiTaka.mm */,
+			);
+			name = AttackStrategy;
+			sourceTree = "<group>";
+		};
+		03494C951F5B325E00ACE0EC /* DefenseStrategy */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = DefenseStrategy;
+			sourceTree = "<group>";
+		};
+		03494C961F5B326700ACE0EC /* Analyzer */ = {
+			isa = PBXGroup;
+			children = (
+				03494CAE1F5B37C800ACE0EC /* U11AIAnalyzer.h */,
+				03494CAF1F5B37C800ACE0EC /* U11AIAnalyzer.mm */,
+			);
+			name = Analyzer;
+			sourceTree = "<group>";
+		};
+		03494C971F5B326E00ACE0EC /* State */ = {
+			isa = PBXGroup;
+			children = (
+				03494C9F1F5B371700ACE0EC /* U11AIAttackState.h */,
+				03494CA01F5B371700ACE0EC /* U11AIAttackState.mm */,
+				03494CA11F5B371700ACE0EC /* U11AIDefenseState.h */,
+				03494CA21F5B371700ACE0EC /* U11AIDefenseState.mm */,
+				03494CA31F5B371700ACE0EC /* U11AIRecoverState.h */,
+				03494CA41F5B371700ACE0EC /* U11AIRecoverState.mm */,
+				03494CA51F5B371700ACE0EC /* U11AIStateInterface.h */,
+				03494CA61F5B371700ACE0EC /* U11AIStateInterface.mm */,
+				03494CA71F5B371700ACE0EC /* U11AIStateManager.h */,
+				03494CA81F5B371700ACE0EC /* U11AIStateManager.mm */,
+			);
+			name = State;
+			sourceTree = "<group>";
+		};
+		03494C981F5B327B00ACE0EC /* TriangleEntity */ = {
+			isa = PBXGroup;
+			children = (
+				03494C991F5B370B00ACE0EC /* U11TriangleEntity.h */,
+				03494C9A1F5B370B00ACE0EC /* U11TriangleEntity.mm */,
+				03494C9B1F5B370B00ACE0EC /* U11TriangleManager.h */,
+				03494C9C1F5B370B00ACE0EC /* U11TriangleManager.mm */,
+			);
+			name = TriangleEntity;
+			sourceTree = "<group>";
+		};
 		034DBC791A73E08C00AC43EB /* Debugger */ = {
 			isa = PBXGroup;
 			children = (
@@ -671,6 +1351,19 @@
 		036FB55718CE9CB8000EA639 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				03494C2A1F5B2AF900ACE0EC /* SpaceAnalyzer */,
+				03494C291F5B2AEF00ACE0EC /* DataStructures */,
+				03494C281F5B2AE600ACE0EC /* AISystem */,
+				03494C271F5B2ADC00ACE0EC /* Formation */,
+				03494C261F5B2AD200ACE0EC /* PlayerIndicator */,
+				03494C031F5746B900ACE0EC /* MessageDispatcher */,
+				03494BFA1F56926200ACE0EC /* Team */,
+				03494BE41F568E5F00ACE0EC /* FieldGoal */,
+				03494BE01F568E4800ACE0EC /* Field */,
+				03494BE81F568E9500ACE0EC /* BallState */,
+				03494BDC1F568E2B00ACE0EC /* Ball */,
+				03494BD21F56833100ACE0EC /* PlayerState */,
+				03494BD11F56832A00ACE0EC /* Player */,
 				03E6EE091943DA42007AD131 /* GameLogic.h */,
 				03E6EE0A1943DA42007AD131 /* GameLogic.mm */,
 				03E6EE061943DA1D007AD131 /* GameController.h */,
@@ -959,6 +1652,9 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03494D081F5C6B4200ACE0EC /* playerindicatorImage.png */,
+				03494D061F5C6B1D00ACE0EC /* formation442.u4d */,
+				03494CF11F5B431000ACE0EC /* miscellaneousscript.u4d */,
 				03494BC01F4E5A7800ACE0EC /* walkSprite.png */,
 				03494BC11F4E5A7800ACE0EC /* walkSprite.xml */,
 				03494BB41F4BF24F00ACE0EC /* myFont.png */,
@@ -966,10 +1662,10 @@
 				03C03C391F411B640001EFA1 /* Field_Diffuse.png */,
 				03C03C371F41156D0001EFA1 /* stadium_el.png */,
 				03C03C331F3A00580001EFA1 /* redkitnormal.png */,
+				03494CED1F5B41E900ACE0EC /* whitekit.png */,
 				03C03C341F3A00580001EFA1 /* redkit.png */,
 				03C03C2F1F3212950001EFA1 /* Ball_Normal_Map.png */,
 				03C03C2D1F32123B0001EFA1 /* Ball_Texture_Diffuse.png */,
-				03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
 				03A9F7081ADF82A300E81A00 /* ArialFont.xml */,
@@ -979,7 +1675,23 @@
 				03798F881934DA8E00CF0600 /* ButtonAPressed.png */,
 				03798F891934DA8E00CF0600 /* ButtonB.png */,
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
-				03FE2CD71F1F0FB000D4E2FB /* player.u4d */,
+				03494BF81F56903C00ACE0EC /* playerscript.u4d */,
+				03494BC71F566C8500ACE0EC /* runninganimation.u4d */,
+				03FE2CDE1F1FA9FD00D4E2FB /* walkinganimation.u4d */,
+				03494BC91F567DE900ACE0EC /* leftpassanimation.u4d */,
+				03494BCB1F567DF800ACE0EC /* rightpassanimation.u4d */,
+				03494BCD1F567E0900ACE0EC /* rightdribbleanimation.u4d */,
+				03494BCF1F567E1B00ACE0EC /* leftdribbleanimation.u4d */,
+				03494BFE1F5741A300ACE0EC /* idleanimation.u4d */,
+				03494CF51F5C650D00ACE0EC /* rightsolehaltanimation.u4d */,
+				03494CEB1F5B41A200ACE0EC /* oppositeplayerscript.u4d */,
+				03494CF81F5C652A00ACE0EC /* leftsolehaltanimation.u4d */,
+				03494CFA1F5C659000ACE0EC /* rightinsidehaltanimation.u4d */,
+				03494CFC1F5C65A100ACE0EC /* leftinsidehaltanimation.u4d */,
+				03494CFE1F5C65BA00ACE0EC /* rightsidehaltanimation.u4d */,
+				03494D001F5C65CB00ACE0EC /* leftsidehaltanimation.u4d */,
+				03494D021F5C65F300ACE0EC /* leftreversekickanimation.u4d */,
+				03494D041F5C660300ACE0EC /* rightreversekickanimation.u4d */,
 			);
 			name = Resources;
 			path = Game/Resources;
@@ -1387,6 +2099,7 @@
 				03F2DAEF1F191A2600F77B78 /* worldShader.metal */,
 				03494BB21F48B59E00ACE0EC /* fontShader.metal */,
 				03494BBE1F4E0C0600ACE0EC /* spriteShader.metal */,
+				03494C151F57BD4C00ACE0EC /* nonVisibleShader.metal */,
 			);
 			name = MetalShaders;
 			sourceTree = "<group>";
@@ -1447,43 +2160,60 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03494BC81F566C8500ACE0EC /* runninganimation.u4d in Resources */,
+				03494BFF1F5741A300ACE0EC /* idleanimation.u4d in Resources */,
 				034DBC831A73FAD200AC43EB /* lightShader.vp in Resources */,
+				03494D051F5C660300ACE0EC /* rightreversekickanimation.u4d in Resources */,
 				03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */,
 				03759B4F175B0135002EB5D9 /* Default.png in Resources */,
+				03494CEE1F5B41E900ACE0EC /* whitekit.png in Resources */,
 				031585931E45C17900424D4D /* nonVisibleShader.fp in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				03EF7A4717F908A60023F0FD /* spriteShader.fp in Resources */,
 				03494BC31F4E5A7800ACE0EC /* walkSprite.xml in Resources */,
 				03DB332E19EEFF7F00261B4E /* modelShader.fp in Resources */,
+				03494CF91F5C652A00ACE0EC /* leftsolehaltanimation.u4d in Resources */,
 				03C03C2E1F32123B0001EFA1 /* Ball_Texture_Diffuse.png in Resources */,
 				03C03C351F3A00580001EFA1 /* redkitnormal.png in Resources */,
 				03CC836A1E342F6300DA9180 /* particleDustShader.fp in Resources */,
 				03AEF86719CF474D00082589 /* AnimationShader.fp in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
+				03494BD01F567E1B00ACE0EC /* leftdribbleanimation.u4d in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03DB332F19EEFF7F00261B4E /* modelShader.vp in Resources */,
 				030C3E14192C7016009EF31B /* multiImageShader.fp in Resources */,
 				03D559CD1D53CAA200E567D5 /* gouraudShader.fp in Resources */,
+				03494CFD1F5C65A100ACE0EC /* leftinsidehaltanimation.u4d in Resources */,
 				03C03C3A1F411B640001EFA1 /* Field_Diffuse.png in Resources */,
 				03CC836B1E342F6300DA9180 /* particleDustShader.vp in Resources */,
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
+				03494D071F5C6B1D00ACE0EC /* formation442.u4d in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
+				03494CFF1F5C65BA00ACE0EC /* rightsidehaltanimation.u4d in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03D559D01D53CAA200E567D5 /* phongShader.vp in Resources */,
+				03494CF21F5B431000ACE0EC /* miscellaneousscript.u4d in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				03494BB61F4BF24F00ACE0EC /* myFont.png in Resources */,
 				030C3DF71927ED26009EF31B /* geometricShader.fp in Resources */,
+				03494D091F5C6B4200ACE0EC /* playerindicatorImage.png in Resources */,
 				03C03C381F41156D0001EFA1 /* stadium_el.png in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03AEF86819CF474D00082589 /* AnimationShader.vp in Resources */,
+				03494CFB1F5C659000ACE0EC /* rightinsidehaltanimation.u4d in Resources */,
+				03494CF61F5C650D00ACE0EC /* rightsolehaltanimation.u4d in Resources */,
 				030C3E15192C7016009EF31B /* multiImageShader.vp in Resources */,
+				03494BCE1F567E0900ACE0EC /* rightdribbleanimation.u4d in Resources */,
+				03494BF91F56903C00ACE0EC /* playerscript.u4d in Resources */,
 				03FE2CDF1F1FA9FD00D4E2FB /* walkinganimation.u4d in Resources */,
 				03DB6E86192F7B25006E21D0 /* NormalMapping.vp in Resources */,
 				034DBC8A1A74112000AC43EB /* debugShader.vp in Resources */,
+				03494D011F5C65CB00ACE0EC /* leftsidehaltanimation.u4d in Resources */,
 				030C3DF81927ED26009EF31B /* geometricShader.vp in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				03C03C311F3212950001EFA1 /* Ball_Normal_Map.png in Resources */,
 				034127B117C30E2300E4C6D9 /* SkyBoxShader.fp in Resources */,
+				03494CEC1F5B41A200ACE0EC /* oppositeplayerscript.u4d in Resources */,
 				03C03C361F3A00580001EFA1 /* redkit.png in Resources */,
 				03D559CF1D53CAA200E567D5 /* phongShader.fp in Resources */,
 				034DBC891A74112000AC43EB /* debugShader.fp in Resources */,
@@ -1497,11 +2227,13 @@
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				03D559CE1D53CAA200E567D5 /* gouraudShader.vp in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
-				03FE2CD81F1F0FB000D4E2FB /* player.u4d in Resources */,
+				03494BCC1F567DF800ACE0EC /* rightpassanimation.u4d in Resources */,
+				03494D031F5C65F300ACE0EC /* leftreversekickanimation.u4d in Resources */,
 				03494BB71F4BF24F00ACE0EC /* myFont.xml in Resources */,
 				03F1476217E6C385004DC9AB /* imageShader.fp in Resources */,
 				03F1476317E6C385004DC9AB /* imageShader.vp in Resources */,
 				03EF7A4817F908A60023F0FD /* spriteShader.vp in Resources */,
+				03494BCA1F567DE900ACE0EC /* leftpassanimation.u4d in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1513,27 +2245,42 @@
 			buildActionMask = 2147483647;
 			files = (
 				036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */,
+				03494CDB1F5B380000ACE0EC /* U11RecoverManualSystem.mm in Sources */,
 				0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */,
+				03494C741F5B312800ACE0EC /* U11PlayerLateralRunState.mm in Sources */,
+				03494CE41F5B382200ACE0EC /* U11SpaceAnalyzer.mm in Sources */,
 				03759B49175B0135002EB5D9 /* main.m in Sources */,
 				03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */,
+				03494C021F5744F200ACE0EC /* U11PlayerIdleState.mm in Sources */,
+				03494CBC1F5B37D800ACE0EC /* U11DefenseSystemInterface.mm in Sources */,
+				03494BF61F568EA700ACE0EC /* U11BallStateInterface.mm in Sources */,
 				0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */,
+				03494CBA1F5B37D800ACE0EC /* U11DefenseManualSystem.mm in Sources */,
+				03494C5C1F5B2E8E00ACE0EC /* U11PlayerApproachOpponent.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
 				03F2DB131F191F9B00F77B78 /* U4DRenderSkybox.mm in Sources */,
 				03759B4D175B0135002EB5D9 /* AppDelegate.mm in Sources */,
 				038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */,
 				03F2DAF21F191A2600F77B78 /* lightShader.metal in Sources */,
+				03494C6B1F5B30EB00ACE0EC /* U11PlayerSupportState.mm in Sources */,
 				030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */,
+				03494C6E1F5B30FD00ACE0EC /* U11PlayerRunToSupportState.mm in Sources */,
 				03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */,
 				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
+				03494CE11F5B381400ACE0EC /* U11HeapSort.mm in Sources */,
+				03494C531F5B2E5300ACE0EC /* U11PlayerMarkingState.mm in Sources */,
 				0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */,
 				03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */,
 				0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */,
 				03E6EDEE1943D8A2007AD131 /* U4DTimer.mm in Sources */,
 				03E6EDDE1943D816007AD131 /* U4DIntegrator.mm in Sources */,
 				03759B5A175B0135002EB5D9 /* ViewController.mm in Sources */,
+				03494C381F5B2CEA00ACE0EC /* U11PlayerRunPassState.mm in Sources */,
+				03494C221F589D5800ACE0EC /* U11PlayerGroundPassState.mm in Sources */,
 				03F2DB0E1F191F9B00F77B78 /* U4DRenderGeometry.mm in Sources */,
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
 				03494BB31F48B59E00ACE0EC /* fontShader.metal in Sources */,
+				03494CA91F5B371700ACE0EC /* U11AIAttackState.mm in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
@@ -1541,18 +2288,32 @@
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */,
+				03494C161F57BD4C00ACE0EC /* nonVisibleShader.metal in Sources */,
+				03494C711F5B311500ACE0EC /* U11PlayerReverseRunState.mm in Sources */,
+				03494C881F5B31D700ACE0EC /* U11Formation32.mm in Sources */,
+				03494CAC1F5B371700ACE0EC /* U11AIStateInterface.mm in Sources */,
 				03E6EE0B1943DA42007AD131 /* GameLogic.mm in Sources */,
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				03C03C431F43EA2F0001EFA1 /* U4DButtonPressedState.mm in Sources */,
+				03494CBB1F5B37D800ACE0EC /* U11DefenseSystem.mm in Sources */,
+				03494C8A1F5B31D700ACE0EC /* U11FormationInterface.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
 				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
+				03494C251F59FDA500ACE0EC /* U11PlayerHaltBallState.mm in Sources */,
+				03494CAA1F5B371700ACE0EC /* U11AIDefenseState.mm in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
+				03494CD11F5B37F100ACE0EC /* U11AITikiTaka.mm in Sources */,
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,
+				03494C061F5746D000ACE0EC /* U11MessageDispatcher.mm in Sources */,
+				03494BDF1F568E4300ACE0EC /* U11Ball.mm in Sources */,
 				03F2DB0D1F191F9B00F77B78 /* U4DRenderer.mm in Sources */,
 				03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */,
+				03494BF31F568EA700ACE0EC /* U11BallAirState.mm in Sources */,
 				03C03C551F45408C0001EFA1 /* U4DJoystickIdleState.mm in Sources */,
+				03494C681F5B2FD400ACE0EC /* U11PlayerRunToReverseKickState.mm in Sources */,
 				03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */,
 				03759BB6175B0383002EB5D9 /* U4DQuaternion.mm in Sources */,
+				03494C891F5B31D700ACE0EC /* U11Formation442.mm in Sources */,
 				03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */,
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				03C03C4F1F4540610001EFA1 /* U4DJoystickStateInterface.mm in Sources */,
@@ -1563,42 +2324,68 @@
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				03F2DAE81F1919D400F77B78 /* shadowShader.metal in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,
+				03494C9D1F5B370B00ACE0EC /* U11TriangleEntity.mm in Sources */,
+				03494CB01F5B37C800ACE0EC /* U11AIAnalyzer.mm in Sources */,
 				03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */,
+				03494CDD1F5B380000ACE0EC /* U11RecoverSystemInterface.mm in Sources */,
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
+				03494BF41F568EA700ACE0EC /* U11BallBounceState.mm in Sources */,
+				03494C411F5B2D7400ACE0EC /* U11PlayerGroundShotState.mm in Sources */,
 				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
 				03C03C461F44070E0001EFA1 /* U4DButtonReleasedState.mm in Sources */,
+				03494BD51F56834800ACE0EC /* U11Player.mm in Sources */,
 				03F2DB141F191F9B00F77B78 /* U4DRenderWorld.mm in Sources */,
 				03F2DB121F191F9B00F77B78 /* U4DRenderMultiImage.mm in Sources */,
+				03494C9E1F5B370B00ACE0EC /* U11TriangleManager.mm in Sources */,
 				03F2DB0C1F191F9B00F77B78 /* U4DRender3DModel.mm in Sources */,
 				03F2DAF51F191A2600F77B78 /* skyboxShader.metal in Sources */,
 				03F2DAF41F191A2600F77B78 /* multiImageShader.metal in Sources */,
 				03C03C521F4540750001EFA1 /* U4DJoystickStateManager.mm in Sources */,
+				03494C621F5B2FA200ACE0EC /* U11PlayerAttackFormationState.mm in Sources */,
+				03494C651F5B2FBF00ACE0EC /* U11PlayerReverseKickState.mm in Sources */,
+				03494C4D1F5B2E2600ACE0EC /* U11PlayerRunToStealState.mm in Sources */,
+				03494C5F1F5B2F9000ACE0EC /* U11PlayerAttackState.mm in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
+				03494BF71F568EA700ACE0EC /* U11BallStateManager.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
+				03494CD01F5B37F100ACE0EC /* U11AIAttackStrategyInterface.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
 				03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */,
+				03494C7A1F5B315200ACE0EC /* U11PlayerDribbleTurnState.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
+				03494C441F5B2D8300ACE0EC /* U11PlayerAirShotState.mm in Sources */,
+				03494C0C1F57B98D00ACE0EC /* U11PlayerDribbleState.mm in Sources */,
+				03494CC81F5B37E300ACE0EC /* U11AttackSystemInterface.mm in Sources */,
+				03494CAD1F5B371700ACE0EC /* U11AIStateManager.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				032567D61F256A2800A5A505 /* ModelAsset.mm in Sources */,
 				03494BBA1F4D55EF00ACE0EC /* U4DSprite.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
+				03494C591F5B2E7B00ACE0EC /* U11PlayerInterceptState.mm in Sources */,
+				03494CDC1F5B380000ACE0EC /* U11RecoverSystem.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
+				03494CAB1F5B371700ACE0EC /* U11AIRecoverState.mm in Sources */,
 				03C03C401F43E2A80001EFA1 /* U4DButtonStateManager.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
 				0390C7CD1E3432910028AC20 /* U4DParticleData.mm in Sources */,
 				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
+				03494C501F5B2E3A00ACE0EC /* U11PlayerDefenseFormationState.mm in Sources */,
+				03494C561F5B2E6300ACE0EC /* U11PlayerTapToStealState.mm in Sources */,
+				03494CC61F5B37E300ACE0EC /* U11AttackManualSystem.mm in Sources */,
+				03494BE71F568E7000ACE0EC /* U11FieldGoal.mm in Sources */,
+				03494C141F57BA6600ACE0EC /* U11PlayerSpace.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
@@ -1606,44 +2393,69 @@
 				03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */,
 				03C03C5B1F4540B20001EFA1 /* U4DJoystickReleasedState.mm in Sources */,
 				03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */,
+				03494CB91F5B37D800ACE0EC /* U11DefenseAISystem.mm in Sources */,
+				03494C3B1F5B2D0900ACE0EC /* U11PlayerReceiveBallState.mm in Sources */,
 				03C03C491F44190C0001EFA1 /* U4DButtonIdleState.mm in Sources */,
+				03494BF51F568EA700ACE0EC /* U11BallGroundState.mm in Sources */,
 				03068D4D19B8F2A400ABDC55 /* U4DVertexData.mm in Sources */,
 				03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */,
 				03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */,
 				03F2DB1B1F193B5300F77B78 /* GameAsset.mm in Sources */,
+				03494C191F57CC0E00ACE0EC /* U11PlayerChaseBallState.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
 				03F2DAF11F191A2600F77B78 /* imageShader.metal in Sources */,
 				03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
+				03494C351F5B2CCC00ACE0EC /* U11PlayerPassState.mm in Sources */,
+				03494C111F57BA5C00ACE0EC /* U11PlayerExtremity.mm in Sources */,
 				03F2DB111F191F9B00F77B78 /* U4DRenderManager.mm in Sources */,
+				03494C901F5B321700ACE0EC /* U11AISystem.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
 				030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */,
 				0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */,
+				03494BE31F568E5B00ACE0EC /* U11Field.mm in Sources */,
 				03B5E7E6193A3F4100800EC8 /* U4DDigitalAssetLoader.mm in Sources */,
+				03494CDA1F5B380000ACE0EC /* U11RecoverAISystem.mm in Sources */,
 				03E6EDD71943D816007AD131 /* U4DCollisionEngine.mm in Sources */,
+				03494C771F5B314100ACE0EC /* U11PlayerOpenUpState.mm in Sources */,
 				03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */,
+				03494C8D1F5B31E400ACE0EC /* U11FormationEntity.mm in Sources */,
 				03EF85411791E426007D6152 /* U4DIndex.mm in Sources */,
+				03494BDA1F56837300ACE0EC /* U11PlayerStateInterface.mm in Sources */,
 				03E6ED6C1943D6FE007AD131 /* U4DJoyStick.mm in Sources */,
+				03494C3E1F5B2D1D00ACE0EC /* U11PlayerTurnPassState.mm in Sources */,
 				03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */,
 				036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */,
+				03494C4A1F5B2E0C00ACE0EC /* U11PlayerDefendPositionState.mm in Sources */,
+				03494CC71F5B37E300ACE0EC /* U11AttackSystem.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkybox.mm in Sources */,
+				03494C871F5B31D700ACE0EC /* U11Formation.mm in Sources */,
 				030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */,
+				03494C091F57495B00ACE0EC /* U11PlayerRunState.mm in Sources */,
 				03F2DAF01F191A2600F77B78 /* geometryShader.metal in Sources */,
 				03F2DB0F1F191F9B00F77B78 /* U4DRenderImage.mm in Sources */,
 				037C474217B597CB007B8283 /* U4DModel.mm in Sources */,
 				037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */,
+				03494C1C1F589D0F00ACE0EC /* U11PlayerDribblePassState.mm in Sources */,
+				03494CEA1F5B3AE600ACE0EC /* U11PlayerRecoverState.mm in Sources */,
 				03E6ED6A1943D6FE007AD131 /* U4DButton.mm in Sources */,
 				036FB58118CE9CB8000EA639 /* MainScene.mm in Sources */,
 				030449A217B8548500A3A2AE /* U4DVector2n.mm in Sources */,
+				03494C471F5B2DEF00ACE0EC /* U11PlayerDefendState.mm in Sources */,
+				03494CC51F5B37E300ACE0EC /* U11AttackAISystem.mm in Sources */,
 				03E6EDE61943D866007AD131 /* U4DStaticModel.mm in Sources */,
 				03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */,
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
+				03494BDB1F56837300ACE0EC /* U11PlayerStateManager.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */,
+				03494CE71F5B387300ACE0EC /* U11Team.mm in Sources */,
 				03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */,
+				03494CCF1F5B37F100ACE0EC /* U11AIAttackStrategy.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
+				03494C7D1F5B31A800ACE0EC /* U11PlayerIndicator.mm in Sources */,
 				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */,
 			);

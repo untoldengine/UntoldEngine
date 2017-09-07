@@ -23,7 +23,7 @@
 #include "U11FormationEntity.h"
 #include "U11PlayerSpace.h"
 
-U11Player::U11Player():joystickActive(false),missedTheBall(false),ballKickSpeed(0),threateningPlayer(nullptr),processedForTriangleNode(false){
+U11Player::U11Player():joystickActive(false),missedTheBall(false),ballKickSpeed(0),threateningPlayer(nullptr),processedForTriangleNode(false),rightHanded(1.0){
     
     stateManager=new U11PlayerStateManager(this);
     
@@ -43,26 +43,30 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         walkingAnimation=new U4DEngine::U4DAnimation(this);
         runningAnimation=new U4DEngine::U4DAnimation(this);
         
-        forwardCarryAnimation=new U4DEngine::U4DAnimation(this);
-        sideCarryRightAnimation=new U4DEngine::U4DAnimation(this);
-        sideCarryLeftAnimation=new U4DEngine::U4DAnimation(this);
+        rightDribbleAnimation=new U4DEngine::U4DAnimation(this);
+        leftDribbleAnimation=new U4DEngine::U4DAnimation(this);
+        
+        
         idleAnimation=new U4DEngine::U4DAnimation(this);
         
-        forwardHaltBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
-        forwardHaltBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
-        backHaltBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
-        backHaltBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
-        sideHaltBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
-        sideHaltBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
+        rightSoleHaltAnimation=new U4DEngine::U4DAnimation(this);
+        leftSoleHaltAnimation=new U4DEngine::U4DAnimation(this);
+        rightInsideHaltAnimation=new U4DEngine::U4DAnimation(this);
+        leftInsideHaltAnimation=new U4DEngine::U4DAnimation(this);
+        rightSideHaltAnimation=new U4DEngine::U4DAnimation(this);
+        leftSideHaltAnimation=new U4DEngine::U4DAnimation(this);
         
-        rightFootSidePassAnimation=new U4DEngine::U4DAnimation(this);
-        leftFootSidePassAnimation=new U4DEngine::U4DAnimation(this);
-        rightFootForwardKickAnimation=new U4DEngine::U4DAnimation(this);
-        leftFootForwardKickAnimation=new U4DEngine::U4DAnimation(this);
-        reverseBallWithRightFootAnimation=new U4DEngine::U4DAnimation(this);
-        reverseBallWithLeftFootAnimation=new U4DEngine::U4DAnimation(this);
+        rightPassAnimation=new U4DEngine::U4DAnimation(this);
+        leftPassAnimation=new U4DEngine::U4DAnimation(this);
         
-        reverseRunningAnimation=new U4DEngine::U4DAnimation(this);
+        rightShotAnimation=new U4DEngine::U4DAnimation(this);
+        leftShotAnimation=new U4DEngine::U4DAnimation(this);
+        
+        
+        leftReverseKickAnimation=new U4DEngine::U4DAnimation(this);
+        rightReverseKickAnimation=new U4DEngine::U4DAnimation(this);
+        
+        backPeddalAnimation=new U4DEngine::U4DAnimation(this);
         lateralLeftRunAnimation=new U4DEngine::U4DAnimation(this);
         lateralRightRunAnimation=new U4DEngine::U4DAnimation(this);
         
@@ -81,6 +85,7 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
         U4DEngine::U4DVector3n zeroGravity(0.0,0.0,0.0);
         setGravity(zeroGravity);
         
+        setEnableShadow(true);
         //set collision filters
 //        setCollisionFilterCategory(kU11Player);
 //        setCollisionFilterMask(kU11Ball);
@@ -88,7 +93,7 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
 //        //set player collision with ball filter not to occur
 //        setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
-        U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
+        U4DEngine::U4DVector3n viewDirectionVector(0,0,-1);
         
         setEntityForwardVector(viewDirectionVector);
         
@@ -121,23 +126,20 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
             
         }
         
-        if (loadAnimationToModel(forwardCarryAnimation, "forwardcarry", "forwardcarryanimation.u4d")) {
+        
+        if (loadAnimationToModel(rightDribbleAnimation, "rightdribble", "rightdribbleanimation.u4d")) {
             
             
             
         }
         
-        if (loadAnimationToModel(sideCarryLeftAnimation, "sidecarryleft", "sidecarryleftanimation.u4d")) {
+        if (loadAnimationToModel(leftDribbleAnimation, "leftdribble", "leftdribbleanimation.u4d")) {
             
             
             
         }
-
-        if (loadAnimationToModel(sideCarryRightAnimation, "sidecarryright", "sidecarryrightanimation.u4d")) {
-            
-            
-            
-        }
+        
+        
         
         if (loadAnimationToModel(idleAnimation, "idle", "idleanimation.u4d")) {
             
@@ -145,81 +147,81 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
             
         }
         
-        if (loadAnimationToModel(forwardHaltBallWithRightFootAnimation, "forwardhaltballwithrightfoot", "forwardhaltballwithrightfootanimation.u4d")) {
+        if (loadAnimationToModel(rightSoleHaltAnimation, "rightsolehalt", "rightsolehaltanimation.u4d")) {
             
-            forwardHaltBallWithRightFootAnimation->setIsAllowedToBeInterrupted(false);
-            
-        }
-        
-        if (loadAnimationToModel(forwardHaltBallWithLeftFootAnimation, "forwardhaltballwithleftfoot", "forwardhaltballwithleftfootanimation.u4d")) {
-            
-            forwardHaltBallWithLeftFootAnimation->setIsAllowedToBeInterrupted(false);
+            rightSoleHaltAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(backHaltBallWithRightFootAnimation, "backhaltballwithrightfoot", "backhaltballwithrightfootanimation.u4d")) {
+        if (loadAnimationToModel(leftSoleHaltAnimation, "leftsolehalt", "leftsolehaltanimation.u4d")) {
             
-            backHaltBallWithRightFootAnimation->setIsAllowedToBeInterrupted(false);
-            
-        }
-        
-        if (loadAnimationToModel(backHaltBallWithLeftFootAnimation, "backhaltballwithleftfoot", "backhaltballwithleftfootanimation.u4d")) {
-            
-            backHaltBallWithLeftFootAnimation->setIsAllowedToBeInterrupted(false);
+            leftSoleHaltAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(sideHaltBallWithRightFootAnimation, "sidehaltballwithrightfoot", "sidehaltballwithrightfootanimation.u4d")) {
+        if (loadAnimationToModel(rightInsideHaltAnimation, "rightinsidehalt", "rightinsidehaltanimation.u4d")) {
             
-            sideHaltBallWithRightFootAnimation->setIsAllowedToBeInterrupted(false);
-            
-        }
-        
-        if (loadAnimationToModel(sideHaltBallWithLeftFootAnimation, "sidehaltballwithleftfoot", "sidehaltballwithleftfootanimation.u4d")) {
-            
-            sideHaltBallWithLeftFootAnimation->setIsAllowedToBeInterrupted(false);
+            rightInsideHaltAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(rightFootSidePassAnimation, "rightfootsidepass", "rightfootsidepassanimation.u4d")) {
+        if (loadAnimationToModel(leftInsideHaltAnimation, "leftinsidehalt", "leftinsidehaltanimation.u4d")) {
             
-            rightFootSidePassAnimation->setIsAllowedToBeInterrupted(false);
-            
-        }
-        
-        if (loadAnimationToModel(leftFootSidePassAnimation, "leftfootsidepass", "leftfootsidepassanimation.u4d")) {
-            
-            leftFootSidePassAnimation->setIsAllowedToBeInterrupted(false);
+            leftInsideHaltAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(rightFootForwardKickAnimation, "rightfootforwardkick", "rightfootforwardkickanimation.u4d")) {
+        if (loadAnimationToModel(rightSideHaltAnimation, "rightsidehalt", "rightsidehaltanimation.u4d")) {
             
-            rightFootForwardKickAnimation->setIsAllowedToBeInterrupted(false);
-            
-        }
-        
-        if (loadAnimationToModel(leftFootForwardKickAnimation, "leftfootforwardkick", "leftfootforwardkickanimation.u4d")) {
-            
-            leftFootForwardKickAnimation->setIsAllowedToBeInterrupted(false);
+            rightSideHaltAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(reverseBallWithRightFootAnimation, "reverseballwithrightfoot", "reverseballwithrightfootanimation.u4d")) {
+        if (loadAnimationToModel(leftSideHaltAnimation, "leftsidehalt", "leftsidehaltanimation.u4d")) {
             
-            reverseBallWithRightFootAnimation->setIsAllowedToBeInterrupted(false);
-            
-        }
-        
-        if (loadAnimationToModel(reverseBallWithLeftFootAnimation, "reverseballwithleftfoot", "reverseballwithleftfootanimation.u4d")) {
-            
-            reverseBallWithLeftFootAnimation->setIsAllowedToBeInterrupted(false);
+            leftSideHaltAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(reverseRunningAnimation, "reverserunning", "reverserunninganimation.u4d")) {
+        if (loadAnimationToModel(rightPassAnimation, "rightpass", "rightpassanimation.u4d")) {
             
-            reverseRunningAnimation->setIsAllowedToBeInterrupted(true);
+            rightPassAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(leftPassAnimation, "leftpass", "leftpassanimation.u4d")) {
+            
+            leftPassAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(rightShotAnimation, "rightshot", "rightshotanimation.u4d")) {
+            
+            rightShotAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(leftShotAnimation, "leftshot", "leftshotanimation.u4d")) {
+            
+            leftShotAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(leftReverseKickAnimation, "leftreversekick", "leftreversekickanimation.u4d")) {
+            
+            leftReverseKickAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(rightReverseKickAnimation, "rightreversekick", "rightreversekickanimation.u4d")) {
+            
+            rightReverseKickAnimation->setIsAllowedToBeInterrupted(false);
+            
+        }
+        
+        if (loadAnimationToModel(backPeddalAnimation, "backpeddal", "backpeddalanimation.u4d")) {
+            
+            backPeddalAnimation->setIsAllowedToBeInterrupted(true);
             
         }
         
@@ -347,6 +349,22 @@ void U11Player::seekBall(){
     
     U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
     
+    
+    
+    U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
+    
+    playerHeading.normalize();
+    
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+    
+    U4DEngine::U4DVector3n offsetVector=playerHeading.cross(upVector);
+    
+    offsetVector*=rightHanded*offsetHandedness;
+    
+    distanceVector+=offsetVector;
+    
+    
+    
     U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
     
     setPlayerHeading(directionToLook);
@@ -452,7 +470,7 @@ bool U11Player::hasReachedTheBall(){
     
     float distanceToBall=(ballPosition-playerPosition).magnitude();
     
-    if (distanceToBall<=(ballRadius+2.5)) {
+    if (distanceToBall<=(ballRadius+0.5)) {
         
         return true;
     }
@@ -483,17 +501,22 @@ U4DEngine::U4DAnimation *U11Player::getRunningAnimation(){
     return runningAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getRightFootSidePassAnimation(){
-    return rightFootSidePassAnimation;
+U4DEngine::U4DAnimation *U11Player::getRightPassAnimation(){
+    return rightPassAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getLeftFootSidePassAnimation(){
-    return leftFootSidePassAnimation;
+U4DEngine::U4DAnimation *U11Player::getLeftPassAnimation(){
+    return leftPassAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getForwardCarryAnimation(){
+U4DEngine::U4DAnimation *U11Player::getRightDribbleAnimation(){
     
-    return forwardCarryAnimation;
+    return rightDribbleAnimation;
+}
+
+U4DEngine::U4DAnimation *U11Player::getLeftDribbleAnimation(){
+    
+    return leftDribbleAnimation;
 }
 
 U4DEngine::U4DAnimation *U11Player::getIdleAnimation(){
@@ -502,73 +525,71 @@ U4DEngine::U4DAnimation *U11Player::getIdleAnimation(){
     
 }
 
-U4DEngine::U4DAnimation *U11Player::getSideCarryLeftAnimation(){
+U4DEngine::U4DAnimation *U11Player::getRightSoleHaltAnimation(){
     
-    return sideCarryLeftAnimation;
+    return rightSoleHaltAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getSideCarryRightAnimation(){
+U4DEngine::U4DAnimation *U11Player::getRightCarryAnimation(){
     
-    return sideCarryRightAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getForwardHaltBallWithRightFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getLeftCarryAnimation(){
     
-    return forwardHaltBallWithRightFootAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getForwardHaltBallWithLeftFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getLeftSoleHaltAnimation(){
     
-    return forwardHaltBallWithLeftFootAnimation;
+    return leftSoleHaltAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getBackHaltBallWithRightFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getRightInsideHaltAnimation(){
     
-    return backHaltBallWithRightFootAnimation;
+    return rightInsideHaltAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getBackHaltBallWithLeftFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getLeftInsideHaltAnimation(){
     
-    return backHaltBallWithLeftFootAnimation;
+    return leftInsideHaltAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getSideHaltBallWithRightFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getRightSideHaltAnimation(){
     
-    return sideHaltBallWithRightFootAnimation;
+    return rightSideHaltAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getSideHaltBallWithLeftFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getLeftSideHaltAnimation(){
     
-    return sideHaltBallWithLeftFootAnimation;
+    return leftSideHaltAnimation;
 }
 
-U4DEngine::U4DAnimation *U11Player::getRightFootForwardKickAnimation(){
+U4DEngine::U4DAnimation *U11Player::getRightShotAnimation(){
     
-    return rightFootForwardKickAnimation;
+    return rightShotAnimation;
 
 }
 
-U4DEngine::U4DAnimation *U11Player::getLeftFootForwardKickAnimation(){
+U4DEngine::U4DAnimation *U11Player::getLeftShotAnimation(){
    
-    return leftFootForwardKickAnimation;
+    return leftShotAnimation;
 
 }
 
-U4DEngine::U4DAnimation *U11Player::getReverseBallWithLeftFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getLeftReverseKickAnimation(){
     
-    return reverseBallWithLeftFootAnimation;
+    return leftReverseKickAnimation;
     
 }
 
-U4DEngine::U4DAnimation *U11Player::getReverseBallWithRightFootAnimation(){
+U4DEngine::U4DAnimation *U11Player::getRightReverseKickAnimation(){
  
-    return reverseBallWithRightFootAnimation;
+    return rightReverseKickAnimation;
     
 }
 
-U4DEngine::U4DAnimation *U11Player::getReverseRunningAnimation(){
+U4DEngine::U4DAnimation *U11Player::getBackPeddalAnimation(){
     
-    return reverseRunningAnimation;
+    return backPeddalAnimation;
 }
 
 U4DEngine::U4DAnimation *U11Player::getLateralRightRunAnimation(){
@@ -691,9 +712,9 @@ bool U11Player::isBallOnRightSidePlane(){
     ballPlayerPosition.normalize();
     
     if (directionVector.dot(ballPlayerPosition)>=0.0) {
-        return true;
-    }else{
         return false;
+    }else{
+        return true;
     }
     
 }
@@ -921,4 +942,25 @@ bool U11Player::getProcessedForTriangleNode(){
     
     return processedForTriangleNode;
 }
+
+void U11Player::computePlayerDribblingSpeed(){
+    
+    float t=distanceToBall();
+    
+    t=t/ballControlMaximumDistance;
+    
+    if (t>1.0) {
+        t=1.0;
+    }
+    
+    playerDribblingSpeed=minDribblingSpeed+minDribblingSpeed*t;
+    
+}
+
+float U11Player::getPlayerDribblingSpeed(){
+    
+    return playerDribblingSpeed;
+}
+
+
 
