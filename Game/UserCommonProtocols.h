@@ -92,6 +92,33 @@ typedef struct{
     
 }TriangleNodeEntity;
 
+
+enum{
+    
+    actionButtonA,
+    actionButtonB,
+    actionJoystick,
+    
+}TouchInputType;
+
+
+enum{
+    buttonPressed,
+    buttonReleased,
+    joystickActive,
+    joystickInactive
+    
+}TouchInputData;
+
+typedef struct{
+    
+    int touchInputType;
+    int touchInputData;
+    U4DEngine::U4DVector3n joystickDirection;
+    bool joystickChangeDirection;
+    
+}TouchInputMessage;
+
 const float fieldWidth=1000.0;
 const float fieldLength=1000.0;
 const float playingFieldLength=200.0;
@@ -101,13 +128,14 @@ const float chasingSpeed=14.0;
 
 const float minDribblingSpeed=7.5;
 
-
 const float ballRollingSpeed=14.0;
+
+const float offsetHandedness=0.38;
+
 
 
 const float markingSpeed=20.0;
 
-const float offsetHandedness=0.38;
 
 
 const float ballTapSpeed=50.0;

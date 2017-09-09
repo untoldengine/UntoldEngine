@@ -30,10 +30,6 @@ public:
     
     int buttonHoldTime;
     
-    U4DEngine::U4DButton *buttonA;
-    U4DEngine::U4DButton *buttonB;
-    U4DEngine::U4DJoyStick *joystick;
-    
     U4DEngine::U4DTimer *buttonHoldTimer;
     
     U4DEngine::U4DCallback<GameLogic> *scheduler;
@@ -45,7 +41,7 @@ public:
     
     void init();
     
-    void receiveTouchUpdate();
+    void receiveTouchUpdate(void *uData);
     
     void setTeamToControl(U11Team *uTeam);
     

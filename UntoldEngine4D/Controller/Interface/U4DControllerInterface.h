@@ -68,7 +68,7 @@ public:
     virtual U4DButton* getButtonWithName(std::string uName)=0;
     
     virtual void setReceivedAction(bool uValue)=0;
-    virtual void sendTouchUpdateToModel()=0;
+    virtual void sendTouchUpdate(void *uData)=0;
 };
 
 }

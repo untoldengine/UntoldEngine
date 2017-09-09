@@ -124,12 +124,6 @@ void U4DTouchesController::update(double dt){
         joyStick->update(dt);
     }
     
-    if (receivedAction==true) {
-        
-        sendTouchUpdateToModel();
-        
-        receivedAction=false;
-    }
 }
 
 void U4DTouchesController::render(id <MTLRenderCommandEncoder> uRenderEncoder){
@@ -201,9 +195,9 @@ U4DButton* U4DTouchesController::getButtonWithName(std::string uName){
     
 }
     
-void U4DTouchesController::sendTouchUpdateToModel(){
+void U4DTouchesController::sendTouchUpdate(void *uData){
 
-    gameModel->receiveTouchUpdate();
+    gameModel->receiveTouchUpdate(uData);
 }
     
 void U4DTouchesController::setReceivedAction(bool uValue){
