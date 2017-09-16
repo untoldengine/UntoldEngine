@@ -39,20 +39,23 @@ void U11PlayerChaseBallState::enter(U11Player *uPlayer){
 
 void U11PlayerChaseBallState::execute(U11Player *uPlayer, double dt){
     
+    uPlayer->computePlayerDribblingSpeed();
+    
+    U11Ball *ball=uPlayer->getSoccerBall();
+        
     //track the ball
     uPlayer->seekBall();
     
     
     //has the player reached the ball
-    if (!uPlayer->hasReachedTheBall()) {
+    if (uPlayer->distanceToBall()>0.8) {
         
         //chase the ball
-        uPlayer->applyForceToPlayer(chasingSpeed, dt);
+        uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
         
         
     }else{
         
-        uPlayer->removeKineticForces();
         
         uPlayer->changeState(U11PlayerHaltBallState::sharedInstance());
         

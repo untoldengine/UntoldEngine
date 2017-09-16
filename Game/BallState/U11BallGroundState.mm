@@ -39,7 +39,7 @@ void U11BallGroundState::enter(U11Ball *uBall){
     uBall->setGravity(gravityForce);
     
     //reset drag
-    U4DEngine::U4DVector2n dragCoefficients(0.25,0.05);
+    U4DEngine::U4DVector2n dragCoefficients(0.5,0.05);
     uBall->setDragCoefficient(dragCoefficients);
     
 }

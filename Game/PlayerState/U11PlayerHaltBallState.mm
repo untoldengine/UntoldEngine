@@ -83,8 +83,9 @@ void U11PlayerHaltBallState::enter(U11Player *uPlayer){
         
     }else{
         
+        std::cout<<"Side halt animation"<<std::endl;
         //set the control ball animation
-        if (uPlayer->isBallComingFromRightSidePlane()) {
+        if (!uPlayer->isBallComingFromRightSidePlane()) {
             
             uPlayer->setNextAnimationToPlay(uPlayer->getLeftSideHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
@@ -93,6 +94,7 @@ void U11PlayerHaltBallState::enter(U11Player *uPlayer){
             
             uPlayer->setNextAnimationToPlay(uPlayer->getRightSideHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+            
         }
         
     }
@@ -108,40 +110,77 @@ void U11PlayerHaltBallState::enter(U11Player *uPlayer){
 
 void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
     
-    U11Ball *ball=uPlayer->getSoccerBall();
     
+    uPlayer->computePlayerDribblingSpeed();
+    
+    int keyframe;
+    
+    if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getRightSoleHaltAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getLeftSoleHaltAnimation() ) {
+        
+        keyframe=2;
+        
+        //track the ball
+        uPlayer->seekBall();
+        
+    }
+    
+    if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getRightInsideHaltAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getLeftInsideHaltAnimation() ) {
+        
+        keyframe=0;
+        
+    }
+    
+    if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getRightSideHaltAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getLeftSideHaltAnimation() ) {
+        
+        keyframe=2;
+        
+        //track the ball
+        uPlayer->seekBall();
+    }
+   
     //stop ball motion if the feet collide with the ball and if it matches a keyframe
-    if (uPlayer->getActiveExtremityCollidedWithBall()) {
+    if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==keyframe) {
+        
+        uPlayer->getCurrentPlayingAnimation()->play();
+        
+        uPlayer->removeKineticForces();
+    
+        U11Ball *ball=uPlayer->getSoccerBall();
         
         ball->removeKineticForces();
         
         ball->removeAllVelocities();
+    
+        U11Team *team=uPlayer->getTeam();
         
-        if (uPlayer->getAnimationCurrentKeyframe()==3) {
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
-           U11Team *team=uPlayer->getTeam();
-            
-            U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-            
-            messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
+        messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
+    
+        ball->changeState(U11BallGroundState::sharedInstance());
         
-            ball->changeState(U11BallGroundState::sharedInstance());
+        uPlayer->changeState(U11PlayerAttackState::sharedInstance());
+        
+    }else if (!uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==keyframe){
+        
+        uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
+        
+        uPlayer->getCurrentPlayingAnimation()->pause();
+        
+        if (uPlayer->distanceToBall()>0.8) {
             
-            //uPlayer->changeState(U11PlayerAttackState::sharedInstance());
+            //chase the ball
+            uPlayer->changeState(U11PlayerChaseBallState::sharedInstance());
             
         }
+        
+    }else{
+            
+        //uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
+        
+    }
     
-        
-    }else if(uPlayer->distanceToBall()>ballControlMaximumDistance){
-        
-        uPlayer->decelerateBall(ballDeceleration, dt);
-        
-        uPlayer->changeState(U11PlayerChaseBallState::sharedInstance());
-    }
-        
-    if (ball->getVelocity().magnitude()>ballMaxSpeed) {
-        uPlayer->decelerateBall(ballDeceleration, dt);
-    }
+   
     
 }
 

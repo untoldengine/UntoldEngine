@@ -119,12 +119,12 @@ void Earth::init(){
     emelecPlayer10->init("player", "playerscript.u4d");
     
     emelecPlayer10->subscribeTeam(emelec);
-    /*
+    
     emelecPlayer11=new U11Player();
     emelecPlayer11->init("player", "playerscript.u4d");
     
     emelecPlayer11->subscribeTeam(emelec);
-    
+    /*
     emelecPlayer9=new U11Player();
     emelecPlayer9->init("player", "playerscript.u4d");
     
@@ -249,9 +249,9 @@ void Earth::init(){
     addChild(field);
     
     addChild(emelecPlayer10);
-    /*
-    addChild(emelecPlayer11);
     
+    addChild(emelecPlayer11);
+    /*
     addChild(emelecPlayer9);
     
     addChild(emelecPlayer8);
@@ -289,13 +289,13 @@ void Earth::init(){
     addChild(barcelonaPlayer3);
 
     addChild(barcelonaPlayer2);
- */
+ 
     
     addChild(fieldGoal1);
     
     addChild(fieldGoal2);
     
-    
+  */  
     //set the player indicator
     /*
     playerIndicator=new U11PlayerIndicator(emelec);
@@ -314,7 +314,10 @@ void Earth::init(){
     barcelona->translateTeamToFormationPosition();
     
     
+    float yPos=emelecPlayer10->getModelDimensions().y/2.0+0.3;
     
+    emelecPlayer10->translateTo(-1.0, yPos, 0.0);
+    emelecPlayer11->translateTo(14.0,yPos, -5.5);
    
 }
 
@@ -322,9 +325,9 @@ void Earth::update(double dt){
 
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
-    //camera->followModel(ball, 0.0, 15.0, -30.0);
+    camera->followModel(ball, 0.0, 15.0, -30.0);
     
-   camera->followModel(ball, 0.0, 1.0, -10.0);
+    //camera->followModel(ball, 0.0, 0.0, -10.0);
 }
 
 

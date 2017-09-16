@@ -343,67 +343,87 @@ void U11Player::seekPosition(U4DEngine::U4DPoint3n &uPosition){
 
 void U11Player::seekBall(){
     
-    U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
+    if (distanceToBall()>0.1) {
+        
+        U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
+        
+        U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
+        
+        U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
+        
+        
+        
+        U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
+        
+        playerHeading.normalize();
+        
+        U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+        
+        U4DEngine::U4DVector3n offsetVector=playerHeading.cross(upVector);
+        
+        offsetVector*=rightHanded*offsetHandedness;
+        
+        distanceVector+=offsetVector;
+        
+        
+        
+        U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
+        
+        setPlayerHeading(directionToLook);
+        
+    }
     
-    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
-    
-    U4DEngine::U4DVector3n distanceVector=ballPosition-playerPosition;
-    
-    
-    
-    U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
-    
-    playerHeading.normalize();
-    
-    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-    
-    U4DEngine::U4DVector3n offsetVector=playerHeading.cross(upVector);
-    
-    offsetVector*=rightHanded*offsetHandedness;
-    
-    distanceVector+=offsetVector;
-    
-    
-    
-    U4DEngine::U4DVector3n directionToLook(distanceVector.x,playerPosition.y,distanceVector.z);
-    
-    setPlayerHeading(directionToLook);
     
 }
 
 void U11Player::interseptBall(){
     
-    //determine the heading of the ball relative to the player
-    U4DEngine::U4DVector3n ballHeading=getSoccerBall()->getVelocity();
-    ballHeading.normalize();
-    
-    U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
-    
-    U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
-    
-    U4DEngine::U4DVector3n relativePosition=ballPosition-playerPosition;
-    relativePosition.normalize();
-    
-    U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
-    playerHeading.normalize();
-    
-    if (playerHeading.dot(relativePosition)>0.0 && (ballHeading.dot(playerHeading)<-0.95)) {
+    if (distanceToBall()>0.1) {
         
-        seekBall();
+        //determine the heading of the ball relative to the player
+        U4DEngine::U4DVector3n ballHeading=getSoccerBall()->getVelocity();
+        ballHeading.normalize();
         
-    }else{
+        U4DEngine::U4DVector3n ballPosition=getSoccerBall()->getAbsolutePosition();
         
-        float t=(relativePosition).magnitude();
+        U4DEngine::U4DVector3n playerPosition=getAbsolutePosition();
         
-        U4DEngine::U4DVector3n interseptPosition=ballPosition+ballHeading*t;
+        U4DEngine::U4DVector3n relativePosition=ballPosition-playerPosition;
+        relativePosition.normalize();
         
-        U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
+        U4DEngine::U4DVector3n playerHeading=getPlayerHeading();
+        playerHeading.normalize();
         
-        directionToLook.x/=fieldLength;
-        directionToLook.z/=fieldWidth;
+        if (playerHeading.dot(relativePosition)>0.0 && (ballHeading.dot(playerHeading)<-0.95)) {
+            
+            seekBall();
+            
+        }else{
+            
+            float t=(relativePosition).magnitude();
+            
+            U4DEngine::U4DVector3n interseptPosition=ballPosition+ballHeading*t;
+            
+            
+            
+            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+            
+            U4DEngine::U4DVector3n offsetVector=playerHeading.cross(upVector);
+            
+            offsetVector*=rightHanded*offsetHandedness;
+            
+            interseptPosition+=offsetVector;
+            
+            
+            U4DEngine::U4DVector3n directionToLook(interseptPosition.x,playerPosition.y,interseptPosition.z);
+            
+            directionToLook.x/=fieldLength;
+            directionToLook.z/=fieldWidth;
+            
+            setPlayerHeading(directionToLook);
+            
+        }
         
-        setPlayerHeading(directionToLook);
-
     }
         
 }
@@ -711,7 +731,7 @@ bool U11Player::isBallOnRightSidePlane(){
     
     ballPlayerPosition.normalize();
     
-    if (directionVector.dot(ballPlayerPosition)>=0.0) {
+    if (directionVector.dot(ballPlayerPosition)>0.0) {
         return false;
     }else{
         return true;
