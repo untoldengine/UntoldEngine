@@ -279,7 +279,11 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         
     }
     
-    return finalColor;
+    //return finalColor;
+    
+    //remove
+    float4 sampledColor=texture.sample(sam,vertexOut.uvCoords.xy);
+    return sampledColor;
 }
 
 

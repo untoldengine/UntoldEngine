@@ -8,7 +8,7 @@
 
 #include "U11PlayerRecoverState.h"
 
-#include "U11BallGroundState.h"
+#include "U11BallRollingState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11AIAttackState.h"
 #include "U11AIDefenseState.h"
@@ -130,7 +130,7 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
                 
                 ball->removeAllVelocities();
                 
-                ball->changeState(U11BallGroundState::sharedInstance());
+                ball->changeState(U11BallRollingState::sharedInstance());
              
                 //get team
                 U11Team *team=uPlayer->getTeam();
@@ -150,7 +150,7 @@ void U11PlayerRecoverState::execute(U11Player *uPlayer, double dt){
             
             ball->removeAllVelocities();
             
-            ball->changeState(U11BallGroundState::sharedInstance());
+            ball->changeState(U11BallRollingState::sharedInstance());
             
             //get team
             U11Team *team=uPlayer->getTeam();

@@ -13,7 +13,7 @@
 #include "U11PlayerAirShotState.h"
 #include "U11PlayerReverseKickState.h"
 #include "U11PlayerRunPassState.h"
-#include "U11BallGroundState.h"
+#include "U11BallStoppedState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerAttackState.h"
 #include "U11Ball.h"
@@ -83,7 +83,6 @@ void U11PlayerHaltBallState::enter(U11Player *uPlayer){
         
     }else{
         
-        std::cout<<"Side halt animation"<<std::endl;
         //set the control ball animation
         if (!uPlayer->isBallComingFromRightSidePlane()) {
             
@@ -146,10 +145,6 @@ void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
         uPlayer->removeKineticForces();
     
         U11Ball *ball=uPlayer->getSoccerBall();
-        
-        ball->removeKineticForces();
-        
-        ball->removeAllVelocities();
     
         U11Team *team=uPlayer->getTeam();
         
@@ -157,7 +152,7 @@ void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
         
         messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
     
-        ball->changeState(U11BallGroundState::sharedInstance());
+        ball->changeState(U11BallStoppedState::sharedInstance());
         
         uPlayer->changeState(U11PlayerAttackState::sharedInstance());
         

@@ -243,10 +243,10 @@ void Earth::init(){
     emelec->setFieldGoal(fieldGoal2);
     
     barcelona->setFieldGoal(fieldGoal1);
-    
+    addChild(field);
     addChild(ball);
     
-    addChild(field);
+    
     
     addChild(emelecPlayer10);
     
