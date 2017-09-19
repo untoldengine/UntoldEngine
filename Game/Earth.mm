@@ -290,12 +290,12 @@ void Earth::init(){
 
     addChild(barcelonaPlayer2);
  
-    
+   */
     addChild(fieldGoal1);
     
     addChild(fieldGoal2);
     
-  */  
+    
     //set the player indicator
     /*
     playerIndicator=new U11PlayerIndicator(emelec);
@@ -328,6 +328,9 @@ void Earth::update(double dt){
     camera->followModel(ball, 0.0, 15.0, -30.0);
     
     //camera->followModel(ball, 0.0, 0.0, -10.0);
+    
+    //preferred position
+    //camera->followModel(ball, 0.0, 25.0, -50.0);
 }
 
 
