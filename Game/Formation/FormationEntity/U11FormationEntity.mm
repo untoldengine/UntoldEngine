@@ -22,10 +22,7 @@ void U11FormationEntity::init(const char* uModelName, const char* uBlenderFile){
         
         originPosition=getAbsolutePosition();
         
-        setShader("vertexNonVisibleShader","fragmentNonVisibleShader");
-        
-        setEntityType(U4DEngine::MODELNOSHADOWS);
-        
+         
         //Get body dimensions
         float xDimension=bodyCoordinates.getModelDimension().x;
         float yDimension=bodyCoordinates.getModelDimension().y;
@@ -38,7 +35,7 @@ void U11FormationEntity::init(const char* uModelName, const char* uBlenderFile){
         aabbBox.setMinPoint(minPoints);
         aabbBox.setMaxPoint(maxPoints);
         
-        loadRenderingInformation();
+        //loadRenderingInformation();
     }
 }
 

@@ -121,8 +121,9 @@ typedef struct{
 
 const float fieldWidth=1000.0;
 const float fieldLength=1000.0;
-const float playingFieldLength=200.0;
-const float playingFieldWidth=135.0;
+
+const float playingFieldLength=178.0;
+const float playingFieldWidth=125.0;
 
 const float chasingSpeed=13.0;
 
@@ -157,20 +158,28 @@ const float supportMinimumDistanceToPlayer=5.0;
 const float supportMaximumDistanceToPlayer=15.0;
 
 const float dribblingMinimumDistanceToPlayer=15.0;
+
 const int   maximumSupportPoints=36;
 const int   maximumDribblingSpace=36;
+
 const int   supportPointsSeparation=10;
 const int   dribblingSpaceSeparation=10;
+
 const float ballPassSegmentDirection=10.0;
+
 const float withinSupportDistance=2.5;
 const float withinDefenseDistance=2.5;
 const float withinFormationDistance=2.5;
+
 const float stealingDistanceToBall=1.0;
 const float markingDistanceToBall=5.0;
 const float defenseSpace=0.15;
+
 const float formationDefenseSpace=0.5;
+
 const float formationSpaceBoundaryLength=420.0;
 const float formationSpaceBoundaryWidth=70.0;
+
 const float minimumInterceptionDistance=30.0;
 const float threateningDistanceToPlayer=20.0;
 const float playerPersonalArea=5.0;

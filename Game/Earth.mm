@@ -124,7 +124,7 @@ void Earth::init(){
     emelecPlayer11->init("player", "playerscript.u4d");
     
     emelecPlayer11->subscribeTeam(emelec);
-    /*
+    
     emelecPlayer9=new U11Player();
     emelecPlayer9->init("player", "playerscript.u4d");
     
@@ -165,7 +165,7 @@ void Earth::init(){
     emelecPlayer2->init("player", "playerscript.u4d");
 
     emelecPlayer2->subscribeTeam(emelec);
-    */
+    
     
     //opposite team
     
@@ -173,7 +173,7 @@ void Earth::init(){
     barcelonaPlayer10->init("player", "oppositeplayerscript.u4d");
     
     barcelonaPlayer10->subscribeTeam(barcelona);
-   /*
+   
     barcelonaPlayer11=new U11Player();
     barcelonaPlayer11->init("player", "oppositeplayerscript.u4d");
     
@@ -200,7 +200,7 @@ void Earth::init(){
 
     barcelonaPlayer6->subscribeTeam(barcelona);
 
-
+/*
     barcelonaPlayer5=new U11Player();
     barcelonaPlayer5->init("player", "oppositeplayerscript.u4d");
 
@@ -251,7 +251,7 @@ void Earth::init(){
     addChild(emelecPlayer10);
     
     addChild(emelecPlayer11);
-    /*
+    
     addChild(emelecPlayer9);
     
     addChild(emelecPlayer8);
@@ -267,11 +267,11 @@ void Earth::init(){
     addChild(emelecPlayer3);
 
     addChild(emelecPlayer2);
-    */
+    
     
     
     addChild(barcelonaPlayer10);
-  /*
+  
     addChild(barcelonaPlayer11);
     
     addChild(barcelonaPlayer9);
@@ -281,7 +281,7 @@ void Earth::init(){
     addChild(barcelonaPlayer7);
 
     addChild(barcelonaPlayer6);
-
+/*
     addChild(barcelonaPlayer5);
 
     addChild(barcelonaPlayer4);
@@ -289,20 +289,20 @@ void Earth::init(){
     addChild(barcelonaPlayer3);
 
     addChild(barcelonaPlayer2);
- 
-   */
+ */
+   
     addChild(fieldGoal1);
     
     addChild(fieldGoal2);
     
     
     //set the player indicator
-    /*
+    
     playerIndicator=new U11PlayerIndicator(emelec);
     playerIndicator->init("indicator", "miscellaneousscript.u4d");
     
     addChild(playerIndicator);
-    */
+    
     //set the team
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     
@@ -313,12 +313,6 @@ void Earth::init(){
     emelec->translateTeamToFormationPosition();
     barcelona->translateTeamToFormationPosition();
     
-    
-    float yPos=emelecPlayer10->getModelDimensions().y/2.0+0.3;
-    
-    emelecPlayer10->translateTo(-1.0, yPos, 0.0);
-    emelecPlayer11->translateTo(14.0,yPos, -5.5);
-   
 }
 
 void Earth::update(double dt){
@@ -327,7 +321,7 @@ void Earth::update(double dt){
     
     camera->followModel(ball, 0.0, 15.0, -30.0);
     
-    //camera->followModel(ball, 0.0, 0.0, -10.0);
+    //camera->followModel(ball, 0.0, 100.0, 0.0);
     
     //preferred position
     //camera->followModel(ball, 0.0, 25.0, -50.0);

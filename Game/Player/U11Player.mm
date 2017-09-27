@@ -207,31 +207,31 @@ void U11Player::init(const char* uModelName, const char* uBlenderFile){
             
         }
         
-        if (loadAnimationToModel(leftReverseKickAnimation, "leftreversekick", "leftreversekickanimation.u4d")) {
+        if (loadAnimationToModel(leftReverseKickAnimation, "running", "runninganimation.u4d")) {
             
             leftReverseKickAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(rightReverseKickAnimation, "rightreversekick", "rightreversekickanimation.u4d")) {
+        if (loadAnimationToModel(rightReverseKickAnimation, "running", "runninganimation.u4d")) {
             
             rightReverseKickAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(backPeddalAnimation, "backpeddal", "backpeddalanimation.u4d")) {
+        if (loadAnimationToModel(backPeddalAnimation, "running", "runninganimation.u4d")) {
             
             backPeddalAnimation->setIsAllowedToBeInterrupted(true);
             
         }
         
-        if (loadAnimationToModel(lateralRightRunAnimation, "lateralrightrun", "lateralrightrunanimation.u4d")) {
+        if (loadAnimationToModel(lateralRightRunAnimation, "running", "runninganimation.u4d")) {
             
             lateralRightRunAnimation->setIsAllowedToBeInterrupted(false);
             
         }
         
-        if (loadAnimationToModel(lateralLeftRunAnimation, "lateralleftrun", "lateralleftrunanimation.u4d")) {
+        if (loadAnimationToModel(lateralLeftRunAnimation, "running", "runninganimation.u4d")) {
             
             lateralLeftRunAnimation->setIsAllowedToBeInterrupted(false);
             

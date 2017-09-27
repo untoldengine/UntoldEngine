@@ -67,8 +67,8 @@ void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
         
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
-        //DONT FORGET TO UNCOMMNET THIS 9/10/17
-        //messageDispatcher->sendMessage(0.0, oppositeTeam, msgInterceptionFailed);
+        
+        messageDispatcher->sendMessage(0.0, oppositeTeam, msgInterceptionFailed);
         
         uPlayer->changeState(U11PlayerHaltBallState::sharedInstance());
         

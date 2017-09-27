@@ -187,7 +187,7 @@ void U11Team::updateTeamFormationPosition(){
     for(auto n:teammates){
         
         U4DEngine::U4DPoint3n pos=(n->getFormationEntity()->getAbsolutePosition()).toPoint();
-        pos.y=n->getModelDimensions().y/2.0+1.3;
+        pos.y=n->getModelDimensions().y/2.0+0.3;
         
         n->setFormationPosition(pos);
     

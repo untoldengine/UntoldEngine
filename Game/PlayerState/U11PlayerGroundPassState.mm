@@ -121,7 +121,7 @@ void U11PlayerGroundPassState::exit(U11Player *uPlayer){
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
         messageDispatcher->sendMessage(0.0, uPlayer, receivingPlayer, msgReceiveBall);
-        /*//DONT FORGET TO UNCOMMNET THIS 9/10/17
+        
         //send message to the team
         messageDispatcher->sendMessage(0.0, team, msgBallPassed);
         
@@ -129,7 +129,7 @@ void U11PlayerGroundPassState::exit(U11Player *uPlayer){
         U11Team *oppositeTeam=team->getOppositeTeam();
         
         messageDispatcher->sendMessage(0.0, oppositeTeam, msgBallPassed);
-        */
+        
     }
 }
 
