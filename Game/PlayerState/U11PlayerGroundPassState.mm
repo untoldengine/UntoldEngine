@@ -8,7 +8,7 @@
 
 #include "U11PlayerGroundPassState.h"
 #include "U11PlayerChaseBallState.h"
-#include "U11PlayerAttackState.h"
+#include "U11PlayerIdleState.h"
 #include "U11PlayerDribblePassState.h"
 #include "UserCommonProtocols.h"
 #include "U11Team.h"
@@ -43,13 +43,13 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
     
     if (uPlayer->isBallOnRightSidePlane()) {
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getRightFootSidePassAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getRightPassAnimation());
         
         uPlayer->setActiveExtremity(uPlayer->getRightFoot());
         
     }else{
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getLeftFootSidePassAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getLeftPassAnimation());
         uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
         
     }
@@ -60,34 +60,34 @@ void U11PlayerGroundPassState::enter(U11Player *uPlayer){
 
 void U11PlayerGroundPassState::execute(U11Player *uPlayer, double dt){
     
-    if(uPlayer->getActiveExtremityCollidedWithBall()){
-        
-        if (uPlayer->getAnimationCurrentKeyframe()==3) {
-            
-            U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
-            
-            float ballPassSpeed=uPlayer->getBallKickSpeed();
-            
-            uPlayer->kickBallToGround(ballPassSpeed, direction,dt);
-            
-            uPlayer->removeKineticForces();
-            
-            uPlayer->setMissedTheBall(false);
-            
-            uPlayer->changeState(U11PlayerAttackState::sharedInstance());
-            
-        }
-        
-    }
+    uPlayer->seekBall();
     
-    //if missed the kick, go get the ball
-    if (!uPlayer->getCurrentPlayingAnimation()->isAnimationPlaying()) {
-        
-        uPlayer->setMissedTheBall(true);
-        uPlayer->changeState(U11PlayerHaltBallState::sharedInstance());
-        
-    }
+    uPlayer->computePlayerDribblingSpeed();
     
+    if(uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==2){
+        
+        uPlayer->getCurrentPlayingAnimation()->play();
+        
+        uPlayer->removeKineticForces();
+        
+        U4DEngine::U4DVector3n direction=uPlayer->getPlayerHeading();
+        
+        float ballPassSpeed=uPlayer->getBallKickSpeed();
+        
+        uPlayer->kickBallToGround(ballPassSpeed, direction,dt);
+        
+        uPlayer->setMissedTheBall(false);
+        
+        uPlayer->changeState(U11PlayerIdleState::sharedInstance());
+        
+    }else if (!uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==2){
+        
+        uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
+        
+        uPlayer->getCurrentPlayingAnimation()->pause();
+    }
+
+     
 }
 
 void U11PlayerGroundPassState::exit(U11Player *uPlayer){

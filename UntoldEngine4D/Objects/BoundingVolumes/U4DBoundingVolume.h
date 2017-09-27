@@ -12,12 +12,14 @@
 #include <iostream>
 #include <vector>
 #include "Constants.h"
-#include "U4DOpenGLGeometry.h"
+#include <MetalKit/MetalKit.h>
 #include "U4DVector3n.h"
 #include "U4DIndex.h"
 #include "U4DVertexData.h"
 #include "U4DVisibleEntity.h"
 #include "U4DPoint3n.h"
+
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     class U4DSphere;
@@ -35,6 +37,8 @@ namespace U4DEngine {
     private:
         
     public:
+        
+        U4DRenderManager *renderManager;
         
         /**
          @brief Constructor of class
@@ -119,18 +123,6 @@ namespace U4DEngine {
          @brief Method which loads the attribute information needed for rendering
          */
         void loadRenderingInformation();
-        
-        /**
-         @brief Method which sets the rendering color for the bounding volume
-         
-         @param uColor Color to render the volume
-         */
-        void setBoundingVolumeColor(U4DVector4n& uColor);
-
-        /**
-         @brief Method which starts the rendering operation of the entity
-         */
-        void draw();
 
         /**
          @brief Method which sets the radius for the spherical bounding volume
@@ -166,6 +158,10 @@ namespace U4DEngine {
          @return Returns the mathematical sphere entity
          */
         virtual U4DSphere& getSphere(){};
+        
+        void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+    
+        void setLineColor(U4DVector4n &lineColor);
         
     };
     

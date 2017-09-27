@@ -17,10 +17,13 @@
 #include "U4DTouches.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
-class U4DImage;
-class U4DControllerInterface;
+    class U4DImage;
+    class U4DControllerInterface;
+    class U4DButtonStateManager;
+    class U4DButtonStateInterface;
 }
 
 namespace U4DEngine {
@@ -28,38 +31,37 @@ class U4DButton:public U4DEntity{
   
 private:
     
-    TOUCHSTATE buttonState;
-    U4DCallbackInterface *pCallback;
-    U4DControllerInterface *controllerInterface;
+    U4DButtonStateManager *stateManager;
     
     float left,right,bottom,top;
+    
     U4DVector3n centerPosition;
     
-    U4DMultiImage buttonImages;
+    U4DVector3n currentTouchPosition;
     
-    bool isActive;
-    
-    bool receivedAction;
 
 public:
     
     U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2);
     
-    void draw();
-    void update(float dt);
+    ~U4DButton();
+    
+    U4DCallbackInterface *pCallback;
+    
+    U4DControllerInterface *controllerInterface;
+    
+    U4DMultiImage buttonImages;
+    
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+    
+    void update(double dt);
+    
     void action();
-    
-    TOUCHSTATE getButtonActionOn();
-    
 
     void changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition);
-    void changeState(TOUCHSTATE uTouchState);
-    TOUCHSTATE getState();
-    
-    bool getIsActive();
-    bool getReceivedAction();
     
     bool getIsPressed();
+    
     bool getIsReleased();
     
     void setCallbackAction(U4DCallbackInterface *uAction);

@@ -7,40 +7,40 @@
 //
 
 #include "U4DImage.h"
-#include "U4DOpenGLImage.h"
+#include "U4DRenderImage.h"
 
 namespace U4DEngine {
     
-U4DImage::U4DImage(){
-    
-    openGlManager=new U4DOpenGLImage(this);
-    openGlManager->setShader("imageShader");
-};
+    U4DImage::U4DImage(){
+        
+        renderManager=new U4DRenderImage(this);
+        setShader("vertexImageShader", "fragmentImageShader");
+    };
 
-U4DImage::~U4DImage(){
-    
-    delete openGlManager;
-    
-}
+    U4DImage::~U4DImage(){
+        
+        delete renderManager;
+        
+    }
 
-U4DImage::U4DImage(const char* uTextureImage,float uWidth,float uHeight){
-    
-    openGlManager=new U4DOpenGLImage(this);
-    openGlManager->setShader("imageShader");
-    setImage(uTextureImage, uWidth, uHeight);
-    
-}
+    U4DImage::U4DImage(const char* uTextureImage,float uWidth,float uHeight){
+        
+        renderManager=new U4DRenderImage(this);
+        setShader("vertexImageShader", "fragmentImageShader");
+        setImage(uTextureImage, uWidth, uHeight);
+        
+    }
 
-void U4DImage::setImage(const char* uTextureImage,float uWidth,float uHeight){
-    
-    openGlManager->setDiffuseTexture(uTextureImage);
-    openGlManager->setImageDimension(uWidth, uHeight);
-    openGlManager->loadRenderingInformation();
-}
+    void U4DImage::setImage(const char* uTextureImage,float uWidth,float uHeight){
+        
+        renderManager->setDiffuseTexture(uTextureImage);
+        renderManager->setImageDimension(uWidth, uHeight);
+        renderManager->loadRenderingInformation();
+    }
 
-void U4DImage::draw(){
-    
-    openGlManager->draw();
-}
+    void U4DImage::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
+    }
  
 }

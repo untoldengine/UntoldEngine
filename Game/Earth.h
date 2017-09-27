@@ -56,12 +56,10 @@ private:
     
     U11FieldGoal *fieldGoal1;
     U11FieldGoal *fieldGoal2;
-
+    
 public:
    
-    Earth(){
-        
-    };
+    Earth(){};
     
     void init();
     void update(double dt);

@@ -63,11 +63,16 @@ namespace U4DEngine {
         gameController->update(dt);
     }
 
-    void U4DScene::draw(){
+    void U4DScene::render(id <MTLRenderCommandEncoder> uRenderEncoder){
 
-        gameWorld->entityManager->draw();
-        gameController->draw();
+        gameWorld->entityManager->render(uRenderEncoder);
+        gameController->render(uRenderEncoder);
         
+    }
+    
+    void U4DScene::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
+        
+        gameWorld->entityManager->renderShadow(uRenderShadowEncoder, uShadowTexture);
     }
 
 

@@ -12,11 +12,6 @@
 namespace U4DEngine {
     
     U4DBoundingConvex::U4DBoundingConvex(){
-        
-        //set convex color to green
-        U4DVector4n green(0.0,1.0,0.0,0.1);
-        
-        setBoundingVolumeColor(green);
     
     }
     
@@ -71,6 +66,7 @@ namespace U4DEngine {
         
         //load rendering information
         loadRenderingInformation();
+        
         
     }
 

@@ -21,10 +21,7 @@ void U11PlayerSpace::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        setShader("nonVisibleShader");
-        
-        setEntityType(U4DEngine::MODELNOSHADOWS);
-        
+         
 //        initMass(0.0);
 //        initAsPlatform(true);
 //        initCoefficientOfRestitution(0.0);
@@ -54,7 +51,7 @@ void U11PlayerSpace::init(const char* uName, const char* uBlenderFile){
         playerSpaceBox.setMinPoint(minPoints);
         playerSpaceBox.setMaxPoint(maxPoints);
         
-        loadRenderingInformation();
+        //loadRenderingInformation();
         
     }
 }

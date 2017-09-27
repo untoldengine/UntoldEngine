@@ -15,23 +15,21 @@
 #include "U4DDirector.h"
 
 #include "U4DMatrix3n.h"
-#include "U4DButton.h"
-#include "U4DSkyBox.h"
-#include "U4DTouches.h"
 #include "U4DCamera.h"
 #include "U4DControllerInterface.h"
 
 #include "GameController.h"
-#include "U4DSprite.h"
 #include "U4DLights.h"
 #include "U4DLogger.h"
+
+
+#include "GameLogic.h"
 #include "U11Ball.h"
 #include "U11Field.h"
 #include "U11Player.h"
-#include "U11Team.h"
 #include "U11FieldGoal.h"
+#include "U11Team.h"
 
-#include "GameLogic.h"
 #include "U11Formation442.h"
 #include "U11FormationInterface.h"
 #include "U11PlayerIndicator.h"
@@ -49,23 +47,44 @@
 #include "U11RecoverManualSystem.h"
 #include "U11AIAttackStrategy.h"
 
-
-
 using namespace U4DEngine;
 
 void Earth::init(){
     
-    U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 70.0, 150.0);
-    camera->rotateBy(-36.0, 0.0, 0.0);
+    //Set camera
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    U4DEngine::U4DVector3n cameraPos(0.0,20.0,-40.0);
+    
+    camera->translateTo(cameraPos);
+    
     
     setName("earth");
-    
-    enableShadows();
+    //setEnableGrid(true);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
     director->setWorld(this);
+    
+    //compute perspective space
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.1f, 500.0f);
+    director->setPerspectiveSpace(perspectiveSpace);
+    
+    //compute orthographic shadow space
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicSpace(-100.0, 100.0, -100.0, 100.0, -100.0, 100.0f);
+    director->setOrthographicShadowSpace(orthographicShadowSpace);
+    
+    U4DVector3n origin(0,0,0);
+
+    U4DLights *light=U4DLights::sharedInstance();
+    light->translateTo(0.0,40.0,0.0);
+    
+    addChild(light);
+    
+    camera->viewInDirection(origin);
+
+    light->viewInDirection(origin);
+    
+    
     
     U11FormationInterface *emelecFormation=new U11Formation442();
     U11FormationInterface *barcelonaFormation=new U11Formation442();
@@ -95,118 +114,116 @@ void Earth::init(){
     
     field=new U11Field();
     field->init("field", "blenderscript.u4d");
-
+    
     emelecPlayer10=new U11Player();
-    emelecPlayer10->init("pele", "playerscript.u4d");
+    emelecPlayer10->init("player", "playerscript.u4d");
     
     emelecPlayer10->subscribeTeam(emelec);
     
     emelecPlayer11=new U11Player();
-    emelecPlayer11->init("pele", "playerscript.u4d");
+    emelecPlayer11->init("player", "playerscript.u4d");
     
     emelecPlayer11->subscribeTeam(emelec);
     
     emelecPlayer9=new U11Player();
-    emelecPlayer9->init("pele", "playerscript.u4d");
+    emelecPlayer9->init("player", "playerscript.u4d");
     
     emelecPlayer9->subscribeTeam(emelec);
     
     emelecPlayer8=new U11Player();
-    emelecPlayer8->init("pele", "playerscript.u4d");
+    emelecPlayer8->init("player", "playerscript.u4d");
     
     emelecPlayer8->subscribeTeam(emelec);
-
+    
     emelecPlayer7=new U11Player();
-    emelecPlayer7->init("pele", "playerscript.u4d");
+    emelecPlayer7->init("player", "playerscript.u4d");
     
     emelecPlayer7->subscribeTeam(emelec);
     
     
-//    emelecPlayer6=new U11Player();
-//    emelecPlayer6->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer6->subscribeTeam(emelec);
-//    
-//    
-//    emelecPlayer5=new U11Player();
-//    emelecPlayer5->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer5->subscribeTeam(emelec);
-//    
-//    
-//    emelecPlayer4=new U11Player();
-//    emelecPlayer4->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer4->subscribeTeam(emelec);
-//    
-//    
-//    emelecPlayer3=new U11Player();
-//    emelecPlayer3->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer3->subscribeTeam(emelec);
-//    
-//    emelecPlayer2=new U11Player();
-//    emelecPlayer2->init("pele", "playerscript.u4d");
-//    
-//    emelecPlayer2->subscribeTeam(emelec);
+    emelecPlayer6=new U11Player();
+    emelecPlayer6->init("player", "playerscript.u4d");
+
+    emelecPlayer6->subscribeTeam(emelec);
+
+    emelecPlayer5=new U11Player();
+    emelecPlayer5->init("player", "playerscript.u4d");
+
+    emelecPlayer5->subscribeTeam(emelec);
+
+    emelecPlayer4=new U11Player();
+    emelecPlayer4->init("player", "playerscript.u4d");
+
+    emelecPlayer4->subscribeTeam(emelec);
+
+    emelecPlayer3=new U11Player();
+    emelecPlayer3->init("player", "playerscript.u4d");
+
+    emelecPlayer3->subscribeTeam(emelec);
+
+    emelecPlayer2=new U11Player();
+    emelecPlayer2->init("player", "playerscript.u4d");
+
+    emelecPlayer2->subscribeTeam(emelec);
     
     
     //opposite team
+    
     barcelonaPlayer10=new U11Player();
-    barcelonaPlayer10->init("pele", "oppositeplayerscript.u4d");
+    barcelonaPlayer10->init("player", "oppositeplayerscript.u4d");
     
     barcelonaPlayer10->subscribeTeam(barcelona);
-    
+   
     barcelonaPlayer11=new U11Player();
-    barcelonaPlayer11->init("pele", "oppositeplayerscript.u4d");
+    barcelonaPlayer11->init("player", "oppositeplayerscript.u4d");
     
     barcelonaPlayer11->subscribeTeam(barcelona);
     
-//    barcelonaPlayer9=new U11Player();
-//    barcelonaPlayer9->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer9->subscribeTeam(barcelona);
-//    
-//    barcelonaPlayer8=new U11Player();
-//    barcelonaPlayer8->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer8->subscribeTeam(barcelona);
-//    
-//    barcelonaPlayer7=new U11Player();
-//    barcelonaPlayer7->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer7->subscribeTeam(barcelona);
-//    
-//    
-//    barcelonaPlayer6=new U11Player();
-//    barcelonaPlayer6->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer6->subscribeTeam(barcelona);
-//    
-//    
-//    barcelonaPlayer5=new U11Player();
-//    barcelonaPlayer5->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer5->subscribeTeam(barcelona);
-//    
-//    barcelonaPlayer4=new U11Player();
-//    barcelonaPlayer4->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer4->subscribeTeam(barcelona);
-//    
-//    
-//    barcelonaPlayer3=new U11Player();
-//    barcelonaPlayer3->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer3->subscribeTeam(barcelona);
-//    
-//    
-//    barcelonaPlayer2=new U11Player();
-//    barcelonaPlayer2->init("pele", "oppositeplayerscript.u4d");
-//    
-//    barcelonaPlayer2->subscribeTeam(barcelona);
-    
-    
+    barcelonaPlayer9=new U11Player();
+    barcelonaPlayer9->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer9->subscribeTeam(barcelona);
+
+    barcelonaPlayer8=new U11Player();
+    barcelonaPlayer8->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer8->subscribeTeam(barcelona);
+
+    barcelonaPlayer7=new U11Player();
+    barcelonaPlayer7->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer7->subscribeTeam(barcelona);
+
+
+    barcelonaPlayer6=new U11Player();
+    barcelonaPlayer6->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer6->subscribeTeam(barcelona);
+
+/*
+    barcelonaPlayer5=new U11Player();
+    barcelonaPlayer5->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer5->subscribeTeam(barcelona);
+
+    barcelonaPlayer4=new U11Player();
+    barcelonaPlayer4->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer4->subscribeTeam(barcelona);
+
+
+    barcelonaPlayer3=new U11Player();
+    barcelonaPlayer3->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer3->subscribeTeam(barcelona);
+
+
+    barcelonaPlayer2=new U11Player();
+    barcelonaPlayer2->init("player", "oppositeplayerscript.u4d");
+
+    barcelonaPlayer2->subscribeTeam(barcelona);
+ 
+    */
     
     //set ball entity
     field->setSoccerBall(ball);
@@ -226,18 +243,11 @@ void Earth::init(){
     emelec->setFieldGoal(fieldGoal2);
     
     barcelona->setFieldGoal(fieldGoal1);
-    
-    
-    U4DVector3n origin(0,0,0);
-
-    U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(5.0,5.0,5.0);
-    light->viewInDirection(origin);
-    
+    addChild(field);
     addChild(ball);
     
-    addChild(field);
-
+    
+    
     addChild(emelecPlayer10);
     
     addChild(emelecPlayer11);
@@ -248,39 +258,39 @@ void Earth::init(){
     
     addChild(emelecPlayer7);
     
-//    addChild(emelecPlayer6);
-//    
-//    addChild(emelecPlayer5);
-//    
-//    addChild(emelecPlayer4);
-//    
-//    addChild(emelecPlayer3);
-//    
-//    addChild(emelecPlayer2);
+    addChild(emelecPlayer6);
+
+    addChild(emelecPlayer5);
+
+    addChild(emelecPlayer4);
+
+    addChild(emelecPlayer3);
+
+    addChild(emelecPlayer2);
     
     
     
     addChild(barcelonaPlayer10);
-    
+  
     addChild(barcelonaPlayer11);
     
-//    addChild(barcelonaPlayer9);
-//    
-//    addChild(barcelonaPlayer8);
-//    
-//    addChild(barcelonaPlayer7);
-//    
-//    addChild(barcelonaPlayer6);
-//    
-//    addChild(barcelonaPlayer5);
-//    
-//    addChild(barcelonaPlayer4);
-//    
-//    addChild(barcelonaPlayer3);
-//
-//    addChild(barcelonaPlayer2);
-    
-    
+    addChild(barcelonaPlayer9);
+
+    addChild(barcelonaPlayer8);
+
+    addChild(barcelonaPlayer7);
+
+    addChild(barcelonaPlayer6);
+/*
+    addChild(barcelonaPlayer5);
+
+    addChild(barcelonaPlayer4);
+
+    addChild(barcelonaPlayer3);
+
+    addChild(barcelonaPlayer2);
+ */
+   
     addChild(fieldGoal1);
     
     addChild(fieldGoal2);
@@ -300,30 +310,21 @@ void Earth::init(){
     
     //set the player position
     
-//    emelec->translateTeamToFormationPosition();
-//    barcelona->translateTeamToFormationPosition();
-    
-    
-    //move players
-    float yPos=barcelonaPlayer10->getModelDimensions().y/2.0+1.3;
-    
-    barcelonaPlayer10->translateTo(25.0, yPos, -9.3);
-    barcelonaPlayer11->translateTo(25.0, yPos, 16.0);
-    
-    
-    emelecPlayer10->translateTo(-6.0, yPos, -1.0);
-    emelecPlayer11->translateTo(-14.0,yPos, 20.0);
-    emelecPlayer9->translateTo(-60.0,yPos, 10.0);
-    emelecPlayer8->translateTo(40.0, yPos, 0.0);
-    emelecPlayer7->translateTo(-40.0, yPos, 40.0);
+    emelec->translateTeamToFormationPosition();
+    barcelona->translateTeamToFormationPosition();
     
 }
 
 void Earth::update(double dt){
+
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     
-    U4DCamera *camera=U4DCamera::sharedInstance();
-    camera->followModel(ball, 0.0, 120.0, 10.0);
-    //camera->followModel(ball, 0.0, 60.0, 150.0);
+    camera->followModel(ball, 0.0, 15.0, -30.0);
+    
+    //camera->followModel(ball, 0.0, 100.0, 0.0);
+    
+    //preferred position
+    //camera->followModel(ball, 0.0, 25.0, -50.0);
 }
 
 

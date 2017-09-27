@@ -13,7 +13,8 @@
 #include "U4DVisibleEntity.h"
 #include "U4DVertexData.h"
 #include "U4DTextureData.h"
-
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 
@@ -26,6 +27,7 @@ private:
     
 protected:
     
+    bool imageState;
     
 public:
 
@@ -67,10 +69,11 @@ public:
      */
     virtual void setImage(const char* uTextureImage,float uWidth,float uHeight);
     
-    /**
-     @brief Method which starts the rendering process of the entity
-     */
-    virtual void draw();
+    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+    
+    virtual bool getImageState(){};
+    
+    virtual void setImageState(bool uValue){};
     
 };
     

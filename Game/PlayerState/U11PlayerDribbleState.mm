@@ -41,7 +41,20 @@ U11PlayerDribbleState* U11PlayerDribbleState::sharedInstance(){
 void U11PlayerDribbleState::enter(U11Player *uPlayer){
     
     //set dribble animation
-    uPlayer->setNextAnimationToPlay(uPlayer->getRunningAnimation());
+    if (uPlayer->isBallOnRightSidePlane()) {
+        
+        uPlayer->setNextAnimationToPlay(uPlayer->getRightDribbleAnimation());
+        
+        uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+        
+    }else{
+        
+        uPlayer->setNextAnimationToPlay(uPlayer->getLeftDribbleAnimation());
+        
+        uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
+    }
+    
+    
     uPlayer->setPlayNextAnimationContinuously(true);
     uPlayer->setPlayBlendedAnimation(true);
     
@@ -54,16 +67,17 @@ void U11PlayerDribbleState::enter(U11Player *uPlayer){
 
 void U11PlayerDribbleState::execute(U11Player *uPlayer, double dt){
     
+    uPlayer->computePlayerDribblingSpeed();
     
     //keep dribbling
-    if (uPlayer->getRightFootCollidedWithBall() || uPlayer->getLeftFootCollidedWithBall()) {
+    if (uPlayer->getActiveExtremityCollidedWithBall()) {
         
         uPlayer->kickBallToGround(ballRollingSpeed, uPlayer->getBallKickDirection(),dt);
     
     }
     
     //chase the ball
-    uPlayer->applyForceToPlayer(dribblingSpeed, dt);
+    uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
     
     uPlayer->seekBall();
 }

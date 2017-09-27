@@ -22,6 +22,8 @@ namespace U4DEngine {
 
     U4DCamera::U4DCamera(){
         
+        entityForwardVector=U4DVector3n(0,0,1);
+        
         setEntityType(CAMERA);
     }
         

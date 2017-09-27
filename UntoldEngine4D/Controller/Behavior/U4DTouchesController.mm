@@ -104,7 +104,7 @@ void U4DTouchesController::changeState(const U4DTouches &touches,TOUCHSTATE touc
     
 }
 
-void U4DTouchesController::update(float dt){
+void U4DTouchesController::update(double dt){
     
     std::vector<U4DButton*>::iterator buttonPos;
     
@@ -124,15 +124,9 @@ void U4DTouchesController::update(float dt){
         joyStick->update(dt);
     }
     
-    if (receivedAction==true) {
-        
-        sendTouchUpdateToModel();
-        
-        receivedAction=false;
-    }
 }
 
-void U4DTouchesController::draw(){
+void U4DTouchesController::render(id <MTLRenderCommandEncoder> uRenderEncoder){
     
     std::vector<U4DButton*>::iterator buttonPos;
     
@@ -140,7 +134,7 @@ void U4DTouchesController::draw(){
         
         U4DButton *button=*buttonPos;
         
-        button->draw();
+        button->render(uRenderEncoder);
         
     }
     
@@ -151,7 +145,7 @@ void U4DTouchesController::draw(){
         
         U4DJoyStick *joyStick=*joyStickPos;
         
-        joyStick->draw();
+        joyStick->render(uRenderEncoder);
         
     }
     
@@ -201,9 +195,9 @@ U4DButton* U4DTouchesController::getButtonWithName(std::string uName){
     
 }
     
-void U4DTouchesController::sendTouchUpdateToModel(){
+void U4DTouchesController::sendTouchUpdate(void *uData){
 
-    gameModel->receiveTouchUpdate();
+    gameModel->receiveTouchUpdate(uData);
 }
     
 void U4DTouchesController::setReceivedAction(bool uValue){

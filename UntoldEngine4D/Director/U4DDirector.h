@@ -13,13 +13,13 @@
 #include <iostream>
 #include <vector>
 #include <iterator>
-#include "U4DShaderManager.h"
 #include "CommonProtocols.h"
+#include "U4DMatrix4n.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     
 class U4DEntity;
-class U4DShaderManager;
 class U4DScene;
 class U4DWorld;
 class U4DCharacterManager;
@@ -42,16 +42,22 @@ class U4DDirector{
   
 private:
     
+    id <MTLDevice> mtlDevice;
+    
+    MTKView * mtlView;
+    
+    float aspect;
+    
+    U4DMatrix4n perspectiveSpace;
+    
+    U4DMatrix4n orthographicSpace;
+    
+    U4DMatrix4n orthographicShadowSpace;
     
     /**
      @brief Pointer representing the scene of the game
      */
     U4DScene *scene;
-    
-    /**
-     @brief The shader manager is in charge of loading and compiling the shaders
-     */
-    U4DShaderManager shaderManager;
     
     /**
      @brief ios device display width
@@ -62,11 +68,6 @@ private:
      @brief ios device display height
      */
     float displayHeight;
-    
-    /**
-     @brief Container for all shader programs
-     */
-    std::vector<GLuint> shaderProgram;
     
     /**
      @brief Time step accumulator
@@ -115,11 +116,6 @@ public:
     static U4DDirector* sharedInstance();
     
     /**
-     @brief Method in charge of starting the rendering process.
-     */
-    void draw();
-    
-    /**
      @brief Method in charge of updating the states of each entity
      
      @param dt time value
@@ -133,33 +129,11 @@ public:
     void init();
     
     /**
-     @brief Method which loads all OpenGL Shaders 
-     */
-    void loadShaders();
-    
-    /**
      @brief Method which sets the active scene for the game
      
      @param uScene Pointer to the scene to make active
      */
     void setScene(U4DScene *uScene);
-    
-    /**
-     @brief Method which adds a shader into the shader vector-container
-     
-     @param uShaderValue shader to add into the vector-container
-     */
-    void addShaderProgram(GLuint uShaderValue);
-
-    /**
-     @brief Method which returns the current index position of the shader in the shader vector-container
-     
-     @param uShader Name of shader
-     
-     @return Index position of the shader in the vector-container
-     */
-    GLuint getShaderProgram(std::string uShader);
-
     
     /**
      @brief Method which sets the dimension of the display screen
@@ -182,16 +156,6 @@ public:
      @return Returns the width of the display screen
      */
     float getDisplayWidth();
-    
-    /**
-     @brief Method which converts a screen point coordinate into an opengl point coordinate
-     
-     @param xPoint x-coordinate in screen space
-     @param yPoint y-coordinate in screen space
-     
-     @return Returns a 2D vector of the point in opengl coordinate space
-     */
-    U4DVector2n pointToOpenGL(float xPoint,float yPoint);
     
     /**
      @brief Method which informs the engine that a touch event has started
@@ -223,6 +187,40 @@ public:
      @todo document this
      */
     U4DEntity *searchChild(std::string uName);
+    
+    //new metal methods
+    void setMTLDevice(id <MTLDevice> uMTLDevice);
+    
+    id <MTLDevice> getMTLDevice();
+    
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+    
+    void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
+    
+    void setAspect(float uAspect);
+    
+    float getAspect();
+    
+    void setMTLView(MTKView * uMTLView);
+    
+    MTKView *getMTLView();
+    
+    void setPerspectiveSpace(U4DMatrix4n &uSpace);
+    
+    void setOrthographicSpace(U4DMatrix4n &uSpace);
+    
+    void setOrthographicShadowSpace(U4DMatrix4n &uSpace);
+    
+    U4DMatrix4n getPerspectiveSpace();
+    
+    U4DMatrix4n getOrthographicSpace();
+    
+    U4DMatrix4n getOrthographicShadowSpace();
+    
+    U4DMatrix4n computePerspectiveSpace(float fov, float aspect, float near, float far);
+    
+    U4DMatrix4n computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far);
+
     
 };
 

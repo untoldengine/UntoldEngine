@@ -48,7 +48,7 @@ public:
     
     virtual U4DEntity* searchChild(std::string uName)=0;
     
-    virtual void receiveTouchUpdate()=0;
+    virtual void receiveTouchUpdate(void *uData)=0;
 };
     
 }

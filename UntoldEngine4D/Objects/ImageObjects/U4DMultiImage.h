@@ -11,53 +11,51 @@
 
 #include <iostream>
 #include "U4DImage.h"
-
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 
-/**
- @brief The U4DMultiImage class represents multi-images entities such as buttons with a pressed and a released image
- */
-class U4DMultiImage:public U4DImage{
-    
-private:
+    /**
+     @brief The U4DMultiImage class represents multi-images entities such as buttons with a pressed and a released image
+     */
+    class U4DMultiImage:public U4DImage{
+        
+    private:
 
-    /**
-     @brief Variable which represents an image-chage state
-     */
-    bool changeTheImage;
-    
-public:
-    
-    /**
-     @brief Constructor of class
-     */
-    U4DMultiImage();
-    
-    /**
-     @brief Destructor of class
-     */
-    ~U4DMultiImage();
-    
-    /**
-     @brief Method which assins an image to the entity
-     
-     @param uTextureImage Name of texture image
-     @param uWidth        Width of texture image
-     @param uHeight       Height of texture image
-     */
-    void setImages(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight);
-    
-    /**
-     @brief Method which changes the image being rendered
-     */
-    void changeImage();
-    
-    /**
-     @brief Method which starts the rendering process of the entity
-     */
-    void draw();
-};
+        bool imageState;
+        
+        U4DRenderManager *renderManager;
+        
+    public:
+        
+        U4DEngine::U4DVertexData bodyCoordinates;
+        
+        U4DEngine::U4DTextureData textureInformation;
+        
+        /**
+         @brief Constructor of class
+         */
+        U4DMultiImage();
+        
+        /**
+         @brief Destructor of class
+         */
+        ~U4DMultiImage();
+        
+        
+        U4DMultiImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight);
+        
+        virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        
+        void setImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight);
+        
+        bool getImageState();
+        
+        void setImageState(bool uValue);
+        
+        void changeImage();
+    };
 
 }
 

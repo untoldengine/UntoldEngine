@@ -92,52 +92,102 @@ typedef struct{
     
 }TriangleNodeEntity;
 
+
+enum{
+    
+    actionButtonA,
+    actionButtonB,
+    actionJoystick,
+    
+}TouchInputType;
+
+
+enum{
+    buttonPressed,
+    buttonReleased,
+    joystickActive,
+    joystickInactive
+    
+}TouchInputData;
+
+typedef struct{
+    
+    int touchInputType;
+    int touchInputData;
+    U4DEngine::U4DVector3n joystickDirection;
+    bool joystickChangeDirection;
+    
+}TouchInputMessage;
+
 const float fieldWidth=1000.0;
 const float fieldLength=1000.0;
-const float playingFieldLength=480.0;
-const float playingFieldWidth=310.0;
 
-const float chasingSpeed=55.0;
-const float dribblingSpeed=40.0;
+const float playingFieldLength=178.0;
+const float playingFieldWidth=125.0;
+
+const float chasingSpeed=13.0;
+
+const float minDribblingSpeed=7.0;
+
+const float ballRollingSpeed=14.5;
+
+const float offsetHandedness=0.38;
+
+
+
 const float markingSpeed=20.0;
-const float ballRollingSpeed=43.0;
-const float ballPassingSpeed=60.0;
+
+
+
 const float ballTapSpeed=50.0;
 const float ballGroundShotSpeed=70.0;
 const float ballAirShotSpeed=80.0;
-const float ballReverseRolling=35.0;
+const float ballReverseRolling=15.0;
 const float ballDeceleration=0.5;
-const float ballMaxSpeed=8.0;
+const float ballMaxSpeed=4.0;
 
-const float ballControlMaximumDistance=6.0;
-const float reverseBallMaximumDistance=2.0;
+const float ballControlMaximumDistance=0.8;
+
+const float reverseBallMaximumDistance=0.5;
+
+
 const float reverseRunningSpeed=20.0;
 const float lateralRunningSpeed=20.0;
-const float supportMinimumDistanceToPlayer=25.0;
-const float supportMaximumDistanceToPlayer=50.0;
-const float dribblingMinimumDistanceToPlayer=25.0;
+
+const float supportMinimumDistanceToPlayer=5.0;
+const float supportMaximumDistanceToPlayer=15.0;
+
+const float dribblingMinimumDistanceToPlayer=15.0;
+
 const int   maximumSupportPoints=36;
 const int   maximumDribblingSpace=36;
+
 const int   supportPointsSeparation=10;
 const int   dribblingSpaceSeparation=10;
+
 const float ballPassSegmentDirection=10.0;
+
 const float withinSupportDistance=2.5;
 const float withinDefenseDistance=2.5;
 const float withinFormationDistance=2.5;
+
 const float stealingDistanceToBall=1.0;
 const float markingDistanceToBall=5.0;
 const float defenseSpace=0.15;
+
 const float formationDefenseSpace=0.5;
+
 const float formationSpaceBoundaryLength=420.0;
 const float formationSpaceBoundaryWidth=70.0;
+
 const float minimumInterceptionDistance=30.0;
 const float threateningDistanceToPlayer=20.0;
 const float playerPersonalArea=5.0;
-const float triangleEntityDistance=60.0;
+const float triangleEntityDistance=20.0;
 
 //maximum
-const float maximumInterceptionSpeed=50.0;
-const float maximumBallSpeed=100.0;
+const float maximumInterceptionSpeed=15.0;
+const float maximumBallSpeed=20.0;
 
 
 #endif /* UserCommonProtocols_h */

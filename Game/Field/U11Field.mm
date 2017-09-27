@@ -33,6 +33,8 @@ void U11Field::init(const char* uName, const char* uBlenderFile){
         setCollisionFilterMask(kU11Ball);
         setCollisionFilterGroupIndex(kNegativeGroupIndex);
         
+        setEnableShadow(true);
+        
         loadRenderingInformation();
         
     }

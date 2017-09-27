@@ -23,9 +23,6 @@ void U11PlayerExtremity::init(const char* uName, const char* uBlenderFile){
     if (loadModel(uName, uBlenderFile)) {
         
         //initialize everything else here
-        setShader("nonVisibleShader");
-        
-        setEntityType(U4DEngine::MODELNOSHADOWS);
         
         initMass(0.0);
         initAsPlatform(true);
@@ -42,7 +39,7 @@ void U11PlayerExtremity::init(const char* uName, const char* uBlenderFile){
         
         setEntityForwardVector(viewDirectionVector);
         
-        loadRenderingInformation();
+        //loadRenderingInformation();
         
     }
     

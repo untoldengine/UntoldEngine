@@ -14,6 +14,7 @@
 #include "U4DControllerInterface.h"
 #include "CommonProtocols.h"
 #include "U4DVector2n.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     
@@ -55,8 +56,8 @@ public:
     
     void add(U4DJoyStick *uJoyStick);
     
-    void draw();
-    void update(float dt);
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+    void update(double dt);
     
     void setGameWorld(U4DWorld *uGameWorld);
     void setGameModel(U4DGameModelInterface *uGameModel);
@@ -67,7 +68,7 @@ public:
     U4DJoyStick *getJoyStickWithName(std::string uName);
     U4DButton* getButtonWithName(std::string uName);
     
-    void sendTouchUpdateToModel();
+    void sendTouchUpdate(void *uData);
     
     void setReceivedAction(bool uValue);
 };

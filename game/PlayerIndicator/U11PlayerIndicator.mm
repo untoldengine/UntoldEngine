@@ -25,7 +25,7 @@ void U11PlayerIndicator::init(const char* uName, const char* uBlenderFile){
         //initialize everything else here
         setEntityType(U4DEngine::MODELNOSHADOWS);
     
-        U4DEngine::U4DVector3n viewDirectionVector(0,0,1);
+        U4DEngine::U4DVector3n viewDirectionVector(0,0,-1);
         
         setEntityForwardVector(viewDirectionVector);
         

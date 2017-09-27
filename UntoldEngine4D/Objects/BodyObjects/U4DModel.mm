@@ -12,22 +12,22 @@
 #include "U4DDirector.h"
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
-#include "U4DOpenGLManager.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
 #include "Constants.h"
-
+#include "U4DRender3DModel.h"
 
 #pragma mark-set up the body vertices
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTextures(false),hasAnimation(false),hasArmature(false),selfShadowBias(0.005){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false){
         
-        openGlManager=new U4DOpenGL3DModel(this);
+        renderManager=new U4DRender3DModel(this);
+        
         armatureManager=new U4DArmatureData(this);
         
-        openGlManager->setShader("gouraudShader");
+        setShader("vertexModelShader", "fragmentModelShader");
         
         setEntityType(MODEL);
         
@@ -35,7 +35,7 @@ namespace U4DEngine {
     
     U4DModel::~U4DModel(){
         
-        delete openGlManager;
+        delete renderManager;
         delete armatureManager;
     };
     
@@ -52,18 +52,57 @@ namespace U4DEngine {
 
     
     #pragma mark-draw
-    void U4DModel::draw(){
-        openGlManager->draw();
-    }
-
-    void U4DModel::drawDepthOnFrameBuffer(){
+    
+    void U4DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        openGlManager->drawDepthOnFrameBuffer();
+        renderManager->render(uRenderEncoder);
     }
-
-    void U4DModel::setShader(std::string uShader){
+    
+    void U4DModel::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
         
-        openGlManager->setShader(uShader);
+        renderManager->renderShadow(uRenderShadowEncoder,uShadowTexture);
+        
+    }
+    
+    void U4DModel::setNormalMapTexture(std::string uTexture){
+        
+        textureInformation.setNormalBumpTexture(uTexture);
+        
+        computeNormalMapTangent();
+    }
+    
+    void U4DModel::setEnableNormalMap(bool uValue){
+        
+        enableNormalMap=uValue;
+        
+    }
+    
+    bool U4DModel::getEnableNormalMap(){
+        
+        if (enableNormalMap && hasNormalMap) {
+            return enableNormalMap;
+        }
+        
+        return false;
+        
+    }
+    
+    void U4DModel::setEnableShadow(bool uValue){
+        enableShadow=uValue;
+    }
+    
+    bool U4DModel::getEnableShadow(){
+        return enableShadow;
+    }
+    
+    void U4DModel::setHasNormalMap(bool uValue){
+        
+        hasNormalMap=uValue;
+        setEnableNormalMap(true);
+    }
+    
+    bool U4DModel::getHasNormalMap(){
+        return hasNormalMap;
     }
     
     void U4DModel::setHasMaterial(bool uValue){
@@ -72,7 +111,7 @@ namespace U4DEngine {
     }
     
     void U4DModel::setHasTexture(bool uValue){
-        hasTextures=uValue;
+        hasTexture=uValue;
     }
     
     void U4DModel::setHasAnimation(bool uValue){
@@ -88,7 +127,7 @@ namespace U4DEngine {
     }
     
     bool U4DModel::getHasTexture(){
-        return hasTextures;
+        return hasTexture;
     }
     
     bool U4DModel::getHasAnimation(){
@@ -97,14 +136,6 @@ namespace U4DEngine {
     
     bool U4DModel::getHasArmature(){
         return hasArmature;
-    }
-    
-    void U4DModel::setSelfShadowBias(float uSelfShadowBias){
-        selfShadowBias=uSelfShadowBias;
-    }
-    
-    float U4DModel::getSelfShadowBias(){
-        return selfShadowBias;
     }
     
     U4DVector3n U4DModel::getViewInDirection(){
@@ -162,7 +193,95 @@ namespace U4DEngine {
         
     }
     
-    
+    void U4DModel::computeNormalMapTangent(){
+        
+        if (bodyCoordinates.uVContainer.size()!=0) {
+            
+            U4DVector3n *tan1=new U4DVector3n[2*bodyCoordinates.verticesContainer.size()];
+            U4DVector3n *tan2=new U4DVector3n[2*bodyCoordinates.verticesContainer.size()];
+            
+            for (int i=0; i<bodyCoordinates.indexContainer.size();i++) {
+                
+                int i1=bodyCoordinates.indexContainer.at(i).x;
+                int i2=bodyCoordinates.indexContainer.at(i).y;
+                int i3=bodyCoordinates.indexContainer.at(i).z;
+                
+                
+                U4DVector3n v1=bodyCoordinates.verticesContainer.at(i1);
+                
+                
+                U4DVector3n v2=bodyCoordinates.verticesContainer.at(i2);
+                
+                
+                U4DVector3n v3=bodyCoordinates.verticesContainer.at(i3);
+                
+                //get the uv
+                
+                U4DVector2n w1=bodyCoordinates.uVContainer.at(i1);
+                
+                
+                U4DVector2n w2=bodyCoordinates.uVContainer.at(i2);
+                
+                
+                U4DVector2n w3=bodyCoordinates.uVContainer.at(i3);
+                
+                float x1=v2.x-v1.x;
+                float x2=v3.x-v1.x;
+                float y1=v2.y-v1.y;
+                float y2=v3.y-v1.y;
+                float z1=v2.z-v1.z;
+                float z2= v3.z-v1.z;
+                
+                float s1=w2.x-w1.x;
+                float s2=w3.x-w1.x;
+                float t1=w2.y-w1.y;
+                float t2=w3.y-w1.y;
+                
+                float r=1.0/(s1*t2-s2*t1);
+                U4DVector3n sdir((t2*x1-t1*x2)*r,(t2*y1-t1*y2)*r,(t2*z1-t1*z2)*r);
+                U4DVector3n tdir((s1*x2-s2*x1)*r,(s1*y2-s2*y1)*r,(s1*z2-s2*z1)*r);
+                
+                tan1[i1]+=sdir;
+                tan1[i2]+=sdir;
+                tan1[i3]+=sdir;
+                
+                tan2[i1]+=tdir;
+                tan2[i2]+=tdir;
+                tan2[i3]+=tdir;
+                
+                
+            }
+            
+            for (int a=0; a<bodyCoordinates.normalContainer.size(); a++) {
+                
+                
+                
+                U4DVector3n n=bodyCoordinates.normalContainer.at(a);
+                
+                U4DVector3n t=tan1[a];
+                
+                //Gram-Schmidt orthogonalize
+                
+                U4DVector3n nt=(t-n*n.dot(t));
+                nt.normalize();
+                
+                //calculate handedness
+                
+                //h.w=(n.cross(t).dot(tan2[a])<0.0) ? -1.0:1.0;
+                float handedness=((n.cross(t)).dot(tan2[a])<0.0) ? -1.0:1.0;
+                
+                U4DVector4n h(nt.x,nt.y,nt.z,handedness);
+                
+                bodyCoordinates.addTangetDataToContainer(h);
+                
+            }
+            
+            delete[] tan1;
+            delete[] tan2;
+            
+        }
+        
+    }
 
 }
 

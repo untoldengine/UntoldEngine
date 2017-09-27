@@ -153,12 +153,6 @@ namespace U4DEngine {
                         std::string data=uv->GetText();
                         loadUVData(uModel, data);
                         
-                        //calculate tangent vector only if model has UV data
-                        
-                        if(uModel->bodyCoordinates.uVContainer.size()>0){
-                            loadTangentDataToBody(uModel);
-                        }
-                        
                     }
                     
                     if (index!=NULL) {
@@ -183,7 +177,6 @@ namespace U4DEngine {
                         
                         std::string data=materialIndex->GetText();
                         loadMaterialIndexData(uModel, data);
-                        uModel->setHasMaterial(true);
                         
                     }
                     
@@ -228,8 +221,6 @@ namespace U4DEngine {
                         std::string textureString=texture->GetText();
                         
                         uModel->textureInformation.setDiffuseTexture(textureString);
-                        
-                        uModel->setHasTexture(true);
                         
                     }
                     
@@ -726,91 +717,6 @@ namespace U4DEngine {
         
     }
 
-    void U4DDigitalAssetLoader::loadTangentDataToBody(U4DModel *uModel){
-        
-        U4DVector3n *tan1=new U4DVector3n[2*uModel->bodyCoordinates.verticesContainer.size()];
-        U4DVector3n *tan2=new U4DVector3n[2*uModel->bodyCoordinates.verticesContainer.size()];
-        
-        for (int i=0; i<uModel->bodyCoordinates.indexContainer.size();i++) {
-            
-            int i1=uModel->bodyCoordinates.indexContainer.at(i).x;
-            int i2=uModel->bodyCoordinates.indexContainer.at(i).y;
-            int i3=uModel->bodyCoordinates.indexContainer.at(i).z;
-            
-            
-            U4DVector3n v1=uModel->bodyCoordinates.verticesContainer.at(i1);
-            
-            
-            U4DVector3n v2=uModel->bodyCoordinates.verticesContainer.at(i2);
-            
-            
-            U4DVector3n v3=uModel->bodyCoordinates.verticesContainer.at(i3);
-            
-            //get the uv
-            
-            U4DVector2n w1=uModel->bodyCoordinates.uVContainer.at(i1);
-            
-            
-            U4DVector2n w2=uModel->bodyCoordinates.uVContainer.at(i2);
-            
-            
-            U4DVector2n w3=uModel->bodyCoordinates.uVContainer.at(i3);
-            
-            float x1=v2.x-v1.x;
-            float x2=v3.x-v1.x;
-            float y1=v2.y-v1.y;
-            float y2=v3.y-v1.y;
-            float z1=v2.z-v1.z;
-            float z2= v3.z-v1.z;
-            
-            float s1=w2.x-w1.x;
-            float s2=w3.x-w1.x;
-            float t1=w2.y-w1.y;
-            float t2=w3.y-w1.y;
-            
-            float r=1.0/(s1*t2-s2*t1);
-            U4DVector3n sdir((t2*x1-t1*x2)*r,(t2*y1-t1*y2)*r,(t2*z1-t1*z2)*r);
-            U4DVector3n tdir((s1*x2-s2*x1)*r,(s1*y2-s2*y1)*r,(s1*z2-s2*z1)*r);
-            
-            tan1[i1]+=sdir;
-            tan1[i2]+=sdir;
-            tan1[i3]+=sdir;
-            
-            tan2[i1]+=tdir;
-            tan2[i2]+=tdir;
-            tan2[i3]+=tdir;
-            
-            
-        }
-        
-        for (int a=0; a<uModel->bodyCoordinates.normalContainer.size(); a++) {
-            
-            
-            
-            U4DVector3n n=uModel->bodyCoordinates.normalContainer.at(a);
-            
-            U4DVector3n t=tan1[a];
-            
-            //Gram-Schmidt orthogonalize
-            
-            U4DVector3n nt=(t-n*n.dot(t));
-            nt.normalize();
-            
-            //calculate handedness
-            
-            //h.w=(n.cross(t).dot(tan2[a])<0.0) ? -1.0:1.0;
-            float handedness=(n.cross(t).dot(tan2[a])<0.0) ? -1.0:1.0;
-            
-            U4DVector4n h(nt.x,nt.y,nt.z,handedness);
-            
-            uModel->bodyCoordinates.addTangetDataToContainer(h);
-        
-        }
-        
-        delete[] tan1;
-        delete[] tan2;
-    }
-    
     void U4DDigitalAssetLoader::loadMaterialIndexData(U4DModel *uModel,std::string uStringData){
         
         std::vector<float> tempVector;

@@ -14,11 +14,11 @@
 #include <vector>
 #include "U4DEntity.h"
 #include "U4DVisibleEntity.h"
-#include "U4DOpenGLWorld.h"
 #include "U4DVertexData.h"
 #include "CommonProtocols.h"
 
-#import <GLKit/GLKit.h>
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -39,7 +39,7 @@ private:
     
     U4DGameModelInterface *gameModel;
     
-    bool shadowsEnabled;
+    bool enableGrid;
     
 public:
     U4DEntityManager *entityManager;
@@ -69,17 +69,11 @@ public:
     
     U4DGameModelInterface* getGameModel();
     
-    void draw();
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
-    void enableShadows();
+    void buildGrid();
     
-    void disableShadows();
-    
-    void startShadowMapPass();
-    
-    void endShadowMapPass();
-    
-    void getShadows();
+    void setEnableGrid(bool uValue);
     
     U4DEntityManager *getEntityManager();
     

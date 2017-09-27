@@ -39,11 +39,11 @@ void U11PlayerGroundShotState::enter(U11Player *uPlayer){
     
     if (uPlayer->isBallOnRightSidePlane()) {
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getRightFootForwardKickAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getRightShotAnimation());
         uPlayer->setActiveExtremity(uPlayer->getRightFoot());
     }else{
         
-        uPlayer->setNextAnimationToPlay(uPlayer->getLeftFootForwardKickAnimation());
+        uPlayer->setNextAnimationToPlay(uPlayer->getLeftShotAnimation());
         uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
     }
     uPlayer->setPlayNextAnimationContinuously(false);

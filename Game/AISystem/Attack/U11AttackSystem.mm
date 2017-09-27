@@ -135,6 +135,7 @@ void U11AttackSystem::computeSupportSpace(){
 
 void U11AttackSystem::startComputeSupportSpaceTimer(){
     
+    
     scheduler->scheduleClassWithMethodAndDelay(this, &U11AttackSystem::computeSupportSpace, supportAnalysisTimer, 2.0, true);
     
 }

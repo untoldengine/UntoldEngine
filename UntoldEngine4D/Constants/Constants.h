@@ -91,6 +91,11 @@ namespace U4DEngine {
      */
     const float animationBlendingDelay=0.001;
     
+    /**
+     @brief button touch epsilon value
+     */
+    const float buttonTouchEpsilon=1.0e-1f;
+    
 }
 
 #endif

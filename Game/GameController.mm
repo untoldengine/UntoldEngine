@@ -19,25 +19,125 @@
 
 void GameController::init(){
     
-    joyStick=new U4DEngine::U4DJoyStick("joystick", -0.7,-0.6,"joyStickBackground.png",230,230,"joystickDriver.png",140,140);
+    joyStick=new U4DEngine::U4DJoyStick("joystick", -0.7,-0.6,"joyStickBackground.png",130,130,"joystickDriver.png",80,80);
     
     joyStick->setControllerInterface(this);
     
     add(joyStick);
     
-    myButton=new U4DEngine::U4DButton("buttonA",0.3,-0.6,170,170,"ButtonA.png","ButtonAPressed.png");
+    //create a callback
+    U4DEngine::U4DCallback<GameController>* joystickCallback=new U4DEngine::U4DCallback<GameController>;
     
-    myButton->setControllerInterface(this);
+    joystickCallback->scheduleClassWithMethod(this, &GameController::actionOnJoystick);
     
-    add(myButton);
+    joyStick->setCallbackAction(joystickCallback);
     
     
-    myButtonB=new U4DEngine::U4DButton("buttonB",0.7,-0.6,170,170,"ButtonB.png","ButtonBPressed.png");
+    myButtonA=new U4DEngine::U4DButton("buttonA",0.3,-0.6,103,103,"ButtonA.png","ButtonAPressed.png");
+    
+    myButtonA->setControllerInterface(this);
+    
+    add(myButtonA);
+    
+    //create a callback
+    U4DEngine::U4DCallback<GameController>* buttonACallback=new U4DEngine::U4DCallback<GameController>;
+    
+    buttonACallback->scheduleClassWithMethod(this, &GameController::actionOnButtonA);
+    
+    myButtonA->setCallbackAction(buttonACallback);
+    
+    
+    myButtonB=new U4DEngine::U4DButton("buttonB",0.7,-0.6,103,103,"ButtonB.png","ButtonBPressed.png");
     
     myButtonB->setControllerInterface(this);
     
     add(myButtonB);
     
+    //create a callback
+    U4DEngine::U4DCallback<GameController>* buttonBCallback=new U4DEngine::U4DCallback<GameController>;
+    
+    buttonBCallback->scheduleClassWithMethod(this, &GameController::actionOnButtonB);
+    
+    myButtonB->setCallbackAction(buttonBCallback);
+    
+}
+
+void GameController::actionOnButtonA(){
+    
+    TouchInputMessage touchInputMessage;
+    
+    touchInputMessage.touchInputType=actionButtonA;
+    
+    if (myButtonA->getIsPressed()) {
+        
+        touchInputMessage.touchInputData=buttonPressed;
+        
+    }else if(myButtonA->getIsReleased()){
+        
+        touchInputMessage.touchInputData=buttonReleased;
+        
+    }
+    
+    sendTouchUpdate(&touchInputMessage);
+}
+
+void GameController::actionOnButtonB(){
+    
+    TouchInputMessage touchInputMessage;
+    
+    touchInputMessage.touchInputType=actionButtonB;
+    
+    if (myButtonB->getIsPressed()) {
+        
+        touchInputMessage.touchInputData=buttonPressed;
+        
+    }else if(myButtonB->getIsReleased()){
+        
+        touchInputMessage.touchInputData=buttonReleased;
+        
+    }
+    
+    sendTouchUpdate(&touchInputMessage);
+}
+
+void GameController::actionOnJoystick(){
+    
+    TouchInputMessage touchInputMessage;
+    
+    touchInputMessage.touchInputType=actionJoystick;
+    
+    if (joyStick->getIsActive()) {
+        
+        touchInputMessage.touchInputData=joystickActive;
+        
+        U4DEngine::U4DVector3n joystickDirection=joyStick->getDataPosition();
+        
+        joystickDirection.z=joystickDirection.y;
+        
+        joystickDirection.y=0;
+        
+        joystickDirection.normalize();
+    
+        
+        if (joyStick->getDirectionReversal()) {
+            
+            touchInputMessage.joystickChangeDirection=true;
+            
+        }else{
+            
+            touchInputMessage.joystickChangeDirection=false;
+            
+        }
+        
+        touchInputMessage.joystickDirection=joystickDirection;
+        
+    }else {
+        
+        touchInputMessage.touchInputData=joystickInactive;
+        
+    }
+    
+    sendTouchUpdate(&touchInputMessage);
 }
 
 

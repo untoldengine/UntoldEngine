@@ -10,12 +10,18 @@
 #include "U4DVector2n.h"
 #include "U4DDirector.h"
 #include "U4DControllerInterface.h"
+#include "U4DJoystickStateManager.h"
+#include "U4DJoystickIdleState.h"
+#include "U4DJoystickActiveState.h"
+#include "U4DJoystickReleasedState.h"
 
 namespace U4DEngine {
     
     
 U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0){
     
+    
+    stateManager=new U4DJoystickStateManager(this);
     
     setName(uName);
     
@@ -54,11 +60,14 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
     backgroundImageRadius=getJoyStickBackgroundWidth()/director->getDisplayWidth();;
     joyStickImageRadius=getJoyStickWidth()/director->getDisplayWidth();
     
+    //set initial state
+    stateManager->changeState(U4DJoystickIdleState::sharedInstance());
     
 }
     
 U4DJoyStick::~U4DJoyStick(){
 
+    delete stateManager;
 }
     
 void U4DJoyStick::setJoyStickBackgroundWidth(float uJoyStickBackgroundWidth){
@@ -121,15 +130,16 @@ float U4DJoyStick::getDataMagnitude(){
 
 }
     
-void U4DJoyStick::draw(){
+void U4DJoyStick::render(id <MTLRenderCommandEncoder> uRenderEncoder){
     
-    backgroundImage.draw();
-    joyStickImage.draw();
+    backgroundImage.render(uRenderEncoder);
+    joyStickImage.render(uRenderEncoder);
 }
 
-void U4DJoyStick::update(float dt){
+void U4DJoyStick::update(double dt){
     
-    
+    stateManager->update(dt);
+    /*
     if (getState()!=rTouchesNull) {
         
         if ( joyStickState==rTouchesBegan ||  joyStickState==rTouchesMoved) {
@@ -188,7 +198,7 @@ void U4DJoyStick::update(float dt){
         joyStickState=rTouchesNull;
         
     }
-    
+    */
 }
 
 void U4DJoyStick::action(){
@@ -205,10 +215,22 @@ void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
     
     float distancePlusJoyStick=distanceMagnitude+joyStickImageRadius;
     
-    if (distancePlusJoyStick<=(backgroundImageRadius+backgroundImageRadius*0.5)){
+    
+    
+    if (distancePlusJoyStick<=(backgroundImageRadius+backgroundImageRadius*2.5)){
         
         currentPosition=uNewPosition;
-        joyStickState=uTouchState;
+        
+        if (uTouchState==rTouchesBegan || uTouchState==rTouchesMoved) {
+            
+            stateManager->changeState(U4DJoystickActiveState::sharedInstance());
+            
+        }else if(uTouchState==rTouchesEnded && (stateManager->getCurrentState()==U4DJoystickActiveState::sharedInstance())){
+            
+            stateManager->changeState(U4DJoystickReleasedState::sharedInstance());
+            
+        }
+        
     }
     
 }
@@ -241,7 +263,7 @@ U4DVector3n U4DJoyStick::getDataPosition(){
     
 bool U4DJoyStick::getIsActive(){
     
-    return isActive;
+    return (stateManager->getCurrentState()==U4DJoystickActiveState::sharedInstance());;
 }
 
 void U4DJoyStick::setCallbackAction(U4DCallbackInterface *uAction){

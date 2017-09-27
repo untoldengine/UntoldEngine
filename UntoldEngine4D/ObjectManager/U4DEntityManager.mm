@@ -74,7 +74,7 @@ namespace U4DEngine {
 
     #pragma mark-draw
     //draw
-    void U4DEntityManager::draw(){
+    void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
         
         U4DEntity* child=rootEntity;
         
@@ -85,38 +85,47 @@ namespace U4DEngine {
                 
                 child->absoluteSpace=child->localSpace;
         
-                child->getShadows();
-                
             }else{
                 
                 child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
                
             }
      
-            child->draw();
+            child->render(uRenderEncoder);
             
+            child=child->next;
+        
+        }
+        
+    }
+    
+    
+    void U4DEntityManager::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
+        
+        U4DEntity* child=rootEntity;
+        
+        
+        while (child!=NULL) {
             
-            //    ONLY FOR DEBUGGING PURPOSES
-                U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
-            
-                if (model) {
+            if(child->isRoot()){
                 
-                    if (model->getBroadPhaseBoundingVolumeVisibility()==true) {
-                        
-                        model->getBroadPhaseBoundingVolume()->draw();
-                        
-                    }
-                    
-                    if(model->getNarrowPhaseBoundingVolumeVisibility()==true){
-                        model->getNarrowPhaseBoundingVolume()->draw();
-                    }
-                }
+                child->absoluteSpace=child->localSpace;
+                
+            }else{
+                
+                child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
+                
+            }
             
-            //END ONLY FOR DEBUGGING PURPOSES
+            if (child->getEntityType()!=MODELNOSHADOWS) {
+                
+                child->renderShadow(uRenderShadowEncoder, uShadowTexture);
             
+            }
             
             child=child->next;
         }
+
         
     }
 

@@ -12,21 +12,20 @@
 #include "U4DEntityManager.h"
 #include "CommonProtocols.h"
 
+#include "U4DRenderWorld.h"
+
 namespace U4DEngine {
     
     //constructor
-    U4DWorld::U4DWorld():shadowsEnabled(false){
+    U4DWorld::U4DWorld():enableGrid(false){
         
         entityManager=new U4DEntityManager();
         entityManager->setRootEntity(this);
         
-        openGlManager=new U4DOpenGLWorld(this);
-        openGlManager->setShader("gouraudShader");
-        
-        openGlManager->loadRenderingInformation();
-        
-        openGlManager->initShadowMapFramebuffer();
-        
+        renderManager=new U4DRenderWorld(this);
+        setShader("vertexWorldShader", "fragmentWorldShader");
+        buildGrid();
+        renderManager->loadRenderingInformation();
     }
     
     
@@ -45,40 +44,6 @@ namespace U4DEngine {
         return entityManager;
     }
     
-    void U4DWorld::draw(){
-        
-        openGlManager->draw();
-        
-    }
-
-    void U4DWorld::getShadows(){
-        
-        if (shadowsEnabled==true) {
-            
-            
-            openGlManager->startShadowMapPass();
-            
-            //for each children get the shadow
-            U4DEntity* child=next;
-            
-            while (child!=NULL) {
-                
-                if(child->getEntityType()==MODEL){
-                    
-                    child->drawDepthOnFrameBuffer();
-                    
-                }
-                
-                child=child->next;
-            }
-            
-            openGlManager->endShadowMapPass();
-            
-            
-        }
-       
-        
-    }
 
     void U4DWorld::setGameController(U4DControllerInterface* uGameController){
         
@@ -102,27 +67,66 @@ namespace U4DEngine {
         return gameModel;
     }
 
-    void U4DWorld::enableShadows(){
+    void U4DWorld::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        shadowsEnabled=true;
-        
-        
+        if (enableGrid) {
+            renderManager->render(uRenderEncoder);
+        }
     }
-
-    void U4DWorld::disableShadows(){
+    
+    void U4DWorld::setEnableGrid(bool uValue){
         
-        shadowsEnabled=false;
-        
+        enableGrid=uValue;
     }
-
-    void U4DWorld::startShadowMapPass(){
+    
+    void U4DWorld::buildGrid(){
         
-        openGlManager->startShadowMapPass();
-    }
-
-    void U4DWorld::endShadowMapPass(){
+        int gridsize=8;
         
-        openGlManager->endShadowMapPass();
+        //grid box
+        U4DVector3n backLeftCorner(-gridsize,0,-gridsize);
+        U4DVector3n backRightCorner(gridsize,0,-gridsize);
+        U4DVector3n frontLeftCorner(-gridsize,0,gridsize);
+        U4DVector3n frontRightCorner(gridsize,0,gridsize);
+        
+        bodyCoordinates.addVerticesDataToContainer(backLeftCorner);
+        bodyCoordinates.addVerticesDataToContainer(backRightCorner);
+        
+        bodyCoordinates.addVerticesDataToContainer(backLeftCorner);
+        bodyCoordinates.addVerticesDataToContainer(frontLeftCorner);
+        
+        bodyCoordinates.addVerticesDataToContainer(backRightCorner);
+        bodyCoordinates.addVerticesDataToContainer(frontRightCorner);
+        
+        bodyCoordinates.addVerticesDataToContainer(frontLeftCorner);
+        bodyCoordinates.addVerticesDataToContainer(frontRightCorner);
+        
+        //grid lines
+        for (int x=-gridsize; x<=gridsize; x++) {
+            
+            U4DVector3n startBackPoint(x,0,-gridsize);
+            U4DVector3n endFrontPoint(x,0,gridsize);
+            
+            bodyCoordinates.addVerticesDataToContainer(startBackPoint);
+            bodyCoordinates.addVerticesDataToContainer(endFrontPoint);
+            
+            U4DVector3n startLeftPoint(-gridsize,0,x);
+            U4DVector3n endRightPoint(gridsize,0,x);
+            
+            bodyCoordinates.addVerticesDataToContainer(startLeftPoint);
+            bodyCoordinates.addVerticesDataToContainer(endRightPoint);
+            
+        }
+        
+        //grid vertical line
+        
+        U4DVector3n startVerticalPoint(0,-2,0);
+        U4DVector3n endVerticalPoint(0,2,0);
+        
+        bodyCoordinates.addVerticesDataToContainer(startVerticalPoint);
+        bodyCoordinates.addVerticesDataToContainer(endVerticalPoint);
+        
+        
     }
 
 }

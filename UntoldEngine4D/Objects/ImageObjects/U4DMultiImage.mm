@@ -7,60 +7,60 @@
 //
 
 #include "U4DMultiImage.h"
-#include "U4DOpenGLMultiImage.h"
+#include "U4DRenderMultiImage.h"
 
 namespace U4DEngine {
     
-U4DMultiImage::U4DMultiImage():changeTheImage(false){
-    
-     openGlManager=new U4DOpenGLMultiImage(this);
-     openGlManager->setShader("multiImageShader");
-    
-};
-
-U4DMultiImage::~U4DMultiImage(){
-
-    delete openGlManager;
-}
-
-void U4DMultiImage::setImages(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight){
-    
-    openGlManager->setDiffuseTexture(uTextureOne);
-    openGlManager->setAmbientTexture(uTextureTwo);
-    openGlManager->setImageDimension(uWidth, uHeight);
-    openGlManager->loadRenderingInformation();
-    
-    std::vector<float> data={0.0};
-    
-    addCustomUniform("ChangeImage", data);
-    
-}
-
-void U4DMultiImage::draw(){
-    
-    openGlManager->draw();
-}
-
-void U4DMultiImage::changeImage(){
-    
-    changeTheImage=!changeTheImage;
-    
-    if (changeTheImage==true) {
+    U4DMultiImage::U4DMultiImage():imageState(false){
         
-        std::vector<float> data{1.0};
+        renderManager=new U4DRenderMultiImage(this);
+        setShader("vertexMultiImageShader", "fragmentMultiImageShader");
         
-        openGlManager->updateCustomUniforms("ChangeImage", data);
+    };
+
+    U4DMultiImage::~U4DMultiImage(){
+
+        delete renderManager;
+    }
+
+
+
+    U4DMultiImage::U4DMultiImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight){
         
-    }else{
-        
-        std::vector<float> data{0.0};
-        
-        openGlManager->updateCustomUniforms("ChangeImage", data);
+        renderManager=new U4DRenderMultiImage(this);
+        setShader("vertexMultiImageShader", "fragmentMultiImageShader");
+        setImage(uTextureOne, uTextureTwo, uWidth, uHeight);
         
     }
     
-    //openGlManager->setMultiImageActiveImage(changeTheImage);
+    void U4DMultiImage::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
+    }
     
-}
+    void U4DMultiImage::setImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight){
+        
+        renderManager->setDiffuseTexture(uTextureOne);
+        renderManager->setAmbientTexture(uTextureTwo);
+        renderManager->setImageDimension(uWidth, uHeight);
+        renderManager->loadRenderingInformation();
+    }
+    
+    bool U4DMultiImage::getImageState(){
+        
+        return imageState;
+    }
+    
+    void U4DMultiImage::setImageState(bool uValue){
+        
+        imageState=uValue;
+    }
+    
+    void U4DMultiImage::changeImage(){
+        
+        imageState=!imageState;
+    
+    }
+
 
 }

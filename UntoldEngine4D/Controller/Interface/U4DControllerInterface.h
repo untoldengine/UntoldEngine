@@ -12,6 +12,7 @@
 #include <iostream>
 #include <vector>
 #include "CommonProtocols.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     
@@ -52,8 +53,8 @@ public:
     
     virtual void changeState(const U4DTouches &touches,TOUCHSTATE touchState)=0;
     
-    virtual void draw()=0;
-    virtual void update(float dt)=0;
+    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder)=0;
+    virtual void update(double dt)=0;
     virtual void init()=0;
     
     virtual void setGameWorld(U4DWorld *uGameWorld)=0;
@@ -67,7 +68,7 @@ public:
     virtual U4DButton* getButtonWithName(std::string uName)=0;
     
     virtual void setReceivedAction(bool uValue)=0;
-    virtual void sendTouchUpdateToModel()=0;
+    virtual void sendTouchUpdate(void *uData)=0;
 };
 
 }

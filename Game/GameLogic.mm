@@ -22,14 +22,14 @@
 #include "U11Ball.h"
 
 GameLogic::GameLogic():buttonHoldTime(0){
-
+    
     scheduler=new U4DEngine::U4DCallback<GameLogic>;
     buttonHoldTimer=new U4DEngine::U4DTimer(scheduler);
     
 }
 
 GameLogic::~GameLogic(){
-
+    
     delete scheduler;
     delete buttonHoldTimer;
 }
@@ -39,10 +39,6 @@ void GameLogic::update(double dt){
 }
 
 void GameLogic::init(){
-    
-    buttonA=getGameController()->getButtonWithName("buttonA");
-    buttonB=getGameController()->getButtonWithName("buttonB");
-    joystick=getGameController()->getJoyStickWithName("joystick");
     
     //get the closest player to the ball and change its state to chase the ball
     U11SpaceAnalyzer spaceAnalyzer;
@@ -59,7 +55,7 @@ void GameLogic::setTeamToControl(U11Team *uTeam){
     
 }
 
-void GameLogic::receiveTouchUpdate(){
+void GameLogic::receiveTouchUpdate(void *uData){
     
     U11Player *player=team->getActivePlayer();
     
@@ -67,61 +63,68 @@ void GameLogic::receiveTouchUpdate(){
     
     if (player!=NULL) {
         
-        if (buttonA->getIsPressed()) {
-            
-            startButtonHoldTimer();
-            
-            
-        }else if(buttonA->getIsReleased()){
-            
-            stopButtonHoldTimer();
-            
-            messageDispatcher->sendMessage(0.0, player, player, msgButtonAPressed,(void*)&buttonHoldTime);
-            
-        }
+        TouchInputMessage touchInputMessage=*(TouchInputMessage*)uData;
         
-        if (buttonB->getIsPressed()) {
-            
-            startButtonHoldTimer();
-            
-        }else if(buttonB->getIsReleased()){
-            
-            stopButtonHoldTimer();
-            
-            messageDispatcher->sendMessage(0.0, player, player, msgButtonBPressed, (void*)&buttonHoldTime);
-        }
-        
-        if(joystick->getIsActive()){
-            
-            U4DEngine::U4DVector3n joystickDirection=joystick->getDataPosition();
-            
-            joystickDirection.z=-joystickDirection.y;
-        
-            joystickDirection.y=0;
-            
-            joystickDirection.normalize();
-            
-            JoystickMessageData joystickMessageData;
-            
-            joystickMessageData.direction=joystickDirection;
-            
-            if (joystick->getDirectionReversal()) {
+        switch (touchInputMessage.touchInputType) {
+            case actionButtonA:
                 
-                joystickMessageData.changedDirection=true;
-                
-            }else{
-                
-                joystickMessageData.changedDirection=false;
-                
+            {
+                if (touchInputMessage.touchInputData==buttonPressed) {
+                    
+                    startButtonHoldTimer();
+                    
+                }else if(touchInputMessage.touchInputData==buttonReleased){
+                    
+                    stopButtonHoldTimer();
+                    
+                    messageDispatcher->sendMessage(0.0, player, player, msgButtonAPressed,(void*)&buttonHoldTime);
+                    
+                }
             }
-            
-            messageDispatcher->sendMessage(0.0, player, player, msgJoystickActive, (void*)&joystickMessageData);
-            
-            
-        }else{
-            
-            messageDispatcher->sendMessage(0.0, player, player, msgJoystickNotActive);
-            
+                
+                break;
+            case actionButtonB:
+                
+            {
+                if (touchInputMessage.touchInputData==buttonPressed) {
+                    
+                    startButtonHoldTimer();
+                    
+                }else if(touchInputMessage.touchInputData==buttonReleased){
+                    
+                    stopButtonHoldTimer();
+                    
+                    messageDispatcher->sendMessage(0.0, player, player, msgButtonBPressed, (void*)&buttonHoldTime);
+                    
+                }
+            }
+                
+                break;
+                
+            case actionJoystick:
+                
+            {
+                if (touchInputMessage.touchInputData==joystickActive) {
+                    
+                    JoystickMessageData joystickMessageData;
+                    
+                    joystickMessageData.direction=touchInputMessage.joystickDirection;
+                    
+                    joystickMessageData.changedDirection=touchInputMessage.joystickChangeDirection;
+                    
+                    messageDispatcher->sendMessage(0.0, player, player, msgJoystickActive, (void*)&joystickMessageData);
+                    
+                }else if(touchInputMessage.touchInputData==joystickInactive){
+                    
+                    messageDispatcher->sendMessage(0.0, player, player, msgJoystickNotActive);
+                    
+                }
+            }
+                
+                break;
+                
+            default:
+                break;
         }
         
     }
@@ -132,7 +135,7 @@ void GameLogic::increaseButtonHoldTime(){
     
     buttonHoldTime++;
     
- 
+    
 }
 
 void GameLogic::startButtonHoldTimer(){
@@ -154,6 +157,6 @@ void GameLogic::stopButtonHoldTimer(){
     }
     
     //multiply the speed by 10
-    buttonHoldTime*=10;
+    buttonHoldTime*=2;
     
 }

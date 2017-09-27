@@ -14,11 +14,11 @@
 #include <stdlib.h>
 #include <vector>
 #include "CommonProtocols.h"
-#include "U4DOpenGLManager.h"
 #include "U4DDualQuaternion.h"
 #include "U4DEntity.h"
 
-#define OPENGL_ES
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
  
@@ -30,6 +30,10 @@ class U4DVisibleEntity:public U4DEntity{
 private:
     
 protected:
+    
+    std::string vertexShader;
+    
+    std::string fragmentShader;
     
 public:
     
@@ -58,16 +62,6 @@ public:
     U4DVisibleEntity& operator=(const U4DVisibleEntity& value);
     
     /**
-     @brief Pointer to the openGL manager class in charge of rendering the entity
-     */
-    U4DOpenGLManager   *openGlManager;
-    
-    /**
-     @brief Method which starts the entity rendering operation
-     */
-    virtual void draw(){};
-    
-    /**
      @brief Method which updates the states of the entity
      
      @param dt time-step value
@@ -75,58 +69,22 @@ public:
     virtual void update(double dt){};
     
     /**
-     @brief Method which adds a custom uniform to the entity's shader
-     
-     @param uName Name of uniform
-     @param uData vector containing float data for uniform
-     */
-    void addCustomUniform(const char* uName,std::vector<float> uData);
-    
-    /**
-     @brief Method which adds a custom uniform to the entity's shader
-     
-     @param uName Name of uniform
-     @param uData 3D vector data for uniform
-     */
-    void addCustomUniform(const char* uName,U4DVector3n uData);
-    
-    /**
-     @brief Method which adds a custom uniform to the entity's shader
-     
-     @param uName Name of uniform
-     @param uData 4D vector data for uniform
-     */
-    void addCustomUniform(const char* uName,U4DVector4n uData);
-    
-    /**
-     @brief Method which updates the data for the custom uniform
-     
-     @param uName Name of uniform
-     @param uData data to update
-     */
-    void updateUniforms(const char* uName,std::vector<float> uData);
-    
-    /**
-     @brief Method which updates the data for the custom uniform
-     
-     @param uName Name of uniform
-     @param uData data to update
-     */
-    void updateUniforms(const char* uName,U4DVector3n uData);
-    
-    /**
-     @brief Method which updates the data for the custom uniform
-     
-     @param uName Name of uniform
-     @param uData data to update
-     */
-    void updateUniforms(const char* uName,U4DVector4n uData);
-    
-    /**
      @brief Method which loads all rendering information for the entiy
      */
     void loadRenderingInformation();
     
+    //metal methods
+    U4DRenderManager *renderManager;
+    
+    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder){};
+    
+    virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
+    
+    void setShader(std::string uVertexShaderName, std::string uFragmentShaderName);
+    
+    std::string getVertexShader();
+    
+    std::string getFragmentShader();
 };
     
 }

@@ -47,7 +47,7 @@ void gltSetWorkingDirectory(const char *szArgv)
 	///////////////////////////////////////////////////////////////////////////
 	// Change to Resources directory. Any data files need to be placed there
 	chdir(szParentDirectory);
-#ifndef OPENGL_ES
+#ifndef METAL
 	chdir("../Resources");
 #endif
 #endif
