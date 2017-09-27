@@ -47,14 +47,16 @@ void U11PlayerReceiveBallState::enter(U11Player *uPlayer){
 
 void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
     
+    uPlayer->computePlayerDribblingSpeed();
+    
     //track the ball
     uPlayer->interseptBall();
     
     //has the player reached the ball
-    if (!uPlayer->hasReachedTheBall()) {
+    if (uPlayer->distanceToBall()>1.0) {
         
         //chase the ball
-        uPlayer->applyForceToPlayer(chasingSpeed, dt);
+        uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
         
         
     }else{
@@ -64,6 +66,7 @@ void U11PlayerReceiveBallState::execute(U11Player *uPlayer, double dt){
         U11Team *oppositeTeam=uPlayer->getTeam()->getOppositeTeam();
         
         U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
+        
         
         messageDispatcher->sendMessage(0.0, oppositeTeam, msgInterceptionFailed);
         

@@ -17,6 +17,7 @@ class SoccerPlayer:public U4DEngine::U4DGameObject {
 private:
     
     U4DEngine::U4DAnimation *walkingAnimation;
+    U4DEngine::U4DAnimation *runningAnimation;
     
 public:
     

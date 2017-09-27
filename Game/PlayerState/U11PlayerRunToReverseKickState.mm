@@ -51,7 +51,7 @@ void U11PlayerRunToReverseKickState::execute(U11Player *uPlayer, double dt){
     }else if (!uPlayer->hasReachedTheBall()) {
         
         //chase the ball
-        uPlayer->applyForceToPlayer(30.0, dt);
+        uPlayer->applyForceToPlayer(chasingSpeed, dt);
         
         
     }else{

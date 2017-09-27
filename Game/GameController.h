@@ -19,7 +19,7 @@ class GameController:public U4DEngine::U4DTouchesController{
 private:
 
     U4DEngine::U4DJoyStick *joyStick;
-    U4DEngine::U4DButton *myButton;
+    U4DEngine::U4DButton *myButtonA;
     U4DEngine::U4DButton *myButtonB;
     
 public:
@@ -30,6 +30,12 @@ public:
     ~GameController(){};
     
     void init();
+    
+    void actionOnButtonA();
+    
+    void actionOnButtonB();
+    
+    void actionOnJoystick();
 
 };
 

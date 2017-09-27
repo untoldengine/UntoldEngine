@@ -83,9 +83,9 @@ void U11Formation442::init(U4DEngine::U4DWorld *uWorld, int uFieldQuadrant){
     fieldQuadrant=uFieldQuadrant;
     
     U4DEngine::U4DVector3n axis(0.0,1.0,0.0);
-    mainParent->rotateTo(fieldQuadrant*90.0, axis);
+    mainParent->rotateTo(fieldQuadrant*-90.0, axis);
     
-    mainParent->translateBy(fieldQuadrant*225.0, 0.0, 0.0);
+    mainParent->translateBy(fieldQuadrant*70.0, 0.0, 0.0);
     
     U4DEngine::U4DPoint3n min(-formationSpaceBoundaryLength/2.0,-1.0,-formationSpaceBoundaryWidth/2.0);
     U4DEngine::U4DPoint3n max(formationSpaceBoundaryLength/2.0,1.0,formationSpaceBoundaryWidth/2.0);

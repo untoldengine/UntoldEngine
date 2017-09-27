@@ -68,7 +68,7 @@ public:
     U4DJoyStick *getJoyStickWithName(std::string uName);
     U4DButton* getButtonWithName(std::string uName);
     
-    void sendTouchUpdateToModel();
+    void sendTouchUpdate(void *uData);
     
     void setReceivedAction(bool uValue);
 };

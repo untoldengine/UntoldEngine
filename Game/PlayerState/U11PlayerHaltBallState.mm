@@ -13,7 +13,7 @@
 #include "U11PlayerAirShotState.h"
 #include "U11PlayerReverseKickState.h"
 #include "U11PlayerRunPassState.h"
-#include "U11BallGroundState.h"
+#include "U11BallStoppedState.h"
 #include "U11PlayerChaseBallState.h"
 #include "U11PlayerAttackState.h"
 #include "U11Ball.h"
@@ -53,46 +53,47 @@ void U11PlayerHaltBallState::enter(U11Player *uPlayer){
     
     float relHeading=playerHeading.dot(ballHeading);
     
-    if (relHeading<-0.90) {
+    if (relHeading>0.90) {
         //if ball is coming towards player around 18 degrees
         
         //set the control ball animation
         if (uPlayer->isBallOnRightSidePlane()) {
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithRightFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getRightSoleHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getRightFoot());
         }else{
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getBackHaltBallWithLeftFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getLeftSoleHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
         }
         
-    }else if(relHeading>0.90){
+    }else if(relHeading<-0.90){
         //if ball is ahead of player around 18 degrees
         
         //set the control ball animation
         if (uPlayer->isBallOnRightSidePlane()) {
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithRightFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getRightInsideHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getRightFoot());
         }else{
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getForwardHaltBallWithLeftFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getLeftInsideHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
         }
         
     }else{
         
         //set the control ball animation
-        if (uPlayer->isBallComingFromRightSidePlane()) {
+        if (!uPlayer->isBallComingFromRightSidePlane()) {
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithLeftFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getLeftSideHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getLeftFoot());
             
         }else{
             
-            uPlayer->setNextAnimationToPlay(uPlayer->getSideHaltBallWithRightFootAnimation());
+            uPlayer->setNextAnimationToPlay(uPlayer->getRightSideHaltAnimation());
             uPlayer->setActiveExtremity(uPlayer->getRightFoot());
+            
         }
         
     }
@@ -108,54 +109,73 @@ void U11PlayerHaltBallState::enter(U11Player *uPlayer){
 
 void U11PlayerHaltBallState::execute(U11Player *uPlayer, double dt){
     
-    U11Ball *ball=uPlayer->getSoccerBall();
     
+    uPlayer->computePlayerDribblingSpeed();
+    
+    int keyframe;
+    
+    if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getRightSoleHaltAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getLeftSoleHaltAnimation() ) {
+        
+        keyframe=2;
+        
+        //track the ball
+        uPlayer->seekBall();
+        
+    }
+    
+    if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getRightInsideHaltAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getLeftInsideHaltAnimation() ) {
+        
+        keyframe=0;
+        
+    }
+    
+    if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getRightSideHaltAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getLeftSideHaltAnimation() ) {
+        
+        keyframe=2;
+        
+        //track the ball
+        uPlayer->seekBall();
+    }
+   
     //stop ball motion if the feet collide with the ball and if it matches a keyframe
-    if (uPlayer->getActiveExtremityCollidedWithBall()) {
+    if (uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==keyframe) {
         
-//        if (uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithLeftFootAnimation() || uPlayer->getCurrentPlayingAnimation()==uPlayer->getForwardHaltBallWithRightFootAnimation()) {
-//            
-//            if (uPlayer->getAnimationCurrentKeyframe()==3) {
-//                
-//                ball->removeKineticForces();
-//                
-//                ball->removeAllVelocities();
-//                
-//                ball->changeState(U11BallGroundState::sharedInstance());
-//                
-//                uPlayer->changeState(U11PlayerAttackState::sharedInstance());
-//            }
-//            
-//        }else{
+        uPlayer->getCurrentPlayingAnimation()->play();
         
-           U11Team *team=uPlayer->getTeam();
-            
-            U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
-            
-            messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
-        
-            ball->removeKineticForces();
-            
-            ball->removeAllVelocities();
-            
-            ball->changeState(U11BallGroundState::sharedInstance());
-            
-            uPlayer->changeState(U11PlayerAttackState::sharedInstance());
-            
-//        }
-        
+        uPlayer->removeKineticForces();
     
+        U11Ball *ball=uPlayer->getSoccerBall();
+    
+        U11Team *team=uPlayer->getTeam();
         
-    }else if(uPlayer->distanceToBall()>ballControlMaximumDistance){
+        U11MessageDispatcher *messageDispatcher=U11MessageDispatcher::sharedInstance();
         
-        uPlayer->decelerateBall(ballDeceleration, dt);
+        messageDispatcher->sendMessage(0.0, team, msgBallInPossession);
+    
+        ball->changeState(U11BallStoppedState::sharedInstance());
         
-        uPlayer->changeState(U11PlayerChaseBallState::sharedInstance());
+        uPlayer->changeState(U11PlayerAttackState::sharedInstance());
+        
+    }else if (!uPlayer->getActiveExtremityCollidedWithBall() && uPlayer->getAnimationCurrentKeyframe()==keyframe){
+        
+        uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
+        
+        uPlayer->getCurrentPlayingAnimation()->pause();
+        
+        if (uPlayer->distanceToBall()>0.8) {
+            
+            //chase the ball
+            uPlayer->changeState(U11PlayerChaseBallState::sharedInstance());
+            
+        }
+        
+    }else{
+            
+        //uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
+        
     }
-        
-    if (ball->getVelocity().magnitude()>ballMaxSpeed) {
-        uPlayer->decelerateBall(ballDeceleration, dt);
-    }
+    
+   
     
 }
 
@@ -165,7 +185,14 @@ void U11PlayerHaltBallState::exit(U11Player *uPlayer){
 
 bool U11PlayerHaltBallState::isSafeToChangeState(U11Player *uPlayer){
     
-    return true;
+    //check if animation can be interrupted or if the animation has stopped
+    if (uPlayer->getCurrentPlayingAnimation()->getIsAllowedToBeInterrupted()==true || !uPlayer->getCurrentPlayingAnimation()->getAnimationIsPlaying()) {
+        
+        return true;
+    }
+    
+    return false;
+    
 }
 
 bool U11PlayerHaltBallState::handleMessage(U11Player *uPlayer, Message &uMsg){

@@ -40,14 +40,16 @@ void U11PlayerRunPassState::enter(U11Player *uPlayer){
 
 void U11PlayerRunPassState::execute(U11Player *uPlayer, double dt){
     
+    uPlayer->computePlayerDribblingSpeed();
+    
     //track the ball
     uPlayer->seekBall();
     
     //has the player reached the ball
-    if (!uPlayer->hasReachedTheBall()) {
+    if (uPlayer->distanceToBall()>ballControlMaximumDistance) {
         
         //chase the ball
-        uPlayer->applyForceToPlayer(10.0, dt);
+        uPlayer->applyForceToPlayer(uPlayer->getPlayerDribblingSpeed(), dt);
         
         
     }else{

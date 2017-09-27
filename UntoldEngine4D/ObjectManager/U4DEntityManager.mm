@@ -117,7 +117,11 @@ namespace U4DEngine {
                 
             }
             
-            child->renderShadow(uRenderShadowEncoder, uShadowTexture);
+            if (child->getEntityType()!=MODELNOSHADOWS) {
+                
+                child->renderShadow(uRenderShadowEncoder, uShadowTexture);
+            
+            }
             
             child=child->next;
         }

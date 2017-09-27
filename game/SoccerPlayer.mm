@@ -20,7 +20,7 @@ void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile, const 
     
     if (loadModel(uModelName, uBlenderFile)) {
         
-        //setEnableShadow(true);
+        setEnableShadow(true);
         
         setNormalMapTexture(uTextureNormal);
         
@@ -30,18 +30,21 @@ void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile, const 
         //initMass(10.0);
         //initCoefficientOfRestitution(0.9);
         
-        /*
-        walkingAnimation=new U4DEngine::U4DAnimation(this);
+       
+        runningAnimation=new U4DEngine::U4DAnimation(this);
         
-        if (loadAnimationToModel(walkingAnimation, "walking", "walkinganimation.u4d")) {
+        if (loadAnimationToModel(runningAnimation, "running", "runninganimation.u4d")) {
         
             
         }
-        */
+        
         
         loadRenderingInformation();
         
     }
+    
+    float yPosition=getModelDimensions().y+0.7;
+    translateBy(0.0, yPosition/2.0, 0.0);
     
     
 }
@@ -52,7 +55,7 @@ void SoccerPlayer::update(double dt){
 
 void SoccerPlayer::playAnimation(){
     
-    walkingAnimation->play();
+    runningAnimation->play();
     
 }
 

@@ -10,7 +10,7 @@
 #include "U4DNumerical.h"
 #include "U11BallStateManager.h"
 #include "U11BallStateInterface.h"
-#include "U11BallGroundState.h"
+#include "U11BallRollingState.h"
 #include "U11BallAirState.h"
 
 U11Ball::U11Ball(){
@@ -37,6 +37,8 @@ void U11Ball::init(const char* uName, const char* uBlenderFile){
         enableCollisionBehavior();
         enableKineticsBehavior();
         
+        //setNormalMapTexture("Ball_Normal_Map.png");
+        
         ballRadius=getModelDimensions().z/2.0;
         
         setCollisionFilterCategory(kU11Ball);
@@ -46,11 +48,10 @@ void U11Ball::init(const char* uName, const char* uBlenderFile){
         U4DEngine::U4DVector2n dragCoefficients(0.25,0.05);
         setDragCoefficient(dragCoefficients);
         
-        stateManager->safeChangeState(U11BallGroundState::sharedInstance());
-    
         loadRenderingInformation();
-
         
+        stateManager->safeChangeState(U11BallRollingState::sharedInstance());
+
     }
     
 }
@@ -112,9 +113,11 @@ void U11Ball::kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, 
     addForce(forceToBall);
     
     //apply moment to ball
-    U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
+    U4DEngine::U4DVector3n contactAxis(0.0,1.0,0.0);
     
-    U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(forceToBall);
+    contactAxis*=ballRadius;
+    
+    U4DEngine::U4DVector3n groundPassMoment=contactAxis.cross(forceToBall);
     
     addMoment(groundPassMoment);
     
@@ -127,8 +130,6 @@ void U11Ball::kickBallToAir(float uVelocity, U4DEngine::U4DVector3n uDirection, 
 }
 
 void U11Ball::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirection, double dt){
-    
-    stateManager->changeState(U11BallGroundState::sharedInstance());
     
     uDirection.normalize();
     
@@ -144,19 +145,22 @@ void U11Ball::kickBallToGround(float uVelocity, U4DEngine::U4DVector3n uDirectio
     U4DEngine::U4DVector3n forceToBall=(uDirection*uVelocity*getMass())/dt;
     
     addForce(forceToBall);
-    
+    /*
     //apply moment to ball
     U4DEngine::U4DVector3n upAxis(0.0,1.0,0.0);
     
-    U4DEngine::U4DVector3n groundPassMoment=upAxis.cross(forceToBall);
+    U4DEngine::U4DVector3n groundPassMoment=forceToBall.cross(upAxis);
     
     addMoment(groundPassMoment);
-    
+    */
     //zero out the velocities
     U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
     
     setVelocity(initialVelocity);
     setAngularVelocity(initialVelocity);
+    
+    stateManager->changeState(U11BallRollingState::sharedInstance());
+    
 }
 
 void U11Ball::removeKineticForces(){
@@ -205,4 +209,5 @@ void U11Ball::decelerate(float uScale, double dt){
     setAngularVelocity(initialVelocity);
     
 }
+
 
