@@ -138,6 +138,7 @@
     [self update];
     
     view.clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
+    view.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
     
     // Create a new command buffer for each renderpass to the current drawable
     id <MTLCommandBuffer> commandBuffer = [mtlCommandQueue commandBuffer];
@@ -223,7 +224,7 @@
     [self loadShadowMTLTexture];
     [self initShadowMTLRenderPass];
     [self initShadowMTLRenderLibrary];
-    
+
     [self initShadowMTLRenderPipeline];
     
 }
