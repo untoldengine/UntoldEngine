@@ -36,7 +36,7 @@ namespace U4DEngine {
     
     bool U4DNumerical::areEqual(float uNumber1, float uNumber2, float uEpsilon){
         
-        return (fabs(uNumber1-uNumber2)<=uEpsilon*std::max(1.0,std::max(fabs(uNumber1),fabs(uNumber2))));
+        return (fabs(uNumber1-uNumber2)<=uEpsilon*std::max(1.0f,std::max(fabs(uNumber1),fabs(uNumber2))));
         
     }
 

@@ -49,7 +49,7 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
         mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
         mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
-        
+        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
         
         //set the vertex descriptors
         

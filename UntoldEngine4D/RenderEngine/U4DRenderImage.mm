@@ -50,7 +50,7 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorSourceAlpha;
         mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
         mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-
+        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
 
         
         //set the vertex descriptors
@@ -73,7 +73,6 @@ namespace U4DEngine {
         
         mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
         mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        
         
         MTLDepthStencilDescriptor *depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
         
