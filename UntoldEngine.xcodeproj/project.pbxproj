@@ -103,7 +103,6 @@
 		03C03C551F45408C0001EFA1 /* U4DJoystickIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C531F45408C0001EFA1 /* U4DJoystickIdleState.mm */; };
 		03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C561F45409F0001EFA1 /* U4DJoystickActiveState.mm */; };
 		03C03C5B1F4540B20001EFA1 /* U4DJoystickReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C591F4540B20001EFA1 /* U4DJoystickReleasedState.mm */; };
-		03C278831F7D43AD00AF463C /* U4DFrustum.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278811F7D43AD00AF463C /* U4DFrustum.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */; };
@@ -344,8 +343,6 @@
 		03C03C571F45409F0001EFA1 /* U4DJoystickActiveState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickActiveState.h; sourceTree = "<group>"; };
 		03C03C591F4540B20001EFA1 /* U4DJoystickReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJoystickReleasedState.mm; sourceTree = "<group>"; };
 		03C03C5A1F4540B20001EFA1 /* U4DJoystickReleasedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickReleasedState.h; sourceTree = "<group>"; };
-		03C278811F7D43AD00AF463C /* U4DFrustum.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DFrustum.mm; path = VisibilityManager/Frustum/U4DFrustum.mm; sourceTree = "<group>"; };
-		03C278821F7D43AD00AF463C /* U4DFrustum.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DFrustum.h; path = VisibilityManager/Frustum/U4DFrustum.h; sourceTree = "<group>"; };
 		03C278841F7D7D5400AF463C /* UserCommonProtocols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserCommonProtocols.h; sourceTree = "<group>"; };
 		03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joyStickBackground.png; path = Resources/joyStickBackground.png; sourceTree = SOURCE_ROOT; };
 		03C737A21A4F1D9F001B4F77 /* joystickDriver.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joystickDriver.png; path = Resources/joystickDriver.png; sourceTree = SOURCE_ROOT; };
@@ -939,18 +936,8 @@
 		03C2787F1F7D432300AF463C /* VisibilityManager */ = {
 			isa = PBXGroup;
 			children = (
-				03C278801F7D438D00AF463C /* Frustum */,
 			);
 			name = VisibilityManager;
-			sourceTree = "<group>";
-		};
-		03C278801F7D438D00AF463C /* Frustum */ = {
-			isa = PBXGroup;
-			children = (
-				03C278821F7D43AD00AF463C /* U4DFrustum.h */,
-				03C278811F7D43AD00AF463C /* U4DFrustum.mm */,
-			);
-			name = Frustum;
 			sourceTree = "<group>";
 		};
 		03D374091AE9E746000D8535 /* SpriteAnimation */ = {
@@ -1433,7 +1420,6 @@
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
 				03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
-				03C278831F7D43AD00AF463C /* U4DFrustum.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,

@@ -13,7 +13,7 @@
 #include "U4DButton.h"
 #include "U4DJoyStick.h"
 #include "CommonProtocols.h"
-
+#include "U4DCamera.h"
 
 GameLogic::GameLogic(){
     
@@ -47,7 +47,9 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
+                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
                     
+                    camera->translateBy(1.0, 0.0, 0.0);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -61,7 +63,9 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
-                   
+                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+                    
+                    camera->translateBy(-1.0, 0.0, 0.0);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -76,7 +80,13 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==joystickActive) {
                     
+                    U4DEngine::U4DVector3n axis(0.0,1.0,0.0);
                     
+                    U4DEngine::U4DVector3n direction=touchInputMessage.joystickDirection;
+                    
+                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+                    
+                    camera->rotateBy(direction.x, axis);
                     
                 }else if(touchInputMessage.touchInputData==joystickInactive){
                     

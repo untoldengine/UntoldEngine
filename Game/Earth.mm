@@ -25,6 +25,7 @@
 
 #include "GameLogic.h"
 
+#include "GameAsset.h"
 
 using namespace U4DEngine;
 
@@ -32,7 +33,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-10.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,0.0,10.0);
     
     camera->translateTo(cameraPos);
     
@@ -45,11 +46,11 @@ void Earth::init(){
     director->setWorld(this);
     
     //compute perspective space
-    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.1f, 500.0f);
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.1f, 100.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
     //compute orthographic shadow space
-    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicSpace(-100.0, 100.0, -100.0, 100.0, -100.0, 100.0f);
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicSpace(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
     U4DVector3n origin(0,0,0);
@@ -59,13 +60,25 @@ void Earth::init(){
     
     addChild(light);
     
-    camera->viewInDirection(origin);
+    //camera->viewInDirection(origin);
 
     light->viewInDirection(origin);
+
+//    for(int i=1;i<=2;i++){
+//
+//        std::string carName="car";
+//        carName+=std::to_string(i);
+//
+//        car[i]=new GameAsset();
+//        car[i]->init(carName.c_str(), "blenderscript.u4d");
+//
+//        addChild(car[i]);
+//    }
     
     
+    std::vector<U4DEngine::U4DPlane> clippingPlanes=camera->getFrustumPlanes();
     
-    
+    std::cout<<"Stop"<<std::endl;
     
 }
 
