@@ -22,7 +22,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityManager::setModelVisibility(U4DStaticModel* uModel, std::vector<U4DPlane> &uPlanes){
+    void U4DVisibilityManager::setModelVisibility(U4DModel* uModel, std::vector<U4DPlane> &uPlanes){
         
         //get the aabb of the model
         U4DBoundingVolume *aabb=uModel->getCullingPhaseBoundingVolume();

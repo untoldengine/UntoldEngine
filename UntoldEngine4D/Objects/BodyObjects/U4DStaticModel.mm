@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isPlatform(false),cullingPhaseBoundingVolumeVisibility(false){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isPlatform(false){
         
         initMass(1.0);
         
@@ -548,51 +548,6 @@ namespace U4DEngine {
     U4DVector3n U4DStaticModel::getModelDimensions(){
         
         return bodyCoordinates.getModelDimension();
-    }
-    
-    void U4DStaticModel::initCullingBoundingVolume(){
-        
-        //Get body dimensions
-        float xDimension=bodyCoordinates.getModelDimension().x;
-        float yDimension=bodyCoordinates.getModelDimension().y;
-        float zDimension=bodyCoordinates.getModelDimension().z;
-        
-        //get min and max points to create the AABB
-        U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
-        U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
-        
-        //create a AABB culling bounding volume
-        cullingPhaseBoundingVolume=new U4DBoundingAABB();
-        
-        //calculate the culling AABB
-        cullingPhaseBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
-        
-    }
-    
-    void U4DStaticModel::updateCullingPhaseBoundingVolumeSpace(){
-        
-        //update the bounding volume with the model current space dual quaternion (rotation and translation)
-        cullingPhaseBoundingVolume->setLocalSpace(absoluteSpace);
-    }
-    
-    U4DBoundingVolume* U4DStaticModel::getCullingPhaseBoundingVolume(){
-        
-        //update the broad phase bounding volume space
-        updateCullingPhaseBoundingVolumeSpace();
-        
-        return cullingPhaseBoundingVolume;
-        
-    }
-    
-    void U4DStaticModel::setCullingPhaseBoundingVolumeVisibility(bool uValue){
-        
-        cullingPhaseBoundingVolumeVisibility=true;
-    }
-    
-    bool U4DStaticModel::getCullingPhaseBoundingVolumeVisibility(){
-        
-        return cullingPhaseBoundingVolumeVisibility;
-        
     }
     
 }

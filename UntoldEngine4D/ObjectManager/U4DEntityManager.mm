@@ -81,10 +81,6 @@ namespace U4DEngine {
     //draw
     void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
     
-        U4DCamera *camera=U4DCamera::sharedInstance();
-        std::vector<U4DPlane> frustumPlanes=camera->getFrustumPlanes();
-        
-        
         U4DEntity* child=rootEntity;
     
         while (child!=NULL) {
@@ -100,33 +96,7 @@ namespace U4DEngine {
             }
      
             child->render(uRenderEncoder);
-            
-            //    ONLY FOR DEBUGGING PURPOSES
-            U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
-            
-            if (model) {
-                
-                 visibilityManager->setModelVisibility(model,frustumPlanes);
-                
-                if (model->getBroadPhaseBoundingVolumeVisibility()==true) {
-                    
-                    model->getBroadPhaseBoundingVolume()->render(uRenderEncoder);
-                    
-                }
-                
-                if(model->getNarrowPhaseBoundingVolumeVisibility()==true){
-                    model->getNarrowPhaseBoundingVolume()->render(uRenderEncoder);
-                }
-                
-                if(model->getCullingPhaseBoundingVolumeVisibility()==true){
-                    model->getCullingPhaseBoundingVolume()->render(uRenderEncoder);
-                }
-                
-                
-            }
-            
-            //END ONLY FOR DEBUGGING PURPOSES
-            
+        
             child=child->next;
         
         }

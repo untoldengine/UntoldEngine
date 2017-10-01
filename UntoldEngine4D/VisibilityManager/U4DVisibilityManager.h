@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DStaticModel.h"
+#include "U4DModel.h"
 
 namespace U4DEngine {
     
@@ -31,7 +31,7 @@ namespace U4DEngine {
         
         ~U4DVisibilityManager();
         
-        void setModelVisibility(U4DStaticModel* uModel, std::vector<U4DPlane> &uPlanes);
+        void setModelVisibility(U4DModel* uModel, std::vector<U4DPlane> &uPlanes);
         
         bool modelInFrustum(std::vector<U4DPlane> &uPlanes, U4DBoundingVolume *uAABB);
     };
