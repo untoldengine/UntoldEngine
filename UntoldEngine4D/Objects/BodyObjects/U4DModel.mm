@@ -282,6 +282,11 @@ namespace U4DEngine {
         }
         
     }
+    
+    void U4DModel::setModelVisibility(bool uValue){
+    
+        renderManager->setIsWithinFrustum(uValue);
+    }
 
 }
 

@@ -216,6 +216,11 @@ namespace U4DEngine {
          */
         U4DDualQuaternion getBoneAnimationSpace(std::string uName);
         
+        /**
+         @brief set if the model should be rendered or not depending if it lies within frustum
+         */
+        
+        void setModelVisibility(bool uValue);
     };
     
 }

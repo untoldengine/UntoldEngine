@@ -33,7 +33,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,0.0,10.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
     
     camera->translateTo(cameraPos);
     
@@ -60,20 +60,20 @@ void Earth::init(){
     
     addChild(light);
     
-    //camera->viewInDirection(origin);
+    camera->viewInDirection(origin);
 
     light->viewInDirection(origin);
 
-//    for(int i=1;i<=2;i++){
-//
-//        std::string carName="car";
-//        carName+=std::to_string(i);
-//
-//        car[i]=new GameAsset();
-//        car[i]->init(carName.c_str(), "blenderscript.u4d");
-//
-//        addChild(car[i]);
-//    }
+    for(int i=1;i<=2;i++){
+
+        std::string carName="car";
+        carName+=std::to_string(i);
+
+        car[i]=new GameAsset();
+        car[i]->init(carName.c_str(), "blenderscript.u4d");
+
+        addChild(car[i]);
+    }
     
     
     std::vector<U4DEngine::U4DPlane> clippingPlanes=camera->getFrustumPlanes();

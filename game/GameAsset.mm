@@ -23,6 +23,8 @@ void GameAsset::init(const char* uModelName, const char* uBlenderFile){
         //setEnableShadow(true);
         //initAsPlatform(true);
         //enableCollisionBehavior();
+        
+        setCullingPhaseBoundingVolumeVisibility(true);
         loadRenderingInformation();
     }
 }

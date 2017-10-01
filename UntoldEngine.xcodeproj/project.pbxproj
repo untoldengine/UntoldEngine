@@ -103,6 +103,7 @@
 		03C03C551F45408C0001EFA1 /* U4DJoystickIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C531F45408C0001EFA1 /* U4DJoystickIdleState.mm */; };
 		03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C561F45409F0001EFA1 /* U4DJoystickActiveState.mm */; };
 		03C03C5B1F4540B20001EFA1 /* U4DJoystickReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C03C591F4540B20001EFA1 /* U4DJoystickReleasedState.mm */; };
+		03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278851F80046B00AF463C /* U4DVisibilityManager.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */; };
@@ -344,6 +345,8 @@
 		03C03C591F4540B20001EFA1 /* U4DJoystickReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJoystickReleasedState.mm; sourceTree = "<group>"; };
 		03C03C5A1F4540B20001EFA1 /* U4DJoystickReleasedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJoystickReleasedState.h; sourceTree = "<group>"; };
 		03C278841F7D7D5400AF463C /* UserCommonProtocols.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = UserCommonProtocols.h; sourceTree = "<group>"; };
+		03C278851F80046B00AF463C /* U4DVisibilityManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityManager.mm; path = VisibilityManager/U4DVisibilityManager.mm; sourceTree = "<group>"; };
+		03C278861F80046B00AF463C /* U4DVisibilityManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityManager.h; path = VisibilityManager/U4DVisibilityManager.h; sourceTree = "<group>"; };
 		03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joyStickBackground.png; path = Resources/joyStickBackground.png; sourceTree = SOURCE_ROOT; };
 		03C737A21A4F1D9F001B4F77 /* joystickDriver.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joystickDriver.png; path = Resources/joystickDriver.png; sourceTree = SOURCE_ROOT; };
 		03CEE28F1775324000B09A52 /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
@@ -936,6 +939,8 @@
 		03C2787F1F7D432300AF463C /* VisibilityManager */ = {
 			isa = PBXGroup;
 			children = (
+				03C278861F80046B00AF463C /* U4DVisibilityManager.h */,
+				03C278851F80046B00AF463C /* U4DVisibilityManager.mm */,
 			);
 			name = VisibilityManager;
 			sourceTree = "<group>";
@@ -1124,7 +1129,6 @@
 				030205591B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm */,
 			);
 			name = CollisionAlgorithm;
-			path = CollisionData;
 			sourceTree = "<group>";
 		};
 		03E6EDC01943D816007AD131 /* ExternalForces */ = {
@@ -1476,6 +1480,7 @@
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
+				03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */,
 				03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */,
 				03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,

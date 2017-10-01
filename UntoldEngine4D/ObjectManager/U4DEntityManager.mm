@@ -22,7 +22,9 @@
 #include "U4DCollisionResponse.h"
 #include "U4DBVHManager.h"
 #include "U4DVector3n.h"
-
+#include "U4DVisibilityManager.h"
+#include "U4DCamera.h"
+#include "U4DPlane.h"
 
 namespace U4DEngine {
     
@@ -55,6 +57,9 @@ namespace U4DEngine {
         collisionResponse=new U4DCollisionResponse();
         collisionEngine->setCollisionResponse(collisionResponse);
         
+        //set the visibility manager
+        visibilityManager=new U4DVisibilityManager();
+        
     };
 
     U4DEntityManager::~U4DEntityManager(){
@@ -75,10 +80,13 @@ namespace U4DEngine {
     #pragma mark-draw
     //draw
     void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
+    
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        std::vector<U4DPlane> frustumPlanes=camera->getFrustumPlanes();
+        
         
         U4DEntity* child=rootEntity;
-        
-        
+    
         while (child!=NULL) {
             
             if(child->isRoot()){
@@ -92,6 +100,32 @@ namespace U4DEngine {
             }
      
             child->render(uRenderEncoder);
+            
+            //    ONLY FOR DEBUGGING PURPOSES
+            U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
+            
+            if (model) {
+                
+                 visibilityManager->setModelVisibility(model,frustumPlanes);
+                
+                if (model->getBroadPhaseBoundingVolumeVisibility()==true) {
+                    
+                    model->getBroadPhaseBoundingVolume()->render(uRenderEncoder);
+                    
+                }
+                
+                if(model->getNarrowPhaseBoundingVolumeVisibility()==true){
+                    model->getNarrowPhaseBoundingVolume()->render(uRenderEncoder);
+                }
+                
+                if(model->getCullingPhaseBoundingVolumeVisibility()==true){
+                    model->getCullingPhaseBoundingVolume()->render(uRenderEncoder);
+                }
+                
+                
+            }
+            
+            //END ONLY FOR DEBUGGING PURPOSES
             
             child=child->next;
         

@@ -150,6 +150,11 @@ namespace U4DEngine {
          @brief Variable stating the visibility of the narrow-phase bounding volume. If set to true, the engine will render the narrow-phase volume
          */
         bool narrowPhaseBoundingVolumeVisibility;
+        
+        /**
+         @brief Variable stating the visibility of the culling-phase bounding volume. If set to true, the engine will render the narrow-phase volume
+         */
+        bool cullingPhaseBoundingVolumeVisibility;
     
         /**
          @brief Object representing the narrow-phase bounding volume
@@ -160,6 +165,11 @@ namespace U4DEngine {
          @brief Object representing the broad-phase bounding volume
          */
         U4DBoundingVolume *broadPhaseBoundingVolume;
+        
+        /**
+         @brief Object representing the visibility bounding volume for frustum culling
+         */
+        U4DBoundingVolume *cullingPhaseBoundingVolume;
     
         /**
          @brief Object representing mass properties of the model
@@ -253,6 +263,12 @@ namespace U4DEngine {
          @param uValue  Set to true if the collision detection system should treat this model as a floor/ground
          */
         void initAsPlatform(bool uValue);
+        
+        /**
+         @brief Method which initialized the boundary volume used for frustum culling
+         
+         */
+        void initCullingBoundingVolume();
     
         //Set Operations
     
@@ -269,6 +285,13 @@ namespace U4DEngine {
          @param uValue The engine will render the broad-phase bounding volume if set to true
          */
         void setBroadPhaseBoundingVolumeVisibility(bool uValue);
+        
+        /**
+         @brief Methods which sets the visibility of the Culling-Phase bounding volume
+         
+         @param uValue The engine will render the culling-phase bounding volume if set to true
+         */
+        void setCullingPhaseBoundingVolumeVisibility(bool uValue);
         
         //These set operations should be make private
         
@@ -347,6 +370,12 @@ namespace U4DEngine {
          @brief Method which updates the broad-phase bounding volume space
          */
         void updateBroadPhaseBoundingVolumeSpace();
+        
+        /**
+         @brief Method which updates the culling-phase bounding volume space
+         */
+        void updateCullingPhaseBoundingVolumeSpace();
+
     
         //add operations
    
@@ -462,6 +491,20 @@ namespace U4DEngine {
          @return Returns true if the engine should render the broad-phase bounding volume
          */
         bool getBroadPhaseBoundingVolumeVisibility();
+        
+        /**
+         @brief Method which returns the culling-phase bounding volume
+         
+         @return Returns the culling-phase bounding volume
+         */
+        U4DBoundingVolume* getCullingPhaseBoundingVolume();
+        
+        /**
+         @brief Method which returns if the engine should render the culling-phase bounding volume
+         
+         @return Returns true if the engine should render the culling-phase bounding volume
+         */
+        bool getCullingPhaseBoundingVolumeVisibility();
     
         /**
          @brief Method which returns a 3D vector representing the Normal force
