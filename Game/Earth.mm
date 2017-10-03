@@ -30,7 +30,7 @@
 using namespace U4DEngine;
 
 void Earth::init(){
-    
+        
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
     U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
@@ -64,10 +64,10 @@ void Earth::init(){
 
     light->viewInDirection(origin);
 
-    for(int i=1;i<=2;i++){
+    for(int i=0;i<2;i++){
 
         std::string carName="car";
-        carName+=std::to_string(i);
+        carName+=std::to_string(i+1);
 
         car[i]=new GameAsset();
         car[i]->init(carName.c_str(), "blenderscript.u4d");
@@ -75,10 +75,6 @@ void Earth::init(){
         addChild(car[i]);
     }
     
-    
-    std::vector<U4DEngine::U4DPlane> clippingPlanes=camera->getFrustumPlanes();
-    
-    std::cout<<"Stop"<<std::endl;
     
 }
 

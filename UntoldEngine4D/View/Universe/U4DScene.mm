@@ -76,6 +76,12 @@ namespace U4DEngine {
     }
 
 
+    void U4DScene::determineVisibility(){
+        
+        gameWorld->entityManager->determineVisibility();
+        
+    }
+    
     void U4DScene::touchBegan(const U4DTouches &touches){
         
         gameController->touchBegan(touches);

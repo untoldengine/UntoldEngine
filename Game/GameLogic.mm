@@ -49,7 +49,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
                     
-                    camera->translateBy(1.0, 0.0, 0.0);
+                    camera->translateBy(0.0, 0.0, 1.0);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -65,7 +65,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
                     
-                    camera->translateBy(-1.0, 0.0, 0.0);
+                    camera->translateBy(0.0, 0.0, -1.0);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     

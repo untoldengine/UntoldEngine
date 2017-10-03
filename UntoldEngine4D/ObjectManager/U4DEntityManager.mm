@@ -236,5 +236,42 @@ namespace U4DEngine {
         
     }
     
+    void U4DEntityManager::determineVisibility(){
+        
+        //get the camera frustum planes
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        std::vector<U4DPlane> frustumPlanes=camera->getFrustumPlanes();
+        
+        //set the root entity
+        U4DEntity* child=rootEntity;
+        
+        //1. load the models into a bvh tree
+        
+        while (child!=NULL) {
+            
+            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+            
+            if (model) {
+                
+                //load the model into a bvh tree container
+                model->setModelVisibility(false);
+                
+                visibilityManager->addModelToTreeContainer(model);
+                
+            }
+            
+            child=child->next;
+        }
+        
+        //2. build the bvh tree
+        visibilityManager->buildBVH();
+        
+        //3. determine the frustom culling
+        visibilityManager->startFrustumIntersection(frustumPlanes);
+        
+        //4. clear container
+        visibilityManager->clearContainers();
+    }
+    
 }
 

@@ -83,6 +83,8 @@ namespace U4DEngine {
         
         void update(float dt);
         
+        void determineVisibility();
+        
         void setRootEntity(U4DVisibleEntity* uRootEntity);
         
     };

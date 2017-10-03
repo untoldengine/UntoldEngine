@@ -55,6 +55,8 @@ public:
     void touchEnded(const U4DTouches &touches);
     void touchMoved(const U4DTouches &touches);
     
+    void determineVisibility();
+    
 };
 
 }

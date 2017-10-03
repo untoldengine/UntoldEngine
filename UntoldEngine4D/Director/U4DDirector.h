@@ -221,6 +221,7 @@ public:
     
     U4DMatrix4n computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far);
 
+    void determineVisibility();
     
 };
 
