@@ -82,6 +82,8 @@ namespace U4DEngine {
         
         bool eligibleToRender;
         
+        bool isWithinFrustum;
+        
     public:
         
         U4DRenderManager();
@@ -192,6 +194,8 @@ namespace U4DEngine {
         
         vector_float2 convertToSIMD(U4DEngine::U4DVector2n &uVector);
         
+        
+        void setIsWithinFrustum(bool uValue);
     };
     
 }

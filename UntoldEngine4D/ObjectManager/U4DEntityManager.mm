@@ -22,7 +22,9 @@
 #include "U4DCollisionResponse.h"
 #include "U4DBVHManager.h"
 #include "U4DVector3n.h"
-
+#include "U4DVisibilityManager.h"
+#include "U4DCamera.h"
+#include "U4DPlane.h"
 
 namespace U4DEngine {
     
@@ -55,6 +57,9 @@ namespace U4DEngine {
         collisionResponse=new U4DCollisionResponse();
         collisionEngine->setCollisionResponse(collisionResponse);
         
+        //set the visibility manager
+        visibilityManager=new U4DVisibilityManager();
+        
     };
 
     U4DEntityManager::~U4DEntityManager(){
@@ -75,10 +80,9 @@ namespace U4DEngine {
     #pragma mark-draw
     //draw
     void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
-        
+    
         U4DEntity* child=rootEntity;
-        
-        
+    
         while (child!=NULL) {
             
             if(child->isRoot()){
@@ -92,7 +96,7 @@ namespace U4DEngine {
             }
      
             child->render(uRenderEncoder);
-            
+        
             child=child->next;
         
         }
@@ -230,6 +234,43 @@ namespace U4DEngine {
         }
         
         
+    }
+    
+    void U4DEntityManager::determineVisibility(){
+        
+        //get the camera frustum planes
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        std::vector<U4DPlane> frustumPlanes=camera->getFrustumPlanes();
+        
+        //set the root entity
+        U4DEntity* child=rootEntity;
+        
+        //1. load the models into a bvh tree
+        
+        while (child!=NULL) {
+            
+            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+            
+            if (model) {
+                
+                //load the model into a bvh tree container
+                model->setModelVisibility(false);
+                
+                visibilityManager->addModelToTreeContainer(model);
+                
+            }
+            
+            child=child->next;
+        }
+        
+        //2. build the bvh tree
+        visibilityManager->buildBVH();
+        
+        //3. determine the frustom culling
+        visibilityManager->startFrustumIntersection(frustumPlanes);
+        
+        //4. clear container
+        visibilityManager->clearContainers();
     }
     
 }

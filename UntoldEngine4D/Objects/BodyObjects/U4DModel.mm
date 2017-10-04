@@ -16,12 +16,14 @@
 #include "U4DBoneData.h"
 #include "Constants.h"
 #include "U4DRender3DModel.h"
+#include "U4DBoundingVolume.h"
+#include "U4DBoundingAABB.h"
 
 #pragma mark-set up the body vertices
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false){
         
         renderManager=new U4DRender3DModel(this);
         
@@ -282,7 +284,56 @@ namespace U4DEngine {
         }
         
     }
+    
+    void U4DModel::setModelVisibility(bool uValue){
+    
+        renderManager->setIsWithinFrustum(uValue);
+    }
 
+    void U4DModel::initCullingBoundingVolume(){
+        
+        //Get body dimensions
+        float xDimension=bodyCoordinates.getModelDimension().x;
+        float yDimension=bodyCoordinates.getModelDimension().y;
+        float zDimension=bodyCoordinates.getModelDimension().z;
+        
+        //get min and max points to create the AABB
+        U4DPoint3n minPoints(-xDimension/2.0,-yDimension/2.0,-zDimension/2.0);
+        U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
+        
+        //create a AABB culling bounding volume
+        cullingPhaseBoundingVolume=new U4DBoundingAABB();
+        
+        //calculate the culling AABB
+        cullingPhaseBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
+        
+    }
+    
+    void U4DModel::updateCullingPhaseBoundingVolumeSpace(){
+        
+        //update the bounding volume with the model current space dual quaternion (rotation and translation)
+        cullingPhaseBoundingVolume->setLocalSpace(absoluteSpace);
+    }
+    
+    U4DBoundingVolume* U4DModel::getCullingPhaseBoundingVolume(){
+        
+        //update the broad phase bounding volume space
+        updateCullingPhaseBoundingVolumeSpace();
+        
+        return cullingPhaseBoundingVolume;
+        
+    }
+    
+    void U4DModel::setCullingPhaseBoundingVolumeVisibility(bool uValue){
+        
+        cullingPhaseBoundingVolumeVisibility=true;
+    }
+    
+    bool U4DModel::getCullingPhaseBoundingVolumeVisibility(){
+        
+        return cullingPhaseBoundingVolumeVisibility;
+        
+    }
 }
 
 

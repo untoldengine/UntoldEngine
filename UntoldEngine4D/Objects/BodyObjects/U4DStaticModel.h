@@ -160,7 +160,7 @@ namespace U4DEngine {
          @brief Object representing the broad-phase bounding volume
          */
         U4DBoundingVolume *broadPhaseBoundingVolume;
-    
+        
         /**
          @brief Object representing mass properties of the model
          */
@@ -253,6 +253,8 @@ namespace U4DEngine {
          @param uValue  Set to true if the collision detection system should treat this model as a floor/ground
          */
         void initAsPlatform(bool uValue);
+        
+        
     
         //Set Operations
     

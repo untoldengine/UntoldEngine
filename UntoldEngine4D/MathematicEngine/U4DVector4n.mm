@@ -36,6 +36,12 @@ namespace U4DEngine {
         return *this;
         
     }
+    
+    float U4DVector4n::dot(const U4DVector4n& v) const{
+        
+        return x*v.x+y*v.y+z*v.z+w*v.w;
+        
+    }
 
     float U4DVector4n::getX(){
         

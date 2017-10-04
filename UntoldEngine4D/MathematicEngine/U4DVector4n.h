@@ -82,6 +82,15 @@ public:
     U4DVector4n& operator=(const U4DVector4n& a);
     
     /**
+     @brief Method that calculates the dot product between two 4D vectors
+     
+     @param v A 4D vector to compute the dot product with
+     
+     @return Returns the dot product between two 4D vectors
+     */
+    float dot(const U4DVector4n& v) const;
+    
+    /**
      @brief Method which prints the components of the 4D vector
      */
     void show();

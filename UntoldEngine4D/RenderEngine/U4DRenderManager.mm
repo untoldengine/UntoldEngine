@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
 
-    U4DRenderManager::U4DRenderManager():eligibleToRender(false){
+    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
@@ -342,5 +342,10 @@ namespace U4DEngine {
         return v;
     }
 
+    void U4DRenderManager::setIsWithinFrustum(bool uValue){
+        
+        isWithinFrustum=uValue;
+        
+    }
 }
 

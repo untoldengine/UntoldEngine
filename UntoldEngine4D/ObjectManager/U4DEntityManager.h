@@ -33,6 +33,7 @@ namespace U4DEngine {
     class U4DCollisionResponse;
     class U4DVector3n;
     class U4DBVHManager;
+    class U4DVisibilityManager;
     
 }
 
@@ -62,6 +63,7 @@ namespace U4DEngine {
         
         U4DCollisionResponse *collisionResponse;
         
+        U4DVisibilityManager *visibilityManager;
         
     public:
         
@@ -80,6 +82,8 @@ namespace U4DEngine {
         void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
         
         void update(float dt);
+        
+        void determineVisibility();
         
         void setRootEntity(U4DVisibleEntity* uRootEntity);
         

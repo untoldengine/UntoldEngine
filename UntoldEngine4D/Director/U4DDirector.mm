@@ -93,7 +93,12 @@ namespace U4DEngine {
         
     }
 
-
+    void U4DDirector::determineVisibility(){
+        
+        scene->determineVisibility();
+        
+    }
+    
     void U4DDirector::init(){
         
     }

@@ -38,7 +38,10 @@ namespace U4DEngine {
         U4DEngine::U4DDigitalAssetLoader *loader=U4DEngine::U4DDigitalAssetLoader::sharedInstance();
         
         if(loader->loadDigitalAssetFile(uBlenderFile) && loader->loadAssetToMesh(this,uModelName)){
-                        
+            
+            //init the culling bounding volume
+            initCullingBoundingVolume();
+            
             return true;
         }
         

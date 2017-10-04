@@ -12,10 +12,6 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "U11Field.h"
-#include "U11Player.h"
-#include "U4DCallback.h"
-#include "U4DTimer.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -25,14 +21,7 @@ namespace U4DEngine {
 
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
-    
-    U11Team *team;
-    
-    int buttonHoldTime;
-    
-    U4DEngine::U4DTimer *buttonHoldTimer;
-    
-    U4DEngine::U4DCallback<GameLogic> *scheduler;
+
     
     GameLogic();
     ~GameLogic();
@@ -43,13 +32,6 @@ public:
     
     void receiveTouchUpdate(void *uData);
     
-    void setTeamToControl(U11Team *uTeam);
-    
-    void increaseButtonHoldTime();
-    
-    void startButtonHoldTimer();
-    
-    void stopButtonHoldTimer();
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

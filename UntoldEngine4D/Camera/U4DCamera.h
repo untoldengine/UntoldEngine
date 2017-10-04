@@ -10,6 +10,7 @@
 #define __UntoldEngine__U4DCamera__
 
 #include <iostream>
+#include <vector>
 #include "U4DEntity.h"
 #include "U4DVector3n.h"
 #include "U4DMatrix4n.h"
@@ -21,7 +22,7 @@ namespace U4DEngine {
     class U4DVector3n;
     class U4DMatrix4n;
     class U4DModel;
-
+    class U4DPlane;
 }
 
 namespace U4DEngine {
@@ -128,6 +129,12 @@ namespace U4DEngine {
          @param uDestinationPoint Destination point where the camera should be looking at.
          */
         void viewInDirection(U4DVector3n& uDestinationPoint);
+        
+        /**
+         @todo document this. it gets the frustum planes
+         
+         */
+        std::vector<U4DPlane> getFrustumPlanes();
     };
     
 }

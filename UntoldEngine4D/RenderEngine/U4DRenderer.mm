@@ -137,6 +137,8 @@
     
     [self update];
     
+    director->determineVisibility();
+    
     view.clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
     view.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
     

@@ -22,6 +22,12 @@
 #include "U4DRenderManager.h"
 
 namespace U4DEngine {
+    
+    class U4DBoundingVolume;
+    
+}
+
+namespace U4DEngine {
 
     /**
      @brief The U4DModel class represents a 3D model entity
@@ -57,6 +63,17 @@ namespace U4DEngine {
         bool enableShadow;
         
         bool enableTexture;
+        
+        /**
+         @brief Variable stating the visibility of the culling-phase bounding volume. If set to true, the engine will render the narrow-phase volume
+         */
+        bool cullingPhaseBoundingVolumeVisibility;
+        
+        /**
+         @brief Object representing the visibility bounding volume for frustum culling
+         */
+        U4DBoundingVolume *cullingPhaseBoundingVolume;
+        
         
     protected:
         
@@ -216,6 +233,44 @@ namespace U4DEngine {
          */
         U4DDualQuaternion getBoneAnimationSpace(std::string uName);
         
+        /**
+         @brief set if the model should be rendered or not depending if it lies within frustum
+         */
+        
+        void setModelVisibility(bool uValue);
+        
+        /**
+         @brief Method which initialized the boundary volume used for frustum culling
+         
+         */
+        void initCullingBoundingVolume();
+        
+        /**
+         @brief Methods which sets the visibility of the Culling-Phase bounding volume
+         
+         @param uValue The engine will render the culling-phase bounding volume if set to true
+         */
+        void setCullingPhaseBoundingVolumeVisibility(bool uValue);
+        
+        /**
+         @brief Method which updates the culling-phase bounding volume space
+         */
+        void updateCullingPhaseBoundingVolumeSpace();
+        
+        /**
+         @brief Method which returns the culling-phase bounding volume
+         
+         @return Returns the culling-phase bounding volume
+         */
+        U4DBoundingVolume* getCullingPhaseBoundingVolume();
+        
+        /**
+         @brief Method which returns if the engine should render the culling-phase bounding volume
+         
+         @return Returns true if the engine should render the culling-phase bounding volume
+         */
+        bool getCullingPhaseBoundingVolumeVisibility();
+
     };
     
 }

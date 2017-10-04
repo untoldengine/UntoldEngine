@@ -452,7 +452,7 @@ namespace U4DEngine {
     
     void U4DRender3DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        if (eligibleToRender==true) {
+        if (eligibleToRender==true && isWithinFrustum==true) {
             
             updateSpaceUniforms();
             updateModelRenderFlags();
@@ -501,7 +501,7 @@ namespace U4DEngine {
     
     void U4DRender3DModel::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
      
-        if (eligibleToRender==true) {
+        if (eligibleToRender==true && isWithinFrustum==true) {
             
             //set the shadow texture
             
