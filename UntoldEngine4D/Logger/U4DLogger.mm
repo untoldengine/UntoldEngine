@@ -32,7 +32,7 @@ namespace U4DEngine {
         
         if (debugMode==true) {
 
-            char buffer[256];
+            char buffer[1024];
             va_list args;
             va_start (args, uLog);
             vsprintf (buffer,uLog, args);

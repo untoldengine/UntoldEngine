@@ -16,7 +16,7 @@ GameAsset::~GameAsset(){
     
 }
 
-void GameAsset::init(const char* uModelName, const char* uBlenderFile){
+bool GameAsset::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
     
@@ -26,7 +26,11 @@ void GameAsset::init(const char* uModelName, const char* uBlenderFile){
         
         setCullingPhaseBoundingVolumeVisibility(true);
         loadRenderingInformation();
+        
+        return true;
     }
+    
+    return false;
 }
 
 void GameAsset::update(double dt){

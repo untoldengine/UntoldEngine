@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0){
+    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000){
     }
     
     U4DDirector::~U4DDirector(){
@@ -131,6 +131,13 @@ namespace U4DEngine {
         
     }
 
+    void U4DDirector::setPolycount(int uValue){
+        polycount=uValue;
+    }
+    
+    int U4DDirector::getPolycount(){
+        return polycount;
+    }
 
     void U4DDirector::touchBegan(const U4DTouches &touches){
         

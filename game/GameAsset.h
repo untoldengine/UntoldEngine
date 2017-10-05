@@ -22,7 +22,7 @@ public:
     
     ~GameAsset();
     
-    void init(const char* uModelName, const char* uBlenderFile);
+    bool init(const char* uModelName, const char* uBlenderFile);
     
     void update(double dt);
     
