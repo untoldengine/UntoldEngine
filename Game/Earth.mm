@@ -64,17 +64,22 @@ void Earth::init(){
 
     light->viewInDirection(origin);
 
-    for(int i=0;i<2;i++){
+    director->setPolycount(5000);
+    
+    for(int i=0;i<5;i++){
 
         std::string carName="car";
         carName+=std::to_string(i+1);
 
         car[i]=new GameAsset();
-        car[i]->init(carName.c_str(), "blenderscript.u4d");
+        
+        if(car[i]->init(carName.c_str(), "blenderscript.u4d")){
+            
+            addChild(car[i]);
+            
+        }
 
-        addChild(car[i]);
     }
-    
     
 }
 

@@ -21,6 +21,7 @@
 #include "U4DAnimation.h"
 #include "U4DLights.h"
 #include "U4DLogger.h"
+#include "U4DDirector.h"
 
 namespace U4DEngine {
     
@@ -83,6 +84,9 @@ namespace U4DEngine {
         
         tinyxml2::XMLNode *root=doc.FirstChildElement("UntoldEngine");
         U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
         bool modelExist=false;
         
         //Get Mesh ID
@@ -105,9 +109,9 @@ namespace U4DEngine {
                 
                 if (meshName.compare(uMeshID)==0) {
                  
-                //MAXIMUM number of verts: 1538, Tris=3072, Faces: 3072.
-                //Becasue of the algorithm used the MAX vertex count is 3072*3
-                if (vertexCount<=9000 && indexCount%3==0) {
+                //Default number of polycount is 3000
+            
+                if (vertexCount<=director->getPolycount()*3 && indexCount%3==0) {
                     //The model can be processed since it is below 1000 vertices and it has been properly triangularized
                     
                     logger->log("In Process: Loading Digital Asset Data for model: %s",meshName.c_str());
@@ -395,15 +399,15 @@ namespace U4DEngine {
                     }//end if
                     
                 
-                }else if(vertexCount>9000 && indexCount%3!=0){
+                }else if(vertexCount>director->getPolycount()*3 && indexCount%3!=0){
                     
-                    logger->log("Error: The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500\nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, and that there are no loose vertices. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
+                    logger->log("Error: The vertex count for %s is above the acceptable range. Decrease the vertex count to about 3000 polys. If you want, you can change this value using setPolycount method in the U4DDirector class. However, keep in mind that the higher the polycount, the slower the rendering. \nAlso, the character has not been properly triangularized. Make sure not to use n-gons in your topology, and that there are no loose vertices. Make sure your model is designed using Mesh-Modeling techniques only.",meshName.c_str());
                     
                     return false;
                     
-                }else if(vertexCount>9000){
+                }else if(vertexCount>director->getPolycount()*3){
                     
-                    logger->log("Error: The vertex count for %s is above the acceptable range. Decrease the vertex count to below 1500.",meshName.c_str());
+                    logger->log("Error: The vertex count for %s is above the acceptable range. Decrease the vertex count to about 3000 polys. If you want, you can increase this value using setPolycount method in the U4DDirector class. However, keep in mind that the higher the polycount, the slower the rendering.",meshName.c_str());
                     
                     return false;
                     

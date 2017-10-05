@@ -20,7 +20,7 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    GameAsset *car[30];
+    GameAsset *car[40];
     
 public:
    

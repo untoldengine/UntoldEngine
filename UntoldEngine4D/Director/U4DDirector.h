@@ -75,6 +75,11 @@ private:
     float accumulator;
     
     /**
+     @brief number of polygons the engine can render. Default value is 3000
+     */
+    int polycount;
+    
+    /**
      @todo document this
      */
     U4DWorld *world;
@@ -222,6 +227,22 @@ public:
     U4DMatrix4n computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far);
 
     void determineVisibility();
+    
+    
+    /**
+     @brief sets the number of polygons the engien can render per 3d model. It is recommended to set this value as low as possible. Suggested and default value is 3000
+
+     @param uValue value representing the polycount
+     */
+    void setPolycount(int uValue);
+    
+    
+    /**
+     @brief returns the number of polygons the engine can render per 3d model
+
+     @return Number of polys
+     */
+    int getPolycount();
     
 };
 
