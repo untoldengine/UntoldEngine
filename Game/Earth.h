@@ -20,7 +20,19 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    GameAsset *car[40];
+    GameAsset *bridge[4];
+    GameAsset *cloud[12];
+    GameAsset *fence[5];
+    GameAsset *chosa;
+    GameAsset *fireplace;
+    GameAsset *grass[10];
+    GameAsset *land[4];
+    GameAsset *moss[6];
+    GameAsset *ocean;
+    GameAsset *stone[7];
+    GameAsset *tree[34];
+    GameAsset *trunk[5];
+    GameAsset *weed[12];
     
 public:
    

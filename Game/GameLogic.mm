@@ -38,7 +38,6 @@ void GameLogic::init(){
 
 void GameLogic::receiveTouchUpdate(void *uData){
     
-   
         TouchInputMessage touchInputMessage=*(TouchInputMessage*)uData;
         
         switch (touchInputMessage.touchInputType) {
@@ -49,7 +48,13 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
                     
-                    camera->translateBy(0.0, 0.0, 1.0);
+                    U4DEngine::U4DVector3n view=camera->getViewInDirection();
+                    
+                    view.x*=-1.0;
+                    
+                    view*=1.0;
+                
+                    camera->translateBy(view);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -65,7 +70,13 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
                     
-                    camera->translateBy(0.0, 0.0, -1.0);
+                    U4DEngine::U4DVector3n view=camera->getViewInDirection();
+                    
+                    view.x*=-1.0;
+                    
+                    view*=-1.0;
+                    
+                    camera->translateBy(view);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     

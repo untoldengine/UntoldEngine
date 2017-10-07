@@ -92,19 +92,23 @@ namespace U4DEngine {
                 
                 U4DDynamicModel *model=uTreeLeftNode->getModelsContainer().at(0);
                 
-                U4DBoundingVolume *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
-                
-                U4DPoint3n maxPoint=aabbBoundingVolume->getMaxBoundaryPoint();
-                U4DPoint3n minPoint=aabbBoundingVolume->getMinBoundaryPoint();
-                
-                U4DAABB aabb;
-                
-                aabb.setMaxPoint(maxPoint);
-                aabb.setMinPoint(minPoint);
-                
-                if (aabbInFrustum(uPlanes, &aabb)) {
+                if (model!=nullptr) {
                     
-                    model->setModelVisibility(true);
+                    U4DBoundingVolume *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
+                    
+                    U4DPoint3n maxPoint=aabbBoundingVolume->getMaxBoundaryPoint();
+                    U4DPoint3n minPoint=aabbBoundingVolume->getMinBoundaryPoint();
+                    
+                    U4DAABB aabb;
+                    
+                    aabb.setMaxPoint(maxPoint);
+                    aabb.setMinPoint(minPoint);
+                    
+                    if (aabbInFrustum(uPlanes, &aabb)) {
+                        
+                        model->setModelVisibility(true);
+                        
+                    }
                     
                 }
                 
@@ -129,19 +133,23 @@ namespace U4DEngine {
                 
                 U4DDynamicModel *model=uTreeRightNode->getModelsContainer().at(0);
                 
-                U4DBoundingVolume *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
-                
-                U4DPoint3n maxPoint=aabbBoundingVolume->getMaxBoundaryPoint();
-                U4DPoint3n minPoint=aabbBoundingVolume->getMinBoundaryPoint();
-                
-                U4DAABB aabb;
-                
-                aabb.setMaxPoint(maxPoint);
-                aabb.setMinPoint(minPoint);
-                
-                if (aabbInFrustum(uPlanes, &aabb)) {
+                if (model!=nullptr) {
                     
-                    model->setModelVisibility(true);
+                    U4DBoundingVolume *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
+                    
+                    U4DPoint3n maxPoint=aabbBoundingVolume->getMaxBoundaryPoint();
+                    U4DPoint3n minPoint=aabbBoundingVolume->getMinBoundaryPoint();
+                    
+                    U4DAABB aabb;
+                    
+                    aabb.setMaxPoint(maxPoint);
+                    aabb.setMinPoint(minPoint);
+                    
+                    if (aabbInFrustum(uPlanes, &aabb)) {
+                        
+                        model->setModelVisibility(true);
+                        
+                    }
                     
                 }
                 

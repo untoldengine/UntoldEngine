@@ -242,35 +242,45 @@ namespace U4DEngine {
         U4DCamera *camera=U4DCamera::sharedInstance();
         std::vector<U4DPlane> frustumPlanes=camera->getFrustumPlanes();
         
-        //set the root entity
-        U4DEntity* child=rootEntity;
-        
-        //1. load the models into a bvh tree
-        
-        while (child!=NULL) {
+        if (visibilityManager->getComputeBVHFlag()) {
             
-            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+            //4. clear container
+            visibilityManager->clearContainers();
             
-            if (model) {
+            //set the root entity
+            U4DEntity* child=rootEntity;
+            
+            //1. load the models into a bvh tree
+            
+            while (child!=NULL) {
                 
-                //load the model into a bvh tree container
-                model->setModelVisibility(false);
+                U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
                 
-                visibilityManager->addModelToTreeContainer(model);
+                if (model) {
+                    
+                    //load the model into a bvh tree container
+                    model->setModelVisibility(false);
+                    
+                    visibilityManager->addModelToTreeContainer(model);
+                    
+                }
                 
+                child=child->next;
             }
             
-            child=child->next;
+            //2. build the bvh tree
+            visibilityManager->buildBVH();
+            
+            //clear the compute bvh flag
+            visibilityManager->setComputeBVHFlag(false);
+            
+            //start timer for next bvh computation
+            visibilityManager->startTimerForNextBVHBuild();
         }
-        
-        //2. build the bvh tree
-        visibilityManager->buildBVH();
         
         //3. determine the frustom culling
         visibilityManager->startFrustumIntersection(frustumPlanes);
         
-        //4. clear container
-        visibilityManager->clearContainers();
     }
     
 }

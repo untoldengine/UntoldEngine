@@ -13,11 +13,13 @@
 #include <vector>
 #include "U4DDynamicModel.h"
 #include "U4DVisibilityCulling.h"
+#include "U4DCallback.h"
 
 namespace U4DEngine {
     
     class U4DAABB;
     class U4DBVHTree;
+    class U4DTimer;
 }
 
 namespace U4DEngine {
@@ -36,8 +38,31 @@ namespace U4DEngine {
          */
         std::vector<std::shared_ptr<U4DBVHTree>> treeContainer;
         
+        /**
+         @brief pointer to class responsible for testing frustum culling
+         */
         U4DVisibilityCulling visibilityCulling;
         
+        /**
+         @brief variable that tells the manager that it should build the bvh
+         */
+        bool computeBVHFlag;
+        
+        /**
+         @brief time interval to build the bvh
+         */
+        int timeIntervalToBuildBVH;
+        
+        /**
+         @brief scheduler for the bvh construction
+         */
+        
+        U4DCallback<U4DVisibilityManager> *scheduler;
+        
+        /**
+         @brief timer for the bvh construction
+         */
+        U4DTimer *timer;
         
     public:
         
@@ -131,6 +156,30 @@ namespace U4DEngine {
          @brief Method which clears all broad-phase collision containers.
          */
         void clearContainers();
+        
+        /**
+         @brief method to inform that the bvh should be built. This method sets a flag but does not initiate construction of the bvh
+
+         @param uValue value to inform the manager to build the bvh
+         */
+        void setComputeBVHFlag(bool uValue);
+        
+        /**
+         @brief method that returns if the manager should build the BVH
+
+         @return returns true if the manager should build the bvh. Note, it does not initiate initiate construcion of the bvh
+         */
+        bool getComputeBVHFlag();
+        
+        /**
+         @brief This methods starts the timer for the next bvh build. Note, it simply starts a timer. Once the time has elapsed, it sets the computeBVHFlag. It does not initiate the construction of the bvh
+         */
+        void startTimerForNextBVHBuild();
+        
+        /**
+         @brief Method that is called by the scheduler once the time interval has elapsed
+         */
+        void bvhTimerIntervalElapsed();
     };
     
 }
