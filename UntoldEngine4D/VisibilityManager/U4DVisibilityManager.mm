@@ -17,11 +17,13 @@
 
 namespace U4DEngine {
     
-    U4DVisibilityManager::U4DVisibilityManager():computeBVHFlag(true),timeIntervalToBuildBVH(5.0){
+    U4DVisibilityManager::U4DVisibilityManager():isBVHBuildPaused(true),timeIntervalToBuildBVH(1.0){
         
         scheduler=new U4DCallback<U4DVisibilityManager>;
         
         timer=new U4DTimer(scheduler);
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DVisibilityManager::bvhTimerIntervalElapsed, timer,timeIntervalToBuildBVH, true);
         
     }
     
@@ -42,27 +44,27 @@ namespace U4DEngine {
         return modelsContainer;
     }
     
-    void U4DVisibilityManager::setComputeBVHFlag(bool uValue){
+    void U4DVisibilityManager::setPauseBVHFBuild(bool uValue){
         
-        computeBVHFlag=uValue;
+        isBVHBuildPaused=uValue;
     }
     
-    bool U4DVisibilityManager::getComputeBVHFlag(){
+    bool U4DVisibilityManager::getPauseBVHBuild(){
         
-        return computeBVHFlag;
+        return isBVHBuildPaused;
     }
     
     void U4DVisibilityManager::bvhTimerIntervalElapsed(){
      
-        computeBVHFlag=true;
+        isBVHBuildPaused=true;
         
-        scheduler->unScheduleTimer(timer);
+        timer->setPause(true);
         
     }
     
     void U4DVisibilityManager::startTimerForNextBVHBuild(){
         
-        scheduler->scheduleClassWithMethodAndDelay(this, &U4DVisibilityManager::bvhTimerIntervalElapsed, timer,timeIntervalToBuildBVH, false);
+        timer->setPause(false);
         
     }
     

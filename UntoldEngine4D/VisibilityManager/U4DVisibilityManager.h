@@ -44,9 +44,9 @@ namespace U4DEngine {
         U4DVisibilityCulling visibilityCulling;
         
         /**
-         @brief variable that tells the manager that it should build the bvh
+         @brief variable that tells the manager that it should pause the bvh build
          */
-        bool computeBVHFlag;
+        bool isBVHBuildPaused;
         
         /**
          @brief time interval to build the bvh
@@ -162,14 +162,14 @@ namespace U4DEngine {
 
          @param uValue value to inform the manager to build the bvh
          */
-        void setComputeBVHFlag(bool uValue);
+        void setPauseBVHFBuild(bool uValue);
         
         /**
          @brief method that returns if the manager should build the BVH
 
          @return returns true if the manager should build the bvh. Note, it does not initiate initiate construcion of the bvh
          */
-        bool getComputeBVHFlag();
+        bool getPauseBVHBuild();
         
         /**
          @brief This methods starts the timer for the next bvh build. Note, it simply starts a timer. Once the time has elapsed, it sets the computeBVHFlag. It does not initiate the construction of the bvh

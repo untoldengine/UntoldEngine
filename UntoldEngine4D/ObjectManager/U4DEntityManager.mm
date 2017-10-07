@@ -242,7 +242,7 @@ namespace U4DEngine {
         U4DCamera *camera=U4DCamera::sharedInstance();
         std::vector<U4DPlane> frustumPlanes=camera->getFrustumPlanes();
         
-        if (visibilityManager->getComputeBVHFlag()) {
+        if (visibilityManager->getPauseBVHBuild()) {
             
             //4. clear container
             visibilityManager->clearContainers();
@@ -271,8 +271,8 @@ namespace U4DEngine {
             //2. build the bvh tree
             visibilityManager->buildBVH();
             
-            //clear the compute bvh flag
-            visibilityManager->setComputeBVHFlag(false);
+            //clear the pause bvh build flag
+            visibilityManager->setPauseBVHFBuild(false);
             
             //start timer for next bvh computation
             visibilityManager->startTimerForNextBVHBuild();
