@@ -13,15 +13,24 @@
 #include "U4DPoint3n.h"
 #include "U4DBVHTree.h"
 #include "U4DNumerical.h"
+#include "U4DTimer.h"
 
 namespace U4DEngine {
     
-    U4DVisibilityManager::U4DVisibilityManager(){
+    U4DVisibilityManager::U4DVisibilityManager():isBVHBuildPaused(true),timeIntervalToBuildBVH(1.0){
+        
+        scheduler=new U4DCallback<U4DVisibilityManager>;
+        
+        timer=new U4DTimer(scheduler);
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DVisibilityManager::bvhTimerIntervalElapsed, timer,timeIntervalToBuildBVH, true);
         
     }
     
     U4DVisibilityManager::~U4DVisibilityManager(){
         
+        delete scheduler;
+        delete timer;
     }
     
     void U4DVisibilityManager::addModelToTreeContainer(U4DDynamicModel* uModel){
@@ -35,10 +44,33 @@ namespace U4DEngine {
         return modelsContainer;
     }
     
+    void U4DVisibilityManager::setPauseBVHFBuild(bool uValue){
+        
+        isBVHBuildPaused=uValue;
+    }
+    
+    bool U4DVisibilityManager::getPauseBVHBuild(){
+        
+        return isBVHBuildPaused;
+    }
+    
+    void U4DVisibilityManager::bvhTimerIntervalElapsed(){
+     
+        isBVHBuildPaused=true;
+        
+        timer->setPause(true);
+        
+    }
+    
+    void U4DVisibilityManager::startTimerForNextBVHBuild(){
+        
+        timer->setPause(false);
+        
+    }
+    
     void U4DVisibilityManager::buildBVH(){
         
         //create parent node
-        
         std::shared_ptr<U4DBVHTree> root(new U4DBVHTree());
         
         treeContainer.push_back(root);
