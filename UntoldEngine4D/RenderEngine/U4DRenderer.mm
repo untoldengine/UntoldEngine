@@ -9,11 +9,9 @@
 
 #include "U4DRenderer.h"
 #include "U4DDirector.h"
-
-
 #include "U4DCamera.h"
 
-#include "MainScene.h"
+
 
 /// Main class performing the rendering
 @implementation U4DRenderer
@@ -85,9 +83,6 @@
         
         
         [self initShadows];
-        
-        //set the scene
-        MainScene *scen1=new MainScene();
         
     }
     
