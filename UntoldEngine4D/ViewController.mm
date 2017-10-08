@@ -12,6 +12,7 @@
 #import "U4DLights.h"
 #import "U4DCamera.h"
 #include "U4DTouches.h"
+#include "MainScene.h"
 
 @implementation ViewController{
     
@@ -22,8 +23,6 @@
 
 - (void)dealloc
 {
-    
-    
     [super dealloc];
 }
 
@@ -66,53 +65,21 @@
     
 }
 
+- (void)viewDidAppear:(BOOL)animated {
+    
+    [super viewDidAppear:animated];
+    
+    //initialize the scene for your game
+    MainScene *mainScene=new MainScene();
+    mainScene->init();
+}
+
+
 - (void)didReceiveMemoryWarning
 {
     [super didReceiveMemoryWarning];
 
-//    if ([self isViewLoaded] && ([[self view] window] == nil)) {
-//        self.view = nil;
-//        
-//        //[self tearDownGL];
-//        
-//        if ([EAGLContext currentContext] == self.context) {
-//            [EAGLContext setCurrentContext:nil];
-//        }
-//        self.context = nil;
-//    }
-
-    // Dispose of any resources that can be recreated.
 }
-
-
-
-//#pragma mark - GLKView and GLKViewController delegate methods
-//
-//- (void)update
-//{
-//    
-//    //call the update
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//    
-//    director->update(self.timeSinceLastUpdate);
-//    
-//    //NSLog(@"Time Since Last Update%f",self.timeSinceLastUpdate);
-//    //NSLog(@"FPS %ld",(long)self.framesPerSecond);
-//    
-//}
-//
-//- (void)glkView:(GLKView *)view drawInRect:(CGRect)rect
-//{
-//    glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-//    glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-//    
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//    
-//    director->draw();
-//   
-//}
-
-
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
  

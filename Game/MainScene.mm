@@ -13,6 +13,13 @@
 #include "U4DGameModelInterface.h"
 #include "U4DTouchesController.h"
 
+MainScene::MainScene(){
+    
+    init();
+}
+
+MainScene::~MainScene(){}
+
 void MainScene::init(){
     
     Earth *earth=new Earth();
