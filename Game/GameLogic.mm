@@ -50,8 +50,6 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     U4DEngine::U4DVector3n view=camera->getViewInDirection();
                     
-                    view.x*=-1.0;
-                    
                     view*=1.0;
                 
                     camera->translateBy(view);
@@ -71,8 +69,6 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
                     
                     U4DEngine::U4DVector3n view=camera->getViewInDirection();
-                    
-                    view.x*=-1.0;
                     
                     view*=-1.0;
                     
