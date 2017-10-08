@@ -91,7 +91,8 @@ namespace U4DEngine {
         //get the entity rotation matrix
         U4DMatrix3n orientationMatrix=getLocalMatrixOrientation();
         
-        orientationMatrix.invert();
+        //removing the invert since it is not needed due to implementation change
+        //orientationMatrix.invert();
         
         return orientationMatrix*forward;
         
