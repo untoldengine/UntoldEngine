@@ -224,6 +224,29 @@ namespace U4DEngine {
         
         loadMTLMaterialInformation();
         
+        loadMTLLightColorInformation();
+        
+    }
+    
+    void U4DRender3DModel::loadMTLLightColorInformation(){
+        
+        lightColorUniform=[mtlDevice newBufferWithLength:sizeof(UniformLightColor) options:MTLResourceStorageModeShared];
+        
+        U4DLights *light=U4DLights::sharedInstance();
+        
+        UniformLightColor uniformLightColor;
+        
+        U4DVector3n diffuseColor=light->getDiffuseColor();
+        U4DVector3n specularColor=light->getSpecularColor();
+        
+        vector_float3 diffuseColorSIMD=convertToSIMD(diffuseColor);
+        vector_float3 specularColorSIMD=convertToSIMD(specularColor);
+        
+        uniformLightColor.diffuseColor=diffuseColorSIMD;
+        uniformLightColor.specularColor=specularColorSIMD;
+        
+        memcpy(lightColorUniform.contents, (void*)&uniformLightColor, sizeof(UniformLightColor));
+        
     }
     
     void U4DRender3DModel::loadMTLMaterialInformation(){
@@ -486,6 +509,7 @@ namespace U4DEngine {
             //set data used in fragment
             [uRenderEncoder setFragmentBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:1];
             [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:2];
+            [uRenderEncoder setFragmentBuffer:lightColorUniform offset:0 atIndex:3];
             
             [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
             [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];

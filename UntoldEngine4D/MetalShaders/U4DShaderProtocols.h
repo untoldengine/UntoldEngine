@@ -41,6 +41,13 @@ typedef struct{
 
 typedef struct{
     
+    vector_float3 diffuseColor;
+    vector_float3 specularColor;
+    
+}UniformLightColor;
+
+typedef struct{
+    
     matrix_float4x4 boneSpace[30];
     
 }UniformBoneSpace;

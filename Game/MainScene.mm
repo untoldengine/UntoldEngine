@@ -13,10 +13,7 @@
 #include "U4DGameModelInterface.h"
 #include "U4DTouchesController.h"
 
-MainScene::MainScene(){
-    
-    init();
-}
+MainScene::MainScene(){}
 
 MainScene::~MainScene(){}
 

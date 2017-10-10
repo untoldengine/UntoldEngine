@@ -29,6 +29,10 @@ namespace U4DEngine {
         
         U4DRenderManager *renderManager;
         
+        U4DVector3n diffuseColor;
+        
+        U4DVector3n specularColor;
+        
     protected:
         
         /**
@@ -69,6 +73,15 @@ namespace U4DEngine {
         void computeLightVolume(U4DPoint3n& uMin,U4DPoint3n& uMax);
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        
+        void setDiffuseColor(U4DVector3n &uDiffuseColor);
+        
+        void setSpecularColor(U4DVector3n &uSpecularColor);
+        
+        U4DVector3n getDiffuseColor();
+        
+        U4DVector3n getSpecularColor();
+        
     };
     
 }
