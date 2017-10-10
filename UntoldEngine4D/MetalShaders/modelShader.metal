@@ -37,9 +37,8 @@ struct VertexOutput{
     int materialIndex [[flat]];
 };
 
-struct Light{
+struct LightColor{
     
-    float3 direction;
     float3 ambientColor;
     float3 diffuseColor;
     float3 specularColor;
@@ -66,7 +65,7 @@ struct Material{
 //    
 //};
 
-float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial);
+float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor);
 
 vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant float4 &lightPosition[[buffer(2)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(3)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(4)]], uint vid [[vertex_id]]){
     
@@ -189,7 +188,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
 }
 
 
-fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(1)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(2)]], texture2d<float> texture[[texture(0)]], depth2d<float> shadowTexture [[texture(1)]], texture2d<float> normalMaptexture[[texture(2)]], sampler sam [[sampler(0)]], sampler normalMapSam [[sampler(1)]]){
+fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(1)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(2)]], constant UniformLightColor &uniformLightColor [[buffer(3)]], texture2d<float> texture[[texture(0)]], depth2d<float> shadowTexture [[texture(1)]], texture2d<float> normalMaptexture[[texture(2)]], sampler sam [[sampler(0)]], sampler normalMapSam [[sampler(1)]]){
     
     
     float4 totalLights;
@@ -206,6 +205,11 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     
     material.specularReflectionPower=float(uniformModelMaterial.specularMaterialHardness[vertexOut.materialIndex]);
     
+    //set the light color
+    LightColor lightColor;
+    lightColor.ambientColor=float3(0.1,0.1,0.1);
+    lightColor.diffuseColor=uniformLightColor.diffuseColor;
+    lightColor.specularColor=uniformLightColor.specularColor;
     
     //compute Normal Map
     if(uniformModelRenderFlags.enableNormalMap){
@@ -213,11 +217,11 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         //sample the normal maptexture color
         float4 sampledNormalMapColor=texture.sample(normalMapSam,vertexOut.uvCoords.xy);
         
-        totalLights=computeLights(vertexOut.lightPositionInTangentSpace, vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material);
+        totalLights=computeLights(vertexOut.lightPositionInTangentSpace, vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
         
     }else{
     
-        totalLights=computeLights(vertexOut.lightPosition, vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material);
+        totalLights=computeLights(vertexOut.lightPosition, vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material, lightColor);
         
     }
     
@@ -283,13 +287,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
 }
 
 
-float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial){
-    
-    Light light;
-    light.ambientColor=float3(0.1,0.1,0.1);
-    light.diffuseColor=float3(1.0,1.0,1.0);
-    light.specularColor=float3(1.0,1.0,1.0);
-
+float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor){
     
     //2. Compute the direction of the light ray betweent the light position and the vertices of the surface
     float3 lightRayDirection=normalize(uLightPosition.xyz-uVerticesInMVSpace.xyz);
@@ -303,20 +301,20 @@ float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uN
     //COMPUTE LIGHTS
     
     //5. compute ambient lighting
-    float3 ambientLight=light.ambientColor*uMaterial.ambientMaterialColor;
+    float3 ambientLight=uLightColor.ambientColor*uMaterial.ambientMaterialColor;
     
     //6. compute diffuse intensity by computing the dot product. We obtain the maximum the value between 0 and the dot product
     float diffuseIntensity=max(0.0,dot(uNormalInMVSpace,lightRayDirection));
     
     //7. compute Diffuse Color
-    float3 diffuseLight=diffuseIntensity*light.diffuseColor*uMaterial.diffuseMaterialColor;
+    float3 diffuseLight=diffuseIntensity*uLightColor.diffuseColor*uMaterial.diffuseMaterialColor;
     
     //8. compute specular lighting
     float3 specularLight=float3(0.0,0.0,0.0);
     
     if(diffuseIntensity>0.0){
         
-        specularLight=light.specularColor*uMaterial.specularMaterialColor*pow(max(dot(reflectionVector,viewVector),0.0),uMaterial.specularReflectionPower);
+        specularLight=uLightColor.specularColor*uMaterial.specularMaterialColor*pow(max(dot(reflectionVector,viewVector),0.0),uMaterial.specularReflectionPower);
         
     }
     

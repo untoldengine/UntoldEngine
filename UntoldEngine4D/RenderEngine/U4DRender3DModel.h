@@ -80,6 +80,8 @@ namespace U4DEngine {
         
         void loadMTLMaterialInformation();
         
+        void loadMTLLightColorInformation();
+        
         void updateSpaceUniforms();
         
         void updateShadowSpaceUniforms();

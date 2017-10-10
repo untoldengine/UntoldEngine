@@ -332,6 +332,17 @@ namespace U4DEngine {
         return v;
     }
     
+    vector_float3 U4DRenderManager::convertToSIMD(U4DEngine::U4DVector3n &uVector){
+        
+        vector_float3 v;
+        
+        v.x=uVector.x;
+        v.y=uVector.y;
+        v.z=uVector.z;
+        
+        return v;
+    }
+    
     vector_float2 U4DRenderManager::convertToSIMD(U4DEngine::U4DVector2n &uVector){
         
         vector_float2 v;

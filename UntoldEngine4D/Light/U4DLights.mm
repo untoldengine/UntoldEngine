@@ -10,6 +10,7 @@
 #include "CommonProtocols.h"
 #include "Constants.h"
 #include "U4DRenderLights.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -25,6 +26,10 @@ namespace U4DEngine {
         computeLightVolume(uMax, uMin);
         
         setEntityType(LIGHT);
+        
+        diffuseColor=U4DVector3n(1.0,1.0,1.0);
+
+        specularColor=U4DVector3n(1.0,1.0,1.0);
         
         translateTo(0.0,0.0,0.0);
         
@@ -145,6 +150,50 @@ namespace U4DEngine {
         U4DQuaternion rotationQuaternion(angle,rotationAxis);
         
         rotateTo(rotationQuaternion);
+        
+    }
+    
+    void U4DLights::setDiffuseColor(U4DVector3n &uDiffuseColor){
+        
+        if ((uDiffuseColor.x>=0.0 && uDiffuseColor.x<=1.0) && (uDiffuseColor.y>=0.0 && uDiffuseColor.y<=1.0) && (uDiffuseColor.z>=0.0 && uDiffuseColor.z<=1.0)) {
+            
+            diffuseColor=uDiffuseColor;
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("Error: The value for the Diffuse Light Color parameter should be between 0 and 1");
+        }
+        
+        
+    }
+    
+    void U4DLights::setSpecularColor(U4DVector3n &uSpecularColor){
+        
+        if ((uSpecularColor.x>=0.0 && uSpecularColor.x<=1.0) && (uSpecularColor.y>=0.0 && uSpecularColor.y<=1.0) && (uSpecularColor.z>=0.0 && uSpecularColor.z<=1.0)) {
+            
+            specularColor=uSpecularColor;
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("Error: The value for the Specular Light Color parameter should be between 0 and 1");
+        }
+        
+        
+    }
+    
+    U4DVector3n U4DLights::getDiffuseColor(){
+        
+        return diffuseColor;
+        
+    }
+    
+    U4DVector3n U4DLights::getSpecularColor(){
+        
+        return specularColor;
         
     }
 

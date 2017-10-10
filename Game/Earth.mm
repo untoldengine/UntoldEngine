@@ -144,23 +144,23 @@ void Earth::init(){
         }
 
     }
-    
+
     //load land
     for(int i=0;i<4;i++){
-        
+
         std::string name="land";
         name+=std::to_string(i+1);
-        
+
         land[i]=new GameAsset();
-        
+
         if(land[i]->init(name.c_str(), "blenderscript.u4d")){
-            
+
             addChild(land[i]);
-            
+
         }
-        
+
     }
-    
+
     //load moss
     for(int i=0;i<6;i++){
 
@@ -176,8 +176,8 @@ void Earth::init(){
         }
 
     }
-    
-    
+
+
     //load stone
 
     for(int i=0;i<7;i++){
@@ -242,14 +242,14 @@ void Earth::init(){
     if(fireplace->init("fireplace", "blenderscript.u4d")){
         addChild(fireplace);
     }
-    
-    
+
+
     ocean=new GameAsset();
-    
+
     if(ocean->init("ocean", "blenderscript.u4d")){
-        
+
         addChild(ocean);
-        
+
     }
     
     

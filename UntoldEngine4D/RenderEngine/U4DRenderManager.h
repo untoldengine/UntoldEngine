@@ -72,6 +72,8 @@ namespace U4DEngine {
         //light
         id<MTLBuffer> lightPositionUniform;
         
+        id<MTLBuffer> lightColorUniform;
+        
         // Decode image raw data
         std::vector<unsigned char> rawImageData;
         unsigned int imageWidth;
@@ -191,6 +193,8 @@ namespace U4DEngine {
         matrix_float3x3 convertToSIMD(U4DEngine::U4DMatrix3n &uMatrix);
         
         vector_float4 convertToSIMD(U4DEngine::U4DVector4n &uVector);
+        
+        vector_float3 convertToSIMD(U4DEngine::U4DVector3n &uVector);
         
         vector_float2 convertToSIMD(U4DEngine::U4DVector2n &uVector);
         
