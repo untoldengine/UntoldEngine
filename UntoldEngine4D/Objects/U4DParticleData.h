@@ -22,23 +22,13 @@ namespace U4DEngine {
         
     public:
         
-        std::vector<U4DVector3n> verticesContainer;
-        
-        std::vector<U4DIndex> indexContainer;
-        
-        std::vector<U4DVector3n> velocityContainer;
-        
-        std::vector<float> startTimeContainer;
-        
         U4DParticleData();
         
         ~U4DParticleData();
         
-        void addVerticesDataToContainer(U4DVector3n& uData);
+        std::vector<U4DVector3n> velocityContainer;
         
-        void addIndexDataToContainer(U4DIndex& uData);
-        
-        std::vector<U4DVector3n> getVerticesDataFromContainer();
+        std::vector<float> startTimeContainer;
         
         void addVelocityDataToContainer(U4DVector3n& uData);
         

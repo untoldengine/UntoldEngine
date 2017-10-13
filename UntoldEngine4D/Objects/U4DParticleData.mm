@@ -18,22 +18,6 @@ namespace U4DEngine {
     U4DParticleData::~U4DParticleData(){
         
     }
-
-    void U4DParticleData::addVerticesDataToContainer(U4DVector3n& uData){
-        
-        verticesContainer.push_back(uData);
-    }
-    
-    std::vector<U4DVector3n> U4DParticleData::getVerticesDataFromContainer(){
-        
-        return verticesContainer;
-        
-    }
-    
-    void U4DParticleData::addIndexDataToContainer(U4DIndex& uData){
-        
-        indexContainer.push_back(uData);
-    }
     
     void U4DParticleData::addVelocityDataToContainer(U4DVector3n& uData){
         

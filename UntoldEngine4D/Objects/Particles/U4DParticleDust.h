@@ -2,8 +2,8 @@
 //  U4DParticleDust.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 12/17/16.
-//  Copyright © 2016 Untold Game Studio. All rights reserved.
+//  Created by Harold Serrano on 10/11/17.
+//  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
 #ifndef U4DParticleDust_hpp
@@ -19,25 +19,28 @@ namespace U4DEngine {
     
     class U4DParticleDust:public U4DParticle {
         
-    private:
+        private:
         
+        public:
         
-    public:
+            U4DCallback<U4DParticleDust> *scheduler;
         
-        U4DCallback<U4DParticleDust> *scheduler;
+            U4DEngine::U4DTimer *animationTimer;
         
-        U4DEngine::U4DTimer *animationElapseTimer;
+            U4DParticleDust();
         
-        U4DParticleDust();
+            ~U4DParticleDust();
         
-        ~U4DParticleDust();
+            void createParticles(float uMajorRadius, float uMinorRadius, int uParticleNumber, float uAnimationDelay, const char *uTexture);
         
-        void createParticles(float uMajorRadius, float uMinorRadius, int uParticleNumber, float uAnimationElapseTime);
+            void updateParticleAnimationTime();
         
-        void animationTimer();
-        
+            /**
+             @brief Document this
+             */
+            float mix(float x, float y, float a);
     };
-
+    
 }
 
 #endif /* U4DParticleDust_hpp */

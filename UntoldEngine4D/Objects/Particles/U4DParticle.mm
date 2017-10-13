@@ -1,28 +1,34 @@
 //
-//  U4DParticles.cpp
+//  U4DParticle.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 12/15/16.
-//  Copyright © 2016 Untold Game Studio. All rights reserved.
+//  Created by Harold Serrano on 10/10/17.
+//  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
 #include "U4DParticle.h"
-#include "U4DOpenGLParticle.h"
+#include "U4DRenderParticle.h"
 #include "U4DVector3n.h"
+#include "U4DDirector.h"
 
 namespace U4DEngine {
     
-    U4DParticle::U4DParticle():animationElapseTime(0.0),numberOfParticles(50){
+    U4DParticle::U4DParticle():particleAnimationElapsedTime(0.0),numberOfParticles(50),diffuseColor(1.0,0.0,0.0,1.0),hasTexture(false),particleLifeTime(50){
         
-    }
-
-    U4DParticle::~U4DParticle(){
-        delete openGlManager;
+        renderManager=new U4DRenderParticle(this);
+        
+        setShader("vertexParticleShader", "fragmentParticleShader");
     }
     
-    void U4DParticle::draw(){
+    U4DParticle::~U4DParticle(){
         
-        openGlManager->draw();
+        delete renderManager;
+        
+    }
+    
+    void U4DParticle::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
         
     }
     
@@ -33,68 +39,96 @@ namespace U4DEngine {
     }
     
     int U4DParticle::getNumberOfParticles(){
-     
+        
         return numberOfParticles;
     }
     
-    void U4DParticle::setAnimationElapseTime(float uAnimationElapseTime){
+    
+    void U4DParticle::setParticleTexture(const char* uTextureImage){
         
-        animationElapseTime=uAnimationElapseTime;
+        renderManager->setDiffuseTexture(uTextureImage);
+        
     }
     
-
     void U4DParticle::setParticlesVertices(){
         
-        //make a cube
-        float width=0.5;
-        float height=0.5;
-        float depth=0.5;
+        U4DDirector *director=U4DDirector::sharedInstance();
         
-        U4DVector3n v1(width,height,depth);
-        U4DVector3n v2(width,height,-depth);
-        U4DVector3n v3(-width,height,-depth);
-        U4DVector3n v4(-width,height,depth);
+        //make a rectangle
+        float width=0.1;
+        float height=0.1;
+        float depth=0.0;
         
-        U4DVector3n v5(width,-height,depth);
-        U4DVector3n v6(width,-height,-depth);
-        U4DVector3n v7(-width,-height,-depth);
-        U4DVector3n v8(-width,-height,depth);
+        //vertices
+        U4DEngine::U4DVector3n v1(width,height,depth);
+        U4DEngine::U4DVector3n v4(width,-height,depth);
+        U4DEngine::U4DVector3n v2(-width,-height,depth);
+        U4DEngine::U4DVector3n v3(-width,height,depth);
         
-        U4DIndex i1(0,1,2);
-        U4DIndex i2(2,3,0);
-        U4DIndex i3(4,5,6);
-        U4DIndex i4(6,7,4);
+        bodyCoordinates.addVerticesDataToContainer(v1);
+        bodyCoordinates.addVerticesDataToContainer(v4);
+        bodyCoordinates.addVerticesDataToContainer(v2);
+        bodyCoordinates.addVerticesDataToContainer(v3);
         
-        U4DIndex i5(5,6,2);
-        U4DIndex i6(2,3,7);
-        U4DIndex i7(7,4,5);
-        U4DIndex i8(5,1,0);
+        //texture
+        U4DEngine::U4DVector2n t4(0.0,0.0);  //top left
+        U4DEngine::U4DVector2n t1(1.0,0.0);  //top right
+        U4DEngine::U4DVector2n t3(0.0,1.0);  //bottom left
+        U4DEngine::U4DVector2n t2(1.0,1.0);  //bottom right
         
-        particleCoordinates.addVerticesDataToContainer(v1);
-        particleCoordinates.addVerticesDataToContainer(v2);
-        particleCoordinates.addVerticesDataToContainer(v3);
-        particleCoordinates.addVerticesDataToContainer(v4);
+        bodyCoordinates.addUVDataToContainer(t1);
+        bodyCoordinates.addUVDataToContainer(t2);
+        bodyCoordinates.addUVDataToContainer(t3);
+        bodyCoordinates.addUVDataToContainer(t4);
         
-        particleCoordinates.addVerticesDataToContainer(v5);
-        particleCoordinates.addVerticesDataToContainer(v6);
-        particleCoordinates.addVerticesDataToContainer(v7);
-        particleCoordinates.addVerticesDataToContainer(v8);
         
-        particleCoordinates.addIndexDataToContainer(i1);
-        particleCoordinates.addIndexDataToContainer(i2);
-        particleCoordinates.addIndexDataToContainer(i3);
-        particleCoordinates.addIndexDataToContainer(i4);
+        U4DEngine::U4DIndex i1(0,1,2);
+        U4DEngine::U4DIndex i2(2,3,0);
         
-        particleCoordinates.addIndexDataToContainer(i5);
-        particleCoordinates.addIndexDataToContainer(i6);
-        particleCoordinates.addIndexDataToContainer(i7);
-        particleCoordinates.addIndexDataToContainer(i8);
+        bodyCoordinates.addIndexDataToContainer(i1);
+        bodyCoordinates.addIndexDataToContainer(i2);
+    
+    }
+    
+    float U4DParticle::getParticleAnimationElapsedTime(){
+        
+        return particleAnimationElapsedTime;
         
     }
     
-    float U4DParticle::mix(float x, float y, float a){
+    void U4DParticle::setDiffuseColor(U4DVector4n &uDiffuseColor){
         
-        return (x*(1-a) + y*a);
+        diffuseColor=uDiffuseColor;
+        
+    }
+    
+    U4DVector4n U4DParticle::getDiffuseColor(){
+        
+        return diffuseColor;
+    }
+    
+    void U4DParticle::setHasTexture(bool uValue){
+        
+        hasTexture=uValue;
+    }
+    
+    bool U4DParticle::getHasTexture(){
+        
+        return hasTexture;
+        
+    }
+    
+    void U4DParticle::setParticleLifetime(int uLifetime){
+        
+        particleLifeTime=uLifetime;
+        
+    }
+    
+    int U4DParticle::getParticleLifetime(){
+        
+        return particleLifeTime;
+        
     }
     
 }
+

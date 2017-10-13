@@ -1,16 +1,20 @@
 //
-//  U4DParticles.hpp
+//  U4DParticle.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 12/15/16.
-//  Copyright © 2016 Untold Game Studio. All rights reserved.
+//  Created by Harold Serrano on 10/10/17.
+//  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef U4DParticles_hpp
-#define U4DParticles_hpp
+#ifndef U4DParticle_hpp
+#define U4DParticle_hpp
 
 #include <stdio.h>
 #include "U4DVisibleEntity.h"
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
+#include "U4DVertexData.h"
+#include "U4DTextureData.h"
 #include "U4DParticleData.h"
 
 namespace U4DEngine {
@@ -20,23 +24,48 @@ namespace U4DEngine {
     private:
         
     protected:
-
-    /**
-     @brief document this
-     */
-    int numberOfParticles;
-    
-    /**
-     @brief document this
-     */
-    float animationElapseTime;
-    
+        
+        /**
+         @brief document this
+         */
+        int numberOfParticles;
+        
+        /**
+         @brief document this
+         */
+        float particleAnimationElapsedTime;
+        
+        /**
+         @brief document this
+         */
+        U4DVector4n diffuseColor;
+        
+        /**
+         @brief document this
+         */
+        bool hasTexture;
+        
+        /**
+         @brief document this
+         */
+        int particleLifeTime;
+        
     public:
         
         /**
-         @brief Object which contains attribute data such as vertices
+         @brief Object which contains attribute data such as vertices, and uv-coordinates
          */
-        U4DParticleData particleCoordinates;
+        U4DVertexData bodyCoordinates;
+        
+        /**
+         @brief Object which contains particle data such as particle velocity
+         */
+        U4DParticleData particleData;
+        
+        /**
+         @brief Object which contains texture information
+         */
+        U4DTextureData textureInformation;
         
         /**
          @brief Constructor of class
@@ -51,13 +80,13 @@ namespace U4DEngine {
         /**
          @brief Method which starts the rendering process of the entity
          */
-        void draw();
-
+        void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        
         /**
          @brief Document this
          */
         void setNumberOfParticles(int uNumberOfParticles);
-
+        
         /**
          @brief Document this
          */
@@ -71,16 +100,36 @@ namespace U4DEngine {
         /**
          @brief document this
          */
-        
-        void setAnimationElapseTime(float uAnimationElapseTime);
+        void setParticleTexture(const char* uTextureImage);
         
         /**
-         @brief Document this
+         @brief document this
          */
-        float mix(float x, float y, float a);
+        virtual void createParticles(float uMajorRadius, float uMinorRadius, int uNumberOfParticles, float uAnimationDelay, const char *uTexture){};
+        
+        /**
+         @brief document this
+         */
+        void particleAnimationTimer();
+        
+        /**
+         @brief document this
+         */
+        float getParticleAnimationElapsedTime();
+        
+        void setDiffuseColor(U4DVector4n &uDiffuseColor);
+        
+        U4DVector4n getDiffuseColor();
+        
+        void setHasTexture(bool uValue);
+        
+        bool getHasTexture();
+        
+        void setParticleLifetime(int uLifetime);
+        
+        int getParticleLifetime();
         
     };
     
 }
-
-#endif /* U4DParticles_hpp */
+#endif /* U4DParticle_hpp */
