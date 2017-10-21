@@ -1,12 +1,12 @@
 //
-//  U4DRenderParticle.cpp
+//  U4DRenderParticleSystem.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 10/9/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#include "U4DRenderParticle.h"
+#include "U4DRenderParticleSystem.h"
 
 #include "U4DShaderProtocols.h"
 #include "U4DDirector.h"
@@ -17,44 +17,44 @@
 
 namespace U4DEngine {
     
-    U4DRenderParticle::U4DRenderParticle(U4DParticle *uU4DParticle){
+    U4DRenderParticleSystem::U4DRenderParticleSystem(U4DParticleSystem *uU4DParticleSystem){
         
-        u4dObject=uU4DParticle;
+        u4dObject=uU4DParticleSystem;
         
         initTextureSamplerObjectNull();
     }
     
-    U4DRenderParticle::~U4DRenderParticle(){
+    U4DRenderParticleSystem::~U4DRenderParticleSystem(){
         
     }
     
-    U4DDualQuaternion U4DRenderParticle::getEntitySpace(){
+    U4DDualQuaternion U4DRenderParticleSystem::getEntitySpace(){
         
         return u4dObject->getAbsoluteSpace();
         
     }
     
-    U4DDualQuaternion U4DRenderParticle::getEntityLocalSpace(){
+    U4DDualQuaternion U4DRenderParticleSystem::getEntityLocalSpace(){
         
         return u4dObject->getLocalSpace();
         
     }
     
-    U4DVector3n U4DRenderParticle::getEntityAbsolutePosition(){
+    U4DVector3n U4DRenderParticleSystem::getEntityAbsolutePosition(){
         
         
         return u4dObject->getAbsolutePosition();
         
     }
     
-    U4DVector3n U4DRenderParticle::getEntityLocalPosition(){
+    U4DVector3n U4DRenderParticleSystem::getEntityLocalPosition(){
         
         return u4dObject->getLocalPosition();
         
     }
     
     
-    void U4DRenderParticle::initMTLRenderLibrary(){
+    void U4DRenderParticleSystem::initMTLRenderLibrary(){
         
         mtlLibrary=[mtlDevice newDefaultLibrary];
         
@@ -66,7 +66,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderParticle::initMTLRenderPipeline(){
+    void U4DRenderParticleSystem::initMTLRenderPipeline(){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
@@ -77,6 +77,15 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
         mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
         
+        mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
+        mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
+        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
+        mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+        
+        mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
+        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorSourceAlpha;
+        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+
         //set the vertex descriptors
         
         MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
@@ -105,7 +114,7 @@ namespace U4DEngine {
         
         depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
         
-        depthStencilDescriptor.depthWriteEnabled=YES;
+        depthStencilDescriptor.depthWriteEnabled=NO;
         
         //        //add stencil description
         //        MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
@@ -125,7 +134,7 @@ namespace U4DEngine {
         
     }
     
-    bool U4DRenderParticle::loadMTLBuffer(){
+    bool U4DRenderParticleSystem::loadMTLBuffer(){
         
         //Align the attribute data
         alignedAttributeData();
@@ -137,10 +146,12 @@ namespace U4DEngine {
             return false;
         }
         
+        int maxNumberOfParticles=u4dObject->getMaxNumberOfParticles();
+        
         attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedParticleData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
         //create the uniform
-        uniformSpaceBuffer=[mtlDevice newBufferWithLength:sizeof(UniformSpace) options:MTLResourceStorageModeShared];
+        uniformSpaceBuffer=[mtlDevice newBufferWithLength:sizeof(UniformSpace)*maxNumberOfParticles options:MTLResourceStorageModeShared];
         
         //load the index into the buffer
         indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
@@ -150,7 +161,7 @@ namespace U4DEngine {
         return true;
     }
     
-    void U4DRenderParticle::loadMTLTexture(){
+    void U4DRenderParticleSystem::loadMTLTexture(){
         
         if (!u4dObject->textureInformation.diffuseTexture.empty()){
             
@@ -173,129 +184,117 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderParticle::loadParticlePropertiesInformation(){
+    void U4DRenderParticleSystem::loadParticlePropertiesInformation(){
         
-        uniformParticlePropertyBuffer=[mtlDevice newBufferWithLength:sizeof(UniformParticleProperty) options:MTLResourceStorageModeShared];
+        int maxNumberOfParticles=u4dObject->getMaxNumberOfParticles();
         
-        UniformParticleProperty uniformParticleProperty;
-        
-        U4DVector4n diffuseColor=u4dObject->getDiffuseColor();
-        
-        vector_float4 diffuseColorSIMD=convertToSIMD(diffuseColor);
-        
-        uniformParticleProperty.diffuseColor=diffuseColorSIMD;
-        uniformParticleProperty.hasTexture=u4dObject->getHasTexture();
-        uniformParticleProperty.particleLifeTime=u4dObject->getParticleLifetime();
-        
-        memcpy(uniformParticlePropertyBuffer.contents,(void*)&uniformParticleProperty, sizeof(UniformParticleProperty));
-        
+        uniformParticlePropertyBuffer=[mtlDevice newBufferWithLength:sizeof(UniformParticleProperty)*maxNumberOfParticles options:MTLResourceStorageModeShared];
     }
     
-    void U4DRenderParticle::loadParticleInstancePropertiesInformation(){
+    void U4DRenderParticleSystem::loadParticleSystemPropertiesInformation(){
         
-        int numberOfParticles=u4dObject->getNumberOfParticles();
+        uniformParticleSystemPropertyBuffer=[mtlDevice newBufferWithLength:sizeof(UniformParticleSystemProperty) options:MTLResourceStorageModeShared];
         
-        uniformParticleInstanceBuffer=[mtlDevice newBufferWithLength:sizeof(UniformParticleInstanceProperty)*numberOfParticles options:MTLResourceStorageModeShared];
+        bool hasTexture=u4dObject->getHasTexture();
+        
+        UniformParticleSystemProperty uniformParticleSystemProperty;
+        
+        uniformParticleSystemProperty.hasTexture=hasTexture;
+        
+        memcpy(uniformParticleSystemPropertyBuffer.contents,(void*)&uniformParticleSystemProperty, sizeof(UniformParticleSystemProperty));
+        
+    }
 
-        UniformParticleInstanceProperty uniformParticleInstanceProperty[numberOfParticles];
-        
-        for(int i=0;i<numberOfParticles;i++){
-            
-            U4DVector3n velocity=u4dObject->particleData.getVelocityDataFromContainer().at(i);
-            float time=u4dObject->particleData.getStartTimeDataFromContainer().at(i);
-            
-            uniformParticleInstanceProperty[i].velocity=convertToSIMD(velocity);
-            uniformParticleInstanceProperty[i].time=time;
-            
-        }
-        
-        memcpy(uniformParticleInstanceBuffer.contents,(void*)&uniformParticleInstanceProperty, sizeof(UniformParticleInstanceProperty)*numberOfParticles);
-        
-        //clear the particle properties. It is not needed anymore
-        clearParticleData();
-    }
-    
-    void U4DRenderParticle::loadParticleAnimationInformation(){
-        
-        uniformParticleAnimationBuffer=[mtlDevice newBufferWithLength:sizeof(UniformParticleAnimation) options:MTLResourceStorageModeShared];
-        
-    }
-    
-    void U4DRenderParticle::updateParticleAnimationTime(){
-        
-        UniformParticleAnimation particleAnimation;
-        
-        particleAnimation.time=u4dObject->getParticleAnimationElapsedTime();
-        
-        memcpy(uniformParticleAnimationBuffer.contents, (void*)&particleAnimation, sizeof(UniformParticleAnimation));
-        
-    }
-    
-    void U4DRenderParticle::loadMTLAdditionalInformation(){
+    void U4DRenderParticleSystem::loadMTLAdditionalInformation(){
         
         //load additional information
+        
+        loadParticleSystemPropertiesInformation();
+        
         loadParticlePropertiesInformation();
-        
-        loadParticleInstancePropertiesInformation();
-        
-        loadParticleAnimationInformation();
+    
     }
     
-    void U4DRenderParticle::setDiffuseTexture(const char* uTexture){
+    void U4DRenderParticleSystem::setDiffuseTexture(const char* uTexture){
         
         u4dObject->textureInformation.diffuseTexture=uTexture;
         
     }
     
-    
-    void U4DRenderParticle::updateSpaceUniforms(){
+    void U4DRenderParticleSystem::updateParticlePropertiesInformation(){
         
-        U4DCamera *camera=U4DCamera::sharedInstance();
-        U4DDirector *director=U4DDirector::sharedInstance();
+        int numberOfEmittedParticles=u4dObject->getNumberOfEmittedParticles();
         
-        U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
+        UniformParticleProperty uniformParticleProperty[numberOfEmittedParticles];
         
-        U4DMatrix4n worldSpace(1,0,0,0,
-                               0,1,0,0,
-                               0,0,1,0,
-                               0,0,0,1);
+        for(int i=0;i<numberOfEmittedParticles;i++){
+            
+            U4DVector3n color=u4dObject->getParticleContainer().at(i).color;
+            
+            vector_float3 colorSIMD=convertToSIMD(color);
+            
+            uniformParticleProperty[i].color=colorSIMD;
+            
+        }
         
-        //YOU NEED TO MODIFY THIS SO THAT IT USES THE U4DCAMERA Position
-        U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
-        viewSpace.invert();
-        
-        U4DMatrix4n modelWorldSpace=worldSpace*modelSpace;
-        
-        U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
-        
-        U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
-        
-        U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
-        
-        //Conver to SIMD
-        matrix_float4x4 modelSpaceSIMD=convertToSIMD(modelSpace);
-        matrix_float4x4 worldModelSpaceSIMD=convertToSIMD(worldSpace);
-        matrix_float4x4 viewWorldModelSpaceSIMD=convertToSIMD(modelWorldViewSpace);
-        matrix_float4x4 viewSpaceSIMD=convertToSIMD(viewSpace);
-        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
-        
-        UniformSpace uniformSpace;
-        uniformSpace.modelSpace=modelSpaceSIMD;
-        uniformSpace.viewSpace=viewSpaceSIMD;
-        uniformSpace.modelViewSpace=viewWorldModelSpaceSIMD;
-        uniformSpace.modelViewProjectionSpace=mvpSpaceSIMD;
-        
-        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
+        memcpy(uniformParticlePropertyBuffer.contents,(void*)&uniformParticleProperty, sizeof(UniformParticleProperty)*numberOfEmittedParticles);
         
     }
     
-    void U4DRenderParticle::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DRenderParticleSystem::updateSpaceUniforms(){
+        
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        U4DDirector *director=U4DDirector::sharedInstance();
+        int numberOfEmittedParticles=u4dObject->getNumberOfEmittedParticles();
+        
+        UniformSpace uniformSpace[numberOfEmittedParticles];
+        
+        for(int i=0;i<numberOfEmittedParticles;i++){
+            
+            U4DMatrix4n modelSpace=u4dObject->getParticleContainer().at(i).absoluteSpace;
+        
+            U4DMatrix4n worldSpace(1,0,0,0,
+                                   0,1,0,0,
+                                   0,0,1,0,
+                                   0,0,0,1);
+            
+            //YOU NEED TO MODIFY THIS SO THAT IT USES THE U4DCAMERA Position
+            U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
+            viewSpace.invert();
+            
+            U4DMatrix4n modelWorldSpace=worldSpace*modelSpace;
+            
+            U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
+            
+            U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+            
+            U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
+            
+            //Conver to SIMD
+            matrix_float4x4 modelSpaceSIMD=convertToSIMD(modelSpace);
+            matrix_float4x4 worldModelSpaceSIMD=convertToSIMD(worldSpace);
+            matrix_float4x4 viewWorldModelSpaceSIMD=convertToSIMD(modelWorldViewSpace);
+            matrix_float4x4 viewSpaceSIMD=convertToSIMD(viewSpace);
+            matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+            
+            
+            uniformSpace[i].modelSpace=modelSpaceSIMD;
+            uniformSpace[i].viewSpace=viewSpaceSIMD;
+            uniformSpace[i].modelViewSpace=viewWorldModelSpaceSIMD;
+            uniformSpace[i].modelViewProjectionSpace=mvpSpaceSIMD;
+            
+        }
+
+        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace)*numberOfEmittedParticles);
+        
+    }
+    
+    void U4DRenderParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         if (eligibleToRender==true) {
             
             updateSpaceUniforms();
-            
-            updateParticleAnimationTime();
+            updateParticlePropertiesInformation();
             
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
@@ -307,15 +306,10 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setVertexBuffer:uniformParticleInstanceBuffer offset:0 atIndex:2];
-            
-            [uRenderEncoder setVertexBuffer:uniformParticleAnimationBuffer offset:0 atIndex:3];
-            
-            [uRenderEncoder setVertexBuffer:uniformParticlePropertyBuffer offset:0 atIndex:4];
+            [uRenderEncoder setVertexBuffer:uniformParticlePropertyBuffer offset:0 atIndex:2];
     
-            
-            //set the buffers in the fragment
-            [uRenderEncoder setFragmentBuffer:uniformParticlePropertyBuffer offset:0 atIndex:1];
+            //encode buffer in fragment
+            [uRenderEncoder setFragmentBuffer:uniformParticleSystemPropertyBuffer offset:0 atIndex:0];
             
             //set texture in fragment
             [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
@@ -325,14 +319,14 @@ namespace U4DEngine {
             
             
             //set the draw command
-            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0 instanceCount:u4dObject->getNumberOfParticles()];
+            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0 instanceCount:u4dObject->getNumberOfEmittedParticles()];
             
         }
         
         
     }
     
-    void U4DRenderParticle::initTextureSamplerObjectNull(){
+    void U4DRenderParticleSystem::initTextureSamplerObjectNull(){
         
         MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
@@ -346,7 +340,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderParticle::alignedAttributeData(){
+    void U4DRenderParticleSystem::alignedAttributeData(){
         
         for(int i=0;i<u4dObject->bodyCoordinates.getVerticesDataFromContainer().size();i++){
             
@@ -374,7 +368,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderParticle::clearModelAttributeData(){
+    void U4DRenderParticleSystem::clearModelAttributeData(){
         
         //clear the attribute data contatiner
         attributeAlignedContainer.clear();
@@ -383,14 +377,5 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.uVContainer.clear();
         
     }
-    
-    void U4DRenderParticle::clearParticleData(){
-        
-        //clear the particle properties. It is not needed anymore
-        u4dObject->particleData.getVelocityDataFromContainer().clear();
-        u4dObject->particleData.getStartTimeDataFromContainer().clear();
-        
-    }
-    
     
 }

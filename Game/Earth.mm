@@ -26,22 +26,62 @@
 #include "GameLogic.h"
 
 #include "GameAsset.h"
-#include "U4DParticleDust.h"
-#include "U4DParticle.h"
+#include "U4DParticleSystem.h"
 
 using namespace U4DEngine;
 
 void Earth::init(){
-        
+    
+//    U4DEntity *rootnode=new U4DEntity();
+//    rootnode->setName("root");
+//
+//    U4DEntity *node1=new U4DEntity();
+//    node1->setName("node1");
+//
+//    U4DEntity *node2=new U4DEntity();
+//    node2->setName("node2");
+//
+//    U4DEntity *node3=new U4DEntity();
+//    node3->setName("node3");
+//
+//    U4DEntity *node1a=new U4DEntity();
+//    node1a->setName("node1a");
+//
+//    U4DEntity *node1b=new U4DEntity();
+//    node1b->setName("node1b");
+//
+//    U4DEntity *node1c=new U4DEntity();
+//    node1c->setName("node1c");
+//
+//    rootnode->addChild(node1);
+//    rootnode->addChild(node2);
+//
+//
+//    node1->addChild(node1a);
+//    //node1->addChild(node1b);
+//    //node1->addChild(node1c);
+//
+//    U4DEntity *child=node1->getLastChild();
+//
+//    while (child!=nullptr) {
+//
+//        std::cout<<child->getName()<<std::endl;
+//
+//        child=child->getPrevSibling();
+//    }
+//
+//
+//    rootnode->addChild(node3);
+    
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,0.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-10.0);
     
     camera->translateTo(cameraPos);
     
     
     setName("earth");
-    setEnableGrid(false);
+    setEnableGrid(true);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -66,25 +106,16 @@ void Earth::init(){
 
     //light->viewInDirection(origin);
 
-
-    U4DParticle *particle=new U4DParticleDust();
-    U4DVector4n color(1.0,1.0,0.0,1.0);
-    particle->setDiffuseColor(color);
+    U4DParticleSystem *particleSystem=new U4DParticleSystem();
+    particleSystem->setParticleTexture("particle.png");
+    particleSystem->init();
+    addChild(particleSystem);
     
-    particle->createParticles(0.25, 0.05, 1000, 0.1, nullptr);
-    
-    addChild(particle);
 }
 
 void Earth::update(double dt){
-
-    U4DLights *light=U4DLights::sharedInstance();
-    U4DCamera *camera=U4DCamera::sharedInstance();
     
-    U4DVector3n cameraPos=camera->getAbsolutePosition();
-    cameraPos.y=20.0;
-    light->translateTo(cameraPos);
-   
+    //rotateBy(0.0,1.0,0.0);
 }
 
 

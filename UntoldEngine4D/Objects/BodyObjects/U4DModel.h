@@ -74,6 +74,8 @@ namespace U4DEngine {
          */
         U4DBoundingVolume *cullingPhaseBoundingVolume;
         
+        bool enableModelVisibility;
+        
         
     protected:
         
@@ -271,6 +273,16 @@ namespace U4DEngine {
          */
         bool getCullingPhaseBoundingVolumeVisibility();
 
+        /**
+         @bried Method which determines if the engine should compute frustom visiblity on the entity
+         */
+        void setEnableModelVisibility(bool uValue);
+        
+        /**
+         @bried document this
+         */
+        bool getEnableModelVisibility();
+        
     };
     
 }

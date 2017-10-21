@@ -23,7 +23,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),enableModelVisibility(true){
         
         renderManager=new U4DRender3DModel(this);
         
@@ -333,6 +333,15 @@ namespace U4DEngine {
         
         return cullingPhaseBoundingVolumeVisibility;
         
+    }
+    
+    void U4DModel::setEnableModelVisibility(bool uValue){
+        
+        enableModelVisibility=uValue;
+    }
+    
+    bool U4DModel::getEnableModelVisibility(){
+        return enableModelVisibility;
     }
 }
 

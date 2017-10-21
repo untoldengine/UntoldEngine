@@ -13,7 +13,7 @@
 #include "U4DDualQuaternion.h"
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
-
+#include "U4DMatrix4n.h"
 
 namespace U4DEngine {
     
@@ -234,6 +234,19 @@ namespace U4DEngine {
         std::vector<KEYFRAMEDATA> keyframes;
         
     }ANIMATIONDATA;
+    
+    /**
+     @brief The PARTICLEDATA structure holds 3D particle data
+     */
+    typedef struct{
+        
+        U4DMatrix4n absoluteSpace;
+        U4DVector3n color;
+        U4DVector3n startColor;
+        U4DVector3n endColor;
+        U4DVector3n deltaColor;
+        
+    }PARTICLEDATA;
 
     /**
      @brief The ENTITYTYPE enumeration holds the type of an entity

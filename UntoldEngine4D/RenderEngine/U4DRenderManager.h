@@ -74,12 +74,11 @@ namespace U4DEngine {
         
         id<MTLBuffer> lightColorUniform;
         
-        //particle uniforms
-        id<MTLBuffer> uniformParticleInstanceBuffer;
+        //particle system uniforms
+        
+        id<MTLBuffer> uniformParticleSystemPropertyBuffer;
         
         id<MTLBuffer> uniformParticlePropertyBuffer;
-        
-        id<MTLBuffer> uniformParticleAnimationBuffer;
         
         // Decode image raw data
         std::vector<unsigned char> rawImageData;

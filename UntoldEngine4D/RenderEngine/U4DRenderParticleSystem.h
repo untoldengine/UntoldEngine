@@ -1,19 +1,19 @@
 //
-//  U4DRenderParticle.hpp
+//  U4DRenderParticleSystem.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 10/9/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#ifndef U4DRenderParticle_hpp
-#define U4DRenderParticle_hpp
+#ifndef U4DRenderParticleSystem_hpp
+#define U4DRenderParticleSystem_hpp
 
 #include <stdio.h>
 #include "U4DRenderManager.h"
 #include <vector>
 #include <simd/simd.h>
-#include "U4DParticle.h"
+#include "U4DParticleSystem.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
@@ -38,19 +38,19 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
-    class U4DRenderParticle:public U4DRenderManager {
+    class U4DRenderParticleSystem:public U4DRenderManager {
         
     private:
         
-        U4DParticle *u4dObject;
+        U4DParticleSystem *u4dObject;
         
         std::vector<AttributeAlignedParticleData> attributeAlignedContainer;
         
     public:
         
-        U4DRenderParticle(U4DParticle *uU4DParticle);
+        U4DRenderParticleSystem(U4DParticleSystem *uU4DParticleSystem);
         
-        ~U4DRenderParticle();
+        ~U4DRenderParticleSystem();
         
         void initMTLRenderLibrary();
         
@@ -62,15 +62,13 @@ namespace U4DEngine {
         
         void loadMTLAdditionalInformation();
         
-        void loadParticleInstancePropertiesInformation();
-        
         void loadParticlePropertiesInformation();
         
-        void loadParticleAnimationInformation();
-        
-        void updateParticleAnimationTime();
-        
+        void loadParticleSystemPropertiesInformation();
+    
         void updateSpaceUniforms();
+        
+        void updateParticlePropertiesInformation();
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
@@ -79,8 +77,6 @@ namespace U4DEngine {
         void clearModelAttributeData();
         
         void initTextureSamplerObjectNull();
-        
-        void clearParticleData();
         
         void setDiffuseTexture(const char* uTexture);
         
@@ -116,4 +112,4 @@ namespace U4DEngine {
     };
     
 }
-#endif /* U4DRenderParticle_hpp */
+#endif /* U4DRenderParticleSystem_hpp */

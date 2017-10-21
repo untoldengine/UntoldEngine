@@ -48,18 +48,15 @@ typedef struct{
 
 typedef struct{
     
-    vector_float3 velocity;
-    float time;
+    vector_float3 color;
     
-}UniformParticleInstanceProperty;
+}UniformParticleProperty;
 
 typedef struct{
     
-    vector_float4 diffuseColor;
-    int particleLifeTime;
     bool hasTexture;
     
-}UniformParticleProperty;
+}UniformParticleSystemProperty;
 
 typedef struct{
     

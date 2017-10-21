@@ -26,17 +26,13 @@ namespace U4DEngine {
         
         ~U4DParticleData();
         
-        std::vector<U4DVector3n> velocityContainer;
+        U4DVector3n color;
         
-        std::vector<float> startTimeContainer;
+        U4DVector3n startColor;
         
-        void addVelocityDataToContainer(U4DVector3n& uData);
+        U4DVector3n endColor;
         
-        std::vector<U4DVector3n> getVelocityDataFromContainer();
-        
-        void addStartTimeDataToContainer(float &uData);
-        
-        std::vector<float> getStartTimeDataFromContainer();
+        U4DVector3n deltaColor;
         
     };
     

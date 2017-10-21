@@ -19,25 +19,4 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleData::addVelocityDataToContainer(U4DVector3n& uData){
-        
-        velocityContainer.push_back(uData);
-    }
-    
-    std::vector<U4DVector3n> U4DParticleData::getVelocityDataFromContainer(){
-        
-        return velocityContainer;
-    }
-    
-    void U4DParticleData::addStartTimeDataToContainer(float &uData){
-        
-        startTimeContainer.push_back(uData);
-    }
-    
-    std::vector<float> U4DParticleData::getStartTimeDataFromContainer(){
-        
-        return startTimeContainer;
-        
-    }
-    
 }
