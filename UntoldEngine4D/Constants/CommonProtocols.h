@@ -246,7 +246,7 @@ namespace U4DEngine {
         U4DVector3n endColor;
         U4DVector3n deltaColor;
         
-    }PARTICLEDATA;
+    }PARTICLERENDERDATA;
 
     /**
      @brief The ENTITYTYPE enumeration holds the type of an entity

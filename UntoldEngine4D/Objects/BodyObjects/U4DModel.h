@@ -74,8 +74,6 @@ namespace U4DEngine {
          */
         U4DBoundingVolume *cullingPhaseBoundingVolume;
         
-        bool enableModelVisibility;
-        
         
     protected:
         
@@ -272,16 +270,6 @@ namespace U4DEngine {
          @return Returns true if the engine should render the culling-phase bounding volume
          */
         bool getCullingPhaseBoundingVolumeVisibility();
-
-        /**
-         @bried Method which determines if the engine should compute frustom visiblity on the entity
-         */
-        void setEnableModelVisibility(bool uValue);
-        
-        /**
-         @bried document this
-         */
-        bool getEnableModelVisibility();
         
     };
     

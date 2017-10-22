@@ -121,11 +121,6 @@ public:
      */
     U4DDynamicModel& operator=(const U4DDynamicModel& value);
     
-    /**
-     @brief document this
-     */
-    U4DParticleData particleData;
-    
     //Add operations
 
     /**

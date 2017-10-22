@@ -13,6 +13,12 @@
 #include "U4DVector3n.h"
 
 namespace U4DEngine {
+
+    class U4DDynamicModel;
+
+}
+
+namespace U4DEngine {
     
     class U4DParticleEmitter {
 
@@ -27,7 +33,6 @@ namespace U4DEngine {
         U4DVector3n angleVariance;
         
         
-        
     public:
         
         /**
@@ -37,6 +42,18 @@ namespace U4DEngine {
         U4DParticleEmitter();
         
         ~U4DParticleEmitter();
+        
+        void setPositionVariance(U4DVector3n &uPosition);
+        
+        void setEmitAngle(U4DVector3n &uAngle);
+        
+        void setEmitAngleVariance(U4DVector3n &uAngle);
+        
+        void setSpeed(float uSpeed);
+        
+        void setParticlePosition(U4DDynamicModel *uParticle);
+        
+        void getRandomNumber();
         
     };
     

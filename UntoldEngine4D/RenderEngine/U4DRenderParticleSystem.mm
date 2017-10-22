@@ -229,7 +229,7 @@ namespace U4DEngine {
         
         for(int i=0;i<numberOfEmittedParticles;i++){
             
-            U4DVector3n color=u4dObject->getParticleContainer().at(i).color;
+            U4DVector3n color=u4dObject->getParticleRenderDataContainer().at(i).color;
             
             vector_float3 colorSIMD=convertToSIMD(color);
             
@@ -251,7 +251,7 @@ namespace U4DEngine {
         
         for(int i=0;i<numberOfEmittedParticles;i++){
             
-            U4DMatrix4n modelSpace=u4dObject->getParticleContainer().at(i).absoluteSpace;
+            U4DMatrix4n modelSpace=u4dObject->getParticleRenderDataContainer().at(i).absoluteSpace;
         
             U4DMatrix4n worldSpace(1,0,0,0,
                                    0,1,0,0,

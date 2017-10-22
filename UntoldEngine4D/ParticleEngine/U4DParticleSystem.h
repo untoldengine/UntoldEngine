@@ -16,11 +16,14 @@
 #include "U4DVertexData.h"
 #include "U4DTextureData.h"
 #include "U4DParticleData.h"
-#include "U4DDynamicModel.h"
+#include "U4DParticle.h"
 #include "CommonProtocols.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
 
+namespace U4DEngine {
+    class U4DParticlePhysics;
+}
 namespace U4DEngine {
     
     class U4DParticleSystem:public U4DVisibleEntity {
@@ -45,12 +48,17 @@ namespace U4DEngine {
         /**
          @brief document this
          */
-        std::vector<PARTICLEDATA> particleContainer;
+        U4DVector3n gravity;
         
         /**
          @brief document this
          */
-        std::vector<U4DDynamicModel*> removeParticleContainer;
+        std::vector<PARTICLERENDERDATA> particleRenderDataContainer;
+        
+        /**
+         @brief document this
+         */
+        std::vector<U4DParticle*> removeParticleContainer;
         
         /**
          @brief document this
@@ -61,6 +69,13 @@ namespace U4DEngine {
          @brief document this
          */
         U4DTimer *timer;
+        
+        /**
+         @brief document this
+         */
+        U4DParticlePhysics *particlePhysics;
+        
+        
         
     public:
         
@@ -146,7 +161,7 @@ namespace U4DEngine {
         /**
          @brief Document this
          */
-        std::vector<PARTICLEDATA> getParticleContainer();
+        std::vector<PARTICLERENDERDATA> getParticleRenderDataContainer();
         
         /**
          @brief Document this

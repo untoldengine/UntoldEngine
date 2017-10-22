@@ -170,6 +170,8 @@
 		03F2DB1B1F193B5300F77B78 /* GameAsset.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DB191F193B5300F77B78 /* GameAsset.mm */; };
 		03F2DB211F19471300F77B78 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DB201F19471300F77B78 /* QuartzCore.framework */; };
 		03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */; };
+		03FFC78A1F9D064800CA76E7 /* U4DParticlePhysics.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFC7881F9D064800CA76E7 /* U4DParticlePhysics.mm */; };
+		03FFC78D1F9D11B600CA76E7 /* U4DParticle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFC78B1F9D11B500CA76E7 /* U4DParticle.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -472,6 +474,10 @@
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayer.mm; sourceTree = "<group>"; };
 		03FE2CDC1F1FA90100D4E2FB /* SoccerPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayer.h; sourceTree = "<group>"; };
+		03FFC7881F9D064800CA76E7 /* U4DParticlePhysics.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DParticlePhysics.mm; path = ParticleEngine/U4DParticlePhysics.mm; sourceTree = "<group>"; };
+		03FFC7891F9D064800CA76E7 /* U4DParticlePhysics.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DParticlePhysics.h; path = ParticleEngine/U4DParticlePhysics.h; sourceTree = "<group>"; };
+		03FFC78B1F9D11B500CA76E7 /* U4DParticle.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DParticle.mm; path = ParticleEngine/U4DParticle.mm; sourceTree = "<group>"; };
+		03FFC78C1F9D11B500CA76E7 /* U4DParticle.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DParticle.h; path = ParticleEngine/U4DParticle.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -902,8 +908,12 @@
 				039FF2451F98EFC400B3D253 /* U4DParticleManager.mm */,
 				039FF2491F98EFE400B3D253 /* U4DParticleSystem.h */,
 				039FF2481F98EFE400B3D253 /* U4DParticleSystem.mm */,
+				03FFC78C1F9D11B500CA76E7 /* U4DParticle.h */,
+				03FFC78B1F9D11B500CA76E7 /* U4DParticle.mm */,
 				039FF24C1F9983A100B3D253 /* U4DParticleEmitter.h */,
 				039FF24B1F9983A100B3D253 /* U4DParticleEmitter.mm */,
+				03FFC7891F9D064800CA76E7 /* U4DParticlePhysics.h */,
+				03FFC7881F9D064800CA76E7 /* U4DParticlePhysics.mm */,
 			);
 			name = ParticleEngine;
 			sourceTree = "<group>";
@@ -1432,6 +1442,7 @@
 				03C03C4F1F4540610001EFA1 /* U4DJoystickStateInterface.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				03F2DAF61F191A2600F77B78 /* worldShader.metal in Sources */,
+				03FFC78A1F9D064800CA76E7 /* U4DParticlePhysics.mm in Sources */,
 				03494BB11F48AE8600ACE0EC /* U4DText.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
@@ -1517,6 +1528,7 @@
 				03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */,
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
+				03FFC78D1F9D11B600CA76E7 /* U4DParticle.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */,
 				03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */,
