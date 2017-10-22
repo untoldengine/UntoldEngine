@@ -18,6 +18,8 @@
 #include "U4DParticleData.h"
 #include "U4DDynamicModel.h"
 #include "CommonProtocols.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
 
 namespace U4DEngine {
     
@@ -43,13 +45,22 @@ namespace U4DEngine {
         /**
          @brief document this
          */
-        int particleLifeTime;
+        std::vector<PARTICLEDATA> particleContainer;
         
         /**
          @brief document this
          */
-        std::vector<PARTICLEDATA> particleContainer;
+        std::vector<U4DDynamicModel*> removeParticleContainer;
         
+        /**
+         @brief document this
+         */
+        U4DCallback<U4DParticleSystem> *scheduler;
+        
+        /**
+         @brief document this
+         */
+        U4DTimer *timer;
         
     public:
         
@@ -90,7 +101,7 @@ namespace U4DEngine {
         /**
          @brief Document this
          */
-        void initParticlesProperties();
+        void initParticles();
         
         /**
          @brief Document this
@@ -137,6 +148,10 @@ namespace U4DEngine {
          */
         std::vector<PARTICLEDATA> getParticleContainer();
         
+        /**
+         @brief Document this
+         */
+        void removeDeadParticle();
         
     };
     

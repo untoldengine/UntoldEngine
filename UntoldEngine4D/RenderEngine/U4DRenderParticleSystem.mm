@@ -291,7 +291,9 @@ namespace U4DEngine {
     
     void U4DRenderParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        if (eligibleToRender==true) {
+        int numberOfEmittedParticles=u4dObject->getNumberOfEmittedParticles();
+        
+        if (eligibleToRender==true && numberOfEmittedParticles>0) {
             
             updateSpaceUniforms();
             updateParticlePropertiesInformation();

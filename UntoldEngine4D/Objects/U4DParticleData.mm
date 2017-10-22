@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DParticleData::U4DParticleData(){
+    U4DParticleData::U4DParticleData():life(1.0),alive(true){
         
     }
     

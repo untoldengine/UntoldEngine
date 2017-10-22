@@ -11,13 +11,18 @@
 #include "U4DNumerical.h"
 #include "U4DTrigonometry.h"
 
+
 namespace U4DEngine {
     
-    U4DParticleSystem::U4DParticleSystem():maxNumberOfParticles(50),emittedNumberOfParticles(50),hasTexture(false),particleLifeTime(50){
+    U4DParticleSystem::U4DParticleSystem():maxNumberOfParticles(50),emittedNumberOfParticles(0),hasTexture(false){
         
         renderManager=new U4DRenderParticleSystem(this);
         
         setShader("vertexParticleSystemShader", "fragmentParticleSystemShader");
+        
+        scheduler=new U4DCallback<U4DParticleSystem>;
+        
+        timer=new U4DTimer(scheduler);
     }
     
     U4DParticleSystem::~U4DParticleSystem(){
@@ -34,7 +39,7 @@ namespace U4DEngine {
         
         particleContainer.clear();
         
-        U4DEntity *child=getLastChild();
+        U4DEntity *child=this->getLastChild();
         
         while (child!=nullptr) {
             
@@ -42,41 +47,60 @@ namespace U4DEngine {
             
             if (model) {
                 
-                //update particle information
-                model->particleData.color=model->particleData.color+model->particleData.deltaColor*dt;
-                
-                
-                //load the info of the particle into the vector
-                PARTICLEDATA particleData;
-                
-                particleData.color=model->particleData.color;
-                
-                particleData.absoluteSpace=model->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
-                
-                particleContainer.push_back(particleData);
+                if(model->particleData.life>0.0){
+                    
+                    //update particle information
+                    model->particleData.color=model->particleData.color+model->particleData.deltaColor*dt;
+                    
+                    //load the info of the particle into the vector
+                    PARTICLEDATA particleData;
+                    
+                    particleData.color=model->particleData.color;
+                    
+                    particleData.absoluteSpace=model->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+                    
+                    particleContainer.push_back(particleData);
+                    
+                    model->particleData.life=model->particleData.life-dt;
+                    
+                }else{
+                    
+                    //particle is dead
+                    model->particleData.alive=false;
+                    
+                    emittedNumberOfParticles--;
+                    
+                    //remove the node from the scenegraph
+                    removeParticleContainer.push_back(model);
+                    
+                }
                 
             }
             
             child=child->getPrevSibling();
+            
         }
         
+        removeDeadParticle();
     }
     
     void U4DParticleSystem::init(){
         
-        initParticlesProperties();
         initParticleAttributes();
         loadRenderingInformation();
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleSystem::initParticles, timer,0.1, true);
+        
     }
     
-    void U4DParticleSystem::initParticlesProperties(){
+    void U4DParticleSystem::initParticles(){
         
         U4DNumerical numerical;
         U4DTrigonometry trig;
         
         U4DVector3n particleSystemPosition=getAbsolutePosition();
         
-        for(int i=0;i<getNumberOfEmittedParticles();i++){
+        if(getNumberOfEmittedParticles()<=getMaxNumberOfParticles()){
             
             U4DDynamicModel *particle=new U4DDynamicModel();
             
@@ -85,7 +109,7 @@ namespace U4DEngine {
             particle->initMass(1.0);
             
             //set particle life
-            float particleLife=5.0;
+            float particleLife=particle->particleData.life;
             
             //set the position variance for the particle
             U4DVector3n positionVariance(0.5,0.5,0.5);
@@ -100,7 +124,7 @@ namespace U4DEngine {
             
             //set the initial velocity for the particle
             U4DVector3n emitAngle(90.0,0.0,90.0);
-            U4DVector3n emitAngleVariance(50.0,30.0,20.0);
+            U4DVector3n emitAngleVariance(0.0,0.0,0.0);
             float speed=20.0;
             
             emitAngleVariance.x=emitAngleVariance.x*numerical.getRandomNumberBetween(-1.0, 1.0);
@@ -127,7 +151,7 @@ namespace U4DEngine {
             
             startColor=startColor+startColorVariance;
             
-            U4DVector3n endColor(0.0,1.0,1.0);
+            U4DVector3n endColor(0.0,0.0,1.0);
             U4DVector3n endColorVariance(0.0,0.0,0.0);
             
             endColorVariance.x=endColorVariance.x*numerical.getRandomNumberBetween(-1.0, 1.0);
@@ -162,86 +186,46 @@ namespace U4DEngine {
             //add child to scenegraph
             addChild(particle);
             
-            
+            emittedNumberOfParticles++;
         }
         
     }
     
     void U4DParticleSystem::initParticleAttributes(){
         
-//        //make a rectangle
+       //make a rectangle
         float width=0.5;
         float height=0.5;
         float depth=0.0;
 
-//        U4DVector3n v1(width,height,depth);
-//        U4DVector3n v2(width,height,-depth);
-//        U4DVector3n v3(-width,height,-depth);
-//        U4DVector3n v4(-width,height,depth);
-//
-//        U4DVector3n v5(width,-height,depth);
-//        U4DVector3n v6(width,-height,-depth);
-//        U4DVector3n v7(-width,-height,-depth);
-//        U4DVector3n v8(-width,-height,depth);
-//
-//        U4DIndex i1(0,1,2);
-//        U4DIndex i2(2,3,0);
-//        U4DIndex i3(4,5,6);
-//        U4DIndex i4(6,7,4);
-//
-//        U4DIndex i5(5,6,2);
-//        U4DIndex i6(2,3,7);
-//        U4DIndex i7(7,4,5);
-//        U4DIndex i8(5,1,0);
-//
-//        bodyCoordinates.addVerticesDataToContainer(v1);
-//        bodyCoordinates.addVerticesDataToContainer(v2);
-//        bodyCoordinates.addVerticesDataToContainer(v3);
-//        bodyCoordinates.addVerticesDataToContainer(v4);
-//
-//        bodyCoordinates.addVerticesDataToContainer(v5);
-//        bodyCoordinates.addVerticesDataToContainer(v6);
-//        bodyCoordinates.addVerticesDataToContainer(v7);
-//        bodyCoordinates.addVerticesDataToContainer(v8);
-//
-//        bodyCoordinates.addIndexDataToContainer(i1);
-//        bodyCoordinates.addIndexDataToContainer(i2);
-//        bodyCoordinates.addIndexDataToContainer(i3);
-//        bodyCoordinates.addIndexDataToContainer(i4);
-//
-//        bodyCoordinates.addIndexDataToContainer(i5);
-//        bodyCoordinates.addIndexDataToContainer(i6);
-//        bodyCoordinates.addIndexDataToContainer(i7);
-//        bodyCoordinates.addIndexDataToContainer(i8);
-        
-                //vertices
-                U4DEngine::U4DVector3n v1(width,height,depth);
-                U4DEngine::U4DVector3n v4(width,-height,depth);
-                U4DEngine::U4DVector3n v2(-width,-height,depth);
-                U4DEngine::U4DVector3n v3(-width,height,depth);
+        //vertices
+        U4DEngine::U4DVector3n v1(width,height,depth);
+        U4DEngine::U4DVector3n v4(width,-height,depth);
+        U4DEngine::U4DVector3n v2(-width,-height,depth);
+        U4DEngine::U4DVector3n v3(-width,height,depth);
 
-                bodyCoordinates.addVerticesDataToContainer(v1);
-                bodyCoordinates.addVerticesDataToContainer(v4);
-                bodyCoordinates.addVerticesDataToContainer(v2);
-                bodyCoordinates.addVerticesDataToContainer(v3);
+        bodyCoordinates.addVerticesDataToContainer(v1);
+        bodyCoordinates.addVerticesDataToContainer(v4);
+        bodyCoordinates.addVerticesDataToContainer(v2);
+        bodyCoordinates.addVerticesDataToContainer(v3);
 
-                //texture
-                U4DEngine::U4DVector2n t4(0.0,0.0);  //top left
-                U4DEngine::U4DVector2n t1(1.0,0.0);  //top right
-                U4DEngine::U4DVector2n t3(0.0,1.0);  //bottom left
-                U4DEngine::U4DVector2n t2(1.0,1.0);  //bottom right
+        //texture
+        U4DEngine::U4DVector2n t4(0.0,0.0);  //top left
+        U4DEngine::U4DVector2n t1(1.0,0.0);  //top right
+        U4DEngine::U4DVector2n t3(0.0,1.0);  //bottom left
+        U4DEngine::U4DVector2n t2(1.0,1.0);  //bottom right
 
-                bodyCoordinates.addUVDataToContainer(t1);
-                bodyCoordinates.addUVDataToContainer(t2);
-                bodyCoordinates.addUVDataToContainer(t3);
-                bodyCoordinates.addUVDataToContainer(t4);
+        bodyCoordinates.addUVDataToContainer(t1);
+        bodyCoordinates.addUVDataToContainer(t2);
+        bodyCoordinates.addUVDataToContainer(t3);
+        bodyCoordinates.addUVDataToContainer(t4);
 
 
-                U4DEngine::U4DIndex i1(0,1,2);
-                U4DEngine::U4DIndex i2(2,3,0);
+        U4DEngine::U4DIndex i1(0,1,2);
+        U4DEngine::U4DIndex i2(2,3,0);
 
-                bodyCoordinates.addIndexDataToContainer(i1);
-                bodyCoordinates.addIndexDataToContainer(i2);
+        bodyCoordinates.addIndexDataToContainer(i1);
+        bodyCoordinates.addIndexDataToContainer(i2);
         
     }
     
@@ -287,6 +271,28 @@ namespace U4DEngine {
     std::vector<PARTICLEDATA> U4DParticleSystem::getParticleContainer(){
         
         return particleContainer;
+        
+    }
+    
+    void U4DParticleSystem::removeDeadParticle(){
+
+        //remove node from tree
+        for(auto n:removeParticleContainer){
+            
+            U4DEntity *parent=n->getParent();
+            
+            parent->removeChild(n);
+            
+        }
+        
+        //destruct the object
+        for (int i=0; i<removeParticleContainer.size(); i++) {
+            
+            delete removeParticleContainer.at(i);
+            
+        }
+        
+        removeParticleContainer.clear();
         
     }
     

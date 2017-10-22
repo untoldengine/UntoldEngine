@@ -34,6 +34,10 @@ namespace U4DEngine {
         
         U4DVector3n deltaColor;
         
+        float life;
+        
+        bool alive;
+        
     };
     
 }

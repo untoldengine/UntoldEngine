@@ -109,6 +109,7 @@ void Earth::init(){
     U4DParticleSystem *particleSystem=new U4DParticleSystem();
     particleSystem->setParticleTexture("particle.png");
     particleSystem->init();
+    
     addChild(particleSystem);
     
 }
