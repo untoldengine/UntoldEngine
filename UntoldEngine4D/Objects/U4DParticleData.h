@@ -34,9 +34,19 @@ namespace U4DEngine {
         
         U4DVector3n deltaColor;
         
+        U4DVector3n startColorVariance;
+        
+        U4DVector3n endColorVariance;
+        
+        U4DVector3n positionVariance;
+        
+        U4DVector3n emitAngle;
+        
+        U4DVector3n emitAngleVariance;
+        
         float life;
         
-        bool alive;
+        float speed;
         
     };
     

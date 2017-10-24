@@ -27,6 +27,9 @@
 
 #include "GameAsset.h"
 #include "U4DParticleSystem.h"
+#include "U4DParticleData.h"
+#include "U4DParticleEmitterInterface.h"
+#include "U4DParticleEmitterLinear.h"
 
 using namespace U4DEngine;
 
@@ -106,10 +109,22 @@ void Earth::init(){
 
     //light->viewInDirection(origin);
 
-    U4DParticleSystem *particleSystem=new U4DParticleSystem();
+    U4DParticleData *particleData=new U4DParticleData();
+    particleData->startColor=U4DVector3n(1.0,0.0,0.0);
+    particleData->endColor=U4DVector3n(0.0,0.0,1.0);
+    particleData->positionVariance=U4DVector3n(0.5,0.5,0.5);
+    particleData->emitAngle=U4DVector3n(90.0,0.0,90.0);
+    particleData->emitAngleVariance=U4DVector3n(10.0,0.0,10.0);
+    particleData->startColorVariance=U4DVector3n(0.0,0.0,0.0);
+    particleData->speed=5.0;
+    particleData->life=2.0;
+
+    U4DParticleEmitterInterface *particleEmitter=new U4DParticleEmitterLinear();
+
+    U4DParticleSystem *particleSystem=new U4DParticleSystem(particleEmitter,particleData);
     particleSystem->setParticleTexture("particle.png");
     particleSystem->init();
-    
+
     addChild(particleSystem);
     
 }

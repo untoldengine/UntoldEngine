@@ -236,19 +236,6 @@ namespace U4DEngine {
     }ANIMATIONDATA;
     
     /**
-     @brief The PARTICLEDATA structure holds 3D particle data
-     */
-    typedef struct{
-        
-        U4DMatrix4n absoluteSpace;
-        U4DVector3n color;
-        U4DVector3n startColor;
-        U4DVector3n endColor;
-        U4DVector3n deltaColor;
-        
-    }PARTICLERENDERDATA;
-
-    /**
      @brief The ENTITYTYPE enumeration holds the type of an entity
      */
     typedef enum{

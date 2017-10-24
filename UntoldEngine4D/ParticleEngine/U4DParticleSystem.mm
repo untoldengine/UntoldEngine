@@ -11,10 +11,11 @@
 #include "U4DNumerical.h"
 #include "U4DTrigonometry.h"
 #include "U4DParticlePhysics.h"
+#include "U4DParticleEmitterInterface.h"
 
 namespace U4DEngine {
     
-    U4DParticleSystem::U4DParticleSystem():maxNumberOfParticles(50),emittedNumberOfParticles(0),hasTexture(false),gravity(0.0,-6.0,0.0){
+    U4DParticleSystem::U4DParticleSystem(U4DParticleEmitterInterface *uParticleEmitter, U4DParticleData *uParticleData):maxNumberOfParticles(50),hasTexture(false),gravity(0.0,-5.0,0.0){
         
         renderManager=new U4DRenderParticleSystem(this);
         
@@ -26,10 +27,17 @@ namespace U4DEngine {
         
         particlePhysics=new U4DParticlePhysics();
         
+        particleEmitter=uParticleEmitter;
+        
+        particleData=uParticleData;
+        
     }
     
     U4DParticleSystem::~U4DParticleSystem(){
         
+        delete timer;
+        delete scheduler;
+        delete particlePhysics;
     }
     
     void U4DParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
@@ -60,13 +68,13 @@ namespace U4DEngine {
                     particle->particleData.color=particle->particleData.color+particle->particleData.deltaColor*dt;
 
                     //load the info of the particle into the vector
-                    PARTICLERENDERDATA particleData;
+                    PARTICLERENDERDATA particleRenderData;
 
-                    particleData.color=particle->particleData.color;
+                    particleRenderData.color=particle->particleData.color;
 
-                    particleData.absoluteSpace=particle->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+                    particleRenderData.absoluteSpace=particle->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
 
-                    particleRenderDataContainer.push_back(particleData);
+                    particleRenderDataContainer.push_back(particleRenderData);
 
                     particle->particleData.life=particle->particleData.life-dt;
 
@@ -75,9 +83,8 @@ namespace U4DEngine {
                 }else{
 
                     //particle is dead
-                    particle->particleData.alive=false;
-
-                    emittedNumberOfParticles--;
+                
+                    particleEmitter->decreaseNumberOfEmittedParticles();
 
                     //remove the node from the scenegraph
                     removeParticleContainer.push_back(particle);
@@ -98,98 +105,13 @@ namespace U4DEngine {
         initParticleAttributes();
         loadRenderingInformation();
         
-        scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleSystem::initParticles, timer,0.1, true);
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleSystem::loadParticles, timer,0.5, true);
         
     }
     
-    void U4DParticleSystem::initParticles(){
+    void U4DParticleSystem::loadParticles(){
         
-        U4DNumerical numerical;
-        U4DTrigonometry trig;
-        
-        U4DVector3n particleSystemPosition=getAbsolutePosition();
-        
-        if(getNumberOfEmittedParticles()<=getMaxNumberOfParticles()){
-            
-            U4DParticle *particle=new U4DParticle();
-            
-            //set the position variance for the particle
-            U4DVector3n positionVariance(0.0,0.0,0.0);
-            
-            positionVariance.x=positionVariance.x*numerical.getRandomNumberBetween(-1.0, 1.0);
-            positionVariance.y=positionVariance.y*numerical.getRandomNumberBetween(-1.0, 1.0);
-            positionVariance.z=positionVariance.z*numerical.getRandomNumberBetween(-1.0, 1.0);
-            
-            U4DVector3n position=particleSystemPosition+positionVariance;
-            
-            particle->translateTo(position);
-            
-            //set the initial velocity for the particle
-            U4DVector3n emitAngle(90.0,0.0,90.0);
-            U4DVector3n emitAngleVariance(10.0,0.0,10.0);
-            float speed=5.0;
-            
-            emitAngleVariance.x=emitAngleVariance.x*numerical.getRandomNumberBetween(-1.0, 1.0);
-            emitAngleVariance.y=emitAngleVariance.y*numerical.getRandomNumberBetween(-1.0, 1.0);
-            emitAngleVariance.z=emitAngleVariance.z*numerical.getRandomNumberBetween(-1.0, 1.0);
-            
-            emitAngle=emitAngle+emitAngleVariance;
-            
-            U4DVector3n emitAxis(cos(trig.degreesToRad(emitAngle.x)),cos(trig.degreesToRad(emitAngle.y)),cos(trig.degreesToRad(emitAngle.z)));
-            
-            emitAxis.normalize();
-            
-            U4DVector3n emitVelocity=emitAxis*speed;
-            
-            particle->setVelocity(emitVelocity);
-            
-            //set start color and end color
-            U4DVector3n startColor(1.0,0.0,0.0);
-            U4DVector3n startColorVariance(0.0,0.0,0.0);
-            
-            startColorVariance.x=startColorVariance.x*numerical.getRandomNumberBetween(-1.0, 1.0);
-            startColorVariance.y=startColorVariance.y*numerical.getRandomNumberBetween(-1.0, 1.0);
-            startColorVariance.z=startColorVariance.z*numerical.getRandomNumberBetween(-1.0, 1.0);
-            
-            startColor=startColor+startColorVariance;
-            
-            U4DVector3n endColor(0.0,0.0,1.0);
-            U4DVector3n endColorVariance(0.0,0.0,0.0);
-            
-            endColorVariance.x=endColorVariance.x*numerical.getRandomNumberBetween(-1.0, 1.0);
-            endColorVariance.y=endColorVariance.y*numerical.getRandomNumberBetween(-1.0, 1.0);
-            endColorVariance.z=endColorVariance.z*numerical.getRandomNumberBetween(-1.0, 1.0);
-            
-            endColor=endColor+endColorVariance;
-            
-            U4DVector3n deltaColor;
-            
-            deltaColor.x=(endColor.x-startColor.x)/particle->particleData.life;;
-            deltaColor.y=(endColor.y-startColor.y)/particle->particleData.life;;
-            deltaColor.z=(endColor.z-startColor.z)/particle->particleData.life;;
-            
-            //load the info of the particle into the vector
-            PARTICLERENDERDATA particleRenderData;
-            
-            //load the data into the container
-            particleRenderData.absoluteSpace=particle->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
-            particleRenderData.startColor=startColor;
-            particleRenderData.endColor=endColor;
-            particleRenderData.deltaColor=deltaColor;
-            
-            particleRenderDataContainer.push_back(particleRenderData);
-          
-            //add information to the particle node
-            particle->particleData.startColor=startColor;
-            particle->particleData.endColor=endColor;
-            particle->particleData.deltaColor=deltaColor;
-            particle->particleData.color=startColor;
-            
-            //add child to scenegraph
-            addChild(particle);
-            
-            emittedNumberOfParticles++;
-        }
+        particleEmitter->emitParticles(this,particleData);
         
     }
     
@@ -242,15 +164,10 @@ namespace U4DEngine {
         return maxNumberOfParticles;
     }
     
-    void U4DParticleSystem::setNumberOfEmittedParticles(int uNumberOfEmittedParticles){
-        
-        emittedNumberOfParticles=uNumberOfEmittedParticles;
-        
-    }
     
     int U4DParticleSystem::getNumberOfEmittedParticles(){
         
-        return emittedNumberOfParticles;
+        return particleEmitter->getNumberOfEmittedParticles();
     }
     
     void U4DParticleSystem::setParticleTexture(const char* uTextureImage){

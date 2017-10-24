@@ -223,21 +223,22 @@ namespace U4DEngine {
     
     void U4DRenderParticleSystem::updateParticlePropertiesInformation(){
         
-        int numberOfEmittedParticles=u4dObject->getNumberOfEmittedParticles();
+        int numberOfParticlesToRender=(int)u4dObject->getParticleRenderDataContainer().size();
         
-        UniformParticleProperty uniformParticleProperty[numberOfEmittedParticles];
+        UniformParticleProperty uniformParticleProperty[numberOfParticlesToRender];
+            
+            for(int i=0;i<u4dObject->getParticleRenderDataContainer().size();i++){
+                
+                U4DVector3n color=u4dObject->getParticleRenderDataContainer().at(i).color;
+                
+                vector_float3 colorSIMD=convertToSIMD(color);
+                
+                uniformParticleProperty[i].color=colorSIMD;
+                
+            }
+            
+        memcpy(uniformParticlePropertyBuffer.contents,(void*)&uniformParticleProperty, sizeof(UniformParticleProperty)*numberOfParticlesToRender);
         
-        for(int i=0;i<numberOfEmittedParticles;i++){
-            
-            U4DVector3n color=u4dObject->getParticleRenderDataContainer().at(i).color;
-            
-            vector_float3 colorSIMD=convertToSIMD(color);
-            
-            uniformParticleProperty[i].color=colorSIMD;
-            
-        }
-        
-        memcpy(uniformParticlePropertyBuffer.contents,(void*)&uniformParticleProperty, sizeof(UniformParticleProperty)*numberOfEmittedParticles);
         
     }
     
@@ -245,11 +246,12 @@ namespace U4DEngine {
         
         U4DCamera *camera=U4DCamera::sharedInstance();
         U4DDirector *director=U4DDirector::sharedInstance();
-        int numberOfEmittedParticles=u4dObject->getNumberOfEmittedParticles();
         
-        UniformSpace uniformSpace[numberOfEmittedParticles];
+        int numberOfParticlesToRender=(int)u4dObject->getParticleRenderDataContainer().size();
         
-        for(int i=0;i<numberOfEmittedParticles;i++){
+        UniformSpace uniformSpace[numberOfParticlesToRender];
+        
+        for(int i=0;i<u4dObject->getParticleRenderDataContainer().size();i++){
             
             U4DMatrix4n modelSpace=u4dObject->getParticleRenderDataContainer().at(i).absoluteSpace;
         
@@ -285,15 +287,15 @@ namespace U4DEngine {
             
         }
 
-        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace)*numberOfEmittedParticles);
+        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace)*numberOfParticlesToRender);
         
     }
     
     void U4DRenderParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        int numberOfEmittedParticles=u4dObject->getNumberOfEmittedParticles();
+        int numberOfParticlesToRender=(int)u4dObject->getParticleRenderDataContainer().size();
         
-        if (eligibleToRender==true && numberOfEmittedParticles>0) {
+        if (eligibleToRender==true && numberOfParticlesToRender>0) {
             
             updateSpaceUniforms();
             updateParticlePropertiesInformation();
@@ -321,7 +323,7 @@ namespace U4DEngine {
             
             
             //set the draw command
-            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0 instanceCount:u4dObject->getNumberOfEmittedParticles()];
+            [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0 instanceCount:numberOfParticlesToRender];
             
         }
         

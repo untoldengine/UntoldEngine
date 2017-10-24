@@ -23,6 +23,25 @@
 
 namespace U4DEngine {
     class U4DParticlePhysics;
+    class U4DParticleEmitterInterface;
+    class U4DParticleData;
+}
+
+namespace U4DEngine {
+    
+    /**
+     @brief The PARTICLERENDERDATA structure holds 3D particle data
+     */
+    typedef struct{
+        
+        U4DMatrix4n absoluteSpace;
+        U4DVector3n color;
+        U4DVector3n startColor;
+        U4DVector3n endColor;
+        U4DVector3n deltaColor;
+        
+    }PARTICLERENDERDATA;
+    
 }
 namespace U4DEngine {
     
@@ -34,11 +53,6 @@ namespace U4DEngine {
          @brief document this
          */
         int maxNumberOfParticles;
-        
-        /**
-         @brief document this
-         */
-        int emittedNumberOfParticles;
         
         /**
          @brief document this
@@ -75,11 +89,19 @@ namespace U4DEngine {
          */
         U4DParticlePhysics *particlePhysics;
         
+        /**
+         @brief document this
+         */
+        U4DParticleEmitterInterface *particleEmitter;
         
+        /**
+         @brief document this
+         */
+        U4DParticleData *particleData;
         
     public:
         
-        U4DParticleSystem();
+        U4DParticleSystem(U4DParticleEmitterInterface *uParticleEmitter, U4DParticleData *uParticleData);
         
         ~U4DParticleSystem();
         
@@ -87,11 +109,6 @@ namespace U4DEngine {
          @brief Object which contains attribute data such as vertices, and uv-coordinates
          */
         U4DVertexData bodyCoordinates;
-        
-        /**
-         @brief Object which contains particle data such as particle velocity
-         */
-        U4DParticleData particleData;
         
         /**
          @brief Object which contains texture information
@@ -116,7 +133,7 @@ namespace U4DEngine {
         /**
          @brief Document this
          */
-        void initParticles();
+        void loadParticles();
         
         /**
          @brief Document this
@@ -132,11 +149,6 @@ namespace U4DEngine {
          @brief Document this
          */
         int getMaxNumberOfParticles();
-        
-        /**
-         @brief Document this
-         */
-        void setNumberOfEmittedParticles(int uNumberOfEmittedParticles);
         
         /**
          @brief Document this
