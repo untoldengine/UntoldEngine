@@ -166,6 +166,8 @@ namespace U4DEngine {
         
         void initializeParticleEmitter();
         
+        void setGravity(U4DVector3n &uGravity);
+        
     };
     
 }

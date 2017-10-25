@@ -35,6 +35,12 @@ namespace U4DEngine {
         
     }
     
+    void U4DParticleSystem::setGravity(U4DVector3n &uGravity){
+        
+        gravity=uGravity;
+        
+    }
+    
     void U4DParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         renderManager->render(uRenderEncoder);

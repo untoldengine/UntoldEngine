@@ -121,10 +121,12 @@ void Earth::init(){
 
     U4DParticleEmitterInterface *particleEmitter=new U4DParticleEmitterLinear();
 
-    particleEmitter->setNumberOfParticlesPerEmission(10);
+    particleEmitter->setNumberOfParticlesPerEmission(50);
     
     U4DParticleSystem *particleSystem=new U4DParticleSystem(particleEmitter,particleData);
     particleSystem->setParticleTexture("particle.png");
+    U4DVector3n gravity(0.0,-1.0,0.0);
+    particleSystem->setGravity(gravity);
     particleSystem->init();
 
     addChild(particleSystem);
