@@ -19,13 +19,13 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleEmitterLinear::computeVelocity(U4DParticle *uParticle, U4DParticleData *uParticleData){
+    void U4DParticleEmitterLinear::computeVelocity(U4DParticle *uParticle){
         
         U4DTrigonometry trig;
         
-        U4DVector3n emitAngle=uParticleData->emitAngle;
-        U4DVector3n emitAngleVariance=uParticleData->emitAngleVariance;
-        float speed=uParticleData->speed;
+        U4DVector3n emitAngle=particleData->emitAngle;
+        U4DVector3n emitAngleVariance=particleData->emitAngleVariance;
+        float speed=particleData->speed;
         
         //compute velocity
         

@@ -12,13 +12,56 @@
 #include "U4DParticle.h"
 #include "U4DTrigonometry.h"
 
+
 namespace U4DEngine {
     
-    U4DParticleEmitter::U4DParticleEmitter():emittedNumberOfParticles(0){
+    U4DParticleEmitter::U4DParticleEmitter():emittedNumberOfParticles(0),numberOfParticlesPerEmission(1),emissionRate(1.0),emitContinuously(true){
         
     }
     
     U4DParticleEmitter::~U4DParticleEmitter(){
+        
+        delete timer;
+        delete scheduler;
+        
+    }
+    
+    void U4DParticleEmitter::setParticleSystem(U4DParticleSystem *uParticleSystem){
+        
+        particleSystem=uParticleSystem;
+        
+    }
+    
+    void U4DParticleEmitter::setParticleData(U4DParticleData *uParticleData){
+        
+        particleData=uParticleData;
+    }
+    
+    void U4DParticleEmitter::setEmitContinuously(bool uValue){
+        
+        emitContinuously=uValue;
+    
+    }
+    
+    void U4DParticleEmitter::initialize(){
+        
+        scheduler=new U4DCallback<U4DParticleEmitter>;
+        
+        timer=new U4DTimer(scheduler);
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleEmitter::emitParticles, timer,emissionRate, emitContinuously);
+        
+    }
+    
+    void U4DParticleEmitter::setNumberOfParticlesPerEmission(int uNumberOfParticles){
+        
+        numberOfParticlesPerEmission=uNumberOfParticles;
+        
+    }
+    
+    void U4DParticleEmitter::setParticleEmissionRate(float uEmissionRate){
+        
+        emissionRate=uEmissionRate;
         
     }
     
@@ -52,25 +95,25 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleEmitter::computePosition(U4DParticle *uParticle, U4DParticleSystem *uParticleSystem, U4DParticleData *uParticleData){
+    void U4DParticleEmitter::computePosition(U4DParticle *uParticle){
         
-        U4DVector3n position=uParticleSystem->getAbsolutePosition();
+        U4DVector3n position=particleSystem->getAbsolutePosition();
         
-        computeVariance(position, uParticleData->positionVariance);
+        computeVariance(position, particleData->positionVariance);
         
         uParticle->translateTo(position);
         
     }
     
-    void U4DParticleEmitter::computeColors(U4DParticle *uParticle, U4DParticleData *uParticleData){
+    void U4DParticleEmitter::computeColors(U4DParticle *uParticle){
         
         //set start color and end color
-        U4DVector3n startColor=uParticleData->startColor;
-        U4DVector3n startColorVariance=uParticleData->startColorVariance;
+        U4DVector3n startColor=particleData->startColor;
+        U4DVector3n startColorVariance=particleData->startColorVariance;
         
         
-        U4DVector3n endColor=uParticleData->endColor;
-        U4DVector3n endColorVariance=uParticleData->endColorVariance;
+        U4DVector3n endColor=particleData->endColor;
+        U4DVector3n endColorVariance=particleData->endColorVariance;
         
         //set starting color
         computeVariance(startColor, startColorVariance);
@@ -80,9 +123,9 @@ namespace U4DEngine {
         
         U4DVector3n deltaColor;
         
-        deltaColor.x=(endColor.x-startColor.x)/uParticleData->life;
-        deltaColor.y=(endColor.y-startColor.y)/uParticleData->life;
-        deltaColor.z=(endColor.z-startColor.z)/uParticleData->life;
+        deltaColor.x=(endColor.x-startColor.x)/particleData->life;
+        deltaColor.y=(endColor.y-startColor.y)/particleData->life;
+        deltaColor.z=(endColor.z-startColor.z)/particleData->life;
         
         //add information to the particle node
         uParticle->particleData.startColor=startColor;
@@ -92,29 +135,39 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleEmitter::emitParticles(U4DParticleSystem *uParticleSystem, U4DParticleData *uParticleData){
+    void U4DParticleEmitter::emitParticles(){
         
         U4DTrigonometry trig;
         
-        if(emittedNumberOfParticles<=uParticleSystem->getMaxNumberOfParticles()){
+        int maxNumberOfParticles=particleSystem->getMaxNumberOfParticles();
+        
+        int allowedNumberOfParticles=maxNumberOfParticles-emittedNumberOfParticles;
+        
+        allowedNumberOfParticles=std::min(allowedNumberOfParticles, numberOfParticlesPerEmission);
+        
+        if((emittedNumberOfParticles+allowedNumberOfParticles)<=particleSystem->getMaxNumberOfParticles()){
             
-            U4DParticle *particle=new U4DParticle();
-            
-            //compute position
-            computePosition(particle, uParticleSystem ,uParticleData);
-            
-            //compute colors
-            computeColors(particle, uParticleData);
-            
-            //compute velocity
-            computeVelocity(particle, uParticleData);
-            
-            particle->particleData.life=uParticleData->life;
-            
-            //add child to scenegraph
-            uParticleSystem->addChild(particle);
-            
-            emittedNumberOfParticles++;
+            for (int i=0; i<allowedNumberOfParticles; i++) {
+                
+                U4DParticle *particle=new U4DParticle();
+                
+                //compute position
+                computePosition(particle);
+                
+                //compute colors
+                computeColors(particle);
+                
+                //compute velocity
+                computeVelocity(particle);
+                
+                particle->particleData.life=particleData->life;
+                
+                //add child to scenegraph
+                particleSystem->addChild(particle);
+                
+                emittedNumberOfParticles++;
+                
+            }
             
         }
         

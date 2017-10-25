@@ -21,10 +21,6 @@ namespace U4DEngine {
         
         setShader("vertexParticleSystemShader", "fragmentParticleSystemShader");
         
-        scheduler=new U4DCallback<U4DParticleSystem>;
-        
-        timer=new U4DTimer(scheduler);
-        
         particlePhysics=new U4DParticlePhysics();
         
         particleEmitter=uParticleEmitter;
@@ -35,9 +31,8 @@ namespace U4DEngine {
     
     U4DParticleSystem::~U4DParticleSystem(){
         
-        delete timer;
-        delete scheduler;
         delete particlePhysics;
+        
     }
     
     void U4DParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
@@ -105,13 +100,17 @@ namespace U4DEngine {
         initParticleAttributes();
         loadRenderingInformation();
         
-        scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleSystem::loadParticles, timer,0.5, true);
+        initializeParticleEmitter();
         
     }
     
-    void U4DParticleSystem::loadParticles(){
+    void U4DParticleSystem::initializeParticleEmitter(){
         
-        particleEmitter->emitParticles(this,particleData);
+        particleEmitter->setParticleSystem(this);
+        
+        particleEmitter->setParticleData(particleData);
+        
+        particleEmitter->initialize();
         
     }
     

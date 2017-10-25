@@ -37,17 +37,29 @@ namespace U4DEngine {
         
         ~U4DParticleEmitterInterface();
         
-        virtual void emitParticles(U4DParticleSystem *uParticleSystem, U4DParticleData *uParticleData)=0;
+        virtual void emitParticles()=0;
         
-        virtual void computeVelocity(U4DParticle *uParticle, U4DParticleData *uParticleData)=0;
+        virtual void computeVelocity(U4DParticle *uParticle)=0;
         
-        virtual void computePosition(U4DParticle *uParticle, U4DParticleSystem *uParticleSystem, U4DParticleData *uParticleData)=0;
+        virtual void computePosition(U4DParticle *uParticle)=0;
         
-        virtual void computeColors(U4DParticle *uParticle, U4DParticleData *uParticleData)=0;
+        virtual void computeColors(U4DParticle *uParticle)=0;
         
         virtual void decreaseNumberOfEmittedParticles()=0;
         
         virtual int getNumberOfEmittedParticles()=0;
+        
+        virtual void setNumberOfParticlesPerEmission(int uNumberOfParticles)=0;
+        
+        virtual void setParticleEmissionRate(float uEmissionRate)=0;
+        
+        virtual void initialize()=0;
+        
+        virtual void setParticleSystem(U4DParticleSystem *uParticleSystem)=0;
+        
+        virtual void setParticleData(U4DParticleData *uParticleData)=0;
+        
+        virtual void setEmitContinuously(bool uValue)=0;
         
     };
     

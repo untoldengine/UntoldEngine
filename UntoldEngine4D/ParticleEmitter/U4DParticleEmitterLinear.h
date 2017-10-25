@@ -27,7 +27,7 @@ namespace U4DEngine {
         
         ~U4DParticleEmitterLinear();
         
-        void computeVelocity(U4DParticle *uParticle, U4DParticleData *uParticleData);
+        void computeVelocity(U4DParticle *uParticle);
         
     };
     

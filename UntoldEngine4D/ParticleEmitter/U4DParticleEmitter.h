@@ -13,6 +13,8 @@
 #include "U4DParticleEmitterInterface.h"
 #include "U4DParticleSystem.h"
 #include "U4DParticleData.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
 
 namespace U4DEngine {
     
@@ -24,27 +26,60 @@ namespace U4DEngine {
         
         int emittedNumberOfParticles;
         
+        int numberOfParticlesPerEmission;
+        
+        float emissionRate;
+        
+        /**
+         @brief document this
+         */
+        U4DCallback<U4DParticleEmitter> *scheduler;
+        
+        /**
+         @brief document this
+         */
+        U4DTimer *timer;
+        
+        U4DParticleSystem *particleSystem;
+        
+        U4DParticleData *particleData;
+        
+        bool emitContinuously;
+        
     public:
         
         U4DParticleEmitter();
         
         ~U4DParticleEmitter();
         
-        void emitParticles(U4DParticleSystem *uParticleSystem, U4DParticleData *uParticleData);
+        void emitParticles();
         
-        virtual void computeVelocity(U4DParticle *uParticle, U4DParticleData *uParticleData){};
+        virtual void computeVelocity(U4DParticle *uParticle){};
         
         float getRandomNumberBetween(float uMinValue, float uMaxValue);
         
         void computeVariance(U4DVector3n &uVector, U4DVector3n &uVectorVariance);
         
-        void computePosition(U4DParticle *uParticle, U4DParticleSystem *uParticleSystem, U4DParticleData *uParticleData);
+        void computePosition(U4DParticle *uParticle);
         
-        void computeColors(U4DParticle *uParticle, U4DParticleData *uParticleData);
+        void computeColors(U4DParticle *uParticle);
         
         void decreaseNumberOfEmittedParticles();
         
         int getNumberOfEmittedParticles();
+        
+        void setNumberOfParticlesPerEmission(int uNumberOfParticles);
+        
+        void setParticleEmissionRate(float uEmissionRate);
+        
+        void initialize();
+        
+        void setParticleSystem(U4DParticleSystem *uParticleSystem);
+        
+        void setParticleData(U4DParticleData *uParticleData);
+        
+        void setEmitContinuously(bool uValue);
+    
         
     };
     

@@ -18,8 +18,7 @@
 #include "U4DParticleData.h"
 #include "U4DParticle.h"
 #include "CommonProtocols.h"
-#include "U4DCallback.h"
-#include "U4DTimer.h"
+
 
 namespace U4DEngine {
     class U4DParticlePhysics;
@@ -77,16 +76,6 @@ namespace U4DEngine {
         /**
          @brief document this
          */
-        U4DCallback<U4DParticleSystem> *scheduler;
-        
-        /**
-         @brief document this
-         */
-        U4DTimer *timer;
-        
-        /**
-         @brief document this
-         */
         U4DParticlePhysics *particlePhysics;
         
         /**
@@ -133,11 +122,6 @@ namespace U4DEngine {
         /**
          @brief Document this
          */
-        void loadParticles();
-        
-        /**
-         @brief Document this
-         */
         void update(double dt);
         
         /**
@@ -179,6 +163,8 @@ namespace U4DEngine {
          @brief Document this
          */
         void removeDeadParticle();
+        
+        void initializeParticleEmitter();
         
     };
     
