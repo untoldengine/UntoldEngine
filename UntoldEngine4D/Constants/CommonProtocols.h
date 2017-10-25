@@ -14,6 +14,7 @@
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
 #include "U4DMatrix4n.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
     
@@ -234,6 +235,43 @@ namespace U4DEngine {
         std::vector<KEYFRAMEDATA> keyframes;
         
     }ANIMATIONDATA;
+    
+    /**
+     @brief The PARTICLESYSTEMDATA structure holds data required by the particle system
+     */
+    typedef struct{
+        
+        U4DVector3n particleStartColor;
+        
+        U4DVector3n particleEndColor;
+        
+        U4DVector3n particleStartColorVariance;
+        
+        U4DVector3n particleEndColorVariance;
+        
+        U4DVector3n particlePositionVariance;
+        
+        U4DVector3n particleEmitAngle;
+        
+        U4DVector3n particleEmitAngleVariance;
+        
+        float particleLife=1.0;
+        
+        float particleSpeed;
+        
+        int numberOfParticlesPerEmission=1;
+        
+        int maxNumberOfParticles=50;
+        
+        float emissionRate=1.0;
+        
+        bool emitContinuously;
+        
+        const char* texture;
+        
+        U4DVector3n gravity;
+        
+    }PARTICLESYSTEMDATA;
     
     /**
      @brief The ENTITYTYPE enumeration holds the type of an entity

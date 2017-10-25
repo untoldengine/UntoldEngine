@@ -35,7 +35,7 @@ namespace U4DEngine {
         
         U4DParticleEmitterInterface();
         
-        ~U4DParticleEmitterInterface();
+        virtual ~U4DParticleEmitterInterface();
         
         virtual void emitParticles()=0;
         
@@ -57,7 +57,7 @@ namespace U4DEngine {
         
         virtual void setParticleSystem(U4DParticleSystem *uParticleSystem)=0;
         
-        virtual void setParticleData(U4DParticleData *uParticleData)=0;
+        virtual void setParticleData(U4DParticleData &uParticleData)=0;
         
         virtual void setEmitContinuously(bool uValue)=0;
         

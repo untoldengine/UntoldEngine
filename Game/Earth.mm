@@ -109,25 +109,26 @@ void Earth::init(){
 
     //light->viewInDirection(origin);
 
-    U4DParticleData *particleData=new U4DParticleData();
-    particleData->startColor=U4DVector3n(1.0,0.0,0.0);
-    particleData->endColor=U4DVector3n(0.0,0.0,1.0);
-    particleData->positionVariance=U4DVector3n(1.5,0.5,1.5);
-    particleData->emitAngle=U4DVector3n(90.0,0.0,90.0);
-    particleData->emitAngleVariance=U4DVector3n(40.0,20.0,30.0);
-    particleData->startColorVariance=U4DVector3n(0.0,0.0,0.0);
-    particleData->speed=5.0;
-    particleData->life=2.0;
-
-    U4DParticleEmitterInterface *particleEmitter=new U4DParticleEmitterLinear();
-
-    particleEmitter->setNumberOfParticlesPerEmission(50);
     
-    U4DParticleSystem *particleSystem=new U4DParticleSystem(particleEmitter,particleData);
-    particleSystem->setParticleTexture("particle.png");
-    U4DVector3n gravity(0.0,-1.0,0.0);
-    particleSystem->setGravity(gravity);
-    particleSystem->init();
+    PARTICLESYSTEMDATA particleData;
+    
+    particleData.particleStartColor=U4DVector3n(1.0,0.0,0.0);
+    particleData.particleEndColor=U4DVector3n(0.0,0.0,1.0);
+    particleData.particlePositionVariance=U4DVector3n(0.5,0.5,0.5);
+    particleData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
+    particleData.particleEmitAngleVariance=U4DVector3n(40.0,20.0,30.0);
+    particleData.particleStartColorVariance=U4DVector3n(0.0,0.0,0.0);
+    particleData.particleSpeed=5.0;
+    particleData.particleLife=2.0;
+    particleData.texture="particle.png";
+    particleData.emitContinuously=true;
+    particleData.numberOfParticlesPerEmission=1.0;
+    particleData.emissionRate=0.1;
+    particleData.maxNumberOfParticles=50;
+    particleData.gravity=U4DVector3n(0.0,-5.0,0.0);
+    
+    U4DParticleSystem *particleSystem=new U4DParticleSystem();
+    particleSystem->init(particleData);
 
     addChild(particleSystem);
     

@@ -32,7 +32,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleEmitter::setParticleData(U4DParticleData *uParticleData){
+    void U4DParticleEmitter::setParticleData(U4DParticleData &uParticleData){
         
         particleData=uParticleData;
     }
@@ -99,7 +99,7 @@ namespace U4DEngine {
         
         U4DVector3n position=particleSystem->getAbsolutePosition();
         
-        computeVariance(position, particleData->positionVariance);
+        computeVariance(position, particleData.positionVariance);
         
         uParticle->translateTo(position);
         
@@ -108,12 +108,12 @@ namespace U4DEngine {
     void U4DParticleEmitter::computeColors(U4DParticle *uParticle){
         
         //set start color and end color
-        U4DVector3n startColor=particleData->startColor;
-        U4DVector3n startColorVariance=particleData->startColorVariance;
+        U4DVector3n startColor=particleData.startColor;
+        U4DVector3n startColorVariance=particleData.startColorVariance;
         
         
-        U4DVector3n endColor=particleData->endColor;
-        U4DVector3n endColorVariance=particleData->endColorVariance;
+        U4DVector3n endColor=particleData.endColor;
+        U4DVector3n endColorVariance=particleData.endColorVariance;
         
         //set starting color
         computeVariance(startColor, startColorVariance);
@@ -123,9 +123,9 @@ namespace U4DEngine {
         
         U4DVector3n deltaColor;
         
-        deltaColor.x=(endColor.x-startColor.x)/particleData->life;
-        deltaColor.y=(endColor.y-startColor.y)/particleData->life;
-        deltaColor.z=(endColor.z-startColor.z)/particleData->life;
+        deltaColor.x=(endColor.x-startColor.x)/particleData.life;
+        deltaColor.y=(endColor.y-startColor.y)/particleData.life;
+        deltaColor.z=(endColor.z-startColor.z)/particleData.life;
         
         //add information to the particle node
         uParticle->particleData.startColor=startColor;
@@ -160,7 +160,7 @@ namespace U4DEngine {
                 //compute velocity
                 computeVelocity(particle);
                 
-                particle->particleData.life=particleData->life;
+                particle->particleData.life=particleData.life;
                 
                 //add child to scenegraph
                 particleSystem->addChild(particle);

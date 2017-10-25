@@ -15,7 +15,6 @@
 #include "U4DRenderManager.h"
 #include "U4DVertexData.h"
 #include "U4DTextureData.h"
-#include "U4DParticleData.h"
 #include "U4DParticle.h"
 #include "CommonProtocols.h"
 
@@ -23,7 +22,6 @@
 namespace U4DEngine {
     class U4DParticlePhysics;
     class U4DParticleEmitterInterface;
-    class U4DParticleData;
 }
 
 namespace U4DEngine {
@@ -83,14 +81,9 @@ namespace U4DEngine {
          */
         U4DParticleEmitterInterface *particleEmitter;
         
-        /**
-         @brief document this
-         */
-        U4DParticleData *particleData;
-        
     public:
         
-        U4DParticleSystem(U4DParticleEmitterInterface *uParticleEmitter, U4DParticleData *uParticleData);
+        U4DParticleSystem();
         
         ~U4DParticleSystem();
         
@@ -112,7 +105,7 @@ namespace U4DEngine {
         /**
          @brief Document this
          */
-        void init();
+        void init(PARTICLESYSTEMDATA &uParticleSystemData);
         
         /**
          @brief Document this
@@ -164,9 +157,10 @@ namespace U4DEngine {
          */
         void removeDeadParticle();
         
-        void initializeParticleEmitter();
+        void removeAllParticles();
         
-        void setGravity(U4DVector3n &uGravity);
+        void initializeParticleEmitter(PARTICLESYSTEMDATA &uParticleSystemData);
+        
         
     };
     

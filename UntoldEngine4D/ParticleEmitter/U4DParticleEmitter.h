@@ -42,7 +42,7 @@ namespace U4DEngine {
         
         U4DParticleSystem *particleSystem;
         
-        U4DParticleData *particleData;
+        U4DParticleData particleData;
         
         bool emitContinuously;
         
@@ -76,11 +76,10 @@ namespace U4DEngine {
         
         void setParticleSystem(U4DParticleSystem *uParticleSystem);
         
-        void setParticleData(U4DParticleData *uParticleData);
+        void setParticleData(U4DParticleData &uParticleData);
         
         void setEmitContinuously(bool uValue);
     
-        
     };
     
 }

@@ -23,9 +23,9 @@ namespace U4DEngine {
         
         U4DTrigonometry trig;
         
-        U4DVector3n emitAngle=particleData->emitAngle;
-        U4DVector3n emitAngleVariance=particleData->emitAngleVariance;
-        float speed=particleData->speed;
+        U4DVector3n emitAngle=particleData.emitAngle;
+        U4DVector3n emitAngleVariance=particleData.emitAngleVariance;
+        float speed=particleData.speed;
         
         //compute velocity
         

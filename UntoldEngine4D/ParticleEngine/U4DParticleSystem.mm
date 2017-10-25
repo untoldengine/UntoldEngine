@@ -11,11 +11,14 @@
 #include "U4DNumerical.h"
 #include "U4DTrigonometry.h"
 #include "U4DParticlePhysics.h"
+#include "U4DParticleData.h"
 #include "U4DParticleEmitterInterface.h"
+#include "U4DParticleEmitterLinear.h"
+
 
 namespace U4DEngine {
     
-    U4DParticleSystem::U4DParticleSystem(U4DParticleEmitterInterface *uParticleEmitter, U4DParticleData *uParticleData):maxNumberOfParticles(50),hasTexture(false),gravity(0.0,-5.0,0.0){
+    U4DParticleSystem::U4DParticleSystem():maxNumberOfParticles(50),hasTexture(false),gravity(0.0,-5.0,0.0){
         
         renderManager=new U4DRenderParticleSystem(this);
         
@@ -23,21 +26,17 @@ namespace U4DEngine {
         
         particlePhysics=new U4DParticlePhysics();
         
-        particleEmitter=uParticleEmitter;
-        
-        particleData=uParticleData;
+        particleEmitter=new U4DParticleEmitterLinear();
         
     }
     
     U4DParticleSystem::~U4DParticleSystem(){
         
+        delete particleEmitter;
+
         delete particlePhysics;
         
-    }
-    
-    void U4DParticleSystem::setGravity(U4DVector3n &uGravity){
-        
-        gravity=uGravity;
+        removeAllParticles();
         
     }
     
@@ -101,16 +100,54 @@ namespace U4DEngine {
         removeDeadParticle();
     }
     
-    void U4DParticleSystem::init(){
+    void U4DParticleSystem::init(PARTICLESYSTEMDATA &uParticleSystemData){
+        
+        setParticleTexture(uParticleSystemData.texture);
         
         initParticleAttributes();
+        
         loadRenderingInformation();
         
-        initializeParticleEmitter();
+        initializeParticleEmitter(uParticleSystemData);
         
     }
     
-    void U4DParticleSystem::initializeParticleEmitter(){
+    void U4DParticleSystem::initializeParticleEmitter(PARTICLESYSTEMDATA &uParticleSystemData){
+        
+        
+        U4DParticleData particleData;
+        
+        //color
+        particleData.startColor=uParticleSystemData.particleStartColor;
+        particleData.startColorVariance=uParticleSystemData.particleStartColorVariance;
+        
+        particleData.endColor=uParticleSystemData.particleEndColor;
+        particleData.endColorVariance=uParticleSystemData.particleEndColorVariance;
+        
+        //position
+        particleData.positionVariance=uParticleSystemData.particlePositionVariance;
+        
+        //angle
+        particleData.emitAngle=uParticleSystemData.particleEmitAngle;
+        particleData.emitAngleVariance=uParticleSystemData.particleEmitAngleVariance;
+        
+        //speed
+        particleData.speed=uParticleSystemData.particleSpeed;
+        
+        //life
+        particleData.life=uParticleSystemData.particleLife;
+        
+        
+        maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
+        
+        gravity=uParticleSystemData.gravity;
+        
+        particleEmitter->setNumberOfParticlesPerEmission(uParticleSystemData.numberOfParticlesPerEmission);
+        
+        particleEmitter->setEmitContinuously(uParticleSystemData.emitContinuously);
+        
+        particleEmitter->setParticleEmissionRate(uParticleSystemData.emissionRate);
+        
         
         particleEmitter->setParticleSystem(this);
         
@@ -217,6 +254,27 @@ namespace U4DEngine {
         }
         
         removeParticleContainer.clear();
+        
+    }
+    
+    void U4DParticleSystem::removeAllParticles(){
+        
+        U4DEntity *child=this->getLastChild();
+        
+        while (child!=nullptr) {
+            
+            U4DParticle *particle=dynamic_cast<U4DParticle*>(child);
+            
+            if (particle) {
+                
+                removeParticleContainer.push_back(particle);
+                
+            }
+            
+            child=child->getPrevSibling();
+        }
+        
+        removeDeadParticle();
         
     }
     
