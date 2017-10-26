@@ -173,4 +173,9 @@ namespace U4DEngine {
         
     }
     
+    float U4DParticleEmitter::mix(float x, float y, float a){
+        
+        return (x*(1-a) + y*a);
+    }
+    
 }

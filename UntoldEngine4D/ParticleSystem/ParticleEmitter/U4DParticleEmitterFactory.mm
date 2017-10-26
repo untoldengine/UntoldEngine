@@ -8,6 +8,8 @@
 
 #include "U4DParticleEmitterFactory.h"
 #include "U4DParticleEmitterLinear.h"
+#include "U4DParticleEmitterTorus.h"
+#include "U4DParticleEmitterSphere.h"
 
 namespace U4DEngine {
     
@@ -27,6 +29,17 @@ namespace U4DEngine {
             case LINEAREMITTER:
 
                 particleEmitter=new U4DParticleEmitterLinear();
+                
+                break;
+            case TORUSEMITTER:
+                
+                particleEmitter=new U4DParticleEmitterTorus();
+                
+                break;
+                
+            case SPHERICALEMITTER:
+                
+                particleEmitter=new U4DParticleEmitterSphere();
                 
                 break;
                 

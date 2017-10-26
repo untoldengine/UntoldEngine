@@ -44,6 +44,12 @@ namespace U4DEngine {
         
         U4DVector3n emitAngleVariance;
         
+        float torusMajorRadius;
+        
+        float torusMinorRadius;
+        
+        float sphereRadius;
+        
         float life;
         
         float speed;

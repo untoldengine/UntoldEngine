@@ -242,7 +242,7 @@ namespace U4DEngine {
     typedef enum{
         
         LINEAREMITTER,
-        RADIALEMITTER,
+        TORUSEMITTER,
         SPHERICALEMITTER,
         PLANAREMITTER
         
@@ -266,6 +266,21 @@ namespace U4DEngine {
         U4DVector3n particleEmitAngle;
         
         U4DVector3n particleEmitAngleVariance;
+        
+        /**
+         @brief Distance from the center of the torus to the center of the tube
+         */
+        float torusMajorRadius=15.0;
+        
+        /**
+         @brief Radius of the torus tube
+         */
+        float torusMinorRadius=5.0;
+        
+        /**
+         @brief Radius of the sphere
+         */
+        float sphereRadius=2.0;
         
         float particleLife=1.0;
         

@@ -106,6 +106,9 @@ namespace U4DEngine {
         
         initParticleAttributes(uParticleSystemData.particleSize);
         
+        //max number of particles
+        maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
+        
         loadRenderingInformation();
         
         initializeParticleEmitter(uParticleSystemData);
@@ -142,17 +145,26 @@ namespace U4DEngine {
             //life
             particleData.life=uParticleSystemData.particleLife;
             
-            
-            maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
-            
+            //gravity
             gravity=uParticleSystemData.gravity;
             
+            //particles per emission
             particleEmitter->setNumberOfParticlesPerEmission(uParticleSystemData.numberOfParticlesPerEmission);
             
+            //emit continuously
             particleEmitter->setEmitContinuously(uParticleSystemData.emitContinuously);
             
+            //emission rate
             particleEmitter->setParticleEmissionRate(uParticleSystemData.emissionRate);
             
+            //torus major radius
+            particleData.torusMajorRadius=uParticleSystemData.torusMajorRadius;
+            
+            //torus minor radius
+            particleData.torusMinorRadius=uParticleSystemData.torusMinorRadius;
+            
+            //sphere radius
+            particleData.sphereRadius=uParticleSystemData.sphereRadius;
             
             particleEmitter->setParticleSystem(this);
             

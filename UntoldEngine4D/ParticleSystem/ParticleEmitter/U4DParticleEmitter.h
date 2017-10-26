@@ -79,6 +79,8 @@ namespace U4DEngine {
         void setParticleData(U4DParticleData &uParticleData);
         
         void setEmitContinuously(bool uValue);
+        
+        float mix(float x, float y, float a);
     
     };
     
