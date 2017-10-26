@@ -104,7 +104,7 @@ namespace U4DEngine {
         
         setParticleTexture(uParticleSystemData.texture);
         
-        initParticleAttributes();
+        initParticleAttributes(uParticleSystemData.particleSize);
         
         loadRenderingInformation();
         
@@ -164,11 +164,11 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleSystem::initParticleAttributes(){
+    void U4DParticleSystem::initParticleAttributes(float uSize){
         
        //make a rectangle
-        float width=0.5;
-        float height=0.5;
+        float width=uSize;
+        float height=uSize;
         float depth=0.0;
 
         //vertices

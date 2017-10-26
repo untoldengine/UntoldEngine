@@ -285,6 +285,8 @@ namespace U4DEngine {
         
         int particleSystemType=0;
         
+        float particleSize=0.5;
+        
     }PARTICLESYSTEMDATA;
     
     /**

@@ -115,7 +115,7 @@ namespace U4DEngine {
         /**
          @brief Document this
          */
-        void initParticleAttributes();
+        void initParticleAttributes(float uSize);
         
         /**
          @brief Document this
