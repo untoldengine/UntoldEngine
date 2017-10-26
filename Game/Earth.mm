@@ -114,19 +114,19 @@ void Earth::init(){
     
     particleData.particleStartColor=U4DVector3n(1.0,0.0,0.0);
     particleData.particleEndColor=U4DVector3n(0.0,0.0,1.0);
-    particleData.particlePositionVariance=U4DVector3n(0.5,0.5,0.5);
+    particleData.particlePositionVariance=U4DVector3n(5.0,0.0,5.0);
     particleData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
-    particleData.particleEmitAngleVariance=U4DVector3n(40.0,20.0,30.0);
+    particleData.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
     particleData.particleStartColorVariance=U4DVector3n(0.0,0.0,0.0);
-    particleData.particleSpeed=0.5;
-    particleData.particleLife=1.0;
+    particleData.particleSpeed=4.0;
+    particleData.particleLife=2.0;
     particleData.texture="particle.png";
     particleData.emitContinuously=true;
-    particleData.numberOfParticlesPerEmission=200.0;
-    particleData.emissionRate=1.0;
-    particleData.maxNumberOfParticles=200;
-    particleData.gravity=U4DVector3n(0.0,0.0,0.0);
-    particleData.particleSystemType=TORUSEMITTER;
+    particleData.numberOfParticlesPerEmission=1.0;
+    particleData.emissionRate=0.5;
+    particleData.maxNumberOfParticles=50;
+    particleData.gravity=U4DVector3n(0.0,-5.0,0.0);
+    particleData.particleSystemType=LINEAREMITTER;
     particleData.particleSize=0.5;
     particleData.torusMajorRadius=10.0;
     particleData.torusMinorRadius=3.0;
@@ -135,9 +135,13 @@ void Earth::init(){
     U4DParticleSystem *particleSystem=new U4DParticleSystem();
     particleSystem->init(particleData);
 
-    particleSystem->rotateBy(90.0, 0.0, 0.0);
+    //particleSystem->rotateBy(90.0, 0.0, 0.0);
     
     addChild(particleSystem);
+    
+     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
+    
+    gameModel->setParticleSystem(particleSystem);
     
 }
 

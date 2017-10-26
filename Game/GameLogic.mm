@@ -35,6 +35,11 @@ void GameLogic::init(){
     
 }
 
+void GameLogic::setParticleSystem(U4DEngine::U4DParticleSystem *uParticleSystem){
+    
+    particleSystem=uParticleSystem;
+    
+}
 
 void GameLogic::receiveTouchUpdate(void *uData){
     
@@ -46,13 +51,15 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
-                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+                    //delete the particle
+                    std::cout<<"Deleting the particle system"<<std::endl;
                     
-                    U4DEngine::U4DVector3n view=camera->getViewInDirection();
+                    if (particleSystem!=nullptr) {
+                        
+                        delete particleSystem;
+                        particleSystem=nullptr;
+                    }
                     
-                    view*=1.0;
-                
-                    camera->translateBy(view);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -66,13 +73,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
-                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-                    
-                    U4DEngine::U4DVector3n view=camera->getViewInDirection();
-                    
-                    view*=-1.0;
-                    
-                    camera->translateBy(view);
+                   
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -87,13 +88,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==joystickActive) {
                     
-                    U4DEngine::U4DVector3n axis(0.0,1.0,0.0);
-                    
-                    U4DEngine::U4DVector3n direction=touchInputMessage.joystickDirection;
-                    
-                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-                    
-                    camera->rotateBy(direction.x, axis);
+                   
                     
                 }else if(touchInputMessage.touchInputData==joystickInactive){
                     

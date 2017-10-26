@@ -21,7 +21,10 @@ namespace U4DEngine {
     
     U4DParticleEmitter::~U4DParticleEmitter(){
         
+        scheduler->unScheduleTimer(timer);
+        
         delete timer;
+        
         delete scheduler;
         
     }
