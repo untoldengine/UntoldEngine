@@ -26,7 +26,7 @@ namespace U4DEngine {
         
         particlePhysics=new U4DParticlePhysics();
         
-        particleEmitter=new U4DParticleEmitterLinear();
+        particleEmitter=nullptr;
         
     }
     
@@ -114,46 +114,53 @@ namespace U4DEngine {
     
     void U4DParticleSystem::initializeParticleEmitter(PARTICLESYSTEMDATA &uParticleSystemData){
         
+        //get the particle emitter
         
-        U4DParticleData particleData;
+        particleEmitter=emitterFactory.createEmitter(uParticleSystemData.particleSystemType);
         
-        //color
-        particleData.startColor=uParticleSystemData.particleStartColor;
-        particleData.startColorVariance=uParticleSystemData.particleStartColorVariance;
-        
-        particleData.endColor=uParticleSystemData.particleEndColor;
-        particleData.endColorVariance=uParticleSystemData.particleEndColorVariance;
-        
-        //position
-        particleData.positionVariance=uParticleSystemData.particlePositionVariance;
-        
-        //angle
-        particleData.emitAngle=uParticleSystemData.particleEmitAngle;
-        particleData.emitAngleVariance=uParticleSystemData.particleEmitAngleVariance;
-        
-        //speed
-        particleData.speed=uParticleSystemData.particleSpeed;
-        
-        //life
-        particleData.life=uParticleSystemData.particleLife;
-        
-        
-        maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
-        
-        gravity=uParticleSystemData.gravity;
-        
-        particleEmitter->setNumberOfParticlesPerEmission(uParticleSystemData.numberOfParticlesPerEmission);
-        
-        particleEmitter->setEmitContinuously(uParticleSystemData.emitContinuously);
-        
-        particleEmitter->setParticleEmissionRate(uParticleSystemData.emissionRate);
-        
-        
-        particleEmitter->setParticleSystem(this);
-        
-        particleEmitter->setParticleData(particleData);
-        
-        particleEmitter->initialize();
+        if (particleEmitter!=nullptr) {
+            
+            U4DParticleData particleData;
+            
+            //color
+            particleData.startColor=uParticleSystemData.particleStartColor;
+            particleData.startColorVariance=uParticleSystemData.particleStartColorVariance;
+            
+            particleData.endColor=uParticleSystemData.particleEndColor;
+            particleData.endColorVariance=uParticleSystemData.particleEndColorVariance;
+            
+            //position
+            particleData.positionVariance=uParticleSystemData.particlePositionVariance;
+            
+            //angle
+            particleData.emitAngle=uParticleSystemData.particleEmitAngle;
+            particleData.emitAngleVariance=uParticleSystemData.particleEmitAngleVariance;
+            
+            //speed
+            particleData.speed=uParticleSystemData.particleSpeed;
+            
+            //life
+            particleData.life=uParticleSystemData.particleLife;
+            
+            
+            maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
+            
+            gravity=uParticleSystemData.gravity;
+            
+            particleEmitter->setNumberOfParticlesPerEmission(uParticleSystemData.numberOfParticlesPerEmission);
+            
+            particleEmitter->setEmitContinuously(uParticleSystemData.emitContinuously);
+            
+            particleEmitter->setParticleEmissionRate(uParticleSystemData.emissionRate);
+            
+            
+            particleEmitter->setParticleSystem(this);
+            
+            particleEmitter->setParticleData(particleData);
+            
+            particleEmitter->initialize();
+            
+        }
         
     }
     

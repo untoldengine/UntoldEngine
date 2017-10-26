@@ -237,6 +237,18 @@ namespace U4DEngine {
     }ANIMATIONDATA;
     
     /**
+     @brief The PARTICLESYSTEMTYPE enum holds data required by the particle system type
+     */
+    typedef enum{
+        
+        LINEAREMITTER,
+        RADIALEMITTER,
+        SPHERICALEMITTER,
+        PLANAREMITTER
+        
+    }PARTICLESYSTEMTYPE;
+    
+    /**
      @brief The PARTICLESYSTEMDATA structure holds data required by the particle system
      */
     typedef struct{
@@ -270,6 +282,8 @@ namespace U4DEngine {
         const char* texture;
         
         U4DVector3n gravity;
+        
+        int particleSystemType=0;
         
     }PARTICLESYSTEMDATA;
     

@@ -80,6 +80,7 @@
 		038248EB1F9ED60F00DFEFE3 /* U4DParticleEmitterLinear.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038248E91F9ED60F00DFEFE3 /* U4DParticleEmitterLinear.mm */; };
 		038248EE1F9ED71600DFEFE3 /* U4DParticleEmitter.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038248EC1F9ED71600DFEFE3 /* U4DParticleEmitter.mm */; };
 		038248F31FA0448400DFEFE3 /* U4DParticleData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038248F11FA0448300DFEFE3 /* U4DParticleData.mm */; };
+		038248F61FA122AD00DFEFE3 /* U4DParticleEmitterFactory.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038248F41FA122AD00DFEFE3 /* U4DParticleEmitterFactory.mm */; };
 		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; };
 		039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */; };
 		039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175021CE190C300FD2674 /* U4DBVHCollision.mm */; };
@@ -308,6 +309,8 @@
 		038248ED1F9ED71600DFEFE3 /* U4DParticleEmitter.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DParticleEmitter.h; sourceTree = "<group>"; };
 		038248F11FA0448300DFEFE3 /* U4DParticleData.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DParticleData.mm; path = ParticleEngine/U4DParticleData.mm; sourceTree = "<group>"; };
 		038248F21FA0448300DFEFE3 /* U4DParticleData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DParticleData.h; path = ParticleEngine/U4DParticleData.h; sourceTree = "<group>"; };
+		038248F41FA122AD00DFEFE3 /* U4DParticleEmitterFactory.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DParticleEmitterFactory.mm; sourceTree = "<group>"; };
+		038248F51FA122AD00DFEFE3 /* U4DParticleEmitterFactory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DParticleEmitterFactory.h; sourceTree = "<group>"; };
 		038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingConvex.mm; path = BoundingVolumes/U4DBoundingConvex.mm; sourceTree = "<group>"; };
 		038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingConvex.h; path = BoundingVolumes/U4DBoundingConvex.h; sourceTree = "<group>"; };
 		039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRestingForcesGenerator.mm; path = RestingForces/U4DRestingForcesGenerator.mm; sourceTree = "<group>"; };
@@ -891,6 +894,8 @@
 				038248EC1F9ED71600DFEFE3 /* U4DParticleEmitter.mm */,
 				038248EA1F9ED60F00DFEFE3 /* U4DParticleEmitterLinear.h */,
 				038248E91F9ED60F00DFEFE3 /* U4DParticleEmitterLinear.mm */,
+				038248F51FA122AD00DFEFE3 /* U4DParticleEmitterFactory.h */,
+				038248F41FA122AD00DFEFE3 /* U4DParticleEmitterFactory.mm */,
 			);
 			path = ParticleEmitter;
 			sourceTree = "<group>";
@@ -1411,6 +1416,7 @@
 				03759B49175B0135002EB5D9 /* main.m in Sources */,
 				03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */,
 				0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */,
+				038248F61FA122AD00DFEFE3 /* U4DParticleEmitterFactory.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
 				03F2DB131F191F9B00F77B78 /* U4DRenderSkybox.mm in Sources */,
 				038248F31FA0448400DFEFE3 /* U4DParticleData.mm in Sources */,

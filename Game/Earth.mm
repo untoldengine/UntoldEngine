@@ -126,6 +126,8 @@ void Earth::init(){
     particleData.emissionRate=0.1;
     particleData.maxNumberOfParticles=50;
     particleData.gravity=U4DVector3n(0.0,-5.0,0.0);
+    particleData.particleSystemType=LINEAREMITTER;
+    
     
     U4DParticleSystem *particleSystem=new U4DParticleSystem();
     particleSystem->init(particleData);

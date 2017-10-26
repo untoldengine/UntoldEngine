@@ -17,7 +17,7 @@
 #include "U4DTextureData.h"
 #include "U4DParticle.h"
 #include "CommonProtocols.h"
-
+#include "U4DParticleEmitterFactory.h"
 
 namespace U4DEngine {
     class U4DParticlePhysics;
@@ -80,6 +80,11 @@ namespace U4DEngine {
          @brief document this
          */
         U4DParticleEmitterInterface *particleEmitter;
+        
+        /**
+         @brief document this
+         */
+        U4DParticleEmitterFactory emitterFactory;
         
     public:
         
