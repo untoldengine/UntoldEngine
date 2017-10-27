@@ -100,11 +100,13 @@ namespace U4DEngine {
     
     void U4DParticleEmitter::computePosition(U4DParticle *uParticle){
         
-        U4DVector3n position=particleSystem->getAbsolutePosition();
+        U4DVector3n vectorVariance;
         
-        computeVariance(position, particleData.positionVariance);
+        vectorVariance.x=particleData.positionVariance.x*getRandomNumberBetween(-1.0, 1.0);
+        vectorVariance.y=particleData.positionVariance.y*getRandomNumberBetween(-1.0, 1.0);
+        vectorVariance.z=particleData.positionVariance.z*getRandomNumberBetween(-1.0, 1.0);
         
-        uParticle->translateTo(position);
+        uParticle->translateBy(vectorVariance);
         
     }
     

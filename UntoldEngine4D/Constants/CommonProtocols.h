@@ -243,8 +243,7 @@ namespace U4DEngine {
         
         LINEAREMITTER,
         TORUSEMITTER,
-        SPHERICALEMITTER,
-        PLANAREMITTER
+        SPHERICALEMITTER
         
     }PARTICLESYSTEMTYPE;
     

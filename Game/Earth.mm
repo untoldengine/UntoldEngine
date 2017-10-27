@@ -78,7 +78,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-10.0);
     
     camera->translateTo(cameraPos);
     
@@ -112,19 +112,20 @@ void Earth::init(){
     
     PARTICLESYSTEMDATA particleData;
     
-    particleData.particleStartColor=U4DVector3n(1.0,0.0,0.0);
-    particleData.particleEndColor=U4DVector3n(0.0,0.0,1.0);
-    particleData.particlePositionVariance=U4DVector3n(5.0,0.0,5.0);
+    particleData.particleStartColor=U4DVector3n(0.0,0.0,1.0);
+    particleData.particleStartColorVariance=U4DVector3n(0.5,0.5,0.0);
+    particleData.particleEndColor=U4DVector3n(0.5,0.5,0.5);
+    particleData.particlePositionVariance=U4DVector3n(1.0,0.0,1.0);
     particleData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
     particleData.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
-    particleData.particleStartColorVariance=U4DVector3n(0.0,0.0,0.0);
+    
     particleData.particleSpeed=4.0;
-    particleData.particleLife=2.0;
+    particleData.particleLife=1.0;
     particleData.texture="particle.png";
     particleData.emitContinuously=true;
-    particleData.numberOfParticlesPerEmission=1.0;
-    particleData.emissionRate=0.5;
-    particleData.maxNumberOfParticles=50;
+    particleData.numberOfParticlesPerEmission=10.0;
+    particleData.emissionRate=0.2;
+    particleData.maxNumberOfParticles=200;
     particleData.gravity=U4DVector3n(0.0,-5.0,0.0);
     particleData.particleSystemType=LINEAREMITTER;
     particleData.particleSize=0.5;
@@ -135,6 +136,7 @@ void Earth::init(){
     U4DParticleSystem *particleSystem=new U4DParticleSystem();
     particleSystem->init(particleData);
 
+    particleSystem->translateTo(1.0, 0.0, 0.0);
     //particleSystem->rotateBy(90.0, 0.0, 0.0);
     
     addChild(particleSystem);

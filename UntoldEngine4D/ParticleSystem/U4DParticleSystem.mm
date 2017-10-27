@@ -56,7 +56,7 @@ namespace U4DEngine {
         particleRenderDataContainer.clear();
 
         U4DEntity *child=this->getLastChild();
-
+        
         while (child!=nullptr) {
 
             U4DParticle *particle=dynamic_cast<U4DParticle*>(child);
@@ -77,7 +77,7 @@ namespace U4DEngine {
 
                     particleRenderData.color=particle->particleData.color;
 
-                    particleRenderData.absoluteSpace=particle->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+                    particleRenderData.absoluteSpace=(particle->getLocalSpace()*particle->getParent()->getAbsoluteSpace()).transformDualQuaternionToMatrix4n();
 
                     particleRenderDataContainer.push_back(particleRenderData);
 
