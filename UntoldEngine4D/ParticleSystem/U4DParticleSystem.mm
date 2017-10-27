@@ -18,7 +18,7 @@
 
 namespace U4DEngine {
     
-    U4DParticleSystem::U4DParticleSystem():maxNumberOfParticles(50),hasTexture(false),gravity(0.0,-5.0,0.0){
+    U4DParticleSystem::U4DParticleSystem():maxNumberOfParticles(50),hasTexture(false),gravity(0.0,-5.0,0.0),enableAdditiveRendering(true),enableNoise(false),noiseDetail(4.0){
         
         renderManager=new U4DRenderParticleSystem(this);
         
@@ -114,6 +114,15 @@ namespace U4DEngine {
         //max number of particles
         maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
         
+        //gravity
+        gravity=uParticleSystemData.gravity;
+        
+        enableAdditiveRendering=uParticleSystemData.enableAdditiveRendering;
+        
+        enableNoise=uParticleSystemData.enableNoise;
+        
+        noiseDetail=uParticleSystemData.noiseDetail;
+        
         loadRenderingInformation();
         
         initializeParticleEmitter(uParticleSystemData);
@@ -149,9 +158,6 @@ namespace U4DEngine {
             
             //life
             particleData.life=uParticleSystemData.particleLife;
-            
-            //gravity
-            gravity=uParticleSystemData.gravity;
             
             //particles per emission
             particleEmitter->setNumberOfParticlesPerEmission(uParticleSystemData.numberOfParticlesPerEmission);
@@ -300,6 +306,21 @@ namespace U4DEngine {
         
         removeDeadParticle();
         
+    }
+    
+    bool U4DParticleSystem::getEnableAdditiveRendering(){
+        
+        return enableAdditiveRendering;
+    }
+    
+    bool U4DParticleSystem::getEnableNoise(){
+        
+        return enableNoise;
+    }
+    
+    float U4DParticleSystem::getNoiseDetail(){
+        
+        return noiseDetail;
     }
     
 }

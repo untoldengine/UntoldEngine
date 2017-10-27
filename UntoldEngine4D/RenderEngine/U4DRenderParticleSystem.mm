@@ -80,7 +80,16 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
         mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
         mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
-        mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+        
+        if (u4dObject->getEnableAdditiveRendering()) {
+            
+            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+            
+        }else{
+            
+            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+            
+        }
         
         mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
         mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorSourceAlpha;
@@ -197,9 +206,15 @@ namespace U4DEngine {
         
         bool hasTexture=u4dObject->getHasTexture();
         
+        bool enableNoise=u4dObject->getEnableNoise();
+        
+        float noiseDetail=u4dObject->getNoiseDetail();
+        
         UniformParticleSystemProperty uniformParticleSystemProperty;
         
         uniformParticleSystemProperty.hasTexture=hasTexture;
+        uniformParticleSystemProperty.enableNoise=enableNoise;
+        uniformParticleSystemProperty.noiseDetail=noiseDetail;
         
         memcpy(uniformParticleSystemPropertyBuffer.contents,(void*)&uniformParticleSystemProperty, sizeof(UniformParticleSystemProperty));
         

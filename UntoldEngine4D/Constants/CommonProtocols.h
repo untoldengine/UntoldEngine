@@ -301,6 +301,12 @@ namespace U4DEngine {
         
         float particleSize=0.5;
         
+        bool enableNoise=false;
+        
+        float noiseDetail=4.0;
+        
+        bool enableAdditiveRendering=true;
+        
     }PARTICLESYSTEMDATA;
     
     /**

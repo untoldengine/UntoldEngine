@@ -27,7 +27,7 @@ struct VertexOutput{
 };
 
 float3 hash3( float2 p );
-float noise( float2 uv);
+float noise( float2 uv, float detail);
 
 vertex VertexOutput vertexParticleSystemShader(VertexInput vert [[stage_in]], constant UniformSpace *uniformSpace [[buffer(1)]], constant UniformParticleProperty *uniformParticleProperty [[buffer(2)]], uint vid [[vertex_id]], ushort iid [[instance_id]]){
     
@@ -51,7 +51,13 @@ fragment float4 fragmentParticleSystemShader(VertexOutput vertexOut [[stage_in]]
         
         sampledColor=texture.sample(sam,vertexOut.uvCoords);
 
-        sampledColor=sampledColor*vertexOut.color;
+        if(uniformParticleSystemProperty.enableNoise){
+            
+            sampledColor=sampledColor*noise(vertexOut.uvCoords, uniformParticleSystemProperty.noiseDetail)*vertexOut.color;
+            
+        }else{
+            sampledColor=sampledColor*vertexOut.color;
+        }
         
     }else{
         sampledColor=vertexOut.color;
@@ -69,11 +75,11 @@ float3 hash3( float2 p )
     return fract(sin(q)*43758.5453);
 }
 
-float noise( float2 uv)
+float noise( float2 uv, float detail)
 {
     
     
-    float2 x=float2(8.0*uv.x,8.0*uv.y);
+    float2 x=float2(detail*uv.x,detail*uv.y);
     
     float u=0.0;
     float v=1.0;

@@ -86,6 +86,21 @@ namespace U4DEngine {
          */
         U4DParticleEmitterFactory emitterFactory;
         
+        /**
+         @brief document this
+         */
+        bool enableAdditiveRendering;
+        
+        /**
+         @brief document this
+         */
+        bool enableNoise;
+        
+        /**
+         @brief document this
+         */
+        float noiseDetail;
+        
     public:
         
         U4DParticleSystem();
@@ -166,6 +181,11 @@ namespace U4DEngine {
         
         void initializeParticleEmitter(PARTICLESYSTEMDATA &uParticleSystemData);
         
+        bool getEnableAdditiveRendering();
+        
+        bool getEnableNoise();
+        
+        float getNoiseDetail();
         
     };
     

@@ -112,25 +112,30 @@ void Earth::init(){
     
     PARTICLESYSTEMDATA particleData;
     
-    particleData.particleStartColor=U4DVector3n(0.0,0.0,1.0);
-    particleData.particleStartColorVariance=U4DVector3n(0.5,0.5,0.0);
-    particleData.particleEndColor=U4DVector3n(0.5,0.5,0.5);
-    particleData.particlePositionVariance=U4DVector3n(1.0,0.0,1.0);
+    particleData.particleStartColor=U4DVector3n(0.2,0.2,0.2);
+    //particleData.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
+    particleData.particleEndColor=U4DVector3n(0.9,0.9,0.9);
+    
+    particleData.particlePositionVariance=U4DVector3n(0.5,0.0,0.5);
+    
     particleData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
     particleData.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
     
-    particleData.particleSpeed=4.0;
-    particleData.particleLife=1.0;
+    particleData.particleSpeed=1.0;
+    particleData.particleLife=2.0;
     particleData.texture="particle.png";
     particleData.emitContinuously=true;
-    particleData.numberOfParticlesPerEmission=10.0;
-    particleData.emissionRate=0.2;
+    particleData.numberOfParticlesPerEmission=1.0;
+    particleData.emissionRate=0.1;
     particleData.maxNumberOfParticles=200;
-    particleData.gravity=U4DVector3n(0.0,-5.0,0.0);
+    particleData.gravity=U4DVector3n(0.0,0.0,0.0);
     particleData.particleSystemType=LINEAREMITTER;
+    particleData.enableNoise=true;
+    particleData.noiseDetail=4.0;
+    particleData.enableAdditiveRendering=false;
     particleData.particleSize=0.5;
-    particleData.torusMajorRadius=10.0;
-    particleData.torusMinorRadius=3.0;
+    particleData.torusMajorRadius=5.0;
+    particleData.torusMinorRadius=1.0;
     particleData.sphereRadius=5.0;
     
     U4DParticleSystem *particleSystem=new U4DParticleSystem();

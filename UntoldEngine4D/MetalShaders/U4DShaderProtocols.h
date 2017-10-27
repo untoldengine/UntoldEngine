@@ -55,6 +55,8 @@ typedef struct{
 typedef struct{
     
     bool hasTexture;
+    bool enableNoise;
+    float noiseDetail;
     
 }UniformParticleSystemProperty;
 
