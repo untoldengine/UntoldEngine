@@ -26,8 +26,8 @@ struct VertexOutput{
     
 };
 
-float3 hash3( float2 p );
-float noise( float2 uv, float detail);
+float2 hash( float2 x );
+float noise(float2 p, float noiseDetail );
 
 vertex VertexOutput vertexParticleSystemShader(VertexInput vert [[stage_in]], constant UniformSpace *uniformSpace [[buffer(1)]], constant UniformParticleProperty *uniformParticleProperty [[buffer(2)]], uint vid [[vertex_id]], ushort iid [[instance_id]]){
     
@@ -67,42 +67,31 @@ fragment float4 fragmentParticleSystemShader(VertexOutput vertexOut [[stage_in]]
     
 }
 
-float3 hash3( float2 p )
+//The following is a Perlin noise function. It is explained here http://mrl.nyu.edu/~perlin/noise/ and here http://mrl.nyu.edu/~perlin/paper445.pdf
+//The implementation was gotten from here https://www.shadertoy.com/view/XdXGW8. I did minor changes such as use the improved fade function mentioned
+//by Perlin
+
+float2 hash( float2 x )
 {
-    float3 q = float3( dot(p,float2(127.1,311.7)),
-                  dot(p,float2(269.5,183.3)),
-                  dot(p,float2(419.2,371.9)) );
-    return fract(sin(q)*43758.5453);
+    const float2 k = float2( 0.3183099, 0.3678794 );
+    x = x*k + k.yx;
+    return -1.0 + 2.0*fract( 16.0 * k*fract( x.x*x.y*(x.x+x.y)) );
 }
 
-float noise( float2 uv, float detail)
+float noise(float2 p, float noiseDetail )
 {
+    p*=noiseDetail;
+    
+    float2 i = floor( p );
+    float2 f = fract( p );
+    
+    //improved fade function
+    float2 u=f*f*f*(6.0*f*f-15.0*f+10.0);
+    
+    return (mix( mix( dot( hash( i + float2(0.0,0.0) ), f - float2(0.0,0.0) ),
+                     dot( hash( i + float2(1.0,0.0) ), f - float2(1.0,0.0) ), u.x),
+                mix( dot( hash( i + float2(0.0,1.0) ), f - float2(0.0,1.0) ),
+                    dot( hash( i + float2(1.0,1.0) ), f - float2(1.0,1.0) ), u.x), u.y))*0.5+0.5;
     
     
-    float2 x=float2(detail*uv.x,detail*uv.y);
-    
-    float u=0.0;
-    float v=1.0;
-    
-    float2 p = floor(x);
-    float2 f = fract(x);
-    
-    float k = 1.0+63.0*pow(1.0-v,4.0);
-    
-    float va = 0.0;
-    float wt = 0.0;
-    for( int j=-2; j<=2; j++ )
-        for( int i=-2; i<=2; i++ )
-        {
-            float2 g = float2( float(i),float(j) );
-            float3 o = hash3( p + g )*float3(u,u,1.0);
-            float2 r = g - f + o.xy;
-            float d = dot(r,r);
-            float ww = pow( 1.0-smoothstep(0.0,1.414,sqrt(d)), k );
-            va += o.z*ww;
-            wt += ww;
-        }
-    
-    return va/wt;
 }
-

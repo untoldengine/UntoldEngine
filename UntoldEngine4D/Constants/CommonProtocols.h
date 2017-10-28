@@ -303,6 +303,7 @@ namespace U4DEngine {
         
         bool enableNoise=false;
         
+        //Noise frequency. Possible values are 1,2,4,8,16,32
         float noiseDetail=4.0;
         
         bool enableAdditiveRendering=true;

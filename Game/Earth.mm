@@ -133,7 +133,7 @@ void Earth::init(){
     particleData.enableNoise=true;
     particleData.noiseDetail=4.0;
     particleData.enableAdditiveRendering=false;
-    particleData.particleSize=0.5;
+    particleData.particleSize=1.0;
     particleData.torusMajorRadius=5.0;
     particleData.torusMinorRadius=1.0;
     particleData.sphereRadius=5.0;
