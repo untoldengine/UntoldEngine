@@ -13,7 +13,8 @@
 #include "U4DDualQuaternion.h"
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
-
+#include "U4DMatrix4n.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
     
@@ -234,7 +235,81 @@ namespace U4DEngine {
         std::vector<KEYFRAMEDATA> keyframes;
         
     }ANIMATIONDATA;
-
+    
+    /**
+     @brief The PARTICLESYSTEMTYPE enum holds data required by the particle system type
+     */
+    typedef enum{
+        
+        LINEAREMITTER,
+        TORUSEMITTER,
+        SPHERICALEMITTER
+        
+    }PARTICLESYSTEMTYPE;
+    
+    /**
+     @brief The PARTICLESYSTEMDATA structure holds data required by the particle system
+     */
+    typedef struct{
+        
+        U4DVector3n particleStartColor;
+        
+        U4DVector3n particleEndColor;
+        
+        U4DVector3n particleStartColorVariance;
+        
+        U4DVector3n particleEndColorVariance;
+        
+        U4DVector3n particlePositionVariance;
+        
+        U4DVector3n particleEmitAngle;
+        
+        U4DVector3n particleEmitAngleVariance;
+        
+        /**
+         @brief Distance from the center of the torus to the center of the tube
+         */
+        float torusMajorRadius=15.0;
+        
+        /**
+         @brief Radius of the torus tube
+         */
+        float torusMinorRadius=5.0;
+        
+        /**
+         @brief Radius of the sphere
+         */
+        float sphereRadius=2.0;
+        
+        float particleLife=1.0;
+        
+        float particleSpeed;
+        
+        int numberOfParticlesPerEmission=1;
+        
+        int maxNumberOfParticles=50;
+        
+        float emissionRate=1.0;
+        
+        bool emitContinuously;
+        
+        const char* texture;
+        
+        U4DVector3n gravity;
+        
+        int particleSystemType=0;
+        
+        float particleSize=0.5;
+        
+        bool enableNoise=false;
+        
+        //Noise frequency. Possible values are 1,2,4,8,16,32
+        float noiseDetail=4.0;
+        
+        bool enableAdditiveRendering=true;
+        
+    }PARTICLESYSTEMDATA;
+    
     /**
      @brief The ENTITYTYPE enumeration holds the type of an entity
      */

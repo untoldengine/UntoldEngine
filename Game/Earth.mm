@@ -26,14 +26,59 @@
 #include "GameLogic.h"
 
 #include "GameAsset.h"
+#include "U4DParticleSystem.h"
+#include "U4DParticleData.h"
+#include "U4DParticleEmitterInterface.h"
+#include "U4DParticleEmitterLinear.h"
 
 using namespace U4DEngine;
 
 void Earth::init(){
-        
+    
+//    U4DEntity *rootnode=new U4DEntity();
+//    rootnode->setName("root");
+//
+//    U4DEntity *node1=new U4DEntity();
+//    node1->setName("node1");
+//
+//    U4DEntity *node2=new U4DEntity();
+//    node2->setName("node2");
+//
+//    U4DEntity *node3=new U4DEntity();
+//    node3->setName("node3");
+//
+//    U4DEntity *node1a=new U4DEntity();
+//    node1a->setName("node1a");
+//
+//    U4DEntity *node1b=new U4DEntity();
+//    node1b->setName("node1b");
+//
+//    U4DEntity *node1c=new U4DEntity();
+//    node1c->setName("node1c");
+//
+//    rootnode->addChild(node1);
+//    rootnode->addChild(node2);
+//
+//
+//    node1->addChild(node1a);
+//    //node1->addChild(node1b);
+//    //node1->addChild(node1c);
+//
+//    U4DEntity *child=node1->getLastChild();
+//
+//    while (child!=nullptr) {
+//
+//        std::cout<<child->getName()<<std::endl;
+//
+//        child=child->getPrevSibling();
+//    }
+//
+//
+//    rootnode->addChild(node3);
+    
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-100.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-10.0);
     
     camera->translateTo(cameraPos);
     
@@ -60,210 +105,56 @@ void Earth::init(){
     
     addChild(light);
     
-    //camera->viewInDirection(origin);
+    camera->viewInDirection(origin);
 
     //light->viewInDirection(origin);
 
-
-    //load tree
-    for(int i=0;i<34;i++){
-
-        std::string name="tree";
-        name+=std::to_string(i+1);
-
-        tree[i]=new GameAsset();
-
-        if(tree[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(tree[i]);
-
-        }
-
-    }
-
-    //load bridge
-    for(int i=0;i<4;i++){
-
-        std::string name="bridge";
-        name+=std::to_string(i+1);
-
-        bridge[i]=new GameAsset();
-
-        if(bridge[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(bridge[i]);
-
-        }
-
-    }
-
-    //load clouds
-    for(int i=0;i<12;i++){
-
-        std::string name="cloud";
-        name+=std::to_string(i+1);
-
-        cloud[i]=new GameAsset();
-
-        if(cloud[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(cloud[i]);
-
-        }
-
-    }
-
-    //load fence
-    for(int i=0;i<5;i++){
-
-        std::string name="fence";
-        name+=std::to_string(i+1);
-
-        fence[i]=new GameAsset();
-
-        if(fence[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(fence[i]);
-
-        }
-
-    }
-
-    //load grass
-    for(int i=0;i<10;i++){
-
-        std::string name="grass";
-        name+=std::to_string(i+1);
-
-        grass[i]=new GameAsset();
-
-        if(grass[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(grass[i]);
-
-        }
-
-    }
-
-    //load land
-    for(int i=0;i<4;i++){
-
-        std::string name="land";
-        name+=std::to_string(i+1);
-
-        land[i]=new GameAsset();
-
-        if(land[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(land[i]);
-
-        }
-
-    }
-
-    //load moss
-    for(int i=0;i<6;i++){
-
-        std::string name="moss";
-        name+=std::to_string(i+1);
-
-        moss[i]=new GameAsset();
-
-        if(moss[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(moss[i]);
-
-        }
-
-    }
-
-
-    //load stone
-
-    for(int i=0;i<7;i++){
-
-        std::string name="stone";
-        name+=std::to_string(i+1);
-
-        stone[i]=new GameAsset();
-
-        if(stone[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(stone[i]);
-
-        }
-
-    }
-
-
-
-    //load trunk
-    for(int i=0;i<5;i++){
-
-        std::string name="trunk";
-        name+=std::to_string(i+1);
-
-        trunk[i]=new GameAsset();
-
-        if(trunk[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(trunk[i]);
-
-        }
-
-    }
-
-    //load weed
-    for(int i=0;i<4;i++){
-
-        std::string name="weed";
-        name+=std::to_string(i+1);
-
-        weed[i]=new GameAsset();
-
-        if(weed[i]->init(name.c_str(), "blenderscript.u4d")){
-
-            addChild(weed[i]);
-
-        }
-
-    }
-
-    //load chosa
-    chosa=new GameAsset();
-    if(chosa->init("chosa", "blenderscript.u4d")){
-        addChild(chosa);
-    }
-
-
-    //load fireplace
-    fireplace=new GameAsset();
-
-    if(fireplace->init("fireplace", "blenderscript.u4d")){
-        addChild(fireplace);
-    }
-
-
-    ocean=new GameAsset();
-
-    if(ocean->init("ocean", "blenderscript.u4d")){
-
-        addChild(ocean);
-
-    }
     
+    PARTICLESYSTEMDATA particleData;
+    
+    particleData.particleStartColor=U4DVector3n(0.2,0.2,0.2);
+    //particleData.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
+    particleData.particleEndColor=U4DVector3n(0.9,0.9,0.9);
+    
+    particleData.particlePositionVariance=U4DVector3n(0.5,0.0,0.5);
+    
+    particleData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
+    particleData.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
+    
+    particleData.particleSpeed=1.0;
+    particleData.particleLife=2.0;
+    particleData.texture="particle.png";
+    particleData.emitContinuously=true;
+    particleData.numberOfParticlesPerEmission=1.0;
+    particleData.emissionRate=0.1;
+    particleData.maxNumberOfParticles=200;
+    particleData.gravity=U4DVector3n(0.0,0.0,0.0);
+    particleData.particleSystemType=LINEAREMITTER;
+    particleData.enableNoise=true;
+    particleData.noiseDetail=4.0;
+    particleData.enableAdditiveRendering=false;
+    particleData.particleSize=1.0;
+    particleData.torusMajorRadius=5.0;
+    particleData.torusMinorRadius=1.0;
+    particleData.sphereRadius=5.0;
+    
+    U4DParticleSystem *particleSystem=new U4DParticleSystem();
+    particleSystem->init(particleData);
+
+    particleSystem->translateTo(1.0, 0.0, 0.0);
+    //particleSystem->rotateBy(90.0, 0.0, 0.0);
+    
+    addChild(particleSystem);
+    
+     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
+    
+    gameModel->setParticleSystem(particleSystem);
     
 }
 
 void Earth::update(double dt){
-
-    U4DLights *light=U4DLights::sharedInstance();
-    U4DCamera *camera=U4DCamera::sharedInstance();
     
-    U4DVector3n cameraPos=camera->getAbsolutePosition();
-    cameraPos.y=20.0;
-    light->translateTo(cameraPos);
-   
+    //rotateBy(0.0,1.0,0.0);
 }
 
 

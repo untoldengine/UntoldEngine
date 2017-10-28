@@ -39,5 +39,16 @@ namespace U4DEngine {
         return (fabs(uNumber1-uNumber2)<=uEpsilon*std::max(1.0f,std::max(fabs(uNumber1),fabs(uNumber2))));
         
     }
+    
+    float U4DNumerical::getRandomNumberBetween(float uMinValue, float uMaxValue){
+        
+        float randNumber=(arc4random()/(double)UINT32_MAX);
+        
+        float diff=uMaxValue-uMinValue;
+        
+        float r=randNumber*diff;
+        
+        return uMinValue+r;
+    }
 
 }

@@ -12,6 +12,7 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
+#include "U4DParticleSystem.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -22,8 +23,10 @@ namespace U4DEngine {
 class GameLogic:public U4DEngine::U4DGameModel{
 public:
 
+    U4DEngine::U4DParticleSystem *particleSystem;
     
     GameLogic();
+    
     ~GameLogic();
     
     void update(double dt);
@@ -32,6 +35,7 @@ public:
     
     void receiveTouchUpdate(void *uData);
     
+    void setParticleSystem(U4DEngine::U4DParticleSystem *uParticleSystem);
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

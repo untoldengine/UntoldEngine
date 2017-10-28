@@ -16,7 +16,7 @@
 namespace U4DEngine {
     
     /**
-     @brief The U4DNumerical provides numerical robustness in floating point comparison and rounding errors
+     @brief The U4DNumerical provides numerical robustness in floating point comparison, rounding errors and random number generation
      */
     class U4DNumerical {
         
@@ -66,6 +66,11 @@ namespace U4DEngine {
          @return Returns true if two floating value are equal
          */
         bool areEqual(float uNumber1, float uNumber2, float uEpsilon);
+        
+        /**
+         @brief Document this
+         */
+        float getRandomNumberBetween(float uMinValue, float uMaxValue);
             
     };
 

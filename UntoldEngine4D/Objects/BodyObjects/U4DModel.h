@@ -270,7 +270,7 @@ namespace U4DEngine {
          @return Returns true if the engine should render the culling-phase bounding volume
          */
         bool getCullingPhaseBoundingVolumeVisibility();
-
+        
     };
     
 }

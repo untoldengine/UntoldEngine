@@ -258,10 +258,12 @@ namespace U4DEngine {
                 
                 if (model) {
                     
+                        
                     //load the model into a bvh tree container
                     model->setModelVisibility(false);
                     
                     visibilityManager->addModelToTreeContainer(model);
+                    
                     
                 }
                 

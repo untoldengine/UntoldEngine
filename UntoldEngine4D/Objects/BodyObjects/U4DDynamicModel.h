@@ -14,6 +14,7 @@
 #include "U4DStaticModel.h"
 #include "U4DVector3n.h"
 #include "U4DPlane.h"
+#include "U4DParticleData.h"
 
 namespace U4DEngine {
 

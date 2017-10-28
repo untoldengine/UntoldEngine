@@ -48,6 +48,26 @@ typedef struct{
 
 typedef struct{
     
+    vector_float3 color;
+    
+}UniformParticleProperty;
+
+typedef struct{
+    
+    bool hasTexture;
+    bool enableNoise;
+    float noiseDetail;
+    
+}UniformParticleSystemProperty;
+
+typedef struct{
+    
+    float time;
+    
+}UniformParticleAnimation;
+
+typedef struct{
+    
     matrix_float4x4 boneSpace[30];
     
 }UniformBoneSpace;

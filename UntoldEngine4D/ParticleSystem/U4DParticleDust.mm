@@ -2,12 +2,12 @@
 //  U4DParticleDust.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 12/17/16.
-//  Copyright © 2016 Untold Game Studio. All rights reserved.
+//  Created by Harold Serrano on 10/11/17.
+//  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
 #include "U4DParticleDust.h"
-#include "U4DOpenGLParticleDust.h"
+
 #include "Constants.h"
 #include "U4DTrigonometry.h"
 #include <stdlib.h>
@@ -16,13 +16,9 @@ namespace U4DEngine {
     
     U4DParticleDust::U4DParticleDust(){
         
-        openGlManager=new U4DOpenGLParticleDust(this);
-        
-        openGlManager->setShader("particleDustShader");
-        
         scheduler=new U4DEngine::U4DCallback<U4DParticleDust>;
         
-        animationElapseTimer=new U4DEngine::U4DTimer(scheduler);
+        animationTimer=new U4DEngine::U4DTimer(scheduler);
         
     }
     
@@ -30,13 +26,10 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleDust::createParticles(float uMajorRadius, float uMinorRadius, int uParticleNumber, float uAnimationElapseTime){
+    void U4DParticleDust::createParticles(float uMajorRadius, float uMinorRadius, int uParticleNumber, float uAnimationDelay, const char *uTexture){
         
         //set number of particles
         setNumberOfParticles(uParticleNumber);
-        
-        //set animation time
-        setAnimationElapseTime(uAnimationElapseTime);
         
         //set particle vertices
         setParticlesVertices();
@@ -53,8 +46,8 @@ namespace U4DEngine {
         for(int i=0;i<getNumberOfParticles();i++){
             
             //Pick the direction of the velocity
-            theta=mix(0.0, PI, (std::rand()%10)/10.0);
-            phi=mix(0.0,PI,(std::rand()%10)/10.0);
+            theta=mix(0.0, M_PI, arc4random() / (double)UINT32_MAX);
+            phi=mix(0.0,M_PI,arc4random() / (double)UINT32_MAX);
             
             theta=trig.radToDegrees(theta);
             phi=trig.radToDegrees(phi);
@@ -63,7 +56,7 @@ namespace U4DEngine {
             v.y=(uMajorRadius+uMinorRadius*std::cosf(theta))*std::sinf(phi);
             v.z=uMinorRadius*std::sinf(theta);
             
-            particleCoordinates.velocityContainer.push_back(v);
+            particleData.velocityContainer.push_back(v);
             
         }
         
@@ -73,33 +66,34 @@ namespace U4DEngine {
         
         for (unsigned int i=0; i<getNumberOfParticles(); i++) {
             
-            particleCoordinates.startTimeContainer.push_back(time);
+            particleData.startTimeContainer.push_back(time);
             
             time+=rate;
             
         }
         
+        //load texture if it exists
+        if(uTexture!=nullptr){
+            renderManager->setDiffuseTexture(uTexture);
+        }
+        
         //load rendering information
         loadRenderingInformation();
         
-        //set custom uniforms
-        std::vector<float> data{animationElapseTime};
-        
-        addCustomUniform("Time", data);
-        
         //start the timer
-        scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleDust::animationTimer, animationElapseTimer, uAnimationElapseTime,true);
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleDust::updateParticleAnimationTime, animationTimer, uAnimationDelay,true);
         
     }
     
-    void U4DParticleDust::animationTimer(){
+    void U4DParticleDust::updateParticleAnimationTime(){
         
-        animationElapseTime+=1.0;
+        particleAnimationElapsedTime+=1.0;
+    
+    }
+    
+    float U4DParticleDust::mix(float x, float y, float a){
         
-        std::vector<float> data{animationElapseTime};
-        
-        openGlManager->updateCustomUniforms("Time", data);
-        
+        return (x*(1-a) + y*a);
     }
     
 }
