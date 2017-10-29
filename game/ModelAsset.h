@@ -11,10 +11,15 @@
 
 #include <stdio.h>
 #include "U4DGameObject.h"
+#include "U4DParticleSystem.h"
+#include "CommonProtocols.h"
 
 class ModelAsset:public U4DEngine::U4DGameObject {
     
 private:
+    
+    U4DEngine::U4DParticleSystem *particleSystem;
+    U4DEngine::PARTICLESYSTEMDATA particleSystemData;
     
 public:
     
@@ -22,9 +27,13 @@ public:
     
     ~ModelAsset();
     
-    void init(const char* uModelName, const char* uBlenderFile, const char* uTextureNormal);
+    void init(const char* uModelName, const char* uBlenderFile);
     
     void update(double dt);
+    
+    void loadParticleSystemInfo(U4DEngine::PARTICLESYSTEMDATA &uParticleSystemData);
+    
+    void startParticleSystem();
     
 };
 #endif /* ModelAsset_hpp */

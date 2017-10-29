@@ -14,7 +14,7 @@
 #include "U4DParticleData.h"
 #include "U4DParticleEmitterInterface.h"
 #include "U4DParticleEmitterLinear.h"
-
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -27,6 +27,8 @@ namespace U4DEngine {
         particlePhysics=new U4DParticlePhysics();
         
         particleEmitter=nullptr;
+        
+        setEntityType(PARTICLESYSTEM);
         
     }
     

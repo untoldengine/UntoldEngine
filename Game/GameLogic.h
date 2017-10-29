@@ -12,18 +12,21 @@
 #include <iostream>
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
-#include "U4DParticleSystem.h"
+
+#include "ModelAsset.h"
 
 namespace U4DEngine {
     class U4DTouches;
     class U4DButton;
     class U4DJoyStick;
+    
 }
 
 class GameLogic:public U4DEngine::U4DGameModel{
+    
 public:
 
-    U4DEngine::U4DParticleSystem *particleSystem;
+    ModelAsset *modelAsset0;
     
     GameLogic();
     
@@ -35,7 +38,7 @@ public:
     
     void receiveTouchUpdate(void *uData);
     
-    void setParticleSystem(U4DEngine::U4DParticleSystem *uParticleSystem);
+    void setModelAsset(ModelAsset *uModelAsset);
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */
