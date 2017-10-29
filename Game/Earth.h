@@ -16,24 +16,29 @@
 
 class GameController;
 class GameAsset;
+class ModelAsset;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
 
-    GameAsset *bridge[4];
-    GameAsset *cloud[12];
-    GameAsset *fence[5];
-    GameAsset *chosa;
-    GameAsset *fireplace;
-    GameAsset *grass[10];
-    GameAsset *land[4];
-    GameAsset *moss[6];
-    GameAsset *ocean;
-    GameAsset *stone[7];
-    GameAsset *tree[34];
-    GameAsset *trunk[5];
-    GameAsset *weed[12];
+    GameAsset *beet[4];
+    GameAsset *cloud[4];
+    GameAsset *bonfire;
+    GameAsset *carrot[8];
+    
+    GameAsset *grass[15];
+    GameAsset *land;
+    GameAsset *pumpkin[3];
+    GameAsset *raft;
+    GameAsset *tent;
+    GameAsset *tree[33];
+    
+    GameAsset *wood[3];
+    
+    GameAsset *lake;
+    
+    ModelAsset *bomb0;
     
 public:
    

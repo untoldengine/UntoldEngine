@@ -81,6 +81,9 @@ namespace U4DEngine {
     //draw
     void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
     
+        //container for non model objects that need to be render last due to blending
+        std::vector<U4DEntity *> nonModelContainer;
+        
         U4DEntity* child=rootEntity;
     
         while (child!=NULL) {
@@ -95,11 +98,29 @@ namespace U4DEngine {
                
             }
      
-            child->render(uRenderEncoder);
+            //check if the child is a model. if not, it needs to be rendered last due to blending or other factors that may hide it from screen.
+            if(child->getEntityType()==PARTICLESYSTEM){
+                
+                nonModelContainer.push_back(child);
+                
+            }else{
+                
+                child->render(uRenderEncoder);
+            }
+            
         
             child=child->next;
         
         }
+        
+        //Render objects that contain blending (i.e. non models)
+        for(auto n:nonModelContainer){
+            
+            n->render(uRenderEncoder);
+            
+        }
+        
+        nonModelContainer.clear();
         
     }
     
