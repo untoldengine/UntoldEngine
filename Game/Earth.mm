@@ -39,7 +39,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-40.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-30.0);
     
     camera->translateTo(cameraPos);
     
@@ -77,42 +77,7 @@ void Earth::init(){
 
     addChild(bonfire);
 
-    PARTICLESYSTEMDATA particleData;
 
-    particleData.particleStartColor=U4DVector3n(0.0,0.0,0.0);
-    //particleData.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
-    particleData.particleEndColor=U4DVector3n(0.9,0.9,0.9);
-
-    particleData.particlePositionVariance=U4DVector3n(0.0,0.0,0.0);
-
-    particleData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
-    particleData.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
-
-    particleData.particleSpeed=0.3;
-    particleData.particleLife=2.0;
-    particleData.texture="particle.png";
-    particleData.emitContinuously=true;
-    particleData.numberOfParticlesPerEmission=1.0;
-    particleData.emissionRate=0.7;
-    particleData.maxNumberOfParticles=200;
-    particleData.gravity=U4DVector3n(0.0,0.0,0.0);
-    particleData.particleSystemType=LINEAREMITTER;
-    particleData.enableNoise=true;
-    particleData.noiseDetail=4.0;
-    particleData.enableAdditiveRendering=false;
-    particleData.particleSize=0.3;
-    particleData.torusMajorRadius=5.0;
-    particleData.torusMinorRadius=1.0;
-    particleData.sphereRadius=5.0;
-
-    U4DParticleSystem *particleSystem=new U4DParticleSystem();
-    particleSystem->init(particleData);
-
-    U4DVector3n smokepos=bonfire->getAbsolutePosition();
-    smokepos.y+=0.1;
-    particleSystem->translateTo(smokepos);
-
-    addChild(particleSystem);
 
     //load land
     land=new GameAsset();
@@ -248,51 +213,171 @@ void Earth::init(){
         }
 
     }
-    
-    director->setPolycount(5000);
-    
-    U4DVector3n gravity(0.0,-7.0,0.0);
-    
-    //load baloon with torus system
-    bomb0=new ModelAsset();
-    bomb0->init("bomb", "blenderscript.u4d");
-    bomb0->setGravity(gravity);
-    bomb0->enableKineticsBehavior();
-    PARTICLESYSTEMDATA particleTorusNoiseData;
-    
-    particleTorusNoiseData.particleStartColor=U4DVector3n(1.0,0.0,0.0);
-    particleTorusNoiseData.particleStartColorVariance=U4DVector3n(0.1,0.1,0.1);
-    particleTorusNoiseData.particleEndColor=U4DVector3n(1.0,0.0,1.0);
-    
-    particleTorusNoiseData.particlePositionVariance=U4DVector3n(0.0,0.0,0.0);
-    
-    particleTorusNoiseData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
-    particleTorusNoiseData.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
-    
-    particleTorusNoiseData.particleSpeed=5.0;
-    particleTorusNoiseData.particleLife=2.0;
-    particleTorusNoiseData.texture="particle.png";
-    particleTorusNoiseData.emitContinuously=false;
-    particleTorusNoiseData.numberOfParticlesPerEmission=200.0;
-    particleTorusNoiseData.emissionRate=0.1;
-    particleTorusNoiseData.maxNumberOfParticles=200;
-    particleTorusNoiseData.gravity=U4DVector3n(0.0,0.0,0.0);
-    particleTorusNoiseData.particleSystemType=SPHERICALEMITTER;
-    particleTorusNoiseData.enableNoise=true;
-    particleTorusNoiseData.enableAdditiveRendering=true;
-    particleTorusNoiseData.particleSize=0.5;
-    particleTorusNoiseData.torusMajorRadius=5.0;
-    particleTorusNoiseData.torusMinorRadius=1.0;
-    particleTorusNoiseData.sphereRadius=5.0;
-    
-    bomb0->loadParticleSystemInfo(particleTorusNoiseData);
-    
-    addChild(bomb0);
 
+    PARTICLESYSTEMDATA dustParticleData;
+    
+    dustParticleData.particleStartColor=U4DVector3n(0.2,0.2,0.2);
+    //dustParticleData.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
+    dustParticleData.particleEndColor=U4DVector3n(0.9,0.9,0.9);
+    
+    dustParticleData.particlePositionVariance=U4DVector3n(0.5,0.5,0.5);
+    
+    dustParticleData.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
+    dustParticleData.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
+    
+    dustParticleData.particleSpeed=2.0;
+    dustParticleData.particleLife=2.0;
+    dustParticleData.texture="particle.png";
+    dustParticleData.emitContinuously=true;
+    dustParticleData.numberOfParticlesPerEmission=1.0;
+    dustParticleData.emissionRate=0.1;
+    dustParticleData.maxNumberOfParticles=200;
+    dustParticleData.gravity=U4DVector3n(0.0,0.0,0.0);
+    dustParticleData.particleSystemType=LINEAREMITTER;
+    dustParticleData.enableNoise=true;
+    dustParticleData.noiseDetail=4.0;
+    dustParticleData.enableAdditiveRendering=false;
+    dustParticleData.particleSize=1.0;
+    
+    
+    U4DParticleSystem *particleSystem1=new U4DParticleSystem();
+    particleSystem1->init(dustParticleData);
+    
+    addChild(particleSystem1);
+    
+    PARTICLESYSTEMDATA particleData2;
+
+    particleData2.particleStartColor=U4DVector3n(1.0,0.0,0.0);
+    //particleData2.particleStartColorVariance=U4DVector3n(0.1,0.1,0.1);
+    particleData2.particleEndColor=U4DVector3n(0.0,1.0,1.0);
+
+    particleData2.particleSpeed=0.3;
+    particleData2.particleLife=3.5;
+    particleData2.texture="particle.png";
+    particleData2.emitContinuously=false;
+    particleData2.numberOfParticlesPerEmission=200.0;
+    particleData2.emissionRate=0.1;
+    particleData2.maxNumberOfParticles=200;
+    particleData2.gravity=U4DVector3n(0.0,0.0,0.0);
+    particleData2.particleSystemType=TORUSEMITTER;
+    particleData2.enableNoise=false;
+    particleData2.enableAdditiveRendering=true;
+    particleData2.particleSize=1.0;
+    particleData2.torusMajorRadius=15.0;
+    particleData2.torusMinorRadius=5.0;
+
+    U4DParticleSystem *particleSystem2=new U4DParticleSystem();
+    particleSystem2->init(particleData2);
+    
+    
+    addChild(particleSystem2);
+    
+    
+    PARTICLESYSTEMDATA particleData3;
+    
+    particleData3.particleStartColor=U4DVector3n(0.0,0.0,1.0);
+    //particleData3.particleStartColorVariance=U4DVector3n(0.1,0.1,0.1);
+    particleData3.particleEndColor=U4DVector3n(1.0,0.0,0.0);
+    
+    particleData3.particleSpeed=2.0;
+    particleData3.particleLife=3.0;
+    particleData3.texture="particle.png";
+    particleData3.emitContinuously=false;
+    particleData3.numberOfParticlesPerEmission=200.0;
+    particleData3.emissionRate=0.1;
+    particleData3.maxNumberOfParticles=200;
+    particleData3.gravity=U4DVector3n(0.0,0.0,0.0);
+    particleData3.particleSystemType=SPHERICALEMITTER;
+    particleData3.enableNoise=false;
+    particleData3.enableAdditiveRendering=true;
+    particleData3.particleSize=1.0;
+    particleData3.sphereRadius=5.0;
+    
+    U4DParticleSystem *particleSystem3=new U4DParticleSystem();
+    particleSystem3->init(particleData3);
+    
+    
+    addChild(particleSystem3);
+    
+    
+    PARTICLESYSTEMDATA particleData4;
+    
+    particleData4.particleStartColor=U4DVector3n(1.0,0.0,1.0);
+    //particleData4.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
+    particleData4.particleEndColor=U4DVector3n(0.0,1.0,1.0);
+    
+    particleData4.particlePositionVariance=U4DVector3n(0.0,0.0,0.0);
+    
+    particleData4.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
+    particleData4.particleEmitAngleVariance=U4DVector3n(20.0,0.0,30.0);
+    
+    particleData4.particleSpeed=4.0;
+    particleData4.particleLife=2.0;
+    particleData4.texture="particle.png";
+    particleData4.emitContinuously=true;
+    particleData4.numberOfParticlesPerEmission=1.0;
+    particleData4.emissionRate=0.1;
+    particleData4.maxNumberOfParticles=50;
+    particleData4.gravity=U4DVector3n(0.0,-5.0,0.0);
+    particleData4.particleSystemType=LINEAREMITTER;
+    particleData4.enableAdditiveRendering=true;
+    particleData4.enableNoise=false;
+    particleData4.particleSize=0.5;
+    
+    
+    U4DParticleSystem *particleSystem4=new U4DParticleSystem();
+    particleSystem4->init(particleData4);
+    
+    addChild(particleSystem4);
+    
+    PARTICLESYSTEMDATA particleData5;
+    
+    particleData5.particleStartColor=U4DVector3n(1.0,1.0,1.0);
+    //particleData5.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
+    particleData5.particleEndColor=U4DVector3n(1.0,1.0,1.0);
+    
+    particleData5.particlePositionVariance=U4DVector3n(20.0,0.0,20.0);
+    
+    particleData5.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
+    particleData5.particleEmitAngleVariance=U4DVector3n(0.0,0.0,0.0);
+    
+    particleData5.particleSpeed=0.0;
+    particleData5.particleLife=10.0;
+    particleData5.texture="particle.png";
+    particleData5.emitContinuously=true;
+    particleData5.numberOfParticlesPerEmission=10.0;
+    particleData5.emissionRate=0.5;
+    particleData5.maxNumberOfParticles=200;
+    particleData5.gravity=U4DVector3n(0.0,-5.0,0.0);
+    particleData5.particleSystemType=LINEAREMITTER;
+    particleData5.enableAdditiveRendering=true;
+    particleData5.enableNoise=false;
+    particleData5.particleSize=0.3;
+    
+    
+    U4DParticleSystem *particleSystem5=new U4DParticleSystem();
+    particleSystem5->init(particleData5);
+    
+    addChild(particleSystem5);
+    
+    particleSystem1->translateTo(-5.0, 0.0, 1.0);
+    
+    particleSystem2->translateTo(0.0, 0.0, 1.0);
+    
+    particleSystem2->translateTo(0.0, 0.5, 0.0);
+    particleSystem2->rotateTo(90.0, 0.0, 0.0);
+    
+    particleSystem3->translateTo(0.0, 3.0, 0.0);
+    
+    particleSystem5->translateTo(0.0, 10.0, 0.0);
+    
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
 
-    gameModel->setModelAsset(bomb0);
-    
+    gameModel->addParticleSystem(particleSystem1);
+    gameModel->addParticleSystem(particleSystem2);
+    gameModel->addParticleSystem(particleSystem3);
+    gameModel->addParticleSystem(particleSystem4);
+    gameModel->addParticleSystem(particleSystem5);
 }
 
 void Earth::update(double dt){

@@ -14,10 +14,10 @@
 #include "U4DJoyStick.h"
 #include "CommonProtocols.h"
 #include "U4DCamera.h"
+#include "U4DParticleSystem.h"
 
 
-
-GameLogic::GameLogic(){
+GameLogic::GameLogic():count(0){
     
     
 }
@@ -37,9 +37,9 @@ void GameLogic::init(){
     
 }
 
-void GameLogic::setModelAsset(ModelAsset *uModelAsset){
+void GameLogic::addParticleSystem(U4DEngine::U4DParticleSystem *uParticleSystem){
     
-    modelAsset0=uModelAsset;
+    particleSystemContainer.push_back(uParticleSystem);
     
 }
 
@@ -52,16 +52,16 @@ void GameLogic::receiveTouchUpdate(void *uData){
                 
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
+                
+                    if(count>=particleSystemContainer.size()){
+                        
+                        count=0;
+                    }
                     
-//                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-//
-//                    U4DEngine::U4DVector3n view=camera->getViewInDirection();
-//
-//                    view*=1.0;
-//
-//                    camera->translateBy(view);
+                    particleSystemContainer.at(count)->play();
                     
-                    modelAsset0->startParticleSystem();
+                    
+                
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -75,13 +75,9 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
-//                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-//
-//                    U4DEngine::U4DVector3n view=camera->getViewInDirection();
-//
-//                    view*=-1.0;
-//
-//                    camera->translateBy(view);
+                    particleSystemContainer.at(count)->stop();
+                   
+                    count++;
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     

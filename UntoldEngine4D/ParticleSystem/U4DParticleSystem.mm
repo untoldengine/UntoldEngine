@@ -183,9 +183,19 @@ namespace U4DEngine {
             
             particleEmitter->setParticleData(particleData);
             
-            particleEmitter->initialize();
-            
         }
+        
+    }
+    
+    void U4DParticleSystem::play(){
+        particleEmitter->play();
+    }
+    
+    void U4DParticleSystem::stop(){
+        
+        particleEmitter->stop();
+        
+        removeAllParticles();
         
     }
     

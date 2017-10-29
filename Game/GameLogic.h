@@ -19,14 +19,14 @@ namespace U4DEngine {
     class U4DTouches;
     class U4DButton;
     class U4DJoyStick;
-    
+    class U4DParticleSystem;
 }
 
 class GameLogic:public U4DEngine::U4DGameModel{
     
 public:
 
-    ModelAsset *modelAsset0;
+    std::vector<U4DEngine::U4DParticleSystem *> particleSystemContainer;
     
     GameLogic();
     
@@ -38,7 +38,8 @@ public:
     
     void receiveTouchUpdate(void *uData);
     
-    void setModelAsset(ModelAsset *uModelAsset);
+    void addParticleSystem(U4DEngine::U4DParticleSystem *uParticleSystem);
     
+    int count;
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

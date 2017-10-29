@@ -53,14 +53,15 @@ namespace U4DEngine {
         
         virtual void setParticleEmissionRate(float uEmissionRate)=0;
         
-        virtual void initialize()=0;
-        
         virtual void setParticleSystem(U4DParticleSystem *uParticleSystem)=0;
         
         virtual void setParticleData(U4DParticleData &uParticleData)=0;
         
         virtual void setEmitContinuously(bool uValue)=0;
         
+        virtual void play()=0;
+        
+        virtual void stop()=0;
     };
     
 }
