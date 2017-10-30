@@ -17,6 +17,10 @@ namespace U4DEngine {
     
     U4DParticleEmitter::U4DParticleEmitter():emittedNumberOfParticles(0),numberOfParticlesPerEmission(1),emissionRate(1.0),emitContinuously(true){
         
+        scheduler=new U4DCallback<U4DParticleEmitter>;
+        
+        timer=new U4DTimer(scheduler);
+        
     }
     
     U4DParticleEmitter::~U4DParticleEmitter(){
@@ -46,13 +50,18 @@ namespace U4DEngine {
     
     }
     
-    void U4DParticleEmitter::initialize(){
-        
-        scheduler=new U4DCallback<U4DParticleEmitter>;
-        
-        timer=new U4DTimer(scheduler);
+    void U4DParticleEmitter::play(){
         
         scheduler->scheduleClassWithMethodAndDelay(this, &U4DParticleEmitter::emitParticles, timer,emissionRate, emitContinuously);
+        
+    }
+    
+    void U4DParticleEmitter::stop(){
+        
+        //reset the number of emitted particles back to zero
+        emittedNumberOfParticles=0;
+        
+        scheduler->unScheduleTimer(timer);
         
     }
     

@@ -187,6 +187,9 @@ namespace U4DEngine {
         
         float getNoiseDetail();
         
+        void play();
+        
+        void stop();
     };
     
 }

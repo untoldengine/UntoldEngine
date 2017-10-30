@@ -72,8 +72,6 @@ namespace U4DEngine {
         
         void setParticleEmissionRate(float uEmissionRate);
         
-        void initialize();
-        
         void setParticleSystem(U4DParticleSystem *uParticleSystem);
         
         void setParticleData(U4DParticleData &uParticleData);
@@ -82,6 +80,9 @@ namespace U4DEngine {
         
         float mix(float x, float y, float a);
     
+        void play();
+        
+        void stop();
     };
     
 }
