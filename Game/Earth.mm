@@ -39,7 +39,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-30.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-40.0);
     
     camera->translateTo(cameraPos);
     
@@ -251,7 +251,7 @@ void Earth::init(){
     //particleData2.particleStartColorVariance=U4DVector3n(0.1,0.1,0.1);
     particleData2.particleEndColor=U4DVector3n(0.0,1.0,1.0);
 
-    particleData2.particleSpeed=0.3;
+    particleData2.particleSpeed=1.0;
     particleData2.particleLife=3.5;
     particleData2.texture="particle.png";
     particleData2.emitContinuously=false;
@@ -302,7 +302,7 @@ void Earth::init(){
     
     PARTICLESYSTEMDATA particleData4;
     
-    particleData4.particleStartColor=U4DVector3n(1.0,0.0,0.0);
+    particleData4.particleStartColor=U4DVector3n(0.2,0.2,0.2);
     particleData4.particleStartColorVariance=U4DVector3n(0.1,0.1,0.1);
     particleData4.particleEndColor=U4DVector3n(0.0,0.0,1.0);
     
@@ -369,7 +369,7 @@ void Earth::init(){
     
     particleSystem3->translateTo(0.0, 3.0, 0.0);
     
-    particleSystem5->translateTo(0.0, 10.0, 0.0);
+    particleSystem5->translateTo(0.0, 15.0, 0.0);
     
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
 
