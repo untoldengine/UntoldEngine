@@ -58,6 +58,9 @@ namespace U4DEngine {
     
     void U4DParticleEmitter::stop(){
         
+        //reset the number of emitted particles back to zero
+        emittedNumberOfParticles=0;
+        
         scheduler->unScheduleTimer(timer);
         
     }

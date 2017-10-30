@@ -302,22 +302,22 @@ void Earth::init(){
     
     PARTICLESYSTEMDATA particleData4;
     
-    particleData4.particleStartColor=U4DVector3n(1.0,0.0,1.0);
-    //particleData4.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
-    particleData4.particleEndColor=U4DVector3n(0.0,1.0,1.0);
+    particleData4.particleStartColor=U4DVector3n(1.0,0.0,0.0);
+    particleData4.particleStartColorVariance=U4DVector3n(0.1,0.1,0.1);
+    particleData4.particleEndColor=U4DVector3n(0.0,0.0,1.0);
     
     particleData4.particlePositionVariance=U4DVector3n(0.0,0.0,0.0);
     
     particleData4.particleEmitAngle=U4DVector3n(90.0,0.0,90.0);
-    particleData4.particleEmitAngleVariance=U4DVector3n(20.0,0.0,30.0);
+    particleData4.particleEmitAngleVariance=U4DVector3n(40.0,0.0,30.0);
     
-    particleData4.particleSpeed=4.0;
+    particleData4.particleSpeed=6.0;
     particleData4.particleLife=2.0;
     particleData4.texture="particle.png";
     particleData4.emitContinuously=true;
-    particleData4.numberOfParticlesPerEmission=1.0;
+    particleData4.numberOfParticlesPerEmission=10.0;
     particleData4.emissionRate=0.1;
-    particleData4.maxNumberOfParticles=50;
+    particleData4.maxNumberOfParticles=200;
     particleData4.gravity=U4DVector3n(0.0,-5.0,0.0);
     particleData4.particleSystemType=LINEAREMITTER;
     particleData4.enableAdditiveRendering=true;
