@@ -38,7 +38,7 @@ private:
     
     GameAsset *lake;
     
-    ModelAsset *bomb0;
+    ModelAsset *modelCube[10];
     
 public:
    

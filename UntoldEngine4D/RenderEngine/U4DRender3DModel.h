@@ -58,6 +58,8 @@ namespace U4DEngine {
         
         id<MTLBuffer> uniformBoneBuffer;
         
+        MTLSamplerDescriptor *nullSamplerDescriptor;
+        
         std::vector<AttributeAlignedModelData> attributeAlignedContainer;
         
     public:

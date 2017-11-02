@@ -33,11 +33,14 @@ namespace U4DEngine {
         
         setEntityType(MODEL);
         
+        cullingPhaseBoundingVolume=nullptr;
+        
     };
     
     U4DModel::~U4DModel(){
         
         delete renderManager;
+        delete cullingPhaseBoundingVolume;
         delete armatureManager;
     };
     

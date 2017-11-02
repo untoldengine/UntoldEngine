@@ -44,6 +44,12 @@ namespace U4DEngine {
         
         id<MTLFunction> fragmentProgram;
         
+        //vertex descriptors
+        MTLVertexDescriptor* vertexDesc;
+        
+        //depth stencil descriptor
+        MTLDepthStencilDescriptor *depthStencilDescriptor;
+        
         //Attribute
         id<MTLBuffer> attributeBuffer;
         
@@ -96,7 +102,7 @@ namespace U4DEngine {
         
         U4DRenderManager();
         
-        ~U4DRenderManager();
+        virtual ~U4DRenderManager();
         
         void loadRenderingInformation();
         
