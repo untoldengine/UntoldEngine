@@ -14,13 +14,14 @@
 
 namespace U4DEngine {
     
-    U4DRenderMultiImage::U4DRenderMultiImage(U4DImage *uU4DImage):U4DEngine::U4DRenderImage(uU4DImage){
+    U4DRenderMultiImage::U4DRenderMultiImage(U4DImage *uU4DImage):U4DEngine::U4DRenderImage(uU4DImage),uniformMultiImageBuffer(nil){
         
         u4dObject=uU4DImage;
     }
     
     U4DRenderMultiImage::~U4DRenderMultiImage(){
         
+        uniformMultiImageBuffer=nil;
     }
     
     void U4DRenderMultiImage::loadMTLTexture(){

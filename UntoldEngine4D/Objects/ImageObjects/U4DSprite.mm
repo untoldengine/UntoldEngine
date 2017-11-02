@@ -24,6 +24,8 @@ namespace U4DEngine {
         
     U4DSprite::~U4DSprite(){
 
+        delete renderManager;
+        
     }
 
     void U4DSprite::setSprite(const char* uSprite){

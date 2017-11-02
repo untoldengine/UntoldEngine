@@ -42,16 +42,9 @@ void GameLogic::removeModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    //for(int i=0;i<1;i++){
-        
-        
-        earth->removeChild(modelCube[0]);
-        
-        delete modelCube[0];
-        
-        modelCube[0]=nullptr;
-        
-    //}
+    earth->removeChild(myImage);
+    
+    delete myImage;
     
 }
 
@@ -59,17 +52,10 @@ void GameLogic::initModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    //for(int i=0;i<1;i++){
-        
-        modelCube[0]=new ModelAsset();
-        
-        modelCube[0]->init("Cube", "blenderscript.u4d");
-        
-        modelCube[0]->translateTo(0.0, 0.0, 0);
-        
-        earth->addChild(modelCube[0]);
-        
-    //}
+    myImage=new U4DEngine::U4DImage();
+    myImage->setImage("ButtonA.png", 50.0, 50.0);
+ 
+    earth->addChild(myImage);
     
 }
 

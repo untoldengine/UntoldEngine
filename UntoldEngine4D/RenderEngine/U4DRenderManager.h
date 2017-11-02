@@ -70,6 +70,9 @@ namespace U4DEngine {
         
         id<MTLSamplerState> samplerNormalMapStateObject;
         
+        //Create a sampler descriptor
+        MTLSamplerDescriptor *samplerDescriptor;
+        
         
         //items for multiimage
         

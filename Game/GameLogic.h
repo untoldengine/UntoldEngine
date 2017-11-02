@@ -13,7 +13,7 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 
-#include "ModelAsset.h"
+#include "U4DImage.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -25,7 +25,7 @@ class GameLogic:public U4DEngine::U4DGameModel{
     
 public:
     
-    ModelAsset *modelCube[10];
+    U4DEngine::U4DImage *myImage;
 
     GameLogic();
     

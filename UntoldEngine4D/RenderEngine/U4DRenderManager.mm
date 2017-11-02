@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
 
-    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil){
+    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil),samplerDescriptor(nil){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
@@ -30,8 +30,10 @@ namespace U4DEngine {
         [depthStencilDescriptor release];
         [mtlRenderPipelineState release];
         [mtlLibrary release];
+        [samplerDescriptor release];
         
         mtlRenderPipelineDescriptor=nil;
+        samplerDescriptor=nil;
         vertexDesc=nil;
         depthStencilDescriptor=nil;
         mtlLibrary=nil;
@@ -109,7 +111,7 @@ namespace U4DEngine {
         
         //Create a sampler descriptor
         
-        MTLSamplerDescriptor *samplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        samplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
         //Set the filtering and addressing settings
         samplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
