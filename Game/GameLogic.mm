@@ -42,9 +42,9 @@ void GameLogic::removeModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    earth->removeChild(myImage);
+    earth->removeChild(guardian);
     
-    delete myImage;
+    delete guardian;
     
 }
 
@@ -52,10 +52,10 @@ void GameLogic::initModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    myImage=new U4DEngine::U4DImage();
-    myImage->setImage("ButtonA.png", 50.0, 50.0);
- 
-    earth->addChild(myImage);
+    guardian=new GuardianModel();
+    guardian->init("guardian", "guardianscript.u4d");
+    
+    earth->addChild(guardian);
     
 }
 

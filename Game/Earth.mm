@@ -39,13 +39,13 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-40.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
     
     camera->translateTo(cameraPos);
     
     
     setName("earth");
-    setEnableGrid(true);
+    setEnableGrid(false);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -62,7 +62,7 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(0.0,50.0,-50.0);
+    light->translateTo(0.0,10.0,0.0);
     
     addChild(light);
     
@@ -70,7 +70,20 @@ void Earth::init(){
 
     light->viewInDirection(origin);
     
+    
+    floor=new ModelAsset();
+    floor->init("Floor", "blenderscript.u4d");
+    
+    
+    addChild(floor);
 
+}
+
+Earth::~Earth(){
+    
+    
+    delete floor;
+    
 }
 
 void Earth::update(double dt){

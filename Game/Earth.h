@@ -21,28 +21,15 @@ class ModelAsset;
 class Earth:public U4DEngine::U4DWorld{
 
 private:
-
-    GameAsset *beet[4];
-    GameAsset *cloud[4];
-    GameAsset *bonfire;
-    GameAsset *carrot[8];
-    
-    GameAsset *grass[15];
-    GameAsset *land;
-    GameAsset *pumpkin[3];
-    GameAsset *raft;
-    GameAsset *tent;
-    GameAsset *tree[33];
-    
-    GameAsset *wood[3];
-    
-    GameAsset *lake;
     
     ModelAsset *modelCube[10];
+    
+    ModelAsset *floor;
     
 public:
    
     Earth(){};
+    ~Earth();
     
     void init();
     void update(double dt);

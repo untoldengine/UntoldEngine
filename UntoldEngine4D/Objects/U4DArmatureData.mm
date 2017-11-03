@@ -20,6 +20,25 @@ namespace U4DEngine {
 
     U4DArmatureData::~U4DArmatureData(){
 
+        //Remove all bones
+        std::vector<U4DBoneData*> removeBoneContainer;
+        
+        U4DBoneData *child=rootBone;
+        
+        while (child!=NULL) {
+            
+            removeBoneContainer.push_back(child);
+            
+            child=child->next;
+        }
+        
+        
+        for(auto n:removeBoneContainer){
+            
+            delete n;
+            
+        }
+        
     }
 
     void U4DArmatureData::setRootBone(U4DBoneData* uBoneData){
