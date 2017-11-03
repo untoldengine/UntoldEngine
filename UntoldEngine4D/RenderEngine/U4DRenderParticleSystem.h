@@ -46,6 +46,8 @@ namespace U4DEngine {
         
         std::vector<AttributeAlignedParticleData> attributeAlignedContainer;
         
+        MTLSamplerDescriptor *nullSamplerDescriptor;
+        
     public:
         
         U4DRenderParticleSystem(U4DParticleSystem *uU4DParticleSystem);

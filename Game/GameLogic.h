@@ -13,7 +13,7 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 
-#include "GuardianModel.h"
+#include "U4DParticleSystem.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -25,7 +25,7 @@ class GameLogic:public U4DEngine::U4DGameModel{
     
 public:
     
-    GuardianModel *guardian;
+    U4DEngine::U4DParticleSystem *particleSystem;
     
     GameLogic();
     

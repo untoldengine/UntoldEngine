@@ -40,11 +40,6 @@ namespace U4DEngine {
         
         removeAllParticles();
         
-        //remove itself from the scenegraph
-        U4DEntity *parent=getParent();
-        
-        parent->removeChild(this);
-        
     }
     
     void U4DParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
