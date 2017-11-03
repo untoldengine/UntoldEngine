@@ -31,8 +31,8 @@ U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0)
 
 U4DAnimation::~U4DAnimation(){
 
-    //stop animation first
-    stop();
+    //unsubscribe the timer
+    scheduler->unScheduleTimer(timer);
     
     delete scheduler;
     delete timer;

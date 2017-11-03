@@ -43,9 +43,9 @@ void GameLogic::removeModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    earth->removeChild(particleSystem);
+    earth->removeChild(guardian);
     
-    delete particleSystem;
+    delete guardian;
     
 }
 
@@ -53,38 +53,13 @@ void GameLogic::initModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    U4DEngine::PARTICLESYSTEMDATA dustParticleData;
+    guardian=new GuardianModel();
+    guardian->init("guardian", "guardianscript.u4d");
     
-    dustParticleData.particleStartColor=U4DEngine::U4DVector3n(0.2,0.2,0.2);
-    //dustParticleData.particleStartColorVariance=U4DVector3n(0.5,0.5,0.5);
-    dustParticleData.particleEndColor=U4DEngine::U4DVector3n(0.9,0.9,0.9);
+    guardian->playAnimation();
     
-    dustParticleData.particlePositionVariance=U4DEngine::U4DVector3n(0.5,0.5,0.5);
+    earth->addChild(guardian);
     
-    dustParticleData.particleEmitAngle=U4DEngine::U4DVector3n(90.0,0.0,90.0);
-    dustParticleData.particleEmitAngleVariance=U4DEngine::U4DVector3n(0.0,0.0,0.0);
-    
-    dustParticleData.particleSpeed=2.0;
-    dustParticleData.particleLife=2.0;
-    dustParticleData.texture="particle.png";
-    dustParticleData.emitContinuously=true;
-    dustParticleData.numberOfParticlesPerEmission=1.0;
-    dustParticleData.emissionRate=0.1;
-    dustParticleData.maxNumberOfParticles=200;
-    dustParticleData.gravity=U4DEngine::U4DVector3n(0.0,0.0,0.0);
-    dustParticleData.particleSystemType=U4DEngine::LINEAREMITTER;
-    dustParticleData.enableNoise=true;
-    dustParticleData.noiseDetail=4.0;
-    dustParticleData.enableAdditiveRendering=false;
-    dustParticleData.particleSize=1.0;
-    
-    
-    particleSystem=new U4DEngine::U4DParticleSystem();
-    particleSystem->init(dustParticleData);
-    
-    earth->addChild(particleSystem);
-    
-    particleSystem->play();
     
 }
 
