@@ -1,5 +1,5 @@
 //
-//  SoccerPlayer.hpp
+//  GuardianModel.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/19/17.
@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include "U4DGameObject.h"
 
-class SoccerPlayer:public U4DEngine::U4DGameObject {
+class GuardianModel:public U4DEngine::U4DGameObject {
     
 private:
     
@@ -21,17 +21,17 @@ private:
     
 public:
     
-    SoccerPlayer();
+    GuardianModel();
     
-    ~SoccerPlayer();
+    ~GuardianModel();
     
-    void init(const char* uModelName, const char* uBlenderFile, const char* uTextureNormal);
+    void init(const char* uModelName, const char* uBlenderFile);
     
     void update(double dt);
     
     void playAnimation();
     
-    void pauseAnimation();
+    void stopAnimation();
     
     void setPlayerHeading(U4DEngine::U4DVector3n& uHeading);
     

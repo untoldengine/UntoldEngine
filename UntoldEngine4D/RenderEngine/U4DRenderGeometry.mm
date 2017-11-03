@@ -13,7 +13,7 @@
 
 namespace U4DEngine {
     
-    U4DRenderGeometry::U4DRenderGeometry(U4DBoundingVolume *uU4DGeometricObject){
+    U4DRenderGeometry::U4DRenderGeometry(U4DBoundingVolume *uU4DGeometricObject):uniformGeometryBuffer(nil){
         
         u4dObject=uU4DGeometricObject;
         
@@ -21,6 +21,9 @@ namespace U4DEngine {
     
     U4DRenderGeometry::~U4DRenderGeometry(){
         
+        [uniformGeometryBuffer release];
+        
+        uniformGeometryBuffer=nil;
     }
     
     void U4DRenderGeometry::initMTLRenderLibrary(){
@@ -47,7 +50,7 @@ namespace U4DEngine {
         
         //set the vertex descriptors
         
-        MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
+        vertexDesc=[[MTLVertexDescriptor alloc] init];
         
         vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
         vertexDesc.attributes[0].bufferIndex=0;
@@ -63,7 +66,7 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
         
         
-        MTLDepthStencilDescriptor *depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
         
         depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
         

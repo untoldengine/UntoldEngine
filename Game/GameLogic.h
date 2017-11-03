@@ -13,20 +13,19 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 
-#include "ModelAsset.h"
+#include "U4DSkybox.h"
 
 namespace U4DEngine {
     class U4DTouches;
     class U4DButton;
     class U4DJoyStick;
-    class U4DParticleSystem;
 }
 
 class GameLogic:public U4DEngine::U4DGameModel{
     
 public:
-
-    std::vector<U4DEngine::U4DParticleSystem *> particleSystemContainer;
+    
+    U4DEngine::U4DSkybox *skybox;
     
     GameLogic();
     
@@ -38,8 +37,10 @@ public:
     
     void receiveTouchUpdate(void *uData);
     
-    void addParticleSystem(U4DEngine::U4DParticleSystem *uParticleSystem);
+    void initModels();
     
-    int count;
+    void removeModels();
+    
+    
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

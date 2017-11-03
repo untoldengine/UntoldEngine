@@ -42,6 +42,10 @@ namespace U4DEngine {
     
     U4DStaticModel::~U4DStaticModel(){
     
+        delete convexHullBoundingVolume;
+        
+        delete broadPhaseBoundingVolume;
+        
     }
     
     U4DStaticModel::U4DStaticModel(const U4DStaticModel& value){

@@ -299,10 +299,11 @@ namespace U4DEngine {
             
             //start timer for next bvh computation
             visibilityManager->startTimerForNextBVHBuild();
+            
+            //3. determine the frustom culling
+            visibilityManager->startFrustumIntersection(frustumPlanes);
         }
         
-        //3. determine the frustom culling
-        visibilityManager->startFrustumIntersection(frustumPlanes);
         
     }
     

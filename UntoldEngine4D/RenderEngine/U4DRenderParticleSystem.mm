@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DRenderParticleSystem::U4DRenderParticleSystem(U4DParticleSystem *uU4DParticleSystem){
+    U4DRenderParticleSystem::U4DRenderParticleSystem(U4DParticleSystem *uU4DParticleSystem):nullSamplerDescriptor(nil){
         
         u4dObject=uU4DParticleSystem;
         
@@ -25,6 +25,10 @@ namespace U4DEngine {
     }
     
     U4DRenderParticleSystem::~U4DRenderParticleSystem(){
+        
+        [nullSamplerDescriptor release];
+        
+        nullSamplerDescriptor=nil;
         
     }
     
@@ -97,7 +101,7 @@ namespace U4DEngine {
 
         //set the vertex descriptors
         
-        MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
+        vertexDesc=[[MTLVertexDescriptor alloc] init];
         
         //position data
         vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
@@ -119,7 +123,7 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
         
         
-        MTLDepthStencilDescriptor *depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
         
         depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
         
@@ -353,7 +357,7 @@ namespace U4DEngine {
         textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null texture sampler object
-        MTLSamplerDescriptor *nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
         samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         

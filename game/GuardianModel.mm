@@ -1,28 +1,29 @@
 //
-//  SoccerPlayer.cpp
+//  GuardianModel.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/19/17.
 //  Copyright © 2017 Untold Game Studio. All rights reserved.
 //
 
-#include "SoccerPlayer.h"
+#include "GuardianModel.h"
 
-SoccerPlayer::SoccerPlayer(){
+GuardianModel::GuardianModel(){
     
 }
 
-SoccerPlayer::~SoccerPlayer(){
+GuardianModel::~GuardianModel(){
     
+    delete walkingAnimation;
 }
 
-void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile, const char* uTextureNormal){
+void GuardianModel::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
         setEnableShadow(true);
         
-        setNormalMapTexture(uTextureNormal);
+        //setNormalMapTexture(uTextureNormal);
         
         //enableKineticsBehavior();
         //enableCollisionBehavior();
@@ -31,9 +32,9 @@ void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile, const 
         //initCoefficientOfRestitution(0.9);
         
        
-        runningAnimation=new U4DEngine::U4DAnimation(this);
+        walkingAnimation=new U4DEngine::U4DAnimation(this);
         
-        if (loadAnimationToModel(runningAnimation, "running", "runninganimation.u4d")) {
+        if (loadAnimationToModel(walkingAnimation, "walking", "guardianscript.u4d")) {
         
             
         }
@@ -43,35 +44,33 @@ void SoccerPlayer::init(const char* uModelName, const char* uBlenderFile, const 
         
     }
     
-    float yPosition=getModelDimensions().y+0.7;
-    translateBy(0.0, yPosition/2.0, 0.0);
-    
+    translateBy(0.0, 3.0, 0.0);
     
 }
 
-void SoccerPlayer::update(double dt){
+void GuardianModel::update(double dt){
     
 }
 
-void SoccerPlayer::playAnimation(){
+void GuardianModel::playAnimation(){
     
-    runningAnimation->play();
+    walkingAnimation->play();
     
 }
 
-void SoccerPlayer::pauseAnimation(){
+void GuardianModel::stopAnimation(){
     
-    walkingAnimation->pause();
+    walkingAnimation->stop();
 }
 
-void SoccerPlayer::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
+void GuardianModel::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
     
     //set view heading of player
     viewInDirection(uHeading);
     
 }
 
-void SoccerPlayer::applyForceToPlayer(float uVelocity, double dt){
+void GuardianModel::applyForceToPlayer(float uVelocity, double dt){
     
     U4DEngine::U4DVector3n heading=getViewInDirection();
     

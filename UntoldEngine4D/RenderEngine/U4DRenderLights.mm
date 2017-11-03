@@ -53,7 +53,7 @@ namespace U4DEngine {
         
         //set the vertex descriptors
         
-        MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
+        vertexDesc=[[MTLVertexDescriptor alloc] init];
         
         vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
         vertexDesc.attributes[0].bufferIndex=0;
@@ -69,7 +69,7 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
         
         
-        MTLDepthStencilDescriptor *depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
         
         depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
         

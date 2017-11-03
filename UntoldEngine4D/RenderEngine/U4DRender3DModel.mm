@@ -16,11 +16,9 @@
 
 namespace U4DEngine {
 
-    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel){
+    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil){
         
         u4dObject=uU4DModel;
-        
-        shadowTexture=nullptr;
         
         initTextureSamplerObjectNull();
         
@@ -28,6 +26,14 @@ namespace U4DEngine {
     }
     
     U4DRender3DModel::~U4DRender3DModel(){
+        
+        [uniformBoneBuffer release];
+        [nullSamplerDescriptor release];
+        
+        
+        uniformBoneBuffer=nil;
+        nullSamplerDescriptor=nil;
+        shadowTexture=nil;
         
     }
     
@@ -82,7 +88,7 @@ namespace U4DEngine {
         
         //set the vertex descriptors
         
-        MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
+        vertexDesc=[[MTLVertexDescriptor alloc] init];
         
         //position data
         vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
@@ -129,7 +135,7 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
         
         
-        MTLDepthStencilDescriptor *depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
         
         depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
         
@@ -553,7 +559,7 @@ namespace U4DEngine {
     
     void U4DRender3DModel::initTextureSamplerObjectNull(){
         
-        MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
+        MTLTextureDescriptor *nullDescriptor;nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
         textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
@@ -565,7 +571,7 @@ namespace U4DEngine {
         shadowTexture=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null texture sampler object
-        MTLSamplerDescriptor *nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
         samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];

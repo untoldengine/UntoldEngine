@@ -42,6 +42,12 @@
 
     id<MTLTexture> shadowTexture;
     
+    MTLDepthStencilDescriptor *shadowDepthStencilDescriptor;
+    
+    MTLStencilDescriptor *shadowStencilStateDescriptor;
+    
+    MTLVertexDescriptor *shadowVertexDesc;
+    
 }
 
 /// Initialize with the MetalKit view from which we'll obtain our Metal device.  We'll also use this
@@ -262,67 +268,67 @@
     mtlShadowRenderPipelineDescriptor.fragmentFunction=nil;
     mtlShadowRenderPipelineDescriptor.depthAttachmentPixelFormat=shadowTexture.pixelFormat;
     
-    MTLVertexDescriptor* vertexDesc=[[MTLVertexDescriptor alloc] init];
+    shadowVertexDesc=[[MTLVertexDescriptor alloc] init];
     
     //position data
-    vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
-    vertexDesc.attributes[0].bufferIndex=0;
-    vertexDesc.attributes[0].offset=0;
+    shadowVertexDesc.attributes[0].format=MTLVertexFormatFloat4;
+    shadowVertexDesc.attributes[0].bufferIndex=0;
+    shadowVertexDesc.attributes[0].offset=0;
     
     //normal data
-    vertexDesc.attributes[1].format=MTLVertexFormatFloat4;
-    vertexDesc.attributes[1].bufferIndex=0;
-    vertexDesc.attributes[1].offset=4*sizeof(float);
+    shadowVertexDesc.attributes[1].format=MTLVertexFormatFloat4;
+    shadowVertexDesc.attributes[1].bufferIndex=0;
+    shadowVertexDesc.attributes[1].offset=4*sizeof(float);
     
     //uv data
-    vertexDesc.attributes[2].format=MTLVertexFormatFloat4;
-    vertexDesc.attributes[2].bufferIndex=0;
-    vertexDesc.attributes[2].offset=8*sizeof(float);
+    shadowVertexDesc.attributes[2].format=MTLVertexFormatFloat4;
+    shadowVertexDesc.attributes[2].bufferIndex=0;
+    shadowVertexDesc.attributes[2].offset=8*sizeof(float);
     
     //tangent data
-    vertexDesc.attributes[3].format=MTLVertexFormatFloat4;
-    vertexDesc.attributes[3].bufferIndex=0;
-    vertexDesc.attributes[3].offset=12*sizeof(float);
+    shadowVertexDesc.attributes[3].format=MTLVertexFormatFloat4;
+    shadowVertexDesc.attributes[3].bufferIndex=0;
+    shadowVertexDesc.attributes[3].offset=12*sizeof(float);
     
     //Material data
-    vertexDesc.attributes[4].format=MTLVertexFormatFloat4;
-    vertexDesc.attributes[4].bufferIndex=0;
-    vertexDesc.attributes[4].offset=16*sizeof(float);
+    shadowVertexDesc.attributes[4].format=MTLVertexFormatFloat4;
+    shadowVertexDesc.attributes[4].bufferIndex=0;
+    shadowVertexDesc.attributes[4].offset=16*sizeof(float);
     
     //vertex weight
-    vertexDesc.attributes[5].format=MTLVertexFormatFloat4;
-    vertexDesc.attributes[5].bufferIndex=0;
-    vertexDesc.attributes[5].offset=20*sizeof(float);
+    shadowVertexDesc.attributes[5].format=MTLVertexFormatFloat4;
+    shadowVertexDesc.attributes[5].bufferIndex=0;
+    shadowVertexDesc.attributes[5].offset=20*sizeof(float);
     
     //bone index
-    vertexDesc.attributes[6].format=MTLVertexFormatFloat4;
-    vertexDesc.attributes[6].bufferIndex=0;
-    vertexDesc.attributes[6].offset=24*sizeof(float);
+    shadowVertexDesc.attributes[6].format=MTLVertexFormatFloat4;
+    shadowVertexDesc.attributes[6].bufferIndex=0;
+    shadowVertexDesc.attributes[6].offset=24*sizeof(float);
     
     //stride with padding
-    vertexDesc.layouts[0].stride=28*sizeof(float);
+    shadowVertexDesc.layouts[0].stride=28*sizeof(float);
     
-    vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
+    shadowVertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
     
     
-    mtlShadowRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
+    mtlShadowRenderPipelineDescriptor.vertexDescriptor=shadowVertexDesc;
     mtlShadowRenderPipelineDescriptor.vertexFunction=vertexShadowProgram;
     
     //Set the depth stencil descriptors
-    MTLDepthStencilDescriptor *depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-    depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLessEqual;
-    depthStencilDescriptor.depthWriteEnabled=YES;
+    shadowDepthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+    shadowDepthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLessEqual;
+    shadowDepthStencilDescriptor.depthWriteEnabled=YES;
     
     //add stencil description
-    MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
-    stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
-    stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
+    shadowStencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
+    shadowStencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
+    shadowStencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
 
-    depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
-    depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
+    shadowDepthStencilDescriptor.frontFaceStencil=shadowStencilStateDescriptor;
+    shadowDepthStencilDescriptor.backFaceStencil=shadowStencilStateDescriptor;
 
     
-    mtlShadowDepthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+    mtlShadowDepthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:shadowDepthStencilDescriptor];
     
     //create the render pipeline
     mtlShadowRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlShadowRenderPipelineDescriptor error:nil];
@@ -335,6 +341,13 @@
     
     shadowTexture=[mtlDevice newTextureWithDescriptor:shadowTextureDescriptor];
     
+}
+
+- (void)deallo{
+    
+    [shadowDepthStencilDescriptor release];
+    [shadowStencilStateDescriptor release];
+    [shadowVertexDesc release];
 }
 
 

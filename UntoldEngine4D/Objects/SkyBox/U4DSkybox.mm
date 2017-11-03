@@ -20,6 +20,8 @@ namespace U4DEngine {
         
     U4DSkybox::~U4DSkybox(){
 
+        delete renderManager;
+        
     }
     
     void U4DSkybox::initSkyBox(float uSize,const char* positiveXImage,const char* negativeXImage,const char* positiveYImage,const char* negativeYImage,const char* positiveZImage, const char* negativeZImage){

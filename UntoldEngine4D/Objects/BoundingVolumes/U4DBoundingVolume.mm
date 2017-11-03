@@ -22,10 +22,14 @@ namespace U4DEngine {
         renderManager=new U4DRenderGeometry(this);
         setShader("vertexGeometryShader", "fragmentGeometryShader");
         
-    };
+    }
     
     
-    U4DBoundingVolume::~U4DBoundingVolume(){};
+    U4DBoundingVolume::~U4DBoundingVolume(){
+        
+        delete renderManager;
+        
+    }
     
     
     U4DBoundingVolume::U4DBoundingVolume(const U4DBoundingVolume& value){};

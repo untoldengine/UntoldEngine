@@ -15,9 +15,11 @@
 #include "CommonProtocols.h"
 #include "U4DCamera.h"
 #include "U4DParticleSystem.h"
+#include "Earth.h"
 
 
-GameLogic::GameLogic():count(0){
+GameLogic::GameLogic(){
+    
     
     
 }
@@ -29,17 +31,33 @@ GameLogic::~GameLogic(){
 
 void GameLogic::update(double dt){
     
+
 }
 
 void GameLogic::init(){
     
     
+}
+
+void GameLogic::removeModels(){
+    
+    Earth *earth=dynamic_cast<Earth*>(getGameWorld());
+    
+    earth->removeChild(skybox);
+    
+    delete skybox;
     
 }
 
-void GameLogic::addParticleSystem(U4DEngine::U4DParticleSystem *uParticleSystem){
+void GameLogic::initModels(){
     
-    particleSystemContainer.push_back(uParticleSystem);
+    Earth *earth=dynamic_cast<Earth*>(getGameWorld());
+    
+    skybox=new U4DEngine::U4DSkybox();
+    skybox->initSkyBox(25.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
+    
+    earth->addChild(skybox);
+    
     
 }
 
@@ -53,14 +71,9 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                 
-                    if(count>=particleSystemContainer.size()){
-                        
-                        count=0;
-                    }
                     
-                    particleSystemContainer.at(count)->play();
-                    
-                    
+                    std::cout<<"pressed"<<std::endl;
+                    initModels();
                 
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
@@ -75,9 +88,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
-                    particleSystemContainer.at(count)->stop();
-                   
-                    count++;
+                    removeModels();
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -96,7 +107,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     U4DEngine::U4DVector3n view=camera->getViewInDirection();
                     
-                    view*=1.0;
+                    view*=-1.0;
                     
                     camera->translateBy(view);
                    

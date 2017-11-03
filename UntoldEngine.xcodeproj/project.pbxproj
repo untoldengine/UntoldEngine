@@ -34,6 +34,8 @@
 		0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B19F1B0BBC370087BACC /* U4DBoundingOBB.mm */; };
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
 		0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */; };
+		03297C031FABAE28006422AC /* guardianscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03297C021FABAE28006422AC /* guardianscript.u4d */; };
+		03297C051FABAE52006422AC /* armor.png in Resources */ = {isa = PBXBuildFile; fileRef = 03297C041FABAE52006422AC /* armor.png */; };
 		032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */; };
 		033343011F8DA84A0013FB1E /* particleSystemShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033343001F8DA84A0013FB1E /* particleSystemShader.metal */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
@@ -47,6 +49,12 @@
 		03494C161F57BD4C00ACE0EC /* nonVisibleShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03494C151F57BD4C00ACE0EC /* nonVisibleShader.metal */; };
 		03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */; };
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
+		0361DFA11FAC2141004770FD /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
+		0361DFA21FAC2141004770FD /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9C1FAC2140004770FD /* TopImage.png */; };
+		0361DFA31FAC2141004770FD /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9D1FAC2140004770FD /* BottomImage.png */; };
+		0361DFA41FAC2141004770FD /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9E1FAC2140004770FD /* FrontImage.png */; };
+		0361DFA51FAC2141004770FD /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9F1FAC2140004770FD /* RightImage.png */; };
+		0361DFA61FAC2141004770FD /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DFA01FAC2141004770FD /* BackImage.png */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -175,7 +183,7 @@
 		03F2DB141F191F9B00F77B78 /* U4DRenderWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DB0B1F191F9B00F77B78 /* U4DRenderWorld.mm */; };
 		03F2DB1B1F193B5300F77B78 /* GameAsset.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DB191F193B5300F77B78 /* GameAsset.mm */; };
 		03F2DB211F19471300F77B78 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DB201F19471300F77B78 /* QuartzCore.framework */; };
-		03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */; };
+		03FE2CDD1F1FA90100D4E2FB /* GuardianModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FE2CDB1F1FA90100D4E2FB /* GuardianModel.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -233,6 +241,8 @@
 		0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingVolume.mm; path = BoundingVolumes/U4DBoundingVolume.mm; sourceTree = "<group>"; };
 		0327B1A61B0BBC370087BACC /* U4DBoundingSphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingSphere.h; path = BoundingVolumes/U4DBoundingSphere.h; sourceTree = "<group>"; };
 		0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingSphere.mm; path = BoundingVolumes/U4DBoundingSphere.mm; sourceTree = "<group>"; };
+		03297C021FABAE28006422AC /* guardianscript.u4d */ = {isa = PBXFileReference; lastKnownFileType = text; path = guardianscript.u4d; sourceTree = "<group>"; };
+		03297C041FABAE52006422AC /* armor.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = armor.png; sourceTree = "<group>"; };
 		032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBlendAnimation.mm; sourceTree = "<group>"; };
 		032BD8A01E567FC300C158A1 /* U4DBlendAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBlendAnimation.h; sourceTree = "<group>"; };
 		033343001F8DA84A0013FB1E /* particleSystemShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = particleSystemShader.metal; path = MetalShaders/particleSystemShader.metal; sourceTree = "<group>"; };
@@ -255,6 +265,12 @@
 		03584D971951FB8900C974A2 /* U4DTransformationManagerInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformationManagerInterface.h; sourceTree = "<group>"; };
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
+		0361DF9B1FAC2140004770FD /* LeftImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LeftImage.png; sourceTree = "<group>"; };
+		0361DF9C1FAC2140004770FD /* TopImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TopImage.png; sourceTree = "<group>"; };
+		0361DF9D1FAC2140004770FD /* BottomImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BottomImage.png; sourceTree = "<group>"; };
+		0361DF9E1FAC2140004770FD /* FrontImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = FrontImage.png; sourceTree = "<group>"; };
+		0361DF9F1FAC2140004770FD /* RightImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = RightImage.png; sourceTree = "<group>"; };
+		0361DFA01FAC2141004770FD /* BackImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BackImage.png; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModelInterface.mm; sourceTree = "<group>"; };
@@ -488,8 +504,8 @@
 		03F2DB191F193B5300F77B78 /* GameAsset.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GameAsset.mm; sourceTree = "<group>"; };
 		03F2DB1A1F193B5300F77B78 /* GameAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GameAsset.h; sourceTree = "<group>"; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
-		03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoccerPlayer.mm; sourceTree = "<group>"; };
-		03FE2CDC1F1FA90100D4E2FB /* SoccerPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SoccerPlayer.h; sourceTree = "<group>"; };
+		03FE2CDB1F1FA90100D4E2FB /* GuardianModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GuardianModel.mm; sourceTree = "<group>"; };
+		03FE2CDC1F1FA90100D4E2FB /* GuardianModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GuardianModel.h; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -643,8 +659,8 @@
 				036FB56D18CE9CB8000EA639 /* MainScene.mm */,
 				03F2DB1A1F193B5300F77B78 /* GameAsset.h */,
 				03F2DB191F193B5300F77B78 /* GameAsset.mm */,
-				03FE2CDC1F1FA90100D4E2FB /* SoccerPlayer.h */,
-				03FE2CDB1F1FA90100D4E2FB /* SoccerPlayer.mm */,
+				03FE2CDC1F1FA90100D4E2FB /* GuardianModel.h */,
+				03FE2CDB1F1FA90100D4E2FB /* GuardianModel.mm */,
 				032567D51F256A2800A5A505 /* ModelAsset.h */,
 				032567D41F256A2800A5A505 /* ModelAsset.mm */,
 				03C278841F7D7D5400AF463C /* UserCommonProtocols.h */,
@@ -877,6 +893,13 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0361DFA01FAC2141004770FD /* BackImage.png */,
+				0361DF9D1FAC2140004770FD /* BottomImage.png */,
+				0361DF9E1FAC2140004770FD /* FrontImage.png */,
+				0361DF9B1FAC2140004770FD /* LeftImage.png */,
+				0361DF9F1FAC2140004770FD /* RightImage.png */,
+				0361DF9C1FAC2140004770FD /* TopImage.png */,
+				03297C041FABAE52006422AC /* armor.png */,
 				03DBEDF41F9BB29700570A25 /* particle.png */,
 				03EB598A1AED5FDF00A5F7DA /* blenderscript.u4d */,
 				03A9F7071ADF82A300E81A00 /* ArialFont.png */,
@@ -887,6 +910,7 @@
 				03798F881934DA8E00CF0600 /* ButtonAPressed.png */,
 				03798F891934DA8E00CF0600 /* ButtonB.png */,
 				03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */,
+				03297C021FABAE28006422AC /* guardianscript.u4d */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -1401,17 +1425,25 @@
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				03DBEDF51F9BB29700570A25 /* particle.png in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
+				0361DFA21FAC2141004770FD /* TopImage.png in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
+				0361DFA51FAC2141004770FD /* RightImage.png in Resources */,
+				0361DFA31FAC2141004770FD /* BottomImage.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
+				03297C051FABAE52006422AC /* armor.png in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
+				0361DFA61FAC2141004770FD /* BackImage.png in Resources */,
+				03297C031FABAE28006422AC /* guardianscript.u4d in Resources */,
+				0361DFA11FAC2141004770FD /* LeftImage.png in Resources */,
+				0361DFA41FAC2141004770FD /* FrontImage.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1498,7 +1530,7 @@
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
-				03FE2CDD1F1FA90100D4E2FB /* SoccerPlayer.mm in Sources */,
+				03FE2CDD1F1FA90100D4E2FB /* GuardianModel.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */,
