@@ -42,6 +42,8 @@ void GameLogic::removeModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
+    guardian->stopAnimation();
+    
     earth->removeChild(guardian);
     
     delete guardian;
@@ -56,6 +58,8 @@ void GameLogic::initModels(){
     guardian->init("guardian", "guardianscript.u4d");
     
     earth->addChild(guardian);
+    
+    guardian->playAnimation();
     
 }
 

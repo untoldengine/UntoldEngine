@@ -44,6 +44,7 @@ void GuardianModel::init(const char* uModelName, const char* uBlenderFile){
         
     }
     
+    translateBy(0.0, 3.0, 0.0);
     
 }
 
@@ -57,9 +58,9 @@ void GuardianModel::playAnimation(){
     
 }
 
-void GuardianModel::pauseAnimation(){
+void GuardianModel::stopAnimation(){
     
-    walkingAnimation->pause();
+    walkingAnimation->stop();
 }
 
 void GuardianModel::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){

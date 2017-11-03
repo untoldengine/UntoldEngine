@@ -31,7 +31,7 @@ public:
     
     void playAnimation();
     
-    void pauseAnimation();
+    void stopAnimation();
     
     void setPlayerHeading(U4DEngine::U4DVector3n& uHeading);
     
