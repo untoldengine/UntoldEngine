@@ -43,9 +43,9 @@ void GameLogic::removeModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    earth->removeChild(guardian);
+    earth->removeChild(skybox);
     
-    delete guardian;
+    delete skybox;
     
 }
 
@@ -53,12 +53,10 @@ void GameLogic::initModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    guardian=new GuardianModel();
-    guardian->init("guardian", "guardianscript.u4d");
+    skybox=new U4DEngine::U4DSkybox();
+    skybox->initSkyBox(25.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
     
-    guardian->playAnimation();
-    
-    earth->addChild(guardian);
+    earth->addChild(skybox);
     
     
 }

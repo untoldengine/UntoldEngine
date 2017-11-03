@@ -71,11 +71,11 @@ void Earth::init(){
     light->viewInDirection(origin);
     
     
-    floor=new ModelAsset();
-    floor->init("Floor", "blenderscript.u4d");
-    
-    
-    addChild(floor);
+//    floor=new ModelAsset();
+//    floor->init("Floor", "blenderscript.u4d");
+//
+//
+//    addChild(floor);
 
 }
 
