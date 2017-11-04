@@ -36,10 +36,10 @@
 using namespace U4DEngine;
 
 void Earth::init(){
-    
+        
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-10.0);
     
     camera->translateTo(cameraPos);
     
@@ -70,13 +70,26 @@ void Earth::init(){
 
     light->viewInDirection(origin);
     
+    floor=new ModelAsset();
+    floor->init("Floor", "blenderscript.u4d");
     
-//    floor=new ModelAsset();
-//    floor->init("Floor", "blenderscript.u4d");
-//
-//
-//    addChild(floor);
-
+    
+    addChild(floor,5);
+    
+    fontLoader=new U4DEngine::U4DFontLoader();
+    fontLoader->loadFontAssetFile("ArialFont.xml", "ArialFont.png");
+    
+    text=new U4DEngine::U4DText(fontLoader,30);
+    
+    text->setText("Untold Engine");
+    
+    addChild(text,0);
+    
+    skybox=new U4DEngine::U4DSkybox();
+    skybox->initSkyBox(40.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
+    
+    addChild(skybox,1);
+    
 }
 
 Earth::~Earth(){

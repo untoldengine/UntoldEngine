@@ -16,6 +16,7 @@ namespace U4DEngine {
     U4DSkybox::U4DSkybox(){
         renderManager=new U4DRenderSkybox(this);
         setShader("vertexSkyboxShader", "fragmentSkyboxShader");
+        
     }
         
     U4DSkybox::~U4DSkybox(){

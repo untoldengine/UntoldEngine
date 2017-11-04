@@ -338,22 +338,7 @@ namespace U4DEngine {
         /**
          @brief Entity of a 3D model with no shadows enabled
          **/
-        MODELNOSHADOWS,
-        
-        /**
-         @brief Entity is a particle system
-         **/
-        PARTICLESYSTEM,
-        
-        /**
-         @brief Entity is a 2D Image (i.e, text, sprite
-         **/
-        IMAGE2D,
-        
-        /**
-         @brief Entity is a skybox
-         **/
-        SKYBOX
+        MODELNOSHADOWS
         
     }ENTITYTYPE;
 

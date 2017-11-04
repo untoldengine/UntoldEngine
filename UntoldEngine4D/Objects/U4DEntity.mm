@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
     
-    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),entityForwardVector(0,0,-1),parent(nullptr),next(nullptr){
+    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),entityForwardVector(0,0,-1),parent(nullptr),next(nullptr),zDepth(100){
         
         prevSibling=this;
         lastDescendant=this;
@@ -360,6 +360,39 @@ namespace U4DEngine {
         
     }
 
+    void U4DEntity::addChild(U4DEntity *uChild, U4DEntity *uNext){
+        
+        if (uNext == 0)
+        {
+            // append as last uChild
+            uChild->parent = this;
+            uChild->lastDescendant->next = lastDescendant->next;
+            lastDescendant->next = uChild;
+            
+            uChild->prevSibling = getLastChild();
+            if (isLeaf())
+                next = uChild;
+            getFirstChild()->prevSibling = uChild;
+            
+            changeLastDescendant(uChild->lastDescendant);
+        }
+        else
+        {
+            uChild->parent = uNext->parent;
+            
+            uChild->prevSibling = uNext->prevSibling;
+            
+            uChild->lastDescendant->next = uNext;
+            if (uChild->parent->next == uNext)    // inserting before first uChild?
+                uChild->parent->next = uChild;
+            else
+                uNext->prevSibling->lastDescendant->next = uChild;
+            
+            uNext->prevSibling = uChild;
+        }
+        
+    }
+    
     void U4DEntity::removeChild(U4DEntity *uChild){
         
         U4DEntity* sibling = uChild->getNextSibling();
@@ -512,6 +545,61 @@ namespace U4DEngine {
         }
         
         return childWithName;
+        
+    }
+    
+    void U4DEntity::addChild(U4DEntity *uChild, int uZDepth){
+        
+        uChild->zDepth=uZDepth;
+        
+        //get child
+        U4DEntity *child=this->next;
+        
+        //load children into a container
+        std::vector<U4DEntity*> entityContainer;
+        
+        while (child!=nullptr) {
+            
+            entityContainer.push_back(child);
+            
+            child=child->next;
+        }
+        
+        //get the lowest zdepth child
+        child=nullptr;
+        
+        for(auto n:entityContainer){
+            
+            if (n->getZDepth()>=uZDepth) {
+                
+                child=n;
+                
+            }else{
+                break;
+            }
+            
+        }
+   
+        if (child==nullptr) {
+            
+            addChild(uChild);
+            
+        }else{
+            
+            addChild(uChild,child->next);
+            
+        }
+        
+    }
+    
+    void U4DEntity::setZDepth(int uZDepth){
+        
+        zDepth=uZDepth;
+        
+    }
+    
+    int U4DEntity::getZDepth(){
+        return zDepth;
         
     }
 }
