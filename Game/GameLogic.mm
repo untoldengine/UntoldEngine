@@ -43,9 +43,7 @@ void GameLogic::removeModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    earth->removeChild(skybox);
     
-    delete skybox;
     
 }
 
@@ -53,10 +51,6 @@ void GameLogic::initModels(){
     
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    skybox=new U4DEngine::U4DSkybox();
-    skybox->initSkyBox(25.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
-    
-    earth->addChild(skybox);
     
     
 }
@@ -107,7 +101,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     U4DEngine::U4DVector3n view=camera->getViewInDirection();
                     
-                    view*=-1.0;
+                    view*=-0.2;
                     
                     camera->translateBy(view);
                    

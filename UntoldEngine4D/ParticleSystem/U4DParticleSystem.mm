@@ -28,8 +28,6 @@ namespace U4DEngine {
         
         particleEmitter=nullptr;
         
-        setEntityType(PARTICLESYSTEM);
-        
     }
     
     U4DParticleSystem::~U4DParticleSystem(){

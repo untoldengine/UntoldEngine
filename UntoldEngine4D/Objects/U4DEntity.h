@@ -45,7 +45,11 @@ private:
      */
     ENTITYTYPE entityType;
     
-
+    /**
+     @brief z-depth used for rendering ordering
+     */
+    int zDepth;
+    
 protected:
     
     /**
@@ -415,6 +419,22 @@ public:
     void addChild(U4DEntity *uChild);
     
     /**
+     @brief Method which adds a child entity to a scenegraph at a particular location
+     
+     @param uChild Child entity to add to scenegraph
+     @param uNext location to insert child
+     */
+    void addChild(U4DEntity *uChild, U4DEntity *uNext);
+    
+    /**
+     @brief Method which adds a child entity to a scenegraph at a particular location
+     
+     @param uChild Child entity to add to scenegraph
+     @param uZDepth location to insert child
+     */
+    void addChild(U4DEntity *uChild, int uZDepth);
+    
+    /**
      @brief Method which removes a child entity from the scenegraph
      
      @param uChild Child entity to remove from the scenegraph
@@ -514,6 +534,17 @@ public:
      @todo document this
      */
     U4DEntity *searchChild(std::string uName);
+    
+    /**
+     @todo document this
+     */
+    void setZDepth(int uZDepth);
+    
+    /**
+     @todo document this
+     */
+    int getZDepth();
+    
 };
 
 }

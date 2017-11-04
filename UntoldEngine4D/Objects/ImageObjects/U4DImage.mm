@@ -15,6 +15,7 @@ namespace U4DEngine {
         
         renderManager=new U4DRenderImage(this);
         setShader("vertexImageShader", "fragmentImageShader");
+        
     };
 
     U4DImage::~U4DImage(){
