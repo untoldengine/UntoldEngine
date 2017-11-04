@@ -362,33 +362,41 @@ namespace U4DEngine {
 
     void U4DEntity::addChild(U4DEntity *uChild, U4DEntity *uNext){
         
-        if (uNext == 0)
-        {
-            // append as last uChild
-            uChild->parent = this;
-            uChild->lastDescendant->next = lastDescendant->next;
-            lastDescendant->next = uChild;
-            
-            uChild->prevSibling = getLastChild();
-            if (isLeaf())
-                next = uChild;
-            getFirstChild()->prevSibling = uChild;
-            
-            changeLastDescendant(uChild->lastDescendant);
-        }
-        else
-        {
-            uChild->parent = uNext->parent;
-            
-            uChild->prevSibling = uNext->prevSibling;
-            
-            uChild->lastDescendant->next = uNext;
-            if (uChild->parent->next == uNext)    // inserting before first uChild?
-                uChild->parent->next = uChild;
+        if (uChild!=NULL) {
+        
+            if (uNext == 0)
+            {
+                // append as last uChild
+                uChild->parent = this;
+                uChild->lastDescendant->next = lastDescendant->next;
+                lastDescendant->next = uChild;
+                
+                uChild->prevSibling = getLastChild();
+                if (isLeaf())
+                    next = uChild;
+                getFirstChild()->prevSibling = uChild;
+                
+                changeLastDescendant(uChild->lastDescendant);
+            }
             else
-                uNext->prevSibling->lastDescendant->next = uChild;
+            {
+                uChild->parent = uNext->parent;
+                
+                uChild->prevSibling = uNext->prevSibling;
+                
+                uChild->lastDescendant->next = uNext;
+                if (uChild->parent->next == uNext)    // inserting before first uChild?
+                    uChild->parent->next = uChild;
+                else
+                    uNext->prevSibling->lastDescendant->next = uChild;
+                
+                uNext->prevSibling = uChild;
+            }
             
-            uNext->prevSibling = uChild;
+        }else{
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("Error: An entity seems to be un-initialized. This entity was not loaded into the scenegraph");
         }
         
     }
@@ -550,44 +558,52 @@ namespace U4DEngine {
     
     void U4DEntity::addChild(U4DEntity *uChild, int uZDepth){
         
-        uChild->zDepth=uZDepth;
-        
-        //get child
-        U4DEntity *child=this->next;
-        
-        //load children into a container
-        std::vector<U4DEntity*> entityContainer;
-        
-        while (child!=nullptr) {
+        if (uChild!=NULL) {
             
-            entityContainer.push_back(child);
+            uChild->zDepth=uZDepth;
             
-            child=child->next;
-        }
-        
-        //get the lowest zdepth child
-        child=nullptr;
-        
-        for(auto n:entityContainer){
+            //get child
+            U4DEntity *child=this->next;
             
-            if (n->getZDepth()>=uZDepth) {
+            //load children into a container
+            std::vector<U4DEntity*> entityContainer;
+            
+            while (child!=nullptr) {
                 
-                child=n;
+                entityContainer.push_back(child);
                 
-            }else{
-                break;
+                child=child->next;
             }
             
-        }
-   
-        if (child==nullptr) {
+            //get the lowest zdepth child
+            child=nullptr;
             
-            addChild(uChild);
+            for(auto n:entityContainer){
+                
+                if (n->getZDepth()>=uZDepth) {
+                    
+                    child=n;
+                    
+                }else{
+                    break;
+                }
+                
+            }
+            
+            if (child==nullptr) {
+                
+                addChild(uChild);
+                
+            }else{
+                
+                addChild(uChild,child->next);
+                
+            }
             
         }else{
+            U4DLogger *logger=U4DLogger::sharedInstance();
             
-            addChild(uChild,child->next);
-            
+            logger->log("Error: An entity seems to be un-initialized. This entity was not loaded into the scenegraph");
         }
         
     }
