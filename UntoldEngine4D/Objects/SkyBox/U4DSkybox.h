@@ -65,6 +65,8 @@ public:
     
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
+    void setSkyboxDimension(float uSize);
+    
 };
     
 }

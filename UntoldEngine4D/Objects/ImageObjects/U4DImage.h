@@ -75,6 +75,10 @@ public:
     
     virtual void setImageState(bool uValue){};
     
+    void setImageDimension(float uWidth,float uHeight);
+    
+    
+    
 };
     
 }

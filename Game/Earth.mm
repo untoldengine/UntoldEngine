@@ -39,7 +39,7 @@ void Earth::init(){
         
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-10.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,0.0,-10.0);
     
     camera->translateTo(cameraPos);
     
@@ -74,7 +74,7 @@ void Earth::init(){
     floor->init("Cube", "blenderscript.u4d");
     
     
-    addChild(floor,5);
+    //addChild(floor,5);
     
     fontLoader=new U4DEngine::U4DFontLoader();
     fontLoader->loadFontAssetFile("ArialFont.xml", "ArialFont.png");
@@ -89,6 +89,13 @@ void Earth::init(){
     skybox->initSkyBox(16.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
     
     addChild(skybox,1);
+    
+    U4DEngine::U4DImage *imag=new U4DEngine::U4DImage();
+    imag->setImage("ButtonA.png", 80, 80);
+    
+    addChild(imag,0);
+    
+    
     
 }
 

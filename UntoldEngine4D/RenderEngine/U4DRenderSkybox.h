@@ -64,8 +64,6 @@ namespace U4DEngine {
         
         void alignedAttributeData();
         
-        void setSkyboxDimension(float uSize);
-        
         void setDiffuseTexture(const char* uTexture);
         
         void clearModelAttributeData();

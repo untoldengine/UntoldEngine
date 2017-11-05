@@ -129,48 +129,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderImage::setImageDimension(float uWidth,float uHeight){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        //make a rectangle
-        float width=uWidth/director->getDisplayWidth();
-        float height=uHeight/director->getDisplayHeight();
-        float depth=0.0;
-        
-        //vertices
-        U4DEngine::U4DVector3n v1(width,height,depth);
-        U4DEngine::U4DVector3n v4(width,-height,depth);
-        U4DEngine::U4DVector3n v2(-width,-height,depth);
-        U4DEngine::U4DVector3n v3(-width,height,depth);
-        
-        u4dObject->bodyCoordinates.addVerticesDataToContainer(v1);
-        u4dObject->bodyCoordinates.addVerticesDataToContainer(v4);
-        u4dObject->bodyCoordinates.addVerticesDataToContainer(v2);
-        u4dObject->bodyCoordinates.addVerticesDataToContainer(v3);
-        
-        
-        //texture
-        U4DEngine::U4DVector2n t4(0.0,0.0);  //top left
-        U4DEngine::U4DVector2n t1(1.0,0.0);  //top right
-        U4DEngine::U4DVector2n t3(0.0,1.0);  //bottom left
-        U4DEngine::U4DVector2n t2(1.0,1.0);  //bottom right
-        
-        u4dObject->bodyCoordinates.addUVDataToContainer(t1);
-        u4dObject->bodyCoordinates.addUVDataToContainer(t2);
-        u4dObject->bodyCoordinates.addUVDataToContainer(t3);
-        u4dObject->bodyCoordinates.addUVDataToContainer(t4);
-        
-        
-        U4DEngine::U4DIndex i1(0,1,2);
-        U4DEngine::U4DIndex i2(2,3,0);
-        
-        
-        u4dObject->bodyCoordinates.addIndexDataToContainer(i1);
-        u4dObject->bodyCoordinates.addIndexDataToContainer(i2);
-        
-    }
-    
     void U4DRenderImage::setDiffuseTexture(const char* uTexture){
         
         u4dObject->textureInformation.diffuseTexture=uTexture;

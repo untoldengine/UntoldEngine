@@ -42,7 +42,7 @@ namespace U4DEngine {
         
         renderManager->setDiffuseTexture(uTextureOne);
         renderManager->setAmbientTexture(uTextureTwo);
-        renderManager->setImageDimension(uWidth, uHeight);
+        setImageDimension(uWidth, uHeight);
         renderManager->loadRenderingInformation();
     }
     

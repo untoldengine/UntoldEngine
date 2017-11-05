@@ -60,6 +60,8 @@ namespace U4DEngine {
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        void setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight);
+        
     };
 
 }
