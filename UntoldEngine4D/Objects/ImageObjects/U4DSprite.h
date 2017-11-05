@@ -39,6 +39,8 @@ namespace U4DEngine {
         
         U4DVector2n spriteOffset;
         
+        U4DRenderManager *renderManager;
+        
     public:
         
         /**
