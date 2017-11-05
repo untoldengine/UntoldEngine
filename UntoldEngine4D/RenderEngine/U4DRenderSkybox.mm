@@ -158,7 +158,7 @@ namespace U4DEngine {
     
     void U4DRenderSkybox::setSkyboxDimension(float uSize){
         
-        float size=uSize/2;
+        float size=uSize*2.0;
         
         //side1
         
