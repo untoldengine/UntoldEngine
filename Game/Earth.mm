@@ -81,11 +81,11 @@ void Earth::init(){
     
     fontLoader=new U4DEngine::U4DFontLoader();
     fontLoader->loadFontAssetFile("ArialFont.xml", "ArialFont.png");
-    
+
     text=new U4DEngine::U4DText(fontLoader,30);
-    
+
     text->setText("Untold Engine");
-    
+
     addChild(text,0);
     
     skybox=new U4DEngine::U4DSkybox();

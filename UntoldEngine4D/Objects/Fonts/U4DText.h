@@ -51,6 +51,8 @@ namespace U4DEngine {
         
         int currentTextContainerSize;
         
+        U4DRenderManager *renderManager;
+        
     public:
         
         /**
