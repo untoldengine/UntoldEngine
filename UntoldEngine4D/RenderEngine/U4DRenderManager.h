@@ -159,8 +159,6 @@ namespace U4DEngine {
         
         virtual void setAmbientTexture(const char* uTexture){};
         
-        virtual void setSpriteOffset(U4DVector2n &uSpriteOffset){};
-        
         void addTexturesToSkyboxContainer(const char* uTextures);
         
         std::vector<const char*> getSkyboxTexturesContainer();

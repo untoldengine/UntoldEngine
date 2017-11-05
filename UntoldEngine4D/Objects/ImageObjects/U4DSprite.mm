@@ -13,7 +13,7 @@
 
 namespace U4DEngine {
     
-        U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr){
+        U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr),spriteOffset(0.0,0.0){
         
         renderManager=new U4DRenderSprite(this);
         
@@ -51,7 +51,7 @@ namespace U4DEngine {
                         
                         U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
                         
-                        renderManager->setSpriteOffset(offset);
+                        setSpriteOffset(offset);
                         
                         renderManager->loadRenderingInformation();
                         
@@ -61,7 +61,7 @@ namespace U4DEngine {
                         //set the offset for the sprite
                         U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
                         
-                        renderManager->setSpriteOffset(offset);
+                        setSpriteOffset(offset);
                         
                     }
                     
@@ -122,6 +122,18 @@ namespace U4DEngine {
         //index
         bodyCoordinates.addIndexDataToContainer(i1);
         bodyCoordinates.addIndexDataToContainer(i2);
+        
+    }
+    
+    void U4DSprite::setSpriteOffset(U4DVector2n &uSpriteOffset){
+        
+        spriteOffset=uSpriteOffset;
+        
+    }
+    
+    U4DVector2n& U4DSprite::getSpriteOffset(){
+        
+        return spriteOffset;
         
     }
 

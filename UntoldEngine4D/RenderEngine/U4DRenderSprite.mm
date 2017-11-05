@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
     
-    U4DRenderSprite::U4DRenderSprite(U4DImage *uU4DImage):U4DEngine::U4DRenderImage(uU4DImage),spriteOffset(0.0,0.0){
+    U4DRenderSprite::U4DRenderSprite(U4DImage *uU4DImage):U4DEngine::U4DRenderImage(uU4DImage){
         
         u4dObject=uU4DImage;
         
@@ -29,15 +29,9 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderSprite::setSpriteOffset(U4DVector2n &uSpriteOffset){
-        
-        spriteOffset=uSpriteOffset;
-        
-    }
-    
     void U4DRenderSprite::updateSpriteBufferUniform(){
         
-        vector_float2 spriteOffsetSIMD=convertToSIMD(spriteOffset);
+        vector_float2 spriteOffsetSIMD=convertToSIMD(u4dObject->getSpriteOffset());
         
         UniformSpriteProperty spriteProperty;
         spriteProperty.offset=spriteOffsetSIMD;

@@ -60,6 +60,8 @@
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
 		036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036FB55F18CE9CB8000EA639 /* Earth.mm */; };
 		036FB58118CE9CB8000EA639 /* MainScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036FB56D18CE9CB8000EA639 /* MainScene.mm */; };
+		03752C511FAF812600EC869C /* walkSprite.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03752C4F1FAF812600EC869C /* walkSprite.xml */; };
+		03752C521FAF812600EC869C /* walkSprite.png in Resources */ = {isa = PBXBuildFile; fileRef = 03752C501FAF812600EC869C /* walkSprite.png */; };
 		03759B39175B0135002EB5D9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B38175B0135002EB5D9 /* UIKit.framework */; };
 		03759B3B175B0135002EB5D9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B3A175B0135002EB5D9 /* Foundation.framework */; };
 		03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 03759B45175B0135002EB5D9 /* InfoPlist.strings */; };
@@ -281,6 +283,8 @@
 		036FB55F18CE9CB8000EA639 /* Earth.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Earth.mm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		036FB56C18CE9CB8000EA639 /* MainScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainScene.h; sourceTree = "<group>"; };
 		036FB56D18CE9CB8000EA639 /* MainScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MainScene.mm; sourceTree = "<group>"; };
+		03752C4F1FAF812600EC869C /* walkSprite.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = walkSprite.xml; sourceTree = "<group>"; };
+		03752C501FAF812600EC869C /* walkSprite.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = walkSprite.png; sourceTree = "<group>"; };
 		03759B34175B0135002EB5D9 /* UntoldEngine.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UntoldEngine.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		03759B38175B0135002EB5D9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		03759B3A175B0135002EB5D9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -893,6 +897,8 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03752C501FAF812600EC869C /* walkSprite.png */,
+				03752C4F1FAF812600EC869C /* walkSprite.xml */,
 				0361DFA01FAC2141004770FD /* BackImage.png */,
 				0361DF9D1FAC2140004770FD /* BottomImage.png */,
 				0361DF9E1FAC2140004770FD /* FrontImage.png */,
@@ -1423,6 +1429,7 @@
 				03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */,
 				03759B4F175B0135002EB5D9 /* Default.png in Resources */,
 				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
+				03752C521FAF812600EC869C /* walkSprite.png in Resources */,
 				03DBEDF51F9BB29700570A25 /* particle.png in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
 				0361DFA21FAC2141004770FD /* TopImage.png in Resources */,
@@ -1431,6 +1438,7 @@
 				0361DFA51FAC2141004770FD /* RightImage.png in Resources */,
 				0361DFA31FAC2141004770FD /* BottomImage.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
+				03752C511FAF812600EC869C /* walkSprite.xml in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
 				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,

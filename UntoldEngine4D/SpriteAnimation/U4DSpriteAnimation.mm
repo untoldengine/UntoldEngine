@@ -24,6 +24,7 @@ namespace U4DEngine {
 
 U4DSpriteAnimation::~U4DSpriteAnimation(){
     
+    scheduler->unScheduleTimer(timer);
     delete scheduler;
     delete timer;
     

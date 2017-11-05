@@ -77,7 +77,7 @@ public:
     
     void setImageDimension(float uWidth,float uHeight);
     
-    
+    virtual U4DVector2n &getSpriteOffset(){};
     
 };
     
