@@ -27,8 +27,6 @@ namespace U4DEngine {
         
         U4DImage *u4dObject;
         
-        U4DVector2n spriteOffset;
-        
         //uniforms
         id<MTLBuffer> uniformSpriteBuffer;
         
@@ -42,11 +40,7 @@ namespace U4DEngine {
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
-        void setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight);
-        
         void updateSpriteBufferUniform();
-        
-        void setSpriteOffset(U4DVector2n &uSpriteOffset);
         
     };
     

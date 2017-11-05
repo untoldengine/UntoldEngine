@@ -100,6 +100,7 @@ namespace U4DEngine {
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight);
     };
         
 }

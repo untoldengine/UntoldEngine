@@ -63,8 +63,6 @@ namespace U4DEngine {
         
         void alignedAttributeData();
         
-        virtual void setImageDimension(float uWidth,float uHeight);
-        
         void setDiffuseTexture(const char* uTexture);
         
         /**

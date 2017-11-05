@@ -8,11 +8,12 @@
 
 #include "U4DSprite.h"
 #include "U4DRenderSprite.h"
+#include "U4DDirector.h"
 #include <string>
 
 namespace U4DEngine {
     
-        U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr){
+        U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr),spriteOffset(0.0,0.0){
         
         renderManager=new U4DRenderSprite(this);
         
@@ -46,11 +47,11 @@ namespace U4DEngine {
                         renderManager->setDiffuseTexture(spriteAtlasImage);
                         
                         //set the rectangle for the sprite
-                        renderManager->setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
+                        setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
                         
                         U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
                         
-                        renderManager->setSpriteOffset(offset);
+                        setSpriteOffset(offset);
                         
                         renderManager->loadRenderingInformation();
                         
@@ -60,7 +61,7 @@ namespace U4DEngine {
                         //set the offset for the sprite
                         U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
                         
-                        renderManager->setSpriteOffset(offset);
+                        setSpriteOffset(offset);
                         
                     }
                     
@@ -76,6 +77,63 @@ namespace U4DEngine {
     void U4DSprite::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         renderManager->render(uRenderEncoder);
+        
+    }
+    
+    void U4DSprite::setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        float widthFontTexture=uSpriteWidth/uAtlasWidth;
+        float heightFontTexture=uSpriteHeight/uAtlasHeight;
+        
+        float width=uSpriteWidth/director->getDisplayWidth();
+        float height=uSpriteHeight/director->getDisplayHeight();
+        float depth=0.0;
+        
+        
+        //vertices
+        U4DVector3n v1(width,height,depth);
+        U4DVector3n v4(width,-height,depth);
+        U4DVector3n v2(-width,-height,depth);
+        U4DVector3n v3(-width,height,depth);
+        
+        bodyCoordinates.addVerticesDataToContainer(v1);
+        bodyCoordinates.addVerticesDataToContainer(v4);
+        bodyCoordinates.addVerticesDataToContainer(v2);
+        bodyCoordinates.addVerticesDataToContainer(v3);
+        
+        //texture
+        U4DVector2n t4(0.0,0.0);  //top left
+        U4DVector2n t1(1.0*widthFontTexture,0.0);  //top right
+        U4DVector2n t3(0.0,1.0*heightFontTexture);  //bottom left
+        U4DVector2n t2(1.0*widthFontTexture,1.0*heightFontTexture);  //bottom right
+        
+        
+        bodyCoordinates.addUVDataToContainer(t1);
+        bodyCoordinates.addUVDataToContainer(t2);
+        bodyCoordinates.addUVDataToContainer(t3);
+        bodyCoordinates.addUVDataToContainer(t4);
+        
+        
+        U4DIndex i1(0,1,2);
+        U4DIndex i2(2,3,0);
+        
+        //index
+        bodyCoordinates.addIndexDataToContainer(i1);
+        bodyCoordinates.addIndexDataToContainer(i2);
+        
+    }
+    
+    void U4DSprite::setSpriteOffset(U4DVector2n &uSpriteOffset){
+        
+        spriteOffset=uSpriteOffset;
+        
+    }
+    
+    U4DVector2n& U4DSprite::getSpriteOffset(){
+        
+        return spriteOffset;
         
     }
 

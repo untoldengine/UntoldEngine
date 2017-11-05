@@ -37,6 +37,8 @@ namespace U4DEngine {
         
         const char * spriteAtlasImage;
         
+        U4DVector2n spriteOffset;
+        
     public:
         
         /**
@@ -59,6 +61,12 @@ namespace U4DEngine {
         void setSprite(const char* uSprite);
         
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        
+        void setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight);
+        
+        void setSpriteOffset(U4DVector2n &uSpriteOffset);
+        
+        U4DVector2n &getSpriteOffset();
         
     };
 
