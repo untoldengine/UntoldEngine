@@ -71,7 +71,7 @@ void Earth::init(){
     light->viewInDirection(origin);
     
     floor=new ModelAsset();
-    floor->init("Floor", "blenderscript.u4d");
+    floor->init("Cube", "blenderscript.u4d");
     
     
     addChild(floor,5);
@@ -86,7 +86,7 @@ void Earth::init(){
     addChild(text,0);
     
     skybox=new U4DEngine::U4DSkybox();
-    skybox->initSkyBox(40.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
+    skybox->initSkyBox(16.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
     
     addChild(skybox,1);
     
