@@ -11,13 +11,21 @@
 
 #include <stdio.h>
 #include "U4DGameObject.h"
+#include "UserCommonProtocols.h"
+
+class GuardianStateInterface;
+class GuardianStateManager;
 
 class GuardianModel:public U4DEngine::U4DGameObject {
     
 private:
     
-    U4DEngine::U4DAnimation *walkingAnimation;
-    U4DEngine::U4DAnimation *runningAnimation;
+    U4DEngine::U4DAnimation *jumpAnimation;
+    U4DEngine::U4DAnimation *runAnimation;
+    
+    GuardianStateManager *stateManager;
+    
+    bool ateCoin;
     
 public:
     
@@ -25,7 +33,7 @@ public:
     
     ~GuardianModel();
     
-    void init(const char* uModelName, const char* uBlenderFile);
+    bool init(const char* uModelName, const char* uBlenderFile);
     
     void update(double dt);
     
@@ -33,9 +41,17 @@ public:
     
     void stopAnimation();
     
+    void changeState(GuardianStateInterface* uState);
+    
     void setPlayerHeading(U4DEngine::U4DVector3n& uHeading);
     
     void applyForceToPlayer(float uVelocity, double dt);
+    
+    bool handleMessage(Message &uMsg);
+    
+    bool guardianAte();
+    
+    void resetAteCoin();
     
 };
 #endif /* SoccerPlayer_hpp */

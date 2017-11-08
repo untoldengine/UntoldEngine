@@ -11,7 +11,9 @@
 
 #include <iostream>
 #include "U4DGameModel.h"
+#include "GuardianModel.h"
 #include "UserCommonProtocols.h"
+#include "U4DText.h"
 
 namespace U4DEngine {
     class U4DTouches;
@@ -21,9 +23,13 @@ namespace U4DEngine {
 
 class GameLogic:public U4DEngine::U4DGameModel{
     
+private:
+    
+    GuardianModel *guardian;
+    U4DEngine::U4DText *text;
+    int points;
+    
 public:
-    
-    
     
     GameLogic();
     
@@ -35,10 +41,11 @@ public:
     
     void receiveTouchUpdate(void *uData);
     
-    void initModels();
+    void setGuardian(GuardianModel *uGuardian);
     
-    void removeModels();
+    void setText(U4DEngine::U4DText *uText);
     
+    void increasePoints();
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

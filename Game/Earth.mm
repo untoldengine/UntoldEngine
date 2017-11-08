@@ -27,6 +27,7 @@
 
 #include "GameAsset.h"
 #include "ModelAsset.h"
+#include "GuardianModel.h"
 
 #include "U4DParticleSystem.h"
 #include "U4DParticleData.h"
@@ -36,13 +37,16 @@
 #include "U4DSprite.h"
 #include "U4DSpriteAnimation.h"
 
+#include "U4DFontLoader.h"
+#include "U4DText.h"
+
 using namespace U4DEngine;
 
 void Earth::init(){
         
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,0.0,-10.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-15.0);
     
     camera->translateTo(cameraPos);
     
@@ -65,83 +69,51 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(0.0,10.0,0.0);
-    
+    light->translateTo(0.0,19.0,0.0);
+    U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
+    U4DEngine::U4DVector3n specular(0.1,0.1,0.1);
+    light->setDiffuseColor(diffuse);
+    light->setSpecularColor(specular);
     addChild(light);
     
     camera->viewInDirection(origin);
 
     light->viewInDirection(origin);
     
-    floor=new ModelAsset();
-    floor->init("Cube", "blenderscript.u4d");
+    //add terrain
+    terrain=new ModelAsset();
+
+    if(terrain->init("terrain","blenderscript.u4d")){
+        addChild(terrain);
+    }
+
     
+    //add character
+    guardian=new GuardianModel();
     
-    //addChild(floor,5);
+    if(guardian->init("guardian","guardianscript.u4d")){
+        addChild(guardian);
+    }
     
-    fontLoader=new U4DEngine::U4DFontLoader();
-    fontLoader->loadFontAssetFile("ArialFont.xml", "ArialFont.png");
-
-    text=new U4DEngine::U4DText(fontLoader,30);
-
-    text->setText("Untold Engine");
-
-    addChild(text,0);
+    guardian->translateBy(0.0, 0.0, -4.0);
     
-    skybox=new U4DEngine::U4DSkybox();
-    skybox->initSkyBox(16.0, "RightImage.png", "LeftImage.png", "TopImage.png", "BottomImage.png", "FrontImage.png", "BackImage.png");
-
-    addChild(skybox,1);
-
-
-    //create a a sprite loader object
-    U4DSpriteLoader *spriteLoader=new U4DSpriteLoader();
-
-    //load the sprite information into the loader
-    spriteLoader->loadSpritesAssetFile("walkSprite.xml", "walkSprite.png");
-
-    //Create a sprite object
-    U4DSprite *mySprite=new U4DSprite(spriteLoader);
-
-    //Set the sprite to render
-    mySprite->setSprite("0001.png");
-
-    //Add it to the world
-    addChild(mySprite,0);
-
-    //Load all the sprite animation data into the structure
-    U4DEngine::SPRITEANIMATIONDATA spriteAnimationData;
-
-    spriteAnimationData.animationSprites.push_back("0001.png");
-    spriteAnimationData.animationSprites.push_back("0002.png");
-    spriteAnimationData.animationSprites.push_back("0003.png");
-    spriteAnimationData.animationSprites.push_back("0004.png");
-    spriteAnimationData.animationSprites.push_back("0005.png");
-    spriteAnimationData.animationSprites.push_back("0006.png");
-    spriteAnimationData.animationSprites.push_back("0007.png");
-    spriteAnimationData.animationSprites.push_back("0008.png");
-
-    //set a delay for the animation
-    spriteAnimationData.delay=0.1;
-
-    //create a sprite animation object
-    U4DSpriteAnimation *spriteAnim=new U4DSpriteAnimation(mySprite,spriteAnimationData);
-
-    //Play the animation
-    spriteAnim->play();
+    //get game model pointer
+    GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
+    
+    gameModel->setGuardian(guardian);
     
 }
 
 Earth::~Earth(){
     
-    delete fontLoader;
-    delete text;
-    delete floor;
     
 }
 
 void Earth::update(double dt){
     
+    U4DCamera *camera=U4DCamera::sharedInstance();
+
+    camera->followModel(guardian, 0.0, 10.0, -15.0);
 }
 
 

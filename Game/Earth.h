@@ -19,17 +19,37 @@
 class GameController;
 class GameAsset;
 class ModelAsset;
-
+class GuardianModel;
+class GoldAsset;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    ModelAsset *modelCube[10];
-    U4DEngine::U4DSkybox *skybox;
-    ModelAsset *floor;
-    U4DEngine::U4DText *text;
-    U4DEngine::U4DFontLoader *fontLoader;
+//    ModelAsset *bag;
+//    ModelAsset *barrel[2];
+//    ModelAsset *box[2];
+//    ModelAsset *chestgold;
+//    ModelAsset *environment[12];
+//    ModelAsset *fence[3];
+//    ModelAsset *house[6];
+//    ModelAsset *lamp[2];
+//    ModelAsset *market[3];
+//    ModelAsset *marketstall[3];
+//    ModelAsset *metalchest;
+//    ModelAsset *palm[2];
+//    ModelAsset *pillar;
+//    ModelAsset *stone[6];
+//    ModelAsset *stonefence[4];
+    ModelAsset *terrain;
+//    ModelAsset *tile[3];
+//    ModelAsset *well;
+//    ModelAsset *wood[2];
+    GuardianModel *guardian;
+//    GoldAsset *gold[17];
+//
+//    U4DEngine::U4DText *points;
+//    U4DEngine::U4DFontLoader *fontLoader;
     
 public:
    

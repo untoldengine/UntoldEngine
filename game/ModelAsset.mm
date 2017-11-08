@@ -15,17 +15,25 @@ ModelAsset::ModelAsset(){
 
 ModelAsset::~ModelAsset(){
     
+    U4DEngine::U4DEntity *parent=getParent();
+    
+    parent->removeChild(this);
     
 }
 
-void ModelAsset::init(const char* uModelName, const char* uBlenderFile){
+bool ModelAsset::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
         setEnableShadow(true);
         
         loadRenderingInformation();
+        
+        return true;
+        
     }
+    
+    return false;
 }
 
 void ModelAsset::update(double dt){
