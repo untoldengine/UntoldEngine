@@ -252,7 +252,7 @@
     shadowAttachment.texture=shadowTexture;
     
     //Set other properties on the render pass descriptor
-    shadowAttachment.clearDepth=1.0;
+    shadowAttachment.clearDepth=0.0;
     shadowAttachment.loadAction=MTLLoadActionClear;
     shadowAttachment.storeAction=MTLStoreActionStore;
     
@@ -316,7 +316,7 @@
     
     //Set the depth stencil descriptors
     shadowDepthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-    shadowDepthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLessEqual;
+    shadowDepthStencilDescriptor.depthCompareFunction=MTLCompareFunctionGreater;
     shadowDepthStencilDescriptor.depthWriteEnabled=YES;
     
     //add stencil description

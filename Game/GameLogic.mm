@@ -31,6 +31,11 @@ GameLogic::~GameLogic(){
 
 void GameLogic::update(double dt){
     
+    if (guardian->guardianAte()) {
+        
+        increasePoints();
+        guardian->resetAteCoin();
+    }
 }
 
 void GameLogic::init(){

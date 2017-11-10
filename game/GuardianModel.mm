@@ -34,7 +34,7 @@ bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
-        setEnableShadow(false);
+        setEnableShadow(true);
         
         //setNormalMapTexture(uTextureNormal);
         

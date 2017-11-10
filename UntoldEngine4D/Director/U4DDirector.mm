@@ -270,6 +270,46 @@ namespace U4DEngine {
         return m;
         
     }
+    U4DMatrix4n U4DDirector::computeOrthographicShadowSpace(float left, float right, float bottom, float top, float near, float far){
+        
+        U4DEngine::U4DMatrix4n m;
+        
+        float r_l = 2.0/(right - left);
+        float t_b = 2.0/(top - bottom);
+        float f_n = -1.0/(far - near);
+        float tx = (right + left) / (right - left);
+        float ty = (top + bottom) / (top - bottom);
+        float tz = (near) / (far - near);
+        
+        //    0    4    8    12
+        //    1    5    9    13
+        //    2    6    10    14
+        //    3    7    11    15
+        
+        
+        m.matrixData[0]=r_l;
+        m.matrixData[4]=0.0f;
+        m.matrixData[8]=0.0f;
+        m.matrixData[12]=-tx;
+        
+        m.matrixData[1]=0.0f;
+        m.matrixData[5]=t_b;
+        m.matrixData[9]=0.0f;
+        m.matrixData[13]=-ty;
+        
+        m.matrixData[2]=0.0f;
+        m.matrixData[6]=0.0f;
+        m.matrixData[10]=f_n;
+        m.matrixData[14]=-tz;
+        
+        m.matrixData[3]=0.0f;
+        m.matrixData[7]=0.0f;
+        m.matrixData[11]=0.0f;
+        m.matrixData[15]=1.0f;
+        
+        return m;
+        
+    }
     
     U4DMatrix4n U4DDirector::computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far){
         

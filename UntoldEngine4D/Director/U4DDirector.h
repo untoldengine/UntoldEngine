@@ -225,6 +225,8 @@ public:
     U4DMatrix4n computePerspectiveSpace(float fov, float aspect, float near, float far);
     
     U4DMatrix4n computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far);
+    
+    U4DMatrix4n computeOrthographicShadowSpace(float left, float right, float bottom, float top, float near, float far);
 
     void determineVisibility();
     

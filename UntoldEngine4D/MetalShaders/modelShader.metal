@@ -176,7 +176,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
         
         //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
         //left corner
-        vertexOut.shadowCoords.y=-vertexOut.shadowCoords.y;
+        //vertexOut.shadowCoords.y=-vertexOut.shadowCoords.y;
         
     }
     
@@ -260,21 +260,20 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         // Compute the direction of the light ray betweent the light position and the vertices of the surface
         float3 lightRayDirection=normalize(vertexOut.lightPosition.xyz-vertexOut.verticesInMVSpace.xyz);
         
-        float biasShadow = max(0.05*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.005);
+        float biasShadow=0.005;
+        //float biasShadow = max(0.05*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.005);
         
         float3 proj=vertexOut.shadowCoords.xyz/vertexOut.shadowCoords.w;
         
-        proj=proj*0.5+0.5;
+        proj.xy=proj.xy*0.5+0.5;
+        
+        proj.y=1.0-proj.y;
         
         float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy);
-        
-        float closestDepth=shadowMap.r;
-        
-        float currentDepth=proj.z;
-        
+    
         float visibility=1.0;
         
-        if(currentDepth-biasShadow>closestDepth){
+        if(shadowMap.x-biasShadow>=proj.z){
             visibility=0.8;
         }
         
