@@ -174,10 +174,6 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
         
         vertexOut.shadowCoords=(uniformSpace.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
         
-        //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
-        //left corner
-        //vertexOut.shadowCoords.y=-vertexOut.shadowCoords.y;
-        
     }
     
     //send the material index
@@ -267,6 +263,8 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         
         proj.xy=proj.xy*0.5+0.5;
         
+        //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
+        //left corner
         proj.y=1.0-proj.y;
         
         float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy);
