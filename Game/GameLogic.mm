@@ -17,6 +17,7 @@
 #include "U4DParticleSystem.h"
 #include "Earth.h"
 #include "MessageDispatcher.h"
+#include "U4DLights.h"
 
 GameLogic::GameLogic():points(0){
     
@@ -77,10 +78,18 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
+                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
                     
-                    std::cout<<"pressed"<<std::endl;
+                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
                     
+                    liPos.x+=1.0;
                     
+                    light->translateTo(liPos);
+                    
+                    liPos.show();
+                    
+                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
+                    light->viewInDirection(origin);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -94,7 +103,18 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
+                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
                     
+                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
+                    
+                    liPos.x-=1.0;
+                    
+                    light->translateTo(liPos);
+                    
+                    liPos.show();
+                    
+                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
+                    light->viewInDirection(origin);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     

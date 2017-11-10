@@ -64,13 +64,13 @@ void Earth::init(){
     director->setPerspectiveSpace(perspectiveSpace);
     
     //compute orthographic shadow space
-    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-40.0f, 40.0f, -40.0f, 40.0f, -40.0f, 40.0f);
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-30.0f, 30.0f, -30.0f, 30.0f, -30.0f, 30.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(5.0,10.0,0.0);
+    light->translateTo(0.0,5.0,5.0);
     U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
     U4DEngine::U4DVector3n specular(0.1,0.1,0.1);
     light->setDiffuseColor(diffuse);
@@ -312,18 +312,18 @@ void Earth::init(){
 
 
     //add gold
-    for(int i=0;i<17;i++){
-
-        std::string name="gold";
-        name+=std::to_string(i);
-
-        gold[i]=new GoldAsset();
-
-        if(gold[i]->init(name.c_str(), "goldscript.u4d")){
-            addChild(gold[i]);
-        }
-
-    }
+//    for(int i=0;i<17;i++){
+//
+//        std::string name="gold";
+//        name+=std::to_string(i);
+//
+//        gold[i]=new GoldAsset();
+//
+//        if(gold[i]->init(name.c_str(), "goldscript.u4d")){
+//            addChild(gold[i]);
+//        }
+//
+//    }
     
     //add character
     guardian=new GuardianModel();

@@ -115,6 +115,10 @@
 		039EC6B41FB57C8C0098BB5C /* GoldEatenState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039EC6AB1FB57C8B0098BB5C /* GoldEatenState.mm */; };
 		039EC6B51FB57C8C0098BB5C /* GoldStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039EC6AF1FB57C8B0098BB5C /* GoldStateInterface.mm */; };
 		039EC6B81FB57C970098BB5C /* GoldAsset.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039EC6B61FB57C970098BB5C /* GoldAsset.mm */; };
+		039EC6BA1FB57F430098BB5C /* Coin4Diffuse.png in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6B91FB57F420098BB5C /* Coin4Diffuse.png */; };
+		039EC6BC1FB57F4A0098BB5C /* goldscript.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BB1FB57F4A0098BB5C /* goldscript.u4d */; };
+		039EC6BF1FB57F5C0098BB5C /* myFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BD1FB57F5B0098BB5C /* myFont.png */; };
+		039EC6C01FB57F5C0098BB5C /* myFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BE1FB57F5B0098BB5C /* myFont.xml */; };
 		03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7071ADF82A300E81A00 /* ArialFont.png */; };
 		03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03A9F7081ADF82A300E81A00 /* ArialFont.xml */; };
@@ -393,6 +397,10 @@
 		039EC6B01FB57C8B0098BB5C /* GoldStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GoldStateManager.h; sourceTree = "<group>"; };
 		039EC6B61FB57C970098BB5C /* GoldAsset.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = GoldAsset.mm; sourceTree = "<group>"; };
 		039EC6B71FB57C970098BB5C /* GoldAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = GoldAsset.h; sourceTree = "<group>"; };
+		039EC6B91FB57F420098BB5C /* Coin4Diffuse.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Coin4Diffuse.png; sourceTree = "<group>"; };
+		039EC6BB1FB57F4A0098BB5C /* goldscript.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = goldscript.u4d; sourceTree = "<group>"; };
+		039EC6BD1FB57F5B0098BB5C /* myFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = myFont.png; sourceTree = "<group>"; };
+		039EC6BE1FB57F5B0098BB5C /* myFont.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = myFont.xml; sourceTree = "<group>"; };
 		03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFontLoader.h; sourceTree = "<group>"; };
 		03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DFontLoader.mm; sourceTree = "<group>"; };
 		03A9F7071ADF82A300E81A00 /* ArialFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = ArialFont.png; path = Resources/ArialFont.png; sourceTree = SOURCE_ROOT; };
@@ -968,7 +976,11 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				039EC6BD1FB57F5B0098BB5C /* myFont.png */,
+				039EC6BE1FB57F5B0098BB5C /* myFont.xml */,
+				039EC6BB1FB57F4A0098BB5C /* goldscript.u4d */,
 				036024E91FB29E600054236E /* pal.png */,
+				039EC6B91FB57F420098BB5C /* Coin4Diffuse.png */,
 				036024E71FB29DA80054236E /* walkingscript.u4d */,
 				03752C501FAF812600EC869C /* walkSprite.png */,
 				03752C4F1FAF812600EC869C /* walkSprite.xml */,
@@ -1522,12 +1534,14 @@
 				036024EA1FB29E600054236E /* pal.png in Resources */,
 				03752C521FAF812600EC869C /* walkSprite.png in Resources */,
 				03DBEDF51F9BB29700570A25 /* particle.png in Resources */,
+				039EC6C01FB57F5C0098BB5C /* myFont.xml in Resources */,
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
 				0361DFA21FAC2141004770FD /* TopImage.png in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
 				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
 				0361DFA51FAC2141004770FD /* RightImage.png in Resources */,
 				0361DFA31FAC2141004770FD /* BottomImage.png in Resources */,
+				039EC6BC1FB57F4A0098BB5C /* goldscript.u4d in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
 				03752C511FAF812600EC869C /* walkSprite.xml in Resources */,
 				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
@@ -1535,6 +1549,8 @@
 				036024E81FB29DA80054236E /* walkingscript.u4d in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
+				039EC6BA1FB57F430098BB5C /* Coin4Diffuse.png in Resources */,
+				039EC6BF1FB57F5C0098BB5C /* myFont.png in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				03297C051FABAE52006422AC /* armor.png in Resources */,
 				03EB598B1AED5FDF00A5F7DA /* blenderscript.u4d in Resources */,
