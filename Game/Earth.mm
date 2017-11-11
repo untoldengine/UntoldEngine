@@ -70,7 +70,7 @@ void Earth::init(){
     U4DVector3n origin(0,0,0);
 
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(0.0,5.0,5.0);
+    light->translateTo(10.0,10.0,-10.0);
     U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
     U4DEngine::U4DVector3n specular(0.1,0.1,0.1);
     light->setDiffuseColor(diffuse);
