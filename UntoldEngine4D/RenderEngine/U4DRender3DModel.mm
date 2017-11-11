@@ -16,7 +16,7 @@
 
 namespace U4DEngine {
 
-    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil){
+    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil){
         
         u4dObject=uU4DModel;
         
@@ -29,12 +29,12 @@ namespace U4DEngine {
         
         [uniformBoneBuffer release];
         [nullSamplerDescriptor release];
-        
+        [shadowPropertiesBuffer release];
         
         uniformBoneBuffer=nil;
         nullSamplerDescriptor=nil;
         shadowTexture=nil;
-        
+        shadowPropertiesBuffer=nil;
     }
     
     U4DDualQuaternion U4DRender3DModel::getEntitySpace(){
@@ -187,6 +187,8 @@ namespace U4DEngine {
         
         lightPositionUniform=[mtlDevice newBufferWithLength:sizeof(vector_float4) options:MTLResourceStorageModeShared];
         
+        shadowPropertiesBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelShadowProperties) options:MTLResourceStorageModeShared];
+        
         //load the index into the buffer
         indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
@@ -231,7 +233,7 @@ namespace U4DEngine {
         loadMTLMaterialInformation();
         
         loadMTLLightColorInformation();
-        
+    
     }
     
     void U4DRender3DModel::loadMTLLightColorInformation(){
@@ -376,6 +378,17 @@ namespace U4DEngine {
         
     }
     
+    void U4DRender3DModel::updateShadowProperties(){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        UniformModelShadowProperties shadowProperties;
+        
+        shadowProperties.biasDepth=director->getShadowBiasDepth();
+        
+        memcpy(shadowPropertiesBuffer.contents, (void*)&shadowProperties, sizeof(UniformModelShadowProperties));
+    }
+    
     void U4DRender3DModel::updateSpaceUniforms(){
         
         U4DCamera *camera=U4DCamera::sharedInstance();
@@ -486,6 +499,7 @@ namespace U4DEngine {
             updateSpaceUniforms();
             updateModelRenderFlags();
             updateBoneSpaceUniforms();
+            updateShadowProperties();
             
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
@@ -516,6 +530,7 @@ namespace U4DEngine {
             [uRenderEncoder setFragmentBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:1];
             [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:2];
             [uRenderEncoder setFragmentBuffer:lightColorUniform offset:0 atIndex:3];
+            [uRenderEncoder setFragmentBuffer:shadowPropertiesBuffer offset:0 atIndex:4];
             
             [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
             [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];

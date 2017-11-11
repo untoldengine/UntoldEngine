@@ -31,6 +31,12 @@ typedef struct{
 
 typedef struct{
     
+    float biasDepth;
+    
+}UniformModelShadowProperties;
+
+typedef struct{
+    
     vector_float4 diffuseMaterialColor[10];
     vector_float4 specularMaterialColor[10];
     float diffuseMaterialIntensity[10];
