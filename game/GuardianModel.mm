@@ -7,17 +7,30 @@
 //
 
 #include "GuardianModel.h"
+#include "GuardianStateManager.h"
+#include "GuardianStateInterface.h"
+#include "GuardianIdleState.h"
+#include "GuardianRunState.h"
+#include "GuardianJumpState.h"
 
-GuardianModel::GuardianModel(){
+GuardianModel::GuardianModel():ateCoin(false){
+    
+    stateManager=new GuardianStateManager(this);
     
 }
 
 GuardianModel::~GuardianModel(){
     
-    delete walkingAnimation;
+    U4DEngine::U4DEntity *parent=getParent();
+    
+    parent->removeChild(this);
+    
+    delete jumpAnimation;
+    delete runAnimation;
+    delete stateManager;
 }
 
-void GuardianModel::init(const char* uModelName, const char* uBlenderFile){
+bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
         
@@ -25,47 +38,84 @@ void GuardianModel::init(const char* uModelName, const char* uBlenderFile){
         
         //setNormalMapTexture(uTextureNormal);
         
-        //enableKineticsBehavior();
-        //enableCollisionBehavior();
+
+        enableKineticsBehavior();
+        enableCollisionBehavior();
         
-        //initMass(10.0);
+        initMass(10.0);
         //initCoefficientOfRestitution(0.9);
         
        
-        walkingAnimation=new U4DEngine::U4DAnimation(this);
+        runAnimation=new U4DEngine::U4DAnimation(this);
         
-        if (loadAnimationToModel(walkingAnimation, "walking", "guardianscript.u4d")) {
+        if (loadAnimationToModel(runAnimation, "walking", "walkingscript.u4d")) {
         
             
         }
         
+        U4DEngine::U4DVector3n viewDirectionVector(0,0,-1);
+        
+        setEntityForwardVector(viewDirectionVector);
+        
+        changeState(GuardianIdleState::sharedInstance());
         
         loadRenderingInformation();
         
+        translateBy(0.0, 0.86, 0.0);
+        
+        return true;
     }
     
-    translateBy(0.0, 3.0, 0.0);
+    return false;
     
 }
 
 void GuardianModel::update(double dt){
     
+    if (getModelHasCollided()) {
+        
+        ateCoin=true;
+        
+    }
+    
+    stateManager->update(dt);
+}
+
+void GuardianModel::changeState(GuardianStateInterface* uState){
+    
+    stateManager->safeChangeState(uState);
+    
+}
+
+bool GuardianModel::guardianAte(){
+    
+    return ateCoin;
+}
+
+void GuardianModel::resetAteCoin(){
+    
+    ateCoin=false;
 }
 
 void GuardianModel::playAnimation(){
     
-    walkingAnimation->play();
+    runAnimation->play();
     
 }
 
 void GuardianModel::stopAnimation(){
     
-    walkingAnimation->stop();
+    runAnimation->stop();
 }
 
 void GuardianModel::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){
     
+    float fieldLength=1000.0;
+    
     //set view heading of player
+    uHeading.x*=fieldLength;
+    uHeading.z*=fieldLength;
+    uHeading.y=0.86;
     viewInDirection(uHeading);
     
 }
@@ -83,5 +133,11 @@ void GuardianModel::applyForceToPlayer(float uVelocity, double dt){
     U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
     
     setVelocity(initialVelocity);
+    
+}
+
+bool GuardianModel::handleMessage(Message &uMsg){
+    
+    return stateManager->handleMessage(uMsg);
     
 }

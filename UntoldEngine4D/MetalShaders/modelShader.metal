@@ -52,6 +52,24 @@ struct Material{
     float specularReflectionPower;
 };
 
+constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
+    float2( 0.792657, 0.945738 ),
+    float2( 0.922361, 0.411756 ),
+    float2( 0.165838, 0.552995 ),
+    float2( 0.566027, 0.216651),
+    float2( 0.335398,0.783654),
+    float2( 0.0190741,0.318522),
+    float2( 0.647572,0.581896),
+    float2( 0.916288,0.0120243),
+    float2( 0.0278329,0.866634),
+    float2( 0.398053,0.4214),
+    float2( 0.00289926,0.051149),
+    float2( 0.517624,0.989044),
+    float2( 0.963744,0.719901),
+    float2( 0.76867,0.018128),
+    float2( 0.684194,0.167302)
+};
+
 
 
 
@@ -174,10 +192,6 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
         
         vertexOut.shadowCoords=(uniformSpace.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
         
-        //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
-        //left corner
-        vertexOut.shadowCoords.y=-vertexOut.shadowCoords.y;
-        
     }
     
     //send the material index
@@ -188,7 +202,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
 }
 
 
-fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(1)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(2)]], constant UniformLightColor &uniformLightColor [[buffer(3)]], texture2d<float> texture[[texture(0)]], depth2d<float> shadowTexture [[texture(1)]], texture2d<float> normalMaptexture[[texture(2)]], sampler sam [[sampler(0)]], sampler normalMapSam [[sampler(1)]]){
+fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(1)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(2)]], constant UniformLightColor &uniformLightColor [[buffer(3)]],constant UniformModelShadowProperties &uniformModelShadowProperties [[buffer(4)]], texture2d<float> texture[[texture(0)]], depth2d<float> shadowTexture [[texture(1)]], texture2d<float> normalMaptexture[[texture(2)]], sampler sam [[sampler(0)]], sampler normalMapSam [[sampler(1)]]){
     
     
     float4 totalLights;
@@ -260,22 +274,33 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         // Compute the direction of the light ray betweent the light position and the vertices of the surface
         float3 lightRayDirection=normalize(vertexOut.lightPosition.xyz-vertexOut.verticesInMVSpace.xyz);
         
-        float biasShadow = max(0.05*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.005);
+        float biasShadow=uniformModelShadowProperties.biasDepth;
+        //float biasShadow = max(0.01*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.01);
+        //float biasShadow=0.01*tan(acos(dot(vertexOut.normalVectorInMVSpace, -lightRayDirection)));
+        //biasShadow=clamp(biasShadow,0.005,0.01);
         
         float3 proj=vertexOut.shadowCoords.xyz/vertexOut.shadowCoords.w;
         
-        proj=proj*0.5+0.5;
+        proj.xy=proj.xy*0.5+0.5;
         
-        float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy);
-        
-        float closestDepth=shadowMap.r;
-        
-        float currentDepth=proj.z;
+        //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
+        //left corner
+        proj.y=1.0-proj.y;
         
         float visibility=1.0;
         
-        if(currentDepth-biasShadow>closestDepth){
-            visibility=0.8;
+        //use normal shadow
+//        float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy);
+//        if(shadowMap.x-biasShadow>=proj.z){
+//            visibility=0.8;
+//        }
+
+        //Use PCF
+        for(int i=0;i<16;i++){
+
+            if(float4(shadowTexture.sample(shadowSampler, proj.xy+poissonDisk[i]/700.0)).x-biasShadow>=proj.z){
+                visibility-=0.0125;
+            }
         }
         
         finalColor*=visibility;

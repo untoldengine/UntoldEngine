@@ -11,6 +11,9 @@
 
 #include "U4DVector3n.h"
 
+class GuardianModel;
+
+
 enum{
     
     actionButtonA,
@@ -38,5 +41,32 @@ typedef struct{
 }TouchInputMessage;
 
 
+//ADDED FOR DEMO
+
+typedef struct{
+    
+    GuardianModel *sender;
+    GuardianModel *receiver;
+    int msg;
+    void* extraInfo;
+    
+}Message;
+
+enum{
+    
+    msgIdle,
+    msgRun,
+    msgJump,
+    msgJoystickActive,
+    msgJoystickNotActive
+    
+}MessageEnum;
+
+typedef struct{
+    
+    U4DEngine::U4DVector3n direction;
+    bool changedDirection;
+    
+}JoystickMessageData;
 
 #endif /* UserCommonProtocols_h */

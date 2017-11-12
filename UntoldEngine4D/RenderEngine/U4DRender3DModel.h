@@ -58,6 +58,8 @@ namespace U4DEngine {
         
         id<MTLBuffer> uniformBoneBuffer;
         
+        id<MTLBuffer> shadowPropertiesBuffer;
+        
         MTLSamplerDescriptor *nullSamplerDescriptor;
         
         std::vector<AttributeAlignedModelData> attributeAlignedContainer;
@@ -101,6 +103,8 @@ namespace U4DEngine {
         void alignedAttributeData();
         
         void clearModelAttributeData();
+        
+        void updateShadowProperties();
         
         /**
          @brief Method which returns the absolute space of the entity

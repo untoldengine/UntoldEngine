@@ -16,11 +16,12 @@
 #include "U4DCamera.h"
 #include "U4DParticleSystem.h"
 #include "Earth.h"
+#include "MessageDispatcher.h"
+#include "U4DLights.h"
 
-
-GameLogic::GameLogic(){
+GameLogic::GameLogic():points(0){
     
-    
+    guardian=nullptr;
     
 }
 
@@ -31,7 +32,11 @@ GameLogic::~GameLogic(){
 
 void GameLogic::update(double dt){
     
-
+    if (guardian->guardianAte()) {
+        
+        increasePoints();
+        guardian->resetAteCoin();
+    }
 }
 
 void GameLogic::init(){
@@ -39,36 +44,52 @@ void GameLogic::init(){
     
 }
 
-void GameLogic::removeModels(){
-    
-    Earth *earth=dynamic_cast<Earth*>(getGameWorld());
-    
-    
-    
+void GameLogic::setGuardian(GuardianModel *uGuardian){
+    guardian=uGuardian;
 }
 
-void GameLogic::initModels(){
+void GameLogic::setText(U4DEngine::U4DText *uText){
+    text=uText;
+}
+
+void GameLogic::increasePoints(){
     
-    Earth *earth=dynamic_cast<Earth*>(getGameWorld());
+    points++;
     
+    std::string name="Points: ";
     
+    name+=std::to_string(points);
+    
+    text->setText(name.c_str());
     
 }
 
 void GameLogic::receiveTouchUpdate(void *uData){
     
-        TouchInputMessage touchInputMessage=*(TouchInputMessage*)uData;
+    MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+
+    TouchInputMessage touchInputMessage=*(TouchInputMessage*)uData;
+
+    if (guardian!=nullptr) {
         
         switch (touchInputMessage.touchInputType) {
             case actionButtonA:
                 
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
-                
                     
-                    std::cout<<"pressed"<<std::endl;
-                    initModels();
-                
+                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
+                    
+                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
+                    
+                    liPos.x+=1.0;
+                    
+                    light->translateTo(liPos);
+                    
+                    liPos.show();
+                    
+                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
+                    light->viewInDirection(origin);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -82,7 +103,18 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==buttonPressed) {
                     
-                    removeModels();
+                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
+                    
+                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
+                    
+                    liPos.x-=1.0;
+                    
+                    light->translateTo(liPos);
+                    
+                    liPos.show();
+                    
+                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
+                    light->viewInDirection(origin);
                     
                 }else if(touchInputMessage.touchInputData==buttonReleased){
                     
@@ -97,19 +129,21 @@ void GameLogic::receiveTouchUpdate(void *uData){
             {
                 if (touchInputMessage.touchInputData==joystickActive) {
                     
-                    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+                    JoystickMessageData joystickMessageData;
                     
-                    U4DEngine::U4DVector3n view=camera->getViewInDirection();
+                    joystickMessageData.direction=touchInputMessage.joystickDirection;
                     
-                    view*=-0.2;
+                    joystickMessageData.changedDirection=touchInputMessage.joystickChangeDirection;
                     
-                    camera->translateBy(view);
-                   
+                    
+                    guardian->setPlayerHeading(joystickMessageData.direction);
+                    
+                    messageDispatcher->sendMessage(0.0, guardian, guardian, msgJoystickActive, (void*)&joystickMessageData);
+                    
                     
                 }else if(touchInputMessage.touchInputData==joystickInactive){
                     
-                    
-                }
+                    messageDispatcher->sendMessage(0.0, guardian, guardian, msgJoystickNotActive);                }
             }
                 
                 break;
@@ -118,7 +152,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
                 break;
         }
         
-    
+    }
     
 }
 

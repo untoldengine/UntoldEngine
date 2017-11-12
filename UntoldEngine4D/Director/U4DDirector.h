@@ -80,6 +80,11 @@ private:
     int polycount;
     
     /**
+     @brief shadow bias depth to prevent shadow acne
+    */
+    float shadowBiasDepth;
+    
+    /**
      @todo document this
      */
     U4DWorld *world;
@@ -225,9 +230,14 @@ public:
     U4DMatrix4n computePerspectiveSpace(float fov, float aspect, float near, float far);
     
     U4DMatrix4n computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far);
+    
+    U4DMatrix4n computeOrthographicShadowSpace(float left, float right, float bottom, float top, float near, float far);
 
     void determineVisibility();
     
+    void setShadowBiasDepth(float uValue);
+    
+    float getShadowBiasDepth();
     
     /**
      @brief sets the number of polygons the engien can render per 3d model. It is recommended to set this value as low as possible. Suggested and default value is 3000

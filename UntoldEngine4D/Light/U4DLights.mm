@@ -127,13 +127,13 @@ namespace U4DEngine {
         entityPosition=getAbsolutePosition();
         
         //calculate the forward vector
-        U4DVector3n forwardVector=uDestinationPoint-entityPosition;
+        U4DVector3n forwardVector=entityPosition-uDestinationPoint;
         
         //calculate the angle
         float angle=getEntityForwardVector().angle(forwardVector);
         
         //calculate the rotation axis
-        U4DVector3n rotationAxis=getEntityForwardVector().cross(forwardVector);
+        U4DVector3n rotationAxis=forwardVector.cross(getEntityForwardVector());
         
         //if angle is 180 it means that both vectors are pointing opposite to each other.
         //this means that there is no rotation axis. so set the Up Vector as the rotation axis
