@@ -21,11 +21,55 @@ namespace U4DEngine {
     
     U4DConvexHullAlgorithm::~U4DConvexHullAlgorithm(){
         
+        CONVEXHULLVERTEX v = vertexHead;
+        CONVEXHULLEDGE e=edgeHead;
+        CONVEXHULLFACE f=faceHead;
+        
+        std::vector<CONVEXHULLVERTEX> vertexContainer;
+        std::vector<CONVEXHULLEDGE> edgeContainer;
+        std::vector<CONVEXHULLFACE> faceContainer;
+        
+        //load vertices, edges and faces into a container
+        do {
+            
+            vertexContainer.push_back(v);
+            v = v->next;
+        } while (v != vertexHead);
+        
+        do {
+            
+            edgeContainer.push_back(e);
+            e = e->next;
+        } while (e != edgeHead);
+        
+        do {
+            faceContainer.push_back(f);
+            f = f->next;
+        } while (f != faceHead);
+        
+        
+        //free all vertices, edges and faces
+        for(auto n:vertexContainer){
+            deleteVertex(n);
+        }
+        
+        for(auto n:edgeContainer){
+            deleteEdge(n);
+        }
+        
+        for(auto n:faceContainer){
+            deleteFace(n);
+        }
+        
+        //clear the containers
+        vertexContainer.clear();
+        edgeContainer.clear();
+        faceContainer.clear();
+        
     }
     
     CONVEXHULL U4DConvexHullAlgorithm::computeConvexHull(std::vector<U4DVector3n> &uVertices){
         
-        U4DLogger *logger=U4DLogger::sharedInstance();
         CONVEXHULL convexHull;
         
         convexHull.isValid=false;
