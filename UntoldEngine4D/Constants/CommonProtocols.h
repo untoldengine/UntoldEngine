@@ -293,7 +293,7 @@ namespace U4DEngine {
         
         bool emitContinuously;
         
-        const char* texture;
+        const char* texture="particle.png";
         
         U4DVector3n gravity;
         
