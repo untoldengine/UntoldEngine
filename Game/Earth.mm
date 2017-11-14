@@ -47,7 +47,7 @@ void Earth::init(){
         
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-15.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
     
     camera->translateTo(cameraPos);
     
@@ -82,248 +82,32 @@ void Earth::init(){
     light->viewInDirection(origin);
     
     //add bag
-    bag=new ModelAsset();
-
-    if(bag->init("bag","blenderscript.u4d")){
-        addChild(bag);
-    }
-
-    //add barrels
-    for(int i=0;i<2;i++){
-
-        std::string name="barrel";
-        name+=std::to_string(i);
-
-        barrel[i]=new ModelAsset();
-
-        if(barrel[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(barrel[i]);
-        }
-
-    }
-
-    //add box
-
-    for(int i=0;i<2;i++){
-
-        std::string name="box";
-        name+=std::to_string(i);
-
-        box[i]=new ModelAsset();
-
-        if(box[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(box[i]);
-        }
-
-    }
-
-    //add chestgold
-
-    chestgold=new ModelAsset();
-
-    if(chestgold->init("chestgold","blenderscript.u4d")){
-        addChild(chestgold);
-    }
-
-    //add environment
-    for(int i=0;i<12;i++){
-
-        std::string name="environments";
-        name+=std::to_string(i);
-
-        environment[i]=new ModelAsset();
-
-        if(environment[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(environment[i]);
-        }
-
-    }
-
-    //add fence
-
-    for(int i=0;i<3;i++){
-
-        std::string name="fence";
-        name+=std::to_string(i);
-
-        fence[i]=new ModelAsset();
-
-        if(fence[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(fence[i]);
-        }
-
-    }
-
-    //add house
-
-    for(int i=0;i<6;i++){
-
-        std::string name="house";
-        name+=std::to_string(i);
-
-        house[i]=new ModelAsset();
-
-        if(house[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(house[i]);
-        }
-
-    }
-
-    //add lamp
-    for(int i=0;i<2;i++){
-
-        std::string name="lamp";
-        name+=std::to_string(i);
-
-        lamp[i]=new ModelAsset();
-
-        if(lamp[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(lamp[i]);
-        }
-
-    }
-
-    //add market
-    for(int i=0;i<3;i++){
-
-        std::string name="market";
-        name+=std::to_string(i);
-
-        market[i]=new ModelAsset();
-
-        if(market[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(market[i]);
-        }
-
-    }
-
-
-    //add marketstall
-    for(int i=0;i<3;i++){
-
-        std::string name="marketstall";
-        name+=std::to_string(i);
-
-        marketstall[i]=new ModelAsset();
-
-        if(marketstall[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(marketstall[i]);
-        }
-
-    }
-
-    //add palm
-    for(int i=0;i<2;i++){
-
-        std::string name="palm";
-        name+=std::to_string(i);
-
-        palm[i]=new ModelAsset();
-
-        if(palm[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(palm[i]);
-        }
-
-    }
-
-    //add stone
-    for(int i=0;i<6;i++){
-
-        std::string name="stone";
-        name+=std::to_string(i);
-
-        stone[i]=new ModelAsset();
-
-        if(stone[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(stone[i]);
-        }
-
-    }
-
-    //add stonefence
-    for(int i=0;i<4;i++){
-
-        std::string name="stonefence";
-        name+=std::to_string(i);
-
-        stonefence[i]=new ModelAsset();
-
-        if(stonefence[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(stonefence[i]);
-        }
-
-    }
-
-    //add tile
-    for(int i=0;i<3;i++){
-
-        std::string name="tile";
-        name+=std::to_string(i);
-
-        tile[i]=new ModelAsset();
-
-        if(tile[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(tile[i]);
-        }
-
-    }
-
-    //add wood
-    for(int i=0;i<2;i++){
-
-        std::string name="wood";
-        name+=std::to_string(i);
-
-        wood[i]=new ModelAsset();
-
-        if(wood[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(wood[i]);
-        }
-
-    }
-
-    //add metalchest
-    metalchest=new ModelAsset();
-
-    if(metalchest->init("metalchest","blenderscript.u4d")){
-        addChild(metalchest);
-    }
-
-    //add pillar
-    pillar=new ModelAsset();
-
-    if(pillar->init("pillar","blenderscript.u4d")){
-        addChild(pillar);
-    }
-
-    //add well
-    well=new ModelAsset();
-
-    if(well->init("well","blenderscript.u4d")){
-        addChild(well);
-    }
-
-    //add terrain
-    terrain=new ModelAsset();
-
-    if(terrain->init("terrain","blenderscript.u4d")){
-        addChild(terrain);
-    }
 
 
     //add gold
-//    for(int i=0;i<17;i++){
-//
-//        std::string name="gold";
-//        name+=std::to_string(i);
-//
-//        gold[i]=new GoldAsset();
-//
-//        if(gold[i]->init(name.c_str(), "goldscript.u4d")){
-//            addChild(gold[i]);
-//        }
-//
-//    }
+    for(int i=0;i<16;i++){
+
+        std::string name="cube";
+        name+=std::to_string(i);
+
+        cube[i]=new ModelAsset();
+
+        if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
+            addChild(cube[i]);
+        }
+
+        cube[i]->enableKineticsBehavior();
+    }
+    
+    terrain=new ModelAsset();
+    terrain->init("terrain","blenderscript.u4d");
+    
+    addChild(terrain);
+    
+    U4DEngine::U4DVector3n grav(0.0,0.0,0.0);
+    terrain->setGravity(grav);
+    terrain->initMass(1000.0);
+    terrain->pauseKineticsBehavior();
     
     //add character
     guardian=new GuardianModel();
@@ -357,90 +141,14 @@ void Earth::init(){
 
 Earth::~Earth(){
     
-    delete bag;
-    delete chestgold;
-    delete metalchest;
-    delete pillar;
-    delete terrain;
-    delete well;
-    delete guardian;
-    delete points;
-    delete fontLoader;
-    
-    for (int i=0; i<2; i++) {
-        delete barrel[i];
-    }
-    
-    for (int i=0; i<2; i++) {
-        
-        delete box[i];
-    }
-    
-    for (int i=0; i<12; i++) {
-        delete environment[i];
-    }
-    
-    for (int i=0; i<3; i++) {
-        delete fence[i];
-        
-    }
-    
-    for (int i=0; i<6; i++) {
-        delete house[i];
-        
-    }
-    
-    for (int i=0; i<2; i++) {
-        delete lamp[i];
-        
-    }
-    
-    for (int i=0; i<3; i++) {
-        delete market[i];
-        
-    }
-    
-    for (int i=0; i<3; i++) {
-        delete marketstall[i];
-        
-    }
-    
-    for (int i=0; i<2; i++) {
-        delete palm[i];
-        
-    }
-    
-    for (int i=0; i<6; i++) {
-        delete stone[i];
-        
-    }
-    
-    for (int i=0; i<4; i++) {
-        delete stonefence[i];
-        
-    }
-    
-    for (int i=0; i<3; i++) {
-        delete tile[i];
-        
-    }
-    
-    for (int i=0; i<2; i++) {
-        delete wood[i];
-        
-    }
-    
-    for (int i=0; i<17; i++) {
-        delete gold[i];
-        
-    }
+   
 }
 
 void Earth::update(double dt){
     
     U4DCamera *camera=U4DCamera::sharedInstance();
 
-    camera->followModel(guardian, 0.0, 10.0, -15.0);
+    //camera->followModel(guardian, 0.0, 2.0, -10.0);
 }
 
 
