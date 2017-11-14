@@ -102,6 +102,7 @@ namespace U4DEngine {
         }else{
             //set model to sleep and zero out velocity and forces
             isAwake=false;
+            modelKineticEnergy=0.0;
             velocity.zero();
             angularVelocity.zero();
             clearForce();
