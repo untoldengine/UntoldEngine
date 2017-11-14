@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(true),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false),gravity(0.0,-10.0,0.0),dragCoefficient(0.9,0.9){
+    U4DDynamicModel::U4DDynamicModel():kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(false),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false),gravity(0.0,-10.0,0.0),dragCoefficient(0.9,0.9){
     };
     
 
@@ -102,6 +102,7 @@ namespace U4DEngine {
         }else{
             //set model to sleep and zero out velocity and forces
             isAwake=false;
+            modelKineticEnergy=0.0;
             velocity.zero();
             angularVelocity.zero();
             clearForce();
@@ -150,15 +151,23 @@ namespace U4DEngine {
         
         kineticsEnabled=true;
         
+        //wake up the model
+        setAwake(true);
+        
     }
     
     void U4DDynamicModel::pauseKineticsBehavior(){
         
         kineticsEnabled=false;
+        
+        setAwake(false);
     }
     
     void U4DDynamicModel::resumeKineticsBehavior(){
+        
         kineticsEnabled=true;
+        
+        setAwake(true);
     }
     
     bool U4DDynamicModel::isKineticsBehaviorEnabled(){

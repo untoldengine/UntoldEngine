@@ -79,36 +79,41 @@ namespace U4DEngine {
             U4DDynamicModel *model1=n.model1;
             U4DDynamicModel *model2 =n.model2;
             
-            if (collisionAlgorithm->collision(model1, model2, dt)) {
+            if (model1->getAwake() || model2->getAwake()) {
                 
-                //create a collision node to contain all the collision information
-                COLLISIONMANIFOLDONODE collisionNode;
-                
-                collisionNode.collisionClosestPoint=collisionAlgorithm->getClosestCollisionPoint();
-                collisionNode.normalCollisionVector=collisionAlgorithm->getContactCollisionNormal();
-                
-                //Manifold Generation Algorithm
-                //Get the Normal collision plane manifold information
-                manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), collisionNode);
-                
-                //Get the collision contacts (Manifold) information
-                if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),collisionNode)){
+                if (collisionAlgorithm->collision(model1, model2, dt)) {
                     
-                    //collision Response
-                    collisionResponse->collisionResolution(model1, model2,collisionNode);
-
-                    //if collision occurred then
-                    model1->setModelHasCollided(true);
-                    model2->setModelHasCollided(true);
+                    //create a collision node to contain all the collision information
+                    COLLISIONMANIFOLDONODE collisionNode;
                     
+                    collisionNode.collisionClosestPoint=collisionAlgorithm->getClosestCollisionPoint();
+                    collisionNode.normalCollisionVector=collisionAlgorithm->getContactCollisionNormal();
                     
-                }else{
+                    //Manifold Generation Algorithm
+                    //Get the Normal collision plane manifold information
+                    manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), collisionNode);
                     
-                    logger->log("Contact Manifold were not found");
-
+                    //Get the collision contacts (Manifold) information
+                    if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),collisionNode)){
+                        
+                        //collision Response
+                        collisionResponse->collisionResolution(model1, model2,collisionNode);
+                        
+                        //if collision occurred then
+                        model1->setModelHasCollided(true);
+                        model2->setModelHasCollided(true);
+                        
+                        
+                    }else{
+                        
+                        logger->log("Contact Manifold were not found");
+                        
+                    }
+                    
                 }
                 
             }
+            
                 
         }
        
