@@ -46,6 +46,8 @@ namespace U4DEngine {
         gameModel->setGameController(uGameController);
         gameModel->setGameEntityManager(gameWorld->getEntityManager());
         
+        director->setEntityManager(gameWorld->getEntityManager());
+        
         gameWorld->init();
         gameController->init();
         gameModel->init();

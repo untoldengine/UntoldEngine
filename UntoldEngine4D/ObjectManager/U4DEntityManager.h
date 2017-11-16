@@ -87,6 +87,21 @@ namespace U4DEngine {
         
         void setRootEntity(U4DVisibleEntity* uRootEntity);
         
+        /**
+         @todo document this
+         */
+        void addToCollisionEngine(U4DDynamicModel* uModel);
+        
+        /**
+         @todo document this
+         */
+        void addToPhysicsEngine(U4DDynamicModel* uModel,float dt);
+        
+        /**
+         @todo document this
+         */
+        void addToVisibilityManager(U4DDynamicModel* uModel);
+        
     };
     
 }

@@ -545,6 +545,30 @@ public:
      */
     int getZDepth();
     
+    /**
+     @todo document this
+     */
+    virtual void addToCollisionEngine(){};
+    
+    /**
+     @todo document this
+     */
+    virtual void addToPhysicsEngine(float dt){};
+    
+    /**
+     @todo document this
+     */
+    virtual void addToVisibilityManager(){};
+    
+    /**
+     @todo document this
+     */
+    virtual void cleanUp(){};
+    
+    virtual bool isCollisionBehaviorEnabled(){};
+    
+    virtual bool isKineticsBehaviorEnabled(){};
+    
 };
 
 }

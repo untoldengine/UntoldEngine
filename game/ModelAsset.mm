@@ -31,7 +31,7 @@ bool ModelAsset::init(const char* uModelName, const char* uBlenderFile){
         
         initMass(10.0);
         
-        initCoefficientOfRestitution(0.5);
+        initCoefficientOfRestitution(0.9);
         
         enableCollisionBehavior();
         

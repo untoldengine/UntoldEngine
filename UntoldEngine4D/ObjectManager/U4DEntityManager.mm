@@ -146,14 +146,12 @@ namespace U4DEngine {
         
         while (child!=NULL) {
 
-            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
-
-            if (model) {
+            if (child->getEntityType()==U4DEngine::MODEL) {
                 
-                    if(model->isCollisionBehaviorEnabled()==true){
+                    if(child->isCollisionBehaviorEnabled()==true){
 
                         //add child to collision bhv manager tree
-                        collisionEngine->addToBroadPhaseCollisionContainer(model);
+                        child->addToCollisionEngine();
 
                     }
             }
@@ -193,13 +191,11 @@ namespace U4DEngine {
         child=rootEntity;
         while (child!=NULL) {
             
-            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
+            if (child->getEntityType()==U4DEngine::MODEL) {
             
-            if (model) {
-            
-                if (model->isKineticsBehaviorEnabled()==true) {
+                if (child->isKineticsBehaviorEnabled()==true) {
                     
-                    physicsEngine->updatePhysicForces(model, dt);
+                    child->addToPhysicsEngine(dt);
                     
                 }
                 
@@ -212,21 +208,10 @@ namespace U4DEngine {
         child=rootEntity;
         while (child!=NULL) {
             
-            U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
-            
-            if (model) {
+            if (child->getEntityType()==U4DEngine::MODEL) {
                 
                 //clear any collision information
-                model->clearCollisionInformation();
-                
-                //reset time of impact
-                model->resetTimeOfImpact();
-                
-                //reset equilibrium
-                model->setEquilibrium(false);
-                
-                //set as non-collided
-                model->setModelHasCollided(false);
+                child->cleanUp();
                 
             }
             
@@ -254,16 +239,11 @@ namespace U4DEngine {
             
             while (child!=NULL) {
                 
-                U4DDynamicModel *model=dynamic_cast<U4DDynamicModel*>(child);
-                
-                if (model) {
+                if (child->getEntityType()==U4DEngine::MODEL) {
                     
                         
                     //load the model into a bvh tree container
-                    model->setModelVisibility(false);
-                    
-                    visibilityManager->addModelToTreeContainer(model);
-                    
+                    child->addToVisibilityManager();
                     
                 }
                 
@@ -283,6 +263,26 @@ namespace U4DEngine {
             visibilityManager->startFrustumIntersection(frustumPlanes);
         }
         
+        
+    }
+    
+    void U4DEntityManager::addToCollisionEngine(U4DDynamicModel* uModel){
+        
+        collisionEngine->addToBroadPhaseCollisionContainer(uModel);
+        
+    }
+    
+    void U4DEntityManager::addToPhysicsEngine(U4DDynamicModel* uModel,float dt){
+        
+        physicsEngine->updatePhysicForces(uModel,dt);
+        
+    }
+    
+    void U4DEntityManager::addToVisibilityManager(U4DDynamicModel* uModel){
+        
+        uModel->setModelVisibility(false);
+        
+        visibilityManager->addModelToTreeContainer(uModel);
         
     }
     

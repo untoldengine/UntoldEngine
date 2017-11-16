@@ -9,6 +9,8 @@
 #include "U4DGameObject.h"
 #include "U4DDigitalAssetLoader.h"
 #include "U4DAnimationManager.h"
+#include "U4DDirector.h"
+#include "U4DEntityManager.h"
 
 namespace U4DEngine {
     
@@ -61,6 +63,30 @@ namespace U4DEngine {
         return false;
     }
     
+    void U4DGameObject::addToCollisionEngine(){
+        U4DDirector *director=U4DDirector::sharedInstance();
+        U4DEntityManager *entityManager=director->getEntityManager();
+        
+        entityManager->addToCollisionEngine(this);
+        
+    }
+    
+    void U4DGameObject::addToPhysicsEngine(float dt){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        U4DEntityManager *entityManager=director->getEntityManager();
+        
+        entityManager->addToPhysicsEngine(this, dt);
+        
+    }
+    
+    void U4DGameObject::addToVisibilityManager(){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        U4DEntityManager *entityManager=director->getEntityManager();
+        
+        entityManager->addToVisibilityManager(this);
+    }
     
     void U4DGameObject::setNextAnimationToPlay(U4DAnimation* uAnimation){
         
@@ -152,6 +178,22 @@ namespace U4DEngine {
     void U4DGameObject::setPlayBlendedAnimation(bool uValue){
         
         animationManager->setPlayBlendedAnimation(uValue);
+        
+    }
+    
+    void U4DGameObject::cleanUp(){
+        
+        //clear any collision information
+        clearCollisionInformation();
+        
+        //reset time of impact
+        resetTimeOfImpact();
+        
+        //reset equilibrium
+        setEquilibrium(false);
+        
+        //set as non-collided
+        setModelHasCollided(false);
         
     }
 

@@ -240,6 +240,14 @@ namespace U4DEngine {
         return orthographicShadowSpace;
     }
     
+    void U4DDirector::setEntityManager(U4DEntityManager *uEntityManager){
+        entityManager=uEntityManager;
+    }
+    
+    U4DEntityManager *U4DDirector::getEntityManager(){
+        return entityManager;
+    }
+    
     U4DMatrix4n U4DDirector::computePerspectiveSpace(float fov, float aspect, float near, float far){
         
         U4DEngine::U4DMatrix4n m;
