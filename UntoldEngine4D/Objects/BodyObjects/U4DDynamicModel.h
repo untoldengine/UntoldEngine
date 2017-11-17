@@ -18,8 +18,9 @@
 
 namespace U4DEngine {
 
-class U4DBodyForceGenerator;
-
+    class U4DBodyForceGenerator;
+    class U4DEntityManager;
+    
 }
 
 namespace U4DEngine {
@@ -335,6 +336,26 @@ public:
      @return Returns a 2D vector representing the drag coefficients acting on the model
      */
     U4DVector2n getDragCoefficient();
+    
+    /**
+     @todo document this
+     */
+    void loadIntoCollisionEngine(U4DEntityManager *uEntityManager);
+    
+    /**
+     @todo document this
+     */
+    void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt);
+    
+    /**
+     @todo document this
+     */
+    void loadIntoVisibilityManager(U4DEntityManager *uEntityManager);
+    
+    /**
+     @todo document this
+     */
+    void cleanUp();
     
 };
 

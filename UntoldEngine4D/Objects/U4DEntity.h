@@ -23,7 +23,7 @@ namespace U4DEngine {
     
     class U4DQuaternion;
     class U4DTransformation;
-
+    class U4DEntityManager;
 }
 
 namespace U4DEngine {
@@ -548,17 +548,17 @@ public:
     /**
      @todo document this
      */
-    virtual void addToCollisionEngine(){};
+    virtual void loadIntoCollisionEngine(U4DEntityManager *uEntityManager){};
     
     /**
      @todo document this
      */
-    virtual void addToPhysicsEngine(float dt){};
+    virtual void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt){};
     
     /**
      @todo document this
      */
-    virtual void addToVisibilityManager(){};
+    virtual void loadIntoVisibilityManager(U4DEntityManager *uEntityManager){};
     
     /**
      @todo document this

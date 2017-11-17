@@ -89,11 +89,6 @@ private:
      */
     U4DWorld *world;
     
-    /**
-     @todo document this
-     */
-    U4DEntityManager *entityManager;
-    
 protected:
     
     /**
@@ -258,10 +253,6 @@ public:
      @return Number of polys
      */
     int getPolycount();
-    
-    void setEntityManager(U4DEntityManager *uEntityManager);
-    
-    U4DEntityManager *getEntityManager();
     
 };
 

@@ -163,23 +163,6 @@ namespace U4DEngine {
          */
         void setPlayBlendedAnimation(bool uValue);
         
-        void addToCollisionEngine();
-        
-        /**
-         @todo document this
-         */
-        void addToPhysicsEngine(float dt);
-        
-        /**
-         @todo document this
-         */
-        void addToVisibilityManager();
-        
-        /**
-         @todo document this
-         */
-        void cleanUp();
-        
     };
 
 }

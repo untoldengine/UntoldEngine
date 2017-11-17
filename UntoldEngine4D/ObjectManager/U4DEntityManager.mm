@@ -151,7 +151,7 @@ namespace U4DEngine {
                     if(child->isCollisionBehaviorEnabled()==true){
 
                         //add child to collision bhv manager tree
-                        child->addToCollisionEngine();
+                        child->loadIntoCollisionEngine(this);
 
                     }
             }
@@ -195,7 +195,7 @@ namespace U4DEngine {
             
                 if (child->isKineticsBehaviorEnabled()==true) {
                     
-                    child->addToPhysicsEngine(dt);
+                    child->loadIntoPhysicsEngine(this, dt);
                     
                 }
                 
@@ -243,7 +243,7 @@ namespace U4DEngine {
                     
                         
                     //load the model into a bvh tree container
-                    child->addToVisibilityManager();
+                    child->loadIntoVisibilityManager(this);
                     
                 }
                 
@@ -266,19 +266,19 @@ namespace U4DEngine {
         
     }
     
-    void U4DEntityManager::addToCollisionEngine(U4DDynamicModel* uModel){
+    void U4DEntityManager::loadIntoCollisionEngine(U4DDynamicModel* uModel){
         
         collisionEngine->addToBroadPhaseCollisionContainer(uModel);
         
     }
     
-    void U4DEntityManager::addToPhysicsEngine(U4DDynamicModel* uModel,float dt){
+    void U4DEntityManager::loadIntoPhysicsEngine(U4DDynamicModel* uModel,float dt){
         
         physicsEngine->updatePhysicForces(uModel,dt);
         
     }
     
-    void U4DEntityManager::addToVisibilityManager(U4DDynamicModel* uModel){
+    void U4DEntityManager::loadIntoVisibilityManager(U4DDynamicModel* uModel){
         
         uModel->setModelVisibility(false);
         

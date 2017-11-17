@@ -90,17 +90,17 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        void addToCollisionEngine(U4DDynamicModel* uModel);
+        void loadIntoCollisionEngine(U4DDynamicModel* uModel);
         
         /**
          @todo document this
          */
-        void addToPhysicsEngine(U4DDynamicModel* uModel,float dt);
+        void loadIntoPhysicsEngine(U4DDynamicModel* uModel,float dt);
         
         /**
          @todo document this
          */
-        void addToVisibilityManager(U4DDynamicModel* uModel);
+        void loadIntoVisibilityManager(U4DDynamicModel* uModel);
         
     };
     
