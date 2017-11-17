@@ -9,6 +9,8 @@
 #include "U4DDynamicModel.h"
 #include "Constants.h"
 #include <cmath>
+#include "U4DDirector.h"
+#include "U4DEntityManager.h"
 
 namespace U4DEngine {
 
@@ -240,7 +242,38 @@ namespace U4DEngine {
         dragCoefficient=U4DVector2n(0.9,0.9);
     }
     
+    void U4DDynamicModel::loadIntoCollisionEngine(U4DEntityManager *uEntityManager){
+        
+        uEntityManager->loadIntoCollisionEngine(this);
+        
+    }
     
+    void U4DDynamicModel::loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt){
+        
+        uEntityManager->loadIntoPhysicsEngine(this, dt);
+        
+    }
+    
+    void U4DDynamicModel::loadIntoVisibilityManager(U4DEntityManager *uEntityManager){
+        
+        uEntityManager->loadIntoVisibilityManager(this);
+    }
+    
+    void U4DDynamicModel::cleanUp(){
+        
+        //clear any collision information
+        clearCollisionInformation();
+        
+        //reset time of impact
+        resetTimeOfImpact();
+        
+        //reset equilibrium
+        setEquilibrium(false);
+        
+        //set as non-collided
+        setModelHasCollided(false);
+        
+    }
 }
 
 

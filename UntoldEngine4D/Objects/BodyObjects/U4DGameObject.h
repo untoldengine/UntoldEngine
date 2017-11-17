@@ -163,8 +163,6 @@ namespace U4DEngine {
          */
         void setPlayBlendedAnimation(bool uValue);
         
-        
-        
     };
 
 }

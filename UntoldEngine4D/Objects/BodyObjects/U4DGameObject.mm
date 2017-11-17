@@ -61,7 +61,6 @@ namespace U4DEngine {
         return false;
     }
     
-    
     void U4DGameObject::setNextAnimationToPlay(U4DAnimation* uAnimation){
         
         animationManager->setNextAnimationToPlay(uAnimation);

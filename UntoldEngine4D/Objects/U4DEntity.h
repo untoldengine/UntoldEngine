@@ -23,7 +23,7 @@ namespace U4DEngine {
     
     class U4DQuaternion;
     class U4DTransformation;
-
+    class U4DEntityManager;
 }
 
 namespace U4DEngine {
@@ -544,6 +544,30 @@ public:
      @todo document this
      */
     int getZDepth();
+    
+    /**
+     @todo document this
+     */
+    virtual void loadIntoCollisionEngine(U4DEntityManager *uEntityManager){};
+    
+    /**
+     @todo document this
+     */
+    virtual void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt){};
+    
+    /**
+     @todo document this
+     */
+    virtual void loadIntoVisibilityManager(U4DEntityManager *uEntityManager){};
+    
+    /**
+     @todo document this
+     */
+    virtual void cleanUp(){};
+    
+    virtual bool isCollisionBehaviorEnabled(){};
+    
+    virtual bool isKineticsBehaviorEnabled(){};
     
 };
 

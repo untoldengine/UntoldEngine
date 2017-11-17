@@ -47,7 +47,7 @@ void Earth::init(){
         
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-30.0);
     
     camera->translateTo(cameraPos);
     
