@@ -32,11 +32,6 @@ namespace U4DEngine {
         std::vector<SIMPLEXDATA> Q;
         
         /**
-         @brief Previous Simplex Container
-         */
-        std::vector<SIMPLEXDATA> QPrevious;
-        
-        /**
          @brief Closest point to the origin
          */
         U4DPoint3n closestPointToOrigin;

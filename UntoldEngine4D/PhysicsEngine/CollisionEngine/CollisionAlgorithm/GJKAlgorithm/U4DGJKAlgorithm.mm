@@ -125,7 +125,6 @@ namespace U4DEngine {
             }
             
             vPrevious=v;
-            QPrevious=Q;
             
             //p-hitSpot
             p.minkowskiPoint=(hitSpot.toPoint()-p.minkowskiPoint).toPoint();
@@ -141,8 +140,6 @@ namespace U4DEngine {
                 closestPointToOrigin=vPrevious.minkowskiPoint;
                 
                 contactCollisionNormal=vPrevious.minkowskiPoint.toVector();
-                
-                Q=QPrevious;
                 
                 break;
             }
