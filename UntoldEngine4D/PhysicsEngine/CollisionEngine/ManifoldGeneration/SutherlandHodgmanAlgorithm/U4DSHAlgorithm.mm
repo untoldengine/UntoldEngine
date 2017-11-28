@@ -208,8 +208,6 @@ namespace U4DEngine {
             return false;
         }
         
-        if (uModel1->getInertiaTensorType()!=sphericalInertia && uModel2->getInertiaTensorType()!=sphericalInertia) {
-            
             if (incidentFacePlane.intersectPlane(referenceFacePlane,intersectionPoint, intersectionVector)) {
                 //If there is an intersection between two planes, then the object landed at an angle and just return the segment closest to the point of plane intersection
                 
@@ -303,7 +301,7 @@ namespace U4DEngine {
                 
             }
             
-        }
+        
         
         //If there is no plane intersection, then return all points
         
@@ -320,7 +318,7 @@ namespace U4DEngine {
         
         //check if the center of mass is within the reference planes
         
-        if(!isCenterOfMassWithinReferencePlane(uModel1,polygonEdgesOfModel2) || uModel1->getInertiaTensorType()==sphericalInertia){
+        if(!isCenterOfMassWithinReferencePlane(uModel1,polygonEdgesOfModel2)){
             
             uModel1->setEquilibrium(false);
         
@@ -330,7 +328,7 @@ namespace U4DEngine {
         
         }
         
-        if(!isCenterOfMassWithinReferencePlane(uModel2,polygonEdgesOfModel1) || uModel2->getInertiaTensorType()==sphericalInertia){
+        if(!isCenterOfMassWithinReferencePlane(uModel2,polygonEdgesOfModel1)){
             
             uModel2->setEquilibrium(false);
         
