@@ -78,9 +78,20 @@ namespace U4DEngine {
              
              */
             
-            U4DVector3n angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
+            U4DVector3n angularFactorOfModel1;
+            U4DVector3n angularFactorOfModel2;
             
-            U4DVector3n angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
+            if(uModel1->isKineticsBehaviorEnabled()){
+                
+                angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
+                
+            }
+            
+            if (uModel2->isKineticsBehaviorEnabled()) {
+                
+                angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
+                
+            }
             
             float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
@@ -132,13 +143,13 @@ namespace U4DEngine {
         
         //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
-        if (uModel1->getEquilibrium() && uModel1->getInertiaTensorType()!=sphericalInertia ) {
+        if (uModel1->getEquilibrium()) {
             
             angularImpulseFactorOfModel1.zero();
             
         }
         
-        if (uModel2->getEquilibrium()  && uModel2->getInertiaTensorType()!=sphericalInertia ) {
+        if (uModel2->getEquilibrium()) {
         
             angularImpulseFactorOfModel2.zero();
             
