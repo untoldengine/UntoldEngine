@@ -169,11 +169,11 @@ namespace U4DEngine {
         
         if(normalPlane.magnitudeSquareOfPointToPlane(closestCollisionPoints.at(0)) < normalPlane.magnitudeSquareOfPointToPlane(closestCollisionPoints.at(1))){
             
-            closestCollisionPoint=closestCollisionPoints.at(1);
+            closestCollisionPoint=closestCollisionPoints.at(0);
             
         }else{
             
-            closestCollisionPoint=closestCollisionPoints.at(0);
+            closestCollisionPoint=closestCollisionPoints.at(1);
             
         }
 
