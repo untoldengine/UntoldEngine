@@ -32,6 +32,11 @@ namespace U4DEngine {
         std::vector<SIMPLEXDATA> Q;
         
         /**
+         @brief Previous Simplex Container
+         */
+        std::vector<SIMPLEXDATA> QPrevious;
+        
+        /**
          @brief Closest point to the origin
          */
         U4DPoint3n closestPointToOrigin;
@@ -45,6 +50,8 @@ namespace U4DEngine {
          @brief Closest collision point
          */
         U4DPoint3n closestCollisionPoint;
+        
+        SIMPLEXDATA vPrevious;
         
     public:
         
@@ -145,6 +152,14 @@ namespace U4DEngine {
          @return Returns the contact collision normal vector
          */
         U4DVector3n getContactCollisionNormal();
+        
+        bool checkGJKTerminationCondition1(SIMPLEXDATA &uV);
+        
+        bool checkGJKTerminationCondition2(SIMPLEXDATA &uV, SIMPLEXDATA &uP, std::vector<SIMPLEXDATA> uQ);
+        
+        bool checkGJKTerminationCondition3(SIMPLEXDATA &uV, SIMPLEXDATA &uP, std::vector<SIMPLEXDATA> uQ);
+        
+        SIMPLEXDATA getMaxSimplexInQ(std::vector<SIMPLEXDATA> uQ);
         
         /**
          @brief Method which clears all collision information
