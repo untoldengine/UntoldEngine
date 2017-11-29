@@ -165,23 +165,7 @@ namespace U4DEngine {
         //closest collision point
         std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
         
-        U4DPlane normalPlane(contactCollisionNormal,v.minkowskiPoint.magnitude());
-        
-        if(normalPlane.magnitudeSquareOfPointToPlane(closestCollisionPoints.at(0)) < normalPlane.magnitudeSquareOfPointToPlane(closestCollisionPoints.at(1))){
-            
-            closestCollisionPoint=closestCollisionPoints.at(0);
-            
-        }else{
-            
-            closestCollisionPoint=closestCollisionPoints.at(1);
-            
-        }
-
-        
-        //reset time of impact
-        uModel1->resetTimeOfImpact();
-        
-        uModel2->resetTimeOfImpact();
+        closestCollisionPoint=closestCollisionPoints.at(0);
         
        return true;
         
