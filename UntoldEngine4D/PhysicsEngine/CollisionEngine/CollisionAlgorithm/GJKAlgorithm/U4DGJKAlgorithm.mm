@@ -165,7 +165,8 @@ namespace U4DEngine {
         //closest collision point
         std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
         
-        closestCollisionPoint=closestCollisionPoints.at(0);
+        //Average the closest collision points
+        closestCollisionPoint=(closestCollisionPoints.at(0)+closestCollisionPoints.at(1))*0.5;
         
        return true;
         
