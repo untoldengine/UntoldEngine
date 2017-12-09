@@ -42,14 +42,31 @@ namespace U4DEngine {
         
         vPrevious.minkowskiPoint=U4DPoint3n(FLT_MAX,FLT_MAX,FLT_MAX);
         
-        U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
-        U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
+        U4DBoundingVolume *boundingVolume1;
+        U4DBoundingVolume *boundingVolume2;
         
-        relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
+        //Determine the proper CSO translation vector and Support volumes for GJK
+        relativeCSOTranslation=uModel2->getAbsolutePosition()-uModel1->getAbsolutePosition();
         
-        //Removing this normalization. It seems to fix the issue with sinking when colliding objects are of
-        //disproportionate size.
-        //relativeCSOTranslation.normalize();
+        U4DVector3n normalizedRelativeCSOTranslation=relativeCSOTranslation;
+        normalizedRelativeCSOTranslation.normalize();
+        
+        U4DVector3n rVelocity=uModel2->getVelocity()+uModel1->getVelocity();
+        rVelocity.normalize();
+        
+        
+        if (rVelocity.dot(normalizedRelativeCSOTranslation)>=0.0) {
+            
+            boundingVolume1=uModel2->getNarrowPhaseBoundingVolume();
+            boundingVolume2=uModel1->getNarrowPhaseBoundingVolume();
+            
+        }else{
+            
+            boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
+            boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
+            
+            relativeCSOTranslation=relativeCSOTranslation*-1.0;
+        }
         
         U4DVector3n dir(1,1,1);
         
@@ -137,9 +154,9 @@ namespace U4DEngine {
             
             if (checkGJKTerminationCondition1(v)) {
                 
-                closestPointToOrigin=vPrevious.minkowskiPoint;
-                
-                contactCollisionNormal=vPrevious.minkowskiPoint.toVector();
+//                closestPointToOrigin=vPrevious.minkowskiPoint;
+//
+//                contactCollisionNormal=vPrevious.minkowskiPoint.toVector();
                 
                 break;
             }
@@ -168,7 +185,8 @@ namespace U4DEngine {
         float collisionPointMagnitude1=closestCollisionPoints.at(0).magnitude();
         float collisionPointMagnitude2=closestCollisionPoints.at(1).magnitude();
         
-        if (fabs(collisionPointMagnitude1-collisionPointMagnitude2)>0.1) {
+        if (fabs(collisionPointMagnitude1-collisionPointMagnitude2)>U4DEngine::zeroEpsilon) {
+   
             
             if (collisionPointMagnitude1<collisionPointMagnitude2) {
                 closestCollisionPoint=closestCollisionPoints.at(0);
