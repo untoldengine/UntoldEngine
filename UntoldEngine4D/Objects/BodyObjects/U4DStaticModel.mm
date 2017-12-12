@@ -336,8 +336,12 @@ namespace U4DEngine {
                     //create a AABB bounding volume
                     broadPhaseBoundingVolume=new U4DBoundingAABB();
                     
+                    //add padding to the AABB bounding volume
+                    U4DPoint3n aabbMinPoints=minPoints*U4DEngine::aabbBoundingVolumePadding;
+                    U4DPoint3n aabbMaxPoints=maxPoints*U4DEngine::aabbBoundingVolumePadding;
+                    
                     //calculate the AABB
-                    broadPhaseBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
+                    broadPhaseBoundingVolume->computeBoundingVolume(aabbMinPoints, aabbMaxPoints);
                     
                 }else{
                     
@@ -345,7 +349,7 @@ namespace U4DEngine {
                     broadPhaseBoundingVolume=new U4DBoundingSphere();
                     
                     //set the radius for the sphere bounding volume
-                    float radius=maxPoints.distanceBetweenPoints(minPoints)/2.0;
+                    float radius=maxPoints.distanceBetweenPoints(minPoints)*U4DEngine::sphereBoundingVolumePadding;
                     
                     //calculate the sphere
                     broadPhaseBoundingVolume->computeBoundingVolume(radius, 10, 10);

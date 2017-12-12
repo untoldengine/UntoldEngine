@@ -21,17 +21,8 @@ namespace U4DEngine {
     
     void U4DRestingForcesGenerator::updateForce(U4DDynamicModel *uModel, float dt){
         
-        if (uModel->getEquilibrium()==true) {
+        generateNormalForce(uModel);
             
-            generateNormalForce(uModel);
-            
-        }else{
-            
-            generateNormalForce(uModel);
-            generateTorqueForce(uModel);
-            
-        }
-        
     }
     
     void U4DRestingForcesGenerator::generateNormalForce(U4DDynamicModel *uModel){

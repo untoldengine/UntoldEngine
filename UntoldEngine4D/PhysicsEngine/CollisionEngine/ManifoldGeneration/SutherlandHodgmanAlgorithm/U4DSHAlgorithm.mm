@@ -216,6 +216,17 @@ namespace U4DEngine {
         
         cutOffDistance/=segments.size();
         
+        //compute the angle between planes
+        
+        U4DPoint3n intersectionPoint;
+        U4DVector3n intersectionVector;
+        
+        if (referenceFacePlane.intersectPlane(incidentFacePlane, intersectionPoint, intersectionVector)) {
+            
+            uCollisionManifoldNode.referenceAndIncidentPlaneAngle=referenceFacePlane.angle(incidentFacePlane);
+            
+        }
+        
         //number of points selected as contact points
         int numberOfPoints=0;
         
@@ -223,7 +234,7 @@ namespace U4DEngine {
             
             float magnitudeOfPoint=fabs(incidentFacePlane.magnitudeOfPointToPlane(n.pointA));
             
-            if ((magnitudeOfPoint<cutOffDistance) || numerical.areEqual(magnitudeOfPoint, cutOffDistance, U4DEngine::zeroEpsilon)) {
+            if ((magnitudeOfPoint<cutOffDistance) || numerical.areEqual(magnitudeOfPoint, cutOffDistance, U4DEngine::minimumManifoldCutoffDistance)) {
                 
                 U4DVector3n point=n.pointA.toVector();
                 
