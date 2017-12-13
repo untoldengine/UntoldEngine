@@ -171,7 +171,7 @@ namespace U4DEngine {
             
         }
         
-        if (Q.size()<2 || Q.size()>4) {
+        if (Q.size()<3 || Q.size()>4) {
             return false;
         }
         
