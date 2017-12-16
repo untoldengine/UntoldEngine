@@ -123,17 +123,19 @@ namespace U4DEngine {
                     
                     //set time of impact for each model.
                     
-                    if (tClip<U4DEngine::minimumTimeOfImpact) {
+                    if (tClip<U4DEngine::zeroEpsilon) {
+
+                        float timeOfImpact=1.0-U4DEngine::zeroEpsilon;
                         
                         //minimum time step allowed
-                        uModel1->setTimeOfImpact(U4DEngine::minimumTimeOfImpact);
-                        uModel2->setTimeOfImpact(U4DEngine::minimumTimeOfImpact);
+                        uModel1->setTimeOfImpact(timeOfImpact);
+                        uModel2->setTimeOfImpact(timeOfImpact);
                         
                     }else{
-                        
-                        uModel1->setTimeOfImpact(tClip);
-                        uModel2->setTimeOfImpact(tClip);
-                        
+
+                        uModel1->setTimeOfImpact(1.0);
+                        uModel2->setTimeOfImpact(1.0);
+
                     }
                     
                 }else{
@@ -161,7 +163,7 @@ namespace U4DEngine {
                 break;
             }
             
-            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
+            determineMinimumSimplexInQ(v.minkowskiPoint,(int)Q.size());
             
             dir=v.minkowskiPoint.toVector();
             
@@ -200,7 +202,7 @@ namespace U4DEngine {
             closestCollisionPoint=(closestCollisionPoints.at(0)+closestCollisionPoints.at(1))*0.5;
             
         }
-        
+    
        return true;
         
     }

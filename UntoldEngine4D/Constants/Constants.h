@@ -34,7 +34,7 @@ namespace U4DEngine {
     /**
      @brief Constant which represents the minimum time of impact during a collision
      */
-    const float minimumTimeOfImpact=0.5;
+    const float minimumTimeOfImpact=0.2;
     
     /**
      @brief Constant which represents the minimum cutoff distance to accept contact point
