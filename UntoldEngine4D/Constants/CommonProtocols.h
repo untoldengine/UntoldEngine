@@ -447,6 +447,11 @@ namespace U4DEngine {
          */
         U4DPoint3n collisionClosestPoint;
         
+        /**
+         @brief Angle of collision between normal planes (reference and incident plane)
+         */
+        float referenceAndIncidentPlaneAngle;
+        
         
     }COLLISIONMANIFOLDONODE;
     

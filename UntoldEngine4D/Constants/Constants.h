@@ -27,14 +27,25 @@ namespace U4DEngine {
     const float sleepBias=0.5;
     
     /**
-     @brief Constant which represents the distance epsilon the engine will interpret as a collision: This value used to be 1.0e-4f. This value needs to change depending on the shape of the objects. For a sphere to cube plane, the best value is 1.0f. For cube to cube is 1.0e-4f. for cube to cube plane is somewhere around 1.0e-2f to 1.0e-3f. If wrong values are used, sinking will occur.
+     @brief Constant which represents the distance epsilon the engine will interpret as a collision
      */
     const float collisionDistanceEpsilon=1.0e-4f;
     
     /**
      @brief Constant which represents the minimum time of impact during a collision
      */
-    const float minimumTimeOfImpact=0.5;
+    const float minimumTimeOfImpact=0.2;
+    
+    /**
+     @brief Constant which represents the minimum cutoff distance to accept contact point
+     */
+    const float minimumManifoldCutoffDistance=0.1;
+    
+    /**
+     @brief Constant which represents the cutoff angle between manifold colliding planes. When a Collision occurs at angles smaller than this.
+     The entities angular velocity are reduced to prevent any penetration during collision.
+    */
+    const float minimumManifoldPlaneCollisionAngle=5.0;
     
     /**
      @brief Constant which represents a barycentric epsilon
@@ -96,6 +107,15 @@ namespace U4DEngine {
      */
     const float buttonTouchEpsilon=1.0e-1f;
     
+    /**
+     @brief Padding for the AABB Bounding volume. For no padding, set it equal to 1.0
+     */
+    const float aabbBoundingVolumePadding=1.50;
+    
+    /**
+     @brief Padding for the Sphere Bounding volume. For no padding, set it equal to 0.50
+     */
+    const float sphereBoundingVolumePadding=0.57;
 }
 
 #endif

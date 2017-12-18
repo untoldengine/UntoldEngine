@@ -27,15 +27,15 @@ bool ModelAsset::init(const char* uModelName, const char* uBlenderFile){
         
         setEnableShadow(true);
         
-        initAsPlatform(true);
-        
-        initMass(10.0);
-        
-        initCoefficientOfRestitution(0.9);
+        initMass(5.0);
+
+        initCoefficientOfRestitution(0.7);
         
         enableCollisionBehavior();
         
         loadRenderingInformation();
+        
+        //setBroadPhaseBoundingVolumeVisibility(true);
         
         return true;
         

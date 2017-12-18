@@ -41,10 +41,6 @@ namespace U4DEngine {
         
         std::vector<U4DVector3n> contactManifold=uCollisionManifoldNode.contactPoints;
         
-        if (contactManifold.size()>4) {
-            contactManifold.resize(4);
-        }
-        
         U4DVector3n normalCollisionVector=uCollisionManifoldNode.normalCollisionVector;
         
         U4DVector3n centerOfMassForModel1=uModel1->getCenterOfMass()+uModel1->getAbsolutePosition();
@@ -78,16 +74,26 @@ namespace U4DEngine {
              
              */
             
-            U4DVector3n angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
+            U4DVector3n angularFactorOfModel1;
+            U4DVector3n angularFactorOfModel2;
             
-            U4DVector3n angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
+            if(uModel1->isKineticsBehaviorEnabled()){
+                
+                angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
+                
+            }
+            
+            if (uModel2->isKineticsBehaviorEnabled()) {
+                
+                angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
+                
+            }
             
             float totalAngularEffect=normalCollisionVector.dot(angularFactorOfModel1+angularFactorOfModel2);
             
             //Compute coefficient of restitution for both bodies
-            //I multiply the coefficient of restitution times two to avoid any penetration when the object is rotating. I.e., when it lands
-            //at an angle.I HAVE TO REMOVE THIS MULTIPLIER.
-            float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution()*2.0;
+
+            float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution();
             
             float impulse=-1*(vR.dot(normalCollisionVector))*(coefficientOfRestitution+1.0)/(totalInverseMasses+totalAngularEffect);
             
@@ -132,13 +138,13 @@ namespace U4DEngine {
         
         //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
-        if (uModel1->getEquilibrium() && uModel1->getInertiaTensorType()!=sphericalInertia ) {
+        if (uModel1->getEquilibrium()) {
             
             angularImpulseFactorOfModel1.zero();
             
         }
         
-        if (uModel2->getEquilibrium()  && uModel2->getInertiaTensorType()!=sphericalInertia ) {
+        if (uModel2->getEquilibrium()) {
         
             angularImpulseFactorOfModel2.zero();
             
@@ -146,6 +152,15 @@ namespace U4DEngine {
         
         U4DVector3n newAngularVelocityOfModel1=uModel1->getAngularVelocity()-angularImpulseFactorOfModel1;
         U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
+        
+        //reduce angular velocity to diminish GJK rotation collision issues
+        
+        if (fabs(180.0-uCollisionManifoldNode.referenceAndIncidentPlaneAngle)<U4DEngine::minimumManifoldPlaneCollisionAngle) {
+            
+            newAngularVelocityOfModel1*=0.5;
+            newAngularVelocityOfModel2*=0.5;
+            
+        }
         
         //Set the new linear and angular velocities for the models
         

@@ -39,16 +39,34 @@ namespace U4DEngine {
         float tClip=0.0; //time of impact
         U4DVector3n hitSpot(0,0,0); //hit spot
         U4DVector3n relativeCSOTranslation(0,0,0); //relative CSO translation
-        int iterationSteps=0;
         
-        U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
-        U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
+        vPrevious.minkowskiPoint=U4DPoint3n(FLT_MAX,FLT_MAX,FLT_MAX);
         
-        relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
+        U4DBoundingVolume *boundingVolume1;
+        U4DBoundingVolume *boundingVolume2;
         
-        //Removing this normalization. It seems to fix the issue with sinking when colliding objects are of
-        //disproportionate size.
-        //relativeCSOTranslation.normalize();
+        //Determine the proper CSO translation vector and Support volumes for GJK
+        relativeCSOTranslation=uModel2->getAbsolutePosition()-uModel1->getAbsolutePosition();
+        
+        U4DVector3n normalizedRelativeCSOTranslation=relativeCSOTranslation;
+        normalizedRelativeCSOTranslation.normalize();
+        
+        U4DVector3n rVelocity=uModel2->getVelocity()+uModel1->getVelocity();
+        rVelocity.normalize();
+        
+        
+        if (rVelocity.dot(normalizedRelativeCSOTranslation)>=0.0) {
+            
+            boundingVolume1=uModel2->getNarrowPhaseBoundingVolume();
+            boundingVolume2=uModel1->getNarrowPhaseBoundingVolume();
+            
+        }else{
+            
+            boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
+            boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
+            
+            relativeCSOTranslation=relativeCSOTranslation*-1.0;
+        }
         
         U4DVector3n dir(1,1,1);
         
@@ -61,11 +79,28 @@ namespace U4DEngine {
         dir.negate();
         
         SIMPLEXDATA p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+
         
-        while (v.minkowskiPoint.magnitudeSquare()-v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
+        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
             
-            if (iterationSteps>10) {
-                return false;
+            //test condition: ||v||^2-vdotw<=epsilon^2*||v||^2
+            if (checkGJKTerminationCondition2(v,p,Q)) {
+                
+                closestPointToOrigin=v.minkowskiPoint;
+                
+                contactCollisionNormal=v.minkowskiPoint.toVector();
+                
+                break;
+            }
+            
+            //test condition: ||v||^2<=epsilon*max(element in Q)
+            if (checkGJKTerminationCondition3(v,p,Q)) {
+                
+                closestPointToOrigin=v.minkowskiPoint;
+                
+                contactCollisionNormal=v.minkowskiPoint.toVector();
+                
+                break;
             }
             
             if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(relativeCSOTranslation))*tClip) {
@@ -88,23 +123,27 @@ namespace U4DEngine {
                     
                     //set time of impact for each model.
                     
-                    if (tClip<U4DEngine::minimumTimeOfImpact) {
+                    if (tClip<U4DEngine::zeroEpsilon) {
+
+                        float timeOfImpact=1.0-U4DEngine::zeroEpsilon;
                         
                         //minimum time step allowed
-                        uModel1->setTimeOfImpact(U4DEngine::minimumTimeOfImpact);
-                        uModel2->setTimeOfImpact(U4DEngine::minimumTimeOfImpact);
+                        uModel1->setTimeOfImpact(timeOfImpact);
+                        uModel2->setTimeOfImpact(timeOfImpact);
                         
                     }else{
-                        
-                        uModel1->setTimeOfImpact(tClip);
-                        uModel2->setTimeOfImpact(tClip);
-                        
+
+                        uModel1->setTimeOfImpact(1.0);
+                        uModel2->setTimeOfImpact(1.0);
+
                     }
                     
                 }else{
                     return false;
                 }
             }
+            
+            vPrevious=v;
             
             //p-hitSpot
             p.minkowskiPoint=(hitSpot.toPoint()-p.minkowskiPoint).toPoint();
@@ -113,7 +152,18 @@ namespace U4DEngine {
             
             v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
             
-            determineMinimumSimplexInQ(v.minkowskiPoint,Q.size());
+            //test condition: ||vPrevious||^2-||vCurrent||^2<=epsilon*||vCurrent||^2
+            
+            if (checkGJKTerminationCondition1(v)) {
+                
+//                closestPointToOrigin=vPrevious.minkowskiPoint;
+//
+//                contactCollisionNormal=vPrevious.minkowskiPoint.toVector();
+                
+                break;
+            }
+            
+            determineMinimumSimplexInQ(v.minkowskiPoint,(int)Q.size());
             
             dir=v.minkowskiPoint.toVector();
             
@@ -121,24 +171,12 @@ namespace U4DEngine {
             
             p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
             
-            iterationSteps++;
         }
         
-        if (Q.size()<2 || Q.size()>4) {
-            return false;
-        }
-                
-        if (v.minkowskiPoint.magnitude()>U4DEngine::collisionDistanceEpsilon) {
+        if (Q.size()<3 || Q.size()>4) {
             return false;
         }
         
-        
-        //if contact collision normal=0.0, then set the contact collision normal to the relative translation
-        if (contactCollisionNormal==U4DVector3n(0.0,0.0,0.0)) {
-            
-            contactCollisionNormal=relativeCSOTranslation;
-            
-        }
         
         //normalize contact normal
         contactCollisionNormal.normalize();
@@ -146,23 +184,25 @@ namespace U4DEngine {
         //closest collision point
         std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
         
-        //Assign the closest collision point to use depending on the dot product of the point to the collision normal vector.
+        float collisionPointMagnitude1=closestCollisionPoints.at(0).magnitude();
+        float collisionPointMagnitude2=closestCollisionPoints.at(1).magnitude();
         
-        if (contactCollisionNormal.dot(closestCollisionPoints.at(0).toVector())<0.0) {
+        if (fabs(collisionPointMagnitude1-collisionPointMagnitude2)>U4DEngine::zeroEpsilon) {
+   
             
-            closestCollisionPoint=closestCollisionPoints.at(0);
-        
+            if (collisionPointMagnitude1<collisionPointMagnitude2) {
+                closestCollisionPoint=closestCollisionPoints.at(0);
+            }else{
+                closestCollisionPoint=closestCollisionPoints.at(1);
+            }
+            
         }else{
-        
-            closestCollisionPoint=closestCollisionPoints.at(1);
-        
+            
+            //Average the closest collision points
+            closestCollisionPoint=(closestCollisionPoints.at(0)+closestCollisionPoints.at(1))*0.5;
+            
         }
-        
-        //reset time of impact
-        uModel1->resetTimeOfImpact();
-        
-        uModel2->resetTimeOfImpact();
-        
+    
        return true;
         
     }
@@ -428,6 +468,56 @@ namespace U4DEngine {
     U4DVector3n U4DGJKAlgorithm::getContactCollisionNormal(){
         
         return contactCollisionNormal;
+    }
+    
+    bool U4DGJKAlgorithm::checkGJKTerminationCondition1(SIMPLEXDATA &uV){
+        
+        //test condition: ||vPrevious||^2-||vCurrent||^2<=epsilon*||vCurrent||^2
+        //in theory, each new v should be shorter than the previous one. So terminate as soon as this occurs
+        
+        return (vPrevious.minkowskiPoint.magnitudeSquare()-uV.minkowskiPoint.magnitudeSquare()<=U4DEngine::collisionDistanceEpsilon*uV.minkowskiPoint.magnitudeSquare());
+        
+    }
+    
+    bool U4DGJKAlgorithm::checkGJKTerminationCondition2(SIMPLEXDATA &uV, SIMPLEXDATA &uP, std::vector<SIMPLEXDATA> uQ){
+        
+        //test condition: ||v||^2-vdotw<=epsilon^2*||v||^2
+        return (uV.minkowskiPoint.magnitudeSquare()-uV.minkowskiPoint.toVector().dot(uP.minkowskiPoint.toVector())<=U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon*uV.minkowskiPoint.magnitudeSquare());
+        
+    }
+    
+    bool U4DGJKAlgorithm::checkGJKTerminationCondition3(SIMPLEXDATA &uV, SIMPLEXDATA &uP, std::vector<SIMPLEXDATA> uQ){
+        
+        //test condition:||v||^2<=epsilon*max(element in Q)
+        
+        //This test condition is used in case of a (near) contact, v will approximate zero, in which case previous
+        //termination condition is not likely to be met
+        float collisiontToleranceEpsilon=1.0e-5f;
+        
+        return (uV.minkowskiPoint.magnitudeSquare()<=collisiontToleranceEpsilon*getMaxSimplexInQ(uQ).minkowskiPoint.toVector().magnitudeSquare());
+    }
+    
+    
+    SIMPLEXDATA U4DGJKAlgorithm::getMaxSimplexInQ(std::vector<SIMPLEXDATA> uQ){
+        
+        float maxSimplexDistance=-FLT_MIN;
+        
+        SIMPLEXDATA maximumSimplex;
+        
+        for(auto n:uQ){
+            
+            float currentSimplexDistance=n.minkowskiPoint.toVector().magnitudeSquare();
+            
+            if (currentSimplexDistance>maxSimplexDistance) {
+                
+                maxSimplexDistance=currentSimplexDistance;
+                
+                maximumSimplex=n;
+            }
+        }
+        
+        return maximumSimplex;
+        
     }
     
     void U4DGJKAlgorithm::cleanUp(){

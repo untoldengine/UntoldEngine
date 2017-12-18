@@ -26,8 +26,9 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    ModelAsset *cube[16];
-    ModelAsset *terrain;
+    ModelAsset *cube[10];
+    ModelAsset *cube0;
+    GameAsset *terrain;
     GuardianModel *guardian;
     
     

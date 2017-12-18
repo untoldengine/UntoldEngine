@@ -8,6 +8,7 @@
 
 #include "U4DPlane.h"
 #include "Constants.h"
+#include "U4DTrigonometry.h"
 #include <cmath>
 
 namespace U4DEngine {
@@ -142,6 +143,19 @@ namespace U4DEngine {
         uIntersectionPoint=((u*d + n.cross(uPlane2.n*uPlane3.d-uPlane3.n*uPlane2.d))/denom).toPoint();
         
         return true;
+        
+    }
+    
+    float U4DPlane::angle(U4DPlane &uPlane){
+        
+        //From page 62 in Geometry for Computer Graphics book
+        U4DTrigonometry trigonometry;
+        
+        float angle=(n.dot(uPlane.n))/(n.magnitude()*uPlane.n.magnitude());
+        
+        angle=trigonometry.safeAcos(angle);
+        
+        return trigonometry.radToDegrees(angle);
         
     }
 

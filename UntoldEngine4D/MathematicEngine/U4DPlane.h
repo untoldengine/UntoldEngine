@@ -134,6 +134,16 @@ namespace U4DEngine {
          */
         bool intersectPlanes(U4DPlane& uPlane2, U4DPlane& uPlane3, U4DPoint3n& uIntersectionPoint);
         
+        
+        /**
+         @brief Compute the angle between planes. The plane normals must be normalized
+         
+         @param uPlane  Plane to compute angle
+         
+         @return Returns the angle in degrees
+         */
+        float angle(U4DPlane &uPlane);
+        
     };
     
 }
