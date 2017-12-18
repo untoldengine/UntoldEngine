@@ -44,16 +44,16 @@
 using namespace U4DEngine;
 
 void Earth::init(){
-        
+    
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-30.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,0.0,-30.0);
     
     camera->translateTo(cameraPos);
     
     
     setName("earth");
-    setEnableGrid(false);
+    setEnableGrid(true);
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -85,9 +85,9 @@ void Earth::init(){
 
 
     //add gold
-    for(int i=0;i<16;i++){
+    for(int i=0;i<10;i++){
 
-        std::string name="cube";
+        std::string name="Cube";
         name+=std::to_string(i);
 
         cube[i]=new ModelAsset();
@@ -95,33 +95,41 @@ void Earth::init(){
         if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
             addChild(cube[i]);
         }
-
+        //cube[i]->rotateTo(0.0,0.0,-40.0);
         cube[i]->enableKineticsBehavior();
     }
     
-    terrain=new ModelAsset();
-    terrain->init("terrain","blenderscript.u4d");
+//    cube0=new ModelAsset();
+//
+//    if(cube0->init("Cube0", "blenderscript.u4d")){
+//        addChild(cube0);
+//    }
+//
+//    cube0->enableKineticsBehavior();
+//    //cube0->rotateTo(-30.0,60.0,40.0);
+//    cube0->translateBy(-4.0, 0.0, -4.0);
     
-    addChild(terrain);
+    terrain=new GameAsset();
     
-    U4DEngine::U4DVector3n grav(0.0,0.0,0.0);
-    terrain->setGravity(grav);
-    terrain->initMass(1000.0);
-    terrain->pauseKineticsBehavior();
-    
-    //add character
-    guardian=new GuardianModel();
-    
-    if(guardian->init("guardian","guardianscript.u4d")){
-        addChild(guardian);
+    if (terrain->init("terrain","blenderscript.u4d")) {
+        
+        addChild(terrain);
+        
     }
     
-    guardian->translateBy(0.0, 0.0, -4.0);
+    //add character
+//    guardian=new GuardianModel();
+//
+//    if(guardian->init("guardian","guardianscript.u4d")){
+//        addChild(guardian);
+//    }
+    
+    //guardian->translateBy(0.0, 0.0, -4.0);
     
     //get game model pointer
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     
-    gameModel->setGuardian(guardian);
+   // gameModel->setGuardian(guardian);
     
     //Load the font loader
     fontLoader=new U4DFontLoader();
@@ -145,9 +153,9 @@ Earth::~Earth(){
 }
 
 void Earth::update(double dt){
-    
+    //rotateBy(0.0, 0.5, 0.0);
     U4DCamera *camera=U4DCamera::sharedInstance();
-
+    
     //camera->followModel(guardian, 0.0, 2.0, -10.0);
 }
 

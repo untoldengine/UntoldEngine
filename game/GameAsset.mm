@@ -20,10 +20,25 @@ bool GameAsset::init(const char* uModelName, const char* uBlenderFile){
     
     if (loadModel(uModelName, uBlenderFile)) {
     
-        //setEnableShadow(true);
-        //initAsPlatform(true);
-        //enableCollisionBehavior();
+        setEnableShadow(true);
+        
+        initAsPlatform(true);
+        
+        enableCollisionBehavior();
+        
+        initCoefficientOfRestitution(0.9);
+        
+        U4DEngine::U4DVector3n grav(0.0,0.0,0.0);
+        
+        setGravity(grav);
+        
+        initMass(10.0);
+        
+        pauseKineticsBehavior();
+        
         loadRenderingInformation();
+        
+        //setBroadPhaseBoundingVolumeVisibility(true);
         
         return true;
     }
