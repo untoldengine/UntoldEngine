@@ -123,9 +123,9 @@ namespace U4DEngine {
                     
                     //set time of impact for each model.
                     
-                    if (tClip<U4DEngine::zeroEpsilon) {
+                    if (tClip<U4DEngine::minimumTimeOfImpact) {
 
-                        float timeOfImpact=1.0-U4DEngine::zeroEpsilon;
+                        float timeOfImpact=1.0-U4DEngine::minimumTimeOfImpact;
                         
                         //minimum time step allowed
                         uModel1->setTimeOfImpact(timeOfImpact);
