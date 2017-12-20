@@ -39,7 +39,7 @@ namespace U4DEngine {
     /**
      @brief Constant which represents the minimum cutoff distance to accept contact point
      */
-    const float minimumManifoldCutoffDistance=0.1;
+    const float minimumManifoldCutoffDistance=0.01;
     
     /**
      @brief Constant which represents the cutoff angle between manifold colliding planes. When a Collision occurs at angles smaller than this.
