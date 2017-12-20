@@ -116,6 +116,11 @@ namespace U4DEngine {
      @brief Padding for the Sphere Bounding volume. For no padding, set it equal to 0.50
      */
     const float sphereBoundingVolumePadding=0.57;
+    
+    /**
+     @brief Minimum number of contact points for an object to be consider in equilibrium
+     */
+    const int minimumContactPointsForEquilibrium=3;
 }
 
 #endif

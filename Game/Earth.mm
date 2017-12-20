@@ -95,7 +95,7 @@ void Earth::init(){
         if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
             addChild(cube[i]);
         }
-        cube[i]->rotateTo(0.0,0.0,-40.0);
+        //cube[i]->rotateTo(0.0,0.0,-40.0);
         cube[i]->enableKineticsBehavior();
     }
     

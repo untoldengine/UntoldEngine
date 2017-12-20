@@ -251,7 +251,7 @@ namespace U4DEngine {
         }
         
         //if contact points are less than two, then the models are not in equilibrium
-        if (numberOfPoints<=2) {
+        if (numberOfPoints<U4DEngine::minimumContactPointsForEquilibrium) {
             uModel1->setEquilibrium(false);
             uModel2->setEquilibrium(false);
         }else{
