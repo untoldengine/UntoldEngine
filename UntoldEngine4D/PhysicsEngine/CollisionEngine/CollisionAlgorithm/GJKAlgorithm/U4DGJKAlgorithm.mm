@@ -84,7 +84,7 @@ namespace U4DEngine {
         while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
             
             //test condition: ||v||^2-vdotw<=epsilon^2*||v||^2
-            if (checkGJKTerminationCondition2(v,p,Q)) {
+            if (checkGJKTerminationCondition2(v,p,Q) && v.minkowskiPoint==U4DEngine::U4DPoint3n(0.0,0.0,0.0)) {
                 
                 closestPointToOrigin=v.minkowskiPoint;
                 
@@ -123,9 +123,9 @@ namespace U4DEngine {
                     
                     //set time of impact for each model.
                     
-                    if (tClip<U4DEngine::zeroEpsilon) {
+                    if (tClip<U4DEngine::minimumTimeOfImpact) {
 
-                        float timeOfImpact=1.0-U4DEngine::zeroEpsilon;
+                        float timeOfImpact=1.0-U4DEngine::minimumTimeOfImpact;
                         
                         //minimum time step allowed
                         uModel1->setTimeOfImpact(timeOfImpact);
@@ -173,6 +173,7 @@ namespace U4DEngine {
             
         }
         
+
         if (Q.size()<3 || Q.size()>4) {
             return false;
         }

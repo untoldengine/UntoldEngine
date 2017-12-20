@@ -32,7 +32,7 @@ bool GameAsset::init(const char* uModelName, const char* uBlenderFile){
         
         setGravity(grav);
         
-        initMass(10.0);
+        initMass(1000.0);
         
         pauseKineticsBehavior();
         
