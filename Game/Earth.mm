@@ -85,28 +85,28 @@ void Earth::init(){
 
 
     //add gold
-//    for(int i=0;i<5;i++){
-//
-//        std::string name="Cube";
-//        name+=std::to_string(i);
-//
-//        cube[i]=new ModelAsset();
-//
-//        if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
-//            addChild(cube[i]);
-//        }
-//        //cube[i]->rotateTo(0.0,0.0,-40.0);
-//        cube[i]->enableKineticsBehavior();
-//    }
-    
-    cube0=new ModelAsset();
+    for(int i=0;i<5;i++){
 
-    if(cube0->init("Cube1", "blenderscript.u4d")){
-        addChild(cube0);
+        std::string name="Cube";
+        name+=std::to_string(i);
+
+        cube[i]=new ModelAsset();
+
+        if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
+            addChild(cube[i]);
+        }
+        cube[i]->rotateTo(0.0,0.0,-40.0);
+        cube[i]->enableKineticsBehavior();
     }
-
-    cube0->enableKineticsBehavior();
-    //cube0->rotateTo(-30.0,60.0,40.0);
+    
+//    cube0=new ModelAsset();
+//
+//    if(cube0->init("Cube4", "blenderscript.u4d")){
+//        addChild(cube0);
+//    }
+//
+//    cube0->enableKineticsBehavior();
+    //cube0->rotateTo(0.0,0.0,-40.0);
     //cube0->translateBy(2.9, 0.0, -3.2);
     
     terrain=new GameAsset();
