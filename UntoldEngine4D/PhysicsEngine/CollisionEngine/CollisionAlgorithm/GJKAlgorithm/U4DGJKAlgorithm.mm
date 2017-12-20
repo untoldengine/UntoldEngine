@@ -96,10 +96,6 @@ namespace U4DEngine {
             //test condition: ||v||^2<=epsilon*max(element in Q)
             if (checkGJKTerminationCondition3(v,p,Q)) {
                 
-                closestPointToOrigin=v.minkowskiPoint;
-                
-                contactCollisionNormal=v.minkowskiPoint.toVector();
-                
                 break;
             }
             
