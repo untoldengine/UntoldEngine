@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isPlatform(false){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
         
         initMass(1.0);
         
@@ -556,6 +556,17 @@ namespace U4DEngine {
     U4DVector3n U4DStaticModel::getModelDimensions(){
         
         return bodyCoordinates.getModelDimension();
+    }
+    
+    void U4DStaticModel::setIsCollisionSensor(bool uValue){
+        
+        isCollisionSensor=uValue;
+    }
+    
+    bool U4DStaticModel::getIsCollisionSensor(){
+        
+        return isCollisionSensor;
+    
     }
     
 }
