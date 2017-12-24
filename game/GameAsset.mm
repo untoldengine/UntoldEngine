@@ -26,7 +26,7 @@ bool GameAsset::init(const char* uModelName, const char* uBlenderFile){
         
         enableCollisionBehavior();
         
-        initCoefficientOfRestitution(0.9);
+        initCoefficientOfRestitution(0.2);
         
         U4DEngine::U4DVector3n grav(0.0,0.0,0.0);
         
