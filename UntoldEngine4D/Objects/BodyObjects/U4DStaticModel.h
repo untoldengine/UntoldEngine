@@ -191,6 +191,11 @@ namespace U4DEngine {
          */
         CollisionFilter collisionFilter;
         
+        /**
+         @todo Variable stating if the model should be consider a collision sensor. The engine does not compute contact manifolds on collision sensors. It simply determines if a collision occurred or not.
+         */
+        bool isCollisionSensor;
+        
         protected:
             
         public:
@@ -539,6 +544,16 @@ namespace U4DEngine {
          @todo document this
          */
         U4DVector3n getModelDimensions();
+        
+        /**
+         @todo set the entity as a collision sensor
+         */
+        void setIsCollisionSensor(bool uValue);
+        
+        /**
+         @todo get if entity is a collision sensor
+         */
+        bool getIsCollisionSensor();
         
         };
     

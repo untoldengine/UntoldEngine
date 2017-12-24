@@ -46,4 +46,8 @@ bool ModelAsset::init(const char* uModelName, const char* uBlenderFile){
 
 void ModelAsset::update(double dt){
     
+    if (getModelHasCollided()) {
+        
+    }
+    
 }
