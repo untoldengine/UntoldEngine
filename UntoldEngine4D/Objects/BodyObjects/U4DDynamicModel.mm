@@ -133,10 +133,6 @@ namespace U4DEngine {
             
             setAwake(false);
             
-        }else if (modelKineticEnergy>10*U4DEngine::sleepEpsilon){
-            
-            modelKineticEnergy=10*U4DEngine::sleepEpsilon;
-        
         }
         
     }

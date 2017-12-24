@@ -47,7 +47,7 @@ void Earth::init(){
     
     //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-30.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,10.0,-20.0);
     
     camera->translateTo(cameraPos);
     
@@ -95,18 +95,18 @@ void Earth::init(){
         if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
             addChild(cube[i]);
         }
-        //cube[i]->rotateTo(0.0,0.0,-40.0);
+        cube[i]->rotateTo(30.0,20.0,-40.0);
         cube[i]->enableKineticsBehavior();
     }
     
 //    cube0=new ModelAsset();
 //
-//    if(cube0->init("Cube4", "blenderscript.u4d")){
+//    if(cube0->init("Cube0", "blenderscript.u4d")){
 //        addChild(cube0);
 //    }
 //
 //    cube0->enableKineticsBehavior();
-    //cube0->rotateTo(0.0,0.0,-40.0);
+//    cube0->rotateTo(30.0,20.0,-40.0);
     //cube0->translateBy(2.9, 0.0, -3.2);
     
     terrain=new GameAsset();
@@ -123,13 +123,13 @@ void Earth::init(){
 //    if(guardian->init("guardian","guardianscript.u4d")){
 //        addChild(guardian);
 //    }
-    
-    //guardian->translateBy(0.0, 0.0, -4.0);
+//
+//    guardian->translateBy(0.0, 0.0, -4.0);
     
     //get game model pointer
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     
-   // gameModel->setGuardian(guardian);
+   //gameModel->setGuardian(guardian);
     
     //Load the font loader
     fontLoader=new U4DFontLoader();
