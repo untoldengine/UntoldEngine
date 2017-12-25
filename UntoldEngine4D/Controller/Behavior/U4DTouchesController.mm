@@ -62,13 +62,13 @@ void U4DTouchesController::touchEnded(const U4DTouches &touches){
 }
 
 
-void U4DTouchesController::add(U4DButton *uButton){
+void U4DTouchesController::addChild(U4DButton *uButton){
     
     buttonsArray.push_back(uButton);
     
 }
 
-void U4DTouchesController::add(U4DJoyStick *uJoyStick){
+void U4DTouchesController::addChild(U4DJoyStick *uJoyStick){
     
     joyStickArray.push_back(uJoyStick);
     
