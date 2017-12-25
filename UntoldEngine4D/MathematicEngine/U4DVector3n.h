@@ -165,16 +165,6 @@ public:
      @return Returns the multiplication product betweent the 3D vector and scalar
      */
     U4DVector3n operator*(const float s)const;
-
-   
-    /**
-     @brief Method which multiplies a 3D vector by a 3x3 matrix
-     
-     @param m 3x3 matrix to multiply
-     
-     @return Returns the transformation of the vector by the 3x3 matrix
-     */
-    U4DVector3n operator*(const U4DMatrix3n& m)const;
     
     /**
      @brief Method which multiplies a 3D vector by a quaternion

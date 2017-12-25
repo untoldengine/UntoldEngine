@@ -93,22 +93,6 @@ namespace U4DEngine {
         return U4DVector3n(s*x,s*y,s*z);
     }
 
-
-    //multiply times a matrix
-    U4DVector3n U4DVector3n::operator*(const U4DMatrix3n& m)const{
-        
-        //	0	3	6
-        //	1	4	7
-        //	2	5	8
-        
-        float newX=x*m.matrixData[0]+y*m.matrixData[1]+z*m.matrixData[2];
-        float newY=x*m.matrixData[3]+y*m.matrixData[4]+z*m.matrixData[5];
-        float newZ=x*m.matrixData[6]+y*m.matrixData[7]+z*m.matrixData[8];
-        
-        U4DVector3n result(newX,newY,newZ);
-        return result;
-    }
-
     
     U4DQuaternion U4DVector3n::operator*(U4DQuaternion& q) const{
         
