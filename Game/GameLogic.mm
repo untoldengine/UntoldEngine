@@ -86,8 +86,6 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     
                     light->translateTo(liPos);
                     
-                    liPos.show();
-                    
                     U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
                     light->viewInDirection(origin);
                     
@@ -110,8 +108,6 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     liPos.x-=1.0;
                     
                     light->translateTo(liPos);
-                    
-                    liPos.show();
                     
                     U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
                     light->viewInDirection(origin);

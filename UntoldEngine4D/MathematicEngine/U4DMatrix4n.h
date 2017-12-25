@@ -154,28 +154,6 @@ public:
     U4DMatrix4n transpose() const;
     
     /**
-     @brief Method that transforms the 4x4 matrix into a perspective projection 4x4 matrix
-     
-     @param fov    Field of view
-     @param aspect Ratio of the display
-     @param near   Near plane
-     @param far    Far lane
-     */
-    void computePerspectiveMatrix(float fov, float aspect, float near, float far);
-    
-    /**
-     @brief Method that transforms the 4x4 matrix into an orthographic projection 4x4 matrix
-     
-     @param left   Left plane
-     @param right  Right plane
-     @param bottom Bottom plane
-     @param top    Top plane
-     @param near   Near plane
-     @param far    Far plane
-     */
-    void computeOrthographicMatrix(float left, float right,float bottom,float top,float near, float far);
-    
-    /**
      @brief Method that prints the 4x4 matrix components to the console log window
      */
     void show();
