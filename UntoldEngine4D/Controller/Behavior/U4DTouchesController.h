@@ -51,10 +51,10 @@ public:
     void touchMoved(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);
     
-    void add(U4DButton *uButton);
+    void addChild(U4DButton *uButton);
     void changeState(const U4DTouches &touches,TOUCHSTATE touchState);
     
-    void add(U4DJoyStick *uJoyStick);
+    void addChild(U4DJoyStick *uJoyStick);
     
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     void update(double dt);
