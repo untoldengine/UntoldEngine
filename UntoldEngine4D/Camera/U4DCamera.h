@@ -71,42 +71,6 @@ namespace U4DEngine {
         static U4DCamera* sharedInstance();
         
         /**
-         @brief Method which sets the camera perspective projection view space
-         
-         @param fov    Field of view
-         @param aspect aspect ratio.
-         @param near   near plane
-         @param far    far plane
-         */
-        void setCameraPerspectiveView(float fov, float aspect, float near, float far);
-        
-        /**
-         @brief Method which returns the camera perspective projection view space
-         
-         @return Returns the camera perspecive projection space
-         */
-        U4DMatrix4n getCameraPerspectiveView();
-        
-        /**
-         @brief Method which sets the camera orthographic projection space
-         
-         @param left   left plane
-         @param right  right plane
-         @param bottom bottom plane
-         @param top    top plane
-         @param near   near plane
-         @param far    far plane
-         */
-        void setCameraOrthographicView(float left, float right,float bottom,float top,float near, float far);
-        
-        /**
-         @brief Method which returns the camera orthographic projection view space
-         
-         @return Returns the camera orthographic projection space
-         */
-        U4DMatrix4n getCameraOrthographicView();
-        
-        /**
          @brief Method which assigns the camera entity to follow a 3D model entity
          
          @param uModel   3D model entity to follow

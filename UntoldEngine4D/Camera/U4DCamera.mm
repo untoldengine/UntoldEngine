@@ -42,30 +42,6 @@ namespace U4DEngine {
         
         return instance;
     }
-
-    void U4DCamera::setCameraPerspectiveView(float fov, float aspect, float near, float far){
-        
-        
-        perspectiveView.computePerspectiveMatrix(fov, aspect, near, far);
-        
-    }
-
-    void U4DCamera::setCameraOrthographicView(float left, float right,float bottom,float top,float near, float far){
-        
-        
-        orthographicView.computeOrthographicMatrix(left, right, bottom, top, near, far);
-        
-    }
-
-    U4DMatrix4n U4DCamera::getCameraPerspectiveView(){
-        
-        return perspectiveView;
-    }
-
-    U4DMatrix4n U4DCamera::getCameraOrthographicView(){
-        
-        return orthographicView;
-    }
     
     void U4DCamera::followModel(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset){
         
