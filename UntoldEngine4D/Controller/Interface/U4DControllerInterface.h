@@ -34,9 +34,6 @@ private:
     
     
 public:
-
-    std::vector<U4DButton*> buttonsArray;
-    std::vector<U4DJoyStick*> joyStickArray;
     
     virtual ~U4DControllerInterface(){};
     
@@ -44,17 +41,10 @@ public:
     virtual void touchMoved(const U4DTouches &touches)=0;
     virtual void touchEnded(const U4DTouches &touches)=0;
     
-    
     virtual void keyboardInput(int key)=0;
-    
-    virtual void addChild(U4DButton *uButton)=0;
-    
-    virtual void addChild(U4DJoyStick *uJoyStick)=0;
     
     virtual void changeState(const U4DTouches &touches,TOUCHSTATE touchState)=0;
     
-    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder)=0;
-    virtual void update(double dt)=0;
     virtual void init()=0;
     
     virtual void setGameWorld(U4DWorld *uGameWorld)=0;
@@ -62,10 +52,6 @@ public:
     
     virtual U4DWorld* getGameWorld()=0;
     virtual U4DGameModelInterface* getGameModel()=0;
-    
-    virtual U4DJoyStick *getJoyStickWithName(std::string uName)=0;
-    
-    virtual U4DButton* getButtonWithName(std::string uName)=0;
     
     virtual void setReceivedAction(bool uValue)=0;
     virtual void sendTouchUpdate(void *uData)=0;

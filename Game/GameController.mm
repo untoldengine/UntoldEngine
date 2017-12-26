@@ -19,11 +19,14 @@
 
 void GameController::init(){
     
+    //get pointer to the earth
+    Earth *earth=dynamic_cast<Earth*>(getGameWorld());
+    
     joyStick=new U4DEngine::U4DJoyStick("joystick", -0.7,-0.6,"joyStickBackground.png",130,130,"joystickDriver.png",80,80);
     
     joyStick->setControllerInterface(this);
     
-    addChild(joyStick);
+    earth->addChild(joyStick,0);
     
     //create a callback
     U4DEngine::U4DCallback<GameController>* joystickCallback=new U4DEngine::U4DCallback<GameController>;
@@ -37,7 +40,7 @@ void GameController::init(){
     
     myButtonA->setControllerInterface(this);
     
-    addChild(myButtonA);
+    earth->addChild(myButtonA,1);
     
     //create a callback
     U4DEngine::U4DCallback<GameController>* buttonACallback=new U4DEngine::U4DCallback<GameController>;
@@ -51,7 +54,7 @@ void GameController::init(){
     
     myButtonB->setControllerInterface(this);
     
-    addChild(myButtonB);
+    earth->addChild(myButtonB,2);
     
     //create a callback
     U4DEngine::U4DCallback<GameController>* buttonBCallback=new U4DEngine::U4DCallback<GameController>;

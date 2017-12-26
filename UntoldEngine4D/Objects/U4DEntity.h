@@ -565,9 +565,20 @@ public:
      */
     virtual void cleanUp(){};
     
+    /**
+     @todo document this
+     */
     virtual bool isCollisionBehaviorEnabled(){};
     
+    /**
+     @todo document this
+     */
     virtual bool isKineticsBehaviorEnabled(){};
+    
+    /**
+     @todo Change the state of the entity. This method in particular is used to change the state of the controller, i.e. button or joystick
+     */
+    virtual void changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){};
     
 };
 

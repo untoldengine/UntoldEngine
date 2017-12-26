@@ -26,6 +26,8 @@ U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uW
     
     setName(uName);
     
+    setEntityType(CONTROLLERINPUT);
+    
     buttonImages.setImage(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
     U4DVector3n translation(xPosition,yPosition,0.0);

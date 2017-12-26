@@ -61,137 +61,24 @@ void U4DTouchesController::touchEnded(const U4DTouches &touches){
     changeState(touches, rTouchesEnded);
 }
 
-
-void U4DTouchesController::addChild(U4DButton *uButton){
-    
-    buttonsArray.push_back(uButton);
-    
-}
-
-void U4DTouchesController::addChild(U4DJoyStick *uJoyStick){
-    
-    joyStickArray.push_back(uJoyStick);
-    
-}
-
 void U4DTouchesController::changeState(const U4DTouches &touches,TOUCHSTATE touchState){
     
-    //button
-    std::vector<U4DButton*>::iterator buttonPos;
     U4DVector3n touchPosition(touches.xTouch,touches.yTouch,0.0);
     
-    for(buttonPos=buttonsArray.begin();buttonPos !=buttonsArray.end();++buttonPos){
+    U4DEntity *child=gameWorld;
+    
+    //change the state of the controller input
+    while (child!=NULL) {
         
-        U4DButton *button=*buttonPos;
-
-        button->changeState(touchState,touchPosition);
-        
-    }
-    
-    
-    
-    //joystick
-    std::vector<U4DJoyStick*>::iterator joyStickPos;
-    
-    for(joyStickPos=joyStickArray.begin();joyStickPos !=joyStickArray.end();++joyStickPos){
-        
-        U4DJoyStick *joyStick=*joyStickPos;
-        
-        joyStick->changeState(touchState, touchPosition);
-    
-    }
-    
-    
-}
-
-void U4DTouchesController::update(double dt){
-    
-    std::vector<U4DButton*>::iterator buttonPos;
-    
-    for(buttonPos=buttonsArray.begin();buttonPos !=buttonsArray.end();++buttonPos){
-        
-        U4DButton *button=*buttonPos;
-        
-        button->update(dt);
-    }
-    
-    std::vector<U4DJoyStick*>::iterator joyStickPos;
-    
-    for(joyStickPos=joyStickArray.begin();joyStickPos !=joyStickArray.end();++joyStickPos){
-        
-        U4DJoyStick *joyStick=*joyStickPos;
-        
-        joyStick->update(dt);
-    }
-    
-}
-
-void U4DTouchesController::render(id <MTLRenderCommandEncoder> uRenderEncoder){
-    
-    std::vector<U4DButton*>::iterator buttonPos;
-    
-    for(buttonPos=buttonsArray.begin();buttonPos !=buttonsArray.end();++buttonPos){
-        
-        U4DButton *button=*buttonPos;
-        
-        button->render(uRenderEncoder);
-        
-    }
-    
-    
-    std::vector<U4DJoyStick*>::iterator joyStickPos;
-    
-    for(joyStickPos=joyStickArray.begin();joyStickPos !=joyStickArray.end();++joyStickPos){
-        
-        U4DJoyStick *joyStick=*joyStickPos;
-        
-        joyStick->render(uRenderEncoder);
-        
-    }
-    
-}
-
-U4DJoyStick* U4DTouchesController::getJoyStickWithName(std::string uName){
-    
-    U4DJoyStick *rJoystick=NULL;
-    
-    std::vector<U4DJoyStick*>::iterator joyStickPos;
-    
-    for(joyStickPos=joyStickArray.begin();joyStickPos !=joyStickArray.end();++joyStickPos){
-        
-        U4DJoyStick *joyStick=*joyStickPos;
-        
-        if (joyStick->getName().compare(uName)==0) {
+        if (child->getEntityType()==CONTROLLERINPUT) {
             
-            rJoystick=joyStick;
-            
-            break;
-        }
-    }
-    
-    return rJoystick;
-}
-    
-U4DButton* U4DTouchesController::getButtonWithName(std::string uName){
-    
-    U4DButton *rButton=NULL;
-    
-    std::vector<U4DButton*>::iterator buttonPos;
-    
-    for(buttonPos=buttonsArray.begin();buttonPos !=buttonsArray.end();++buttonPos){
+            child->changeState(touchState,touchPosition);
         
-        U4DButton *button=*buttonPos;
-        
-        if (button->getName().compare(uName)==0) {
-            
-            rButton=button;
-            
-            break;
         }
         
+        child=child->next;
+        
     }
-    
-    return rButton;
     
 }
     
