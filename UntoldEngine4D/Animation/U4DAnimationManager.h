@@ -44,7 +44,7 @@ namespace U4DEngine {
         /**
          @todo documetn this
          */
-        void setNextAnimationToPlay(U4DAnimation* uAnimation);
+        void setAnimationToPlay(U4DAnimation* uAnimation);
         
         /**
          @todo document this
@@ -69,7 +69,7 @@ namespace U4DEngine {
         /**
          @todo document this
          */
-        void stopCurrentPlayingAnimation();
+        void stopAnimation();
         
         /**
          @todo document this

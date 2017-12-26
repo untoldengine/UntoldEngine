@@ -38,6 +38,7 @@ bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
         
         //setNormalMapTexture(uTextureNormal);
         
+        animationManager=new U4DEngine::U4DAnimationManager();
 
         enableKineticsBehavior();
         enableCollisionBehavior();
@@ -52,6 +53,8 @@ bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
         
             
         }
+        
+        animationManager->setAnimationToPlay(runAnimation);
         
         U4DEngine::U4DVector3n viewDirectionVector(0,0,-1);
         
@@ -99,13 +102,15 @@ void GuardianModel::resetAteCoin(){
 
 void GuardianModel::playAnimation(){
     
-    runAnimation->play();
-    
+    //runAnimation->play();
+    animationManager->playAnimation();
 }
 
 void GuardianModel::stopAnimation(){
     
-    runAnimation->stop();
+    //runAnimation->stop();
+    animationManager->stopAnimation();
+    
 }
 
 void GuardianModel::setPlayerHeading(U4DEngine::U4DVector3n& uHeading){

@@ -17,11 +17,6 @@
 #include "CommonProtocols.h"
 #include "U4DDynamicModel.h"
 
-
-namespace U4DEngine {
-    class U4DAnimationManager;
-}
-
 namespace U4DEngine {
 
     /**
@@ -30,8 +25,6 @@ namespace U4DEngine {
     class U4DGameObject:public U4DDynamicModel{
         
     private:
-        
-        U4DAnimationManager* animationManager;
         
     public:
         
@@ -84,84 +77,9 @@ namespace U4DEngine {
         bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile);
         
         /**
-         @todo documetn this
-         */
-        void setNextAnimationToPlay(U4DAnimation* uAnimation);
-        
-        /**
-         @todo document this
-         */
-        void pauseCurrentPlayingAnimation();
-        
-        /**
-         @todo document this
-         */
-        void playAnimation();
-        
-        /**
-         @todo document this
-         */
-        void playAnimationFromKeyframe(int uKeyframe);
-        
-        /**
-         @todo document this
-         */
-        U4DAnimation* getCurrentPlayingAnimation();
-        
-        /**
-         @todo document this
-         */
-        void stopCurrentPlayingAnimation();
-        
-        /**
-         @todo document this
-         */
-        void removeCurrentPlayingAnimation();
-        
-        /**
-         @todo document this
-         */
-        void removeAllAnimations();
-        
-        /**
-         @todo document this
-         */
-        bool getIsAnimationUpdatingKeyframe();
-        
-        /**
-         @todo document this
-         */
-        int getAnimationCurrentKeyframe();
-        
-        /**
-         @todo document this
-         */
-        float getAnimationCurrentInterpolationTime();
-        
-        /**
-         @todo document this
-         */
-        float getAnimationFPS();
-        
-        /**
          @todo document this
          */
         void applyForce(U4DVector3n &uForce);
-        
-        /**
-         @todo document this
-         */
-        void setPlayNextAnimationContinuously(bool uValue);
-        
-        /**
-         @todo document this
-         */
-        float getDurationOfCurrentAnimationKeyframe();
-        
-        /**
-         @todo document this
-         */
-        void setPlayBlendedAnimation(bool uValue);
         
     };
 

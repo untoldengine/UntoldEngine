@@ -25,7 +25,7 @@ namespace U4DEngine {
     }
     
     
-    void U4DAnimationManager::setNextAnimationToPlay(U4DAnimation* uAnimation){
+    void U4DAnimationManager::setAnimationToPlay(U4DAnimation* uAnimation){
         
         nextAnimation=uAnimation;
     }
@@ -91,7 +91,7 @@ namespace U4DEngine {
     }
     
 
-    void U4DAnimationManager::stopCurrentPlayingAnimation(){
+    void U4DAnimationManager::stopAnimation(){
         
         if (currentAnimation!=NULL) {
             currentAnimation->stop();
