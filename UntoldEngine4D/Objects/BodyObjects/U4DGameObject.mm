@@ -57,14 +57,6 @@ namespace U4DEngine {
         return false;
     }
     
-    void U4DGameObject::applyForce(U4DVector3n &uForce){
-        
-        setAwake(true);
-        
-        addForce(uForce);
-        
-    }
-
 }
 
 

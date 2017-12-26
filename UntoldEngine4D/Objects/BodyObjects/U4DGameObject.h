@@ -76,11 +76,6 @@ namespace U4DEngine {
          */
         bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile);
         
-        /**
-         @todo document this
-         */
-        void applyForce(U4DVector3n &uForce);
-        
     };
 
 }
