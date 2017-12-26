@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "U4DGameObject.h"
 #include "UserCommonProtocols.h"
+#include "U4DAnimationManager.h"
 
 class GuardianStateInterface;
 class GuardianStateManager;
@@ -22,6 +23,7 @@ private:
     
     U4DEngine::U4DAnimation *jumpAnimation;
     U4DEngine::U4DAnimation *runAnimation;
+    U4DEngine::U4DAnimationManager *animationManager;
     
     GuardianStateManager *stateManager;
     
