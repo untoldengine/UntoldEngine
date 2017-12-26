@@ -20,10 +20,11 @@ namespace U4DEngine {
     
 U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0){
     
-    
     stateManager=new U4DJoystickStateManager(this);
     
     setName(uName);
+    
+    setEntityType(CONTROLLERINPUT);
     
     joyStickWidth=uJoyStickWidth;
     joyStickHeight=uJoyStickHeight;
@@ -139,66 +140,7 @@ void U4DJoyStick::render(id <MTLRenderCommandEncoder> uRenderEncoder){
 void U4DJoyStick::update(double dt){
     
     stateManager->update(dt);
-    /*
-    if (getState()!=rTouchesNull) {
-        
-        if ( joyStickState==rTouchesBegan ||  joyStickState==rTouchesMoved) {
-            
-            U4DVector3n distance=(currentPosition-centerBackgroundPosition);
-            
-            //magnitude the distance
-            float distanceMagnitude=distance.magnitude();
-            
-            U4DVector3n data=(currentPosition-centerBackgroundPosition)/backgroundImageRadius;
-            data.normalize();
-            
-            //get previous data
-            U4DVector3n previousData=getDataPosition();
-            previousData.normalize();
-            //get the direction between previous data and new data
-            
-            if (previousData.dot(data)<0.0) {
-                
-                directionReversal=true;
-            }else{
-                directionReversal=false;
-            }
-            
-            setDataPosition(data);
-            
-            translateTo(currentPosition);
-            joyStickImage.translateTo(currentPosition);
-            
-            dataMagnitude=distanceMagnitude+dataMagnitude;
-            
-            isActive=true;
-            
-            
-        }if (joyStickState==rTouchesEnded){
-            
-            translateTo(originalPosition);
-            joyStickImage.translateTo(originalPosition);
-            
-            dataMagnitude=0.0;
-            
-            isActive=false;
-        
-            
-        }
- 
-        if (pCallback!=NULL) {
-            action();
-        }
-        
-        if (controllerInterface!=NULL) {
-            controllerInterface->setReceivedAction(true);
-        }
-          
 
-        joyStickState=rTouchesNull;
-        
-    }
-    */
 }
 
 void U4DJoyStick::action(){
@@ -230,17 +172,6 @@ void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
             stateManager->changeState(U4DJoystickReleasedState::sharedInstance());
             
         }
-        
-    }
-    
-}
-
-void U4DJoyStick::changeState(TOUCHSTATE uTouchState){
-    
-    joyStickState=uTouchState;
-    
-    if ( joyStickState==rTouchesEnded){
-        
         
     }
     

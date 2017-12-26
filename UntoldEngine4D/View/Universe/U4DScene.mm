@@ -60,13 +60,11 @@ namespace U4DEngine {
         //update the entity manager
         gameWorld->entityManager->update(dt); //need to add dt to view
         
-        gameController->update(dt);
     }
 
     void U4DScene::render(id <MTLRenderCommandEncoder> uRenderEncoder){
 
         gameWorld->entityManager->render(uRenderEncoder);
-        gameController->render(uRenderEncoder);
         
     }
     

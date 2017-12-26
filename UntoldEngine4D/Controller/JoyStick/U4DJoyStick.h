@@ -90,7 +90,7 @@ public:
     float getJoyStickBackgroundHeight();
     
     void changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition);
-    void changeState(TOUCHSTATE uTouchState);
+    
     TOUCHSTATE getState();
     
     void setDataPosition(U4DVector3n uData);

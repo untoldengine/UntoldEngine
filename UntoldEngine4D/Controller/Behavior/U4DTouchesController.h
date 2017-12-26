@@ -51,22 +51,13 @@ public:
     void touchMoved(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);
     
-    void addChild(U4DButton *uButton);
     void changeState(const U4DTouches &touches,TOUCHSTATE touchState);
-    
-    void addChild(U4DJoyStick *uJoyStick);
-    
-    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
-    void update(double dt);
     
     void setGameWorld(U4DWorld *uGameWorld);
     void setGameModel(U4DGameModelInterface *uGameModel);
     
     U4DWorld* getGameWorld();
     U4DGameModelInterface* getGameModel();
-    
-    U4DJoyStick *getJoyStickWithName(std::string uName);
-    U4DButton* getButtonWithName(std::string uName);
     
     void sendTouchUpdate(void *uData);
     
