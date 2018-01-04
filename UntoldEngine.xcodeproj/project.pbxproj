@@ -1006,7 +1006,7 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		038249151FA2529400DFEFE3 /* ParticleSystem */ = {
+		038249151FA2529400DFEFE3 /* ParticleEmiter */ = {
 			isa = PBXGroup;
 			children = (
 				0382491E1FA252AE00DFEFE3 /* U4DParticleEmitter.h */,
@@ -1022,8 +1022,8 @@
 				038249161FA252AD00DFEFE3 /* U4DParticleEmitterTorus.h */,
 				038249171FA252AD00DFEFE3 /* U4DParticleEmitterTorus.mm */,
 			);
-			name = ParticleSystem;
-			path = "New Group";
+			name = ParticleEmiter;
+			path = ParticleSystem/ParticleEmitter;
 			sourceTree = "<group>";
 		};
 		039174FD1CD56C0200FD2674 /* RestingForces */ = {
@@ -1066,7 +1066,7 @@
 		039FF2441F98EF4600B3D253 /* ParticleSystem */ = {
 			isa = PBXGroup;
 			children = (
-				038249151FA2529400DFEFE3 /* ParticleSystem */,
+				038249151FA2529400DFEFE3 /* ParticleEmiter */,
 				038248F71FA1730700DFEFE3 /* U4DParticleSystem.h */,
 				038248F81FA1730700DFEFE3 /* U4DParticleSystem.mm */,
 				038248FB1FA1731700DFEFE3 /* U4DParticlePhysics.h */,
