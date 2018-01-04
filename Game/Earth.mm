@@ -121,12 +121,10 @@ void Earth::init(){
     //add character
     guardian=new GuardianModel();
 
-    if(guardian->init("guardian","guardianscript.u4d")){
+    if(guardian->init("guardian","blenderscript.u4d")){
         addChild(guardian);
     }
 
-    guardian->translateBy(0.0, 0.0, -4.0);
-    
     //get game model pointer
     GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     

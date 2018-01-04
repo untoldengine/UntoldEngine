@@ -1,11 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<UntoldEngine xmlns="" version="0.0.1">
+<UntoldEngine xmlns="" version="0.0.2">
 <asset>
 <meshes>
+<!--Start of Mesh Data-->
 <mesh name="guardian" vertex_count="5016" index_count="5016">
 <animations>
 <modeler_animation_transform>1.000000 0.000000 -0.000000 0.000000 0.000000 -0.000000 1.000000 -0.000000 -0.000000 1.000000 0.000000 -0.000000 0.000000 -0.000000 0.000000 1.000000</modeler_animation_transform>
-
 <animation name="walking" fps="24.000000">
 <keyframe time="0.000000">
 <pose_matrix name="stomach">1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 -1.000000 0.000000 0.000000 1.000000 0.000000 0.000000 0.000000 0.000000 0.000000 1.000000</pose_matrix>
@@ -163,15 +163,6 @@
 </animation>
 </animations>
 </mesh>
-
-<mesh name="Cube" vertex_count="36" index_count="36">
-</mesh>
-
 </meshes>
-
-<point_lights>
-</point_lights>
-
 </asset>
 </UntoldEngine>
-

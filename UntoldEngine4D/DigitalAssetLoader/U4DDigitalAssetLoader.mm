@@ -897,9 +897,10 @@ namespace U4DEngine {
             
             for (tinyxml2::XMLElement *child=node->FirstChildElement("mesh"); child!=NULL; child=child->NextSiblingElement("mesh")) {
                 
-                std::string meshName=child->Attribute("name");
+                //Removing name comparison. This permits other similar entities to use the same animation.
+                //std::string meshName=child->Attribute("name");
                 
-                if (meshName.compare(uAnimation->u4dModel->getName())==0) {
+                //if (meshName.compare(uAnimation->u4dModel->getName())==0) {
                     
                     tinyxml2::XMLElement *animations=child->FirstChildElement("animations");
                     
@@ -1027,7 +1028,7 @@ namespace U4DEngine {
                 
             }//end for
         
-        }
+        //}
         
         if (animationExist) {
             
