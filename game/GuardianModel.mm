@@ -41,7 +41,7 @@ bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
         animationManager=new U4DEngine::U4DAnimationManager();
 
         enableKineticsBehavior();
-        enableCollisionBehavior();
+        //enableCollisionBehavior();
         
         initMass(10.0);
         //initCoefficientOfRestitution(0.9);
@@ -49,7 +49,7 @@ bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
        
         runAnimation=new U4DEngine::U4DAnimation(this);
         
-        if (loadAnimationToModel(runAnimation, "walking", "walkingscript.u4d")) {
+        if (loadAnimationToModel(runAnimation, "walking", "blenderscript.u4d")) {
         
             
         }
@@ -63,8 +63,6 @@ bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
         changeState(GuardianIdleState::sharedInstance());
         
         loadRenderingInformation();
-        
-        translateBy(0.0, 0.86, 0.0);
         
         return true;
     }
