@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 10/19/17.
-//  Copyright © 2017 Untold Game Studio. All rights reserved.
+//  Copyright © 2017 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef U4DParticleEmitterInterface_hpp

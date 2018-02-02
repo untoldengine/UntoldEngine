@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 8/11/16.
-//  Copyright © 2016 Untold Game Studio. All rights reserved.
+//  Copyright © 2016 Untold Engine Studios. All rights reserved.
 //
 //  This is a C++ implementation of Joseph O'Rourke's classic Incremental Convex Hull
 //  algorithm mentioned in his book "Computation Geometry" 2nd edition.

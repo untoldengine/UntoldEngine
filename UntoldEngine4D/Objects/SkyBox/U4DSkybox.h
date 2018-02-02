@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 8/18/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DSkyBox__

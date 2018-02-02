@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 10/16/16.
-//  Copyright © 2016 Untold Game Studio. All rights reserved.
+//  Copyright © 2016 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef UserCommonProtocols_h

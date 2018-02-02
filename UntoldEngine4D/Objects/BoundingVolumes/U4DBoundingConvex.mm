@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 10/10/15.
-//  Copyright © 2015 Untold Game Studio. All rights reserved.
+//  Copyright © 2015 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DBoundingConvex.h"

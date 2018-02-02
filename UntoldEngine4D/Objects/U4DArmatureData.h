@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 9/4/14.
-//  Copyright (c) 2014 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2014 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DArmatureData__
