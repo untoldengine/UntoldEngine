@@ -3,7 +3,7 @@
 //  MathLibrary
 //
 //  Created by Harold Serrano on 4/18/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DVector3n.h"
