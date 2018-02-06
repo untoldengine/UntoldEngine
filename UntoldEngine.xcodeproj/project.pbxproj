@@ -81,15 +81,6 @@
 		03722B3C2029F0220080D069 /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B3B2029F0220080D069 /* GameViewController.mm */; };
 		03722B3F2029F0220080D069 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03722B3D2029F0220080D069 /* Main.storyboard */; };
 		03722B422029F0220080D069 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 03722B412029F0220080D069 /* main.m */; };
-		03722B432029F0220080D069 /* Renderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 03722B062029F0210080D069 /* Renderer.m */; };
-		03722B442029F0220080D069 /* Renderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 03722B062029F0210080D069 /* Renderer.m */; };
-		03722B452029F0220080D069 /* Renderer.m in Sources */ = {isa = PBXBuildFile; fileRef = 03722B062029F0210080D069 /* Renderer.m */; };
-		03722B462029F0220080D069 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03722B082029F0210080D069 /* Shaders.metal */; };
-		03722B472029F0220080D069 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03722B082029F0210080D069 /* Shaders.metal */; };
-		03722B482029F0220080D069 /* Shaders.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03722B082029F0210080D069 /* Shaders.metal */; };
-		03722B492029F0220080D069 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 03722B092029F0210080D069 /* Assets.xcassets */; };
-		03722B4A2029F0220080D069 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 03722B092029F0210080D069 /* Assets.xcassets */; };
-		03722B4B2029F0220080D069 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 03722B092029F0210080D069 /* Assets.xcassets */; };
 		03722B552029F0F50080D069 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		03722B562029F0F50080D069 /* U4DBoundingSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */; };
 		03722B572029F0F50080D069 /* U4DTrigonometry.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D55A3E1D6165A800E567D5 /* U4DTrigonometry.mm */; };
@@ -895,11 +886,6 @@
 		036FB55F18CE9CB8000EA639 /* Earth.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Earth.mm; sourceTree = "<group>"; xcLanguageSpecificationIdentifier = xcode.lang.cpp; };
 		036FB56C18CE9CB8000EA639 /* MainScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = MainScene.h; sourceTree = "<group>"; };
 		036FB56D18CE9CB8000EA639 /* MainScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MainScene.mm; sourceTree = "<group>"; };
-		03722B052029F0210080D069 /* Renderer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Renderer.h; sourceTree = "<group>"; };
-		03722B062029F0210080D069 /* Renderer.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = Renderer.m; sourceTree = "<group>"; };
-		03722B072029F0210080D069 /* ShaderTypes.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ShaderTypes.h; sourceTree = "<group>"; };
-		03722B082029F0210080D069 /* Shaders.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; path = Shaders.metal; sourceTree = "<group>"; };
-		03722B092029F0210080D069 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		03722B0E2029F0210080D069 /* Untold4D.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Untold4D.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		03722B102029F0210080D069 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		03722B112029F0210080D069 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
@@ -1400,11 +1386,6 @@
 		03722B042029F0210080D069 /* Untold4D Shared */ = {
 			isa = PBXGroup;
 			children = (
-				03722B052029F0210080D069 /* Renderer.h */,
-				03722B062029F0210080D069 /* Renderer.m */,
-				03722B072029F0210080D069 /* ShaderTypes.h */,
-				03722B082029F0210080D069 /* Shaders.metal */,
-				03722B092029F0210080D069 /* Assets.xcassets */,
 			);
 			path = "Untold4D Shared";
 			sourceTree = "<group>";
@@ -2323,7 +2304,6 @@
 				03722D442029F16C0080D069 /* ButtonBPressed.png in Resources */,
 				03722D2F2029F16C0080D069 /* pal.png in Resources */,
 				03722D402029F16C0080D069 /* joystickDriver.png in Resources */,
-				03722B492029F0220080D069 /* Assets.xcassets in Resources */,
 				03722D332029F16C0080D069 /* walkSprite.xml in Resources */,
 				03722D3F2029F16C0080D069 /* joyStickBackground.png in Resources */,
 				03722D2C2029F16C0080D069 /* myFont.png in Resources */,
@@ -2349,7 +2329,6 @@
 				03722D462029F16D0080D069 /* myFont.png in Resources */,
 				03722D4D2029F16D0080D069 /* walkSprite.xml in Resources */,
 				03722D4F2029F16D0080D069 /* BottomImage.png in Resources */,
-				03722B4A2029F0220080D069 /* Assets.xcassets in Resources */,
 				03722D512029F16D0080D069 /* LeftImage.png in Resources */,
 				03722D582029F16D0080D069 /* ArialFont.xml in Resources */,
 				03722D552029F16D0080D069 /* particle.png in Resources */,
@@ -2384,7 +2363,6 @@
 				03722D602029F16D0080D069 /* myFont.png in Resources */,
 				03722D672029F16D0080D069 /* walkSprite.xml in Resources */,
 				03722D692029F16D0080D069 /* BottomImage.png in Resources */,
-				03722B4B2029F0220080D069 /* Assets.xcassets in Resources */,
 				03722D6B2029F16D0080D069 /* LeftImage.png in Resources */,
 				03722D722029F16D0080D069 /* ArialFont.xml in Resources */,
 				03722D6F2029F16D0080D069 /* particle.png in Resources */,
@@ -2467,7 +2445,6 @@
 				03722BB62029F0F50080D069 /* U4DSpriteLoader.mm in Sources */,
 				03722B5F2029F0F50080D069 /* U4DMaterialData.mm in Sources */,
 				03722BC22029F0F50080D069 /* U4DParticleEmitterLinear.mm in Sources */,
-				03722B432029F0220080D069 /* Renderer.m in Sources */,
 				03722B7B2029F0F50080D069 /* U4DLights.mm in Sources */,
 				03722B632029F0F50080D069 /* U4DKeyboardController.mm in Sources */,
 				03722BAD2029F0F50080D069 /* U4DImage.mm in Sources */,
@@ -2611,7 +2588,6 @@
 				03722B642029F0F50080D069 /* U4DPlane.mm in Sources */,
 				03722B122029F0220080D069 /* AppDelegate.mm in Sources */,
 				03722BF02029F0F50080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
-				03722B462029F0220080D069 /* Shaders.metal in Sources */,
 				03722B9F2029F0F50080D069 /* U4DGravityForceGenerator.mm in Sources */,
 				03722BB12029F0F50080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03722BBC2029F0F50080D069 /* U4DParticle.mm in Sources */,
@@ -2636,7 +2612,6 @@
 				03722C532029F0F70080D069 /* U4DSpriteLoader.mm in Sources */,
 				03722BFC2029F0F70080D069 /* U4DMaterialData.mm in Sources */,
 				03722C5F2029F0F70080D069 /* U4DParticleEmitterLinear.mm in Sources */,
-				03722B442029F0220080D069 /* Renderer.m in Sources */,
 				03722C182029F0F70080D069 /* U4DLights.mm in Sources */,
 				03722C002029F0F70080D069 /* U4DKeyboardController.mm in Sources */,
 				03722C4A2029F0F70080D069 /* U4DImage.mm in Sources */,
@@ -2780,7 +2755,6 @@
 				03722C012029F0F70080D069 /* U4DPlane.mm in Sources */,
 				03722B272029F0220080D069 /* AppDelegate.mm in Sources */,
 				03722C8D2029F0F70080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
-				03722B472029F0220080D069 /* Shaders.metal in Sources */,
 				03722C3C2029F0F70080D069 /* U4DGravityForceGenerator.mm in Sources */,
 				03722C4E2029F0F70080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03722C592029F0F70080D069 /* U4DParticle.mm in Sources */,
@@ -2805,7 +2779,6 @@
 				03722CF02029F0F80080D069 /* U4DSpriteLoader.mm in Sources */,
 				03722C992029F0F80080D069 /* U4DMaterialData.mm in Sources */,
 				03722CFC2029F0F80080D069 /* U4DParticleEmitterLinear.mm in Sources */,
-				03722B452029F0220080D069 /* Renderer.m in Sources */,
 				03722CB52029F0F80080D069 /* U4DLights.mm in Sources */,
 				03722C9D2029F0F80080D069 /* U4DKeyboardController.mm in Sources */,
 				03722CE72029F0F80080D069 /* U4DImage.mm in Sources */,
@@ -2949,7 +2922,6 @@
 				03722C9E2029F0F80080D069 /* U4DPlane.mm in Sources */,
 				03722B392029F0220080D069 /* AppDelegate.mm in Sources */,
 				03722D2A2029F0F80080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
-				03722B482029F0220080D069 /* Shaders.metal in Sources */,
 				03722CD92029F0F80080D069 /* U4DGravityForceGenerator.mm in Sources */,
 				03722CEB2029F0F80080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03722CF62029F0F80080D069 /* U4DParticle.mm in Sources */,
