@@ -42,4 +42,5 @@ fragment float4 fragmentNonVisibleShader(VertexOutput vertexOut [[stage_in]], te
     
     discard_fragment();
     
+    return 0;
 }
