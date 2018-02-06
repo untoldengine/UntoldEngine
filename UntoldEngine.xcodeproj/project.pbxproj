@@ -643,15 +643,6 @@
 		03752C521FAF812600EC869C /* walkSprite.png in Resources */ = {isa = PBXBuildFile; fileRef = 03752C501FAF812600EC869C /* walkSprite.png */; };
 		03759B39175B0135002EB5D9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B38175B0135002EB5D9 /* UIKit.framework */; };
 		03759B3B175B0135002EB5D9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B3A175B0135002EB5D9 /* Foundation.framework */; };
-		03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 03759B45175B0135002EB5D9 /* InfoPlist.strings */; };
-		03759B49175B0135002EB5D9 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 03759B48175B0135002EB5D9 /* main.m */; };
-		03759B4D175B0135002EB5D9 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B4C175B0135002EB5D9 /* AppDelegate.mm */; };
-		03759B4F175B0135002EB5D9 /* Default.png in Resources */ = {isa = PBXBuildFile; fileRef = 03759B4E175B0135002EB5D9 /* Default.png */; };
-		03759B51175B0135002EB5D9 /* Default@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 03759B50175B0135002EB5D9 /* Default@2x.png */; };
-		03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */ = {isa = PBXBuildFile; fileRef = 03759B52175B0135002EB5D9 /* Default-568h@2x.png */; };
-		03759B5A175B0135002EB5D9 /* ViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B59175B0135002EB5D9 /* ViewController.mm */; };
-		03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */ = {isa = PBXBuildFile; fileRef = 03759B5B175B0135002EB5D9 /* ViewController_iPhone.xib */; };
-		03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */ = {isa = PBXBuildFile; fileRef = 03759B5E175B0135002EB5D9 /* ViewController_iPad.xib */; };
 		03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B68175B0382002EB5D9 /* U4DCamera.mm */; };
 		03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B83175B0383002EB5D9 /* U4DDualQuaternion.mm */; };
 		03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B87175B0383002EB5D9 /* U4DMatrix3n.mm */; };
@@ -921,19 +912,6 @@
 		03759B34175B0135002EB5D9 /* UntoldEngine.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UntoldEngine.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		03759B38175B0135002EB5D9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		03759B3A175B0135002EB5D9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
-		03759B44175B0135002EB5D9 /* UntoldEngine-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "UntoldEngine-Info.plist"; sourceTree = "<group>"; };
-		03759B46175B0135002EB5D9 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
-		03759B48175B0135002EB5D9 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		03759B4A175B0135002EB5D9 /* UntoldEngine-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UntoldEngine-Prefix.pch"; sourceTree = "<group>"; };
-		03759B4B175B0135002EB5D9 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		03759B4C175B0135002EB5D9 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
-		03759B4E175B0135002EB5D9 /* Default.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = Default.png; sourceTree = "<group>"; };
-		03759B50175B0135002EB5D9 /* Default@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default@2x.png"; sourceTree = "<group>"; };
-		03759B52175B0135002EB5D9 /* Default-568h@2x.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "Default-568h@2x.png"; sourceTree = "<group>"; };
-		03759B58175B0135002EB5D9 /* ViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = ViewController.h; sourceTree = "<group>"; };
-		03759B59175B0135002EB5D9 /* ViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = ViewController.mm; sourceTree = "<group>"; };
-		03759B5C175B0135002EB5D9 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/ViewController_iPhone.xib; sourceTree = "<group>"; };
-		03759B5F175B0135002EB5D9 /* en */ = {isa = PBXFileReference; lastKnownFileType = file.xib; name = en; path = en.lproj/ViewController_iPad.xib; sourceTree = "<group>"; };
 		03759B67175B0382002EB5D9 /* U4DCamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCamera.h; sourceTree = "<group>"; };
 		03759B68175B0382002EB5D9 /* U4DCamera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCamera.mm; sourceTree = "<group>"; };
 		03759B72175B0382002EB5D9 /* CommonProtocols.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonProtocols.h; sourceTree = "<group>"; };
@@ -1508,29 +1486,8 @@
 				03584D951951FB1700C974A2 /* TransformationManager */,
 				03759B93175B0383002EB5D9 /* Objects */,
 				03759B9E175B0383002EB5D9 /* View */,
-				03759B43175B0135002EB5D9 /* Supporting Files */,
 			);
 			path = UntoldEngine4D;
-			sourceTree = "<group>";
-		};
-		03759B43175B0135002EB5D9 /* Supporting Files */ = {
-			isa = PBXGroup;
-			children = (
-				03759B4B175B0135002EB5D9 /* AppDelegate.h */,
-				03759B4C175B0135002EB5D9 /* AppDelegate.mm */,
-				03759B58175B0135002EB5D9 /* ViewController.h */,
-				03759B59175B0135002EB5D9 /* ViewController.mm */,
-				03759B5B175B0135002EB5D9 /* ViewController_iPhone.xib */,
-				03759B5E175B0135002EB5D9 /* ViewController_iPad.xib */,
-				03759B44175B0135002EB5D9 /* UntoldEngine-Info.plist */,
-				03759B45175B0135002EB5D9 /* InfoPlist.strings */,
-				03759B48175B0135002EB5D9 /* main.m */,
-				03759B4A175B0135002EB5D9 /* UntoldEngine-Prefix.pch */,
-				03759B4E175B0135002EB5D9 /* Default.png */,
-				03759B50175B0135002EB5D9 /* Default@2x.png */,
-				03759B52175B0135002EB5D9 /* Default-568h@2x.png */,
-			);
-			name = "Supporting Files";
 			sourceTree = "<group>";
 		};
 		03759B66175B0382002EB5D9 /* Camera */ = {
@@ -2394,9 +2351,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03759B47175B0135002EB5D9 /* InfoPlist.strings in Resources */,
-				03759B4F175B0135002EB5D9 /* Default.png in Resources */,
-				03759B51175B0135002EB5D9 /* Default@2x.png in Resources */,
 				036024EA1FB29E600054236E /* pal.png in Resources */,
 				03752C521FAF812600EC869C /* walkSprite.png in Resources */,
 				03DBEDF51F9BB29700570A25 /* particle.png in Resources */,
@@ -2404,14 +2358,11 @@
 				03A9F7091ADF82A300E81A00 /* ArialFont.png in Resources */,
 				0361DFA21FAC2141004770FD /* TopImage.png in Resources */,
 				03A9F70A1ADF82A300E81A00 /* ArialFont.xml in Resources */,
-				03759B53175B0135002EB5D9 /* Default-568h@2x.png in Resources */,
 				0361DFA51FAC2141004770FD /* RightImage.png in Resources */,
 				0361DFA31FAC2141004770FD /* BottomImage.png in Resources */,
 				039EC6BC1FB57F4A0098BB5C /* goldscript.u4d in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
 				03752C511FAF812600EC869C /* walkSprite.xml in Resources */,
-				03759B5D175B0135002EB5D9 /* ViewController_iPhone.xib in Resources */,
-				03759B60175B0135002EB5D9 /* ViewController_iPad.xib in Resources */,
 				036024E81FB29DA80054236E /* walkingscript.u4d in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
@@ -2939,13 +2890,11 @@
 			files = (
 				036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */,
 				0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */,
-				03759B49175B0135002EB5D9 /* main.m in Sources */,
 				03D55A401D6165A800E567D5 /* U4DTrigonometry.mm in Sources */,
 				0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */,
 				038249231FA252AE00DFEFE3 /* U4DParticleEmitterSphere.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
 				03F2DB131F191F9B00F77B78 /* U4DRenderSkybox.mm in Sources */,
-				03759B4D175B0135002EB5D9 /* AppDelegate.mm in Sources */,
 				038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */,
 				03F2DAF21F191A2600F77B78 /* lightShader.metal in Sources */,
 				030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */,
@@ -2957,7 +2906,6 @@
 				0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */,
 				03E6EDEE1943D8A2007AD131 /* U4DTimer.mm in Sources */,
 				03E6EDDE1943D816007AD131 /* U4DIntegrator.mm in Sources */,
-				03759B5A175B0135002EB5D9 /* ViewController.mm in Sources */,
 				03F2DB0E1F191F9B00F77B78 /* U4DRenderGeometry.mm in Sources */,
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
 				03494BB31F48B59E00ACE0EC /* fontShader.metal in Sources */,
@@ -3133,30 +3081,6 @@
 				03722B3E2029F0220080D069 /* Base */,
 			);
 			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		03759B45175B0135002EB5D9 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				03759B46175B0135002EB5D9 /* en */,
-			);
-			name = InfoPlist.strings;
-			sourceTree = "<group>";
-		};
-		03759B5B175B0135002EB5D9 /* ViewController_iPhone.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				03759B5C175B0135002EB5D9 /* en */,
-			);
-			name = ViewController_iPhone.xib;
-			sourceTree = "<group>";
-		};
-		03759B5E175B0135002EB5D9 /* ViewController_iPad.xib */ = {
-			isa = PBXVariantGroup;
-			children = (
-				03759B5F175B0135002EB5D9 /* en */,
-			);
-			name = ViewController_iPad.xib;
 			sourceTree = "<group>";
 		};
 /* End PBXVariantGroup section */
