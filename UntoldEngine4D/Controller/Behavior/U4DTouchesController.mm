@@ -82,9 +82,9 @@ void U4DTouchesController::changeState(const U4DTouches &touches,TOUCHSTATE touc
     
 }
     
-void U4DTouchesController::sendTouchUpdate(void *uData){
+void U4DTouchesController::sendUserInputUpdate(void *uData){
 
-    gameModel->receiveTouchUpdate(uData);
+    gameModel->receiveUserInputUpdate(uData);
 }
     
 void U4DTouchesController::setReceivedAction(bool uValue){

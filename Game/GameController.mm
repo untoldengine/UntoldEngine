@@ -67,51 +67,51 @@ void GameController::init(){
 
 void GameController::actionOnButtonA(){
     
-    TouchInputMessage touchInputMessage;
+    ControllerInputMessage controllerInputMessage;
     
-    touchInputMessage.touchInputType=actionButtonA;
+    controllerInputMessage.controllerInputType=actionButtonA;
     
     if (myButtonA->getIsPressed()) {
         
-        touchInputMessage.touchInputData=buttonPressed;
+        controllerInputMessage.controllerInputData=buttonPressed;
         
     }else if(myButtonA->getIsReleased()){
         
-        touchInputMessage.touchInputData=buttonReleased;
+        controllerInputMessage.controllerInputData=buttonReleased;
         
     }
     
-    sendTouchUpdate(&touchInputMessage);
+    sendUserInputUpdate(&controllerInputMessage);
 }
 
 void GameController::actionOnButtonB(){
     
-    TouchInputMessage touchInputMessage;
+    ControllerInputMessage controllerInputMessage;
     
-    touchInputMessage.touchInputType=actionButtonB;
+    controllerInputMessage.controllerInputType=actionButtonB;
     
     if (myButtonB->getIsPressed()) {
         
-        touchInputMessage.touchInputData=buttonPressed;
+        controllerInputMessage.controllerInputData=buttonPressed;
         
     }else if(myButtonB->getIsReleased()){
         
-        touchInputMessage.touchInputData=buttonReleased;
+        controllerInputMessage.controllerInputData=buttonReleased;
         
     }
     
-    sendTouchUpdate(&touchInputMessage);
+    sendUserInputUpdate(&controllerInputMessage);
 }
 
 void GameController::actionOnJoystick(){
     
-    TouchInputMessage touchInputMessage;
+    ControllerInputMessage controllerInputMessage;
     
-    touchInputMessage.touchInputType=actionJoystick;
+    controllerInputMessage.controllerInputType=actionJoystick;
     
     if (joyStick->getIsActive()) {
         
-        touchInputMessage.touchInputData=joystickActive;
+        controllerInputMessage.controllerInputData=joystickActive;
         
         U4DEngine::U4DVector3n joystickDirection=joyStick->getDataPosition();
         
@@ -124,23 +124,23 @@ void GameController::actionOnJoystick(){
         
         if (joyStick->getDirectionReversal()) {
             
-            touchInputMessage.joystickChangeDirection=true;
+            controllerInputMessage.joystickChangeDirection=true;
             
         }else{
             
-            touchInputMessage.joystickChangeDirection=false;
+            controllerInputMessage.joystickChangeDirection=false;
             
         }
         
-        touchInputMessage.joystickDirection=joystickDirection;
+        controllerInputMessage.joystickDirection=joystickDirection;
         
     }else {
         
-        touchInputMessage.touchInputData=joystickInactive;
+        controllerInputMessage.controllerInputData=joystickInactive;
         
     }
     
-    sendTouchUpdate(&touchInputMessage);
+    sendUserInputUpdate(&controllerInputMessage);
 }
 
 

@@ -19,17 +19,18 @@
 
 namespace U4DEngine {
     
-class U4DEntity;
-class U4DScene;
-class U4DWorld;
-class U4DCharacterManager;
-class U4DData;
-class U4DTouches;
-class U4DGameModelInterface;
-class U4DVector2n;
-class U4DControllerInterface;
-class U4DTouches;
-class U4DEntityManager;
+    class U4DEntity;
+    class U4DScene;
+    class U4DWorld;
+    class U4DCharacterManager;
+    class U4DData;
+    class U4DTouches;
+    class U4DGameModelInterface;
+    class U4DVector2n;
+    class U4DControllerInterface;
+    class U4DTouches;
+    class U4DEntityManager;
+    class U4DPadAxis;
 }
 
 namespace U4DEngine {
@@ -187,6 +188,21 @@ public:
      @param touches touch event
      */
     void touchMoved(const U4DTouches &touches);
+    
+    /**
+     @todo document this
+     */
+    void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
+    
+    /**
+     @todo document this
+     */
+    void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
+    
+    /**
+     @todo document this
+     */
+    void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis);
     
     /**
      @todo document this

@@ -51,9 +51,26 @@ public:
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder) final;
     
     virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture) final;
+    
     void touchBegan(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);
     void touchMoved(const U4DTouches &touches);
+    
+    /**
+     @todo document this
+     */
+    void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
+    
+    /**
+     @todo document this
+     */
+    void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
+    
+    /**
+     @todo document this
+     */
+    void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis);
+    
     
     void determineVisibility();
     

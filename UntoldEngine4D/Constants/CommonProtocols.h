@@ -598,6 +598,30 @@ namespace U4DEngine {
         
     }INERTIATENSORTYPE;
     
+    /**
+     @brief The GAMEPADELEMENT enum holds information about the elements of a game pad
+     */
+    typedef enum{
+        
+        padButtonA,
+        padButtonB,
+        padLeftThumbstick
+        
+    }GAMEPADELEMENT;
+    
+    /**
+     @brief The GAMEPADACTION enum holds information about the action of the element of a game pad
+     */
+    typedef enum{
+        
+        padButtonPressed,
+        padButtonReleased,
+        padThumbstickMoved
+        
+    }GAMEPADACTION;
+    
+    
+    
 }
 
 

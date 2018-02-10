@@ -9,7 +9,7 @@
 #import <Cocoa/Cocoa.h>
 #import <Metal/Metal.h>
 #import <MetalKit/MetalKit.h>
-
+#import <GameController/GameController.h>
 
 // Our macOS view controller.
 @interface GameViewController : NSViewController

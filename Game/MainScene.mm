@@ -9,9 +9,11 @@
 #include "MainScene.h"
 #include "Earth.h"
 #include "GameController.h"
+#include "GamePadControllers.h"
 #include "GameLogic.h"
 #include "U4DGameModelInterface.h"
 #include "U4DTouchesController.h"
+#include "U4DGamepadController.h"
 
 MainScene::MainScene(){}
 
@@ -23,7 +25,9 @@ void MainScene::init(){
     
     U4DEngine::U4DGameModelInterface *model=new GameLogic();
     
-    U4DEngine::U4DControllerInterface *control=new GameController();
+    //U4DEngine::U4DControllerInterface *control=new GameController();
+
+    U4DEngine::U4DControllerInterface *control=new GamePadController();
     
     setGameWorldControllerAndModel(earth, control, model);
     

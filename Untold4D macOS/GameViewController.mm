@@ -14,6 +14,7 @@
 #include "U4DTouches.h"
 #include "MainScene.h"
 
+
 @implementation GameViewController
 {
     MTKView *metalView;
@@ -62,6 +63,10 @@
     //   that we think our renderer can consistently maintain.
     metalView.preferredFramesPerSecond = 60;
     
+    // notifications for controller (dis)connect
+    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasConnected:) name:GCControllerDidConnectNotification object:nil];
+    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasDisconnected:) name:GCControllerDidDisconnectNotification object:nil];
+
 }
 
 - (void)viewDidAppear {
@@ -73,6 +78,154 @@
     mainScene->init();
 }
 
+- (void)controllerWasConnected:(NSNotification *)notification {
+    
+    // a controller was connected
+    GCController *controller = (GCController *)notification.object;
+    if (controller.extendedGamepad!=nil) {
+        NSLog(@"Controller extended gamepad");
+    }else if (controller.gamepad!=nil){
+        NSLog(@"Controller is standard");
+    }
+    
+    NSLog(@"Controller is connected");
+    
+    [self reactToInput];
+    
+}
+
+- (void)controllerWasDisconnected:(NSNotification *)notification {
+    
+    // a controller was disconnected
+    GCController *controller = (GCController *)notification.object;
+    NSLog(@"Controller is disconnected");
+    
+}
+
+- (void)reactToInput {
+    // register block for input change detection
+    
+    GCController *controller=[GCController controllers][0];
+    
+    GCExtendedGamepad *profile=controller.extendedGamepad;
+    
+    if (profile!=nil) {
+        
+        profile.valueChangedHandler = ^(GCExtendedGamepad *gamepad, GCControllerElement *element)
+        {
+            // left trigger
+            if (gamepad.leftTrigger == element && gamepad.leftTrigger.isPressed) {
+                NSLog(@"Left Trigger");
+            }
+            
+            // right trigger
+            if (gamepad.rightTrigger == element && gamepad.rightTrigger.isPressed) {
+                NSLog(@"Right Trigger");
+            }
+            
+            // left shoulder button
+            if (gamepad.leftShoulder == element && gamepad.leftShoulder.isPressed) {
+                NSLog(@"Left Shoulder Button");
+            }
+            
+            // right shoulder button
+            if (gamepad.rightShoulder == element && gamepad.rightShoulder.isPressed) {
+                NSLog(@"Right Shoulder Button");
+            }
+            
+            // A button
+            if (gamepad.buttonA == element && gamepad.buttonA.isPressed) {
+                
+                U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+                
+                U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padButtonA;
+                U4DEngine::GAMEPADACTION padAction=U4DEngine::padButtonPressed;
+                
+                director->padPressBegan(padElement,padAction);
+                
+            }else if(gamepad.buttonA == element && !gamepad.buttonA.isPressed){
+                
+                U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+                
+                U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padButtonA;
+                U4DEngine::GAMEPADACTION padAction=U4DEngine::padButtonReleased;
+                
+                director->padPressEnded(padElement,padAction);
+                
+            }
+            
+            // B button
+            if (gamepad.buttonB == element && gamepad.buttonB.isPressed) {
+                NSLog(@"B Button");
+            }
+            
+            // X button
+            if (gamepad.buttonX == element && gamepad.buttonX.isPressed) {
+                NSLog(@"X Button");
+            }
+            
+            // Y button
+            if (gamepad.buttonY == element && gamepad.buttonY.isPressed) {
+                NSLog(@"Y Button");
+            }
+            
+            // d-pad
+            if (gamepad.dpad == element) {
+                if (gamepad.dpad.up.isPressed) {
+                    NSLog(@"D-Pad Up");
+                }
+                if (gamepad.dpad.down.isPressed) {
+                    NSLog(@"D-Pad Down");
+                }
+                if (gamepad.dpad.left.isPressed) {
+                    NSLog(@"D-Pad Left");
+                }
+                if (gamepad.dpad.right.isPressed) {
+                    NSLog(@"D-Pad Right");
+                }
+            }
+            
+            // left stick
+            if (gamepad.leftThumbstick == element) {
+                if (gamepad.leftThumbstick.up.isPressed) {
+                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
+                }
+                if (gamepad.leftThumbstick.down.isPressed) {
+                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
+                }
+                if (gamepad.leftThumbstick.left.isPressed) {
+                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
+                }
+                if (gamepad.leftThumbstick.right.isPressed) {
+                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
+                }
+                
+            }
+            
+            // right stick
+            if (gamepad.rightThumbstick == element) {
+                if (gamepad.rightThumbstick.up.isPressed) {
+                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.yAxis.value);
+                }
+                if (gamepad.rightThumbstick.down.isPressed) {
+                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.yAxis.value);
+                }
+                if (gamepad.rightThumbstick.left.isPressed) {
+                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.xAxis.value);
+                }
+                if (gamepad.rightThumbstick.right.isPressed) {
+                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.xAxis.value);
+                }
+                
+            }
+            
+        };
+        
+    }else{
+        NSLog(@"Game Controller profile is null");
+    }
+    
+}
 
 - (void)didReceiveMemoryWarning
 {

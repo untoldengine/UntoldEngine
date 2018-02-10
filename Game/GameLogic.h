@@ -39,7 +39,7 @@ public:
     
     void init();
     
-    void receiveTouchUpdate(void *uData);
+    void receiveUserInputUpdate(void *uData);
     
     void setGuardian(GuardianModel *uGuardian);
     

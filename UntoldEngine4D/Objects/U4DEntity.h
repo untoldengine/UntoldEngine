@@ -16,6 +16,7 @@
 #include "U4DVector2n.h"
 #include "U4DVector4n.h"
 #include "U4DIndex.h"
+#include "U4DPadAxis.h"
 #include "CommonProtocols.h"
 #include <MetalKit/MetalKit.h>
 
@@ -580,6 +581,15 @@ public:
      */
     virtual void changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){};
     
+    /**
+     @todo Change the state of the entity. This method in particular is used to change the state of the pad controller, i.e. pad button or pad joystick
+     */
+    virtual void changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
+    
+    /**
+     @todo document this
+     */
+    virtual GAMEPADELEMENT getPadElementType(){};
 };
 
 }

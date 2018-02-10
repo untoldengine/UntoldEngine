@@ -94,6 +94,22 @@ namespace U4DEngine {
         
         gameController->touchMoved(touches);
     }
+    
+    void U4DScene::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+        
+        gameController->padPressBegan(uGamePadElement, uGamePadAction);
+    }
+    
+    void U4DScene::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+        
+        gameController->padPressEnded(uGamePadElement, uGamePadAction);
+    }
+    
+    void U4DScene::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
+        
+        gameController->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
+    }
+    
 
     void U4DScene::init(){
         
