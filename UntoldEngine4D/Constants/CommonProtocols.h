@@ -616,7 +616,8 @@ namespace U4DEngine {
         
         padButtonPressed,
         padButtonReleased,
-        padThumbstickMoved
+        padThumbstickMoved,
+        padThumbstickReleased,
         
     }GAMEPADACTION;
     

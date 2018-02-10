@@ -187,18 +187,41 @@
             
             // left stick
             if (gamepad.leftThumbstick == element) {
-                if (gamepad.leftThumbstick.up.isPressed) {
-                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
+                
+                if (gamepad.leftThumbstick.up.isPressed || gamepad.leftThumbstick.down.isPressed || gamepad.leftThumbstick.left.isPressed || gamepad.leftThumbstick.right.isPressed) {
+                    
+                    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+                    
+                    U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padLeftThumbstick;
+                    U4DEngine::GAMEPADACTION padAction=U4DEngine::padThumbstickMoved;
+                    U4DEngine::U4DPadAxis padAxis(gamepad.leftThumbstick.xAxis.value,gamepad.leftThumbstick.yAxis.value);
+                    
+                    director->padThumbStickMoved(padElement, padAction, padAxis);
+                    
+                }else if(!gamepad.leftThumbstick.up.isPressed && !gamepad.leftThumbstick.down.isPressed && !gamepad.leftThumbstick.left.isPressed && !gamepad.leftThumbstick.right.isPressed){
+                    
+                    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+                    
+                    U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padLeftThumbstick;
+                    U4DEngine::GAMEPADACTION padAction=U4DEngine::padThumbstickReleased;
+                    U4DEngine::U4DPadAxis padAxis(gamepad.leftThumbstick.xAxis.value,gamepad.leftThumbstick.yAxis.value);
+                    
+                    director->padThumbStickMoved(padElement, padAction, padAxis);
+                    
                 }
-                if (gamepad.leftThumbstick.down.isPressed) {
-                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
-                }
-                if (gamepad.leftThumbstick.left.isPressed) {
-                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
-                }
-                if (gamepad.leftThumbstick.right.isPressed) {
-                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
-                }
+                
+//                if (gamepad.leftThumbstick.up.isPressed) {
+//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
+//                }
+//                if (gamepad.leftThumbstick.down.isPressed) {
+//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
+//                }
+//                if (gamepad.leftThumbstick.left.isPressed) {
+//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
+//                }
+//                if (gamepad.leftThumbstick.right.isPressed) {
+//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
+//                }
                 
             }
             

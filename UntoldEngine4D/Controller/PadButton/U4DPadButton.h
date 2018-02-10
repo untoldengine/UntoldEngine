@@ -16,7 +16,6 @@
 #include "U4DPadAxis.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
-#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     class U4DControllerInterface;

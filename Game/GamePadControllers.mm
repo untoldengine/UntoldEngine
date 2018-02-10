@@ -22,7 +22,9 @@ void GamePadController::init(){
     Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
     U4DEngine::GAMEPADELEMENT buttonAElement=U4DEngine::padButtonA;
+    U4DEngine::GAMEPADELEMENT leftJoystickElement=U4DEngine::padLeftThumbstick;
     
+    //create the pad button object
     myButtonA=new U4DEngine::U4DPadButton(buttonAElement);
     
     myButtonA->setControllerInterface(this);
@@ -37,47 +39,21 @@ void GamePadController::init(){
     myButtonA->setCallbackAction(buttonACallback);
     
     
+    //set the left joystick
     
-//    joyStick=new U4DEngine::U4DJoyStick("joystick", -0.7,-0.6,"joyStickBackground.png",130,130,"joystickDriver.png",80,80);
-//
-//    joyStick->setControllerInterface(this);
-//
-//    earth->addChild(joyStick,0);
-//
-//    //create a callback
-//    U4DEngine::U4DCallback<GamePadController>* joystickCallback=new U4DEngine::U4DCallback<GamePadController>;
-//
-//    joystickCallback->scheduleClassWithMethod(this, &GamePadController::actionOnJoystick);
-//
-//    joyStick->setCallbackAction(joystickCallback);
-//
-//
-//    myButtonA=new U4DEngine::U4DButton("buttonA",0.3,-0.6,103,103,"ButtonA.png","ButtonAPressed.png");
-//
-//    myButtonA->setControllerInterface(this);
-//
-//    earth->addChild(myButtonA,1);
-//
-//    //create a callback
-//    U4DEngine::U4DCallback<GamePadController>* buttonACallback=new U4DEngine::U4DCallback<GamePadController>;
-//
-//    buttonACallback->scheduleClassWithMethod(this, &GamePadController::actionOnButtonA);
-//
-//    myButtonA->setCallbackAction(buttonACallback);
-//
-//
-//    myButtonB=new U4DEngine::U4DButton("buttonB",0.7,-0.6,103,103,"ButtonB.png","ButtonBPressed.png");
-//
-//    myButtonB->setControllerInterface(this);
-//
-//    earth->addChild(myButtonB,2);
-//
-//    //create a callback
-//    U4DEngine::U4DCallback<GamePadController>* buttonBCallback=new U4DEngine::U4DCallback<GamePadController>;
-//
-//    buttonBCallback->scheduleClassWithMethod(this, &GamePadController::actionOnButtonB);
-//
-//    myButtonB->setCallbackAction(buttonBCallback);
+    leftJoystick=new U4DEngine::U4DPadJoystick(leftJoystickElement);
+    
+    leftJoystick->setControllerInterface(this);
+    
+    earth->addChild(leftJoystick);
+    
+    //create joystick callback
+    
+    U4DEngine::U4DCallback<GamePadController>* leftJoystickCallback=new U4DEngine::U4DCallback<GamePadController>;
+    
+    leftJoystickCallback->scheduleClassWithMethod(this, &GamePadController::actionOnJoystick);
+    
+    leftJoystick->setCallbackAction(leftJoystickCallback);
     
 }
 
@@ -108,7 +84,43 @@ void GamePadController::actionOnButtonB(){
 
 void GamePadController::actionOnJoystick(){
     
-   
+    ControllerInputMessage controllerInputMessage;
+    
+    controllerInputMessage.controllerInputType=actionJoystick;
+    
+    if (leftJoystick->getIsActive()) {
+        
+        controllerInputMessage.controllerInputData=joystickActive;
+        
+        U4DEngine::U4DVector3n joystickDirection=leftJoystick->getDataPosition();
+        
+        joystickDirection.z=joystickDirection.y;
+        
+        joystickDirection.y=0;
+        
+        joystickDirection.normalize();
+        
+        
+        if (leftJoystick->getDirectionReversal()) {
+            
+            controllerInputMessage.joystickChangeDirection=true;
+            
+        }else{
+            
+            controllerInputMessage.joystickChangeDirection=false;
+            
+        }
+        
+        controllerInputMessage.joystickDirection=joystickDirection;
+        
+    }else {
+        
+        controllerInputMessage.controllerInputData=joystickInactive;
+        
+    }
+    
+    sendUserInputUpdate(&controllerInputMessage);
+    
 }
 
 

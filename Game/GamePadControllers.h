@@ -14,13 +14,14 @@
 #include "U4DVector3n.h"
 #include "UserCommonProtocols.h"
 #include "U4DPadButton.h"
-
+#include "U4DPadJoystick.h"
 
 class GamePadController:public U4DEngine::U4DGamepadController{
     
 private:
     
     U4DEngine::U4DPadButton *myButtonA;
+    U4DEngine::U4DPadJoystick *leftJoystick;
     
 public:
     
