@@ -621,6 +621,15 @@ namespace U4DEngine {
         
     }GAMEPADACTION;
     
+    /**
+     @brief The DEVICEOSTYPE enum holds information about the current OS target
+     */
+    typedef enum{
+        
+        deviceOSIOS,
+        deviceOSMACX
+        
+    }DEVICEOSTYPE;
     
     
 }

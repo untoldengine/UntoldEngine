@@ -90,6 +90,11 @@ private:
      */
     U4DWorld *world;
     
+    /**
+     @todo document this
+     */
+    DEVICEOSTYPE deviceOSType;
+    
 protected:
     
     /**
@@ -269,6 +274,16 @@ public:
      @return Number of polys
      */
     int getPolycount();
+    
+    /**
+     @brief document this
+     */
+    void setDeviceOSType(DEVICEOSTYPE &uDeviceOSType);
+    
+    /**
+     @brief document this
+     */
+    DEVICEOSTYPE getDeviceOSType();
     
 };
 

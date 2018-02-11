@@ -13,7 +13,7 @@
 #import "U4DCamera.h"
 #include "U4DTouches.h"
 #include "MainScene.h"
-
+#include "CommonProtocols.h"
 
 @implementation GameViewController
 {
@@ -62,6 +62,13 @@
     //   call.  In other words, the view will drop frames.  So we should set this to a frame rate
     //   that we think our renderer can consistently maintain.
     metalView.preferredFramesPerSecond = 60;
+    
+    //set device OS type
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::DEVICEOSTYPE deviceOSType=U4DEngine::deviceOSMACX;
+    
+    director->setDeviceOSType(deviceOSType);
     
     // notifications for controller (dis)connect
     [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasConnected:) name:GCControllerDidConnectNotification object:nil];

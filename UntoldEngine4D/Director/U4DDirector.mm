@@ -225,6 +225,16 @@ namespace U4DEngine {
         return mtlView;
     }
     
+    void U4DDirector::setDeviceOSType(DEVICEOSTYPE &uDeviceOSType){
+        
+        deviceOSType=uDeviceOSType;
+    }
+    
+    DEVICEOSTYPE U4DDirector::getDeviceOSType(){
+        
+        return deviceOSType;
+    }
+    
     void U4DDirector::setPerspectiveSpace(U4DMatrix4n &uSpace){
         
         perspectiveSpace=uSpace;
