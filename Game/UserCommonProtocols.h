@@ -18,7 +18,12 @@ enum{
     
     actionButtonA,
     actionButtonB,
+    actionButtonX,
+    actionButtonY,
+    actionLeftTrigger,
+    actionRightTrigger,
     actionJoystick,
+    actionRightJoystick,
     
 }ControllerInputType;
 

@@ -12,6 +12,7 @@
 #import "U4DLights.h"
 #import "U4DCamera.h"
 #include "U4DTouches.h"
+#include "U4DLogger.h"
 #include "MainScene.h"
 #include "CommonProtocols.h"
 
@@ -89,107 +90,201 @@
     
     // a controller was connected
     GCController *controller = (GCController *)notification.object;
+    
+    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+    
     if (controller.extendedGamepad!=nil) {
-        NSLog(@"Controller extended gamepad");
+
+        logger->log("Controller has an Extended gamepad");
+
     }else if (controller.gamepad!=nil){
-        NSLog(@"Controller is standard");
+        
+        logger->log("Controller has a standard profile");
+        
     }
     
-    NSLog(@"Controller is connected");
+    logger->log("Controller is connected");
     
-    [self reactToInput];
+    [self registerControllerInput];
     
 }
 
 - (void)controllerWasDisconnected:(NSNotification *)notification {
     
     // a controller was disconnected
-    GCController *controller = (GCController *)notification.object;
-    NSLog(@"Controller is disconnected");
+    //GCController *controller = (GCController *)notification.object;
+    
+    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+    
+    logger->log("Controller is disconnected");
     
 }
 
-- (void)reactToInput {
+- (void)registerControllerInput {
     // register block for input change detection
     
     GCController *controller=[GCController controllers][0];
     
     GCExtendedGamepad *profile=controller.extendedGamepad;
     
+    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+    
     if (profile!=nil) {
         
         profile.valueChangedHandler = ^(GCExtendedGamepad *gamepad, GCControllerElement *element)
         {
+            U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+            
+            //set up the element profiles
+            U4DEngine::GAMEPADELEMENT padButtonAElement=U4DEngine::padButtonA;
+            U4DEngine::GAMEPADELEMENT padButtonBElement=U4DEngine::padButtonB;
+            U4DEngine::GAMEPADELEMENT padButtonXElement=U4DEngine::padButtonX;
+            U4DEngine::GAMEPADELEMENT padButtonYElement=U4DEngine::padButtonY;
+            U4DEngine::GAMEPADELEMENT padLeftThumbstickElement=U4DEngine::padLeftThumbstick;
+            U4DEngine::GAMEPADELEMENT padRightThumbstickElement=U4DEngine::padRightThumbstick;
+            U4DEngine::GAMEPADELEMENT padLeftTriggerElement=U4DEngine::padLeftTrigger;
+            U4DEngine::GAMEPADELEMENT padRightTriggerElement=U4DEngine::padRightTrigger;
+            U4DEngine::GAMEPADELEMENT padLeftShoulderElement=U4DEngine::padLeftShoulder;
+            U4DEngine::GAMEPADELEMENT padRightShoulderElement=U4DEngine::padRightShoulder;
+            U4DEngine::GAMEPADELEMENT padDPadUpButtonElement=U4DEngine::padDPadUpButton;
+            U4DEngine::GAMEPADELEMENT padDPadDownButtonElement=U4DEngine::padDPadDownButton;
+            U4DEngine::GAMEPADELEMENT padDPadLeftButtonElement=U4DEngine::padDPadLeftButton;
+            U4DEngine::GAMEPADELEMENT padDPadRightButtonElement=U4DEngine::padDPadRightButton;
+            
+            //set up the actions
+            U4DEngine::GAMEPADACTION padButtonPressedAction=U4DEngine::padButtonPressed;
+            U4DEngine::GAMEPADACTION padButtonReleasedAction=U4DEngine::padButtonReleased;
+            U4DEngine::GAMEPADACTION padThumbstickMovedAction=U4DEngine::padThumbstickMoved;
+            U4DEngine::GAMEPADACTION padThumbstickReleasedAction=U4DEngine::padThumbstickReleased;
+            
             // left trigger
             if (gamepad.leftTrigger == element && gamepad.leftTrigger.isPressed) {
-                NSLog(@"Left Trigger");
+                
+                director->padPressBegan(padLeftTriggerElement,padButtonPressedAction);
+                
+            }else if(gamepad.leftTrigger == element && !gamepad.leftTrigger.isPressed){
+                
+                director->padPressEnded(padLeftTriggerElement,padButtonReleasedAction);
+                
             }
             
             // right trigger
             if (gamepad.rightTrigger == element && gamepad.rightTrigger.isPressed) {
-                NSLog(@"Right Trigger");
+                
+                director->padPressBegan(padRightTriggerElement,padButtonPressedAction);
+                
+            }else if(gamepad.rightTrigger == element && !gamepad.rightTrigger.isPressed){
+                
+                director->padPressEnded(padRightTriggerElement,padButtonReleasedAction);
             }
             
             // left shoulder button
             if (gamepad.leftShoulder == element && gamepad.leftShoulder.isPressed) {
-                NSLog(@"Left Shoulder Button");
+                
+                director->padPressBegan(padLeftShoulderElement,padButtonPressedAction);
+                
+            }else if(gamepad.leftShoulder == element && !gamepad.leftShoulder.isPressed){
+                
+                director->padPressEnded(padLeftShoulderElement,padButtonReleasedAction);
             }
             
             // right shoulder button
             if (gamepad.rightShoulder == element && gamepad.rightShoulder.isPressed) {
-                NSLog(@"Right Shoulder Button");
+                
+                director->padPressBegan(padRightShoulderElement,padButtonPressedAction);
+                
+            }else if(gamepad.rightShoulder == element && !gamepad.rightShoulder.isPressed){
+                
+                director->padPressEnded(padRightShoulderElement,padButtonReleasedAction);
+                
             }
             
             // A button
             if (gamepad.buttonA == element && gamepad.buttonA.isPressed) {
                 
-                U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-                
-                U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padButtonA;
-                U4DEngine::GAMEPADACTION padAction=U4DEngine::padButtonPressed;
-                
-                director->padPressBegan(padElement,padAction);
+                director->padPressBegan(padButtonAElement,padButtonPressedAction);
                 
             }else if(gamepad.buttonA == element && !gamepad.buttonA.isPressed){
                 
-                U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-                
-                U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padButtonA;
-                U4DEngine::GAMEPADACTION padAction=U4DEngine::padButtonReleased;
-                
-                director->padPressEnded(padElement,padAction);
+                director->padPressEnded(padButtonAElement,padButtonReleasedAction);
                 
             }
             
             // B button
             if (gamepad.buttonB == element && gamepad.buttonB.isPressed) {
-                NSLog(@"B Button");
+                
+                director->padPressBegan(padButtonBElement,padButtonPressedAction);
+                
+            }else if(gamepad.buttonB == element && !gamepad.buttonB.isPressed){
+                
+                director->padPressEnded(padButtonBElement,padButtonReleasedAction);
+                
             }
             
             // X button
             if (gamepad.buttonX == element && gamepad.buttonX.isPressed) {
-                NSLog(@"X Button");
+                
+                director->padPressBegan(padButtonXElement,padButtonPressedAction);
+                
+            }else if(gamepad.buttonX == element && !gamepad.buttonX.isPressed){
+                
+                director->padPressEnded(padButtonXElement,padButtonReleasedAction);
+                
             }
             
             // Y button
             if (gamepad.buttonY == element && gamepad.buttonY.isPressed) {
-                NSLog(@"Y Button");
+                
+                director->padPressBegan(padButtonYElement,padButtonPressedAction);
+                
+            }else if(gamepad.buttonY == element && !gamepad.buttonY.isPressed){
+                
+                director->padPressEnded(padButtonYElement,padButtonReleasedAction);
+                
             }
             
             // d-pad
             if (gamepad.dpad == element) {
+                
                 if (gamepad.dpad.up.isPressed) {
-                    NSLog(@"D-Pad Up");
+                    
+                    director->padPressBegan(padDPadUpButtonElement,padButtonPressedAction);
+                    
+                }else if(!gamepad.dpad.up.isPressed){
+                 
+                    director->padPressEnded(padDPadUpButtonElement,padButtonReleasedAction);
                 }
+                
                 if (gamepad.dpad.down.isPressed) {
-                    NSLog(@"D-Pad Down");
+                    
+                    director->padPressBegan(padDPadDownButtonElement,padButtonPressedAction);
+                    
+                }else if(!gamepad.dpad.down.isPressed){
+                    
+                    director->padPressEnded(padDPadDownButtonElement,padButtonReleasedAction);
+                    
                 }
+                
                 if (gamepad.dpad.left.isPressed) {
-                    NSLog(@"D-Pad Left");
+                    
+                    director->padPressBegan(padDPadLeftButtonElement,padButtonPressedAction);
+                    
+                }else if(!gamepad.dpad.left.isPressed){
+                    
+                    director->padPressEnded(padDPadLeftButtonElement,padButtonReleasedAction);
+                    
                 }
+                
                 if (gamepad.dpad.right.isPressed) {
-                    NSLog(@"D-Pad Right");
+                    
+                    director->padPressBegan(padDPadRightButtonElement,padButtonPressedAction);
+                    
+                }else if(!gamepad.dpad.right.isPressed){
+                    
+                    director->padPressEnded(padDPadRightButtonElement,padButtonReleasedAction);
+                    
                 }
+                
             }
             
             // left stick
@@ -197,54 +292,35 @@
                 
                 if (gamepad.leftThumbstick.up.isPressed || gamepad.leftThumbstick.down.isPressed || gamepad.leftThumbstick.left.isPressed || gamepad.leftThumbstick.right.isPressed) {
                     
-                    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-                    
-                    U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padLeftThumbstick;
-                    U4DEngine::GAMEPADACTION padAction=U4DEngine::padThumbstickMoved;
                     U4DEngine::U4DPadAxis padAxis(gamepad.leftThumbstick.xAxis.value,gamepad.leftThumbstick.yAxis.value);
                     
-                    director->padThumbStickMoved(padElement, padAction, padAxis);
+                    director->padThumbStickMoved(padLeftThumbstickElement, padThumbstickMovedAction, padAxis);
                     
                 }else if(!gamepad.leftThumbstick.up.isPressed && !gamepad.leftThumbstick.down.isPressed && !gamepad.leftThumbstick.left.isPressed && !gamepad.leftThumbstick.right.isPressed){
                     
-                    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-                    
-                    U4DEngine::GAMEPADELEMENT padElement=U4DEngine::padLeftThumbstick;
-                    U4DEngine::GAMEPADACTION padAction=U4DEngine::padThumbstickReleased;
                     U4DEngine::U4DPadAxis padAxis(gamepad.leftThumbstick.xAxis.value,gamepad.leftThumbstick.yAxis.value);
                     
-                    director->padThumbStickMoved(padElement, padAction, padAxis);
+                    director->padThumbStickMoved(padLeftThumbstickElement, padThumbstickReleasedAction, padAxis);
                     
                 }
-                
-//                if (gamepad.leftThumbstick.up.isPressed) {
-//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
-//                }
-//                if (gamepad.leftThumbstick.down.isPressed) {
-//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.yAxis.value);
-//                }
-//                if (gamepad.leftThumbstick.left.isPressed) {
-//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
-//                }
-//                if (gamepad.leftThumbstick.right.isPressed) {
-//                    NSLog(@"Left Stick %f", gamepad.leftThumbstick.xAxis.value);
-//                }
                 
             }
             
             // right stick
             if (gamepad.rightThumbstick == element) {
-                if (gamepad.rightThumbstick.up.isPressed) {
-                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.yAxis.value);
-                }
-                if (gamepad.rightThumbstick.down.isPressed) {
-                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.yAxis.value);
-                }
-                if (gamepad.rightThumbstick.left.isPressed) {
-                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.xAxis.value);
-                }
-                if (gamepad.rightThumbstick.right.isPressed) {
-                    NSLog(@"Right Stick %f", gamepad.rightThumbstick.xAxis.value);
+                
+                if (gamepad.rightThumbstick.up.isPressed || gamepad.rightThumbstick.down.isPressed || gamepad.rightThumbstick.left.isPressed || gamepad.rightThumbstick.right.isPressed) {
+                    
+                    U4DEngine::U4DPadAxis padAxis(gamepad.rightThumbstick.xAxis.value,gamepad.rightThumbstick.yAxis.value);
+                    
+                    director->padThumbStickMoved(padRightThumbstickElement, padThumbstickMovedAction, padAxis);
+                    
+                }else if(!gamepad.rightThumbstick.up.isPressed && !gamepad.rightThumbstick.down.isPressed && !gamepad.rightThumbstick.left.isPressed && !gamepad.rightThumbstick.right.isPressed){
+                    
+                    U4DEngine::U4DPadAxis padAxis(gamepad.rightThumbstick.xAxis.value,gamepad.rightThumbstick.yAxis.value);
+                    
+                    director->padThumbStickMoved(padRightThumbstickElement, padThumbstickReleasedAction, padAxis);
+                    
                 }
                 
             }
@@ -252,7 +328,9 @@
         };
         
     }else{
-        NSLog(@"Game Controller profile is null");
+        
+        logger->log("Game Controller profile is null");
+        
     }
     
 }

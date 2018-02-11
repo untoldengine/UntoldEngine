@@ -605,7 +605,18 @@ namespace U4DEngine {
         
         padButtonA,
         padButtonB,
-        padLeftThumbstick
+        padButtonX,
+        padButtonY,
+        padLeftThumbstick,
+        padRightThumbstick,
+        padLeftTrigger,
+        padRightTrigger,
+        padLeftShoulder,
+        padRightShoulder,
+        padDPadUpButton,
+        padDPadDownButton,
+        padDPadLeftButton,
+        padDPadRightButton
         
     }GAMEPADELEMENT;
     
