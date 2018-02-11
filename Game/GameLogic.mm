@@ -78,17 +78,16 @@ void GameLogic::receiveUserInputUpdate(void *uData){
             {
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
-                    std::cout<<"button A received"<<std::endl;
-//                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
-//
-//                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
-//
-//                    liPos.x+=1.0;
-//
-//                    light->translateTo(liPos);
-//
-//                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
-//                    light->viewInDirection(origin);
+                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
+
+                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
+
+                    liPos.x+=1.0;
+
+                    light->translateTo(liPos);
+
+                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
+                    light->viewInDirection(origin);
                     
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
