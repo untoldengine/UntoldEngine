@@ -16,14 +16,14 @@
 
 namespace U4DEngine {
     
-class U4DEntity;
-class U4DTouches;
-class U4DButton;
-class U4DJoyStick;
-class U4DWorld;
-class U4DVector2n;
-class U4DGameModelInterface;
-
+    class U4DEntity;
+    class U4DTouches;
+    class U4DButton;
+    class U4DJoyStick;
+    class U4DWorld;
+    class U4DVector2n;
+    class U4DGameModelInterface;
+    class U4DPadAxis;
 }
 
 namespace U4DEngine {
@@ -41,6 +41,21 @@ public:
     virtual void touchMoved(const U4DTouches &touches)=0;
     virtual void touchEnded(const U4DTouches &touches)=0;
     
+    /**
+     @todo document this
+     */
+    virtual void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction)=0;
+    
+    /**
+     @todo document this
+     */
+    virtual void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction)=0;
+    
+    /**
+     @todo document this
+     */
+    virtual void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis)=0;
+    
     virtual void keyboardInput(int key)=0;
     
     virtual void changeState(const U4DTouches &touches,TOUCHSTATE touchState)=0;
@@ -54,7 +69,7 @@ public:
     virtual U4DGameModelInterface* getGameModel()=0;
     
     virtual void setReceivedAction(bool uValue)=0;
-    virtual void sendTouchUpdate(void *uData)=0;
+    virtual void sendUserInputUpdate(void *uData)=0;
 };
 
 }

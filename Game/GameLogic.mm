@@ -64,32 +64,32 @@ void GameLogic::increasePoints(){
     
 }
 
-void GameLogic::receiveTouchUpdate(void *uData){
+void GameLogic::receiveUserInputUpdate(void *uData){
     
     MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
 
-    TouchInputMessage touchInputMessage=*(TouchInputMessage*)uData;
+    ControllerInputMessage controllerInputMessage=*(ControllerInputMessage*)uData;
 
     if (guardian!=nullptr) {
         
-        switch (touchInputMessage.touchInputType) {
+        switch (controllerInputMessage.controllerInputType) {
             case actionButtonA:
                 
             {
-                if (touchInputMessage.touchInputData==buttonPressed) {
+                if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
-                    
+
                     U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
-                    
+
                     liPos.x+=1.0;
-                    
+
                     light->translateTo(liPos);
-                    
+
                     U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
                     light->viewInDirection(origin);
                     
-                }else if(touchInputMessage.touchInputData==buttonReleased){
+                }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
                     
                 }
@@ -99,7 +99,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
             case actionButtonB:
                 
             {
-                if (touchInputMessage.touchInputData==buttonPressed) {
+                if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
                     
@@ -112,7 +112,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
                     light->viewInDirection(origin);
                     
-                }else if(touchInputMessage.touchInputData==buttonReleased){
+                }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
                     
                 }
@@ -123,13 +123,13 @@ void GameLogic::receiveTouchUpdate(void *uData){
             case actionJoystick:
                 
             {
-                if (touchInputMessage.touchInputData==joystickActive) {
+                if (controllerInputMessage.controllerInputData==joystickActive) {
                     
                     JoystickMessageData joystickMessageData;
                     
-                    joystickMessageData.direction=touchInputMessage.joystickDirection;
+                    joystickMessageData.direction=controllerInputMessage.joystickDirection;
                     
-                    joystickMessageData.changedDirection=touchInputMessage.joystickChangeDirection;
+                    joystickMessageData.changedDirection=controllerInputMessage.joystickChangeDirection;
                     
                     
                     guardian->setPlayerHeading(joystickMessageData.direction);
@@ -137,7 +137,7 @@ void GameLogic::receiveTouchUpdate(void *uData){
                     messageDispatcher->sendMessage(0.0, guardian, guardian, msgJoystickActive, (void*)&joystickMessageData);
                     
                     
-                }else if(touchInputMessage.touchInputData==joystickInactive){
+                }else if(controllerInputMessage.controllerInputData==joystickInactive){
                     
                     messageDispatcher->sendMessage(0.0, guardian, guardian, msgJoystickNotActive);                }
             }

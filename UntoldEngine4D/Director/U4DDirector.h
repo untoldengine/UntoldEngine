@@ -19,17 +19,18 @@
 
 namespace U4DEngine {
     
-class U4DEntity;
-class U4DScene;
-class U4DWorld;
-class U4DCharacterManager;
-class U4DData;
-class U4DTouches;
-class U4DGameModelInterface;
-class U4DVector2n;
-class U4DControllerInterface;
-class U4DTouches;
-class U4DEntityManager;
+    class U4DEntity;
+    class U4DScene;
+    class U4DWorld;
+    class U4DCharacterManager;
+    class U4DData;
+    class U4DTouches;
+    class U4DGameModelInterface;
+    class U4DVector2n;
+    class U4DControllerInterface;
+    class U4DTouches;
+    class U4DEntityManager;
+    class U4DPadAxis;
 }
 
 namespace U4DEngine {
@@ -88,6 +89,11 @@ private:
      @todo document this
      */
     U4DWorld *world;
+    
+    /**
+     @todo document this
+     */
+    DEVICEOSTYPE deviceOSType;
     
 protected:
     
@@ -191,6 +197,21 @@ public:
     /**
      @todo document this
      */
+    void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
+    
+    /**
+     @todo document this
+     */
+    void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
+    
+    /**
+     @todo document this
+     */
+    void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis);
+    
+    /**
+     @todo document this
+     */
     void setWorld(U4DWorld *uWorld);
     
     /**
@@ -253,6 +274,16 @@ public:
      @return Number of polys
      */
     int getPolycount();
+    
+    /**
+     @brief document this
+     */
+    void setDeviceOSType(DEVICEOSTYPE &uDeviceOSType);
+    
+    /**
+     @brief document this
+     */
+    DEVICEOSTYPE getDeviceOSType();
     
 };
 

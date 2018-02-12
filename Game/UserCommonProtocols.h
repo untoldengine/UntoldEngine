@@ -18,9 +18,14 @@ enum{
     
     actionButtonA,
     actionButtonB,
+    actionButtonX,
+    actionButtonY,
+    actionLeftTrigger,
+    actionRightTrigger,
     actionJoystick,
+    actionRightJoystick,
     
-}TouchInputType;
+}ControllerInputType;
 
 
 enum{
@@ -29,17 +34,16 @@ enum{
     joystickActive,
     joystickInactive
     
-}TouchInputData;
+}ControllerInputData;
 
 typedef struct{
     
-    int touchInputType;
-    int touchInputData;
+    int controllerInputType;
+    int controllerInputData;
     U4DEngine::U4DVector3n joystickDirection;
     bool joystickChangeDirection;
     
-}TouchInputMessage;
-
+}ControllerInputMessage;
 
 //ADDED FOR DEMO
 

@@ -63,6 +63,12 @@
     //   that we think our renderer can consistently maintain.
     metalView.preferredFramesPerSecond = 60;
     
+    //set device OS type
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::DEVICEOSTYPE deviceOSType=U4DEngine::deviceOSIOS;
+    
+    director->setDeviceOSType(deviceOSType);
 }
 
 - (void)viewDidAppear:(BOOL)animated {

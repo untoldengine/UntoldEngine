@@ -26,6 +26,34 @@
 		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; };
 		031723CA1933FE54001584B1 /* lodepng.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031723C91933FE54001584B1 /* lodepng.mm */; };
 		03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03196B3417659BE5008BA0B8 /* U4DTouches.mm */; };
+		0323DB95202F27160007F087 /* GamePadControllers.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB93202F27160007F087 /* GamePadControllers.mm */; };
+		0323DB96202F27160007F087 /* GamePadControllers.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB93202F27160007F087 /* GamePadControllers.mm */; };
+		0323DB97202F27160007F087 /* GamePadControllers.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB93202F27160007F087 /* GamePadControllers.mm */; };
+		0323DB98202F27160007F087 /* GamePadControllers.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB93202F27160007F087 /* GamePadControllers.mm */; };
+		0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
+		0323DB9C202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
+		0323DB9D202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
+		0323DB9E202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
+		0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */; };
+		0323DBA2202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */; };
+		0323DBA3202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */; };
+		0323DBA4202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */; };
+		0323DBA7202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBA5202F5FEF0007F087 /* U4DPadJoystickStateManager.mm */; };
+		0323DBA8202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBA5202F5FEF0007F087 /* U4DPadJoystickStateManager.mm */; };
+		0323DBA9202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBA5202F5FEF0007F087 /* U4DPadJoystickStateManager.mm */; };
+		0323DBAA202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBA5202F5FEF0007F087 /* U4DPadJoystickStateManager.mm */; };
+		0323DBAD202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBAB202F60150007F087 /* U4DPadJoystickIdleState.mm */; };
+		0323DBAE202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBAB202F60150007F087 /* U4DPadJoystickIdleState.mm */; };
+		0323DBAF202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBAB202F60150007F087 /* U4DPadJoystickIdleState.mm */; };
+		0323DBB0202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBAB202F60150007F087 /* U4DPadJoystickIdleState.mm */; };
+		0323DBB3202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB1202F60360007F087 /* U4DPadJoystickActiveState.mm */; };
+		0323DBB4202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB1202F60360007F087 /* U4DPadJoystickActiveState.mm */; };
+		0323DBB5202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB1202F60360007F087 /* U4DPadJoystickActiveState.mm */; };
+		0323DBB6202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB1202F60360007F087 /* U4DPadJoystickActiveState.mm */; };
+		0323DBB9202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB7202F60510007F087 /* U4DPadJoystickReleasedState.mm */; };
+		0323DBBA202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB7202F60510007F087 /* U4DPadJoystickReleasedState.mm */; };
+		0323DBBB202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB7202F60510007F087 /* U4DPadJoystickReleasedState.mm */; };
+		0323DBBC202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DBB7202F60510007F087 /* U4DPadJoystickReleasedState.mm */; };
 		032567D61F256A2800A5A505 /* ModelAsset.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032567D41F256A2800A5A505 /* ModelAsset.mm */; };
 		0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D20C1C836D9200F1B9BE /* U4DAABB.mm */; };
 		0325D2141C83D5B900F1B9BE /* U4DSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0325D2121C83D5B900F1B9BE /* U4DSphere.mm */; };
@@ -639,6 +667,39 @@
 		03722D822029F2150080D069 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D812029F2150080D069 /* MetalKit.framework */; };
 		03722D842029F21A0080D069 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D832029F21A0080D069 /* Metal.framework */; };
 		03722D862029F2250080D069 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D852029F2250080D069 /* Foundation.framework */; };
+		03722DD8202B3BEC0080D069 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722DD7202B3BEB0080D069 /* GameController.framework */; };
+		03722DDB202B90AA0080D069 /* U4DGamepadController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DD9202B90AA0080D069 /* U4DGamepadController.mm */; };
+		03722DDC202B90AA0080D069 /* U4DGamepadController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DD9202B90AA0080D069 /* U4DGamepadController.mm */; };
+		03722DDD202B90AA0080D069 /* U4DGamepadController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DD9202B90AA0080D069 /* U4DGamepadController.mm */; };
+		03722DDE202B90AA0080D069 /* U4DGamepadController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DD9202B90AA0080D069 /* U4DGamepadController.mm */; };
+		03722DE3202BF7CD0080D069 /* U4DPadAxis.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE1202BF7CD0080D069 /* U4DPadAxis.mm */; };
+		03722DE4202BF7CD0080D069 /* U4DPadAxis.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE1202BF7CD0080D069 /* U4DPadAxis.mm */; };
+		03722DE5202BF7CD0080D069 /* U4DPadAxis.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE1202BF7CD0080D069 /* U4DPadAxis.mm */; };
+		03722DE6202BF7CD0080D069 /* U4DPadAxis.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE1202BF7CD0080D069 /* U4DPadAxis.mm */; };
+		03722DEB202CA7240080D069 /* U4DPadButton.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE9202CA7240080D069 /* U4DPadButton.mm */; };
+		03722DEC202CA7240080D069 /* U4DPadButton.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE9202CA7240080D069 /* U4DPadButton.mm */; };
+		03722DED202CA7240080D069 /* U4DPadButton.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE9202CA7240080D069 /* U4DPadButton.mm */; };
+		03722DEE202CA7240080D069 /* U4DPadButton.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DE9202CA7240080D069 /* U4DPadButton.mm */; };
+		03722DF1202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DEF202CBF380080D069 /* U4DPadButtonStateInterface.mm */; };
+		03722DF2202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DEF202CBF380080D069 /* U4DPadButtonStateInterface.mm */; };
+		03722DF3202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DEF202CBF380080D069 /* U4DPadButtonStateInterface.mm */; };
+		03722DF4202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DEF202CBF380080D069 /* U4DPadButtonStateInterface.mm */; };
+		03722DF7202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DF5202CBF4C0080D069 /* U4DPadButtonStateManager.mm */; };
+		03722DF8202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DF5202CBF4C0080D069 /* U4DPadButtonStateManager.mm */; };
+		03722DF9202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DF5202CBF4C0080D069 /* U4DPadButtonStateManager.mm */; };
+		03722DFA202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DF5202CBF4C0080D069 /* U4DPadButtonStateManager.mm */; };
+		03722DFD202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DFB202CBF690080D069 /* U4DPadButtonPressedState.mm */; };
+		03722DFE202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DFB202CBF690080D069 /* U4DPadButtonPressedState.mm */; };
+		03722DFF202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DFB202CBF690080D069 /* U4DPadButtonPressedState.mm */; };
+		03722E00202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722DFB202CBF690080D069 /* U4DPadButtonPressedState.mm */; };
+		03722E03202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E01202CBF860080D069 /* U4DPadButtonReleasedState.mm */; };
+		03722E04202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E01202CBF860080D069 /* U4DPadButtonReleasedState.mm */; };
+		03722E05202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E01202CBF860080D069 /* U4DPadButtonReleasedState.mm */; };
+		03722E06202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E01202CBF860080D069 /* U4DPadButtonReleasedState.mm */; };
+		03722E09202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
+		03722E0A202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
+		03722E0B202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
+		03722E0C202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
 		03752C511FAF812600EC869C /* walkSprite.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03752C4F1FAF812600EC869C /* walkSprite.xml */; };
 		03752C521FAF812600EC869C /* walkSprite.png in Resources */ = {isa = PBXBuildFile; fileRef = 03752C501FAF812600EC869C /* walkSprite.png */; };
 		03759B39175B0135002EB5D9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B38175B0135002EB5D9 /* UIKit.framework */; };
@@ -807,6 +868,20 @@
 		031723C91933FE54001584B1 /* lodepng.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = lodepng.mm; sourceTree = "<group>"; };
 		03196B3417659BE5008BA0B8 /* U4DTouches.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTouches.mm; sourceTree = "<group>"; };
 		03196B3717659EBC008BA0B8 /* U4DTouches.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouches.h; sourceTree = "<group>"; };
+		0323DB93202F27160007F087 /* GamePadControllers.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = GamePadControllers.mm; path = Game/GamePadControllers.mm; sourceTree = SOURCE_ROOT; };
+		0323DB94202F27160007F087 /* GamePadControllers.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = GamePadControllers.h; path = Game/GamePadControllers.h; sourceTree = SOURCE_ROOT; };
+		0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystick.mm; path = PadJoystick/U4DPadJoystick.mm; sourceTree = "<group>"; };
+		0323DB9A202F5FB10007F087 /* U4DPadJoystick.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystick.h; path = PadJoystick/U4DPadJoystick.h; sourceTree = "<group>"; };
+		0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystickStateInterface.mm; path = PadJoystick/U4DPadJoystickStateInterface.mm; sourceTree = "<group>"; };
+		0323DBA0202F5FD30007F087 /* U4DPadJoystickStateInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystickStateInterface.h; path = PadJoystick/U4DPadJoystickStateInterface.h; sourceTree = "<group>"; };
+		0323DBA5202F5FEF0007F087 /* U4DPadJoystickStateManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystickStateManager.mm; path = PadJoystick/U4DPadJoystickStateManager.mm; sourceTree = "<group>"; };
+		0323DBA6202F5FEF0007F087 /* U4DPadJoystickStateManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystickStateManager.h; path = PadJoystick/U4DPadJoystickStateManager.h; sourceTree = "<group>"; };
+		0323DBAB202F60150007F087 /* U4DPadJoystickIdleState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystickIdleState.mm; path = PadJoystick/U4DPadJoystickIdleState.mm; sourceTree = "<group>"; };
+		0323DBAC202F60150007F087 /* U4DPadJoystickIdleState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystickIdleState.h; path = PadJoystick/U4DPadJoystickIdleState.h; sourceTree = "<group>"; };
+		0323DBB1202F60360007F087 /* U4DPadJoystickActiveState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystickActiveState.mm; path = PadJoystick/U4DPadJoystickActiveState.mm; sourceTree = "<group>"; };
+		0323DBB2202F60360007F087 /* U4DPadJoystickActiveState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystickActiveState.h; path = PadJoystick/U4DPadJoystickActiveState.h; sourceTree = "<group>"; };
+		0323DBB7202F60510007F087 /* U4DPadJoystickReleasedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystickReleasedState.mm; path = PadJoystick/U4DPadJoystickReleasedState.mm; sourceTree = "<group>"; };
+		0323DBB8202F60510007F087 /* U4DPadJoystickReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystickReleasedState.h; path = PadJoystick/U4DPadJoystickReleasedState.h; sourceTree = "<group>"; };
 		032567D41F256A2800A5A505 /* ModelAsset.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = ModelAsset.mm; sourceTree = "<group>"; };
 		032567D51F256A2800A5A505 /* ModelAsset.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ModelAsset.h; sourceTree = "<group>"; };
 		0325D20C1C836D9200F1B9BE /* U4DAABB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAABB.mm; sourceTree = "<group>"; };
@@ -907,6 +982,23 @@
 		03722D832029F21A0080D069 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
 		03722D852029F2250080D069 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UntoldEngine-Prefix.pch"; sourceTree = "<group>"; };
+		03722DD7202B3BEB0080D069 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
+		03722DD9202B90AA0080D069 /* U4DGamepadController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGamepadController.mm; sourceTree = "<group>"; };
+		03722DDA202B90AA0080D069 /* U4DGamepadController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DGamepadController.h; sourceTree = "<group>"; };
+		03722DE1202BF7CD0080D069 /* U4DPadAxis.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadAxis.mm; path = PadAxis/U4DPadAxis.mm; sourceTree = "<group>"; };
+		03722DE2202BF7CD0080D069 /* U4DPadAxis.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadAxis.h; path = PadAxis/U4DPadAxis.h; sourceTree = "<group>"; };
+		03722DE9202CA7240080D069 /* U4DPadButton.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButton.mm; path = PadButton/U4DPadButton.mm; sourceTree = "<group>"; };
+		03722DEA202CA7240080D069 /* U4DPadButton.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButton.h; path = PadButton/U4DPadButton.h; sourceTree = "<group>"; };
+		03722DEF202CBF380080D069 /* U4DPadButtonStateInterface.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButtonStateInterface.mm; path = PadButton/U4DPadButtonStateInterface.mm; sourceTree = "<group>"; };
+		03722DF0202CBF380080D069 /* U4DPadButtonStateInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonStateInterface.h; path = PadButton/U4DPadButtonStateInterface.h; sourceTree = "<group>"; };
+		03722DF5202CBF4C0080D069 /* U4DPadButtonStateManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButtonStateManager.mm; path = PadButton/U4DPadButtonStateManager.mm; sourceTree = "<group>"; };
+		03722DF6202CBF4C0080D069 /* U4DPadButtonStateManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonStateManager.h; path = PadButton/U4DPadButtonStateManager.h; sourceTree = "<group>"; };
+		03722DFB202CBF690080D069 /* U4DPadButtonPressedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButtonPressedState.mm; path = PadButton/U4DPadButtonPressedState.mm; sourceTree = "<group>"; };
+		03722DFC202CBF690080D069 /* U4DPadButtonPressedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonPressedState.h; path = PadButton/U4DPadButtonPressedState.h; sourceTree = "<group>"; };
+		03722E01202CBF860080D069 /* U4DPadButtonReleasedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButtonReleasedState.mm; path = PadButton/U4DPadButtonReleasedState.mm; sourceTree = "<group>"; };
+		03722E02202CBF860080D069 /* U4DPadButtonReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonReleasedState.h; path = PadButton/U4DPadButtonReleasedState.h; sourceTree = "<group>"; };
+		03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButtonIdleState.mm; path = PadButton/U4DPadButtonIdleState.mm; sourceTree = "<group>"; };
+		03722E08202CBF9E0080D069 /* U4DPadButtonIdleState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonIdleState.h; path = PadButton/U4DPadButtonIdleState.h; sourceTree = "<group>"; };
 		03752C4F1FAF812600EC869C /* walkSprite.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = walkSprite.xml; sourceTree = "<group>"; };
 		03752C501FAF812600EC869C /* walkSprite.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = walkSprite.png; sourceTree = "<group>"; };
 		03759B34175B0135002EB5D9 /* UntoldEngine.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UntoldEngine.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -1163,6 +1255,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				03722DD8202B3BEC0080D069 /* GameController.framework in Frameworks */,
 				03722D862029F2250080D069 /* Foundation.framework in Frameworks */,
 				03722D842029F21A0080D069 /* Metal.framework in Frameworks */,
 				03722D822029F2150080D069 /* MetalKit.framework in Frameworks */,
@@ -1343,6 +1436,8 @@
 				03E6EE0A1943DA42007AD131 /* GameLogic.mm */,
 				03E6EE061943DA1D007AD131 /* GameController.h */,
 				03E6EE071943DA1D007AD131 /* GameController.mm */,
+				0323DB94202F27160007F087 /* GamePadControllers.h */,
+				0323DB93202F27160007F087 /* GamePadControllers.mm */,
 				036FB55E18CE9CB8000EA639 /* Earth.h */,
 				036FB55F18CE9CB8000EA639 /* Earth.mm */,
 				036FB56C18CE9CB8000EA639 /* MainScene.h */,
@@ -1411,6 +1506,53 @@
 			path = "Untold4D macOS";
 			sourceTree = "<group>";
 		};
+		03722DE0202BF7B10080D069 /* PadAxis */ = {
+			isa = PBXGroup;
+			children = (
+				03722DE2202BF7CD0080D069 /* U4DPadAxis.h */,
+				03722DE1202BF7CD0080D069 /* U4DPadAxis.mm */,
+			);
+			name = PadAxis;
+			sourceTree = "<group>";
+		};
+		03722DE7202CA5450080D069 /* PadButton */ = {
+			isa = PBXGroup;
+			children = (
+				03722DEA202CA7240080D069 /* U4DPadButton.h */,
+				03722DE9202CA7240080D069 /* U4DPadButton.mm */,
+				03722DF0202CBF380080D069 /* U4DPadButtonStateInterface.h */,
+				03722DEF202CBF380080D069 /* U4DPadButtonStateInterface.mm */,
+				03722DF6202CBF4C0080D069 /* U4DPadButtonStateManager.h */,
+				03722DF5202CBF4C0080D069 /* U4DPadButtonStateManager.mm */,
+				03722DFC202CBF690080D069 /* U4DPadButtonPressedState.h */,
+				03722DFB202CBF690080D069 /* U4DPadButtonPressedState.mm */,
+				03722E02202CBF860080D069 /* U4DPadButtonReleasedState.h */,
+				03722E01202CBF860080D069 /* U4DPadButtonReleasedState.mm */,
+				03722E08202CBF9E0080D069 /* U4DPadButtonIdleState.h */,
+				03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */,
+			);
+			name = PadButton;
+			sourceTree = "<group>";
+		};
+		03722DE8202CA5510080D069 /* PadJoystick */ = {
+			isa = PBXGroup;
+			children = (
+				0323DB9A202F5FB10007F087 /* U4DPadJoystick.h */,
+				0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */,
+				0323DBA0202F5FD30007F087 /* U4DPadJoystickStateInterface.h */,
+				0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */,
+				0323DBA6202F5FEF0007F087 /* U4DPadJoystickStateManager.h */,
+				0323DBA5202F5FEF0007F087 /* U4DPadJoystickStateManager.mm */,
+				0323DBAC202F60150007F087 /* U4DPadJoystickIdleState.h */,
+				0323DBAB202F60150007F087 /* U4DPadJoystickIdleState.mm */,
+				0323DBB2202F60360007F087 /* U4DPadJoystickActiveState.h */,
+				0323DBB1202F60360007F087 /* U4DPadJoystickActiveState.mm */,
+				0323DBB8202F60510007F087 /* U4DPadJoystickReleasedState.h */,
+				0323DBB7202F60510007F087 /* U4DPadJoystickReleasedState.mm */,
+			);
+			name = PadJoystick;
+			sourceTree = "<group>";
+		};
 		03759B29175B0135002EB5D9 = {
 			isa = PBXGroup;
 			children = (
@@ -1441,6 +1583,7 @@
 		03759B37175B0135002EB5D9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				03722DD7202B3BEB0080D069 /* GameController.framework */,
 				03722D852029F2250080D069 /* Foundation.framework */,
 				03722D832029F21A0080D069 /* Metal.framework */,
 				03722D812029F2150080D069 /* MetalKit.framework */,
@@ -1457,6 +1600,7 @@
 		03759B42175B0135002EB5D9 /* UntoldEngine4D */ = {
 			isa = PBXGroup;
 			children = (
+				03722DE0202BF7B10080D069 /* PadAxis */,
 				039FF2441F98EF4600B3D253 /* ParticleSystem */,
 				03C2787F1F7D432300AF463C /* VisibilityManager */,
 				03F2DAC31F19161F00F77B78 /* MetalShaders */,
@@ -1833,6 +1977,8 @@
 		03E6ED591943D6FE007AD131 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				03722DE8202CA5510080D069 /* PadJoystick */,
+				03722DE7202CA5450080D069 /* PadButton */,
 				03E6ED5A1943D6FE007AD131 /* Behavior */,
 				03E6ED5F1943D6FE007AD131 /* Button */,
 				03E6ED621943D6FE007AD131 /* Interface */,
@@ -1848,6 +1994,8 @@
 				03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */,
 				03E6ED5D1943D6FE007AD131 /* U4DTouchesController.h */,
 				03E6ED5E1943D6FE007AD131 /* U4DTouchesController.mm */,
+				03722DDA202B90AA0080D069 /* U4DGamepadController.h */,
+				03722DD9202B90AA0080D069 /* U4DGamepadController.mm */,
 			);
 			path = Behavior;
 			sourceTree = "<group>";
@@ -2395,6 +2543,7 @@
 				03722BE92029F0F50080D069 /* U4DVector4n.mm in Sources */,
 				03722BB62029F0F50080D069 /* U4DSpriteLoader.mm in Sources */,
 				03722B5F2029F0F50080D069 /* U4DMaterialData.mm in Sources */,
+				0323DBBA202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722BC22029F0F50080D069 /* U4DParticleEmitterLinear.mm in Sources */,
 				03722B7B2029F0F50080D069 /* U4DLights.mm in Sources */,
 				03722B632029F0F50080D069 /* U4DKeyboardController.mm in Sources */,
@@ -2418,6 +2567,7 @@
 				03722BD42029F0F50080D069 /* U4DBoneData.mm in Sources */,
 				03722B7D2029F0F50080D069 /* tinyxml2.mm in Sources */,
 				03722BF12029F0F50080D069 /* U4DTouchesController.mm in Sources */,
+				0323DBA2202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03722BE22029F0F50080D069 /* GoldDestroyState.mm in Sources */,
 				03722B572029F0F50080D069 /* U4DTrigonometry.mm in Sources */,
 				03722BD82029F0F50080D069 /* U4DTetrahedron.mm in Sources */,
@@ -2426,6 +2576,7 @@
 				03722BE52029F0F50080D069 /* U4DStaticModel.mm in Sources */,
 				03722B992029F0F50080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03722BBA2029F0F50080D069 /* GuardianIdleState.mm in Sources */,
+				03722E0A202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
 				03722BE62029F0F50080D069 /* U4DJoystickActiveState.mm in Sources */,
 				03722B8C2029F0F50080D069 /* GoldAsset.mm in Sources */,
 				03722B9D2029F0F50080D069 /* GoldIdleState.mm in Sources */,
@@ -2442,6 +2593,7 @@
 				03722BBB2029F0F50080D069 /* U4DJoystickReleasedState.mm in Sources */,
 				03722B662029F0F50080D069 /* U4DIntegrator.mm in Sources */,
 				03722BA82029F0F50080D069 /* U4DGameModel.mm in Sources */,
+				03722DF2202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */,
 				03722B962029F0F50080D069 /* skyboxShader.metal in Sources */,
 				03722B8A2029F0F50080D069 /* U4DBVHCollision.mm in Sources */,
 				03722B9A2029F0F50080D069 /* U4DManifoldGeneration.mm in Sources */,
@@ -2451,6 +2603,7 @@
 				03722BBD2029F0F50080D069 /* U4DTransformation.mm in Sources */,
 				03722B5D2029F0F50080D069 /* lightShader.metal in Sources */,
 				03722BAE2029F0F50080D069 /* U4DButtonStateManager.mm in Sources */,
+				0323DBB4202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03722B942029F0F50080D069 /* U4DRenderMultiImage.mm in Sources */,
 				03722B792029F0F50080D069 /* U4DNumerical.mm in Sources */,
 				03722B8F2029F0F50080D069 /* U4DBoundingVolume.mm in Sources */,
@@ -2466,13 +2619,16 @@
 				03722B722029F0F50080D069 /* nonVisibleShader.metal in Sources */,
 				03722B5C2029F0F50080D069 /* U4DBoundingConvex.mm in Sources */,
 				03722BE32029F0F50080D069 /* GuardianStateInterface.mm in Sources */,
+				0323DB96202F27160007F087 /* GamePadControllers.mm in Sources */,
 				03722BA72029F0F50080D069 /* U4DGameModelInterface.mm in Sources */,
 				03722BD32029F0F50080D069 /* U4DJoyStick.mm in Sources */,
 				03722B762029F0F50080D069 /* U4DMatrix3n.mm in Sources */,
 				03722BDA2029F0F50080D069 /* geometryShader.metal in Sources */,
 				03722BC52029F0F50080D069 /* imageShader.metal in Sources */,
 				03722BEC2029F0F50080D069 /* U4DParticleEmitter.mm in Sources */,
+				0323DBA8202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
 				03722B862029F0F50080D069 /* worldShader.metal in Sources */,
+				03722DE4202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722B552029F0F50080D069 /* U4DOBB.mm in Sources */,
 				03722B802029F0F50080D069 /* U4DParticleEmitterInterface.mm in Sources */,
 				03722BC42029F0F50080D069 /* U4DPhysicsEngine.mm in Sources */,
@@ -2502,10 +2658,12 @@
 				03722B8B2029F0F50080D069 /* shadowShader.metal in Sources */,
 				03722BED2029F0F50080D069 /* U4DSpriteAnimation.mm in Sources */,
 				03722BC92029F0F50080D069 /* U4DArmatureData.mm in Sources */,
+				03722DDC202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
 				03722B812029F0F50080D069 /* GoldStateManager.mm in Sources */,
 				03722B882029F0F50080D069 /* U4DText.mm in Sources */,
 				03722BDE2029F0F50080D069 /* U4DButton.mm in Sources */,
 				03722B592029F0F50080D069 /* U4DParticleEmitterSphere.mm in Sources */,
+				03722DF8202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722BCA2029F0F50080D069 /* U4DRenderManager.mm in Sources */,
 				03722B9B2029F0F50080D069 /* U4DBVHManager.mm in Sources */,
 				03722BB82029F0F50080D069 /* U4DButtonStateInterface.mm in Sources */,
@@ -2515,6 +2673,7 @@
 				03722BCB2029F0F50080D069 /* GameController.mm in Sources */,
 				03722BCC2029F0F50080D069 /* U4DTriangle.mm in Sources */,
 				03722BDF2029F0F50080D069 /* U4DParticlePhysics.mm in Sources */,
+				03722DFE202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722BC62029F0F50080D069 /* U4DVisibilityCulling.mm in Sources */,
 				03722B6E2029F0F50080D069 /* U4DCollisionResponse.mm in Sources */,
 				03722B822029F0F50080D069 /* U4DFontLoader.mm in Sources */,
@@ -2523,6 +2682,7 @@
 				03722BB52029F0F50080D069 /* U4DEntity.mm in Sources */,
 				03722B752029F0F50080D069 /* U4DButtonPressedState.mm in Sources */,
 				03722BCD2029F0F50080D069 /* U4DAABB.mm in Sources */,
+				0323DB9C202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03722B622029F0F50080D069 /* U4DBoundingOBB.mm in Sources */,
 				03722BA32029F0F50080D069 /* GuardianModel.mm in Sources */,
 				03722BC12029F0F50080D069 /* U4DTransformationManagerInterface.mm in Sources */,
@@ -2537,9 +2697,12 @@
 				03722B6A2029F0F50080D069 /* U4DBodyForceGenerator.mm in Sources */,
 				03722BA52029F0F50080D069 /* U4DCallbackInterface.mm in Sources */,
 				03722B642029F0F50080D069 /* U4DPlane.mm in Sources */,
+				0323DBAE202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B122029F0220080D069 /* AppDelegate.mm in Sources */,
 				03722BF02029F0F50080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03722B9F2029F0F50080D069 /* U4DGravityForceGenerator.mm in Sources */,
+				03722E04202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
+				03722DEC202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03722BB12029F0F50080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03722BBC2029F0F50080D069 /* U4DParticle.mm in Sources */,
 				03722B7C2029F0F50080D069 /* U4DJoystickIdleState.mm in Sources */,
@@ -2562,6 +2725,7 @@
 				03722C862029F0F70080D069 /* U4DVector4n.mm in Sources */,
 				03722C532029F0F70080D069 /* U4DSpriteLoader.mm in Sources */,
 				03722BFC2029F0F70080D069 /* U4DMaterialData.mm in Sources */,
+				0323DBBB202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722C5F2029F0F70080D069 /* U4DParticleEmitterLinear.mm in Sources */,
 				03722C182029F0F70080D069 /* U4DLights.mm in Sources */,
 				03722C002029F0F70080D069 /* U4DKeyboardController.mm in Sources */,
@@ -2585,6 +2749,7 @@
 				03722C712029F0F70080D069 /* U4DBoneData.mm in Sources */,
 				03722C1A2029F0F70080D069 /* tinyxml2.mm in Sources */,
 				03722C8E2029F0F70080D069 /* U4DTouchesController.mm in Sources */,
+				0323DBA3202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03722C7F2029F0F70080D069 /* GoldDestroyState.mm in Sources */,
 				03722BF42029F0F60080D069 /* U4DTrigonometry.mm in Sources */,
 				03722C752029F0F70080D069 /* U4DTetrahedron.mm in Sources */,
@@ -2593,6 +2758,7 @@
 				03722C822029F0F70080D069 /* U4DStaticModel.mm in Sources */,
 				03722C362029F0F70080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03722C572029F0F70080D069 /* GuardianIdleState.mm in Sources */,
+				03722E0B202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
 				03722C832029F0F70080D069 /* U4DJoystickActiveState.mm in Sources */,
 				03722C292029F0F70080D069 /* GoldAsset.mm in Sources */,
 				03722C3A2029F0F70080D069 /* GoldIdleState.mm in Sources */,
@@ -2609,6 +2775,7 @@
 				03722C582029F0F70080D069 /* U4DJoystickReleasedState.mm in Sources */,
 				03722C032029F0F70080D069 /* U4DIntegrator.mm in Sources */,
 				03722C452029F0F70080D069 /* U4DGameModel.mm in Sources */,
+				03722DF3202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */,
 				03722C332029F0F70080D069 /* skyboxShader.metal in Sources */,
 				03722C272029F0F70080D069 /* U4DBVHCollision.mm in Sources */,
 				03722C372029F0F70080D069 /* U4DManifoldGeneration.mm in Sources */,
@@ -2618,6 +2785,7 @@
 				03722C5A2029F0F70080D069 /* U4DTransformation.mm in Sources */,
 				03722BFA2029F0F70080D069 /* lightShader.metal in Sources */,
 				03722C4B2029F0F70080D069 /* U4DButtonStateManager.mm in Sources */,
+				0323DBB5202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03722C312029F0F70080D069 /* U4DRenderMultiImage.mm in Sources */,
 				03722C162029F0F70080D069 /* U4DNumerical.mm in Sources */,
 				03722C2C2029F0F70080D069 /* U4DBoundingVolume.mm in Sources */,
@@ -2633,13 +2801,16 @@
 				03722C0F2029F0F70080D069 /* nonVisibleShader.metal in Sources */,
 				03722BF92029F0F70080D069 /* U4DBoundingConvex.mm in Sources */,
 				03722C802029F0F70080D069 /* GuardianStateInterface.mm in Sources */,
+				0323DB97202F27160007F087 /* GamePadControllers.mm in Sources */,
 				03722C442029F0F70080D069 /* U4DGameModelInterface.mm in Sources */,
 				03722C702029F0F70080D069 /* U4DJoyStick.mm in Sources */,
 				03722C132029F0F70080D069 /* U4DMatrix3n.mm in Sources */,
 				03722C772029F0F70080D069 /* geometryShader.metal in Sources */,
 				03722C622029F0F70080D069 /* imageShader.metal in Sources */,
 				03722C892029F0F70080D069 /* U4DParticleEmitter.mm in Sources */,
+				0323DBA9202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
 				03722C232029F0F70080D069 /* worldShader.metal in Sources */,
+				03722DE5202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722BF22029F0F60080D069 /* U4DOBB.mm in Sources */,
 				03722C1D2029F0F70080D069 /* U4DParticleEmitterInterface.mm in Sources */,
 				03722C612029F0F70080D069 /* U4DPhysicsEngine.mm in Sources */,
@@ -2669,10 +2840,12 @@
 				03722C282029F0F70080D069 /* shadowShader.metal in Sources */,
 				03722C8A2029F0F70080D069 /* U4DSpriteAnimation.mm in Sources */,
 				03722C662029F0F70080D069 /* U4DArmatureData.mm in Sources */,
+				03722DDD202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
 				03722C1E2029F0F70080D069 /* GoldStateManager.mm in Sources */,
 				03722C252029F0F70080D069 /* U4DText.mm in Sources */,
 				03722C7B2029F0F70080D069 /* U4DButton.mm in Sources */,
 				03722BF62029F0F70080D069 /* U4DParticleEmitterSphere.mm in Sources */,
+				03722DF9202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722C672029F0F70080D069 /* U4DRenderManager.mm in Sources */,
 				03722C382029F0F70080D069 /* U4DBVHManager.mm in Sources */,
 				03722C552029F0F70080D069 /* U4DButtonStateInterface.mm in Sources */,
@@ -2682,6 +2855,7 @@
 				03722C682029F0F70080D069 /* GameController.mm in Sources */,
 				03722C692029F0F70080D069 /* U4DTriangle.mm in Sources */,
 				03722C7C2029F0F70080D069 /* U4DParticlePhysics.mm in Sources */,
+				03722DFF202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722C632029F0F70080D069 /* U4DVisibilityCulling.mm in Sources */,
 				03722C0B2029F0F70080D069 /* U4DCollisionResponse.mm in Sources */,
 				03722C1F2029F0F70080D069 /* U4DFontLoader.mm in Sources */,
@@ -2690,6 +2864,7 @@
 				03722C522029F0F70080D069 /* U4DEntity.mm in Sources */,
 				03722C122029F0F70080D069 /* U4DButtonPressedState.mm in Sources */,
 				03722C6A2029F0F70080D069 /* U4DAABB.mm in Sources */,
+				0323DB9D202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03722BFF2029F0F70080D069 /* U4DBoundingOBB.mm in Sources */,
 				03722C402029F0F70080D069 /* GuardianModel.mm in Sources */,
 				03722C5E2029F0F70080D069 /* U4DTransformationManagerInterface.mm in Sources */,
@@ -2704,9 +2879,12 @@
 				03722C072029F0F70080D069 /* U4DBodyForceGenerator.mm in Sources */,
 				03722C422029F0F70080D069 /* U4DCallbackInterface.mm in Sources */,
 				03722C012029F0F70080D069 /* U4DPlane.mm in Sources */,
+				0323DBAF202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B272029F0220080D069 /* AppDelegate.mm in Sources */,
 				03722C8D2029F0F70080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03722C3C2029F0F70080D069 /* U4DGravityForceGenerator.mm in Sources */,
+				03722E05202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
+				03722DED202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03722C4E2029F0F70080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03722C592029F0F70080D069 /* U4DParticle.mm in Sources */,
 				03722C192029F0F70080D069 /* U4DJoystickIdleState.mm in Sources */,
@@ -2729,6 +2907,7 @@
 				03722D232029F0F80080D069 /* U4DVector4n.mm in Sources */,
 				03722CF02029F0F80080D069 /* U4DSpriteLoader.mm in Sources */,
 				03722C992029F0F80080D069 /* U4DMaterialData.mm in Sources */,
+				0323DBBC202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722CFC2029F0F80080D069 /* U4DParticleEmitterLinear.mm in Sources */,
 				03722CB52029F0F80080D069 /* U4DLights.mm in Sources */,
 				03722C9D2029F0F80080D069 /* U4DKeyboardController.mm in Sources */,
@@ -2752,6 +2931,7 @@
 				03722D0E2029F0F80080D069 /* U4DBoneData.mm in Sources */,
 				03722CB72029F0F80080D069 /* tinyxml2.mm in Sources */,
 				03722D2B2029F0F80080D069 /* U4DTouchesController.mm in Sources */,
+				0323DBA4202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03722D1C2029F0F80080D069 /* GoldDestroyState.mm in Sources */,
 				03722C912029F0F80080D069 /* U4DTrigonometry.mm in Sources */,
 				03722D122029F0F80080D069 /* U4DTetrahedron.mm in Sources */,
@@ -2760,6 +2940,7 @@
 				03722D1F2029F0F80080D069 /* U4DStaticModel.mm in Sources */,
 				03722CD32029F0F80080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03722CF42029F0F80080D069 /* GuardianIdleState.mm in Sources */,
+				03722E0C202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
 				03722D202029F0F80080D069 /* U4DJoystickActiveState.mm in Sources */,
 				03722CC62029F0F80080D069 /* GoldAsset.mm in Sources */,
 				03722CD72029F0F80080D069 /* GoldIdleState.mm in Sources */,
@@ -2776,6 +2957,7 @@
 				03722CF52029F0F80080D069 /* U4DJoystickReleasedState.mm in Sources */,
 				03722CA02029F0F80080D069 /* U4DIntegrator.mm in Sources */,
 				03722CE22029F0F80080D069 /* U4DGameModel.mm in Sources */,
+				03722DF4202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */,
 				03722CD02029F0F80080D069 /* skyboxShader.metal in Sources */,
 				03722CC42029F0F80080D069 /* U4DBVHCollision.mm in Sources */,
 				03722CD42029F0F80080D069 /* U4DManifoldGeneration.mm in Sources */,
@@ -2785,6 +2967,7 @@
 				03722CF72029F0F80080D069 /* U4DTransformation.mm in Sources */,
 				03722C972029F0F80080D069 /* lightShader.metal in Sources */,
 				03722CE82029F0F80080D069 /* U4DButtonStateManager.mm in Sources */,
+				0323DBB6202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03722CCE2029F0F80080D069 /* U4DRenderMultiImage.mm in Sources */,
 				03722CB32029F0F80080D069 /* U4DNumerical.mm in Sources */,
 				03722CC92029F0F80080D069 /* U4DBoundingVolume.mm in Sources */,
@@ -2800,13 +2983,16 @@
 				03722CAC2029F0F80080D069 /* nonVisibleShader.metal in Sources */,
 				03722C962029F0F80080D069 /* U4DBoundingConvex.mm in Sources */,
 				03722D1D2029F0F80080D069 /* GuardianStateInterface.mm in Sources */,
+				0323DB98202F27160007F087 /* GamePadControllers.mm in Sources */,
 				03722CE12029F0F80080D069 /* U4DGameModelInterface.mm in Sources */,
 				03722D0D2029F0F80080D069 /* U4DJoyStick.mm in Sources */,
 				03722CB02029F0F80080D069 /* U4DMatrix3n.mm in Sources */,
 				03722D142029F0F80080D069 /* geometryShader.metal in Sources */,
 				03722CFF2029F0F80080D069 /* imageShader.metal in Sources */,
 				03722D262029F0F80080D069 /* U4DParticleEmitter.mm in Sources */,
+				0323DBAA202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
 				03722CC02029F0F80080D069 /* worldShader.metal in Sources */,
+				03722DE6202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722C8F2029F0F80080D069 /* U4DOBB.mm in Sources */,
 				03722CBA2029F0F80080D069 /* U4DParticleEmitterInterface.mm in Sources */,
 				03722CFE2029F0F80080D069 /* U4DPhysicsEngine.mm in Sources */,
@@ -2836,10 +3022,12 @@
 				03722CC52029F0F80080D069 /* shadowShader.metal in Sources */,
 				03722D272029F0F80080D069 /* U4DSpriteAnimation.mm in Sources */,
 				03722D032029F0F80080D069 /* U4DArmatureData.mm in Sources */,
+				03722DDE202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
 				03722CBB2029F0F80080D069 /* GoldStateManager.mm in Sources */,
 				03722CC22029F0F80080D069 /* U4DText.mm in Sources */,
 				03722D182029F0F80080D069 /* U4DButton.mm in Sources */,
 				03722C932029F0F80080D069 /* U4DParticleEmitterSphere.mm in Sources */,
+				03722DFA202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722D042029F0F80080D069 /* U4DRenderManager.mm in Sources */,
 				03722CD52029F0F80080D069 /* U4DBVHManager.mm in Sources */,
 				03722CF22029F0F80080D069 /* U4DButtonStateInterface.mm in Sources */,
@@ -2849,6 +3037,7 @@
 				03722D052029F0F80080D069 /* GameController.mm in Sources */,
 				03722D062029F0F80080D069 /* U4DTriangle.mm in Sources */,
 				03722D192029F0F80080D069 /* U4DParticlePhysics.mm in Sources */,
+				03722E00202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722D002029F0F80080D069 /* U4DVisibilityCulling.mm in Sources */,
 				03722CA82029F0F80080D069 /* U4DCollisionResponse.mm in Sources */,
 				03722CBC2029F0F80080D069 /* U4DFontLoader.mm in Sources */,
@@ -2857,6 +3046,7 @@
 				03722CEF2029F0F80080D069 /* U4DEntity.mm in Sources */,
 				03722CAF2029F0F80080D069 /* U4DButtonPressedState.mm in Sources */,
 				03722D072029F0F80080D069 /* U4DAABB.mm in Sources */,
+				0323DB9E202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03722C9C2029F0F80080D069 /* U4DBoundingOBB.mm in Sources */,
 				03722CDD2029F0F80080D069 /* GuardianModel.mm in Sources */,
 				03722CFB2029F0F80080D069 /* U4DTransformationManagerInterface.mm in Sources */,
@@ -2871,9 +3061,12 @@
 				03722CA42029F0F80080D069 /* U4DBodyForceGenerator.mm in Sources */,
 				03722CDF2029F0F80080D069 /* U4DCallbackInterface.mm in Sources */,
 				03722C9E2029F0F80080D069 /* U4DPlane.mm in Sources */,
+				0323DBB0202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B392029F0220080D069 /* AppDelegate.mm in Sources */,
 				03722D2A2029F0F80080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03722CD92029F0F80080D069 /* U4DGravityForceGenerator.mm in Sources */,
+				03722E06202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
+				03722DEE202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03722CEB2029F0F80080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03722CF62029F0F80080D069 /* U4DParticle.mm in Sources */,
 				03722CB62029F0F80080D069 /* U4DJoystickIdleState.mm in Sources */,
@@ -2922,6 +3115,7 @@
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				03C03C431F43EA2F0001EFA1 /* U4DButtonPressedState.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
+				0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,
@@ -2937,10 +3131,14 @@
 				038249221FA252AE00DFEFE3 /* U4DParticleEmitterTorus.mm in Sources */,
 				03C03C4F1F4540610001EFA1 /* U4DJoystickStateInterface.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
+				0323DB95202F27160007F087 /* GamePadControllers.mm in Sources */,
 				03F2DAF61F191A2600F77B78 /* worldShader.metal in Sources */,
+				0323DBB3202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				039EC6B51FB57C8C0098BB5C /* GoldStateInterface.mm in Sources */,
 				03494BB11F48AE8600ACE0EC /* U4DText.mm in Sources */,
 				03759BBF175B0383002EB5D9 /* U4DScene.mm in Sources */,
+				03722DF7202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
+				03722DF1202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */,
 				039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */,
 				03F2DAE81F1919D400F77B78 /* shadowShader.metal in Sources */,
 				039EC6B81FB57C970098BB5C /* GoldAsset.mm in Sources */,
@@ -2969,14 +3167,18 @@
 				03FE2CDD1F1FA90100D4E2FB /* GuardianModel.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
+				03722DFD202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				032567D61F256A2800A5A505 /* ModelAsset.mm in Sources */,
+				0323DBB9202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
+				03722DE3202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03494BBA1F4D55EF00ACE0EC /* U4DSprite.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
+				03722E09202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
 				03C03C401F43E2A80001EFA1 /* U4DButtonStateManager.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
 				033343011F8DA84A0013FB1E /* particleSystemShader.metal in Sources */,
@@ -3004,6 +3206,7 @@
 				03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */,
 				03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */,
 				036024E61FB29D4B0054236E /* MessageDispatcher.mm in Sources */,
+				0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03F2DB111F191F9B00F77B78 /* U4DRenderManager.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
@@ -3014,15 +3217,18 @@
 				03E6EDD71943D816007AD131 /* U4DCollisionEngine.mm in Sources */,
 				03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */,
 				03EF85411791E426007D6152 /* U4DIndex.mm in Sources */,
+				03722DEB202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03E6ED6C1943D6FE007AD131 /* U4DJoyStick.mm in Sources */,
 				03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */,
 				036024E21FB29D390054236E /* GuardianStateManager.mm in Sources */,
+				03722DDB202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
 				036FB57C18CE9CB8000EA639 /* Earth.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkybox.mm in Sources */,
 				030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */,
 				039EC6B41FB57C8C0098BB5C /* GoldEatenState.mm in Sources */,
 				03F2DAF01F191A2600F77B78 /* geometryShader.metal in Sources */,
 				03F2DB0F1F191F9B00F77B78 /* U4DRenderImage.mm in Sources */,
+				0323DBA7202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
 				037C474217B597CB007B8283 /* U4DModel.mm in Sources */,
 				037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */,
 				03E6ED6A1943D6FE007AD131 /* U4DButton.mm in Sources */,
@@ -3034,12 +3240,14 @@
 				030449A217B8548500A3A2AE /* U4DVector2n.mm in Sources */,
 				03E6EDE61943D866007AD131 /* U4DStaticModel.mm in Sources */,
 				03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */,
+				0323DBAD202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */,
 				03C03C4C1F44B3FB0001EFA1 /* U4DButtonMovedState.mm in Sources */,
 				038249251FA252AE00DFEFE3 /* U4DParticleEmitter.mm in Sources */,
+				03722E03202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
 				03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,

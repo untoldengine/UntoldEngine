@@ -165,6 +165,23 @@ namespace U4DEngine {
         scene->touchMoved(touches);
     }
     
+    void U4DDirector::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+        
+        scene->padPressBegan(uGamePadElement, uGamePadAction);
+        
+    }
+    
+    void U4DDirector::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+        
+        scene->padPressEnded(uGamePadElement, uGamePadAction);
+    }
+    
+    void U4DDirector::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
+        
+        scene->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
+        
+    }
+    
     void U4DDirector::setWorld(U4DWorld *uWorld){
         
         world=uWorld;
@@ -206,6 +223,16 @@ namespace U4DEngine {
     MTKView *U4DDirector::getMTLView(){
         
         return mtlView;
+    }
+    
+    void U4DDirector::setDeviceOSType(DEVICEOSTYPE &uDeviceOSType){
+        
+        deviceOSType=uDeviceOSType;
+    }
+    
+    DEVICEOSTYPE U4DDirector::getDeviceOSType(){
+        
+        return deviceOSType;
     }
     
     void U4DDirector::setPerspectiveSpace(U4DMatrix4n &uSpace){

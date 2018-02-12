@@ -51,6 +51,10 @@ public:
     void touchMoved(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);
     
+    void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
+    void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
+    void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
+    
     void changeState(const U4DTouches &touches,TOUCHSTATE touchState);
     
     void setGameWorld(U4DWorld *uGameWorld);
@@ -59,7 +63,7 @@ public:
     U4DWorld* getGameWorld();
     U4DGameModelInterface* getGameModel();
     
-    void sendTouchUpdate(void *uData);
+    void sendUserInputUpdate(void *uData);
     
     void setReceivedAction(bool uValue);
 };
