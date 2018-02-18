@@ -10,7 +10,7 @@
 #include <algorithm>
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
-#include "U4DPolytope.h"
+
 #include "CommonProtocols.h"
 #include "Constants.h"
 

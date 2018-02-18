@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "U4DManifoldGeneration.h"
-#include "U4DPolytope.h"
+
 
 namespace U4DEngine {
     
