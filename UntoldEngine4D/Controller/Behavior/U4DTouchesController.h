@@ -45,7 +45,6 @@ public:
     ~U4DTouchesController();
 
     virtual void init(){};
-    void keyboardInput(int key){};
     
     void touchBegan(const U4DTouches &touches);
     void touchMoved(const U4DTouches &touches);
@@ -54,6 +53,12 @@ public:
     void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
     void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
     void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
+    
+    void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){};
+    
+    void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){};
+    
+    void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){};
     
     void changeState(const U4DTouches &touches,TOUCHSTATE touchState);
     

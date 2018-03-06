@@ -642,6 +642,28 @@ namespace U4DEngine {
         
     }DEVICEOSTYPE;
     
+    /**
+     @brief The KEYBOARDELEMENT enum holds information about the elements of a keyboard
+     */
+    typedef enum{
+        
+        macArrowKey,
+        macKeyA,
+        macKeyD
+        
+    }KEYBOARDELEMENT;
+    
+    /**
+     @brief The KEYBOARDACTION enum holds information about the action of the element of a key
+     */
+    typedef enum{
+        
+        macKeyPressed,
+        macKeyReleased,
+        macArrowKeyActive,
+        macArrowKeyReleased
+        
+    }KEYBOARDACTION;
     
 }
 

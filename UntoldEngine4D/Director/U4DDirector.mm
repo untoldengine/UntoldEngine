@@ -182,6 +182,23 @@ namespace U4DEngine {
         
     }
     
+    void U4DDirector::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+        
+        scene->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
+        
+    }
+    
+    void U4DDirector::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+        
+        scene->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
+    }
+    
+    void U4DDirector::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
+        
+        scene->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
+        
+    }
+
     void U4DDirector::setWorld(U4DWorld *uWorld){
         
         world=uWorld;

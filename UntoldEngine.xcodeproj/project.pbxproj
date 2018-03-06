@@ -66,6 +66,58 @@
 		03297C051FABAE52006422AC /* armor.png in Resources */ = {isa = PBXBuildFile; fileRef = 03297C041FABAE52006422AC /* armor.png */; };
 		032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */; };
 		033343011F8DA84A0013FB1E /* particleSystemShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033343001F8DA84A0013FB1E /* particleSystemShader.metal */; };
+		0341ABED204D84A9006E14A9 /* KeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABEB204D84A9006E14A9 /* KeyboardController.mm */; };
+		0341ABEE204D84A9006E14A9 /* KeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABEB204D84A9006E14A9 /* KeyboardController.mm */; };
+		0341ABEF204D84A9006E14A9 /* KeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABEB204D84A9006E14A9 /* KeyboardController.mm */; };
+		0341ABF0204D84A9006E14A9 /* KeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABEB204D84A9006E14A9 /* KeyboardController.mm */; };
+		0341ABFE204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
+		0341ABFF204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
+		0341AC00204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
+		0341AC01204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
+		0341AC02204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */; };
+		0341AC03204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */; };
+		0341AC04204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */; };
+		0341AC05204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */; };
+		0341AC06204D8CA2006E14A9 /* U4DMacKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */; };
+		0341AC07204D8CA2006E14A9 /* U4DMacKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */; };
+		0341AC08204D8CA2006E14A9 /* U4DMacKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */; };
+		0341AC09204D8CA2006E14A9 /* U4DMacKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */; };
+		0341AC0A204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF6204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm */; };
+		0341AC0B204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF6204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm */; };
+		0341AC0C204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF6204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm */; };
+		0341AC0D204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF6204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm */; };
+		0341AC0E204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF9204D8CA2006E14A9 /* U4DMacKeyStateManager.mm */; };
+		0341AC0F204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF9204D8CA2006E14A9 /* U4DMacKeyStateManager.mm */; };
+		0341AC10204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF9204D8CA2006E14A9 /* U4DMacKeyStateManager.mm */; };
+		0341AC11204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF9204D8CA2006E14A9 /* U4DMacKeyStateManager.mm */; };
+		0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABFC204D8CA2006E14A9 /* U4DMacKeyIdleState.mm */; };
+		0341AC13204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABFC204D8CA2006E14A9 /* U4DMacKeyIdleState.mm */; };
+		0341AC14204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABFC204D8CA2006E14A9 /* U4DMacKeyIdleState.mm */; };
+		0341AC15204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABFC204D8CA2006E14A9 /* U4DMacKeyIdleState.mm */; };
+		0341AC18204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC16204D8CDF006E14A9 /* U4DMacArrowKey.mm */; };
+		0341AC19204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC16204D8CDF006E14A9 /* U4DMacArrowKey.mm */; };
+		0341AC1A204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC16204D8CDF006E14A9 /* U4DMacArrowKey.mm */; };
+		0341AC1B204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC16204D8CDF006E14A9 /* U4DMacArrowKey.mm */; };
+		0341AC1E204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC1C204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm */; };
+		0341AC1F204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC1C204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm */; };
+		0341AC20204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC1C204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm */; };
+		0341AC21204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC1C204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm */; };
+		0341AC24204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC22204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm */; };
+		0341AC25204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC22204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm */; };
+		0341AC26204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC22204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm */; };
+		0341AC27204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC22204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm */; };
+		0341AC2A204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC28204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm */; };
+		0341AC2B204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC28204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm */; };
+		0341AC2C204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC28204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm */; };
+		0341AC2D204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC28204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm */; };
+		0341AC30204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC2E204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm */; };
+		0341AC31204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC2E204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm */; };
+		0341AC32204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC2E204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm */; };
+		0341AC33204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC2E204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm */; };
+		0341AC36204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */; };
+		0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */; };
+		0341AC38204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */; };
+		0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
 		03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */; };
 		03494BB11F48AE8600ACE0EC /* U4DText.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BB01F48AE8600ACE0EC /* U4DText.mm */; };
@@ -903,6 +955,32 @@
 		032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBlendAnimation.mm; sourceTree = "<group>"; };
 		032BD8A01E567FC300C158A1 /* U4DBlendAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBlendAnimation.h; sourceTree = "<group>"; };
 		033343001F8DA84A0013FB1E /* particleSystemShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = particleSystemShader.metal; path = MetalShaders/particleSystemShader.metal; sourceTree = "<group>"; };
+		0341ABEB204D84A9006E14A9 /* KeyboardController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = KeyboardController.mm; path = Game/KeyboardController.mm; sourceTree = SOURCE_ROOT; };
+		0341ABEC204D84A9006E14A9 /* KeyboardController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = KeyboardController.h; path = Game/KeyboardController.h; sourceTree = SOURCE_ROOT; };
+		0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyPressedState.mm; path = MacKeys/U4DMacKeyPressedState.mm; sourceTree = "<group>"; };
+		0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyReleasedState.mm; path = MacKeys/U4DMacKeyReleasedState.mm; sourceTree = "<group>"; };
+		0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKey.mm; path = MacKeys/U4DMacKey.mm; sourceTree = "<group>"; };
+		0341ABF5204D8CA1006E14A9 /* U4DMacKeyPressedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DMacKeyPressedState.h; path = MacKeys/U4DMacKeyPressedState.h; sourceTree = "<group>"; };
+		0341ABF6204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyStateInterface.mm; path = MacKeys/U4DMacKeyStateInterface.mm; sourceTree = "<group>"; };
+		0341ABF7204D8CA2006E14A9 /* U4DMacKeyReleasedState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DMacKeyReleasedState.h; path = MacKeys/U4DMacKeyReleasedState.h; sourceTree = "<group>"; };
+		0341ABF8204D8CA2006E14A9 /* U4DMacKeyStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DMacKeyStateManager.h; path = MacKeys/U4DMacKeyStateManager.h; sourceTree = "<group>"; };
+		0341ABF9204D8CA2006E14A9 /* U4DMacKeyStateManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyStateManager.mm; path = MacKeys/U4DMacKeyStateManager.mm; sourceTree = "<group>"; };
+		0341ABFA204D8CA2006E14A9 /* U4DMacKeyStateInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DMacKeyStateInterface.h; path = MacKeys/U4DMacKeyStateInterface.h; sourceTree = "<group>"; };
+		0341ABFB204D8CA2006E14A9 /* U4DMacKey.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DMacKey.h; path = MacKeys/U4DMacKey.h; sourceTree = "<group>"; };
+		0341ABFC204D8CA2006E14A9 /* U4DMacKeyIdleState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyIdleState.mm; path = MacKeys/U4DMacKeyIdleState.mm; sourceTree = "<group>"; };
+		0341ABFD204D8CA2006E14A9 /* U4DMacKeyIdleState.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DMacKeyIdleState.h; path = MacKeys/U4DMacKeyIdleState.h; sourceTree = "<group>"; };
+		0341AC16204D8CDF006E14A9 /* U4DMacArrowKey.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacArrowKey.mm; path = MacArrowKeys/U4DMacArrowKey.mm; sourceTree = "<group>"; };
+		0341AC17204D8CDF006E14A9 /* U4DMacArrowKey.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKey.h; path = MacArrowKeys/U4DMacArrowKey.h; sourceTree = "<group>"; };
+		0341AC1C204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacArrowKeyStateInterface.mm; path = MacArrowKeys/U4DMacArrowKeyStateInterface.mm; sourceTree = "<group>"; };
+		0341AC1D204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKeyStateInterface.h; path = MacArrowKeys/U4DMacArrowKeyStateInterface.h; sourceTree = "<group>"; };
+		0341AC22204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacArrowKeyStateManager.mm; path = MacArrowKeys/U4DMacArrowKeyStateManager.mm; sourceTree = "<group>"; };
+		0341AC23204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKeyStateManager.h; path = MacArrowKeys/U4DMacArrowKeyStateManager.h; sourceTree = "<group>"; };
+		0341AC28204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacArrowKeyActiveState.mm; path = MacArrowKeys/U4DMacArrowKeyActiveState.mm; sourceTree = "<group>"; };
+		0341AC29204D8D59006E14A9 /* U4DMacArrowKeyActiveState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKeyActiveState.h; path = MacArrowKeys/U4DMacArrowKeyActiveState.h; sourceTree = "<group>"; };
+		0341AC2E204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacArrowKeyReleasedState.mm; path = MacArrowKeys/U4DMacArrowKeyReleasedState.mm; sourceTree = "<group>"; };
+		0341AC2F204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKeyReleasedState.h; path = MacArrowKeys/U4DMacArrowKeyReleasedState.h; sourceTree = "<group>"; };
+		0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacArrowKeyIdleState.mm; path = MacArrowKeys/U4DMacArrowKeyIdleState.mm; sourceTree = "<group>"; };
+		0341AC35204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKeyIdleState.h; path = MacArrowKeys/U4DMacArrowKeyIdleState.h; sourceTree = "<group>"; };
 		0346862A1B1A4DA400B2105B /* U4DPlane.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlane.mm; sourceTree = "<group>"; };
 		0346862B1B1A4DA400B2105B /* U4DPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlane.h; sourceTree = "<group>"; };
 		03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRenderFont.mm; path = RenderEngine/U4DRenderFont.mm; sourceTree = "<group>"; };
@@ -1371,6 +1449,44 @@
 			name = BoundingVolumes;
 			sourceTree = "<group>";
 		};
+		0341ABC6204BA715006E14A9 /* MacKeys */ = {
+			isa = PBXGroup;
+			children = (
+				0341ABFB204D8CA2006E14A9 /* U4DMacKey.h */,
+				0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */,
+				0341ABFA204D8CA2006E14A9 /* U4DMacKeyStateInterface.h */,
+				0341ABF6204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm */,
+				0341ABF8204D8CA2006E14A9 /* U4DMacKeyStateManager.h */,
+				0341ABF9204D8CA2006E14A9 /* U4DMacKeyStateManager.mm */,
+				0341ABF5204D8CA1006E14A9 /* U4DMacKeyPressedState.h */,
+				0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */,
+				0341ABF7204D8CA2006E14A9 /* U4DMacKeyReleasedState.h */,
+				0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */,
+				0341ABFD204D8CA2006E14A9 /* U4DMacKeyIdleState.h */,
+				0341ABFC204D8CA2006E14A9 /* U4DMacKeyIdleState.mm */,
+			);
+			name = MacKeys;
+			sourceTree = "<group>";
+		};
+		0341ABF1204D8C60006E14A9 /* MacArrowKeys */ = {
+			isa = PBXGroup;
+			children = (
+				0341AC17204D8CDF006E14A9 /* U4DMacArrowKey.h */,
+				0341AC16204D8CDF006E14A9 /* U4DMacArrowKey.mm */,
+				0341AC1D204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.h */,
+				0341AC1C204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm */,
+				0341AC23204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.h */,
+				0341AC22204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm */,
+				0341AC29204D8D59006E14A9 /* U4DMacArrowKeyActiveState.h */,
+				0341AC28204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm */,
+				0341AC2F204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.h */,
+				0341AC2E204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm */,
+				0341AC35204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.h */,
+				0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */,
+			);
+			name = MacArrowKeys;
+			sourceTree = "<group>";
+		};
 		034DBC791A73E08C00AC43EB /* Debugger */ = {
 			isa = PBXGroup;
 			children = (
@@ -1438,6 +1554,8 @@
 				03E6EE071943DA1D007AD131 /* GameController.mm */,
 				0323DB94202F27160007F087 /* GamePadControllers.h */,
 				0323DB93202F27160007F087 /* GamePadControllers.mm */,
+				0341ABEC204D84A9006E14A9 /* KeyboardController.h */,
+				0341ABEB204D84A9006E14A9 /* KeyboardController.mm */,
 				036FB55E18CE9CB8000EA639 /* Earth.h */,
 				036FB55F18CE9CB8000EA639 /* Earth.mm */,
 				036FB56C18CE9CB8000EA639 /* MainScene.h */,
@@ -1977,6 +2095,8 @@
 		03E6ED591943D6FE007AD131 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				0341ABF1204D8C60006E14A9 /* MacArrowKeys */,
+				0341ABC6204BA715006E14A9 /* MacKeys */,
 				03722DE8202CA5510080D069 /* PadJoystick */,
 				03722DE7202CA5450080D069 /* PadButton */,
 				03E6ED5A1943D6FE007AD131 /* Behavior */,
@@ -2545,8 +2665,12 @@
 				03722B5F2029F0F50080D069 /* U4DMaterialData.mm in Sources */,
 				0323DBBA202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722BC22029F0F50080D069 /* U4DParticleEmitterLinear.mm in Sources */,
+				0341AC03204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */,
+				0341ABEE204D84A9006E14A9 /* KeyboardController.mm in Sources */,
 				03722B7B2029F0F50080D069 /* U4DLights.mm in Sources */,
 				03722B632029F0F50080D069 /* U4DKeyboardController.mm in Sources */,
+				0341AC2B204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */,
+				0341AC19204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
 				03722BAD2029F0F50080D069 /* U4DImage.mm in Sources */,
 				03722BB02029F0F50080D069 /* particleSystemShader.metal in Sources */,
 				03722B892029F0F50080D069 /* U4DScene.mm in Sources */,
@@ -2561,6 +2685,7 @@
 				03722BB22029F0F50080D069 /* U4DCollisionDetection.mm in Sources */,
 				03722BA42029F0F50080D069 /* U4DTextureData.mm in Sources */,
 				03722BB92029F0F50080D069 /* U4DAnimation.mm in Sources */,
+				0341AC07204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				03722BD02029F0F50080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722B742029F0F50080D069 /* modelShader.metal in Sources */,
 				03722BCF2029F0F50080D069 /* U4DParticleData.mm in Sources */,
@@ -2568,10 +2693,12 @@
 				03722B7D2029F0F50080D069 /* tinyxml2.mm in Sources */,
 				03722BF12029F0F50080D069 /* U4DTouchesController.mm in Sources */,
 				0323DBA2202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
+				0341AC0F204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
 				03722BE22029F0F50080D069 /* GoldDestroyState.mm in Sources */,
 				03722B572029F0F50080D069 /* U4DTrigonometry.mm in Sources */,
 				03722BD82029F0F50080D069 /* U4DTetrahedron.mm in Sources */,
 				03722B842029F0F50080D069 /* U4DJoystickStateInterface.mm in Sources */,
+				0341AC13204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				03722BA02029F0F50080D069 /* GuardianJumpState.mm in Sources */,
 				03722BE52029F0F50080D069 /* U4DStaticModel.mm in Sources */,
 				03722B992029F0F50080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
@@ -2587,6 +2714,7 @@
 				03722B6D2029F0F50080D069 /* U4DRenderLights.mm in Sources */,
 				03722BC02029F0F50080D069 /* U4DEntityManager.mm in Sources */,
 				03722BD12029F0F50080D069 /* U4DColorData.mm in Sources */,
+				0341AC1F204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */,
 				03722BBE2029F0F50080D069 /* U4DButtonIdleState.mm in Sources */,
 				03722B1E2029F0220080D069 /* main.m in Sources */,
 				03722BC82029F0F50080D069 /* MessageDispatcher.mm in Sources */,
@@ -2597,6 +2725,7 @@
 				03722B962029F0F50080D069 /* skyboxShader.metal in Sources */,
 				03722B8A2029F0F50080D069 /* U4DBVHCollision.mm in Sources */,
 				03722B9A2029F0F50080D069 /* U4DManifoldGeneration.mm in Sources */,
+				0341AC31204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03722BD72029F0F50080D069 /* U4DSkybox.mm in Sources */,
 				03722B562029F0F50080D069 /* U4DBoundingSphere.mm in Sources */,
 				03722B952029F0F50080D069 /* U4DRender3DModel.mm in Sources */,
@@ -2643,6 +2772,7 @@
 				03722BE42029F0F50080D069 /* U4DVector2n.mm in Sources */,
 				03722BB32029F0F50080D069 /* U4DBoundingAABB.mm in Sources */,
 				03722B782029F0F50080D069 /* U4DMatrix4n.mm in Sources */,
+				0341ABFF204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
 				03722BAA2029F0F50080D069 /* ModelAsset.mm in Sources */,
 				03722B982029F0F50080D069 /* U4DJoystickStateManager.mm in Sources */,
 				03722B7A2029F0F50080D069 /* U4DRenderer.mm in Sources */,
@@ -2665,17 +2795,20 @@
 				03722B592029F0F50080D069 /* U4DParticleEmitterSphere.mm in Sources */,
 				03722DF8202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722BCA2029F0F50080D069 /* U4DRenderManager.mm in Sources */,
+				0341AC25204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
 				03722B9B2029F0F50080D069 /* U4DBVHManager.mm in Sources */,
 				03722BB82029F0F50080D069 /* U4DButtonStateInterface.mm in Sources */,
 				03722B682029F0F50080D069 /* U4DCamera.mm in Sources */,
 				03722B932029F0F50080D069 /* U4DRenderWorld.mm in Sources */,
 				03722BD92029F0F50080D069 /* GoldEatenState.mm in Sources */,
+				0341AC0B204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */,
 				03722BCB2029F0F50080D069 /* GameController.mm in Sources */,
 				03722BCC2029F0F50080D069 /* U4DTriangle.mm in Sources */,
 				03722BDF2029F0F50080D069 /* U4DParticlePhysics.mm in Sources */,
 				03722DFE202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722BC62029F0F50080D069 /* U4DVisibilityCulling.mm in Sources */,
 				03722B6E2029F0F50080D069 /* U4DCollisionResponse.mm in Sources */,
+				0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722B822029F0F50080D069 /* U4DFontLoader.mm in Sources */,
 				03722B5A2029F0F50080D069 /* U4DBoneIndices.mm in Sources */,
 				03722BE12029F0F50080D069 /* MainScene.mm in Sources */,
@@ -2727,8 +2860,12 @@
 				03722BFC2029F0F70080D069 /* U4DMaterialData.mm in Sources */,
 				0323DBBB202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722C5F2029F0F70080D069 /* U4DParticleEmitterLinear.mm in Sources */,
+				0341AC04204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */,
+				0341ABEF204D84A9006E14A9 /* KeyboardController.mm in Sources */,
 				03722C182029F0F70080D069 /* U4DLights.mm in Sources */,
 				03722C002029F0F70080D069 /* U4DKeyboardController.mm in Sources */,
+				0341AC2C204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */,
+				0341AC1A204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
 				03722C4A2029F0F70080D069 /* U4DImage.mm in Sources */,
 				03722C4D2029F0F70080D069 /* particleSystemShader.metal in Sources */,
 				03722C262029F0F70080D069 /* U4DScene.mm in Sources */,
@@ -2743,6 +2880,7 @@
 				03722C4F2029F0F70080D069 /* U4DCollisionDetection.mm in Sources */,
 				03722C412029F0F70080D069 /* U4DTextureData.mm in Sources */,
 				03722C562029F0F70080D069 /* U4DAnimation.mm in Sources */,
+				0341AC08204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				03722C6D2029F0F70080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722C112029F0F70080D069 /* modelShader.metal in Sources */,
 				03722C6C2029F0F70080D069 /* U4DParticleData.mm in Sources */,
@@ -2750,10 +2888,12 @@
 				03722C1A2029F0F70080D069 /* tinyxml2.mm in Sources */,
 				03722C8E2029F0F70080D069 /* U4DTouchesController.mm in Sources */,
 				0323DBA3202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
+				0341AC10204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
 				03722C7F2029F0F70080D069 /* GoldDestroyState.mm in Sources */,
 				03722BF42029F0F60080D069 /* U4DTrigonometry.mm in Sources */,
 				03722C752029F0F70080D069 /* U4DTetrahedron.mm in Sources */,
 				03722C212029F0F70080D069 /* U4DJoystickStateInterface.mm in Sources */,
+				0341AC14204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				03722C3D2029F0F70080D069 /* GuardianJumpState.mm in Sources */,
 				03722C822029F0F70080D069 /* U4DStaticModel.mm in Sources */,
 				03722C362029F0F70080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
@@ -2769,6 +2909,7 @@
 				03722C0A2029F0F70080D069 /* U4DRenderLights.mm in Sources */,
 				03722C5D2029F0F70080D069 /* U4DEntityManager.mm in Sources */,
 				03722C6E2029F0F70080D069 /* U4DColorData.mm in Sources */,
+				0341AC20204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */,
 				03722C5B2029F0F70080D069 /* U4DButtonIdleState.mm in Sources */,
 				03722B302029F0220080D069 /* main.m in Sources */,
 				03722C652029F0F70080D069 /* MessageDispatcher.mm in Sources */,
@@ -2779,6 +2920,7 @@
 				03722C332029F0F70080D069 /* skyboxShader.metal in Sources */,
 				03722C272029F0F70080D069 /* U4DBVHCollision.mm in Sources */,
 				03722C372029F0F70080D069 /* U4DManifoldGeneration.mm in Sources */,
+				0341AC32204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03722C742029F0F70080D069 /* U4DSkybox.mm in Sources */,
 				03722BF32029F0F60080D069 /* U4DBoundingSphere.mm in Sources */,
 				03722C322029F0F70080D069 /* U4DRender3DModel.mm in Sources */,
@@ -2825,6 +2967,7 @@
 				03722C812029F0F70080D069 /* U4DVector2n.mm in Sources */,
 				03722C502029F0F70080D069 /* U4DBoundingAABB.mm in Sources */,
 				03722C152029F0F70080D069 /* U4DMatrix4n.mm in Sources */,
+				0341AC00204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
 				03722C472029F0F70080D069 /* ModelAsset.mm in Sources */,
 				03722C352029F0F70080D069 /* U4DJoystickStateManager.mm in Sources */,
 				03722C172029F0F70080D069 /* U4DRenderer.mm in Sources */,
@@ -2847,17 +2990,20 @@
 				03722BF62029F0F70080D069 /* U4DParticleEmitterSphere.mm in Sources */,
 				03722DF9202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722C672029F0F70080D069 /* U4DRenderManager.mm in Sources */,
+				0341AC26204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
 				03722C382029F0F70080D069 /* U4DBVHManager.mm in Sources */,
 				03722C552029F0F70080D069 /* U4DButtonStateInterface.mm in Sources */,
 				03722C052029F0F70080D069 /* U4DCamera.mm in Sources */,
 				03722C302029F0F70080D069 /* U4DRenderWorld.mm in Sources */,
 				03722C762029F0F70080D069 /* GoldEatenState.mm in Sources */,
+				0341AC0C204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */,
 				03722C682029F0F70080D069 /* GameController.mm in Sources */,
 				03722C692029F0F70080D069 /* U4DTriangle.mm in Sources */,
 				03722C7C2029F0F70080D069 /* U4DParticlePhysics.mm in Sources */,
 				03722DFF202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722C632029F0F70080D069 /* U4DVisibilityCulling.mm in Sources */,
 				03722C0B2029F0F70080D069 /* U4DCollisionResponse.mm in Sources */,
+				0341AC38204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722C1F2029F0F70080D069 /* U4DFontLoader.mm in Sources */,
 				03722BF72029F0F70080D069 /* U4DBoneIndices.mm in Sources */,
 				03722C7E2029F0F70080D069 /* MainScene.mm in Sources */,
@@ -2909,8 +3055,12 @@
 				03722C992029F0F80080D069 /* U4DMaterialData.mm in Sources */,
 				0323DBBC202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722CFC2029F0F80080D069 /* U4DParticleEmitterLinear.mm in Sources */,
+				0341AC05204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */,
+				0341ABF0204D84A9006E14A9 /* KeyboardController.mm in Sources */,
 				03722CB52029F0F80080D069 /* U4DLights.mm in Sources */,
 				03722C9D2029F0F80080D069 /* U4DKeyboardController.mm in Sources */,
+				0341AC2D204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */,
+				0341AC1B204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
 				03722CE72029F0F80080D069 /* U4DImage.mm in Sources */,
 				03722CEA2029F0F80080D069 /* particleSystemShader.metal in Sources */,
 				03722CC32029F0F80080D069 /* U4DScene.mm in Sources */,
@@ -2925,6 +3075,7 @@
 				03722CEC2029F0F80080D069 /* U4DCollisionDetection.mm in Sources */,
 				03722CDE2029F0F80080D069 /* U4DTextureData.mm in Sources */,
 				03722CF32029F0F80080D069 /* U4DAnimation.mm in Sources */,
+				0341AC09204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				03722D0A2029F0F80080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722CAE2029F0F80080D069 /* modelShader.metal in Sources */,
 				03722D092029F0F80080D069 /* U4DParticleData.mm in Sources */,
@@ -2932,10 +3083,12 @@
 				03722CB72029F0F80080D069 /* tinyxml2.mm in Sources */,
 				03722D2B2029F0F80080D069 /* U4DTouchesController.mm in Sources */,
 				0323DBA4202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
+				0341AC11204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
 				03722D1C2029F0F80080D069 /* GoldDestroyState.mm in Sources */,
 				03722C912029F0F80080D069 /* U4DTrigonometry.mm in Sources */,
 				03722D122029F0F80080D069 /* U4DTetrahedron.mm in Sources */,
 				03722CBE2029F0F80080D069 /* U4DJoystickStateInterface.mm in Sources */,
+				0341AC15204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				03722CDA2029F0F80080D069 /* GuardianJumpState.mm in Sources */,
 				03722D1F2029F0F80080D069 /* U4DStaticModel.mm in Sources */,
 				03722CD32029F0F80080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
@@ -2951,6 +3104,7 @@
 				03722CA72029F0F80080D069 /* U4DRenderLights.mm in Sources */,
 				03722CFA2029F0F80080D069 /* U4DEntityManager.mm in Sources */,
 				03722D0B2029F0F80080D069 /* U4DColorData.mm in Sources */,
+				0341AC21204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */,
 				03722CF82029F0F80080D069 /* U4DButtonIdleState.mm in Sources */,
 				03722B422029F0220080D069 /* main.m in Sources */,
 				03722D022029F0F80080D069 /* MessageDispatcher.mm in Sources */,
@@ -2961,6 +3115,7 @@
 				03722CD02029F0F80080D069 /* skyboxShader.metal in Sources */,
 				03722CC42029F0F80080D069 /* U4DBVHCollision.mm in Sources */,
 				03722CD42029F0F80080D069 /* U4DManifoldGeneration.mm in Sources */,
+				0341AC33204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03722D112029F0F80080D069 /* U4DSkybox.mm in Sources */,
 				03722C902029F0F80080D069 /* U4DBoundingSphere.mm in Sources */,
 				03722CCF2029F0F80080D069 /* U4DRender3DModel.mm in Sources */,
@@ -3007,6 +3162,7 @@
 				03722D1E2029F0F80080D069 /* U4DVector2n.mm in Sources */,
 				03722CED2029F0F80080D069 /* U4DBoundingAABB.mm in Sources */,
 				03722CB22029F0F80080D069 /* U4DMatrix4n.mm in Sources */,
+				0341AC01204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
 				03722CE42029F0F80080D069 /* ModelAsset.mm in Sources */,
 				03722CD22029F0F80080D069 /* U4DJoystickStateManager.mm in Sources */,
 				03722CB42029F0F80080D069 /* U4DRenderer.mm in Sources */,
@@ -3029,17 +3185,20 @@
 				03722C932029F0F80080D069 /* U4DParticleEmitterSphere.mm in Sources */,
 				03722DFA202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722D042029F0F80080D069 /* U4DRenderManager.mm in Sources */,
+				0341AC27204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
 				03722CD52029F0F80080D069 /* U4DBVHManager.mm in Sources */,
 				03722CF22029F0F80080D069 /* U4DButtonStateInterface.mm in Sources */,
 				03722CA22029F0F80080D069 /* U4DCamera.mm in Sources */,
 				03722CCD2029F0F80080D069 /* U4DRenderWorld.mm in Sources */,
 				03722D132029F0F80080D069 /* GoldEatenState.mm in Sources */,
+				0341AC0D204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */,
 				03722D052029F0F80080D069 /* GameController.mm in Sources */,
 				03722D062029F0F80080D069 /* U4DTriangle.mm in Sources */,
 				03722D192029F0F80080D069 /* U4DParticlePhysics.mm in Sources */,
 				03722E00202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722D002029F0F80080D069 /* U4DVisibilityCulling.mm in Sources */,
 				03722CA82029F0F80080D069 /* U4DCollisionResponse.mm in Sources */,
+				0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722CBC2029F0F80080D069 /* U4DFontLoader.mm in Sources */,
 				03722C942029F0F80080D069 /* U4DBoneIndices.mm in Sources */,
 				03722D1B2029F0F80080D069 /* MainScene.mm in Sources */,
@@ -3095,6 +3254,7 @@
 				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
 				038249241FA252AE00DFEFE3 /* U4DParticleEmitterFactory.mm in Sources */,
 				0327B1A91B0BBC370087BACC /* U4DBoundingOBB.mm in Sources */,
+				0341AC2A204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */,
 				03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */,
 				0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */,
 				03E6EDEE1943D8A2007AD131 /* U4DTimer.mm in Sources */,
@@ -3104,6 +3264,7 @@
 				03494BB31F48B59E00ACE0EC /* fontShader.metal in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
+				0341AC30204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				03F2DB101F191F9B00F77B78 /* U4DRenderLights.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
@@ -3115,9 +3276,11 @@
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				03C03C431F43EA2F0001EFA1 /* U4DButtonPressedState.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
+				0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
 				03759BB5175B0383002EB5D9 /* U4DMatrix4n.mm in Sources */,
+				0341AC1E204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */,
 				03D559E21D5630AC00E567D5 /* U4DNumerical.mm in Sources */,
 				03F2DB0D1F191F9B00F77B78 /* U4DRenderer.mm in Sources */,
 				03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */,
@@ -3156,6 +3319,7 @@
 				03C03C521F4540750001EFA1 /* U4DJoystickStateManager.mm in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
+				0341AC0E204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				039EC6B11FB57C8C0098BB5C /* GoldIdleState.mm in Sources */,
@@ -3163,11 +3327,13 @@
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				036024DA1FB29D2C0054236E /* GuardianJumpState.mm in Sources */,
 				03196B3617659BE5008BA0B8 /* U4DTouches.mm in Sources */,
+				0341ABED204D84A9006E14A9 /* KeyboardController.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
 				03FE2CDD1F1FA90100D4E2FB /* GuardianModel.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				03722DFD202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
+				0341ABFE204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
 				03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
 				036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */,
@@ -3189,6 +3355,7 @@
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
+				0341AC24204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
 				03C03C3D1F43E2780001EFA1 /* U4DButtonStateInterface.mm in Sources */,
 				03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */,
 				036024D91FB29D2C0054236E /* GuardianIdleState.mm in Sources */,
@@ -3202,6 +3369,8 @@
 				038249261FA252AE00DFEFE3 /* U4DParticleEmitterLinear.mm in Sources */,
 				03F2DB1B1F193B5300F77B78 /* GameAsset.mm in Sources */,
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
+				0341AC18204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
+				0341AC06204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				03F2DAF11F191A2600F77B78 /* imageShader.metal in Sources */,
 				03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */,
 				03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */,
@@ -3210,12 +3379,14 @@
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03F2DB111F191F9B00F77B78 /* U4DRenderManager.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
+				0341AC02204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */,
 				030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */,
 				0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */,
 				03B5E7E6193A3F4100800EC8 /* U4DDigitalAssetLoader.mm in Sources */,
 				038249021FA1733300DFEFE3 /* U4DParticleData.mm in Sources */,
 				03E6EDD71943D816007AD131 /* U4DCollisionEngine.mm in Sources */,
 				03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */,
+				0341AC0A204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */,
 				03EF85411791E426007D6152 /* U4DIndex.mm in Sources */,
 				03722DEB202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03E6ED6C1943D6FE007AD131 /* U4DJoyStick.mm in Sources */,
@@ -3250,6 +3421,7 @@
 				03722E03202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
 				03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
+				0341AC36204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
 				03D55A3D1D5D86A900E567D5 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */,

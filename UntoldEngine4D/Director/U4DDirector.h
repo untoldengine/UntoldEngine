@@ -212,6 +212,21 @@ public:
     /**
      @todo document this
      */
+    void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction);
+    
+    /**
+     @todo document this
+     */
+    void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction);
+    
+    /**
+     @todo document this
+     */
+    void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis);
+    
+    /**
+     @todo document this
+     */
     void setWorld(U4DWorld *uWorld);
     
     /**

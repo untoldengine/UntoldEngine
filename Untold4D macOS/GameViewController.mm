@@ -13,6 +13,7 @@
 #import "U4DCamera.h"
 #include "U4DTouches.h"
 #include "U4DLogger.h"
+#include "U4DVector2n.h"
 #include "MainScene.h"
 #include "CommonProtocols.h"
 
@@ -74,6 +75,9 @@
     // notifications for controller (dis)connect
     [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasConnected:) name:GCControllerDidConnectNotification object:nil];
     [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasDisconnected:) name:GCControllerDidDisconnectNotification object:nil];
+    
+    [self registerKeysPressBegan];
+    [self registerKeysPressEnded];
 
 }
 
@@ -332,6 +336,156 @@
         logger->log("Game Controller profile is null");
         
     }
+    
+}
+
+- (void)registerKeysPressBegan{
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    id keyPressBegan = [NSEvent addLocalMonitorForEventsMatchingMask:NSKeyDownMask handler:^(NSEvent *event) {
+        
+        unichar character = [[event characters] characterAtIndex:0];
+        
+        U4DEngine::KEYBOARDELEMENT keyA=U4DEngine::macKeyA;
+        U4DEngine::KEYBOARDELEMENT keyD=U4DEngine::macKeyD;
+        U4DEngine::KEYBOARDACTION keyPressed=U4DEngine::macKeyPressed;
+        
+        U4DEngine::KEYBOARDELEMENT arrowKey=U4DEngine::macArrowKey;
+        U4DEngine::KEYBOARDACTION arrowKeyActive=U4DEngine::macArrowKeyActive;
+        
+        
+        if(character=='a'){
+            director->macKeyPressBegan(keyA, keyPressed);
+        
+        }
+        
+        if(character=='d'){
+            director->macKeyPressBegan(keyD, keyPressed);
+            
+        }
+        
+        if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
+            
+            U4DEngine::U4DVector2n padAxis;
+            
+            if (character==NSUpArrowFunctionKey) {
+                padAxis=U4DEngine::U4DVector2n(0.0,1.0);
+                
+            }else if(character==NSDownArrowFunctionKey){
+                
+                padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
+                
+            }else if(character==NSLeftArrowFunctionKey){
+                
+                padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
+                
+            }else if(character==NSRightArrowFunctionKey){
+                
+                padAxis=U4DEngine::U4DVector2n(1.0,0.0);
+            }
+            
+            director->macArrowKeyActive(arrowKey, arrowKeyActive, padAxis);
+            
+        }
+        
+//        switch (character) {
+//            case NSUpArrowFunctionKey:
+//                NSLog(@"Up key pressed");
+//                break;
+//            case NSDownArrowFunctionKey:
+//                NSLog(@"Down");
+//                break;
+//            case NSLeftArrowFunctionKey:
+//                NSLog(@"Left");
+//                break;
+//            case NSRightArrowFunctionKey:
+//                NSLog(@"Right");
+//                break;
+//            case 'a':
+//                NSLog(@"Letter a is pressed");
+//
+//                break;
+//            default:
+//                break;
+//        }
+        return event;
+    }];
+    
+}
+
+- (void)registerKeysPressEnded{
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    id keyPressEnded = [NSEvent addLocalMonitorForEventsMatchingMask:NSKeyUpMask handler:^(NSEvent *event) {
+        
+        unichar character = [[event characters] characterAtIndex:0];
+        
+        U4DEngine::KEYBOARDELEMENT keyA=U4DEngine::macKeyA;
+        U4DEngine::KEYBOARDELEMENT keyD=U4DEngine::macKeyD;
+        U4DEngine::KEYBOARDACTION keyReleased=U4DEngine::macKeyReleased;
+        
+        U4DEngine::KEYBOARDELEMENT arrowKey=U4DEngine::macArrowKey;
+        U4DEngine::KEYBOARDACTION arrowKeyReleased=U4DEngine::macArrowKeyReleased;
+
+        if(character=='a'){
+            director->macKeyPressEnded(keyA, keyReleased);
+        
+        }
+        
+        if(character=='d'){
+            director->macKeyPressEnded(keyD, keyReleased);
+            
+        }
+        
+        if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
+            
+            U4DEngine::U4DVector2n padAxis;
+            
+            if (character==NSUpArrowFunctionKey) {
+                padAxis=U4DEngine::U4DVector2n(0.0,1.0);
+                
+            }else if(character==NSDownArrowFunctionKey){
+                
+                padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
+                
+            }else if(character==NSLeftArrowFunctionKey){
+                
+                padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
+                
+            }else if(character==NSRightArrowFunctionKey){
+                
+                padAxis=U4DEngine::U4DVector2n(1.0,0.0);
+            }
+            
+            padAxis*=-1.0;
+            
+            director->macArrowKeyActive(arrowKey, arrowKeyReleased, padAxis);
+            
+        }
+        
+//        switch (character) {
+//            case NSUpArrowFunctionKey:
+//                NSLog(@"Up key is released");
+//                break;
+//            case NSDownArrowFunctionKey:
+//                NSLog(@"Down");
+//                break;
+//            case NSLeftArrowFunctionKey:
+//                NSLog(@"Left");
+//                break;
+//            case NSRightArrowFunctionKey:
+//                NSLog(@"Right");
+//                break;
+//            case 'a':
+//                NSLog(@"Letter a is released");
+//                break;
+//            default:
+//                break;
+ //       }
+        return event;
+    }];
     
 }
 
