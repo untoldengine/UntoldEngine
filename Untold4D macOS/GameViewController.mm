@@ -78,6 +78,9 @@
     
     [self registerKeysPressBegan];
     [self registerKeysPressEnded];
+    
+    //If using the keyboard, then set it to false. If using a controller then set it to true
+    director->setGamePadControllerPresent(false);
 
 }
 
@@ -389,26 +392,6 @@
             
         }
         
-//        switch (character) {
-//            case NSUpArrowFunctionKey:
-//                NSLog(@"Up key pressed");
-//                break;
-//            case NSDownArrowFunctionKey:
-//                NSLog(@"Down");
-//                break;
-//            case NSLeftArrowFunctionKey:
-//                NSLog(@"Left");
-//                break;
-//            case NSRightArrowFunctionKey:
-//                NSLog(@"Right");
-//                break;
-//            case 'a':
-//                NSLog(@"Letter a is pressed");
-//
-//                break;
-//            default:
-//                break;
-//        }
         return event;
     }];
     
@@ -465,28 +448,24 @@
             
         }
         
-//        switch (character) {
-//            case NSUpArrowFunctionKey:
-//                NSLog(@"Up key is released");
-//                break;
-//            case NSDownArrowFunctionKey:
-//                NSLog(@"Down");
-//                break;
-//            case NSLeftArrowFunctionKey:
-//                NSLog(@"Left");
-//                break;
-//            case NSRightArrowFunctionKey:
-//                NSLog(@"Right");
-//                break;
-//            case 'a':
-//                NSLog(@"Letter a is released");
-//                break;
-//            default:
-//                break;
- //       }
         return event;
     }];
     
+}
+
+- (void)keyDown:(NSEvent *)theEvent
+{
+    
+}
+
+- (void)keyUp:(NSEvent *)theEvent
+{
+    
+}
+
+- (BOOL)acceptsFirstResponder
+{
+    return YES;
 }
 
 - (void)didReceiveMemoryWarning

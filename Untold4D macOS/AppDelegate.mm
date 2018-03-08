@@ -7,6 +7,7 @@
 //
 
 #import "AppDelegate.h"
+#import "GameViewController.h"
 
 @interface AppDelegate ()
 
@@ -16,6 +17,12 @@
 
 - (void)applicationDidFinishLaunching:(NSNotification *)aNotification {
     // Insert code here to initialize your application
+    
+    //get the game view controller reference
+    GameViewController *gameViewController = (GameViewController *)[[NSApplication sharedApplication] mainWindow].contentViewController;
+    
+    //make the game view controller the first responder so it can receive keyboard inputs
+    [[[NSApplication sharedApplication] mainWindow] makeFirstResponder:gameViewController];
 }
 
 

@@ -77,17 +77,16 @@ void KeyboardController::actionOnMacKeyA(){
     
     if (macKeyA->getIsPressed()) {
         
-        std::cout<<"A key Press"<<std::endl;
-//        controllerInputMessage.controllerInputData=buttonPressed;
+        controllerInputMessage.controllerInputData=buttonPressed;
         
     }else if(macKeyA->getIsReleased()){
         
-        std::cout<<"A key Released"<<std::endl;
-//        controllerInputMessage.controllerInputData=buttonReleased;
+        
+        controllerInputMessage.controllerInputData=buttonReleased;
         
     }
     
-//    sendUserInputUpdate(&controllerInputMessage);
+    sendUserInputUpdate(&controllerInputMessage);
 }
 
 void KeyboardController::actionOnMacKeyD(){
@@ -98,17 +97,15 @@ void KeyboardController::actionOnMacKeyD(){
     
     if (macKeyD->getIsPressed()) {
         
-        std::cout<<"D key Press"<<std::endl;
-        //        controllerInputMessage.controllerInputData=buttonPressed;
+        controllerInputMessage.controllerInputData=buttonPressed;
         
     }else if(macKeyD->getIsReleased()){
         
-        std::cout<<"D key Released"<<std::endl;
-        //        controllerInputMessage.controllerInputData=buttonReleased;
+        controllerInputMessage.controllerInputData=buttonReleased;
         
     }
     
-    //    sendUserInputUpdate(&controllerInputMessage);
+        sendUserInputUpdate(&controllerInputMessage);
 }
 
 void KeyboardController::actionOnArrowKeys(){
@@ -118,8 +115,6 @@ void KeyboardController::actionOnArrowKeys(){
     controllerInputMessage.controllerInputType=actionJoystick;
     
     if (macArrowKeys->getIsActive()) {
-        
-        std::cout<<"Arrow key Pressed"<<std::endl;
         
         controllerInputMessage.controllerInputData=joystickActive;
 
@@ -133,7 +128,6 @@ void KeyboardController::actionOnArrowKeys(){
 
         if (macArrowKeys->getDirectionReversal()) {
 
-            std::cout<<"key Reversed"<<std::endl;
             controllerInputMessage.joystickChangeDirection=true;
 
         }else{
@@ -146,10 +140,9 @@ void KeyboardController::actionOnArrowKeys(){
         
     }else {
         
-        std::cout<<"Arrow key Released"<<std::endl;
-        //controllerInputMessage.controllerInputData=joystickInactive;
+        controllerInputMessage.controllerInputData=joystickInactive;
         
     }
     
-    //sendUserInputUpdate(&controllerInputMessage);
+    sendUserInputUpdate(&controllerInputMessage);
 }

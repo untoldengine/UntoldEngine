@@ -31,7 +31,7 @@ void MainScene::init(){
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     
-    U4DEngine::U4DControllerInterface *control;
+    U4DEngine::U4DControllerInterface *control = nullptr;
     
     if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
         
@@ -39,10 +39,17 @@ void MainScene::init(){
         
     }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
         
-        //Game controller detected
-        //control=new GamePadController();
+        if(director->getGamePadControllerPresent()){
+            
+            //Game controller detected
+            control=new GamePadController();
+        }else{
+            
+            //enable keyboard control
+            control=new KeyboardController();
+            
+        }
         
-        control=new KeyboardController();
     }
     
     setGameWorldControllerAndModel(earth, control, model);

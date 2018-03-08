@@ -95,6 +95,11 @@ private:
      */
     DEVICEOSTYPE deviceOSType;
     
+    /**
+     @todo document this
+     */
+    bool gamePadControllerPresent;
+    
 protected:
     
     /**
@@ -300,6 +305,15 @@ public:
      */
     DEVICEOSTYPE getDeviceOSType();
     
+    /**
+     @brief document this
+     */
+    void setGamePadControllerPresent(bool uValue);
+    
+    /**
+     @brief document this
+     */
+    bool getGamePadControllerPresent();
 };
 
 }
