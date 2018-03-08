@@ -43,6 +43,7 @@ void MainScene::init(){
             
             //Game controller detected
             control=new GamePadController();
+            
         }else{
             
             //enable keyboard control
