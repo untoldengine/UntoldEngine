@@ -77,7 +77,7 @@
     [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasDisconnected:) name:GCControllerDidDisconnectNotification object:nil];
     
     //If using the keyboard, then set it to false. If using a controller then set it to true
-    director->setGamePadControllerPresent(true);
+    director->setGamePadControllerPresent(false);
 
 }
 
@@ -439,6 +439,47 @@
         
     }
     
+}
+
+- (void)mouseDragged:(NSEvent *)theEvent {
+ 
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
+    U4DEngine::MOUSEACTION mouseButtonDragged=U4DEngine::mouseButtonDragged;
+    
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+    
+    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
+    
+    director->macMouseDragged(mouseLeftButtonElement, mouseButtonDragged,mouseLocation);
+    
+}
+
+- (void)mouseDown:(NSEvent *)theEvent {
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
+    U4DEngine::MOUSEACTION mouseButtonPressed=U4DEngine::mouseButtonPressed;
+    
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+    
+    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
+    
+    director->macMousePressBegan(mouseLeftButtonElement, mouseButtonPressed,mouseLocation);
+    
+}
+
+- (void)mouseUp:(NSEvent *)theEvent {
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
+    U4DEngine::MOUSEACTION mouseButtonReleased=U4DEngine::mouseButtonReleased;
+    
+    director->macMousePressEnded(mouseLeftButtonElement, mouseButtonReleased);
+
 }
 
 - (BOOL)acceptsFirstResponder

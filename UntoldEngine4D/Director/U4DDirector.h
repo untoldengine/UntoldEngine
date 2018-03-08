@@ -232,6 +232,21 @@ public:
     /**
      @todo document this
      */
+    void macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+    
+    /**
+     @todo document this
+     */
+    void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction);
+    
+    /**
+     @todo document this
+     */
+    void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+    
+    /**
+     @todo document this
+     */
     void setWorld(U4DWorld *uWorld);
     
     /**

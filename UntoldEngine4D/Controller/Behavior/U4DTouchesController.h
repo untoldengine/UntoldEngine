@@ -60,6 +60,21 @@ public:
     
     void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){};
     
+    /**
+     @todo document this
+     */
+    void macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
+    
+    /**
+     @todo document this
+     */
+    void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){};
+    
+    /**
+     @todo document this
+     */
+    void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
+    
     void changeState(const U4DTouches &touches,TOUCHSTATE touchState);
     
     void setGameWorld(U4DWorld *uGameWorld);

@@ -665,6 +665,27 @@ namespace U4DEngine {
         
     }KEYBOARDACTION;
     
+    /**
+     @brief The MOUSEELEMENT enum holds information about the elements of a mouse
+     */
+    typedef enum{
+        
+        mouseLeftButton,
+        mouseRightButton
+        
+    }MOUSEELEMENT;
+    
+    /**
+     @brief The KEYBOARDACTION enum holds information about the action of the element of a mouse
+     */
+    typedef enum{
+        
+        mouseButtonPressed, 
+        mouseButtonDragged,
+        mouseButtonReleased
+        
+    }MOUSEACTION;
+    
 }
 
 
