@@ -587,9 +587,19 @@ public:
     virtual void changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
     
     /**
+     @todo Change the state of the entity. This method in particular is used to change the state of the keyboard key, i.e. mac Key
+     */
+    virtual void changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis){};
+    
+    /**
      @todo document this
      */
     virtual GAMEPADELEMENT getPadElementType(){};
+    
+    /**
+     @todo document this
+     */
+    virtual KEYBOARDELEMENT getKeyboardElementType(){};
 };
 
 }

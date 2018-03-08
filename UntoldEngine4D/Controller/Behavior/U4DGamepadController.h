@@ -35,11 +35,16 @@ namespace U4DEngine {
         ~U4DGamepadController();
         
         virtual void init(){};
-        void keyboardInput(int key){};
         
         void touchBegan(const U4DTouches &touches){};
         void touchMoved(const U4DTouches &touches){};
         void touchEnded(const U4DTouches &touches){};
+        
+        void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){};
+        
+        void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){};
+        
+        void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){};
         
         /**
          @todo document this

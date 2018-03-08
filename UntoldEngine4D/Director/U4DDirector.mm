@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005){
+    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false){
     }
     
     U4DDirector::~U4DDirector(){
@@ -182,6 +182,23 @@ namespace U4DEngine {
         
     }
     
+    void U4DDirector::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+        
+        scene->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
+        
+    }
+    
+    void U4DDirector::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+        
+        scene->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
+    }
+    
+    void U4DDirector::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
+        
+        scene->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
+        
+    }
+
     void U4DDirector::setWorld(U4DWorld *uWorld){
         
         world=uWorld;
@@ -233,6 +250,16 @@ namespace U4DEngine {
     DEVICEOSTYPE U4DDirector::getDeviceOSType(){
         
         return deviceOSType;
+    }
+    
+    void U4DDirector::setGamePadControllerPresent(bool uValue){
+        
+        gamePadControllerPresent=uValue;
+    }
+    
+    bool U4DDirector::getGamePadControllerPresent(){
+        
+        return gamePadControllerPresent;
     }
     
     void U4DDirector::setPerspectiveSpace(U4DMatrix4n &uSpace){

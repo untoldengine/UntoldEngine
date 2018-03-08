@@ -110,6 +110,23 @@ namespace U4DEngine {
         gameController->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
     }
     
+    void U4DScene::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+        
+        gameController->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
+        
+    }
+    
+    void U4DScene::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+        
+        gameController->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
+        
+    }
+    
+    void U4DScene::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
+        
+        gameController->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
+        
+    }
 
     void U4DScene::init(){
         
