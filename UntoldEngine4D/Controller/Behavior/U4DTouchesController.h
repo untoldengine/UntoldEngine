@@ -75,7 +75,7 @@ public:
      */
     void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
     
-    void changeState(const U4DTouches &touches,TOUCHSTATE touchState);
+    void changeState(const U4DTouches &touches,TOUCHSTATE &touchState);
     
     void setGameWorld(U4DWorld *uGameWorld);
     void setGameModel(U4DGameModelInterface *uGameModel);

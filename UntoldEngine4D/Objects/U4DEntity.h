@@ -579,7 +579,7 @@ public:
     /**
      @todo Change the state of the entity. This method in particular is used to change the state of the controller, i.e. button or joystick
      */
-    virtual void changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){};
+    virtual void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){};
     
     /**
      @todo Change the state of the entity. This method in particular is used to change the state of the pad controller, i.e. pad button or pad joystick

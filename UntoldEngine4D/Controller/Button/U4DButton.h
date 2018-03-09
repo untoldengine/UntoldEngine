@@ -58,7 +58,7 @@ public:
     
     void action();
 
-    void changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition);
+    void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition);
     
     bool getIsPressed();
     

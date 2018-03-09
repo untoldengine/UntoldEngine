@@ -47,21 +47,27 @@ U4DGameModelInterface* U4DTouchesController::getGameModel(){
     
 void U4DTouchesController::touchBegan(const U4DTouches &touches){
     
-    changeState(touches, rTouchesBegan);
+    U4DEngine::TOUCHSTATE touchBegan=U4DEngine::rTouchesBegan;
+    
+    changeState(touches, touchBegan);
 }
 
 void U4DTouchesController::touchMoved(const U4DTouches &touches){
  
-    changeState(touches, rTouchesMoved);
+    U4DEngine::TOUCHSTATE touchMoved=U4DEngine::rTouchesMoved;
+    
+    changeState(touches, touchMoved);
     
 }
 
 void U4DTouchesController::touchEnded(const U4DTouches &touches){
     
-    changeState(touches, rTouchesEnded);
+    U4DEngine::TOUCHSTATE touchEnded=U4DEngine::rTouchesEnded;
+    
+    changeState(touches, touchEnded);
 }
 
-void U4DTouchesController::changeState(const U4DTouches &touches,TOUCHSTATE touchState){
+void U4DTouchesController::changeState(const U4DTouches &touches,TOUCHSTATE &touchState){
     
     U4DVector3n touchPosition(touches.xTouch,touches.yTouch,0.0);
     

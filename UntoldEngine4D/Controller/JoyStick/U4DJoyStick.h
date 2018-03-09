@@ -89,7 +89,7 @@ public:
     float getJoyStickBackgroundWidth();
     float getJoyStickBackgroundHeight();
     
-    void changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition);
+    void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uNewPosition);
     
     TOUCHSTATE getState();
     

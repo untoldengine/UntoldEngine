@@ -76,7 +76,7 @@ void U4DButton::action(){
 
 }
 
-void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n uTouchPosition){
+void U4DButton::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){
     
     
     if (uTouchPosition.x>left && uTouchPosition.x<right) {
