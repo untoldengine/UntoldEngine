@@ -269,6 +269,9 @@ namespace U4DEngine {
         //set as non-collided
         setModelHasCollided(false);
         
+        //clear collision list
+        clearCollisionList();
+        
     }
 }
 

@@ -7,7 +7,7 @@
 //
 
 #include "GameAsset.h"
-
+#include "UserCommonProtocols.h"
 GameAsset::GameAsset(){
     
 }
@@ -22,6 +22,8 @@ bool GameAsset::init(const char* uModelName, const char* uBlenderFile){
     
         setEnableShadow(true);
         
+        setCollidingTag("floor");
+        
         initAsPlatform(true);
         
         enableCollisionBehavior();
@@ -35,6 +37,9 @@ bool GameAsset::init(const char* uModelName, const char* uBlenderFile){
         initMass(1000.0);
         
         pauseKineticsBehavior();
+        
+        setCollisionFilterCategory(kField);
+        setCollisionFilterMask(kCube);
         
         loadRenderingInformation();
         

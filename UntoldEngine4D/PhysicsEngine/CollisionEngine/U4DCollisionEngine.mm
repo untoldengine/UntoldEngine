@@ -87,6 +87,10 @@ namespace U4DEngine {
                     model1->setModelHasCollided(true);
                     model2->setModelHasCollided(true);
                     
+                    //add to collision list
+                    model1->addToCollisionList(model2);
+                    model2->addToCollisionList(model1);
+                    
                     if (model1->getIsCollisionSensor()||model2->getIsCollisionSensor()) {
                         
                         //reset the time of impact since these models are only collision sensors

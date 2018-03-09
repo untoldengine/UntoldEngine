@@ -569,4 +569,32 @@ namespace U4DEngine {
     
     }
     
+    void U4DStaticModel::addToCollisionList(U4DStaticModel *uModel){
+        
+        collisionList.push_back(uModel);
+        
+    }
+    
+    std::vector<U4DStaticModel *> U4DStaticModel::getCollisionList(){
+        
+        return collisionList;
+        
+    }
+    
+    void U4DStaticModel::setCollidingTag(std::string uCollidingTag){
+        
+        collidingTag=uCollidingTag;
+    }
+    
+    std::string U4DStaticModel::getCollidingTag(){
+        
+        return collidingTag;
+        
+    }
+    
+    void U4DStaticModel::clearCollisionList(){
+        
+        collisionList.clear();
+    }
+    
 }
