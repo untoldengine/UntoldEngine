@@ -20,8 +20,8 @@ namespace U4DEngine {
         
         u4dObject=uU4DModel;
         
-        initTextureSamplerObjectNull();
-        
+        //It seems we do need to init the texture objects with a null descriptor
+        //initTextureSamplerObjectNull();
         
     }
     
@@ -574,7 +574,8 @@ namespace U4DEngine {
     
     void U4DRender3DModel::initTextureSamplerObjectNull(){
         
-        MTLTextureDescriptor *nullDescriptor;nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
+        MTLTextureDescriptor *nullDescriptor;
+        nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
         textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
