@@ -79,8 +79,6 @@ namespace U4DEngine {
 
         void changeState(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis);
         
-        void changeState(const U4DTouches &touches,TOUCHSTATE touchState){};
-        
         void setGameWorld(U4DWorld *uGameWorld);
         void setGameModel(U4DGameModelInterface *uGameModel);
         

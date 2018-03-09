@@ -37,8 +37,19 @@ public:
     
     virtual ~U4DControllerInterface(){};
     
+    /**
+     @todo document this
+     */
     virtual void touchBegan(const U4DTouches &touches)=0;
+    
+    /**
+     @todo document this
+     */
     virtual void touchMoved(const U4DTouches &touches)=0;
+    
+    /**
+     @todo document this
+     */
     virtual void touchEnded(const U4DTouches &touches)=0;
     
     /**
@@ -56,10 +67,19 @@ public:
      */
     virtual void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis)=0;
     
+    /**
+     @todo document this
+     */
     virtual void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction)=0;
     
+    /**
+     @todo document this
+     */
     virtual void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction)=0;
     
+    /**
+     @todo document this
+     */
     virtual void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis)=0;
     
     /**
@@ -77,19 +97,39 @@ public:
      */
     virtual void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
     
-    
-    
-    virtual void changeState(const U4DTouches &touches,TOUCHSTATE touchState)=0;
-    
+    /**
+     @todo document this
+     */
     virtual void init()=0;
     
+    /**
+     @todo document this
+     */
     virtual void setGameWorld(U4DWorld *uGameWorld)=0;
+    
+    /**
+     @todo document this
+     */
     virtual void setGameModel(U4DGameModelInterface *uGameModel)=0;
     
+    /**
+     @todo document this
+     */
     virtual U4DWorld* getGameWorld()=0;
+    
+    /**
+     @todo document this
+     */
     virtual U4DGameModelInterface* getGameModel()=0;
     
+    /**
+     @todo document this
+     */
     virtual void setReceivedAction(bool uValue)=0;
+    
+    /**
+     @todo document this
+     */
     virtual void sendUserInputUpdate(void *uData)=0;
 };
 

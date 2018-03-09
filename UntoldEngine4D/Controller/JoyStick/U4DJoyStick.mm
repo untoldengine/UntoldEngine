@@ -149,7 +149,7 @@ void U4DJoyStick::action(){
 }
 
 
-void U4DJoyStick::changeState(TOUCHSTATE uTouchState,U4DVector3n uNewPosition){
+void U4DJoyStick::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uNewPosition){
     
     U4DVector3n distance=(uNewPosition-centerBackgroundPosition);
     

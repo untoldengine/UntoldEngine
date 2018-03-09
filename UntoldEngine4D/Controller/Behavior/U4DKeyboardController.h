@@ -38,7 +38,6 @@ namespace U4DEngine {
         void touchBegan(const U4DTouches &touches){};
         void touchMoved(const U4DTouches &touches){};
         void touchEnded(const U4DTouches &touches){};
-        void changeState(const U4DTouches &touches,TOUCHSTATE touchState){};
         
         
         /**
