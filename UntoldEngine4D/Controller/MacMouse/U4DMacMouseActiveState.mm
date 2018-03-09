@@ -42,6 +42,7 @@ namespace U4DEngine {
         
         U4DEngine::U4DVector3n absoluteMouseAxis=mouseAxis-uMacMouse->initialDataPosition;
         
+        //make sure that the mouse drag is not too close to its initial position.
         if (absoluteMouseAxis.magnitude()<1.0) {
             
             absoluteMouseAxis=uMacMouse->dataPosition;
@@ -50,7 +51,7 @@ namespace U4DEngine {
         
         absoluteMouseAxis.normalize();
         
-        if (uMacMouse->dataPosition.dot(absoluteMouseAxis)<0.0) {
+        if (uMacMouse->dataPosition.dot(absoluteMouseAxis)<-0.9) {
             
             uMacMouse->directionReversal=true;
             
