@@ -198,6 +198,21 @@ namespace U4DEngine {
         scene->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
         
     }
+    
+    void U4DDirector::macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+        
+        scene->macMousePressBegan(uMouseElement, uMouseAction, uMouseAxis);
+    }
+    
+    void U4DDirector::macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){
+        
+        scene->macMousePressEnded(uMouseElement, uMouseAction);
+    }
+    
+    void U4DDirector::macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+        
+        scene->macMouseDragged(uMouseElement, uMouseAction, uMouseAxis);
+    }
 
     void U4DDirector::setWorld(U4DWorld *uWorld){
         

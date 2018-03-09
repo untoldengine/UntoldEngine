@@ -22,6 +22,7 @@ void KeyboardController::init(){
     U4DEngine::KEYBOARDELEMENT macKeyAElement=U4DEngine::macKeyA;
     U4DEngine::KEYBOARDELEMENT macKeyDElement=U4DEngine::macKeyD;
     U4DEngine::KEYBOARDELEMENT macArrowKeysElement=U4DEngine::macArrowKey;
+    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
     
     //create the mac key 'a' object
     macKeyA=new U4DEngine::U4DMacKey(macKeyAElement);
@@ -51,7 +52,7 @@ void KeyboardController::init(){
     
     macKeyD->setCallbackAction(macKeyDCallback);
     
-    //set the arrow keys
+    //create the arrow keys object
     
     macArrowKeys=new U4DEngine::U4DMacArrowKey(macArrowKeysElement);
     
@@ -66,6 +67,20 @@ void KeyboardController::init(){
     macArrowKeysCallback->scheduleClassWithMethod(this, &KeyboardController::actionOnArrowKeys);
     
     macArrowKeys->setCallbackAction(macArrowKeysCallback);
+    
+    //create a mouse object
+    
+    mouseLeftButton=new U4DEngine::U4DMacMouse(mouseLeftButtonElement);
+    mouseLeftButton->setControllerInterface(this);
+    
+    earth->addChild(mouseLeftButton);
+    
+    //create the mouse callback
+    U4DEngine::U4DCallback<KeyboardController>* mouseLeftButtonCallback=new U4DEngine::U4DCallback<KeyboardController>;
+    
+    mouseLeftButtonCallback->scheduleClassWithMethod(this, &KeyboardController::actionOnMouseLeftButton);
+    
+    mouseLeftButton->setCallbackAction(mouseLeftButtonCallback);
     
 }
 
@@ -136,6 +151,45 @@ void KeyboardController::actionOnArrowKeys(){
 
         }
 
+        controllerInputMessage.joystickDirection=joystickDirection;
+        
+    }else {
+        
+        controllerInputMessage.controllerInputData=joystickInactive;
+        
+    }
+    
+    sendUserInputUpdate(&controllerInputMessage);
+}
+
+void KeyboardController::actionOnMouseLeftButton(){
+    
+    ControllerInputMessage controllerInputMessage;
+    
+    controllerInputMessage.controllerInputType=actionJoystick;
+    
+    if (mouseLeftButton->getIsActive()) {
+        
+        controllerInputMessage.controllerInputData=joystickActive;
+        
+        U4DEngine::U4DVector3n joystickDirection=mouseLeftButton->getDataPosition();
+        
+        joystickDirection.z=joystickDirection.y;
+        
+        joystickDirection.y=0;
+        
+        joystickDirection.normalize();
+        
+        if (mouseLeftButton->getDirectionReversal()) {
+            
+            controllerInputMessage.joystickChangeDirection=true;
+            
+        }else{
+            
+            controllerInputMessage.joystickChangeDirection=false;
+            
+        }
+        
         controllerInputMessage.joystickDirection=joystickDirection;
         
     }else {

@@ -14,6 +14,7 @@
 #include "UserCommonProtocols.h"
 #include "U4DMacKey.h"
 #include "U4DMacArrowKey.h"
+#include "U4DMacMouse.h"
 
 class KeyboardController:public U4DEngine::U4DKeyboardController{
     
@@ -22,6 +23,7 @@ private:
     U4DEngine::U4DMacKey *macKeyA;
     U4DEngine::U4DMacKey *macKeyD;
     U4DEngine::U4DMacArrowKey *macArrowKeys;
+    U4DEngine::U4DMacMouse *mouseLeftButton;
     
 public:
     
@@ -37,6 +39,8 @@ public:
     void actionOnMacKeyD();
     
     void actionOnArrowKeys();
+    
+    void actionOnMouseLeftButton();
     
 };
 #endif /* KeyboardController_hpp */

@@ -820,6 +820,34 @@
 		03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
+		03CAE63A2051925E00391B57 /* U4DMacMouse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6382051925E00391B57 /* U4DMacMouse.mm */; };
+		03CAE63B2051925E00391B57 /* U4DMacMouse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6382051925E00391B57 /* U4DMacMouse.mm */; };
+		03CAE63C2051925E00391B57 /* U4DMacMouse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6382051925E00391B57 /* U4DMacMouse.mm */; };
+		03CAE63D2051925E00391B57 /* U4DMacMouse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6382051925E00391B57 /* U4DMacMouse.mm */; };
+		03CAE6402051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE63E2051927700391B57 /* U4DMacMouseStateInterface.mm */; };
+		03CAE6412051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE63E2051927700391B57 /* U4DMacMouseStateInterface.mm */; };
+		03CAE6422051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE63E2051927700391B57 /* U4DMacMouseStateInterface.mm */; };
+		03CAE6432051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE63E2051927700391B57 /* U4DMacMouseStateInterface.mm */; };
+		03CAE6462051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6442051929A00391B57 /* U4DMacMouseStateManager.mm */; };
+		03CAE6472051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6442051929A00391B57 /* U4DMacMouseStateManager.mm */; };
+		03CAE6482051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6442051929A00391B57 /* U4DMacMouseStateManager.mm */; };
+		03CAE6492051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6442051929A00391B57 /* U4DMacMouseStateManager.mm */; };
+		03CAE64C205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE64A205192DD00391B57 /* U4DMacMousePressedState.mm */; };
+		03CAE64D205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE64A205192DD00391B57 /* U4DMacMousePressedState.mm */; };
+		03CAE64E205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE64A205192DD00391B57 /* U4DMacMousePressedState.mm */; };
+		03CAE64F205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE64A205192DD00391B57 /* U4DMacMousePressedState.mm */; };
+		03CAE652205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE650205192F500391B57 /* U4DMacMouseActiveState.mm */; };
+		03CAE653205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE650205192F500391B57 /* U4DMacMouseActiveState.mm */; };
+		03CAE654205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE650205192F500391B57 /* U4DMacMouseActiveState.mm */; };
+		03CAE655205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE650205192F500391B57 /* U4DMacMouseActiveState.mm */; };
+		03CAE6582051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6562051931000391B57 /* U4DMacMouseReleasedState.mm */; };
+		03CAE6592051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6562051931000391B57 /* U4DMacMouseReleasedState.mm */; };
+		03CAE65A2051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6562051931000391B57 /* U4DMacMouseReleasedState.mm */; };
+		03CAE65B2051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6562051931000391B57 /* U4DMacMouseReleasedState.mm */; };
+		03CAE65E2051933200391B57 /* U4DMacMouseIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE65C2051933200391B57 /* U4DMacMouseIdleState.mm */; };
+		03CAE65F2051933200391B57 /* U4DMacMouseIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE65C2051933200391B57 /* U4DMacMouseIdleState.mm */; };
+		03CAE6602051933200391B57 /* U4DMacMouseIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE65C2051933200391B57 /* U4DMacMouseIdleState.mm */; };
+		03CAE6612051933200391B57 /* U4DMacMouseIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE65C2051933200391B57 /* U4DMacMouseIdleState.mm */; };
 		03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */; };
 		03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D1FBC41D50442200B3CF6E /* U4DColorData.mm */; };
 		03D34DF11F8DB01100476149 /* U4DRenderParticleSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D34DEF1F8DB01100476149 /* U4DRenderParticleSystem.mm */; };
@@ -1200,6 +1228,20 @@
 		03C278891F8415F700AF463C /* U4DVisibilityCulling.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityCulling.h; path = VisibilityManager/U4DVisibilityCulling.h; sourceTree = "<group>"; };
 		03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joyStickBackground.png; path = Resources/joyStickBackground.png; sourceTree = SOURCE_ROOT; };
 		03C737A21A4F1D9F001B4F77 /* joystickDriver.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; name = joystickDriver.png; path = Resources/joystickDriver.png; sourceTree = SOURCE_ROOT; };
+		03CAE6382051925E00391B57 /* U4DMacMouse.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouse.mm; path = MacMouse/U4DMacMouse.mm; sourceTree = "<group>"; };
+		03CAE6392051925E00391B57 /* U4DMacMouse.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouse.h; path = MacMouse/U4DMacMouse.h; sourceTree = "<group>"; };
+		03CAE63E2051927700391B57 /* U4DMacMouseStateInterface.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseStateInterface.mm; path = MacMouse/U4DMacMouseStateInterface.mm; sourceTree = "<group>"; };
+		03CAE63F2051927700391B57 /* U4DMacMouseStateInterface.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseStateInterface.h; path = MacMouse/U4DMacMouseStateInterface.h; sourceTree = "<group>"; };
+		03CAE6442051929A00391B57 /* U4DMacMouseStateManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseStateManager.mm; path = MacMouse/U4DMacMouseStateManager.mm; sourceTree = "<group>"; };
+		03CAE6452051929A00391B57 /* U4DMacMouseStateManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseStateManager.h; path = MacMouse/U4DMacMouseStateManager.h; sourceTree = "<group>"; };
+		03CAE64A205192DD00391B57 /* U4DMacMousePressedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMousePressedState.mm; path = MacMouse/U4DMacMousePressedState.mm; sourceTree = "<group>"; };
+		03CAE64B205192DD00391B57 /* U4DMacMousePressedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMousePressedState.h; path = MacMouse/U4DMacMousePressedState.h; sourceTree = "<group>"; };
+		03CAE650205192F500391B57 /* U4DMacMouseActiveState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseActiveState.mm; path = MacMouse/U4DMacMouseActiveState.mm; sourceTree = "<group>"; };
+		03CAE651205192F500391B57 /* U4DMacMouseActiveState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseActiveState.h; path = MacMouse/U4DMacMouseActiveState.h; sourceTree = "<group>"; };
+		03CAE6562051931000391B57 /* U4DMacMouseReleasedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseReleasedState.mm; path = MacMouse/U4DMacMouseReleasedState.mm; sourceTree = "<group>"; };
+		03CAE6572051931000391B57 /* U4DMacMouseReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseReleasedState.h; path = MacMouse/U4DMacMouseReleasedState.h; sourceTree = "<group>"; };
+		03CAE65C2051933200391B57 /* U4DMacMouseIdleState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseIdleState.mm; path = MacMouse/U4DMacMouseIdleState.mm; sourceTree = "<group>"; };
+		03CAE65D2051933200391B57 /* U4DMacMouseIdleState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseIdleState.h; path = MacMouse/U4DMacMouseIdleState.h; sourceTree = "<group>"; };
 		03CEE28F1775324000B09A52 /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAnimationManager.mm; sourceTree = "<group>"; };
 		03CF11F51E56313400E47C67 /* U4DAnimationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimationManager.h; sourceTree = "<group>"; };
@@ -2056,6 +2098,27 @@
 			name = VisibilityManager;
 			sourceTree = "<group>";
 		};
+		03CAE6372051923E00391B57 /* MacMouse */ = {
+			isa = PBXGroup;
+			children = (
+				03CAE6392051925E00391B57 /* U4DMacMouse.h */,
+				03CAE6382051925E00391B57 /* U4DMacMouse.mm */,
+				03CAE63F2051927700391B57 /* U4DMacMouseStateInterface.h */,
+				03CAE63E2051927700391B57 /* U4DMacMouseStateInterface.mm */,
+				03CAE6452051929A00391B57 /* U4DMacMouseStateManager.h */,
+				03CAE6442051929A00391B57 /* U4DMacMouseStateManager.mm */,
+				03CAE64B205192DD00391B57 /* U4DMacMousePressedState.h */,
+				03CAE64A205192DD00391B57 /* U4DMacMousePressedState.mm */,
+				03CAE651205192F500391B57 /* U4DMacMouseActiveState.h */,
+				03CAE650205192F500391B57 /* U4DMacMouseActiveState.mm */,
+				03CAE6572051931000391B57 /* U4DMacMouseReleasedState.h */,
+				03CAE6562051931000391B57 /* U4DMacMouseReleasedState.mm */,
+				03CAE65D2051933200391B57 /* U4DMacMouseIdleState.h */,
+				03CAE65C2051933200391B57 /* U4DMacMouseIdleState.mm */,
+			);
+			name = MacMouse;
+			sourceTree = "<group>";
+		};
 		03D374091AE9E746000D8535 /* SpriteAnimation */ = {
 			isa = PBXGroup;
 			children = (
@@ -2095,6 +2158,7 @@
 		03E6ED591943D6FE007AD131 /* Controller */ = {
 			isa = PBXGroup;
 			children = (
+				03CAE6372051923E00391B57 /* MacMouse */,
 				0341ABF1204D8C60006E14A9 /* MacArrowKeys */,
 				0341ABC6204BA715006E14A9 /* MacKeys */,
 				03722DE8202CA5510080D069 /* PadJoystick */,
@@ -2701,6 +2765,7 @@
 				0341AC13204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				03722BA02029F0F50080D069 /* GuardianJumpState.mm in Sources */,
 				03722BE52029F0F50080D069 /* U4DStaticModel.mm in Sources */,
+				03CAE63B2051925E00391B57 /* U4DMacMouse.mm in Sources */,
 				03722B992029F0F50080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03722BBA2029F0F50080D069 /* GuardianIdleState.mm in Sources */,
 				03722E0A202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
@@ -2711,6 +2776,7 @@
 				03722B852029F0F50080D069 /* U4DPoint3n.mm in Sources */,
 				03722B912029F0F50080D069 /* U4DRestingForcesGenerator.mm in Sources */,
 				03722BB42029F0F50080D069 /* U4DParticleSystem.mm in Sources */,
+				03CAE65F2051933200391B57 /* U4DMacMouseIdleState.mm in Sources */,
 				03722B6D2029F0F50080D069 /* U4DRenderLights.mm in Sources */,
 				03722BC02029F0F50080D069 /* U4DEntityManager.mm in Sources */,
 				03722BD12029F0F50080D069 /* U4DColorData.mm in Sources */,
@@ -2728,6 +2794,7 @@
 				0341AC31204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03722BD72029F0F50080D069 /* U4DSkybox.mm in Sources */,
 				03722B562029F0F50080D069 /* U4DBoundingSphere.mm in Sources */,
+				03CAE64D205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03722B952029F0F50080D069 /* U4DRender3DModel.mm in Sources */,
 				03722BBD2029F0F50080D069 /* U4DTransformation.mm in Sources */,
 				03722B5D2029F0F50080D069 /* lightShader.metal in Sources */,
@@ -2757,6 +2824,7 @@
 				03722BEC2029F0F50080D069 /* U4DParticleEmitter.mm in Sources */,
 				0323DBA8202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
 				03722B862029F0F50080D069 /* worldShader.metal in Sources */,
+				03CAE6412051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
 				03722DE4202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722B552029F0F50080D069 /* U4DOBB.mm in Sources */,
 				03722B802029F0F50080D069 /* U4DParticleEmitterInterface.mm in Sources */,
@@ -2770,6 +2838,7 @@
 				03722B582029F0F50080D069 /* U4DSphere.mm in Sources */,
 				03722B6B2029F0F50080D069 /* U4DScheduler.mm in Sources */,
 				03722BE42029F0F50080D069 /* U4DVector2n.mm in Sources */,
+				03CAE6592051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */,
 				03722BB32029F0F50080D069 /* U4DBoundingAABB.mm in Sources */,
 				03722B782029F0F50080D069 /* U4DMatrix4n.mm in Sources */,
 				0341ABFF204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
@@ -2807,6 +2876,7 @@
 				03722BDF2029F0F50080D069 /* U4DParticlePhysics.mm in Sources */,
 				03722DFE202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722BC62029F0F50080D069 /* U4DVisibilityCulling.mm in Sources */,
+				03CAE6472051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				03722B6E2029F0F50080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722B822029F0F50080D069 /* U4DFontLoader.mm in Sources */,
@@ -2837,6 +2907,7 @@
 				03722E04202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
 				03722DEC202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03722BB12029F0F50080D069 /* U4DSHAlgorithm.mm in Sources */,
+				03CAE653205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */,
 				03722BBC2029F0F50080D069 /* U4DParticle.mm in Sources */,
 				03722B7C2029F0F50080D069 /* U4DJoystickIdleState.mm in Sources */,
 				03722B702029F0F50080D069 /* U4DRenderParticleSystem.mm in Sources */,
@@ -2896,6 +2967,7 @@
 				0341AC14204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				03722C3D2029F0F70080D069 /* GuardianJumpState.mm in Sources */,
 				03722C822029F0F70080D069 /* U4DStaticModel.mm in Sources */,
+				03CAE63C2051925E00391B57 /* U4DMacMouse.mm in Sources */,
 				03722C362029F0F70080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03722C572029F0F70080D069 /* GuardianIdleState.mm in Sources */,
 				03722E0B202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
@@ -2906,6 +2978,7 @@
 				03722C222029F0F70080D069 /* U4DPoint3n.mm in Sources */,
 				03722C2E2029F0F70080D069 /* U4DRestingForcesGenerator.mm in Sources */,
 				03722C512029F0F70080D069 /* U4DParticleSystem.mm in Sources */,
+				03CAE6602051933200391B57 /* U4DMacMouseIdleState.mm in Sources */,
 				03722C0A2029F0F70080D069 /* U4DRenderLights.mm in Sources */,
 				03722C5D2029F0F70080D069 /* U4DEntityManager.mm in Sources */,
 				03722C6E2029F0F70080D069 /* U4DColorData.mm in Sources */,
@@ -2923,6 +2996,7 @@
 				0341AC32204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03722C742029F0F70080D069 /* U4DSkybox.mm in Sources */,
 				03722BF32029F0F60080D069 /* U4DBoundingSphere.mm in Sources */,
+				03CAE64E205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03722C322029F0F70080D069 /* U4DRender3DModel.mm in Sources */,
 				03722C5A2029F0F70080D069 /* U4DTransformation.mm in Sources */,
 				03722BFA2029F0F70080D069 /* lightShader.metal in Sources */,
@@ -2952,6 +3026,7 @@
 				03722C892029F0F70080D069 /* U4DParticleEmitter.mm in Sources */,
 				0323DBA9202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
 				03722C232029F0F70080D069 /* worldShader.metal in Sources */,
+				03CAE6422051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
 				03722DE5202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722BF22029F0F60080D069 /* U4DOBB.mm in Sources */,
 				03722C1D2029F0F70080D069 /* U4DParticleEmitterInterface.mm in Sources */,
@@ -2965,6 +3040,7 @@
 				03722BF52029F0F70080D069 /* U4DSphere.mm in Sources */,
 				03722C082029F0F70080D069 /* U4DScheduler.mm in Sources */,
 				03722C812029F0F70080D069 /* U4DVector2n.mm in Sources */,
+				03CAE65A2051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */,
 				03722C502029F0F70080D069 /* U4DBoundingAABB.mm in Sources */,
 				03722C152029F0F70080D069 /* U4DMatrix4n.mm in Sources */,
 				0341AC00204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
@@ -3002,6 +3078,7 @@
 				03722C7C2029F0F70080D069 /* U4DParticlePhysics.mm in Sources */,
 				03722DFF202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722C632029F0F70080D069 /* U4DVisibilityCulling.mm in Sources */,
+				03CAE6482051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				03722C0B2029F0F70080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC38204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722C1F2029F0F70080D069 /* U4DFontLoader.mm in Sources */,
@@ -3032,6 +3109,7 @@
 				03722E05202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
 				03722DED202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03722C4E2029F0F70080D069 /* U4DSHAlgorithm.mm in Sources */,
+				03CAE654205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */,
 				03722C592029F0F70080D069 /* U4DParticle.mm in Sources */,
 				03722C192029F0F70080D069 /* U4DJoystickIdleState.mm in Sources */,
 				03722C0D2029F0F70080D069 /* U4DRenderParticleSystem.mm in Sources */,
@@ -3091,6 +3169,7 @@
 				0341AC15204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				03722CDA2029F0F80080D069 /* GuardianJumpState.mm in Sources */,
 				03722D1F2029F0F80080D069 /* U4DStaticModel.mm in Sources */,
+				03CAE63D2051925E00391B57 /* U4DMacMouse.mm in Sources */,
 				03722CD32029F0F80080D069 /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03722CF42029F0F80080D069 /* GuardianIdleState.mm in Sources */,
 				03722E0C202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
@@ -3101,6 +3180,7 @@
 				03722CBF2029F0F80080D069 /* U4DPoint3n.mm in Sources */,
 				03722CCB2029F0F80080D069 /* U4DRestingForcesGenerator.mm in Sources */,
 				03722CEE2029F0F80080D069 /* U4DParticleSystem.mm in Sources */,
+				03CAE6612051933200391B57 /* U4DMacMouseIdleState.mm in Sources */,
 				03722CA72029F0F80080D069 /* U4DRenderLights.mm in Sources */,
 				03722CFA2029F0F80080D069 /* U4DEntityManager.mm in Sources */,
 				03722D0B2029F0F80080D069 /* U4DColorData.mm in Sources */,
@@ -3118,6 +3198,7 @@
 				0341AC33204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03722D112029F0F80080D069 /* U4DSkybox.mm in Sources */,
 				03722C902029F0F80080D069 /* U4DBoundingSphere.mm in Sources */,
+				03CAE64F205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03722CCF2029F0F80080D069 /* U4DRender3DModel.mm in Sources */,
 				03722CF72029F0F80080D069 /* U4DTransformation.mm in Sources */,
 				03722C972029F0F80080D069 /* lightShader.metal in Sources */,
@@ -3147,6 +3228,7 @@
 				03722D262029F0F80080D069 /* U4DParticleEmitter.mm in Sources */,
 				0323DBAA202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
 				03722CC02029F0F80080D069 /* worldShader.metal in Sources */,
+				03CAE6432051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
 				03722DE6202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722C8F2029F0F80080D069 /* U4DOBB.mm in Sources */,
 				03722CBA2029F0F80080D069 /* U4DParticleEmitterInterface.mm in Sources */,
@@ -3160,6 +3242,7 @@
 				03722C922029F0F80080D069 /* U4DSphere.mm in Sources */,
 				03722CA52029F0F80080D069 /* U4DScheduler.mm in Sources */,
 				03722D1E2029F0F80080D069 /* U4DVector2n.mm in Sources */,
+				03CAE65B2051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */,
 				03722CED2029F0F80080D069 /* U4DBoundingAABB.mm in Sources */,
 				03722CB22029F0F80080D069 /* U4DMatrix4n.mm in Sources */,
 				0341AC01204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
@@ -3197,6 +3280,7 @@
 				03722D192029F0F80080D069 /* U4DParticlePhysics.mm in Sources */,
 				03722E00202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				03722D002029F0F80080D069 /* U4DVisibilityCulling.mm in Sources */,
+				03CAE6492051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				03722CA82029F0F80080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722CBC2029F0F80080D069 /* U4DFontLoader.mm in Sources */,
@@ -3227,6 +3311,7 @@
 				03722E06202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
 				03722DEE202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03722CEB2029F0F80080D069 /* U4DSHAlgorithm.mm in Sources */,
+				03CAE655205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */,
 				03722CF62029F0F80080D069 /* U4DParticle.mm in Sources */,
 				03722CB62029F0F80080D069 /* U4DJoystickIdleState.mm in Sources */,
 				03722CAA2029F0F80080D069 /* U4DRenderParticleSystem.mm in Sources */,
@@ -3249,6 +3334,7 @@
 				03F2DB131F191F9B00F77B78 /* U4DRenderSkybox.mm in Sources */,
 				038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */,
 				03F2DAF21F191A2600F77B78 /* lightShader.metal in Sources */,
+				03CAE6582051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */,
 				030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */,
 				03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */,
 				03D559E61D58248A00E567D5 /* U4DLogger.mm in Sources */,
@@ -3267,6 +3353,7 @@
 				0341AC30204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
 				03759BB2175B0383002EB5D9 /* U4DDualQuaternion.mm in Sources */,
 				03F2DB101F191F9B00F77B78 /* U4DRenderLights.mm in Sources */,
+				03CAE6462051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
 				03D34DF11F8DB01100476149 /* U4DRenderParticleSystem.mm in Sources */,
@@ -3292,6 +3379,7 @@
 				039EC6B31FB57C8C0098BB5C /* GoldStateManager.mm in Sources */,
 				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				038249221FA252AE00DFEFE3 /* U4DParticleEmitterTorus.mm in Sources */,
+				03CAE64C205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03C03C4F1F4540610001EFA1 /* U4DJoystickStateInterface.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				0323DB95202F27160007F087 /* GamePadControllers.mm in Sources */,
@@ -3307,6 +3395,7 @@
 				039EC6B81FB57C970098BB5C /* GoldAsset.mm in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,
 				03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */,
+				03CAE63A2051925E00391B57 /* U4DMacMouse.mm in Sources */,
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
 				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
@@ -3347,6 +3436,7 @@
 				03722E09202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
 				03C03C401F43E2A80001EFA1 /* U4DButtonStateManager.mm in Sources */,
 				0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */,
+				03CAE65E2051933200391B57 /* U4DMacMouseIdleState.mm in Sources */,
 				033343011F8DA84A0013FB1E /* particleSystemShader.metal in Sources */,
 				03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */,
 				03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */,
@@ -3375,6 +3465,8 @@
 				03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */,
 				03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */,
 				036024E61FB29D4B0054236E /* MessageDispatcher.mm in Sources */,
+				03CAE6402051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
+				03CAE652205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */,
 				0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03F2DB111F191F9B00F77B78 /* U4DRenderManager.mm in Sources */,

@@ -62,6 +62,23 @@ public:
     
     virtual void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis)=0;
     
+    /**
+     @todo document this
+     */
+    virtual void macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
+    
+    /**
+     @todo document this
+     */
+    virtual void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction)=0;
+    
+    /**
+     @todo document this
+     */
+    virtual void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
+    
+    
+    
     virtual void changeState(const U4DTouches &touches,TOUCHSTATE touchState)=0;
     
     virtual void init()=0;

@@ -592,6 +592,11 @@ public:
     virtual void changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis){};
     
     /**
+     @todo Change the state of the entity. This method in particular is used to change the state of the mouse
+     */
+    virtual void changeState(MOUSEACTION &uMouseAction, const U4DVector2n &uMouseAxis){};
+    
+    /**
      @todo document this
      */
     virtual GAMEPADELEMENT getPadElementType(){};
@@ -600,6 +605,11 @@ public:
      @todo document this
      */
     virtual KEYBOARDELEMENT getKeyboardElementType(){};
+    
+    /**
+     @todo document this
+     */
+    virtual MOUSEELEMENT getMouseElementType(){};
 };
 
 }
