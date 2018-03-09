@@ -28,5 +28,9 @@ public:
     
     void update(double dt);
     
+    void setType();
+    
+    
+    
 };
 #endif /* ModelAsset_hpp */

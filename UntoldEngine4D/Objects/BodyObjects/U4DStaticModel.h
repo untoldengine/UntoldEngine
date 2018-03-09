@@ -196,6 +196,16 @@ namespace U4DEngine {
          */
         bool isCollisionSensor;
         
+        /**
+         @todo document this
+         */
+        std::vector<U4DStaticModel*> collisionList;
+        
+        /**
+         @todo document this
+         */
+        std::string collidingTag;
+        
         protected:
             
         public:
@@ -554,6 +564,31 @@ namespace U4DEngine {
          @todo get if entity is a collision sensor
          */
         bool getIsCollisionSensor();
+        
+        /**
+         @todo document this
+         */
+        void addToCollisionList(U4DStaticModel *uModel);
+        
+        /**
+         @todo document this
+         */
+        std::vector<U4DStaticModel *> getCollisionList();
+        
+        /**
+         @todo document this
+         */
+        void setCollidingTag(std::string uCollidingTag);
+        
+        /**
+         @todo document this
+         */
+        std::string getCollidingTag();
+        
+        /**
+         @todo document this
+         */
+        void clearCollisionList();
         
         };
     

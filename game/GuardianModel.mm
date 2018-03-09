@@ -12,6 +12,7 @@
 #include "GuardianIdleState.h"
 #include "GuardianRunState.h"
 #include "GuardianJumpState.h"
+#include "UserCommonProtocols.h"
 
 GuardianModel::GuardianModel():ateCoin(false){
     
@@ -36,17 +37,23 @@ bool GuardianModel::init(const char* uModelName, const char* uBlenderFile){
         
         setEnableShadow(true);
         
+        setCollidingTag("player");
+        
         //setNormalMapTexture(uTextureNormal);
         
         animationManager=new U4DEngine::U4DAnimationManager();
 
         enableKineticsBehavior();
-        //enableCollisionBehavior();
+        enableCollisionBehavior();
         
         initMass(10.0);
-        //initCoefficientOfRestitution(0.9);
+        initCoefficientOfRestitution(0.9);
         
-       
+        setCollisionFilterCategory(kPlayer);
+        setCollisionFilterMask(kCube);
+        
+        setIsCollisionSensor(true);
+        
         runAnimation=new U4DEngine::U4DAnimation(this);
         
         if (loadAnimationToModel(runAnimation, "walking", "blenderscript.u4d")) {

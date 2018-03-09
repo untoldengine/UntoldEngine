@@ -7,6 +7,9 @@
 //
 
 #include "ModelAsset.h"
+#include "GameAsset.h"
+#include "GuardianModel.h"
+#include "UserCommonProtocols.h"
 
 ModelAsset::ModelAsset(){
     
@@ -27,6 +30,8 @@ bool ModelAsset::init(const char* uModelName, const char* uBlenderFile){
         
         setEnableShadow(true);
         
+        setCollidingTag("blocks");
+        
         initMass(5.0);
 
         initCoefficientOfRestitution(0.7);
@@ -34,6 +39,10 @@ bool ModelAsset::init(const char* uModelName, const char* uBlenderFile){
         enableCollisionBehavior();
         
         loadRenderingInformation();
+        
+        setCollisionFilterCategory(kCube);
+        
+        setCollisionFilterMask(kPlayer|kField);
         
         //setBroadPhaseBoundingVolumeVisibility(true);
         
@@ -47,7 +56,7 @@ bool ModelAsset::init(const char* uModelName, const char* uBlenderFile){
 void ModelAsset::update(double dt){
     
     if (getModelHasCollided()) {
-        
+       
     }
     
 }

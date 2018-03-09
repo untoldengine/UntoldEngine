@@ -13,7 +13,6 @@
 
 class GuardianModel;
 
-
 enum{
     
     actionButtonA,
@@ -55,6 +54,17 @@ typedef struct{
     void* extraInfo;
     
 }Message;
+
+typedef enum{
+    
+    kCube=1,
+    kField=2,
+    kPlayer=3,
+    kNegativeGroupIndex=-10,
+    kPositiveGroupIndex=10,
+    kZeroGroupIndex=0,
+    
+}GameEntityCollision;
 
 enum{
     
