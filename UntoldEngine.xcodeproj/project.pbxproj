@@ -2532,7 +2532,7 @@
 			isa = PBXProject;
 			attributes = {
 				LastUpgradeCheck = 0810;
-				ORGANIZATIONNAME = "Untold Game Studio";
+				ORGANIZATIONNAME = "Untold Engine Studios";
 				TargetAttributes = {
 					03722B0D2029F0210080D069 = {
 						CreatedOnToolsVersion = 9.2;

@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 3/3/18.
-//  Copyright © 2018 Untold Game Studio. All rights reserved.
+//  Copyright © 2018 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef U4DKeyIdleState_hpp
