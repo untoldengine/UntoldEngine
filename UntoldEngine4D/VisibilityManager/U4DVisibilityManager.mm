@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DVisibilityManager::U4DVisibilityManager():isBVHBuildPaused(true),timeIntervalToBuildBVH(1.0){
+    U4DVisibilityManager::U4DVisibilityManager():isBVHBuildPaused(true),timeIntervalToBuildBVH(0.5){
         
         scheduler=new U4DCallback<U4DVisibilityManager>;
         
