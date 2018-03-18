@@ -27,7 +27,7 @@ namespace U4DEngine {
         setEntityType(CONTROLLERINPUT);
         
         //set initial state
-        stateManager->changeState(U4DMacKeyReleasedState::sharedInstance());
+        stateManager->changeState(U4DMacKeyIdleState::sharedInstance());
         
     }
     
