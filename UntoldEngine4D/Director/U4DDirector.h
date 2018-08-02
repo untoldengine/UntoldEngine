@@ -100,6 +100,11 @@ private:
      */
     bool gamePadControllerPresent;
     
+    /**
+     @todo document this
+     */
+    int numberOfVisibleModels;
+    
 protected:
     
     /**
@@ -329,6 +334,17 @@ public:
      @brief document this
      */
     bool getGamePadControllerPresent();
+    
+    /**
+     @brief document this
+     */
+    void setNumberOfVisibleModels(int uNumberOfVisibleModels);
+    
+    /**
+     @brief document this
+     */
+    int getNumberOfVisibleModels();
+    
 };
 
 }

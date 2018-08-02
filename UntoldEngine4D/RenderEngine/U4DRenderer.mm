@@ -147,7 +147,10 @@
     id <MTLCommandBuffer> commandBuffer = [mtlCommandQueue commandBuffer];
     commandBuffer.label = @"MyCommand";
     
-    [self renderShadows:commandBuffer];
+    //if we have models visible, then render shadows
+    if(director->getNumberOfVisibleModels()>0){
+        [self renderShadows:commandBuffer];
+    }
     
     // Obtain a renderPassDescriptor generated from the view's drawable textures
     MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
