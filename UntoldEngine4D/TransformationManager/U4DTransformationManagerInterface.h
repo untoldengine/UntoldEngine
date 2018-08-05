@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/18/14.
-//  Copyright (c) 2014 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2014 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DTransformationManagerInterface__
@@ -26,8 +26,6 @@ class U4DTransformationManagerInterface{
 private:
     
 public:
-    
-    U4DQuaternion worldTransform;
     
     ~U4DTransformationManagerInterface(){};
     
@@ -55,7 +53,7 @@ public:
     
     virtual void rotateAboutAxis(float angle, U4DVector3n& axisOrientation, U4DVector3n& axisPosition)=0;
     
-    virtual void viewInDirection(U4DVector3n& uDestinationPoint)=0;
+    //virtual void viewInDirection(U4DVector3n& uDestinationPoint)=0;
 };
     
 }

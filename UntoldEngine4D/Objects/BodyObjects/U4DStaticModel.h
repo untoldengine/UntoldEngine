@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/22/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DStaticModel__
@@ -11,101 +11,586 @@
 
 #include <iostream>
 #include "U4DModel.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
-typedef struct{
+    class U4DBoundingVolume;
     
-    float mass;
-    U4DVector3n centerOfMass;
-    U4DMatrix3n momentOfInertiaTensor;
-    U4DMatrix3n inverseMomentOfInertiaTensor;
-    std::vector<U4DVector3n> vertexDistanceFromCenterOfMass;
-    
-}MassProperties;
+}
 
-typedef struct{
+namespace U4DEngine {
     
-    U4DVector3n contactPoint; //contact points (e.g. against plane, OBB, etc)
-    U4DVector3n forceOnContactPoint;
-    U4DVector3n lineOfAction;
+    /**
+     @brief The ConvexHullProperties structure contains the convex-hull vertices of the 3D static model
+     */
+    typedef struct{
+     
+        /**
+         @brief Convex-Hull vertices of the 3D static model
+         */
+        std::vector<U4DVector3n> convexHullVertices;
     
-}CollisionInformation;
+    }ConvexHullProperties;
+    
+    /**
+     @brief The MassProperties structure contains mass properties information of the 3D static model
+     */
+    typedef struct{
+        
+        /**
+         @brief Mass of 3D model
+         */
+        float mass=0.0;
+        
+        /**
+         @brief Inertia Tensor type of the static 3D model
+         */
+        INERTIATENSORTYPE inertiaTensorType;
+        
+        /**
+         @brief Center of mass of the static 3D model
+         */
+        U4DVector3n centerOfMass;
+        
+        /**
+         @brief Moment of inertia of static 3D model
+         */
+        U4DMatrix3n momentOfInertiaTensor;
+        
+        /**
+         @brief Inverse moment of inertia of the static 3D model
+         */
+        U4DMatrix3n inverseMomentOfInertiaTensor;
+        
+        /**
+         @brief Variable stating if the inertia tensor of the 3D static model has been computed
+         */
+        bool intertiaTensorComputed;
+        
+    }MassProperties;
 
-typedef struct{
+    /**
+     @brief The ContactManifoldProperties structure contains collision contact manifold of the 3D static model
+     */
+    typedef struct{
+        /**
+         @brief Collision contact points
+         */
+        std::vector<U4DVector3n> contactPoint;
+        
+        /**
+         @brief Collision normal force
+         */
+        U4DVector3n normalForce;
+        
+        /**
+         @brief Collision normal face direction vector
+         */
+        U4DVector3n normalFaceDirection;
+        
+        /**
+         @brief Collision Penetration depth
+         */
+        float penetrationDepth=0.0;
+        
+    }ContactManifoldProperties;
+
+    /**
+     @brief The CollisionProperties structure contains collision information of the 3D static model
+     */
+    typedef struct{
+        /**
+         @brief Collision contact manifold properties
+         */
+        ContactManifoldProperties contactManifoldProperties;
+        
+        /**
+         @brief Variable stating if the 3D static model has collided
+         */
+        bool collided=false;
+        
+    }CollisionProperties;
     
-    CollisionInformation collisionInformation;
-    bool collided; //did the model collided
-    float penetrationPoint;
-    
-}CollisionProperties;
+    /**
+     @brief Document this
+     */
+    typedef struct{
+        
+        int category=1;
+        
+        int mask=1;
+        
+        signed int groupIndex=0;
+        
+    }CollisionFilter;
 }
 
 
 namespace U4DEngine {
-    
-class U4DStaticModel:public U4DModel{
-    
-private:
-    
-protected:
-    
-public:
-    
-    U4DStaticModel(){
+
+    /**
+     @brief The U4DStaticModel class represents a 3D static model entity
+     */
+    class U4DStaticModel:public U4DModel{
         
-        massProperties.mass=1.0;
+        private:
         
-        collisionProperties.collided=false;
+        /**
+         @brief Variable stating if model can detect collisions
+         */
+        bool collisionEnabled;
         
-        U4DVector3n centerOfMass(0.0,0.0,0.0);
+        /**
+         @brief Variable stating the visibility of the broad-phase bounding volume. If set to true, the engine will render the broad-phase volume
+         */
+        bool broadPhaseBoundingVolumeVisibility;
+    
+        /**
+         @brief Variable stating the visibility of the narrow-phase bounding volume. If set to true, the engine will render the narrow-phase volume
+         */
+        bool narrowPhaseBoundingVolumeVisibility;
+    
+        /**
+         @brief Object representing the narrow-phase bounding volume
+         */
+        U4DBoundingVolume *convexHullBoundingVolume;
+    
+        /**
+         @brief Object representing the broad-phase bounding volume
+         */
+        U4DBoundingVolume *broadPhaseBoundingVolume;
         
-        setCenterOfMass(centerOfMass);
+        /**
+         @brief Object representing mass properties of the model
+         */
+        MassProperties massProperties;
+    
+        /**
+         @brief Object holding collision information of the model
+         */
+        CollisionProperties collisionProperties;
+    
+        /**
+         @brief Object holding properties of the model convex-hull
+         */
+        ConvexHullProperties convexHullProperties;
+    
+        /**
+         @brief Coefficient of Restitution for the model
+         */
+        float coefficientOfRestitution;
+    
+        /**
+         @brief Variable stating if the model should be consider a platform. For example, a model which will serve as a floor or ground in a game should be set to platform. This is important for collision detection.
+         */
+        bool isPlatform;
         
-        coefficientOfRestitution=1.0;
+        /**
+         @todo document this
+         */
+        CollisionFilter collisionFilter;
         
-        setInertiaTensor(1.0,1.0,1.0);
+        /**
+         @todo Variable stating if the model should be consider a collision sensor. The engine does not compute contact manifolds on collision sensors. It simply determines if a collision occurred or not.
+         */
+        bool isCollisionSensor;
+        
+        /**
+         @todo document this
+         */
+        std::vector<U4DStaticModel*> collisionList;
+        
+        /**
+         @todo document this
+         */
+        std::string collidingTag;
+        
+        protected:
+            
+        public:
+
+        /**
+         @brief Constructor for the class
+         */
+        U4DStaticModel();
+        
+        /**
+         @brief Destructor for the class
+         */
+        ~U4DStaticModel();
+        
+        /**
+         @brief Copy constructor
+         */
+        U4DStaticModel(const U4DStaticModel& value);
+
+        /**
+         @brief Copy constructor
+         
+         @param value 3D Static model object to copy to
+         
+         @return Returns a copy of the 3D static model
+         */
+        U4DStaticModel& operator=(const U4DStaticModel& value);
+    
+        /**
+         @brief Method which sets the mass of the model
+         
+         @param uMass   Mass of the static model
+         */
+        void initMass(float uMass);
+    
+        /**
+         @brief Method which sets the center of mass of the model
+         
+         @param uCenterOfMass   Center of mass of the static model
+         */
+        void initCenterOfMass(U4DVector3n& uCenterOfMass);
+        
+        /**
+         @brief Method which sets the coefficient of restitution of the model
+         
+         @param uValue  Coefficient of restitution of the static model
+         */
+        void initCoefficientOfRestitution(float uValue);
+        
+        /**
+         @brief Method which sets the Interta tensor type of the model
+         
+         @param uInertiaTensorType  Inertia Tensor type. i.e., cubic, spherical or cylindrical
+         */
+        void initInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType);
+        
+        /**
+         @brief Method which sets the model as a platform
+         
+         @param uValue  Set to true if the collision detection system should treat this model as a floor/ground
+         */
+        void initAsPlatform(bool uValue);
         
         
     
-    };
+        //Set Operations
     
-    ~U4DStaticModel(){};
+        /**
+         @brief Methods which sets the visibility of the Narrow-Phase bounding volume
+         
+         @param uValue The engine will render the narrow-phase bounding volume if set to true
+         */
+        void setNarrowPhaseBoundingVolumeVisibility(bool uValue);
+        
+        /**
+         @brief Methods which sets the visibility of the Broad-Phase bounding volume
+         
+         @param uValue The engine will render the broad-phase bounding volume if set to true
+         */
+        void setBroadPhaseBoundingVolumeVisibility(bool uValue);
+        
+        //These set operations should be make private
+        
+        /**
+         @brief Method which sets the collision normal face direction
+         
+         @param uNormalFaceDirection 3D vector representing the normal face direction
+         */
+        void setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection);
+        
+        /**
+         @brief Method which sets the collision penetration depth
+         
+         @param uPenetrationDepth Collision penetration depth
+         */
+        void setCollisionPenetrationDepth(float uPenetrationDepth);
+        
+        /**
+         @brief Method which sets the Normal force
+         
+         @param uNormalForce 3D vector representing the normal force
+         */
+        void setNormalForce(U4DVector3n& uNormalForce);
+        
+        /**
+         @brief Method which informs the engine that the model has collided
+         
+         @param uValue If set to true, the model has collided
+         */
+        void setModelHasCollided(bool uValue);
     
-    U4DStaticModel(const U4DStaticModel& value){};
+        //Behavior operations
     
-    U4DStaticModel& operator=(const U4DStaticModel& value){return *this;};
+        /**
+         @brief Method which enables the model to detect collisions
+         */
+        void enableCollisionBehavior();
+        
+        /**
+         @brief Method which pauses the ability of the model to detect collisions
+         */
+        void pauseCollisionBehavior();
+        
+        /**
+         @brief Nethod which resumes the ability for the model to detect collisions
+         */
+        void resumeCollisionBehavior();
+        
+        /**
+         @brief Method which returns if the model can detect collisions
+         
+         @return Returns true if the model can detect collisions
+         */
+        bool isCollisionBehaviorEnabled();
     
-    MassProperties massProperties;
+        //Compute operations
+        
+        /**
+         @brief Method which computes the inertia tensor of the model geometry
+         */
+        void computeInertiaTensor();
+        
+        //Update operations
+        
+        /**
+         @brief Method which updates the convex-hull vertices of the model
+         */
+        void updateConvexHullVertices();
+        
+        /**
+         @brief Method which updates the narrow-phase bounding volume space
+         */
+        void updateNarrowPhaseBoundingVolumeSpace();
+        
+        /**
+         @brief Method which updates the broad-phase bounding volume space
+         */
+        void updateBroadPhaseBoundingVolumeSpace();
     
-    CollisionProperties collisionProperties;
+        //add operations
+   
+        /**
+         @brief Method which adds collision contact points to a container
+         
+         @param uContactPoint collision contact points to add to container
+         */
+        void addCollisionContactPoint(U4DVector3n& uContactPoint);
     
-    float coefficientOfRestitution;
- 
-    void setMass(float uMass);
+        //clear operations
+        
+        /**
+         @brief Method which clears all convex-hull vertices
+         */
+        void clearConvexHullVertices();
     
-    float getMass()const;
+        /**
+         @brief Method which clears all collision information
+         */
+        void clearCollisionInformation();
+        
+        //Get Operations
+        
+        /**
+         @brief Method which returns the mass of the model
+         
+         @return Returns the mass of the model
+         */
+        float getMass()const;
+        
+        /**
+         @brief Method which returns the center of mass of the model
+         
+         @return Returns the center of mass of the model
+         */
+        U4DVector3n getCenterOfMass();
+        
+        /**
+         @brief Method which returns the coefficient of restitution of the model
+         
+         @return Returns the coefficient of restitution of the model
+         */
+        float getCoefficientOfRestitution();
+        
+        
+        /**
+         @brief Method which returns the inertia tensor type of the model
+         
+         @return Returns the inertia tensor type. i.e., cubic, spherical or cylindrical
+         */
+        INERTIATENSORTYPE getInertiaTensorType();
+        
+        /**
+         @brief Method which returns if the model should be seens as a platform by the collision detection system
+         
+         @return Returns true if the model is a platform
+         */
+        bool getIsPlatform();
     
-    void setCenterOfMass(U4DVector3n& uCenterOfMass);
+        /**
+         @brief Method which returns a 3x3 matrix representing the moment of inertia tensor
+         
+         @return Returns a 3x3 matrix representing the moment of inertia tensor
+         */
+        U4DMatrix3n getMomentOfInertiaTensor();
+        
+        /**
+         @brief Method which returns a 3x3 matrix representing the inverse moment of inertia tensor
+         
+         @return Returns a 3x3 matrix representing the inverse moment of inertia tensor
+         */
+        U4DMatrix3n getInverseMomentOfInertiaTensor();
     
-    U4DVector3n getCenterOfMass();
+        /**
+         @brief Method which returns the convex-hull vertices
+         
+         @return Returns the convex-hull vertices
+         */
+        std::vector<U4DVector3n>& getConvexHullVertices();
     
-    void setCoefficientOfRestitution(float uValue);
+        /**
+         @brief Method which returns the convex-hull vertices count
+         
+         @return Return the convex-hull vertices count
+         */
+        int getConvexHullVerticesCount();
     
-    float getCoefficientOfRestitution();
+        /**
+         @brief Method which returns the narrow-phase bounding volume
+         
+         @return Returns the narrow-phase bounding volume
+         */
+        U4DBoundingVolume* getNarrowPhaseBoundingVolume();
     
-    void setInertiaTensor(float uRadius);
+        /**
+         @brief Method which returns if the engine should render the narrow-phase bounding volume
+         
+         @return Returns true if the engine should render the narrow-phase bounding volume
+         */
+        bool getNarrowPhaseBoundingVolumeVisibility();
     
-    void setInertiaTensor(float uLength, float uWidth, float uHeight);
+        /**
+         @brief Method which returns the broad-phase bounding volume
+         
+         @return Returns the broad-phase bounding volume
+         */
+        U4DBoundingVolume* getBroadPhaseBoundingVolume();
     
-    U4DMatrix3n getMomentOfInertiaTensor();
+        /**
+         @brief Method which returns if the engine should render the broad-phase bounding volume
+         
+         @return Returns true if the engine should render the broad-phase bounding volume
+         */
+        bool getBroadPhaseBoundingVolumeVisibility();
     
-    U4DMatrix3n getInverseMomentOfInertiaTensor();
+        /**
+         @brief Method which returns a 3D vector representing the Normal force
+         
+         @return Returns a 3D vector representing the normal force
+         */
+        U4DVector3n getNormalForce();
     
-    void integralTermsForTensor(float w0,float w1,float w2,float &f1,float &f2, float &f3,float &g0,float &g1,float &g2);
+        /**
+         @brief Method which returns the collision contact points
+         
+         @return Returns the collision contact points
+         */
+        std::vector<U4DVector3n> getCollisionContactPoints();
     
-    void setVertexDistanceFromCenterOfMass();
-};
+        /**
+         @brief Method which clears all collision contact points
+         */
+        void clearCollisionContactPoints();
+    
+        /**
+         @brief Method which returns the collision normal face direction vector
+         
+         @return Returns 3D vector representing the collision normal face direction vector
+         */
+        U4DVector3n getCollisionNormalFaceDirection();
+        
+        /**
+         @brief Method which returns the collision penetration depth
+         
+         @return Returns the collision penetration depth
+         */
+        float getCollisionPenetrationDepth();
+    
+        /**
+         @brief Method which returns true if the model has collided
+         
+         @return Returns true if the model has collided
+         */
+        bool getModelHasCollided();
+        
+        /**
+         @todo document this
+         */
+        void setCollisionFilterCategory(int uFilterCategory);
+
+        /**
+         @todo document this-Who can the model collide with
+         */
+        void setCollisionFilterMask(int uFilterMask);
+        
+        /**
+         @todo document this
+         */
+        void setCollisionFilterGroupIndex(signed int uGroupIndex);
+        
+        /**
+         @todo document this
+         */
+        int getCollisionFilterCategory();
+        
+        /**
+         @todo document this
+         */
+        int getCollisionFilterMask();
+        
+        /**
+         @todo document this
+         */
+        signed int getCollisionFilterGroupIndex();
+        
+        /**
+         @todo document this
+         */
+        U4DVector3n getModelDimensions();
+        
+        /**
+         @todo set the entity as a collision sensor
+         */
+        void setIsCollisionSensor(bool uValue);
+        
+        /**
+         @todo get if entity is a collision sensor
+         */
+        bool getIsCollisionSensor();
+        
+        /**
+         @todo document this
+         */
+        void addToCollisionList(U4DStaticModel *uModel);
+        
+        /**
+         @todo document this
+         */
+        std::vector<U4DStaticModel *> getCollisionList();
+        
+        /**
+         @todo document this
+         */
+        void setCollidingTag(std::string uCollidingTag);
+        
+        /**
+         @todo document this
+         */
+        std::string getCollidingTag();
+        
+        /**
+         @todo document this
+         */
+        void clearCollisionList();
+        
+        };
     
 }
 

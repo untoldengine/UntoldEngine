@@ -3,13 +3,21 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 12/17/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DFontLoader.h"
 #include "tinyxml2.h"
 
 namespace U4DEngine {
+    
+U4DFontLoader::U4DFontLoader(){
+
+}
+
+U4DFontLoader::~U4DFontLoader(){
+
+}
     
 void U4DFontLoader::loadFontAssetFile(std::string uFontAtlasFile,std::string uFontAtlasImage){
     
@@ -73,7 +81,7 @@ void U4DFontLoader::loadFont(){
     {
         
         //set up the fontData
-        FontData ufontData;
+        FONTDATA ufontData;
         
         const char* ID = subElem->Attribute("id");
         ufontData.ID=atoi(ID);

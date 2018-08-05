@@ -3,90 +3,198 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/10/14.
-//  Copyright (c) 2014 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2014 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DLights.h"
-#include "U4DDirector.h"
-#include "U4DOpenGLLight.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
+#include "U4DRenderLights.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
-U4DLights::U4DLights(){
-
-    setEntityType(LIGHT);
+    U4DLights* U4DLights::instance=0;
     
-    U4DDirector *director=U4DDirector::sharedInstance();
-    director->loadLight(this);
-    
-    openGlManager=new U4DOpenGLLight(this);
-    openGlManager->setShader("lightShader");
-    
-    
-    setLightSphere(0.1, 15, 15);
-    
-};
-
-U4DLights::~U4DLights(){
-
-#warning need to remove this light
-    //remove the light from the director
-};
-
-void U4DLights::draw(){
-    openGlManager->draw();
-}
-
-void U4DLights::setLightIndex(int uIndex){
-    
-    index=uIndex;
-}
-
-int U4DLights::getLightIndex(){
-    
-    return index;
-}
-
-void U4DLights::setLightSphere(float uRadius,int uRings, int uSectors){
-    
-    //radius=uRadius;
-    float R=1.0/(uRings-1);
-    float S=1.0/(uSectors-1);
-    
-    int r,s;
-    
-    for (r=0; r<uRings; r++) {
+    U4DLights::U4DLights(){
         
-        for (s=0; s<uSectors; s++) {
-            
-            float uY=sin(-M_PI_2+M_PI*r*R);
-            float uX=cos(2*M_PI * s * S) * sin( M_PI * r * R );
-            float uZ=sin(2*M_PI * s * S) * sin( M_PI * r * R );
-            
-            uX*=uRadius;
-            uY*=uRadius;
-            uZ*=uRadius;
-            
-            U4DVector3n vec(uX,uY,uZ);
-            
-            bodyCoordinates.addVerticesDataToContainer(vec);
-            
-            //push to index
-            int curRow=r*uSectors;
-            int nextRow=(r+1)*uSectors;
-            
-            U4DIndex index(curRow+s,nextRow+s,nextRow+(s+1));
-            bodyCoordinates.addIndexDataToContainer(index);
-            
-            U4DIndex index2(curRow+s,nextRow+s,curRow+(s+1));
-            bodyCoordinates.addIndexDataToContainer(index2);
+        renderManager=new U4DRenderLights(this);
+        
+        U4DPoint3n uMax(0.1,0.1,0.1);
+        U4DPoint3n uMin(-0.1,-0.1,-0.1);
+        
+        computeLightVolume(uMax, uMin);
+        
+        setEntityType(LIGHT);
+        
+        diffuseColor=U4DVector3n(1.0,1.0,1.0);
 
-            
+        specularColor=U4DVector3n(1.0,1.0,1.0);
+        
+        translateTo(0.0,0.0,0.0);
+        
+        setShader("vertexLightShader", "fragmentLightShader");
+        
+        renderManager->loadRenderingInformation();
+       
+    };
+    
+    U4DLights::~U4DLights(){
+        
+    };
+    
+    U4DLights* U4DLights::sharedInstance(){
+        
+        if (instance==0) {
+            instance=new U4DLights();
         }
+        
+        return instance;
     }
     
+    void U4DLights::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
+    }
     
-}
+    void U4DLights::computeLightVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){
+        
+        float width=(std::abs(uMax.x-uMin.x))/2.0;
+        float height=(std::abs(uMax.y-uMin.y))/2.0;
+        float depth=(std::abs(uMax.z-uMin.z))/2.0;
+        
+        U4DVector3n v1(width,height,depth);
+        U4DVector3n v2(width,height,-depth);
+        U4DVector3n v3(-width,height,-depth);
+        U4DVector3n v4(-width,height,depth);
+        
+        U4DVector3n v5(width,-height,depth);
+        U4DVector3n v6(width,-height,-depth);
+        U4DVector3n v7(-width,-height,-depth);
+        U4DVector3n v8(-width,-height,depth);
+        
+        U4DIndex i1(0,1,2);
+        U4DIndex i2(2,3,0);
+        U4DIndex i3(4,5,6);
+        U4DIndex i4(6,7,4);
+        
+        U4DIndex i5(5,6,2);
+        U4DIndex i6(2,3,7);
+        U4DIndex i7(7,4,5);
+        U4DIndex i8(5,1,0);
+        
+        bodyCoordinates.addVerticesDataToContainer(v1);
+        bodyCoordinates.addVerticesDataToContainer(v2);
+        bodyCoordinates.addVerticesDataToContainer(v3);
+        bodyCoordinates.addVerticesDataToContainer(v4);
+        
+        bodyCoordinates.addVerticesDataToContainer(v5);
+        bodyCoordinates.addVerticesDataToContainer(v6);
+        bodyCoordinates.addVerticesDataToContainer(v7);
+        bodyCoordinates.addVerticesDataToContainer(v8);
+        
+        bodyCoordinates.addIndexDataToContainer(i1);
+        bodyCoordinates.addIndexDataToContainer(i2);
+        bodyCoordinates.addIndexDataToContainer(i3);
+        bodyCoordinates.addIndexDataToContainer(i4);
+        
+        bodyCoordinates.addIndexDataToContainer(i5);
+        bodyCoordinates.addIndexDataToContainer(i6);
+        bodyCoordinates.addIndexDataToContainer(i7);
+        bodyCoordinates.addIndexDataToContainer(i8);
+        
+        
+    }
+    
+    U4DVector3n U4DLights::getViewInDirection(){
+        
+        //get forward vector
+        U4DVector3n forward=getEntityForwardVector();
+        
+        //get the entity rotation matrix
+        U4DMatrix3n orientationMatrix=getLocalMatrixOrientation();
+        
+        return orientationMatrix*forward;
+        
+    }
+    
+    void U4DLights::viewInDirection(U4DVector3n& uDestinationPoint){
+        
+        U4DVector3n upVector(0,1,0);
+        float oneEightyAngle=180.0;
+        U4DVector3n entityPosition;
+        
+        entityPosition=getAbsolutePosition();
+        
+        //calculate the forward vector
+        U4DVector3n forwardVector=entityPosition-uDestinationPoint;
+        
+        //calculate the angle
+        float angle=getEntityForwardVector().angle(forwardVector);
+        
+        //calculate the rotation axis
+        U4DVector3n rotationAxis=forwardVector.cross(getEntityForwardVector());
+        
+        //if angle is 180 it means that both vectors are pointing opposite to each other.
+        //this means that there is no rotation axis. so set the Up Vector as the rotation axis
+        
+        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+            
+            rotationAxis=upVector;
+            angle=180.0;
+            
+        }
+        
+        rotationAxis.normalize();
+        
+        U4DQuaternion rotationQuaternion(angle,rotationAxis);
+        
+        rotateTo(rotationQuaternion);
+        
+    }
+    
+    void U4DLights::setDiffuseColor(U4DVector3n &uDiffuseColor){
+        
+        if ((uDiffuseColor.x>=0.0 && uDiffuseColor.x<=1.0) && (uDiffuseColor.y>=0.0 && uDiffuseColor.y<=1.0) && (uDiffuseColor.z>=0.0 && uDiffuseColor.z<=1.0)) {
+            
+            diffuseColor=uDiffuseColor;
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("Error: The value for the Diffuse Light Color parameter should be between 0 and 1");
+        }
+        
+        
+    }
+    
+    void U4DLights::setSpecularColor(U4DVector3n &uSpecularColor){
+        
+        if ((uSpecularColor.x>=0.0 && uSpecularColor.x<=1.0) && (uSpecularColor.y>=0.0 && uSpecularColor.y<=1.0) && (uSpecularColor.z>=0.0 && uSpecularColor.z<=1.0)) {
+            
+            specularColor=uSpecularColor;
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("Error: The value for the Specular Light Color parameter should be between 0 and 1");
+        }
+        
+        
+    }
+    
+    U4DVector3n U4DLights::getDiffuseColor(){
+        
+        return diffuseColor;
+        
+    }
+    
+    U4DVector3n U4DLights::getSpecularColor(){
+        
+        return specularColor;
+        
+    }
 
 }

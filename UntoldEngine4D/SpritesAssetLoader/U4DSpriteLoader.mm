@@ -3,13 +3,19 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 9/29/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DSpriteLoader.h"
 #include "tinyxml2.h"
 
 namespace U4DEngine {
+    
+U4DSpriteLoader::U4DSpriteLoader(){
+}
+
+U4DSpriteLoader::~U4DSpriteLoader(){
+}
     
 void U4DSpriteLoader::loadSpritesAssetFile(std::string uSpriteAtlasFile,std::string uSpriteAtlasImage){
     
@@ -46,7 +52,7 @@ void U4DSpriteLoader::loadSprites(){
     
     for(tinyxml2::XMLElement* sprite = textureAtlas->FirstChildElement("sprite"); sprite != NULL; sprite= sprite->NextSiblingElement("sprite"))
     {
-        SpriteData uSpriteData;
+        SPRITEDATA uSpriteData;
         
         const char* spriteName = sprite->Attribute("n");
         uSpriteData.name=spriteName;

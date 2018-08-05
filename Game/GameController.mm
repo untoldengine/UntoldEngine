@@ -3,12 +3,13 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/10/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "GameController.h"
 #include <vector>
 #include "CommonProtocols.h"
+#include "GameLogic.h"
 #include "U4DEntity.h"
 #include "U4DCallback.h"
 #include "U4DButton.h"
@@ -18,73 +19,128 @@
 
 void GameController::init(){
     
-    U4DEngine::U4DCallback<GameController>* action3Callback=new U4DEngine::U4DCallback<GameController>;
+    //get pointer to the earth
+    Earth *earth=dynamic_cast<Earth*>(getGameWorld());
     
-    action3Callback->scheduleClassWithMethod(this, &GameController::action);
+    joyStick=new U4DEngine::U4DJoyStick("joystick", -0.7,-0.6,"joyStickBackground.png",130,130,"joystickDriver.png",80,80);
     
-    joyStick=new U4DEngine::U4DJoyStick(-0.5,-0.5,"joyStickBackground.png",124,124,"joystickDriver.png",76,76,action3Callback);
+    joyStick->setControllerInterface(this);
     
-    add(joyStick);
+    earth->addChild(joyStick,0);
+    
+    //create a callback
+    U4DEngine::U4DCallback<GameController>* joystickCallback=new U4DEngine::U4DCallback<GameController>;
+    
+    joystickCallback->scheduleClassWithMethod(this, &GameController::actionOnJoystick);
+    
+    joyStick->setCallbackAction(joystickCallback);
+    
+    
+    myButtonA=new U4DEngine::U4DButton("buttonA",0.3,-0.6,103,103,"ButtonA.png","ButtonAPressed.png");
+    
+    myButtonA->setControllerInterface(this);
+    
+    earth->addChild(myButtonA,1);
+    
+    //create a callback
+    U4DEngine::U4DCallback<GameController>* buttonACallback=new U4DEngine::U4DCallback<GameController>;
+    
+    buttonACallback->scheduleClassWithMethod(this, &GameController::actionOnButtonA);
+    
+    myButtonA->setCallbackAction(buttonACallback);
+    
+    
+    myButtonB=new U4DEngine::U4DButton("buttonB",0.7,-0.6,103,103,"ButtonB.png","ButtonBPressed.png");
+    
+    myButtonB->setControllerInterface(this);
+    
+    earth->addChild(myButtonB,2);
+    
+    //create a callback
+    U4DEngine::U4DCallback<GameController>* buttonBCallback=new U4DEngine::U4DCallback<GameController>;
+    
+    buttonBCallback->scheduleClassWithMethod(this, &GameController::actionOnButtonB);
+    
+    myButtonB->setCallbackAction(buttonBCallback);
+    
+}
 
- 
-    U4DEngine::U4DCallback<GameController>* action2Callback=new U4DEngine::U4DCallback<GameController>;
+void GameController::actionOnButtonA(){
     
-    action2Callback->scheduleClassWithMethod(this, &GameController::forward);
+    ControllerInputMessage controllerInputMessage;
     
-    myButton=new U4DEngine::U4DButton(0.5,-0.5,102,102,"ButtonA.png","ButtonAPressed.png",action2Callback,U4DEngine::rTouchesBegan);
-    add(myButton);
+    controllerInputMessage.controllerInputType=actionButtonA;
     
-   
+    if (myButtonA->getIsPressed()) {
+        
+        controllerInputMessage.controllerInputData=buttonPressed;
+        
+    }else if(myButtonA->getIsReleased()){
+        
+        controllerInputMessage.controllerInputData=buttonReleased;
+        
+    }
     
-    U4DEngine::U4DCallback<GameController>* actionCallback=new U4DEngine::U4DCallback<GameController>;
-    
-    actionCallback->scheduleClassWithMethod(this, &GameController::backward);
-    
-    myButtonB=new U4DEngine::U4DButton(0.2,-0.5,102,102,"ButtonB.png","ButtonBPressed.png",actionCallback,U4DEngine::rTouchesBegan);
-    add(myButtonB);
-    
+    sendUserInputUpdate(&controllerInputMessage);
+}
 
+void GameController::actionOnButtonB(){
+    
+    ControllerInputMessage controllerInputMessage;
+    
+    controllerInputMessage.controllerInputType=actionButtonB;
+    
+    if (myButtonB->getIsPressed()) {
+        
+        controllerInputMessage.controllerInputData=buttonPressed;
+        
+    }else if(myButtonB->getIsReleased()){
+        
+        controllerInputMessage.controllerInputData=buttonReleased;
+        
+    }
+    
+    sendUserInputUpdate(&controllerInputMessage);
+}
+
+void GameController::actionOnJoystick(){
+    
+    ControllerInputMessage controllerInputMessage;
+    
+    controllerInputMessage.controllerInputType=actionJoystick;
+    
+    if (joyStick->getIsActive()) {
+        
+        controllerInputMessage.controllerInputData=joystickActive;
+        
+        U4DEngine::U4DVector3n joystickDirection=joyStick->getDataPosition();
+        
+        joystickDirection.z=joystickDirection.y;
+        
+        joystickDirection.y=0;
+        
+        joystickDirection.normalize();
+    
+        
+        if (joyStick->getDirectionReversal()) {
+            
+            controllerInputMessage.joystickChangeDirection=true;
+            
+        }else{
+            
+            controllerInputMessage.joystickChangeDirection=false;
+            
+        }
+        
+        controllerInputMessage.joystickDirection=joystickDirection;
+        
+    }else {
+        
+        controllerInputMessage.controllerInputData=joystickInactive;
+        
+    }
+    
+    sendUserInputUpdate(&controllerInputMessage);
 }
 
 
-
-void GameController::action(){
-    
-    data+=joyStick->getDataPosition();
-    
-    data.x*=0.5;
-    data.y*=0.1;
-    
-    U4DEngine::U4DVector3n axisOrientation(0,1,0);
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->rotateBy(data.x, axisOrientation);
-    //controlledU4DObject->translateBy(data.x, data.y, 0.0);
-}
-
-void GameController::forward(){
-    
-    /*
-    U4DVector3n moveBy(0,0,0.0);
-    moveBy=moveBy+controlledU4DObject->viewDirection;
-    
-    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
-    
-    U4DVector3n pos=controlledU4DObject->getAbsolutePosition();
-    */
-    
-    //U4DCamera *camera=U4DCamera::sharedInstance();
-    //camera->translateBy(0.0,0.0,0.2);
-    controlledU4DObject->translateBy(0.1,0.0,0.0);
-}
-
-void GameController::backward(){
-    /*
-    U4DVector3n moveBy(0,0,0.0);
-    moveBy=moveBy-controlledU4DObject->viewDirection;
-    
-    controlledU4DObject->translateBy(moveBy.x,moveBy.y,moveBy.z);
- */
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    //camera->translateBy(0.0,0.0,-0.2);
-    controlledU4DObject->translateBy(-0.1,0.0,0.0);
-}

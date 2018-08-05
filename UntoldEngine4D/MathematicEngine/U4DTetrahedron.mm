@@ -3,16 +3,22 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 8/2/15.
-//  Copyright (c) 2015 Untold Game Studio. All rights reserved.
+//  Copyright (c) 2015 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DTetrahedron.h"
+#include <cmath>
+#include <vector>
 #include "U4DVector3n.h"
 #include "U4DMatrix4n.h"
 #include "U4DTriangle.h"
-#include <cmath>
+#include "Constants.h"
+#include "U4DNumerical.h"
+#include <float.h>
 
 namespace U4DEngine {
+    
+    U4DTetrahedron::U4DTetrahedron():pointA(0.0,0.0,0.0),pointB(0.0,0.0,0.0),pointC(0.0,0.0,0.0),pointD(0.0,0.0,0.0){}
     
     U4DTetrahedron::U4DTetrahedron(U4DPoint3n& uPointA, U4DPoint3n& uPointB, U4DPoint3n& uPointC, U4DPoint3n& uPointD){
         
@@ -21,10 +27,35 @@ namespace U4DEngine {
         pointC=uPointC;
         pointD=uPointD;
         
+        //set triangles that makes up the tetrahedron
+        
+        triangleABC=U4DTriangle(pointA,pointB,pointC);
+        triangleACD=U4DTriangle(pointA,pointC,pointD);
+        triangleADB=U4DTriangle(pointA,pointD,pointB);
+        triangleBDC=U4DTriangle(pointB,pointD,pointC);
+    
     }
 
     U4DTetrahedron::~U4DTetrahedron(){
         
+    }
+    
+    U4DTetrahedron::U4DTetrahedron(const U4DTetrahedron& a):pointA(a.pointA),pointB(a.pointB),pointC(a.pointC),pointD(a.pointD),triangleABC(a.triangleABC),triangleACD(a.triangleACD),triangleADB(a.triangleADB),triangleBDC(a.triangleBDC){};
+    
+    
+    U4DTetrahedron& U4DTetrahedron::operator=(const U4DTetrahedron& a){
+        
+        pointA=a.pointA;
+        pointB=a.pointB;
+        pointC=a.pointC;
+        pointD=a.pointD;
+        
+        triangleABC=a.triangleABC;
+        triangleACD=a.triangleACD;
+        triangleADB=a.triangleADB;
+        triangleBDC=a.triangleBDC;
+        
+        return *this;
     }
 
     bool U4DTetrahedron::pointOutsideOfPlane(U4DPoint3n&p, U4DPoint3n& a, U4DPoint3n& b, U4DPoint3n& c){
@@ -128,6 +159,30 @@ namespace U4DEngine {
         return closestPt;
     }
 
+    U4DTriangle U4DTetrahedron::closestTriangleOnTetrahedronToPoint(U4DPoint3n& uPoint){
+        
+        float distance=FLT_MAX;
+        int index=0;
+        
+        std::vector<U4DTriangle> triangles=getTriangles();
+        
+        for (int i=0; i<triangles.size(); i++) {
+            
+            U4DPoint3n closestPoint=triangles.at(i).closestPointOnTriangleToPoint(uPoint);
+            
+            float triangleDistanceToOrigin=closestPoint.magnitudeSquare();
+            
+            if (triangleDistanceToOrigin<=distance) {
+                
+                distance=triangleDistanceToOrigin;
+                
+                index=i;
+            }
+        }
+        
+        return triangles.at(index);
+        
+    }
 
     bool U4DTetrahedron::isPointInTetrahedron(U4DPoint3n& uPoint){
         
@@ -183,10 +238,60 @@ namespace U4DEngine {
         dABCP=abcp.getDeterminant();
         dABCD=abcd.getDeterminant();
         
+        if (fabs(dABCD)<U4DEngine::barycentricEpsilon) {
+            dABCD=1.0;
+        }
+        
         baryCoordinateU=dPBCD/dABCD;
         baryCoordinateV=dAPCD/dABCD;
         baryCoordinateW=dABPD/dABCD;
         baryCoordinateX=1-baryCoordinateU-baryCoordinateV-baryCoordinateW;
+        
+    }
+    
+    
+    bool U4DTetrahedron::isValid(){
+        
+        //simply check if the triple product is zero, if it is, then not a polyhedron
+        
+        U4DVector3n ab(pointA-pointB);
+        U4DVector3n ac(pointA-pointC);
+        U4DVector3n ad(pointA-pointD);
+        
+        U4DNumerical comparison;
+        
+        if (!comparison.areEqual(ab.dot(ac.cross(ad)), 0.0, U4DEngine::zeroEpsilon)) {
+            return true;
+        }else{
+            return false;
+        }
+        
+    }
+    
+    std::vector<U4DTriangle> U4DTetrahedron::getTriangles(){
+        
+        std::vector<U4DTriangle> triangles{triangleABC,triangleACD,triangleADB,triangleBDC};
+        
+        return triangles;
+    }
+    
+    void U4DTetrahedron::show(){
+        
+        std::cout<<"Point A: "<<std::endl;
+        pointA.show();
+        std::cout<<"Point B: "<<std::endl;
+        pointB.show();
+        std::cout<<"Point C: "<<std::endl;
+        pointC.show();
+        std::cout<<"Point D: "<<std::endl;
+        pointD.show();
+    
+        if (isValid()) {
+            std::cout<<"Tetrahedron is Valid"<<std::endl;
+        }else{
+            std::cout<<"Tetrahedron is not valid"<<std::endl;
+        }
+        
         
     }
 

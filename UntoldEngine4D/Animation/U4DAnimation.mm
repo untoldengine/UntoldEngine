@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 9/9/14.
-//  Copyright (c) 2014 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2014 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DAnimation.h"
@@ -11,10 +11,12 @@
 #include "U4DBoneData.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
+#include "U4DLogger.h"
+#include "Constants.h"
 
 namespace U4DEngine {
     
-U4DAnimation::U4DAnimation(U4DModel *uModel){
+U4DAnimation::U4DAnimation(U4DModel *uModel):animationPlaying(false),keyframe(0),interpolationTime(0.0),playContinuousLoop(true),durationOfKeyframe(0.0),isAllowedToBeInterrupted(true){
     
     u4dModel=uModel;
     
@@ -24,38 +26,83 @@ U4DAnimation::U4DAnimation(U4DModel *uModel){
     scheduler=new U4DCallback<U4DAnimation>;
     
     timer=new U4DTimer(scheduler);
-    
-    //set keyframe to zero
-    keyframe=0;
-    
-    //set interpolation time to zero
-    interpolationTime=0.0;
 
-    
 };
 
 U4DAnimation::~U4DAnimation(){
 
+    //unsubscribe the timer
+    scheduler->unScheduleTimer(timer);
+    
     delete scheduler;
     delete timer;
 
 };
 
 
-void U4DAnimation::start(){
+void U4DAnimation::play(){
     
-    //set interpolation time to zero
-    interpolationTime=0.0;
+    U4DLogger *logger=U4DLogger::sharedInstance();
     
-    scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,(1/fps), true);
-
+    if (animationsContainer.size()>1) {
+        
+        if (animationPlaying==false) {
+            
+            //set interpolation time to zero
+            interpolationTime=0.0;
+            
+            animationPlaying=true;
+            
+            ANIMATIONDATA animationData=animationsContainer.at(0);
+            
+            //get the time length for initial keyframe
+            durationOfKeyframe=animationData.keyframes.at(keyframe+1).time-animationData.keyframes.at(keyframe).time;
+            
+            scheduler->scheduleClassWithMethodAndDelay(this, &U4DAnimation::runAnimation, timer,durationOfKeyframe/fps, true);
+            
+        }else{
+            logger->log("Error: The animation %s is currently playing. Can't play it again until it finishes.",name.c_str());
+        }
+        
+    }else{
+        logger->log("Error: The animation %s could not be started because it has no keyframes or only 1 keyframe.",name.c_str());
+    }
+    
+}
+    
+void U4DAnimation::playFromKeyframe(int uKeyframe){
+    
+    keyframe=uKeyframe;
+    
+    play();
+    
 }
 
 void U4DAnimation::stop(){
     
-    timer->setRepeat(false);
+    animationPlaying=false;
+    scheduler->unScheduleTimer(timer);
+    keyframe=0;
+    interpolationTime=0.0;
+}
+    
+void U4DAnimation::pause(){
+
+    animationPlaying=false;
+    timer->setPause(true);
+
 }
 
+bool U4DAnimation::isAnimationPlaying(){
+
+    return animationPlaying;
+}
+    
+void U4DAnimation::setAnimationIsPlaying(bool uValue){
+    
+    animationPlaying=uValue;
+    
+}
 
 void U4DAnimation::runAnimation(){
     
@@ -66,8 +113,7 @@ void U4DAnimation::runAnimation(){
     
     U4DBoneData *boneChild=rootBone;
     
-    AnimationData animationData;
-   
+    ANIMATIONDATA animationData;
     
     while (boneChild!=NULL) {
         
@@ -87,6 +133,7 @@ void U4DAnimation::runAnimation(){
             
         }else{
             
+
             boneChild->animationPoseSpace=animationInterpolation*boneChild->parent->animationPoseSpace;
             
         }
@@ -97,6 +144,9 @@ void U4DAnimation::runAnimation(){
         
         //convert F into a 4x4 matrix
         U4DMatrix4n finalMatrixTransform=finalMatrixSpace.transformDualQuaternionToMatrix4n();
+        
+        //apply the MODELER animation transform-This is needed. For example, blender has a different bone-armature space than opengl
+        finalMatrixTransform=modelerAnimationTransform.inverse()*finalMatrixTransform*modelerAnimationTransform;
         
         //F is then loaded into a buffer which will be sent to openGL buffer
         u4dModel->armatureBoneMatrix.push_back(finalMatrixTransform);
@@ -112,17 +162,76 @@ void U4DAnimation::runAnimation(){
         interpolationTime=0.0;  //reset interpolation
        
         if (keyframe>=keyframeRange-2) {
+            
             keyframe=0;
             
+            if (getPlayContinuousLoop()==false) {
+                stop();
+            }
+            
         }else{
+            
+            //increase the keyframe
             keyframe++;
+            
+            //get the new duration of keyframe
+            durationOfKeyframe=animationData.keyframes.at(keyframe).time-animationData.keyframes.at(keyframe-1).time;
+            
+            timer->setDelay(durationOfKeyframe/fps);
         }
         
     }else{
-        interpolationTime+=0.5;
+        interpolationTime+=0.10;
     }
 
     
+}
+    
+int U4DAnimation::getCurrentKeyframe(){
+
+    return keyframe;
+}
+
+float U4DAnimation::getFPS(){
+
+    return fps;
+}
+
+float U4DAnimation::getCurrentInterpolationTime(){
+    
+    return interpolationTime;
+}
+    
+bool U4DAnimation::getAnimationIsPlaying(){
+    return animationPlaying;
+}
+
+bool U4DAnimation::getIsUpdatingKeyframe(){
+
+    return (isAnimationPlaying() && getCurrentInterpolationTime()==0);
+}
+    
+void U4DAnimation::setPlayContinuousLoop(bool uValue){
+    playContinuousLoop=uValue;
+}
+
+bool U4DAnimation::getPlayContinuousLoop(){
+    return playContinuousLoop;
+}
+
+float U4DAnimation::getDurationOfKeyframe(){
+    
+    return durationOfKeyframe;
+    
+}
+    
+void U4DAnimation::setIsAllowedToBeInterrupted(bool uValue){
+    isAllowedToBeInterrupted=uValue;
+}
+
+
+bool U4DAnimation::getIsAllowedToBeInterrupted(){
+    return isAllowedToBeInterrupted;
 }
 
 }

@@ -3,81 +3,138 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 9/27/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DSprite.h"
-#include "U4DOpenGLSprite.h"
+#include "U4DRenderSprite.h"
+#include "U4DDirector.h"
 #include <string>
 
 namespace U4DEngine {
     
-U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader){
-    
-    openGlManager=new U4DOpenGLSprite(this);
-    openGlManager->setShader("spriteShader");
-    
-    spriteLoader=uSpriteLoader;
-    
-};
-
-void U4DSprite::setSprite(const char* uSprite){
-
-   //search for the sprite in the atlas manager
-    
-    for (int i=0; i<spriteLoader->spriteData.size(); i++) {
+        U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr),spriteOffset(0.0,0.0){
         
-        SpriteData spriteData;
+        renderManager=new U4DRenderSprite(this);
         
-        spriteData=spriteLoader->spriteData.at(i);
+        setShader("vertexSpriteShader", "fragmentSpriteShader");
         
+        spriteLoader=uSpriteLoader;
         
-        if (strcmp(spriteData.name, uSprite)==0) {
-            
-            const char * spriteImage = spriteLoader->spriteAtlasImage.c_str();
-            
-            openGlManager->setDiffuseTexture(spriteImage); 
-
-            //set the rectangle for the sprite
-            openGlManager->setImageDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
-            
-            //set the offset for the sprite
-            std::vector<float> data={spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight};
-            
-            addCustomUniform("offset", data);
-            
-        }
     }
-    
-    openGlManager->loadRenderingInformation();
-   
-}
+        
+    U4DSprite::~U4DSprite(){
 
-void U4DSprite::changeSprite(const char* uSprite){
-    
-    SpriteData spriteData;
-    
-    for (int i=0; i<spriteLoader->spriteData.size(); i++) {
+        delete renderManager;
         
-        spriteData=spriteLoader->spriteData.at(i);
-    
-    
-            if (strcmp(spriteData.name, uSprite)==0) {
-        
-                //set the offset for the sprite
-                std::vector<float> data={spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight};
+    }
+
+    void U4DSprite::setSprite(const char* uSprite){
+
+            //search for the sprite in the atlas manager
+            SPRITEDATA spriteData;
             
-                updateUniforms("offset", data);
+            for (int i=0; i<spriteLoader->spriteData.size(); i++) {
                 
+                spriteData=spriteLoader->spriteData.at(i);
+                
+                if (strcmp(spriteData.name, uSprite)==0) {
+                    
+                    if (spriteAtlasImage==nullptr) {
+                        
+                        spriteAtlasImage = spriteLoader->spriteAtlasImage.c_str();
+                        
+                        renderManager->setDiffuseTexture(spriteAtlasImage);
+                        
+                        //set the rectangle for the sprite
+                        setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
+                        
+                        U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
+                        
+                        setSpriteOffset(offset);
+                        
+                        renderManager->loadRenderingInformation();
+                        
+                        
+                    }else{
+                     
+                        //set the offset for the sprite
+                        U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
+                        
+                        setSpriteOffset(offset);
+                        
+                    }
+                    
+                    break;
+                    
+                }
+            
             }
+        
     }
-}
 
-void U4DSprite::draw(){
+
+    void U4DSprite::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
+        
+    }
     
+    void U4DSprite::setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        float widthFontTexture=uSpriteWidth/uAtlasWidth;
+        float heightFontTexture=uSpriteHeight/uAtlasHeight;
+        
+        float width=uSpriteWidth/director->getDisplayWidth();
+        float height=uSpriteHeight/director->getDisplayHeight();
+        float depth=0.0;
+        
+        
+        //vertices
+        U4DVector3n v1(width,height,depth);
+        U4DVector3n v4(width,-height,depth);
+        U4DVector3n v2(-width,-height,depth);
+        U4DVector3n v3(-width,height,depth);
+        
+        bodyCoordinates.addVerticesDataToContainer(v1);
+        bodyCoordinates.addVerticesDataToContainer(v4);
+        bodyCoordinates.addVerticesDataToContainer(v2);
+        bodyCoordinates.addVerticesDataToContainer(v3);
+        
+        //texture
+        U4DVector2n t4(0.0,0.0);  //top left
+        U4DVector2n t1(1.0*widthFontTexture,0.0);  //top right
+        U4DVector2n t3(0.0,1.0*heightFontTexture);  //bottom left
+        U4DVector2n t2(1.0*widthFontTexture,1.0*heightFontTexture);  //bottom right
+        
+        
+        bodyCoordinates.addUVDataToContainer(t1);
+        bodyCoordinates.addUVDataToContainer(t2);
+        bodyCoordinates.addUVDataToContainer(t3);
+        bodyCoordinates.addUVDataToContainer(t4);
+        
+        
+        U4DIndex i1(0,1,2);
+        U4DIndex i2(2,3,0);
+        
+        //index
+        bodyCoordinates.addIndexDataToContainer(i1);
+        bodyCoordinates.addIndexDataToContainer(i2);
+        
+    }
     
-    openGlManager->draw();
+    void U4DSprite::setSpriteOffset(U4DVector2n &uSpriteOffset){
+        
+        spriteOffset=uSpriteOffset;
+        
+    }
     
-}
+    U4DVector2n& U4DSprite::getSpriteOffset(){
+        
+        return spriteOffset;
+        
+    }
 
 }

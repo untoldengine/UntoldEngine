@@ -3,12 +3,13 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/8/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DScheduler.h"
 #include "U4DTimer.h"
 #include <string>
+
 
 namespace U4DEngine {
     
@@ -45,28 +46,37 @@ double U4DScheduler::getTick(){
 
 void U4DScheduler::scheduleTimer(U4DTimer *uTimer){
     
-    timersArray.push_back(uTimer);
+    //check if the timer exist before adding it
+    bool timerPresent=false;
     
-    //set the timer index
-    for (int i=0; i<timersArray.size(); i++) {
-    
-        U4DTimer *timer=timersArray.at(i);
-        timer->setIndex(i);
-    
+    for(auto n:timersArray){
+        
+        if (n==uTimer) {
+            
+            timerPresent=true;
+        }
+        
     }
+    
+    if (timerPresent==false) {
+        
+        uTimer->setScheduleTimer(true);
+        
+        timersArray.push_back(uTimer);
+        
+    }
+    
+    
 }
 
 void U4DScheduler::unscheduleTimer(U4DTimer *uTimer){
     
-    //remove the timer
-    timersArray.erase(timersArray.begin()+uTimer->getIndex());
+    //get timer index to remove
+    uTimer->setScheduleTimer(false);
     
-    //update the timer index
-    for (int i=0; i<timersArray.size(); i++) {
-        
-        U4DTimer *timer=timersArray.at(i);
-        timer->setIndex(i);
-    }
+    //remove the timer
+    timersArray.erase(std::remove_if(timersArray.begin(),timersArray.end(),[](U4DTimer *timerToRemove){return timerToRemove->getScheduleTimer()==false;}),timersArray.end());
+    
 }
 
 void U4DScheduler::unscheduleAllTimers(){

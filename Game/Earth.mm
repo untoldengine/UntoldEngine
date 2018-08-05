@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 5/26/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "Earth.h"
@@ -14,222 +14,150 @@
 
 #include "U4DDirector.h"
 
-#include "MyCharacter.h"
-#include "U4DBoundingAABB.h"
 #include "U4DMatrix3n.h"
-#include "U4DImage.h"
-#include "U4DMultiImage.h"
-#include "U4DButton.h"
-#include "U4DSkyBox.h"
-#include "U4DTouches.h"
 #include "U4DCamera.h"
 #include "U4DControllerInterface.h"
 
 #include "GameController.h"
-#include "U4DSprite.h"
-#include "U4DSpriteLoader.h"
-
-
-#include "U4DFont.h"
-#include "U4DBoundingSphere.h"
-#include "U4DBoundingOBB.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingAABB.h"
-
-#include "U4DDigitalAssetLoader.h"
-#include "U4DFontLoader.h"
 #include "U4DLights.h"
-#include "U4DDebugger.h"
-#include "U4DAnimation.h"
-#include "U4DSpriteAnimation.h"
-#include "Town.h"
-#include "U4DPlane.h"
-#include "U4DOBB.h"
-#include "U4DPoint3n.h"
-#include "U4DTetrahedron.h"
-#include "U4DSegment.h"
-#include "U4DTriangle.h"
+#include "U4DLogger.h"
 
+
+#include "GameLogic.h"
+
+#include "GameAsset.h"
+#include "ModelAsset.h"
+#include "GuardianModel.h"
+#include "GoldAsset.h"
+
+#include "U4DParticleSystem.h"
+#include "U4DParticleData.h"
+#include "U4DParticleEmitterInterface.h"
+#include "U4DParticleEmitterLinear.h"
+#include "U4DSpriteLoader.h"
+#include "U4DSprite.h"
+#include "U4DSpriteAnimation.h"
+
+#include "U4DFontLoader.h"
+#include "U4DText.h"
+
+using namespace U4DEngine;
 
 void Earth::init(){
     
-    //U4DDebugger *debugger=new U4DDebugger();
-    
+    //Set camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    camera->translateBy(0.0, 0.0, -7.0);
-    camera->rotateBy(30.0, 30.0, 0.0);
+    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-20.0);
+    
+    camera->translateTo(cameraPos);
+    
     
     setName("earth");
+    setEnableGrid(true);
     
-    enableGrid(true);
+    U4DDirector *director=U4DDirector::sharedInstance();
     
-    cube=new Town();
-    cube->init("Cube",1,0,0);
-    //cube->rotateBy(45, 45, 0);
-    cube->setShader("simpleRedShader");
-    //cube->applyPhysics(true);
-    cube->applyCollision(true);
+    director->setWorld(this);
     
-    addChild(cube);
+    //compute perspective space
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(30.0f, director->getAspect(), 0.01f, 100.0f);
+    director->setPerspectiveSpace(perspectiveSpace);
     
+    //compute orthographic shadow space
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-30.0f, 30.0f, -30.0f, 30.0f, -30.0f, 30.0f);
+    director->setOrthographicShadowSpace(orthographicShadowSpace);
     
-    cube2=new Town();
-    cube2->init("Cube",3.5,0,0);
-    //cube2->rotateBy(0,45,0);
-    cube2->setShader("simpleShader");
-    //cube2->applyPhysics(true);
-    cube2->applyCollision(true);
-    
-    addChild(cube2);
-    
-    //cube2->rotateBy(90.0, 0.0, 0.0);
-    
-    /*
-    
-    // ADD Gravity
-    
-    
-    Town *cube=new Town();
-    cube->init("Cube", 0, 5, 0);
-    cube->setShader("simpleShader");
-    cube->applyPhysics(true);
-    
-    addChild(cube);
-    
-     */
-    
-   
-     /*
-     //SHOW SHADOWS
-     
-     enableShadows();
-    
-    
-    fort=new Town();
-    fort->init("fort",0.0,0.0,0.0);
-    fort->setName("fort");
-    
-    Town *floor=new Town();
-    floor->init("floor", 0.0, 0.0, 0.0);
-    
-    floor->setName("floor");
-    floor->receiveShadows();
-    
-    addChild(floor);
-    addChild(fort);
-    
-    */
-    U4DEngine::U4DLights *light=new U4DEngine::U4DLights();
-    
-    light->translateTo(-3.0,4.0,-3.0);
+    U4DVector3n origin(0,0,0);
+
+    U4DLights *light=U4DLights::sharedInstance();
+    light->translateTo(10.0,10.0,-10.0);
+    U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
+    U4DEngine::U4DVector3n specular(0.1,0.1,0.1);
+    light->setDiffuseColor(diffuse);
+    light->setSpecularColor(specular);
     addChild(light);
     
-    //debugger->addEntityToDebug(light);
-    //addChild(debugger);
+    camera->viewInDirection(origin);
+
+    light->viewInDirection(origin);
     
+    //add bag
+
+
+    //add gold
+    for(int i=0;i<5;i++){
+
+        std::string name="Cube";
+        name+=std::to_string(i);
+
+        cube[i]=new ModelAsset();
+
+        if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
+            addChild(cube[i]);
+        }
+        //cube[i]->rotateTo(30.0,20.0,-40.0);
+        cube[i]->enableKineticsBehavior();
+    }
     
-    initLoadingModels();
+
+//    cube0=new ModelAsset();
+//
+//    if(cube0->init("Cube0", "blenderscript.u4d")){
+//        addChild(cube0);
+//    }
+
+    //cube0->enableKineticsBehavior();
+//    cube0->rotateTo(30.0,20.0,-40.0);
+    //cube0->translateBy(2.9, 0.0, -3.2);
     
-/*
-    Town *smallhouse1=new Town();
-    smallhouse1->init("smallhouse1", 0, 0, 0);
+    terrain=new GameAsset();
     
-    //addChild(well);
+    if (terrain->init("terrain","blenderscript.u4d")) {
+        
+        addChild(terrain);
+        
+    }
+    
+    //add character
+    guardian=new GuardianModel();
+
+    if(guardian->init("guardian","blenderscript.u4d")){
+        addChild(guardian);
+    }
+
+    //get game model pointer
+    GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
+    
+   gameModel->setGuardian(guardian);
+    
+    //Load the font loader
+    fontLoader=new U4DFontLoader();
+    
+    fontLoader->loadFontAssetFile("myFont.xml", "myFont.png");
+    
+    //create a text object
+    points=new U4DEngine::U4DText(fontLoader,20);
+    
+    points->setText("Points: 0");
+    points->translateTo(0.4,0.8,0.0);
+    addChild(points,0);
+    //note make sure to add the text before any other objects in the scenegraph
+    
+    gameModel->setText(points);
+}
+
+Earth::~Earth(){
+    
    
-    addChild(smallhouse1);
-    
-    Town *smallhouse2=new Town();
-    smallhouse2->init("smallhouse2", -3.5, 0, 0);
-    
-    addChild(smallhouse2);
-    
-    Town *littlemansion=new Town();
-    littlemansion->init("littlemansion", 0, 0, 3);
-    
-    addChild(littlemansion);
-    
-    robot=new MyCharacter();
-    
-    robot->init("UEMascot", 0, 0, 0);
-    addChild(robot);
-    
-    U4DLights *light=new U4DLights();
-    
-    addChild(light);
-    
-    //debugger->addEntityToDebug(et);
-    //debugger->addEntityToDebug(light);
-    addChild(debugger);
-    
-    
-    initLoadingModels();
-    
-    light->translateTo(2.0,2.0,0.0);
-    
-    //add a skylight
-    
-    
-    U4DSkyBox *skybox=new U4DSkyBox();
-    skybox->initSkyBox(20, "RightImage.png", "LeftImage.png", "FrontImage.png", "BackImage.png", "TopImage.png", "BottomImage.png");
-    
-    skybox->translateTo(0,5,0);
-    addChild(skybox);
-    */
-    
-    
-    /*
-    
-     //set the font to use
-    U4DFontLoader *arialFont=new U4DFontLoader();
-    arialFont->loadFontAssetFile("ArialFont.xml","ArialFont.png");
-    
-    
-    U4DFont *myFont=new U4DFont(arialFont);
-    
-    myFont->setText("Untold Story Studio");
-    
-    myFont->translateTo(-0.8,0.0,0.0);
-    
-    addChild(myFont);
-    
-    
-    U4DSpriteLoader *spriteLoader=new U4DSpriteLoader();
-    spriteLoader->loadSpritesAssetFile("spriteExample.xml","spriteExample.png");
-    
-    
-    U4DSprite *sprite=new U4DSprite(spriteLoader);
-    sprite->setSprite("sprite2.png");
-    addChild(sprite);
-   
-    
-    
-    SpriteAnimation spriteAnimation;
-    spriteAnimation.animationSprites.push_back("sprite1.png");
-    spriteAnimation.animationSprites.push_back("sprite2.png");
-    
-    spriteAnimation.delay=0.2;
-    
-    U4DSpriteAnimation *sAnimation=new U4DSpriteAnimation(sprite,spriteAnimation);
-    
-    sAnimation->start();
-    */
-    
 }
 
 void Earth::update(double dt){
-
+    //rotateBy(0.0, 0.5, 0.0);
+    U4DCamera *camera=U4DCamera::sharedInstance();
     
+    //camera->followModel(guardian, 0.0, 2.0, -10.0);
 }
 
-void Earth::action(){
-    
-    
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    U4DEngine::U4DLights *light=director->getLight();
-    setEntityControlledByController(cube2);
-    
-    
-}
 
 
 

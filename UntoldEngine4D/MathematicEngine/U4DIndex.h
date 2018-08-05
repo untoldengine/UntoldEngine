@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/13/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DIndex__
@@ -14,7 +14,7 @@
 namespace U4DEngine {
     
 /**
- *  Class in charge of index
+ @brief The U4DIndex class implements a 3D integer-only index class. It is mainly used for organizational purposes. It does not implement any computational operations.
  */
 
 class U4DIndex{
@@ -22,60 +22,53 @@ class U4DIndex{
 private:
     
 public:
+    
     /**
-     *  x-index
+     @brief x-component index
      */
     int x;
     
     /**
-     *  y-index
+     @brief y-component index
      */
     int y;
     
     /**
-     *  z-index
+     @brief z-component index
      */
     int z;
     
     /**
-     *  Constructor
+     @brief Constructor which creates a 3D index with its components equal to zero.
      */
-    U4DIndex():x(0),y(0),z(0){};
+    U4DIndex();
     
     /**
-     *  Constructor
-     *
-     *  @param nx     x-index
-     *  @param ny     y-index
-     *  @param nz     z-index
+     @brief Constructor which creates a 3D index with the given x, y and z components.
      */
-    U4DIndex(int nx,int ny,int nz):x(nx),y(ny),z(nz){}
+    U4DIndex(int nx,int ny,int nz);
     
     /**
-     *  Destructor
+     @brief Destructor for the 3D index
      */
-    ~U4DIndex(){};
+    ~U4DIndex();
     
     /**
-     *  Copy Constructor
+     @brief Copy constructor for the class
      */
-    U4DIndex(const U4DIndex& a):x(a.x),y(a.y),z(a.z){};
+    U4DIndex(const U4DIndex& a);
     
     /**
-     *  Copy Constructor
+     @brief Copy constructor for the class
+     
+     @param a 3D index to copy
+     
+     @return Returns a copy of the 3D index
      */
-    inline U4DIndex& operator=(const U4DIndex& a){
-        
-        x=a.x;
-        y=a.y;
-        z=a.z;
-        
-        return *this;
-        
-    };
+    U4DIndex& operator=(const U4DIndex& a);
     
     /**
-     *  Debug-show the vector on the output log
+     @brief Prints the 3D index components to the console log window
      */
     void show();
     

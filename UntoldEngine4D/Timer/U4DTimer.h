@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/9/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DTimer__
@@ -18,15 +18,21 @@ class U4DTimer{
   
 private:
     U4DCallbackInterface *pCallback;
+    
     bool repeat;
+    
     double delay;
+    
     double currentTime;
-    int index;
+
+    bool pause;
+    
+    bool scheduleTimer;
     
 public:
     
     //constructor
-    U4DTimer():currentTime(0.0),repeat(false),delay(0.0){};
+    U4DTimer():currentTime(0.0),repeat(false),delay(0.0),pause(false),scheduleTimer(false){};
     
     U4DTimer(U4DCallbackInterface *uPCallback):currentTime(0.0),repeat(false),delay(0.0),pCallback(uPCallback){};
     
@@ -38,13 +44,25 @@ public:
     }
     
     void timerExpire(); //called when the timer has reached duration
-    void tick(double dt);
-    inline void setIndex(int uIndex){index=uIndex;};
-    inline int getIndex(){return index;};
     
-    inline void setDelay(double uDelay){delay=uDelay;};
-    inline double getDelay() const{return delay;};
-    inline void setRepeat(bool uRepeat){repeat=uRepeat;}
+    void tick(double dt);
+    
+    void setDelay(double uDelay);
+    
+    double getDelay() const;
+    
+    void setRepeat(bool uRepeat);
+    
+    void setPause(bool uValue);
+    
+    bool getPause();
+    
+    void setScheduleTimer(bool uValue);
+    
+    bool getScheduleTimer();
+    
+    void setCurrentTime(float uValue);
+    
 };
 
 }

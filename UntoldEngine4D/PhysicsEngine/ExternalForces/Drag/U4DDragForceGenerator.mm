@@ -3,43 +3,55 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/23/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DDragForceGenerator.h"
 
 namespace U4DEngine {
     
-void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
+    U4DDragForceGenerator::U4DDragForceGenerator(){
+    
+    }
+    
+    U4DDragForceGenerator::~U4DDragForceGenerator(){
+    
+    }
+    
+    void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
 
-    U4DVector3n velocity;
-    float dragCoeff;
-    
-    velocity=uModel->getVelocity();
-    dragCoeff=velocity.magnitude();
-    
-    dragCoeff=k1*dragCoeff+k2*dragCoeff*dragCoeff;
-    
-    //calculate the final force and apply it
-    velocity.normalize();
-    velocity*=-dragCoeff;
-    
-    uModel->addForce(velocity);
-    
-    //moment
-    U4DVector3n moment;
-    float momentDragCoeff;
-    
-    moment=uModel->getAngularVelocity();
-    momentDragCoeff=moment.magnitude();
-    
-    momentDragCoeff=k1*momentDragCoeff+k2*momentDragCoeff*momentDragCoeff;
-    
-    moment.normalize();
-    moment*=-momentDragCoeff;
-    
-    uModel->addMoment(moment);
-    
-}
+        U4DVector2n dragCoefficient=uModel->getDragCoefficient();
+        
+        float k1=dragCoefficient.x;
+        float k2=dragCoefficient.y;
+        
+        U4DVector3n linearDrag;
+        float forceDragCoeff;
+        
+        linearDrag=uModel->getVelocity();
+        forceDragCoeff=linearDrag.magnitude();
+        
+        forceDragCoeff=k1*forceDragCoeff+k2*forceDragCoeff*forceDragCoeff;
+        
+        //calculate the final force and apply it
+        linearDrag.normalize();
+        linearDrag*=-forceDragCoeff;
+        
+        uModel->addForce(linearDrag);
+        
+        //moment
+        U4DVector3n angularDrag;
+        float momentDragCoeff;
+        
+        angularDrag=uModel->getAngularVelocity();
+        momentDragCoeff=angularDrag.magnitude();
+        
+        momentDragCoeff=k1*momentDragCoeff+k2*momentDragCoeff*momentDragCoeff;
+        
+        angularDrag.normalize();
+        angularDrag*=-momentDragCoeff;
+        uModel->addMoment(angularDrag);
+        
+    }
 
 }

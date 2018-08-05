@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/8/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DScheduler__
@@ -27,10 +27,11 @@ private:
     
     double timeScale;
     double delta;
+    int timerIndex;
     
 protected:
     
-    U4DScheduler():timeScale(1.0),delta(0.0){};
+    U4DScheduler():timeScale(1.0),delta(0.0),timerIndex(0){};
     
     ~U4DScheduler(){};
     

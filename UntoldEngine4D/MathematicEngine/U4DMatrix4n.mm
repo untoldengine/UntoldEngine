@@ -3,7 +3,7 @@
 //  MathLibrary
 //
 //  Created by Harold Serrano on 4/20/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DMatrix4n.h"
@@ -19,6 +19,60 @@ namespace U4DEngine {
 //	1	5	9	13
 //	2	6	10	14
 //	3	7	11	15
+    
+    
+U4DMatrix4n::U4DMatrix4n(){
+    
+    // 4x4 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
+    //	0	4	8	12
+    //	1	5	9	13
+    //	2	6	10	14
+    //	3	7	11	15
+    
+    for (int i=0; i<16; i++) {
+        matrixData[i]=0.0f;
+    }
+    
+    matrixData[0]=matrixData[5]=matrixData[10]=matrixData[15]=1.0f;
+    
+};
+
+
+U4DMatrix4n::U4DMatrix4n(float m0,float m4,float m8,float m12,float m1,float m5,float m9,float m13,float m2,float m6,float m10,float m14,float m3,float m7, float m11,float m15){
+    
+    matrixData[0]=m0;
+    matrixData[4]=m4;
+    matrixData[8]=m8;
+    matrixData[12]=m12;
+    
+    matrixData[1]=m1;
+    matrixData[5]=m5;
+    matrixData[9]=m9;
+    matrixData[13]=m13;
+    
+    matrixData[2]=m2;
+    matrixData[6]=m6;
+    matrixData[10]=m10;
+    matrixData[14]=m14;
+    
+    matrixData[3]=m3;
+    matrixData[7]=m7;
+    matrixData[11]=m11;
+    matrixData[15]=m15;
+    
+}
+
+U4DMatrix4n& U4DMatrix4n::operator=(const U4DMatrix4n& value){
+    
+    for (int i=0; i<16; i++) {
+        matrixData[i]=value.matrixData[i];
+    }
+    
+    return *this;
+}
+
+
+U4DMatrix4n::~U4DMatrix4n(){}
 
 //multiply
 #pragma mark-multiply
@@ -322,6 +376,24 @@ U4DMatrix3n U4DMatrix4n::extract3x3Matrix(){
     return result;
     
 }
+    
+U4DVector3n U4DMatrix4n::extractAffineVector(){
+    
+    //4x4 Matrix
+    //	0	4	8	12
+    //	1	5	9	13
+    //	2	6	10	14
+    //	3	7	11	15
+    
+    U4DVector3n result;
+    
+    result.x=matrixData[12];
+    result.y=matrixData[13];
+    result.z=matrixData[14];
+    
+    return result;
+    
+}
 
 #pragma mark-Transpose
 //transpose
@@ -405,87 +477,6 @@ void U4DMatrix4n::setOrientationAndPos(const U4DQuaternion& q, const U4DVector3n
 }
 
  */
-
-void U4DMatrix4n::computePerspectiveMatrix(float fov, float aspect, float near, float far){
-    
-    float element1;
-    float element2;
-    float element3;
-    float element4;
-    
-    
-    float fovToRad=fov*PI/180;
-    
-    element1=1/(aspect*tanf(fovToRad/2.0));
-    element2=1/(tanf(fovToRad/2.0));
-    element3=(far + near)/(far - near);
-    element4=-2.0*far*near/(far-near);
-    
-    //	0	4	8	12
-    //	1	5	9	13
-    //	2	6	10	14
-    //	3	7	11	15
-    
-    
-    matrixData[0]=element1;
-    matrixData[4]=0.0f;
-    matrixData[8]=0.0f;
-    matrixData[12]=0.0f;
-    
-    matrixData[1]=0.0f;
-    matrixData[5]=element2;
-    matrixData[9]=0.0f;
-    matrixData[13]=0.0f;
-    
-    matrixData[2]=0.0f;
-    matrixData[6]=0.0f;
-    matrixData[10]=element3;
-    matrixData[14]=-1.0f;
-    
-    matrixData[3]=0.0f;
-    matrixData[7]=0.0f;
-    matrixData[11]=element4;
-    matrixData[15]=0.0f;
-    
-    
-}
-
-void U4DMatrix4n::computeOrthographicMatrix(float left, float right,float bottom,float top,float near, float far){
-    
-    float r_l = 2.0/(right - left);
-    float t_b = 2.0/(top - bottom);
-    float f_n = -2.0/(far - near);
-    float tx = (right + left) / (right - left);
-    float ty = (top + bottom) / (top - bottom);
-    float tz = (far + near) / (far - near);
-    
-    //	0	4	8	12
-    //	1	5	9	13
-    //	2	6	10	14
-    //	3	7	11	15
-
-    
-    matrixData[0]=r_l;
-    matrixData[4]=0.0f;
-    matrixData[8]=0.0f;
-    matrixData[12]=-tx;
-    
-    matrixData[1]=0.0f;
-    matrixData[5]=t_b;
-    matrixData[9]=0.0f;
-    matrixData[13]=-ty;
-    
-    matrixData[2]=0.0f;
-    matrixData[6]=0.0f;
-    matrixData[10]=f_n;
-    matrixData[14]=-tz;
-    
-    matrixData[3]=0.0f;
-    matrixData[7]=0.0f;
-    matrixData[11]=0.0f;
-    matrixData[15]=1.0f;
-}
-
 
 #pragma mark-show
 void U4DMatrix4n::show(){

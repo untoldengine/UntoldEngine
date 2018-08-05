@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/10/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DBoundingVolume.h"
@@ -11,34 +11,49 @@
 #include "U4DDirector.h"
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
-#import <GLKit/GLKit.h>
+#include <float.h>
+#include "U4DRenderGeometry.h"
 
 namespace U4DEngine {
     
-void U4DBoundingVolume::setGeometry(){
-
-    openGlManager->loadRenderingInformation();
-}
-
-void U4DBoundingVolume::draw(){
- 
-    openGlManager->draw();
-}
-
-void U4DBoundingVolume::setGeometryColor(U4DVector4n& uColor){
     
-    updateUniforms("Color", uColor);
+    U4DBoundingVolume::U4DBoundingVolume(){
+        
+        renderManager=new U4DRenderGeometry(this);
+        setShader("vertexGeometryShader", "fragmentGeometryShader");
+        
+    }
     
-}
+    
+    U4DBoundingVolume::~U4DBoundingVolume(){
+        
+        delete renderManager;
+        
+    }
+    
+    
+    U4DBoundingVolume::U4DBoundingVolume(const U4DBoundingVolume& value){};
+    
+    
+    U4DBoundingVolume& U4DBoundingVolume::operator=(const U4DBoundingVolume& value){
+        
+        return *this;
+        
+    };
+    
+    void U4DBoundingVolume::loadRenderingInformation(){
 
-void U4DBoundingVolume::setBoundingType(BOUNDINGTYPE uType){
-    
-    boundingType=uType;
-}
+        renderManager->loadRenderingInformation();
+    }
 
-BOUNDINGTYPE U4DBoundingVolume::getBoundingType(){
+    void U4DBoundingVolume::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+        
+        renderManager->render(uRenderEncoder);
+    }
     
-    return boundingType;
-}
+    void U4DBoundingVolume::setLineColor(U4DVector4n &lineColor){
+        
+        renderManager->setGeometryLineColor(lineColor);
+    }
 
 }

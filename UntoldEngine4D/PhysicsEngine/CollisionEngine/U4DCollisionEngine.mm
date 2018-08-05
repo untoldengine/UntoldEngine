@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/14/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DCollisionEngine.h"
@@ -11,217 +11,134 @@
 #include "CommonProtocols.h"
 #include "U4DCollisionAlgorithm.h"
 #include "U4DGJKAlgorithm.h"
+#include "U4DCollisionResponse.h"
+#include "U4DSHAlgorithm.h"
+#include "U4DDynamicModel.h"
+#include "U4DBVHManager.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
-U4DCollisionEngine::U4DCollisionEngine(){
+    U4DCollisionEngine::U4DCollisionEngine(){};
 
-    //set collision algorithm
-    U4DGJKAlgorithm *gjkAlgorithm=new U4DGJKAlgorithm();
-    setCollisionAlgorithm(gjkAlgorithm);
+    U4DCollisionEngine::~U4DCollisionEngine(){};
     
-};
-
-U4DCollisionEngine::~U4DCollisionEngine(){};
-
-void U4DCollisionEngine::setCollisionAlgorithm(U4DCollisionAlgorithm* uCollisionAlgorithm){
-    
-    collisionAlgorithm=uCollisionAlgorithm;
-    
-}
-
-void U4DCollisionEngine::addToCollisionContainer(U4DDynamicModel* uModel){
-    
-    modelCollection.push_back(uModel);
-    
-}
-
-void U4DCollisionEngine::detectCollisions(float dt){
-    
-    if(collisionAlgorithm->collision(modelCollection.at(0),modelCollection.at(1),dt)){
+    void U4DCollisionEngine::update(float dt){
         
-          
     }
-    
 
-    
-    //NEED TO REMOVE THIS
-    modelCollection.clear();
-}
-
-/*
-void U4DCollisionEngine::collisionDetection(U4DDynamicModel* uModel,float dt){
-    
-    //create a plane
-    U4DVector3n normal(0,1,0);
-    float d=0.0;
-    
-    U4DPlane plane(normal,d);
-    
-    //did collision occurred with a plane
-    if(collision(uModel,plane)==true)
-    {
-        //determine the contact point
-        determineContactPoint(uModel,plane);
+    void U4DCollisionEngine::setCollisionAlgorithm(U4DCollisionAlgorithm* uCollisionAlgorithm){
         
-        //Get contact Resolution
-        contactResolution(uModel,dt);
-        
-        //set body collided
-        uModel->collisionProperties.collided=true;
-        
-    }else{
-        uModel->collisionProperties.collided=false;
-    }
-    
-}
-
-void U4DCollisionEngine::collisionDetection(float dt){
-    
-
-    if (modelCollection.size()>=2) {
-        
-    if (collision(modelCollection.at(0), modelCollection.at(1))) {
-        
-        //detect collision of two objects
+        collisionAlgorithm=uCollisionAlgorithm;
         
     }
     
-    
-    //clear all models
-    modelCollection.clear();
-    
-    }
-}
-
-
-
-//Test if OBB intersects plane p
-bool U4DCollisionEngine::collision(U4DDynamicModel* uModel,U4DPlane& uPlane){
-    
-    bool collisionOccured=false;
-    U4DOBB *obb=(U4DOBB*)uModel->obbBoundingVolume;
-    
-    collisionOccured=obb->testOBBPlane(uPlane);
-
-    return collisionOccured;
-}
-
-bool U4DCollisionEngine::collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2){
-    
-    bool collisionOccured=false;
-    
-    U4DOBB *obb1=(U4DOBB*)uModel1->obbBoundingVolume;
-    U4DOBB *obb2=(U4DOBB*)uModel2->obbBoundingVolume;
-    
-    collisionOccured=obb1->testOBBOBB(obb2);
-    
-    return collisionOccured;
-}
-
-
-void U4DCollisionEngine::determineContactPoint(U4DDynamicModel* uModel, U4DPlane& uPlane){
- 
-    //clear any contact point and forces
-
-    uModel->collisionProperties.contactForcePoints.contactPoints.clear();
-    uModel->collisionProperties.contactForcePoints.forceOnContactPoint.clear();
-    
-    U4DOBB *obb=(U4DOBB*)uModel->obbBoundingVolume;
-   
-    uModel->collisionProperties.contactForcePoints.contactPoints=obb->computeVertexIntersectingPlane(uPlane);
-    
-    
-    //We need to get the forces acted on each contact point
-    //since the model is in contact with the plane, the resultant force is its weigh in opposite direction
-    
-    lineOfAction=uPlane.n;
-    lineOfAction.normalize();
- 
-}
-
-
-void U4DCollisionEngine::contactResolution(U4DDynamicModel* uModel,float dt){
-    
-  
-    
-}
-*/
-
-
-
-
-/*
-void U4DCollisionEngine::heapSorting(vector<U4DVector3n> &uVolumeVertices,int uVolumeVerticesIndex){
-    
-    int index; //index of boneDataContainer element
-    
-    int numValues=(int)uVolumeVertices.size();
-    
-    //convert the array of values into a heap
-    
-    for (index=numValues/2-1; index>=0; index--) {
+    void U4DCollisionEngine::setManifoldGenerationAlgorithm(U4DManifoldGeneration* uManifoldGenerationAlgorithm){
         
-        repheadDown(uVolumeVertices,uVolumeVerticesIndex,index,numValues-1);
+        manifoldGenerationAlgorithm=uManifoldGenerationAlgorithm;
+        
     }
     
-    //sort the array
-    for (index=numValues-1; index>=1; index--) {
+    void U4DCollisionEngine::setCollisionResponse(U4DCollisionResponse* uCollisionResponse){
         
-        swap(uVolumeVertices,0,index);
-        repheadDown(uVolumeVertices,uVolumeVerticesIndex,0,index-1);
+        collisionResponse=uCollisionResponse;
+        
     }
     
-}
-
-void U4DCollisionEngine::repheadDown(vector<U4DVector3n> &uVolumeVertices,int uVolumeVerticesIndex,int root, int bottom){
-    
-    int maxChild;
-    int rightChild;
-    int leftChild;
-    
-    leftChild=root*2+1;
-    rightChild=root*2+2;
-    
-    
-    
-    if (leftChild<=bottom) {
+    void U4DCollisionEngine::setBoundaryVolumeHierarchyManager(U4DBVHManager* uBoundaryVolumeHierarchyManager){
         
-        if (leftChild==bottom) {
+        boundaryVolumeHierarchyManager=uBoundaryVolumeHierarchyManager;
+        
+    }
+
+    void U4DCollisionEngine::addToBroadPhaseCollisionContainer(U4DDynamicModel* uModel){
+        
+        boundaryVolumeHierarchyManager->addModelToTreeContainer(uModel);
+        
+    }
+    
+    void U4DCollisionEngine::detectBroadPhaseCollisions(float dt){
+        
+        //build bvh tree
+        boundaryVolumeHierarchyManager->buildBVH();
+        
+        //determine collisions
+        boundaryVolumeHierarchyManager->startCollision();
+        
+        //retrieve collision pairs
+        collisionPairs=boundaryVolumeHierarchyManager->getBroadPhaseCollisionPairs();
+        
+    }
+
+    void U4DCollisionEngine::detectNarrowPhaseCollision(float dt){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        for (auto n:collisionPairs) {
             
-            maxChild=leftChild;
+            U4DDynamicModel *model1=n.model1;
+            U4DDynamicModel *model2 =n.model2;
             
-        }else{
-            
-            if ((uVolumeVertices.at(leftChild)).squareMagnitude() <= (uVolumeVertices.at(rightChild)).squareMagnitude()) {
+            if (model1->getAwake() || model2->getAwake()) {
                 
-                maxChild=rightChild;
+                if (collisionAlgorithm->collision(model1, model2, dt)) {
+                    
+                    //if collision occurred then
+                    model1->setModelHasCollided(true);
+                    model2->setModelHasCollided(true);
+                    
+                    //add to collision list
+                    model1->addToCollisionList(model2);
+                    model2->addToCollisionList(model1);
+                    
+                    if (model1->getIsCollisionSensor()||model2->getIsCollisionSensor()) {
+                        
+                        //reset the time of impact since these models are only collision sensors
+                        model1->setTimeOfImpact(1.0);
+                        model2->setTimeOfImpact(1.0);
+                        
+                    }else{
+                        
+                        //get collision response information
+                        
+                        //create a collision node to contain all the collision information
+                        COLLISIONMANIFOLDONODE collisionNode;
+                        
+                        collisionNode.collisionClosestPoint=collisionAlgorithm->getClosestCollisionPoint();
+                        collisionNode.normalCollisionVector=collisionAlgorithm->getContactCollisionNormal();
+                        
+                        //Manifold Generation Algorithm
+                        //Get the Normal collision plane manifold information
+                        manifoldGenerationAlgorithm->determineCollisionManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(), collisionNode);
+                        
+                        //Get the collision contacts (Manifold) information
+                        if(manifoldGenerationAlgorithm->determineContactManifold(model1, model2, collisionAlgorithm->getCurrentSimpleStruct(),collisionNode)){
+                            
+                            //collision Response
+                            collisionResponse->collisionResolution(model1, model2,collisionNode);
+                            
+                        }else{
+                            
+                            logger->log("Contact Manifold were not found");
+                            
+                        }
+                        
+                    }
+                    
+                }
                 
-            }else{
-                maxChild=leftChild;
             }
-        }
-        
-        if ((uVolumeVertices.at(root)).squareMagnitude()<(uVolumeVertices.at(maxChild)).squareMagnitude()) {
             
-            swap(uVolumeVertices,root,maxChild);
-            repheadDown(uVolumeVertices,uVolumeVerticesIndex,maxChild,bottom);
+                
         }
+       
     }
     
-}
-
-
-
-void U4DCollisionEngine::swap(vector<U4DVector3n> &uVolumeVertices,int uIndex1, int uIndex2){
-    
-    U4DVector3n vertex1=uVolumeVertices.at(uIndex1);
-    U4DVector3n vertex2=uVolumeVertices.at(uIndex2);
-    
-    uVolumeVertices.at(uIndex1)=vertex2;
-    uVolumeVertices.at(uIndex2)=vertex1;
-    
-}
-*/
+    void U4DCollisionEngine::clearContainers(){
+        
+        boundaryVolumeHierarchyManager->clearContainers();
+        collisionPairs.clear();
+        
+    }
 
 }

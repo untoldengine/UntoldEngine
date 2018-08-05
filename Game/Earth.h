@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 5/26/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__Earth__
@@ -12,29 +12,35 @@
 #include <iostream>
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
+#include "U4DSkybox.h"
+#include "U4DText.h"
+#include "U4DFontLoader.h"
 
-class MyCharacter;
-class MyPlane;
 class GameController;
-class Town;
+class GameAsset;
+class ModelAsset;
+class GuardianModel;
+class GoldAsset;
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
-    Town *cube2;
-    Town *cube;
-    Town *well;
-    Town *fort;
-    MyCharacter *robot;
-    int rotation;
+    
+    ModelAsset *cube[10];
+    ModelAsset *cube0;
+    GameAsset *terrain;
+    GuardianModel *guardian;
+    
+    
+    U4DEngine::U4DText *points;
+    U4DEngine::U4DFontLoader *fontLoader;
+    
 public:
    
-    Earth(){
-        rotation=0;
-    };
+    Earth(){};
+    ~Earth();
     
     void init();
-    void action();
     void update(double dt);
 
 };

@@ -3,41 +3,100 @@
 //  MVCTemplate
 //
 //  Created by Harold Serrano on 4/23/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __MVCTemplate__U4DKeyboardInput__
 #define __MVCTemplate__U4DKeyboardInput__
 
 #include <iostream>
+#include <vector>
 #include "U4DControllerInterface.h"
 #include "CommonProtocols.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
-class U4DTouches;
-}
-
-namespace U4DEngine {
-class U4DKeyboardController:public U4DControllerInterface{
-
-private:
     
-public:
+    class U4DKeyboardController:public U4DControllerInterface{
+        
+    private:
+        
+        U4DWorld *gameWorld;
+        U4DGameModelInterface *gameModel;
+        bool receivedAction;
+        
+    public:
+        //constructor
+        U4DKeyboardController();
+        
+        //destructor
+        ~U4DKeyboardController();
+        
+        virtual void init(){};
+        
+        
+        void touchBegan(const U4DTouches &touches){};
+        void touchMoved(const U4DTouches &touches){};
+        void touchEnded(const U4DTouches &touches){};
+        
+        
+        /**
+         @todo document this
+         */
+        void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
+        
+        /**
+         @todo document this
+         */
+        void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
+        
+        /**
+         @todo document this
+         */
+        void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
+        
+        
+        void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction);
+        
+        void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction);
+        
+        /**
+         @todo document this
+         */
+        void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis);
+        
+        /**
+         @todo document this
+         */
+        void macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+        
+        /**
+         @todo document this
+         */
+        void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction);
+        
+        /**
+         @todo document this
+         */
+        void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+        
+        
+        void changeState(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis);
+        
+        void changeState(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+        
+        
+        void setGameWorld(U4DWorld *uGameWorld);
+        void setGameModel(U4DGameModelInterface *uGameModel);
+        
+        U4DWorld* getGameWorld();
+        U4DGameModelInterface* getGameModel();
+        
+        void sendUserInputUpdate(void *uData);
+        
+        void setReceivedAction(bool uValue);
+    };
     
-    //constructor
-    U4DKeyboardController(){};
-    
-    //destructor
-    ~U4DKeyboardController(){};
-    
-    //copy constructor
-    U4DKeyboardController(const U4DKeyboardController& value){};
-    U4DKeyboardController& operator=(const U4DKeyboardController& value){return *this;};
-    
-    void keyboardInput(int key);
-    
-   
-};
 }
 
 #endif /* defined(__MVCTemplate__U4DKeyboardInput__) */

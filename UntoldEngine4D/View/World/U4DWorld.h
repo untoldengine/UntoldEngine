@@ -3,7 +3,7 @@
 //  MVCTemplate
 //
 //  Created by Harold Serrano on 4/23/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __MVCTemplate__U4DWorld__
@@ -14,17 +14,19 @@
 #include <vector>
 #include "U4DEntity.h"
 #include "U4DVisibleEntity.h"
-#include "U4DOpenGLWorld.h"
 #include "U4DVertexData.h"
 #include "CommonProtocols.h"
 
-#import <GLKit/GLKit.h>
+#include <MetalKit/MetalKit.h>
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
-class U4DEntity;
-class U4DControllerInterface;
-class U4DLights;
+    class U4DEntity;
+    class U4DControllerInterface;
+    class U4DGameModelInterface;
+    class U4DEntityManager;
+    class U4DLights;
 }
 
 namespace U4DEngine {
@@ -34,34 +36,26 @@ class U4DWorld:public U4DVisibleEntity{
 private:
     
     U4DControllerInterface *gameController;
-    bool gridEnabled;
-    bool shadowsEnabled;
     
-    U4DVector3n gravity;
+    U4DGameModelInterface *gameModel;
+    
+    bool enableGrid;
     
 public:
+    U4DEntityManager *entityManager;
     
     U4DVertexData bodyCoordinates;
     
     //constructor
-    U4DWorld(){
-    
-        openGlManager=new U4DOpenGLWorld(this);
-        openGlManager->setShader("worldShader");
-        gridEnabled=false;
-        shadowsEnabled=false;
-        
-        U4DVector3n uGravity(0.0,-10.0,0.0);
-        setGravity(uGravity);
-        
-    };
+    U4DWorld();
     
     //destructor
     virtual ~U4DWorld(){};
     
     //copy constructor
-    U4DWorld(const U4DWorld& value){};
-    U4DWorld& operator=(const U4DWorld& value){return *this;};
+    U4DWorld(const U4DWorld& value);
+    
+    U4DWorld& operator=(const U4DWorld& value);
     
     virtual void init(){};
     
@@ -69,30 +63,19 @@ public:
     
     void setGameController(U4DControllerInterface* uGameController);
     
-    void setEntityControlledByController(U4DEntity *uEntity);
+    void setGameModel(U4DGameModelInterface *uGameModel);
     
-    void initLoadingModels();
+    U4DControllerInterface* getGameController();
+    
+    U4DGameModelInterface* getGameModel();
+    
+    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
     void buildGrid();
     
-    void enableGrid(bool value);
+    void setEnableGrid(bool uValue);
     
-    void draw();
-    
-    void enableShadows();
-    
-    void disableShadows();
-    
-    void startShadowMapPass();
-    
-    void endShadowMapPass();
-    
-    void getShadows();
-    
-    void setGravity(U4DVector3n& uGravity);
-    
-    U4DVector3n getGravity();
-    
+    U4DEntityManager *getEntityManager();
     
 };
     

@@ -3,7 +3,7 @@
 //  MathLibrary
 //
 //  Created by Harold Serrano on 4/20/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DDualQuaternion.h"
@@ -11,9 +11,67 @@
 #include "U4DVector3n.h"
 #include "U4DMatrix3n.h"
 #include "U4DMatrix4n.h"
+#include "U4DTrigonometry.h"
+#include "U4DNumerical.h"
 #include <cmath>
 
 namespace U4DEngine {
+    
+U4DDualQuaternion::U4DDualQuaternion(){
+    
+    U4DVector3n vec(0,0,0);
+    U4DQuaternion q(0,vec);
+    q.convertToUnitNormQuaternion();
+    
+    qReal=q;
+    
+    U4DQuaternion t(0,vec);
+    
+    U4DQuaternion d=(t*qReal)*0.5;
+    
+    qPure=d;
+    
+}
+
+
+U4DDualQuaternion::U4DDualQuaternion(const U4DQuaternion &q,U4DVector3n& v){
+    
+    qReal=q;
+    
+    U4DQuaternion t(0,v);
+    
+    U4DQuaternion d=(t*qReal)*0.5;
+    
+    qPure=d;
+}
+
+
+
+U4DDualQuaternion::U4DDualQuaternion(const U4DQuaternion &q,U4DQuaternion& v){
+    
+    qReal=q;
+    qPure=v;
+    
+}
+
+
+U4DDualQuaternion::U4DDualQuaternion(const U4DDualQuaternion& value){
+    
+    qReal=value.qReal;
+    qPure=value.qPure;
+    
+}
+
+
+U4DDualQuaternion& U4DDualQuaternion::operator=(const U4DDualQuaternion& value){
+    
+    qReal=value.qReal;
+    qPure=value.qPure;
+    
+    return *this;
+}
+
+U4DDualQuaternion::~U4DDualQuaternion(){}
     
 void U4DDualQuaternion::setRealQuaternionPart(U4DQuaternion &uqReal){
     
@@ -202,11 +260,12 @@ void U4DDualQuaternion::transformMatrix4nToDualQuaternion(U4DMatrix4n &uMatrix){
 
 U4DDualQuaternion U4DDualQuaternion::sclerp(U4DDualQuaternion& uToDualQuaternion,float t){
     
-    //U4DDualQuaternion uFrom(qReal,qPure);
+    U4DTrigonometry trigonometry;
+    U4DNumerical numerical;
     
     //Shortest path
     float dot=(*this).dot(uToDualQuaternion);
-    
+ 
     if (dot<0.0) {
       
         uToDualQuaternion=uToDualQuaternion*-1.0;
@@ -219,16 +278,16 @@ U4DDualQuaternion U4DDualQuaternion::sclerp(U4DDualQuaternion& uToDualQuaternion
     U4DVector3n vr(diff.qReal.v.x,diff.qReal.v.y,diff.qReal.v.z);
     U4DVector3n vd(diff.qPure.v.x,diff.qPure.v.y,diff.qPure.v.z);
     
-    float invr;
+    float invr = 0.0;
     
-    if (vr.magnitude()==0) {
-        invr=1.0;
-    }else{
-        invr=1/vr.magnitude();
+    if (!numerical.areEqual(vr.magnitude(), 0.0, U4DEngine::zeroEpsilon)) {
+        
+         invr=1.0/sqrt(vr.dot(vr));
+        
     }
     
     //Screw parameters
-    float angle=2*acos(diff.qReal.s);
+    float angle=2*trigonometry.safeAcos(diff.qReal.s);
     float pitch=-2*diff.qPure.s*invr;
     
     U4DVector3n direction=vr*invr;

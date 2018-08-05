@@ -3,69 +3,51 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/22/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DVisibleEntity.h"
 
 namespace U4DEngine {
     
-void U4DVisibleEntity::loadRenderingInformation(){
-    openGlManager->loadRenderingInformation();
-}
+    U4DVisibleEntity::U4DVisibleEntity(){
+        
+    }
 
-void U4DVisibleEntity::addCustomUniform(const char* uName,std::vector<float> uData){
-    
-    CustomUniforms customUniform;
-    
-    customUniform.name=uName;
-    customUniform.data=uData;
-    
-    openGlManager->addCustomUniforms(customUniform);
-    
-}
+    U4DVisibleEntity::U4DVisibleEntity(const U4DVisibleEntity& value){
 
-void U4DVisibleEntity::addCustomUniform(const char* uName,U4DVector3n uData){
-    
-    //create the vector
-    std::vector<float> data{uData.getX(),uData.getY(),uData.getZ()};
+    }
+
+    U4DVisibleEntity& U4DVisibleEntity::operator=(const U4DVisibleEntity& value){
+        
+        return *this;
+    }
 
     
-    addCustomUniform(uName, data);
+    void U4DVisibleEntity::setShader(std::string uVertexShaderName, std::string uFragmentShaderName){
+        
+        vertexShader=uVertexShaderName;
+        fragmentShader=uFragmentShaderName;
+        
+    }
+    
+    
+    std::string U4DVisibleEntity::getVertexShader(){
+        
+        return vertexShader;
+    }
+    
+    std::string U4DVisibleEntity::getFragmentShader(){
+        return fragmentShader;
+    }
+    
+    
+    void U4DVisibleEntity::loadRenderingInformation(){
+        
+        renderManager->loadRenderingInformation();
+        
+    }
 
-}
-
-void U4DVisibleEntity::addCustomUniform(const char* uName,U4DVector4n uData){
-    
-    //create the vector
-    std::vector<float> data{uData.getX(),uData.getY(),uData.getZ(),uData.getW()};
-    
-    addCustomUniform(uName, data);
-    
-}
-
-
-void U4DVisibleEntity::updateUniforms(const char* uName,std::vector<float> uData){
-    
-    openGlManager->updateCustomUniforms(uName, uData);
-    
-}
-
-void U4DVisibleEntity::updateUniforms(const char* uName,U4DVector3n uData){
-    
-    //create the vector
-    std::vector<float> data{uData.getX(),uData.getY(),uData.getZ()};
-    
-    updateUniforms(uName, data);
-}
-
-void U4DVisibleEntity::updateUniforms(const char* uName,U4DVector4n uData){
-    
-    //create the vector
-    std::vector<float> data{uData.getX(),uData.getY(),uData.getZ(),uData.getW()};
-    
-    updateUniforms(uName, data);
-}
 
 }
 

@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/23/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DBodyForceGenerator__
@@ -14,17 +14,22 @@
 
 namespace U4DEngine {
     
-class U4DDynamicModel;
+    class U4DDynamicModel;
+    
 }
 
 namespace U4DEngine {
 
-class U4DBodyForceGenerator{
-    
-public:
-    virtual void updateForce(U4DDynamicModel *uModel, float dt)=0;
-    
-};
+    /**
+     @brief The U4DBodyForceGenerator class is in charge of updating all external forces acting on a 3D entity
+     */
+    class U4DBodyForceGenerator{
+        
+    public:
+        
+        virtual void updateForce(U4DDynamicModel *uModel, float dt)=0;
+        
+    };
     
 }
 

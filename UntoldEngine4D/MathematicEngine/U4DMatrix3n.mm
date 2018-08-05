@@ -3,24 +3,65 @@
 //  MathLibrary
 //
 //  Created by Harold Serrano on 5/20/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DMatrix3n.h"
 #include "U4DVector3n.h"
 #include "U4DQuaternion.h"
 #include "Constants.h"
-
+#include "U4DTrigonometry.h"
 
 namespace U4DEngine {
+
+    
+U4DMatrix3n::U4DMatrix3n(){
+    
+    // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
+    //	0	3	6
+    //	1	4	7
+    //	2	5	8
     
     
-// 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
-//	0	3	6
-//	1	4	7
-//	2	5	8
+    for (int i=0; i<9; i++) {
+        matrixData[i]=0.0f;
+    }
+    
+    matrixData[0]=matrixData[4]=matrixData[8]=1.0f;
+    
+}
 
 
+U4DMatrix3n::U4DMatrix3n(float m0,float m3,float m6,float m1,float m4,float m7,float m2,float m5,float m8){
+    
+    matrixData[0]=m0;
+    matrixData[3]=m3;
+    matrixData[6]=m6;
+    
+    matrixData[1]=m1;
+    matrixData[4]=m4;
+    matrixData[7]=m7;
+    
+    matrixData[2]=m2;
+    matrixData[5]=m5;
+    matrixData[8]=m8;
+    
+}
+
+
+U4DMatrix3n& U4DMatrix3n::operator=(const U4DMatrix3n& value){
+    
+    for (int i=0; i<9; i++) {
+        matrixData[i]=value.matrixData[i];
+    }
+    
+    return *this;
+}
+
+
+U4DMatrix3n::~U4DMatrix3n(){
+}
+    
 #pragma mark-Transform vector
 U4DVector3n U4DMatrix3n::operator*(const U4DVector3n & v) const{
     
@@ -108,7 +149,9 @@ void U4DMatrix3n::transformMatrixAboutXAxis(float uAngle){
     //	1	4	7
     //	2	5	8
     
-    uAngle=DegreesToRad(uAngle);
+    U4DTrigonometry trigonometry;
+    
+    uAngle=trigonometry.degreesToRad(uAngle);
     
     U4DMatrix3n m(1.0,0.0,0.0,
                   0.0,cos(uAngle),-sin(uAngle),
@@ -124,7 +167,9 @@ void U4DMatrix3n::transformMatrixAboutYAxis(float uAngle){
     //	1	4	7
     //	2	5	8
     
-    uAngle=DegreesToRad(uAngle);
+    U4DTrigonometry trigonometry;
+    
+    uAngle=trigonometry.degreesToRad(uAngle);
     
     U4DMatrix3n m(cos(uAngle),0.0,sin(uAngle),
                   0.0,1.0,0.0,
@@ -141,7 +186,9 @@ void U4DMatrix3n::transformMatrixAboutZAxis(float uAngle){
     //	1	4	7
     //	2	5	8
     
-    uAngle=DegreesToRad(uAngle);
+    U4DTrigonometry trigonometry;
+    
+    uAngle=trigonometry.degreesToRad(uAngle);
     
     U4DMatrix3n m(cos(uAngle),-sin(uAngle),0.0,
                   sin(uAngle),cos(uAngle),0.0,

@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/10/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DTouchesController__
@@ -14,6 +14,7 @@
 #include "U4DControllerInterface.h"
 #include "CommonProtocols.h"
 #include "U4DVector2n.h"
+#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     
@@ -32,33 +33,59 @@ class U4DTouchesController:public U4DControllerInterface{
   
 private:
     
+    U4DWorld *gameWorld;
+    U4DGameModelInterface *gameModel;
+    bool receivedAction;
+    
 public:
     //constructor
-    U4DTouchesController(){};
+    U4DTouchesController();
     
     //destructor
-    ~U4DTouchesController(){};
+    ~U4DTouchesController();
 
     virtual void init(){};
+    
     void touchBegan(const U4DTouches &touches);
     void touchMoved(const U4DTouches &touches);
     void touchEnded(const U4DTouches &touches);
     
+    void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
+    void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){};
+    void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
     
-    void keyboardInput(int key){};
+    void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){};
     
-    void add(U4DButton *uButton,U4DVector2n &buttonPosition,TouchState touchActionOn);
-    void add(U4DButton *uButton);
-    void changeState(const U4DTouches &touches,TouchState touchState);
+    void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){};
     
-    void add(U4DJoyStick *uJoyStick);
+    void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){};
     
-    void draw();
-    void update(float dt);
+    /**
+     @todo document this
+     */
+    void macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
     
-    //inline void setGameWorld(U4DWorld *uGameWorld){ gameWorld=uGameWorld;}
-    inline void setGameModel(U4DGameModelInterface *uGameModel){gameModel=uGameModel;}
-    void setEntityToControl(U4DEntity *uEntity);
+    /**
+     @todo document this
+     */
+    void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){};
+    
+    /**
+     @todo document this
+     */
+    void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
+    
+    void changeState(const U4DTouches &touches,TOUCHSTATE &touchState);
+    
+    void setGameWorld(U4DWorld *uGameWorld);
+    void setGameModel(U4DGameModelInterface *uGameModel);
+    
+    U4DWorld* getGameWorld();
+    U4DGameModelInterface* getGameModel();
+    
+    void sendUserInputUpdate(void *uData);
+    
+    void setReceivedAction(bool uValue);
 };
 
 }

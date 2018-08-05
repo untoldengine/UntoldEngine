@@ -3,7 +3,7 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/18/14.
-//  Copyright (c) 2014 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2014 Untold Engine Studios. All rights reserved.
 //
 
 #ifndef __UntoldEngine__U4DTransformation__
@@ -34,29 +34,31 @@ public:
     
     void translateTo(float x,float y, float z);
     
+    void translateTo(U4DVector2n &translation);
+    
+    void translateBy(U4DVector3n& translation);
+    
+    void translateBy(float x,float y, float z);
+    
     void rotateTo(U4DQuaternion& rotation);
     
     void rotateTo(U4DMatrix3n& uRotationMatrix);
     
-    void rotateBy(U4DQuaternion& rotation);
-    
     void rotateTo(float angle, U4DVector3n& axis);
-    
-    void rotateBy(float angle, U4DVector3n& axis);
     
     void rotateTo(float angleX, float angleY, float angleZ);
     
+    void rotateBy(U4DQuaternion& rotation);
+    
+    void rotateBy(float angle, U4DVector3n& axis);
+    
     void rotateBy(float angleX, float angleY, float angleZ);
-    
-    void translateTo(U4DVector2n &translation);
-    
-    void translateBy(float x,float y, float z);
     
     void rotateAboutAxis(float angle, U4DVector3n& axisOrientation, U4DVector3n& axisPosition);
     
     void rotateAboutAxis(U4DQuaternion& uOrientation, U4DVector3n& axisPosition);
     
-    void viewInDirection(U4DVector3n& uDestinationPoint);
+    //void viewInDirection(U4DVector3n& uDestinationPoint);
     
     
 };

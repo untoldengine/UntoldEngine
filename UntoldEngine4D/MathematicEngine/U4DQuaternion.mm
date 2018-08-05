@@ -3,19 +3,44 @@
 //  MathLibrary
 //
 //  Created by Harold Serrano on 4/20/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DQuaternion.h"
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
 #include "Constants.h"
-#include <math.h>
+#include "U4DTrigonometry.h"
+#include <cmath>
 
 namespace U4DEngine {
     
-#pragma mark-add
-//add
+    
+U4DQuaternion::U4DQuaternion():s(1.0),v(0.0,0.0,0.0){};
+
+U4DQuaternion::U4DQuaternion(float uS,U4DVector3n& uV):s(uS),v(uV){
+
+}
+
+U4DQuaternion::~U4DQuaternion(){
+
+};
+
+U4DQuaternion::U4DQuaternion(const U4DQuaternion & value){
+    
+    s=value.s;
+    v=value.v;
+    
+};
+
+U4DQuaternion& U4DQuaternion::operator=(const U4DQuaternion& value){
+    
+    s=value.s;
+    v=value.v;
+    
+    return *this;
+};
+    
 void U4DQuaternion::operator+=(const U4DQuaternion& q){
     
     s+=q.s;
@@ -31,8 +56,6 @@ U4DQuaternion U4DQuaternion::operator+(const U4DQuaternion& q)const{
     return U4DQuaternion(scalar,imaginary);
 }
 
-#pragma mark-substract
-//substract
 void U4DQuaternion::operator-=(const U4DQuaternion& q){
     
     s-=q.s;
@@ -47,8 +70,6 @@ U4DQuaternion U4DQuaternion::operator-(const U4DQuaternion& q)const{
     return U4DQuaternion(scalar,imaginary);
 }
 
-#pragma mark-multiply
-//multiply
 void U4DQuaternion::operator*=(const U4DQuaternion& q){
     
     (*this)=multiply(q);
@@ -74,7 +95,7 @@ U4DQuaternion U4DQuaternion::multiply(const U4DQuaternion& q)const{
     
 }
 
-//multiply scalar
+
 void U4DQuaternion::operator*=(const float value){
     
     s*=value;
@@ -112,8 +133,6 @@ float U4DQuaternion::dot(U4DQuaternion& q){
     
 }
 
-#pragma mark-norm
-//norm
 float U4DQuaternion::norm(){
     
     float scalar=s*s;
@@ -122,8 +141,6 @@ float U4DQuaternion::norm(){
     return sqrt(scalar+imaginary);
 }
 
-#pragma mark-normalize
-//unit-norm
 void U4DQuaternion::normalize(){
  
     if (norm()!=0) {
@@ -137,9 +154,6 @@ void U4DQuaternion::normalize(){
     
 }
 
-
-#pragma mark-conjugate
-//conjugate
 U4DQuaternion U4DQuaternion::conjugate(){
     
     float scalar=s;
@@ -149,8 +163,6 @@ U4DQuaternion U4DQuaternion::conjugate(){
 }
 
 
-#pragma mark-inverse
-//inverse
 U4DQuaternion U4DQuaternion::inverse(){
     
     float absoluteValue=norm();
@@ -172,11 +184,12 @@ void U4DQuaternion::inverse(U4DQuaternion& q){
     q=dummy;
 }
 
-#pragma mark-Hamilton
-//hamilton
+    
 void U4DQuaternion::convertToUnitNormQuaternion(){
     
-    float angle=DegreesToRad(s);
+    U4DTrigonometry trigonometry;
+    
+    float angle=trigonometry.degreesToRad(s);
     
     v.normalize();
     s=cosf(angle*0.5);
@@ -185,8 +198,6 @@ void U4DQuaternion::convertToUnitNormQuaternion(){
 }
 
 
-#pragma mark-Matrix Transform
-//matrixTransform
 U4DMatrix3n U4DQuaternion::transformQuaternionToMatrix3n(){
     
     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
@@ -213,13 +224,13 @@ U4DMatrix3n U4DQuaternion::transformQuaternionToMatrix3n(){
     return m;
 }
 
-#pragma mark-Euler To Quaternion
-//euler to quaternion
 void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
     
-    x=DegreesToRad(x);
-    y=DegreesToRad(y);
-    z=DegreesToRad(z);
+    U4DTrigonometry trigonometry;
+    
+    x=trigonometry.degreesToRad(x);
+    y=trigonometry.degreesToRad(y);
+    z=trigonometry.degreesToRad(z);
     
     x=x/2;
     y=y/2;
@@ -233,7 +244,6 @@ void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
    
 }
 
-#pragma mark-Quaternion to Euler
 U4DVector3n U4DQuaternion::transformQuaternionToEulerAngles(){
     
     // 3x3 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
@@ -267,9 +277,11 @@ U4DVector3n U4DQuaternion::transformQuaternionToEulerAngles(){
 
     }
     
-    x=RadToDegrees(x);
-    y=RadToDegrees(y);
-    z=RadToDegrees(z);
+    U4DTrigonometry trigonometry;
+    
+    x=trigonometry.radToDegrees(x);
+    y=trigonometry.radToDegrees(y);
+    z=trigonometry.radToDegrees(z);
     
     U4DVector3n euler(x,y,z);
     
@@ -343,7 +355,6 @@ U4DQuaternion U4DQuaternion::slerp(U4DQuaternion&q, float time){
     
 }
 
-#pragma mark-show
 void U4DQuaternion::show(){
     
     float x=v.x;

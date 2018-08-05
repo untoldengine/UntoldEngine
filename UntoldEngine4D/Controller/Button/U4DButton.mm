@@ -3,32 +3,38 @@
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 8/11/13.
-//  Copyright (c) 2013 Untold Story Studio. All rights reserved.
+//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
 #include "U4DButton.h"
 #include "U4DVector2n.h"
 #include "U4DTouches.h"
 #include "U4DDirector.h"
+#include "U4DControllerInterface.h"
+#include "U4DButtonPressedState.h"
+#include "U4DButtonReleasedState.h"
+#include "U4DButtonIdleState.h"
+#include "U4DButtonMovedState.h"
+#include "U4DButtonStateManager.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2,U4DCallbackInterface *uAction,TouchState uButtonActionOn):buttonState(rTouchesNull){
+U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):controllerInterface(NULL),pCallback(NULL),currentTouchPosition(0.0,0.0,0.0){
     
-    buttonImages.setImages(uButtonImage1,uButtonImage2,uWidth,uHeight);
+    stateManager=new U4DButtonStateManager(this);
+    
+    setName(uName);
+    
+    setEntityType(CONTROLLERINPUT);
+    
+    buttonImages.setImage(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
     U4DVector3n translation(xPosition,yPosition,0.0);
     
     translateTo(translation);     //move the button
     
     buttonImages.translateTo(translation);  //move the image
-    
-    
-    //set the callback
-    pCallback=uAction;
-    
-    //set where to do the action on the button
-    buttonActionOn=uButtonActionOn;
     
     //get the coordinates of the box
     centerPosition=getLocalPosition();
@@ -41,21 +47,26 @@ U4DButton::U4DButton(float xPosition,float yPosition,float uWidth,float uHeight,
     top=centerPosition.y+uHeight/director->getDisplayHeight();
     bottom=centerPosition.y-uHeight/director->getDisplayHeight();
     
-};
-
-void U4DButton::draw(){
+    //set initial state
+    stateManager->changeState(U4DButtonIdleState::sharedInstance());
     
-    buttonImages.draw();
+}
+    
+U4DButton::~U4DButton(){
+    
+    delete stateManager;
+    
+}
+
+void U4DButton::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+    
+    buttonImages.render(uRenderEncoder);
 
 }
 
-void U4DButton::update(float dt){
+void U4DButton::update(double dt){
     
-    if (getState()==getButtonActionOn()) {
-        
-        action();
-        
-    }
+    stateManager->update(dt);
     
 }
 
@@ -65,46 +76,77 @@ void U4DButton::action(){
 
 }
 
-void U4DButton::changeState(TouchState uTouchState){
+void U4DButton::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){
     
-    buttonState=uTouchState;
-}
+    
+    if (uTouchPosition.x>left && uTouchPosition.x<right) {
+        
+        if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
 
-void U4DButton::changeState(TouchState uTouchState,U4DVector3n uTouchPosition){
-    
-    
-        if (uTouchPosition.x>left && uTouchPosition.x<right) {
+            currentTouchPosition=uTouchPosition;
             
-           if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
-
-               buttonState=uTouchState;
-               
-               if (buttonState==rTouchesBegan || buttonState==rTouchesMoved) {
+            if (uTouchState==rTouchesBegan) {
                 
-                   buttonImages.changeImage();
-                   
-               }else if (buttonState==rTouchesEnded){
-                   
-                   buttonImages.changeImage();  //select default image
-                   
-               }
+                stateManager->changeState(U4DButtonPressedState::sharedInstance());
+            
+            }else if(uTouchState==rTouchesMoved && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance())){
+                
+                stateManager->changeState(U4DButtonMovedState::sharedInstance());
+            
+            }else if(uTouchState==rTouchesEnded && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance() || stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance())){
+                
+                stateManager->changeState(U4DButtonReleasedState::sharedInstance());
+                
             }
         }
-
-}
-
-TouchState U4DButton::getState(){
-    return buttonState;
-}
-
-void U4DButton::setButtonActionOn(TouchState &uButtonActionOn){
+        
+    }
     
-    buttonActionOn=uButtonActionOn;
+    
+    if (uTouchPosition.x<left || uTouchPosition.x>right || uTouchPosition.y<bottom || uTouchPosition.y>top ){
+        
+        if (stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance()) {
+            
+            float touchDistance=(currentTouchPosition-uTouchPosition).magnitude();
+        
+            U4DNumerical numerical;
+            
+            if (numerical.areEqual(touchDistance, 0.0, buttonTouchEpsilon)) {
+                
+                stateManager->changeState(U4DButtonReleasedState::sharedInstance());
+            }
+            
+        }
+        
+    }
+    
+    
+}
+    
+void U4DButton::setCallbackAction(U4DCallbackInterface *uAction){
+    
+    //set the callback
+    pCallback=uAction;
+    
+}
+    
+bool U4DButton::getIsPressed(){
+    
+    return (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance());
+    
 }
 
-TouchState U4DButton::getButtonActionOn(){
+bool U4DButton::getIsReleased(){
     
-    return buttonActionOn;
+    return (stateManager->getCurrentState()==U4DButtonReleasedState::sharedInstance());
+    
 }
+    
+void U4DButton::setControllerInterface(U4DControllerInterface* uControllerInterface){
+
+    controllerInterface=uControllerInterface;
+    
+}
+    
 
 }
