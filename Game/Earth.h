@@ -11,29 +11,18 @@
 
 #include <iostream>
 #include "U4DWorld.h"
-#include "U4DVector3n.h"
-#include "U4DSkybox.h"
-#include "U4DText.h"
-#include "U4DFontLoader.h"
-
-class GameController;
-class GameAsset;
-class ModelAsset;
-class GuardianModel;
-class GoldAsset;
+#include "U4DGameObject.h"
+#include "U4DAnimation.h"
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    ModelAsset *cube[10];
-    ModelAsset *cube0;
-    GameAsset *terrain;
-    GuardianModel *guardian;
+    //Astronaut data member
+    U4DEngine::U4DGameObject *myAstronaut;
     
-    
-    U4DEngine::U4DText *points;
-    U4DEngine::U4DFontLoader *fontLoader;
+    //Animation object
+    U4DEngine::U4DAnimation *walkAnimation;
     
 public:
    
@@ -43,6 +32,12 @@ public:
     void init();
     void update(double dt);
 
+    //Sets the configuration for the engine: Perspective view, shadows, light
+    void setupConfiguration();
+    
+    //creates background models: islands, skyboxes, etc.
+    void setupBackgroundModels();
+    
 };
 
 #endif /* defined(__UntoldEngine__Earth__) */

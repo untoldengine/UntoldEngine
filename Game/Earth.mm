@@ -7,157 +7,131 @@
 //
 
 #include "Earth.h"
-
-#include "CommonProtocols.h"
-
 #include <stdio.h>
-
+#include "CommonProtocols.h"
 #include "U4DDirector.h"
-
-#include "U4DMatrix3n.h"
 #include "U4DCamera.h"
-#include "U4DControllerInterface.h"
-
-#include "GameController.h"
 #include "U4DLights.h"
-#include "U4DLogger.h"
-
-
-#include "GameLogic.h"
-
-#include "GameAsset.h"
-#include "ModelAsset.h"
-#include "GuardianModel.h"
-#include "GoldAsset.h"
-
-#include "U4DParticleSystem.h"
-#include "U4DParticleData.h"
-#include "U4DParticleEmitterInterface.h"
-#include "U4DParticleEmitterLinear.h"
-#include "U4DSpriteLoader.h"
-#include "U4DSprite.h"
-#include "U4DSpriteAnimation.h"
-
-#include "U4DFontLoader.h"
-#include "U4DText.h"
+#include "U4DSkybox.h"
 
 using namespace U4DEngine;
 
 void Earth::init(){
     
-    //Set camera
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPos(0.0,5.0,-20.0);
+    /*----DO NOT REMOVE. THIS IS REQUIRED-----*/
+    //Configures the perspective view, shadows, lights and camera.
+    setupConfiguration();
     
-    camera->translateTo(cameraPos);
+    //Renders the background models: skybox and island models. Remove if you want to.
+    setupBackgroundModels();
+    
+    ////////////CREATE ASTRONAUT HERE/////////////
     
     
-    setName("earth");
-    setEnableGrid(true);
+}
+
+void Earth::update(double dt){
     
+}
+
+void Earth::setupConfiguration(){
+    
+    //Get director object
     U4DDirector *director=U4DDirector::sharedInstance();
     
     director->setWorld(this);
     
-    //compute perspective space
+    //Compute the perspective space matrix
     U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(30.0f, director->getAspect(), 0.01f, 100.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
-    //compute orthographic shadow space
+    //Compute the orthographic shadow space
     U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-30.0f, 30.0f, -30.0f, 30.0f, -30.0f, 30.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
+    //Get camera object and translate it to position
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-10.0);
+    
+    //translate camera
+    camera->translateTo(cameraPosition);
+    
+    //set origin point
     U4DVector3n origin(0,0,0);
-
+    
+    //Create light object, translate it and set diffuse and specular color
     U4DLights *light=U4DLights::sharedInstance();
     light->translateTo(10.0,10.0,-10.0);
     U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
     U4DEngine::U4DVector3n specular(0.1,0.1,0.1);
     light->setDiffuseColor(diffuse);
     light->setSpecularColor(specular);
+    
     addChild(light);
     
+    //Set the view direction of the camera and light
     camera->viewInDirection(origin);
-
+    
     light->viewInDirection(origin);
     
-    //add bag
-
-
-    //add gold
-    for(int i=0;i<5;i++){
-
-        std::string name="Cube";
-        name+=std::to_string(i);
-
-        cube[i]=new ModelAsset();
-
-        if(cube[i]->init(name.c_str(), "blenderscript.u4d")){
-            addChild(cube[i]);
-        }
-        //cube[i]->rotateTo(30.0,20.0,-40.0);
-        cube[i]->enableKineticsBehavior();
-    }
+    //set the poly count to 5000. Default is 3000
+    director->setPolycount(5000);
     
+}
 
-//    cube0=new ModelAsset();
-//
-//    if(cube0->init("Cube0", "blenderscript.u4d")){
-//        addChild(cube0);
-//    }
-
-    //cube0->enableKineticsBehavior();
-//    cube0->rotateTo(30.0,20.0,-40.0);
-    //cube0->translateBy(2.9, 0.0, -3.2);
+void Earth::setupBackgroundModels(){
     
-    terrain=new GameAsset();
+    //create island and skybox
     
-    if (terrain->init("terrain","blenderscript.u4d")) {
+    //Create an instance of U4DGameObject type
+    U4DGameObject *island=new U4DGameObject();
+    
+    //Load attribute (rendering information) into the game entity
+    if (island->loadModel("island","astronautAttributes.u4d")) {
         
-        addChild(terrain);
+        island->setEnableShadow(true);
+        
+        //Load rendering information into the GPU
+        island->loadRenderingInformation();
+        
+        //Add walkway to scenegraph
+        addChild(island);
         
     }
     
-    //add character
-    guardian=new GuardianModel();
-
-    if(guardian->init("guardian","blenderscript.u4d")){
-        addChild(guardian);
+    if (island!=nullptr) {
+        
+        //enable kinetics
+        island->enableKineticsBehavior();
+        
+        //enable collision
+        island->enableCollisionBehavior();
+        
+        //set gravity to zero
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+        island->setGravity(zero);
+        
+        //set Coefficient of Restitution
+        island->initCoefficientOfRestitution(0.9);
+        
+        //set mass
+        island->initMass(100.0);
+        
     }
-
-    //get game model pointer
-    GameLogic *gameModel=dynamic_cast<GameLogic*>(getGameModel());
     
-   gameModel->setGuardian(guardian);
+    //add a skybox here
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
     
-    //Load the font loader
-    fontLoader=new U4DFontLoader();
+    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
     
-    fontLoader->loadFontAssetFile("myFont.xml", "myFont.png");
+    addChild(skybox,-1);
     
-    //create a text object
-    points=new U4DEngine::U4DText(fontLoader,20);
-    
-    points->setText("Points: 0");
-    points->translateTo(0.4,0.8,0.0);
-    addChild(points,0);
-    //note make sure to add the text before any other objects in the scenegraph
-    
-    gameModel->setText(points);
 }
 
 Earth::~Earth(){
     
-   
-}
-
-void Earth::update(double dt){
-    //rotateBy(0.0, 0.5, 0.0);
-    U4DCamera *camera=U4DCamera::sharedInstance();
     
-    //camera->followModel(guardian, 0.0, 2.0, -10.0);
 }
-
 
 
 
