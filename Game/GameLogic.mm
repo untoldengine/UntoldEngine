@@ -9,6 +9,7 @@
 #include "GameLogic.h"
 #include "Earth.h"
 
+using namespace U4DEngine;
 
 GameLogic::GameLogic(){
     
@@ -25,7 +26,6 @@ void GameLogic::update(double dt){
 }
 
 void GameLogic::init(){
-    
     
 }
 

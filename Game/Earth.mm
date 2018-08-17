@@ -27,7 +27,6 @@ void Earth::init(){
     
     ////////////CREATE ASTRONAUT HERE/////////////
     
-    
 }
 
 void Earth::update(double dt){
