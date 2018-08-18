@@ -12,7 +12,6 @@ Its small API makes it ideal for new developers to focus on learning the fundame
 
 Before running the engine, please visit [www.untoldengine.com](http://www.untoldengine.com) and click on **Docs**. The documentation provides instructions on how to setup the engine.
 
-
 ## What you need?
 
 To run the the Untold Engine, you need the following tools:
