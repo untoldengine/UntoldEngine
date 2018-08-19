@@ -26,7 +26,7 @@ void GameController::init(){
     
     joyStick->setControllerInterface(this);
     
-    earth->addChild(joyStick,0);
+    earth->addChild(joyStick,-2);
     
     //create a callback
     U4DEngine::U4DCallback<GameController>* joystickCallback=new U4DEngine::U4DCallback<GameController>;
@@ -40,7 +40,7 @@ void GameController::init(){
     
     myButtonA->setControllerInterface(this);
     
-    earth->addChild(myButtonA,1);
+    earth->addChild(myButtonA,-3);
     
     //create a callback
     U4DEngine::U4DCallback<GameController>* buttonACallback=new U4DEngine::U4DCallback<GameController>;
@@ -54,7 +54,7 @@ void GameController::init(){
     
     myButtonB->setControllerInterface(this);
     
-    earth->addChild(myButtonB,2);
+    earth->addChild(myButtonB,-4);
     
     //create a callback
     U4DEngine::U4DCallback<GameController>* buttonBCallback=new U4DEngine::U4DCallback<GameController>;

@@ -7,21 +7,12 @@
 //
 
 #include "GameLogic.h"
-
-#include "U4DControllerInterface.h"
-#include "GameController.h"
-#include "U4DButton.h"
-#include "U4DJoyStick.h"
-#include "CommonProtocols.h"
-#include "U4DCamera.h"
-#include "U4DParticleSystem.h"
 #include "Earth.h"
-#include "MessageDispatcher.h"
-#include "U4DLights.h"
 
-GameLogic::GameLogic():points(0){
+using namespace U4DEngine;
+
+GameLogic::GameLogic(){
     
-    guardian=nullptr;
     
 }
 
@@ -32,63 +23,36 @@ GameLogic::~GameLogic(){
 
 void GameLogic::update(double dt){
     
-//    if (guardian->guardianAte()) {
-//        
-//        increasePoints();
-//        guardian->resetAteCoin();
-//    }
 }
 
 void GameLogic::init(){
     
-    
 }
 
-void GameLogic::setGuardian(GuardianModel *uGuardian){
-    guardian=uGuardian;
-}
-
-void GameLogic::setText(U4DEngine::U4DText *uText){
-    text=uText;
-}
-
-void GameLogic::increasePoints(){
-    
-    points++;
-    
-    std::string name="Points: ";
-    
-    name+=std::to_string(points);
-    
-    text->setText(name.c_str());
-    
-}
 
 void GameLogic::receiveUserInputUpdate(void *uData){
     
-    MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
-
+    //1. Get the user-input message from the structure
+    
     ControllerInputMessage controllerInputMessage=*(ControllerInputMessage*)uData;
-
-    if (guardian!=nullptr) {
+    
+    //check the astronaut model exists
+    if(pAstronaut!=nullptr){
+        
+        //2. Determine what was pressed, buttons, keys or joystick
         
         switch (controllerInputMessage.controllerInputType) {
+                
+                //3. Did Button A on a mobile or game controller receive an action from the user (Key A on a Mac)
             case actionButtonA:
-                
             {
+                //4. If button was pressed
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
-                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
-
-                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
-
-                    liPos.x+=1.0;
-
-                    light->translateTo(liPos);
-
-                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
-                    light->viewInDirection(origin);
+                    //4a. What action to take if button was pressed
+                    std::cout<<"Button A Pressed"<<std::endl;
                     
+                    //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
                     
@@ -96,50 +60,48 @@ void GameLogic::receiveUserInputUpdate(void *uData){
             }
                 
                 break;
+                
+                //6. Did Button B on a mobile or game controller receive an action from the user. (Key D on Mac)
             case actionButtonB:
-                
             {
+                //7. If button was pressed
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
-                    U4DEngine::U4DLights *light=U4DEngine::U4DLights::sharedInstance();
+                    //7a. What action to take if button was pressed
+                    std::cout<<"Button B Pressed"<<std::endl;
                     
-                    U4DEngine::U4DVector3n liPos=light->getAbsolutePosition();
-                    
-                    liPos.x-=1.0;
-                    
-                    light->translateTo(liPos);
-                    
-                    U4DEngine::U4DVector3n origin(0.0,0.0,0.0);
-                    light->viewInDirection(origin);
-                    
+                    //8. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
                     
                 }
+                
             }
                 
                 break;
                 
+                //9. Did joystic on a mobile or game controller receive an action from the user. (Arrow keys and Mouse on Mac)
             case actionJoystick:
-                
             {
+                //10. Joystick was moved
+                
                 if (controllerInputMessage.controllerInputData==joystickActive) {
                     
+                    //11. Get joystick movement
                     JoystickMessageData joystickMessageData;
                     
+                    //11a. Get Joystick direction
                     joystickMessageData.direction=controllerInputMessage.joystickDirection;
                     
-                    joystickMessageData.changedDirection=controllerInputMessage.joystickChangeDirection;
-                    
-                    
-                    guardian->setPlayerHeading(joystickMessageData.direction);
-                    
-                    messageDispatcher->sendMessage(0.0, guardian, guardian, msgJoystickActive, (void*)&joystickMessageData);
+                    //12. What action to take when joystick is moved.
+                    std::cout<<"Joystick moved"<<std::endl;
                     
                     
                 }else if(controllerInputMessage.controllerInputData==joystickInactive){
                     
-                    messageDispatcher->sendMessage(0.0, guardian, guardian, msgJoystickNotActive);                }
+                    
+                }
+                
             }
                 
                 break;
@@ -151,5 +113,3 @@ void GameLogic::receiveUserInputUpdate(void *uData){
     }
     
 }
-
-

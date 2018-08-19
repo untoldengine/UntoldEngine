@@ -11,8 +11,6 @@
 
 #include "U4DVector3n.h"
 
-class GuardianModel;
-
 enum{
     
     actionButtonA,
@@ -43,38 +41,6 @@ typedef struct{
     bool joystickChangeDirection;
     
 }ControllerInputMessage;
-
-//ADDED FOR DEMO
-
-typedef struct{
-    
-    GuardianModel *sender;
-    GuardianModel *receiver;
-    int msg;
-    void* extraInfo;
-    
-}Message;
-
-typedef enum{
-    
-    kCube=1,
-    kField=2,
-    kPlayer=3,
-    kNegativeGroupIndex=-10,
-    kPositiveGroupIndex=10,
-    kZeroGroupIndex=0,
-    
-}GameEntityCollision;
-
-enum{
-    
-    msgIdle,
-    msgRun,
-    msgJump,
-    msgJoystickActive,
-    msgJoystickNotActive
-    
-}MessageEnum;
 
 typedef struct{
     

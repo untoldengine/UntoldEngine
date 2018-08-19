@@ -3,7 +3,7 @@
 //  MetalRendering
 //
 //  Created by Harold Serrano on 7/11/17.
-//  Copyright © 2017 Harold Serrano. All rights reserved.
+//  Copyright © 2017 Untold Engine Studios. All rights reserved.
 //
 
 #include <metal_stdlib>
