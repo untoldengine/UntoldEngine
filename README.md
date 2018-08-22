@@ -16,7 +16,9 @@ The purpose of the Untold Engine is to help you understand how game engines work
 
 To help you understand how game engines work, the [Untold Engine](http://www.untoldengine.com) provides, aside from its source code, documentation which explains its architecture and components through illustrations and projects.
 
-Feel free to learn, to experiment, to develop, and most importantly: **TAKE WHAT YOU SEE HERE, AND MAKE IT BETTER AND BETTER**.
+Feel free to learn, to experiment, to develop, and most importantly: 
+
+**TAKE WHAT YOU SEE HERE, AND MAKE IT BETTER AND BETTER**.
 
 
 ![image1](images/gamedemo1.png)
