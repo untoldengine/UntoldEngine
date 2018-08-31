@@ -16,6 +16,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup physicsengine
  @brief The U4DIntegrator virtual class is in charge of integrating the equation of motion
  */
 class U4DIntegrator{

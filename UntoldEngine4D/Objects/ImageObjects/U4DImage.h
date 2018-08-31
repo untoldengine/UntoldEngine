@@ -19,6 +19,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup gameobjects
  @brief The U4DImage class represents all images in a game
  */
 class U4DImage:public U4DVisibleEntity{

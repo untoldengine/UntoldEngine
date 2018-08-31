@@ -21,25 +21,58 @@
 
 namespace U4DEngine {
     
+    /**
+     * @ingroup renderingengine
+     * @brief The U4DRenderSprite class manages the rendering of the sprite entities
+     * 
+     */
     class U4DRenderSprite:public U4DRenderImage {
         
     private:
         
+        /**
+         * @brief the image object the class will manage
+         */
         U4DImage *u4dObject;
         
-        //uniforms
+        /**
+         * @brief Pointer to the sprite buffer
+         */
         id<MTLBuffer> uniformSpriteBuffer;
         
     public:
         
+        /**
+         * @brief Constructor for class
+         * @details It sets the image entity it will manage
+         * 
+         * @param uU4DImage image entity
+         */
         U4DRenderSprite(U4DImage *uU4DImage);
         
+        /**
+         * @brief Destructor for the class
+         */
         ~U4DRenderSprite();
         
+        /**
+         * @brief Loads additional information
+         * @details Loads the sprite properties into the uniform buffer
+         */
         void loadMTLAdditionalInformation();
         
+        /**
+         * @brief Renders the current entity
+         * @details Updates the space matrix and any rendering flags. It encodes the pipeline, buffers and issues the draw command
+         * 
+         * @param uRenderEncoder Metal encoder object for the current entity
+         */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        /**
+         * @brief Updates the current rendered sprite
+         * @details Updates the sprite during the animation by using an offset
+         */
         void updateSpriteBufferUniform();
         
     };

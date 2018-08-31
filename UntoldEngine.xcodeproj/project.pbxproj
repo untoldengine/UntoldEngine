@@ -835,6 +835,7 @@
 		0302055A1B6EB31B005A72E8 /* U4DCollisionAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DCollisionAlgorithm.h; path = UntoldEngine4D/PhysicsEngine/CollisionEngine/CollisionAlgorithm/U4DCollisionAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		0302055F1B6EB47B005A72E8 /* U4DGJKAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DGJKAlgorithm.mm; path = UntoldEngine4D/PhysicsEngine/CollisionEngine/CollisionAlgorithm/GJKAlgorithm/U4DGJKAlgorithm.mm; sourceTree = SOURCE_ROOT; };
 		030205601B6EB47B005A72E8 /* U4DGJKAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DGJKAlgorithm.h; path = UntoldEngine4D/PhysicsEngine/CollisionEngine/CollisionAlgorithm/GJKAlgorithm/U4DGJKAlgorithm.h; sourceTree = SOURCE_ROOT; };
+		03044900213083F700F5AAA0 /* modulesdoxygen.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = modulesdoxygen.h; sourceTree = "<group>"; };
 		030449A017B8548500A3A2AE /* U4DVector2n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector2n.mm; sourceTree = "<group>"; };
 		030449A117B8548500A3A2AE /* U4DVector2n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DVector2n.h; sourceTree = "<group>"; };
 		0304CE7421266431005A0C4C /* astronaut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = astronaut.png; sourceTree = "<group>"; };
@@ -1628,6 +1629,7 @@
 				03584D951951FB1700C974A2 /* TransformationManager */,
 				03759B93175B0383002EB5D9 /* Objects */,
 				03759B9E175B0383002EB5D9 /* View */,
+				03044900213083F700F5AAA0 /* modulesdoxygen.h */,
 			);
 			path = UntoldEngine4D;
 			sourceTree = "<group>";

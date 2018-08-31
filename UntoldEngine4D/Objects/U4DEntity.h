@@ -30,6 +30,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
 /**
+ @ingroup gameobjects
  @brief The U4DEntity class is a Super-Class for all the entities in a game, such as 3D models, buttons, fonts, etc.
  */
 class U4DEntity{
@@ -577,32 +578,36 @@ public:
     virtual bool isKineticsBehaviorEnabled(){};
     
     /**
-     @todo Change the state of the entity. This method in particular is used to change the state of the controller, i.e. button or joystick
+     @brief Change the state of the entity. This method in particular is used to change the state of the controller, i.e. button or joystick
      */
     virtual void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){};
     
     /**
-     @todo Change the state of the entity. This method in particular is used to change the state of the pad controller, i.e. pad button or pad joystick
+     @brief Change the state of the entity. This method in particular is used to change the state of the pad controller, i.e. pad button or pad joystick
      */
     virtual void changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
     
     /**
-     @todo Change the state of the entity. This method in particular is used to change the state of the keyboard key, i.e. mac Key
+     @brief Change the state of the entity. This method in particular is used to change the state of the keyboard key, i.e. mac Key
      */
     virtual void changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis){};
     
     /**
-     @todo Change the state of the entity. This method in particular is used to change the state of the mouse
+     @brief Change the state of the entity. This method in particular is used to change the state of the mouse
      */
     virtual void changeState(MOUSEACTION &uMouseAction, const U4DVector2n &uMouseAxis){};
     
     /**
-     @todo document this
+     * @brief Gets the game pad element
+     * @details A pad element can be a key or joystick
+     * @return game pad element
      */
     virtual GAMEPADELEMENT getPadElementType(){};
     
     /**
-     @todo document this
+     * @brief Gets a keyboard element      
+     * @details a keyboard element can be a key or arrow
+     * @return keyboard element
      */
     virtual KEYBOARDELEMENT getKeyboardElementType(){};
     

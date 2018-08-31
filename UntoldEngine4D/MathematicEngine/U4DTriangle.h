@@ -19,6 +19,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup mathengine
  @brief The U4DTriangle class implements a geometrical representation of a 3D triangle
  */
 class U4DTriangle{

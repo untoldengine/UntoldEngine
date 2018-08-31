@@ -20,6 +20,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DGameObject class represents all characters in a game
      */
     class U4DGameObject:public U4DDynamicModel{

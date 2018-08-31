@@ -17,6 +17,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DMultiImage class represents multi-images entities such as buttons with a pressed and a released image
      */
     class U4DMultiImage:public U4DImage{

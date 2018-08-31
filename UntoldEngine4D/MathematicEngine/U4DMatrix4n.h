@@ -21,6 +21,7 @@ class U4DQuaternion;
 namespace U4DEngine {
 
 /**
+ @ingroup mathengine
  @brief The U4DMatrix4n class is in charge of implementing a representation of a 4x4 matrix. The class implements matrix operations such as addition, subtraction, transformation, inverse, transponse, etc.
  */
 class U4DMatrix4n{

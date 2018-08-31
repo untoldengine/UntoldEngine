@@ -21,6 +21,7 @@ namespace U4DEngine {
     class U4DDynamicModel;
 
     /**
+     @ingroup physicsengine
      @brief The U4DBVHTree class represents a node in a BVH tree and is used for Broad-Phase collision.
      */
     class U4DBVHTree{

@@ -18,6 +18,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup mathengine
  @brief The U4DTetrahedron class implements a geometrical representation of a Tetrahedron
  */
 class U4DTetrahedron{

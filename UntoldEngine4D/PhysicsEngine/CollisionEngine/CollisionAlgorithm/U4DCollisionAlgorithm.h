@@ -18,6 +18,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The 4DCollisionAlgorithm is a virtual class in charge of implementing the algorithm used during a collision
      */
     class U4DCollisionAlgorithm:public U4DCollisionDetection{

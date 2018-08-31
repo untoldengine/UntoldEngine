@@ -20,6 +20,7 @@ class U4DQuaternion;
 namespace U4DEngine {
     
 /**
+ @ingroup mathengine
  @brief The U4DVector3n class is in charge of implementing 3D Linear Algebra Vector operations. These operations include: Addition, subtraction,
   scalar multiplication, dot product, cross product, among others.
  */

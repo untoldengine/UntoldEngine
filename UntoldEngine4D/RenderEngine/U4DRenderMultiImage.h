@@ -22,33 +22,87 @@
 
 namespace U4DEngine {
     
+    /**
+     * @ingroup renderingengine
+     * @brief The U4DRenderMultiImage class manages entities with multiple images such as buttons and joysticks
+     * 
+     */
     class U4DRenderMultiImage:public U4DRenderImage {
         
     private:
         
+        /**
+         * @brief the image object the class will manage
+         */
         U4DImage *u4dObject;
         
-        //uniforms
+        /**
+         * @brief Pointer to the buffer holding the secondary image texture
+         */
         id<MTLBuffer> uniformMultiImageBuffer;
         
     public:
         
+        /**
+         * @brief Constructor for class
+         * @details It sets the image entity it will manage
+         * 
+         * @param uU4DImage image entity
+         */
         U4DRenderMultiImage(U4DImage *uU4DImage);
         
+        /**
+         * @brief Destructor for class
+         * @details sets the multi-image buffer to null
+         */
         ~U4DRenderMultiImage();
         
+        /**
+         * @brief Loads image texture into GPU
+         * @details It decodes the current texture image, creates a texture object, a texture sampler, and loads the raw data into a buffer
+         */
         void loadMTLTexture();
         
+        /**
+         * @brief Renders the current entity
+         * @details Updates the space matrix and any rendering flags. It encodes the pipeline, buffers and issues the draw command
+         * 
+         * @param uRenderEncoder Metal encoder object for the current entity
+         */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        /**
+         * @brief Sets the diffuse texture data
+         * @details The diffuse texture is the main texture used for entities
+         * 
+         * @param uTexture Diffuse texture
+         */
         void setDiffuseTexture(const char* uTexture);
         
+        /**
+         * @brief Sets the ambient texture data      
+         * @details The ambient texture is the secondary texture used for entities
+         * 
+         * @param uTexture Ambient texture
+         */
         void setAmbientTexture(const char* uTexture);
         
+        /**
+         * @brief Create secondaray texture for multiple images
+         * @details The main image uses the diffuse texture. The secondary image uses the ambient texture
+         */
         void createSecondaryTextureObject();
         
+        /**
+         * @brief Loads the additional information
+         * @details loads the secondary texture into the buffer
+         */
         void loadMTLAdditionalInformation();
         
+        /**
+         * @brief Updates the image to render   
+         * @details Changes the image of the entity to render
+         */
         void updateMultiImage();
     };
     

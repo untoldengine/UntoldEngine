@@ -30,6 +30,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DBoundingVolume class represents bounding volume entities
      */
     class U4DBoundingVolume:public U4DVisibleEntity{

@@ -14,6 +14,7 @@
 namespace U4DEngine {
     
 /**
+ @ingroup mathengine
  @brief The U4DBoneIndices class implements the indexes of bone-armature used in a 3D character animation. This class is only used for organizational purposes. It does not implement any mathematical operations.
  */
 class U4DBoneIndices{

@@ -15,6 +15,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup mathengine
      @brief The U4DTrigonometry class provides trigonometrical computations such as degress to radius conversion
      */
     class U4DTrigonometry{

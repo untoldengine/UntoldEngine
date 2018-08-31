@@ -17,6 +17,7 @@
 namespace U4DEngine {
     
     /**
+     @ingroup physicsengine
      @brief The U4DGravityForceGenerator class is in charge of updating gravitational forces acting on a 3D entity
      */
     class U4DRestingForcesGenerator:public U4DBodyForceGenerator{

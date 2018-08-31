@@ -14,6 +14,7 @@
 namespace U4DEngine {
     
 /**
+ @ingroup mathengine
  @brief  The U4DVector2n class is in charge of implementing a 2D vector representation. The class contains several linear algebra operations such as addition, subtraction, scalar multiplication, dot product, etc.
  */
     

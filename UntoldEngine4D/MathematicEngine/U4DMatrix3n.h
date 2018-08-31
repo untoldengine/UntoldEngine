@@ -20,6 +20,7 @@ class U4DQuaternion;
 namespace U4DEngine {
 
 /**
+ @ingroup mathengine
  @brief The U4DMatrix3n is in charge of implementing linear algebra matrix operations such as addition, subtraction, transformations, etc.
  */
 class U4DMatrix3n{

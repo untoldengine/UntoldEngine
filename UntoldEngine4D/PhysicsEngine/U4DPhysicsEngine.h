@@ -23,6 +23,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DPhysicsEngine class is in charge of implemeting the physics engine operations
      */
     class U4DPhysicsEngine{

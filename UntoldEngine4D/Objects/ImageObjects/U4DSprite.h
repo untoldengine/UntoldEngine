@@ -24,6 +24,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DSprite class represents sprite entities
      */
     class U4DSprite:public U4DImage{

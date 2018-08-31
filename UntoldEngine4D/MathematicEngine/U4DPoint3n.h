@@ -21,6 +21,7 @@ class U4DVector3n;
 namespace U4DEngine {
 
 /**
+ @ingroup mathengine
  @brief The U4DPoint3n implements a 3D point representation in space.
  */
 class U4DPoint3n{

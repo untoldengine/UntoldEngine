@@ -17,6 +17,7 @@
 namespace U4DEngine {
     
 /**
+ @ingroup mathengine
  @brief The U4DSegment class implements a geometrical representation of a segment in 3D space
  */
 class U4DSegment{

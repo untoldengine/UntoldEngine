@@ -18,6 +18,7 @@
 namespace U4DEngine {
     
     /**
+     @ingroup mathengine
      @brief The U4DPlane class implements a mathematical representation of a 3D plane
      */
     class U4DPlane{

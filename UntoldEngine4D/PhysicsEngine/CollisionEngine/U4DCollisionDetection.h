@@ -17,6 +17,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DCollisionDetection is in charge of implementing the collision detection algorithm
      */
     class U4DCollisionDetection{

@@ -33,6 +33,7 @@ class U4DAnimation;
 namespace U4DEngine {
     
     /**
+     @ingroup loader
      @brief The U4DDigitalAssetLoader class is in charge of importing 3D model assets.
      */
     class U4DDigitalAssetLoader{

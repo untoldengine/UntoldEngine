@@ -15,6 +15,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DManifoldGeneration is in charge of computing collision maniforld information
      */
     class U4DManifoldGeneration:public U4DCollisionDetection{

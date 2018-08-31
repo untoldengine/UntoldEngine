@@ -16,6 +16,7 @@
 namespace U4DEngine {
     
     /**
+     @ingroup mathengine
      @brief The U4DNumerical provides numerical robustness in floating point comparison, rounding errors and random number generation
      */
     class U4DNumerical {

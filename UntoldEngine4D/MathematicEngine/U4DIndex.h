@@ -14,6 +14,7 @@
 namespace U4DEngine {
     
 /**
+ @ingroup mathengine
  @brief The U4DIndex class implements a 3D integer-only index class. It is mainly used for organizational purposes. It does not implement any computational operations.
  */
 

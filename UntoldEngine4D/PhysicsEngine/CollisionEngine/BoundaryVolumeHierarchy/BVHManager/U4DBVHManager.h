@@ -30,6 +30,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DBVHManager class represents the Boundary Volume Hierarchy manager
      */
     class U4DBVHManager{

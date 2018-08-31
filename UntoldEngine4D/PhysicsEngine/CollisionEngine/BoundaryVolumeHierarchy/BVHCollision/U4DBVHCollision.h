@@ -22,6 +22,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DBVHCollision virtual class is in charge of testing collisions in the Broad-Phase stage
      */
     class U4DBVHCollision{
