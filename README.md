@@ -2,30 +2,18 @@
 
 ## Introduction
 
-**The Untold Engine: Demystifying how a game engine works**
+**The Untold Engine: An easy to use, open source, 3D game engine for iOS/macOS game development**
 
 Hi, my name is [Harold Serrano](http://www.haroldserrano.com), and I developed the [Untold Engine](http://www.untoldengine.com), an open source 3D game engine written in C++ and Metal Graphics (API).
 
 It took me over five years to develop the *Untold Engine* from scratch. I spent thousands and thousands of hours developing the Untold Engine, and now I'm releasing it as an open source. 
-
-*Why?*
-
-Because I want to share with you everything I know about Game Engine Development. I have written hundreds of articles on Game Engine Development on my blog, and now I want to share with you the source code. 
-
-The purpose of the Untold Engine is to help you understand how game engines work. That is its sole purpose. 
-
-To help you understand how game engines work, the [Untold Engine](http://www.untoldengine.com) provides, aside from its source code, documentation which explains its architecture and components through illustrations and projects.
-
-Feel free to learn, to experiment, to develop, and most importantly: 
-
-**TAKE WHAT YOU SEE HERE, AND MAKE IT BETTER AND BETTER**.
 
 
 ![image1](images/gamedemo1.png)
 
 ## Running the Untold Engine
 
-Before running the engine, please visit [www.untoldengine.com](http://www.untoldengine.com) and click on **Docs**. The documentation provides instructions on how to setup the engine.
+Before running the engine, please visit [www.untoldengine.com](http://www.untoldengine.com) and click on **Documentation**. The documentation provides instructions on how to setup the engine.
 
 ## What you need?
 
