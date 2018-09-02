@@ -19,6 +19,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DBroadPhaseCollisionModelPair class contains collision entity pairs
      */
     class U4DBroadPhaseCollisionModelPair {

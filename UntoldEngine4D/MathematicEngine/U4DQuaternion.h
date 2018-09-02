@@ -25,6 +25,7 @@ class U4DMatrix3n;
 namespace U4DEngine {
 
 /**
+ @ingroup mathengine
  @brief The U4DQuaternion class is responsible for implementing Quaternion operations in the engine. These operations include: Quaternion addition,
   subtraction, multiplication, normalization, etc.
  */

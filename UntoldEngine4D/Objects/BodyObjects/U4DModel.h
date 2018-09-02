@@ -30,6 +30,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DModel class represents a 3D model entity
      */
     class U4DModel:public U4DVisibleEntity{

@@ -17,6 +17,7 @@
 namespace U4DEngine {
  
 /**
+ @ingroup mathengine
  @brief The U4DDualQuaternion class implements a Dual-Quaternion mathematical entity used for storing rotation and translations as real and pure quaternions, respectively.
  */
 class U4DDualQuaternion{

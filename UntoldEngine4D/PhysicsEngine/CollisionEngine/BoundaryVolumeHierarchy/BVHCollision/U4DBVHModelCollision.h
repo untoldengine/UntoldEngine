@@ -31,6 +31,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DBVHModelCollision class is in charge of testing 3D model collisions in the broad-phase stage
      */
     class U4DBVHModelCollision:public U4DBVHCollision{

@@ -20,6 +20,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup gameobjects
  @brief The U4DSkyBox class represents skybox (cubemap) entities
  */
 class U4DSkybox:public U4DVisibleEntity{

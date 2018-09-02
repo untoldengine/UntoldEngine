@@ -31,6 +31,10 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
+/**
+ @ingroup gameobjects
+ @brief The U4DWorld class represents the View Component of the Model-View-Controller pattern.
+ */
 class U4DWorld:public U4DVisibleEntity{
     
 private:

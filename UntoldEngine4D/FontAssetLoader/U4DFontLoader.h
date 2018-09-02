@@ -18,6 +18,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup loader
  @brief The U4DFontLoader class is in charge of loading font information
  */
 class U4DFontLoader{

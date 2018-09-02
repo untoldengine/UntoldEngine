@@ -23,6 +23,7 @@
 namespace U4DEngine {
  
 /**
+ @ingroup gameobjects
  @brief The U4DVisibleEntity class represents all visible entities in a game
  */
 class U4DVisibleEntity:public U4DEntity{

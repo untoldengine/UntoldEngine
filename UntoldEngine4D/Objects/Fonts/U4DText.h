@@ -23,6 +23,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DText class represents fonts entities
      */
     class U4DText:public U4DImage{

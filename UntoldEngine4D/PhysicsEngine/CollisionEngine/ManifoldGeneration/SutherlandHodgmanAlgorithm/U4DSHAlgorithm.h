@@ -20,6 +20,7 @@ namespace U4DEngine {
 namespace U4DEngine {
     
     /**
+     @ingroup physicsengine
      @brief The CONTACTFACES structure holds collision polygon faces information
      */
     typedef struct{

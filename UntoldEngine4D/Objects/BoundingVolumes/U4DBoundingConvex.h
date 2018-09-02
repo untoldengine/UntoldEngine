@@ -22,6 +22,7 @@ namespace U4DEngine {
 namespace U4DEngine {
     
     /**
+     @ingroup gameobjects
      @brief The U4DBoundingConvex represents the convex-hull bounding volumen entity
      */
     class U4DBoundingConvex:public U4DBoundingVolume{

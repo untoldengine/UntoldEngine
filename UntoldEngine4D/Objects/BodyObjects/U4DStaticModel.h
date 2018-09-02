@@ -130,6 +130,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DStaticModel class represents a 3D static model entity
      */
     class U4DStaticModel:public U4DModel{
@@ -521,72 +522,117 @@ namespace U4DEngine {
         bool getModelHasCollided();
         
         /**
-         @todo document this
+         * @brief Sets the filter category for collision
+         * @details The filter category refers to "I am of type...". 
+         * 
+         * @param uFilterCategory filter category
          */
         void setCollisionFilterCategory(int uFilterCategory);
 
         /**
-         @todo document this-Who can the model collide with
+         * @brief Set the filter mask for collision 
+         * @details The filter mask refers to "I collide with types..."
+         * 
+         * @param uFilterMask filter mask
          */
         void setCollisionFilterMask(int uFilterMask);
         
         /**
-         @todo document this
+         * @brief Sets the group filter for collisions
+         * @details If both group index values are the same and positive, then both entities will collide.
+         * if both group index values are the same and negative, they the entities do not collide.
+         * if either entity has a group index of zero, then the category/mask rule is used.
+         * if both entities group index are non-zero but different, the category/mask rule is used.
+         * 
+         * @param int group index
          */
         void setCollisionFilterGroupIndex(signed int uGroupIndex);
         
         /**
-         @todo document this
+         * @brief Get the collision filter category for the entity
+         * @details The filter category refers to "I am of type..."
+         * @return filter category
          */
         int getCollisionFilterCategory();
         
         /**
-         @todo document this
+         * @brief Get the collision filter mask for the entity  
+         * @details the filter mask refers to "I collide with types of..."
+         * @return filter mask
          */
         int getCollisionFilterMask();
         
         /**
-         @todo document this
+         * @brief Get the filter group index    
+         * @details If both group index values are the same and positive, then both entities will collide.
+         * if both group index values are the same and negative, they the entities do not collide.
+         * if either entity has a group index of zero, then the category/mask rule is used.
+         * if both entities group index are non-zero but different, the category/mask rule is used.
+         * 
+         * @return filter group
          */
         signed int getCollisionFilterGroupIndex();
         
         /**
-         @todo document this
+         * @brief Get the 3D dimensions
+         * @details Gets the widht, length and depth dimensions of the 3D entity
+         * @return vector with the dimensions
          */
         U4DVector3n getModelDimensions();
         
         /**
-         @todo set the entity as a collision sensor
+         * @brief Sets the entity as a collision sensor
+         * @details When an entity is set as a sensor, the engine will not compute a collision response for the entity. That is, it will not compute the 
+         * resultant velocity and position
+         * 
+         * @param uValue value 
          */
         void setIsCollisionSensor(bool uValue);
         
         /**
-         @todo get if entity is a collision sensor
+         * @brief Is the entity a collision sensor
+         * @details When an entity is set as a sensor, the engine will not compute a collision response for the entity. That is, it will not compute the 
+         * resultant velocity and position
+         * 
+         * @return true if the entity is a collision sensor
          */
         bool getIsCollisionSensor();
         
         /**
-         @todo document this
+         * @brief Add all the 3D models the entity is currently colliding
+         * @details The collision list keeps a list of all the 3D entities currently colliding with this entity
+         * 
+         * @param uModel 3d model currently colliding
          */
         void addToCollisionList(U4DStaticModel *uModel);
         
         /**
-         @todo document this
+         * @brief Gets a list of all entities currently colliding with the entity
+         * @details The collision list keeps a list of all the 3D entities currently colliding with this entity   
+         *   
+         * @return vector with a list of entities
          */
         std::vector<U4DStaticModel *> getCollisionList();
         
         /**
-         @todo document this
+         * @brief Sets a collision tag
+         * @details The collision tag can be used to determine exactly who is the entity colliding with
+         * 
+         * @param uCollidingTag tag name
          */
         void setCollidingTag(std::string uCollidingTag);
         
         /**
-         @todo document this
+         * @brief Gets the collision tag
+         * @details The collision tag can be used to determine exactly who is the entity colliding with 
+         *  
+         * @return tag name
          */
         std::string getCollidingTag();
         
         /**
-         @todo document this
+         * @brief Clears the collision list
+         * @details The collision list keeps a list of all the 3D entities currently colliding with this entity
          */
         void clearCollisionList();
         

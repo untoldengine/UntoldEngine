@@ -18,6 +18,7 @@
 namespace U4DEngine {
     
     /**
+     @ingroup gameobjects
      @brief The U4DBoundingAABB represents an AABB bounding volumen entity
      */
     class U4DBoundingAABB:public U4DBoundingVolume{

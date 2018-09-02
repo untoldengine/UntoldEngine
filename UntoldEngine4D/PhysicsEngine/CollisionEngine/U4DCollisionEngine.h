@@ -27,6 +27,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DCollisionEngine class is in charge of implemeting the collision engine operations
      */
     class U4DCollisionEngine{

@@ -25,6 +25,7 @@ class U4DTimer;
 namespace U4DEngine {
 
 /**
+ @ingroup animation
  @brief The U4DAnimation class implements 3D animations for 3D model entities
  */
 class U4DAnimation{
@@ -32,42 +33,48 @@ class U4DAnimation{
 private:
     
     /**
-     @brief 3D Animation scheduler
+     * @brief 3D Animation scheduler
      */
     U4DCallback<U4DAnimation> *scheduler;
     
     /**
-     @brief 3D Animation timer
+     * @ brief animation timer object
      */
     U4DTimer *timer;
     
     /**
-     @todo document this
+     @brief is the animation playing
      */
     bool animationPlaying;
     
     /**
-     @todo document this
+     @todo should the animation play continously
      */
     bool playContinuousLoop;
     
     /**
-     @todo document this
+     @todo duration of animation keyframe
      */
     float durationOfKeyframe;
     
+    /**
+     * @brief Can the animation be interrupted
+     * @details You can set if the engine can interrupt the animation before it ends
+     */
     bool isAllowedToBeInterrupted;
     
 public:
 
     /**
      @brief Constructor for the animation class
+     @details it initializes the scheduler and timer. It also gets access to the armature root bone
      @param uModel 3D model entity to attach the 3D animation to
      */
     U4DAnimation(U4DModel *uModel);
     
     /**
      @brief Destructor for the animation class
+     @details releases the scheduler and timer
      */
     ~U4DAnimation();
     
@@ -132,72 +139,75 @@ public:
     void stop();
     
     /**
-     @todo document this
+     @brief pause the 3D animation
      */
     void pause();
     
     /**
-     @brief Method which runs the 3D animation
+     @brief Runs the 3D animation
      */
     void runAnimation();
     
     /**
-     @todo document this
+     @brief is the current animation playing
      */
     bool isAnimationPlaying();
     
     /**
-     @todo document this
+     @brief set if animation is currently playing
      */
     void setAnimationIsPlaying(bool uValue);
     
     /**
-     @todo document this
+     @brief get if the animation is currently playing
      */
     bool getAnimationIsPlaying();
     
     /**
-     @todo document this
+     @brief get the current animation keyframe
      */
     int getCurrentKeyframe();
     
     /**
-     @todo document this
+     @brief get the current interpolation time
      */
     float getCurrentInterpolationTime();
     
     /**
-     @todo document this
+     @brief get the current animation frame-per-second
      */
     float getFPS();
     
     /**
-     @todo document this
+     @brief is the keyframe currently being updated.
+     @details this is determined by checking if the animation is currently playing and if the interpolation time is not zero
      */
     bool getIsUpdatingKeyframe();
     
     /**
-     @todo document this
+     @brief set if the animation should play in a continous loop
      */
     void setPlayContinuousLoop(bool uValue);
     
     /**
-     @todo document this
+     @brief get if the animation should play in a continuous loop
      */
     bool getPlayContinuousLoop();
     
     /**
-     @todo document this
+     @brief get the duration of the keyframe
      */
     float getDurationOfKeyframe();
     
     /**
-     @todo document this
+     @brief set if the engine is allowed to interrupt the animation while it is playing
+     @details if this is set to false, the engine will wait until the animation has finished before it starts playing another animation
      */
     void setIsAllowedToBeInterrupted(bool uValue);
     
     /**
-     @todo document this
+     @brief get if the engine is allowed to interrupt the animation while it is playing
+     @details if this is set to false, the engine will wait until the animation has finished before it starts playing another animation
      */
     bool getIsAllowedToBeInterrupted();
     

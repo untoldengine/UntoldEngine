@@ -21,6 +21,7 @@
 namespace U4DEngine {
     
     /**
+     @ingroup physicsengine
      @brief The U4DConvexHullAlgorithm class computes the convex-hull of a 3D model entity
      */
     class U4DConvexHullAlgorithm{

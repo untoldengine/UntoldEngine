@@ -21,6 +21,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup mathengine
  @brief The U4DOBB class implements a represenatation of an Oriented-Bounding Box.
  */
 class U4DOBB{

@@ -26,6 +26,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
 /**
+ @ingroup gameobjects
  @brief The U4DDynamicModel class represents a 3D dynamic model entity
  */
 

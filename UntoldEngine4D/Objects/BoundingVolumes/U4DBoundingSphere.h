@@ -17,6 +17,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup gameobjects
      @brief The U4DBoundingSphere class represents a spherical bounding volumen entity
      */
     class U4DBoundingSphere:public U4DBoundingVolume{

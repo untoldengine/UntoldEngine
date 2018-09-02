@@ -16,6 +16,7 @@
 namespace U4DEngine {
 
     /**
+     @ingroup mathengine
      @brief The U4DSphere class implements a mathematical representation of a sphere
      */
     class U4DSphere {

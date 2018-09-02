@@ -16,6 +16,7 @@
 namespace U4DEngine {
 
 /**
+ @ingroup physicsengine
  @brief The U4DRungaKuttaMethod class is in charge of integrating the equation of motion
  */
 class U4DRungaKuttaMethod:public U4DIntegrator{

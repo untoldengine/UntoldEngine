@@ -21,6 +21,7 @@ namespace U4DEngine {
 namespace U4DEngine {
     
     /**
+     @ingroup mathengine
      @brief The U4DAABB class implements a mathematical representation of an Axis-Aligned Bounding Box
      */
     class U4DAABB {
@@ -134,22 +135,32 @@ namespace U4DEngine {
         float squareDistanceToPoint(U4DPoint3n& uPoint);
         
         /**
-         @todo document this
+         * @brief Compute if the AABB is intersecting with a segment
+         * 
+         * @param uSegment segment
+         * @return true if intersection occurs
          */
         bool intersectionWithSegment(U4DSegment &uSegment);
         
         /**
-         @todo document this
+         * @brief Gets the center point of the AABB
+         * 
+         * @return center point
          */
         U4DPoint3n getCenter();
         
         /**
-         @todo document this
+         * @brief Computes if 3D point is within the AABB
+         * 
+         * @param uPoint 3D point
+         * @return true if point lies within the AABB
          */
         bool isPointInsideAABB(U4DPoint3n &uPoint);
         
         /**
-         @todo document this
+         * @brief Gets the halfwidth of the AABB 
+         * 
+         * @return halfwidth vector
          */
         U4DVector3n getHalfWidth();
         

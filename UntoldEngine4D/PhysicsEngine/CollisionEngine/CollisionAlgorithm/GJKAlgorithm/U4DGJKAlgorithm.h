@@ -20,6 +20,7 @@
 namespace U4DEngine {
     
     /**
+     @ingroup physicsengine
      @brief The U4DGJKAlgorithm class implements the Gilbert-Johnson-keerthi algorithm for collision detection.
      */
     class U4DGJKAlgorithm:public U4DCollisionAlgorithm{

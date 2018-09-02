@@ -23,6 +23,7 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
+     @ingroup physicsengine
      @brief The U4DCollisionResponse class is in charge of implementing the collision response in the engine
      */
     class U4DCollisionResponse{

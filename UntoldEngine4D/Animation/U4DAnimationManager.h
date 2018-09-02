@@ -20,124 +20,182 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
+    /**
+     @ingroup animation
+     @brief The U4DAnimationManager class manages 3D animations for 3D model entities
+     */
     class U4DAnimationManager {
         
     private:
+        
+        /**
+         * @brief pointer to the current playing animation
+         */
         U4DAnimation *currentAnimation;
+
+        /**
+         * @brief pointer to the previous animation
+         */
         U4DAnimation *previousAnimation;
+
+        /**
+         * @brief pointer to the next animation
+         */
         U4DAnimation *nextAnimation;
         
+        /**
+         * @brief pointer to the U4DBlendAnimation object
+         * @details the engine provides a way to blend two animation smoothly. That is, the engine will smoothly transition from a current animation to the next animation.
+         */
         U4DBlendAnimation* blendedAnimation;
         
+        /**
+         * @brief should blend the animations
+         * @details The engine will smoothly transition from a current animation to the next animation.
+         */
         bool playBlendedAnimation;
         
+        /**
+         * @brief Keyframe when the blending should start
+         * @details You can set which keyframe to start the animation transition
+         */
         int blendedStartKeyframe;
         
+        /**
+         * @brief Interpolation time when to blending should start  
+         * @details you can set the interpolation time to start the animation transition
+         */
         float blendedStartInterpolationTime;
         
     public:
         
+        /**
+         * @brief Class constructor
+         * @details initializes the current, next and previous animations to null. It also creates the U4DBlendAnimation object
+         */
         U4DAnimationManager();
         
+        /**
+         * @brief Class destructor
+         * @details releases the U4DBlendAnimation object
+         */
         ~U4DAnimationManager();
         
         /**
-         @todo documetn this
+         @brief sets which animation to play next
          */
         void setAnimationToPlay(U4DAnimation* uAnimation);
         
         /**
-         @todo document this
+         @brief pauses current animation
          */
         void pauseCurrentPlayingAnimation();
         
         /**
-         @todo document this
+         @brief plays the animation 
          */
         void playAnimation();
         
         /**
-         @todo document this
+         @brief plays the animation from a particular keyframe
          */
         void playAnimationFromKeyframe(int uKeyframe);
         
         /**
-         @todo document this
+         * @brief Gets a pointer to the current playing animation
+         * @return current playing animation
          */
         U4DAnimation* getCurrentPlayingAnimation();
         
         /**
-         @todo document this
+         @brief stops the current animation
          */
         void stopAnimation();
         
         /**
-         @todo document this
+         @brief removes the current playing animation
+         @details It also sets the current animation as previous animation
          */
         void removeCurrentPlayingAnimation();
         
         /**
-         @todo document this
+         @brief sets the current, previous and next animation as null
          */
         void removeAllAnimations();
         
         /**
-         @todo document this
+         @brief determines if the engine is updating the animation keyframe
+         @return true if the keyframe is being updated
          */
         bool getIsAnimationUpdatingKeyframe();
         
         /**
-         @todo document this
+         @brief get animation current keyframe
+         @return current keyframe being played
          */
         int getAnimationCurrentKeyframe();
         
         /**
-         @todo document this
+         @brief get the current animation interpolation time
+         @return current animation interpolation time
          */
         float getAnimationCurrentInterpolationTime();
         
         /**
-         @todo document this
+         @brief get the animation frames-per-second
+         @details the FPS is read from the blender script file. The blender script files contains the animation information
+         @return current animation frames per second
          */
         float getAnimationFPS();
         
         /**
-         @todo document this
+         * @brief set the next animation to play continuously
+         * 
+         * @param uValue true if the animation should play continuously
          */
         void setPlayNextAnimationContinuously(bool uValue);
         
         /**
-         @todo document this
+         @brief get the current animation keyframe duration
+         @return duration of keyframe
          */
         float getDurationOfCurrentAnimationKeyframe();
         
         /**
-         @todo document this
+         * @brief Set if the the animations should be blended
+         * @details The engine allows for two animation to be transitioned smoothly between each other
+         * 
+         * @param uValue true if the animation should be transitioned smoothly
          */
         void setPlayBlendedAnimation(bool uValue);
         
         /**
-         @todo document this
+         @brief get if the current animation must be blended
+         @return true if the animations should be blended
          */
         bool getPlayBlendedAnimation();
         
         /**
-         @todo document this
+         @brief get pointer to the previous animation
+         @return previous animation
          */
         U4DAnimation* getPreviousAnimation();
         
         /**
-         @todo document this
+         @brief get pointer to the next animation to play
+         @return next animation
          */
         U4DAnimation* getNextAnimation();
         
         /**
-         @todo document this
+         @brief get the keyframe when the engine should blend the animations
+         @return keyframe whent to blend the animations
          */
         int getBlendedStartKeyframe();
         
         /**
-         @todo document this
+         @brief get the interpolation time when the engine should blend the animations
+         @return interpolation time when to blend the animations
          */
         int getBlendedStartInterpolationTime();
         
