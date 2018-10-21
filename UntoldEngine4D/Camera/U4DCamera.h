@@ -99,6 +99,8 @@ namespace U4DEngine {
          
          */
         std::vector<U4DPlane> getFrustumPlanes();
+        
+        void thirdPersonCamera(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset);
     };
     
 }

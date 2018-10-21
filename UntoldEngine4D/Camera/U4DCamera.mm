@@ -76,10 +76,9 @@ namespace U4DEngine {
     
     void U4DCamera::viewInDirection(U4DVector3n& uDestinationPoint){
         
-        
         U4DVector3n upVector(0,1,0);
-        float oneEightyAngle=180.0;
         U4DVector3n entityPosition;
+        float oneEightyAngle=180.0;
         
         //if entity is camera, then get the local position
         entityPosition=getLocalPosition();
@@ -87,30 +86,71 @@ namespace U4DEngine {
         //calculate the forward vector
         U4DVector3n forwardVector=uDestinationPoint-entityPosition;
         
-        //calculate the angle
-        float angle=getEntityForwardVector().angle(forwardVector);
+        //create a forward vector that is in the same y-plane as the entity forward vector
+        U4DVector3n altPlaneForwardVector=forwardVector;
         
-        //calculate the rotation axis
-        U4DVector3n rotationAxis=getEntityForwardVector().cross(forwardVector);
+        altPlaneForwardVector.y=getEntityForwardVector().y;
         
-        //if angle is 180 it means that both vectors are pointing opposite to each other.
+        //normalize both vectors
+        forwardVector.normalize();
+        altPlaneForwardVector.normalize();
+        
+        //calculate the angle between the entity forward vector and the alternate forward vector
+        float angleBetweenEntityForwardAndAltForward=getEntityForwardVector().angle(altPlaneForwardVector);
+        
+        //calculate the rotation axis between forward vectors
+        U4DVector3n rotationAxisOfEntityAndAltForward=getEntityForwardVector().cross(altPlaneForwardVector);
+        
+        //if angle is 180 or -180 it means that both vectors are pointing opposite to each other.
         //this means that there is no rotation axis. so set the Up Vector as the rotation axis
         
-        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+        //Get the absolute value of the angle, so we can properly test it.
+        float nAngle=fabs(angleBetweenEntityForwardAndAltForward);
+        
+        if ((fabs(nAngle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(nAngle, zeroEpsilon)))) {
             
-            rotationAxis=upVector;
-            angle=180.0;
+            rotationAxisOfEntityAndAltForward=upVector;
+            angleBetweenEntityForwardAndAltForward=180.0;
             
         }
         
-        rotationAxis.normalize();
+        rotationAxisOfEntityAndAltForward.normalize();
         
-        U4DQuaternion rotationQuaternion(angle,rotationAxis);
+        U4DQuaternion rotationAboutEntityAndAltForward(angleBetweenEntityForwardAndAltForward, rotationAxisOfEntityAndAltForward);
         
-        rotateTo(rotationQuaternion);
+        rotateTo(rotationAboutEntityAndAltForward);
         
+        //calculate the angle between the forward vector and the alternate forward vector
+        float angleBetweenForwardVectorAndAltForward=forwardVector.angle(altPlaneForwardVector);
+        
+        //calculate the rotation axis between the forward vectors
+        U4DVector3n rotationAxisOfForwardVectorAndAltForward=altPlaneForwardVector.cross(forwardVector);
+        
+        rotationAxisOfForwardVectorAndAltForward.normalize();
+        
+        U4DQuaternion rotationAboutForwardVectorAndAltForward(angleBetweenForwardVectorAndAltForward,rotationAxisOfForwardVectorAndAltForward);
+        
+        rotateBy(rotationAboutForwardVectorAndAltForward);
         
     }
+    
+    void U4DCamera::thirdPersonCamera(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset){
+        
+        U4DVector3n modelPosition=uModel->getAbsolutePosition();
+        
+        //get model view direction
+        U4DVector3n modelViewDirection=uModel->getViewInDirection();
+        
+        //translate camera along the direction of the view direction of the model
+        U4DVector3n newCameraPosition=modelPosition-modelViewDirection*uZOffset;
+        
+        newCameraPosition.y=uYOffset;
+        
+        translateTo(newCameraPosition);
+        
+        viewInDirection(modelPosition);
+    }
+    
     
     std::vector<U4DPlane> U4DCamera::getFrustumPlanes(){
         

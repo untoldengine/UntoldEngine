@@ -266,6 +266,8 @@ namespace U4DEngine {
         rotateAbout=txDualQuaternion*uEntity->getLocalSpace()*negTxDualQuaternion;
         uEntity->setLocalSpace(rotateAbout);
         
+        //THIS HAS TO BE HAMILTON
+        uOrientation.convertToUnitNormQuaternion();
         
         //start of rotation
         updateSpaceMatrixOrientation(uOrientation);
