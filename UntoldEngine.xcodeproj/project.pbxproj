@@ -139,6 +139,18 @@
 		03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03494BBE1F4E0C0600ACE0EC /* spriteShader.metal */; };
 		03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BC51F4E838500ACE0EC /* U4DSpriteAnimation.mm */; };
 		03494C161F57BD4C00ACE0EC /* nonVisibleShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03494C151F57BD4C00ACE0EC /* nonVisibleShader.metal */; };
+		034F2A29217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A25217E1EFF00D35CCE /* U4DCameraInterface.mm */; };
+		034F2A2A217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A25217E1EFF00D35CCE /* U4DCameraInterface.mm */; };
+		034F2A2B217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A25217E1EFF00D35CCE /* U4DCameraInterface.mm */; };
+		034F2A2C217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A26217E1EFF00D35CCE /* U4DCameraFirstPerson.mm */; };
+		034F2A2D217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A26217E1EFF00D35CCE /* U4DCameraFirstPerson.mm */; };
+		034F2A2E217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A26217E1EFF00D35CCE /* U4DCameraFirstPerson.mm */; };
+		034F2A2F217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A27217E1EFF00D35CCE /* U4DCameraThirdPerson.mm */; };
+		034F2A30217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A27217E1EFF00D35CCE /* U4DCameraThirdPerson.mm */; };
+		034F2A31217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A27217E1EFF00D35CCE /* U4DCameraThirdPerson.mm */; };
+		034F2A32217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */; };
+		034F2A33217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */; };
+		034F2A34217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */; };
 		03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */; };
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
 		0361DFA11FAC2141004770FD /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
@@ -937,6 +949,14 @@
 		03494BC41F4E838500ACE0EC /* U4DSpriteAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSpriteAnimation.h; sourceTree = "<group>"; };
 		03494BC51F4E838500ACE0EC /* U4DSpriteAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSpriteAnimation.mm; sourceTree = "<group>"; };
 		03494C151F57BD4C00ACE0EC /* nonVisibleShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = nonVisibleShader.metal; path = MetalShaders/nonVisibleShader.metal; sourceTree = "<group>"; };
+		034F2A21217E1EFE00D35CCE /* U4DCameraInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCameraInterface.h; sourceTree = "<group>"; };
+		034F2A22217E1EFF00D35CCE /* U4DCameraFirstPerson.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCameraFirstPerson.h; sourceTree = "<group>"; };
+		034F2A23217E1EFF00D35CCE /* U4DCameraThirdPerson.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCameraThirdPerson.h; sourceTree = "<group>"; };
+		034F2A24217E1EFF00D35CCE /* U4DCameraBasicFollow.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCameraBasicFollow.h; sourceTree = "<group>"; };
+		034F2A25217E1EFF00D35CCE /* U4DCameraInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCameraInterface.mm; sourceTree = "<group>"; };
+		034F2A26217E1EFF00D35CCE /* U4DCameraFirstPerson.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCameraFirstPerson.mm; sourceTree = "<group>"; };
+		034F2A27217E1EFF00D35CCE /* U4DCameraThirdPerson.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCameraThirdPerson.mm; sourceTree = "<group>"; };
+		034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCameraBasicFollow.mm; sourceTree = "<group>"; };
 		03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformationManagerInterface.mm; sourceTree = "<group>"; };
 		03584D971951FB8900C974A2 /* U4DTransformationManagerInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformationManagerInterface.h; sourceTree = "<group>"; };
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
@@ -1639,6 +1659,14 @@
 			children = (
 				03759B67175B0382002EB5D9 /* U4DCamera.h */,
 				03759B68175B0382002EB5D9 /* U4DCamera.mm */,
+				034F2A24217E1EFF00D35CCE /* U4DCameraBasicFollow.h */,
+				034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */,
+				034F2A22217E1EFF00D35CCE /* U4DCameraFirstPerson.h */,
+				034F2A26217E1EFF00D35CCE /* U4DCameraFirstPerson.mm */,
+				034F2A21217E1EFE00D35CCE /* U4DCameraInterface.h */,
+				034F2A25217E1EFF00D35CCE /* U4DCameraInterface.mm */,
+				034F2A23217E1EFF00D35CCE /* U4DCameraThirdPerson.h */,
+				034F2A27217E1EFF00D35CCE /* U4DCameraThirdPerson.mm */,
 			);
 			path = Camera;
 			sourceTree = "<group>";
@@ -2543,6 +2571,7 @@
 				03722BCF2029F0F50080D069 /* U4DParticleData.mm in Sources */,
 				03722BD42029F0F50080D069 /* U4DBoneData.mm in Sources */,
 				03722B7D2029F0F50080D069 /* tinyxml2.mm in Sources */,
+				034F2A2D217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */,
 				03722BF12029F0F50080D069 /* U4DTouchesController.mm in Sources */,
 				0323DBA2202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				0341AC0F204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
@@ -2567,6 +2596,7 @@
 				03722BBE2029F0F50080D069 /* U4DButtonIdleState.mm in Sources */,
 				03722B1E2029F0220080D069 /* main.m in Sources */,
 				03722BBB2029F0F50080D069 /* U4DJoystickReleasedState.mm in Sources */,
+				034F2A30217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				03722B662029F0F50080D069 /* U4DIntegrator.mm in Sources */,
 				03722BA82029F0F50080D069 /* U4DGameModel.mm in Sources */,
 				03722DF2202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */,
@@ -2659,6 +2689,7 @@
 				03722BB52029F0F50080D069 /* U4DEntity.mm in Sources */,
 				03722B752029F0F50080D069 /* U4DButtonPressedState.mm in Sources */,
 				03722BCD2029F0F50080D069 /* U4DAABB.mm in Sources */,
+				034F2A33217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */,
 				0323DB9C202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03722B622029F0F50080D069 /* U4DBoundingOBB.mm in Sources */,
 				03722BC12029F0F50080D069 /* U4DTransformationManagerInterface.mm in Sources */,
@@ -2675,6 +2706,7 @@
 				03722B642029F0F50080D069 /* U4DPlane.mm in Sources */,
 				0323DBAE202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B122029F0220080D069 /* AppDelegate.mm in Sources */,
+				034F2A2A217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
 				03722BF02029F0F50080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03722B9F2029F0F50080D069 /* U4DGravityForceGenerator.mm in Sources */,
 				03722E04202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
@@ -2917,6 +2949,7 @@
 				03722D092029F0F80080D069 /* U4DParticleData.mm in Sources */,
 				03722D0E2029F0F80080D069 /* U4DBoneData.mm in Sources */,
 				03722CB72029F0F80080D069 /* tinyxml2.mm in Sources */,
+				034F2A2E217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */,
 				03722D2B2029F0F80080D069 /* U4DTouchesController.mm in Sources */,
 				0323DBA4202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				0341AC11204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
@@ -2941,6 +2974,7 @@
 				03722CF82029F0F80080D069 /* U4DButtonIdleState.mm in Sources */,
 				03722B422029F0220080D069 /* main.m in Sources */,
 				03722CF52029F0F80080D069 /* U4DJoystickReleasedState.mm in Sources */,
+				034F2A31217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				03722CA02029F0F80080D069 /* U4DIntegrator.mm in Sources */,
 				03722CE22029F0F80080D069 /* U4DGameModel.mm in Sources */,
 				03722DF4202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */,
@@ -3033,6 +3067,7 @@
 				03722CEF2029F0F80080D069 /* U4DEntity.mm in Sources */,
 				03722CAF2029F0F80080D069 /* U4DButtonPressedState.mm in Sources */,
 				03722D072029F0F80080D069 /* U4DAABB.mm in Sources */,
+				034F2A34217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */,
 				0323DB9E202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03722C9C2029F0F80080D069 /* U4DBoundingOBB.mm in Sources */,
 				03722CFB2029F0F80080D069 /* U4DTransformationManagerInterface.mm in Sources */,
@@ -3049,6 +3084,7 @@
 				03722C9E2029F0F80080D069 /* U4DPlane.mm in Sources */,
 				0323DBB0202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B392029F0220080D069 /* AppDelegate.mm in Sources */,
+				034F2A2B217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
 				03722D2A2029F0F80080D069 /* U4DConvexHullAlgorithm.mm in Sources */,
 				03722CD92029F0F80080D069 /* U4DGravityForceGenerator.mm in Sources */,
 				03722E06202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
@@ -3147,6 +3183,7 @@
 				03F2DAF41F191A2600F77B78 /* multiImageShader.metal in Sources */,
 				03C03C521F4540750001EFA1 /* U4DJoystickStateManager.mm in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
+				034F2A2C217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				0341AC0E204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
@@ -3167,6 +3204,7 @@
 				0323DBB9202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722DE3202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03494BBA1F4D55EF00ACE0EC /* U4DSprite.mm in Sources */,
+				034F2A32217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03722E09202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,
@@ -3202,9 +3240,11 @@
 				03CAE652205192F500391B57 /* U4DMacMouseActiveState.mm in Sources */,
 				0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
+				034F2A29217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
 				03F2DB111F191F9B00F77B78 /* U4DRenderManager.mm in Sources */,
 				03E6EE081943DA1D007AD131 /* GameController.mm in Sources */,
 				0341AC02204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */,
+				034F2A2F217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				030205551B6E9CE9005A72E8 /* U4DTriangle.mm in Sources */,
 				0325D20E1C836D9200F1B9BE /* U4DAABB.mm in Sources */,
 				03B5E7E6193A3F4100800EC8 /* U4DDigitalAssetLoader.mm in Sources */,
