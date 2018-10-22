@@ -17,6 +17,7 @@
  @defgroup animation Animation
  @defgroup controller Controller
  @defgroup loader Loaders
+ @defgroup camera Camera
  */
 
 #endif /* modulesdoxygen_h */

@@ -59,22 +59,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DCamera::followModel(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset){
-        
-        U4DVector3n modelPosition=uModel->getAbsolutePosition();
-        
-        //rotate to the model location
-        viewInDirection(modelPosition);
-        
-        //translate the camera to the offset
-        U4DVector3n offsetPosition(uXOffset, uYOffset, uZOffset);
-        
-        U4DVector3n cameraPosition=modelPosition+offsetPosition;
-        
-        translateTo(cameraPosition);
-    
-    }
-    
     U4DVector3n U4DCamera::getViewInDirection(){
         
         //get forward vector
@@ -149,24 +133,6 @@ namespace U4DEngine {
         rotateBy(rotationAboutForwardVectorAndAltForward);
         
     }
-    
-    void U4DCamera::thirdPersonCamera(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset){
-        
-        U4DVector3n modelPosition=uModel->getAbsolutePosition();
-        
-        //get model view direction
-        U4DVector3n modelViewDirection=uModel->getViewInDirection();
-        
-        //translate camera along the direction of the view direction of the model
-        U4DVector3n newCameraPosition=modelPosition-modelViewDirection*uZOffset;
-        
-        newCameraPosition.y=uYOffset;
-        
-        translateTo(newCameraPosition);
-        
-        viewInDirection(modelPosition);
-    }
-    
     
     std::vector<U4DPlane> U4DCamera::getFrustumPlanes(){
         

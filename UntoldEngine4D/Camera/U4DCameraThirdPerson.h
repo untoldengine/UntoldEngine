@@ -20,6 +20,10 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
+    /**
+     @ingroup camera
+     @brief The U4DCameraThirdPerson class provides the camera behavior for a Third Person camera
+     */
     class U4DCameraThirdPerson:public U4DCameraInterface{
         
     private:
@@ -29,18 +33,36 @@ namespace U4DEngine {
          */
         static U4DCameraThirdPerson* instance;
         
+        /**
+         @brief pointer to the 3D model the camera will be looking at
+         */
         U4DModel *model;
         
+        /**
+         @brief x-distance offset
+         */
         float xOffset;
         
+        /**
+         @brief y-distance offset
+         */
         float yOffset;
         
+        /**
+         @brief z-distance offset. This offset represents the distance the camera is behind the 3D model
+         */
         float zOffset;
         
     protected:
         
+        /**
+         @brief Camera third person constructor
+         */
         U4DCameraThirdPerson();
         
+        /**
+         @brief Camera third person destructor
+         */
         ~U4DCameraThirdPerson();
         
     public:
@@ -52,8 +74,21 @@ namespace U4DEngine {
          */
         static U4DCameraThirdPerson* sharedInstance();
         
+        /**
+         @brief Updates the state of the camera behavior
+         
+         @param dt time-step value
+         */
         void update(double dt);
         
+        /**
+         @brief Sets the parameters utilize by the behavior of the camera.
+         
+         @param uModel   3D model entity to follow
+         @param uXOffset x-distance offset
+         @param uYOffset y-distance offset
+         @param uZOffset z-distance offset. This offset represents the distance the camera is behind the 3D model
+         */
         void setParameters(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset);
         
     };
