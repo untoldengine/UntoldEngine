@@ -139,7 +139,10 @@ namespace U4DEngine {
     //update
     void U4DEntityManager::update(float dt){
         
-
+        //update the camera
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        camera->update(dt);
+        
         //set the root entity
         U4DEntity* child=rootEntity;
         

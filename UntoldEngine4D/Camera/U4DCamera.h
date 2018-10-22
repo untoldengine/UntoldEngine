@@ -15,6 +15,7 @@
 #include "U4DVector3n.h"
 #include "U4DMatrix4n.h"
 #include "U4DDualQuaternion.h"
+#include "U4DCameraInterface.h"
 
 namespace U4DEngine {
     
@@ -48,6 +49,8 @@ namespace U4DEngine {
          @brief Instace for the U4DCamera singleton
          */
         static U4DCamera* instance;
+        
+        U4DCameraInterface *cameraBehavior;
         
     protected:
         
@@ -99,6 +102,15 @@ namespace U4DEngine {
          
          */
         std::vector<U4DPlane> getFrustumPlanes();
+        
+        /**
+         @brief Method which updates the state of each entity
+         
+         @param dt time-step value
+         */
+        void update(double dt);
+        
+        void setCameraBehavior(U4DCameraInterface *uCameraBehavior);
         
         void thirdPersonCamera(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset);
     };

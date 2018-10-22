@@ -22,7 +22,7 @@ namespace U4DEngine {
     
     U4DCamera* U4DCamera::instance=0;
 
-    U4DCamera::U4DCamera(){
+    U4DCamera::U4DCamera():cameraBehavior(nullptr){
         
         entityForwardVector=U4DVector3n(0,0,1);
         
@@ -41,6 +41,22 @@ namespace U4DEngine {
         }
         
         return instance;
+    }
+    
+    void U4DCamera::setCameraBehavior(U4DCameraInterface *uCameraBehavior){
+
+        cameraBehavior=uCameraBehavior;
+
+    }
+    
+    void U4DCamera::update(double dt){
+        
+        if (cameraBehavior!=nullptr) {
+            
+            cameraBehavior->update(dt);
+            
+        }
+        
     }
     
     void U4DCamera::followModel(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset){
