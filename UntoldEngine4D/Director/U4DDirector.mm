@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),numberOfVisibleModels(0){
+    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false){
     }
     
     U4DDirector::~U4DDirector(){
@@ -139,16 +139,15 @@ namespace U4DEngine {
         return polycount;
     }
     
-    void U4DDirector::setNumberOfVisibleModels(int uNumberOfVisibleModels){
+    void U4DDirector::setModelsWithinFrustum(bool uValue){
         
-        numberOfVisibleModels=uNumberOfVisibleModels;
+        modelsWithinFrustum=uValue;
         
     }
     
-    int U4DDirector::getNumberOfVisibleModels(){
+    bool U4DDirector::getModelsWithinFrustum(){
         
-        return numberOfVisibleModels;
-        
+        return modelsWithinFrustum;
     }
     
     void U4DDirector::setShadowBiasDepth(float uValue){

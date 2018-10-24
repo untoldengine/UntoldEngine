@@ -4,7 +4,7 @@
 
 **The Untold Engine: An easy to use, open source, 3D game engine for iOS/macOS game development**
 
-Hi, my name is [Harold Serrano](http://www.haroldserrano.com), and I developed the **Untold Engine**, an open source 3D game engine written in C++ and Metal Graphics (API).
+Hi, my name is [Harold Serrano](http://www.haroldserrano.com), and I developed the [Untold Engine](http://www.untoldengine.com), an open source 3D game engine written in C++ and Metal Graphics (API).
 
 It took me over five years to develop the *Untold Engine* from scratch. I spent thousands and thousands of hours developing the Untold Engine, and now I'm releasing it as an open source. 
 
@@ -13,7 +13,7 @@ It took me over five years to develop the *Untold Engine* from scratch. I spent 
 
 ## Running the Untold Engine
 
-Before running the engine, please visit [Downloading and Setting up the Untold Engine](https://www.haroldserrano.com/blog/how-to-download-and-setup-the-untold-engine). The article provides instructions on how to setup the engine.
+Before running the engine, please visit the [Docs](https://untoldengine.github.io/api/docs/html/index.html).
 
 ## What you need?
 

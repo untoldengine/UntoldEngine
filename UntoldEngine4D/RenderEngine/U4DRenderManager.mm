@@ -386,6 +386,14 @@ namespace U4DEngine {
 
     void U4DRenderManager::setIsWithinFrustum(bool uValue){
         
+        if(uValue==true){
+            
+            U4DDirector *director=U4DDirector::sharedInstance();
+            
+            director->setModelsWithinFrustum(true);
+            
+        }
+        
         isWithinFrustum=uValue;
         
     }

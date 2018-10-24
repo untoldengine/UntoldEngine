@@ -15,6 +15,7 @@
 #include "U4DVector3n.h"
 #include "U4DMatrix4n.h"
 #include "U4DDualQuaternion.h"
+#include "U4DCameraInterface.h"
 
 namespace U4DEngine {
     
@@ -28,6 +29,7 @@ namespace U4DEngine {
 namespace U4DEngine {
     
     /**
+     @ingroup camera
      @brief The U4DCamera class is in charge of implementing a camera entity for the engine
      */
     class U4DCamera:public U4DEntity{
@@ -48,6 +50,11 @@ namespace U4DEngine {
          @brief Instace for the U4DCamera singleton
          */
         static U4DCamera* instance;
+        
+        /**
+         @brief The camera behavior such as first person camera, third person camera, etc
+         */
+        U4DCameraInterface *cameraBehavior;
         
     protected:
         
@@ -71,16 +78,6 @@ namespace U4DEngine {
         static U4DCamera* sharedInstance();
         
         /**
-         @brief Method which assigns the camera entity to follow a 3D model entity
-         
-         @param uModel   3D model entity to follow
-         @param uXOffset x-distance offset
-         @param uYOffset y-distance offset
-         @param uZOffset z-distance offset
-         */
-        void followModel(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset);
-        
-        /**
          @brief Method which returns the current view-direction of the camera
          
          @return Returns a vector representing the view-direction of the camera
@@ -95,10 +92,25 @@ namespace U4DEngine {
         void viewInDirection(U4DVector3n& uDestinationPoint);
         
         /**
-         @todo document this. it gets the frustum planes
+         @brief Gets the frustum planes of the camera. It returns six plance
          
          */
         std::vector<U4DPlane> getFrustumPlanes();
+        
+        /**
+         @brief Updates the state of the camera
+         
+         @param dt time-step value
+         */
+        void update(double dt);
+        
+        /**
+         @brief Set the behavior of the camera, such as third person, first person, etc
+
+         @param uCameraBehavior Camera interface pointer to the behavior type.
+         */
+        void setCameraBehavior(U4DCameraInterface *uCameraBehavior);
+        
     };
     
 }

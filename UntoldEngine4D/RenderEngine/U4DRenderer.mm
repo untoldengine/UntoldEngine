@@ -147,9 +147,9 @@
     id <MTLCommandBuffer> commandBuffer = [mtlCommandQueue commandBuffer];
     commandBuffer.label = @"MyCommand";
     
-    //if we have models visible, then render shadows
-    if(director->getNumberOfVisibleModels()>0){
-        [self renderShadows:commandBuffer];
+    //Check if models are within the frustum, then render shadows
+    if(director->getModelsWithinFrustum()==true){
+       [self renderShadows:commandBuffer];
     }
     
     // Obtain a renderPassDescriptor generated from the view's drawable textures
