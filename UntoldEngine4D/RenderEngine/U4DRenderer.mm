@@ -147,8 +147,8 @@
     id <MTLCommandBuffer> commandBuffer = [mtlCommandQueue commandBuffer];
     commandBuffer.label = @"MyCommand";
     
-    //if we have models visible, then render shadows
-    if(director->getNumberOfVisibleModels()>0){
+    //if we have more than 2 models visible, then render shadows
+    if(director->getNumberOfVisibleModels()>1){
         [self renderShadows:commandBuffer];
     }
     
