@@ -18,6 +18,8 @@ namespace U4DEngine {
     
     U4DLights::U4DLights(){
         
+        entityForwardVector=U4DVector3n(0,0,-1);
+        
         renderManager=new U4DRenderLights(this);
         
         U4DPoint3n uMax(0.1,0.1,0.1);
@@ -121,35 +123,92 @@ namespace U4DEngine {
     void U4DLights::viewInDirection(U4DVector3n& uDestinationPoint){
         
         U4DVector3n upVector(0,1,0);
-        float oneEightyAngle=180.0;
         U4DVector3n entityPosition;
+        float oneEightyAngle=180.0;
         
+        //Get the absolute position
         entityPosition=getAbsolutePosition();
         
         //calculate the forward vector
         U4DVector3n forwardVector=entityPosition-uDestinationPoint;
         
-        //calculate the angle
-        float angle=getEntityForwardVector().angle(forwardVector);
+        //create a forward vector that is in the same y-plane as the entity forward vector
+        U4DVector3n altPlaneForwardVector=forwardVector;
         
-        //calculate the rotation axis
-        U4DVector3n rotationAxis=forwardVector.cross(getEntityForwardVector());
+        //normalize both vectors
+        forwardVector.normalize();
+        altPlaneForwardVector.normalize();
         
-        //if angle is 180 it means that both vectors are pointing opposite to each other.
+        //calculate the angle between the entity forward vector and the alternate forward vector
+        float angleBetweenEntityForwardAndAltForward=getEntityForwardVector().angle(altPlaneForwardVector);
+        
+        //calculate the rotation axis between forward vectors
+        U4DVector3n rotationAxisOfEntityAndAltForward=altPlaneForwardVector.cross(getEntityForwardVector());
+        
+        //if angle is 180 or -180 it means that both vectors are pointing opposite to each other.
         //this means that there is no rotation axis. so set the Up Vector as the rotation axis
         
-        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+        //Get the absolute value of the angle, so we can properly test it.
+        float nAngle=fabs(angleBetweenEntityForwardAndAltForward);
+        
+        if ((fabs(nAngle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(nAngle, zeroEpsilon)))) {
             
-            rotationAxis=upVector;
-            angle=180.0;
+            rotationAxisOfEntityAndAltForward=upVector;
+            angleBetweenEntityForwardAndAltForward=180.0;
             
         }
         
-        rotationAxis.normalize();
+        rotationAxisOfEntityAndAltForward.normalize();
         
-        U4DQuaternion rotationQuaternion(angle,rotationAxis);
+        U4DQuaternion rotationAboutEntityAndAltForward(angleBetweenEntityForwardAndAltForward, rotationAxisOfEntityAndAltForward);
         
-        rotateTo(rotationQuaternion);
+        rotateTo(rotationAboutEntityAndAltForward);
+        
+        //calculate the angle between the forward vector and the alternate forward vector
+        float angleBetweenForwardVectorAndAltForward=forwardVector.angle(altPlaneForwardVector);
+        
+        //calculate the rotation axis between the forward vectors
+        U4DVector3n rotationAxisOfForwardVectorAndAltForward=forwardVector.cross(altPlaneForwardVector);
+        
+        rotationAxisOfForwardVectorAndAltForward.normalize();
+        
+        U4DQuaternion rotationAboutForwardVectorAndAltForward(angleBetweenForwardVectorAndAltForward,rotationAxisOfForwardVectorAndAltForward);
+        
+        rotateBy(rotationAboutForwardVectorAndAltForward);
+        
+        
+        //Code used for original view direction of light. Leaving it here just in case.
+        
+//        U4DVector3n upVector(0,1,0);
+//        float oneEightyAngle=180.0;
+//        U4DVector3n entityPosition;
+//
+//        entityPosition=getAbsolutePosition();
+//
+//        //calculate the forward vector
+//        U4DVector3n forwardVector=entityPosition-uDestinationPoint;
+//
+//        //calculate the angle
+//        float angle=getEntityForwardVector().angle(forwardVector);
+//
+//        //calculate the rotation axis
+//        U4DVector3n rotationAxis=forwardVector.cross(getEntityForwardVector());
+//
+//        //if angle is 180 it means that both vectors are pointing opposite to each other.
+//        //this means that there is no rotation axis. so set the Up Vector as the rotation axis
+//
+//        if ((fabs(angle - oneEightyAngle) <= U4DEngine::zeroEpsilon * std::max(1.0f, std::max(angle, zeroEpsilon)))) {
+//
+//            rotationAxis=upVector;
+//            angle=180.0;
+//
+//        }
+//
+//        rotationAxis.normalize();
+//
+//        U4DQuaternion rotationQuaternion(angle,rotationAxis);
+//
+//        rotateTo(rotationQuaternion);
         
     }
     
