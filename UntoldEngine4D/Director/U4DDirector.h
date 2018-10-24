@@ -103,7 +103,7 @@ private:
     /**
      @todo document this
      */
-    int numberOfVisibleModels;
+    bool modelsWithinFrustum;
     
 protected:
     
@@ -338,12 +338,12 @@ public:
     /**
      @brief document this
      */
-    void setNumberOfVisibleModels(int uNumberOfVisibleModels);
+    void setModelsWithinFrustum(bool uValue);
     
     /**
      @brief document this
      */
-    int getNumberOfVisibleModels();
+    bool getModelsWithinFrustum();
     
 };
 

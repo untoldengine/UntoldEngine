@@ -233,6 +233,8 @@ namespace U4DEngine {
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
+        director->setModelsWithinFrustum(false);
+        
         if (visibilityManager->getPauseBVHBuild()) {
             
             //4. clear container
@@ -255,9 +257,6 @@ namespace U4DEngine {
                 
                 child=child->next;
             }
-            
-            //set number of visible models
-            director->setNumberOfVisibleModels(visibilityManager->getModelsContainer().size());
             
             //2. build the bvh tree
             visibilityManager->buildBVH();
