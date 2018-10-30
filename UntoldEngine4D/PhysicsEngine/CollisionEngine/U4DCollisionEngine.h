@@ -127,13 +127,19 @@ namespace U4DEngine {
          */
         void update(float dt);
         
+        
         /**
-         @todo check if this is needed
+         @brief Add a 3D model to the collision engine
+
+         @param uModel Pointer to the 3D model to add
          */
         void add(U4DDynamicModel *uModel);
         
+        
         /**
-         @todo check if this is needed
+         @brief Remove the 3D model from the collision engine
+
+         @param uModel pointer to the 3D model to remove
          */
         void remove(U4DDynamicModel *uModel);
         

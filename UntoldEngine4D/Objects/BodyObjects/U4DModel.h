@@ -136,36 +136,95 @@ namespace U4DEngine {
          */
         virtual void update(double dt){};
         
-        
+        /**
+         * @brief Renders the current entity
+         * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
+         *
+         * @param uRenderEncoder Metal encoder object for the current entity
+         */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        /**
+         * @brief Renders the shadow for a 3D entity
+         * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
+         *
+         * @param uRenderShadowEncoder Metal encoder object for the current entity
+         * @param uShadowTexture Texture shadow for the current entity
+         */
         void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
         
+        
+        /**
+         @brief sets the Normal Map texture used for the 3d model
+
+         @param uTexture name of the normal map
+         */
         void setNormalMapTexture(std::string uTexture);
         
+        
+        /**
+         @brief enable Normal Map rendering
+
+         @param uValue true to enable Normal map rendering.
+         */
         void setEnableNormalMap(bool uValue);
         
+        
+        /**
+         @brief gets if Normal Map rendering is enabled
+
+         @return true if Normal map rendering has been enable. False otherwise.
+         */
         bool getEnableNormalMap();
         
+        
+        /**
+         @brief Enables shadow rendering on the 3d model
+
+         @param uValue true to enable shadow rendering
+         */
         void setEnableShadow(bool uValue);
         
+        
+        /**
+         @brief gets if shadow rendering has been enabled on the 3d model
+
+         @return true if shadow rendering is enabled
+         */
         bool getEnableShadow();
         
+        
+        /**
+         @brief Informs the engine that the 3d model contains Normal Map texture
+
+         @param uValue true states that the 3d model contains a normal map
+         */
         void setHasNormalMap(bool uValue);
         
+        
+        /**
+         @brief returns true if the 3D model has Normal Map texture
+
+         @return True if 3D model has Normal Map texture
+         */
         bool getHasNormalMap();
         
+        
+        /**
+         @brief computes the Normal map tangent vectors
+         @details the tangent vectors are used to properly shade the normal map texture
+         */
         void computeNormalMapTangent();
         
         /**
-         @brief Method to inform the engine that the 3D model contains material color information
+         @brief Informs the engine that the 3D model contains material color information
          
          @param uValue Boolean value (True states that the 3D model contains material color information)
          */
         void setHasMaterial(bool uValue);
         
         /**
-         @brief Method to inform the engine that the 3D model contains texture information
+         @brief Informs the engine that the 3D model contains texture information
          
          @param uValue Boolean value (True states that the 3D model contains texture information)
          */
@@ -213,8 +272,6 @@ namespace U4DEngine {
          */
         bool getHasArmature();
         
-       
-        
         /**
          @brief Method which returns a 3D vector representing the current view-direction of the 3D model
          
@@ -230,7 +287,9 @@ namespace U4DEngine {
         void viewInDirection(U4DVector3n& uDestinationPoint);
         
         /**
-         @todo document this
+         @brief Gets the pose animation space of the bone
+         
+         @return The pose space animation of the bone
          */
         U4DDualQuaternion getBoneAnimationSpace(std::string uName);
         

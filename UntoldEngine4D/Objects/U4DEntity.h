@@ -505,95 +505,150 @@ public:
      @return Returns true if the entity represents a root node in the scenegraph
      */
     bool isRoot();
-     
+    
+    /**
+     * @brief Renders the current entity
+     * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
+     *
+     * @param uRenderEncoder Metal encoder object for the current entity
+     */
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder){};
     
+    /**
+     * @brief Renders the shadow for a 3D entity
+     * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
+     *
+     * @param uRenderShadowEncoder Metal encoder object for the current entity
+     * @param uShadowTexture Texture shadow for the current entity
+     */
     virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
     
     /**
-     @brief Method which updates the state of each entity
+     @brief Updates the state of each entity
      
      @param dt time-step value
      */
     virtual void update(double dt){};
     
     /**
-     @brief Method which loads all rendering information for the entiy
+     @brief Loads all rendering information for the entiy
      */
     virtual void loadRenderingInformation(){};
     
     /**
-     @todo document this
+     @brief Gets the parent to the entity
+
+     @return pointer to the entity parent
      */
     U4DEntity* getParent();
     
+    
     /**
-     @todo document this
+     @brief Gets the root parent (top parent in the scenegraph) of the entity
+
+     @return pointer to the root parent
      */
     U4DEntity* getRootParent();
     
+    
     /**
-     @todo document this
+     @brief Searches for an entity
+
+     @param uName name of the entity
+     @return pointer to the entity
      */
     U4DEntity *searchChild(std::string uName);
     
+    
     /**
-     @todo document this
+     @brief Sets the z-depth value used for rendering ordering
+
+     @param uZDepth z-depth value. Default is 100
      */
     void setZDepth(int uZDepth);
     
+    
     /**
-     @todo document this
+     @brief Gets the z-depth value used for rendering ordering
+
+     @return z-depth value
      */
     int getZDepth();
     
     /**
-     @todo document this
+     @brief Self load 3D model into the collision engine
+     
+     @param uEntityManager pointer to the entity manager
      */
     virtual void loadIntoCollisionEngine(U4DEntityManager *uEntityManager){};
     
     /**
-     @todo document this
+     @brief Self load 3D model into the physics engine
+     
+     @param uEntityManager pointer to the entity manager
+     @param dt time step
      */
     virtual void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt){};
     
     /**
-     @todo document this
+     @brief self load 3d model into the visibility manager
+     
+     @param uEntityManager pointer to the entity manager
      */
     virtual void loadIntoVisibilityManager(U4DEntityManager *uEntityManager){};
     
     /**
-     @todo document this
+     @brief clear collision information, resets time of impact, resets equilibrium, clears collision list
      */
     virtual void cleanUp(){};
     
     /**
-     @todo document this
+     @brief Method which returns if the model can detect collisions
+     
+     @return Returns true if the model can detect collisions
      */
     virtual bool isCollisionBehaviorEnabled(){};
     
     /**
-     @todo document this
+     @brief Method which returns if kinetics behavior are allowed to act on the 3D model
+     
+     @return Returns true if kinetics behavior are allowed to act on the 3D model
      */
     virtual bool isKineticsBehaviorEnabled(){};
     
     /**
-     @brief Change the state of the entity. This method in particular is used to change the state of the controller, i.e. button or joystick
+     * @brief Changes the state of the button depending on the touch position
+     * @details It checks if the user input touch coordinates falls within the location of the buttons
+     *
+     * @param uTouchState touch state such as began, ended, released
+     * @param uTouchPosition position of touch
      */
     virtual void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){};
     
     /**
-     @brief Change the state of the entity. This method in particular is used to change the state of the pad controller, i.e. pad button or pad joystick
+     * @brief Update the state of the controller pad
+     * @details It changes the state of the controller such as pressed, released or moved
+     *
+     * @param uGamePadAction action on the pad
+     * @param uPadAxis movement direction vector
      */
     virtual void changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
     
     /**
-     @brief Change the state of the entity. This method in particular is used to change the state of the keyboard key, i.e. mac Key
+     * @brief Updates the state of the controller
+     * @details It changes the state of the controller such as if the key is pressed or released
+     *
+     * @param uKeyboardAction action on the key
+     * @param uPadAxis [description]
      */
     virtual void changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis){};
     
     /**
-     @brief Change the state of the entity. This method in particular is used to change the state of the mouse
+     * @brief Updates the state of the controller
+     * @details It changes the state of the controller such as if the mouse is moved, a pressed began or ended
+     *
+     * @param uMouseAction action on the mouse
+     * @param uMouseAxis the movement direction vector of the mouse
      */
     virtual void changeState(MOUSEACTION &uMouseAction, const U4DVector2n &uMouseAxis){};
     
@@ -611,8 +666,12 @@ public:
      */
     virtual KEYBOARDELEMENT getKeyboardElementType(){};
     
+    
     /**
-     @todo document this
+     @brief gets the mouse element
+     @details a mouse element can be the left or right button
+
+     @return mouse element
      */
     virtual MOUSEELEMENT getMouseElementType(){};
 };

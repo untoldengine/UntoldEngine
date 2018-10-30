@@ -70,14 +70,45 @@ public:
      */
     virtual void setImage(const char* uTextureImage,float uWidth,float uHeight);
     
+    /**
+     * @brief Renders the current entity
+     * @details Updates the space matrix and any rendering flags. It encodes the pipeline, buffers and issues the draw command
+     *
+     * @param uRenderEncoder Metal encoder object for the current entity
+     */
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
+    
+    /**
+     @brief current state of the image. Used for multi-image entities such as buttons to change between the main and secondary texture
+
+     @return state of the image
+     */
     virtual bool getImageState(){};
     
+    
+    /**
+     @brief sets the state of the image. Used for multi-image entities such as buttons to change between the main and secondary texture
+
+     @param uValue sets the flag to true when the image should change
+     */
     virtual void setImageState(bool uValue){};
     
+    
+    /**
+     @brief sets the image dimension
+
+     @param uWidth width
+     @param uHeight height
+     */
     void setImageDimension(float uWidth,float uHeight);
     
+    
+    /**
+     @brief sprite offset position. Used for sprite entities
+
+     @return position offset.
+     */
     virtual U4DVector2n &getSpriteOffset(){};
     
 };

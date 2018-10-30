@@ -193,7 +193,8 @@ namespace U4DEngine {
         /**
          * @brief Renders the shadow for a 3D entity
          * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
-         * 
+         *
+         * @param uRenderShadowEncoder Metal encoder object for the current entity
          * @param uShadowTexture Texture shadow for the current entity
          */
         void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);

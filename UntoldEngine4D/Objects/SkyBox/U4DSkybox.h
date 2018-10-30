@@ -27,6 +27,9 @@ class U4DSkybox:public U4DVisibleEntity{
     
 private:
    
+    /**
+     @brief pointer to the rendering manager
+     */
     U4DRenderManager *renderManager;
 
 public:
@@ -64,8 +67,20 @@ public:
      */
     void initSkyBox(float uSize,const char* positiveXImage,const char* negativeXImage,const char* positiveYImage,const char* negativeYImage,const char* positiveZImage, const char* negativeZImage);
     
+    /**
+     * @brief Renders the current entity
+     * @details Updates the space matrix and any rendering flags. It encodes the pipeline, buffers and issues the draw command
+     *
+     * @param uRenderEncoder Metal encoder object for the current entity
+     */
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
+    
+    /**
+     @brief sets the skybox dimension
+
+     @param uSize size of the skybox.
+     */
     void setSkyboxDimension(float uSize);
     
 };

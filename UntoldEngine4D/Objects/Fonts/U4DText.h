@@ -46,12 +46,18 @@ namespace U4DEngine {
         std::vector<TEXTDATA> textContainer;
         
         /**
-         @brief Text spacing
+         @brief space between text
          */
         float textSpacing;
         
+        /**
+         @brief size of the text container
+         */
         int currentTextContainerSize;
         
+        /**
+         @brief pointer to the rendering manager
+         */
         U4DRenderManager *renderManager;
         
     public:
@@ -95,14 +101,49 @@ namespace U4DEngine {
          */
         void setText(const char* uText);
         
+        
+        /**
+         @brief sets the spacing between letters
+
+         @param uTextSpacing spacing distance
+         */
         void setTextSpacing(float uTextSpacing);
         
+        
+        /**
+         @brief parses the text into individual letters
+
+         @param uText text to render
+         */
         void parseText(const char* uText);
         
+        
+        /**
+         @brief loads the text into a structure
+         @details the text is loaded into the TEXTDATA structure which holds text information
+         */
         void loadText();
         
+        /**
+         * @brief Renders the current entity
+         * @details Updates the space matrix and any rendering flags. It encodes the pipeline, buffers and issues the draw command
+         *
+         * @param uRenderEncoder Metal encoder object for the current entity
+         */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        
+        /**
+         @brief sets the text dimension
+
+         @param uFontPositionOffset font position offset
+         @param uFontUV font uv-coordinates
+         @param uTextCount letter count
+         @param uTextWidth texture text width
+         @param uTextHeight texture text height
+         @param uAtlasWidth image atlas width
+         @param uAtlasHeight image atlas height
+         */
         void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight);
     };
         

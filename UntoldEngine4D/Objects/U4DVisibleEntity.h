@@ -32,8 +32,14 @@ private:
     
 protected:
     
+    /**
+     @brief name of the vertex shader used for rendering
+     */
     std::string vertexShader;
     
+    /**
+     @brief name of the fragment shader used for rendering
+     */
     std::string fragmentShader;
     
 public:
@@ -75,16 +81,52 @@ public:
     void loadRenderingInformation();
     
     //metal methods
+    
+    /**
+     @brief pointer to the rendering manager
+     */
     U4DRenderManager *renderManager;
     
+    /**
+     * @brief Renders the current entity
+     * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
+     *
+     * @param uRenderEncoder Metal encoder object for the current entity
+     */
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder){};
     
+    /**
+     * @brief Renders the shadow for a 3D entity
+     * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
+     *
+     * @param uRenderShadowEncoder Metal encoder object for the current entity
+     * @param uShadowTexture Texture shadow for the current entity
+     */
     virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
     
+    
+    /**
+     @brief sets the shader used for rendering the entity
+
+     @param uVertexShaderName name of the vertex shader
+     @param uFragmentShaderName name of the fragment shader
+     */
     void setShader(std::string uVertexShaderName, std::string uFragmentShaderName);
     
+    
+    /**
+     @brief get the name of the vertex shader
+
+     @return name of the vertex shader
+     */
     std::string getVertexShader();
     
+    
+    /**
+     @brief get the name of the fragment shader
+
+     @return name of the fragment shader
+     */
     std::string getFragmentShader();
 };
     
