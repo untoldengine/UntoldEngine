@@ -142,7 +142,8 @@ public:
     //Behavior operations
     
     /**
-     @brief Method which enables kinetics behavior on the 3D model. i.e., it allows forces to act on the 3D model
+     @brief Method which enables kinetics behavior on the 3D model.
+     @details It allows forces to act on the 3D model
      */
     void enableKineticsBehavior();
     
@@ -339,22 +340,32 @@ public:
     U4DVector2n getDragCoefficient();
     
     /**
-     @todo document this
+     @brief Self load 3D model into the collision engine
+     
+     @param uEntityManager pointer to the entity manager
      */
     void loadIntoCollisionEngine(U4DEntityManager *uEntityManager);
     
+    
     /**
-     @todo document this
+     @brief Self load 3D model into the physics engine
+
+     @param uEntityManager pointer to the entity manager
+     @param dt time step
      */
     void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt);
     
+    
     /**
-     @todo document this
+     @brief self load 3d model into the visibility manager
+
+     @param uEntityManager pointer to the entity manager
      */
     void loadIntoVisibilityManager(U4DEntityManager *uEntityManager);
     
+    
     /**
-     @todo document this
+     @brief clear collision information, resets time of impact, resets equilibrium, clears collision list
      */
     void cleanUp();
     

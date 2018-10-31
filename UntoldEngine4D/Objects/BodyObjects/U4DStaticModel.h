@@ -113,14 +113,28 @@ namespace U4DEngine {
     }CollisionProperties;
     
     /**
-     @brief Document this
+     @brief The CollisionFilter structure contains the filtering information of the 3D model
      */
     typedef struct{
         
+        /**
+         @brief Collision Categories means: I am of type...
+         */
         int category=1;
         
+        /**
+         @brief Collision Masks means: I collide with...
+         */
         int mask=1;
         
+        /**
+         @brief The collision group index, follows the following rule:
+         
+         -if either fixture has a groupIndex of zero, use the category/mask rules as above
+         -if both groupIndex values are non-zero but different, use the category/mask rules as above
+         -if both groupIndex values are the same and positive, collide
+         -if both groupIndex values are the same and negative, don't collide
+         */
         signed int groupIndex=0;
         
     }CollisionFilter;
@@ -188,7 +202,7 @@ namespace U4DEngine {
         bool isPlatform;
         
         /**
-         @todo document this
+         @brief Representing the collision filter specified for the 3D model. It states with which other 3D models it can collide with.
          */
         CollisionFilter collisionFilter;
         
@@ -198,12 +212,12 @@ namespace U4DEngine {
         bool isCollisionSensor;
         
         /**
-         @todo document this
+         @brief vector holding all 3d models the object has collided in the current time step
          */
         std::vector<U4DStaticModel*> collisionList;
         
         /**
-         @todo document this
+         @brief tag used to identify the 3d model during collisions
          */
         std::string collidingTag;
         
@@ -270,8 +284,6 @@ namespace U4DEngine {
          */
         void initAsPlatform(bool uValue);
         
-        
-    
         //Set Operations
     
         /**
@@ -321,17 +333,19 @@ namespace U4DEngine {
         //Behavior operations
     
         /**
-         @brief Method which enables the model to detect collisions
+         @brief Enables the model to detect collisions
+         @details enables the model to collide with other convex objects.
          */
         void enableCollisionBehavior();
         
         /**
-         @brief Method which pauses the ability of the model to detect collisions
+         @brief Pauses the ability of the model to detect collisions
          */
         void pauseCollisionBehavior();
         
         /**
-         @brief Nethod which resumes the ability for the model to detect collisions
+         @brief Resumes the ability for the model to detect collisions
+         @details informs the collision engine to re-start collision detection with this object.
          */
         void resumeCollisionBehavior();
         
@@ -345,7 +359,7 @@ namespace U4DEngine {
         //Compute operations
         
         /**
-         @brief Method which computes the inertia tensor of the model geometry
+         @brief Computes the inertia tensor of the model geometry
          */
         void computeInertiaTensor();
         

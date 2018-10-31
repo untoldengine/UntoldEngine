@@ -182,8 +182,12 @@ public:
      */
     U4DBoneData *searchChildrenBone(std::string uBoneName);
     
+    
     /**
-     @todo document this
+     @brief Get the index number of the child bone
+
+     @param uBoneName Bone's name
+     @return The index of the bone
      */
     int getChildrenBoneIndex(std::string uBoneName);
     
@@ -201,8 +205,11 @@ public:
      */
     bool isRoot();
     
+    
     /**
-     @todo document this
+     @brief Gets the pose animation space of the bone
+
+     @return The pose space animation of the bone
      */
     U4DDualQuaternion getBoneAnimationPoseSpace();
     

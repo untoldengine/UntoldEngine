@@ -149,8 +149,7 @@ public:
     void update(double dt);
     
     /**
-     @brief  Init
-     @todo  This method is empty
+     @brief init method.
      */
     void init();
     
@@ -205,99 +204,268 @@ public:
     void touchMoved(const U4DTouches &touches);
     
     /**
-     @todo document this
+     * @brief A press on the game pad has began
+     * @details Engine detected a button press from the gamepad
+     *
+     * @param uGamePadElement Game pad element such as button, pad arrows
+     * @param uGamePadAction action detected on the gamepad
      */
     void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
     
     /**
-     @todo document this
+     * @brief A release on the game pad was detected
+     * @details The engine deteced a button release from the game gamepad
+     *
+     * @param uGamePadElement Game pad element such as button, pad arrows
+     * @param uGamePadAction action detected on the gamepad
      */
     void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction);
     
     /**
-     @todo document this
+     * @brief The joystick on the game pad was moved
+     * @details The engine detected joystick movement on the game pad
+     *
+     * @param uGamePadElement game pad element such as left or right joystick
+     * @param uGamePadAction action detected
+     * @param uPadAxis movement direction of the joystick
      */
     void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis);
     
     /**
-     @todo document this
+     * @brief A key press on the mac was detected
+     * @details The engine detected a key press
+     *
+     * @param uKeyboardElement keyboard element such as a particular key
+     * @param uKeyboardAction action on the key
      */
     void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction);
     
     /**
-     @todo document this
+     * @brief A key release on the mac was detected
+     * @details the engine detected a key release
+     *
+     * @param uKeyboardElement keyboard element such as a key
+     * @param uKeyboardAction action on the key
      */
     void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction);
     
     /**
-     @todo document this
+     * @brief The arrow key is currently pressed
+     * @details the engine has detected the arrow key being currently pressed
+     *
+     * @param uKeyboardElement keyboard element such as the up, down, right, left key
+     * @param uKeyboardAction action on the key
+     * @param uPadAxis axis of the currently key being pressed. For example, the up arrow key will provide an axis of (0.0,1.0)
      */
     void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis);
     
     /**
-     @todo document this
+     * @brief The mouse was pressed
+     * @details The engine has detected a mouse press
+     *
+     * @param uMouseElement mouse element such as the right or left click
+     * @param uMouseAction action on the mouse
+     * @param uMouseAxis
      */
     void macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
     
     /**
-     @todo document this
+     * @brief The mouse was released
+     * @details the engine has detected a mouse release
+     *
+     * @param uMouseElement mouse element such as left or righ button
+     * @param uMouseAction action on the mouse
      */
     void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction);
     
     /**
-     @todo document this
+     * @brief The mouse is being moved
+     * @details The engine has detected mouse movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
      */
     void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
     
     /**
-     @todo document this
+     @todo document this. It seems that this method is not longer used. Check if it should be removed
      */
     void setWorld(U4DWorld *uWorld);
     
     /**
-     @todo document this
+     @todo document this. It seems that this method is not longer used. Check if it should be removed
      */
     U4DEntity *searchChild(std::string uName);
     
     //new metal methods
+    
+    /**
+     @brief Set the device required for Metal
+
+     @param uMTLDevice pointer to the device
+     */
     void setMTLDevice(id <MTLDevice> uMTLDevice);
     
+    
+    /**
+     @brief Gets the metal device
+
+     @return pointer to the metal device
+     */
     id <MTLDevice> getMTLDevice();
     
+    /**
+     * @brief Renders the current entity
+     * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
+     *
+     * @param uRenderEncoder Metal encoder object for the current entity
+     */
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
+    /**
+     * @brief Renders the shadow for a 3D entity
+     * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
+     *
+     * @param uShadowTexture Texture shadow for the current entity
+     */
     void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
     
+    
+    /**
+     @brief Sets the view aspect ratio for the window
+
+     @param uAspect window aspect ratio
+     */
     void setAspect(float uAspect);
     
+    
+    /**
+     @brief Gets the window aspect ratio
+
+     @return window aspect ratio
+     */
     float getAspect();
     
+    
+    /**
+     @brief Set the Metal View
+
+     @param uMTLView pointer to the Metal view
+     */
     void setMTLView(MTKView * uMTLView);
     
+    
+    /**
+     @brief Gets the Metal View
+
+     @return pointer to the Metal view
+     */
     MTKView *getMTLView();
     
+    
+    /**
+     @brief Set the perspective projection for the view
+
+     @param uSpace perspective projection in a 4x4 matrix
+     */
     void setPerspectiveSpace(U4DMatrix4n &uSpace);
     
+    
+    /**
+     @brief Set the orthographic projection for the view
+
+     @param uSpace orthographic projection in a 4x4 matrix
+     */
     void setOrthographicSpace(U4DMatrix4n &uSpace);
     
+    
+    /**
+     @brief Set the orthographic projection for the shadow space
+
+     @param uSpace orthographic projection (4x4 matrix) for the shadow
+     */
     void setOrthographicShadowSpace(U4DMatrix4n &uSpace);
     
+    
+    /**
+     @brief Get the perspective space of the view
+
+     @return perspective space of the view in a 4x4 matrix
+     */
     U4DMatrix4n getPerspectiveSpace();
     
+    /**
+     @brief Get the orthographics space of the view
+
+     @return Orthographic space of the view in a 4x4 matrix
+     */
     U4DMatrix4n getOrthographicSpace();
     
+    /**
+     @brief Get the orthographic space of the shadow
+
+     @return Orthographic space of the shadow in a 4x4 matrix
+     */
     U4DMatrix4n getOrthographicShadowSpace();
     
+    
+    /**
+     @brief Computes the perspective space of the view
+
+     @param fov Field of view in degrees
+     @param aspect Aspect ratio of the view window
+     @param near Near plane
+     @param far Far plane
+     @return A 4x4 matrix representing the perspective view
+     */
     U4DMatrix4n computePerspectiveSpace(float fov, float aspect, float near, float far);
     
+    /**
+     @brief Computes the orthographic space of the view
+
+     @param left left plane
+     @param right right plane
+     @param bottom bottom plane
+     @param top top plane
+     @param near near plane
+     @param far far plane
+     @return A 4x4 matrix representing the orthographic view
+     */
     U4DMatrix4n computeOrthographicSpace(float left, float right, float bottom, float top, float near, float far);
     
+    /**
+     @brief Computes the orthographic space of the shadow
+     
+     @param left left plane
+     @param right right plane
+     @param bottom bottom plane
+     @param top top plane
+     @param near near plane
+     @param far far plane
+     @return A 4x4 matrix representing the orthographic view
+     */
     U4DMatrix4n computeOrthographicShadowSpace(float left, float right, float bottom, float top, float near, float far);
 
+    /**
+     @brief Determines if the 3D models are within the camera frustum
+     */
     void determineVisibility();
     
+    
+    /**
+     @brief Sets the bias depth for shadow rendering
+
+     @param uValue bias depth
+     */
     void setShadowBiasDepth(float uValue);
     
+    
+    /**
+     @brief Gets the shadow depth bias
+
+     @return Shadow depth bias
+     */
     float getShadowBiasDepth();
     
     /**
@@ -307,7 +475,6 @@ public:
      */
     void setPolycount(int uValue);
     
-    
     /**
      @brief returns the number of polygons the engine can render per 3d model
 
@@ -315,33 +482,51 @@ public:
      */
     int getPolycount();
     
+    
     /**
-     @brief document this
+     @brief Sets the current Device OS type. e.g., iOS or mac
+
+     @param uDeviceOSType enum to the device type
      */
     void setDeviceOSType(DEVICEOSTYPE &uDeviceOSType);
     
+    
     /**
-     @brief document this
+     @brief Get the current device OS type. e.g, iOS or mac
+
+     @return enum to device OS type.
      */
     DEVICEOSTYPE getDeviceOSType();
     
+    
     /**
-     @brief document this
+     @brief Sets the presence of a game pad controller
+
+     @param uValue Set it to true if you wans to use the Game Pad Controller. False otherwise.
      */
     void setGamePadControllerPresent(bool uValue);
     
+    
     /**
-     @brief document this
+     @brief Gets if the presence of the game pad controller
+
+     @return true if the user selected the Game pad controller
      */
     bool getGamePadControllerPresent();
     
+    
     /**
-     @brief document this
+     @brief This method is set if any model, at least one, is within the camera frustum
+
+     @param uValue true if a 3D model is within the camera frustum
      */
     void setModelsWithinFrustum(bool uValue);
     
+    
     /**
-     @brief document this
+     @brief Gets if any 3D model is within the camera frustum
+
+     @return true if a 3D model is within the camera frustum
      */
     bool getModelsWithinFrustum();
     

@@ -135,8 +135,11 @@ public:
      */
     U4DMatrix3n extract3x3Matrix();
     
+    
     /**
-     @todo document this
+     @brief extracts the affine vector from a 4x4 matrix
+
+     @return vector representing the position (x, y and z coordinates)
      */
     U4DVector3n extractAffineVector();
     

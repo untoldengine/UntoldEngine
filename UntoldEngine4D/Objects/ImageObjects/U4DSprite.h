@@ -36,10 +36,19 @@ namespace U4DEngine {
          */
         U4DSpriteLoader *spriteLoader;
         
+        /**
+         @brief name of the sprite atlas texture
+         */
         const char * spriteAtlasImage;
         
+        /**
+         @brief sprite position offset
+         */
         U4DVector2n spriteOffset;
         
+        /**
+         @brief pointer to the rendering manager
+         */
         U4DRenderManager *renderManager;
         
     public:
@@ -57,18 +66,44 @@ namespace U4DEngine {
         ~U4DSprite();
         
         /**
-         @brief Method which sets a sprite
+         @brief Sets a sprite with a texture
          
          @param uSprite Name of sprite image
          */
         void setSprite(const char* uSprite);
         
+        /**
+         * @brief Renders the current entity
+         * @details Updates the space matrix and any rendering flags. It encodes the pipeline, buffers and issues the draw command
+         *
+         * @param uRenderEncoder Metal encoder object for the current entity
+         */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        
+        /**
+         @brief sets the sprite dimension
+
+         @param uSpriteWidth sprite image width
+         @param uSpriteHeight sprite image height
+         @param uAtlasWidth sprite atlas width
+         @param uAtlasHeight sprite atlas height
+         */
         void setSpriteDimension(float uSpriteWidth,float uSpriteHeight, float uAtlasWidth,float uAtlasHeight);
         
+        
+        /**
+         @brief sets the offset position for the sprite
+
+         @param uSpriteOffset offset position
+         */
         void setSpriteOffset(U4DVector2n &uSpriteOffset);
         
+        /**
+         @brief sprite offset position. Used for sprite entities
+         
+         @return position offset.
+         */
         U4DVector2n &getSpriteOffset();
         
     };
