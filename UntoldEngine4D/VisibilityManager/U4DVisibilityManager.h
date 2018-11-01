@@ -180,6 +180,14 @@ namespace U4DEngine {
          @brief Method that is called by the scheduler once the time interval has elapsed
          */
         void bvhTimerIntervalElapsed();
+    
+        /**
+         @brief change the current visibility interval. The default is 0.5.
+         @details This interval determines how fast the BVH is computed to determine which 3D models are within the camera frustum. The lower this interval, the faster the BVH is computed.
+         @param uValue time interval.
+         */
+        void changeVisibilityInterval(float uValue);
+        
     };
     
 }
