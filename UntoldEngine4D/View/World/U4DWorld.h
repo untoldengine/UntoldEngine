@@ -132,6 +132,12 @@ public:
      */
     U4DGameModelInterface* getGameModel();
     
+    /**
+     * @brief Renders the current entity
+     * @details Updates the space matrix, any rendering flags. It encodes the pipeline, buffers and issues the draw command
+     *
+     * @param uRenderEncoder Metal encoder object for the current entity
+     */
     void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
     
