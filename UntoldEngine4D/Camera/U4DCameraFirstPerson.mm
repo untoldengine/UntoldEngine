@@ -47,7 +47,7 @@ namespace U4DEngine {
             //translate camera along the direction of the view direction of the model
             U4DVector3n newCameraPosition=modelPosition+modelViewDirection*zOffset;
             
-            newCameraPosition.y=yOffset;
+            newCameraPosition.y=yOffset+modelPosition.y;
             
             camera->translateTo(newCameraPosition);
             
