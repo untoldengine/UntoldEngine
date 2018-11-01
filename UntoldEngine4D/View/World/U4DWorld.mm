@@ -128,5 +128,10 @@ namespace U4DEngine {
         
         
     }
+    
+    void U4DWorld::changeVisibilityInterval(float uValue){
+        
+        entityManager->changeVisibilityInterval(uValue);
+    }
 
 }

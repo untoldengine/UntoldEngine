@@ -294,5 +294,11 @@ namespace U4DEngine {
         
     }
     
+    void U4DEntityManager::changeVisibilityInterval(float uValue){
+        
+        visibilityManager->changeVisibilityInterval(uValue);
+        
+    }
+    
 }
 

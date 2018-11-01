@@ -330,4 +330,16 @@ namespace U4DEngine {
         
     }
     
+    void U4DVisibilityManager::changeVisibilityInterval(float uValue){
+        
+        timer->setPause(true);
+        
+        scheduler->unScheduleTimer(timer);
+        
+        timeIntervalToBuildBVH=uValue;
+        
+        scheduler->scheduleClassWithMethodAndDelay(this, &U4DVisibilityManager::bvhTimerIntervalElapsed, timer,timeIntervalToBuildBVH, true);
+        
+    }
+    
 }
