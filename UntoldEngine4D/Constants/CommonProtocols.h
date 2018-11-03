@@ -293,13 +293,9 @@ namespace U4DEngine {
         
         bool emitContinuously;
         
-        const char* texture="particle.png";
-        
         U4DVector3n gravity;
         
         int particleSystemType=0;
-        
-        float particleSize=0.5;
         
         bool enableNoise=false;
         

@@ -125,12 +125,7 @@ namespace U4DEngine {
         /**
          @brief Document this
          */
-        void init(PARTICLESYSTEMDATA &uParticleSystemData);
-        
-        /**
-         @brief Document this
-         */
-        void initParticleAttributes(float uSize);
+        bool loadParticleSystem(const char* uModelName, const char* uBlenderFile, PARTICLESYSTEMDATA &uParticleSystemData);
         
         /**
          @brief Document this
@@ -151,11 +146,6 @@ namespace U4DEngine {
          @brief Document this
          */
         int getNumberOfEmittedParticles();
-        
-        /**
-         @brief document this
-         */
-        void setParticleTexture(const char* uTextureImage);
         
         /**
          @brief Document this

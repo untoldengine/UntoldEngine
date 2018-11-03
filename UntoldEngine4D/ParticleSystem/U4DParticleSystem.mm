@@ -14,6 +14,7 @@
 #include "U4DParticleData.h"
 #include "U4DParticleEmitterInterface.h"
 #include "U4DParticleEmitterLinear.h"
+#include "U4DParticleLoader.h"
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
@@ -100,27 +101,31 @@ namespace U4DEngine {
         removeDeadParticle();
     }
     
-    void U4DParticleSystem::init(PARTICLESYSTEMDATA &uParticleSystemData){
+    bool U4DParticleSystem::loadParticleSystem(const char* uModelName, const char* uBlenderFile, PARTICLESYSTEMDATA &uParticleSystemData){
         
-        setParticleTexture(uParticleSystemData.texture);
+        U4DParticleLoader *loader=U4DParticleLoader::sharedInstance();
         
-        initParticleAttributes(uParticleSystemData.particleSize);
+        if(loader->loadDigitalAssetFile(uBlenderFile) && loader->loadAssetToMesh(this,uModelName)){
+            
+            //max number of particles
+            maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
+            
+            //gravity
+            gravity=uParticleSystemData.gravity;
+            
+            enableAdditiveRendering=uParticleSystemData.enableAdditiveRendering;
+            
+            enableNoise=uParticleSystemData.enableNoise;
+            
+            noiseDetail=uParticleSystemData.noiseDetail;
+            
+            initializeParticleEmitter(uParticleSystemData);
+            
+            return true;
+        }
         
-        //max number of particles
-        maxNumberOfParticles=uParticleSystemData.maxNumberOfParticles;
+        return false;
         
-        //gravity
-        gravity=uParticleSystemData.gravity;
-        
-        enableAdditiveRendering=uParticleSystemData.enableAdditiveRendering;
-        
-        enableNoise=uParticleSystemData.enableNoise;
-        
-        noiseDetail=uParticleSystemData.noiseDetail;
-        
-        loadRenderingInformation();
-        
-        initializeParticleEmitter(uParticleSystemData);
         
     }
     
@@ -192,43 +197,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticleSystem::initParticleAttributes(float uSize){
-        
-       //make a rectangle
-        float width=uSize;
-        float height=uSize;
-        float depth=0.0;
-
-        //vertices
-        U4DEngine::U4DVector3n v1(width,height,depth);
-        U4DEngine::U4DVector3n v4(width,-height,depth);
-        U4DEngine::U4DVector3n v2(-width,-height,depth);
-        U4DEngine::U4DVector3n v3(-width,height,depth);
-
-        bodyCoordinates.addVerticesDataToContainer(v1);
-        bodyCoordinates.addVerticesDataToContainer(v4);
-        bodyCoordinates.addVerticesDataToContainer(v2);
-        bodyCoordinates.addVerticesDataToContainer(v3);
-
-        //texture
-        U4DEngine::U4DVector2n t4(0.0,0.0);  //top left
-        U4DEngine::U4DVector2n t1(1.0,0.0);  //top right
-        U4DEngine::U4DVector2n t3(0.0,1.0);  //bottom left
-        U4DEngine::U4DVector2n t2(1.0,1.0);  //bottom right
-
-        bodyCoordinates.addUVDataToContainer(t1);
-        bodyCoordinates.addUVDataToContainer(t2);
-        bodyCoordinates.addUVDataToContainer(t3);
-        bodyCoordinates.addUVDataToContainer(t4);
-
-
-        U4DEngine::U4DIndex i1(0,1,2);
-        U4DEngine::U4DIndex i2(2,3,0);
-
-        bodyCoordinates.addIndexDataToContainer(i1);
-        bodyCoordinates.addIndexDataToContainer(i2);
-        
-    }
     
     void U4DParticleSystem::setMaxNumberOfParticles(int uMaxNumberOfParticles){
         
@@ -245,12 +213,6 @@ namespace U4DEngine {
     int U4DParticleSystem::getNumberOfEmittedParticles(){
         
         return particleEmitter->getNumberOfEmittedParticles();
-    }
-    
-    void U4DParticleSystem::setParticleTexture(const char* uTextureImage){
-        
-        renderManager->setDiffuseTexture(uTextureImage);
-        
     }
     
     void U4DParticleSystem::setHasTexture(bool uValue){
