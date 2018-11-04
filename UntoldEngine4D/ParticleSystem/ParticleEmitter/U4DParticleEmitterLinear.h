@@ -17,16 +17,32 @@
 
 namespace U4DEngine {
     
+    /**
+     @ingroup particlesystem
+     @brief The U4DParticleEmitterLinear class creates and allocates memory for the Linear Emitter
+     */
     class U4DParticleEmitterLinear:public U4DParticleEmitter {
         
     private:
         
     public:
         
+        /**
+         @brief class constructor
+         */
         U4DParticleEmitterLinear();
         
+        /**
+         @brief class destructor
+         */
         ~U4DParticleEmitterLinear();
         
+        
+        /**
+         @brief computes the velocity of the particle
+
+         @param uParticle pointer to the particle object
+         */
         void computeVelocity(U4DParticle *uParticle);
         
     };

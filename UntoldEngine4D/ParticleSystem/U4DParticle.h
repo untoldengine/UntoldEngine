@@ -15,27 +15,31 @@
 
 namespace U4DEngine {
     
+    /**
+     @ingroup particlesystem
+     @brief The U4DParticle class contains all the kinetic properties of a 3D particle
+     */
     class U4DParticle:public U4DEntity {
         
     private:
         
         /**
-         @brief Velocity of 3D model
+         @brief Velocity of 3D particle
          */
         U4DVector3n velocity;
         
         /**
-         @brief Acceleration of 3D model
+         @brief Acceleration of 3D particle
          */
         U4DVector3n acceleration;
         
         /**
-         @brief Force of 3D model
+         @brief Force of 3D particle
          */
         U4DVector3n force;
         
         /**
-         @brief Mass of 3D model
+         @brief Mass of 3D particle
          */
         float mass;
         
@@ -53,30 +57,65 @@ namespace U4DEngine {
         ~U4DParticle();
         
         /**
-         @brief document this
+         @brief The particle Data contains information such as start-color, end-color, emit angle, life and speed of the 3D particle
          */
         U4DParticleData particleData;
         
+        
         /**
-         @brief document this
-         
+         @brief sets the velocity of the 3D particle
+
+         @param uVelocity velocity vector
          */
         void setVelocity(U4DVector3n &uVelocity);
         
-        void addForce(U4DVector3n& uForce);
         
         /**
-         @brief Document this
+         @brief adds the new force acting on the 3D particle on the current forces
+
+         @param uForce force vector
+         */
+        void addForce(U4DVector3n& uForce);
+        
+        
+        /**
+         @brief clears all forces
+         @details clears all forces currently acting on the particle. However, the only forces acting on the particle is gravity. No need to add other forces.
          */
         void clearForce();
         
+        
+        /**
+         @brief current velocity of the 3D Particle
+
+         @return velocity vector
+         */
         U4DVector3n getVelocity();
         
+        
+        /**
+         @brief initializes the 3D particle with a mass. Default mass is 1.0
+
+         @param uMass mass value
+         */
         void initMass(float uMass);
         
+        
+        /**
+         @brief gets current mass of 3D particle
+
+         @return mass value
+         */
         float getMass();
         
+        
+        /**
+         @brief gets the current sum of all forces acting on the 3D particle
+
+         @return force vector
+         */
         U4DVector3n getForce();
+        
     };
     
 }

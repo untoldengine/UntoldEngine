@@ -8,13 +8,4 @@
 
 #include "U4DParticleEmitterInterface.h"
 
-namespace U4DEngine {
-    
-    U4DParticleEmitterInterface::U4DParticleEmitterInterface(){
-        
-    }
-    
-    U4DParticleEmitterInterface::~U4DParticleEmitterInterface(){
-        
-    }
-}
+

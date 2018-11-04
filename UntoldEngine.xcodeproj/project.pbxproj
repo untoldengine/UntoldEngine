@@ -1458,7 +1458,8 @@
 				03695FAF218BF8010080227B /* U4DParticleLoader.h */,
 				03695FAE218BF8010080227B /* U4DParticleLoader.mm */,
 			);
-			path = ParticleLoader;
+			name = ParticleLoader;
+			path = ParticleSystem/ParticleLoader;
 			sourceTree = "<group>";
 		};
 		036C2449176790DA00ADC1A6 /* GameModel */ = {
