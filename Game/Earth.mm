@@ -93,13 +93,6 @@ void Earth::setupBackgroundModels(){
         //Load rendering information into the GPU
         island->loadRenderingInformation();
         
-        //Add walkway to scenegraph
-        addChild(island);
-        
-    }
-    
-    if (island!=nullptr) {
-        
         //enable kinetics
         island->enableKineticsBehavior();
         
@@ -115,6 +108,9 @@ void Earth::setupBackgroundModels(){
         
         //set mass
         island->initMass(100.0);
+        
+        //Add walkway to scenegraph
+        addChild(island);
         
     }
     
