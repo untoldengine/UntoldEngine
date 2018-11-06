@@ -17,8 +17,9 @@
  @defgroup animation Animation
  @defgroup controller Controller
  @defgroup loader Loaders
- @defgroup camera Camera
+ @defgroup camera Camera System
  @defgroup light Lights
+ @defgroup particlesystem Particle System
  */
 
 #endif /* modulesdoxygen_h */

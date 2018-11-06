@@ -159,6 +159,12 @@
 		0361DFA41FAC2141004770FD /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9E1FAC2140004770FD /* FrontImage.png */; };
 		0361DFA51FAC2141004770FD /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9F1FAC2140004770FD /* RightImage.png */; };
 		0361DFA61FAC2141004770FD /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DFA01FAC2141004770FD /* BackImage.png */; };
+		03695FB0218BF8010080227B /* U4DParticleLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03695FAE218BF8010080227B /* U4DParticleLoader.mm */; };
+		03695FB1218BF8010080227B /* U4DParticleLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03695FAE218BF8010080227B /* U4DParticleLoader.mm */; };
+		03695FB2218BF8010080227B /* U4DParticleLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03695FAE218BF8010080227B /* U4DParticleLoader.mm */; };
+		03695FB4218C21D10080227B /* particlesystemattributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03695FB3218C21D10080227B /* particlesystemattributes.u4d */; };
+		03695FB5218C21D10080227B /* particlesystemattributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03695FB3218C21D10080227B /* particlesystemattributes.u4d */; };
+		03695FB6218C21D10080227B /* particlesystemattributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03695FB3218C21D10080227B /* particlesystemattributes.u4d */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */; };
 		036C244F176798D700ADC1A6 /* U4DGameModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036C244D176798D700ADC1A6 /* U4DGameModel.mm */; };
@@ -967,6 +973,9 @@
 		0361DF9E1FAC2140004770FD /* FrontImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = FrontImage.png; sourceTree = "<group>"; };
 		0361DF9F1FAC2140004770FD /* RightImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = RightImage.png; sourceTree = "<group>"; };
 		0361DFA01FAC2141004770FD /* BackImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BackImage.png; sourceTree = "<group>"; };
+		03695FAE218BF8010080227B /* U4DParticleLoader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DParticleLoader.mm; path = UntoldEngine4D/ParticleSystem/ParticleLoader/U4DParticleLoader.mm; sourceTree = SOURCE_ROOT; };
+		03695FAF218BF8010080227B /* U4DParticleLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DParticleLoader.h; path = UntoldEngine4D/ParticleSystem/ParticleLoader/U4DParticleLoader.h; sourceTree = SOURCE_ROOT; };
+		03695FB3218C21D10080227B /* particlesystemattributes.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = particlesystemattributes.u4d; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036C244A176790F100ADC1A6 /* U4DGameModelInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameModelInterface.mm; sourceTree = "<group>"; };
@@ -1443,6 +1452,16 @@
 			path = TransformationManager;
 			sourceTree = "<group>";
 		};
+		03695FAD218BF7C60080227B /* ParticleLoader */ = {
+			isa = PBXGroup;
+			children = (
+				03695FAF218BF8010080227B /* U4DParticleLoader.h */,
+				03695FAE218BF8010080227B /* U4DParticleLoader.mm */,
+			);
+			name = ParticleLoader;
+			path = ParticleSystem/ParticleLoader;
+			sourceTree = "<group>";
+		};
 		036C2449176790DA00ADC1A6 /* GameModel */ = {
 			isa = PBXGroup;
 			children = (
@@ -1798,6 +1817,7 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03695FB3218C21D10080227B /* particlesystemattributes.u4d */,
 				0304CE7421266431005A0C4C /* astronaut.png */,
 				0304CE7721266432005A0C4C /* astronautAttributes.u4d */,
 				0304CE7621266432005A0C4C /* astronautWalkAnim.u4d */,
@@ -1865,6 +1885,7 @@
 		039FF2441F98EF4600B3D253 /* ParticleSystem */ = {
 			isa = PBXGroup;
 			children = (
+				03695FAD218BF7C60080227B /* ParticleLoader */,
 				038249151FA2529400DFEFE3 /* ParticleEmiter */,
 				038248F71FA1730700DFEFE3 /* U4DParticleSystem.h */,
 				038248F81FA1730700DFEFE3 /* U4DParticleSystem.mm */,
@@ -2441,6 +2462,7 @@
 				03722D342029F16C0080D069 /* BackImage.png in Resources */,
 				0304CE8321266432005A0C4C /* astronautAttributes.u4d in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
+				03695FB5218C21D10080227B /* particlesystemattributes.u4d in Resources */,
 				03722D422029F16C0080D069 /* ButtonAPressed.png in Resources */,
 				03722D372029F16C0080D069 /* LeftImage.png in Resources */,
 				03722D392029F16C0080D069 /* TopImage.png in Resources */,
@@ -2480,6 +2502,7 @@
 				03722D602029F16D0080D069 /* myFont.png in Resources */,
 				03722D692029F16D0080D069 /* BottomImage.png in Resources */,
 				0304CE8421266432005A0C4C /* astronautAttributes.u4d in Resources */,
+				03695FB6218C21D10080227B /* particlesystemattributes.u4d in Resources */,
 				03722D6B2029F16D0080D069 /* LeftImage.png in Resources */,
 				03722D6F2029F16D0080D069 /* particle.png in Resources */,
 				03722D6D2029F16D0080D069 /* TopImage.png in Resources */,
@@ -2522,6 +2545,7 @@
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				0361DFA61FAC2141004770FD /* BackImage.png in Resources */,
+				03695FB4218C21D10080227B /* particlesystemattributes.u4d in Resources */,
 				0361DFA11FAC2141004770FD /* LeftImage.png in Resources */,
 				0361DFA41FAC2141004770FD /* FrontImage.png in Resources */,
 				0304CE7C21266432005A0C4C /* charactersAttributes.u4d in Resources */,
@@ -2654,6 +2678,7 @@
 				03722B7A2029F0F50080D069 /* U4DRenderer.mm in Sources */,
 				03722BA12029F0F50080D069 /* U4DTouches.mm in Sources */,
 				03722BC72029F0F50080D069 /* U4DRenderSprite.mm in Sources */,
+				03695FB1218BF8010080227B /* U4DParticleLoader.mm in Sources */,
 				03722BDC2029F0F50080D069 /* U4DModel.mm in Sources */,
 				03722BAC2029F0F50080D069 /* U4DBlendAnimation.mm in Sources */,
 				03722B6F2029F0F50080D069 /* U4DBVHTree.mm in Sources */,
@@ -3032,6 +3057,7 @@
 				03722CB42029F0F80080D069 /* U4DRenderer.mm in Sources */,
 				03722CDB2029F0F80080D069 /* U4DTouches.mm in Sources */,
 				03722D012029F0F80080D069 /* U4DRenderSprite.mm in Sources */,
+				03695FB2218BF8010080227B /* U4DParticleLoader.mm in Sources */,
 				03722D162029F0F80080D069 /* U4DModel.mm in Sources */,
 				03722CE62029F0F80080D069 /* U4DBlendAnimation.mm in Sources */,
 				03722CA92029F0F80080D069 /* U4DBVHTree.mm in Sources */,
@@ -3272,6 +3298,7 @@
 				03E6EDE61943D866007AD131 /* U4DStaticModel.mm in Sources */,
 				03C03C581F45409F0001EFA1 /* U4DJoystickActiveState.mm in Sources */,
 				0323DBAD202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
+				03695FB0218BF8010080227B /* U4DParticleLoader.mm in Sources */,
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,

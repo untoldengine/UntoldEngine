@@ -19,16 +19,33 @@ namespace U4DEngine {
 
 namespace U4DEngine {
  
+    /**
+     @ingroup particlesystem
+     @brief The U4DParticleEmitterFactory class creates and allocates memory for the emitter classes such as Linear, Sphere and Torus.
+     */
     class U4DParticleEmitterFactory {
         
     private:
         
     public:
         
+        /**
+         @brief class constructor
+         */
         U4DParticleEmitterFactory();
         
+        /**
+         @brief class destructor
+         */
         ~U4DParticleEmitterFactory();
         
+        
+        /**
+         @brief creates the Emitters such as Linear Emitter, Sphere Emitter and Torus Emitter
+
+         @param uParticleSystemType particle system type
+         @return pointer to the Emitter object
+         */
         U4DParticleEmitterInterface* createEmitter(int uParticleSystemType);
         
     };

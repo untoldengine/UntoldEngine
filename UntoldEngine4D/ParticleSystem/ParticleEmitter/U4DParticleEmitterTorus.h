@@ -17,16 +17,31 @@
 
 namespace U4DEngine {
     
+    /**
+     @ingroup particlesystem
+     @brief The U4DParticleEmitterTorus class creates and allocates memory for the Torus Emitter
+     */
     class U4DParticleEmitterTorus:public U4DParticleEmitter {
         
     private:
         
     public:
         
+        /**
+         @brief class constructor
+         */
         U4DParticleEmitterTorus();
         
+        /**
+         @brief class destructor
+         */
         ~U4DParticleEmitterTorus();
         
+        /**
+         @brief computes the velocity of the particle
+         
+         @param uParticle pointer to the particle object
+         */
         void computeVelocity(U4DParticle *uParticle);
         
     };

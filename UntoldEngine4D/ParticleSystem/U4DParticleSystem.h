@@ -42,69 +42,79 @@ namespace U4DEngine {
 }
 namespace U4DEngine {
     
+    /**
+     @ingroup particlesystem
+     @brief The U4DParticleSystem class is in charge of creating 3D particles
+     */
     class U4DParticleSystem:public U4DVisibleEntity {
         
     private:
         
         /**
-         @brief document this
+         @brief Maximum number of particles to emit
          */
         int maxNumberOfParticles;
         
         /**
-         @brief document this
+         @brief Boolean variable to chech if the particle was provided with a texture
          */
         bool hasTexture;
         
         /**
-         @brief document this
+         @brief particles gravity
          */
         U4DVector3n gravity;
         
         /**
-         @brief document this
+         @brief vector containing 3D particle data such as position, start color, end color, etc
          */
         std::vector<PARTICLERENDERDATA> particleRenderDataContainer;
         
         /**
-         @brief document this
+         @brief vector holding particles ready to be removed from the system
          */
         std::vector<U4DParticle*> removeParticleContainer;
         
         /**
-         @brief document this
+         @brief pointer to the particle physics manager
          */
         U4DParticlePhysics *particlePhysics;
         
         /**
-         @brief document this
+         @brief pointer to the particle emitter interface
          */
         U4DParticleEmitterInterface *particleEmitter;
         
         /**
-         @brief document this
+         @brief pointer to the emitter factory, which uses the Factory Design Pattern to create the particle emitter type such as Linear, Spherical, Torus, etc
          */
         U4DParticleEmitterFactory emitterFactory;
         
         /**
-         @brief document this
+         @brief additive rendering variable. If additive rendering is enabled, then the particles will blend their colors among each other
          */
         bool enableAdditiveRendering;
         
         /**
-         @brief document this
+         @brief Noise boolean variable. If noise is enabled, the Perlin Noise function is used in the shaders.
          */
         bool enableNoise;
         
         /**
-         @brief document this
+         @brief Amount of noise to implement. Value ranges from [1-16]. Default is 4.0
          */
         float noiseDetail;
         
     public:
         
+        /**
+         @brief class constructor
+         */
         U4DParticleSystem();
         
+        /**
+         @brief class destructor
+         */
         ~U4DParticleSystem();
         
         /**
@@ -118,78 +128,138 @@ namespace U4DEngine {
         U4DTextureData textureInformation;
         
         /**
-         @brief Method which starts the rendering process of the entity
+         * @brief Renders the current entity
+         * @details Updates the space matrix, any rendering flags. It encodes the pipeline, buffers and issues the draw command
+         *
+         * @param uRenderEncoder Metal encoder object for the current entity
          */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
         /**
-         @brief Document this
+         @brief Loads the particle attributes into the GPU
+         @details The Particle System requires Particle System Data which informs the Particle System how to behave
+
+         @param uModelName name of the particle
+         @param uBlenderFile name of the blender file containing the attributes information
+         @param uParticleSystemData Particle System Data
+         @return true if the attributes were properly loaded
          */
-        void init(PARTICLESYSTEMDATA &uParticleSystemData);
+        bool loadParticleSystem(const char* uModelName, const char* uBlenderFile, PARTICLESYSTEMDATA &uParticleSystemData);
         
         /**
-         @brief Document this
-         */
-        void initParticleAttributes(float uSize);
-        
-        /**
-         @brief Document this
+         @brief Uupdates the state of the particle system
+         
+         @param dt Time-step value
          */
         void update(double dt);
         
+        
         /**
-         @brief Document this
+         @brief Sets the maximum number of particles to render
+
+         @param uMaxNumberOfParticles max number of particles
          */
         void setMaxNumberOfParticles(int uMaxNumberOfParticles);
         
+        
         /**
-         @brief Document this
+         @brief Gets the current maximum number of particles the system will render
+
+         @return max number of particles
          */
         int getMaxNumberOfParticles();
         
+        
         /**
-         @brief Document this
+         @brief gets the number of emitted particles
+
+         @return number of emitted particles
          */
         int getNumberOfEmittedParticles();
         
-        /**
-         @brief document this
-         */
-        void setParticleTexture(const char* uTextureImage);
         
         /**
-         @brief Document this
+         @brief sets whether or not the particle system has a texture for the particles
+
+         @param uValue true if texture is provided
          */
         void setHasTexture(bool uValue);
         
+        
         /**
-         @brief Document this
+         @brief gets whether or not the particle system has a texture for the particles
+
+         @return true if texture is provided
          */
         bool getHasTexture();
         
+        
         /**
-         @brief Document this
+         @brief gets the vector containing the 3D particle data such as position, start color, end color, etc
+
+         @return vector with 3D particle data
          */
         std::vector<PARTICLERENDERDATA> getParticleRenderDataContainer();
         
+        
         /**
-         @brief Document this
+         @brief Removes dead particles
+         @details Once a particle is dead, the engine removes it from its rendering process
          */
         void removeDeadParticle();
         
+        /**
+         @brief removes all particles
+         @details The engine removes all particles from the rendering process
+         */
         void removeAllParticles();
         
+        /**
+         @brief Initializes the particle emitter with data such as start color, end color, emition angle, speed, particle life, etc
+
+         @param uParticleSystemData Reference to the particle system data object
+         */
         void initializeParticleEmitter(PARTICLESYSTEMDATA &uParticleSystemData);
         
+        
+        /**
+         @brief gets whether additive rendering was enabled
+         @details If additive rendering is enabled, then the particles will blend their colors among each other
+
+         @return true if additive rendering is enabled
+         */
         bool getEnableAdditiveRendering();
         
+        
+        /**
+         @brief gets if Noise was enabled
+         @details Noise is created using the Perlin Noise function
+
+         @return true if Noise is enabled
+         */
         bool getEnableNoise();
         
+        
+        /**
+         @brief gets the Noise Detail factor
+         @details The higher the noise detail, the more noise is generated in the texture. Value ranges are [1,16]. Defaut is 4.0
+
+         @return Current noise factor
+         */
         float getNoiseDetail();
         
+        
+        /**
+         @brief Initiates the emittion of particles from the particle system
+         */
         void play();
         
+        
+        /**
+         @brief Stops the emittion of particles from the particle system
+         */
         void stop();
+        
     };
     
 }

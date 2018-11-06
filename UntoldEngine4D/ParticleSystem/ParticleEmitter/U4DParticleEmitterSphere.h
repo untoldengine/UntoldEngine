@@ -17,16 +17,31 @@
 
 namespace U4DEngine {
     
+    /**
+     @ingroup particlesystem
+     @brief The U4DParticleEmitterSphere class creates and allocates memory for the Sphereical Emitter
+     */
     class U4DParticleEmitterSphere:public U4DParticleEmitter {
         
     private:
         
     public:
         
+        /**
+         @brief class constructor
+         */
         U4DParticleEmitterSphere();
         
+        /**
+         @brief class destructor
+         */
         ~U4DParticleEmitterSphere();
         
+        /**
+         @brief computes the velocity of the particle
+         
+         @param uParticle pointer to the particle object
+         */
         void computeVelocity(U4DParticle *uParticle);
         
     };

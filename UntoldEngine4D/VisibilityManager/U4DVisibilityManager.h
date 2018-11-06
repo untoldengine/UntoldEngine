@@ -24,6 +24,10 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
+    /**
+     @ingroup camera
+     @brief The U4DVisibilityManager class tests whether a model is within the camera frustum
+     */
     class U4DVisibilityManager {
         
     private:
@@ -66,8 +70,14 @@ namespace U4DEngine {
         
     public:
         
+        /**
+         @brief class constructor
+         */
         U4DVisibilityManager();
         
+        /**
+         @brief class destructor
+         */
         ~U4DVisibilityManager();
         
         /**
