@@ -237,12 +237,23 @@ namespace U4DEngine {
     }ANIMATIONDATA;
     
     /**
-     @brief The PARTICLESYSTEMTYPE enum holds data required by the particle system type
+     @brief The PARTICLESYSTEMTYPE enum holds data required by the particle system type. It holds the type of emitter to be used for the particle system
      */
     typedef enum{
         
+        /**
+         @brief Emit particles in a linear shape
+         */
         LINEAREMITTER,
+        
+        /**
+         @brief Emit particles in a Torus shape
+         */
         TORUSEMITTER,
+        
+        /**
+         @brief Emit particles in a Spherical shape
+         */
         SPHERICALEMITTER
         
     }PARTICLESYSTEMTYPE;
@@ -252,18 +263,40 @@ namespace U4DEngine {
      */
     typedef struct{
         
+        /**
+         @brief Start color of the particle during the start of emission
+         */
+        
         U4DVector3n particleStartColor;
         
+        /**
+         @brief End color of the particle as it nears its life span
+         */
         U4DVector3n particleEndColor;
         
+        /**
+         @brief Color variance for the start color
+         */
         U4DVector3n particleStartColorVariance;
         
+        /**
+         @brief Color variance for the end color
+         */
         U4DVector3n particleEndColorVariance;
         
+        /**
+         @brief position variance of the particle
+         */
         U4DVector3n particlePositionVariance;
         
+        /**
+         @brief emission angle
+         */
         U4DVector3n particleEmitAngle;
         
+        /**
+         @brief emission angle variance
+         */
         U4DVector3n particleEmitAngleVariance;
         
         /**
@@ -281,27 +314,59 @@ namespace U4DEngine {
          */
         float sphereRadius=2.0;
         
+        /**
+         @brief life span of the article
+         */
         float particleLife=1.0;
         
+        /**
+         @brief particle's speed
+         */
         float particleSpeed;
         
+        /**
+         @brief number of particles the emitter must emit per emission
+         */
         int numberOfParticlesPerEmission=1;
         
+        /**
+         @brief maximum number of particles the emitter can create
+         */
         int maxNumberOfParticles=50;
         
+        /**
+         @brief emission rate
+         */
         float emissionRate=1.0;
         
+        /**
+         @brief if set to true, the emitter will emit continuously
+         */
         bool emitContinuously;
         
+        /**
+         @brief force of gravity acting on the particle
+         */
         U4DVector3n gravity;
         
+        /**
+         @brief particle emitter type. The emitter can emit the particles in a spherical, torus or linear fashion
+         */
         int particleSystemType=0;
         
+        /**
+         @brief if set to true, the emitter will add noise to the particle's texture.
+         */
         bool enableNoise=false;
         
-        //Noise frequency. Possible values are 1,2,4,8,16,32
+        /**
+         @brief Noise frequency. Possible values are 1,2,4,8,16,32
+         */
         float noiseDetail=4.0;
         
+        /**
+         @brief if set to true, the particles color will be blended with the sorrounding colors
+         */
         bool enableAdditiveRendering=true;
         
     }PARTICLESYSTEMDATA;
