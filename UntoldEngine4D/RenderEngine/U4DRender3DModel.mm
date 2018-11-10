@@ -546,7 +546,7 @@ namespace U4DEngine {
     
     void U4DRender3DModel::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
      
-        if (eligibleToRender==true && isWithinFrustum==true) {
+        if (eligibleToRender==true) {
             
             //set the shadow texture
             

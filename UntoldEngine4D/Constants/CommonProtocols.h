@@ -397,11 +397,6 @@ namespace U4DEngine {
         PARENT,
         
         /**
-         @brief Entity of a 3D model with no shadows enabled
-         **/
-        MODELNOSHADOWS,
-        
-        /**
          @brief Entity represents an input controller
          */
         CONTROLLERINPUT
