@@ -25,14 +25,14 @@ void U4DSpriteLoader::loadSpritesAssetFile(std::string uSpriteAtlasFile,std::str
     
     if (!loadOk) {
         
-        std::cout<<"Font Asset "<<uSpriteAtlasFile<<" loaded successfully"<<std::endl;
+        std::cout<<"SpriteSheet "<<uSpriteAtlasFile<<" loaded successfully"<<std::endl;
         
         loadSprites();
         
         spriteAtlasImage=uSpriteAtlasImage;
         
     }else{
-        std::cout<<"Font Asset "<<uSpriteAtlasFile<<"was not found. Loading failed"<<std::endl;
+        std::cout<<"SpriteSheet "<<uSpriteAtlasFile<<"was not found. Loading failed"<<std::endl;
         
     }
     
