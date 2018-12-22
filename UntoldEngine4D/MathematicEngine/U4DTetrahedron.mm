@@ -186,7 +186,7 @@ namespace U4DEngine {
 
     bool U4DTetrahedron::isPointInTetrahedron(U4DPoint3n& uPoint){
         
-        return !(pointOutsideOfPlane(uPoint, pointA, pointB, pointC)&&pointOutsideOfPlane(uPoint, pointA, pointC, pointD)&&pointOutsideOfPlane(uPoint, pointA, pointD, pointB)&&pointOutsideOfPlane(uPoint, pointB,pointC,pointD));
+        return !(pointOutsideOfPlane(uPoint, pointA, pointB, pointC, pointD)||pointOutsideOfPlane(uPoint, pointA, pointC, pointD, pointB)||pointOutsideOfPlane(uPoint, pointA, pointD, pointB, pointC)||pointOutsideOfPlane(uPoint, pointB,pointC,pointD, pointA));
         
     }
     

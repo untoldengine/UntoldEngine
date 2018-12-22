@@ -99,7 +99,7 @@ public:
     //Test if point p lies outside plane through abc
     
     /**
-     @brief Method to test if 3D point p lies outside the plane through abc. This is a private method
+     @brief Method to test if 3D point p lies outside the plane through abc. The tetrahedron should have a CCW winding.
      
      @param U4DPoint3n&p 3D point to test
      @param a            3D point composing face
@@ -111,7 +111,7 @@ public:
     bool pointOutsideOfPlane(U4DPoint3n&p, U4DPoint3n& a, U4DPoint3n& b, U4DPoint3n& c);
     
     /**
-     @brief Method to test if 3D point p and d lies outside the plane through abc. This is a private method
+     @brief Method to test if 3D point p and d lies outside the plane through abc. The tetrahedron should have a CCW winding. If the winding is not known, then use this method to test if a point lies outside the plane.
      
      @param U4DPoint3n&p 3D point to test
      @param a            3D point composing face
