@@ -151,6 +151,8 @@ namespace U4DEngine {
 
     bool U4DTriangle::isPointOnTriangle(U4DPoint3n& uPoint){
         
+        U4DNumerical comparison;
+        
         U4DVector3n a=pointA-uPoint;
         U4DVector3n b=pointB-uPoint;
         U4DVector3n c=pointC-uPoint;
@@ -158,11 +160,22 @@ namespace U4DEngine {
         U4DVector3n u=b.cross(c);
         U4DVector3n v=c.cross(a);
         
-        if (u.dot(v)<0.0f) return 0;
+        float uv=u.dot(v);
+        
+        if (comparison.areEqual(uv, 0.0, U4DEngine::zeroEpsilon)) {
+            uv=0.0;
+        }
+        
+        if (uv<0.0f) return 0;
         
         U4DVector3n w=a.cross(b);
+        float uw=u.dot(w);
         
-        if(u.dot(w)<0.0f) return 0;
+        if (comparison.areEqual(uw, 0.0, U4DEngine::zeroEpsilon)) {
+            uw=0.0;
+        }
+        
+        if(uw<0.0f) return 0;
         
         
         return 1;
