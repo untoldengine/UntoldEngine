@@ -37,6 +37,11 @@ namespace U4DEngine {
       
     private:
         
+        /**
+         @brief set to true if the bondary volume should be renderered. Default is set to False
+         */
+        bool visibility;
+        
     public:
         
         U4DRenderManager *renderManager;
@@ -163,6 +168,18 @@ namespace U4DEngine {
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
         void setLineColor(U4DVector4n &lineColor);
+        
+        /**
+         @brief set if the engine should render the boundary volume
+         
+         @param uValue true to render.
+         */
+        void setVisibility(bool uValue);
+        
+        /**
+         @brief get if the engine should render the boundary volume
+         */
+        bool getVisibility();
         
     };
     

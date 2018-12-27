@@ -78,29 +78,26 @@ namespace U4DEngine {
     U4DPoint3n U4DBoundingConvex::getSupportPointInDirection(U4DVector3n& uDirection){
         
         int index=0;
+        float dotProduct=-FLT_MAX;
+        float support=0.0;
+        
+        U4DMatrix3n B=getAbsoluteMatrixOrientation();
+        U4DMatrix3n BTranspose=B.transpose();
+        
+        U4DVector3n d=uDirection;
+        d=BTranspose*d;
         
         std::vector<U4DVector3n> tempPolygonVertices;
         
         //copy polygon vertices into a temp container
         tempPolygonVertices=bodyCoordinates.convexHullVerticesContainer;
         
-        //update the vertices with the orientation and translation
-        for (auto& vertex:tempPolygonVertices) {
-            
-            vertex=getAbsoluteMatrixOrientation()*vertex;
-            vertex=vertex+getAbsolutePosition();
-            
-        }
-        
-        float dotProduct=-FLT_MAX;
-        float support=0.0;
-        
         //return the max dot product as the supporting vertex
         for(int i=0;i<tempPolygonVertices.size();i++){
             
             U4DVector3n vertex=tempPolygonVertices.at(i);
             
-            support=vertex.dot(uDirection);
+            support=vertex.dot(d);
             
             if(support>dotProduct){
                 
@@ -112,9 +109,9 @@ namespace U4DEngine {
         
         U4DVector3n supportVector=tempPolygonVertices.at(index);
         
+        supportVector=B*supportVector+getAbsolutePosition();
+        
         return supportVector.toPoint();
         
     }
-
-
 }
