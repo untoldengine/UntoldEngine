@@ -77,29 +77,37 @@ namespace U4DEngine {
          
          @param uClosestPointToOrigin       Closest point to the origin
          @param uNumberOfSimplexInContainer Number of simplex in container
+         
+         @return Returns true if a minimum simplex was found
          */
-        void determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer);
+        bool determineMinimumSimplexInQ(U4DPoint3n& uClosestPointToOrigin,int uNumberOfSimplexInContainer);
         
         /**
          @brief Method which determines the linear combination of a 3D point in a 3D line
          
          @param uClosestPointToOrigin Closest point to origin
+         
+         @return Returns true if a minimum simplex (line) was found
          */
-        void determineLinearCombinationOfPtInLine(U4DPoint3n& uClosestPointToOrigin);
+        bool determineLinearCombinationOfPtInLine(U4DPoint3n& uClosestPointToOrigin);
         
         /**
          @brief Method which determines the linear combination of a 3D point in a 3D triangle
          
          @param uClosestPointToOrigin Closest point to origin
+         
+         @return Returns true if a minimum simplex (triangle) was found
          */
-        void determineLinearCombinationOfPtInTriangle(U4DPoint3n& uClosestPointToOrigin);
+        bool determineLinearCombinationOfPtInTriangle(U4DPoint3n& uClosestPointToOrigin);
         
         /**
          @brief Method which determines the linear combination of a 3D point in a tetrahedron
          
          @param uClosestPointToOrigin Closest point to origin
+         
+         @return Returns true if a minimum simplex (tetrahedron) was found
          */
-        void determineLinearCombinationOfPtInTetrahedron(U4DPoint3n& uClosestPointToOrigin);
+        bool determineLinearCombinationOfPtInTetrahedron(U4DPoint3n& uClosestPointToOrigin);
         
         /**
          @brief Method which computes the barycentric coordinates points of the collision
@@ -110,16 +118,6 @@ namespace U4DEngine {
          @return Returns the barycentric coordinates points of the collision
          */
         std::vector<U4DPoint3n> closestBarycentricPoints(U4DPoint3n& uClosestPointToOrigin, std::vector<SIMPLEXDATA> uQ);
-        
-        /**
-         @brief Method which computes the distance to collision
-         
-         @param uClosestPointToOrigin Closest point to origin
-         @param uQ                    Simplex data
-         
-         @return Returns the distance(magnitude) to collision
-         */
-        float distanceToCollision(U4DPoint3n& uClosestPointToOrigin, std::vector<SIMPLEXDATA> uQ);
         
         /**
          @brief Method which returns the currect SIMPLEXDATA structure
@@ -149,12 +147,40 @@ namespace U4DEngine {
          */
         U4DVector3n getContactCollisionNormal();
         
+        /**
+         @brief Tests termination condition: ||vPrevious||^2-||vCurrent||^2<=epsilon*||vCurrent||^2
+         @param uV current simplex value
+         
+         @return true if termination condition is met
+         */
         bool checkGJKTerminationCondition1(SIMPLEXDATA &uV);
         
+        /**
+         @brief Tests termination condition: ||v||^2-vdotw<=epsilon^2*||v||^2
+         @param uV current simplex value
+         @param uP new simplex value
+         @param uQ simplex container
+         
+         @return true if termination condition is met
+         */
         bool checkGJKTerminationCondition2(SIMPLEXDATA &uV, SIMPLEXDATA &uP, std::vector<SIMPLEXDATA> uQ);
         
+        /**
+         @brief Tests termination condition: ||v||^2<=epsilon*max(element in Q)
+         @param uV current simplex value
+         @param uP new simplex value
+         @param uQ simplex container
+         
+         @return true if termination condition is met
+         */
         bool checkGJKTerminationCondition3(SIMPLEXDATA &uV, SIMPLEXDATA &uP, std::vector<SIMPLEXDATA> uQ);
         
+        /**
+         @brief get maximum simplex value in container
+         @param uQ simplex container
+         
+         @return maximum simplex
+         */
         SIMPLEXDATA getMaxSimplexInQ(std::vector<SIMPLEXDATA> uQ);
         
         /**

@@ -121,6 +121,7 @@ namespace U4DEngine {
      @brief Minimum number of contact points for an object to be consider in equilibrium
      */
     const int minimumContactPointsForEquilibrium=3;
+    
 }
 
 #endif
