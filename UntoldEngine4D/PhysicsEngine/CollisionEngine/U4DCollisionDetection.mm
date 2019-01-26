@@ -48,7 +48,7 @@ namespace U4DEngine {
         
         std::vector<float> barycentricCoordinates;
         
-        int uNumberOfSimplexInContainer=uQ.size();
+        int uNumberOfSimplexInContainer=(int)uQ.size();
         
         if (uNumberOfSimplexInContainer==2) {
             
@@ -121,7 +121,7 @@ namespace U4DEngine {
         
         U4DPoint3n closestPoint;
         
-        int uNumberOfSimplexInContainer=uQ.size();
+        int uNumberOfSimplexInContainer=(int)uQ.size();
         
         if (uNumberOfSimplexInContainer==2) {
             //do line

@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),narrowPhaseBoundingVolumeVisibility(false),broadPhaseBoundingVolumeVisibility(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
+    U4DStaticModel::U4DStaticModel():collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
         
         initMass(1.0);
         
@@ -355,6 +355,12 @@ namespace U4DEngine {
                     broadPhaseBoundingVolume->computeBoundingVolume(radius, 10, 10);
                 }
                 
+                //add convex boundary volume as a child of the object
+                addChild(convexHullBoundingVolume);
+                
+                //add broad boundary volume as a child of the object
+                addChild(broadPhaseBoundingVolume);
+                
                 //enable collision
                 collisionEnabled=true;
                 
@@ -393,26 +399,16 @@ namespace U4DEngine {
 
     void U4DStaticModel::setNarrowPhaseBoundingVolumeVisibility(bool uValue){
         
-        narrowPhaseBoundingVolumeVisibility=uValue;
+        convexHullBoundingVolume->setVisibility(uValue);
         
     }
     
     bool U4DStaticModel::getNarrowPhaseBoundingVolumeVisibility(){
         
-        return narrowPhaseBoundingVolumeVisibility;
-    }
-    
-    void U4DStaticModel::updateNarrowPhaseBoundingVolumeSpace(){
-        
-        //update the bounding volume with the model current space dual quaternion (rotation and translation)
-        convexHullBoundingVolume->setLocalSpace(absoluteSpace);
-        
+        return convexHullBoundingVolume->getVisibility();
     }
     
     U4DBoundingVolume* U4DStaticModel::getNarrowPhaseBoundingVolume(){
-        
-        //update the narrow bounding volume space
-        updateNarrowPhaseBoundingVolumeSpace();
         
         return convexHullBoundingVolume;
     }
@@ -422,31 +418,20 @@ namespace U4DEngine {
     
     U4DBoundingVolume* U4DStaticModel::getBroadPhaseBoundingVolume(){
         
-        //update the broad phase bounding volume space
-        updateBroadPhaseBoundingVolumeSpace();
-        
         return broadPhaseBoundingVolume;
         
     }
     
     void U4DStaticModel::setBroadPhaseBoundingVolumeVisibility(bool uValue){
         
-        broadPhaseBoundingVolumeVisibility=uValue;
+        broadPhaseBoundingVolume->setVisibility(uValue);
         
     }
     
     bool U4DStaticModel::getBroadPhaseBoundingVolumeVisibility(){
         
-        return broadPhaseBoundingVolumeVisibility;
+        return broadPhaseBoundingVolume->getVisibility();
     }
-    
-    void U4DStaticModel::updateBroadPhaseBoundingVolumeSpace(){
-        
-        //update the bounding volume with the model current space dual quaternion (rotation and translation)
-        broadPhaseBoundingVolume->setLocalSpace(absoluteSpace);
-        
-    }
-    
     
     
     void U4DStaticModel::addCollisionContactPoint(U4DVector3n& uContactPoint){

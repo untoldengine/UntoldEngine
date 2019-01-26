@@ -155,16 +155,6 @@ namespace U4DEngine {
          @brief Variable stating if model can detect collisions
          */
         bool collisionEnabled;
-        
-        /**
-         @brief Variable stating the visibility of the broad-phase bounding volume. If set to true, the engine will render the broad-phase volume
-         */
-        bool broadPhaseBoundingVolumeVisibility;
-    
-        /**
-         @brief Variable stating the visibility of the narrow-phase bounding volume. If set to true, the engine will render the narrow-phase volume
-         */
-        bool narrowPhaseBoundingVolumeVisibility;
     
         /**
          @brief Object representing the narrow-phase bounding volume
@@ -369,16 +359,6 @@ namespace U4DEngine {
          @brief Method which updates the convex-hull vertices of the model
          */
         void updateConvexHullVertices();
-        
-        /**
-         @brief Method which updates the narrow-phase bounding volume space
-         */
-        void updateNarrowPhaseBoundingVolumeSpace();
-        
-        /**
-         @brief Method which updates the broad-phase bounding volume space
-         */
-        void updateBroadPhaseBoundingVolumeSpace();
     
         //add operations
    

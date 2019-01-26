@@ -29,7 +29,7 @@ namespace U4DEngine {
         setEntityType(CONTROLLERINPUT);
         
         //set initial state
-        stateManager->changeState(U4DPadButtonReleasedState::sharedInstance());
+        stateManager->changeState(U4DPadButtonIdleState::sharedInstance());
         
     }
     

@@ -232,9 +232,9 @@ void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
     y=trigonometry.degreesToRad(y);
     z=trigonometry.degreesToRad(z);
     
-    x=x/2;
-    y=y/2;
-    z=z/2;
+    x=x/2.0;
+    y=y/2.0;
+    z=z/2.0;
     
     s=cos(z)*cos(y)*cos(x)+sin(z)*sin(y)*sin(x);
     v.x=cos(z)*cos(y)*sin(x)-sin(z)*sin(y)*cos(x);

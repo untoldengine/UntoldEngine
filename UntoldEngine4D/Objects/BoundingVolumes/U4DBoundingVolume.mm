@@ -17,7 +17,7 @@
 namespace U4DEngine {
     
     
-    U4DBoundingVolume::U4DBoundingVolume(){
+    U4DBoundingVolume::U4DBoundingVolume():visibility(false){
         
         renderManager=new U4DRenderGeometry(this);
         setShader("vertexGeometryShader", "fragmentGeometryShader");
@@ -48,12 +48,26 @@ namespace U4DEngine {
 
     void U4DBoundingVolume::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        if (visibility==true) {
+            renderManager->render(uRenderEncoder);
+        }
+        
     }
     
     void U4DBoundingVolume::setLineColor(U4DVector4n &lineColor){
         
         renderManager->setGeometryLineColor(lineColor);
+    }
+    
+    void U4DBoundingVolume::setVisibility(bool uValue){
+        
+        visibility=uValue;
+        
+    }
+    
+    bool U4DBoundingVolume::getVisibility(){
+        
+        return visibility;
     }
 
 }
