@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
     
-    U4DArmatureData::U4DArmatureData(U4DModel *uModel){
+    U4DArmatureData::U4DArmatureData(U4DModel *uModel):rootBone(nullptr){
 
         u4dModel=uModel;
         
