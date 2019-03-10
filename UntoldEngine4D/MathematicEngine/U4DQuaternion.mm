@@ -347,7 +347,29 @@ U4DQuaternion U4DQuaternion::slerp(U4DQuaternion&q, float time){
     p.normalize();
     q.normalize();
     
-    float theta=acosf(s*q.s+v.x*q.v.x+v.y*q.v.y+v.z*q.v.z);
+    //compute dot product between the quaternions
+    float dot=p.dot(q);
+    
+    //check the sign of the dot product. If is negative, the slerp will not take the shorter path. Reverse the quaternion if dot is negative
+    if(dot<0.0f){
+        q*=-1.0;
+        dot=-dot;
+    }
+    
+    //check of the threshold. if the inputs are too close, linearly interpolate and normalize the result
+    
+    const double dotThreshold=0.9995;
+    
+    if (dot>dotThreshold) {
+        
+        U4DQuaternion linearQuatInterpolation=p+(q-p)*time;
+        
+        linearQuatInterpolation.normalize();
+        
+        return linearQuatInterpolation;
+    }
+    
+    float theta=acosf(dot);
     
     slerpQuaternion=p*(sin(1-time)/sin(theta))*theta+q*(sin(time)/sin(theta))*theta;
     
