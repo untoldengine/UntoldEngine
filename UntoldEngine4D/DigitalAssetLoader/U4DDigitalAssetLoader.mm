@@ -134,6 +134,9 @@ namespace U4DEngine {
                     tinyxml2::XMLElement *armature=child->FirstChildElement("armature");
                     tinyxml2::XMLElement *dimension=child->FirstChildElement("dimension");
                     tinyxml2::XMLElement *preHullVertices=child->FirstChildElement("prehullvertices");
+                    tinyxml2::XMLElement *meshVertices=child->FirstChildElement("mesh_vertices");
+                    tinyxml2::XMLElement *meshEdgesIndex=child->FirstChildElement("mesh_edges_index");
+                    tinyxml2::XMLElement *meshFacesIndex=child->FirstChildElement("mesh_faces_index");
                     
                     //Set name
                     uModel->setName(meshName);
@@ -170,6 +173,27 @@ namespace U4DEngine {
                         
                         std::string data=preHullVertices->GetText();
                         loadPreHullData(uModel, data);
+                    }
+                    
+                    if (meshVertices!=NULL) {
+                        
+                        std::string data=meshVertices->GetText();
+                        loadMeshVerticesData(uModel, data);
+                        
+                    }
+                    
+                    if (meshEdgesIndex!=NULL) {
+                        
+                        std::string data=meshEdgesIndex->GetText();
+                        loadMeshEdgesData(uModel, data);
+                        
+                    }
+                    
+                    if (meshFacesIndex!=NULL) {
+                        
+                        std::string data=meshFacesIndex->GetText();
+                        loadMeshFacesData(uModel, data);
+                        
                     }
                     
                     if (dimension!=NULL) {
@@ -676,6 +700,77 @@ namespace U4DEngine {
             U4DVector3n uPreHullVertices(x,y,z);
             
             uModel->bodyCoordinates.addPreConvexHullVerticesDataToContainer(uPreHullVertices);
+            i=i+3;
+            
+        }
+        
+    }
+    
+    void U4DDigitalAssetLoader::loadMeshVerticesData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<float> tempVector;
+        
+        stringToFloat(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();) {
+            
+            float x=tempVector.at(i);
+            
+            float y=tempVector.at(i+1);
+            
+            float z=tempVector.at(i+2);
+            
+            U4DVector3n uMeshVertices(x,y,z);
+            
+            uModel->polygonInformation.addVertexToContainer(uMeshVertices);
+            i=i+3;
+            
+        }
+    }
+    
+    void U4DDigitalAssetLoader::loadMeshEdgesData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<int> tempVector;
+        
+        stringToInt(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();) {
+            
+            int i1=tempVector.at(i);
+            int i2=tempVector.at(i+1);
+            
+            U4DPoint3n point1=uModel->polygonInformation.verticesContainer.at(i1).toPoint();
+            U4DPoint3n point2=uModel->polygonInformation.verticesContainer.at(i2).toPoint();
+            
+            U4DSegment edge(point1,point2);
+            
+            uModel->polygonInformation.addEdgeToContainer(edge);
+            i=i+2;
+        }
+        
+    }
+    
+    void U4DDigitalAssetLoader::loadMeshFacesData(U4DModel *uModel,std::string uStringData){
+        
+        std::vector<int> tempVector;
+        
+        stringToInt(uStringData, &tempVector);
+        
+        for (int i=0; i<tempVector.size();) {
+            
+            int i1=tempVector.at(i);
+            int i2=tempVector.at(i+1);
+            int i3=tempVector.at(i+2);
+            
+            U4DPoint3n point1=uModel->polygonInformation.verticesContainer.at(i1).toPoint();
+            U4DPoint3n point2=uModel->polygonInformation.verticesContainer.at(i2).toPoint();
+            U4DPoint3n point3=uModel->polygonInformation.verticesContainer.at(i3).toPoint();
+            
+            //assemble the triangle ccw
+            U4DTriangle face(point3,point2,point1);
+            
+            uModel->polygonInformation.addFaceToContainer(face);
+            
             i=i+3;
             
         }

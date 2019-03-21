@@ -16,6 +16,7 @@
 #include "U4DMaterialData.h"
 #include "U4DTextureData.h"
 #include "U4DArmatureData.h"
+#include "U4DPolygonData.h"
 #include "U4DAnimation.h"
 #include "CommonProtocols.h"
 #include <MetalKit/MetalKit.h>
@@ -94,6 +95,11 @@ namespace U4DEngine {
          @brief Object which contains texture information
          */
         U4DTextureData textureInformation;
+        
+        /**
+         @brief Object with polygon (vertices, edges and faces) information
+         */
+        U4DPolygonData polygonInformation;
         
         /**
          @brief Pointer to an armature object representing an armature manager
