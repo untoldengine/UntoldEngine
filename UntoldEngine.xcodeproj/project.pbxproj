@@ -729,6 +729,9 @@
 		039DB55C223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55D223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55E223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
+		039DB561224279C800E323D4 /* U4DPolygonData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55F224279C800E323D4 /* U4DPolygonData.mm */; };
+		039DB562224279C800E323D4 /* U4DPolygonData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55F224279C800E323D4 /* U4DPolygonData.mm */; };
+		039DB563224279C800E323D4 /* U4DPolygonData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55F224279C800E323D4 /* U4DPolygonData.mm */; };
 		039EC6BF1FB57F5C0098BB5C /* myFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BD1FB57F5B0098BB5C /* myFont.png */; };
 		039EC6C01FB57F5C0098BB5C /* myFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BE1FB57F5B0098BB5C /* myFont.xml */; };
 		03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
@@ -1093,6 +1096,8 @@
 		039175061CE1933100FD2674 /* U4DBVHModelCollision.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHModelCollision.h; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHModelCollision.h; sourceTree = "<group>"; };
 		039DB55A223F08C200E323D4 /* U4DRay.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRay.mm; sourceTree = "<group>"; };
 		039DB55B223F08C200E323D4 /* U4DRay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DRay.h; sourceTree = "<group>"; };
+		039DB55F224279C800E323D4 /* U4DPolygonData.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPolygonData.mm; sourceTree = "<group>"; };
+		039DB560224279C800E323D4 /* U4DPolygonData.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DPolygonData.h; sourceTree = "<group>"; };
 		039EC6BD1FB57F5B0098BB5C /* myFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = myFont.png; sourceTree = "<group>"; };
 		039EC6BE1FB57F5B0098BB5C /* myFont.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = myFont.xml; sourceTree = "<group>"; };
 		03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFontLoader.h; sourceTree = "<group>"; };
@@ -1775,6 +1780,8 @@
 				03068D5D19B96B5400ABDC55 /* U4DArmatureData.mm */,
 				03D1FBC51D50442300B3CF6E /* U4DColorData.h */,
 				03D1FBC41D50442200B3CF6E /* U4DColorData.mm */,
+				039DB560224279C800E323D4 /* U4DPolygonData.h */,
+				039DB55F224279C800E323D4 /* U4DPolygonData.mm */,
 			);
 			path = Objects;
 			sourceTree = "<group>";
@@ -2626,6 +2633,7 @@
 				0341AC1F204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */,
 				03722BBE2029F0F50080D069 /* U4DButtonIdleState.mm in Sources */,
 				03722B1E2029F0220080D069 /* main.m in Sources */,
+				039DB562224279C800E323D4 /* U4DPolygonData.mm in Sources */,
 				03722BBB2029F0F50080D069 /* U4DJoystickReleasedState.mm in Sources */,
 				034F2A30217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				03722B662029F0F50080D069 /* U4DIntegrator.mm in Sources */,
@@ -3006,6 +3014,7 @@
 				0341AC21204D8D05006E14A9 /* U4DMacArrowKeyStateInterface.mm in Sources */,
 				03722CF82029F0F80080D069 /* U4DButtonIdleState.mm in Sources */,
 				03722B422029F0220080D069 /* main.m in Sources */,
+				039DB563224279C800E323D4 /* U4DPolygonData.mm in Sources */,
 				03722CF52029F0F80080D069 /* U4DJoystickReleasedState.mm in Sources */,
 				034F2A31217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				03722CA02029F0F80080D069 /* U4DIntegrator.mm in Sources */,
@@ -3221,6 +3230,7 @@
 				034F2A2C217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				0341AC0E204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
+				039DB561224279C800E323D4 /* U4DPolygonData.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,

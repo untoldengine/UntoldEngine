@@ -247,6 +247,13 @@ namespace U4DEngine {
          @param uIntData    int data
          */
         void stringToInt(std::string uStringData,std::vector<int> *uIntData);
+        
+        void loadMeshVerticesData(U4DModel *uModel,std::string uStringData);
+        
+        void loadMeshEdgesData(U4DModel *uModel,std::string uStringData);
+        
+        void loadMeshFacesData(U4DModel *uModel,std::string uStringData);
+        
     };
 
 }
