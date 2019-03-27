@@ -84,5 +84,60 @@ namespace U4DEngine {
         return false;
     }
     
+    bool U4DRay::intersectAABB(U4DAABB &uAABB, U4DPoint3n &uIntersectionPoint, float &uIntersectionTime){
+        
+        //Refer to page 181 in Real Time Collision Detection
+        
+        //declare tmin and tmax
+        float tMin=0.0f;
+        float tMax=FLT_MAX;
+        
+        //For ease of use load all the min and max values of the AABB into an array. We will use this in a for loop.
+        
+        float minValues[3]={uAABB.minPoint.x,uAABB.minPoint.y,uAABB.minPoint.z};
+        float maxValues[3]={uAABB.maxPoint.x,uAABB.maxPoint.y,uAABB.maxPoint.z};
+        float originValues[3]={origin.x,origin.y,origin.z};
+        float d[3]={1/direction.x,1/direction.y,1/direction.z};
+        
+        //go through all three slab of the AABB
+        for(int i=0; i<3; i++) {
+           
+            //Check if the coordinates of the ray is paraller and lies exactly on the slab of the AABB
+            if(std::abs(d[i])<U4DEngine::zeroEpsilon){
+                
+                if (originValues[i]<minValues[i] || originValues[i]>maxValues[i]) {
+                    return false;
+                }
+                
+            }else{
+                
+                //Compute the intersection t value of ray with near and far plane of slab
+                float t1=(minValues[i]-originValues[i])*d[i];
+                float t2=(maxValues[i]-originValues[i])*d[i];
+                
+                //make t1 be intersection with near plane, t2 with far plane
+                if(t1>t2) std::swap(t1,t2);
+                
+                //compute the intersection of slab intersection intervals
+                tMin=std::max(tMin, t1);
+                tMax=std::min(tMax,t2);
+                
+                if (tMin>tMax) {
+                    return false;
+                }
+                
+            }
+           
+        }
+        
+        //set intersection time and point
+        uIntersectionTime=tMin;
+        
+        uIntersectionPoint=(origin.toVector()+direction*uIntersectionTime).toPoint();
+        
+        return true;
+        
+    }
+    
 }
 

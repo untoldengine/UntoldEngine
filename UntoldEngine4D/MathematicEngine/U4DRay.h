@@ -10,10 +10,13 @@
 #define U4DRay_hpp
 
 #include <stdio.h>
+#include <cmath>
+#include <float.h>
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
 #include "U4DPlane.h"
 #include "U4DTriangle.h"
+#include "U4DAABB.h"
 
 namespace U4DEngine {
     
@@ -85,6 +88,16 @@ namespace U4DEngine {
          @return true if the ray intersects the triangle
          */
         bool intersectTriangle(U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionTime);
+        
+        /**
+         @brief test intersection with an AABB Box
+         
+         @param uAABB AABB to test intersection
+         @param uIntersectionPoint ray intersection point
+         @param uIntersectionTime ray intersection time
+         @return true if the ray intersects the AABB
+         */
+        bool intersectAABB(U4DAABB &uAABB, U4DPoint3n &uIntersectionPoint, float &uIntersectionTime);
         
     };
     
