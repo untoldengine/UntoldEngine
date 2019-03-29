@@ -16,6 +16,8 @@
 namespace U4DEngine {
     class U4DSphere;
     class U4DSegment;
+    class U4DTriangle;
+    class U4DPlane;
 }
 
 namespace U4DEngine {
@@ -163,6 +165,10 @@ namespace U4DEngine {
          * @return halfwidth vector
          */
         U4DVector3n getHalfWidth();
+        
+        bool intersectionWithTriangle(U4DTriangle &uTriangle);
+        
+        bool intersectionWithPlane(U4DPlane &uPlane);
         
     };
     
