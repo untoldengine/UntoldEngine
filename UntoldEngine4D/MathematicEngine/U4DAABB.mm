@@ -9,6 +9,8 @@
 #include "U4DAABB.h"
 #include "U4DSphere.h"
 #include "U4DSegment.h"
+#include "U4DTriangle.h"
+#include "U4DPlane.h"
 #include <cmath>
 #include "Constants.h"
 
@@ -169,6 +171,146 @@ namespace U4DEngine {
     U4DVector3n U4DAABB::getHalfWidth(){
         
         return (getCenter()-getMaxPoint());
+        
+    }
+    
+    bool U4DAABB::intersectionWithTriangle(U4DTriangle &uTriangle){
+        
+        //declare the projection coordinates
+        float p0,p1,p2;
+        
+        //get the AABB center and halfwidth
+        U4DVector3n c=getCenter().toVector();
+        
+        float e0=getHalfWidth().x;
+        float e1=getHalfWidth().y;
+        float e2=getHalfWidth().z;
+        
+        //translate triangle as conceptually moving AABB to origin
+        U4DVector3n v0=uTriangle.pointA.toVector();
+        U4DVector3n v1=uTriangle.pointB.toVector();
+        U4DVector3n v2=uTriangle.pointC.toVector();
+        
+        v0-=c;
+        v1-=c;
+        v2-=c;
+        
+        //compute edge vectors for triangle
+        U4DVector3n f0=v1-v0;
+        U4DVector3n f1=v2-v1;
+        U4DVector3n f2=v0-v2;
+        
+        //get the normals
+        U4DVector3n u0(1.0,0.0,0.0);
+        U4DVector3n u1(0.0,1.0,0.0);
+        U4DVector3n u2(0.0,0.0,1.0);
+        
+        //Category tests
+        //1. Three face normals from the AABB
+        //2. Once face from the triangle
+        //3. Nine axis given by the cross products of combination of edges from both
+        
+        //The tests must be done in this order: 3-1-2
+        
+        //Category 3 test
+        
+        //a00=u0 x f0
+        U4DVector3n a00=u0.cross(f0);
+        U4DVector3n a01=u0.cross(f1);
+        U4DVector3n a02=u0.cross(f2);
+        
+        U4DVector3n a10=u1.cross(f0);
+        U4DVector3n a11=u1.cross(f1);
+        U4DVector3n a12=u1.cross(f2);
+        
+        U4DVector3n a20=u2.cross(f0);
+        U4DVector3n a21=u2.cross(f1);
+        U4DVector3n a22=u2.cross(f2);
+        
+        U4DVector3n separatingAxis[9]={a00,a01,a02,a10,a11,a12,a20,a21,a22};
+        
+        //projection radius of box
+        float projRadiusOfBox;
+        float edgeProjectionMax, edgeProjectionMin;
+        
+        //test axis a00..a22
+        
+        for (int i=0; i<9; i++) {
+            
+            //get the projections of the triangle against the separating axis
+            
+            //p0=V0.a00
+            p0=v0.dot(separatingAxis[i]);
+            p1=v1.dot(separatingAxis[i]);
+            p2=v2.dot(separatingAxis[i]);
+            
+            
+            //projection radius of box
+            projRadiusOfBox=std::fabs(u0.dot(separatingAxis[i]))*e0+std::fabs(u1.dot(separatingAxis[i]))*e1+std::fabs(u2.dot(separatingAxis[i]))*e2;
+            
+            edgeProjectionMax=std::max(p0, std::max(p1,p2));
+            edgeProjectionMin=std::min(p0, std::min(p1,p2));
+            
+            if(std::max(edgeProjectionMin,-edgeProjectionMax)>projRadiusOfBox){
+                
+                return false; //axis is a separating axis
+                
+            }
+            
+        }
+        
+        //category 1 test.
+        //Test the tree axes corresponding to the face normals of AABB box
+        //exit if...
+        //..[-e0,e0] and [min(v0.x,v1.x,v2.x),max(v0.x,v1.x,v2.x)] do not overlap
+        if (std::max(v0.x,std::max(v1.x,v2.x))<-e0 || std::min(v0.x,std::min(v1.x,v2.x))>e0) {
+            return false;
+        }
+        
+        //..[-e1,e1] and [min(v0.y,v1.y,v2.y),max(v0.y,v1.y,v2.y)] do not overlap
+        if (std::max(v0.y,std::max(v1.y,v2.y))<-e1 || std::min(v0.y,std::min(v1.y,v2.y))>e1) {
+            return false;
+        }
+        
+        //..[-e2,e2] and [min(v0.z,v1.z,v2.z),max(v0.z,v1.z,v2.z)] do not overlap
+        if (std::max(v0.z,std::max(v1.z,v2.z))<-e2 || std::min(v0.z,std::min(v1.z,v2.z))>e2) {
+            return false;
+        }
+        
+        //category 2 test
+        //test separating axis corresponding to triangle face normal
+        
+        U4DVector3n planeNormal=f0.cross(f1);
+        float planeDistance=planeNormal.dot(v0);
+        
+        U4DPlane plane(planeNormal,planeDistance);
+        
+        //translate the box to the center
+        U4DPoint3n centeredAABBMinPoint=(getMinPoint().toVector()-c).toPoint();
+        U4DPoint3n centeredAABBMaxPoint=(getMaxPoint().toVector()-c).toPoint();
+        
+        U4DAABB centeredAABB(centeredAABBMinPoint,centeredAABBMaxPoint);
+        
+        return centeredAABB.intersectionWithPlane(plane);
+        
+    }
+    
+    bool U4DAABB::intersectionWithPlane(U4DPlane &uPlane){
+        
+        //Compute AABB Center
+        U4DPoint3n c=getCenter();
+        
+        //Compute positive halfwidths
+        U4DPoint3n e=getHalfWidth().toPoint();
+        
+        //Compute the projection interval of radius of AABB onto plane
+        float r=e.x*std::abs(uPlane.n.x)+e.y*std::abs(uPlane.n.y)+e.z*std::abs(uPlane.n.z);
+        
+        //Compute distance of box center from plane
+        float s=uPlane.n.dot(c.toVector())-uPlane.d;
+        
+        //intersection occurs when distance s falls within [-r,r] interval
+        return std::abs(s)<=r;
         
     }
     
