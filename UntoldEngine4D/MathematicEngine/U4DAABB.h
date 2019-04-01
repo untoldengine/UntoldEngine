@@ -63,6 +63,21 @@ namespace U4DEngine {
         U4DAABB(float uX, float uY, float uZ, U4DPoint3n &uCenter);
         
         /**
+         @brief Copy constructor for the class
+         @param a AABB to copy to
+         */
+        U4DAABB(const U4DAABB& a);
+        
+        /**
+         @brief Copy constructor for the class
+         
+         @param a AABB to copy to
+         
+         @return returns a copy of the AABB
+         */
+        U4DAABB& operator=(const U4DAABB& a);
+        
+        /**
          @brief Destructor for the class
          */
         ~U4DAABB();
