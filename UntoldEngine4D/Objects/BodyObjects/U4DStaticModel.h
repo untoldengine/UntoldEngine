@@ -16,7 +16,7 @@
 namespace U4DEngine {
     
     class U4DBoundingVolume;
-    
+    class U4DMeshOctreeManager;
 }
 
 namespace U4DEngine {
@@ -165,6 +165,11 @@ namespace U4DEngine {
          @brief Object representing the broad-phase bounding volume
          */
         U4DBoundingVolume *broadPhaseBoundingVolume;
+        
+        /**
+         @brief Object representing the mesh octree manager
+         */
+        U4DMeshOctreeManager *meshOctreeManager;
         
         /**
          @brief Object representing mass properties of the model
@@ -629,6 +634,18 @@ namespace U4DEngine {
          * @details The collision list keeps a list of all the 3D entities currently colliding with this entity
          */
         void clearCollisionList();
+        
+        /**
+         * @brief Enables the mesh manager to build an octree
+         * @details Builds an octree for the 3D model using AABB boxes
+         * @param uSubDivisions The subdivisions used for the octree. 1 subdivision=9 nodes, 2 subdivisions=73 node, 3 subdivisions=585 nodes
+         */
+        void enableMeshManager(int uSubDivisions);
+        
+        /**
+         @brief gets a pointer to the mesh manager in charge of building an octree
+         */
+        U4DMeshOctreeManager *getMeshOctreeManager();
         
         };
     

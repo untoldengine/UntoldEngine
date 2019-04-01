@@ -44,6 +44,19 @@ namespace U4DEngine {
         
     }
     
+    U4DAABB::U4DAABB(const U4DAABB& a):minPoint(a.minPoint),maxPoint(a.maxPoint){
+        
+    }
+    
+    
+    U4DAABB& U4DAABB::operator=(const U4DAABB& a){
+        
+        minPoint=a.minPoint;
+        maxPoint=a.maxPoint;
+        
+        return *this;
+    }
+    
     U4DPoint3n U4DAABB::getCenter(){
         
         return (maxPoint+minPoint)*0.5;
