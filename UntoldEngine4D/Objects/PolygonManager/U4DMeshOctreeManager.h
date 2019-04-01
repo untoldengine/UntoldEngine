@@ -44,7 +44,7 @@ namespace U4DEngine {
         
         /**
          @brief constructor for the U4DMeshOctreeManager
-         @param Pointer to the model whose octree will be based on
+         @param uModel pointer to the model whose octree will be based on
          */
         U4DMeshOctreeManager(U4DStaticModel *uModel);
         
