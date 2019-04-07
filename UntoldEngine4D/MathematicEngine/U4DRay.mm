@@ -8,6 +8,7 @@
 
 #include "U4DRay.h"
 #include "Constants.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
@@ -40,8 +41,16 @@ namespace U4DEngine {
     
     bool U4DRay::intersectPlane(U4DPlane &uPlane, U4DPoint3n &uIntersectionPoint, float &uIntersectionTime){
         
+        U4DNumerical numerical;
+        
         //convert point to vector
         U4DVector3n originVector=origin.toVector();
+        
+        float planeRayDotProduct=uPlane.n.dot(direction);
+        
+        if (numerical.areEqual(planeRayDotProduct, 0.0, U4DEngine::zeroEpsilon)) {
+            return false;
+        }
         
         //equation to get hit time=(d-n.origin)/(n.direction)
         //d and n are part of the 3D plane.

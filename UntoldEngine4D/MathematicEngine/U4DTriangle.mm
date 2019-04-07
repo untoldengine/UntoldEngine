@@ -210,7 +210,9 @@ namespace U4DEngine {
     
     U4DVector3n U4DTriangle::getTriangleNormal(){
         
-        return (pointA-pointB).cross(pointA-pointC);
+        U4DVector3n normalVector=(pointA-pointB).cross(pointA-pointC);
+        normalVector.normalize();
+        return normalVector;
     }
     
     

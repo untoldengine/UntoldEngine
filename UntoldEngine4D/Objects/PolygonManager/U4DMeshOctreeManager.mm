@@ -13,6 +13,9 @@ namespace U4DEngine {
     
     U4DMeshOctreeManager::U4DMeshOctreeManager(U4DStaticModel *uModel):model(uModel){
         
+        //compute mesh faces in absolute space (recall mesh faces are in local space. You need to convert them to absolute space)
+        computeMeshFacesAbsoluteSpace();
+        
     }
     
     U4DMeshOctreeManager::~U4DMeshOctreeManager(){
@@ -92,11 +95,6 @@ namespace U4DEngine {
     
     void U4DMeshOctreeManager::assignFacesToNodeLeaf(){
         
-        //get pointer to the faces composing the 3d model
-        std::vector<U4DTriangle> faceContainer=model->polygonInformation.getFacesDataFromContainer();
-        
-        //Do an intersection test
-        
         //Traverse the tree
         U4DMeshOctreeNode* child=treeContainer.at(0).get();
 
@@ -109,9 +107,9 @@ namespace U4DEngine {
                 //For each leaf test which triangles intersect with its AABB box and store index in a
                 //vector container
                 
-                for(int i=0;i<faceContainer.size();i++){
+                for(int i=0;i<meshFacesAbsoluteSpaceContainer.size();i++){
                     
-                    U4DTriangle face=faceContainer.at(i);
+                    U4DTriangle face=meshFacesAbsoluteSpaceContainer.at(i);
                     
                     if(child->aabbVolume.intersectionWithTriangle(face)){
                         child->triangleIndexContainer.push_back(i);
@@ -132,6 +130,38 @@ namespace U4DEngine {
         //return root node store at index location 0 in the tree container
         return treeContainer.at(0).get();
         
+    }
+    
+    void U4DMeshOctreeManager::computeMeshFacesAbsoluteSpace(){
+        
+        std::vector<U4DTriangle> facesLocalSpaceContainer=model->polygonInformation.getFacesDataFromContainer();
+        
+        for(auto n:facesLocalSpaceContainer){
+            
+            U4DVector3n pointA=model->getAbsoluteMatrixOrientation()*n.pointA.toVector();
+            pointA=pointA+model->getAbsolutePosition();
+            
+            U4DVector3n pointB=model->getAbsoluteMatrixOrientation()*n.pointB.toVector();
+            pointB=pointB+model->getAbsolutePosition();
+            
+            U4DVector3n pointC=model->getAbsoluteMatrixOrientation()*n.pointC.toVector();
+            pointC=pointC+model->getAbsolutePosition();
+            
+            U4DPoint3n a=pointA.toPoint();
+            U4DPoint3n b=pointB.toPoint();
+            U4DPoint3n c=pointC.toPoint();
+            
+            U4DTriangle triangle(a,b,c);
+            
+            meshFacesAbsoluteSpaceContainer.push_back(triangle);
+            
+        }
+        
+    }
+    
+    std::vector<U4DTriangle> U4DMeshOctreeManager::getMeshFacesAbsoluteSpaceContainer(){
+        
+        return meshFacesAbsoluteSpaceContainer;
     }
     
 }
