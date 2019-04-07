@@ -800,6 +800,9 @@
 		03D5E51E224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E51C224DCE0500395D3F /* U4DMeshOctreeManager.mm */; };
 		03D5E51F224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E51C224DCE0500395D3F /* U4DMeshOctreeManager.mm */; };
 		03D5E520224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E51C224DCE0500395D3F /* U4DMeshOctreeManager.mm */; };
+		03D5E5242252528500395D3F /* U4DRayCast.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E5222252528500395D3F /* U4DRayCast.mm */; };
+		03D5E5252252528500395D3F /* U4DRayCast.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E5222252528500395D3F /* U4DRayCast.mm */; };
+		03D5E5262252528500395D3F /* U4DRayCast.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E5222252528500395D3F /* U4DRayCast.mm */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
 		03DBEDF51F9BB29700570A25 /* particle.png in Resources */ = {isa = PBXBuildFile; fileRef = 03DBEDF41F9BB29700570A25 /* particle.png */; };
 		03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */; };
@@ -1189,6 +1192,8 @@
 		03D5E518224DCAFC00395D3F /* U4DMeshOctreeNode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMeshOctreeNode.h; path = PolygonManager/U4DMeshOctreeNode.h; sourceTree = "<group>"; };
 		03D5E51C224DCE0500395D3F /* U4DMeshOctreeManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMeshOctreeManager.mm; path = PolygonManager/U4DMeshOctreeManager.mm; sourceTree = "<group>"; };
 		03D5E51D224DCE0500395D3F /* U4DMeshOctreeManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMeshOctreeManager.h; path = PolygonManager/U4DMeshOctreeManager.h; sourceTree = "<group>"; };
+		03D5E5222252528500395D3F /* U4DRayCast.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRayCast.mm; path = RayCast/U4DRayCast.mm; sourceTree = "<group>"; };
+		03D5E5232252528500395D3F /* U4DRayCast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DRayCast.h; path = RayCast/U4DRayCast.h; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
 		03DB6E81192F0260006E21D0 /* U4DVector4n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DVector4n.h; sourceTree = "<group>"; };
 		03DBEDF41F9BB29700570A25 /* particle.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = particle.png; sourceTree = "<group>"; };
@@ -1658,6 +1663,7 @@
 		03759B42175B0135002EB5D9 /* UntoldEngine4D */ = {
 			isa = PBXGroup;
 			children = (
+				03D5E5212252525500395D3F /* RayCast */,
 				03722DE0202BF7B10080D069 /* PadAxis */,
 				039FF2441F98EF4600B3D253 /* ParticleSystem */,
 				03C2787F1F7D432300AF463C /* VisibilityManager */,
@@ -2055,6 +2061,15 @@
 				03D5E51C224DCE0500395D3F /* U4DMeshOctreeManager.mm */,
 			);
 			name = PolygonManager;
+			sourceTree = "<group>";
+		};
+		03D5E5212252525500395D3F /* RayCast */ = {
+			isa = PBXGroup;
+			children = (
+				03D5E5232252528500395D3F /* U4DRayCast.h */,
+				03D5E5222252528500395D3F /* U4DRayCast.mm */,
+			);
+			name = RayCast;
 			sourceTree = "<group>";
 		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
@@ -2674,6 +2689,7 @@
 				03722BAE2029F0F50080D069 /* U4DButtonStateManager.mm in Sources */,
 				0323DBB4202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03722B942029F0F50080D069 /* U4DRenderMultiImage.mm in Sources */,
+				03D5E5252252528500395D3F /* U4DRayCast.mm in Sources */,
 				03722B792029F0F50080D069 /* U4DNumerical.mm in Sources */,
 				03722B8F2029F0F50080D069 /* U4DBoundingVolume.mm in Sources */,
 				03722B972029F0F50080D069 /* multiImageShader.metal in Sources */,
@@ -3057,6 +3073,7 @@
 				03722CE82029F0F80080D069 /* U4DButtonStateManager.mm in Sources */,
 				0323DBB6202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03722CCE2029F0F80080D069 /* U4DRenderMultiImage.mm in Sources */,
+				03D5E5262252528500395D3F /* U4DRayCast.mm in Sources */,
 				03722CB32029F0F80080D069 /* U4DNumerical.mm in Sources */,
 				03722CC92029F0F80080D069 /* U4DBoundingVolume.mm in Sources */,
 				03722CD12029F0F80080D069 /* multiImageShader.metal in Sources */,
@@ -3257,6 +3274,7 @@
 				034F2A2C217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */,
 				03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */,
 				0341AC0E204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
+				03D5E5242252528500395D3F /* U4DRayCast.mm in Sources */,
 				039DB561224279C800E323D4 /* U4DPolygonData.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,

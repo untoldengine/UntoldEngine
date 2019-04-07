@@ -97,14 +97,14 @@ namespace U4DEngine {
         U4DTextureData textureInformation;
         
         /**
-         @brief Object with polygon (vertices, edges and faces) information
-         */
-        U4DPolygonData polygonInformation;
-        
-        /**
          @brief Pointer to an armature object representing an armature manager
          */
         U4DArmatureData *armatureManager;
+        
+        /**
+         @brief Object with polygon (vertices, edges and faces) information
+         */
+        U4DPolygonData polygonInformation;
         
         /**
          @brief Container holding armature bone matrix data

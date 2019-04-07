@@ -40,10 +40,15 @@ namespace U4DEngine {
          */
         U4DStaticModel *model;
         
+        /**
+         @brief vector container of the mesh faces in absolute space
+         */
+        std::vector<U4DTriangle> meshFacesAbsoluteSpaceContainer;
+        
     public:
         
         /**
-         @brief constructor for the U4DMeshOctreeManager
+         @brief constructor for the U4DMeshOctreeManager. The constructor transforms the 3d mesh faces from local space to absolute space
          @param uModel pointer to the model whose octree will be based on
          */
         U4DMeshOctreeManager(U4DStaticModel *uModel);
@@ -66,7 +71,7 @@ namespace U4DEngine {
          @param uCenter center of the AABB box
          @param uSubDivisions current subdivision of the the octree
          */
-        void buildOctreeNode(U4DMeshOctreeNode *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubdivisions);
+        void buildOctreeNode(U4DMeshOctreeNode *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubDivisions);
         
         /**
          @brief Assigns triangles(faces) of the 3D model mesh to node leaves
@@ -77,6 +82,16 @@ namespace U4DEngine {
          @brief Returns a pointer to the octree 
          */
         U4DMeshOctreeNode *getRootNode();
+        
+        /**
+         @brief Transforms the mesh faces of the 3D model from local space to absolute space
+         */
+        void computeMeshFacesAbsoluteSpace();
+        
+        /**
+         @brief returns the mesh faces in absolute space
+         */
+        std::vector<U4DTriangle> getMeshFacesAbsoluteSpaceContainer();
         
     };
     
