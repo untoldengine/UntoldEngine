@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "U4DCameraInterface.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
     
@@ -52,6 +53,11 @@ namespace U4DEngine {
          @brief z-distance offset. This offset represents the distance the camera is ahead the 3D model
          */
         float zOffset;
+        
+        /**
+         @brief motionAccumulator accumulates the motion of the camera using the Recency Weighted Average. Used for smoothing the camera motion.
+         */
+        U4DVector3n motionAccumulator;
         
     protected:
         

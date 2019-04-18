@@ -14,7 +14,7 @@ namespace U4DEngine {
     
     U4DCameraFirstPerson* U4DCameraFirstPerson::instance=0;
     
-    U4DCameraFirstPerson::U4DCameraFirstPerson(){
+    U4DCameraFirstPerson::U4DCameraFirstPerson():motionAccumulator(0.0,0.0,0.0){
         
         
     }
@@ -44,17 +44,28 @@ namespace U4DEngine {
             //get model view direction
             U4DVector3n modelViewDirection=model->getViewInDirection();
             
+            //smooth out the motion of the camera by using a Recency Weighted Average.
+            //The RWA keeps an average of the last few values, with more recent values being more
+            //significant. The bias parameter controls how much significance is given to previous values.
+            //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+            //A bias of 1 ignores the new value altogether.
+            float biasMotionAccumulator=0.98;
+            
+            motionAccumulator=motionAccumulator*biasMotionAccumulator+modelViewDirection*(1.0-biasMotionAccumulator);
+            
+            U4DVector3n newCameraDirection=motionAccumulator;
+            
+            //multiply the view direction vector by a large value to keep the model looking into the distance
+            newCameraDirection*=1000.0;
+            
+            camera->viewInDirection(newCameraDirection);
+            
             //translate camera along the direction of the view direction of the model
             U4DVector3n newCameraPosition=modelPosition+modelViewDirection*zOffset;
             
             newCameraPosition.y=yOffset+modelPosition.y;
             
             camera->translateTo(newCameraPosition);
-            
-            //multiply the view direction vector by a large value to keep the model looking into the distance
-            modelViewDirection*=1000.0;
-            
-            camera->viewInDirection(modelViewDirection);
             
         }
         
