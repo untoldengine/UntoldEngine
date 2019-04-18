@@ -14,7 +14,7 @@ namespace U4DEngine {
     
     U4DCameraThirdPerson* U4DCameraThirdPerson::instance=0;
     
-    U4DCameraThirdPerson::U4DCameraThirdPerson(){
+    U4DCameraThirdPerson::U4DCameraThirdPerson():motionAccumulator(0.0,0.0,0.0){
         
         
     }
@@ -49,7 +49,16 @@ namespace U4DEngine {
             
             newCameraPosition.y=yOffset+modelPosition.y;
             
-            camera->translateTo(newCameraPosition);
+            //smooth out the motion of the camera by using a Recency Weighted Average.
+            //The RWA keeps an average of the last few values, with more recent values being more
+            //significant. The bias parameter controls how much significance is given to previous values.
+            //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+            //A bias of 1 ignores the new value altogether.
+            float biasMotionAccumulator=0.85;
+            
+            motionAccumulator=motionAccumulator*biasMotionAccumulator+newCameraPosition*(1.0-biasMotionAccumulator);
+            
+            camera->translateTo(motionAccumulator);
             
             camera->viewInDirection(modelPosition);
             

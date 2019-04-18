@@ -15,7 +15,7 @@ namespace U4DEngine {
     
     U4DCameraBasicFollow* U4DCameraBasicFollow::instance=0;
     
-    U4DCameraBasicFollow::U4DCameraBasicFollow(){
+    U4DCameraBasicFollow::U4DCameraBasicFollow():motionAccumulator(0.0,0.0,0.0){
         
         
     }
@@ -42,15 +42,24 @@ namespace U4DEngine {
             
             U4DVector3n modelPosition=model->getAbsolutePosition();
             
-            //rotate to the model location
-            camera->viewInDirection(modelPosition);
-            
             //translate the camera to the offset
             U4DVector3n offsetPosition(xOffset, yOffset, zOffset);
             
             U4DVector3n cameraPosition=modelPosition+offsetPosition;
             
-            camera->translateTo(cameraPosition);
+            //smooth out the motion of the camera by using a Recency Weighted Average.
+            //The RWA keeps an average of the last few values, with more recent values being more
+            //significant. The bias parameter controls how much significance is given to previous values.
+            //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+            //A bias of 1 ignores the new value altogether.
+            float biasMotionAccumulator=0.85;
+            
+            motionAccumulator=motionAccumulator*biasMotionAccumulator+cameraPosition*(1.0-biasMotionAccumulator);
+            
+            camera->translateTo(motionAccumulator);
+            
+            //rotate to the model location
+            camera->viewInDirection(modelPosition);
             
         }
         
