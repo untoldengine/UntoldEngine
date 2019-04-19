@@ -123,6 +123,9 @@ namespace U4DEngine {
             //apply the MODELER animation transform-This is needed. For example, blender has a different bone-armature space than opengl
             finalMatrixTransform=nextAnimation->modelerAnimationTransform.inverse()*finalMatrixTransform*nextAnimation->modelerAnimationTransform;
             
+            //store the child's final space matrix
+            boneChild->finalSpaceMatrix=finalMatrixTransform;
+            
             //F is then loaded into a buffer which will be sent to openGL buffer
             u4dModel->armatureBoneMatrix.push_back(finalMatrixTransform);
             
