@@ -77,6 +77,26 @@ namespace U4DEngine {
          */
         bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile);
         
+        /**
+         @brief returns the rest pose of the bone. Note, an armature must be present
+         
+         @param uBoneName name of the bone
+         @param uBoneRestPoseMatrix bone rest pose matrix
+         @return returns true if the rootbone rest pose exists. The uBoneRestPoseMatrix will contain the bone rest pose
+         */
+        bool getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPoseMatrix);
+
+        /**
+         @brief returns the animation pose of the bone. Note, an armature must be present and an animation must currently be playing.
+         
+         @param uBoneName name of the bone
+         @param uAnimation current animation being played
+         @param uBoneAnimationPoseMatrix bone animation pose matrix
+         
+         @return returns true along with the animation pose space of the bone. The uBoneAnimationPoseMatrix will contain the animation pose matrix.
+         */
+        bool getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimation, U4DMatrix4n &uBoneAnimationPoseMatrix);
+        
     };
 
 }

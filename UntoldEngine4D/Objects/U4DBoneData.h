@@ -61,9 +61,14 @@ public:
     U4DDualQuaternion absoluteSpace;
     
     /**
-     @brief Final space of the bone
+     @brief Final space of the bone. Not currently used. Use finalSpaceMatrix instead.
      */
-    U4DDualQuaternion finalSpace;
+    //U4DDualQuaternion finalSpace;
+    
+    /**
+     @brief Final space matrix of the bone
+     */
+    U4DMatrix4n finalSpaceMatrix;
 
     /**
      @brief Inverse bind pose space of the bone
