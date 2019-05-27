@@ -110,6 +110,11 @@ namespace U4DEngine {
          */
         bool collided=false;
         
+        /**
+         @brief Variable stating if the 3D static model has collided in the broad phase stage
+         */
+        bool broadPhaseCollided=false;
+        
     }CollisionProperties;
     
     /**
@@ -210,6 +215,11 @@ namespace U4DEngine {
          @brief vector holding all 3d models the object has collided in the current time step
          */
         std::vector<U4DStaticModel*> collisionList;
+        
+        /**
+         @brief vector holding all 3d models the object has collided (in broad phase) in the current time step
+         */
+        std::vector<U4DStaticModel*> broadPhaseCollisionList;
         
         /**
          @brief tag used to identify the 3d model during collisions
@@ -324,6 +334,13 @@ namespace U4DEngine {
          @param uValue If set to true, the model has collided
          */
         void setModelHasCollided(bool uValue);
+        
+        /**
+         @brief Method which informs the engine that the model has collided in broad phase stage
+         
+         @param uValue If set to true, the model has collided
+         */
+        void setModelHasCollidedBroadPhase(bool uValue);
     
         //Behavior operations
     
@@ -521,6 +538,13 @@ namespace U4DEngine {
         bool getModelHasCollided();
         
         /**
+         @brief Method which returns true if the model has collided in Broad Phase stage
+         
+         @return Returns true if the model has collided
+         */
+        bool getModelHasCollidedBroadPhase();
+        
+        /**
          * @brief Sets the filter category for collision
          * @details The filter category refers to "I am of type...". 
          * 
@@ -606,12 +630,28 @@ namespace U4DEngine {
         void addToCollisionList(U4DStaticModel *uModel);
         
         /**
+         * @brief Add all the 3D models the entity is currently colliding in broad phase collision
+         * @details The collision list keeps a list of all the 3D entities currently colliding with this entity
+         *
+         * @param uModel 3d model currently colliding
+         */
+        void addToBroadPhaseCollisionList(U4DStaticModel *uModel);
+        
+        /**
          * @brief Gets a list of all entities currently colliding with the entity
          * @details The collision list keeps a list of all the 3D entities currently colliding with this entity   
          *   
          * @return vector with a list of entities
          */
         std::vector<U4DStaticModel *> getCollisionList();
+        
+        /**
+         * @brief Gets a list of all entities currently colliding (broad phase stage) with the entity
+         * @details The collision list keeps a list of all the 3D entities currently colliding with this entity
+         *
+         * @return vector with a list of entities
+         */
+        std::vector<U4DStaticModel *> getBroadPhaseCollisionList();
         
         /**
          * @brief Sets a collision tag
@@ -634,6 +674,12 @@ namespace U4DEngine {
          * @details The collision list keeps a list of all the 3D entities currently colliding with this entity
          */
         void clearCollisionList();
+        
+        /**
+         * @brief Clears the collision list
+         * @details The collision list keeps a list of all the 3D entities currently colliding with this entity during broad phase stage
+         */
+        void clearBroadPhaseCollisionList();
         
         /**
          * @brief Enables the mesh manager to build an octree

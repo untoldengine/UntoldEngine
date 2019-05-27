@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
+#include <float.h>
 
 namespace U4DEngine {
     class U4DSphere;
@@ -129,6 +130,17 @@ namespace U4DEngine {
         bool intersectionWithVolume(U4DSphere &uSphere);
         
         /**
+         @brief Method which test an intersection between an AABB and a sphere
+         
+         @param uSphere Sphere object to test intersection with
+         
+         @param uPoint point closest to intersection on AABB
+         
+         @return Returns true if an intersection between an AABB and a sphere occurred
+         */
+        bool intersectionWithVolume(U4DSphere &uSphere, U4DPoint3n &uPoint);
+        
+        /**
          @brief Method which sets the longest Dimension vector of the AABB
          
          @param uLongestAABBDimensionVector Longest dimension vector of the AABB
@@ -181,9 +193,43 @@ namespace U4DEngine {
          */
         U4DVector3n getHalfWidth();
         
+        /**
+         * @brief determines intersection with triangle
+         *
+         * @param uTriangle triangle to test intersection
+         *
+         * @return true if the aabb intersects with the triangle
+         */
         bool intersectionWithTriangle(U4DTriangle &uTriangle);
         
+        /**
+         * @brief tests intersection with of AABB with plane
+         *
+         * @param uPlane plane to test intersection
+         *
+         * @return true if AABB intersects the plane
+         */
         bool intersectionWithPlane(U4DPlane &uPlane);
+        
+        /**
+         * @brief Computes the closest point on the AABB to an specified point
+         *
+         * @param uPoint Point provided by the user
+         *
+         * @param uClosestPoint Closest point to the provided point
+         */
+        void closestPointOnAABBToPoint(U4DPoint3n &uPoint, U4DPoint3n &uClosestPoint);
+        
+        /**
+         * @brief determines the aabb plane the point lies. Recall that the AABB contains 6 planes
+         *
+         * @param uPoint point to determine in which plane it lies
+         *
+         * @param uPlane plane where the given point lies
+         
+         * @return true if the point lies on any of the 6 planes of the aabb
+         */
+        bool aabbPlanePointLies(U4DPoint3n &uPoint, U4DPlane &uPlane);
         
     };
     

@@ -131,6 +131,22 @@ namespace U4DEngine {
         
     }
     
+    bool U4DAABB::intersectionWithVolume(U4DSphere &uSphere, U4DPoint3n &uPoint){
+        
+        //Find point p on AABB closest to sphere center
+        U4DPoint3n sphereCenter=uSphere.getCenter();
+        
+        closestPointOnAABBToPoint(sphereCenter, uPoint);
+        
+        //sphere and AABB intersect if the squared distance from sphere center to point uPoint is less than the squared
+        //sphere radius
+        
+        U4DVector3n v=uPoint-sphereCenter;
+        
+        return v.dot(v)<=uSphere.radius*uSphere.radius;
+        
+    }
+    
     void U4DAABB::setLongestAABBDimensionVector(U4DVector3n& uLongestAABBDimensionVector){
         longestAABBDimensionVector=uLongestAABBDimensionVector;
     }
@@ -325,6 +341,76 @@ namespace U4DEngine {
         //intersection occurs when distance s falls within [-r,r] interval
         return std::abs(s)<=r;
         
+    }
+    
+    void U4DAABB::closestPointOnAABBToPoint(U4DPoint3n &uPoint, U4DPoint3n &uClosestPoint){
+        
+        //For each coordinate axis, if the point coordinate value is outside box, clamp it to the box, else
+        //keep it as is
+        
+        float p[3]={uPoint.x,uPoint.y,uPoint.z};
+        float bmin[3]={minPoint.x,minPoint.y,minPoint.z};
+        float bmax[3]={maxPoint.x,maxPoint.y,maxPoint.z};
+        float q[3];
+        
+        for(int i=0; i<3; i++) {
+            
+            float v=p[i];
+            
+            if (v<bmin[i]) v=bmin[i]; //v=max(v,bmin[i])
+            if (v>bmax[i]) v=bmax[i]; //v=min(v,bmax[i])
+            
+            q[i]=v;
+            
+        }
+        
+        uClosestPoint.x=q[0];
+        uClosestPoint.y=q[1];
+        uClosestPoint.z=q[2];
+        
+    }
+    
+    bool U4DAABB::aabbPlanePointLies(U4DPoint3n &uPoint, U4DPlane &uPlane){
+        
+        if (isPointInsideAABB(uPoint)) {
+            
+            //set the normal vectors for the plane
+            U4DVector3n n[6]={U4DVector3n(1.0,0.0,0.0),U4DVector3n(0.0,1.0,0.0),U4DVector3n(0.0,0.0,1.0),U4DVector3n(-1.0,0.0,0.0),U4DVector3n(0.0,-1.0,0.0),U4DVector3n(0.0,0.0,-1.0)};
+            
+            //declare the planes making up the aabb faces
+            U4DPlane plane0(n[0],maxPoint);
+            U4DPlane plane1(n[1],maxPoint);
+            U4DPlane plane2(n[2],maxPoint);
+            U4DPlane plane3(n[3],minPoint);
+            U4DPlane plane4(n[4],minPoint);
+            U4DPlane plane5(n[5],minPoint);
+            
+            U4DPlane planeArray[6]={plane0,plane1,plane2,plane3,plane4,plane5};
+            
+            //find the closest plane to point
+            float minDistanceToPlane=FLT_MAX;
+            int closestPlaneIndex=0;
+            
+            for (int i=0; i<6; i++) {
+                
+                float closestDistanceToPlane=fabs(planeArray[i].magnitudeOfPointToPlane(uPoint));
+                
+                if (closestDistanceToPlane<=minDistanceToPlane) {
+                    
+                    minDistanceToPlane=closestDistanceToPlane;
+                    closestPlaneIndex=i;
+                    
+                }
+                
+            }
+            
+            uPlane=planeArray[closestPlaneIndex];
+            
+            return true;
+        }
+        
+        //the point does not lie within or on the AABB
+        return false;
     }
     
 }

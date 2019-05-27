@@ -493,8 +493,16 @@ namespace U4DEngine {
         collisionProperties.collided=uValue;
     }
     
+    void U4DStaticModel::setModelHasCollidedBroadPhase(bool uValue){
+        collisionProperties.broadPhaseCollided=uValue;
+    }
+    
     bool U4DStaticModel::getModelHasCollided(){
         return collisionProperties.collided;
+    }
+    
+    bool U4DStaticModel::getModelHasCollidedBroadPhase(){
+        return collisionProperties.broadPhaseCollided;
     }
     
     void U4DStaticModel::setNormalForce(U4DVector3n& uNormalForce){
@@ -567,9 +575,21 @@ namespace U4DEngine {
         
     }
     
+    void U4DStaticModel::addToBroadPhaseCollisionList(U4DStaticModel *uModel){
+        
+        broadPhaseCollisionList.push_back(uModel);
+        
+    }
+    
     std::vector<U4DStaticModel *> U4DStaticModel::getCollisionList(){
         
         return collisionList;
+        
+    }
+    
+    std::vector<U4DStaticModel *> U4DStaticModel::getBroadPhaseCollisionList(){
+        
+        return broadPhaseCollisionList;
         
     }
     
@@ -587,6 +607,12 @@ namespace U4DEngine {
     void U4DStaticModel::clearCollisionList(){
         
         collisionList.clear();
+    }
+    
+    void U4DStaticModel::clearBroadPhaseCollisionList(){
+        
+        broadPhaseCollisionList.clear();
+    
     }
     
     void U4DStaticModel::enableMeshManager(int uSubDivisions){

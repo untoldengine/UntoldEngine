@@ -268,9 +268,11 @@ namespace U4DEngine {
         
         //set as non-collided
         setModelHasCollided(false);
+        setModelHasCollidedBroadPhase(false);
         
         //clear collision list
         clearCollisionList();
+        clearBroadPhaseCollisionList();
         
     }
 }

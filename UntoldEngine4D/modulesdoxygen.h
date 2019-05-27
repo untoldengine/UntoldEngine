@@ -20,6 +20,7 @@
  @defgroup camera Camera System
  @defgroup light Lights
  @defgroup particlesystem Particle System
+ @defgroup artificialintelligence Artificial Intelligence System
  */
 
 #endif /* modulesdoxygen_h */

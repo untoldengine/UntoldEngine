@@ -180,6 +180,13 @@ namespace U4DEngine {
                     pairs.model1=modelBoundingVolumePair.at(i).model;
                     pairs.model2=modelBoundingVolumePair.at(j).model;
                     
+                    //add to most likely to collide list
+                    pairs.model1->addToBroadPhaseCollisionList(pairs.model2);
+                    pairs.model2->addToBroadPhaseCollisionList(pairs.model1);
+                    
+                    pairs.model1->setModelHasCollidedBroadPhase(true);
+                    pairs.model2->setModelHasCollidedBroadPhase(true);
+                    
                     uBroadPhaseCollisionPairs.push_back(pairs);
                     
                 }
