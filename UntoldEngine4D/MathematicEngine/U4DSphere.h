@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "U4DPoint3n.h"
-
+#include "U4DPlane.h"
 
 namespace U4DEngine {
 
@@ -86,6 +86,16 @@ namespace U4DEngine {
          @return Returns true if two spheres are intersecting
          */
         bool intersectionWithVolume(U4DSphere &uSphere);
+        
+        /**
+         @brief Method which test the intersection between two spheres and returns the intersection plane
+         
+         @param uSphere Sphere to test intersection with
+         @param uPlane Intersection plane created during the intersection
+         
+         @return Returns true if two spheres are intersecting
+         */
+        bool intersectionWithVolume(U4DSphere &uSphere, U4DPlane &uPlane);
         
     };
 
