@@ -21,7 +21,7 @@ namespace U4DEngine {
         
     }
     
-    bool U4DPathfinderAStar::findPath(U4DNavMesh *uNavMesh, int uStartNodeIndex, int uEndNodeIndex, std::vector<U4DSegment> &uPath){
+    bool U4DPathfinderAStar::findPath(std::vector<U4DNavMeshNode> uNavMeshNodeContainer, int uStartNodeIndex, int uEndNodeIndex, std::vector<U4DSegment> &uPath){
         
         if (uStartNodeIndex==uEndNodeIndex) {
             //the start and end node index can't be the same.
@@ -29,8 +29,8 @@ namespace U4DEngine {
             
         }
         
-        U4DNavMeshNode &startNode=uNavMesh->getNodeAt(uStartNodeIndex);
-        U4DNavMeshNode &endNode=uNavMesh->getNodeAt(uEndNodeIndex);
+        U4DNavMeshNode &startNode=uNavMeshNodeContainer.at(uStartNodeIndex);
+        U4DNavMeshNode &endNode=uNavMeshNodeContainer.at(uEndNodeIndex);
         
         std::vector<U4DNavMeshNode> pathNodes;
         
@@ -47,7 +47,7 @@ namespace U4DEngine {
             
             //Find the smallest node element in the open list with the lowest f_cost
             int minElementIndex=openList.at(0).index;
-            U4DNavMeshNode &currentNode=uNavMesh->getNodeAt(minElementIndex);
+            U4DNavMeshNode &currentNode=uNavMeshNodeContainer.at(minElementIndex);
             
             //if the node is the target node, then stop
             if (currentNode.index==endNode.index) {
@@ -60,7 +60,7 @@ namespace U4DEngine {
                 while (currentNode.index!=startNode.index) {
                     
                     int pathNodeIndex=currentNode.connection;
-                    currentNode=uNavMesh->getNodeAt(pathNodeIndex);
+                    currentNode=uNavMeshNodeContainer.at(pathNodeIndex);
                     
                     pathNodes.push_back(currentNode);
                     
@@ -76,7 +76,7 @@ namespace U4DEngine {
             //loop through each neighbor
             for (auto n:neighboursIndex) {
                 
-                U4DNavMeshNode &neighbourNode=uNavMesh->getNodeAt(n);
+                U4DNavMeshNode &neighbourNode=uNavMeshNodeContainer.at(n);
                 
                 //if the node is not traversable or neighbor is closed, then skip to the next neighbor
                 if (neighbourNode.traversable==false || neighbourNode.category==nodeInClosed) {
@@ -116,6 +116,7 @@ namespace U4DEngine {
             
             currentNode.category=nodeInClosed;
             
+            
             //heapsort
             heapSort();
             
@@ -123,7 +124,7 @@ namespace U4DEngine {
        
         //setup path if it exists and return true
         if (pathNodes.size()>1) {
-        
+            
             uPath=assemblePath(pathNodes);
             
             return true;
