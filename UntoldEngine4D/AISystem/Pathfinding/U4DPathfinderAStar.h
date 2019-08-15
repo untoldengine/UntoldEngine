@@ -45,13 +45,13 @@ namespace U4DEngine {
         /**
          @brief computes the path using the A Star algorithm
 
-         @param uNavMesh navigation mesh containing the nav mesh nodes
+         @param uNavMeshNodeContainer navigation mesh containing the nav mesh nodes
          @param uStartNodeIndex starting node to compute path
          @param uEndNodeIndex ending node to compute path
          @param uPath vector containing the computed path segments
          @return true if the path was able to be determined
          */
-        bool findPath(U4DNavMesh *uNavMesh, int uStartNodeIndex, int uEndNodeIndex, std::vector<U4DSegment> &uPath);
+        bool findPath(std::vector<U4DNavMeshNode> uNavMeshNodeContainer, int uStartNodeIndex, int uEndNodeIndex, std::vector<U4DSegment> &uPath);
         
         
         /**

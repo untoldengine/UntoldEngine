@@ -55,10 +55,14 @@ namespace U4DEngine {
         
         U4DPathfinderAStar pathAStar;
         
+        //get a copy of the nav mesh node container. Don't pass a reference to the path A star algo since the algo have to modify the mesh content.
+        //to avoid issues don't pass the container by reference in the method findPath() shown below.
+        std::vector<U4DNavMeshNode> tempNavMeshNodeContainer=navMesh->getNavMeshNodeContainer();
+        
         int startingIndexNode=navMesh->getNodeIndexClosestToPosition(startingPosition);
         int targetIndexNode=navMesh->getNodeIndexClosestToPosition(targetPosition);
         
-        if(pathAStar.findPath(navMesh,startingIndexNode,targetIndexNode,path)){
+        if(pathAStar.findPath(tempNavMeshNodeContainer,startingIndexNode,targetIndexNode,path)){
             
             //get the last path segment in the path
             lastPathInNavMeshIndex=(int)path.size()-1;

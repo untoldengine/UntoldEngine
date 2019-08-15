@@ -54,4 +54,22 @@ namespace U4DEngine {
         
     }
     
+    void U4DNavMesh::clearNavMeshNodeInfo(){
+        
+        //clear all the information in the nav mesh.
+        
+        for(auto &n:navMeshNodeContainer){
+            
+            n.fCost=0.0;
+            n.hCost=0.0;
+            n.gCost=0.0;
+            n.distanceToDefinedPosition=0.0;
+            n.category=nodeInUnvisited;
+            n.traversable=true;
+            n.connection=0;
+            
+        }
+        
+    }
+    
 }

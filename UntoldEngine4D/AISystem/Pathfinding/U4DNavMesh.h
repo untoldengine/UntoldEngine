@@ -81,6 +81,11 @@ namespace U4DEngine {
          */
         int getNodeIndexClosestToPosition(U4DVector3n &uPosition);
         
+        /**
+         @brief clear all the information contained in the node, such as gCost, hCost, etc.
+         */
+        void clearNavMeshNodeInfo();
+        
     };
     
 }
