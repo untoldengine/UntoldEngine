@@ -705,7 +705,11 @@ namespace U4DEngine {
         
         macArrowKey,
         macKeyA,
-        macKeyD
+        macKeyD,
+        macKeyW,
+        macKeyS,
+        macShiftKey,
+        macSpaceKey
         
     }KEYBOARDELEMENT;
     
@@ -727,7 +731,8 @@ namespace U4DEngine {
     typedef enum{
         
         mouseLeftButton,
-        mouseRightButton
+        mouseRightButton,
+        mouseCursor
         
     }MOUSEELEMENT;
     
@@ -738,7 +743,9 @@ namespace U4DEngine {
         
         mouseButtonPressed, 
         mouseButtonDragged,
-        mouseButtonReleased
+        mouseButtonReleased,
+        mouseCursorMoved,
+        mouseCursorExited
         
     }MOUSEACTION;
     

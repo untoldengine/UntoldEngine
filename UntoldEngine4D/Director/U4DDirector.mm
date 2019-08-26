@@ -225,6 +225,16 @@ namespace U4DEngine {
         scene->macMouseDragged(uMouseElement, uMouseAction, uMouseAxis);
     }
 
+    void U4DDirector::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+        
+        scene->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
+    }
+    
+    void U4DDirector::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+        
+        scene->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);
+    }
+    
     void U4DDirector::setWorld(U4DWorld *uWorld){
         
         world=uWorld;

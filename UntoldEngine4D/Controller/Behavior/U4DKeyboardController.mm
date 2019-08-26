@@ -65,6 +65,18 @@ namespace U4DEngine {
         
     }
     
+    void U4DKeyboardController::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+        
+        changeState(uMouseElement, uMouseAction, uMouseAxis);
+        
+    }
+    
+    void U4DKeyboardController::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+        
+        changeState(uMouseElement, uMouseAction, uMouseAxis);
+        
+    }
+    
     void U4DKeyboardController::setGameModel(U4DGameModelInterface *uGameModel){
         
         gameModel=uGameModel;
