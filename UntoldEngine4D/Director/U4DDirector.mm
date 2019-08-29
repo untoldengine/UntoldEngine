@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false){
+    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(1.0){
     }
     
     U4DDirector::~U4DDirector(){
@@ -296,6 +296,17 @@ namespace U4DEngine {
     bool U4DDirector::getGamePadControllerPresent(){
         
         return gamePadControllerPresent;
+    }
+    
+    void U4DDirector::setScreenScaleFactor(float uScreenScaleFactor){
+        if(screenScaleFactor==0){
+            screenScaleFactor=1.0;
+        }
+        screenScaleFactor=uScreenScaleFactor;
+    }
+    
+    float U4DDirector::getScreenScaleFactor(){
+        return screenScaleFactor;
     }
     
     void U4DDirector::setPerspectiveSpace(U4DMatrix4n &uSpace){

@@ -80,9 +80,12 @@
     
     //tracking area used to detect if mouse is within window
     
-    trackingArea=[[NSTrackingArea alloc] initWithRect:metalView.frame options:(NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveInKeyWindow) owner:metalView userInfo:nil];
+    trackingArea=[[NSTrackingArea alloc] initWithRect:metalView.frame options:(NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect) owner:metalView userInfo:nil];
     
     [metalView addTrackingArea:trackingArea];
+    
+    //display screen backing change notification
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenScaleFactorChanged:) name:NSWindowDidChangeBackingPropertiesNotification object:nil];
     
     //If using the keyboard, then set it to false. If using a controller then set it to true
     director->setGamePadControllerPresent(false);
@@ -93,9 +96,22 @@
     
     [super viewDidAppear];
     
+    //get screen backing scale
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    float contentScale = [[[NSApplication sharedApplication] mainWindow] backingScaleFactor];
+    director->setScreenScaleFactor(contentScale);
+    
     //initialize the scene for your game
     MainScene *mainScene=new MainScene();
     mainScene->init();
+}
+
+- (void)screenScaleFactorChanged:(NSNotification *)notification {
+    
+    float contentScale = [[[NSApplication sharedApplication] mainWindow] backingScaleFactor];
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    director->setScreenScaleFactor(contentScale);
 }
 
 - (void)controllerWasConnected:(NSNotification *)notification {

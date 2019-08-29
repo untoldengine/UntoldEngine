@@ -105,6 +105,11 @@ private:
      */
     bool modelsWithinFrustum;
     
+    /**
+     @todo document this.
+     */
+    float screenScaleFactor;
+    
 protected:
     
     /**
@@ -549,6 +554,16 @@ public:
      @return true if a 3D model is within the camera frustum
      */
     bool getModelsWithinFrustum();
+    
+    /**
+     @todo document this
+     */
+    void setScreenScaleFactor(float uScreenScaleFactor);
+    
+    /**
+     @todo document this
+     */
+    float getScreenScaleFactor();
     
 };
 
