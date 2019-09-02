@@ -114,6 +114,11 @@ namespace U4DEngine {
         void macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
         
         /**
+         * @brief This method is not implemented in the touch controller.
+         */
+        void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n &uMouseDelta){};
+        
+        /**
          * @brief This method is not implement in the gamepad controller
          */
         void macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};

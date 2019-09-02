@@ -158,6 +158,16 @@ namespace U4DEngine {
         void macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
         
         /**
+         * @brief The mouse cursor is being moved and gets its delta movement
+         * @details The engine has detected mouse movement
+         *
+         * @param uMouseElement mouse element
+         * @param uMouseAction action on the mouse
+         * @param uMouseDelta Delta movement direction in a 2D vector format.
+         */
+        void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n &uMouseDelta);
+        
+        /**
          * @brief The mouse cursor exited the window
          * @details The engine has detected mouse exit-movement
          *

@@ -148,6 +148,11 @@ namespace U4DEngine {
         gameController->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
     }
     
+    void U4DScene::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta){
+        
+        gameController->macMouseDeltaMoved(uMouseElement, uMouseAction, uMouseDelta);
+    }
+    
     void U4DScene::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
         
         gameController->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);

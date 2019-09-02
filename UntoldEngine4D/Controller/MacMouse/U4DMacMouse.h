@@ -49,6 +49,10 @@ namespace U4DEngine {
         
         U4DVector2n mouseAxis;
         
+        U4DVector2n mouseAxisDelta;
+        
+        U4DVector2n previousMouseAxisDelta;
+        
         float dataMagnitude;
         
         bool isActive;
@@ -70,6 +74,8 @@ namespace U4DEngine {
         void setDataMagnitude(float uValue);
         
         float getDataMagnitude();
+        
+        U4DVector2n getMouseDeltaPosition();
         
         bool getIsDragged();
         

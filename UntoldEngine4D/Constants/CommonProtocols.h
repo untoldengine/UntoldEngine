@@ -745,7 +745,8 @@ namespace U4DEngine {
         mouseButtonDragged,
         mouseButtonReleased,
         mouseCursorMoved,
-        mouseCursorExited
+        mouseCursorExited,
+        mouseCursorDeltaMoved
         
     }MOUSEACTION;
     

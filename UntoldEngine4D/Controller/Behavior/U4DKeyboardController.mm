@@ -71,6 +71,11 @@ namespace U4DEngine {
         
     }
     
+    void U4DKeyboardController::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n &uMouseDelta){
+        
+        changeState(uMouseElement, uMouseAction, uMouseDelta);
+    }
+    
     void U4DKeyboardController::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
         
         changeState(uMouseElement, uMouseAction, uMouseAxis);

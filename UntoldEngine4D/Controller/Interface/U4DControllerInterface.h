@@ -164,6 +164,16 @@ public:
     virtual void macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
     
     /**
+     * @brief The mouse cursor is being moved and gets its delta movement
+     * @details The engine has detected mouse movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseDelta Delta movement direction in a 2D vector format.
+     */
+    virtual void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta)=0;
+    
+    /**
      * @brief The mouse cursor exited the window
      * @details The engine has detected mouse exit-movement
      *

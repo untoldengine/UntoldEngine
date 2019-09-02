@@ -14,6 +14,7 @@
 #include "U4DMacMousePressedState.h"
 #include "U4DMacMouseDraggedState.h"
 #include "U4DMacMouseMovedState.h"
+#include "U4DMacMouseDeltaMovedState.h"
 #include "U4DMacMouseExitedState.h"
 #include "U4DMacMouseReleasedState.h"
 #include "CommonProtocols.h"
@@ -103,6 +104,12 @@ namespace U4DEngine {
             
             stateManager->changeState(U4DMacMouseExitedState::sharedInstance());
             
+        }else if (uMouseAction==U4DEngine::mouseCursorDeltaMoved) {
+            
+            mouseAxisDelta=uMouseAxis;
+            
+            stateManager->changeState(U4DMacMouseDeltaMovedState::sharedInstance());
+            
         }
         
     }
@@ -116,6 +123,11 @@ namespace U4DEngine {
     U4DVector3n U4DMacMouse::getDataPosition(){
         
         return dataPosition;
+    }
+    
+    U4DVector2n U4DMacMouse::getMouseDeltaPosition(){
+        
+        return mouseAxisDelta;
     }
     
     U4DVector3n U4DMacMouse::getPreviousDataPosition(){
@@ -160,7 +172,7 @@ namespace U4DEngine {
     
     bool U4DMacMouse::getIsMoving(){
         
-        return (stateManager->getCurrentState()==U4DMacMouseMovedState::sharedInstance());
+        return (stateManager->getCurrentState()==U4DMacMouseMovedState::sharedInstance() || stateManager->getCurrentState()==U4DMacMouseDeltaMovedState::sharedInstance());
         
     }
     

@@ -59,11 +59,11 @@ namespace U4DEngine {
         
         motionAccumulator=motionAccumulator*biasMotionAccumulator+mouseAxis*(1.0-biasMotionAccumulator);
         
-        float motionAccumulatorMagnitude=motionAccumulator.magnitude();
+        
         float zeroValue=0.0;
         
         //if the motion accumulator is closed to zero, then it means the mouse has stopped
-        if (numerical.areEqual(motionAccumulatorMagnitude, zeroValue, U4DEngine::zeroEpsilon)) {
+        if (numerical.areEqual(mouseDirection.magnitude(), zeroValue, U4DEngine::zeroEpsilon)) {
             
             uMacMouse->getStateManager()->changeState(U4DMacMouseIdleState::sharedInstance());
 

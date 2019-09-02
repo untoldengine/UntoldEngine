@@ -230,6 +230,10 @@ namespace U4DEngine {
         scene->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
     }
     
+    void U4DDirector::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta){
+        scene->macMouseDeltaMoved(uMouseElement, uMouseAction, uMouseDelta);
+    }
+    
     void U4DDirector::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
         
         scene->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);

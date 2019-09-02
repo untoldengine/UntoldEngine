@@ -149,6 +149,11 @@ public:
     /**
      * @brief This method is not implemented in the touch controller.
      */
+    void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n &uMouseDelta){};
+    
+    /**
+     * @brief This method is not implemented in the touch controller.
+     */
     void macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
     
     /**
