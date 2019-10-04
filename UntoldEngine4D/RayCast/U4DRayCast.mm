@@ -20,7 +20,7 @@ namespace U4DEngine{
         
     }
     
-    bool U4DRayCast::hit(U4DRay &uRay,U4DStaticModel *uModel,U4DTriangle &uTriangle){
+    bool U4DRayCast::hit(U4DRay &uRay,U4DStaticModel *uModel,U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionParameter){
         
         //boolean to return hit or non-hit
         bool intersectionFound=false;
@@ -92,6 +92,10 @@ namespace U4DEngine{
                                         closestDistance=tempDistanceRayTriangle;
                                         
                                         uTriangle=faceTriangle;
+                                        
+                                        uIntersectionPoint=intersectionPoint;
+                                        
+                                        uIntersectionParameter=intersectionParameter;
                                         
                                         intersectionFound=true;
                                         
