@@ -22,6 +22,13 @@ typedef struct{
 
 typedef struct{
     
+    float time;
+    vector_float2 resolution;
+    
+}UniformGlobalData;
+
+typedef struct{
+    
     bool hasTexture;
     bool enableNormalMap;
     bool enableShadows;

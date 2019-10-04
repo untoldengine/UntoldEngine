@@ -110,6 +110,11 @@ private:
      */
     float screenScaleFactor;
     
+    /**
+     @brief global time since game started
+     */
+    float globalTime;
+    
 protected:
     
     /**
@@ -574,6 +579,13 @@ public:
      @todo document this
      */
     float getScreenScaleFactor();
+    
+    /**
+     @brief Returns the global time
+     
+     @return The global time since the game started. Mainly used for the shaders
+     */
+    float getGlobalTime();
     
 };
 
