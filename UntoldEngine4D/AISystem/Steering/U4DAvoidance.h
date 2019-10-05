@@ -20,6 +20,12 @@ namespace U4DEngine {
      */
     class U4DAvoidance:public U4DSeek {
         
+    private:
+        
+        /**
+         @brief parameter used for collision
+         */
+        float timeParameter;
         
     public:
         
@@ -40,6 +46,13 @@ namespace U4DEngine {
          @return velocity vector to apply to 3D model
          */
         U4DVector3n getSteering(U4DDynamicModel *uDynamicModel);
+        
+        /**
+         @brief sets the parameter used to detect collision with a plane
+         
+         @param uTimeParameter parameter used for collision with plane
+         */
+        void setTimeParameter(float uTimeParameter);
         
     };
     

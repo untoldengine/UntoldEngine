@@ -143,6 +143,13 @@ namespace U4DEngine {
          */
         void setSlowRadius(float uSlowRadius);
         
+        /**
+         @brief sets the navigation speed for the pursuer
+         
+         @param uNavigationSpeed navigation speed
+         */
+        void setNavigationSpeed(float uNavigationSpeed);
+        
     };
     
 }

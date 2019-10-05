@@ -126,4 +126,10 @@ namespace U4DEngine {
         arrive.setSlowRadius(uSlowRadius);
     }
     
+    void U4DNavigation::setNavigationSpeed(float uNavigationSpeed){
+        
+        followPath.setMaxSpeed(uNavigationSpeed);
+        
+    }
+    
 }

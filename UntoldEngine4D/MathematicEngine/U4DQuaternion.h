@@ -215,7 +215,7 @@ public:
     
     /**
      @brief Method that computes the 3x3 matrix representation of the quaternion
-     
+     @details You need to convert the quaternion to a Unit Norm quaternion before using this method.
      @return Returns a 3x3 matrix representation of the quaternion
      */
     U4DMatrix3n transformQuaternionToMatrix3n();
