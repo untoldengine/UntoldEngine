@@ -708,6 +708,10 @@ namespace U4DEngine {
         macKeyD,
         macKeyW,
         macKeyS,
+        macKey1,
+        macKey2,
+        macKey3,
+        macKey4,
         macShiftKey,
         macSpaceKey
         

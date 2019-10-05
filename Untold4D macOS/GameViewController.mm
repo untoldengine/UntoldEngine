@@ -402,6 +402,11 @@
     U4DEngine::KEYBOARDELEMENT keyW=U4DEngine::macKeyW;
     U4DEngine::KEYBOARDELEMENT keyS=U4DEngine::macKeyS;
     
+    U4DEngine::KEYBOARDELEMENT key1=U4DEngine::macKey1;
+    U4DEngine::KEYBOARDELEMENT key2=U4DEngine::macKey2;
+    U4DEngine::KEYBOARDELEMENT key3=U4DEngine::macKey3;
+    U4DEngine::KEYBOARDELEMENT key4=U4DEngine::macKey4;
+    
     U4DEngine::KEYBOARDELEMENT spaceKey=U4DEngine::macSpaceKey;
     
     U4DEngine::KEYBOARDACTION keyPressed=U4DEngine::macKeyPressed;
@@ -432,6 +437,22 @@
     
     if(character==' '){
         director->macKeyPressBegan(spaceKey, keyPressed);
+    }
+    
+    if(character=='1'){
+        director->macKeyPressEnded(key1, keyPressed);
+    }
+    
+    if(character=='2'){
+        director->macKeyPressEnded(key2, keyPressed);
+    }
+    
+    if(character=='3'){
+        director->macKeyPressEnded(key3, keyPressed);
+    }
+    
+    if(character=='4'){
+        director->macKeyPressEnded(key4, keyPressed);
     }
     
     if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
@@ -472,6 +493,11 @@
     U4DEngine::KEYBOARDELEMENT keyW=U4DEngine::macKeyW;
     U4DEngine::KEYBOARDELEMENT keyS=U4DEngine::macKeyS;
     
+    U4DEngine::KEYBOARDELEMENT key1=U4DEngine::macKey1;
+    U4DEngine::KEYBOARDELEMENT key2=U4DEngine::macKey2;
+    U4DEngine::KEYBOARDELEMENT key3=U4DEngine::macKey3;
+    U4DEngine::KEYBOARDELEMENT key4=U4DEngine::macKey4;
+    
     U4DEngine::KEYBOARDELEMENT spaceKey=U4DEngine::macSpaceKey;
     
     U4DEngine::KEYBOARDACTION keyReleased=U4DEngine::macKeyReleased;
@@ -497,6 +523,22 @@
     if(character=='s' || character=='S'){
         director->macKeyPressEnded(keyS, keyReleased);
         
+    }
+    
+    if(character=='1'){
+        director->macKeyPressEnded(key1, keyReleased);
+    }
+    
+    if(character=='2'){
+        director->macKeyPressEnded(key2, keyReleased);
+    }
+    
+    if(character=='3'){
+        director->macKeyPressEnded(key3, keyReleased);
+    }
+    
+    if(character=='4'){
+        director->macKeyPressEnded(key4, keyReleased);
     }
     
     if(character==' '){
