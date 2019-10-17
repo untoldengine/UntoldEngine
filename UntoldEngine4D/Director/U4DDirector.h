@@ -105,6 +105,16 @@ private:
      */
     bool modelsWithinFrustum;
     
+    /**
+     @todo document this.
+     */
+    float screenScaleFactor;
+    
+    /**
+     @brief global time since game started
+     */
+    float globalTime;
+    
 protected:
     
     /**
@@ -279,14 +289,44 @@ public:
     void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction);
     
     /**
-     * @brief The mouse is being moved
-     * @details The engine has detected mouse movement
+     * @brief The mouse key is being dragged
+     * @details The engine has detected mouse drag-movement
      *
      * @param uMouseElement mouse element
      * @param uMouseAction action on the mouse
      * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
      */
     void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+    
+    /**
+     * @brief The mouse cursor is being moved
+     * @details The engine has detected mouse movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
+     */
+    void macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+    
+    /**
+     * @brief The mouse cursor is being moved and gets its delta movement
+     * @details The engine has detected mouse movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseDelta Delta movement direction in a 2D vector format.
+     */
+    void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta);
+    
+    /**
+     * @brief The mouse cursor exited the window
+     * @details The engine has detected mouse exit-movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
+     */
+    void macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
     
     /**
      @todo document this. It seems that this method is not longer used. Check if it should be removed
@@ -529,6 +569,23 @@ public:
      @return true if a 3D model is within the camera frustum
      */
     bool getModelsWithinFrustum();
+    
+    /**
+     @todo document this
+     */
+    void setScreenScaleFactor(float uScreenScaleFactor);
+    
+    /**
+     @todo document this
+     */
+    float getScreenScaleFactor();
+    
+    /**
+     @brief Returns the global time
+     
+     @return The global time since the game started. Mainly used for the shaders
+     */
+    float getGlobalTime();
     
 };
 

@@ -1,13 +1,13 @@
 //
-//  U4DMacMouseActiveState.hpp
+//  U4DMacMouseDraggedState.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 3/8/18.
 //  Copyright © 2018 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef U4DMacMouseActiveState_hpp
-#define U4DMacMouseActiveState_hpp
+#ifndef U4DMacMouseDraggedState_hpp
+#define U4DMacMouseDraggedState_hpp
 
 #include <stdio.h>
 #include "U4DMacMouse.h"
@@ -15,19 +15,19 @@
 
 namespace U4DEngine {
     
-    class U4DMacMouseActiveState:public U4DMacMouseStateInterface {
+    class U4DMacMouseDraggedState:public U4DMacMouseStateInterface {
         
     private:
         
-        U4DMacMouseActiveState();
+        U4DMacMouseDraggedState();
         
-        ~U4DMacMouseActiveState();
+        ~U4DMacMouseDraggedState();
         
     public:
         
-        static U4DMacMouseActiveState* instance;
+        static U4DMacMouseDraggedState* instance;
         
-        static U4DMacMouseActiveState* sharedInstance();
+        static U4DMacMouseDraggedState* sharedInstance();
         
         void enter(U4DMacMouse *uMacMouse);
         
@@ -38,4 +38,4 @@ namespace U4DEngine {
     };
     
 }
-#endif /* U4DMacMouseActiveState_hpp */
+#endif /* U4DMacMouseDraggedState_hpp */

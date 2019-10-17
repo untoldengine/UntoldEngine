@@ -23,6 +23,8 @@
     
     U4DRenderer *renderer;
     
+    NSTrackingArea *trackingArea;
+    
 }
 
 - (void)viewDidLoad
@@ -76,6 +78,15 @@
     [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasConnected:) name:GCControllerDidConnectNotification object:nil];
     [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasDisconnected:) name:GCControllerDidDisconnectNotification object:nil];
     
+    //tracking area used to detect if mouse is within window
+    
+    trackingArea=[[NSTrackingArea alloc] initWithRect:metalView.frame options:(NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect) owner:metalView userInfo:nil];
+    
+    [metalView addTrackingArea:trackingArea];
+    
+    //display screen backing change notification
+    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenScaleFactorChanged:) name:NSWindowDidChangeBackingPropertiesNotification object:nil];
+    
     //If using the keyboard, then set it to false. If using a controller then set it to true
     director->setGamePadControllerPresent(false);
 
@@ -85,9 +96,22 @@
     
     [super viewDidAppear];
     
+    //get screen backing scale
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    float contentScale = [[[NSApplication sharedApplication] mainWindow] backingScaleFactor];
+    director->setScreenScaleFactor(contentScale);
+    
     //initialize the scene for your game
     MainScene *mainScene=new MainScene();
     mainScene->init();
+}
+
+- (void)screenScaleFactorChanged:(NSNotification *)notification {
+    
+    float contentScale = [[[NSApplication sharedApplication] mainWindow] backingScaleFactor];
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    director->setScreenScaleFactor(contentScale);
 }
 
 - (void)controllerWasConnected:(NSNotification *)notification {
@@ -339,28 +363,96 @@
     
 }
 
+- (void)flagsChanged:(NSEvent *)theEvent{
+    
+    NSUInteger flags = [[NSApp currentEvent] modifierFlags];
+    
+    U4DEngine::KEYBOARDELEMENT shiftKey=U4DEngine::macShiftKey;
+    
+    U4DEngine::KEYBOARDACTION keyPressed=U4DEngine::macKeyPressed;
+    U4DEngine::KEYBOARDACTION keyReleased=U4DEngine::macKeyReleased;
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    if (flags & NSEventModifierFlagShift)
+    {
+        //shift key pressed
+        if(theEvent.keyCode==56){
+             director->macKeyPressBegan(shiftKey, keyPressed);
+        }
+        
+    }else{
+        //shift key released
+        if(theEvent.keyCode==56){
+            director->macKeyPressEnded(shiftKey, keyReleased);
+        }
+    }
+    
+}
+
 - (void)keyDown:(NSEvent *)theEvent
 {
+   
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     
     unichar character = [[theEvent characters] characterAtIndex:0];
     
     U4DEngine::KEYBOARDELEMENT keyA=U4DEngine::macKeyA;
     U4DEngine::KEYBOARDELEMENT keyD=U4DEngine::macKeyD;
+    U4DEngine::KEYBOARDELEMENT keyW=U4DEngine::macKeyW;
+    U4DEngine::KEYBOARDELEMENT keyS=U4DEngine::macKeyS;
+    
+    U4DEngine::KEYBOARDELEMENT key1=U4DEngine::macKey1;
+    U4DEngine::KEYBOARDELEMENT key2=U4DEngine::macKey2;
+    U4DEngine::KEYBOARDELEMENT key3=U4DEngine::macKey3;
+    U4DEngine::KEYBOARDELEMENT key4=U4DEngine::macKey4;
+    
+    U4DEngine::KEYBOARDELEMENT spaceKey=U4DEngine::macSpaceKey;
+    
     U4DEngine::KEYBOARDACTION keyPressed=U4DEngine::macKeyPressed;
     
     U4DEngine::KEYBOARDELEMENT arrowKey=U4DEngine::macArrowKey;
     U4DEngine::KEYBOARDACTION arrowKeyActive=U4DEngine::macArrowKeyActive;
     
     
-    if(character=='a'){
+    if(character=='a' || character=='A'){
         director->macKeyPressBegan(keyA, keyPressed);
         
     }
     
-    if(character=='d'){
+    if(character=='d' || character=='D'){
         director->macKeyPressBegan(keyD, keyPressed);
         
+    }
+    
+    if(character=='w' || character=='W'){
+        director->macKeyPressBegan(keyW, keyPressed);
+        
+    }
+    
+    if(character=='s' || character=='S'){
+        director->macKeyPressBegan(keyS, keyPressed);
+        
+    }
+    
+    if(character==' '){
+        director->macKeyPressBegan(spaceKey, keyPressed);
+    }
+    
+    if(character=='1'){
+        director->macKeyPressEnded(key1, keyPressed);
+    }
+    
+    if(character=='2'){
+        director->macKeyPressEnded(key2, keyPressed);
+    }
+    
+    if(character=='3'){
+        director->macKeyPressEnded(key3, keyPressed);
+    }
+    
+    if(character=='4'){
+        director->macKeyPressEnded(key4, keyPressed);
     }
     
     if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
@@ -398,19 +490,59 @@
     
     U4DEngine::KEYBOARDELEMENT keyA=U4DEngine::macKeyA;
     U4DEngine::KEYBOARDELEMENT keyD=U4DEngine::macKeyD;
+    U4DEngine::KEYBOARDELEMENT keyW=U4DEngine::macKeyW;
+    U4DEngine::KEYBOARDELEMENT keyS=U4DEngine::macKeyS;
+    
+    U4DEngine::KEYBOARDELEMENT key1=U4DEngine::macKey1;
+    U4DEngine::KEYBOARDELEMENT key2=U4DEngine::macKey2;
+    U4DEngine::KEYBOARDELEMENT key3=U4DEngine::macKey3;
+    U4DEngine::KEYBOARDELEMENT key4=U4DEngine::macKey4;
+    
+    U4DEngine::KEYBOARDELEMENT spaceKey=U4DEngine::macSpaceKey;
+    
     U4DEngine::KEYBOARDACTION keyReleased=U4DEngine::macKeyReleased;
     
     U4DEngine::KEYBOARDELEMENT arrowKey=U4DEngine::macArrowKey;
     U4DEngine::KEYBOARDACTION arrowKeyReleased=U4DEngine::macArrowKeyReleased;
     
-    if(character=='a'){
+    if(character=='a' || character=='A'){
         director->macKeyPressEnded(keyA, keyReleased);
         
     }
     
-    if(character=='d'){
+    if(character=='d' || character=='D'){
         director->macKeyPressEnded(keyD, keyReleased);
         
+    }
+    
+    if(character=='w' || character=='W'){
+        director->macKeyPressEnded(keyW, keyReleased);
+        
+    }
+    
+    if(character=='s' || character=='S'){
+        director->macKeyPressEnded(keyS, keyReleased);
+        
+    }
+    
+    if(character=='1'){
+        director->macKeyPressEnded(key1, keyReleased);
+    }
+    
+    if(character=='2'){
+        director->macKeyPressEnded(key2, keyReleased);
+    }
+    
+    if(character=='3'){
+        director->macKeyPressEnded(key3, keyReleased);
+    }
+    
+    if(character=='4'){
+        director->macKeyPressEnded(key4, keyReleased);
+    }
+    
+    if(character==' '){
+        director->macKeyPressEnded(spaceKey, keyReleased);
     }
     
     if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
@@ -438,6 +570,85 @@
         director->macArrowKeyActive(arrowKey, arrowKeyReleased, padAxis);
         
     }
+    
+}
+
+- (void)mouseEntered:(NSEvent *)theEvent {
+    
+}
+
+- (void)mouseMoved:(NSEvent *)theEvent {
+    
+//USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
+    U4DEngine::MOUSEACTION mouseCursorMoved=U4DEngine::mouseCursorMoved;
+
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+
+    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
+    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
+
+    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
+
+    director->macMouseMoved(mouseCursorElement, mouseCursorMoved,mouseLocation);
+    
+    //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
+    
+//    static bool mouseWrap = false;
+//
+//    if(!mouseWrap) {
+//
+//        U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+//
+//        U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
+//        U4DEngine::MOUSEACTION mouseCursorDeltaMoved=U4DEngine::mouseCursorDeltaMoved;
+//
+//        int xDelta;
+//        int yDelta;
+//
+//        //get the delta movement
+//        CGGetLastMouseDelta(&xDelta, &yDelta);
+//
+//        //get the center position of the view
+//        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
+//
+//        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
+//
+//        //move the cursor back to the center
+//
+//        // CGAssociateMouseAndMouseCursorPosition(false);
+//        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
+//        //CGAssociateMouseAndMouseCursorPosition(true);
+//
+//        mouseWrap = true;
+//
+//        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
+//
+//        director->macMouseDeltaMoved(mouseCursorElement, mouseCursorDeltaMoved,mouseDeltaLocation);
+//
+//    } else {
+//
+//        mouseWrap = false;
+//    }
+}
+
+- (void)mouseExited:(NSEvent *)theEvent {
+    
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
+    U4DEngine::MOUSEACTION mouseCursorExited=U4DEngine::mouseCursorExited;
+    
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+    
+    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
+    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
+    
+    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
+    
+    director->macMouseExited(mouseCursorElement, mouseCursorExited,mouseLocation);
     
 }
 

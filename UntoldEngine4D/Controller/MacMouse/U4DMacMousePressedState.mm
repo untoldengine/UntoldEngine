@@ -35,7 +35,7 @@ namespace U4DEngine {
         
         U4DEngine::U4DVector3n mouseAxis(uMacMouse->mouseAxis.x,uMacMouse->mouseAxis.y, 0.0);
         
-        uMacMouse->initialDataPosition=mouseAxis;
+        uMacMouse->previousDataPosition=mouseAxis;
         
         if (uMacMouse->pCallback!=NULL) {
             uMacMouse->action();

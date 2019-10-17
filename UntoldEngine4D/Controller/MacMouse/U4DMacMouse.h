@@ -43,11 +43,15 @@ namespace U4DEngine {
         
         U4DControllerInterface *controllerInterface;
         
-        U4DVector3n initialDataPosition;
+        U4DVector3n previousDataPosition;
         
         U4DVector3n dataPosition;
         
         U4DVector2n mouseAxis;
+        
+        U4DVector2n mouseAxisDelta;
+        
+        U4DVector2n previousMouseAxisDelta;
         
         float dataMagnitude;
         
@@ -65,11 +69,15 @@ namespace U4DEngine {
         
         U4DVector3n getDataPosition();
         
+        U4DVector3n getPreviousDataPosition();
+        
         void setDataMagnitude(float uValue);
         
         float getDataMagnitude();
         
-        bool getIsActive();
+        U4DVector2n getMouseDeltaPosition();
+        
+        bool getIsDragged();
         
         void setCallbackAction(U4DCallbackInterface *uAction);
         
@@ -78,6 +86,15 @@ namespace U4DEngine {
         bool getDirectionReversal();
         
         MOUSEELEMENT getMouseElementType();
+        
+        bool getIsMoving();
+        
+        bool getIsPressed();
+        
+        bool getIsReleased();
+        
+        U4DMacMouseStateManager *getStateManager();
+        
     };
     
 }

@@ -48,6 +48,8 @@
     
     MTLVertexDescriptor *shadowVertexDesc;
     
+    float contentScale;
+    
 }
 
 /// Initialize with the MetalKit view from which we'll obtain our Metal device.  We'll also use this
@@ -135,6 +137,7 @@
     //call the update call before the render
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    float screenContentScale=director->getScreenScaleFactor();
     
     [self update];
     
@@ -168,7 +171,7 @@
         
         renderEncoder.label = @"MyRenderEncoder";
         
-        [renderEncoder setViewport:(MTLViewport){0.0, 0.0, view.bounds.size.width*2.0, view.bounds.size.height*2.0, 0.0, 1.0 }];
+        [renderEncoder setViewport:(MTLViewport){0.0, 0.0, view.bounds.size.width*screenContentScale, view.bounds.size.height*screenContentScale, 0.0, 1.0 }];
         
         //Render Models here
         director->render(renderEncoder);
@@ -194,8 +197,7 @@
 
 /// Called whenever the view size changes or a relayout occurs (such as changing from landscape to
 ///   portrait mode)
-- (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size
-{
+- (void)mtkView:(MTKView *)view drawableSizeWillChange:(CGSize)size{
 }
 
 //Shadow methods
@@ -348,8 +350,8 @@
     
 }
 
-- (void)deallo{
-    
+- (void)dealloc{
+    [super dealloc];
     [shadowDepthStencilDescriptor release];
     [shadowStencilStateDescriptor release];
     [shadowVertexDesc release];

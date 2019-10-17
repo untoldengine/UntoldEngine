@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "U4DVector3n.h"
+#include "U4DVector4n.h"
 #include "U4DIndex.h"
 #include <vector>
 
@@ -39,32 +40,32 @@ namespace U4DEngine {
         /**
          @brief particle's color
          */
-        U4DVector3n color;
+        U4DVector4n color;
         
         /**
          @brief particle's start color
          */
-        U4DVector3n startColor;
+        U4DVector4n startColor;
         
         /**
          @brief particle's end color
          */
-        U4DVector3n endColor;
+        U4DVector4n endColor;
         
         /**
          @brief particle's change in color
          */
-        U4DVector3n deltaColor;
+        U4DVector4n deltaColor;
         
         /**
          @brief particle's start color variance
          */
-        U4DVector3n startColorVariance;
+        U4DVector4n startColorVariance;
         
         /**
          @brief particle's end color variance
          */
-        U4DVector3n endColorVariance;
+        U4DVector4n endColorVariance;
         
         /**
          @brief particle's position variance
@@ -74,12 +75,12 @@ namespace U4DEngine {
         /**
          @brief particle's emit angle
          */
-        U4DVector3n emitAngle;
+        float emitAngle;
         
         /**
          @brief particle's emit angle variance
          */
-        U4DVector3n emitAngleVariance;
+        float emitAngleVariance;
         
         /**
          @brief particle's Torus major radius. This is used if the emitter's behavior is the Torus
@@ -105,6 +106,101 @@ namespace U4DEngine {
          @brief particle's speed
          */
         float speed;
+        
+        /**
+         @brief particle's speed variance
+         */
+        float speedVariance;
+        
+        /**
+         @brief particle size
+         */
+        float particleSize;
+        
+        /**
+         @brief particle start size
+         */
+        float startParticleSize;
+        
+        /**
+         @brief particle start size variance
+         */
+        float startParticleSizeVariance;
+        
+        /**
+         @brief particle end size
+         */
+        float endParticleSize;
+        
+        /**
+         @brief particle end size variance
+         */
+        float endParticleSizeVariance;
+        
+        /**
+         @brief particle's size change
+         */
+        float deltaParticleSize;
+        
+        /**
+         @brief particle scale
+         */
+        float particleScaleFactor;
+        
+        /**
+         @brief particle's radial acceleration
+         */
+        float particleRadialAcceleration;
+        
+        /**
+         @brief particle's radial acceleration variance
+         */
+        float particleRadialAccelerationVariance;
+        
+        /**
+         @brief particle's tangential acceleration
+         */
+        float particleTangentialAcceleration;
+        
+        /**
+         @brief particle's tangential acceleration variance
+         */
+        float particleTangentialAccelerationVariance;
+        
+        /**
+         @brief particle's gravity
+         */
+        U4DVector3n gravity;
+        
+        /**
+         @brief particle's start rotation
+         */
+        float startParticleRotation;
+        
+        /**
+         @brief particle's start rotation variance
+         */
+        float startParticleRotationVariance;
+        
+        /**
+         @brief particle's end rotation
+         */
+        float endParticleRotation;
+        
+        /**
+         @brief particle's end rotation variance
+         */
+        float endParticleRotationVariance;
+        
+        /**
+         @brief particle's rotation change
+         */
+        float deltaParticleRotation;
+        
+        /**
+         @brief particle rotation
+         */
+        float particleRotation;
         
     };
     

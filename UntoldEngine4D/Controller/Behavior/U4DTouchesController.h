@@ -142,6 +142,21 @@ public:
     void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
     
     /**
+     * @brief This method is not implemented in the touch controller.
+     */
+    void macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
+    
+    /**
+     * @brief This method is not implemented in the touch controller.
+     */
+    void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n &uMouseDelta){};
+    
+    /**
+     * @brief This method is not implemented in the touch controller.
+     */
+    void macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){};
+    
+    /**
      * @brief Updates the state of the controller
      * @details It changes the state of the controller such as pressed, released or moved
      * 

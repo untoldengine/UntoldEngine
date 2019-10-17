@@ -168,7 +168,7 @@ void KeyboardController::actionOnMouseLeftButton(){
     
     controllerInputMessage.controllerInputType=actionJoystick;
     
-    if (mouseLeftButton->getIsActive()) {
+    if (mouseLeftButton->getIsPressed()) {
         
         controllerInputMessage.controllerInputData=joystickActive;
         

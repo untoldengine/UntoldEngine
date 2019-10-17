@@ -75,6 +75,11 @@
     
     [super viewDidAppear:animated];
     
+    //get screen backing scale
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    float contentScale = metalView.contentScaleFactor;
+    director->setScreenScaleFactor(contentScale);
+    
     //initialize the scene for your game
     MainScene *mainScene=new MainScene();
     mainScene->init();

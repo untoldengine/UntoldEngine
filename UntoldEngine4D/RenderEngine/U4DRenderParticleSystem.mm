@@ -83,23 +83,26 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
         
         mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
+        
+        //rgb blending
         mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
         mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
         
         if (u4dObject->getEnableAdditiveRendering()) {
-            
+
             mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
-            
+
         }else{
-            
+
             mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-            
+
         }
         
+        //alpha blending
         mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
-        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorSourceAlpha;
-        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-
+        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorSource();
+        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorDest();
+        
         //set the vertex descriptors
         
         vertexDesc=[[MTLVertexDescriptor alloc] init];
@@ -249,11 +252,18 @@ namespace U4DEngine {
             
             for(int i=0;i<u4dObject->getParticleRenderDataContainer().size();i++){
                 
-                U4DVector3n color=u4dObject->getParticleRenderDataContainer().at(i).color;
+                //load particle color
+                U4DVector4n color=u4dObject->getParticleRenderDataContainer().at(i).color;
                 
-                vector_float3 colorSIMD=convertToSIMD(color);
+                vector_float4 colorSIMD=convertToSIMD(color);
                 
                 uniformParticleProperty[i].color=colorSIMD;
+                
+                //load particle scale
+                uniformParticleProperty[i].scaleFactor=u4dObject->getParticleRenderDataContainer().at(i).scaleFactor;
+                
+                //load particle rotation
+                uniformParticleProperty[i].rotationAngle=u4dObject->getParticleRenderDataContainer().at(i).rotationAngle;
                 
             }
             
@@ -319,6 +329,8 @@ namespace U4DEngine {
             
             updateSpaceUniforms();
             updateParticlePropertiesInformation();
+            //update the global uniforms
+            updateGlobalDataUniforms();
             
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
@@ -331,9 +343,13 @@ namespace U4DEngine {
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
             [uRenderEncoder setVertexBuffer:uniformParticlePropertyBuffer offset:0 atIndex:2];
+            
+            [uRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:5];
     
             //encode buffer in fragment
             [uRenderEncoder setFragmentBuffer:uniformParticleSystemPropertyBuffer offset:0 atIndex:0];
+            
+            [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
             
             //set texture in fragment
             [uRenderEncoder setFragmentTexture:textureObject atIndex:0];

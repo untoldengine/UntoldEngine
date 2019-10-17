@@ -45,11 +45,11 @@ namespace U4DEngine {
          @brief updates the forces affecting the 3D particle.
          @details the only forces affecting a 3D particle is gravitational force
 
+         @param uParticleSystemPosition particle system position
          @param uParticle pointer to particle
-         @param uGravity reference to gravity
          @param dt time-step
          */
-        void updateForce(U4DParticle *uParticle, U4DVector3n &uGravity, float dt);
+        void updateForce(U4DVector3n uParticleSystemPosition, U4DParticle *uParticle, float dt);
         
         
         /**

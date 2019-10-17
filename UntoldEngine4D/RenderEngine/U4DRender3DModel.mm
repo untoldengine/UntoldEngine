@@ -501,6 +501,9 @@ namespace U4DEngine {
             updateBoneSpaceUniforms();
             updateShadowProperties();
             
+            //update the global uniforms
+            updateGlobalDataUniforms();
+            
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
             
@@ -517,6 +520,8 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:4];
             
+            [uRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:5];
+            
             //set texture in fragment
             [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
             //set the samplers
@@ -531,6 +536,7 @@ namespace U4DEngine {
             [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:2];
             [uRenderEncoder setFragmentBuffer:lightColorUniform offset:0 atIndex:3];
             [uRenderEncoder setFragmentBuffer:shadowPropertiesBuffer offset:0 atIndex:4];
+            [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
             
             [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
             [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];

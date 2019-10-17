@@ -135,6 +135,11 @@ namespace U4DEngine {
         id<MTLBuffer> lightPositionUniform;
         
         /**
+         * @brief Pointer to the Uniform that holds Global data such as time, resolution,etc
+         */
+        id<MTLBuffer> globalDataUniform;
+        
+        /**
          * @brief Uniform for the light color
          */
         id<MTLBuffer> lightColorUniform;
@@ -251,6 +256,18 @@ namespace U4DEngine {
         virtual void updateRenderingInformation(){};
         
         virtual void modifyRenderingInformation(){};
+        
+        /**
+         * @brief updates the time, resolution data uniforms
+         * @details The time is the time since the game started. The resolution is the resolution of the screen. This method updates the data so the shaders have uptodate information
+         */
+        void updateGlobalDataUniforms();
+        
+        /**
+         * @brief sets the the uniforms for the time and resolution uniform
+         * @details initializes the uniform buffer used to store the time and resolution data
+         */
+        void loadMTLGlobalDataUniforms();
         
         /**
          * @brief Renders the current entity

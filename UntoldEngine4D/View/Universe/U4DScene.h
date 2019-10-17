@@ -203,6 +203,16 @@ public:
     void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction);
     
     /**
+     * @brief The mouse-key is being dragged
+     * @details The engine has detected mouse drag-movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
+     */
+    void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+    
+    /**
      * @brief The mouse is being moved
      * @details The engine has detected mouse movement
      *
@@ -210,7 +220,27 @@ public:
      * @param uMouseAction action on the mouse
      * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
      */
-    void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+    void macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
+    
+    /**
+     * @brief The mouse cursor is being moved and gets its delta movement
+     * @details The engine has detected mouse movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseDelta Delta movement direction in a 2D vector format.
+     */
+    void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta);
+    
+    /**
+     * @brief The mouse cursor exited the window
+     * @details The engine has detected mouse exit-movement
+     *
+     * @param uMouseElement mouse element
+     * @param uMouseAction action on the mouse
+     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
+     */
+    void macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis);
     
     /**
      @brief determines if the current entity is within the camera frustum

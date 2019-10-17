@@ -18,7 +18,7 @@
 
 namespace U4DEngine {
     
-    U4DAvoidance::U4DAvoidance(){
+    U4DAvoidance::U4DAvoidance():timeParameter(2.0){
         
     }
     
@@ -106,7 +106,7 @@ namespace U4DEngine {
                 //intersect plane with ray going in direction of entity velocity
                 ray.intersectPlane(plane, intersectionPoint, intersectionTime);
                 
-                predictedPosition=intersectionPoint.toVector()+plane.n*2.0;
+                predictedPosition=intersectionPoint.toVector()+plane.n*timeParameter;
                 
                 return U4DSeek::getSteering(uDynamicModel, predictedPosition);
             }
@@ -115,6 +115,11 @@ namespace U4DEngine {
         
         return U4DVector3n(0.0,0.0,0.0);
         
+    }
+    
+    void U4DAvoidance::setTimeParameter(float uTimeParameter){
+        
+        timeParameter=uTimeParameter;
     }
     
 }

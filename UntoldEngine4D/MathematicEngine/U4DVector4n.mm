@@ -37,6 +37,35 @@ namespace U4DEngine {
         
     }
     
+    void U4DVector4n::operator+=(const U4DVector4n& v){
+        
+        x+=v.x;
+        y+=v.y;
+        z+=v.z;
+        w+=v.w;
+        
+    }
+    
+    U4DVector4n U4DVector4n::operator+(const U4DVector4n& v)const{
+        
+        
+        return U4DVector4n(x+v.x,y+v.y,z+v.z,w+v.w);
+    }
+    
+    void U4DVector4n::operator*=(const float s){
+        
+        x*=s;
+        y*=s;
+        z*=s;
+        w*=s;
+        
+    }
+    
+    U4DVector4n U4DVector4n::operator*(const float s) const{
+        
+        return U4DVector4n(s*x,s*y,s*z,s*w);
+    }
+    
     float U4DVector4n::dot(const U4DVector4n& v) const{
         
         return x*v.x+y*v.y+z*v.z+w*v.w;

@@ -1,46 +1,46 @@
 //
-//  U4DMacMouseActiveState.cpp
+//  U4DMacMouseDraggedState.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 3/8/18.
 //  Copyright © 2018 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DMacMouseActiveState.h"
+#include "U4DMacMouseDraggedState.h"
 #include "U4DControllerInterface.h"
 
 namespace U4DEngine {
     
-    U4DMacMouseActiveState* U4DMacMouseActiveState::instance=0;
+    U4DMacMouseDraggedState* U4DMacMouseDraggedState::instance=0;
     
-    U4DMacMouseActiveState::U4DMacMouseActiveState(){
+    U4DMacMouseDraggedState::U4DMacMouseDraggedState(){
         
     }
     
-    U4DMacMouseActiveState::~U4DMacMouseActiveState(){
+    U4DMacMouseDraggedState::~U4DMacMouseDraggedState(){
         
     }
     
-    U4DMacMouseActiveState* U4DMacMouseActiveState::sharedInstance(){
+    U4DMacMouseDraggedState* U4DMacMouseDraggedState::sharedInstance(){
         
         if (instance==0) {
-            instance=new U4DMacMouseActiveState();
+            instance=new U4DMacMouseDraggedState();
         }
         
         return instance;
         
     }
     
-    void U4DMacMouseActiveState::enter(U4DMacMouse *uMacMouse){
+    void U4DMacMouseDraggedState::enter(U4DMacMouse *uMacMouse){
         
         
     }
     
-    void U4DMacMouseActiveState::execute(U4DMacMouse *uMacMouse, double dt){
+    void U4DMacMouseDraggedState::execute(U4DMacMouse *uMacMouse, double dt){
         
         U4DEngine::U4DVector3n mouseAxis(uMacMouse->mouseAxis.x,uMacMouse->mouseAxis.y, 0.0);
         
-        U4DEngine::U4DVector3n absoluteMouseAxis=mouseAxis-uMacMouse->initialDataPosition;
+        U4DEngine::U4DVector3n absoluteMouseAxis=mouseAxis-uMacMouse->previousDataPosition;
         
         //make sure that the mouse drag is not too close to its initial position.
         if (absoluteMouseAxis.magnitude()<1.0) {
@@ -60,7 +60,7 @@ namespace U4DEngine {
             
         }
         
-        uMacMouse->initialDataPosition=mouseAxis;
+        uMacMouse->previousDataPosition=mouseAxis;
         
         uMacMouse->dataPosition=absoluteMouseAxis;
         
@@ -76,7 +76,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DMacMouseActiveState::exit(U4DMacMouse *uMacMouse){
+    void U4DMacMouseDraggedState::exit(U4DMacMouse *uMacMouse){
         
     }
     

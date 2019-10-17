@@ -43,6 +43,20 @@ namespace U4DEngine {
          */
         float mass;
         
+        /**
+         @brief particle's gravity
+         */
+        U4DVector3n gravity;
+        
+        /**
+         @brief particle's radial acceleration
+         */
+        float particleRadialAcceleration;
+        
+        /**
+         @brief particle's tangential acceleration
+         */
+        float particleTangentialAcceleration;
         
     public:
         
@@ -115,6 +129,43 @@ namespace U4DEngine {
          @return force vector
          */
         U4DVector3n getForce();
+        
+        /**
+         @brief gets the gravity of the particle
+         
+         @return gravity vector
+         */
+        U4DVector3n getGravity();
+        
+        /**
+         @brief sets the gravity of the particle
+         @param uGravity gravity vector
+         */
+        void setGravity(U4DVector3n &uGravity);
+        
+        /**
+         @brief sets the particle radial acceleration
+         @param particle radial acceleration magnitude
+         */
+        void setParticleRadialAcceleration(float uParticleRadialAcceleration);
+
+        /**
+         @brief sets the particle tangential acceleration
+         @param particle tangential acceleration magnitude
+         */
+        void setParticleTangentialAcceleration(float uParticleTangentialAcceleration);
+
+        /**
+         @brief gets the particle radial acceleration
+         @return radial acceleration magnitude
+         */
+        float getParticleRadialAcceleration();
+        
+        /**
+         @brief gets the particle tangent acceleration
+         @return tangent acceleration magnitude
+         */
+        float getParticleTangentialAcceleration();
         
     };
     
