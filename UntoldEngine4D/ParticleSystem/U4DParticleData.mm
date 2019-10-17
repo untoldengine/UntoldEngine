@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DParticleData::U4DParticleData():life(2.0){
+    U4DParticleData::U4DParticleData():life(2.0),particleScaleFactor(1.0){
         
     }
     

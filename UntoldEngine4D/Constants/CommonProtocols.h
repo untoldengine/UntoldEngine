@@ -15,6 +15,7 @@
 #include "U4DTriangle.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
+#include "U4DVector4n.h"
 
 namespace U4DEngine {
     
@@ -267,22 +268,22 @@ namespace U4DEngine {
          @brief Start color of the particle during the start of emission
          */
         
-        U4DVector3n particleStartColor;
+        U4DVector4n particleStartColor;
         
         /**
          @brief End color of the particle as it nears its life span
          */
-        U4DVector3n particleEndColor;
+        U4DVector4n particleEndColor;
         
         /**
          @brief Color variance for the start color
          */
-        U4DVector3n particleStartColorVariance;
+        U4DVector4n particleStartColorVariance;
         
         /**
          @brief Color variance for the end color
          */
-        U4DVector3n particleEndColorVariance;
+        U4DVector4n particleEndColorVariance;
         
         /**
          @brief position variance of the particle
@@ -292,12 +293,12 @@ namespace U4DEngine {
         /**
          @brief emission angle
          */
-        U4DVector3n particleEmitAngle;
+        float particleEmitAngle;
         
         /**
          @brief emission angle variance
          */
-        U4DVector3n particleEmitAngleVariance;
+        float particleEmitAngleVariance;
         
         /**
          @brief Distance from the center of the torus to the center of the tube
@@ -325,6 +326,11 @@ namespace U4DEngine {
         float particleSpeed;
         
         /**
+         @brief particle's speed variance
+         */
+        float particleSpeedVariance;
+        
+        /**
          @brief number of particles the emitter must emit per emission
          */
         int numberOfParticlesPerEmission=1;
@@ -338,6 +344,11 @@ namespace U4DEngine {
          @brief emission rate
          */
         float emissionRate=1.0;
+        
+        /**
+         @brief emitter duration rate
+         */
+        float emitterDurationRate=1.0;
         
         /**
          @brief if set to true, the emitter will emit continuously
@@ -368,6 +379,81 @@ namespace U4DEngine {
          @brief if set to true, the particles color will be blended with the sorrounding colors
          */
         bool enableAdditiveRendering=true;
+        
+        /**
+         @brief particle size
+         */
+        float particleSize=1.0;
+        
+        /**
+         @brief particle start size
+         */
+        float startParticleSize=1.0;
+        
+        /**
+         @brief particle start size variance
+         */
+        float startParticleSizeVariance=0.0;
+        
+        /**
+         @brief particle end size
+         */
+        float endParticleSize=1.0;
+        
+        /**
+         @brief particle end size variance
+         */
+        float endParticleSizeVariance=0.0;
+        
+        /**
+         @brief particle's radial acceleration
+         */
+        float particleRadialAcceleration;
+        
+        /**
+         @brief particle's radial acceleration variance
+         */
+        float particleRadialAccelerationVariance;
+        
+        /**
+         @brief particle's tangential acceleration
+         */
+        float particleTangentialAcceleration;
+        
+        /**
+         @brief particle's tangential acceleration variance
+         */
+        float particleTangentialAccelerationVariance;
+        
+        /**
+         @brief particle's start rotation
+         */
+        float startParticleRotation;
+        
+        /**
+         @brief particle's start rotation variance
+         */
+        float startParticleRotationVariance;
+        
+        /**
+         @brief particle's end rotation
+         */
+        float endParticleRotation;
+        
+        /**
+         @brief particle's end rotation variance
+         */
+        float endParticleRotationVariance;
+        
+        /**
+         @brief particle system's blending source factor
+         */
+        int blendingFactorSource;
+        
+        /**
+         @brief particle system's blending destination factor
+         */
+        int blendingFactorDest;
         
     }PARTICLESYSTEMDATA;
     

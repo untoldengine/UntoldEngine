@@ -122,6 +122,26 @@ namespace U4DEngine {
      */
     const int minimumContactPointsForEquilibrium=3;
     
+    /**
+     @brief The rate of particles being emitted
+     */
+    const float particleEmissionRate=0.01;
+    
+    /**
+     @brief A divider scaler for the speed of the particle. Using this so that it matches the speed of the particle loader
+     */
+    const float particleSpeedDivider=400.0;
+    
+    /**
+     @brief A divider scaler for the position variance of the particle. Using this so that it matches the speed of the particle loader
+     */
+    const float particlePositionDivider=248.0;
+    
+    /**
+     @brief A divider scaler for the angular acceleration of the particle. Using this so that it matches the speed of the particle loader
+     */
+    const float particleAngularAccelDivider=5.0;
+    
 }
 
 #endif

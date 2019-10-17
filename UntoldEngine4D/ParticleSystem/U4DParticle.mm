@@ -7,13 +7,14 @@
 //
 
 #include "U4DParticle.h"
-
+#include "Constants.h"
 #include "U4DVector3n.h"
 #include "U4DDirector.h"
+#include "U4DCamera.h"
 
 namespace U4DEngine {
     
-    U4DParticle::U4DParticle():mass(1.0){
+    U4DParticle::U4DParticle():mass(1.0),gravity(0.0,-10.0,0.0){
     }
     
     U4DParticle::~U4DParticle(){
@@ -54,6 +55,35 @@ namespace U4DEngine {
     float U4DParticle::getMass(){
         
         return mass;
+    }
+    
+    U4DVector3n U4DParticle::getGravity(){
+        
+        return gravity;
+        
+    }
+    
+    void U4DParticle::setGravity(U4DVector3n &uGravity){
+        gravity=uGravity/U4DEngine::particleSpeedDivider;
+    }
+    
+    void U4DParticle::setParticleRadialAcceleration(float uParticleRadialAcceleration){
+        particleRadialAcceleration=uParticleRadialAcceleration;
+    }
+    
+    
+    void U4DParticle::setParticleTangentialAcceleration(float uParticleTangentialAcceleration){
+        particleTangentialAcceleration=uParticleTangentialAcceleration;
+    }
+    
+    
+    float U4DParticle::getParticleRadialAcceleration(){
+        return particleRadialAcceleration;
+    }
+    
+    
+    float U4DParticle::getParticleTangentialAcceleration(){
+        return particleTangentialAcceleration;
     }
     
 }

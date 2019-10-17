@@ -83,6 +83,42 @@ public:
     U4DVector4n& operator=(const U4DVector4n& a);
     
     /**
+     @brief Method that calculates the addition of two vectors.
+     
+     @param v Vector to add.
+     
+     @return Returns the addition of two vectors.
+     */
+    void operator+=(const U4DVector4n& v);
+    
+    /**
+     @brief Method that calculates the addition of two vectors.
+     
+     @param v 4D vector to add
+     
+     @return Returns a third vector representing the addition of two 4D vectors
+     */
+    U4DVector4n operator+(const U4DVector4n& v)const;
+    
+    /**
+     @brief Method which multiplies a 4D vector by a scalar
+     
+     @param s Scalar value to multiply
+     
+     @return Returns the multiplication product betweent the 4D vector and scalar
+     */
+    void operator*=(const float s);
+    
+    /**
+     @brief Method which multiplies a 4D vector by a scalar
+     
+     @param s Scalar value to multiply
+     
+     @return Returns the multiplication product betweent the 4D vector and scalar
+     */
+    U4DVector4n operator*(const float s)const;
+    
+    /**
      @brief Method that calculates the dot product between two 4D vectors
      
      @param v A 4D vector to compute the dot product with

@@ -20,9 +20,17 @@ namespace U4DEngine {
         
     }
     
-    void U4DParticlePhysics::updateForce(U4DParticle *uParticle, U4DVector3n &uGravity, float dt){
+    void U4DParticlePhysics::updateForce(U4DVector3n uParticleSystemPosition, U4DParticle *uParticle, float dt){
         
-        U4DVector3n force=uGravity*uParticle->getMass();
+        U4DVector3n radialVector=uParticle->getAbsolutePosition()-uParticleSystemPosition;
+        
+        //set the tangential vector perpendicular to the radial vector
+        U4DVector3n tangentialVector=U4DVector3n(-radialVector.y,radialVector.x,radialVector.z);
+        
+        U4DVector3n radialAcceleration=radialVector*uParticle->getParticleRadialAcceleration();
+        U4DVector3n tangentialAcceleration=tangentialVector*uParticle->getParticleTangentialAcceleration();
+        
+        U4DVector3n force=(radialAcceleration+tangentialAcceleration+uParticle->getGravity())*uParticle->getMass();
         
         uParticle->addForce(force);
         

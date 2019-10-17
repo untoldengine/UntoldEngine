@@ -8,6 +8,7 @@
 
 #include "U4DParticleEmitterLinear.h"
 #include "U4DTrigonometry.h"
+#include "Constants.h"
 
 namespace U4DEngine {
     
@@ -23,22 +24,47 @@ namespace U4DEngine {
         
         U4DTrigonometry trig;
         
-        U4DVector3n emitAngle=particleData.emitAngle;
-        U4DVector3n emitAngleVariance=particleData.emitAngleVariance;
-        float speed=particleData.speed;
+        float emitAngle=particleData.emitAngle;
+        float emitAngleVariance=particleData.emitAngleVariance;
         
-        //compute velocity
+        float speed=particleData.speed/U4DEngine::particleSpeedDivider;
+        float speedVariance=particleData.speedVariance/U4DEngine::particleSpeedDivider;
         
+        //compute emit angle
         computeVariance(emitAngle, emitAngleVariance);
         
-        U4DVector3n emitAxis(cos(trig.degreesToRad(emitAngle.x)),cos(trig.degreesToRad(emitAngle.y)),cos(trig.degreesToRad(emitAngle.z)));
+        //compute speed
+        computeVariance(speed, speedVariance);
+        
+        U4DVector3n emitAxis(cos(trig.degreesToRad(emitAngle)),sin(trig.degreesToRad(emitAngle)),0.0);
         
         emitAxis.normalize();
         
-        U4DVector3n emitVelocity=emitAxis*speed;
+        U4DVector3n emitVelocity=emitAxis*(speed);
         
         uParticle->setVelocity(emitVelocity);
         
+    }
+    
+    void U4DParticleEmitterLinear::computeRadialAcceleration(U4DParticle *uParticle){
+        
+        float radialAcceleration=particleData.particleRadialAcceleration/U4DEngine::particleAngularAccelDivider;
+        float radialAccelerationVariance=particleData.particleRadialAccelerationVariance/U4DEngine::particleAngularAccelDivider;
+        
+        computeVariance(radialAcceleration, radialAccelerationVariance);
+        
+        uParticle->setParticleRadialAcceleration(radialAcceleration);
+        
+    }
+    
+    void U4DParticleEmitterLinear::computeTangentialAcceleration(U4DParticle *uParticle){
+        
+        float tangentAcceleration=particleData.particleTangentialAcceleration/U4DEngine::particleAngularAccelDivider;
+        float tangentAccelerationVariance=particleData.particleTangentialAccelerationVariance/U4DEngine::particleAngularAccelDivider;
+        
+        computeVariance(tangentAcceleration, tangentAccelerationVariance);
+        
+        uParticle->setParticleTangentialAcceleration(tangentAcceleration);
     }
     
 }

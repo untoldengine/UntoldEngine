@@ -33,10 +33,27 @@ vertex VertexOutput vertexParticleSystemShader(VertexInput vert [[stage_in]], co
     
     VertexOutput vertexOut;
     
-    float4 position=uniformSpace[iid].modelViewProjectionSpace*vert.position;
+    float scaleFactor=uniformParticleProperty[iid].scaleFactor;
+    float rotationAngle=uniformParticleProperty[iid].rotationAngle;
+    
+    float4x4 scaleMatrix=float4x4(scaleFactor,0.0,0.0,0.0,
+                                  0.0,scaleFactor,0.0,0.0,
+                                  0.0,0.0,scaleFactor,0.0,
+                                  0.0,0.0,0.0,1.0);
+    
+    float4x4 rotationMatrix=float4x4(cos(rotationAngle),-sin(rotationAngle),0.0,0.0,
+                                     sin(rotationAngle),cos(rotationAngle),0.0,0.0,
+                                     0.0,0.0,0.0,0.0,
+                                     0.0,0.0,0.0,1.0);
+    
+    float4 transformedVertices=rotationMatrix*vert.position;
+    
+    transformedVertices=scaleMatrix*transformedVertices;
+    
+    float4 position=uniformSpace[iid].modelViewProjectionSpace*transformedVertices;
 
     vertexOut.position=position;
-    vertexOut.color=float4(uniformParticleProperty[iid].color,1.0);
+    vertexOut.color=uniformParticleProperty[iid].color;
     vertexOut.uvCoords=vert.uv;
     
     

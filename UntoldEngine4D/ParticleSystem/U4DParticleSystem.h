@@ -18,6 +18,7 @@
 #include "U4DParticle.h"
 #include "CommonProtocols.h"
 #include "U4DParticleEmitterFactory.h"
+#include "U4DParticleLoader.h"
 
 namespace U4DEngine {
     class U4DParticlePhysics;
@@ -32,10 +33,12 @@ namespace U4DEngine {
     typedef struct{
         
         U4DMatrix4n absoluteSpace;
-        U4DVector3n color;
-        U4DVector3n startColor;
-        U4DVector3n endColor;
-        U4DVector3n deltaColor;
+        U4DVector4n color;
+        U4DVector4n startColor;
+        U4DVector4n endColor;
+        U4DVector4n deltaColor;
+        float scaleFactor;
+        float rotationAngle;
         
     }PARTICLERENDERDATA;
     
@@ -50,6 +53,8 @@ namespace U4DEngine {
         
     private:
         
+        U4DParticleLoader particleLoader;
+        
         /**
          @brief Maximum number of particles to emit
          */
@@ -59,11 +64,6 @@ namespace U4DEngine {
          @brief Boolean variable to chech if the particle was provided with a texture
          */
         bool hasTexture;
-        
-        /**
-         @brief particles gravity
-         */
-        U4DVector3n gravity;
         
         /**
          @brief vector containing 3D particle data such as position, start color, end color, etc
@@ -105,6 +105,16 @@ namespace U4DEngine {
          */
         float noiseDetail;
         
+        /**
+         @brief particle system's blending source factor
+         */
+        int blendingFactorSource;
+        
+        /**
+         @brief particle system's blending destination factor
+         */
+        int blendingFactorDest;
+        
     public:
         
         /**
@@ -136,15 +146,9 @@ namespace U4DEngine {
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
         /**
-         @brief Loads the particle attributes into the GPU
-         @details The Particle System requires Particle System Data which informs the Particle System how to behave
-
-         @param uModelName name of the particle
-         @param uBlenderFile name of the blender file containing the attributes information
-         @param uParticleSystemData Particle System Data
-         @return true if the attributes were properly loaded
+         @todo document this
          */
-        bool loadParticleSystem(const char* uModelName, const char* uBlenderFile, PARTICLESYSTEMDATA &uParticleSystemData);
+        bool loadParticleSystem(const char* uParticleAssetFile, const char* uParticleTextureFile);
         
         /**
          @brief Uupdates the state of the particle system
@@ -221,6 +225,13 @@ namespace U4DEngine {
          */
         void initializeParticleEmitter(PARTICLESYSTEMDATA &uParticleSystemData);
         
+        /**
+         @brief sets whether additive rendering should be enabled.
+         @details If additive rendering is enabled, then the particles will blend their colors among each other. Default is true
+         
+         @param uValue true or false. true means additive rendering is enabled
+         */
+        void setEnableAdditiveRendering(bool uValue);
         
         /**
          @brief gets whether additive rendering was enabled
@@ -230,6 +241,13 @@ namespace U4DEngine {
          */
         bool getEnableAdditiveRendering();
         
+        /**
+         @brief sets if Noise should be enabled
+         @details Noise is created using the Perlin Noise function
+         
+         @param uValue true if Noise is enabled
+         */
+        void setEnableNoise(bool uValue);
         
         /**
          @brief gets if Noise was enabled
@@ -239,6 +257,13 @@ namespace U4DEngine {
          */
         bool getEnableNoise();
         
+        /**
+         @brief sets the Noise Detail factor
+         @details The higher the noise detail, the more noise is generated in the texture. Value ranges are [1,16]. Defaut is 4.0
+         
+         @param uNoiseDetail the allowed values ranges are [1,16]. Defaut is 4.0
+         */
+        void setNoiseDetail(float uNoiseDetail);
         
         /**
          @brief gets the Noise Detail factor
@@ -259,6 +284,34 @@ namespace U4DEngine {
          @brief Stops the emittion of particles from the particle system
          */
         void stop();
+        
+        /**
+         @brief sets the particle dimension
+         @param uWidth width of the particle
+         @param uHeight height of the particle
+         */
+        void setParticleDimension(float uWidth,float uHeight);
+        
+        /**
+         @brief returns the view direction the particle is facing
+         */
+        U4DVector3n getViewInDirection();
+        
+        /**
+         @brief sets the view direction the particle should face
+         @param uDestinationPoint vector to face to
+         */
+        void viewInDirection(U4DVector3n& uDestinationPoint);
+        
+        /**
+         @brief gets the blending source factor
+         */
+        int getBlendingFactorSource();
+        
+        /**
+         @brief gets the blending destination factor
+         */
+        int getBlendingFactorDest();
         
     };
     

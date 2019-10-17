@@ -67,6 +67,20 @@ namespace U4DEngine {
          */
         virtual void computeColors(U4DParticle *uParticle)=0;
         
+        /**
+         @brief computes the radial acceleration of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        virtual void computeRadialAcceleration(U4DParticle *uParticle)=0;
+        
+        /**
+         @brief computes the tangential acceleration of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        virtual void computeTangentialAcceleration(U4DParticle *uParticle)=0;
+        
         
         /**
          @brief decreases the number of particles emitted
@@ -134,6 +148,27 @@ namespace U4DEngine {
          @brief stops the emission of particles
          */
         virtual void stop()=0;
+        
+        /**
+         @brief sets the emitter duration rate
+         @param uEmitterDurationRate emitter duration rate
+         */
+        virtual void setEmitterDurationRate(float uEmitterDurationRate)=0;
+        
+        /**
+         @brief computes the scale of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        virtual void computeScale(U4DParticle *uParticle)=0;
+        
+        /**
+         @brief computes the rotation of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        virtual void computeRotation(U4DParticle *uParticle)=0;
+        
         
     };
     

@@ -61,7 +61,9 @@ typedef struct{
 
 typedef struct{
     
-    vector_float3 color;
+    vector_float4 color;
+    float scaleFactor;
+    float rotationAngle;
     
 }UniformParticleProperty;
 

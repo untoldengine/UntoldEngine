@@ -45,6 +45,20 @@ namespace U4DEngine {
          */
         void computeVelocity(U4DParticle *uParticle);
         
+        /**
+         @brief computes the radial acceleration of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        void computeRadialAcceleration(U4DParticle *uParticle);
+        
+        /**
+         @brief computes the tangential acceleration of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        void computeTangentialAcceleration(U4DParticle *uParticle);
+        
     };
     
 }

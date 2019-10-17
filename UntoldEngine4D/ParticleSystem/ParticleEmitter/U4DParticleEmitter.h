@@ -25,6 +25,11 @@ namespace U4DEngine {
     class U4DParticleEmitter:public U4DParticleEmitterInterface {
         
     private:
+        
+        /**
+         @brief emitter duration flag. When this flag is set, the emitter can emit particles.
+         */
+        bool emitterDurationFlag;
     
     protected:
         
@@ -44,14 +49,29 @@ namespace U4DEngine {
         float emissionRate;
         
         /**
+         @brief duration of how long the emitter will emit
+         */
+        float emitterDurationRate;
+        
+        /**
          @brief pointer to Callback to schedule the emission rate
          */
-        U4DCallback<U4DParticleEmitter> *scheduler;
+        U4DCallback<U4DParticleEmitter> *emitterRateScheduler;
         
         /**
          @brief pointer to a timer used in the callback
          */
-        U4DTimer *timer;
+        U4DTimer *emitterRateTimer;
+        
+        /**
+         @brief pointer to Callback to schedule the emission duration
+         */
+        U4DCallback<U4DParticleEmitter> *emitterDurationScheduler;
+        
+        /**
+         @brief pointer to a timer used in the callback
+         */
+        U4DTimer *emitterDurationTimer;
         
         /**
          @brief pointer to the Particle System object
@@ -93,6 +113,19 @@ namespace U4DEngine {
          */
         virtual void computeVelocity(U4DParticle *uParticle){};
         
+        /**
+         @brief computes the radial acceleration of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        virtual void computeRadialAcceleration(U4DParticle *uParticle){};
+        
+        /**
+         @brief computes the tangential acceleration of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        virtual void computeTangentialAcceleration(U4DParticle *uParticle){};
         
         /**
          @brief compute random number
@@ -106,12 +139,28 @@ namespace U4DEngine {
         
         
         /**
-         @brief Computes the variance of colors
+         @brief Computes the variance of vectors
 
-         @param uVector vector representing color change
-         @param uVectorVariance desired color variance range
+         @param uVector vector representing main vector
+         @param uVectorVariance desired vector variance range
          */
         void computeVariance(U4DVector3n &uVector, U4DVector3n &uVectorVariance);
+        
+        /**
+         @brief Computes the variance of vectors
+         
+         @param uVector vector representing main vector
+         @param uVectorVariance desired vector variance range
+         */
+        void computeVariance(U4DVector4n &uVector, U4DVector4n &uVectorVariance);
+        
+        /**
+         @brief Computes the variance of a particular value
+         
+         @param uVector vector representing main value
+         @param uVectorVariance desired value variance range
+         */
+        void computeVariance(float &uValue, float &uValueVariance);
         
         /**
          @brief computes the position of the 3D particle
@@ -126,6 +175,13 @@ namespace U4DEngine {
          @param uParticle pointer to the 3D particle
          */
         void computeColors(U4DParticle *uParticle);
+        
+        /**
+         @brief computes the scale of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        void computeScale(U4DParticle *uParticle);
         
         /**
          @brief decreases the number of particles emitted
@@ -196,6 +252,24 @@ namespace U4DEngine {
          @brief stops the emission of particles
          */
         void stop();
+        
+        /**
+         @brief negate the emitterDurationFlag
+         */
+        void negateEmitterDurationFlag();
+        
+        /**
+         @brief sets the emitter duration rate
+         @param uEmitterDurationRate emitter duration rate
+         */
+        void setEmitterDurationRate(float uEmitterDurationRate);
+        
+        /**
+         @brief computes the rotation of the 3D particle
+         
+         @param uParticle pointer to the 3D particle
+         */
+        void computeRotation(U4DParticle *uParticle);
         
     };
     
