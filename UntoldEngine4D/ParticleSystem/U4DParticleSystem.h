@@ -146,7 +146,11 @@ namespace U4DEngine {
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
         /**
-         @todo document this
+         @brief loads the particles parameter. It loads the data from Particle Designer.
+         @param uParticleAssetFile PEX file containing the particle data. You must export this file from particle designer
+         @param uParticleTextureFile Particle texture file. The Untold Engine provides a default texture you can use. "particle.png"
+         
+         @return true if the data was read correctly
          */
         bool loadParticleSystem(const char* uParticleAssetFile, const char* uParticleTextureFile);
         
