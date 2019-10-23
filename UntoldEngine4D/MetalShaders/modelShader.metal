@@ -11,6 +11,7 @@
 #include "U4DShaderProtocols.h"
 
 using namespace metal;
+#include "U4DShaderHelperFunctions.h"
 
 struct VertexInput {
     
@@ -37,41 +38,6 @@ struct VertexOutput{
     int materialIndex [[flat]];
 };
 
-struct LightColor{
-    
-    float3 ambientColor;
-    float3 diffuseColor;
-    float3 specularColor;
-};
-
-struct Material{
-    
-    float3 ambientMaterialColor;
-    float3 diffuseMaterialColor;
-    float3 specularMaterialColor;
-    float specularReflectionPower;
-};
-
-constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
-    float2( 0.792657, 0.945738 ),
-    float2( 0.922361, 0.411756 ),
-    float2( 0.165838, 0.552995 ),
-    float2( 0.566027, 0.216651),
-    float2( 0.335398,0.783654),
-    float2( 0.0190741,0.318522),
-    float2( 0.647572,0.581896),
-    float2( 0.916288,0.0120243),
-    float2( 0.0278329,0.866634),
-    float2( 0.398053,0.4214),
-    float2( 0.00289926,0.051149),
-    float2( 0.517624,0.989044),
-    float2( 0.963744,0.719901),
-    float2( 0.76867,0.018128),
-    float2( 0.684194,0.167302)
-};
-
-
-
 
 //
 //constant Material material={
@@ -83,7 +49,7 @@ constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
 //    
 //};
 
-float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor);
+
 
 vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant float4 &lightPosition[[buffer(2)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(3)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(4)]], uint vid [[vertex_id]]){
     
@@ -312,40 +278,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
 }
 
 
-float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor){
-    
-    //2. Compute the direction of the light ray betweent the light position and the vertices of the surface
-    float3 lightRayDirection=normalize(uLightPosition.xyz-uVerticesInMVSpace.xyz);
-    
-    //3. Normalize View Vector
-    float3 viewVector=normalize(-uVerticesInMVSpace.xyz);
-    
-    //4. Compute reflection vector
-    float3 reflectionVector=reflect(-lightRayDirection,uNormalInMVSpace);
-    
-    //COMPUTE LIGHTS
-    
-    //5. compute ambient lighting
-    float3 ambientLight=uLightColor.ambientColor*uMaterial.ambientMaterialColor;
-    
-    //6. compute diffuse intensity by computing the dot product. We obtain the maximum the value between 0 and the dot product
-    float diffuseIntensity=max(0.0,dot(uNormalInMVSpace,lightRayDirection));
-    
-    //7. compute Diffuse Color
-    float3 diffuseLight=diffuseIntensity*uLightColor.diffuseColor*uMaterial.diffuseMaterialColor;
-    
-    //8. compute specular lighting
-    float3 specularLight=float3(0.0,0.0,0.0);
-    
-    if(diffuseIntensity>0.0){
-        
-        specularLight=uLightColor.specularColor*uMaterial.specularMaterialColor*pow(max(dot(reflectionVector,viewVector),0.0),uMaterial.specularReflectionPower);
-        
-    }
-    
-    return float4(ambientLight+diffuseLight+specularLight,1.0);
-    
-}
+
 
 
 

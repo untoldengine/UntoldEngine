@@ -151,6 +151,9 @@
 		034F2A32217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */; };
 		034F2A33217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */; };
 		034F2A34217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */; };
+		0354C3DA235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0354C3D9235F3D2D009DD151 /* U4DShaderHelperFunctions.metal */; };
+		0354C3DB235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0354C3D9235F3D2D009DD151 /* U4DShaderHelperFunctions.metal */; };
+		0354C3DC235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0354C3D9235F3D2D009DD151 /* U4DShaderHelperFunctions.metal */; };
 		03584D981951FB8900C974A2 /* U4DTransformationManagerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */; };
 		03584D9B195206DD00C974A2 /* U4DTransformation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03584D99195206DD00C974A2 /* U4DTransformation.mm */; };
 		0361DFA11FAC2141004770FD /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
@@ -1026,6 +1029,8 @@
 		034F2A26217E1EFF00D35CCE /* U4DCameraFirstPerson.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCameraFirstPerson.mm; sourceTree = "<group>"; };
 		034F2A27217E1EFF00D35CCE /* U4DCameraThirdPerson.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCameraThirdPerson.mm; sourceTree = "<group>"; };
 		034F2A28217E1EFF00D35CCE /* U4DCameraBasicFollow.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCameraBasicFollow.mm; sourceTree = "<group>"; };
+		0354C3D8235F3D02009DD151 /* U4DShaderHelperFunctions.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DShaderHelperFunctions.h; path = MetalShaders/U4DShaderHelperFunctions.h; sourceTree = "<group>"; };
+		0354C3D9235F3D2D009DD151 /* U4DShaderHelperFunctions.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = U4DShaderHelperFunctions.metal; path = MetalShaders/U4DShaderHelperFunctions.metal; sourceTree = "<group>"; };
 		03584D961951FB8900C974A2 /* U4DTransformationManagerInterface.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformationManagerInterface.mm; sourceTree = "<group>"; };
 		03584D971951FB8900C974A2 /* U4DTransformationManagerInterface.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformationManagerInterface.h; sourceTree = "<group>"; };
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
@@ -2511,6 +2516,8 @@
 				03494BBE1F4E0C0600ACE0EC /* spriteShader.metal */,
 				03494C151F57BD4C00ACE0EC /* nonVisibleShader.metal */,
 				033343001F8DA84A0013FB1E /* particleSystemShader.metal */,
+				0354C3D8235F3D02009DD151 /* U4DShaderHelperFunctions.h */,
+				0354C3D9235F3D2D009DD151 /* U4DShaderHelperFunctions.metal */,
 			);
 			name = MetalShaders;
 			sourceTree = "<group>";
@@ -2791,6 +2798,7 @@
 				0341AC07204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				03722BD02029F0F50080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722B742029F0F50080D069 /* modelShader.metal in Sources */,
+				0354C3DB235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
 				03722BCF2029F0F50080D069 /* U4DParticleData.mm in Sources */,
 				03722BD42029F0F50080D069 /* U4DBoneData.mm in Sources */,
 				03722B7D2029F0F50080D069 /* tinyxml2.mm in Sources */,
@@ -3191,6 +3199,7 @@
 				0341AC09204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				03722D0A2029F0F80080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722CAE2029F0F80080D069 /* modelShader.metal in Sources */,
+				0354C3DC235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
 				03722D092029F0F80080D069 /* U4DParticleData.mm in Sources */,
 				03722D0E2029F0F80080D069 /* U4DBoneData.mm in Sources */,
 				03722CB72029F0F80080D069 /* tinyxml2.mm in Sources */,
@@ -3440,6 +3449,7 @@
 				03F2DAE81F1919D400F77B78 /* shadowShader.metal in Sources */,
 				030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */,
 				03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */,
+				0354C3DA235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
 				03CAE63A2051925E00391B57 /* U4DMacMouse.mm in Sources */,
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
