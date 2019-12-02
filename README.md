@@ -13,7 +13,7 @@ It took me over five years to develop the *Untold Engine* from scratch. I spent 
 
 ## Running the Untold Engine
 
-Before running the engine, please visit the [Docs](https://untoldengine.github.io/Documentation/).
+Before running the engine, please visit the [Docs](https://untoldengine.github.io/api/docs/html/index.html).
 
 ## What you need?
 
