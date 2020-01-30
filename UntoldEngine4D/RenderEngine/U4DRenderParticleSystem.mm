@@ -381,29 +381,32 @@ namespace U4DEngine {
     }
     
     void U4DRenderParticleSystem::alignedAttributeData(){
-        
-        for(int i=0;i<u4dObject->bodyCoordinates.getVerticesDataFromContainer().size();i++){
-            
-            AttributeAlignedParticleData attributeAlignedData;
-            
-            attributeAlignedData.position.x=u4dObject->bodyCoordinates.verticesContainer.at(i).x;
-            attributeAlignedData.position.y=u4dObject->bodyCoordinates.verticesContainer.at(i).y;
-            attributeAlignedData.position.z=u4dObject->bodyCoordinates.verticesContainer.at(i).z;
-            attributeAlignedData.position.w=1.0;
-            
-            attributeAlignedContainer.push_back(attributeAlignedData);
-        }
-        
-        if (u4dObject->bodyCoordinates.uVContainer.size()>0) {
-            
-            for(int i=0; i<attributeAlignedContainer.size();i++){
+
+        AttributeAlignedParticleData attributeAlignedData;
+
+        std::vector<AttributeAlignedParticleData> attributeAlignedContainerTemp(u4dObject->bodyCoordinates.getVerticesDataFromContainer().size(),attributeAlignedData);
+
+        attributeAlignedContainer=attributeAlignedContainerTemp;
+
+        bool alignUVContainer=false;
+        if (u4dObject->bodyCoordinates.uVContainer.size()>0) alignUVContainer=true;
+
+        for(int i=0;i<attributeAlignedContainer.size();i++){
+
+            U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
+            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.w=1.0;
+
+            if (alignUVContainer) {
                 
-                attributeAlignedContainer.at(i).uv.x=u4dObject->bodyCoordinates.uVContainer.at(i).x;
-                attributeAlignedContainer.at(i).uv.y=u4dObject->bodyCoordinates.uVContainer.at(i).y;
+                U4DVector2n uvData=u4dObject->bodyCoordinates.uVContainer.at(i);
+                
+                attributeAlignedContainer.at(i).uv.xy=convertToSIMD(uvData);
                 attributeAlignedContainer.at(i).uv.z=0.0;
                 attributeAlignedContainer.at(i).uv.w=0.0;
+                
             }
-            
+
         }
         
     }

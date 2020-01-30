@@ -617,105 +617,92 @@ namespace U4DEngine {
     
     void U4DRender3DModel::alignedAttributeData(){
         
-        for(int i=0;i<u4dObject->bodyCoordinates.getVerticesDataFromContainer().size();i++){
+        bool alignUVContainer=false;
+        bool alignTangentContainer=false;
+        bool alignMaterialContainer=false;
+        bool alignArmature=false;
+        
+        if (u4dObject->bodyCoordinates.uVContainer.size()>0) alignUVContainer=true;
+        if (u4dObject->bodyCoordinates.tangentContainer.size()>0) alignTangentContainer=true;
+        if (u4dObject->materialInformation.materialIndexColorContainer.size()>0) alignMaterialContainer=true;
+        
+        if (u4dObject->getHasArmature()==true) {
+            if((u4dObject->bodyCoordinates.vertexWeightsContainer.size()==u4dObject->bodyCoordinates.verticesContainer.size())&&(u4dObject->bodyCoordinates.vertexWeightsContainer.size()>0)&&(u4dObject->bodyCoordinates.verticesContainer.size()>0)) {
+                
+                alignArmature=true;
             
-            AttributeAlignedModelData attributeAlignedData;
-            
-            attributeAlignedData.position.x=u4dObject->bodyCoordinates.verticesContainer.at(i).x;
-            attributeAlignedData.position.y=u4dObject->bodyCoordinates.verticesContainer.at(i).y;
-            attributeAlignedData.position.z=u4dObject->bodyCoordinates.verticesContainer.at(i).z;
-            attributeAlignedData.position.w=1.0;
-            
-            attributeAlignedContainer.push_back(attributeAlignedData);
+            }else{
+                
+                U4DLogger *logger=U4DLogger::sharedInstance();
+                logger->log("ERROR: Number of vertices does not macth number of vertex weights or vertex weighs container size is zero. Make sure your model's armature is correct");
+                
+            }
+        
         }
+        
+        //create the structure that contains the align data
+        AttributeAlignedModelData attributeAlignedData;
+        
+        //initialize the container to a temp container
+        std::vector<AttributeAlignedModelData> attributeAlignedContainerTemp(u4dObject->bodyCoordinates.getVerticesDataFromContainer().size(),attributeAlignedData);
+        
+        //copy the temp containter to the actual container. I wanted to initialize the container directly without using the temp container
+        //but it kept giving me errors. I think there is a better way to do this.
+        attributeAlignedContainer=attributeAlignedContainerTemp;
         
         for(int i=0; i<attributeAlignedContainer.size();i++){
             
-            attributeAlignedContainer.at(i).normal.x=u4dObject->bodyCoordinates.normalContainer.at(i).x;
-            attributeAlignedContainer.at(i).normal.y=u4dObject->bodyCoordinates.normalContainer.at(i).y;
-            attributeAlignedContainer.at(i).normal.z=u4dObject->bodyCoordinates.normalContainer.at(i).z;
-            attributeAlignedContainer.at(i).normal.w=1.0;
-
-        }
-        
-        if (u4dObject->bodyCoordinates.uVContainer.size()>0) {
+            //align vertex data
+            U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
+            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.w=1.0;
             
-            for(int i=0; i<attributeAlignedContainer.size();i++){
+            //align normal data
+            U4DVector3n normalData=u4dObject->bodyCoordinates.normalContainer.at(i);
+            attributeAlignedContainer.at(i).normal.xyz=convertToSIMD(normalData);
+            attributeAlignedContainer.at(i).normal.w=1.0;
+            
+            //align uv data
+            if (alignUVContainer) {
                 
-                attributeAlignedContainer.at(i).uv.x=u4dObject->bodyCoordinates.uVContainer.at(i).x;
-                attributeAlignedContainer.at(i).uv.y=u4dObject->bodyCoordinates.uVContainer.at(i).y;
+                U4DVector2n uvData=u4dObject->bodyCoordinates.uVContainer.at(i);
+                
+                attributeAlignedContainer.at(i).uv.xy=convertToSIMD(uvData);
                 attributeAlignedContainer.at(i).uv.z=0.0;
                 attributeAlignedContainer.at(i).uv.w=0.0;
-            }
-            
-        }
-        
-        if (u4dObject->bodyCoordinates.tangentContainer.size()>0) {
-            
-            for(int i=0; i<attributeAlignedContainer.size();i++){
-                
-                attributeAlignedContainer.at(i).tangent.x=u4dObject->bodyCoordinates.tangentContainer.at(i).x;
-                attributeAlignedContainer.at(i).tangent.y=u4dObject->bodyCoordinates.tangentContainer.at(i).y;
-                attributeAlignedContainer.at(i).tangent.z=u4dObject->bodyCoordinates.tangentContainer.at(i).z;
-                attributeAlignedContainer.at(i).tangent.w=u4dObject->bodyCoordinates.tangentContainer.at(i).w;
                 
             }
             
-        }
-        
-        //load material data
-        if (u4dObject->materialInformation.materialIndexColorContainer.size()>0) {
+            //align tangent coord data for normal maps
+            if (alignTangentContainer) {
+                
+                U4DVector4n tangentData=u4dObject->bodyCoordinates.tangentContainer.at(i);
+                
+                attributeAlignedContainer.at(i).tangent.xyzw=convertToSIMD(tangentData);
+                
+            }
             
-            for(int i=0; i<attributeAlignedContainer.size();i++){
+            //align material container
+            if (alignMaterialContainer) {
                 
                 attributeAlignedContainer.at(i).materialIndex.x=u4dObject->materialInformation.materialIndexColorContainer.at(i);
                 
             }
             
-        }
-        
-        if (u4dObject->getHasArmature()==true) {
-            
-            if (u4dObject->bodyCoordinates.vertexWeightsContainer.size()==u4dObject->bodyCoordinates.verticesContainer.size()) {
+            //align armature data
+            if(alignArmature){
                 
-                //load vertex weights
-                if (u4dObject->bodyCoordinates.vertexWeightsContainer.size()>0) {
-                    
-                    for(int i=0; i<attributeAlignedContainer.size();i++){
-                        
-                        attributeAlignedContainer.at(i).vertexWeight.x=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).x;
-                        attributeAlignedContainer.at(i).vertexWeight.y=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).y;
-                        attributeAlignedContainer.at(i).vertexWeight.z=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).z;
-                        attributeAlignedContainer.at(i).vertexWeight.w=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i).w;
-                        
-                    }
-                    
-                }
+                U4DVector4n vertexWeightData=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i);
                 
+                attributeAlignedContainer.at(i).vertexWeight.xyzw=convertToSIMD(vertexWeightData);
                 
-                //load bone index
-                if (u4dObject->bodyCoordinates.boneIndicesContainer.size()>0) {
-                    
-                    for(int i=0; i<attributeAlignedContainer.size();i++){
-                        
-                        attributeAlignedContainer.at(i).boneIndex.x=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).x;
-                        attributeAlignedContainer.at(i).boneIndex.y=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).y;
-                        attributeAlignedContainer.at(i).boneIndex.z=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).w;
-                        attributeAlignedContainer.at(i).boneIndex.w=u4dObject->bodyCoordinates.boneIndicesContainer.at(i).z;
-                        
-                    }
-                    
-                }
+                U4DVector4n boneIndexData=u4dObject->bodyCoordinates.boneIndicesContainer.at(i);
                 
-            }else{
-                
-                U4DLogger *logger=U4DLogger::sharedInstance();
-                logger->log("ERROR: Number of vertices does not macth number of vertex weights. Make sure your model's armature is correct");
+                attributeAlignedContainer.at(i).boneIndex.xyzw=convertToSIMD(boneIndexData);
                 
             }
             
         }
-        
         
     }
 

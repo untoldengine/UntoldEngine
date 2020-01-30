@@ -232,16 +232,23 @@ namespace U4DEngine {
     
     void U4DRenderSkybox::alignedAttributeData(){
         
-        for(int i=0;i<u4dObject->bodyCoordinates.getVerticesDataFromContainer().size();i++){
+        //create the structure that contains the align data
+        AttributeAlignedSkyboxData attributeAlignedData;
+        
+        //initialize the container to a temp container
+        std::vector<AttributeAlignedSkyboxData> attributeAlignedContainerTemp(u4dObject->bodyCoordinates.getVerticesDataFromContainer().size(),attributeAlignedData);
+        
+        //copy the temp containter to the actual container. I wanted to initialize the container directly without using the temp container
+        //but it kept giving me errors. I think there is a better way to do this.
+        attributeAlignedContainer=attributeAlignedContainerTemp;
+        
+        
+        for(int i=0;i<attributeAlignedContainer.size();i++){
             
-            AttributeAlignedSkyboxData attributeAlignedData;
+            U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
+            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.w=1.0;
             
-            attributeAlignedData.position.x=u4dObject->bodyCoordinates.verticesContainer.at(i).x;
-            attributeAlignedData.position.y=u4dObject->bodyCoordinates.verticesContainer.at(i).y;
-            attributeAlignedData.position.z=u4dObject->bodyCoordinates.verticesContainer.at(i).z;
-            attributeAlignedData.position.w=1.0;
-            
-            attributeAlignedContainer.push_back(attributeAlignedData);
         }
         
     }
