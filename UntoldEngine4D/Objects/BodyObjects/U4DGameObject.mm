@@ -10,6 +10,7 @@
 #include "U4DDigitalAssetLoader.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
+#include "U4DPackedDigitalAssetLoader.h"
 
 namespace U4DEngine {
     
@@ -41,6 +42,22 @@ namespace U4DEngine {
             initCullingBoundingVolume();
             
             return true;
+        }
+        
+        return false;
+    }
+
+    bool U4DGameObject::loadModelPackedData(const char* uModelName){
+        
+        U4DEngine::U4DPackedDigitalAssetLoader *assetLoader=U4DEngine::U4DPackedDigitalAssetLoader::sharedInstance();
+        
+        if (assetLoader->loadAssetToMesh(this, uModelName)) {
+            
+           //init the culling bounding volume
+           initCullingBoundingVolume();
+           
+           return true;
+            
         }
         
         return false;

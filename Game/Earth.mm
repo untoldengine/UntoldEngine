@@ -13,6 +13,7 @@
 #include "U4DCamera.h"
 #include "U4DLights.h"
 #include "U4DSkybox.h"
+#include "U4DPackedDigitalAssetLoader.h"
 
 using namespace U4DEngine;
 
@@ -23,9 +24,40 @@ void Earth::init(){
     setupConfiguration();
     
     //Renders the background models: skybox and island models. Remove if you want to.
-    setupBackgroundModels();
+    //setupBackgroundModels();
     
     ////////////CREATE ASTRONAUT HERE/////////////
+    U4DEngine::U4DPackedDigitalAssetLoader *assetLoader=U4DEngine::U4DPackedDigitalAssetLoader::sharedInstance();
+    
+    assetLoader->loadDigitalAssetBinaryData("modelAttributes.u4dbin");
+    
+    CFTimeInterval startTime = CACurrentMediaTime();
+    
+    U4DGameObject *soldier=new U4DGameObject();
+    
+    if (soldier->loadModelPackedData("scifisoldier")) {
+        
+        soldier->loadRenderingInformation();
+        
+        addChild(soldier);
+        
+    }
+    
+    
+    
+    U4DGameObject *cube=new U4DGameObject();
+
+    if (cube->loadModelPackedData("Cube")) {
+
+        cube->loadRenderingInformation();
+
+        addChild(cube);
+
+    }
+    
+    CFTimeInterval endTime = CACurrentMediaTime();
+    NSLog(@"Total Runtime: %g s", endTime - startTime);
+    
     
 }
 
@@ -50,7 +82,7 @@ void Earth::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-10.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,3.0,-4.0);
     
     //translate camera
     camera->translateTo(cameraPosition);

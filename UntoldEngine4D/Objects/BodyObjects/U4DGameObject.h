@@ -97,6 +97,8 @@ namespace U4DEngine {
          */
         bool getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimation, U4DMatrix4n &uBoneAnimationPoseMatrix);
         
+        bool loadModelPackedData(const char* uModelName);
+        
     };
 
 }
