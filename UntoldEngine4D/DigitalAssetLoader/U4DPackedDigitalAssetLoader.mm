@@ -46,7 +46,7 @@ namespace U4DEngine {
         
         if(!file){
             
-            std::cerr<<"no file";
+            std::cerr<<"The file: "<<filepath<<" was not found.";
             
             return false;
             
@@ -60,7 +60,7 @@ namespace U4DEngine {
         
         for(int i=0;i<numberOfMeshesSize;i++){
         
-        MODELPACKED uModel;
+        MODELRAW uModel;
         
         //READ NAME
          size_t modelNamelen=0;
@@ -251,7 +251,7 @@ namespace U4DEngine {
             
             for(int i=0;i<numberOfBonesSize;i++){
                 
-                BONES bones;
+                BONESRAW bones;
 
                 //name
                 size_t modelBoneNamelen=0;
@@ -317,18 +317,113 @@ namespace U4DEngine {
         
         //load model to container
         modelsContainer.push_back(uModel);
+            
         }
+        
+        std::cout<<"The file: "<<filepath<<" was found and "<<modelsContainer.size()<<" models were loaded."<<std::endl;
+        
         return true;
         
     }
 
-    bool U4DPackedDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshID){
+
+    bool U4DPackedDigitalAssetLoader::loadAnimationBinaryData(std::string filepath){
+        
+        std::ifstream file(filepath, std::ios::in | std::ios::binary );
+        
+        if(!file){
+            
+            std::cerr<<"The file: "<<filepath<<" was not found.";
+            
+            return false;
+            
+        }
+        
+        file.seekg(0);
+        
+        ANIMATIONSRAW animation;
+        
+        //READ ANIMATION NAME
+        size_t animNamelen=0;
+        file.read((char*)&animNamelen,sizeof(animNamelen));
+        animation.name.resize(animNamelen);
+        file.read((char*)&animation.name[0],animNamelen);
+        
+        
+        //ANIMATION TRANSFORM
+        int poseTransformSize=0;
+        file.read((char*)&poseTransformSize,sizeof(int));
+        std::vector<float> tempPoseTransform(poseTransformSize,0);
+        
+        //copy temp to anim2
+        animation.poseTransform=tempPoseTransform;
+        file.read((char*)&animation.poseTransform[0], poseTransformSize*sizeof(float));
+        
+        //FPS
+        float fpsSize=0;
+        file.read((char*)&fpsSize,sizeof(float));
+        file.read((char*)&animation.fps, sizeof(fpsSize));
+        
+        //KEYFRAME COUNT
+        int keyframeCountSize=0;
+        file.read((char*)&keyframeCountSize,sizeof(int));
+        file.read((char*)&animation.keyframeCount, sizeof(keyframeCountSize));
+        
+        for (int i=0; i<keyframeCountSize; i++) {
+        
+            KEYFRAMERAW keyframe;
+            
+            //TIME
+            float timeSize=0;
+            file.read((char*)&timeSize,sizeof(float));
+            file.read((char*)&keyframe.time, sizeof(timeSize));
+            
+            //BONE COUNT
+            int boneCountSize=0;
+            file.read((char*)&boneCountSize,sizeof(int));
+            file.read((char*)&keyframe.boneCount, sizeof(boneCountSize));
+            
+            for (int j=0; j<boneCountSize; j++) {
+                
+                ANIMPOSERAW animpose;
+                
+                //NAME
+                size_t animPoseBoneNamelen=0;
+                file.read((char*)&animPoseBoneNamelen,sizeof(animPoseBoneNamelen));
+                animpose.boneName.resize(animPoseBoneNamelen);
+                file.read((char*)&animpose.boneName[0],animPoseBoneNamelen);
+                
+                //BONE POSE MATRIX
+                int bonePoseMatrixSize=0;
+                file.read((char*)&bonePoseMatrixSize,sizeof(int));
+                std::vector<float> tempBonePoseMatrix(bonePoseMatrixSize,0);
+                
+                //copy temp to anim2
+                animpose.poseMatrix=tempBonePoseMatrix;
+                file.read((char*)&animpose.poseMatrix[0], bonePoseMatrixSize*sizeof(float));
+                
+                keyframe.animPoseMatrix.push_back(animpose);
+                
+            }
+            
+            animation.keyframes.push_back(keyframe);
+        }
+        
+        animationsContainer.push_back(animation);
+        
+        std::cout<<"The file: "<<filepath<<" was found was loaded."<<std::endl;
+        
+        return true;
+        
+    }
+
+    bool U4DPackedDigitalAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshName){
 
         //find the model in the container
         
         for(auto n:modelsContainer){
 
-            if (n.name.compare(uMeshID)==0) {
+            if (n.name.compare(uMeshName)==0) {
                 
                 //copy the data
                 
@@ -470,174 +565,101 @@ namespace U4DEngine {
                     uModel->armatureManager->setVertexWeightsAndBoneIndices();
                     
                 }
-                /*
-                 
-                 if (armature!=NULL) {
-                 
-                     uModel->setHasArmature(true);
-                     
-                     //read the Bind Shape Matrix
-                     tinyxml2::XMLElement *bindShapeMatrix=armature->FirstChildElement("bind_shape_matrix");
-                     
-                     if (bindShapeMatrix!=NULL) {
-                         std::string bindShapeMatrixString=bindShapeMatrix->GetText();
-                         
-                         loadSpaceData(uModel->armatureManager->bindShapeSpace, bindShapeMatrixString);
-                         
-                     }
-                     
-                     
-                     //root bone
-                     U4DBoneData *rootBone=NULL;
-                     
-                     //iterate through all the bones in the armature
-                     for (tinyxml2::XMLElement *bone=armature->FirstChildElement("bone"); bone!=NULL; bone=bone->NextSiblingElement("bone")) {
-                     
-                         std::string boneParentName=bone->Attribute("parent");
-                         std::string boneChildName=bone->Attribute("name");
-                         
-                         //bone is a root
-                         if (boneParentName.compare("root")==0) {
-                             
-                             //if bone is root, then create a bone with parent set to root
-                             rootBone=new U4DBoneData();
-                             
-                             rootBone->name=boneChildName;
-                             
-                             //add the local matrix
-                             
-                             tinyxml2::XMLElement *boneMatrixLocal=bone->FirstChildElement("local_matrix");
-                             
-                             if (boneMatrixLocal!=NULL) {
-                                 
-                                 std::string matrixLocalString=boneMatrixLocal->GetText();
-                                 
-                                 loadSpaceData(rootBone->localSpace, matrixLocalString);
-                             }
-                             
-                             //add the bind pose Matrix
-                             
-                             tinyxml2::XMLElement *bindPoseMatrix=bone->FirstChildElement("bind_pose_matrix");
-                             if (bindPoseMatrix!=NULL) {
-                                 
-                                 std::string bindPoseMatrixString=bindPoseMatrix->GetText();
-                                 
-                                 loadSpaceData(rootBone->bindPoseSpace, bindPoseMatrixString);
-                             }
-                             
-                             //add the bind pose inverse matrix
-                             
-                             tinyxml2::XMLElement *bindPoseInverseMatrix=bone->FirstChildElement("inverse_bind_pose_matrix");
-                             
-                             if (bindPoseInverseMatrix!=NULL) {
-                                 
-                                 std::string bindPoseInverseMatrixString=bindPoseInverseMatrix->GetText();
-                                
-                                 loadSpaceData(rootBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
-                             }
-                             
-                            
-                             //add the vertex weights
-                             
-                             tinyxml2::XMLElement *vertexWeights=bone->FirstChildElement("vertex_weights");
-                             
-                             if (vertexWeights!=NULL) {
-                                 
-                                 std::string vertexWeightsString=vertexWeights->GetText();
-                                 
-                                 loadVertexBoneWeightsToBody(rootBone->vertexWeightContainer, vertexWeightsString);
-                             }
-                             
-                             
-                             //add the bone to the U4DModel
-                             uModel->armatureManager->setRootBone(rootBone);
-                             
-                         }else{ //bone is either a parent,child but not root
-                             
-                             
-                             //1.look for the bone parent
-                             
-                             U4DBoneData *boneParent=rootBone->searchChildrenBone(boneParentName);
-                             
-                             //create the new bone
-                             
-                             U4DBoneData *childBone=new U4DBoneData();
-                             
-                             //set name
-                             childBone->name=boneChildName;
-                             
-                             //add the local matrix
-                             
-                             tinyxml2::XMLElement *boneMatrixLocal=bone->FirstChildElement("local_matrix");
-                             
-                             if (boneMatrixLocal!=NULL) {
-                                 
-                                 std::string matrixLocalString=boneMatrixLocal->GetText();
-                                 
-                                 loadSpaceData(childBone->localSpace, matrixLocalString);
-                             }
-                             
-                             //add the bind pose Matrix
-                             
-                             tinyxml2::XMLElement *bindPoseMatrix=bone->FirstChildElement("bind_pose_matrix");
-                             if (bindPoseMatrix!=NULL) {
-                                 
-                                 std::string bindPoseMatrixString=bindPoseMatrix->GetText();
-                                 
-                                 loadSpaceData(childBone->bindPoseSpace, bindPoseMatrixString);
-                             }
-                             
-                             //add the bind pose inverse matrix
-                             
-                             tinyxml2::XMLElement *bindPoseInverseMatrix=bone->FirstChildElement("inverse_bind_pose_matrix");
-                             
-                             if (bindPoseInverseMatrix!=NULL) {
-                                 
-                                 std::string bindPoseInverseMatrixString=bindPoseInverseMatrix->GetText();
-                                 
-                                 loadSpaceData(childBone->inverseBindPoseSpace, bindPoseInverseMatrixString);
-                             }
-                             
-                             
-                             
-                             //add the vertex weights
-                             
-                             tinyxml2::XMLElement *vertexWeights=bone->FirstChildElement("vertex_weights");
-                             
-                             if (vertexWeights!=NULL) {
-                                 
-                                 std::string vertexWeightsString=vertexWeights->GetText();
-                                 
-                                 loadVertexBoneWeightsToBody(childBone->vertexWeightContainer, vertexWeightsString);
-                             }
-                             
-                             //add the bone to the parent
-                             
-                             uModel->armatureManager->addBoneToTree(boneParent, childBone);
-                             
-                             
-                         }//end else
-                         
-                     }//end for
-                     
-                     //arrange all bone's local space (in PRE-ORDER TRAVERSAL) and load them into the
-                     //boneDataContainer
-                     uModel->armatureManager->setBoneDataContainer();
-                     
-                     //set bone's absolute space
-                     uModel->armatureManager->setBoneAbsoluteSpace();
-                     
-                     //Load the bone data into the uModel FinalArmatureBoneMatrix
-                     uModel->armatureManager->setRestPoseMatrix();
-                     
-                     //arrange (in PRE-ORDER TRAVERSAL) all vertex weights, then do a heap sort for the four
-                     //bones that affect each vertex depending on the vertex weight
-                     uModel->armatureManager->setVertexWeightsAndBoneIndices();
-                     
-                 }//end if
-                 
-                 */
+
+                std::cout<<"The model "<<uMeshName<<" was loaded."<<std::endl;
                 
+                return true;
+            }
+            
+        }
+        
+        std::cout<<"ERROR: The model "<<uMeshName<<" does not exist."<<std::endl;
+        
+        return false;
+        
+    }
+
+
+    bool U4DPackedDigitalAssetLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
+        
+        int keyframeRange=0;
+        
+        for(auto n:animationsContainer){
+            
+            if (n.name.compare(uAnimationName)==0){
+                
+                //ANIMATION TRANSFORM
+                loadSpaceData(uAnimation->modelerAnimationTransform, n.poseTransform);
+                
+                U4DBoneData* boneChild = uAnimation->rootBone;
+                
+                //While there are still bones
+                while (boneChild!=0) {
+                    
+                    ANIMATIONDATA animationData;
+                    
+                    //ANIMATION NAME
+                    animationData.name=n.name;
+                    uAnimation->name=n.name;
+                    
+                    //FPS
+                    uAnimation->fps=n.fps;
+                    
+                    //KEYFRAME DATA
+                    keyframeRange=0;
+                    
+                    for(auto m:n.keyframes){
+                        
+                        KEYFRAMEDATA keyframeData;
+                        
+                        //TIME
+                        keyframeData.time=m.time;
+                        
+                        //set keyframe name--I DON'T THINK THIS IS NEEDED ANYMORE
+                        std::string keyframeCountString=std::to_string(keyframeRange);
+                        
+                        std::string keyframeName="keyframe";
+                        keyframeName.append(keyframeCountString);
+                        
+                        keyframeData.name=keyframeName;
+                        
+                        keyframeRange++;
+                        
+                        //BONE POSE SPACE
+                        for(auto p:m.animPoseMatrix){
+                            
+                            //BONE NAME
+                            //compare bone names
+                            if (boneChild->name.compare(p.boneName)==0) {
+                                
+                                //POSE MATRIX
+                                U4DDualQuaternion animationMatrixSpace;
+                                loadSpaceData(animationMatrixSpace, p.poseMatrix);
+                                
+                                //load the bone pose transform
+                                keyframeData.animationSpaceTransform=animationMatrixSpace;
+                                
+                            }
+                            
+                        }//END FOR LOOP
+                        
+                        //add keyframe into the animationdata container
+                        animationData.keyframes.push_back(keyframeData);
+                        
+                    }//END FOR LOOP
+                    
+                    //Add the animation to the animation container
+                    uAnimation->animationsContainer.push_back(animationData);
+                        
+                    //iterate to the next child
+                    boneChild=boneChild->next;
+                        
+                }//end while
+                
+                //store the keyframe range
+                uAnimation->keyframeRange=keyframeRange;
+                
+                std::cout<<"The animation "<<uAnimationName<<" was loaded."<<std::endl;
                 
                 return true;
             }
@@ -645,7 +667,6 @@ namespace U4DEngine {
         }
         
         return false;
-        
     }
 
     

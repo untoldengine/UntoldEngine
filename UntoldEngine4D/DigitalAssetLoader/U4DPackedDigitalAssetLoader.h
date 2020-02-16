@@ -44,13 +44,32 @@ namespace U4DEngine {
         std::vector<float> inversePoseMatrix;
         std::vector<float> restPoseMatrix;
         std::vector<float> vertexWeights;
-    }BONES;
+    }BONESRAW;
 
     typedef struct{
         int numberOfBones;
         std::vector<float> bindShapeMatrix;
-        std::vector<BONES> bones;
-    }ARMATURE;
+        std::vector<BONESRAW> bones;
+    }ARMATURERAW;
+
+    typedef struct{
+        std::string boneName;
+        std::vector<float> poseMatrix;
+    }ANIMPOSERAW;
+
+    typedef struct{
+        float time;
+        int boneCount;
+        std::vector<ANIMPOSERAW> animPoseMatrix;
+    }KEYFRAMERAW;
+
+    typedef struct{
+        std::string name;
+        float fps;
+        int keyframeCount;
+        std::vector<float> poseTransform;
+        std::vector<KEYFRAMERAW> keyframes;
+    }ANIMATIONSRAW;
 
     typedef struct {
         
@@ -73,9 +92,9 @@ namespace U4DEngine {
         std::vector<float> meshVertices;
         std::vector<int> meshEdgesIndex;
         std::vector<int> meshFacesIndex;
-        ARMATURE armature;
+        ARMATURERAW armature;
         
-    }MODELPACKED;
+    }MODELRAW;
 }
 
 namespace U4DEngine {
@@ -84,7 +103,8 @@ class U4DPackedDigitalAssetLoader {
     
     private:
         
-        std::vector<MODELPACKED> modelsContainer;
+        std::vector<MODELRAW> modelsContainer;
+        std::vector<ANIMATIONSRAW> animationsContainer;
         
     protected:
         
@@ -99,8 +119,12 @@ class U4DPackedDigitalAssetLoader {
         static U4DPackedDigitalAssetLoader* sharedInstance();
         
         bool loadDigitalAssetBinaryData(std::string filepath);
+    
+        bool loadAnimationBinaryData(std::string filepath);
         
-        bool loadAssetToMesh(U4DModel *uModel,std::string uMeshID);
+        bool loadAssetToMesh(U4DModel *uModel,std::string uMeshName);
+    
+        bool loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);
     
         void loadVerticesData(U4DModel *uModel,std::vector<float> uVertices);
     

@@ -47,11 +47,11 @@ namespace U4DEngine {
         return false;
     }
 
-    bool U4DGameObject::loadModelPackedData(const char* uModelName){
+    bool U4DGameObject::loadModelRawData(const char* uModelName){
         
-        U4DEngine::U4DPackedDigitalAssetLoader *assetLoader=U4DEngine::U4DPackedDigitalAssetLoader::sharedInstance();
+        U4DEngine::U4DPackedDigitalAssetLoader *loader=U4DEngine::U4DPackedDigitalAssetLoader::sharedInstance();
         
-        if (assetLoader->loadAssetToMesh(this, uModelName)) {
+        if (loader->loadAssetToMesh(this, uModelName)) {
             
            //init the culling bounding volume
            initCullingBoundingVolume();
@@ -61,6 +61,21 @@ namespace U4DEngine {
         }
         
         return false;
+    }
+
+    bool U4DGameObject::loadAnimationRawToModel(U4DAnimation *uAnimation, const char* uAnimationName){
+        
+        U4DEngine::U4DPackedDigitalAssetLoader *loader=U4DEngine::U4DPackedDigitalAssetLoader::sharedInstance();
+        
+        if (loader->loadAnimationToMesh(uAnimation,uAnimationName)) {
+            
+           
+           return true;
+            
+        }
+        
+        return false;
+        
     }
     
     bool U4DGameObject::loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile){
