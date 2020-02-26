@@ -13,7 +13,7 @@
 #include "U4DCamera.h"
 #include "U4DLights.h"
 #include "U4DSkybox.h"
-#include "U4DPackedDigitalAssetLoader.h"
+#include "U4DMeshAssetLoader.h"
 
 using namespace U4DEngine;
 
@@ -24,41 +24,10 @@ void Earth::init(){
     setupConfiguration();
     
     //Renders the background models: skybox and island models. Remove if you want to.
-    //setupBackgroundModels();
+    setupBackgroundModels();
     
     ////////////CREATE ASTRONAUT HERE/////////////
-    U4DEngine::U4DPackedDigitalAssetLoader *assetLoader=U4DEngine::U4DPackedDigitalAssetLoader::sharedInstance();
-    
-    assetLoader->loadDigitalAssetBinaryData("modelAttributes.u4dbin");
-    
-    CFTimeInterval startTime = CACurrentMediaTime();
-    
-    U4DGameObject *soldier=new U4DGameObject();
-    
-    if (soldier->loadModelPackedData("scifisoldier")) {
         
-        soldier->loadRenderingInformation();
-        
-        addChild(soldier);
-        
-    }
-    
-    
-    
-    U4DGameObject *cube=new U4DGameObject();
-
-    if (cube->loadModelPackedData("Cube")) {
-
-        cube->loadRenderingInformation();
-
-        addChild(cube);
-
-    }
-    
-    CFTimeInterval endTime = CACurrentMediaTime();
-    NSLog(@"Total Runtime: %g s", endTime - startTime);
-    
-    
 }
 
 void Earth::update(double dt){
@@ -82,7 +51,7 @@ void Earth::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,3.0,-4.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-10.0);
     
     //translate camera
     camera->translateTo(cameraPosition);
@@ -112,45 +81,54 @@ void Earth::setupConfiguration(){
 
 void Earth::setupBackgroundModels(){
     
-    //create island and skybox
+    //Load the assets
+    U4DEngine::U4DMeshAssetLoader *meshAssetLoader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
     
+    meshAssetLoader->loadSceneData("astronaut.u4d");
+    
+    meshAssetLoader->loadAnimationData("astronautWalkAnim.u4d");
+    
+    meshAssetLoader->loadTextureData("astronautTextures.u4d");
+    
+    //create island and skybox
+
     //Create an instance of U4DGameObject type
     U4DGameObject *island=new U4DGameObject();
-    
+
     //Load attribute (rendering information) into the game entity
-    if (island->loadModel("island","astronautAttributes.u4d")) {
-        
+    if (island->loadModel("island")) {
+
         island->setEnableShadow(true);
-        
+
         //Load rendering information into the GPU
         island->loadRenderingInformation();
-        
+
         //enable kinetics
         island->enableKineticsBehavior();
-        
+
         //enable collision
         island->enableCollisionBehavior();
-        
+
         //set gravity to zero
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
         island->setGravity(zero);
-        
+
         //set Coefficient of Restitution
         island->initCoefficientOfRestitution(0.9);
-        
+
         //set mass
         island->initMass(100.0);
-        
+
         //Add walkway to scenegraph
         addChild(island);
-        
+
     }
-    
+
     //add a skybox here
     U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-    
+
     skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-    
+
     addChild(skybox,-1);
     
 }

@@ -57,27 +57,6 @@ namespace U4DEngine {
         virtual void update(double dt){};
         
         /**
-         @brief Method which loads Digital Asset data into the game character
-         
-         @param uModelName   Name of the model in the Digital Asset File
-         @param uBlenderFile Name of Digital Asset File
-         
-         @return Returns true if the digital asset data was successfully loaded
-         */
-        bool loadModel(const char* uModelName, const char* uBlenderFile);
-        
-        /**
-         @brief Method which loads Animation data into the game character
-         
-         @param uAnimation     Pointer to the animation
-         @param uAnimationName Name of the animation
-         @param uBlenderFile   Name of Digital Asset File
-         
-         @return Returns true if the animation was successfully loaded
-         */
-        bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile);
-        
-        /**
          @brief returns the rest pose of the bone. Note, an armature must be present
          
          @param uBoneName name of the bone
@@ -97,9 +76,23 @@ namespace U4DEngine {
          */
         bool getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimation, U4DMatrix4n &uBoneAnimationPoseMatrix);
         
-        bool loadModelRawData(const char* uModelName);
+        /**
+        @brief Method which loads Digital Asset data into the game character. Note, the mesh asset binary data must be loaded before calling this method.
+        @param uModelName   Name of the model in the Digital Asset File
+       
+        @return Returns true if the digital asset data was successfully loaded
+        */
+        bool loadModel(const char* uModelName);
         
-        bool loadAnimationRawToModel(U4DAnimation *uAnimation, const char* uAnimationName);
+        /**
+        @brief Method which loads Animation data into the game character. Note, the animation asset binary data must be loaded before calling this method.
+    
+        @param uAnimation     Pointer to the animation
+        @param uAnimationName Name of the animation
+        
+        @return Returns true if the animation was successfully loaded
+        */
+        bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName);
         
     };
 

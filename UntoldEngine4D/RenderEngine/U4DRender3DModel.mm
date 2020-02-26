@@ -201,8 +201,6 @@ namespace U4DEngine {
         
         if (!u4dObject->textureInformation.diffuseTexture.empty() && u4dObject->bodyCoordinates.uVContainer.size()!=0){
             
-            decodeImage(u4dObject->textureInformation.diffuseTexture);
-            
             if (rawImageData.size()>0) {
                 
                 createTextureObject();
@@ -704,6 +702,24 @@ namespace U4DEngine {
             
         }
         
+    }
+
+
+    void U4DRender3DModel::setRawImageData(std::vector<unsigned char> uRawImageData){
+        
+        rawImageData=uRawImageData;
+        
+    }
+
+    void U4DRender3DModel::setImageWidth(unsigned int uImageWidth){
+        
+        imageWidth=uImageWidth;
+        
+    }
+
+    void U4DRender3DModel::setImageHeight(unsigned int uImageHeight){
+        
+        imageHeight=uImageHeight;
     }
 
 

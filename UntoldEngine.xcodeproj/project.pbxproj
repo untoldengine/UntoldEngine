@@ -15,21 +15,9 @@
 		0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205591B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm */; };
 		030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0302055F1B6EB47B005A72E8 /* U4DGJKAlgorithm.mm */; };
 		030449A217B8548500A3A2AE /* U4DVector2n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030449A017B8548500A3A2AE /* U4DVector2n.mm */; };
-		0304CE7921266432005A0C4C /* astronaut.png in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7421266431005A0C4C /* astronaut.png */; };
-		0304CE7A21266432005A0C4C /* astronaut.png in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7421266431005A0C4C /* astronaut.png */; };
-		0304CE7B21266432005A0C4C /* astronaut.png in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7421266431005A0C4C /* astronaut.png */; };
-		0304CE7C21266432005A0C4C /* charactersAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7521266432005A0C4C /* charactersAttributes.u4d */; };
-		0304CE7D21266432005A0C4C /* charactersAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7521266432005A0C4C /* charactersAttributes.u4d */; };
-		0304CE7E21266432005A0C4C /* charactersAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7521266432005A0C4C /* charactersAttributes.u4d */; };
 		0304CE7F21266432005A0C4C /* astronautWalkAnim.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7621266432005A0C4C /* astronautWalkAnim.u4d */; };
 		0304CE8021266432005A0C4C /* astronautWalkAnim.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7621266432005A0C4C /* astronautWalkAnim.u4d */; };
 		0304CE8121266432005A0C4C /* astronautWalkAnim.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7621266432005A0C4C /* astronautWalkAnim.u4d */; };
-		0304CE8221266432005A0C4C /* astronautAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7721266432005A0C4C /* astronautAttributes.u4d */; };
-		0304CE8321266432005A0C4C /* astronautAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7721266432005A0C4C /* astronautAttributes.u4d */; };
-		0304CE8421266432005A0C4C /* astronautAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7721266432005A0C4C /* astronautAttributes.u4d */; };
-		0304CE8521266432005A0C4C /* greyrocks.png in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7821266432005A0C4C /* greyrocks.png */; };
-		0304CE8621266432005A0C4C /* greyrocks.png in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7821266432005A0C4C /* greyrocks.png */; };
-		0304CE8721266432005A0C4C /* greyrocks.png in Resources */ = {isa = PBXBuildFile; fileRef = 0304CE7821266432005A0C4C /* greyrocks.png */; };
 		03068D4D19B8F2A400ABDC55 /* U4DVertexData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D4B19B8F2A400ABDC55 /* U4DVertexData.mm */; };
 		03068D5819B8F58500ABDC55 /* U4DMaterialData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D5419B8F58500ABDC55 /* U4DMaterialData.mm */; };
 		03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D5619B8F58500ABDC55 /* U4DTextureData.mm */; };
@@ -77,6 +65,12 @@
 		0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A11B0BBC370087BACC /* U4DBoundingVolume.mm */; };
 		0327B1AD1B0BBC370087BACC /* U4DBoundingSphere.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */; };
 		032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */; };
+		032BDFB82406B8A500453C99 /* astronaut.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032BDFB72406B8A400453C99 /* astronaut.u4d */; };
+		032BDFB92406B8A500453C99 /* astronaut.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032BDFB72406B8A400453C99 /* astronaut.u4d */; };
+		032BDFBA2406B8A500453C99 /* astronaut.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032BDFB72406B8A400453C99 /* astronaut.u4d */; };
+		032BDFBC2406BA3600453C99 /* astronautTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032BDFBB2406BA3600453C99 /* astronautTextures.u4d */; };
+		032BDFBD2406BA3600453C99 /* astronautTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032BDFBB2406BA3600453C99 /* astronautTextures.u4d */; };
+		032BDFBE2406BA3600453C99 /* astronautTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032BDFBB2406BA3600453C99 /* astronautTextures.u4d */; };
 		033343011F8DA84A0013FB1E /* particleSystemShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033343001F8DA84A0013FB1E /* particleSystemShader.metal */; };
 		0341ABED204D84A9006E14A9 /* KeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABEB204D84A9006E14A9 /* KeyboardController.mm */; };
 		0341ABEE204D84A9006E14A9 /* KeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABEB204D84A9006E14A9 /* KeyboardController.mm */; };
@@ -699,9 +693,6 @@
 		03722E0A202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
 		03722E0B202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
 		03722E0C202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
-		0374D07D23F1929B00ED90BC /* irobot_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 0374D07C23F1929B00ED90BC /* irobot_01.png */; };
-		0374D07E23F1929B00ED90BC /* irobot_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 0374D07C23F1929B00ED90BC /* irobot_01.png */; };
-		0374D07F23F1929B00ED90BC /* irobot_01.png in Resources */ = {isa = PBXBuildFile; fileRef = 0374D07C23F1929B00ED90BC /* irobot_01.png */; };
 		03759B39175B0135002EB5D9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B38175B0135002EB5D9 /* UIKit.framework */; };
 		03759B3B175B0135002EB5D9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B3A175B0135002EB5D9 /* Foundation.framework */; };
 		03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B68175B0382002EB5D9 /* U4DCamera.mm */; };
@@ -718,12 +709,9 @@
 		03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		037C474217B597CB007B8283 /* U4DModel.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473B17B597CB007B8283 /* U4DModel.mm */; };
 		037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C473D17B597CB007B8283 /* U4DGameObject.mm */; };
-		037F25B723F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037F25B523F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm */; };
-		037F25B823F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037F25B523F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm */; };
-		037F25B923F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037F25B523F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm */; };
-		037F25BB23F190110053FAE0 /* modelAttributes.u4dbin in Resources */ = {isa = PBXBuildFile; fileRef = 037F25BA23F190110053FAE0 /* modelAttributes.u4dbin */; };
-		037F25BC23F190110053FAE0 /* modelAttributes.u4dbin in Resources */ = {isa = PBXBuildFile; fileRef = 037F25BA23F190110053FAE0 /* modelAttributes.u4dbin */; };
-		037F25BD23F190110053FAE0 /* modelAttributes.u4dbin in Resources */ = {isa = PBXBuildFile; fileRef = 037F25BA23F190110053FAE0 /* modelAttributes.u4dbin */; };
+		037F25B723F0D5860053FAE0 /* U4DMeshAssetLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037F25B523F0D5860053FAE0 /* U4DMeshAssetLoader.mm */; };
+		037F25B823F0D5860053FAE0 /* U4DMeshAssetLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037F25B523F0D5860053FAE0 /* U4DMeshAssetLoader.mm */; };
+		037F25B923F0D5860053FAE0 /* U4DMeshAssetLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037F25B523F0D5860053FAE0 /* U4DMeshAssetLoader.mm */; };
 		038248F91FA1730700DFEFE3 /* U4DParticleSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038248F81FA1730700DFEFE3 /* U4DParticleSystem.mm */; };
 		038248FC1FA1731800DFEFE3 /* U4DParticlePhysics.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038248FA1FA1731700DFEFE3 /* U4DParticlePhysics.mm */; };
 		038248FF1FA1732600DFEFE3 /* U4DParticle.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038248FE1FA1732600DFEFE3 /* U4DParticle.mm */; };
@@ -931,11 +919,7 @@
 		03044900213083F700F5AAA0 /* modulesdoxygen.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = modulesdoxygen.h; sourceTree = "<group>"; };
 		030449A017B8548500A3A2AE /* U4DVector2n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector2n.mm; sourceTree = "<group>"; };
 		030449A117B8548500A3A2AE /* U4DVector2n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DVector2n.h; sourceTree = "<group>"; };
-		0304CE7421266431005A0C4C /* astronaut.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = astronaut.png; sourceTree = "<group>"; };
-		0304CE7521266432005A0C4C /* charactersAttributes.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = charactersAttributes.u4d; sourceTree = "<group>"; };
 		0304CE7621266432005A0C4C /* astronautWalkAnim.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = astronautWalkAnim.u4d; sourceTree = "<group>"; };
-		0304CE7721266432005A0C4C /* astronautAttributes.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = astronautAttributes.u4d; sourceTree = "<group>"; };
-		0304CE7821266432005A0C4C /* greyrocks.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = greyrocks.png; sourceTree = "<group>"; };
 		03068D4B19B8F2A400ABDC55 /* U4DVertexData.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVertexData.mm; sourceTree = "<group>"; };
 		03068D4C19B8F2A400ABDC55 /* U4DVertexData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DVertexData.h; sourceTree = "<group>"; };
 		03068D5419B8F58500ABDC55 /* U4DMaterialData.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DMaterialData.mm; sourceTree = "<group>"; };
@@ -988,6 +972,8 @@
 		0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingSphere.mm; path = BoundingVolumes/U4DBoundingSphere.mm; sourceTree = "<group>"; };
 		032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBlendAnimation.mm; sourceTree = "<group>"; };
 		032BD8A01E567FC300C158A1 /* U4DBlendAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBlendAnimation.h; sourceTree = "<group>"; };
+		032BDFB72406B8A400453C99 /* astronaut.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = astronaut.u4d; sourceTree = "<group>"; };
+		032BDFBB2406BA3600453C99 /* astronautTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = astronautTextures.u4d; sourceTree = "<group>"; };
 		033343001F8DA84A0013FB1E /* particleSystemShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = particleSystemShader.metal; path = MetalShaders/particleSystemShader.metal; sourceTree = "<group>"; };
 		0341ABEB204D84A9006E14A9 /* KeyboardController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = KeyboardController.mm; path = Game/KeyboardController.mm; sourceTree = SOURCE_ROOT; };
 		0341ABEC204D84A9006E14A9 /* KeyboardController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = KeyboardController.h; path = Game/KeyboardController.h; sourceTree = SOURCE_ROOT; };
@@ -1111,7 +1097,6 @@
 		03722E02202CBF860080D069 /* U4DPadButtonReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonReleasedState.h; path = PadButton/U4DPadButtonReleasedState.h; sourceTree = "<group>"; };
 		03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButtonIdleState.mm; path = PadButton/U4DPadButtonIdleState.mm; sourceTree = "<group>"; };
 		03722E08202CBF9E0080D069 /* U4DPadButtonIdleState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonIdleState.h; path = PadButton/U4DPadButtonIdleState.h; sourceTree = "<group>"; };
-		0374D07C23F1929B00ED90BC /* irobot_01.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = irobot_01.png; sourceTree = "<group>"; };
 		03759B34175B0135002EB5D9 /* UntoldEngine.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UntoldEngine.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		03759B38175B0135002EB5D9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		03759B3A175B0135002EB5D9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -1139,9 +1124,8 @@
 		037C473B17B597CB007B8283 /* U4DModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DModel.mm; sourceTree = "<group>"; };
 		037C473C17B597CB007B8283 /* U4DGameObject.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DGameObject.h; sourceTree = "<group>"; };
 		037C473D17B597CB007B8283 /* U4DGameObject.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DGameObject.mm; sourceTree = "<group>"; };
-		037F25B523F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPackedDigitalAssetLoader.mm; sourceTree = "<group>"; };
-		037F25B623F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DPackedDigitalAssetLoader.h; sourceTree = "<group>"; };
-		037F25BA23F190110053FAE0 /* modelAttributes.u4dbin */ = {isa = PBXFileReference; lastKnownFileType = file; path = modelAttributes.u4dbin; sourceTree = "<group>"; };
+		037F25B523F0D5860053FAE0 /* U4DMeshAssetLoader.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DMeshAssetLoader.mm; sourceTree = "<group>"; };
+		037F25B623F0D5860053FAE0 /* U4DMeshAssetLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DMeshAssetLoader.h; sourceTree = "<group>"; };
 		038248F71FA1730700DFEFE3 /* U4DParticleSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DParticleSystem.h; path = ParticleSystem/U4DParticleSystem.h; sourceTree = "<group>"; };
 		038248F81FA1730700DFEFE3 /* U4DParticleSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DParticleSystem.mm; path = ParticleSystem/U4DParticleSystem.mm; sourceTree = "<group>"; };
 		038248FA1FA1731700DFEFE3 /* U4DParticlePhysics.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DParticlePhysics.mm; path = ParticleSystem/U4DParticlePhysics.mm; sourceTree = "<group>"; };
@@ -1948,13 +1932,9 @@
 			isa = PBXGroup;
 			children = (
 				03AD8876234ECCF600B24494 /* particleemitter.pex */,
-				0374D07C23F1929B00ED90BC /* irobot_01.png */,
-				037F25BA23F190110053FAE0 /* modelAttributes.u4dbin */,
-				0304CE7421266431005A0C4C /* astronaut.png */,
-				0304CE7721266432005A0C4C /* astronautAttributes.u4d */,
+				032BDFBB2406BA3600453C99 /* astronautTextures.u4d */,
+				032BDFB72406B8A400453C99 /* astronaut.u4d */,
 				0304CE7621266432005A0C4C /* astronautWalkAnim.u4d */,
-				0304CE7521266432005A0C4C /* charactersAttributes.u4d */,
-				0304CE7821266432005A0C4C /* greyrocks.png */,
 				039EC6BD1FB57F5B0098BB5C /* myFont.png */,
 				039EC6BE1FB57F5B0098BB5C /* myFont.xml */,
 				0361DFA01FAC2141004770FD /* BackImage.png */,
@@ -2120,8 +2100,8 @@
 			children = (
 				03B5E7E4193A3F4100800EC8 /* U4DDigitalAssetLoader.h */,
 				03B5E7E5193A3F4100800EC8 /* U4DDigitalAssetLoader.mm */,
-				037F25B623F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.h */,
-				037F25B523F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm */,
+				037F25B623F0D5860053FAE0 /* U4DMeshAssetLoader.h */,
+				037F25B523F0D5860053FAE0 /* U4DMeshAssetLoader.mm */,
 			);
 			path = DigitalAssetLoader;
 			sourceTree = "<group>";
@@ -2669,28 +2649,24 @@
 				03722D432029F16C0080D069 /* ButtonB.png in Resources */,
 				03722D3B2029F16C0080D069 /* particle.png in Resources */,
 				03722D382029F16C0080D069 /* RightImage.png in Resources */,
-				0304CE7A21266432005A0C4C /* astronaut.png in Resources */,
 				03722D352029F16C0080D069 /* BottomImage.png in Resources */,
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
 				03722D2D2029F16C0080D069 /* myFont.xml in Resources */,
 				03722D442029F16C0080D069 /* ButtonBPressed.png in Resources */,
 				03722D402029F16C0080D069 /* joystickDriver.png in Resources */,
 				0304CE8021266432005A0C4C /* astronautWalkAnim.u4d in Resources */,
-				037F25BC23F190110053FAE0 /* modelAttributes.u4dbin in Resources */,
+				032BDFB92406B8A500453C99 /* astronaut.u4d in Resources */,
 				03722D3F2029F16C0080D069 /* joyStickBackground.png in Resources */,
 				03722D2C2029F16C0080D069 /* myFont.png in Resources */,
 				03AD8878234ECCF700B24494 /* particleemitter.pex in Resources */,
-				0304CE7D21266432005A0C4C /* charactersAttributes.u4d in Resources */,
 				03722D342029F16C0080D069 /* BackImage.png in Resources */,
-				0304CE8321266432005A0C4C /* astronautAttributes.u4d in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
 				03722D422029F16C0080D069 /* ButtonAPressed.png in Resources */,
 				03722D372029F16C0080D069 /* LeftImage.png in Resources */,
 				03722D392029F16C0080D069 /* TopImage.png in Resources */,
 				03722D412029F16C0080D069 /* ButtonA.png in Resources */,
-				0374D07E23F1929B00ED90BC /* irobot_01.png in Resources */,
 				03722D362029F16C0080D069 /* FrontImage.png in Resources */,
-				0304CE8621266432005A0C4C /* greyrocks.png in Resources */,
+				032BDFBD2406BA3600453C99 /* astronautTextures.u4d in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2723,24 +2699,20 @@
 			files = (
 				03722D602029F16D0080D069 /* myFont.png in Resources */,
 				03722D692029F16D0080D069 /* BottomImage.png in Resources */,
-				0304CE8421266432005A0C4C /* astronautAttributes.u4d in Resources */,
 				03722D6B2029F16D0080D069 /* LeftImage.png in Resources */,
 				03722D6F2029F16D0080D069 /* particle.png in Resources */,
 				03722D6D2029F16D0080D069 /* TopImage.png in Resources */,
-				037F25BD23F190110053FAE0 /* modelAttributes.u4dbin in Resources */,
 				03722D6A2029F16D0080D069 /* FrontImage.png in Resources */,
 				03722D732029F16D0080D069 /* joyStickBackground.png in Resources */,
 				03722D742029F16D0080D069 /* joystickDriver.png in Resources */,
-				0304CE7B21266432005A0C4C /* astronaut.png in Resources */,
 				03722D782029F16D0080D069 /* ButtonBPressed.png in Resources */,
-				0304CE7E21266432005A0C4C /* charactersAttributes.u4d in Resources */,
 				03722D772029F16D0080D069 /* ButtonB.png in Resources */,
 				03722D682029F16D0080D069 /* BackImage.png in Resources */,
-				0374D07F23F1929B00ED90BC /* irobot_01.png in Resources */,
 				03722D762029F16D0080D069 /* ButtonAPressed.png in Resources */,
 				03AD8879234ECCF700B24494 /* particleemitter.pex in Resources */,
 				03722D6C2029F16D0080D069 /* RightImage.png in Resources */,
-				0304CE8721266432005A0C4C /* greyrocks.png in Resources */,
+				032BDFBE2406BA3600453C99 /* astronautTextures.u4d in Resources */,
+				032BDFBA2406B8A500453C99 /* astronaut.u4d in Resources */,
 				03722D752029F16D0080D069 /* ButtonA.png in Resources */,
 				03722D612029F16D0080D069 /* myFont.xml in Resources */,
 				0304CE8121266432005A0C4C /* astronautWalkAnim.u4d in Resources */,
@@ -2752,21 +2724,18 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				037F25BB23F190110053FAE0 /* modelAttributes.u4dbin in Resources */,
 				03DBEDF51F9BB29700570A25 /* particle.png in Resources */,
-				0304CE8221266432005A0C4C /* astronautAttributes.u4d in Resources */,
+				032BDFBC2406BA3600453C99 /* astronautTextures.u4d in Resources */,
 				0304CE7F21266432005A0C4C /* astronautWalkAnim.u4d in Resources */,
-				0304CE7921266432005A0C4C /* astronaut.png in Resources */,
 				03AD8877234ECCF700B24494 /* particleemitter.pex in Resources */,
 				039EC6C01FB57F5C0098BB5C /* myFont.xml in Resources */,
+				032BDFB82406B8A500453C99 /* astronaut.u4d in Resources */,
 				0361DFA21FAC2141004770FD /* TopImage.png in Resources */,
 				0361DFA51FAC2141004770FD /* RightImage.png in Resources */,
 				0361DFA31FAC2141004770FD /* BottomImage.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
-				0304CE8521266432005A0C4C /* greyrocks.png in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
-				0374D07D23F1929B00ED90BC /* irobot_01.png in Resources */,
 				039EC6BF1FB57F5C0098BB5C /* myFont.png in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
@@ -2774,7 +2743,6 @@
 				0361DFA61FAC2141004770FD /* BackImage.png in Resources */,
 				0361DFA11FAC2141004770FD /* LeftImage.png in Resources */,
 				0361DFA41FAC2141004770FD /* FrontImage.png in Resources */,
-				0304CE7C21266432005A0C4C /* charactersAttributes.u4d in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2891,7 +2859,7 @@
 				038BF26C2293883C00B129A5 /* U4DNavMeshLoader.mm in Sources */,
 				03722BA72029F0F50080D069 /* U4DGameModelInterface.mm in Sources */,
 				03722BD32029F0F50080D069 /* U4DJoyStick.mm in Sources */,
-				037F25B823F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm in Sources */,
+				037F25B823F0D5860053FAE0 /* U4DMeshAssetLoader.mm in Sources */,
 				03722B762029F0F50080D069 /* U4DMatrix3n.mm in Sources */,
 				03722BDA2029F0F50080D069 /* geometryShader.metal in Sources */,
 				03722BC52029F0F50080D069 /* imageShader.metal in Sources */,
@@ -3293,7 +3261,7 @@
 				038BF26D2293883C00B129A5 /* U4DNavMeshLoader.mm in Sources */,
 				03722CE12029F0F80080D069 /* U4DGameModelInterface.mm in Sources */,
 				03722D0D2029F0F80080D069 /* U4DJoyStick.mm in Sources */,
-				037F25B923F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm in Sources */,
+				037F25B923F0D5860053FAE0 /* U4DMeshAssetLoader.mm in Sources */,
 				03722CB02029F0F80080D069 /* U4DMatrix3n.mm in Sources */,
 				03722D142029F0F80080D069 /* geometryShader.metal in Sources */,
 				03722CFF2029F0F80080D069 /* imageShader.metal in Sources */,
@@ -3577,7 +3545,7 @@
 				03F2DAF01F191A2600F77B78 /* geometryShader.metal in Sources */,
 				03F2DB0F1F191F9B00F77B78 /* U4DRenderImage.mm in Sources */,
 				0323DBA7202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
-				037F25B723F0D5860053FAE0 /* U4DPackedDigitalAssetLoader.mm in Sources */,
+				037F25B723F0D5860053FAE0 /* U4DMeshAssetLoader.mm in Sources */,
 				037C474217B597CB007B8283 /* U4DModel.mm in Sources */,
 				037C474317B597CB007B8283 /* U4DGameObject.mm in Sources */,
 				03E6ED6A1943D6FE007AD131 /* U4DButton.mm in Sources */,

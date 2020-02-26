@@ -9,6 +9,14 @@
 #include "U4DTextureData.h"
 
 namespace U4DEngine {
+
+U4DTextureData::U4DTextureData(){
+    
+}
+
+U4DTextureData::~U4DTextureData(){
+    
+}
     
 void U4DTextureData::setEmissionTexture(std::string uData){
     
