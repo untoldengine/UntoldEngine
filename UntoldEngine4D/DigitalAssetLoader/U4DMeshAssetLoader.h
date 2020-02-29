@@ -17,6 +17,7 @@
 #include <cstdlib>
 #include <string.h>
 #include <sstream>
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
     
@@ -53,6 +54,15 @@ namespace U4DEngine {
     }ARMATURERAW;
 
     typedef struct{
+        
+        std::string name;
+        std::vector<float> convexHullVertices;
+        std::vector<float> convexHullEdges;
+        std::vector<float> convexHullFaces;
+        
+    }CONVEXHULLRAW;
+
+    typedef struct{
         std::string boneName;
         std::vector<float> poseMatrix;
     }ANIMPOSERAW;
@@ -78,7 +88,6 @@ namespace U4DEngine {
         std::vector<float> normals;
         std::vector<float> uv;
         std::vector<int> index;
-        std::vector<float> prehullVertices;
         std::vector<int> materialIndex;
         std::vector<float> diffuseColor;
         std::vector<float> specularColor;
@@ -131,6 +140,9 @@ class U4DMeshAssetLoader {
         @brief Container holding all the textures used in the scene
         */
         std::vector<TEXTURESRAW> texturesContainer;
+    
+    
+        std::vector<CONVEXHULLRAW> convexHullContainer;
         
     protected:
         
@@ -203,6 +215,8 @@ class U4DMeshAssetLoader {
         */
         bool loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName);
     
+        CONVEXHULL loadConvexHullForMesh(U4DModel *uModel);
+        
         /**
         @brief Method which loads the 3D model vertices
         
@@ -234,14 +248,6 @@ class U4DMeshAssetLoader {
         @param uIndex Container containing the indices data
         */
         void loadIndexData(U4DModel *uModel,std::vector<int> uIndex);
-    
-        /**
-        @brief Method which loads the 3D model PRE-Hull data. That is, data ready to be used to compute the Convex Hull of the model
-        
-        @param uModel      3D model entity
-        @param uPrehull Container containing the pre-hull data
-        */
-        void loadPreHullData(U4DModel *uModel,std::vector<float> uPrehull);
     
         /**
         @brief Method which loads the index information for each material used by the 3D model entity

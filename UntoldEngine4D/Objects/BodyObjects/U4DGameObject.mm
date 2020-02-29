@@ -7,7 +7,6 @@
 //
 
 #include "U4DGameObject.h"
-#include "U4DDigitalAssetLoader.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
 #include "U4DMeshAssetLoader.h"
@@ -31,22 +30,6 @@ namespace U4DEngine {
         return *this;
     
     }
-
-//    THIS METHOD IS NOW DEPRECATED. LEAVING IT HERE FOR REFERENCE
-//    bool U4DGameObject::loadModel(const char* uModelName, const char* uBlenderFile){
-//
-//        U4DEngine::U4DDigitalAssetLoader *loader=U4DEngine::U4DDigitalAssetLoader::sharedInstance();
-//
-//        if(loader->loadDigitalAssetFile(uBlenderFile) && loader->loadAssetToMesh(this,uModelName)){
-//
-//            //init the culling bounding volume
-//            initCullingBoundingVolume();
-//
-//            return true;
-//        }
-//
-//        return false;
-//    }
 
     bool U4DGameObject::loadModel(const char* uModelName){
         
@@ -78,20 +61,6 @@ namespace U4DEngine {
         return false;
         
     }
-
-//    THIS METHOD IS NOW DEPRECATED. LEAVING IT HERE FOR REFERENCE
-//    bool U4DGameObject::loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName, const char* uBlenderFile){
-//
-//        U4DEngine::U4DDigitalAssetLoader *loader=U4DEngine::U4DDigitalAssetLoader::sharedInstance();
-//
-//        if (loader->loadDigitalAssetFile(uBlenderFile) && loader->loadAnimationToMesh(uAnimation, uAnimationName)) {
-//
-//            return true;
-//
-//        }
-//
-//        return false;
-//    }
     
     bool U4DGameObject::getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPoseMatrix){
 

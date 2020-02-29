@@ -107,16 +107,41 @@ namespace U4DEngine {
          file.read((char*)&uModel.index[0], indexSize*sizeof(int));
         
          
-         //READ PREHULL
-         int prehullSize=0;
-         file.read((char*)&prehullSize,sizeof(int));
-         std::vector<float> tempPrehull(prehullSize,0);
+         //READ CONVEX HULL INFO
+         CONVEXHULLRAW convexHullRaw;
+        
+         convexHullRaw.name=uModel.name;
+         
+         //READ CONVEX HULL VERTICES
+         int convexHullVerticesSize=0;
+         file.read((char*)&convexHullVerticesSize,sizeof(int));
+         std::vector<float> tempConvexHullVertices(convexHullVerticesSize,0);
          
          //copy temp to model2
-         uModel.prehullVertices=tempPrehull;
-         file.read((char*)&uModel.prehullVertices[0], prehullSize*sizeof(float));
+         convexHullRaw.convexHullVertices=tempConvexHullVertices;
+         file.read((char*)&convexHullRaw.convexHullVertices[0], convexHullVerticesSize*sizeof(float));
          
+         //READ CONVEX HULL EDGES
+         int convexHullEdgesSize=0;
+         file.read((char*)&convexHullEdgesSize,sizeof(int));
+         std::vector<float> tempConvexHullEdges(convexHullEdgesSize,0);
          
+         //copy temp to model2
+         convexHullRaw.convexHullEdges=tempConvexHullEdges;
+         file.read((char*)&convexHullRaw.convexHullEdges[0], convexHullEdgesSize*sizeof(float));
+         
+         //READ CONVEX HULL FACES
+         int convexHullFacesSize=0;
+         file.read((char*)&convexHullFacesSize,sizeof(int));
+         std::vector<float> tempConvexHullFaces(convexHullFacesSize,0);
+         
+         //copy temp to model2
+         convexHullRaw.convexHullFaces=tempConvexHullFaces;
+         file.read((char*)&convexHullRaw.convexHullFaces[0], convexHullFacesSize*sizeof(float));
+         
+         //load convex data into container
+         convexHullContainer.push_back(convexHullRaw);
+            
          //READ MATERIAL INDEX
          int materialIndexSize=0;
          file.read((char*)&materialIndexSize,sizeof(int));
@@ -506,9 +531,6 @@ namespace U4DEngine {
                 //INDEX
                 loadIndexData(uModel, modelsContainer.at(n).index);
                 
-                //PREHULL
-                loadPreHullData(uModel, modelsContainer.at(n).prehullVertices);
-                
                 //MATERIAL INDEX
                 loadMaterialIndexData(uModel, modelsContainer.at(n).materialIndex);
                 
@@ -752,7 +774,84 @@ namespace U4DEngine {
         return false;
     }
 
-    
+    CONVEXHULL U4DMeshAssetLoader::loadConvexHullForMesh(U4DModel *uModel){
+        
+        CONVEXHULL convexHull;
+        
+        for(int n=0;n<convexHullContainer.size();n++){
+
+            if (convexHullContainer.at(n).name.compare(uModel->getName())==0) {
+         
+                convexHull.isValid=false;
+                
+                std::vector<float> convexHullVerticesContainer=convexHullContainer.at(n).convexHullVertices;
+                std::vector<float> convexHullEdgesContainer=convexHullContainer.at(n).convexHullEdges;
+                std::vector<float> convexHullFacesContainer=convexHullContainer.at(n).convexHullFaces;
+                
+                //is it valide
+                if (convexHullVerticesContainer.size()>0) {
+                    convexHull.isValid=true;
+                }
+                
+                //load vertices
+                for(int v=0;v<convexHullVerticesContainer.size();){
+                    
+                    U4DVector3n computedVertex(convexHullVerticesContainer.at(v),convexHullVerticesContainer.at(v+1), convexHullVerticesContainer.at(v+2));
+                    
+                    POLYTOPEVERTEX polytopeVertex;
+                    polytopeVertex.vertex=computedVertex;
+                    
+                    convexHull.vertex.push_back(polytopeVertex);
+                    
+                    v=v+3;
+                    
+                }
+                
+                //load edges
+                for(int e=0;e<convexHullEdgesContainer.size();){
+                    
+                    
+                    U4DPoint3n a(convexHullEdgesContainer.at(e),convexHullEdgesContainer.at(e+1),convexHullEdgesContainer.at(e+2));
+                    U4DPoint3n b(convexHullEdgesContainer.at(e+3),convexHullEdgesContainer.at(e+4),convexHullEdgesContainer.at(e+5));
+                    
+                    U4DSegment segment(a,b);
+                    
+                    POLYTOPEEDGES polytopeEdge;
+                    polytopeEdge.segment=segment;
+                    
+                    convexHull.edges.push_back(polytopeEdge);
+                    
+                    e=e+6;
+                    
+                }
+                
+                //load faces
+                for(int f=0;f<convexHullFacesContainer.size();){
+                    
+                    U4DPoint3n a(convexHullFacesContainer.at(f),convexHullFacesContainer.at(f+1),convexHullFacesContainer.at(f+2));
+                    U4DPoint3n b(convexHullFacesContainer.at(f+3),convexHullFacesContainer.at(f+4),convexHullFacesContainer.at(f+5));
+                    U4DPoint3n c(convexHullFacesContainer.at(f+6),convexHullFacesContainer.at(f+7),convexHullFacesContainer.at(f+8));
+                    
+                    U4DTriangle triangle(a,b,c);
+                    
+                    POLYTOPEFACES polytopeFace;
+                    polytopeFace.triangle=triangle;
+                    
+                    convexHull.faces.push_back(polytopeFace);
+                    
+                    f=f+9;
+                    
+                }
+                
+                
+            }
+            
+            
+        }
+        
+        return convexHull;
+        
+    }
 
     void U4DMeshAssetLoader::loadVerticesData(U4DModel *uModel,std::vector<float> uVertices){
         
@@ -825,24 +924,6 @@ namespace U4DEngine {
             i=i+3;
         }
         
-    }
-
-    void U4DMeshAssetLoader::loadPreHullData(U4DModel *uModel,std::vector<float> uPrehull){
-        
-        for (int i=0; i<uPrehull.size();) {
-            
-            float x=uPrehull.at(i);
-            
-            float y=uPrehull.at(i+1);
-            
-            float z=uPrehull.at(i+2);
-            
-            U4DVector3n uPreHullVertices(x,y,z);
-            
-            uModel->bodyCoordinates.addPreConvexHullVerticesDataToContainer(uPreHullVertices);
-            i=i+3;
-            
-        }
     }
 
     void U4DMeshAssetLoader::loadMaterialIndexData(U4DModel *uModel,std::vector<int> uMaterialIndex){

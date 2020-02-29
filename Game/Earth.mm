@@ -27,7 +27,7 @@ void Earth::init(){
     setupBackgroundModels();
     
     ////////////CREATE ASTRONAUT HERE/////////////
-        
+
 }
 
 void Earth::update(double dt){
@@ -84,7 +84,7 @@ void Earth::setupBackgroundModels(){
     //Load the assets
     U4DEngine::U4DMeshAssetLoader *meshAssetLoader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
     
-    meshAssetLoader->loadSceneData("astronaut.u4d");
+    meshAssetLoader->loadSceneData("spaceAttributes.u4d");
     
     meshAssetLoader->loadAnimationData("astronautWalkAnim.u4d");
     

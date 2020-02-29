@@ -92,11 +92,6 @@ namespace U4DEngine {
         std::vector<U4DTriangle> convexHullFacesContainer;
         
         /**
-         @brief Vector containing the entity's mesh PRE convex-hull vertices. These are the vertices used by the engine to compute the final convex-hull
-         */
-        std::vector<U4DVector3n> preConvexHullVerticesContainer;
-        
-        /**
          @brief 3D vector containing the dimensions of the mesh
          */
         U4DVector3n modelDimension;
@@ -172,13 +167,6 @@ namespace U4DEngine {
         void addConvexHullFacesDataToContainer(U4DTriangle& uData);
         
         /**
-         @brief Method which adds the entity's mesh PRE convex-hull vertices into a container
-         
-         @param uData Entity's mesh PRE convex-hull vertices
-         */
-        void addPreConvexHullVerticesDataToContainer(U4DVector3n& uData);
-        
-        /**
          @brief Method which sets the entity's mesh dimension
          
          @param uData 3D vector holding the length, width and height of the entity's mesh
@@ -212,13 +200,6 @@ namespace U4DEngine {
          @return Returns the entity's mesh convex-hull faces
          */
         std::vector<U4DTriangle> getConvexHullFacesDataFromContainer();
-        
-        /**
-         @brief Method which returns the container holding the entity's mesh PRE convex-hull vertices
-         
-         @return Returns the entity's mesh PRE convex-hull vertices
-         */
-        std::vector<U4DVector3n> getPreConvexHullVerticesDataFromContainer();
         
         /**
          @brief Method which returns the entity's mesh dimension
