@@ -18,12 +18,6 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    //Astronaut data member
-    U4DEngine::U4DGameObject *myAstronaut;
-    
-    //Animation object
-    U4DEngine::U4DAnimation *walkAnimation;
-    
 public:
    
     Earth(){};
@@ -34,9 +28,7 @@ public:
 
     //Sets the configuration for the engine: Perspective view, shadows, light
     void setupConfiguration();
-    
-    //creates background models: islands, skyboxes, etc.
-    void setupBackgroundModels();
+
     
 };
 

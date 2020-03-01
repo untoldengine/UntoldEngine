@@ -26,12 +26,12 @@ public:
     /**
      @brief Constructor for the class
      */
-    U4DTextureData(){};
+    U4DTextureData();
     
     /**
      @brief Destructor for the class
      */
-    ~U4DTextureData(){};
+    ~U4DTextureData();
     
     /**
      @brief Name of the texture representing the emission component

@@ -137,7 +137,7 @@ public:
     
     void zero();
     
-    U4DVector3n toVector();
+    U4DVector3n toVector() const;
     
     void show();
     

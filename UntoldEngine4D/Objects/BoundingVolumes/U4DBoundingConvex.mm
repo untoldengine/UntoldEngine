@@ -34,7 +34,7 @@ namespace U4DEngine {
         
         
         //decompose the convex hull into vertices
-        for(auto n:uConvexHull.vertex){
+        for(const auto& n:uConvexHull.vertex){
             
             U4DVector3n vertex=n.vertex;
             
@@ -43,7 +43,7 @@ namespace U4DEngine {
         }
         
         //set vertices for rendering
-        for (auto n:uConvexHull.faces) {
+        for (const auto& n:uConvexHull.faces) {
             
             U4DVector3n vertexA=n.triangle.pointA.toVector();
             U4DVector3n vertexB=n.triangle.pointB.toVector();

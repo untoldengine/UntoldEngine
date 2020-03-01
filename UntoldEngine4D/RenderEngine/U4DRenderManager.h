@@ -467,6 +467,13 @@ namespace U4DEngine {
          * @param uValue true for is within the frustum, false if is not
          */
         void setIsWithinFrustum(bool uValue);
+        
+        virtual void setRawImageData(std::vector<unsigned char> uRawImageData){};
+        
+        virtual void setImageWidth(unsigned int uImageWidth){};
+        
+        virtual void setImageHeight(unsigned int uImageHeight){};
+        
     };
     
 }

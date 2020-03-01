@@ -148,7 +148,7 @@ namespace U4DEngine {
         std::cout<<"("<<x<<","<<y<<","<<z<<")"<<std::endl;
     }
 
-    U4DVector3n U4DPoint3n::toVector(){
+    U4DVector3n U4DPoint3n::toVector() const{
         
         U4DVector3n vec(x,y,z);
         

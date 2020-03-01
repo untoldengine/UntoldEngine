@@ -11,9 +11,9 @@
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
-#include "U4DConvexHullAlgorithm.h"
 #include "U4DMeshOctreeManager.h"
 #include "U4DMeshOctreeNode.h"
+#include "U4DMeshAssetLoader.h"
 #include "U4DLogger.h"
 #include <algorithm>
 
@@ -282,15 +282,14 @@ namespace U4DEngine {
             //create the bounding convex volume
             convexHullBoundingVolume=new U4DBoundingConvex();
             
-            //generate the convex hull for the model
-            U4DConvexHullAlgorithm convexHullAlgorithm;
-            
             U4DLogger *logger=U4DLogger::sharedInstance();
             
             logger->log("In Process: Computing Convex Hull for Collision Detection for model: %s",getName().c_str());
             
             //determine the convex hull of the model
-            CONVEXHULL convexHull=convexHullAlgorithm.computeConvexHull(this->bodyCoordinates.preConvexHullVerticesContainer);
+            U4DEngine::U4DMeshAssetLoader *meshAssetLoader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
+            
+            CONVEXHULL convexHull=meshAssetLoader->loadConvexHullForMesh(this);
             
             //if convex hull valid, then set it to the model and enable collision
             
@@ -302,7 +301,7 @@ namespace U4DEngine {
                 convexHullBoundingVolume->setConvexHullVertices(convexHull);
                 
                 //decompose the convex hull into vertices. Note this data is also contained in the bounding volume.
-                for(auto n:convexHull.vertex){
+                for(const auto& n:convexHull.vertex){
                     
                     U4DVector3n vertex=n.vertex;
                     
@@ -311,14 +310,14 @@ namespace U4DEngine {
                 }
                 
                 //decompose the convex hull into segments
-                for(auto n:convexHull.edges){
+                for(const auto& n:convexHull.edges){
                     U4DSegment segment=n.segment;
                     bodyCoordinates.addConvexHullEdgesDataToContainer(segment);
                 }
                 
                 
                 //decompose the convex hull into faces
-                for(auto n:convexHull.faces){
+                for(const auto& n:convexHull.faces){
                     U4DTriangle face=n.triangle;
                     
                     bodyCoordinates.addConvexHullFacesDataToContainer(face);

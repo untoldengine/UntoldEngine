@@ -13,6 +13,7 @@
 #include "U4DCamera.h"
 #include "U4DLights.h"
 #include "U4DSkybox.h"
+#include "U4DMeshAssetLoader.h"
 
 using namespace U4DEngine;
 
@@ -21,12 +22,76 @@ void Earth::init(){
     /*----DO NOT REMOVE. THIS IS REQUIRED-----*/
     //Configures the perspective view, shadows, lights and camera.
     setupConfiguration();
+    /*----END DO NOT REMOVE.-----*/
     
-    //Renders the background models: skybox and island models. Remove if you want to.
-    setupBackgroundModels();
+    //The following code snippets loads scene data, renders the astronaut, island and skybox.
     
-    ////////////CREATE ASTRONAUT HERE/////////////
+    /*---LOAD SCENE ASSETS HERE--*/
+    //The U4DMeshAssetLoader is in charge of loading the binary file containing the scene data
+    U4DEngine::U4DMeshAssetLoader *meshAssetLoader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
     
+    //Load binary file with scene data
+    meshAssetLoader->loadSceneData("spaceAttributes.u4d");
+    
+    //Load binary file with texture data
+    meshAssetLoader->loadTextureData("astronautTextures.u4d");
+    
+    /*---CREATE ASTRONAUT HERE--*/
+
+    // Create an instance of U4DGameObject type
+    U4DEngine::U4DGameObject *myAstronaut=new U4DEngine::U4DGameObject();
+
+    //Load attribute (rendering information) into the game entity
+    if (myAstronaut->loadModel("astronaut")) {
+
+        //Load rendering information into the GPU
+        myAstronaut->loadRenderingInformation();
+
+        //Add astronaut to the scenegraph
+        addChild(myAstronaut);
+
+    }
+
+    /*---CREATE ISLAND HERE--*/
+    U4DGameObject *island=new U4DGameObject();
+
+    //Load attribute (rendering information) into the game entity
+    if (island->loadModel("island")) {
+
+        island->setEnableShadow(true);
+
+        //Load rendering information into the GPU
+        island->loadRenderingInformation();
+
+        //enable kinetics
+        island->enableKineticsBehavior();
+
+        //enable collision
+        island->enableCollisionBehavior();
+
+        //set gravity to zero
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+        island->setGravity(zero);
+
+        //set Coefficient of Restitution
+        island->initCoefficientOfRestitution(0.9);
+
+        //set mass
+        island->initMass(100.0);
+
+        //Add walkway to scenegraph
+        addChild(island);
+
+    }
+
+    /*---CREATE SKYBOX HERE--*/
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+
+    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+
+    addChild(skybox,-1);
+    
+
 }
 
 void Earth::update(double dt){
@@ -75,51 +140,6 @@ void Earth::setupConfiguration(){
     
     //set the poly count to 5000. Default is 3000
     director->setPolycount(5000);
-    
-}
-
-void Earth::setupBackgroundModels(){
-    
-    //create island and skybox
-    
-    //Create an instance of U4DGameObject type
-    U4DGameObject *island=new U4DGameObject();
-    
-    //Load attribute (rendering information) into the game entity
-    if (island->loadModel("island","astronautAttributes.u4d")) {
-        
-        island->setEnableShadow(true);
-        
-        //Load rendering information into the GPU
-        island->loadRenderingInformation();
-        
-        //enable kinetics
-        island->enableKineticsBehavior();
-        
-        //enable collision
-        island->enableCollisionBehavior();
-        
-        //set gravity to zero
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-        island->setGravity(zero);
-        
-        //set Coefficient of Restitution
-        island->initCoefficientOfRestitution(0.9);
-        
-        //set mass
-        island->initMass(100.0);
-        
-        //Add walkway to scenegraph
-        addChild(island);
-        
-    }
-    
-    //add a skybox here
-    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-    
-    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-    
-    addChild(skybox,-1);
     
 }
 
