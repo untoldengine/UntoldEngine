@@ -8,7 +8,6 @@ Hi, my name is [Harold Serrano](http://www.haroldserrano.com), and I developed t
 
 It took me over five years to develop the *Untold Engine* from scratch. I spent thousands and thousands of hours developing the Untold Engine, and now I'm releasing it as an open source. 
 
-
 ![image1](images/gamedemo1.png)
 
 ## Running the Untold Engine
@@ -27,13 +26,12 @@ To run the the Untold Engine, you need the following tools:
 
 ## Current Version
 
-Beta version v0.0.13.1. See current [Release Notes](https://untoldengine.github.io/Documentation/releasenotes/) for improvement and fixes.
+Beta version v0.0.13.2. See current [Release Notes](https://untoldengine.github.io/Documentation/releasenotes/) for improvement and fixes.
 
 ## License
 
 The Untold Engine is licensed under the LGPL v2.1. This means that if you develop a game using the Untold Engine, you do not need to open source your game. However, if you create a derivative of the Untold Engine, then you must apply the rules stated in the LGPL v2.1. That is, you must open source the derivative work.
 
-It took me five years to develop the Untold Engine. So, do not remove my name from the files :).
 
 ## Contributing to Untold Engine
 
