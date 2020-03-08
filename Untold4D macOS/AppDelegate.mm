@@ -23,6 +23,9 @@
     
     //make the game view controller the first responder so it can receive keyboard inputs
     [[[NSApplication sharedApplication] mainWindow] makeFirstResponder:gameViewController];
+    
+    [[[NSApplication sharedApplication] mainWindow] center];
+    
 }
 
 

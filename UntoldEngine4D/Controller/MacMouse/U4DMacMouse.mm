@@ -23,7 +23,7 @@
 namespace U4DEngine {
     
     
-    U4DMacMouse::U4DMacMouse(MOUSEELEMENT &uMouseElementType):isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0),mouseAxis(0.0,0.0),previousDataPosition(0.0,0.0,0.0){
+    U4DMacMouse::U4DMacMouse(MOUSEELEMENT &uMouseElementType):isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0),mouseAxis(0.0,0.0),mouseAxisDelta(0.0,0.0),previousDataPosition(0.0,0.0,0.0){
         
         stateManager=new U4DMacMouseStateManager(this);
         
@@ -107,7 +107,7 @@ namespace U4DEngine {
         }else if (uMouseAction==U4DEngine::mouseCursorDeltaMoved) {
             
             mouseAxisDelta=uMouseAxis;
-            
+
             stateManager->changeState(U4DMacMouseDeltaMovedState::sharedInstance());
             
         }

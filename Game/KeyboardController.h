@@ -22,8 +22,18 @@ private:
     
     U4DEngine::U4DMacKey *macKeyA;
     U4DEngine::U4DMacKey *macKeyD;
+    U4DEngine::U4DMacKey *macKeyW;
+    U4DEngine::U4DMacKey *macKeyS;
+    U4DEngine::U4DMacKey *macKeyF;
+    
+    U4DEngine::U4DMacKey *macKey1;
+    
+    U4DEngine::U4DMacKey *macKeyShift;
+    U4DEngine::U4DMacKey *macKeySpace;
+    
     U4DEngine::U4DMacArrowKey *macArrowKeys;
     U4DEngine::U4DMacMouse *mouseLeftButton;
+    U4DEngine::U4DMacMouse *macMouseCursor;
     
 public:
     
@@ -38,9 +48,23 @@ public:
     
     void actionOnMacKeyD();
     
+    void actionOnMacKeyW();
+    
+    void actionOnMacKeyS();
+    
+    void actionOnMacKeyF();
+    
+    void actionOnMacShiftKey();
+    
+    void actionOnMacSpaceKey();
+    
+    void actionOnMacKey1();
+    
     void actionOnArrowKeys();
     
     void actionOnMouseLeftButton();
+    
+    void actionOnMouseMoved();
     
 };
 #endif /* KeyboardController_hpp */
