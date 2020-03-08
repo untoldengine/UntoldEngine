@@ -17,7 +17,7 @@ namespace U4DEngine {
     
     U4DMacMouseDeltaMovedState* U4DMacMouseDeltaMovedState::instance=0;
     
-    U4DMacMouseDeltaMovedState::U4DMacMouseDeltaMovedState():mouseSlowFactor(1.0){
+    U4DMacMouseDeltaMovedState::U4DMacMouseDeltaMovedState():mouseSlowFactor(1.0),motionDeltaAccumulator(0.0,0.0){
         
     }
     
@@ -50,7 +50,7 @@ namespace U4DEngine {
         float biasSlowFactorAccumulator=0.50;
         
         motionDeltaAccumulator=motionDeltaAccumulator*biasMotionAccumulator+mouseDelta*(1.0-biasMotionAccumulator);
-        
+
         //The slow down factor is used to decrease the speed of the mouse
         mouseSlowFactor=mouseSlowFactor*biasSlowFactorAccumulator+dt*(1.0-biasSlowFactorAccumulator);
         

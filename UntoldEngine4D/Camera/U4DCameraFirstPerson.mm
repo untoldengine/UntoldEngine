@@ -16,7 +16,6 @@ namespace U4DEngine {
     
     U4DCameraFirstPerson::U4DCameraFirstPerson():motionAccumulator(0.0,0.0,0.0){
         
-        
     }
     
     U4DCameraFirstPerson::~U4DCameraFirstPerson(){
@@ -49,7 +48,7 @@ namespace U4DEngine {
             //significant. The bias parameter controls how much significance is given to previous values.
             //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
             //A bias of 1 ignores the new value altogether.
-            float biasMotionAccumulator=0.0;
+            float biasMotionAccumulator=0.2;
             
             motionAccumulator=motionAccumulator*biasMotionAccumulator+modelViewDirection*(1.0-biasMotionAccumulator);
             

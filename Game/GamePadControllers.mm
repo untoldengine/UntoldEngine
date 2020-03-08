@@ -500,21 +500,42 @@ void GamePadController::actionOnLeftJoystick(){
 
 void GamePadController::actionOnRightJoystick(){
     
-    ControllerInputMessage controllerInputMessage;
+   ControllerInputMessage controllerInputMessage;
     
     controllerInputMessage.controllerInputType=actionRightJoystick;
     
     if (rightJoystick->getIsActive()) {
         
-       std::cout<<"Right Joystick Moved"<<std::endl;
+        controllerInputMessage.controllerInputData=joystickActive;
+        
+        U4DEngine::U4DVector3n joystickDirection=rightJoystick->getDataPosition();
+        
+        joystickDirection.z=joystickDirection.y;
+        
+        joystickDirection.y=0;
+        
+        joystickDirection.normalize();
+        
+        
+        if (rightJoystick->getDirectionReversal()) {
+            
+            controllerInputMessage.joystickChangeDirection=true;
+            
+        }else{
+            
+            controllerInputMessage.joystickChangeDirection=false;
+            
+        }
+        
+        controllerInputMessage.joystickDirection=joystickDirection;
         
     }else {
-    
-        std::cout<<"Right Joystick Released"<<std::endl;
+        
+       controllerInputMessage.controllerInputData=joystickInactive;
         
     }
     
-   // sendUserInputUpdate(&controllerInputMessage);
+    sendUserInputUpdate(&controllerInputMessage);
     
 }
 

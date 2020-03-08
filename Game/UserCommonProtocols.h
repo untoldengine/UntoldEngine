@@ -10,17 +10,28 @@
 #define UserCommonProtocols_h
 
 #include "U4DVector3n.h"
+#include "U4DVector2n.h"
 
 enum{
     
     actionButtonA,
     actionButtonB,
+    actionButtonW,
+    actionButtonS,
+    actionButtonD,
     actionButtonX,
     actionButtonY,
+    actionButtonF,
+    actionKey1,
+    actionKeyShift,
+    actionKeySpace,
     actionLeftTrigger,
     actionRightTrigger,
+    actionRightShoulder,
+    actionLeftShoulder,
     actionJoystick,
     actionRightJoystick,
+    actionMouseLeftTrigger,
     
 }ControllerInputType;
 
@@ -38,6 +49,9 @@ typedef struct{
     int controllerInputType;
     int controllerInputData;
     U4DEngine::U4DVector3n joystickDirection;
+    U4DEngine::U4DVector3n mousePosition;
+    U4DEngine::U4DVector3n previousMousePosition;
+    U4DEngine::U4DVector2n mouseDeltaPosition;
     bool joystickChangeDirection;
     
 }ControllerInputMessage;
@@ -45,8 +59,25 @@ typedef struct{
 typedef struct{
     
     U4DEngine::U4DVector3n direction;
+    U4DEngine::U4DVector3n mousePosition;
+    U4DEngine::U4DVector3n previousMousePosition;
+    U4DEngine::U4DVector2n mouseDeltaPosition;
     bool changedDirection;
     
 }JoystickMessageData;
+
+enum{
+    
+    idle,
+    walking,
+    shooting,
+    dead,
+    seeking,
+    fleeing,
+    arriving,
+    pursuing,
+    wandering,
+
+}CHARACTERSTATE;
 
 #endif /* UserCommonProtocols_h */
