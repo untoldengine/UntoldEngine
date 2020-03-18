@@ -192,7 +192,8 @@
     // Finalize rendering here & push the command buffer to the GPU
     [commandBuffer commit];
     
-    [commandBuffer waitUntilCompleted];
+    //Removing this improves the fps and gets rid of display micro stuttering. However, I'm not entirely sure when to use it.
+    //[commandBuffer waitUntilCompleted];
 }
 
 /// Called whenever the view size changes or a relayout occurs (such as changing from landscape to
