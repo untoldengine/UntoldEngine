@@ -1,12 +1,12 @@
 //
-//  U4DMeshAssetLoader.cpp
+//  U4DResourceLoader.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/9/20.
 //  Copyright © 2020 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DMeshAssetLoader.h"
+#include "U4DResourceLoader.h"
 #include "CommonProtocols.h"
 #include "Constants.h"
 #include "U4DModel.h"
@@ -24,26 +24,26 @@
 
 namespace U4DEngine {
 
-    U4DMeshAssetLoader::U4DMeshAssetLoader(){
+    U4DResourceLoader::U4DResourceLoader(){
         
     }
 
-    U4DMeshAssetLoader::~U4DMeshAssetLoader(){
+    U4DResourceLoader::~U4DResourceLoader(){
         
     }
 
-    U4DMeshAssetLoader* U4DMeshAssetLoader::instance=0;
+    U4DResourceLoader* U4DResourceLoader::instance=0;
 
-    U4DMeshAssetLoader* U4DMeshAssetLoader::sharedInstance(){
+    U4DResourceLoader* U4DResourceLoader::sharedInstance(){
         
         if (instance==0) {
-            instance=new U4DMeshAssetLoader();
+            instance=new U4DResourceLoader();
         }
         
         return instance;
     }
 
-    bool U4DMeshAssetLoader::loadSceneData(std::string uFilepath){
+    bool U4DResourceLoader::loadSceneData(std::string uFilepath){
         
         std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -356,7 +356,7 @@ namespace U4DEngine {
     }
 
 
-    bool U4DMeshAssetLoader::loadAnimationData(std::string uFilepath){
+    bool U4DResourceLoader::loadAnimationData(std::string uFilepath){
         
         std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
         
@@ -448,7 +448,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DMeshAssetLoader::loadTextureData(std::string uFilepath){
+    bool U4DResourceLoader::loadTextureData(std::string uFilepath){
         
         std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
         
@@ -507,7 +507,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DMeshAssetLoader::loadParticleData(std::string uFilepath){
+    bool U4DResourceLoader::loadParticleData(std::string uFilepath){
         
         std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
         
@@ -703,7 +703,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DMeshAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshName){
+    bool U4DResourceLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshName){
 
         //find the model in the container
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -879,7 +879,7 @@ namespace U4DEngine {
     }
 
 
-    bool U4DMeshAssetLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
+    bool U4DResourceLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
         
         int keyframeRange=0;
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -972,7 +972,7 @@ namespace U4DEngine {
         return false;
     }
 
-    CONVEXHULL U4DMeshAssetLoader::loadConvexHullForMesh(U4DModel *uModel){
+    CONVEXHULL U4DResourceLoader::loadConvexHullForMesh(U4DModel *uModel){
         
         CONVEXHULL convexHull;
         
@@ -1051,7 +1051,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadVerticesData(U4DModel *uModel,std::vector<float> uVertices){
+    void U4DResourceLoader::loadVerticesData(U4DModel *uModel,std::vector<float> uVertices){
         
         for (int i=0; i<uVertices.size();) {
             
@@ -1070,7 +1070,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadNormalData(U4DModel *uModel,std::vector<float> uNormals){
+    void U4DResourceLoader::loadNormalData(U4DModel *uModel,std::vector<float> uNormals){
 
         
         for (int i=0; i<uNormals.size();) {
@@ -1090,7 +1090,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadUVData(U4DModel *uModel,std::vector<float> uUV){
+    void U4DResourceLoader::loadUVData(U4DModel *uModel,std::vector<float> uUV){
         
         for (int i=0; i<uUV.size();) {
             
@@ -1107,7 +1107,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadIndexData(U4DModel *uModel,std::vector<int> uIndex){
+    void U4DResourceLoader::loadIndexData(U4DModel *uModel,std::vector<int> uIndex){
         
         for (int i=0; i<uIndex.size();) {
             
@@ -1124,7 +1124,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadMaterialIndexData(U4DModel *uModel,std::vector<int> uMaterialIndex){
+    void U4DResourceLoader::loadMaterialIndexData(U4DModel *uModel,std::vector<int> uMaterialIndex){
         
         for (int i=0; i<uMaterialIndex.size(); i++) {
             
@@ -1135,7 +1135,7 @@ namespace U4DEngine {
         }
     }
         
-    void U4DMeshAssetLoader::loadDiffuseColorData(U4DModel *uModel,std::vector<float> uDiffuseColor){
+    void U4DResourceLoader::loadDiffuseColorData(U4DModel *uModel,std::vector<float> uDiffuseColor){
         
         for (int i=0; i<uDiffuseColor.size();) {
             
@@ -1156,7 +1156,7 @@ namespace U4DEngine {
         }
     }
         
-    void U4DMeshAssetLoader::loadSpecularColorsData(U4DModel *uModel,std::vector<float> uSpecularColor){
+    void U4DResourceLoader::loadSpecularColorsData(U4DModel *uModel,std::vector<float> uSpecularColor){
         
         for (int i=0; i<uSpecularColor.size();) {
             
@@ -1178,7 +1178,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadDiffuseIntensityData(U4DModel *uModel,std::vector<float> uDiffuseIntensity){
+    void U4DResourceLoader::loadDiffuseIntensityData(U4DModel *uModel,std::vector<float> uDiffuseIntensity){
         
         for (int i=0; i<uDiffuseIntensity.size();i++) {
             
@@ -1189,7 +1189,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadSpecularIntensityData(U4DModel *uModel,std::vector<float> uSpecularIntesity){
+    void U4DResourceLoader::loadSpecularIntensityData(U4DModel *uModel,std::vector<float> uSpecularIntesity){
         
         for (int i=0; i<uSpecularIntesity.size();i++) {
             
@@ -1200,7 +1200,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadSpecularHardnessData(U4DModel *uModel,std::vector<float> uSpecularHardness){
+    void U4DResourceLoader::loadSpecularHardnessData(U4DModel *uModel,std::vector<float> uSpecularHardness){
         
         for (int i=0; i<uSpecularHardness.size();i++) {
             
@@ -1211,7 +1211,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadDimensionDataToBody(U4DModel *uModel,std::vector<float> uDimension){
+    void U4DResourceLoader::loadDimensionDataToBody(U4DModel *uModel,std::vector<float> uDimension){
         
         float x=uDimension.at(0);
         
@@ -1225,7 +1225,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadEntityMatrixSpace(U4DEntity *uModel,std::vector<float> uLocalMatrix){
+    void U4DResourceLoader::loadEntityMatrixSpace(U4DEntity *uModel,std::vector<float> uLocalMatrix){
         
         //    0    4    8    12
         //    1    5    9    13
@@ -1261,7 +1261,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadMeshVerticesData(U4DModel *uModel,std::vector<float> uMeshVertices){
+    void U4DResourceLoader::loadMeshVerticesData(U4DModel *uModel,std::vector<float> uMeshVertices){
         
         for (int i=0; i<uMeshVertices.size();) {
             
@@ -1280,7 +1280,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadMeshEdgesData(U4DModel *uModel,std::vector<int> uMeshEdgesIndex){
+    void U4DResourceLoader::loadMeshEdgesData(U4DModel *uModel,std::vector<int> uMeshEdgesIndex){
         
         for (int i=0; i<uMeshEdgesIndex.size();) {
             
@@ -1299,7 +1299,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadMeshFacesData(U4DModel *uModel,std::vector<int> uMeshFacesIndex){
+    void U4DResourceLoader::loadMeshFacesData(U4DModel *uModel,std::vector<int> uMeshFacesIndex){
 
         for (int i=0; i<uMeshFacesIndex.size();) {
             
@@ -1322,7 +1322,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadSpaceData(U4DMatrix4n &uMatrix, std::vector<float> uSpaceData){
+    void U4DResourceLoader::loadSpaceData(U4DMatrix4n &uMatrix, std::vector<float> uSpaceData){
         
         //    0    4    8    12
         //    1    5    9    13
@@ -1352,7 +1352,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadSpaceData(U4DDualQuaternion &uSpace, std::vector<float> uSpaceData){
+    void U4DResourceLoader::loadSpaceData(U4DDualQuaternion &uSpace, std::vector<float> uSpaceData){
         
         //    0    4    8    12
         //    1    5    9    13
@@ -1387,7 +1387,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::vector<float> uWeights){
+    void U4DResourceLoader::loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::vector<float> uWeights){
         
         
         for (int i=0; i<uWeights.size();i++) {
@@ -1397,7 +1397,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DMeshAssetLoader::loadParticeToParticleSystem(U4DParticleSystem *uParticleSystem, std::string uParticleName){
+    bool U4DResourceLoader::loadParticeToParticleSystem(U4DParticleSystem *uParticleSystem, std::string uParticleName){
      
         //find the model in the container
         U4DLogger *logger=U4DLogger::sharedInstance();

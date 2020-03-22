@@ -1,13 +1,13 @@
 //
-//  U4DMeshAssetLoader.hpp
+//  U4DResourceLoader.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/9/20.
 //  Copyright © 2020 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef U4DMeshAssetLoader_hpp
-#define U4DMeshAssetLoader_hpp
+#ifndef U4DResourceLoader_hpp
+#define U4DResourceLoader_hpp
 
 #include <stdio.h>
 #include <vector>
@@ -161,9 +161,9 @@ namespace U4DEngine {
 
 /**
 @ingroup loader
-@brief The U4DMeshAssetLoader class is in charge of importing 3D model assets .
+@brief The U4DResourceLoader class is in charge of importing 3D model assets .
 */
-class U4DMeshAssetLoader {
+class U4DResourceLoader {
     
     private:
         
@@ -197,24 +197,24 @@ class U4DMeshAssetLoader {
         /**
         @brief Constructor for the digital asset loader
         */
-        U4DMeshAssetLoader();
+        U4DResourceLoader();
         
         /**
         @brief Destructor for the digital asset loader
         */
-        ~U4DMeshAssetLoader();
+        ~U4DResourceLoader();
         
     public:
         
         /**
         @brief  Instance for the digital asset loader Singleton
         */
-        static U4DMeshAssetLoader* instance;
+        static U4DResourceLoader* instance;
         
         /**
         @brief  Shared Instance for the digital asset loader Singleton
         */
-        static U4DMeshAssetLoader* sharedInstance();
+        static U4DResourceLoader* sharedInstance();
         
         /**
         @brief Method which loads all scene asset data into the game
@@ -430,4 +430,4 @@ class U4DMeshAssetLoader {
         
 };
 }
-#endif /* U4DMeshAssetLoader_hpp */
+#endif /* U4DResourceLoader_hpp */

@@ -9,7 +9,7 @@
 #include "U4DGameObject.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
-#include "U4DMeshAssetLoader.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
@@ -33,7 +33,7 @@ namespace U4DEngine {
 
     bool U4DGameObject::loadModel(const char* uModelName){
         
-        U4DEngine::U4DMeshAssetLoader *loader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
+        U4DEngine::U4DResourceLoader *loader=U4DEngine::U4DResourceLoader::sharedInstance();
         
         if (loader->loadAssetToMesh(this, uModelName)) {
             
@@ -49,7 +49,7 @@ namespace U4DEngine {
 
     bool U4DGameObject::loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName){
         
-        U4DEngine::U4DMeshAssetLoader *loader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
+        U4DEngine::U4DResourceLoader *loader=U4DEngine::U4DResourceLoader::sharedInstance();
         
         if (loader->loadAnimationToMesh(uAnimation,uAnimationName)) {
             

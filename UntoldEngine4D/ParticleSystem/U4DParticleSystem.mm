@@ -17,7 +17,7 @@
 #include "CommonProtocols.h"
 #include "U4DCamera.h"
 #include "U4DDirector.h"
-#include "U4DMeshAssetLoader.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
@@ -131,7 +131,7 @@ namespace U4DEngine {
     
     bool U4DParticleSystem::loadParticle(const char* uParticleAssetFile){
         
-        U4DEngine::U4DMeshAssetLoader *loader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
+        U4DEngine::U4DResourceLoader *loader=U4DEngine::U4DResourceLoader::sharedInstance();
         
         if(loader->loadParticeToParticleSystem(this, uParticleAssetFile)){
             
