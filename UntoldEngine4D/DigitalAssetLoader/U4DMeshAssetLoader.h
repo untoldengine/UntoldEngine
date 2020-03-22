@@ -32,6 +32,7 @@ class U4DDualQuaternion;
 class U4DQuaternion;
 class U4DLights;
 class U4DAnimation;
+class U4DParticleSystem;
 
 }
 
@@ -114,6 +115,46 @@ namespace U4DEngine {
 
     }TEXTURESRAW;
 
+    typedef struct{
+        
+        std::string name;
+        std::vector<float> positionVariance;
+        float speed=0.0;
+        float speedVariance=0.0;
+        float lifeSpan=0.0;
+        float angle=0.0;
+        float angleVariance=0.0;
+        std::vector<float> gravity;
+        float radialAcceleration=0.0;
+        float tangentialAcceleration=0.0;
+        float radialAccelerationVariance=0.0;
+        float tangentialAccelerationVariance=0.0;
+        std::vector<float> startColor;
+        std::vector<float> startColorVariance;
+        std::vector<float> finishColor;
+        std::vector<float> finishColorVariance;
+        int maxParticles=0;
+        float startParticleSize=0.0;
+        float startParticleSizeVariance=0.0;
+        float finishParticleSize=0.0;
+        float finishParticleSizeVariance=0.0;
+        float duration=0.0;
+        float maxRadius=0.0;
+        float maxRadiusVariance=0.0;
+        float minRadius=0.0;
+        float minRadiusVariance=0.0;
+        float rotatePerSecond=0.0;
+        float rotatePerSecondVariance=0.0;
+        int blendFunctionSource=0;
+        int blendFunctionDestination=0;
+        float rotationStart=0.0;
+        float rotationStartVariance=0.0;
+        float rotationEnd=0.0;
+        float rotationEndVariance=0.0;
+        std::string texture;
+        
+    }PARTICLESRAW;
+
 }
 
 namespace U4DEngine {
@@ -141,7 +182,14 @@ class U4DMeshAssetLoader {
         */
         std::vector<TEXTURESRAW> texturesContainer;
     
+        /**
+        @brief Container holding particle data
+        */
+        std::vector<PARTICLESRAW> particlesContainer;
     
+        /**
+        @brief Container holding convex hull data
+        */
         std::vector<CONVEXHULLRAW> convexHullContainer;
         
     protected:
@@ -194,6 +242,25 @@ class U4DMeshAssetLoader {
         @return Returns true if the textures was successfully loaded
         */
         bool loadTextureData(std::string uFilepath);
+    
+        /**
+        @brief Method which loads particle data information
+        
+        @param uFilepath  Name of the binary file containing particle data
+        
+        @return Returns true if the particle data was successfully loaded
+        */
+        bool loadParticleData(std::string uFilepath);
+        
+        /**
+        @brief Method which loads all particle asset information into the particle entity
+        
+        @param uParticleSystem  particle system
+        @param uParticleName Name of the particle given by the particle software
+        
+        @return Returns true if the particle data entity was loaded successfully into the particle system
+        */
+        bool loadParticeToParticleSystem(U4DParticleSystem *uParticleSystem, std::string uParticleName);
         
         /**
         @brief Method which loads all 3D asset information into the 3D model entity
