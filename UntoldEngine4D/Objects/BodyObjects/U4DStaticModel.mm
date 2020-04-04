@@ -21,7 +21,7 @@ namespace U4DEngine {
     
     U4DStaticModel::U4DStaticModel():collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
         
-        initMass(1.0);
+        initMass(10.0);
         
         U4DVector3n centerOfMass(0.0,0.0,0.0);
         
