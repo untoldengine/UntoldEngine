@@ -145,12 +145,6 @@
 		0359C81D2426F657009A84D4 /* particleemitter.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C81C2426F657009A84D4 /* particleemitter.u4d */; };
 		0359C81E2426F657009A84D4 /* particleemitter.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C81C2426F657009A84D4 /* particleemitter.u4d */; };
 		0359C81F2426F657009A84D4 /* particleemitter.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C81C2426F657009A84D4 /* particleemitter.u4d */; };
-		0359C83F242B976A009A84D4 /* scene1.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C83D242B9769009A84D4 /* scene1.u4d */; };
-		0359C840242B976A009A84D4 /* scene1.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C83D242B9769009A84D4 /* scene1.u4d */; };
-		0359C841242B976A009A84D4 /* scene1.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C83D242B9769009A84D4 /* scene1.u4d */; };
-		0359C842242B976A009A84D4 /* scenetextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C83E242B976A009A84D4 /* scenetextures.u4d */; };
-		0359C843242B976A009A84D4 /* scenetextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C83E242B976A009A84D4 /* scenetextures.u4d */; };
-		0359C844242B976A009A84D4 /* scenetextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C83E242B976A009A84D4 /* scenetextures.u4d */; };
 		0361DFA11FAC2141004770FD /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
 		0361DFA21FAC2141004770FD /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9C1FAC2140004770FD /* TopImage.png */; };
 		0361DFA31FAC2141004770FD /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9D1FAC2140004770FD /* BottomImage.png */; };
@@ -1012,8 +1006,6 @@
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
 		0359C81C2426F657009A84D4 /* particleemitter.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = particleemitter.u4d; sourceTree = "<group>"; };
-		0359C83D242B9769009A84D4 /* scene1.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = scene1.u4d; sourceTree = "<group>"; };
-		0359C83E242B976A009A84D4 /* scenetextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = scenetextures.u4d; sourceTree = "<group>"; };
 		0361DF9B1FAC2140004770FD /* LeftImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LeftImage.png; sourceTree = "<group>"; };
 		0361DF9C1FAC2140004770FD /* TopImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TopImage.png; sourceTree = "<group>"; };
 		0361DF9D1FAC2140004770FD /* BottomImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BottomImage.png; sourceTree = "<group>"; };
@@ -1902,8 +1894,6 @@
 			isa = PBXGroup;
 			children = (
 				032BDFE6240B281200453C99 /* spaceAttributes.u4d */,
-				0359C83D242B9769009A84D4 /* scene1.u4d */,
-				0359C83E242B976A009A84D4 /* scenetextures.u4d */,
 				032BDFBB2406BA3600453C99 /* astronautTextures.u4d */,
 				0304CE7621266432005A0C4C /* astronautWalkAnim.u4d */,
 				0359C81C2426F657009A84D4 /* particleemitter.u4d */,
@@ -2612,7 +2602,6 @@
 				03722D2D2029F16C0080D069 /* myFont.xml in Resources */,
 				03722D442029F16C0080D069 /* ButtonBPressed.png in Resources */,
 				03722D402029F16C0080D069 /* joystickDriver.png in Resources */,
-				0359C843242B976A009A84D4 /* scenetextures.u4d in Resources */,
 				0304CE8021266432005A0C4C /* astronautWalkAnim.u4d in Resources */,
 				03722D3F2029F16C0080D069 /* joyStickBackground.png in Resources */,
 				03722D2C2029F16C0080D069 /* myFont.png in Resources */,
@@ -2623,7 +2612,6 @@
 				03722D392029F16C0080D069 /* TopImage.png in Resources */,
 				0359C81E2426F657009A84D4 /* particleemitter.u4d in Resources */,
 				03722D412029F16C0080D069 /* ButtonA.png in Resources */,
-				0359C840242B976A009A84D4 /* scene1.u4d in Resources */,
 				03722D362029F16C0080D069 /* FrontImage.png in Resources */,
 				032BDFBD2406BA3600453C99 /* astronautTextures.u4d in Resources */,
 			);
@@ -2661,14 +2649,12 @@
 				03722D6D2029F16D0080D069 /* TopImage.png in Resources */,
 				032BDFE9240B281300453C99 /* spaceAttributes.u4d in Resources */,
 				03722D6A2029F16D0080D069 /* FrontImage.png in Resources */,
-				0359C844242B976A009A84D4 /* scenetextures.u4d in Resources */,
 				03722D732029F16D0080D069 /* joyStickBackground.png in Resources */,
 				0359C81F2426F657009A84D4 /* particleemitter.u4d in Resources */,
 				03722D742029F16D0080D069 /* joystickDriver.png in Resources */,
 				03722D782029F16D0080D069 /* ButtonBPressed.png in Resources */,
 				03722D772029F16D0080D069 /* ButtonB.png in Resources */,
 				03722D682029F16D0080D069 /* BackImage.png in Resources */,
-				0359C841242B976A009A84D4 /* scene1.u4d in Resources */,
 				03722D762029F16D0080D069 /* ButtonAPressed.png in Resources */,
 				03722D6C2029F16D0080D069 /* RightImage.png in Resources */,
 				032BDFBE2406BA3600453C99 /* astronautTextures.u4d in Resources */,
@@ -2691,7 +2677,6 @@
 				0361DFA51FAC2141004770FD /* RightImage.png in Resources */,
 				0361DFA31FAC2141004770FD /* BottomImage.png in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
-				0359C83F242B976A009A84D4 /* scene1.u4d in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				039EC6BF1FB57F5C0098BB5C /* myFont.png in Resources */,
@@ -2701,7 +2686,6 @@
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				0361DFA61FAC2141004770FD /* BackImage.png in Resources */,
 				0361DFA11FAC2141004770FD /* LeftImage.png in Resources */,
-				0359C842242B976A009A84D4 /* scenetextures.u4d in Resources */,
 				0361DFA41FAC2141004770FD /* FrontImage.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -32,120 +32,70 @@ void Earth::init(){
     U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
     
     //Load binary file with scene data
-    resourceLoader->loadSceneData("scene1.u4d");
+    resourceLoader->loadSceneData("spaceAttributes.u4d");
     
     //Load binary file with texture data
-    resourceLoader->loadTextureData("scenetextures.u4d");
+    resourceLoader->loadTextureData("astronautTextures.u4d");
     
     /*---CREATE ASTRONAUT HERE--*/
-
-    cube=new U4DEngine::U4DGameObject();
+        
+    // Create an instance of U4DGameObject type
+    U4DEngine::U4DGameObject *myAstronaut=new U4DEngine::U4DGameObject();
 
     //Load attribute (rendering information) into the game entity
-    if (cube->loadModel("sphere")) {
+    if (myAstronaut->loadModel("astronaut")) {
 
-        //cube->initAsPlatform(true);
-
-        cube->initCoefficientOfRestitution(0.9);
-        cube->initMass(1.0);
-        
-        cube->enableKineticsBehavior();
-        cube->enableCollisionBehavior();
-        //cube->setBroadPhaseBoundingVolumeVisibility(true);
         //Load rendering information into the GPU
-        cube->loadRenderingInformation();
-        
+        myAstronaut->loadRenderingInformation();
+
         //Add astronaut to the scenegraph
-        addChild(cube);
+        addChild(myAstronaut);
 
     }
-    
-//    char * dir = getcwd(NULL, 0); // Platform-dependent, see reference link below
-//    printf("Current dir: %s", dir);
-    
-    U4DEngine::U4DGameObject *plane=new U4DEngine::U4DGameObject();
+
+    /*---CREATE ISLAND HERE--*/
+    U4DGameObject *island=new U4DGameObject();
 
     //Load attribute (rendering information) into the game entity
-    if (plane->loadModel("Plane")) {
+    if (island->loadModel("island")) {
 
-        plane->initAsPlatform(true);
-        plane->initMass(1000.0);
-        plane->initCoefficientOfRestitution(0.9);
-        plane->enableCollisionBehavior();
-        //plane->setBroadPhaseBoundingVolumeVisibility(true);
+        island->setEnableShadow(true);
+
         //Load rendering information into the GPU
-        plane->loadRenderingInformation();
+        island->loadRenderingInformation();
 
-        //Add astronaut to the scenegraph
-        addChild(plane);
+        //enable kinetics
+        island->enableKineticsBehavior();
+
+        //enable collision
+        island->enableCollisionBehavior();
+
+        //set gravity to zero
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+        island->setGravity(zero);
+
+        //set Coefficient of Restitution
+        island->initCoefficientOfRestitution(0.9);
+
+        //set mass
+        island->initMass(100.0);
+
+        //Add walkway to scenegraph
+        addChild(island);
 
     }
-        
-//    // Create an instance of U4DGameObject type
-//    U4DEngine::U4DGameObject *myAstronaut=new U4DEngine::U4DGameObject();
-//
-//    //Load attribute (rendering information) into the game entity
-//    if (myAstronaut->loadModel("astronaut")) {
-//
-//        //Load rendering information into the GPU
-//        myAstronaut->loadRenderingInformation();
-//
-//        //Add astronaut to the scenegraph
-//        addChild(myAstronaut);
-//
-//    }
-//
-//    /*---CREATE ISLAND HERE--*/
-//    U4DGameObject *island=new U4DGameObject();
-//
-//    //Load attribute (rendering information) into the game entity
-//    if (island->loadModel("island")) {
-//
-//        island->setEnableShadow(true);
-//
-//        //Load rendering information into the GPU
-//        island->loadRenderingInformation();
-//
-//        //enable kinetics
-//        island->enableKineticsBehavior();
-//
-//        //enable collision
-//        island->enableCollisionBehavior();
-//
-//        //set gravity to zero
-//        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-//        island->setGravity(zero);
-//
-//        //set Coefficient of Restitution
-//        island->initCoefficientOfRestitution(0.9);
-//
-//        //set mass
-//        island->initMass(100.0);
-//
-//        //Add walkway to scenegraph
-//        addChild(island);
-//
-//    }
-//
-//    /*---CREATE SKYBOX HERE--*/
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-//
-//    addChild(skybox,-1);
+
+    /*---CREATE SKYBOX HERE--*/
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+
+    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+
+    addChild(skybox,-1);
     
 
 }
 
 void Earth::update(double dt){
-    
-//    U4DDirector *director=U4DDirector::sharedInstance();
-//    float t=director->getGlobalTime();
-//
-//    float yV=cube->getVelocity().y;
-//    float yS=cube->getAbsolutePosition().y;
-//
-//    std::cout<<t<<","<<yS<<","<<yV<<std::endl;
     
 }
 
@@ -166,7 +116,7 @@ void Earth::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-60.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-10.0);
     
     //translate camera
     camera->translateTo(cameraPosition);

@@ -18,8 +18,6 @@ class Earth:public U4DEngine::U4DWorld{
 
 private:
     
-    U4DEngine::U4DGameObject *cube;
-    
 public:
    
     Earth(){};
