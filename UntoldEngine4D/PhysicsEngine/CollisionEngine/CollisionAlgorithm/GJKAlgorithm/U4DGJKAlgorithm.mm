@@ -18,7 +18,7 @@
 
 namespace U4DEngine {
     
-    U4DGJKAlgorithm::U4DGJKAlgorithm(){
+    U4DGJKAlgorithm::U4DGJKAlgorithm():closestPointToOrigin(0.0,0.0,0.0),contactCollisionNormal(0.0,0.0,0.0),closestCollisionPoint(0.0,0.0,0.0){
     
     }
     
@@ -126,27 +126,10 @@ namespace U4DEngine {
         U4DBoundingVolume *boundingVolume2;
 
         //Determine the proper CSO translation vector and Support volumes for GJK
-        relativeCSOTranslation=uModel2->getAbsolutePosition()-uModel1->getAbsolutePosition();
-
-        U4DVector3n normalizedRelativeCSOTranslation=relativeCSOTranslation;
-        normalizedRelativeCSOTranslation.normalize();
-
-        U4DVector3n rVelocity=uModel2->getVelocity()+uModel1->getVelocity();
-        rVelocity.normalize();
-
-
-        if (rVelocity.dot(normalizedRelativeCSOTranslation)>=0.0) {
-
-            boundingVolume1=uModel2->getNarrowPhaseBoundingVolume();
-            boundingVolume2=uModel1->getNarrowPhaseBoundingVolume();
-
-        }else{
-
-            boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
-            boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
-
-            relativeCSOTranslation=relativeCSOTranslation*-1.0;
-        }
+        relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
+        
+        boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
+        boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
 
         U4DVector3n dir(1,1,1);
 
@@ -154,32 +137,44 @@ namespace U4DEngine {
 
         Q.push_back(v);
 
-        dir=v.minkowskiPoint.toVector();
+        SIMPLEXDATA p;
 
-        dir.negate();
+        while (v.minkowskiPoint.magnitude()>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
+            
+            dir=v.minkowskiPoint.toVector();
+            
+            dir.negate();
 
-        SIMPLEXDATA p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-
-        while (v.minkowskiPoint.magnitudeSquare()>U4DEngine::collisionDistanceEpsilon*U4DEngine::collisionDistanceEpsilon) {
-
-            if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>(v.minkowskiPoint.toVector().dot(relativeCSOTranslation))*tClip) {
+            p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
+            
+            if (v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())>((v.minkowskiPoint.toVector()*tClip).dot(relativeCSOTranslation))) {
 
                 if (v.minkowskiPoint.toVector().dot(relativeCSOTranslation)>0.0) {
 
                     tClip=v.minkowskiPoint.toVector().dot(p.minkowskiPoint.toVector())/v.minkowskiPoint.toVector().dot(relativeCSOTranslation);
-
+                    
+                    
                     if (tClip>1.0) {
                         return false;
                     }
-
+                    
                     hitSpot=relativeCSOTranslation*tClip;
-
+                    
+                    Q.clear();
+                    
+                    closestPointToOrigin=v.minkowskiPoint;
+                    
+                    contactCollisionNormal=v.minkowskiPoint.toVector();
+                    
+                    //normalize contact normal
+                    contactCollisionNormal.normalize();
+                    
                     //set time of impact for each model.
 
                     if (tClip<U4DEngine::minimumTimeOfImpact) {
 
                         float timeOfImpact=1.0-U4DEngine::minimumTimeOfImpact;
-
+                        
                         //minimum time step allowed
                         uModel1->setTimeOfImpact(timeOfImpact);
                         uModel2->setTimeOfImpact(timeOfImpact);
@@ -190,13 +185,12 @@ namespace U4DEngine {
                         uModel2->setTimeOfImpact(1.0);
 
                     }
+                     
 
                 }else{
                     return false;
                 }
             }
-
-            vPrevious=v;
 
             //p-hitSpot
             p.minkowskiPoint=(hitSpot.toPoint()-p.minkowskiPoint).toPoint();
@@ -205,75 +199,23 @@ namespace U4DEngine {
 
             v.minkowskiPoint=determineClosestPointOnSimplexToPoint(originPoint, Q);
             
-            //test condition 1
-            //test condition: ||vPrevious||^2-||vCurrent||^2<=epsilon*||vCurrent||^2
-            if (checkGJKTerminationCondition1(v)) {
-                
-                v=vPrevious;
-                
-                break;
-            }
-            
-            //determine the minimum simplex.
-            if(determineMinimumSimplexInQ(v.minkowskiPoint,(int)Q.size())==false){
-                
-                v=vPrevious;
-                
-                break;
-            }
-
-            dir=v.minkowskiPoint.toVector();
-
-            dir.negate();
-
-            p=calculateSupportPointInDirection(boundingVolume1, boundingVolume2, dir);
-
-            //test condition 2
-            //test condition: ||v||^2-vdotw<=epsilon^2*||v||^2
-            if (checkGJKTerminationCondition2(v,p,Q)) {
-                
-                break;
-            }
-            
-            //test condition 3
-            //test condition: ||v||^2<=epsilon*max(element in Q)
-            if (checkGJKTerminationCondition3(v,p,Q)) {
-                
-                break;
-            }
-            
         }
 
-
-        if (Q.size()>4) {
+        if(Q.size()>4){
             return false;
         }
         
+        std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
+
+        closestCollisionPoint=(closestCollisionPoints.at(0)+closestCollisionPoints.at(1))*0.5;
         
-        if(v.minkowskiPoint.magnitudeSquare()<U4DEngine::collisionDistanceEpsilon){
-            
-            if(v.minkowskiPoint.toVector()==U4DVector3n(0.0,0.0,0.0)){
-                v=vPrevious;
-            }
-            
-            closestPointToOrigin=v.minkowskiPoint;
-            
-            contactCollisionNormal=v.minkowskiPoint.toVector();
-            
-            //normalize contact normal
-            contactCollisionNormal.normalize();
-
-            //closest collision point
-            std::vector<U4DPoint3n> closestCollisionPoints=closestBarycentricPoints(closestPointToOrigin, Q);
-
-            closestCollisionPoint=(closestCollisionPoints.at(0)+closestCollisionPoints.at(1))*0.5;
+        if(tClip<U4DEngine::zeroEpsilon && contactCollisionNormal.magnitude()>0.0){
             
             return true;
-            
         }
         
-
         return false;
+            
         
     }
     

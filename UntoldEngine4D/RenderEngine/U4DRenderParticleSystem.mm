@@ -180,15 +180,14 @@ namespace U4DEngine {
     
     void U4DRenderParticleSystem::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.diffuseTexture.empty()){
-            
-            decodeImage(u4dObject->textureInformation.diffuseTexture);
+        if (!u4dObject->textureInformation.diffuseTexture.empty() && rawImageData.size()>0){
             
             createTextureObject();
             
             createSamplerObject();
             
             u4dObject->setHasTexture(true);
+            
         }else{
             
             U4DLogger *logger=U4DLogger::sharedInstance();
@@ -420,5 +419,22 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.uVContainer.clear();
         
     }
+
+    void U4DRenderParticleSystem::setRawImageData(std::vector<unsigned char> uRawImageData){
+        
+        rawImageData=uRawImageData;
+        
+    }
+
+    void U4DRenderParticleSystem::setImageWidth(unsigned int uImageWidth){
+        
+        imageWidth=uImageWidth;
+        
+    }
+
+    void U4DRenderParticleSystem::setImageHeight(unsigned int uImageHeight){
+        
+        imageHeight=uImageHeight;
+}
     
 }

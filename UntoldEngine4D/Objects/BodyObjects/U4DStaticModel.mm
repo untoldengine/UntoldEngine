@@ -13,7 +13,7 @@
 #include "U4DBoundingAABB.h"
 #include "U4DMeshOctreeManager.h"
 #include "U4DMeshOctreeNode.h"
-#include "U4DMeshAssetLoader.h"
+#include "U4DResourceLoader.h"
 #include "U4DLogger.h"
 #include <algorithm>
 
@@ -21,7 +21,7 @@ namespace U4DEngine {
     
     U4DStaticModel::U4DStaticModel():collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
         
-        initMass(1.0);
+        initMass(10.0);
         
         U4DVector3n centerOfMass(0.0,0.0,0.0);
         
@@ -287,9 +287,9 @@ namespace U4DEngine {
             logger->log("In Process: Computing Convex Hull for Collision Detection for model: %s",getName().c_str());
             
             //determine the convex hull of the model
-            U4DEngine::U4DMeshAssetLoader *meshAssetLoader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
+            U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
             
-            CONVEXHULL convexHull=meshAssetLoader->loadConvexHullForMesh(this);
+            CONVEXHULL convexHull=resourceLoader->loadConvexHullForMesh(this);
             
             //if convex hull valid, then set it to the model and enable collision
             

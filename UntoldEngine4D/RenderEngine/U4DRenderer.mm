@@ -188,11 +188,12 @@
     
     // Add a final command to present the cleared drawable to the screen
     [commandBuffer presentDrawable:view.currentDrawable];
+    //This method is the latest method provided by Metal, but it seems buggy. Sometimes, it creates micro-stuttering. Leaving it here for now.
+    //[commandBuffer presentDrawable:view.currentDrawable afterMinimumDuration:1.0/view.preferredFramesPerSecond];
     
     // Finalize rendering here & push the command buffer to the GPU
     [commandBuffer commit];
     
-    [commandBuffer waitUntilCompleted];
 }
 
 /// Called whenever the view size changes or a relayout occurs (such as changing from landscape to

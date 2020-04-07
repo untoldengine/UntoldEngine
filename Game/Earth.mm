@@ -13,7 +13,8 @@
 #include "U4DCamera.h"
 #include "U4DLights.h"
 #include "U4DSkybox.h"
-#include "U4DMeshAssetLoader.h"
+#include "U4DResourceLoader.h"
+#include "U4DLogger.h"
 
 using namespace U4DEngine;
 
@@ -27,17 +28,17 @@ void Earth::init(){
     //The following code snippets loads scene data, renders the astronaut, island and skybox.
     
     /*---LOAD SCENE ASSETS HERE--*/
-    //The U4DMeshAssetLoader is in charge of loading the binary file containing the scene data
-    U4DEngine::U4DMeshAssetLoader *meshAssetLoader=U4DEngine::U4DMeshAssetLoader::sharedInstance();
+    //The U4DResourceLoader is in charge of loading the binary file containing the scene data
+    U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
     
     //Load binary file with scene data
-    meshAssetLoader->loadSceneData("spaceAttributes.u4d");
+    resourceLoader->loadSceneData("spaceAttributes.u4d");
     
     //Load binary file with texture data
-    meshAssetLoader->loadTextureData("astronautTextures.u4d");
+    resourceLoader->loadTextureData("astronautTextures.u4d");
     
     /*---CREATE ASTRONAUT HERE--*/
-
+        
     // Create an instance of U4DGameObject type
     U4DEngine::U4DGameObject *myAstronaut=new U4DEngine::U4DGameObject();
 

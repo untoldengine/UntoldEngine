@@ -137,7 +137,7 @@ namespace U4DEngine {
         
         //get the min and max points for the volume
         
-        for (auto n:uNode->getModelsContainer()) {
+        for (const auto& n:uNode->getModelsContainer()) {
             
             U4DBoundingVolume *aabb=n->getCullingPhaseBoundingVolume();
             
@@ -213,7 +213,7 @@ namespace U4DEngine {
         //search for split index
         std::vector<float> tempVectorOfModelPosition;
         
-        for (auto n:uNode->getModelsContainer()) {
+        for (const auto& n:uNode->getModelsContainer()) {
             
             float broadPhaseBoundingVolumePositionAlongVector=n->getCullingPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());
             

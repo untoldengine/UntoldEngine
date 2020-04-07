@@ -1,13 +1,14 @@
 //
-//  U4DMeshAssetLoader.cpp
+//  U4DResourceLoader.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 2/9/20.
 //  Copyright © 2020 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DMeshAssetLoader.h"
+#include "U4DResourceLoader.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 #include "U4DModel.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector4n.h"
@@ -15,6 +16,7 @@
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
 #include "U4DAnimation.h"
+#include "U4DParticleSystem.h"
 #include "U4DLights.h"
 #include "U4DLogger.h"
 #include "U4DDirector.h"
@@ -22,26 +24,26 @@
 
 namespace U4DEngine {
 
-    U4DMeshAssetLoader::U4DMeshAssetLoader(){
+    U4DResourceLoader::U4DResourceLoader(){
         
     }
 
-    U4DMeshAssetLoader::~U4DMeshAssetLoader(){
+    U4DResourceLoader::~U4DResourceLoader(){
         
     }
 
-    U4DMeshAssetLoader* U4DMeshAssetLoader::instance=0;
+    U4DResourceLoader* U4DResourceLoader::instance=0;
 
-    U4DMeshAssetLoader* U4DMeshAssetLoader::sharedInstance(){
+    U4DResourceLoader* U4DResourceLoader::sharedInstance(){
         
         if (instance==0) {
-            instance=new U4DMeshAssetLoader();
+            instance=new U4DResourceLoader();
         }
         
         return instance;
     }
 
-    bool U4DMeshAssetLoader::loadSceneData(std::string uFilepath){
+    bool U4DResourceLoader::loadSceneData(std::string uFilepath){
         
         std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -354,7 +356,7 @@ namespace U4DEngine {
     }
 
 
-    bool U4DMeshAssetLoader::loadAnimationData(std::string uFilepath){
+    bool U4DResourceLoader::loadAnimationData(std::string uFilepath){
         
         std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
         
@@ -446,7 +448,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DMeshAssetLoader::loadTextureData(std::string uFilepath){
+    bool U4DResourceLoader::loadTextureData(std::string uFilepath){
         
         std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
         
@@ -505,7 +507,203 @@ namespace U4DEngine {
         
     }
 
-    bool U4DMeshAssetLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshName){
+    bool U4DResourceLoader::loadParticleData(std::string uFilepath){
+        
+        std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        if(!file){
+            
+            logger->log("Error: Couldn't load the Particle Asset File, No file %s exist.",uFilepath.c_str());
+            
+            return false;
+            
+        }
+        
+        file.seekg(0);
+        
+        PARTICLESRAW particle;
+        
+        //READ NAME
+        size_t particleNamelen=0;
+        file.read((char*)&particleNamelen,sizeof(particleNamelen));
+        particle.name.resize(particleNamelen);
+        file.read((char*)&particle.name[0],particleNamelen);
+        
+        //READ position variance
+        int positionVarianceSize=0;
+        file.read((char*)&positionVarianceSize,sizeof(int));
+        std::vector<float> tempPositionVariance(positionVarianceSize,0);
+        
+        //copy temp to position
+        particle.positionVariance=tempPositionVariance;
+        file.read((char*)&particle.positionVariance[0], positionVarianceSize*sizeof(float));
+        
+        //speed
+        float speedSize=0;
+        file.read((char*)&speedSize,sizeof(float));
+        file.read((char*)&particle.speed, sizeof(speedSize));
+
+        //speed variance
+        float speedVarianceSize=0;
+        file.read((char*)&speedVarianceSize,sizeof(float));
+        file.read((char*)&particle.speedVariance, sizeof(speedVarianceSize));
+
+        //life
+        float lifeSpanSize=0;
+        file.read((char*)&lifeSpanSize,sizeof(float));
+        file.read((char*)&particle.lifeSpan, sizeof(lifeSpanSize));
+
+        //maximum number of particles
+        int maximumParticlesSize=0;
+        file.read((char*)&maximumParticlesSize,sizeof(int));
+        file.read((char*)&particle.maxParticles, sizeof(maximumParticlesSize));
+
+        //angle
+        float angleSize=0;
+        file.read((char*)&angleSize,sizeof(float));
+        file.read((char*)&particle.angle, sizeof(angleSize));
+
+        //angle variance
+        float angleVarianceSize=0;
+        file.read((char*)&angleVarianceSize,sizeof(float));
+        file.read((char*)&particle.angleVariance, sizeof(angleVarianceSize));
+
+        //start color
+        int startColorSize=0;
+        file.read((char*)&startColorSize,sizeof(int));
+        std::vector<float> tempStartColor(startColorSize,0);
+        
+        //copy temp to start color
+        particle.startColor=tempStartColor;
+        file.read((char*)&particle.startColor[0], startColorSize*sizeof(float));
+
+        //start color variance
+        int startColorVarianceSize=0;
+        file.read((char*)&startColorVarianceSize,sizeof(int));
+        std::vector<float> tempStartColorVariance(startColorVarianceSize,0);
+        
+        //copy temp to start color
+        particle.startColorVariance=tempStartColorVariance;
+        file.read((char*)&particle.startColorVariance[0], startColorVarianceSize*sizeof(float));
+
+        //end color
+        int endColorSize=0;
+        file.read((char*)&endColorSize,sizeof(int));
+        std::vector<float> tempEndColor(endColorSize,0);
+        
+        //copy temp to start color
+        particle.finishColor=tempEndColor;
+        file.read((char*)&particle.finishColor[0], endColorSize*sizeof(float));
+
+        //end color variance
+        int endColorVarianceSize=0;
+        file.read((char*)&endColorVarianceSize,sizeof(int));
+        std::vector<float> tempEndColorVariance(endColorVarianceSize,0);
+        
+        //copy temp to start color
+        particle.finishColorVariance=tempEndColorVariance;
+        file.read((char*)&particle.finishColorVariance[0], endColorVarianceSize*sizeof(float));
+
+        //gravity
+        int gravitySize=0;
+        file.read((char*)&gravitySize,sizeof(int));
+        std::vector<float> tempGravity(gravitySize,0);
+        
+        //copy temp to gravity
+        particle.gravity=tempGravity;
+        file.read((char*)&particle.gravity[0], gravitySize*sizeof(float));
+
+        //start particle size
+        float startParticleSize=0;
+        file.read((char*)&startParticleSize,sizeof(float));
+        file.read((char*)&particle.startParticleSize, sizeof(startParticleSize));
+
+        //start particle size variance
+        float startParticleVarianceSize=0;
+        file.read((char*)&startParticleVarianceSize,sizeof(float));
+        file.read((char*)&particle.startParticleSizeVariance, sizeof(startParticleVarianceSize));
+
+        //end particle size
+        float finishParticleSize=0;
+        file.read((char*)&finishParticleSize,sizeof(float));
+        file.read((char*)&particle.finishParticleSize, sizeof(finishParticleSize));
+
+        //end particle size variance
+        float finishParticleVarianceSize=0;
+        file.read((char*)&finishParticleVarianceSize,sizeof(float));
+        file.read((char*)&particle.finishParticleSizeVariance, sizeof(finishParticleVarianceSize));
+
+        //duration
+        float durationSize=0;
+        file.read((char*)&durationSize,sizeof(float));
+        file.read((char*)&particle.duration, sizeof(durationSize));
+
+        //radial acceleration
+        float radialAccelerationSize=0;
+        file.read((char*)&radialAccelerationSize,sizeof(float));
+        file.read((char*)&particle.radialAcceleration, sizeof(radialAccelerationSize));
+
+        //radial acceleration variance
+        float radialAccelerationVarianceSize=0;
+        file.read((char*)&radialAccelerationVarianceSize,sizeof(float));
+        file.read((char*)&particle.radialAccelerationVariance, sizeof(radialAccelerationVarianceSize));
+
+        //tangent acceleration
+        float tangentialAccelerationSize=0;
+        file.read((char*)&tangentialAccelerationSize,sizeof(float));
+        file.read((char*)&particle.tangentialAcceleration, sizeof(tangentialAccelerationSize));
+
+        //tangent acceleration variance
+        float tangentialAccelerationVarianceSize=0;
+        file.read((char*)&tangentialAccelerationVarianceSize,sizeof(float));
+        file.read((char*)&particle.tangentialAccelerationVariance, sizeof(tangentialAccelerationVarianceSize));
+
+        //rotation start
+        float rotationStartSize=0;
+        file.read((char*)&rotationStartSize,sizeof(float));
+        file.read((char*)&particle.rotationStart, sizeof(rotationStartSize));
+
+        //rotation start variance
+        float rotationStartVarianceSize=0;
+        file.read((char*)&rotationStartVarianceSize,sizeof(float));
+        file.read((char*)&particle.rotationStartVariance, sizeof(rotationStartVarianceSize));
+
+        //rotation end
+        float rotationEndSize=0;
+        file.read((char*)&rotationEndSize,sizeof(float));
+        file.read((char*)&particle.rotationEnd, sizeof(rotationEndSize));
+
+        //rotation end variance
+        float rotationEndVarianceSize=0;
+        file.read((char*)&rotationEndVarianceSize,sizeof(float));
+        file.read((char*)&particle.rotationEndVariance, sizeof(rotationEndVarianceSize));
+
+        //blending source
+        float blendingSourceSize=0;
+        file.read((char*)&blendingSourceSize,sizeof(float));
+        file.read((char*)&particle.blendFunctionSource, sizeof(blendingSourceSize));
+
+        //blending dest
+        float blendingDestinationSize=0;
+        file.read((char*)&blendingDestinationSize,sizeof(float));
+        file.read((char*)&particle.blendFunctionDestination, sizeof(blendingDestinationSize));
+
+        //texture
+        size_t textureNamelen=0;
+        file.read((char*)&textureNamelen,sizeof(textureNamelen));
+        particle.texture.resize(textureNamelen);
+        file.read((char*)&particle.texture[0],textureNamelen);
+        
+        //load particle into container
+        particlesContainer.push_back(particle);
+        
+        return true;
+        
+    }
+
+    bool U4DResourceLoader::loadAssetToMesh(U4DModel *uModel,std::string uMeshName){
 
         //find the model in the container
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -674,14 +872,14 @@ namespace U4DEngine {
             
         }
         
-        logger->log("Success: The model %s does not exist.",uMeshName.c_str());
+        logger->log("Error: The model %s does not exist.",uMeshName.c_str());
         
         return false;
         
     }
 
 
-    bool U4DMeshAssetLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
+    bool U4DResourceLoader::loadAnimationToMesh(U4DAnimation *uAnimation,std::string uAnimationName){
         
         int keyframeRange=0;
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -774,7 +972,7 @@ namespace U4DEngine {
         return false;
     }
 
-    CONVEXHULL U4DMeshAssetLoader::loadConvexHullForMesh(U4DModel *uModel){
+    CONVEXHULL U4DResourceLoader::loadConvexHullForMesh(U4DModel *uModel){
         
         CONVEXHULL convexHull;
         
@@ -853,7 +1051,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadVerticesData(U4DModel *uModel,std::vector<float> uVertices){
+    void U4DResourceLoader::loadVerticesData(U4DModel *uModel,std::vector<float> uVertices){
         
         for (int i=0; i<uVertices.size();) {
             
@@ -872,7 +1070,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadNormalData(U4DModel *uModel,std::vector<float> uNormals){
+    void U4DResourceLoader::loadNormalData(U4DModel *uModel,std::vector<float> uNormals){
 
         
         for (int i=0; i<uNormals.size();) {
@@ -892,7 +1090,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadUVData(U4DModel *uModel,std::vector<float> uUV){
+    void U4DResourceLoader::loadUVData(U4DModel *uModel,std::vector<float> uUV){
         
         for (int i=0; i<uUV.size();) {
             
@@ -909,7 +1107,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadIndexData(U4DModel *uModel,std::vector<int> uIndex){
+    void U4DResourceLoader::loadIndexData(U4DModel *uModel,std::vector<int> uIndex){
         
         for (int i=0; i<uIndex.size();) {
             
@@ -926,7 +1124,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadMaterialIndexData(U4DModel *uModel,std::vector<int> uMaterialIndex){
+    void U4DResourceLoader::loadMaterialIndexData(U4DModel *uModel,std::vector<int> uMaterialIndex){
         
         for (int i=0; i<uMaterialIndex.size(); i++) {
             
@@ -937,7 +1135,7 @@ namespace U4DEngine {
         }
     }
         
-    void U4DMeshAssetLoader::loadDiffuseColorData(U4DModel *uModel,std::vector<float> uDiffuseColor){
+    void U4DResourceLoader::loadDiffuseColorData(U4DModel *uModel,std::vector<float> uDiffuseColor){
         
         for (int i=0; i<uDiffuseColor.size();) {
             
@@ -958,7 +1156,7 @@ namespace U4DEngine {
         }
     }
         
-    void U4DMeshAssetLoader::loadSpecularColorsData(U4DModel *uModel,std::vector<float> uSpecularColor){
+    void U4DResourceLoader::loadSpecularColorsData(U4DModel *uModel,std::vector<float> uSpecularColor){
         
         for (int i=0; i<uSpecularColor.size();) {
             
@@ -980,7 +1178,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadDiffuseIntensityData(U4DModel *uModel,std::vector<float> uDiffuseIntensity){
+    void U4DResourceLoader::loadDiffuseIntensityData(U4DModel *uModel,std::vector<float> uDiffuseIntensity){
         
         for (int i=0; i<uDiffuseIntensity.size();i++) {
             
@@ -991,7 +1189,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadSpecularIntensityData(U4DModel *uModel,std::vector<float> uSpecularIntesity){
+    void U4DResourceLoader::loadSpecularIntensityData(U4DModel *uModel,std::vector<float> uSpecularIntesity){
         
         for (int i=0; i<uSpecularIntesity.size();i++) {
             
@@ -1002,7 +1200,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadSpecularHardnessData(U4DModel *uModel,std::vector<float> uSpecularHardness){
+    void U4DResourceLoader::loadSpecularHardnessData(U4DModel *uModel,std::vector<float> uSpecularHardness){
         
         for (int i=0; i<uSpecularHardness.size();i++) {
             
@@ -1013,7 +1211,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadDimensionDataToBody(U4DModel *uModel,std::vector<float> uDimension){
+    void U4DResourceLoader::loadDimensionDataToBody(U4DModel *uModel,std::vector<float> uDimension){
         
         float x=uDimension.at(0);
         
@@ -1027,7 +1225,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadEntityMatrixSpace(U4DEntity *uModel,std::vector<float> uLocalMatrix){
+    void U4DResourceLoader::loadEntityMatrixSpace(U4DEntity *uModel,std::vector<float> uLocalMatrix){
         
         //    0    4    8    12
         //    1    5    9    13
@@ -1063,7 +1261,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadMeshVerticesData(U4DModel *uModel,std::vector<float> uMeshVertices){
+    void U4DResourceLoader::loadMeshVerticesData(U4DModel *uModel,std::vector<float> uMeshVertices){
         
         for (int i=0; i<uMeshVertices.size();) {
             
@@ -1082,7 +1280,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadMeshEdgesData(U4DModel *uModel,std::vector<int> uMeshEdgesIndex){
+    void U4DResourceLoader::loadMeshEdgesData(U4DModel *uModel,std::vector<int> uMeshEdgesIndex){
         
         for (int i=0; i<uMeshEdgesIndex.size();) {
             
@@ -1101,7 +1299,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DMeshAssetLoader::loadMeshFacesData(U4DModel *uModel,std::vector<int> uMeshFacesIndex){
+    void U4DResourceLoader::loadMeshFacesData(U4DModel *uModel,std::vector<int> uMeshFacesIndex){
 
         for (int i=0; i<uMeshFacesIndex.size();) {
             
@@ -1124,7 +1322,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadSpaceData(U4DMatrix4n &uMatrix, std::vector<float> uSpaceData){
+    void U4DResourceLoader::loadSpaceData(U4DMatrix4n &uMatrix, std::vector<float> uSpaceData){
         
         //    0    4    8    12
         //    1    5    9    13
@@ -1154,7 +1352,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadSpaceData(U4DDualQuaternion &uSpace, std::vector<float> uSpaceData){
+    void U4DResourceLoader::loadSpaceData(U4DDualQuaternion &uSpace, std::vector<float> uSpaceData){
         
         //    0    4    8    12
         //    1    5    9    13
@@ -1189,13 +1387,142 @@ namespace U4DEngine {
         
     }
 
-    void U4DMeshAssetLoader::loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::vector<float> uWeights){
+    void U4DResourceLoader::loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights,std::vector<float> uWeights){
         
         
         for (int i=0; i<uWeights.size();i++) {
          
             uVertexWeights.push_back(uWeights.at(i));
         }
+        
+    }
+
+    bool U4DResourceLoader::loadParticeToParticleSystem(U4DParticleSystem *uParticleSystem, std::string uParticleName){
+     
+        //find the model in the container
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        for(const auto &n:particlesContainer){
+
+            if (n.name.compare(uParticleName)==0) {
+                
+                //copy the data
+                
+                //position variance
+                uParticleSystem->particleSystemData.particlePositionVariance=U4DVector3n(n.positionVariance.at(0),n.positionVariance.at(1),n.positionVariance.at(2));
+                
+                //speed
+                uParticleSystem->particleSystemData.particleSpeed=n.speed;
+
+                //speed variance
+                uParticleSystem->particleSystemData.particleSpeedVariance=n.speedVariance;
+
+                //life
+                uParticleSystem->particleSystemData.particleLife=n.lifeSpan;
+
+                //maximum number of particles
+                uParticleSystem->particleSystemData.maxNumberOfParticles=n.maxParticles;
+
+                //angle
+                uParticleSystem->particleSystemData.particleEmitAngle=n.angle;
+
+                //angle variance
+                uParticleSystem->particleSystemData.particleEmitAngleVariance=n.angleVariance;
+
+                //start color
+                uParticleSystem->particleSystemData.particleStartColor=U4DVector4n(n.startColor.at(0),n.startColor.at(1),n.startColor.at(2),n.startColor.at(3));
+
+                //start color variance
+                uParticleSystem->particleSystemData.particleStartColorVariance=U4DVector4n(n.startColorVariance.at(0),n.startColorVariance.at(1),n.startColorVariance.at(2),n.startColorVariance.at(3));
+
+                //end color
+                uParticleSystem->particleSystemData.particleEndColor=U4DVector4n(n.finishColor.at(0),n.finishColor.at(1),n.finishColor.at(2),n.finishColor.at(3));
+
+                //end color variance
+                uParticleSystem->particleSystemData.particleEndColorVariance=U4DVector4n(n.finishColorVariance.at(0),n.finishColorVariance.at(1),n.finishColorVariance.at(2),n.finishColorVariance.at(3));
+
+                //gravity
+                uParticleSystem->particleSystemData.gravity=U4DVector3n(n.gravity.at(0),n.gravity.at(1),n.gravity.at(2));
+                
+                //start particle size
+                uParticleSystem->particleSystemData.startParticleSize=n.startParticleSize;
+
+                //start particle size variance
+                uParticleSystem->particleSystemData.startParticleSizeVariance=n.startParticleSizeVariance;
+
+                //end particle size
+                uParticleSystem->particleSystemData.endParticleSize=n.finishParticleSize;
+
+                //end particle size variance
+                uParticleSystem->particleSystemData.endParticleSizeVariance=n.finishParticleSizeVariance;
+
+                //duration
+                uParticleSystem->particleSystemData.emitterDurationRate=n.duration;
+
+                //radial acceleration
+                uParticleSystem->particleSystemData.particleRadialAcceleration=n.radialAcceleration;
+
+                //radial acceleration variance
+                uParticleSystem->particleSystemData.particleRadialAccelerationVariance=n.radialAccelerationVariance;
+
+                //tangent acceleration
+                uParticleSystem->particleSystemData.particleTangentialAcceleration=n.tangentialAcceleration;
+
+                //tangent acceleration variance
+                uParticleSystem->particleSystemData.particleRadialAccelerationVariance=n.tangentialAccelerationVariance;
+
+                //rotation start
+                uParticleSystem->particleSystemData.startParticleRotation=n.rotationStart;
+
+                //rotation start variance
+                uParticleSystem->particleSystemData.startParticleRotationVariance=n.rotationStartVariance;
+
+                //rotation end
+                uParticleSystem->particleSystemData.endParticleRotation=n.rotationEnd;
+
+                //rotation end variance
+                uParticleSystem->particleSystemData.endParticleRotationVariance=n.rotationEndVariance;
+
+                //blending source
+                uParticleSystem->particleSystemData.blendingFactorSource=n.blendFunctionSource;
+
+                //blending dest
+                uParticleSystem->particleSystemData.blendingFactorDest=n.blendFunctionDestination;
+
+                //texture
+                uParticleSystem->textureInformation.setDiffuseTexture(n.texture);
+                
+                for(int t=0;t<texturesContainer.size();t++){
+
+                    if (texturesContainer.at(t).name.compare(n.texture)==0) {
+                        
+                        uParticleSystem->renderManager->setRawImageData(texturesContainer.at(t).image);
+                        uParticleSystem->renderManager->setImageWidth(texturesContainer.at(t).width);
+                        uParticleSystem->renderManager->setImageHeight(texturesContainer.at(t).height);
+
+                    }
+
+                }
+                    
+                //defaults
+                uParticleSystem->particleSystemData.particleSystemType=LINEAREMITTER;
+                uParticleSystem->particleSystemData.numberOfParticlesPerEmission=1;
+                uParticleSystem->particleSystemData.emissionRate=U4DEngine::particleEmissionRate;
+                uParticleSystem->particleSystemData.emitContinuously=true;
+                
+                
+                logger->log("Success: The particle %s  was loaded.",uParticleName.c_str());
+                
+                return true;
+                
+            }
+            
+        }
+        
+        logger->log("Error: The particle %s does not exist.",uParticleName.c_str());
+        
+        return false;
+        
         
     }
 

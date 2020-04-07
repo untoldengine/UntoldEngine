@@ -55,7 +55,6 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
-                    
                 }
             }
                 

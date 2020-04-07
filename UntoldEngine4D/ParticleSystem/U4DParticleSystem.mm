@@ -17,6 +17,7 @@
 #include "CommonProtocols.h"
 #include "U4DCamera.h"
 #include "U4DDirector.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
@@ -128,29 +129,28 @@ namespace U4DEngine {
         removeDeadParticle();
     }
     
-    bool U4DParticleSystem::loadParticleSystem(const char* uParticleAssetFile, const char* uParticleTextureFile){
+    bool U4DParticleSystem::loadParticle(const char* uParticleAssetFile){
         
-        if(particleLoader.loadParticleAssetFile(uParticleAssetFile)){
+        U4DEngine::U4DResourceLoader *loader=U4DEngine::U4DResourceLoader::sharedInstance();
+        
+        if(loader->loadParticeToParticleSystem(this, uParticleAssetFile)){
             
-            setParticleDimension(particleLoader.particleSystemData.startParticleSize,particleLoader.particleSystemData.startParticleSize);
-            
-            renderManager->setDiffuseTexture(uParticleTextureFile);
-            
+            setParticleDimension(particleSystemData.startParticleSize,particleSystemData.startParticleSize);
+                            
             //max number of particles
-            maxNumberOfParticles=particleLoader.particleSystemData.maxNumberOfParticles;
+            maxNumberOfParticles=particleSystemData.maxNumberOfParticles;
         
             //blending factors
-            blendingFactorSource=particleLoader.particleSystemData.blendingFactorSource;
-            blendingFactorDest=particleLoader.particleSystemData.blendingFactorDest;
+            blendingFactorSource=particleSystemData.blendingFactorSource;
+            blendingFactorDest=particleSystemData.blendingFactorDest;
             
             //initialize particle emitter
-            initializeParticleEmitter(particleLoader.particleSystemData);
+            initializeParticleEmitter(particleSystemData);
             
             return true;
         }
         
         return false;
-        
         
     }
     

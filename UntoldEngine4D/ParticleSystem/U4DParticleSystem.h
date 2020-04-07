@@ -18,7 +18,6 @@
 #include "U4DParticle.h"
 #include "CommonProtocols.h"
 #include "U4DParticleEmitterFactory.h"
-#include "U4DParticleLoader.h"
 
 namespace U4DEngine {
     class U4DParticlePhysics;
@@ -52,8 +51,6 @@ namespace U4DEngine {
     class U4DParticleSystem:public U4DVisibleEntity {
         
     private:
-        
-        U4DParticleLoader particleLoader;
         
         /**
          @brief Maximum number of particles to emit
@@ -147,12 +144,11 @@ namespace U4DEngine {
         
         /**
          @brief loads the particles parameter. It loads the data from Particle Designer.
-         @param uParticleAssetFile PEX file containing the particle data. You must export this file from particle designer
-         @param uParticleTextureFile Particle texture file. The Untold Engine provides a default texture you can use. "particle.png"
+         @param uParticleAssetFile U4D file containing the particle data. You must export this file from particle designer
          
          @return true if the data was read correctly
          */
-        bool loadParticleSystem(const char* uParticleAssetFile, const char* uParticleTextureFile);
+        bool loadParticle(const char* uParticleAssetFile);
         
         /**
          @brief Uupdates the state of the particle system
@@ -316,6 +312,11 @@ namespace U4DEngine {
          @brief gets the blending destination factor
          */
         int getBlendingFactorDest();
+        
+        /**
+         @brief structure containing information about the particle, emitter and particle system
+         */
+        U4DEngine::PARTICLESYSTEMDATA particleSystemData;
         
     };
     
