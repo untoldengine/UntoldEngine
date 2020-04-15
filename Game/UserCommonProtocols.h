@@ -32,6 +32,7 @@ enum{
     actionJoystick,
     actionRightJoystick,
     actionMouseLeftTrigger,
+    actionMouse
     
 }ControllerInputType;
 
@@ -40,7 +41,9 @@ enum{
     buttonPressed,
     buttonReleased,
     joystickActive,
-    joystickInactive
+    joystickInactive,
+    mouseActive,
+    mouseInactive
     
 }ControllerInputData;
 
@@ -72,12 +75,19 @@ enum{
     walking,
     shooting,
     dead,
+    align,
     seeking,
-    fleeing,
-    arriving,
-    pursuing,
-    wandering,
+    separation,
+    cohesion,
+    flocking
 
 }CHARACTERSTATE;
+
+enum MouseMovementDirection{
+    forwardDir,
+    backwardDir,
+    rightDir,
+    leftDir,
+};
 
 #endif /* UserCommonProtocols_h */

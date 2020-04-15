@@ -417,11 +417,11 @@ void KeyboardController::actionOnMouseMoved(){
     
     ControllerInputMessage controllerInputMessage;
     
-    controllerInputMessage.controllerInputType=actionJoystick;
+    controllerInputMessage.controllerInputType=actionMouse;
     
     if (macMouseCursor->getIsMoving()) {
         
-        controllerInputMessage.controllerInputData=joystickActive;
+        controllerInputMessage.controllerInputData=mouseActive;
         
         U4DEngine::U4DVector3n mousePosition=macMouseCursor->getDataPosition();
         
@@ -437,7 +437,7 @@ void KeyboardController::actionOnMouseMoved(){
         
     }else {
         
-        controllerInputMessage.controllerInputData=joystickInactive;
+        controllerInputMessage.controllerInputData=mouseInactive;
         
     }
     
