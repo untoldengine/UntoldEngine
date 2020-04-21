@@ -15,15 +15,10 @@
 #include "U4DGameObject.h"
 #include "U4DAnimation.h"
 #include "U4DDynamicModel.h"
-#include "Agent.h"
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
-    
-    Agent *agents[8];
-    
-    std::vector<Agent*> agentsContainer;
     
 public:
    

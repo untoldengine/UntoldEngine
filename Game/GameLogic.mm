@@ -11,7 +11,7 @@
 
 using namespace U4DEngine;
 
-GameLogic::GameLogic():pAgent(nullptr){
+GameLogic::GameLogic():pAstronaut(nullptr){
     
     
 }
@@ -31,7 +31,7 @@ void GameLogic::init(){
     Earth *pEarth=dynamic_cast<Earth*>(getGameWorld());
     
     //2. Search for the Astronaut object
-    pAgent=dynamic_cast<Agent*>(pEarth->searchChild("agent0"));
+    pAstronaut=dynamic_cast<U4DEngine::U4DGameObject*>(pEarth->searchChild("astronaut"));
     
 }
 
@@ -43,7 +43,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
     ControllerInputMessage controllerInputMessage=*(ControllerInputMessage*)uData;
     
     //check the astronaut model exists
-    if(pAgent!=nullptr){
+    if(pAstronaut!=nullptr){
         
         //2. Determine what was pressed, buttons, keys or joystick
         
@@ -57,40 +57,10 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     //4a. What action to take if button was pressed
-                    
-                    mouseMovementDirection=leftDir;
-                    
-                    if(pAgent->getState()!=walking){
-                        pAgent->changeState(walking);
-                        
-                    }
-                    
-                    for(const auto &n:pAgent->neighbors){
-                        
-                        if(n!=pAgent){
-                            U4DEngine::U4DVector3n pos=pAgent->getAbsolutePosition();
-                            n->setTargetPosition(pos);
-                            n->changeState(flocking);
-                        }
-                        
-                    }
+                    std::cout<<"Key A Pressed"<<std::endl;
                     
                     //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
-                    
-                    if(pAgent->getState()!=idle && mouseMovementDirection==leftDir){
-                        pAgent->changeState(idle);
-                        
-                        for(const auto &n:pAgent->neighbors){
-                            
-                            if(n!=pAgent){
-                                n->changeState(idle);
-                            }
-                            
-                        }
-                        
-                    }
-                    
                     
                     
                 }
@@ -105,36 +75,12 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     //7a. What action to take if button was pressed
-                    
-                    mouseMovementDirection=rightDir;
-                    
-                    if(pAgent->getState()!=walking){
-                        pAgent->changeState(walking);
-                    }
-                    
-                    for(const auto &n:pAgent->neighbors){
-                        
-                        if(n!=pAgent){
-                            U4DEngine::U4DVector3n pos=pAgent->getAbsolutePosition();
-                            n->setTargetPosition(pos);
-                            n->changeState(flocking);
-                        }
-                        
-                    }
+                    std::cout<<"Key D Pressed"<<std::endl;
                     
                     //8. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
-                    if(pAgent->getState()!=idle && mouseMovementDirection==rightDir){
-                        pAgent->changeState(idle);
-                        for(const auto &n:pAgent->neighbors){
-                            
-                            if(n!=pAgent){
-                                n->changeState(idle);
-                            }
-                            
-                        }
-                    }
+
                 }
                 
             }
@@ -146,36 +92,13 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
-                    mouseMovementDirection=forwardDir;
-                    if(pAgent->getState()!=walking){
-                        pAgent->changeState(walking);
-                        
-                    }
-                    
-                    for(const auto &n:pAgent->neighbors){
-                        
-                        if(n!=pAgent){
-                            U4DEngine::U4DVector3n pos=pAgent->getAbsolutePosition();
-                            n->setTargetPosition(pos);
-                            n->changeState(flocking);
-                        }
-                        
-                    }
-                    
+                    //5a. what action to take if button was pressed
+                    std::cout<<"Key W Pressed"<<std::endl;
                     
                     //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
-                    if(pAgent->getState()!=idle && mouseMovementDirection==forwardDir){
-                        pAgent->changeState(idle);
-                        for(const auto &n:pAgent->neighbors){
-                            
-                            if(n!=pAgent){
-                                n->changeState(idle);
-                            }
-                            
-                        }
-                    }
+                    
                 }
             }
                 break;
@@ -185,37 +108,13 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
-                    //step 5. Change the state to walk if joystick is moved. Idle otherwise
+                    //5a. what action to take if button was pressed
+                    std::cout<<"Key S Pressed"<<std::endl;
                     
-                    mouseMovementDirection=backwardDir;
-                    
-                    if(pAgent->getState()!=walking){
-                        pAgent->changeState(walking);
-                    }
-                    
-                    for(const auto &n:pAgent->neighbors){
-                        
-                        if(n!=pAgent){
-                            U4DEngine::U4DVector3n pos=pAgent->getAbsolutePosition();
-                            n->setTargetPosition(pos);
-                            n->changeState(flocking);
-                        }
-                        
-                    }
                     
                     //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
-                    if(pAgent->getState()!=idle && mouseMovementDirection==backwardDir){
-                        pAgent->changeState(idle);
-                        for(const auto &n:pAgent->neighbors){
-                            
-                            if(n!=pAgent){
-                                n->changeState(idle);
-                            }
-                            
-                        }
-                    }
                     
                 }
             }
@@ -281,7 +180,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 upDot=mouseDirection.dot(upVector);
                 xDot=mouseDirection.dot(xVector);
 
-                U4DEngine::U4DVector3n v=pAgent->getViewInDirection();
+                U4DEngine::U4DVector3n v=pAstronaut->getViewInDirection();
                 v.normalize();
 
                 if(mouseDirection.magnitude()>0){
@@ -318,11 +217,11 @@ void GameLogic::receiveUserInputUpdate(void *uData){
 
                     U4DEngine::U4DQuaternion newOrientation(angleAccumulator,axis);
 
-                    U4DEngine::U4DQuaternion modelOrientation=pAgent->getAbsoluteSpaceOrientation();
+                    U4DEngine::U4DQuaternion modelOrientation=pAstronaut->getAbsoluteSpaceOrientation();
 
                     U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation,1.0);
 
-                    pAgent->rotateBy(p);
+                    pAstronaut->rotateBy(p);
 
                 }
                     
@@ -338,39 +237,6 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 break;
         }
         
-            //step 4. Set the force direction
-            U4DEngine::U4DVector3n forceDir=pAgent->getViewInDirection();
-
-            forceDir.y=0.0;
-
-            forceDir.normalize();
-
-            if(mouseMovementDirection==forwardDir){
-
-                pAgent->setForceDirection(forceDir);
-
-            }else if(mouseMovementDirection==backwardDir){
-
-                //go backwards
-                forceDir*=-1.0;
-
-                pAgent->setForceDirection(forceDir);
-
-            }else if(mouseMovementDirection==leftDir){
-                //go left
-                U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-                forceDir=forceDir.cross(upVector);
-
-                pAgent->setForceDirection(forceDir);
-
-            }else if(mouseMovementDirection==rightDir){
-
-                U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-                forceDir=upVector.cross(forceDir);
-
-                pAgent->setForceDirection(forceDir);
-
-        }
         
     }
     

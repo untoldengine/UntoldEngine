@@ -13,15 +13,14 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 #include "U4DGameObject.h"
-#include "Agent.h"
 
 class GameLogic:public U4DEngine::U4DGameModel{
     
 private:
     
-    //Astronaut data member
-    Agent *pAgent;
-    
+    //astronaut
+    U4DEngine::U4DGameObject *pAstronaut;
+     
     float angleAccumulator;
     
     MouseMovementDirection mouseMovementDirection;
