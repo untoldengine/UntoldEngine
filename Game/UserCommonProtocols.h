@@ -56,6 +56,7 @@ typedef struct{
     U4DEngine::U4DVector3n previousMousePosition;
     U4DEngine::U4DVector2n mouseDeltaPosition;
     bool joystickChangeDirection;
+    bool mouseChangeDirection;
     
 }ControllerInputMessage;
 
@@ -73,13 +74,12 @@ enum{
     
     idle,
     walking,
+    running,
+    patrol,
+    patrolidle,
     shooting,
     dead,
-    align,
-    seeking,
-    separation,
-    cohesion,
-    flocking
+    attack
 
 }CHARACTERSTATE;
 
@@ -89,5 +89,13 @@ enum MouseMovementDirection{
     rightDir,
     leftDir,
 };
+
+typedef enum{
+    
+    kPlayer=0x0002,
+    kEnemy=0x0004,
+    kBullet=0x0008,
+    
+}GameEntityCollision;
 
 #endif /* UserCommonProtocols_h */

@@ -582,58 +582,58 @@
 - (void)mouseMoved:(NSEvent *)theEvent {
     
 //USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-
-    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
-    U4DEngine::MOUSEACTION mouseCursorMoved=U4DEngine::mouseCursorMoved;
-
-    NSPoint mouseDownPos = [theEvent locationInWindow];
-
-    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
-    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
-
-    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
-
-    director->macMouseMoved(mouseCursorElement, mouseCursorMoved,mouseLocation);
+//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+//
+//    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
+//    U4DEngine::MOUSEACTION mouseCursorMoved=U4DEngine::mouseCursorMoved;
+//
+//    NSPoint mouseDownPos = [theEvent locationInWindow];
+//
+//    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
+//    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
+//
+//    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
+//
+//    director->macMouseMoved(mouseCursorElement, mouseCursorMoved,mouseLocation);
     
     //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
     
-//    static bool mouseWrap = false;
-//
-//    if(!mouseWrap) {
-//
-//        U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//
-//        U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
-//        U4DEngine::MOUSEACTION mouseCursorDeltaMoved=U4DEngine::mouseCursorDeltaMoved;
-//
-//        int xDelta;
-//        int yDelta;
-//
-//        //get the delta movement
-//        CGGetLastMouseDelta(&xDelta, &yDelta);
-//
-//        //get the center position of the view
-//        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
-//
-//        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
-//
-//        //move the cursor back to the center
-//
-//        // CGAssociateMouseAndMouseCursorPosition(false);
-//        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
-//        //CGAssociateMouseAndMouseCursorPosition(true);
-//
-//        mouseWrap = true;
-//
-//        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
-//
-//        director->macMouseDeltaMoved(mouseCursorElement, mouseCursorDeltaMoved,mouseDeltaLocation);
-//
-//    } else {
-//
-//        mouseWrap = false;
-//    }
+    static bool mouseWrap = false;
+
+    if(!mouseWrap) {
+
+        U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+        U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
+        U4DEngine::MOUSEACTION mouseCursorDeltaMoved=U4DEngine::mouseCursorDeltaMoved;
+
+        int xDelta;
+        int yDelta;
+
+        //get the delta movement
+        CGGetLastMouseDelta(&xDelta, &yDelta);
+
+        //get the center position of the view
+        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
+
+        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
+
+        //move the cursor back to the center
+
+        // CGAssociateMouseAndMouseCursorPosition(false);
+        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
+        //CGAssociateMouseAndMouseCursorPosition(true);
+
+        mouseWrap = true;
+
+        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
+
+        director->macMouseDeltaMoved(mouseCursorElement, mouseCursorDeltaMoved,mouseDeltaLocation);
+
+    } else {
+
+        mouseWrap = false;
+    }
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {

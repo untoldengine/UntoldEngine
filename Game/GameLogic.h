@@ -13,13 +13,14 @@
 #include "U4DGameModel.h"
 #include "UserCommonProtocols.h"
 #include "U4DGameObject.h"
+#include "Player.h"
 
 class GameLogic:public U4DEngine::U4DGameModel{
     
 private:
     
-    //astronaut
-    U4DEngine::U4DGameObject *pAstronaut;
+    //player
+    Player *pPlayer;
      
     float angleAccumulator;
     

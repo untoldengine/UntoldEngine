@@ -11,7 +11,7 @@
 
 using namespace U4DEngine;
 
-GameLogic::GameLogic():pAstronaut(nullptr){
+GameLogic::GameLogic():pPlayer(nullptr){
     
     
 }
@@ -31,7 +31,7 @@ void GameLogic::init(){
     Earth *pEarth=dynamic_cast<Earth*>(getGameWorld());
     
     //2. Search for the Astronaut object
-    pAstronaut=dynamic_cast<U4DEngine::U4DGameObject*>(pEarth->searchChild("astronaut"));
+    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("player"));
     
 }
 
@@ -43,13 +43,35 @@ void GameLogic::receiveUserInputUpdate(void *uData){
     ControllerInputMessage controllerInputMessage=*(ControllerInputMessage*)uData;
     
     //check the astronaut model exists
-    if(pAstronaut!=nullptr){
+    if(pPlayer!=nullptr){
         
         //2. Determine what was pressed, buttons, keys or joystick
         
         switch (controllerInputMessage.controllerInputType) {
                 
-            
+            case actionMouseLeftTrigger:
+            {
+                //4. If button was pressed
+                if (controllerInputMessage.controllerInputData==buttonPressed) {
+                    
+                    if(pPlayer->getState()!=shooting){
+                        pPlayer->changeState(shooting);
+                    }
+                        
+                    //5. If button was released
+                }else if(controllerInputMessage.controllerInputData==buttonReleased){
+                    
+                    
+                    if(pPlayer->getState()!=pPlayer->getPreviousState()){
+                        
+                        pPlayer->changeState(pPlayer->getPreviousState());
+                   }
+                    
+                }
+            }
+                
+                break;
+
                 //3. Did Button A on a mobile or game controller receive an action from the user (Key A on a Mac)
             case actionButtonA:
             {
@@ -57,11 +79,18 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     //4a. What action to take if button was pressed
-                    std::cout<<"Key A Pressed"<<std::endl;
+                    mouseMovementDirection=leftDir;
+                    
+                    if(pPlayer->getState()!=patrol){
+                        pPlayer->changeState(patrol);
+                    }
                     
                     //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
+                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==leftDir) {
+                        pPlayer->changeState(patrolidle);
+                    }
                     
                 }
             }
@@ -75,11 +104,18 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     //7a. What action to take if button was pressed
-                    std::cout<<"Key D Pressed"<<std::endl;
+                    mouseMovementDirection=rightDir;
+                    
+                    if(pPlayer->getState()!=patrol){
+                        pPlayer->changeState(patrol);
+                    }
                     
                     //8. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
+                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==rightDir) {
+                        pPlayer->changeState(patrolidle);
+                    }
 
                 }
                 
@@ -93,11 +129,18 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     //5a. what action to take if button was pressed
-                    std::cout<<"Key W Pressed"<<std::endl;
+                    mouseMovementDirection=forwardDir;
+                    
+                    if (pPlayer->getState()!=patrol) {
+                        pPlayer->changeState(patrol);
+                    }
                     
                     //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
+                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==forwardDir) {
+                        pPlayer->changeState(patrolidle);
+                    }
                     
                 }
             }
@@ -109,14 +152,23 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.controllerInputData==buttonPressed) {
                     
                     //5a. what action to take if button was pressed
-                    std::cout<<"Key S Pressed"<<std::endl;
+                    mouseMovementDirection=backwardDir;
+                    
+                    if (pPlayer->getState()!=patrol) {
+                        pPlayer->changeState(patrol);
+                    }
                     
                     
                     //5. If button was released
                 }else if(controllerInputMessage.controllerInputData==buttonReleased){
                     
+                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==backwardDir) {
+                        pPlayer->changeState(patrolidle);
+                        
+                    }
                     
                 }
+                
             }
                 break;
                 
@@ -149,28 +201,16 @@ void GameLogic::receiveUserInputUpdate(void *uData){
             case actionMouse:
             {
                 
-                //10. mouse was moved
-
-                if (controllerInputMessage.controllerInputData==mouseActive) {
-                
-                //SNIPPET TO USE FOR MOUSE ABSOLUTE POSITION
-                U4DEngine::U4DVector3n p1=controllerInputMessage.mousePosition;
-                U4DEngine::U4DVector3n p2=controllerInputMessage.previousMousePosition;
-
-
-                float p1z=1.0-(p1.x*p1.x+p1.y*p1.y);
-                p1.z=p1z>0.0 ? std::sqrt(p1z) :0.0;
-
-                float p2z=1.0-(p2.x*p2.x+p2.y*p2.y);
-                p2.z=p2z>0.0 ? std::sqrt(p2z) :0.0;
-
+                //USE THIS SNIPPET WHEN YOU ONLY WANT THE MOUSE DELTA LOCATION
+                U4DEngine::U4DVector2n delta=controllerInputMessage.mouseDeltaPosition;
+                //set y to zero
+                delta.y=0.0;
+                float deltaMagnitude=delta.magnitude();
+                delta.normalize();
 
                 U4DEngine::U4DVector3n axis;
 
-                U4DEngine::U4DVector3n mouseDirection=p1-p2;
-
-                mouseDirection.normalize();
-
+                U4DEngine::U4DVector3n mouseDirection(delta.x,delta.y,0.0);
                 U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
                 U4DEngine::U4DVector3n xVector(1.0,0.0,0.0);
 
@@ -180,7 +220,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 upDot=mouseDirection.dot(upVector);
                 xDot=mouseDirection.dot(xVector);
 
-                U4DEngine::U4DVector3n v=pAstronaut->getViewInDirection();
+                U4DEngine::U4DVector3n v=pPlayer->getViewInDirection();
                 v.normalize();
 
                 if(mouseDirection.magnitude()>0){
@@ -200,31 +240,29 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                         //rotate about y axis
                         if(xDot>0.0){
 
-                            axis=upVector*-1.0;
+                            axis=upVector;
 
                         }else{
 
-                            axis=upVector;
+                            axis=upVector*-1.0;
                         }
 
                     }
 
-                    float angle=p1.angle(p2);
+                    float angle=0.03*deltaMagnitude;
 
-                    float biasAngleAccumulator=0.90;
+                    float biasAngleAccumulator=0.20;
 
                     angleAccumulator=angleAccumulator*biasAngleAccumulator+angle*(1.0-biasAngleAccumulator);
 
                     U4DEngine::U4DQuaternion newOrientation(angleAccumulator,axis);
 
-                    U4DEngine::U4DQuaternion modelOrientation=pAstronaut->getAbsoluteSpaceOrientation();
+                    U4DEngine::U4DQuaternion modelOrientation=pPlayer->getAbsoluteSpaceOrientation();
 
                     U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation,1.0);
 
-                    pAstronaut->rotateBy(p);
-
-                }
-                    
+                    pPlayer->rotateBy(p);
+    
                     
                 }else if(controllerInputMessage.controllerInputData==mouseInactive){
                     
@@ -235,6 +273,42 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 
             default:
                 break;
+        }
+        
+        //set the force direction
+        U4DEngine::U4DVector3n forceDir=pPlayer->getViewInDirection();
+        
+        forceDir.y=0.0;
+        
+        forceDir.normalize();
+        
+        if (mouseMovementDirection==forwardDir) {
+         
+            pPlayer->setForceDirection(forceDir);
+        
+        }else if (mouseMovementDirection==backwardDir){
+            
+            //go backwards. reverse direction
+            forceDir*=-1.0;
+            
+            pPlayer->setForceDirection(forceDir);
+        
+        }else if (mouseMovementDirection==leftDir){
+            
+            //go left
+            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+            forceDir=forceDir.cross(upVector);
+            
+            pPlayer->setForceDirection(forceDir);
+            
+        }else if (mouseMovementDirection==rightDir){
+            
+            //go right
+            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+            forceDir=upVector.cross(forceDir);
+            
+            pPlayer->setForceDirection(forceDir);
+            
         }
         
         
