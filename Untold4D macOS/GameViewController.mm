@@ -581,7 +581,7 @@
 
 - (void)mouseMoved:(NSEvent *)theEvent {
     
-////USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
+//USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
 //    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
 //
 //    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
@@ -598,100 +598,100 @@
     
     //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
     
-//    static bool mouseWrap = false;
-//
-//    if(!mouseWrap) {
-//
-//        U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//
-//        U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
-//        U4DEngine::MOUSEACTION mouseCursorDeltaMoved=U4DEngine::mouseCursorDeltaMoved;
-//
-//        int xDelta;
-//        int yDelta;
-//
-//        //get the delta movement
-//        CGGetLastMouseDelta(&xDelta, &yDelta);
-//
-//        //get the center position of the view
-//        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
-//
-//        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
-//
-//        //move the cursor back to the center
-//
-//        // CGAssociateMouseAndMouseCursorPosition(false);
-//        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
-//        //CGAssociateMouseAndMouseCursorPosition(true);
-//
-//        mouseWrap = true;
-//
-//        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
-//
-//        director->macMouseDeltaMoved(mouseCursorElement, mouseCursorDeltaMoved,mouseDeltaLocation);
-//
-//    } else {
-//
-//        mouseWrap = false;
-//    }
+    static bool mouseWrap = false;
+
+    if(!mouseWrap) {
+
+        U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+        U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
+        U4DEngine::MOUSEACTION mouseCursorDeltaMoved=U4DEngine::mouseCursorDeltaMoved;
+
+        int xDelta;
+        int yDelta;
+
+        //get the delta movement
+        CGGetLastMouseDelta(&xDelta, &yDelta);
+
+        //get the center position of the view
+        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
+
+        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
+
+        //move the cursor back to the center
+
+        // CGAssociateMouseAndMouseCursorPosition(false);
+        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
+        //CGAssociateMouseAndMouseCursorPosition(true);
+
+        mouseWrap = true;
+
+        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
+
+        director->macMouseDeltaMoved(mouseCursorElement, mouseCursorDeltaMoved,mouseDeltaLocation);
+
+    } else {
+
+        mouseWrap = false;
+    }
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {
     
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//
-//    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
-//    U4DEngine::MOUSEACTION mouseCursorExited=U4DEngine::mouseCursorExited;
-//
-//    NSPoint mouseDownPos = [theEvent locationInWindow];
-//
-//    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
-//    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
-//
-//    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
-//
-//    director->macMouseExited(mouseCursorElement, mouseCursorExited,mouseLocation);
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
+    U4DEngine::MOUSEACTION mouseCursorExited=U4DEngine::mouseCursorExited;
+
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+
+    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
+    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
+
+    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
+
+    director->macMouseExited(mouseCursorElement, mouseCursorExited,mouseLocation);
     
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
  
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//
-//    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
-//    U4DEngine::MOUSEACTION mouseButtonDragged=U4DEngine::mouseButtonDragged;
-//
-//    NSPoint mouseDownPos = [theEvent locationInWindow];
-//
-//    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
-//
-//    director->macMouseDragged(mouseLeftButtonElement, mouseButtonDragged,mouseLocation);
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
+    U4DEngine::MOUSEACTION mouseButtonDragged=U4DEngine::mouseButtonDragged;
+
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+
+    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
+
+    director->macMouseDragged(mouseLeftButtonElement, mouseButtonDragged,mouseLocation);
     
 }
 
 - (void)mouseDown:(NSEvent *)theEvent {
     
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//
-//    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
-//    U4DEngine::MOUSEACTION mouseButtonPressed=U4DEngine::mouseButtonPressed;
-//
-//    NSPoint mouseDownPos = [theEvent locationInWindow];
-//
-//    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
-//
-//    director->macMousePressBegan(mouseLeftButtonElement, mouseButtonPressed,mouseLocation);
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
+    U4DEngine::MOUSEACTION mouseButtonPressed=U4DEngine::mouseButtonPressed;
+
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+
+    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
+
+    director->macMousePressBegan(mouseLeftButtonElement, mouseButtonPressed,mouseLocation);
     
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
     
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//
-//    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
-//    U4DEngine::MOUSEACTION mouseButtonReleased=U4DEngine::mouseButtonReleased;
-//
-//    director->macMousePressEnded(mouseLeftButtonElement, mouseButtonReleased);
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
+    U4DEngine::MOUSEACTION mouseButtonReleased=U4DEngine::mouseButtonReleased;
+
+    director->macMousePressEnded(mouseLeftButtonElement, mouseButtonReleased);
 
 }
 

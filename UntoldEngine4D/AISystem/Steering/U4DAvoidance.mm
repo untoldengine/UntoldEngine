@@ -26,15 +26,15 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DAvoidance::getSteering(U4DDynamicModel *uDynamicModel){
+    U4DVector3n U4DAvoidance::getSteering(U4DDynamicModel *uPursuer){
         
         bool intersectionWithPlaneOccurred=false;
         
-        U4DVector3n viewDir=uDynamicModel->getViewInDirection();
+        U4DVector3n viewDir=uPursuer->getViewInDirection();
         
         viewDir.normalize();
         
-        U4DVector3n velocity=uDynamicModel->getVelocity();
+        U4DVector3n velocity=uPursuer->getVelocity();
         
         //This is a special condition: if the character's velocity is equal to zero, and is close to the path at the start, the entity will not move. To make it move, set the velocity to the current view direction
         if (velocity.magnitudeSquare()==0) {
@@ -43,7 +43,7 @@ namespace U4DEngine {
         
         U4DVector3n predictedPosition;
         
-        U4DPoint3n position=uDynamicModel->getAbsolutePosition().toPoint();
+        U4DPoint3n position=uPursuer->getAbsolutePosition().toPoint();
         
         //ray to intersect generated plane between sphere vs. sphere or sphere vs. aabb
         U4DRay ray(position,velocity);
@@ -52,14 +52,14 @@ namespace U4DEngine {
         float intersectionTime=0.0;
         
         //get sphere bounding the entity
-        U4DBoundingVolume *boundingSphere=uDynamicModel->getBroadPhaseBoundingVolume();
+        U4DBoundingVolume *boundingSphere=uPursuer->getBroadPhaseBoundingVolume();
         U4DSphere sphere=boundingSphere->getSphere();
         
         //intersection plane
         U4DPlane plane;
         
         //get most broad phase collision list
-        for(auto n:uDynamicModel->getBroadPhaseCollisionList()){
+        for(auto n:uPursuer->getBroadPhaseCollisionList()){
             
             intersectionWithPlaneOccurred=false;
             
@@ -108,7 +108,7 @@ namespace U4DEngine {
                 
                 predictedPosition=intersectionPoint.toVector()+plane.n*timeParameter;
                 
-                return U4DSeek::getSteering(uDynamicModel, predictedPosition);
+                return U4DSeek::getSteering(uPursuer, predictedPosition);
             }
             
         }

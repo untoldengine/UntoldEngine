@@ -10,13 +10,18 @@
 #define __UntoldEngine__Earth__
 
 #include <iostream>
+#include <vector>
 #include "U4DWorld.h"
 #include "U4DGameObject.h"
 #include "U4DAnimation.h"
+#include "U4DDynamicModel.h"
+#include "Player.h"
 
 class Earth:public U4DEngine::U4DWorld{
 
 private:
+    
+    Player *player;
     
 public:
    
