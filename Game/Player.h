@@ -40,6 +40,9 @@ private:
     //patrol idle animation
     U4DEngine::U4DAnimation *patrolIdleAnimation;
     
+    //dead animation
+    U4DEngine::U4DAnimation *deadAnimation;
+    
     //Animation Manager
     U4DEngine::U4DAnimationManager *animationManager;
     

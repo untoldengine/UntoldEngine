@@ -125,6 +125,9 @@
 		0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */; };
 		0341AC38204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */; };
 		0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */; };
+		03461FDC245F1FF90049DC0D /* dead.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03461FDB245F1FF80049DC0D /* dead.u4d */; };
+		03461FDD245F1FF90049DC0D /* dead.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03461FDB245F1FF80049DC0D /* dead.u4d */; };
+		03461FDE245F1FF90049DC0D /* dead.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03461FDB245F1FF80049DC0D /* dead.u4d */; };
 		0346862C1B1A4DA400B2105B /* U4DPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0346862A1B1A4DA400B2105B /* U4DPlane.mm */; };
 		03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */; };
 		03494BB11F48AE8600ACE0EC /* U4DText.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03494BB01F48AE8600ACE0EC /* U4DText.mm */; };
@@ -1021,6 +1024,7 @@
 		0341AC2F204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKeyReleasedState.h; path = MacArrowKeys/U4DMacArrowKeyReleasedState.h; sourceTree = "<group>"; };
 		0341AC34204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacArrowKeyIdleState.mm; path = MacArrowKeys/U4DMacArrowKeyIdleState.mm; sourceTree = "<group>"; };
 		0341AC35204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacArrowKeyIdleState.h; path = MacArrowKeys/U4DMacArrowKeyIdleState.h; sourceTree = "<group>"; };
+		03461FDB245F1FF80049DC0D /* dead.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = dead.u4d; sourceTree = "<group>"; };
 		0346862A1B1A4DA400B2105B /* U4DPlane.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlane.mm; sourceTree = "<group>"; };
 		0346862B1B1A4DA400B2105B /* U4DPlane.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlane.h; sourceTree = "<group>"; };
 		03494BAC1F4723A400ACE0EC /* U4DRenderFont.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRenderFont.mm; path = RenderEngine/U4DRenderFont.mm; sourceTree = "<group>"; };
@@ -1965,6 +1969,7 @@
 				03A66BDB245089B5004DC4ED /* gamescene.u4d */,
 				034FE6E424546F1E007972AE /* gameTextures.u4d */,
 				034FE6D32451E213007972AE /* running.u4d */,
+				03461FDB245F1FF80049DC0D /* dead.u4d */,
 				034FE6E824548A89007972AE /* patroling.u4d */,
 				032DBF3B245864C900299B11 /* patrolingidle.u4d */,
 				032DBF3724571F7C00299B11 /* navmeshAttributes.u4d */,
@@ -2691,6 +2696,7 @@
 				032DBF292455ECF300299B11 /* redBulletEmitter.u4d in Resources */,
 				03722D3F2029F16C0080D069 /* joyStickBackground.png in Resources */,
 				03722D2C2029F16C0080D069 /* myFont.png in Resources */,
+				03461FDD245F1FF90049DC0D /* dead.u4d in Resources */,
 				03722D342029F16C0080D069 /* BackImage.png in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
 				03722D422029F16C0080D069 /* ButtonAPressed.png in Resources */,
@@ -2751,6 +2757,7 @@
 				03722D682029F16D0080D069 /* BackImage.png in Resources */,
 				03722D762029F16D0080D069 /* ButtonAPressed.png in Resources */,
 				03722D6C2029F16D0080D069 /* RightImage.png in Resources */,
+				03461FDE245F1FF90049DC0D /* dead.u4d in Resources */,
 				034FE6E724546F1F007972AE /* gameTextures.u4d in Resources */,
 				032BDFBE2406BA3600453C99 /* astronautTextures.u4d in Resources */,
 				032DBF3A24571F7D00299B11 /* navmeshAttributes.u4d in Resources */,
@@ -2784,6 +2791,7 @@
 				03A66BDD245089B6004DC4ED /* gamescene.u4d in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				0359C81D2426F657009A84D4 /* particleemitter.u4d in Resources */,
+				03461FDC245F1FF90049DC0D /* dead.u4d in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				032DBF3824571F7D00299B11 /* navmeshAttributes.u4d in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,

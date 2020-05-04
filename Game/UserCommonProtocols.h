@@ -79,7 +79,8 @@ enum{
     patrolidle,
     shooting,
     dead,
-    attack
+    attack,
+    avoidance,
 
 }CHARACTERSTATE;
 
