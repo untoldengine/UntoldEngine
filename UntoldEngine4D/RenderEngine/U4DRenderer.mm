@@ -139,60 +139,65 @@
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     float screenContentScale=director->getScreenScaleFactor();
     
-    [self update];
-    
-    director->determineVisibility();
-    
-    view.clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
-    view.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
-    
-    // Create a new command buffer for each renderpass to the current drawable
-    id <MTLCommandBuffer> commandBuffer = [mtlCommandQueue commandBuffer];
-    commandBuffer.label = @"MyCommand";
-    
-    //Check if models are within the frustum, then render shadows
-    if(director->getModelsWithinFrustum()==true){
-       [self renderShadows:commandBuffer];
-    }
-    
-    // Obtain a renderPassDescriptor generated from the view's drawable textures
-    MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
-    renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
-    renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+    if (director->getScene()!=nullptr) {
+        
+        [self update];
+        
+        director->determineVisibility();
+        
+        view.clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
+        view.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
+        
+        // Create a new command buffer for each renderpass to the current drawable
+        id <MTLCommandBuffer> commandBuffer = [mtlCommandQueue commandBuffer];
+        commandBuffer.label = @"MyCommand";
+        
+        //Check if models are within the frustum, then render shadows
+        if(director->getModelsWithinFrustum()==true){
+           [self renderShadows:commandBuffer];
+        }
+        
+        // Obtain a renderPassDescriptor generated from the view's drawable textures
+        MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
+        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
 
-    // If we've gotten a renderPassDescriptor we can render to the drawable, otherwise we'll
-    //   skip any rendering this frame because we have no drawable to draw to
-    if(renderPassDescriptor != nil)
-    {
+        // If we've gotten a renderPassDescriptor we can render to the drawable, otherwise we'll
+        //   skip any rendering this frame because we have no drawable to draw to
+        if(renderPassDescriptor != nil)
+        {
+            
+            id <MTLRenderCommandEncoder> renderEncoder =
+            [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+            
+            renderEncoder.label = @"MyRenderEncoder";
+            
+            [renderEncoder setViewport:(MTLViewport){0.0, 0.0, view.bounds.size.width*screenContentScale, view.bounds.size.height*screenContentScale, 0.0, 1.0 }];
+            
+            //Render Models here
+            director->render(renderEncoder);
+            
+            
+            // We would normally use a render command encoder to tell Metal to draw our objects,
+            //   but for the purposes of this sample, we will create it which implicitly invokes
+            //   a GPU command to clear our drawable
+            
+            // Since we aren't drawing anything, indicate we're finished using this encoder
+            [renderEncoder endEncoding];
+            
+        }
         
-        id <MTLRenderCommandEncoder> renderEncoder =
-        [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
+        // Add a final command to present the cleared drawable to the screen
+        [commandBuffer presentDrawable:view.currentDrawable];
+        //This method is the latest method provided by Metal, but it seems buggy. Sometimes, it creates micro-stuttering. Leaving it here for now.
+        //[commandBuffer presentDrawable:view.currentDrawable afterMinimumDuration:1.0/view.preferredFramesPerSecond];
         
-        renderEncoder.label = @"MyRenderEncoder";
-        
-        [renderEncoder setViewport:(MTLViewport){0.0, 0.0, view.bounds.size.width*screenContentScale, view.bounds.size.height*screenContentScale, 0.0, 1.0 }];
-        
-        //Render Models here
-        director->render(renderEncoder);
-        
-        
-        // We would normally use a render command encoder to tell Metal to draw our objects,
-        //   but for the purposes of this sample, we will create it which implicitly invokes
-        //   a GPU command to clear our drawable
-        
-        // Since we aren't drawing anything, indicate we're finished using this encoder
-        [renderEncoder endEncoding];
+        // Finalize rendering here & push the command buffer to the GPU
+        [commandBuffer commit];
         
     }
     
-    // Add a final command to present the cleared drawable to the screen
-    [commandBuffer presentDrawable:view.currentDrawable];
-    //This method is the latest method provided by Metal, but it seems buggy. Sometimes, it creates micro-stuttering. Leaving it here for now.
-    //[commandBuffer presentDrawable:view.currentDrawable afterMinimumDuration:1.0/view.preferredFramesPerSecond];
-    
-    // Finalize rendering here & push the command buffer to the GPU
-    [commandBuffer commit];
     
 }
 

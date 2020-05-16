@@ -19,13 +19,9 @@
 namespace U4DEngine {
     
     
-    U4DPadJoystick::U4DPadJoystick(GAMEPADELEMENT &uPadElementType):isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0),padAxis(0.0,0.0){
+    U4DPadJoystick::U4DPadJoystick(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface):U4DInputElement(uInputElementType, uControllerInterface),isActive(false),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0),padAxis(0.0,0.0){
         
         stateManager=new U4DPadJoystickStateManager(this);
-        
-        setEntityType(CONTROLLERINPUT);
-        
-        padElementType=uPadElementType;
         
         //set initial state
         stateManager->changeState(U4DPadJoystickIdleState::sharedInstance());
@@ -37,11 +33,6 @@ namespace U4DEngine {
         delete stateManager;
     }
     
-    GAMEPADELEMENT U4DPadJoystick::getPadElementType(){
-        
-        return padElementType;
-        
-    }
     
     void U4DPadJoystick::setDataMagnitude(float uValue){
         
@@ -63,21 +54,53 @@ namespace U4DEngine {
     
     void U4DPadJoystick::action(){
         
-        pCallback->action();
+       CONTROLLERMESSAGE controllerMessage;
+    
+        controllerMessage.inputElementType=inputElementType;
+    
+        if (getIsActive()) {
+    
+            controllerMessage.inputElementAction=U4DEngine::padThumbstickMoved;
+    
+            U4DEngine::U4DVector2n joystickDirection=getDataPosition();
+    
+            joystickDirection.normalize();
+    
+    
+            if (getDirectionReversal()) {
+    
+                controllerMessage.joystickChangeDirection=true;
+    
+            }else{
+    
+                controllerMessage.joystickChangeDirection=false;
+    
+            }
+    
+            controllerMessage.joystickDirection=joystickDirection;
+    
+        }else {
+    
+           controllerMessage.inputElementAction=U4DEngine::padThumbstickReleased;
+    
+        }
+    
+        controllerInterface->sendUserInputUpdate(&controllerMessage);
+        
     }
     
     
-    void U4DPadJoystick::changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
+    void U4DPadJoystick::changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition){
         
-        if (uGamePadAction==U4DEngine::padThumbstickMoved) {
+        if (uInputAction==U4DEngine::padThumbstickMoved) {
             
-            padAxis=uPadAxis;
+            padAxis=uPosition;
             
             stateManager->changeState(U4DPadJoystickActiveState::sharedInstance());
             
-        }else if(uGamePadAction==U4DEngine::padThumbstickReleased && (stateManager->getCurrentState()==U4DPadJoystickActiveState::sharedInstance())){
+        }else if(uInputAction==U4DEngine::padThumbstickReleased && (stateManager->getCurrentState()==U4DPadJoystickActiveState::sharedInstance())){
             
-            padAxis=U4DPadAxis(0.0,0.0);
+            padAxis=U4DVector2n(0.0,0.0);
             
             stateManager->changeState(U4DPadJoystickReleasedState::sharedInstance());
             
@@ -86,12 +109,12 @@ namespace U4DEngine {
     }
     
     
-    void U4DPadJoystick::setDataPosition(U4DVector3n uData){
+    void U4DPadJoystick::setDataPosition(U4DVector2n &uData){
         
         dataPosition=uData;
     }
     
-    U4DVector3n U4DPadJoystick::getDataPosition(){
+    U4DVector2n U4DPadJoystick::getDataPosition(){
         
         return dataPosition;
     }
@@ -101,18 +124,6 @@ namespace U4DEngine {
         return (stateManager->getCurrentState()==U4DPadJoystickActiveState::sharedInstance());;
     }
     
-    void U4DPadJoystick::setCallbackAction(U4DCallbackInterface *uAction){
-        
-        //set the callback
-        pCallback=uAction;
-        
-    }
-    
-    void U4DPadJoystick::setControllerInterface(U4DControllerInterface* uControllerInterface){
-        
-        controllerInterface=uControllerInterface;
-        
-    }
     
     bool U4DPadJoystick::getDirectionReversal(){
         

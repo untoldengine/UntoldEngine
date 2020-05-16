@@ -9,7 +9,6 @@
 #include "U4DScene.h"
 #include "U4DWorld.h"
 #include "U4DDirector.h"
-#include "U4DTouches.h"
 
 namespace U4DEngine {
     
@@ -55,6 +54,10 @@ namespace U4DEngine {
 
     void U4DScene::update(float dt){
         
+        //update the game controller
+        gameController->update(dt);
+        
+        //update the game model
         gameModel->update(dt);
         
         //update the entity manager
@@ -79,84 +82,90 @@ namespace U4DEngine {
         gameWorld->entityManager->determineVisibility();
         
     }
-    
-    void U4DScene::touchBegan(const U4DTouches &touches){
-        
-        gameController->touchBegan(touches);
-    }
 
-    void U4DScene::touchEnded(const U4DTouches &touches){
+    U4DControllerInterface* U4DScene::getGameController(){
         
-        gameController->touchEnded(touches);
-    }
-
-    void U4DScene::touchMoved(const U4DTouches &touches){
-        
-        gameController->touchMoved(touches);
-    }
-    
-    void U4DScene::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-        
-        gameController->padPressBegan(uGamePadElement, uGamePadAction);
-    }
-    
-    void U4DScene::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-        
-        gameController->padPressEnded(uGamePadElement, uGamePadAction);
-    }
-    
-    void U4DScene::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
-        
-        gameController->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
-    }
-    
-    void U4DScene::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-        
-        gameController->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
+        return gameController;
         
     }
     
-    void U4DScene::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-        
-        gameController->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
-        
-    }
-    
-    void U4DScene::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
-        
-        gameController->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
-        
-    }
-    
-    void U4DScene::macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        gameController->macMousePressBegan(uMouseElement, uMouseAction, uMouseAxis);
-    }
-    
-    void U4DScene::macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){
-        
-        gameController->macMousePressEnded(uMouseElement, uMouseAction);
-    }
-    
-    void U4DScene::macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        gameController->macMouseDragged(uMouseElement, uMouseAction, uMouseAxis);
-    }
-    
-    void U4DScene::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        gameController->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
-    }
-    
-    void U4DScene::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta){
-        
-        gameController->macMouseDeltaMoved(uMouseElement, uMouseAction, uMouseDelta);
-    }
-    
-    void U4DScene::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        gameController->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);
-    }
+//    void U4DScene::touchBegan(const U4DTouches &touches){
+//
+//        gameController->touchBegan(touches);
+//    }
+//
+//    void U4DScene::touchEnded(const U4DTouches &touches){
+//
+//        gameController->touchEnded(touches);
+//    }
+//
+//    void U4DScene::touchMoved(const U4DTouches &touches){
+//
+//        gameController->touchMoved(touches);
+//    }
+//
+//    void U4DScene::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+//
+//        gameController->padPressBegan(uGamePadElement, uGamePadAction);
+//    }
+//
+//    void U4DScene::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+//
+//        gameController->padPressEnded(uGamePadElement, uGamePadAction);
+//    }
+//
+//    void U4DScene::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
+//
+//        gameController->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
+//    }
+//
+//    void U4DScene::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+//
+//        gameController->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
+//
+//    }
+//
+//    void U4DScene::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+//
+//        gameController->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
+//
+//    }
+//
+//    void U4DScene::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
+//
+//        gameController->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
+//
+//    }
+//
+//    void U4DScene::macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        gameController->macMousePressBegan(uMouseElement, uMouseAction, uMouseAxis);
+//    }
+//
+//    void U4DScene::macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){
+//
+//        gameController->macMousePressEnded(uMouseElement, uMouseAction);
+//    }
+//
+//    void U4DScene::macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        gameController->macMouseDragged(uMouseElement, uMouseAction, uMouseAxis);
+//    }
+//
+//    void U4DScene::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        gameController->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
+//    }
+//
+//    void U4DScene::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta){
+//
+//        gameController->macMouseDeltaMoved(uMouseElement, uMouseAction, uMouseDelta);
+//    }
+//
+//    void U4DScene::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        gameController->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);
+//    }
 
     void U4DScene::init(){
         

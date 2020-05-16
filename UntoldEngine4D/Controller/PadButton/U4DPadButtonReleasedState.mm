@@ -33,9 +33,9 @@ namespace U4DEngine {
     
     void U4DPadButtonReleasedState::enter(U4DPadButton *uPadButton){
         
-        if (uPadButton->pCallback!=NULL) {
-            uPadButton->action();
-        }
+        
+        uPadButton->action();
+        
         
         
         if (uPadButton->controllerInterface !=NULL) {

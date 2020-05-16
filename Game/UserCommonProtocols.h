@@ -12,53 +12,53 @@
 #include "U4DVector3n.h"
 #include "U4DVector2n.h"
 
-enum{
-    
-    actionButtonA,
-    actionButtonB,
-    actionButtonW,
-    actionButtonS,
-    actionButtonD,
-    actionButtonX,
-    actionButtonY,
-    actionButtonF,
-    actionKey1,
-    actionKeyShift,
-    actionKeySpace,
-    actionLeftTrigger,
-    actionRightTrigger,
-    actionRightShoulder,
-    actionLeftShoulder,
-    actionJoystick,
-    actionRightJoystick,
-    actionMouseLeftTrigger,
-    actionMouse
-    
-}ControllerInputType;
-
-
-enum{
-    buttonPressed,
-    buttonReleased,
-    joystickActive,
-    joystickInactive,
-    mouseActive,
-    mouseInactive
-    
-}ControllerInputData;
-
-typedef struct{
-    
-    int controllerInputType;
-    int controllerInputData;
-    U4DEngine::U4DVector3n joystickDirection;
-    U4DEngine::U4DVector3n mousePosition;
-    U4DEngine::U4DVector3n previousMousePosition;
-    U4DEngine::U4DVector2n mouseDeltaPosition;
-    bool joystickChangeDirection;
-    bool mouseChangeDirection;
-    
-}ControllerInputMessage;
+//enum{
+//
+//    actionButtonA,
+//    actionButtonB,
+//    actionButtonW,
+//    actionButtonS,
+//    actionButtonD,
+//    actionButtonX,
+//    actionButtonY,
+//    actionButtonF,
+//    actionKey1,
+//    actionKeyShift,
+//    actionKeySpace,
+//    actionLeftTrigger,
+//    actionRightTrigger,
+//    actionRightShoulder,
+//    actionLeftShoulder,
+//    actionJoystick,
+//    actionRightJoystick,
+//    actionMouseLeftTrigger,
+//    actionMouse
+//
+//}ControllerInputType;
+//
+//
+//enum{
+//    buttonPressed,
+//    buttonReleased,
+//    joystickActive,
+//    joystickInactive,
+//    mouseActive,
+//    mouseInactive
+//
+//}ControllerInputData;
+//
+//typedef struct{
+//
+//    int controllerInputType;
+//    int controllerInputData;
+//    U4DEngine::U4DVector3n joystickDirection;
+//    U4DEngine::U4DVector3n mousePosition;
+//    U4DEngine::U4DVector3n previousMousePosition;
+//    U4DEngine::U4DVector2n mouseDeltaPosition;
+//    bool joystickChangeDirection;
+//    bool mouseChangeDirection;
+//
+//}ControllerInputMessage;
 
 typedef struct{
     

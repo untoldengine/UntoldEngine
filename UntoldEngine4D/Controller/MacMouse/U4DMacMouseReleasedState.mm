@@ -35,9 +35,7 @@ namespace U4DEngine {
         
         uMacMouse->dataMagnitude=0.0;
         
-        if (uMacMouse->pCallback!=NULL) {
-            uMacMouse->action();
-        }
+        uMacMouse->action();
         
         if (uMacMouse->controllerInterface!=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);

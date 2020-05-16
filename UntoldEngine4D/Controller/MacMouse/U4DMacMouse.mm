@@ -23,13 +23,9 @@
 namespace U4DEngine {
     
     
-    U4DMacMouse::U4DMacMouse(MOUSEELEMENT &uMouseElementType):isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0),mouseAxis(0.0,0.0),mouseAxisDelta(0.0,0.0),previousDataPosition(0.0,0.0,0.0){
+U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface):U4DInputElement(uInputElementType,uControllerInterface),isActive(false),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0),previousDataPosition(0.0,0.0),dataDeltaPosition(0.0, 0.0),previousDataDeltaPosition(0.0, 0.0){
         
         stateManager=new U4DMacMouseStateManager(this);
-        
-        setEntityType(CONTROLLERINPUT);
-        
-        padElementType=uMouseElementType;
         
         //set initial state
         stateManager->changeState(U4DMacMouseIdleState::sharedInstance());
@@ -41,11 +37,6 @@ namespace U4DEngine {
         delete stateManager;
     }
     
-    MOUSEELEMENT U4DMacMouse::getMouseElementType(){
-        
-        return padElementType;
-        
-    }
     
     void U4DMacMouse::setDataMagnitude(float uValue){
         
@@ -67,70 +58,116 @@ namespace U4DEngine {
     
     void U4DMacMouse::action(){
         
-        pCallback->action();
+    //notify the game model
+        
+        CONTROLLERMESSAGE controllerMessage;
+    
+        controllerMessage.inputElementType=inputElementType;
+    
+        if (getIsPressed()) {
+    
+            controllerMessage.inputElementAction=U4DEngine::mouseButtonPressed;
+    
+        }else if(getIsReleased()){
+    
+            controllerMessage.inputElementAction=U4DEngine::mouseButtonReleased;
+        
+        //Dragged has not been implemented here
+        
+        }else if(getIsMoving()) {
+        
+                controllerMessage.inputElementAction=U4DEngine::mouseActive;
+
+        }
+
+        controllerMessage.mousePosition=getDataPosition();
+
+        controllerMessage.previousMousePosition=getPreviousDataPosition();
+
+        controllerMessage.mouseDeltaPosition=getDataDeltaPosition();
+        
+        controllerInterface->sendUserInputUpdate(&controllerMessage);
+        
     }
     
     
-    void U4DMacMouse::changeState(MOUSEACTION &uMouseAction, const U4DVector2n &uMouseAxis){
+    void U4DMacMouse::changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition){
         
-        if (uMouseAction==U4DEngine::mouseButtonPressed) {
+        
+        if (uInputAction==U4DEngine::mouseButtonPressed) {
             
-            mouseAxis=uMouseAxis;
+            dataPosition=mapMousePosition(uPosition);
             
             stateManager->changeState(U4DMacMousePressedState::sharedInstance());
             
-        }else if (uMouseAction==U4DEngine::mouseButtonDragged) {
+        }else if (uInputAction==U4DEngine::mouseButtonDragged) {
             
-            mouseAxis=uMouseAxis;
+            dataPosition=uPosition;
             
             stateManager->changeState(U4DMacMouseDraggedState::sharedInstance());
             
-        }else if(uMouseAction==U4DEngine::mouseButtonReleased && ((stateManager->getCurrentState()==U4DMacMouseDraggedState::sharedInstance()) || (stateManager->getCurrentState()==U4DMacMousePressedState::sharedInstance()))){
+        }else if(uInputAction==U4DEngine::mouseButtonReleased && ((stateManager->getCurrentState()==U4DMacMouseDraggedState::sharedInstance()) || (stateManager->getCurrentState()==U4DMacMousePressedState::sharedInstance()))){
             
-            mouseAxis=U4DVector2n(0.0,0.0);
+            dataPosition=mapMousePosition(uPosition);
             
             stateManager->changeState(U4DMacMouseReleasedState::sharedInstance());
             
-        }else if(uMouseAction==U4DEngine::mouseCursorMoved){
+        }else if(uInputAction==U4DEngine::mouseActive){
             
-            mouseAxis=uMouseAxis;
+            dataPosition=mapMousePosition(uPosition);
             
             stateManager->changeState(U4DMacMouseMovedState::sharedInstance());
             
             
-        }else if(uMouseAction==U4DEngine::mouseCursorExited){
+        }else if(uInputAction==U4DEngine::mouseInactive){
             
-            mouseAxis=uMouseAxis;
+            dataPosition=uPosition;
             
             stateManager->changeState(U4DMacMouseExitedState::sharedInstance());
             
-        }else if (uMouseAction==U4DEngine::mouseCursorDeltaMoved) {
+        }else if (uInputAction==U4DEngine::mouseActiveDelta) {
             
-            mouseAxisDelta=uMouseAxis;
+            dataDeltaPosition=uPosition;
 
             stateManager->changeState(U4DMacMouseDeltaMovedState::sharedInstance());
             
         }
         
     }
+
+    U4DVector2n U4DMacMouse::mapMousePosition(U4DVector2n &uPosition){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        U4DVector2n mapPosition;
+        
+        //map the location of the mouse cursor to the right space-non deltas
+        float height=director->getDisplayHeight();
+        float width=director->getDisplayWidth();
+        
+        mapPosition.x=(uPosition.x-width/2)/(width/2);
+        mapPosition.y=(uPosition.y-height/2)/(height/2);
+        
+        return mapPosition;
+        
+    }
     
     
-    void U4DMacMouse::setDataPosition(U4DVector3n uData){
+    void U4DMacMouse::setDataPosition(U4DVector2n uData){
         
         dataPosition=uData;
     }
     
-    U4DVector3n U4DMacMouse::getDataPosition(){
+    U4DVector2n U4DMacMouse::getDataPosition(){
         
         return dataPosition;
     }
     
-    U4DVector2n U4DMacMouse::getMouseDeltaPosition(){
+    U4DVector2n U4DMacMouse::getDataDeltaPosition(){
         
-        return mouseAxisDelta;
+        return dataDeltaPosition;
     }
     
-    U4DVector3n U4DMacMouse::getPreviousDataPosition(){
+    U4DVector2n U4DMacMouse::getPreviousDataPosition(){
         return previousDataPosition;
     }
     
@@ -148,19 +185,6 @@ namespace U4DEngine {
     bool U4DMacMouse::getIsReleased(){
         
         return (stateManager->getCurrentState()==U4DMacMouseReleasedState::sharedInstance());
-        
-    }
-    
-    void U4DMacMouse::setCallbackAction(U4DCallbackInterface *uAction){
-        
-        //set the callback
-        pCallback=uAction;
-        
-    }
-    
-    void U4DMacMouse::setControllerInterface(U4DControllerInterface* uControllerInterface){
-        
-        controllerInterface=uControllerInterface;
         
     }
     

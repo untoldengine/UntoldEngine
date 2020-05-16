@@ -38,7 +38,7 @@ namespace U4DEngine {
     
     void U4DMacArrowKeyActiveState::execute(U4DMacArrowKey *uMacArrowKey, double dt){
         
-        U4DEngine::U4DVector3n padAxis(uMacArrowKey->padAxis.x,uMacArrowKey->padAxis.y, 0.0);
+        U4DEngine::U4DVector2n padAxis(uMacArrowKey->padAxis.x,uMacArrowKey->padAxis.y);
         
         if (uMacArrowKey->dataPosition.dot(padAxis)<0.0) {
 
@@ -53,9 +53,9 @@ namespace U4DEngine {
         
         uMacArrowKey->dataMagnitude=padAxis.magnitude();
         
-        if (uMacArrowKey->pCallback!=NULL) {
-            uMacArrowKey->action();
-        }
+        
+        uMacArrowKey->action();
+        
         
         if (uMacArrowKey->controllerInterface!=NULL) {
             uMacArrowKey->controllerInterface->setReceivedAction(true);

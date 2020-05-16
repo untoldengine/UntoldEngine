@@ -8,7 +8,6 @@
 
 #include "U4DButton.h"
 #include "U4DVector2n.h"
-#include "U4DTouches.h"
 #include "U4DDirector.h"
 #include "U4DControllerInterface.h"
 #include "U4DButtonPressedState.h"
@@ -76,7 +75,7 @@ void U4DButton::action(){
 
 }
 
-void U4DButton::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){
+void U4DButton::changeState(TOUCHSTATE uTouchState,U4DVector3n &uTouchPosition){
     
     
     if (uTouchPosition.x>left && uTouchPosition.x<right) {

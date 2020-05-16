@@ -10,7 +10,7 @@
 #define GamePadControllers_hpp
 
 #include <stdio.h>
-#include "U4DGamePadController.h"
+#include "U4DGamepadController.h"
 #include "U4DVector3n.h"
 #include "UserCommonProtocols.h"
 #include "U4DPadButton.h"
@@ -20,20 +20,7 @@ class GamePadController:public U4DEngine::U4DGamepadController{
     
 private:
     
-    U4DEngine::U4DPadButton *myButtonA;
-    U4DEngine::U4DPadButton *myButtonB;
-    U4DEngine::U4DPadButton *myButtonX;
-    U4DEngine::U4DPadButton *myButtonY;
-    U4DEngine::U4DPadButton *myLeftTrigger;
-    U4DEngine::U4DPadButton *myRightTrigger;
-    U4DEngine::U4DPadButton *myLeftShoulder;
-    U4DEngine::U4DPadButton *myRightShoulder;
-    U4DEngine::U4DPadButton *myDPadButtonUp;
-    U4DEngine::U4DPadButton *myDPadButtonDown;
-    U4DEngine::U4DPadButton *myDPadButtonLeft;
-    U4DEngine::U4DPadButton *myDPadButtonRight;
-    U4DEngine::U4DPadJoystick *leftJoystick;
-    U4DEngine::U4DPadJoystick *rightJoystick;
+    
     
 public:
     

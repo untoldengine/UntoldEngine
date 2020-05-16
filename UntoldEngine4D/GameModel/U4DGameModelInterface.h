@@ -17,7 +17,6 @@ namespace U4DEngine {
 class U4DWorld;
 class U4DControllerInterface;
 class U4DEntityManager;
-class U4DTouches;
 class U4DEntity;
     
 }

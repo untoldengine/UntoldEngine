@@ -7,7 +7,6 @@
 //
 
 #include "U4DMacKey.h"
-#include "U4DDirector.h"
 #include "U4DControllerInterface.h"
 #include "U4DMacKeyPressedState.h"
 #include "U4DMacKeyReleasedState.h"
@@ -18,13 +17,9 @@
 
 namespace U4DEngine {
     
-    U4DMacKey::U4DMacKey(KEYBOARDELEMENT &uKeyboardElementType){
+    U4DMacKey::U4DMacKey(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface ):U4DInputElement(uInputElementType,uControllerInterface){
         
         stateManager=new U4DMacKeyStateManager(this);
-        
-        keyboardElementType=uKeyboardElementType;
-        
-        setEntityType(CONTROLLERINPUT);
         
         //set initial state
         stateManager->changeState(U4DMacKeyIdleState::sharedInstance());
@@ -37,11 +32,7 @@ namespace U4DEngine {
         
     }
     
-    KEYBOARDELEMENT U4DMacKey::getKeyboardElementType(){
-        
-        return keyboardElementType;
-        
-    }
+    
     
     void U4DMacKey::update(double dt){
         
@@ -51,17 +42,33 @@ namespace U4DEngine {
     
     void U4DMacKey::action(){
         
-        pCallback->action();
+        //notify the game model
+        
+        CONTROLLERMESSAGE controllerMessage;
+    
+        controllerMessage.inputElementType=inputElementType;
+    
+        if (getIsPressed()) {
+    
+            controllerMessage.inputElementAction=U4DEngine::macKeyPressed;
+    
+        }else if(getIsReleased()){
+    
+            controllerMessage.inputElementAction=U4DEngine::macKeyReleased;
+    
+        }
+    
+        controllerInterface->sendUserInputUpdate(&controllerMessage);
         
     }
     
-    void U4DMacKey::changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis){
+    void U4DMacKey::changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition){
         
-        if(uKeyboardAction==U4DEngine::macKeyPressed){
+        if(uInputAction==U4DEngine::macKeyPressed){
             
             stateManager->changeState(U4DMacKeyPressedState::sharedInstance());
             
-        }else if (uKeyboardAction==U4DEngine::macKeyReleased){
+        }else if (uInputAction==U4DEngine::macKeyReleased){
             
             stateManager->changeState(U4DMacKeyReleasedState::sharedInstance());
             
@@ -69,12 +76,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DMacKey::setCallbackAction(U4DCallbackInterface *uAction){
-        
-        //set the callback
-        pCallback=uAction;
-        
-    }
     
     bool U4DMacKey::getIsPressed(){
         
@@ -87,12 +88,5 @@ namespace U4DEngine {
         return (stateManager->getCurrentState()==U4DMacKeyReleasedState::sharedInstance());
         
     }
-    
-    void U4DMacKey::setControllerInterface(U4DControllerInterface* uControllerInterface){
-        
-        controllerInterface=uControllerInterface;
-        
-    }
-    
     
 }

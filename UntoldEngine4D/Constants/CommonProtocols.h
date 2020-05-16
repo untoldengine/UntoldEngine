@@ -14,6 +14,7 @@
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
 #include "U4DMatrix4n.h"
+#include "U4DVector2n.h"
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
 
@@ -23,27 +24,27 @@ namespace U4DEngine {
      @brief The TOUCHSTATE enum holds the different touch states
      */
     typedef enum {
-        
+
         /**
          @brief Touch event began
          */
         rTouchesBegan,
-        
+
         /**
          @brief Touch event moved
          */
         rTouchesMoved,
-        
+
         /**
          @brief Touch event ended
          */
         rTouchesEnded,
-        
+
         /**
          @brief Touch event is null
          */
         rTouchesNull
-        
+
     }TOUCHSTATE;
 
     /**
@@ -627,36 +628,36 @@ namespace U4DEngine {
     /**
      @brief The GAMEPADELEMENT enum holds information about the elements of a game pad
      */
-    typedef enum{
-        
-        padButtonA,
-        padButtonB,
-        padButtonX,
-        padButtonY,
-        padLeftThumbstick,
-        padRightThumbstick,
-        padLeftTrigger,
-        padRightTrigger,
-        padLeftShoulder,
-        padRightShoulder,
-        padDPadUpButton,
-        padDPadDownButton,
-        padDPadLeftButton,
-        padDPadRightButton
-        
-    }GAMEPADELEMENT;
+//    typedef enum{
+//
+//        padButtonA,
+//        padButtonB,
+//        padButtonX,
+//        padButtonY,
+//        padLeftThumbstick,
+//        padRightThumbstick,
+//        padLeftTrigger,
+//        padRightTrigger,
+//        padLeftShoulder,
+//        padRightShoulder,
+//        padDPadUpButton,
+//        padDPadDownButton,
+//        padDPadLeftButton,
+//        padDPadRightButton
+//
+//    }GAMEPADELEMENT;
     
     /**
      @brief The GAMEPADACTION enum holds information about the action of the element of a game pad
      */
-    typedef enum{
-        
-        padButtonPressed,
-        padButtonReleased,
-        padThumbstickMoved,
-        padThumbstickReleased,
-        
-    }GAMEPADACTION;
+//    typedef enum{
+//
+//        padButtonPressed,
+//        padButtonReleased,
+//        padThumbstickMoved,
+//        padThumbstickReleased,
+//
+//    }GAMEPADACTION;
     
     /**
      @brief The DEVICEOSTYPE enum holds information about the current OS target
@@ -671,8 +672,68 @@ namespace U4DEngine {
     /**
      @brief The KEYBOARDELEMENT enum holds information about the elements of a keyboard
      */
+//    typedef enum{
+//
+//        macArrowKey,
+//        macKeyA,
+//        macKeyD,
+//        macKeyW,
+//        macKeyS,
+//        macKeyF,
+//        macKey1,
+//        macKey2,
+//        macKey3,
+//        macKey4,
+//        macShiftKey,
+//        macSpaceKey
+//
+//    }KEYBOARDELEMENT;
+    
+    /**
+     @brief The KEYBOARDACTION enum holds information about the action of the element of a key
+     */
+//    typedef enum{
+//
+//        macKeyPressed,
+//        macKeyReleased,
+//        macArrowKeyActive,
+//        macArrowKeyReleased
+//
+//    }KEYBOARDACTION;
+    
+    /**
+     @brief The MOUSEELEMENT enum holds information about the elements of a mouse
+     */
+//    typedef enum{
+//
+//        mouseLeftButton,
+//        mouseRightButton,
+//        mouseCursor
+//
+//    }MOUSEELEMENT;
+    
+    /**
+     @brief The KEYBOARDACTION enum holds information about the action of the element of a mouse
+     */
+//    typedef enum{
+//
+//        mouseButtonPressed,
+//        mouseButtonDragged,
+//        mouseButtonReleased,
+//        mouseCursorMoved,
+//        mouseCursorExited,
+//        mouseCursorDeltaMoved
+//
+//    }MOUSEACTION;
+
     typedef enum{
-        
+
+        //Mouse elements
+        mouseLeftButton,
+        mouseRightButton,
+        mouse,
+
+        //Keyboard elements
         macArrowKey,
         macKeyA,
         macKeyD,
@@ -684,50 +745,77 @@ namespace U4DEngine {
         macKey3,
         macKey4,
         macShiftKey,
-        macSpaceKey
+        macSpaceKey,
+
+        //GamePad Element
+        padButtonA,
+        padButtonB,
+        padButtonX,
+        padButtonY,
+        padLeftThumbstick,
+        padRightThumbstick,
+        padLeftTrigger,
+        padRightTrigger,
+        padLeftShoulder,
+        padRightShoulder,
+        padDPadUpButton,
+        padDPadDownButton,
+        padDPadLeftButton,
+        padDPadRightButton,
         
-    }KEYBOARDELEMENT;
-    
-    /**
-     @brief The KEYBOARDACTION enum holds information about the action of the element of a key
-     */
+        //touch elements
+        ioTouch,
+
+    }INPUTELEMENTTYPE;
+
+
     typedef enum{
         
+        //Mouse
+        mouseButtonPressed,
+        mouseButtonDragged,
+        mouseButtonReleased,
+        mouseActive,
+        mouseInactive,
+        mouseActiveDelta,
+        
+        //Game Controller
+        
+        padButtonPressed,
+        padButtonReleased,
+        padThumbstickMoved,
+        padThumbstickReleased,
+        
+        //Keyboard
         macKeyPressed,
         macKeyReleased,
         macArrowKeyActive,
-        macArrowKeyReleased
+        macArrowKeyReleased,
         
-    }KEYBOARDACTION;
-    
-    /**
-     @brief The MOUSEELEMENT enum holds information about the elements of a mouse
-     */
-    typedef enum{
+        //touch
+        ioTouchesBegan,
+        ioTouchesMoved,
+        ioTouchesEnded,
+        ioTouchesIdle
+
+    }INPUTELEMENTACTION;
+
+
+    typedef struct{
         
-        mouseLeftButton,
-        mouseRightButton,
-        mouseCursor
+        int inputElementType;
+        int inputElementAction;
+        U4DVector2n joystickDirection;
+        U4DVector2n mousePosition;
+        U4DVector2n previousMousePosition;
+        U4DVector2n mouseDeltaPosition;
+        U4DVector2n touchPosition;
+        bool joystickChangeDirection;
+        bool mouseChangeDirection;
+        U4DVector2n arrowKeyDirection;
         
-    }MOUSEELEMENT;
-    
-    /**
-     @brief The KEYBOARDACTION enum holds information about the action of the element of a mouse
-     */
-    typedef enum{
-        
-        mouseButtonPressed, 
-        mouseButtonDragged,
-        mouseButtonReleased,
-        mouseCursorMoved,
-        mouseCursorExited,
-        mouseCursorDeltaMoved
-        
-    }MOUSEACTION;
-    
+    }CONTROLLERMESSAGE;
+
 }
-
-
-
 
 #endif

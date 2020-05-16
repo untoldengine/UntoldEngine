@@ -14,10 +14,8 @@
 #include "U4DDirector.h"
 #include "U4DEntity.h"
 #include "U4DMultiImage.h"
-#include "U4DTouches.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
-#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     class U4DImage;
@@ -127,7 +125,7 @@ public:
      * @param uTouchState touch state such as began, ended, released
      * @param uTouchPosition position of touch
      */
-    void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition);
+    void changeState(TOUCHSTATE uTouchState,U4DVector3n &uTouchPosition);
     
     /**
      * @brief Returns true if the button is pressed

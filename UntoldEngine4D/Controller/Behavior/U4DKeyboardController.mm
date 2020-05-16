@@ -8,142 +8,91 @@
 
 #include "U4DKeyboardController.h"
 
-#include "U4DGameModelInterface.h"
-#include "U4DWorld.h"
-
 namespace U4DEngine {
     
     //constructor
-    U4DKeyboardController::U4DKeyboardController():receivedAction(false){}
+    U4DKeyboardController::U4DKeyboardController(){
+        
+    
+    }
     
     //destructor
-    U4DKeyboardController::~U4DKeyboardController(){}
-    
-    void U4DKeyboardController::setGameWorld(U4DWorld *uGameWorld){
-        
-        gameWorld=uGameWorld;
+    U4DKeyboardController::~U4DKeyboardController(){
         
     }
-    
-    void U4DKeyboardController::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-        
-        //dummy axis
-        U4DVector2n padAxis(0.0,0.0);
-        
-        changeState(uKeyboardElement, uKeyboardAction, padAxis);
-    }
-    
-    void U4DKeyboardController::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-        
-        //dummy axis
-        U4DVector2n padAxis(0.0,0.0);
-        
-        changeState(uKeyboardElement, uKeyboardAction, padAxis);
-    }
-    
-    void U4DKeyboardController::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
-        
-        changeState(uKeyboardElement, uKeyboardAction, uPadAxis);
-    }
-    
-    void U4DKeyboardController::macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        changeState(uMouseElement, uMouseAction, uMouseAxis);
-    }
-    
-    void U4DKeyboardController::macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){
-        
-        //dummy axis
-        U4DVector2n mouseAxis(0.0,0.0);
-        
-        changeState(uMouseElement, uMouseAction, mouseAxis);
-    }
-    
-    void U4DKeyboardController::macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        changeState(uMouseElement, uMouseAction, uMouseAxis);
-        
-    }
-    
-    void U4DKeyboardController::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        changeState(uMouseElement, uMouseAction, uMouseAxis);
-        
-    }
-    
-    void U4DKeyboardController::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n &uMouseDelta){
-        
-        changeState(uMouseElement, uMouseAction, uMouseDelta);
-    }
-    
-    void U4DKeyboardController::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        changeState(uMouseElement, uMouseAction, uMouseAxis);
-        
-    }
-    
-    void U4DKeyboardController::setGameModel(U4DGameModelInterface *uGameModel){
-        
-        gameModel=uGameModel;
-        
-    }
-    
-    U4DWorld* U4DKeyboardController::getGameWorld(){
-        
-        return gameWorld;
-    }
-    
-    U4DGameModelInterface* U4DKeyboardController::getGameModel(){
-        
-        return gameModel;
-    }
-    
-    void U4DKeyboardController::changeState(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
-        
-        U4DEntity *child=gameWorld;
-        
-        //change the state of the controller input
-        while (child!=NULL) {
 
-            if (child->getEntityType()==CONTROLLERINPUT && child->getKeyboardElementType()==uKeyboardElement) {
+    void U4DKeyboardController::init(){
+        
+        //create the mac key 'w' object
+        keyW=new U4DMacKey(U4DEngine::macKeyW,this);
+        keyA=new U4DMacKey(U4DEngine::macKeyA,this);
+        keyD=new U4DMacKey(U4DEngine::macKeyD,this);
+        keyS=new U4DMacKey(U4DEngine::macKeyS, this);
+        macKeyShift=new U4DMacKey(U4DEngine::macShiftKey,this);
+        arrowKey=new U4DMacArrowKey(U4DEngine::macArrowKey,this);
+        
+        mouseLeftButton=new U4DMacMouse(U4DEngine::mouseLeftButton,this);
+        macMouse=new U4DMacMouse(U4DEngine::mouse,this);
+        
+        registerInputEntity(keyW);
+        registerInputEntity(keyA);
+        registerInputEntity(keyD);
+        registerInputEntity(keyS);
+        registerInputEntity(macKeyShift);
+        registerInputEntity(arrowKey);
+        
+        registerInputEntity(mouseLeftButton);
+        registerInputEntity(macMouse);
+        
+    }
+    
+    void U4DKeyboardController::getUserInputData(unichar uCharacter, INPUTELEMENTACTION uInputAction){
+        
+        U4DVector2n pos(0.0,0.0);
+        
+        if(uCharacter=='w' || uCharacter=='W'){
 
-                child->changeState(uKeyboardAction, uPadAxis);
+            changeState(U4DEngine::macKeyW, uInputAction, pos);
 
-            }
+        }
 
-            child=child->next;
+        if(uCharacter=='a' || uCharacter=='A'){
+
+            changeState(U4DEngine::macKeyA, uInputAction, pos);
 
         }
         
-    }
-    
-    void U4DKeyboardController::changeState(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
         
-        U4DEntity *child=gameWorld;
-        
-        //change the state of the controller input
-        while (child!=NULL) {
+        if(uCharacter=='d' || uCharacter=='D'){
             
-            if (child->getEntityType()==CONTROLLERINPUT && child->getMouseElementType()==uMouseElement) {
-                
-                child->changeState(uMouseAction, uMouseAxis);
-                
-            }
-            
-            child=child->next;
-            
+            changeState(U4DEngine::macKeyD, uInputAction, pos);
         }
-        
+    
+        if(uCharacter=='s' || uCharacter=='S'){
+            changeState(U4DEngine::macKeyS, uInputAction, pos);
+        }
+    
+        if(uCharacter=='1'){
+            changeState(U4DEngine::macKey1, uInputAction, pos);
+        }
+    
+        if(uCharacter=='2'){
+            changeState(U4DEngine::macKey2, uInputAction, pos);
+        }
+    
+        if(uCharacter=='3'){
+            changeState(U4DEngine::macKey3, uInputAction, pos);
+        }
+    
+        if(uCharacter=='4'){
+            changeState(U4DEngine::macKey4, uInputAction, pos);
+        }
+    
+        if(uCharacter==' '){
+            changeState(U4DEngine::macSpaceKey, uInputAction, pos);
+        }
+
     }
     
-    void U4DKeyboardController::sendUserInputUpdate(void *uData){
-        
-        gameModel->receiveUserInputUpdate(uData);
-    }
-    
-    void U4DKeyboardController::setReceivedAction(bool uValue){
-        
-        receivedAction=uValue;
-    }
     
 }

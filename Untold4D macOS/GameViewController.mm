@@ -14,6 +14,7 @@
 #include "U4DTouches.h"
 #include "U4DLogger.h"
 #include "U4DVector2n.h"
+#include "U4DControllerInterface.h"
 #include "MainScene.h"
 #include "CommonProtocols.h"
 
@@ -24,6 +25,8 @@
     U4DRenderer *renderer;
     
     NSTrackingArea *trackingArea;
+    
+    MainScene *mainScene;
     
 }
 
@@ -104,7 +107,7 @@
     director->setScreenScaleFactor(contentScale);
     
     //initialize the scene for your game
-    MainScene *mainScene=new MainScene();
+    mainScene=new MainScene();
     mainScene->init();
 }
 
@@ -127,10 +130,6 @@
 
         logger->log("Controller has an Extended gamepad");
 
-    }else if (controller.gamepad!=nil){
-        
-        logger->log("Controller has a standard profile");
-        
     }
     
     logger->log("Controller is connected");
@@ -154,213 +153,27 @@
     // register block for input change detection
     
     GCController *controller=[GCController controllers][0];
-    
+
     GCExtendedGamepad *profile=controller.extendedGamepad;
-    
+
     U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
     
-    if (profile!=nil) {
-        
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+
+    if (profile!=nil && gameController!=nullptr) {
+
         profile.valueChangedHandler = ^(GCExtendedGamepad *gamepad, GCControllerElement *element)
         {
-            U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
             
-            //set up the element profiles
-            U4DEngine::GAMEPADELEMENT padButtonAElement=U4DEngine::padButtonA;
-            U4DEngine::GAMEPADELEMENT padButtonBElement=U4DEngine::padButtonB;
-            U4DEngine::GAMEPADELEMENT padButtonXElement=U4DEngine::padButtonX;
-            U4DEngine::GAMEPADELEMENT padButtonYElement=U4DEngine::padButtonY;
-            U4DEngine::GAMEPADELEMENT padLeftThumbstickElement=U4DEngine::padLeftThumbstick;
-            U4DEngine::GAMEPADELEMENT padRightThumbstickElement=U4DEngine::padRightThumbstick;
-            U4DEngine::GAMEPADELEMENT padLeftTriggerElement=U4DEngine::padLeftTrigger;
-            U4DEngine::GAMEPADELEMENT padRightTriggerElement=U4DEngine::padRightTrigger;
-            U4DEngine::GAMEPADELEMENT padLeftShoulderElement=U4DEngine::padLeftShoulder;
-            U4DEngine::GAMEPADELEMENT padRightShoulderElement=U4DEngine::padRightShoulder;
-            U4DEngine::GAMEPADELEMENT padDPadUpButtonElement=U4DEngine::padDPadUpButton;
-            U4DEngine::GAMEPADELEMENT padDPadDownButtonElement=U4DEngine::padDPadDownButton;
-            U4DEngine::GAMEPADELEMENT padDPadLeftButtonElement=U4DEngine::padDPadLeftButton;
-            U4DEngine::GAMEPADELEMENT padDPadRightButtonElement=U4DEngine::padDPadRightButton;
+            gameController->getUserInputData(gamepad, element);
             
-            //set up the actions
-            U4DEngine::GAMEPADACTION padButtonPressedAction=U4DEngine::padButtonPressed;
-            U4DEngine::GAMEPADACTION padButtonReleasedAction=U4DEngine::padButtonReleased;
-            U4DEngine::GAMEPADACTION padThumbstickMovedAction=U4DEngine::padThumbstickMoved;
-            U4DEngine::GAMEPADACTION padThumbstickReleasedAction=U4DEngine::padThumbstickReleased;
-            
-            // left trigger
-            if (gamepad.leftTrigger == element && gamepad.leftTrigger.isPressed) {
-                
-                director->padPressBegan(padLeftTriggerElement,padButtonPressedAction);
-                
-            }else if(gamepad.leftTrigger == element && !gamepad.leftTrigger.isPressed){
-                
-                director->padPressEnded(padLeftTriggerElement,padButtonReleasedAction);
-                
-            }
-            
-            // right trigger
-            if (gamepad.rightTrigger == element && gamepad.rightTrigger.isPressed) {
-                
-                director->padPressBegan(padRightTriggerElement,padButtonPressedAction);
-                
-            }else if(gamepad.rightTrigger == element && !gamepad.rightTrigger.isPressed){
-                
-                director->padPressEnded(padRightTriggerElement,padButtonReleasedAction);
-            }
-            
-            // left shoulder button
-            if (gamepad.leftShoulder == element && gamepad.leftShoulder.isPressed) {
-                
-                director->padPressBegan(padLeftShoulderElement,padButtonPressedAction);
-                
-            }else if(gamepad.leftShoulder == element && !gamepad.leftShoulder.isPressed){
-                
-                director->padPressEnded(padLeftShoulderElement,padButtonReleasedAction);
-            }
-            
-            // right shoulder button
-            if (gamepad.rightShoulder == element && gamepad.rightShoulder.isPressed) {
-                
-                director->padPressBegan(padRightShoulderElement,padButtonPressedAction);
-                
-            }else if(gamepad.rightShoulder == element && !gamepad.rightShoulder.isPressed){
-                
-                director->padPressEnded(padRightShoulderElement,padButtonReleasedAction);
-                
-            }
-            
-            // A button
-            if (gamepad.buttonA == element && gamepad.buttonA.isPressed) {
-                
-                director->padPressBegan(padButtonAElement,padButtonPressedAction);
-                
-            }else if(gamepad.buttonA == element && !gamepad.buttonA.isPressed){
-                
-                director->padPressEnded(padButtonAElement,padButtonReleasedAction);
-                
-            }
-            
-            // B button
-            if (gamepad.buttonB == element && gamepad.buttonB.isPressed) {
-                
-                director->padPressBegan(padButtonBElement,padButtonPressedAction);
-                
-            }else if(gamepad.buttonB == element && !gamepad.buttonB.isPressed){
-                
-                director->padPressEnded(padButtonBElement,padButtonReleasedAction);
-                
-            }
-            
-            // X button
-            if (gamepad.buttonX == element && gamepad.buttonX.isPressed) {
-                
-                director->padPressBegan(padButtonXElement,padButtonPressedAction);
-                
-            }else if(gamepad.buttonX == element && !gamepad.buttonX.isPressed){
-                
-                director->padPressEnded(padButtonXElement,padButtonReleasedAction);
-                
-            }
-            
-            // Y button
-            if (gamepad.buttonY == element && gamepad.buttonY.isPressed) {
-                
-                director->padPressBegan(padButtonYElement,padButtonPressedAction);
-                
-            }else if(gamepad.buttonY == element && !gamepad.buttonY.isPressed){
-                
-                director->padPressEnded(padButtonYElement,padButtonReleasedAction);
-                
-            }
-            
-            // d-pad
-            if (gamepad.dpad == element) {
-                
-                if (gamepad.dpad.up.isPressed) {
-                    
-                    director->padPressBegan(padDPadUpButtonElement,padButtonPressedAction);
-                    
-                }else if(!gamepad.dpad.up.isPressed){
-                 
-                    director->padPressEnded(padDPadUpButtonElement,padButtonReleasedAction);
-                }
-                
-                if (gamepad.dpad.down.isPressed) {
-                    
-                    director->padPressBegan(padDPadDownButtonElement,padButtonPressedAction);
-                    
-                }else if(!gamepad.dpad.down.isPressed){
-                    
-                    director->padPressEnded(padDPadDownButtonElement,padButtonReleasedAction);
-                    
-                }
-                
-                if (gamepad.dpad.left.isPressed) {
-                    
-                    director->padPressBegan(padDPadLeftButtonElement,padButtonPressedAction);
-                    
-                }else if(!gamepad.dpad.left.isPressed){
-                    
-                    director->padPressEnded(padDPadLeftButtonElement,padButtonReleasedAction);
-                    
-                }
-                
-                if (gamepad.dpad.right.isPressed) {
-                    
-                    director->padPressBegan(padDPadRightButtonElement,padButtonPressedAction);
-                    
-                }else if(!gamepad.dpad.right.isPressed){
-                    
-                    director->padPressEnded(padDPadRightButtonElement,padButtonReleasedAction);
-                    
-                }
-                
-            }
-            
-            // left stick
-            if (gamepad.leftThumbstick == element) {
-                
-                if (gamepad.leftThumbstick.up.isPressed || gamepad.leftThumbstick.down.isPressed || gamepad.leftThumbstick.left.isPressed || gamepad.leftThumbstick.right.isPressed) {
-                    
-                    U4DEngine::U4DPadAxis padAxis(gamepad.leftThumbstick.xAxis.value,gamepad.leftThumbstick.yAxis.value);
-                    
-                    director->padThumbStickMoved(padLeftThumbstickElement, padThumbstickMovedAction, padAxis);
-                    
-                }else if(!gamepad.leftThumbstick.up.isPressed && !gamepad.leftThumbstick.down.isPressed && !gamepad.leftThumbstick.left.isPressed && !gamepad.leftThumbstick.right.isPressed){
-                    
-                    U4DEngine::U4DPadAxis padAxis(gamepad.leftThumbstick.xAxis.value,gamepad.leftThumbstick.yAxis.value);
-                    
-                    director->padThumbStickMoved(padLeftThumbstickElement, padThumbstickReleasedAction, padAxis);
-                    
-                }
-                
-            }
-            
-            // right stick
-            if (gamepad.rightThumbstick == element) {
-                
-                if (gamepad.rightThumbstick.up.isPressed || gamepad.rightThumbstick.down.isPressed || gamepad.rightThumbstick.left.isPressed || gamepad.rightThumbstick.right.isPressed) {
-                    
-                    U4DEngine::U4DPadAxis padAxis(gamepad.rightThumbstick.xAxis.value,gamepad.rightThumbstick.yAxis.value);
-                    
-                    director->padThumbStickMoved(padRightThumbstickElement, padThumbstickMovedAction, padAxis);
-                    
-                }else if(!gamepad.rightThumbstick.up.isPressed && !gamepad.rightThumbstick.down.isPressed && !gamepad.rightThumbstick.left.isPressed && !gamepad.rightThumbstick.right.isPressed){
-                    
-                    U4DEngine::U4DPadAxis padAxis(gamepad.rightThumbstick.xAxis.value,gamepad.rightThumbstick.yAxis.value);
-                    
-                    director->padThumbStickMoved(padRightThumbstickElement, padThumbstickReleasedAction, padAxis);
-                    
-                }
-                
-            }
-            
+
         };
-        
+
     }else{
-        
+
         logger->log("Game Controller profile is null");
-        
+
     }
     
 }
@@ -368,116 +181,69 @@
 - (void)flagsChanged:(NSEvent *)theEvent{
     
     NSUInteger flags = [[NSApp currentEvent] modifierFlags];
+
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
     
-    U4DEngine::KEYBOARDELEMENT shiftKey=U4DEngine::macShiftKey;
-    
-    U4DEngine::KEYBOARDACTION keyPressed=U4DEngine::macKeyPressed;
-    U4DEngine::KEYBOARDACTION keyReleased=U4DEngine::macKeyReleased;
-    
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
-    if (flags & NSEventModifierFlagShift)
-    {
-        //shift key pressed
-        if(theEvent.keyCode==56){
-             director->macKeyPressBegan(shiftKey, keyPressed);
+    if(gameController!=nullptr){
+            
+        if (flags & NSEventModifierFlagShift)
+        {
+            //shift key pressed
+            if(theEvent.keyCode==56){
+                 
+                gameController->getUserInputData(U4DEngine::macShiftKey, U4DEngine::macKeyPressed);
+                
+            }
+
+        }else{
+            //shift key released
+            if(theEvent.keyCode==56){
+                
+                gameController->getUserInputData(U4DEngine::macShiftKey, U4DEngine::macKeyReleased);
+                
+            }
         }
         
-    }else{
-        //shift key released
-        if(theEvent.keyCode==56){
-            director->macKeyPressEnded(shiftKey, keyReleased);
-        }
     }
+    
     
 }
 
 - (void)keyDown:(NSEvent *)theEvent
 {
    
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
     unichar character = [[theEvent characters] characterAtIndex:0];
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
     
-    U4DEngine::KEYBOARDELEMENT keyA=U4DEngine::macKeyA;
-    U4DEngine::KEYBOARDELEMENT keyD=U4DEngine::macKeyD;
-    U4DEngine::KEYBOARDELEMENT keyW=U4DEngine::macKeyW;
-    U4DEngine::KEYBOARDELEMENT keyS=U4DEngine::macKeyS;
-    
-    U4DEngine::KEYBOARDELEMENT key1=U4DEngine::macKey1;
-    U4DEngine::KEYBOARDELEMENT key2=U4DEngine::macKey2;
-    U4DEngine::KEYBOARDELEMENT key3=U4DEngine::macKey3;
-    U4DEngine::KEYBOARDELEMENT key4=U4DEngine::macKey4;
-    
-    U4DEngine::KEYBOARDELEMENT spaceKey=U4DEngine::macSpaceKey;
-    
-    U4DEngine::KEYBOARDACTION keyPressed=U4DEngine::macKeyPressed;
-    
-    U4DEngine::KEYBOARDELEMENT arrowKey=U4DEngine::macArrowKey;
-    U4DEngine::KEYBOARDACTION arrowKeyActive=U4DEngine::macArrowKeyActive;
-    
-    
-    if(character=='a' || character=='A'){
-        director->macKeyPressBegan(keyA, keyPressed);
+    if(gameController!=nullptr){
         
-    }
-    
-    if(character=='d' || character=='D'){
-        director->macKeyPressBegan(keyD, keyPressed);
-        
-    }
-    
-    if(character=='w' || character=='W'){
-        director->macKeyPressBegan(keyW, keyPressed);
-        
-    }
-    
-    if(character=='s' || character=='S'){
-        director->macKeyPressBegan(keyS, keyPressed);
-        
-    }
-    
-    if(character==' '){
-        director->macKeyPressBegan(spaceKey, keyPressed);
-    }
-    
-    if(character=='1'){
-        director->macKeyPressEnded(key1, keyPressed);
-    }
-    
-    if(character=='2'){
-        director->macKeyPressEnded(key2, keyPressed);
-    }
-    
-    if(character=='3'){
-        director->macKeyPressEnded(key3, keyPressed);
-    }
-    
-    if(character=='4'){
-        director->macKeyPressEnded(key4, keyPressed);
-    }
-    
-    if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
-        
-        U4DEngine::U4DVector2n padAxis;
-        
-        if (character==NSUpArrowFunctionKey) {
-            padAxis=U4DEngine::U4DVector2n(0.0,1.0);
+        if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
+
+            U4DEngine::U4DVector2n padAxis;
+
+            if (character==NSUpArrowFunctionKey) {
+                padAxis=U4DEngine::U4DVector2n(0.0,1.0);
+
+            }else if(character==NSDownArrowFunctionKey){
+
+                padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
+
+            }else if(character==NSLeftArrowFunctionKey){
+
+                padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
+
+            }else if(character==NSRightArrowFunctionKey){
+
+                padAxis=U4DEngine::U4DVector2n(1.0,0.0);
+            }
             
-        }else if(character==NSDownArrowFunctionKey){
+            gameController->getUserInputData(U4DEngine::macArrowKey, U4DEngine::macArrowKeyActive, padAxis);
             
-            padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
+        }else{
             
-        }else if(character==NSLeftArrowFunctionKey){
+            gameController->getUserInputData(character, U4DEngine::macKeyPressed);
             
-            padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
-            
-        }else if(character==NSRightArrowFunctionKey){
-            
-            padAxis=U4DEngine::U4DVector2n(1.0,0.0);
         }
-        
-        director->macArrowKeyActive(arrowKey, arrowKeyActive, padAxis);
         
     }
     
@@ -486,90 +252,38 @@
 - (void)keyUp:(NSEvent *)theEvent
 {
  
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
     unichar character = [[theEvent characters] characterAtIndex:0];
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
     
-    U4DEngine::KEYBOARDELEMENT keyA=U4DEngine::macKeyA;
-    U4DEngine::KEYBOARDELEMENT keyD=U4DEngine::macKeyD;
-    U4DEngine::KEYBOARDELEMENT keyW=U4DEngine::macKeyW;
-    U4DEngine::KEYBOARDELEMENT keyS=U4DEngine::macKeyS;
-    
-    U4DEngine::KEYBOARDELEMENT key1=U4DEngine::macKey1;
-    U4DEngine::KEYBOARDELEMENT key2=U4DEngine::macKey2;
-    U4DEngine::KEYBOARDELEMENT key3=U4DEngine::macKey3;
-    U4DEngine::KEYBOARDELEMENT key4=U4DEngine::macKey4;
-    
-    U4DEngine::KEYBOARDELEMENT spaceKey=U4DEngine::macSpaceKey;
-    
-    U4DEngine::KEYBOARDACTION keyReleased=U4DEngine::macKeyReleased;
-    
-    U4DEngine::KEYBOARDELEMENT arrowKey=U4DEngine::macArrowKey;
-    U4DEngine::KEYBOARDACTION arrowKeyReleased=U4DEngine::macArrowKeyReleased;
-    
-    if(character=='a' || character=='A'){
-        director->macKeyPressEnded(keyA, keyReleased);
+    if(gameController!=nullptr){
         
-    }
-    
-    if(character=='d' || character=='D'){
-        director->macKeyPressEnded(keyD, keyReleased);
-        
-    }
-    
-    if(character=='w' || character=='W'){
-        director->macKeyPressEnded(keyW, keyReleased);
-        
-    }
-    
-    if(character=='s' || character=='S'){
-        director->macKeyPressEnded(keyS, keyReleased);
-        
-    }
-    
-    if(character=='1'){
-        director->macKeyPressEnded(key1, keyReleased);
-    }
-    
-    if(character=='2'){
-        director->macKeyPressEnded(key2, keyReleased);
-    }
-    
-    if(character=='3'){
-        director->macKeyPressEnded(key3, keyReleased);
-    }
-    
-    if(character=='4'){
-        director->macKeyPressEnded(key4, keyReleased);
-    }
-    
-    if(character==' '){
-        director->macKeyPressEnded(spaceKey, keyReleased);
-    }
-    
-    if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
-        
-        U4DEngine::U4DVector2n padAxis;
-        
-        if (character==NSUpArrowFunctionKey) {
-            padAxis=U4DEngine::U4DVector2n(0.0,1.0);
+        if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
+
+            U4DEngine::U4DVector2n padAxis;
+
+            if (character==NSUpArrowFunctionKey) {
+                padAxis=U4DEngine::U4DVector2n(0.0,1.0);
+
+            }else if(character==NSDownArrowFunctionKey){
+
+                padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
+
+            }else if(character==NSLeftArrowFunctionKey){
+
+                padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
+
+            }else if(character==NSRightArrowFunctionKey){
+
+                padAxis=U4DEngine::U4DVector2n(1.0,0.0);
+            }
             
-        }else if(character==NSDownArrowFunctionKey){
+            gameController->getUserInputData(U4DEngine::macArrowKey, U4DEngine::macArrowKeyReleased, padAxis);
             
-            padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
+        }else{
             
-        }else if(character==NSLeftArrowFunctionKey){
+            gameController->getUserInputData(character, U4DEngine::macKeyReleased);
             
-            padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
-            
-        }else if(character==NSRightArrowFunctionKey){
-            
-            padAxis=U4DEngine::U4DVector2n(1.0,0.0);
         }
-        
-        padAxis*=-1.0;
-        
-        director->macArrowKeyActive(arrowKey, arrowKeyReleased, padAxis);
         
     }
     
@@ -581,31 +295,27 @@
 
 - (void)mouseMoved:(NSEvent *)theEvent {
     
-//USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    //USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
+    
+//    NSPoint mouseMovePos = [theEvent locationInWindow];
 //
-//    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
-//    U4DEngine::MOUSEACTION mouseCursorMoved=U4DEngine::mouseCursorMoved;
+//    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
 //
-//    NSPoint mouseDownPos = [theEvent locationInWindow];
+//    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
 //
-//    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
-//    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
+//    if(gameController!=nullptr){
 //
-//    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
+//        gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
 //
-//    director->macMouseMoved(mouseCursorElement, mouseCursorMoved,mouseLocation);
+//    }
     
     //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
     
     static bool mouseWrap = false;
 
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+
     if(!mouseWrap) {
-
-        U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-
-        U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
-        U4DEngine::MOUSEACTION mouseCursorDeltaMoved=U4DEngine::mouseCursorDeltaMoved;
 
         int xDelta;
         int yDelta;
@@ -628,70 +338,71 @@
 
         U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
 
-        director->macMouseDeltaMoved(mouseCursorElement, mouseCursorDeltaMoved,mouseDeltaLocation);
+        if(gameController!=nullptr){
+
+            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActiveDelta, mouseDeltaLocation);
+
+        }
 
     } else {
 
         mouseWrap = false;
     }
+    
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-
-    U4DEngine::MOUSEELEMENT mouseCursorElement=U4DEngine::mouseCursor;
-    U4DEngine::MOUSEACTION mouseCursorExited=U4DEngine::mouseCursorExited;
-
-    NSPoint mouseDownPos = [theEvent locationInWindow];
-
-    float xPosition=(mouseDownPos.x-metalView.frame.size.width/2)/(metalView.frame.size.width/2);
-    float yPosition=(mouseDownPos.y-metalView.frame.size.height/2)/(metalView.frame.size.height/2);
-
-    U4DEngine::U4DVector2n mouseLocation(xPosition,yPosition);
-
-    director->macMouseExited(mouseCursorElement, mouseCursorExited,mouseLocation);
     
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
  
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-
-    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
-    U4DEngine::MOUSEACTION mouseButtonDragged=U4DEngine::mouseButtonDragged;
-
     NSPoint mouseDownPos = [theEvent locationInWindow];
 
     U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
-
-    director->macMouseDragged(mouseLeftButtonElement, mouseButtonDragged,mouseLocation);
+    
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    
+    if(gameController!=nullptr){
+            
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonDragged, mouseLocation);
+        
+    }
     
 }
 
 - (void)mouseDown:(NSEvent *)theEvent {
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-
-    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
-    U4DEngine::MOUSEACTION mouseButtonPressed=U4DEngine::mouseButtonPressed;
-
     NSPoint mouseDownPos = [theEvent locationInWindow];
 
     U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
-
-    director->macMousePressBegan(mouseLeftButtonElement, mouseButtonPressed,mouseLocation);
+    
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    
+    if(gameController!=nullptr){
+            
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonPressed, mouseLocation);
+        
+    }
+    
     
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    NSPoint mouseUpPos = [theEvent locationInWindow];
 
-    U4DEngine::MOUSEELEMENT mouseLeftButtonElement=U4DEngine::mouseLeftButton;
-    U4DEngine::MOUSEACTION mouseButtonReleased=U4DEngine::mouseButtonReleased;
-
-    director->macMousePressEnded(mouseLeftButtonElement, mouseButtonReleased);
+    U4DEngine::U4DVector2n mouseLocation(mouseUpPos.x,mouseUpPos.y);
+    
+    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    
+    if(gameController!=nullptr){
+            
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonReleased, mouseLocation);
+        
+    }
+    
 
 }
 

@@ -13,14 +13,12 @@
 #include "U4DTouchesController.h"
 #include "U4DVector3n.h"
 #include "UserCommonProtocols.h"
+#include "U4DTouches.h"
 
 class GameController:public U4DEngine::U4DTouchesController{
   
 private:
 
-    U4DEngine::U4DJoyStick *joyStick;
-    U4DEngine::U4DButton *myButtonA;
-    U4DEngine::U4DButton *myButtonB;
     
 public:
     

@@ -11,9 +11,8 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DDirector.h"
-#include "U4DEntity.h"
 #include "U4DCallbackInterface.h"
+#include "U4DInputElement.h"
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
@@ -24,23 +23,17 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
-    class U4DMacKey:public U4DEntity{
+    class U4DMacKey:public U4DInputElement{
         
     private:
         
         U4DMacKeyStateManager *stateManager;
         
-        KEYBOARDELEMENT keyboardElementType;
-        
     public:
         
-        U4DMacKey(KEYBOARDELEMENT &uKeyboardElementType);
+        U4DMacKey(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface);
         
         ~U4DMacKey();
-        
-        U4DCallbackInterface *pCallback;
-        
-        U4DControllerInterface *controllerInterface;
         
         void update(double dt);
         
@@ -50,13 +43,10 @@ namespace U4DEngine {
         
         bool getIsReleased();
         
-        void changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis);
+        void changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition);
         
-        KEYBOARDELEMENT getKeyboardElementType();
         
-        void setCallbackAction(U4DCallbackInterface *uAction);
         
-        void setControllerInterface(U4DControllerInterface* uControllerInterface);
     };
     
 }

@@ -11,9 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DDirector.h"
-#include "U4DEntity.h"
-#include "U4DCallbackInterface.h"
+#include "U4DInputElement.h"
 #include "CommonProtocols.h"
 #include "U4DVector2n.h"
 
@@ -25,33 +23,25 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
-    class U4DMacMouse:public U4DEntity{
+    class U4DMacMouse:public U4DInputElement{
         
     private:
         
         U4DMacMouseStateManager *stateManager;
-        
-        MOUSEELEMENT padElementType;
-        
+                
     public:
         
-        U4DMacMouse(MOUSEELEMENT &uMouseElementType);
+        U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface);
         
         ~U4DMacMouse();
         
-        U4DCallbackInterface *pCallback;
+        U4DVector2n previousDataPosition;
         
-        U4DControllerInterface *controllerInterface;
+        U4DVector2n dataPosition;
         
-        U4DVector3n previousDataPosition;
+        U4DVector2n dataDeltaPosition;
         
-        U4DVector3n dataPosition;
-        
-        U4DVector2n mouseAxis;
-        
-        U4DVector2n mouseAxisDelta;
-        
-        U4DVector2n previousMouseAxisDelta;
+        U4DVector2n previousDataDeltaPosition;
         
         float dataMagnitude;
         
@@ -63,29 +53,23 @@ namespace U4DEngine {
         
         void action();
         
-        void changeState(MOUSEACTION &uMouseAction, const U4DVector2n &uMouseAxis);
+        void changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition);
         
-        void setDataPosition(U4DVector3n uData);
+        void setDataPosition(U4DVector2n uData);
         
-        U4DVector3n getDataPosition();
+        U4DVector2n getDataPosition();
         
-        U4DVector3n getPreviousDataPosition();
+        U4DVector2n getPreviousDataPosition();
         
         void setDataMagnitude(float uValue);
         
         float getDataMagnitude();
         
-        U4DVector2n getMouseDeltaPosition();
+        U4DVector2n getDataDeltaPosition();
         
         bool getIsDragged();
         
-        void setCallbackAction(U4DCallbackInterface *uAction);
-        
-        void setControllerInterface(U4DControllerInterface* uControllerInterface);
-        
         bool getDirectionReversal();
-        
-        MOUSEELEMENT getMouseElementType();
         
         bool getIsMoving();
         
@@ -94,6 +78,8 @@ namespace U4DEngine {
         bool getIsReleased();
         
         U4DMacMouseStateManager *getStateManager();
+        
+        U4DVector2n mapMousePosition(U4DVector2n &uPosition);
         
     };
     

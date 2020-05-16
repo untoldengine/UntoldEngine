@@ -14,7 +14,6 @@
 #include "U4DDirector.h"
 #include "U4DEntity.h"
 #include "U4DImage.h"
-#include "U4DTouches.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
 #import <MetalKit/MetalKit.h>

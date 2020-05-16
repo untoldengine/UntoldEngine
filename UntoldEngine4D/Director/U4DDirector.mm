@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(1.0),globalTime(0.0){
+    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(1.0),globalTime(0.0),scene(nullptr){
     }
     
     U4DDirector::~U4DDirector(){
@@ -115,6 +115,11 @@ namespace U4DEngine {
         
     }
 
+    U4DScene *U4DDirector::getScene(){
+        
+        return scene;
+    }
+
 
     void U4DDirector::setDisplayWidthHeight(float uWidth,float uHeight){
         
@@ -163,84 +168,84 @@ namespace U4DEngine {
         return shadowBiasDepth;
     }
 
-    void U4DDirector::touchBegan(const U4DTouches &touches){
-        
-        scene->touchBegan(touches);
-        
-    }
-
-    void U4DDirector::touchEnded(const U4DTouches &touches){
-        
-        scene->touchEnded(touches);
-    }
-
-    void U4DDirector::touchMoved(const U4DTouches &touches){
-        
-        scene->touchMoved(touches);
-    }
+//    void U4DDirector::touchBegan(const U4DTouches &touches){
+//
+//        scene->touchBegan(touches);
+//
+//    }
+//
+//    void U4DDirector::touchEnded(const U4DTouches &touches){
+//
+//        scene->touchEnded(touches);
+//    }
+//
+//    void U4DDirector::touchMoved(const U4DTouches &touches){
+//
+//        scene->touchMoved(touches);
+//    }
     
-    void U4DDirector::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-        
-        scene->padPressBegan(uGamePadElement, uGamePadAction);
-        
-    }
-    
-    void U4DDirector::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-        
-        scene->padPressEnded(uGamePadElement, uGamePadAction);
-    }
-    
-    void U4DDirector::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
-        
-        scene->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
-        
-    }
-    
-    void U4DDirector::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-        
-        scene->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
-        
-    }
-    
-    void U4DDirector::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-        
-        scene->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
-    }
-    
-    void U4DDirector::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
-        
-        scene->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
-        
-    }
-    
-    void U4DDirector::macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        scene->macMousePressBegan(uMouseElement, uMouseAction, uMouseAxis);
-    }
-    
-    void U4DDirector::macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){
-        
-        scene->macMousePressEnded(uMouseElement, uMouseAction);
-    }
-    
-    void U4DDirector::macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        scene->macMouseDragged(uMouseElement, uMouseAction, uMouseAxis);
-    }
-
-    void U4DDirector::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        scene->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
-    }
-    
-    void U4DDirector::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta){
-        scene->macMouseDeltaMoved(uMouseElement, uMouseAction, uMouseDelta);
-    }
-    
-    void U4DDirector::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-        
-        scene->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);
-    }
+//    void U4DDirector::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+//
+//        scene->padPressBegan(uGamePadElement, uGamePadAction);
+//
+//    }
+//
+//    void U4DDirector::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
+//
+//        scene->padPressEnded(uGamePadElement, uGamePadAction);
+//    }
+//
+//    void U4DDirector::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
+//
+//        scene->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
+//
+//    }
+//
+//    void U4DDirector::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+//
+//        scene->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
+//
+//    }
+//
+//    void U4DDirector::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
+//
+//        scene->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
+//    }
+//
+//    void U4DDirector::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
+//
+//        scene->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
+//
+//    }
+//
+//    void U4DDirector::macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        scene->macMousePressBegan(uMouseElement, uMouseAction, uMouseAxis);
+//    }
+//
+//    void U4DDirector::macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){
+//
+//        scene->macMousePressEnded(uMouseElement, uMouseAction);
+//    }
+//
+//    void U4DDirector::macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        scene->macMouseDragged(uMouseElement, uMouseAction, uMouseAxis);
+//    }
+//
+//    void U4DDirector::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        scene->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
+//    }
+//
+//    void U4DDirector::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta){
+//        scene->macMouseDeltaMoved(uMouseElement, uMouseAction, uMouseDelta);
+//    }
+//
+//    void U4DDirector::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
+//
+//        scene->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);
+//    }
     
     void U4DDirector::setWorld(U4DWorld *uWorld){
         
