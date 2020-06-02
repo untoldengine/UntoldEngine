@@ -33,14 +33,9 @@ namespace U4DEngine {
     
     void U4DMacMousePressedState::enter(U4DMacMouse *uMacMouse){
         
-        U4DEngine::U4DVector3n mouseAxis(uMacMouse->mouseAxis.x,uMacMouse->mouseAxis.y, 0.0);
+        uMacMouse->previousDataPosition=uMacMouse->dataPosition;
         
-        uMacMouse->previousDataPosition=mouseAxis;
-        
-        if (uMacMouse->pCallback!=NULL) {
-            uMacMouse->action();
-        }
-        
+        uMacMouse->action();
         
         if (uMacMouse->controllerInterface !=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);

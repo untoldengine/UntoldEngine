@@ -616,64 +616,8 @@ public:
      */
     virtual bool isKineticsBehaviorEnabled(){};
     
-    /**
-     * @brief Changes the state of the button depending on the touch position
-     * @details It checks if the user input touch coordinates falls within the location of the buttons
-     *
-     * @param uTouchState touch state such as began, ended, released
-     * @param uTouchPosition position of touch
-     */
-    virtual void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){};
+    virtual bool changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){};
     
-    /**
-     * @brief Update the state of the controller pad
-     * @details It changes the state of the controller such as pressed, released or moved
-     *
-     * @param uGamePadAction action on the pad
-     * @param uPadAxis movement direction vector
-     */
-    virtual void changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){};
-    
-    /**
-     * @brief Updates the state of the controller
-     * @details It changes the state of the controller such as if the key is pressed or released
-     *
-     * @param uKeyboardAction action on the key
-     * @param uPadAxis [description]
-     */
-    virtual void changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis){};
-    
-    /**
-     * @brief Updates the state of the controller
-     * @details It changes the state of the controller such as if the mouse is moved, a pressed began or ended
-     *
-     * @param uMouseAction action on the mouse
-     * @param uMouseAxis the movement direction vector of the mouse
-     */
-    virtual void changeState(MOUSEACTION &uMouseAction, const U4DVector2n &uMouseAxis){};
-    
-    /**
-     * @brief Gets the game pad element
-     * @details A pad element can be a key or joystick
-     * @return game pad element
-     */
-    virtual GAMEPADELEMENT getPadElementType(){};
-    
-    /**
-     * @brief Gets a keyboard element      
-     * @details a keyboard element can be a key or arrow
-     * @return keyboard element
-     */
-    virtual KEYBOARDELEMENT getKeyboardElementType(){};
-    
-    
-    /**
-     @brief gets the mouse element
-     @details a mouse element can be the left or right button
-
-     @return mouse element
-     */
-    virtual MOUSEELEMENT getMouseElementType(){};
 };
 
 }

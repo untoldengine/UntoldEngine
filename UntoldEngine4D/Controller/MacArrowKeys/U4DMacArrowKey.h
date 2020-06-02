@@ -11,9 +11,8 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DDirector.h"
-#include "U4DEntity.h"
 #include "U4DCallbackInterface.h"
+#include "U4DInputElement.h"
 #include "CommonProtocols.h"
 #include "U4DVector2n.h"
 
@@ -25,25 +24,19 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
-    class U4DMacArrowKey:public U4DEntity{
+class U4DMacArrowKey:public U4DInputElement{
         
     private:
         
         U4DMacArrowKeyStateManager *stateManager;
         
-        KEYBOARDELEMENT padElementType;
-        
     public:
         
-        U4DMacArrowKey(KEYBOARDELEMENT &uPadElementType);
+        U4DMacArrowKey(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface);
         
         ~U4DMacArrowKey();
         
-        U4DCallbackInterface *pCallback;
-        
-        U4DControllerInterface *controllerInterface;
-        
-        U4DVector3n dataPosition;
+        U4DVector2n dataPosition;
         
         U4DVector2n padAxis;
         
@@ -57,11 +50,11 @@ namespace U4DEngine {
         
         void action();
         
-        void changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis);
+        void changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition);
         
-        void setDataPosition(U4DVector3n uData);
+        void setDataPosition(U4DVector2n uData);
         
-        U4DVector3n getDataPosition();
+        U4DVector2n getDataPosition();
         
         void setDataMagnitude(float uValue);
         
@@ -69,13 +62,8 @@ namespace U4DEngine {
         
         bool getIsActive();
         
-        void setCallbackAction(U4DCallbackInterface *uAction);
-        
-        void setControllerInterface(U4DControllerInterface* uControllerInterface);
-        
         bool getDirectionReversal();
         
-        KEYBOARDELEMENT getKeyboardElementType();
     };
     
 }

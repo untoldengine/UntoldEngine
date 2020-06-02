@@ -11,10 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DDirector.h"
-#include "U4DEntity.h"
-#include "U4DPadAxis.h"
-#include "U4DCallbackInterface.h"
+#include "U4DInputElement.h"
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
@@ -24,39 +21,30 @@ namespace U4DEngine {
 }
 
 namespace U4DEngine {
-    class U4DPadButton:public U4DEntity{
+
+    class U4DPadButton:public U4DInputElement{
         
     private:
         
         U4DPadButtonStateManager *stateManager;
         
-        GAMEPADELEMENT padElementType;
-        
     public:
         
-        U4DPadButton(GAMEPADELEMENT &uPadElementType);
+        U4DPadButton(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface);
         
         ~U4DPadButton();
-        
-        U4DCallbackInterface *pCallback;
-        
-        U4DControllerInterface *controllerInterface;
         
         void update(double dt);
         
         void action();
         
-        void changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis);
+        void changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition);
         
         bool getIsPressed();
         
         bool getIsReleased();
         
-        GAMEPADELEMENT getPadElementType();
         
-        void setCallbackAction(U4DCallbackInterface *uAction);
-        
-        void setControllerInterface(U4DControllerInterface* uControllerInterface);
     };
     
 }

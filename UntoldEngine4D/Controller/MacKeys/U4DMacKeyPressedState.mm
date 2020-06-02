@@ -33,10 +33,7 @@ namespace U4DEngine {
     
     void U4DMacKeyPressedState::enter(U4DMacKey *uMacKey){
         
-        if (uMacKey->pCallback!=NULL) {
-            uMacKey->action();
-        }
-        
+        uMacKey->action();
         
         if (uMacKey->controllerInterface !=NULL) {
             uMacKey->controllerInterface->setReceivedAction(true);

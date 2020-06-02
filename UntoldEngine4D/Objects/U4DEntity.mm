@@ -108,10 +108,14 @@ namespace U4DEngine {
         
         U4DDualQuaternion space;
         
-        if (parent!=NULL) {
-            space=absoluteSpace;
-        }else{
-            space=getLocalSpace();
+        U4DEntity *child=this;
+        
+        while (child!=nullptr) {
+            
+            space=space*child->getLocalSpace();
+            
+            child=child->getParent();
+            
         }
         
         return space;
@@ -119,28 +123,14 @@ namespace U4DEngine {
 
     U4DQuaternion U4DEntity::getAbsoluteSpaceOrientation(){
         
-        U4DDualQuaternion space;
-        
-        if (parent!=NULL) {
-            space=getLocalSpace()*parent->getLocalSpace();
-        }else{
-            space=getLocalSpace();
-        }
+        U4DDualQuaternion space=getAbsoluteSpace();
         
         return space.getRealQuaternionPart();
     }
 
     U4DQuaternion U4DEntity::getAbsoluteSpacePosition(){
 
-        U4DDualQuaternion space;
-        
-        if (parent!=NULL) {
-            space=getLocalSpace()*parent->getLocalSpace();
-        
-        }else{
-            
-            space=getLocalSpace();
-        }
+        U4DDualQuaternion space=getAbsoluteSpace();
         
         return space.getPureQuaternionPart();
     }
@@ -185,36 +175,15 @@ namespace U4DEngine {
 
     U4DVector3n U4DEntity::getAbsoluteOrientation(){
         
-        U4DDualQuaternion space;
-        
-        if (parent!=NULL) {
-        
-            space=getLocalSpace()*parent->getLocalSpace();
-        
-        }else{
-        
-            space=getLocalSpace();
-        
-        }
-        
-        
-        U4DQuaternion orientation=space.getRealQuaternionPart();
+        U4DQuaternion orientation=getAbsoluteSpaceOrientation();
         
         return orientation.transformQuaternionToEulerAngles();
         
     }
 
     U4DVector3n U4DEntity::getAbsolutePosition(){
-     
-        U4DDualQuaternion space;
         
-        if (parent!=NULL) {
-            space=getLocalSpace()*parent->getLocalSpace();
-        }else{
-            space=getLocalSpace();
-        }
-        
-        U4DQuaternion position=space.getPureQuaternionPart();
+        U4DQuaternion position=getAbsoluteSpacePosition();
         
         U4DVector3n pos(position.v.x,position.v.y,position.v.z);
         

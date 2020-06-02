@@ -148,26 +148,28 @@ void U4DJoyStick::action(){
     pCallback->action();
 }
 
-
-void U4DJoyStick::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uNewPosition){
+bool U4DJoyStick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){
     
-    U4DVector3n distance=(uNewPosition-centerBackgroundPosition);
+    bool withinBoundary=false;
+    
+    U4DVector3n pos(uPosition.x,uPosition.y,0.0);
+    
+    U4DVector3n distance=(pos-centerBackgroundPosition);
     
     float distanceMagnitude=distance.magnitude();
     
     float distancePlusJoyStick=distanceMagnitude+joyStickImageRadius;
     
-    
-    
     if (distancePlusJoyStick<=(backgroundImageRadius+backgroundImageRadius*2.5)){
         
-        currentPosition=uNewPosition;
+        currentPosition=pos;
+        withinBoundary=true;
         
-        if (uTouchState==rTouchesBegan || uTouchState==rTouchesMoved) {
+        if (uInputAction==U4DEngine::mouseButtonPressed || uInputAction==U4DEngine::mouseButtonDragged) {
             
             stateManager->changeState(U4DJoystickActiveState::sharedInstance());
             
-        }else if(uTouchState==rTouchesEnded && (stateManager->getCurrentState()==U4DJoystickActiveState::sharedInstance())){
+        }else if(uInputAction==U4DEngine::mouseButtonReleased && (stateManager->getCurrentState()==U4DJoystickActiveState::sharedInstance())){
             
             stateManager->changeState(U4DJoystickReleasedState::sharedInstance());
             
@@ -175,6 +177,7 @@ void U4DJoyStick::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uNewPosition)
         
     }
     
+    return withinBoundary;
 }
 
 TOUCHSTATE U4DJoyStick::getState(){

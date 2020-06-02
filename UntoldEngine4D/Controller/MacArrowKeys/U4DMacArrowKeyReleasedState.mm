@@ -35,9 +35,9 @@ namespace U4DEngine {
         
         uMacArrowKey->dataMagnitude=0.0;
         
-        if (uMacArrowKey->pCallback!=NULL) {
-            uMacArrowKey->action();
-        }
+        
+        uMacArrowKey->action();
+        
         
         if (uMacArrowKey->controllerInterface!=NULL) {
             uMacArrowKey->controllerInterface->setReceivedAction(true);

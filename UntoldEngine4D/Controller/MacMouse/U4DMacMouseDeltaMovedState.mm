@@ -44,12 +44,10 @@ namespace U4DEngine {
         
         U4DNumerical numerical;
         
-        U4DEngine::U4DVector2n mouseDelta(uMacMouse->mouseAxisDelta.x,uMacMouse->mouseAxisDelta.y);
-        
         float biasMotionAccumulator=0.90;
         float biasSlowFactorAccumulator=0.50;
         
-        motionDeltaAccumulator=motionDeltaAccumulator*biasMotionAccumulator+mouseDelta*(1.0-biasMotionAccumulator);
+        motionDeltaAccumulator=motionDeltaAccumulator*biasMotionAccumulator+uMacMouse->dataDeltaPosition*(1.0-biasMotionAccumulator);
 
         //The slow down factor is used to decrease the speed of the mouse
         mouseSlowFactor=mouseSlowFactor*biasSlowFactorAccumulator+dt*(1.0-biasSlowFactorAccumulator);
@@ -60,13 +58,11 @@ namespace U4DEngine {
 
         }
         
-        uMacMouse->mouseAxisDelta=motionDeltaAccumulator;
+        uMacMouse->dataDeltaPosition=motionDeltaAccumulator;
         
-        uMacMouse->previousMouseAxisDelta=mouseDelta;
+        uMacMouse->previousDataDeltaPosition=uMacMouse->dataDeltaPosition;
         
-        if (uMacMouse->pCallback!=NULL) {
-            uMacMouse->action();
-        }
+        uMacMouse->action();
         
         if (uMacMouse->controllerInterface!=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);

@@ -10,6 +10,7 @@
 #include "UserCommonProtocols.h"
 #include "U4DRay.h"
 #include "U4DRayCast.h"
+#include "U4DAvoidance.h"
 
 Player::Player():motionAccumulator(0.0,0.0,0.0),hero(nullptr){
     
@@ -47,6 +48,7 @@ bool Player::init(const char* uModelName){
         runningAnimation=new U4DEngine::U4DAnimation(this);
         patrolAnimation=new U4DEngine::U4DAnimation(this);
         patrolIdleAnimation=new U4DEngine::U4DAnimation(this);
+        deadAnimation=new U4DEngine::U4DAnimation(this);
         
         //load the animation data
         if(loadAnimationToModel(runningAnimation, "running")){
@@ -62,6 +64,13 @@ bool Player::init(const char* uModelName){
         //load patrol idle animation data
         if(loadAnimationToModel(patrolIdleAnimation,"patrolidle")){
             
+        }
+        
+        //load dead animation data
+        if(loadAnimationToModel(deadAnimation, "dead")){
+            
+            deadAnimation->setPlayContinuousLoop(false);
+        
         }
         
         //allow the character to move
@@ -80,8 +89,11 @@ bool Player::init(const char* uModelName){
         //I am of type
         setCollisionFilterCategory(kPlayer);
         
-        //I collide with type of
-        setCollisionFilterMask(kBullet);
+        //I collide with type of bullet and player. The enemies can collide among themselves.
+        setCollisionFilterMask(kBullet|kPlayer);
+        
+        //set a tag
+        setCollidingTag("player");
         
         //set default view of the character
         U4DEngine::U4DVector3n viewDirectionVector(0.0,0.0,-1.0);
@@ -122,8 +134,7 @@ bool Player::init(const char* uModelName){
 
 void Player::update(double dt){
     
-    //check if the bullet has hit the player
-    
+    //check if the bullet has hit the player. If so, change the state to dead
     if(getModelHasCollided()){
         
         // Line 2. Get a list of entities it is colliding with
@@ -132,11 +143,37 @@ void Player::update(double dt){
             // Line 3. Check if the entity is the bullet
             if (n->getCollidingTag().compare("bullet")==0) {
                 
-                std::cout<<"The enemy was hit"<<std::endl;
+                //bullet hit the player. Change the state to dead
+                changeState(dead);
                 
             }
             
         }
+        
+    }
+    
+    //check if the player is colliding with another player and is in the "attacking" state.
+    if (getModelHasCollidedBroadPhase() && state==attack) {
+        
+        // Line 2. Get a list of entities it is colliding with
+        for(auto n:getCollisionList()){
+            
+            // Line 3. Check if the entity is the bullet
+            if (n->getCollidingTag().compare("player")==0) {
+                
+                //if player is about to collide with another player, then avoid the collision
+                changeState(avoidance);
+                
+            }
+            
+        }
+    }
+    
+    //check if the player is no longer colliding with other players and its state is in the "avoidance" state
+    if (getModelHasCollidedBroadPhase()==false && state==avoidance) {
+        
+        //change state to attack
+        changeState(attack);
         
     }
     
@@ -208,7 +245,24 @@ void Player::update(double dt){
             
         }
     
-    }else if(state==idle){
+    }else if(state==avoidance){
+        
+        //create an avoidance steering behavior
+        U4DEngine::U4DAvoidance avoidanceBehavior;
+        
+        //compute the final velocity
+        U4DEngine::U4DVector3n finalVelocity=avoidanceBehavior.getSteering(this);
+        
+        if (!(finalVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))) {
+            
+            finalVelocity.y=0.0;
+            
+            applyVelocity(finalVelocity, dt);
+            setViewDirection(finalVelocity);
+            
+        }
+        
+    }else if(state==idle || state==dead){
         
         //remove all velocities from the character
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
@@ -284,7 +338,25 @@ void Player::changeState(int uState){
             currentAnimation=patrolIdleAnimation;
             
             break;
+        
+        case avoidance:
             
+            currentAnimation=runningAnimation;
+            
+            navigationTimer->setPause(true);
+            
+            break;
+            
+        case dead:
+            
+            //play dead animation
+            currentAnimation=deadAnimation;
+            
+            //pause any collision behaviors. And also the navigation system.
+            pauseCollisionBehavior();
+            navigationTimer->setPause(true);
+            
+            break;
             
         default:
             break;

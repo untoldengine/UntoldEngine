@@ -12,8 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DDirector.h"
-#include "U4DEntity.h"
-#include "U4DCallbackInterface.h"
+#include "U4DInputElement.h"
 #include "CommonProtocols.h"
 #include "U4DPadAxis.h"
 
@@ -25,27 +24,21 @@ namespace U4DEngine {
 
 namespace U4DEngine {
     
-    class U4DPadJoystick:public U4DEntity{
+    class U4DPadJoystick:public U4DInputElement{
         
     private:
         
         U4DPadJoystickStateManager *stateManager;
         
-        GAMEPADELEMENT padElementType;
-        
     public:
         
-        U4DPadJoystick(GAMEPADELEMENT &uPadElementType);
+        U4DPadJoystick(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface);
         
         ~U4DPadJoystick();
         
-        U4DCallbackInterface *pCallback;
+        U4DVector2n dataPosition;
         
-        U4DControllerInterface *controllerInterface;
-        
-        U4DVector3n dataPosition;
-        
-        U4DPadAxis padAxis;
+        U4DVector2n padAxis;
         
         float dataMagnitude;
         
@@ -57,11 +50,11 @@ namespace U4DEngine {
         
         void action();
         
-        void changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis);
+        void changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition);
         
-        void setDataPosition(U4DVector3n uData);
+        void setDataPosition(U4DVector2n &uData);
         
-        U4DVector3n getDataPosition();
+        U4DVector2n getDataPosition();
         
         void setDataMagnitude(float uValue);
         
@@ -69,13 +62,8 @@ namespace U4DEngine {
         
         bool getIsActive();
         
-        void setCallbackAction(U4DCallbackInterface *uAction);
-        
-        void setControllerInterface(U4DControllerInterface* uControllerInterface);
-        
         bool getDirectionReversal();
         
-        GAMEPADELEMENT getPadElementType();
     };
     
 }

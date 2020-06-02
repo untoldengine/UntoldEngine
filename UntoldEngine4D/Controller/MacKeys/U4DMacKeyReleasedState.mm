@@ -33,9 +33,9 @@ namespace U4DEngine {
     
     void U4DMacKeyReleasedState::enter(U4DMacKey *uMacKey){
         
-        if (uMacKey->pCallback!=NULL) {
-            uMacKey->action();
-        }
+        
+        uMacKey->action();
+        
         
         
         if (uMacKey->controllerInterface !=NULL) {

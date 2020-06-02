@@ -7,89 +7,242 @@
 //
 
 #include "U4DGamepadController.h"
-#include "U4DGameModelInterface.h"
-#include "U4DWorld.h"
+
 
 namespace U4DEngine {
     
     //constructor
-    U4DGamepadController::U4DGamepadController():receivedAction(false){}
+    U4DGamepadController::U4DGamepadController(){}
     
     //destructor
     U4DGamepadController::~U4DGamepadController(){}
-    
-    void U4DGamepadController::setGameWorld(U4DWorld *uGameWorld){
+
+    void U4DGamepadController::init(){
         
-        gameWorld=uGameWorld;
+        //Buttons
+        buttonA=new U4DPadButton(U4DEngine::padButtonA, this);
+        buttonB=new U4DPadButton(U4DEngine::padButtonB,this);
+        buttonX=new U4DPadButton(U4DEngine::padButtonX,this);
+        buttonY=new U4DPadButton(U4DEngine::padButtonY,this);
+        
+        //trigger
+        leftTrigger=new U4DPadButton(U4DEngine::padLeftTrigger,this);
+        rightTrigger=new U4DPadButton(U4DEngine::padRightTrigger,this);
+        
+        //shoulder
+        leftShoulder=new U4DPadButton(U4DEngine::padLeftShoulder,this);
+        rightShoulder=new U4DPadButton(U4DEngine::padRightShoulder,this);
+        
+        //d-pad
+        dPadButtonUp=new U4DPadButton(U4DEngine::padDPadUpButton,this);
+        dPadButtonDown=new U4DPadButton(U4DEngine::padDPadDownButton,this);
+        dPadButtonLeft=new U4DPadButton(U4DEngine::padDPadLeftButton,this);
+        dPadButtonRight=new U4DPadButton(U4DEngine::padDPadRightButton,this);
+        
+        //Analog Joystick
+        leftJoystick=new U4DPadJoystick(U4DEngine::padLeftThumbstick, this);
+        rightJoystick=new U4DPadJoystick(U4DEngine::padRightThumbstick, this);
+        
+        //buttons
+        registerInputEntity(buttonA);
+        registerInputEntity(buttonB);
+        registerInputEntity(buttonX);
+        registerInputEntity(buttonY);
+        
+        //triggers
+        registerInputEntity(leftTrigger);
+        registerInputEntity(rightTrigger);
+        
+        //shoulder
+        registerInputEntity(leftShoulder);
+        registerInputEntity(rightShoulder);
+        
+        //d-pad
+        registerInputEntity(dPadButtonUp);
+        registerInputEntity(dPadButtonDown);
+        registerInputEntity(dPadButtonRight);
+        registerInputEntity(dPadButtonLeft);
+        
+        //analog sticks
+        registerInputEntity(leftJoystick);
+        registerInputEntity(rightJoystick);
         
     }
     
-    
-    void U4DGamepadController::setGameModel(U4DGameModelInterface *uGameModel){
+    void U4DGamepadController::getUserInputData(GCExtendedGamepad *gamepad, GCControllerElement *element){
         
-        gameModel=uGameModel;
+        U4DVector2n pos(0.0,0.0);
         
-    }
-    
-    U4DWorld* U4DGamepadController::getGameWorld(){
+        //BUTTONS
         
-        return gameWorld;
-    }
-    
-    U4DGameModelInterface* U4DGamepadController::getGameModel(){
-        
-        return gameModel;
-    }
-    
-    void U4DGamepadController::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-        
-        //dummy axis
-        U4DPadAxis padAxis(0.0,0.0);
-        
-        changeState(uGamePadElement, uGamePadAction, padAxis);
-    }
-    
-    void U4DGamepadController::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-        
-        //dummy axis
-        U4DPadAxis padAxis(0.0,0.0);
-        
-        changeState(uGamePadElement, uGamePadAction, padAxis);
-        
-    }
-    
-    void U4DGamepadController::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
-        
-        changeState(uGamePadElement, uGamePadAction, uPadAxis);
-    }
-    
-    void U4DGamepadController::changeState(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
-        
-        U4DEntity *child=gameWorld;
-        
-        //change the state of the controller input
-        while (child!=NULL) {
+        // A button
+        if (gamepad.buttonA == element && gamepad.buttonA.isPressed) {
             
-            if (child->getEntityType()==CONTROLLERINPUT && child->getPadElementType()==uGamePadElement) {
-                
-                child->changeState(uGamePadAction, uPadAxis);
-                
-            }
+            changeState(U4DEngine::padButtonA, U4DEngine::padButtonPressed,pos);
             
-            child=child->next;
+        }else if(gamepad.buttonA == element && !gamepad.buttonA.isPressed){
+
+            changeState(U4DEngine::padButtonA, U4DEngine::padButtonReleased,pos);
+            
+        }
+
+        // B button
+        if (gamepad.buttonB == element && gamepad.buttonB.isPressed) {
+
+            changeState(U4DEngine::padButtonB, U4DEngine::padButtonPressed,pos);
+            
+        }else if(gamepad.buttonB == element && !gamepad.buttonB.isPressed){
+
+            changeState(U4DEngine::padButtonB, U4DEngine::padButtonReleased,pos);
+            
+        }
+
+        // X button
+        if (gamepad.buttonX == element && gamepad.buttonX.isPressed) {
+            
+            changeState(U4DEngine::padButtonX, U4DEngine::padButtonPressed,pos);
+            
+        }else if(gamepad.buttonX == element && !gamepad.buttonX.isPressed){
+            
+            changeState(U4DEngine::padButtonX, U4DEngine::padButtonReleased,pos);
+        }
+
+        // Y button
+        if (gamepad.buttonY == element && gamepad.buttonY.isPressed) {
+            
+            changeState(U4DEngine::padButtonY, U4DEngine::padButtonPressed,pos);
+            
+        }else if(gamepad.buttonY == element && !gamepad.buttonY.isPressed){
+            
+            changeState(U4DEngine::padButtonY, U4DEngine::padButtonReleased,pos);
             
         }
         
-    }
-    
-    void U4DGamepadController::sendUserInputUpdate(void *uData){
+        //TRIGGER AND SHOULDERS
         
-        gameModel->receiveUserInputUpdate(uData);
-    }
-    
-    void U4DGamepadController::setReceivedAction(bool uValue){
+        // left trigger
+        if (gamepad.leftTrigger == element && gamepad.leftTrigger.isPressed) {
+            
+            changeState(U4DEngine::padLeftTrigger, U4DEngine::padButtonPressed,pos);
+            
+        }else if(gamepad.leftTrigger == element && !gamepad.leftTrigger.isPressed){
+            
+            changeState(U4DEngine::padLeftTrigger, U4DEngine::padButtonReleased,pos);
+            
+        }
+
+        // right trigger
+        if (gamepad.rightTrigger == element && gamepad.rightTrigger.isPressed) {
+            
+            changeState(U4DEngine::padRightTrigger, U4DEngine::padButtonPressed,pos);
+            
+        }else if(gamepad.rightTrigger == element && !gamepad.rightTrigger.isPressed){
+
+            changeState(U4DEngine::padRightTrigger, U4DEngine::padButtonReleased,pos);
+        }
+
+        // left shoulder button
+        if (gamepad.leftShoulder == element && gamepad.leftShoulder.isPressed) {
+            
+            changeState(U4DEngine::padLeftShoulder, U4DEngine::padButtonPressed,pos);
+            
+        }else if(gamepad.leftShoulder == element && !gamepad.leftShoulder.isPressed){
+
+            changeState(U4DEngine::padLeftShoulder, U4DEngine::padButtonReleased,pos);
         
-        receivedAction=uValue;
-    }
+        }
+
+        // right shoulder button
+        if (gamepad.rightShoulder == element && gamepad.rightShoulder.isPressed) {
+            
+            changeState(U4DEngine::padRightShoulder, U4DEngine::padButtonPressed,pos);
+            
+        }else if(gamepad.rightShoulder == element && !gamepad.rightShoulder.isPressed){
+
+            changeState(U4DEngine::padRightShoulder, U4DEngine::padButtonReleased,pos);
+            
+        }
+        
+        //D-PAD
+
+        if (gamepad.dpad == element) {
+
+            if (gamepad.dpad.up.isPressed) {
+                
+                changeState(U4DEngine::padDPadUpButton, U4DEngine::padButtonPressed, pos);
+                
+            }else if(!gamepad.dpad.up.isPressed){
+
+                changeState(U4DEngine::padDPadUpButton, U4DEngine::padButtonReleased, pos);
+            }
+
+            if (gamepad.dpad.down.isPressed) {
+                
+                changeState(U4DEngine::padDPadDownButton, U4DEngine::padButtonPressed, pos);
+
+            }else if(!gamepad.dpad.down.isPressed){
+
+                changeState(U4DEngine::padDPadDownButton, U4DEngine::padButtonReleased, pos);
+
+            }
+
+            if (gamepad.dpad.left.isPressed) {
+                
+                changeState(U4DEngine::padDPadLeftButton, U4DEngine::padButtonPressed, pos);
+                
+            }else if(!gamepad.dpad.left.isPressed){
+
+                changeState(U4DEngine::padDPadLeftButton, U4DEngine::padButtonReleased, pos);
+
+            }
+
+            if (gamepad.dpad.right.isPressed) {
+                
+                changeState(U4DEngine::padDPadRightButton, U4DEngine::padButtonPressed, pos);
+                
+            }else if(!gamepad.dpad.right.isPressed){
+
+                changeState(U4DEngine::padDPadRightButton, U4DEngine::padButtonReleased, pos);
+                
+            }
+
+        }
+        
+        //ANALOG STICKS
+        // left stick
+        if (gamepad.leftThumbstick == element) {
+
+            U4DEngine::U4DVector2n padAxis(gamepad.leftThumbstick.xAxis.value,gamepad.leftThumbstick.yAxis.value);
+            
+            if (gamepad.leftThumbstick.up.isPressed || gamepad.leftThumbstick.down.isPressed || gamepad.leftThumbstick.left.isPressed || gamepad.leftThumbstick.right.isPressed) {
+                
+                changeState(U4DEngine::padLeftThumbstick, U4DEngine::padThumbstickMoved, padAxis);
+                
+            }else if(!gamepad.leftThumbstick.up.isPressed && !gamepad.leftThumbstick.down.isPressed && !gamepad.leftThumbstick.left.isPressed && !gamepad.leftThumbstick.right.isPressed){
+
+                changeState(U4DEngine::padLeftThumbstick, U4DEngine::padThumbstickReleased, padAxis);
+                
+            }
+
+        }
+
+        // right stick
+        if (gamepad.rightThumbstick == element) {
+
+            U4DEngine::U4DVector2n padAxis(gamepad.rightThumbstick.xAxis.value,gamepad.rightThumbstick.yAxis.value);
+            
+            if (gamepad.rightThumbstick.up.isPressed || gamepad.rightThumbstick.down.isPressed || gamepad.rightThumbstick.left.isPressed || gamepad.rightThumbstick.right.isPressed) {
+                
+                changeState(U4DEngine::padRightThumbstick, U4DEngine::padThumbstickMoved, padAxis);
+                
+            }else if(!gamepad.rightThumbstick.up.isPressed && !gamepad.rightThumbstick.down.isPressed && !gamepad.rightThumbstick.left.isPressed && !gamepad.rightThumbstick.right.isPressed){
+
+                changeState(U4DEngine::padRightThumbstick, U4DEngine::padThumbstickReleased, padAxis);
+                
+            }
+
+        }
+        
+    } 
     
 }

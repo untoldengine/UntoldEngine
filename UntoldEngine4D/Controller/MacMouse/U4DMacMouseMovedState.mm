@@ -17,7 +17,7 @@ namespace U4DEngine {
     
     U4DMacMouseMovedState* U4DMacMouseMovedState::instance=0;
     
-    U4DMacMouseMovedState::U4DMacMouseMovedState():motionAccumulator(0.0,0.0,0.0){
+    U4DMacMouseMovedState::U4DMacMouseMovedState():motionAccumulator(0.0,0.0){
         
     }
     
@@ -44,9 +44,7 @@ namespace U4DEngine {
         
         U4DNumerical numerical;
         
-        U4DEngine::U4DVector3n mouseAxis(uMacMouse->mouseAxis.x,uMacMouse->mouseAxis.y, 0.0);
-        
-        U4DEngine::U4DVector3n mouseDirection=mouseAxis-uMacMouse->previousDataPosition;
+        U4DEngine::U4DVector2n mouseDirection=uMacMouse->dataPosition-uMacMouse->previousDataPosition;
         
         //Test if the mouse has stopped by using a Recency Weithted Average
         
@@ -57,7 +55,7 @@ namespace U4DEngine {
         //A bias of 1 ignores the new value altogether.
         float biasMotionAccumulator=0.50;
         
-        motionAccumulator=motionAccumulator*biasMotionAccumulator+mouseAxis*(1.0-biasMotionAccumulator);
+        motionAccumulator=motionAccumulator*biasMotionAccumulator+uMacMouse->dataPosition*(1.0-biasMotionAccumulator);
         
         
         float zeroValue=0.0;
@@ -75,9 +73,9 @@ namespace U4DEngine {
         
         uMacMouse->dataMagnitude=motionAccumulator.magnitude();
         
-        if (uMacMouse->pCallback!=NULL) {
-            uMacMouse->action();
-        }
+        
+        uMacMouse->action();
+        
         
         if (uMacMouse->controllerInterface!=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);

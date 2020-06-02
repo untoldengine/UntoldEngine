@@ -14,10 +14,8 @@
 #include "U4DDirector.h"
 #include "U4DEntity.h"
 #include "U4DMultiImage.h"
-#include "U4DTouches.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
-#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     class U4DImage;
@@ -52,7 +50,7 @@ private:
     /**
      * @brief current touch position detected
      */
-    U4DVector3n currentTouchPosition;
+    U4DVector2n currentTouchPosition;
     
 
 public:
@@ -83,13 +81,6 @@ public:
      * 
      */
     U4DCallbackInterface *pCallback;
-    
-    /**
-     * @brief Pointer to the controller interface
-     * @details Usually the controller interface for button is the touch interface
-     * 
-     */
-    U4DControllerInterface *controllerInterface;
     
     /**
      * @brief the buttonImages member is a U4DMultiImage entity 
@@ -124,10 +115,10 @@ public:
      * @brief Changes the state of the button depending on the touch position
      * @details It checks if the user input touch coordinates falls within the location of the buttons
      * 
-     * @param uTouchState touch state such as began, ended, released
-     * @param uTouchPosition position of touch
+     * @param uInputAction touch state such as began, ended, released
+     * @param uPosition position of touch
      */
-    void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition);
+    bool changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition);
     
     /**
      * @brief Returns true if the button is pressed
@@ -146,14 +137,6 @@ public:
      * @param uAction callback interface object
      */
     void setCallbackAction(U4DCallbackInterface *uAction);
-    
-    /**
-     * @brief Initializes the controller interface
-     * @details The controller interface for buttons is usually the touch controller (U4DTouchController)
-     * 
-     * @param uControllerInterface controller interface object
-     */
-    void setControllerInterface(U4DControllerInterface* uControllerInterface);
 
 };
 

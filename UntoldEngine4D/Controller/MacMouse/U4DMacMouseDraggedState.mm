@@ -38,9 +38,7 @@ namespace U4DEngine {
     
     void U4DMacMouseDraggedState::execute(U4DMacMouse *uMacMouse, double dt){
         
-        U4DEngine::U4DVector3n mouseAxis(uMacMouse->mouseAxis.x,uMacMouse->mouseAxis.y, 0.0);
-        
-        U4DEngine::U4DVector3n absoluteMouseAxis=mouseAxis-uMacMouse->previousDataPosition;
+        U4DEngine::U4DVector2n absoluteMouseAxis=uMacMouse->dataPosition-uMacMouse->previousDataPosition;
         
         //make sure that the mouse drag is not too close to its initial position.
         if (absoluteMouseAxis.magnitude()<1.0) {
@@ -60,15 +58,15 @@ namespace U4DEngine {
             
         }
         
-        uMacMouse->previousDataPosition=mouseAxis;
+        uMacMouse->previousDataPosition=uMacMouse->dataPosition;
         
         uMacMouse->dataPosition=absoluteMouseAxis;
         
         uMacMouse->dataMagnitude=absoluteMouseAxis.magnitude();
         
-        if (uMacMouse->pCallback!=NULL) {
-            uMacMouse->action();
-        }
+        
+        uMacMouse->action();
+        
         
         if (uMacMouse->controllerInterface!=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);

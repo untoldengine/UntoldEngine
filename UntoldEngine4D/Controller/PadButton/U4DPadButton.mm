@@ -8,7 +8,6 @@
 
 #include "U4DPadButton.h"
 #include "U4DVector2n.h"
-#include "U4DTouches.h"
 #include "U4DDirector.h"
 #include "U4DControllerInterface.h"
 #include "U4DPadButtonPressedState.h"
@@ -20,13 +19,9 @@
 
 namespace U4DEngine {
     
-    U4DPadButton::U4DPadButton(GAMEPADELEMENT &uPadElementType){
+    U4DPadButton::U4DPadButton(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface):U4DInputElement(uInputElementType, uControllerInterface){
         
         stateManager=new U4DPadButtonStateManager(this);
-        
-        padElementType=uPadElementType;
-        
-        setEntityType(CONTROLLERINPUT);
         
         //set initial state
         stateManager->changeState(U4DPadButtonIdleState::sharedInstance());
@@ -39,11 +34,6 @@ namespace U4DEngine {
         
     }
     
-    GAMEPADELEMENT U4DPadButton::getPadElementType(){
-        
-        return padElementType;
-        
-    }
     
     void U4DPadButton::update(double dt){
         
@@ -53,17 +43,31 @@ namespace U4DEngine {
     
     void U4DPadButton::action(){
         
-        pCallback->action();
+        CONTROLLERMESSAGE controllerMessage;
+    
+        controllerMessage.inputElementType=inputElementType;
+    
+        if (getIsPressed()) {
+    
+            controllerMessage.inputElementAction=U4DEngine::padButtonPressed;
+    
+        }else if(getIsReleased()){
+    
+            controllerMessage.inputElementAction=U4DEngine::padButtonReleased;
+    
+        }
+    
+        controllerInterface->sendUserInputUpdate(&controllerMessage);
         
     }
     
-    void U4DPadButton::changeState(GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
+    void U4DPadButton::changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition){
         
-        if(uGamePadAction==U4DEngine::padButtonPressed){
+        if(uInputAction==U4DEngine::padButtonPressed){
             
             stateManager->changeState(U4DPadButtonPressedState::sharedInstance());
             
-        }else if (uGamePadAction==U4DEngine::padButtonReleased){
+        }else if (uInputAction==U4DEngine::padButtonReleased){
             
             stateManager->changeState(U4DPadButtonReleasedState::sharedInstance());
             
@@ -71,12 +75,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DPadButton::setCallbackAction(U4DCallbackInterface *uAction){
-        
-        //set the callback
-        pCallback=uAction;
-        
-    }
     
     bool U4DPadButton::getIsPressed(){
         
@@ -87,12 +85,6 @@ namespace U4DEngine {
     bool U4DPadButton::getIsReleased(){
         
         return (stateManager->getCurrentState()==U4DPadButtonReleasedState::sharedInstance());
-        
-    }
-    
-    void U4DPadButton::setControllerInterface(U4DControllerInterface* uControllerInterface){
-        
-        controllerInterface=uControllerInterface;
         
     }
     

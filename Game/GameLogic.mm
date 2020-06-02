@@ -8,6 +8,7 @@
 
 #include "GameLogic.h"
 #include "Earth.h"
+#include "CommonProtocols.h"
 
 using namespace U4DEngine;
 
@@ -40,26 +41,26 @@ void GameLogic::receiveUserInputUpdate(void *uData){
     
     //1. Get the user-input message from the structure
     
-    ControllerInputMessage controllerInputMessage=*(ControllerInputMessage*)uData;
+    CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
     
     //check the astronaut model exists
     if(pPlayer!=nullptr){
         
         //2. Determine what was pressed, buttons, keys or joystick
         
-        switch (controllerInputMessage.controllerInputType) {
+        switch (controllerInputMessage.inputElementType) {
                 
-            case actionMouseLeftTrigger:
+            case U4DEngine::mouseLeftButton:
             {
                 //4. If button was pressed
-                if (controllerInputMessage.controllerInputData==buttonPressed) {
+                if (controllerInputMessage.inputElementAction==U4DEngine::mouseButtonPressed) {
                     
                     if(pPlayer->getState()!=shooting){
                         pPlayer->changeState(shooting);
                     }
                         
                     //5. If button was released
-                }else if(controllerInputMessage.controllerInputData==buttonReleased){
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseButtonReleased){
                     
                     
                     if(pPlayer->getState()!=pPlayer->getPreviousState()){
@@ -73,10 +74,10 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 break;
 
                 //3. Did Button A on a mobile or game controller receive an action from the user (Key A on a Mac)
-            case actionButtonA:
+            case U4DEngine::macKeyA:
             {
                 //4. If button was pressed
-                if (controllerInputMessage.controllerInputData==buttonPressed) {
+                if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
                     //4a. What action to take if button was pressed
                     mouseMovementDirection=leftDir;
@@ -86,7 +87,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                     }
                     
                     //5. If button was released
-                }else if(controllerInputMessage.controllerInputData==buttonReleased){
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
                     if (pPlayer->getState()!=patrolidle && mouseMovementDirection==leftDir) {
                         pPlayer->changeState(patrolidle);
@@ -98,10 +99,10 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 break;
                 
                 //6. Did Button B on a mobile or game controller receive an action from the user. (Key D on Mac)
-            case actionButtonD:
+            case U4DEngine::macKeyD:
             {
                 //7. If button was pressed
-                if (controllerInputMessage.controllerInputData==buttonPressed) {
+                if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
                     //7a. What action to take if button was pressed
                     mouseMovementDirection=rightDir;
@@ -111,7 +112,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                     }
                     
                     //8. If button was released
-                }else if(controllerInputMessage.controllerInputData==buttonReleased){
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
                     if (pPlayer->getState()!=patrolidle && mouseMovementDirection==rightDir) {
                         pPlayer->changeState(patrolidle);
@@ -123,10 +124,10 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 
                 break;
                 
-            case actionButtonW:
+            case U4DEngine::macKeyW:
             {
                 //4. If button was pressed
-                if (controllerInputMessage.controllerInputData==buttonPressed) {
+                if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
                     //5a. what action to take if button was pressed
                     mouseMovementDirection=forwardDir;
@@ -136,7 +137,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                     }
                     
                     //5. If button was released
-                }else if(controllerInputMessage.controllerInputData==buttonReleased){
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
                     if (pPlayer->getState()!=patrolidle && mouseMovementDirection==forwardDir) {
                         pPlayer->changeState(patrolidle);
@@ -146,10 +147,10 @@ void GameLogic::receiveUserInputUpdate(void *uData){
             }
                 break;
                 
-            case actionButtonS:
+            case U4DEngine::macKeyS:
             {
                 //4. If button was pressed
-                if (controllerInputMessage.controllerInputData==buttonPressed) {
+                if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
                     //5a. what action to take if button was pressed
                     mouseMovementDirection=backwardDir;
@@ -160,7 +161,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                     
                     
                     //5. If button was released
-                }else if(controllerInputMessage.controllerInputData==buttonReleased){
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
                     if (pPlayer->getState()!=patrolidle && mouseMovementDirection==backwardDir) {
                         pPlayer->changeState(patrolidle);
@@ -172,35 +173,11 @@ void GameLogic::receiveUserInputUpdate(void *uData){
             }
                 break;
                 
-                //9. Did joystic on a mobile or game controller receive an action from the user. (Arrow keys and Mouse on Mac)
-            case actionJoystick:
-            {
-                //10. Joystick was moved
-                
-                if (controllerInputMessage.controllerInputData==joystickActive) {
-                    
-                    //11. Get joystick movement
-                    JoystickMessageData joystickMessageData;
-                    
-                    //11a. Get Joystick direction
-                    joystickMessageData.direction=controllerInputMessage.joystickDirection;
-                    
-                    //12. What action to take when joystick is moved.
-                    std::cout<<"Joystick moved"<<std::endl;
-                    
-                    
-                }else if(controllerInputMessage.controllerInputData==joystickInactive){
-                    
-                    
-                }
-                
-            }
-                
-                break;
-                
-            case actionMouse:
+            case U4DEngine::mouse:
             {
                 
+                if(controllerInputMessage.inputElementAction==U4DEngine::mouseActive){
+                    
                 //USE THIS SNIPPET WHEN YOU ONLY WANT THE MOUSE DELTA LOCATION
                 U4DEngine::U4DVector2n delta=controllerInputMessage.mouseDeltaPosition;
                 //set y to zero
@@ -249,6 +226,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
 
                     }
 
+
                     float angle=0.03*deltaMagnitude;
 
                     float biasAngleAccumulator=0.20;
@@ -262,14 +240,17 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                     U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation,1.0);
 
                     pPlayer->rotateBy(p);
-    
+
+                }
                     
-                }else if(controllerInputMessage.controllerInputData==mouseInactive){
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseInactive){
                     
                     
                 }
                 
             }
+                
+                break;
                 
             default:
                 break;

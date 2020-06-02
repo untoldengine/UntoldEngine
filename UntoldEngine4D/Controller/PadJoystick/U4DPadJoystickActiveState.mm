@@ -38,7 +38,7 @@ namespace U4DEngine {
     
     void U4DPadJoystickActiveState::execute(U4DPadJoystick *uPadJoystick, double dt){
         
-        U4DEngine::U4DVector3n padAxis(uPadJoystick->padAxis.xAxis,uPadJoystick->padAxis.yAxis, 0.0);
+        U4DEngine::U4DVector2n padAxis(uPadJoystick->padAxis.x,uPadJoystick->padAxis.y);
         
         if (uPadJoystick->dataPosition.dot(padAxis)<0.0) {
             
@@ -53,10 +53,8 @@ namespace U4DEngine {
         
         uPadJoystick->dataMagnitude=padAxis.magnitude();
 
-        if (uPadJoystick->pCallback!=NULL) {
-            uPadJoystick->action();
-        }
-
+        uPadJoystick->action();
+       
         if (uPadJoystick->controllerInterface!=NULL) {
             uPadJoystick->controllerInterface->setReceivedAction(true);
         }

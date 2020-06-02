@@ -8,9 +8,6 @@
 
 #include "MainScene.h"
 #include "Earth.h"
-#include "GameController.h"
-#include "GamePadControllers.h"
-#include "KeyboardController.h"
 #include "GameLogic.h"
 #include "U4DGameModelInterface.h"
 #include "U4DTouchesController.h"
@@ -35,24 +32,25 @@ void MainScene::init(){
     
     if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
         
-        control=new GameController();
+        control=new U4DEngine::U4DTouchesController();
         
     }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
         
         if(director->getGamePadControllerPresent()){
             
             //Game controller detected
-            control=new GamePadController();
+            control=new U4DEngine::U4DGamepadController();
             
         }else{
             
             //enable keyboard control
-            control=new KeyboardController();
+            control=new U4DEngine::U4DKeyboardController();
             
         }
         
     }
     
+
     setGameWorldControllerAndModel(earth, control, model);
     
 }

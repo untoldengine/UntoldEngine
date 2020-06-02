@@ -35,9 +35,8 @@ namespace U4DEngine {
         
         uPadJoystick->dataMagnitude=0.0;
 
-        if (uPadJoystick->pCallback!=NULL) {
-            uPadJoystick->action();
-        }
+        uPadJoystick->action();
+        
 
         if (uPadJoystick->controllerInterface!=NULL) {
             uPadJoystick->controllerInterface->setReceivedAction(true);

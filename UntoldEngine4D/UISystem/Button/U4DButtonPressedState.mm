@@ -40,10 +40,6 @@ namespace U4DEngine {
         }
         
         
-        if (uButton->controllerInterface !=NULL) {
-            uButton->controllerInterface->setReceivedAction(true);
-        }
-        
     }
     
     void U4DButtonPressedState::execute(U4DButton *uButton, double dt){

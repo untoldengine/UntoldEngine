@@ -8,7 +8,6 @@
 
 #include "U4DButton.h"
 #include "U4DVector2n.h"
-#include "U4DTouches.h"
 #include "U4DDirector.h"
 #include "U4DControllerInterface.h"
 #include "U4DButtonPressedState.h"
@@ -20,7 +19,7 @@
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):controllerInterface(NULL),pCallback(NULL),currentTouchPosition(0.0,0.0,0.0){
+U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2):pCallback(NULL),currentTouchPosition(0.0,0.0){
     
     stateManager=new U4DButtonStateManager(this);
     
@@ -76,24 +75,27 @@ void U4DButton::action(){
 
 }
 
-void U4DButton::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition){
+bool U4DButton::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){
     
+    bool withinBoundary=false;
     
-    if (uTouchPosition.x>left && uTouchPosition.x<right) {
+    if (uPosition.x>left && uPosition.x<right) {
         
-        if (uTouchPosition.y>bottom && uTouchPosition.y<top) {
+        if (uPosition.y>bottom && uPosition.y<top) {
 
-            currentTouchPosition=uTouchPosition;
+            currentTouchPosition=uPosition;
             
-            if (uTouchState==rTouchesBegan) {
+            withinBoundary=true;
+            
+            if (uInputAction==U4DEngine::mouseButtonPressed) {
                 
                 stateManager->changeState(U4DButtonPressedState::sharedInstance());
             
-            }else if(uTouchState==rTouchesMoved && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance())){
+            }else if(uInputAction==U4DEngine::mouseButtonDragged && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance())){
                 
                 stateManager->changeState(U4DButtonMovedState::sharedInstance());
             
-            }else if(uTouchState==rTouchesEnded && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance() || stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance())){
+            }else if(uInputAction==U4DEngine::mouseButtonReleased && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance() || stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance())){
                 
                 stateManager->changeState(U4DButtonReleasedState::sharedInstance());
                 
@@ -103,11 +105,11 @@ void U4DButton::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition)
     }
     
     
-    if (uTouchPosition.x<left || uTouchPosition.x>right || uTouchPosition.y<bottom || uTouchPosition.y>top ){
+    if (uPosition.x<left || uPosition.x>right || uPosition.y<bottom || uPosition.y>top ){
         
         if (stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance()) {
             
-            float touchDistance=(currentTouchPosition-uTouchPosition).magnitude();
+            float touchDistance=(currentTouchPosition-uPosition).magnitude();
         
             U4DNumerical numerical;
             
@@ -120,6 +122,7 @@ void U4DButton::changeState(TOUCHSTATE &uTouchState,U4DVector3n &uTouchPosition)
         
     }
     
+    return withinBoundary;
     
 }
     
@@ -139,12 +142,6 @@ bool U4DButton::getIsPressed(){
 bool U4DButton::getIsReleased(){
     
     return (stateManager->getCurrentState()==U4DButtonReleasedState::sharedInstance());
-    
-}
-    
-void U4DButton::setControllerInterface(U4DControllerInterface* uControllerInterface){
-
-    controllerInterface=uControllerInterface;
     
 }
     

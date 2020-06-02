@@ -50,6 +50,8 @@ void Earth::init(){
     
     resourceLoader->loadAnimationData("patrolingidle.u4d");
     
+    resourceLoader->loadAnimationData("dead.u4d");
+    
     //load particle data
     resourceLoader->loadParticleData("redBulletEmitter.u4d");
     

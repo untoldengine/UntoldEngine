@@ -14,7 +14,6 @@
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
-class U4DTouches;
 class U4DWorld;
 }
 

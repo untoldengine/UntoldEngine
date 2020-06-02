@@ -20,13 +20,11 @@
 namespace U4DEngine {
     
     
-    U4DMacArrowKey::U4DMacArrowKey(KEYBOARDELEMENT &uPadElementType):isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0),padAxis(0.0,0.0){
+    U4DMacArrowKey::U4DMacArrowKey(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface):U4DInputElement(uInputElementType,uControllerInterface),isActive(false),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0),padAxis(0.0,0.0){
         
         stateManager=new U4DMacArrowKeyStateManager(this);
         
-        setEntityType(CONTROLLERINPUT);
-        
-        padElementType=uPadElementType;
+        inputElementType=uInputElementType;
         
         //set initial state
         stateManager->changeState(U4DMacArrowKeyIdleState::sharedInstance());
@@ -38,11 +36,6 @@ namespace U4DEngine {
         delete stateManager;
     }
     
-    KEYBOARDELEMENT U4DMacArrowKey::getKeyboardElementType(){
-        
-        return padElementType;
-        
-    }
     
     void U4DMacArrowKey::setDataMagnitude(float uValue){
         
@@ -64,19 +57,39 @@ namespace U4DEngine {
     
     void U4DMacArrowKey::action(){
         
-        pCallback->action();
+        //notify the game model
+            
+        CONTROLLERMESSAGE controllerMessage;
+    
+        controllerMessage.inputElementType=inputElementType;
+    
+        if (getIsActive()) {
+            
+            controllerMessage.inputElementAction=U4DEngine::macArrowKeyActive;
+            
+            //send the data position
+            controllerMessage.arrowKeyDirection=dataPosition;
+            
+        }else{
+    
+            controllerMessage.inputElementAction=U4DEngine::macArrowKeyReleased;
+        
+        }
+    
+        controllerInterface->sendUserInputUpdate(&controllerMessage);
+        
     }
     
     
-    void U4DMacArrowKey::changeState(KEYBOARDACTION &uKeyboardAction, const U4DVector2n &uPadAxis){
+    void U4DMacArrowKey::changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition){
         
-        if (uKeyboardAction==U4DEngine::macArrowKeyActive) {
+        if (uInputAction==U4DEngine::macArrowKeyActive) {
             
-            padAxis=uPadAxis;
+            padAxis=uPosition;
             
             stateManager->changeState(U4DMacArrowKeyActiveState::sharedInstance());
             
-        }else if(uKeyboardAction==U4DEngine::macArrowKeyReleased && (stateManager->getCurrentState()==U4DMacArrowKeyActiveState::sharedInstance())){
+        }else if(uInputAction==U4DEngine::macArrowKeyReleased && (stateManager->getCurrentState()==U4DMacArrowKeyActiveState::sharedInstance())){
             
             padAxis=U4DVector2n(0.0,0.0);
             
@@ -87,12 +100,12 @@ namespace U4DEngine {
     }
     
     
-    void U4DMacArrowKey::setDataPosition(U4DVector3n uData){
+    void U4DMacArrowKey::setDataPosition(U4DVector2n uData){
         
         dataPosition=uData;
     }
     
-    U4DVector3n U4DMacArrowKey::getDataPosition(){
+    U4DVector2n U4DMacArrowKey::getDataPosition(){
         
         return dataPosition;
     }
@@ -100,19 +113,6 @@ namespace U4DEngine {
     bool U4DMacArrowKey::getIsActive(){
         
         return (stateManager->getCurrentState()==U4DMacArrowKeyActiveState::sharedInstance());;
-    }
-    
-    void U4DMacArrowKey::setCallbackAction(U4DCallbackInterface *uAction){
-        
-        //set the callback
-        pCallback=uAction;
-        
-    }
-    
-    void U4DMacArrowKey::setControllerInterface(U4DControllerInterface* uControllerInterface){
-        
-        controllerInterface=uControllerInterface;
-        
     }
     
     bool U4DMacArrowKey::getDirectionReversal(){

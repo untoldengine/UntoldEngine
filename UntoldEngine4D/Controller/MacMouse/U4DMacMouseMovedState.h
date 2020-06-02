@@ -23,7 +23,7 @@ namespace U4DEngine {
         
         ~U4DMacMouseMovedState();
         
-        U4DVector3n motionAccumulator;
+        U4DVector2n motionAccumulator;
         
     public:
         

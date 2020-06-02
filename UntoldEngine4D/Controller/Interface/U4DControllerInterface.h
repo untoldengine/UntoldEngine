@@ -12,14 +12,13 @@
 #include <iostream>
 #include <vector>
 #include "CommonProtocols.h"
-#import <MetalKit/MetalKit.h>
+#import <GameController/GameController.h>
 
 namespace U4DEngine {
     
     class U4DEntity;
     class U4DTouches;
-    class U4DButton;
-    class U4DJoyStick;
+    class U4DLayer;
     class U4DWorld;
     class U4DVector2n;
     class U4DGameModelInterface;
@@ -44,150 +43,16 @@ public:
      */
     virtual ~U4DControllerInterface(){};
     
-    /**
-     * @brief Touch has been detected
-     * @details engine has detected touch began on iOS
-     * 
-     * @param touches touch object
-     */
-    virtual void touchBegan(const U4DTouches &touches)=0;
     
-    /**
-     * @brief Touch movement has been detected  
-     * @details engine has detected a touch movement on iOS
-     * 
-     * @param touches touch object
-     */
-    virtual void touchMoved(const U4DTouches &touches)=0;
-    
-    /**
-     * @brief Touch has been released
-     * @details engine has detected touch ended on iOS
-     * 
-     * @param touches touch object
-     */
-    virtual void touchEnded(const U4DTouches &touches)=0;
-    
-    /**
-     * @brief A press on the game pad has began
-     * @details Engine detected a button press from the gamepad
-     * 
-     * @param uGamePadElement Game pad element such as button, pad arrows   
-     * @param uGamePadAction action detected on the gamepad
-     */
-    virtual void padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction)=0;
-    
-    /**
-     * @brief A release on the game pad was detected
-     * @details The engine deteced a button release from the game gamepad
-     * 
-     * @param uGamePadElement Game pad element such as button, pad arrows
-     * @param uGamePadAction action detected on the gamepad
-     */
-    virtual void padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction)=0;
-    
-    /**
-     * @brief The joystick on the game pad was moved
-     * @details The engine detected joystick movement on the game pad 
-     * 
-     * @param uGamePadElement game pad element such as left or right joystick
-     * @param uGamePadAction action detected
-     * @param uPadAxis movement direction of the joystick
-     */
-    virtual void padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis)=0;
-    
-    /**
-     * @brief A key press on the mac was detected
-     * @details The engine detected a key press
-     * 
-     * @param uKeyboardElement keyboard element such as a particular key
-     * @param uKeyboardAction action on the key
-     */
-    virtual void macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction)=0;
-    
-    /**
-     * @brief A key release on the mac was detected
-     * @details the engine detected a key release
-     * 
-     * @param uKeyboardElement keyboard element such as a key
-     * @param uKeyboardAction action on the key
-     */
-    virtual void macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction)=0;
-    
-    /**
-     * @brief The arrow key is currently pressed
-     * @details the engine has detected the arrow key being currently pressed
-     * 
-     * @param uKeyboardElement keyboard element such as the up, down, right, left key
-     * @param uKeyboardAction action on the key
-     * @param uPadAxis axis of the currently key being pressed. For example, the up arrow key will provide an axis of (0.0,1.0)
-     */
-    virtual void macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis)=0;
-    
-    /**
-     * @brief The mouse was pressed
-     * @details The engine has detected a mouse press
-     * 
-     * @param uMouseElement mouse element such as the right or left click
-     * @param uMouseAction action on the mouse
-     * @param uMouseAxis 
-     */
-    virtual void macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
-    
-    /**
-     * @brief The mouse was released    
-     * @details the engine has detected a mouse release 
-     * 
-     * @param uMouseElement mouse element such as left or righ button   
-     * @param uMouseAction action on the mouse
-     */
-    virtual void macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction)=0;
-    
-    /**
-     * @brief The mouse is being dragged
-     * @details The engine has detected mouse drag-movement
-     * 
-     * @param uMouseElement mouse element
-     * @param uMouseAction action on the mouse
-     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
-     */
-    virtual void macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
-    
-    /**
-     * @brief The mouse is being moved
-     * @details The engine has detected mouse movement
-     *
-     * @param uMouseElement mouse element
-     * @param uMouseAction action on the mouse
-     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
-     */
-    virtual void macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
-    
-    /**
-     * @brief The mouse cursor is being moved and gets its delta movement
-     * @details The engine has detected mouse movement
-     *
-     * @param uMouseElement mouse element
-     * @param uMouseAction action on the mouse
-     * @param uMouseDelta Delta movement direction in a 2D vector format.
-     */
-    virtual void macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta)=0;
-    
-    /**
-     * @brief The mouse cursor exited the window
-     * @details The engine has detected mouse exit-movement
-     *
-     * @param uMouseElement mouse element
-     * @param uMouseAction action on the mouse
-     * @param uMouseAxis movement direction in a 2D vector format. For example, if the mouse moves to the right, the vector is (1.0,0.0)
-     */
-    virtual void macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis)=0;
+    virtual void changeState(INPUTELEMENTTYPE uInputElementType, INPUTELEMENTACTION uInputAction, U4DVector2n &uPosition)=0;
     
     /**
      * @brief initialization method
      * @details In the initialization method, controller entities such as buttons, joysticks, keyboards are created. callbacks are also created and linked
      */
     virtual void init()=0;
+    
+    virtual void update(double dt)=0;
     
     /**
      * @brief Sets the current view component of the game
@@ -234,6 +99,15 @@ public:
      * @param uData data containing the informationation about the user input
      */
     virtual void sendUserInputUpdate(void *uData)=0;
+    
+    virtual void getUserInputData(unichar uCharacter, INPUTELEMENTACTION uInputAction)=0;
+    
+    virtual void getUserInputData(INPUTELEMENTTYPE uInputElement, INPUTELEMENTACTION uInputAction, U4DVector2n &uPosition)=0;
+    
+    virtual void getUserInputData(INPUTELEMENTTYPE uInputElement, INPUTELEMENTACTION uInputAction)=0;
+    
+    virtual void getUserInputData(GCExtendedGamepad *gamepad, GCControllerElement *element)=0;
+    
 };
 
 }
