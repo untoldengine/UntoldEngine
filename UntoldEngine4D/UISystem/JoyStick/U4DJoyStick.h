@@ -16,7 +16,6 @@
 #include "U4DImage.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
-#import <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
     class U4DControllerInterface;
@@ -236,10 +235,10 @@ public:
      * @brief Changes the state of the joystick
      * @details The state manager changes the state of the joystick to either active or released depending on the touch
      * 
-     * @param uTouchState touch state. that is moved or released
-     * @param uNewPosition touch position
+     * @param uInputAction touch state. that is moved or released
+     * @param uPosition touch position
      */
-    void changeState(TOUCHSTATE &uTouchState,U4DVector3n &uNewPosition);
+    bool changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition);
     
     /**
      * @brief Get the current state of the joystick entity

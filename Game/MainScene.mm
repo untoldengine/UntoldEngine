@@ -8,9 +8,6 @@
 
 #include "MainScene.h"
 #include "Earth.h"
-#include "GameController.h"
-#include "GamePadControllers.h"
-#include "KeyboardController.h"
 #include "GameLogic.h"
 #include "U4DGameModelInterface.h"
 #include "U4DTouchesController.h"

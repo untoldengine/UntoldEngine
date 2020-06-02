@@ -14,11 +14,13 @@
 #include "U4DControllerInterface.h"
 #include "CommonProtocols.h"
 #include "U4DVector2n.h"
+
 #import <GameController/GameController.h>
 
 namespace U4DEngine {
     
     class U4DInputElement;
+    class U4DLayer;
 
 }
 
@@ -30,7 +32,6 @@ namespace U4DEngine {
         
         //input element container
         std::vector<U4DInputElement*> inputElementContainer;
-        
         
     protected:
         

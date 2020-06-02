@@ -69,7 +69,7 @@ namespace U4DEngine {
             
         }
         
-        controllerMessage.touchPosition=dataPosition;
+        controllerMessage.inputPosition=dataPosition;
         
         controllerInterface->sendUserInputUpdate(&controllerMessage);
         

@@ -10,6 +10,7 @@
 #define MVCTemplateV001_CommonProtocols_h
 
 #include <vector>
+#include <string>
 #include "U4DDualQuaternion.h"
 #include "U4DPoint3n.h"
 #include "U4DTriangle.h"
@@ -796,7 +797,9 @@ namespace U4DEngine {
         ioTouchesBegan,
         ioTouchesMoved,
         ioTouchesEnded,
-        ioTouchesIdle
+        ioTouchesIdle,
+        
+        noAction
 
     }INPUTELEMENTACTION;
 
@@ -806,10 +809,9 @@ namespace U4DEngine {
         int inputElementType;
         int inputElementAction;
         U4DVector2n joystickDirection;
-        U4DVector2n mousePosition;
+        U4DVector2n inputPosition;
         U4DVector2n previousMousePosition;
         U4DVector2n mouseDeltaPosition;
-        U4DVector2n touchPosition;
         bool joystickChangeDirection;
         bool mouseChangeDirection;
         U4DVector2n arrowKeyDirection;
