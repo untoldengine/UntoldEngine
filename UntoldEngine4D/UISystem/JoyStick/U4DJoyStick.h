@@ -58,10 +58,6 @@ private:
      */
     float joyStickHeight;
     
-    /**
-     * @brief state of joystick
-     */
-    TOUCHSTATE joyStickState;
     
 public:
     
@@ -113,7 +109,7 @@ public:
     /**
      * @brief joystick data position 
      */
-    U4DVector3n dataPosition;
+    U4DVector2n dataPosition;
 
     /**
      * @brief magnitude of data position. This is normalized
@@ -121,14 +117,14 @@ public:
     float dataMagnitude;
     
     /**
-     * @brief original center position of the joystick
+     * @brief original center position of the joystick texture
      */
     U4DVector3n originalPosition;
     
     /**
-     * @brief current position of touch
+     * @brief current position of joystick texture
      */
-    U4DVector3n currentPosition;
+    U4DVector2n currentPosition;
     
     /**
      * @brief position of joystick background texture image
@@ -241,25 +237,19 @@ public:
     bool changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition);
     
     /**
-     * @brief Get the current state of the joystick entity
-     * @return state of the entity
-     */
-    TOUCHSTATE getState();
-    
-    /**
      * @brief Sets the computed position of the joystick
      * @details This data is computed taking into account the current touch position, location of joystick and texture radius
      * 
      * @param uData computed data
      */
-    void setDataPosition(U4DVector3n uData);
+    void setDataPosition(U4DVector2n uData);
 
     /**
      * @brief Gets the computed position of joystick
      * @details This data is computed taking into account the current touch position, location of joystick and texture radius
      * @return computed data
      */
-    U4DVector3n getDataPosition();
+    U4DVector2n getDataPosition();
     
     /**
      * @brief Sets the magnitude position of the joystick

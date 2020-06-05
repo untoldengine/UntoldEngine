@@ -22,33 +22,6 @@
 namespace U4DEngine {
     
     /**
-     @brief The TOUCHSTATE enum holds the different touch states
-     */
-    typedef enum {
-
-        /**
-         @brief Touch event began
-         */
-        rTouchesBegan,
-
-        /**
-         @brief Touch event moved
-         */
-        rTouchesMoved,
-
-        /**
-         @brief Touch event ended
-         */
-        rTouchesEnded,
-
-        /**
-         @brief Touch event is null
-         */
-        rTouchesNull
-
-    }TOUCHSTATE;
-
-    /**
      @brief The SPRITEDATA structure holds sprites information
      */
     typedef struct{

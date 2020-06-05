@@ -49,7 +49,26 @@ void GameLogic::receiveUserInputUpdate(void *uData){
         //2. Determine what was pressed, buttons, keys or joystick
         
         switch (controllerInputMessage.inputElementType) {
+            
+            case U4DEngine::ioTouch:
+            {
+                if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesBegan){
+                    
+                    if(pPlayer->getState()!=shooting){
+                        pPlayer->changeState(shooting);
+                    }
+                    
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesEnded){
+                    
+                    if(pPlayer->getState()!=pPlayer->getPreviousState()){
+                         
+                         pPlayer->changeState(pPlayer->getPreviousState());
+                    }
+                    
+                }
                 
+            }
+                break;
             case U4DEngine::mouseLeftButton:
             {
                 //4. If button was pressed

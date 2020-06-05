@@ -15,12 +15,14 @@
 #include "U4DSkybox.h"
 #include "U4DResourceLoader.h"
 #include "U4DFontLoader.h"
+#include "U4DLayerManager.h"
 #include "U4DText.h"
 #include "U4DLogger.h"
 #include "UserCommonProtocols.h"
 #include "U4DCameraInterface.h"
 #include "U4DCameraFirstPerson.h"
 #include "Weapon.h"
+#include "MobileLayer.h"
 
 using namespace U4DEngine;
 
@@ -61,7 +63,7 @@ void Earth::init(){
     U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
 
     if(ground->loadModel("ground")){
-        
+
         //set shadows
         ground->setEnableShadow(true);
 
@@ -143,25 +145,25 @@ void Earth::init(){
     
     //add the enemies
     Player *enemy[3];
-    
+
     for(int i=0;i<sizeof(enemy)/sizeof(enemy[0]);i++){
-        
+
         std::string name="enemy";
         name+=std::to_string(i);
-        
+
         enemy[i]=new Player();
-        
+
         if (enemy[i]->init(name.c_str())) {
-            
+
             enemy[i]->setHero(player);
-            
+
             enemy[i]->rotateBy(0.0,180.0,0.0);
-            
+
             addChild(enemy[i]);
-     
+
             enemy[i]->changeState(attack);
         }
-        
+
     }
     
     /*---CREATE SKYBOX HERE--*/
@@ -169,26 +171,51 @@ void Earth::init(){
 
     skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
 
-    addChild(skybox,-1);
+    addChild(skybox,0);
     
-    /*---CREATE TEXT HERE--*/
-    //Create a Font Loader object
-    U4DEngine::U4DFontLoader *fontLoader=new U4DEngine::U4DFontLoader();
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
+        
+        //Create Mobile Layer with buttons & joystic
+        U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+        
+        //set the world (view component) for the layer manager --MAY WANT TO FIX THIS. DONT LIKE SETTING THE VIEW HERE FOR THE LAYER MANAGER
+        layerManager->setWorld(this);
+        
+        //create the Mobile Layer
+        MobileLayer *mobileLayer=new MobileLayer("mobilelayer");
+        
+        mobileLayer->init();
+        
+        mobileLayer->setPlayer(player);
+        
+        layerManager->addLayerToContainer(mobileLayer);
+        
+        layerManager->pushLayer("mobilelayer");
+        
+    }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
+     
+        /*---CREATE TEXT HERE--*/
+        //Create a Font Loader object
+        U4DEngine::U4DFontLoader *fontLoader=new U4DEngine::U4DFontLoader();
 
-    //Load font data into the font loader object. Such as the xml file and image file
-    fontLoader->loadFontAssetFile("myFont.xml", "myFont.png");
+        //Load font data into the font loader object. Such as the xml file and image file
+        fontLoader->loadFontAssetFile("myFont.xml", "myFont.png");
 
-    //Create a text object. Provide the font loader object and the spacing between letters
-    U4DEngine::U4DText *myText=new U4DEngine::U4DText(fontLoader, 30);
+        //Create a text object. Provide the font loader object and the spacing between letters
+        U4DEngine::U4DText *myText=new U4DEngine::U4DText(fontLoader, 30);
 
-    //set the text you want to display
-    myText->setText("exit: cmd+w");
+        //set the text you want to display
+        myText->setText("exit: cmd+w");
 
-    //If desire, set the text position. Remember the coordinates for 2D objects, such as text is [-1.0,1.0]
-    myText->translateTo(0.30, -0.90, 0.0);
+        //If desire, set the text position. Remember the coordinates for 2D objects, such as text is [-1.0,1.0]
+        myText->translateTo(0.30, -0.90, 0.0);
 
-    //6. Add the text to the scenegraph
-    addChild(myText,-2);
+        //6. Add the text to the scenegraph
+        addChild(myText,-2);
+        
+    }
     
     /*---SET CAMERA BEHAVIOR TO FIRST PERSON--*/
     //Instantiate the camera

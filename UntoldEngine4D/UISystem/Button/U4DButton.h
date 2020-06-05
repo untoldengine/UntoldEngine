@@ -43,7 +43,7 @@ private:
     float left,right,bottom,top;
     
     /**
-     * @brief position of the button
+     * @brief position of the button of the texture
      */
     U4DVector3n centerPosition;
     

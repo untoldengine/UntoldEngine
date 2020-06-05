@@ -840,6 +840,9 @@
 		03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFEF71775F71C002DDD03 /* U4DVisibleEntity.mm */; };
 		03ADFF03177600E8002DDD03 /* U4DEntityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFF01177600E8002DDD03 /* U4DEntityManager.mm */; };
 		03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03AEF86919CF4DAC00082589 /* U4DBoneIndices.mm */; };
+		03B1FFB92487EB1D0039DD6B /* MobileLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */; };
+		03B1FFBA2487EB1D0039DD6B /* MobileLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */; };
+		03B1FFBB2487EB1D0039DD6B /* MobileLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */; };
 		03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B5E7E9193A3F4700800EC8 /* tinyxml2.mm */; };
 		03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B718E91A0AA83000C94651 /* U4DLights.mm */; };
 		03BA57372432E110003A69ED /* MainScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572E2432E10F003A69ED /* MainScene.mm */; };
@@ -1313,6 +1316,8 @@
 		03ADFF041776024F002DDD03 /* U4DEntityManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DEntityManager.h; sourceTree = "<group>"; };
 		03AEF86919CF4DAC00082589 /* U4DBoneIndices.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBoneIndices.mm; sourceTree = "<group>"; };
 		03AEF86A19CF4DAC00082589 /* U4DBoneIndices.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBoneIndices.h; sourceTree = "<group>"; };
+		03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MobileLayer.mm; path = Game/MobileLayer.mm; sourceTree = SOURCE_ROOT; };
+		03B1FFB82487EB1D0039DD6B /* MobileLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MobileLayer.h; path = Game/MobileLayer.h; sourceTree = SOURCE_ROOT; };
 		03B5E7E8193A3F4700800EC8 /* tinyxml2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tinyxml2.h; sourceTree = "<group>"; };
 		03B5E7E9193A3F4700800EC8 /* tinyxml2.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = tinyxml2.mm; sourceTree = "<group>"; };
 		03B718E81A0AA83000C94651 /* U4DLights.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DLights.h; sourceTree = "<group>"; };
@@ -1661,6 +1666,8 @@
 				035507692455D219005274ED /* Weapon.mm */,
 				0355076F2455D2E6005274ED /* Bullet.h */,
 				0355076E2455D2E6005274ED /* Bullet.mm */,
+				03B1FFB82487EB1D0039DD6B /* MobileLayer.h */,
+				03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */,
 			);
 			name = Game;
 			path = game;
@@ -3066,6 +3073,7 @@
 				03722DF8202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722BCA2029F0F50080D069 /* U4DRenderManager.mm in Sources */,
 				0341AC25204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
+				03B1FFBA2487EB1D0039DD6B /* MobileLayer.mm in Sources */,
 				03722B9B2029F0F50080D069 /* U4DBVHManager.mm in Sources */,
 				03722B682029F0F50080D069 /* U4DCamera.mm in Sources */,
 				03722B932029F0F50080D069 /* U4DRenderWorld.mm in Sources */,
@@ -3457,6 +3465,7 @@
 				03722DFA202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03722D042029F0F80080D069 /* U4DRenderManager.mm in Sources */,
 				0341AC27204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
+				03B1FFBB2487EB1D0039DD6B /* MobileLayer.mm in Sources */,
 				03722CD52029F0F80080D069 /* U4DBVHManager.mm in Sources */,
 				03722CA22029F0F80080D069 /* U4DCamera.mm in Sources */,
 				03722CCD2029F0F80080D069 /* U4DRenderWorld.mm in Sources */,
@@ -3637,6 +3646,7 @@
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				0323DBB9202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722DE3202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
+				03B1FFB92487EB1D0039DD6B /* MobileLayer.mm in Sources */,
 				038BF25B228C577500B129A5 /* U4DNavMesh.mm in Sources */,
 				03494BBA1F4D55EF00ACE0EC /* U4DSprite.mm in Sources */,
 				034F2A32217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */,
@@ -3806,7 +3816,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bps.UntoldEngine.Untold4D;
+				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -3846,7 +3856,7 @@
 				IPHONEOS_DEPLOYMENT_TARGET = 12.4;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bps.UntoldEngine.Untold4D;
+				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
 				SDKROOT = iphoneos;
 				TARGETED_DEVICE_FAMILY = "1,2";
@@ -3963,7 +3973,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bps.UntoldEngine.Untold4D;
+				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -4004,7 +4014,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.13;
 				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bps.UntoldEngine.Untold4D;
+				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
 				PROVISIONING_PROFILE_SPECIFIER = "";
 				SDKROOT = macosx;
@@ -4114,7 +4124,7 @@
 					Image,
 					Library/lib,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bps.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine;
 				PRODUCT_NAME = UntoldEngine;
 				WRAPPER_EXTENSION = app;
 			};
@@ -4140,7 +4150,7 @@
 					Image,
 					Library/lib,
 				);
-				PRODUCT_BUNDLE_IDENTIFIER = "com.bps.${PRODUCT_NAME:rfc1034identifier}";
+				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine;
 				PRODUCT_NAME = UntoldEngine;
 				WRAPPER_EXTENSION = app;
 			};

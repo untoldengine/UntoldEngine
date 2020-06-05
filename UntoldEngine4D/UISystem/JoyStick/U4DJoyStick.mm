@@ -18,7 +18,7 @@
 namespace U4DEngine {
     
     
-U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight):joyStickState(rTouchesNull),isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0,0.0),dataMagnitude(0.0){
+U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight):isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0){
     
     stateManager=new U4DJoystickStateManager(this);
     
@@ -162,14 +162,14 @@ bool U4DJoyStick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosi
     
     if (distancePlusJoyStick<=(backgroundImageRadius+backgroundImageRadius*2.5)){
         
-        currentPosition=pos;
+        currentPosition=uPosition;
         withinBoundary=true;
         
-        if (uInputAction==U4DEngine::mouseButtonPressed || uInputAction==U4DEngine::mouseButtonDragged) {
+        if (uInputAction==U4DEngine::ioTouchesBegan || uInputAction==U4DEngine::ioTouchesMoved) {
             
             stateManager->changeState(U4DJoystickActiveState::sharedInstance());
             
-        }else if(uInputAction==U4DEngine::mouseButtonReleased && (stateManager->getCurrentState()==U4DJoystickActiveState::sharedInstance())){
+        }else if(uInputAction==U4DEngine::ioTouchesEnded && (stateManager->getCurrentState()==U4DJoystickActiveState::sharedInstance())){
             
             stateManager->changeState(U4DJoystickReleasedState::sharedInstance());
             
@@ -180,17 +180,12 @@ bool U4DJoyStick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosi
     return withinBoundary;
 }
 
-TOUCHSTATE U4DJoyStick::getState(){
-    
-    return joyStickState;
-}
-
-void U4DJoyStick::setDataPosition(U4DVector3n uData){
+void U4DJoyStick::setDataPosition(U4DVector2n uData){
     
     dataPosition=uData;
 }
 
-U4DVector3n U4DJoyStick::getDataPosition(){
+U4DVector2n U4DJoyStick::getDataPosition(){
     
     return dataPosition;
 }

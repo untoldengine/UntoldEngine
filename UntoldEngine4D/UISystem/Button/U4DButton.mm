@@ -87,15 +87,15 @@ bool U4DButton::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPositi
             
             withinBoundary=true;
             
-            if (uInputAction==U4DEngine::mouseButtonPressed) {
+            if (uInputAction==U4DEngine::mouseButtonPressed || uInputAction==U4DEngine::ioTouchesBegan) {
                 
                 stateManager->changeState(U4DButtonPressedState::sharedInstance());
             
-            }else if(uInputAction==U4DEngine::mouseButtonDragged && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance())){
+            }else if((uInputAction==U4DEngine::mouseButtonDragged || uInputAction==U4DEngine::ioTouchesMoved) && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance())){
                 
                 stateManager->changeState(U4DButtonMovedState::sharedInstance());
             
-            }else if(uInputAction==U4DEngine::mouseButtonReleased && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance() || stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance())){
+            }else if((uInputAction==U4DEngine::mouseButtonReleased || uInputAction==U4DEngine::ioTouchesEnded) && (stateManager->getCurrentState()==U4DButtonPressedState::sharedInstance() || stateManager->getCurrentState()==U4DButtonMovedState::sharedInstance())){
                 
                 stateManager->changeState(U4DButtonReleasedState::sharedInstance());
                 
