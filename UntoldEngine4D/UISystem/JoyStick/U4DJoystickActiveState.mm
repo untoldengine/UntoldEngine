@@ -38,17 +38,19 @@ namespace U4DEngine {
     
     void U4DJoystickActiveState::execute(U4DJoyStick *uJoyStick, double dt){
         
-        U4DVector3n distance=(uJoyStick->currentPosition-uJoyStick->centerBackgroundPosition);
+        U4DVector2n joystickCenterBackgroundPosition(uJoyStick->centerBackgroundPosition.x,uJoyStick->centerBackgroundPosition.y);
+        
+        U4DVector2n distance=(uJoyStick->currentPosition-joystickCenterBackgroundPosition);
         
         //magnitude the distance
         float distanceMagnitude=distance.magnitude();
         
-        U4DVector3n data=(uJoyStick->currentPosition-uJoyStick->centerBackgroundPosition)/uJoyStick->backgroundImageRadius;
+        U4DVector2n data=(uJoyStick->currentPosition-joystickCenterBackgroundPosition)/uJoyStick->backgroundImageRadius;
         
         data.normalize();
         
         //get previous data
-        U4DVector3n previousData=uJoyStick->getDataPosition();
+        U4DVector2n previousData=uJoyStick->getDataPosition();
         
         previousData.normalize();
         //get the direction between previous data and new data
