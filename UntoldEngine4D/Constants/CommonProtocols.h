@@ -599,39 +599,6 @@ namespace U4DEngine {
         
     }INERTIATENSORTYPE;
     
-    /**
-     @brief The GAMEPADELEMENT enum holds information about the elements of a game pad
-     */
-//    typedef enum{
-//
-//        padButtonA,
-//        padButtonB,
-//        padButtonX,
-//        padButtonY,
-//        padLeftThumbstick,
-//        padRightThumbstick,
-//        padLeftTrigger,
-//        padRightTrigger,
-//        padLeftShoulder,
-//        padRightShoulder,
-//        padDPadUpButton,
-//        padDPadDownButton,
-//        padDPadLeftButton,
-//        padDPadRightButton
-//
-//    }GAMEPADELEMENT;
-    
-    /**
-     @brief The GAMEPADACTION enum holds information about the action of the element of a game pad
-     */
-//    typedef enum{
-//
-//        padButtonPressed,
-//        padButtonReleased,
-//        padThumbstickMoved,
-//        padThumbstickReleased,
-//
-//    }GAMEPADACTION;
     
     /**
      @brief The DEVICEOSTYPE enum holds information about the current OS target
@@ -643,63 +610,6 @@ namespace U4DEngine {
         
     }DEVICEOSTYPE;
     
-    /**
-     @brief The KEYBOARDELEMENT enum holds information about the elements of a keyboard
-     */
-//    typedef enum{
-//
-//        macArrowKey,
-//        macKeyA,
-//        macKeyD,
-//        macKeyW,
-//        macKeyS,
-//        macKeyF,
-//        macKey1,
-//        macKey2,
-//        macKey3,
-//        macKey4,
-//        macShiftKey,
-//        macSpaceKey
-//
-//    }KEYBOARDELEMENT;
-    
-    /**
-     @brief The KEYBOARDACTION enum holds information about the action of the element of a key
-     */
-//    typedef enum{
-//
-//        macKeyPressed,
-//        macKeyReleased,
-//        macArrowKeyActive,
-//        macArrowKeyReleased
-//
-//    }KEYBOARDACTION;
-    
-    /**
-     @brief The MOUSEELEMENT enum holds information about the elements of a mouse
-     */
-//    typedef enum{
-//
-//        mouseLeftButton,
-//        mouseRightButton,
-//        mouseCursor
-//
-//    }MOUSEELEMENT;
-    
-    /**
-     @brief The KEYBOARDACTION enum holds information about the action of the element of a mouse
-     */
-//    typedef enum{
-//
-//        mouseButtonPressed,
-//        mouseButtonDragged,
-//        mouseButtonReleased,
-//        mouseCursorMoved,
-//        mouseCursorExited,
-//        mouseCursorDeltaMoved
-//
-//    }MOUSEACTION;
-
     typedef enum{
 
         //Mouse elements
@@ -788,6 +698,7 @@ namespace U4DEngine {
         bool joystickChangeDirection;
         bool mouseChangeDirection;
         U4DVector2n arrowKeyDirection;
+        std::string elementUIName;
         
     }CONTROLLERMESSAGE;
 

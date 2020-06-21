@@ -94,7 +94,7 @@ void Bullet::update(double dt){
         particleSystem->translateTo(pos);
         
         //apply force
-        applyForce(80.0,dt);
+        applyForce(40.0,dt);
         
     }
 }

@@ -12,8 +12,24 @@
 #include <iostream>
 #include "U4DScene.h"
 
+#include "Earth.h"
+#include "GameLogic.h"
+#include "U4DGameModelInterface.h"
+#include "U4DTouchesController.h"
+#include "U4DGamepadController.h"
+#include "U4DKeyboardController.h"
+#include "CommonProtocols.h"
+#include "U4DDirector.h"
+
+#include "LoadingWorld.h"
+
 class MainScene:public U4DEngine::U4DScene{
+    
 private:
+    
+    Earth *earth;
+    LoadingWorld *loadingWorld;
+    U4DEngine::U4DGameModelInterface *gameLogic;
     
 public:
     
@@ -21,6 +37,8 @@ public:
     ~MainScene();
     
     void init();
+    
+    
 };
 
 #endif /* defined(__UntoldEngine__MainScene__) */

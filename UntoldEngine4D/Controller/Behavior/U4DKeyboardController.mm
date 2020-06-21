@@ -19,6 +19,17 @@ namespace U4DEngine {
     //destructor
     U4DKeyboardController::~U4DKeyboardController(){
         
+        //delete the objects
+        delete keyW;
+        delete keyA;
+        delete keyD;
+        delete keyS;
+        
+        delete macKeyShift;
+        delete arrowKey;
+        
+        delete mouseLeftButton;
+        delete macMouse;
     }
 
     void U4DKeyboardController::init(){

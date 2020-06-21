@@ -10,7 +10,7 @@
 #include "U4DRenderer.h"
 #include "U4DDirector.h"
 #include "U4DCamera.h"
-
+#include "U4DSceneManager.h"
 
 
 /// Main class performing the rendering
@@ -124,10 +124,12 @@
         
     }
     
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
-    director->update(timeSinceLastUpdate);
+    if (currentScene!=nullptr) {
+        currentScene->update(timeSinceLastUpdate);
+    }
     
 }
 
@@ -137,13 +139,17 @@
     //call the update call before the render
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
     float screenContentScale=director->getScreenScaleFactor();
     
-    if (director->getScene()!=nullptr) {
+    if (currentScene!=nullptr) {
         
         [self update];
         
-        director->determineVisibility();
+        currentScene->determineVisibility();
         
         view.clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
         view.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
@@ -176,8 +182,7 @@
             [renderEncoder setViewport:(MTLViewport){0.0, 0.0, view.bounds.size.width*screenContentScale, view.bounds.size.height*screenContentScale, 0.0, 1.0 }];
             
             //Render Models here
-            director->render(renderEncoder);
-            
+            currentScene->render(renderEncoder);
             
             // We would normally use a render command encoder to tell Metal to draw our objects,
             //   but for the purposes of this sample, we will create it which implicitly invokes
@@ -198,6 +203,11 @@
         
     }
     
+    //check if there is a request to change scene, and if it is safe to do so
+    if(sceneManager->getRequestToChangeScene()){
+        sceneManager->isSafeToChangeScene();
+    }
+    
     
 }
 
@@ -210,8 +220,8 @@
 
 - (void)renderShadows:(id <MTLCommandBuffer>) uCommandBuffer{
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
     //create a shadow command buffer
     
     //create a shadow encoder
@@ -225,7 +235,7 @@
     [shadowEncoder setViewport:(MTLViewport){0.0, 0.0, 1024, 1024, 0.0, 1.0 }];
     
     //render every model shadow
-    director->renderShadow(shadowEncoder,shadowTexture);
+    currentScene->renderShadow(shadowEncoder,shadowTexture);
     
     //end encoding
     [shadowEncoder endEncoding];

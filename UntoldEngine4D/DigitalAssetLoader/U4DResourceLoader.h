@@ -427,6 +427,12 @@ class U4DResourceLoader {
         @param uWeights    Data containing the bone weight data
         */
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights, std::vector<float> uWeights);
+    
+        /**
+         @brief Clears the data in the containers
+         */
+        void clear();
+    
         
 };
 }

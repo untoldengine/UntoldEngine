@@ -29,6 +29,13 @@ Player::~Player(){
     
     delete navigationTimer;
     
+    delete animationManager;
+    delete navigationSystem;
+    delete runningAnimation;
+    delete patrolAnimation;
+    delete deadAnimation;
+    delete shootAnimation;
+    
 }
 
 bool Player::init(const char* uModelName){
@@ -49,12 +56,13 @@ bool Player::init(const char* uModelName){
         patrolAnimation=new U4DEngine::U4DAnimation(this);
         patrolIdleAnimation=new U4DEngine::U4DAnimation(this);
         deadAnimation=new U4DEngine::U4DAnimation(this);
+        shootAnimation=new U4DEngine::U4DAnimation(this);
         
         //load the animation data
-        if(loadAnimationToModel(runningAnimation, "running")){
-            
-            
-        }
+//        if(loadAnimationToModel(runningAnimation, "running")){
+//
+//
+//        }
         
         //load patrol animation data
         if(loadAnimationToModel(patrolAnimation,"patrol")){
@@ -62,16 +70,21 @@ bool Player::init(const char* uModelName){
         }
         
         //load patrol idle animation data
-        if(loadAnimationToModel(patrolIdleAnimation,"patrolidle")){
+        if(loadAnimationToModel(patrolIdleAnimation,"idle")){
             
+        }
+        
+        //load patrol idle animation data
+        if(loadAnimationToModel(shootAnimation,"shoot")){
+            shootAnimation->setPlayContinuousLoop(false);
         }
         
         //load dead animation data
-        if(loadAnimationToModel(deadAnimation, "dead")){
-            
-            deadAnimation->setPlayContinuousLoop(false);
-        
-        }
+//        if(loadAnimationToModel(deadAnimation, "dead")){
+//
+//            deadAnimation->setPlayContinuousLoop(false);
+//
+//        }
         
         //allow the character to move
         enableKineticsBehavior();
@@ -81,7 +94,7 @@ bool Player::init(const char* uModelName){
         setGravity(zero);
         
         //enable Collision
-        enableCollisionBehavior();
+        //enableCollisionBehavior();
         
         //set player as a collision sensor. Meaning only detection is enabled but not the collision response
         setIsCollisionSensor(true);
@@ -187,6 +200,8 @@ void Player::update(double dt){
         
         }else{
         
+            testRampIntersection();
+            
             //apply a force
             applyForce(7.0, dt);
             
@@ -262,6 +277,47 @@ void Player::update(double dt){
             
         }
         
+    }else if(state==shooting){
+    
+        if(pistol!=nullptr){
+            
+            //declare a space
+            U4DEngine::U4DMatrix4n m;
+            U4DEngine::U4DAnimation *currentAnimation=animationManager->getCurrentPlayingAnimation();
+            
+            //remove all velocities from the character
+            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+            
+            setVelocity(zero);
+            setAngularVelocity(zero);
+            
+            if (currentAnimation->isAnimationPlaying()) {
+                
+                if(getBoneAnimationPose("hand.R", shootAnimation, m)){
+                    
+                    //apply space to pistol
+                    pistol->setLocalSpace(m);
+                    
+                }
+                
+                if (currentAnimation->getCurrentKeyframe()==4 && currentAnimation->getCurrentInterpolationTime()==0) {
+                    
+                    shoot();
+                    
+                }
+                
+            }
+            
+            if(!currentAnimation->isAnimationPlaying()){
+                
+                 changeState(getPreviousState());
+                
+            }
+            
+            
+            
+        }
+    
     }else if(state==idle || state==dead){
         
         //remove all velocities from the character
@@ -319,7 +375,7 @@ void Player::changeState(int uState){
         case shooting:
             
             //change animation to shooting
-            shoot();
+            currentAnimation=shootAnimation;
             
             break;
             
@@ -388,6 +444,8 @@ void Player::applyForce(float uFinalVelocity, double dt){
     
     //calculate force
     U4DEngine::U4DVector3n force=(forceDirection*uFinalVelocity*mass)/dt;
+    
+    force=rampOrientation*force;
     
     //apply force to the character
     addForce(force);
@@ -470,34 +528,69 @@ void Player::setWeapon(Weapon *uPistol){
 }
 
 void Player::setMap(U4DEngine::U4DGameObject *uMap){
-    map=uMap;
+    mapLevel=uMap;
 }
 
 bool Player::testMapIntersection(){
     
     bool mapIntersection=false;
-    
+
     //create a ray cast
     U4DEngine::U4DRayCast rayCast;
     U4DEngine::U4DTriangle hitTriangle;
     U4DEngine::U4DPoint3n intPoint;
     float intTime=0.0;
-    
+
     //create a ray
     U4DEngine::U4DPoint3n playerPosition=getAbsolutePosition().toPoint();
     U4DEngine::U4DVector3n rayDirection=forceDirection;
-    
+
     U4DEngine::U4DRay ray(playerPosition,rayDirection);
-    
-    if (rayCast.hit(ray, map, hitTriangle, intPoint, intTime)) {
-        
+
+    if (rayCast.hit(ray, mapLevel, hitTriangle, intPoint, intTime)) {
+
         if(intTime<1.0){
-            
+
             mapIntersection=true;
         }
     }
     
     return mapIntersection;
+    
+}
+
+void Player::testRampIntersection(){
+    
+    //create a ray cast
+    U4DEngine::U4DRayCast rayCast;
+    U4DEngine::U4DTriangle hitTriangle;
+    U4DEngine::U4DPoint3n intPoint;
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+    float intTime=0.0;
+    
+    //create a ray
+    U4DEngine::U4DPoint3n soldierPosition=getAbsolutePosition().toPoint();
+    
+    U4DEngine::U4DVector3n rayDirection(0.0,-1.0,0.0);
+    
+    U4DEngine::U4DRay ray(soldierPosition,rayDirection);
+    
+    if(rayCast.hit(ray,mapLevel,hitTriangle,intPoint, intTime)){
+        
+        U4DEngine::U4DVector3n n=hitTriangle.getTriangleNormal();
+        n.normalize();
+        
+        float angle=n.angle(upVector);
+        
+        U4DEngine::U4DVector3n axis=upVector.cross(n);
+        
+        U4DEngine::U4DQuaternion q(angle,axis);
+        
+        q.convertToUnitNormQuaternion();
+        
+        rampOrientation=q.transformQuaternionToMatrix3n();
+        
+    }
     
 }
 

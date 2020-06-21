@@ -15,7 +15,9 @@
 #include "U4DLogger.h"
 #include "U4DVector2n.h"
 #include "U4DControllerInterface.h"
+#include "U4DSceneManager.h"
 #include "MainScene.h"
+#include "StartScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController
@@ -25,8 +27,6 @@
     U4DRenderer *renderer;
     
     NSTrackingArea *trackingArea;
-    
-    MainScene *mainScene;
     
 }
 
@@ -106,9 +106,15 @@
     float contentScale = [[[NSApplication sharedApplication] mainWindow] backingScaleFactor];
     director->setScreenScaleFactor(contentScale);
     
+    //call the scene manager
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+
     //initialize the scene for your game
-    mainScene=new MainScene();
-    mainScene->init();
+    //MainScene *mainScene=new MainScene();
+    StartScene *startScene=new StartScene();
+    
+    sceneManager->changeScene(startScene);
+    
 }
 
 - (void)screenScaleFactorChanged:(NSNotification *)notification {
@@ -158,7 +164,11 @@
 
     U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
     
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
 
     if (profile!=nil && gameController!=nullptr) {
 
@@ -181,8 +191,12 @@
 - (void)flagsChanged:(NSEvent *)theEvent{
     
     NSUInteger flags = [[NSApp currentEvent] modifierFlags];
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
 
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
             
@@ -213,7 +227,12 @@
 {
    
     unichar character = [[theEvent characters] characterAtIndex:0];
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
         
@@ -253,7 +272,12 @@
 {
  
     unichar character = [[theEvent characters] characterAtIndex:0];
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
         
@@ -297,57 +321,65 @@
     
     //USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
     
-//    NSPoint mouseMovePos = [theEvent locationInWindow];
-//
-//    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
-//
-//    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
-//
-//    if(gameController!=nullptr){
-//
-//        gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
-//
-//    }
+    NSPoint mouseMovePos = [theEvent locationInWindow];
+
+    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
+
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+
+    if(gameController!=nullptr){
+
+        gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
+
+    }
     
     //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
     
-    static bool mouseWrap = false;
-
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
-
-    if(!mouseWrap) {
-
-        int xDelta;
-        int yDelta;
-
-        //get the delta movement
-        CGGetLastMouseDelta(&xDelta, &yDelta);
-
-        //get the center position of the view
-        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
-
-        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
-
-        //move the cursor back to the center
-
-        // CGAssociateMouseAndMouseCursorPosition(false);
-        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
-        //CGAssociateMouseAndMouseCursorPosition(true);
-
-        mouseWrap = true;
-
-        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
-
-        if(gameController!=nullptr){
-
-            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActiveDelta, mouseDeltaLocation);
-
-        }
-
-    } else {
-
-        mouseWrap = false;
-    }
+//    static bool mouseWrap = false;
+//
+//    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+//
+//    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+//
+//    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+//
+//    if(!mouseWrap) {
+//
+//        int xDelta;
+//        int yDelta;
+//
+//        //get the delta movement
+//        CGGetLastMouseDelta(&xDelta, &yDelta);
+//
+//        //get the center position of the view
+//        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
+//
+//        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
+//
+//        //move the cursor back to the center
+//
+//        // CGAssociateMouseAndMouseCursorPosition(false);
+//        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
+//        //CGAssociateMouseAndMouseCursorPosition(true);
+//
+//        mouseWrap = true;
+//
+//        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
+//
+//        if(gameController!=nullptr){
+//
+//            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActiveDelta, mouseDeltaLocation);
+//
+//        }
+//
+//    } else {
+//
+//        mouseWrap = false;
+//    }
     
 }
 
@@ -362,7 +394,11 @@
 
     U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
     
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
             
@@ -378,7 +414,11 @@
 
     U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
     
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
             
@@ -395,10 +435,14 @@
 
     U4DEngine::U4DVector2n mouseLocation(mouseUpPos.x,mouseUpPos.y);
     
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
-            
+        
         gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonReleased, mouseLocation);
         
     }

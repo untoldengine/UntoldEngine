@@ -55,11 +55,11 @@ void Weapon::shoot(){
         
         float weaponDimension=getModelDimensions().magnitude();
         
-        weaponDimension*=1.5;
+        weaponDimension*=0.5;
         
         //set the position of the bullet to be emitted from the barrel of the pistol
         U4DEngine::U4DMatrix3n m=getAbsoluteSpaceOrientation().transformQuaternionToMatrix3n();
-        U4DEngine::U4DVector3n weaponBarrelPosition(-0.3,0.0,-0.2);
+        U4DEngine::U4DVector3n weaponBarrelPosition(-0.2,0.0,-0.1);
         U4DEngine::U4DVector3n bulletInitPosition=m*weaponBarrelPosition;
         
         pos=pos+bulletInitPosition*weaponDimension;

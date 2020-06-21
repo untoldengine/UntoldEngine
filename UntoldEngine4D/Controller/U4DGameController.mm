@@ -10,9 +10,7 @@
 #include "U4DInputElement.h"
 #include "U4DWorld.h"
 #include "U4DGameModelInterface.h"
-#include "U4DLayer.h"
-#include "U4DEntity.h"
-#include "U4DLayerManager.h"
+
 
 namespace U4DEngine {
 
@@ -88,40 +86,10 @@ namespace U4DEngine {
 
     void U4DGameController::sendUserInputUpdate(void *uData){
         
-        U4DLayerManager *layerManager=U4DLayerManager::sharedInstance();
+        //Send the user input to the MVC components.
+        gameWorld->receiveUserInputUpdate(uData);
         
-        U4DLayer *activeLayer=layerManager->getActiveLayer(); 
-        
-        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
-        
-        U4DEngine::INPUTELEMENTACTION inputAction=static_cast<U4DEngine::INPUTELEMENTACTION>(controllerInputMessage.inputElementAction);
-        
-        bool handleByUIElement=false;
-        
-        //Go through the layer's children and check if the input coordinates lie within their boundaries
-        if (activeLayer!=nullptr) {
-            
-            U4DEntity *child=activeLayer->getLastChild();
-            
-            while (child!=nullptr) {
-                
-                if(child->changeState(inputAction, controllerInputMessage.inputPosition)){
-                    
-                    //Message will be handle by the element callback
-                    handleByUIElement=true;
-                    
-                    break;
-                }
-                
-                child=child->getPrevSibling();
-                
-            }
-            
-        }
-        
-        if (!handleByUIElement) {
-            gameModel->receiveUserInputUpdate(&controllerInputMessage);
-        }
+        gameModel->receiveUserInputUpdate(uData);
         
     }
 

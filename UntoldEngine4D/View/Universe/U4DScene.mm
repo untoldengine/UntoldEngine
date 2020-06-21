@@ -9,30 +9,37 @@
 #include "U4DScene.h"
 #include "U4DWorld.h"
 #include "U4DDirector.h"
+#include "U4DScheduler.h"
+#include "Constants.h"
+#include "U4DSceneManager.h"
+#include "U4DSceneStateManager.h"
+#include "U4DSceneActiveState.h"
+#include "U4DSceneIdleState.h"
+#include "U4DSceneLoadingState.h"
+#include <thread>
 
 namespace U4DEngine {
     
     //constructor
-    U4DScene::U4DScene(){
-        
-        
+    U4DScene::U4DScene():sceneStateManager(nullptr),accumulator(0.0),globalTime(0.0),componentsMultithreadLoaded(false){
 
+        sceneStateManager=new U4DSceneStateManager(this);
+        
     };
 
     //destructor
     U4DScene::~U4DScene(){
-        
-        
 
+        delete sceneStateManager;
+        
     };
 
-    void U4DScene::setGameWorldControllerAndModel(U4DWorld *uGameWorld,U4DControllerInterface *uGameController, U4DGameModelInterface *uGameModel){
+    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameModelInterface *uGameModel){
         
-        U4DDirector *director=U4DDirector::sharedInstance();
-        director->setScene(this);
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
         
         gameWorld=uGameWorld;
-        gameController=uGameController;
+        gameController=sceneManager->getGameController();
         gameModel=uGameModel;
         
         gameWorld->setGameController(gameController);
@@ -42,44 +49,109 @@ namespace U4DEngine {
         gameController->setGameModel(gameModel);
         
         gameModel->setGameWorld(gameWorld);
-        gameModel->setGameController(uGameController);
+        gameModel->setGameController(sceneManager->getGameController());
         gameModel->setGameEntityManager(gameWorld->getEntityManager());
         
-        gameWorld->init();
-        gameController->init();
-        gameModel->init();
+        sceneStateManager->changeState(U4DSceneActiveState::sharedInstance());
     
+    }
+
+    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameModelInterface *uGameModel){
+     
+        loadingWorld=uLoadingWorld;
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        
+        gameWorld=uGameWorld;
+        gameController=sceneManager->getGameController();
+        gameModel=uGameModel;
+        
+        gameWorld->setGameController(gameController);
+        gameWorld->setGameModel(gameModel);
+        
+        gameController->setGameWorld(uGameWorld);
+        gameController->setGameModel(gameModel);
+        
+        gameModel->setGameWorld(gameWorld);
+        gameModel->setGameController(sceneManager->getGameController());
+        gameModel->setGameEntityManager(gameWorld->getEntityManager());
+        
+        sceneStateManager->changeState(U4DSceneLoadingState::sharedInstance());
+        
+    }
+
+    void U4DScene::initializeMultithreadofComponents(){
+        
+        std::thread t1(&U4DScene::loadMainWorldInBackground,this);
+        
+        t1.detach();
+        
+    }
+    
+    void U4DScene::loadMainWorldInBackground(){
+
+        gameWorld->init();
+        
+        gameModel->init();
+        
+        componentsMultithreadLoaded=true;
+        
     }
 
 
     void U4DScene::update(float dt){
         
-        //update the game controller
-        gameController->update(dt);
+        //accumulate global time
+        globalTime+=dt;
         
-        //update the game model
-        gameModel->update(dt);
+        //set up the time step
+        U4DScheduler *scheduler=U4DScheduler::sharedInstance();
         
-        //update the entity manager
-        gameWorld->entityManager->update(dt); //need to add dt to view
+        float frameTime=dt;
+        
+        //set the time step
+        if (frameTime>0.25) {
+            
+            frameTime=0.25;
+            
+        }
+        
+        accumulator+=frameTime;
+        
+        while (accumulator>=timeStep) {
+            
+            //update state and physics engine
+            getSceneStateManager()->update(timeStep);
+            
+            //update the scheduler
+            scheduler->tick(timeStep);
+            
+            accumulator-=timeStep;
+            
+        }
+        
         
     }
 
     void U4DScene::render(id <MTLRenderCommandEncoder> uRenderEncoder){
 
-        gameWorld->entityManager->render(uRenderEncoder);
+        getSceneStateManager()->render(uRenderEncoder);
         
     }
     
     void U4DScene::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
         
-        gameWorld->entityManager->renderShadow(uRenderShadowEncoder, uShadowTexture);
+        getSceneStateManager()->renderShadow(uRenderShadowEncoder, uShadowTexture);
+        
     }
 
 
     void U4DScene::determineVisibility(){
         
-        gameWorld->entityManager->determineVisibility();
+        if(sceneStateManager->getCurrentState()==U4DSceneActiveState::sharedInstance()){
+            
+            gameWorld->entityManager->determineVisibility();
+            
+        }
         
     }
 
@@ -88,88 +160,19 @@ namespace U4DEngine {
         return gameController;
         
     }
-    
-//    void U4DScene::touchBegan(const U4DTouches &touches){
-//
-//        gameController->touchBegan(touches);
-//    }
-//
-//    void U4DScene::touchEnded(const U4DTouches &touches){
-//
-//        gameController->touchEnded(touches);
-//    }
-//
-//    void U4DScene::touchMoved(const U4DTouches &touches){
-//
-//        gameController->touchMoved(touches);
-//    }
-//
-//    void U4DScene::padPressBegan(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-//
-//        gameController->padPressBegan(uGamePadElement, uGamePadAction);
-//    }
-//
-//    void U4DScene::padPressEnded(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction){
-//
-//        gameController->padPressEnded(uGamePadElement, uGamePadAction);
-//    }
-//
-//    void U4DScene::padThumbStickMoved(GAMEPADELEMENT &uGamePadElement, GAMEPADACTION &uGamePadAction, const U4DPadAxis &uPadAxis){
-//
-//        gameController->padThumbStickMoved(uGamePadElement, uGamePadAction, uPadAxis);
-//    }
-//
-//    void U4DScene::macKeyPressBegan(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-//
-//        gameController->macKeyPressBegan(uKeyboardElement, uKeyboardAction);
-//
-//    }
-//
-//    void U4DScene::macKeyPressEnded(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction){
-//
-//        gameController->macKeyPressEnded(uKeyboardElement, uKeyboardAction);
-//
-//    }
-//
-//    void U4DScene::macArrowKeyActive(KEYBOARDELEMENT &uKeyboardElement, KEYBOARDACTION &uKeyboardAction, U4DVector2n & uPadAxis){
-//
-//        gameController->macArrowKeyActive(uKeyboardElement, uKeyboardAction, uPadAxis);
-//
-//    }
-//
-//    void U4DScene::macMousePressBegan(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-//
-//        gameController->macMousePressBegan(uMouseElement, uMouseAction, uMouseAxis);
-//    }
-//
-//    void U4DScene::macMousePressEnded(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction){
-//
-//        gameController->macMousePressEnded(uMouseElement, uMouseAction);
-//    }
-//
-//    void U4DScene::macMouseDragged(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-//
-//        gameController->macMouseDragged(uMouseElement, uMouseAction, uMouseAxis);
-//    }
-//
-//    void U4DScene::macMouseMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-//
-//        gameController->macMouseMoved(uMouseElement, uMouseAction, uMouseAxis);
-//    }
-//
-//    void U4DScene::macMouseDeltaMoved(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseDelta){
-//
-//        gameController->macMouseDeltaMoved(uMouseElement, uMouseAction, uMouseDelta);
-//    }
-//
-//    void U4DScene::macMouseExited(MOUSEELEMENT &uMouseElement, MOUSEACTION &uMouseAction, U4DVector2n & uMouseAxis){
-//
-//        gameController->macMouseExited(uMouseElement, uMouseAction, uMouseAxis);
-//    }
 
-    void U4DScene::init(){
+
+    U4DSceneStateManager *U4DScene::getSceneStateManager(){
+        
+        return sceneStateManager;
         
     }
+
+    float U4DScene::getGlobalTime(){
+        
+        return globalTime;
+    }
+
     
 }
 

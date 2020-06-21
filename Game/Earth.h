@@ -22,6 +22,12 @@ class Earth:public U4DEngine::U4DWorld{
 private:
     
     Player *player;
+    U4DEngine::U4DGameObject *ground;
+    U4DEngine::U4DGameObject *stones[31];
+    U4DEngine::U4DGameObject *trees[28];
+    U4DEngine::U4DGameObject *alien;
+    U4DEngine::U4DGameObject *lander;
+    U4DEngine::U4DGameObject *sky;
     
 public:
    

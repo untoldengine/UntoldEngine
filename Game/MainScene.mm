@@ -7,50 +7,27 @@
 //
 
 #include "MainScene.h"
-#include "Earth.h"
-#include "GameLogic.h"
-#include "U4DGameModelInterface.h"
-#include "U4DTouchesController.h"
-#include "U4DGamepadController.h"
-#include "U4DKeyboardController.h"
-#include "CommonProtocols.h"
-#include "U4DDirector.h"
+
 
 MainScene::MainScene(){}
 
-MainScene::~MainScene(){}
+MainScene::~MainScene(){
+    
+    delete gameLogic;
+    delete loadingWorld;
+    delete earth;
+    
+}
 
 void MainScene::init(){
     
-    Earth *earth=new Earth();
+    earth=new Earth();
     
-    U4DEngine::U4DGameModelInterface *model=new GameLogic();
+    loadingWorld=new LoadingWorld();
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    gameLogic=new GameLogic();
     
-    U4DEngine::U4DControllerInterface *control = nullptr;
-    
-    if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
-        
-        control=new U4DEngine::U4DTouchesController();
-        
-    }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
-        
-        if(director->getGamePadControllerPresent()){
-            
-            //Game controller detected
-            control=new U4DEngine::U4DGamepadController();
-            
-        }else{
-            
-            //enable keyboard control
-            control=new U4DEngine::U4DKeyboardController();
-            
-        }
-        
-    }
-    
-
-    setGameWorldControllerAndModel(earth, control, model);
+    loadComponents(earth, loadingWorld, gameLogic);
     
 }
+

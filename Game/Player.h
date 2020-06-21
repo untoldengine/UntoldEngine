@@ -32,7 +32,7 @@ private:
     U4DEngine::U4DAnimation *runningAnimation;
     
     //shooting animation
-    U4DEngine::U4DAnimation *shootingAnimation;
+    U4DEngine::U4DAnimation *shootAnimation;
     
     //patrol animation
     U4DEngine::U4DAnimation *patrolAnimation;
@@ -53,7 +53,7 @@ private:
     Weapon *pistol;
     
     //map level
-    U4DEngine::U4DGameObject *map;
+    U4DEngine::U4DGameObject *mapLevel;
     
     //scheduler for navigation
     U4DEngine::U4DCallback<Player> *navigationScheduler;
@@ -66,6 +66,8 @@ private:
     
     //pointer to the hero of the game
     Player *hero;
+    
+    U4DEngine::U4DMatrix3n rampOrientation;
     
     //motion accumulator
     U4DEngine::U4DVector3n motionAccumulator;
@@ -102,6 +104,8 @@ public:
     void setMap(U4DEngine::U4DGameObject *uMap);
     
     bool testMapIntersection();
+    
+    void testRampIntersection();
     
     void shoot();
     

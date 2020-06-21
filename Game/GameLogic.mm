@@ -9,6 +9,9 @@
 #include "GameLogic.h"
 #include "Earth.h"
 #include "CommonProtocols.h"
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
+#include "StartScene.h"
 
 using namespace U4DEngine;
 
@@ -32,7 +35,7 @@ void GameLogic::init(){
     Earth *pEarth=dynamic_cast<Earth*>(getGameWorld());
     
     //2. Search for the Astronaut object
-    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("player"));
+    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("astronaut"));
     
 }
 
@@ -61,7 +64,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesEnded){
                     
                     if(pPlayer->getState()!=pPlayer->getPreviousState()){
-                         
+
                          pPlayer->changeState(pPlayer->getPreviousState());
                     }
                     
@@ -82,10 +85,10 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseButtonReleased){
                     
                     
-                    if(pPlayer->getState()!=pPlayer->getPreviousState()){
-                        
-                        pPlayer->changeState(pPlayer->getPreviousState());
-                   }
+//                    if(pPlayer->getState()!=pPlayer->getPreviousState()){
+//
+//                        pPlayer->changeState(pPlayer->getPreviousState());
+//                   }
                     
                 }
             }
@@ -150,7 +153,7 @@ void GameLogic::receiveUserInputUpdate(void *uData){
                     
                     //5a. what action to take if button was pressed
                     mouseMovementDirection=forwardDir;
-                    
+
                     if (pPlayer->getState()!=patrol) {
                         pPlayer->changeState(patrol);
                     }

@@ -1526,4 +1526,15 @@ namespace U4DEngine {
         
     }
 
+    void U4DResourceLoader::clear(){
+        
+        //clear all containers
+        modelsContainer.clear();
+        animationsContainer.clear();
+        texturesContainer.clear();
+        particlesContainer.clear();
+        convexHullContainer.clear();
+        
+    }
+
 }

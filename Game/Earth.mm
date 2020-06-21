@@ -20,7 +20,8 @@
 #include "U4DLogger.h"
 #include "UserCommonProtocols.h"
 #include "U4DCameraInterface.h"
-#include "U4DCameraFirstPerson.h"
+#include "U4DCameraThirdPerson.h"
+#include "U4DCameraBasicFollow.h"
 #include "Weapon.h"
 #include "MobileLayer.h"
 
@@ -46,13 +47,17 @@ void Earth::init(){
     resourceLoader->loadTextureData("gameTextures.u4d");
     
     //load binary file with animation data
-    resourceLoader->loadAnimationData("running.u4d");
     
-    resourceLoader->loadAnimationData("patroling.u4d");
+    resourceLoader->loadAnimationData("idle.u4d");
     
-    resourceLoader->loadAnimationData("patrolingidle.u4d");
+//    resourceLoader->loadAnimationData("miniondead.u4d");
+//
+//    resourceLoader->loadAnimationData("minionshoot.u4d");
     
-    resourceLoader->loadAnimationData("dead.u4d");
+    resourceLoader->loadAnimationData("patrol.u4d");
+    
+    resourceLoader->loadAnimationData("shoot.u4d");
+    
     
     //load particle data
     resourceLoader->loadParticleData("redBulletEmitter.u4d");
@@ -60,13 +65,15 @@ void Earth::init(){
     //RENDER THE MODELS
     
     //render the ground
-    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
+    ground=new U4DEngine::U4DGameObject();
 
     if(ground->loadModel("ground")){
 
         //set shadows
         ground->setEnableShadow(true);
 
+        ground->enableMeshManager(2);
+        
         //send info to gpu
         ground->loadRenderingInformation();
 
@@ -75,43 +82,67 @@ void Earth::init(){
     }
     
     
-    //renders the map level
-    U4DEngine::U4DGameObject *map=new U4DEngine::U4DGameObject();
-
-    if(map->loadModel("map")){
-
-        //set the map to invisible.
-        map->setShader("vertexNonVisibleShader","fragmentNonVisibleShader");
-        
-        //We just want the map for raycasting purposes
-        map->enableMeshManager(2);
-        
-        map->loadRenderingInformation();
-
-        addChild(map);
-    }
+//    //renders the map level
+//    U4DEngine::U4DGameObject *map=new U4DEngine::U4DGameObject();
+//
+//    if(map->loadModel("map")){
+//
+//        //set the map to invisible.
+//        map->setShader("vertexNonVisibleShader","fragmentNonVisibleShader");
+//
+//        //We just want the map for raycasting purposes
+//        map->enableMeshManager(2);
+//
+//        map->loadRenderingInformation();
+//
+//        addChild(map);
+//    }
     
     
     //Render the house objects
-    U4DEngine::U4DGameObject *houses[6];
+    
 
     //This is a nice way to load identical models. For example, the names of the models in blender are house0, house1
     //house2, etc. Instead of loading it one by one, you can simply append the "i" count to the "house" text.
-    for(int i=0;i<sizeof(houses)/sizeof(houses[0]);i++){
+    for(int i=0;i<sizeof(stones)/sizeof(stones[0]);i++){
 
-        std::string name="house";
+        std::string name="stone";
 
         name+=std::to_string(i);
 
-        houses[i]=new U4DEngine::U4DGameObject();
+        stones[i]=new U4DEngine::U4DGameObject();
 
-        if(houses[i]->loadModel(name.c_str())){
+        if(stones[i]->loadModel(name.c_str())){
 
-            houses[i]->setEnableShadow(true);
+            stones[i]->setEnableShadow(true);
 
-            houses[i]->loadRenderingInformation();
+            stones[i]->loadRenderingInformation();
 
-            addChild(houses[i]);
+            addChild(stones[i]);
+        }
+
+    }
+    
+    //Render the house objects
+    
+
+    //This is a nice way to load identical models. For example, the names of the models in blender are house0, house1
+    //house2, etc. Instead of loading it one by one, you can simply append the "i" count to the "house" text.
+    for(int i=0;i<sizeof(trees)/sizeof(trees[0]);i++){
+
+        std::string name="tree";
+
+        name+=std::to_string(i);
+
+        trees[i]=new U4DEngine::U4DGameObject();
+
+        if(trees[i]->loadModel(name.c_str())){
+
+            trees[i]->setEnableShadow(true);
+
+            trees[i]->loadRenderingInformation();
+
+            addChild(trees[i]);
         }
 
     }
@@ -120,116 +151,164 @@ void Earth::init(){
     
     player=new Player();
     
-    if(player->init("player")){
+    if(player->init("astronaut")){
         
         //add it to the scenegraph
         addChild(player);
+        
+        player->setMap(ground);
         
     }
     
     
     //add the pistol
     Weapon *pistol=new Weapon();
-    
-    if(pistol->init("pistol")){
-                
-        player->setWeapon(pistol); 
-        
+
+    if(pistol->init("gun")){
+
+        player->setWeapon(pistol);
+
     }
     
     //add map level to player
-    player->setMap(map);
+    //player->setMap(map);
     
     //change state of main player
     player->changeState(patrolidle);
     
     //add the enemies
-    Player *enemy[3];
+    
+    alien=new U4DEngine::U4DGameObject();
 
-    for(int i=0;i<sizeof(enemy)/sizeof(enemy[0]);i++){
+    if(alien->loadModel("alien0")){
 
-        std::string name="enemy";
-        name+=std::to_string(i);
+        //set shadows
+        alien->setEnableShadow(true);
 
-        enemy[i]=new Player();
+        //send info to gpu
+        alien->loadRenderingInformation();
 
-        if (enemy[i]->init(name.c_str())) {
-
-            enemy[i]->setHero(player);
-
-            enemy[i]->rotateBy(0.0,180.0,0.0);
-
-            addChild(enemy[i]);
-
-            enemy[i]->changeState(attack);
-        }
-
+        //add to scenegraph
+        addChild(alien);
     }
     
-    /*---CREATE SKYBOX HERE--*/
-    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+    lander=new U4DEngine::U4DGameObject();
 
-    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+    if(lander->loadModel("ApolloLander")){
 
-    addChild(skybox,0);
-    
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
-    if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
-        
-        //Create Mobile Layer with buttons & joystic
-        U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
-        
-        //set the world (view component) for the layer manager --MAY WANT TO FIX THIS. DONT LIKE SETTING THE VIEW HERE FOR THE LAYER MANAGER
-        layerManager->setWorld(this);
-        
-        //create the Mobile Layer
-        MobileLayer *mobileLayer=new MobileLayer("mobilelayer");
-        
-        mobileLayer->init();
-        
-        mobileLayer->setPlayer(player);
-        
-        layerManager->addLayerToContainer(mobileLayer);
-        
-        layerManager->pushLayer("mobilelayer");
-        
-    }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
-     
-        /*---CREATE TEXT HERE--*/
-        //Create a Font Loader object
-        U4DEngine::U4DFontLoader *fontLoader=new U4DEngine::U4DFontLoader();
+        //set shadows
+        lander->setEnableShadow(true);
 
-        //Load font data into the font loader object. Such as the xml file and image file
-        fontLoader->loadFontAssetFile("myFont.xml", "myFont.png");
+        //send info to gpu
+        lander->loadRenderingInformation();
 
-        //Create a text object. Provide the font loader object and the spacing between letters
-        U4DEngine::U4DText *myText=new U4DEngine::U4DText(fontLoader, 30);
-
-        //set the text you want to display
-        myText->setText("exit: cmd+w");
-
-        //If desire, set the text position. Remember the coordinates for 2D objects, such as text is [-1.0,1.0]
-        myText->translateTo(0.30, -0.90, 0.0);
-
-        //6. Add the text to the scenegraph
-        addChild(myText,-2);
-        
+        //add to scenegraph
+        addChild(lander);
     }
     
-    /*---SET CAMERA BEHAVIOR TO FIRST PERSON--*/
+    sky=new U4DEngine::U4DGameObject();
+
+    if(sky->loadModel("Icosphere")){
+
+        //set shadows
+        sky->setEnableShadow(true);
+
+        //send info to gpu
+        sky->loadRenderingInformation();
+
+        //add to scenegraph
+        addChild(sky);
+    }
+    
+    
+//    Player *enemy[1];
+//
+//    for(int i=0;i<sizeof(enemy)/sizeof(enemy[0]);i++){
+//
+//        std::string name="enemy";
+//        name+=std::to_string(i);
+//
+//        enemy[i]=new Player();
+//
+//        if (enemy[i]->init(name.c_str())) {
+//
+//            enemy[i]->setHero(player);
+//
+//            enemy[i]->rotateBy(0.0,180.0,0.0);
+//
+//            addChild(enemy[i]);
+//
+//            enemy[i]->changeState(attack);
+//        }
+//
+//    }
+    
+//    /*---CREATE SKYBOX HERE--*/
+//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+//
+//    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+//
+//    skybox->translateBy(0.0,20.0,0.0);
+//
+//    addChild(skybox,0);
+//
+//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+//
+//    if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
+//
+//        //Create Mobile Layer with buttons & joystic
+//        U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+//
+//        //set the world (view component) for the layer manager --MAY WANT TO FIX THIS. DONT LIKE SETTING THE VIEW HERE FOR THE LAYER MANAGER
+//        layerManager->setWorld(this);
+//
+//        //create the Mobile Layer
+//        MobileLayer *mobileLayer=new MobileLayer("mobilelayer");
+//
+//        mobileLayer->init();
+//
+//        mobileLayer->setPlayer(player);
+//
+//        layerManager->addLayerToContainer(mobileLayer);
+//
+//        layerManager->pushLayer("mobilelayer");
+//
+//    }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
+//
+//        /*---CREATE TEXT HERE--*/
+//        //Create a Font Loader object
+//        U4DEngine::U4DFontLoader *fontLoader=new U4DEngine::U4DFontLoader();
+//
+//        //Load font data into the font loader object. Such as the xml file and image file
+//        fontLoader->loadFontAssetFile("myFont.xml", "myFont.png");
+//
+//        //Create a text object. Provide the font loader object and the spacing between letters
+//        U4DEngine::U4DText *myText=new U4DEngine::U4DText(fontLoader, 30);
+//
+//        //set the text you want to display
+//        myText->setText("exit: cmd+w");
+//
+//        //If desire, set the text position. Remember the coordinates for 2D objects, such as text is [-1.0,1.0]
+//        myText->translateTo(0.30, -0.90, 0.0);
+//
+//        //6. Add the text to the scenegraph
+//        addChild(myText,-2);
+//
+//    }
+    
+    /*---SET CAMERA BEHAVIOR TO THIRD PERSON--*/
     //Instantiate the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
     //Line 1. Instantiate the camera interface and the type of camera you desire
-    U4DEngine::U4DCameraInterface *cameraFirstPerson=U4DEngine::U4DCameraFirstPerson::sharedInstance();
+    U4DEngine::U4DCameraInterface *cameraThirdPerson=U4DEngine::U4DCameraThirdPerson::sharedInstance();
 
     //Line 2. Set the parameters for the camera. Such as which model the camera will target, and the offset positions
-    cameraFirstPerson->setParameters(player,0.0,0.4,-0.5);
+    cameraThirdPerson->setParameters(player,0.0,2.0,10.0);
 
     //Line 3. set the camera behavior
-    camera->setCameraBehavior(cameraFirstPerson);
-    
+    camera->setCameraBehavior(cameraThirdPerson);
+  
 
 }
 
@@ -243,10 +322,8 @@ void Earth::setupConfiguration(){
     //Get director object
     U4DDirector *director=U4DDirector::sharedInstance();
     
-    director->setWorld(this);
-    
     //Compute the perspective space matrix
-    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(30.0f, director->getAspect(), 0.01f, 100.0f);
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.01f, 100.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space
@@ -255,7 +332,7 @@ void Earth::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,2.0,-30.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-30.0);
     
     //translate camera
     camera->translateTo(cameraPosition);
@@ -274,7 +351,7 @@ void Earth::setupConfiguration(){
     addChild(light);
     
     //Set the view direction of the camera and light
-    //camera->viewInDirection(origin);
+    camera->viewInDirection(origin);
     
     light->viewInDirection(origin);
     
@@ -285,6 +362,29 @@ void Earth::setupConfiguration(){
 
 Earth::~Earth(){
     
+    //remove all objects from the scenegraph
+    removeChild(player);
+    removeChild(ground);
+    removeChild(alien);
+    removeChild(lander);
+    
+    
+    delete player;
+    delete ground;
+    delete alien;
+    delete lander;
+    
+    
+    for (int i=0; i<31; i++) {
+        removeChild(stones[i]);
+        delete stones[i];
+    }
+
+    for (int i=0; i<28; i++) {
+        removeChild(trees[i]);
+        delete trees[i];
+    }
+    std::cout<<"objects deleted"<<std::endl;
     
 }
 
