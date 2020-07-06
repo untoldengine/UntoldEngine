@@ -110,10 +110,10 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    LevelOneScene *levelOneScene=new LevelOneScene();
-    //StartScene *startScene=new StartScene();
+    //LevelOneScene *levelOneScene=new LevelOneScene();
+    StartScene *startScene=new StartScene();
     
-    sceneManager->changeScene(levelOneScene);
+    sceneManager->changeScene(startScene);
     
 }
 
@@ -319,66 +319,53 @@
 
 - (void)mouseMoved:(NSEvent *)theEvent {
     
-    //USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
     
-//    NSPoint mouseMovePos = [theEvent locationInWindow];
-//
-//    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
-//
-//    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-//
-//    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-//
-//    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-//
-//    if(gameController!=nullptr){
-//
-//        gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
-//
-//    }
-    
-    //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
-    
-    static bool mouseWrap = false;
-
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
 
     U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+    
+    //get mouse location
+    NSPoint mouseMovePos = [theEvent locationInWindow];
+    
+    int xDelta;
+    int yDelta;
 
-    if(!mouseWrap) {
+    //get the mouse delta movement
+    CGGetLastMouseDelta(&xDelta, &yDelta);
+    
+    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
+    
+    U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
 
-        int xDelta;
-        int yDelta;
+    if(gameController!=nullptr){
+        
+        //if game current scene mouse not anchored
+        if(!currentScene->getAnchorMouse()){
+            
+            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
+            
+        }else{
+            
+            //else if current scene mouse locked
+            
+            //The following snippets are required to anchor the mouse cursor to the center of the screen
+            
+            //get the center position of the view
+            NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
 
-        //get the delta movement
-        CGGetLastMouseDelta(&xDelta, &yDelta);
+            NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
 
-        //get the center position of the view
-        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
-
-        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
-
-        //move the cursor back to the center
-
-        // CGAssociateMouseAndMouseCursorPosition(false);
-        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
-        //CGAssociateMouseAndMouseCursorPosition(true);
-
-        mouseWrap = true;
-
-        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
-
-        if(gameController!=nullptr){
-
+            //move the cursor back to the center
+            // CGAssociateMouseAndMouseCursorPosition(false);
+            CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
+            //CGAssociateMouseAndMouseCursorPosition(true);
+            
             gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActiveDelta, mouseDeltaLocation);
-
+            
         }
 
-    } else {
-
-        mouseWrap = false;
     }
     
 }

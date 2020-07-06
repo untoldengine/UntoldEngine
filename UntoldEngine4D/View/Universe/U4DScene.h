@@ -44,6 +44,11 @@ private:
      */
     float globalTime;
     
+    /**
+     @brief Anchor mouse to center of the screen
+     */
+    bool anchorMouse;
+    
 public:
     
     /**
@@ -170,6 +175,16 @@ public:
     @brief Initiates the multi-thread of the world and loading-world objects
     */
     void initializeMultithreadofComponents();
+    
+    /**
+     @brief Anchor mouse to center of screen
+     */
+    void setAnchorMouse(bool uValue);
+    
+    /**
+     @brief get if mouse should be anhored to the center of the screen
+     */
+    bool getAnchorMouse();
     
 };
 

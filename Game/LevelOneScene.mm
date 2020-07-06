@@ -29,5 +29,8 @@ void LevelOneScene::init(){
     
     loadComponents(levelOneWorld, loadingWorld, levelOneLogic);
     
+    //anchor mouse
+    setAnchorMouse(true);
+    
 }
 

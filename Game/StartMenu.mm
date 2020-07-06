@@ -49,7 +49,7 @@ void StartMenu::init(){
     
     //Create the UI Elements
     playButton=new U4DEngine::U4DButton("start",0.6,-0.4,150.0,61.0,"start.png","startPressed.png");
-    quitButton=new U4DEngine::U4DButton("quit",0.6,-0.7,150.0,61.0,"quit.png","quitPressed.png");
+    quitButton=new U4DEngine::U4DButton("quit",0.6,-0.6,150.0,61.0,"quit.png","quitPressed.png");
     
     //Create the callback for button
     U4DEngine::U4DCallback<StartMenu>* playButtonCallback=new U4DEngine::U4DCallback<StartMenu>;

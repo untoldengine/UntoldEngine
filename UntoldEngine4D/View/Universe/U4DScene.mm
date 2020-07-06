@@ -21,7 +21,7 @@
 namespace U4DEngine {
     
     //constructor
-    U4DScene::U4DScene():sceneStateManager(nullptr),accumulator(0.0),globalTime(0.0),componentsMultithreadLoaded(false){
+    U4DScene::U4DScene():sceneStateManager(nullptr),accumulator(0.0),globalTime(0.0),componentsMultithreadLoaded(false),anchorMouse(false){
 
         sceneStateManager=new U4DSceneStateManager(this);
         
@@ -173,6 +173,16 @@ namespace U4DEngine {
         return globalTime;
     }
 
-    
+
+    void U4DScene::setAnchorMouse(bool uValue){
+        
+        anchorMouse=uValue;
+    }
+        
+    bool U4DScene::getAnchorMouse(){ 
+        
+        return anchorMouse;
+    }
+
 }
 
