@@ -81,7 +81,10 @@ enum{
     dead,
     attack,
     avoidance,
-
+    navigate,
+    asteroidCollided,
+    asteroidExplosion
+    
 }CHARACTERSTATE;
 
 enum MouseMovementDirection{

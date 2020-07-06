@@ -12,7 +12,7 @@
 #include "U4DRayCast.h"
 #include "U4DAvoidance.h"
 
-Player::Player():motionAccumulator(0.0,0.0,0.0),hero(nullptr){
+Player::Player():motionAccumulator(0.0,0.0,0.0),leader(nullptr){
     
     //create the scheduler and timer objects used for the navigation
     navigationScheduler=new U4DEngine::U4DCallback<Player>;
@@ -126,7 +126,7 @@ bool Player::init(const char* uModelName){
             //set parameters here
             navigationSystem->setPathRadius(0.5);
             navigationSystem->setPredictTime(0.8);
-            navigationSystem->setNavigationSpeed(6.0);
+            navigationSystem->setNavigationSpeed(4.0);
             
         }
         
@@ -203,7 +203,7 @@ void Player::update(double dt){
             testRampIntersection();
             
             //apply a force
-            applyForce(7.0, dt);
+            applyForce(5.0, dt);
             
             if(pistol!=nullptr){
                 
@@ -221,9 +221,9 @@ void Player::update(double dt){
             
         }
         
-    }else if(state==attack){
+    }else if(state==navigate){
         
-        //if object is in attack mode, it will get its velocity from the navigation system.
+        //if object is in navigation mode, it will get its velocity from the navigation system.
         
         U4DEngine::U4DVector3n finalVelocity=desiredNavigationVelocity();
         
@@ -231,12 +231,13 @@ void Player::update(double dt){
         
         if(!(finalVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
             
+            testRampIntersection();
+            
             applyVelocity(finalVelocity, dt);
             
             setViewDirection(finalVelocity);
             
         }
-        
         
     }else if(state==patrolidle){
     
@@ -252,13 +253,13 @@ void Player::update(double dt){
                 
             }
             
-            //remove all velocities from the character
-            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-            
-            setVelocity(zero);
-            setAngularVelocity(zero);
-            
         }
+        
+        //remove all velocities from the character
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+        
+        setVelocity(zero);
+        setAngularVelocity(zero);
     
     }else if(state==avoidance){
         
@@ -379,10 +380,10 @@ void Player::changeState(int uState){
             
             break;
             
-        case attack:
+        case navigate:
             
             //change animation to running
-            currentAnimation=runningAnimation;
+            currentAnimation=patrolAnimation;
             
             navigationTimer->setPause(false);
             
@@ -465,6 +466,8 @@ void Player::applyVelocity(U4DEngine::U4DVector3n &uFinalVelocity, double dt){
     
     //calculate force
     U4DEngine::U4DVector3n force=(uFinalVelocity*mass)/dt;
+    
+    force=rampOrientation*force;
     
     //apply force
     addForce(force);
@@ -599,15 +602,15 @@ void Player::shoot(){
     pistol->shoot();
 }
 
-void Player::setHero(Player *uHero){
-    hero=uHero;
+void Player::setLeader(Player *uLeader){
+    leader=uLeader;
 }
 
 void Player::computeNavigation(){
     
-    if(hero!=nullptr){
+    if(leader!=nullptr){
 
-        U4DEngine::U4DVector3n targetPosition=hero->getAbsolutePosition();
+        U4DEngine::U4DVector3n targetPosition=leader->getAbsolutePosition();
 
         navigationSystem->computePath(this, targetPosition);
 

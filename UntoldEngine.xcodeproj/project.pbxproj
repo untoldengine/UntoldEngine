@@ -183,12 +183,6 @@
 		0359C81D2426F657009A84D4 /* particleemitter.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C81C2426F657009A84D4 /* particleemitter.u4d */; };
 		0359C81E2426F657009A84D4 /* particleemitter.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C81C2426F657009A84D4 /* particleemitter.u4d */; };
 		0359C81F2426F657009A84D4 /* particleemitter.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0359C81C2426F657009A84D4 /* particleemitter.u4d */; };
-		0361DFA11FAC2141004770FD /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
-		0361DFA21FAC2141004770FD /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9C1FAC2140004770FD /* TopImage.png */; };
-		0361DFA31FAC2141004770FD /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9D1FAC2140004770FD /* BottomImage.png */; };
-		0361DFA41FAC2141004770FD /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9E1FAC2140004770FD /* FrontImage.png */; };
-		0361DFA51FAC2141004770FD /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9F1FAC2140004770FD /* RightImage.png */; };
-		0361DFA61FAC2141004770FD /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DFA01FAC2141004770FD /* BackImage.png */; };
 		036964C6248E85190043C1C6 /* U4DSceneManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036964C4248E85180043C1C6 /* U4DSceneManager.mm */; };
 		036964C7248E85190043C1C6 /* U4DSceneManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036964C4248E85180043C1C6 /* U4DSceneManager.mm */; };
 		036964C8248E85190043C1C6 /* U4DSceneManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036964C4248E85180043C1C6 /* U4DSceneManager.mm */; };
@@ -588,12 +582,6 @@
 		03722D2B2029F0F80080D069 /* U4DTouchesController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5E1943D6FE007AD131 /* U4DTouchesController.mm */; };
 		03722D2C2029F16C0080D069 /* myFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BD1FB57F5B0098BB5C /* myFont.png */; };
 		03722D2D2029F16C0080D069 /* myFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BE1FB57F5B0098BB5C /* myFont.xml */; };
-		03722D342029F16C0080D069 /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DFA01FAC2141004770FD /* BackImage.png */; };
-		03722D352029F16C0080D069 /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9D1FAC2140004770FD /* BottomImage.png */; };
-		03722D362029F16C0080D069 /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9E1FAC2140004770FD /* FrontImage.png */; };
-		03722D372029F16C0080D069 /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
-		03722D382029F16C0080D069 /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9F1FAC2140004770FD /* RightImage.png */; };
-		03722D392029F16C0080D069 /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9C1FAC2140004770FD /* TopImage.png */; };
 		03722D3F2029F16C0080D069 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03722D402029F16C0080D069 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03722D412029F16C0080D069 /* ButtonA.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F871934DA8E00CF0600 /* ButtonA.png */; };
@@ -602,12 +590,6 @@
 		03722D442029F16C0080D069 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		03722D462029F16D0080D069 /* myFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BD1FB57F5B0098BB5C /* myFont.png */; };
 		03722D472029F16D0080D069 /* myFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BE1FB57F5B0098BB5C /* myFont.xml */; };
-		03722D4E2029F16D0080D069 /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DFA01FAC2141004770FD /* BackImage.png */; };
-		03722D4F2029F16D0080D069 /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9D1FAC2140004770FD /* BottomImage.png */; };
-		03722D502029F16D0080D069 /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9E1FAC2140004770FD /* FrontImage.png */; };
-		03722D512029F16D0080D069 /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
-		03722D522029F16D0080D069 /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9F1FAC2140004770FD /* RightImage.png */; };
-		03722D532029F16D0080D069 /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9C1FAC2140004770FD /* TopImage.png */; };
 		03722D592029F16D0080D069 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03722D5A2029F16D0080D069 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03722D5B2029F16D0080D069 /* ButtonA.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F871934DA8E00CF0600 /* ButtonA.png */; };
@@ -616,12 +598,6 @@
 		03722D5E2029F16D0080D069 /* ButtonBPressed.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F8A1934DA8E00CF0600 /* ButtonBPressed.png */; };
 		03722D602029F16D0080D069 /* myFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BD1FB57F5B0098BB5C /* myFont.png */; };
 		03722D612029F16D0080D069 /* myFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 039EC6BE1FB57F5B0098BB5C /* myFont.xml */; };
-		03722D682029F16D0080D069 /* BackImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DFA01FAC2141004770FD /* BackImage.png */; };
-		03722D692029F16D0080D069 /* BottomImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9D1FAC2140004770FD /* BottomImage.png */; };
-		03722D6A2029F16D0080D069 /* FrontImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9E1FAC2140004770FD /* FrontImage.png */; };
-		03722D6B2029F16D0080D069 /* LeftImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9B1FAC2140004770FD /* LeftImage.png */; };
-		03722D6C2029F16D0080D069 /* RightImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9F1FAC2140004770FD /* RightImage.png */; };
-		03722D6D2029F16D0080D069 /* TopImage.png in Resources */ = {isa = PBXBuildFile; fileRef = 0361DF9C1FAC2140004770FD /* TopImage.png */; };
 		03722D732029F16D0080D069 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
 		03722D742029F16D0080D069 /* joystickDriver.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A21A4F1D9F001B4F77 /* joystickDriver.png */; };
 		03722D752029F16D0080D069 /* ButtonA.png in Resources */ = {isa = PBXBuildFile; fileRef = 03798F871934DA8E00CF0600 /* ButtonA.png */; };
@@ -884,15 +860,15 @@
 		03B836AF2498075C00B949E1 /* marsscheme.png in Resources */ = {isa = PBXBuildFile; fileRef = 03B836AE2498075C00B949E1 /* marsscheme.png */; };
 		03B836B02498075C00B949E1 /* marsscheme.png in Resources */ = {isa = PBXBuildFile; fileRef = 03B836AE2498075C00B949E1 /* marsscheme.png */; };
 		03B836B12498075C00B949E1 /* marsscheme.png in Resources */ = {isa = PBXBuildFile; fileRef = 03B836AE2498075C00B949E1 /* marsscheme.png */; };
-		03BA57372432E110003A69ED /* MainScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572E2432E10F003A69ED /* MainScene.mm */; };
-		03BA57382432E110003A69ED /* MainScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572E2432E10F003A69ED /* MainScene.mm */; };
-		03BA57392432E110003A69ED /* MainScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572E2432E10F003A69ED /* MainScene.mm */; };
-		03BA573A2432E110003A69ED /* Earth.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572F2432E10F003A69ED /* Earth.mm */; };
-		03BA573B2432E110003A69ED /* Earth.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572F2432E10F003A69ED /* Earth.mm */; };
-		03BA573C2432E110003A69ED /* Earth.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572F2432E10F003A69ED /* Earth.mm */; };
-		03BA57402432E110003A69ED /* GameLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA57312432E10F003A69ED /* GameLogic.mm */; };
-		03BA57412432E110003A69ED /* GameLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA57312432E10F003A69ED /* GameLogic.mm */; };
-		03BA57422432E110003A69ED /* GameLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA57312432E10F003A69ED /* GameLogic.mm */; };
+		03BA57372432E110003A69ED /* LevelOneScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572E2432E10F003A69ED /* LevelOneScene.mm */; };
+		03BA57382432E110003A69ED /* LevelOneScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572E2432E10F003A69ED /* LevelOneScene.mm */; };
+		03BA57392432E110003A69ED /* LevelOneScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572E2432E10F003A69ED /* LevelOneScene.mm */; };
+		03BA573A2432E110003A69ED /* LevelOneWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572F2432E10F003A69ED /* LevelOneWorld.mm */; };
+		03BA573B2432E110003A69ED /* LevelOneWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572F2432E10F003A69ED /* LevelOneWorld.mm */; };
+		03BA573C2432E110003A69ED /* LevelOneWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA572F2432E10F003A69ED /* LevelOneWorld.mm */; };
+		03BA57402432E110003A69ED /* LevelOneLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA57312432E10F003A69ED /* LevelOneLogic.mm */; };
+		03BA57412432E110003A69ED /* LevelOneLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA57312432E10F003A69ED /* LevelOneLogic.mm */; };
+		03BA57422432E110003A69ED /* LevelOneLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BA57312432E10F003A69ED /* LevelOneLogic.mm */; };
 		03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278851F80046B00AF463C /* U4DVisibilityManager.mm */; };
 		03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
@@ -952,7 +928,34 @@
 		03CB4810249E578D00E6A3C8 /* marsloadingscene.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB480F249E578D00E6A3C8 /* marsloadingscene.png */; };
 		03CB4811249E578D00E6A3C8 /* marsloadingscene.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB480F249E578D00E6A3C8 /* marsloadingscene.png */; };
 		03CB4812249E578D00E6A3C8 /* marsloadingscene.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB480F249E578D00E6A3C8 /* marsloadingscene.png */; };
+		03CB4819249FB08C00E6A3C8 /* spacemarsBK.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4813249FB08A00E6A3C8 /* spacemarsBK.png */; };
+		03CB481A249FB08C00E6A3C8 /* spacemarsBK.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4813249FB08A00E6A3C8 /* spacemarsBK.png */; };
+		03CB481B249FB08C00E6A3C8 /* spacemarsBK.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4813249FB08A00E6A3C8 /* spacemarsBK.png */; };
+		03CB481C249FB08C00E6A3C8 /* spacemarsRT.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4814249FB08B00E6A3C8 /* spacemarsRT.png */; };
+		03CB481D249FB08C00E6A3C8 /* spacemarsRT.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4814249FB08B00E6A3C8 /* spacemarsRT.png */; };
+		03CB481E249FB08C00E6A3C8 /* spacemarsRT.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4814249FB08B00E6A3C8 /* spacemarsRT.png */; };
+		03CB481F249FB08C00E6A3C8 /* spacemarsUP.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4815249FB08B00E6A3C8 /* spacemarsUP.png */; };
+		03CB4820249FB08C00E6A3C8 /* spacemarsUP.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4815249FB08B00E6A3C8 /* spacemarsUP.png */; };
+		03CB4821249FB08C00E6A3C8 /* spacemarsUP.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4815249FB08B00E6A3C8 /* spacemarsUP.png */; };
+		03CB4822249FB08C00E6A3C8 /* spacemarsFT.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4816249FB08B00E6A3C8 /* spacemarsFT.png */; };
+		03CB4823249FB08C00E6A3C8 /* spacemarsFT.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4816249FB08B00E6A3C8 /* spacemarsFT.png */; };
+		03CB4824249FB08C00E6A3C8 /* spacemarsFT.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4816249FB08B00E6A3C8 /* spacemarsFT.png */; };
+		03CB4825249FB08C00E6A3C8 /* spacemarsDN.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4817249FB08B00E6A3C8 /* spacemarsDN.png */; };
+		03CB4826249FB08C00E6A3C8 /* spacemarsDN.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4817249FB08B00E6A3C8 /* spacemarsDN.png */; };
+		03CB4827249FB08C00E6A3C8 /* spacemarsDN.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4817249FB08B00E6A3C8 /* spacemarsDN.png */; };
+		03CB4828249FB08C00E6A3C8 /* spacemarsLF.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4818249FB08C00E6A3C8 /* spacemarsLF.png */; };
+		03CB4829249FB08C00E6A3C8 /* spacemarsLF.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4818249FB08C00E6A3C8 /* spacemarsLF.png */; };
+		03CB482A249FB08C00E6A3C8 /* spacemarsLF.png in Resources */ = {isa = PBXBuildFile; fileRef = 03CB4818249FB08C00E6A3C8 /* spacemarsLF.png */; };
+		03CB482C24A100E200E6A3C8 /* fireparticles.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03CB482B24A100E200E6A3C8 /* fireparticles.u4d */; };
+		03CB482D24A100E200E6A3C8 /* fireparticles.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03CB482B24A100E200E6A3C8 /* fireparticles.u4d */; };
+		03CB482E24A100E200E6A3C8 /* fireparticles.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03CB482B24A100E200E6A3C8 /* fireparticles.u4d */; };
 		03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */; };
+		03D0C4C224AF8575001A7D5F /* Meteor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D0C4C024AF8575001A7D5F /* Meteor.mm */; };
+		03D0C4C324AF8575001A7D5F /* Meteor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D0C4C024AF8575001A7D5F /* Meteor.mm */; };
+		03D0C4C424AF8575001A7D5F /* Meteor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D0C4C024AF8575001A7D5F /* Meteor.mm */; };
+		03D0C4C624B208CF001A7D5F /* asteroidparticles.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03D0C4C524B208CF001A7D5F /* asteroidparticles.u4d */; };
+		03D0C4C724B208D0001A7D5F /* asteroidparticles.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03D0C4C524B208CF001A7D5F /* asteroidparticles.u4d */; };
+		03D0C4C824B208D0001A7D5F /* asteroidparticles.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03D0C4C524B208CF001A7D5F /* asteroidparticles.u4d */; };
 		03D1FBC61D50442300B3CF6E /* U4DColorData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D1FBC41D50442200B3CF6E /* U4DColorData.mm */; };
 		03D34DF11F8DB01100476149 /* U4DRenderParticleSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D34DEF1F8DB01100476149 /* U4DRenderParticleSystem.mm */; };
 		03D4B1CE1CC5DEB0007BE481 /* U4DSHAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D4B1CC1CC5DEB0007BE481 /* U4DSHAlgorithm.mm */; };
@@ -1159,12 +1162,6 @@
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
 		0359C81C2426F657009A84D4 /* particleemitter.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = particleemitter.u4d; sourceTree = "<group>"; };
-		0361DF9B1FAC2140004770FD /* LeftImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = LeftImage.png; sourceTree = "<group>"; };
-		0361DF9C1FAC2140004770FD /* TopImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = TopImage.png; sourceTree = "<group>"; };
-		0361DF9D1FAC2140004770FD /* BottomImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BottomImage.png; sourceTree = "<group>"; };
-		0361DF9E1FAC2140004770FD /* FrontImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = FrontImage.png; sourceTree = "<group>"; };
-		0361DF9F1FAC2140004770FD /* RightImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = RightImage.png; sourceTree = "<group>"; };
-		0361DFA01FAC2141004770FD /* BackImage.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = BackImage.png; sourceTree = "<group>"; };
 		036964C4248E85180043C1C6 /* U4DSceneManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSceneManager.mm; sourceTree = "<group>"; };
 		036964C5248E85180043C1C6 /* U4DSceneManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DSceneManager.h; sourceTree = "<group>"; };
 		036964D32493C5940043C1C6 /* StartScene.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StartScene.mm; path = Game/StartScene.mm; sourceTree = SOURCE_ROOT; };
@@ -1405,13 +1402,13 @@
 		03B8369724955EB600B949E1 /* minionidle.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = minionidle.u4d; sourceTree = "<group>"; };
 		03B8369824955EB700B949E1 /* minionpatrol.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = minionpatrol.u4d; sourceTree = "<group>"; };
 		03B836AE2498075C00B949E1 /* marsscheme.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = marsscheme.png; sourceTree = "<group>"; };
-		03BA572A2432E10E003A69ED /* MainScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = MainScene.h; path = Game/MainScene.h; sourceTree = SOURCE_ROOT; };
-		03BA572C2432E10F003A69ED /* GameLogic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = GameLogic.h; path = Game/GameLogic.h; sourceTree = SOURCE_ROOT; };
-		03BA572E2432E10F003A69ED /* MainScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = MainScene.mm; path = Game/MainScene.mm; sourceTree = SOURCE_ROOT; };
-		03BA572F2432E10F003A69ED /* Earth.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = Earth.mm; path = Game/Earth.mm; sourceTree = SOURCE_ROOT; };
-		03BA57312432E10F003A69ED /* GameLogic.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = GameLogic.mm; path = Game/GameLogic.mm; sourceTree = SOURCE_ROOT; };
+		03BA572A2432E10E003A69ED /* LevelOneScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneScene.h; path = Game/LevelOneScene.h; sourceTree = SOURCE_ROOT; };
+		03BA572C2432E10F003A69ED /* LevelOneLogic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneLogic.h; path = Game/LevelOneLogic.h; sourceTree = SOURCE_ROOT; };
+		03BA572E2432E10F003A69ED /* LevelOneScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneScene.mm; path = Game/LevelOneScene.mm; sourceTree = SOURCE_ROOT; };
+		03BA572F2432E10F003A69ED /* LevelOneWorld.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneWorld.mm; path = Game/LevelOneWorld.mm; sourceTree = SOURCE_ROOT; };
+		03BA57312432E10F003A69ED /* LevelOneLogic.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneLogic.mm; path = Game/LevelOneLogic.mm; sourceTree = SOURCE_ROOT; };
 		03BA57332432E110003A69ED /* UserCommonProtocols.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UserCommonProtocols.h; path = Game/UserCommonProtocols.h; sourceTree = SOURCE_ROOT; };
-		03BA57352432E110003A69ED /* Earth.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Earth.h; path = Game/Earth.h; sourceTree = SOURCE_ROOT; };
+		03BA57352432E110003A69ED /* LevelOneWorld.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneWorld.h; path = Game/LevelOneWorld.h; sourceTree = SOURCE_ROOT; };
 		03C278851F80046B00AF463C /* U4DVisibilityManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityManager.mm; path = VisibilityManager/U4DVisibilityManager.mm; sourceTree = "<group>"; };
 		03C278861F80046B00AF463C /* U4DVisibilityManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityManager.h; path = VisibilityManager/U4DVisibilityManager.h; sourceTree = "<group>"; };
 		03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityCulling.mm; path = VisibilityManager/U4DVisibilityCulling.mm; sourceTree = "<group>"; };
@@ -1447,9 +1444,19 @@
 		03CB4807249E574300E6A3C8 /* loading.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = loading.xml; sourceTree = "<group>"; };
 		03CB4808249E574300E6A3C8 /* loading.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = loading.png; sourceTree = "<group>"; };
 		03CB480F249E578D00E6A3C8 /* marsloadingscene.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = marsloadingscene.png; sourceTree = "<group>"; };
+		03CB4813249FB08A00E6A3C8 /* spacemarsBK.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spacemarsBK.png; sourceTree = "<group>"; };
+		03CB4814249FB08B00E6A3C8 /* spacemarsRT.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spacemarsRT.png; sourceTree = "<group>"; };
+		03CB4815249FB08B00E6A3C8 /* spacemarsUP.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spacemarsUP.png; sourceTree = "<group>"; };
+		03CB4816249FB08B00E6A3C8 /* spacemarsFT.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spacemarsFT.png; sourceTree = "<group>"; };
+		03CB4817249FB08B00E6A3C8 /* spacemarsDN.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spacemarsDN.png; sourceTree = "<group>"; };
+		03CB4818249FB08C00E6A3C8 /* spacemarsLF.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = spacemarsLF.png; sourceTree = "<group>"; };
+		03CB482B24A100E200E6A3C8 /* fireparticles.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = fireparticles.u4d; sourceTree = "<group>"; };
 		03CEE28F1775324000B09A52 /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAnimationManager.mm; sourceTree = "<group>"; };
 		03CF11F51E56313400E47C67 /* U4DAnimationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimationManager.h; sourceTree = "<group>"; };
+		03D0C4C024AF8575001A7D5F /* Meteor.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = Meteor.mm; path = Game/Meteor.mm; sourceTree = SOURCE_ROOT; };
+		03D0C4C124AF8575001A7D5F /* Meteor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Meteor.h; path = Game/Meteor.h; sourceTree = SOURCE_ROOT; };
+		03D0C4C524B208CF001A7D5F /* asteroidparticles.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = asteroidparticles.u4d; sourceTree = "<group>"; };
 		03D1FBC41D50442200B3CF6E /* U4DColorData.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DColorData.mm; sourceTree = "<group>"; };
 		03D1FBC51D50442300B3CF6E /* U4DColorData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DColorData.h; sourceTree = "<group>"; };
 		03D34DEF1F8DB01100476149 /* U4DRenderParticleSystem.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRenderParticleSystem.mm; path = RenderEngine/U4DRenderParticleSystem.mm; sourceTree = "<group>"; };
@@ -1751,12 +1758,20 @@
 		036FB55718CE9CB8000EA639 /* Game */ = {
 			isa = PBXGroup;
 			children = (
-				03BA57352432E110003A69ED /* Earth.h */,
-				03BA572F2432E10F003A69ED /* Earth.mm */,
-				03BA572C2432E10F003A69ED /* GameLogic.h */,
-				03BA57312432E10F003A69ED /* GameLogic.mm */,
-				03BA572A2432E10E003A69ED /* MainScene.h */,
-				03BA572E2432E10F003A69ED /* MainScene.mm */,
+				036964D42493C5940043C1C6 /* StartScene.h */,
+				036964D32493C5940043C1C6 /* StartScene.mm */,
+				036964DE2493C5C70043C1C6 /* StartLogic.h */,
+				036964DD2493C5C70043C1C6 /* StartLogic.mm */,
+				036964D92493C5AC0043C1C6 /* StartMenu.h */,
+				036964D82493C5AC0043C1C6 /* StartMenu.mm */,
+				03CB47FB249D5DC400E6A3C8 /* LoadingWorld.h */,
+				03CB47FA249D5DC400E6A3C8 /* LoadingWorld.mm */,
+				03BA572A2432E10E003A69ED /* LevelOneScene.h */,
+				03BA572E2432E10F003A69ED /* LevelOneScene.mm */,
+				03BA57352432E110003A69ED /* LevelOneWorld.h */,
+				03BA572F2432E10F003A69ED /* LevelOneWorld.mm */,
+				03BA572C2432E10F003A69ED /* LevelOneLogic.h */,
+				03BA57312432E10F003A69ED /* LevelOneLogic.mm */,
 				03BA57332432E110003A69ED /* UserCommonProtocols.h */,
 				03A66BE424508C95004DC4ED /* Player.h */,
 				03A66BE324508C95004DC4ED /* Player.mm */,
@@ -1766,14 +1781,8 @@
 				0355076E2455D2E6005274ED /* Bullet.mm */,
 				03B1FFB82487EB1D0039DD6B /* MobileLayer.h */,
 				03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */,
-				036964D42493C5940043C1C6 /* StartScene.h */,
-				036964D32493C5940043C1C6 /* StartScene.mm */,
-				036964D92493C5AC0043C1C6 /* StartMenu.h */,
-				036964D82493C5AC0043C1C6 /* StartMenu.mm */,
-				036964DE2493C5C70043C1C6 /* StartLogic.h */,
-				036964DD2493C5C70043C1C6 /* StartLogic.mm */,
-				03CB47FB249D5DC400E6A3C8 /* LoadingWorld.h */,
-				03CB47FA249D5DC400E6A3C8 /* LoadingWorld.mm */,
+				03D0C4C124AF8575001A7D5F /* Meteor.h */,
+				03D0C4C024AF8575001A7D5F /* Meteor.mm */,
 			);
 			name = Game;
 			path = game;
@@ -2122,6 +2131,14 @@
 			isa = PBXGroup;
 			children = (
 				034350F72481506E006ACD2B /* back.png */,
+				03D0C4C524B208CF001A7D5F /* asteroidparticles.u4d */,
+				03CB482B24A100E200E6A3C8 /* fireparticles.u4d */,
+				03CB4813249FB08A00E6A3C8 /* spacemarsBK.png */,
+				03CB4817249FB08B00E6A3C8 /* spacemarsDN.png */,
+				03CB4816249FB08B00E6A3C8 /* spacemarsFT.png */,
+				03CB4818249FB08C00E6A3C8 /* spacemarsLF.png */,
+				03CB4814249FB08B00E6A3C8 /* spacemarsRT.png */,
+				03CB4815249FB08B00E6A3C8 /* spacemarsUP.png */,
 				03CB4808249E574300E6A3C8 /* loading.png */,
 				03CB4807249E574300E6A3C8 /* loading.xml */,
 				0348E15B249A669500532582 /* marsstartscene.png */,
@@ -2153,12 +2170,6 @@
 				0359C81C2426F657009A84D4 /* particleemitter.u4d */,
 				039EC6BD1FB57F5B0098BB5C /* myFont.png */,
 				039EC6BE1FB57F5B0098BB5C /* myFont.xml */,
-				0361DFA01FAC2141004770FD /* BackImage.png */,
-				0361DF9D1FAC2140004770FD /* BottomImage.png */,
-				0361DF9E1FAC2140004770FD /* FrontImage.png */,
-				0361DF9B1FAC2140004770FD /* LeftImage.png */,
-				0361DF9F1FAC2140004770FD /* RightImage.png */,
-				0361DF9C1FAC2140004770FD /* TopImage.png */,
 				03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */,
 				03C737A21A4F1D9F001B4F77 /* joystickDriver.png */,
 				03798F871934DA8E00CF0600 /* ButtonA.png */,
@@ -2895,15 +2906,16 @@
 			files = (
 				03CB480D249E574400E6A3C8 /* loading.png in Resources */,
 				032BDFE8240B281300453C99 /* spaceAttributes.u4d in Resources */,
+				03D0C4C724B208D0001A7D5F /* asteroidparticles.u4d in Resources */,
 				0343510A2481506E006ACD2B /* backPressed.png in Resources */,
 				03722D432029F16C0080D069 /* ButtonB.png in Resources */,
-				03722D382029F16C0080D069 /* RightImage.png in Resources */,
-				03722D352029F16C0080D069 /* BottomImage.png in Resources */,
 				03B8368A2495530D00B949E1 /* quit.png in Resources */,
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
 				03B836A324955EB700B949E1 /* shoot.u4d in Resources */,
 				03B836872495530D00B949E1 /* quitPressed.png in Resources */,
 				03722D2D2029F16C0080D069 /* myFont.xml in Resources */,
+				03CB482D24A100E200E6A3C8 /* fireparticles.u4d in Resources */,
+				03CB4826249FB08C00E6A3C8 /* spacemarsDN.png in Resources */,
 				03722D442029F16C0080D069 /* ButtonBPressed.png in Resources */,
 				03722D402029F16C0080D069 /* joystickDriver.png in Resources */,
 				0304CE8021266432005A0C4C /* astronautWalkAnim.u4d in Resources */,
@@ -2914,8 +2926,9 @@
 				034351042481506E006ACD2B /* back.png in Resources */,
 				034350FB2481506E006ACD2B /* settings.png in Resources */,
 				03722D2C2029F16C0080D069 /* myFont.png in Resources */,
+				03CB4820249FB08C00E6A3C8 /* spacemarsUP.png in Resources */,
 				034351012481506E006ACD2B /* settingsPressed.png in Resources */,
-				03722D342029F16C0080D069 /* BackImage.png in Resources */,
+				03CB481D249FB08C00E6A3C8 /* spacemarsRT.png in Resources */,
 				03B836AC24955EB700B949E1 /* minionpatrol.u4d in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
 				03722D422029F16C0080D069 /* ButtonAPressed.png in Resources */,
@@ -2923,22 +2936,22 @@
 				034350FE2481506E006ACD2B /* levelsPressed.png in Resources */,
 				03B836902495530D00B949E1 /* start.png in Resources */,
 				03A66BDE245089B6004DC4ED /* gamescene.u4d in Resources */,
-				03722D372029F16C0080D069 /* LeftImage.png in Resources */,
 				034FE6E624546F1F007972AE /* gameTextures.u4d in Resources */,
 				03B836A924955EB700B949E1 /* minionidle.u4d in Resources */,
 				03CB480A249E574400E6A3C8 /* loading.xml in Resources */,
 				03CB4811249E578D00E6A3C8 /* marsloadingscene.png in Resources */,
-				03722D392029F16C0080D069 /* TopImage.png in Resources */,
 				03B8369D24955EB700B949E1 /* patrol.u4d in Resources */,
 				03B8368D2495530D00B949E1 /* startPressed.png in Resources */,
 				03B836B02498075C00B949E1 /* marsscheme.png in Resources */,
+				03CB4823249FB08C00E6A3C8 /* spacemarsFT.png in Resources */,
 				03B836A624955EB700B949E1 /* idle.u4d in Resources */,
 				034351072481506E006ACD2B /* levels.png in Resources */,
 				03B836A024955EB700B949E1 /* minionshoot.u4d in Resources */,
 				0359C81E2426F657009A84D4 /* particleemitter.u4d in Resources */,
 				03722D412029F16C0080D069 /* ButtonA.png in Resources */,
-				03722D362029F16C0080D069 /* FrontImage.png in Resources */,
+				03CB481A249FB08C00E6A3C8 /* spacemarsBK.png in Resources */,
 				032BDFBD2406BA3600453C99 /* astronautTextures.u4d in Resources */,
+				03CB4829249FB08C00E6A3C8 /* spacemarsLF.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2947,17 +2960,11 @@
 			buildActionMask = 2147483647;
 			files = (
 				03722D462029F16D0080D069 /* myFont.png in Resources */,
-				03722D4F2029F16D0080D069 /* BottomImage.png in Resources */,
-				03722D512029F16D0080D069 /* LeftImage.png in Resources */,
-				03722D532029F16D0080D069 /* TopImage.png in Resources */,
-				03722D502029F16D0080D069 /* FrontImage.png in Resources */,
 				03722D592029F16D0080D069 /* joyStickBackground.png in Resources */,
 				03722D5A2029F16D0080D069 /* joystickDriver.png in Resources */,
 				03722D5E2029F16D0080D069 /* ButtonBPressed.png in Resources */,
 				03722D5D2029F16D0080D069 /* ButtonB.png in Resources */,
-				03722D4E2029F16D0080D069 /* BackImage.png in Resources */,
 				03722D5C2029F16D0080D069 /* ButtonAPressed.png in Resources */,
-				03722D522029F16D0080D069 /* RightImage.png in Resources */,
 				03722D5B2029F16D0080D069 /* ButtonA.png in Resources */,
 				03722D472029F16D0080D069 /* myFont.xml in Resources */,
 				03722B2D2029F0220080D069 /* Main.storyboard in Resources */,
@@ -2969,41 +2976,42 @@
 			buildActionMask = 2147483647;
 			files = (
 				03B8369B24955EB700B949E1 /* miniondead.u4d in Resources */,
+				03D0C4C824B208D0001A7D5F /* asteroidparticles.u4d in Resources */,
+				03CB482E24A100E200E6A3C8 /* fireparticles.u4d in Resources */,
 				034350FF2481506E006ACD2B /* levelsPressed.png in Resources */,
 				03B8368B2495530D00B949E1 /* quit.png in Resources */,
 				03722D602029F16D0080D069 /* myFont.png in Resources */,
-				03722D692029F16D0080D069 /* BottomImage.png in Resources */,
-				03722D6B2029F16D0080D069 /* LeftImage.png in Resources */,
+				03CB481B249FB08C00E6A3C8 /* spacemarsBK.png in Resources */,
 				03B836912495530D00B949E1 /* start.png in Resources */,
-				03722D6D2029F16D0080D069 /* TopImage.png in Resources */,
 				03CB480E249E574400E6A3C8 /* loading.png in Resources */,
 				03B836A724955EB700B949E1 /* idle.u4d in Resources */,
+				03CB4827249FB08C00E6A3C8 /* spacemarsDN.png in Resources */,
 				03CB480B249E574400E6A3C8 /* loading.xml in Resources */,
 				032BDFE9240B281300453C99 /* spaceAttributes.u4d in Resources */,
 				034351082481506E006ACD2B /* levels.png in Resources */,
-				03722D6A2029F16D0080D069 /* FrontImage.png in Resources */,
 				034350FC2481506E006ACD2B /* settings.png in Resources */,
 				03722D732029F16D0080D069 /* joyStickBackground.png in Resources */,
+				03CB4824249FB08C00E6A3C8 /* spacemarsFT.png in Resources */,
 				0343510B2481506E006ACD2B /* backPressed.png in Resources */,
 				0359C81F2426F657009A84D4 /* particleemitter.u4d in Resources */,
 				03B836B12498075C00B949E1 /* marsscheme.png in Resources */,
+				03CB481E249FB08C00E6A3C8 /* spacemarsRT.png in Resources */,
 				03722D742029F16D0080D069 /* joystickDriver.png in Resources */,
 				03722D782029F16D0080D069 /* ButtonBPressed.png in Resources */,
 				03B836AD24955EB700B949E1 /* minionpatrol.u4d in Resources */,
 				034351022481506E006ACD2B /* settingsPressed.png in Resources */,
 				03B8368E2495530D00B949E1 /* startPressed.png in Resources */,
 				03722D772029F16D0080D069 /* ButtonB.png in Resources */,
-				03722D682029F16D0080D069 /* BackImage.png in Resources */,
 				03722D762029F16D0080D069 /* ButtonAPressed.png in Resources */,
 				03B8369E24955EB700B949E1 /* patrol.u4d in Resources */,
 				03B836AA24955EB700B949E1 /* minionidle.u4d in Resources */,
-				03722D6C2029F16D0080D069 /* RightImage.png in Resources */,
 				03B836A424955EB700B949E1 /* shoot.u4d in Resources */,
 				034FE6E724546F1F007972AE /* gameTextures.u4d in Resources */,
 				032BDFBE2406BA3600453C99 /* astronautTextures.u4d in Resources */,
 				03CB4812249E578D00E6A3C8 /* marsloadingscene.png in Resources */,
 				032DBF3A24571F7D00299B11 /* navmeshAttributes.u4d in Resources */,
 				03722D752029F16D0080D069 /* ButtonA.png in Resources */,
+				03CB4821249FB08C00E6A3C8 /* spacemarsUP.png in Resources */,
 				032DBF2A2455ECF300299B11 /* redBulletEmitter.u4d in Resources */,
 				0348E15E249A669600532582 /* marsstartscene.png in Resources */,
 				03B836882495530D00B949E1 /* quitPressed.png in Resources */,
@@ -3013,6 +3021,7 @@
 				03722D612029F16D0080D069 /* myFont.xml in Resources */,
 				0304CE8121266432005A0C4C /* astronautWalkAnim.u4d in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
+				03CB482A249FB08C00E6A3C8 /* spacemarsLF.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3021,25 +3030,28 @@
 			buildActionMask = 2147483647;
 			files = (
 				03B8369C24955EB700B949E1 /* patrol.u4d in Resources */,
+				03CB481C249FB08C00E6A3C8 /* spacemarsRT.png in Resources */,
 				034350FD2481506E006ACD2B /* levelsPressed.png in Resources */,
 				032BDFE7240B281300453C99 /* spaceAttributes.u4d in Resources */,
 				032BDFBC2406BA3600453C99 /* astronautTextures.u4d in Resources */,
 				03CB480C249E574400E6A3C8 /* loading.png in Resources */,
 				0304CE7F21266432005A0C4C /* astronautWalkAnim.u4d in Resources */,
 				039EC6C01FB57F5C0098BB5C /* myFont.xml in Resources */,
-				0361DFA21FAC2141004770FD /* TopImage.png in Resources */,
-				0361DFA51FAC2141004770FD /* RightImage.png in Resources */,
+				03CB4819249FB08C00E6A3C8 /* spacemarsBK.png in Resources */,
+				03CB4822249FB08C00E6A3C8 /* spacemarsFT.png in Resources */,
 				034FE6E524546F1F007972AE /* gameTextures.u4d in Resources */,
 				03B8369F24955EB700B949E1 /* minionshoot.u4d in Resources */,
 				034351092481506E006ACD2B /* backPressed.png in Resources */,
-				0361DFA31FAC2141004770FD /* BottomImage.png in Resources */,
 				03CB4809249E574400E6A3C8 /* loading.xml in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
+				03CB482C24A100E200E6A3C8 /* fireparticles.u4d in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				03B836AF2498075C00B949E1 /* marsscheme.png in Resources */,
 				032DBF282455ECF300299B11 /* redBulletEmitter.u4d in Resources */,
 				039EC6BF1FB57F5C0098BB5C /* myFont.png in Resources */,
+				03CB4828249FB08C00E6A3C8 /* spacemarsLF.png in Resources */,
+				03CB4825249FB08C00E6A3C8 /* spacemarsDN.png in Resources */,
 				03B8369924955EB700B949E1 /* miniondead.u4d in Resources */,
 				03A66BDD245089B6004DC4ED /* gamescene.u4d in Resources */,
 				0348E15C249A669600532582 /* marsstartscene.png in Resources */,
@@ -3055,14 +3067,13 @@
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
 				032DBF3824571F7D00299B11 /* navmeshAttributes.u4d in Resources */,
 				03B8368C2495530D00B949E1 /* startPressed.png in Resources */,
+				03D0C4C624B208CF001A7D5F /* asteroidparticles.u4d in Resources */,
 				03B836A224955EB700B949E1 /* shoot.u4d in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
-				0361DFA61FAC2141004770FD /* BackImage.png in Resources */,
 				034351032481506E006ACD2B /* back.png in Resources */,
 				03B836A824955EB700B949E1 /* minionidle.u4d in Resources */,
-				0361DFA11FAC2141004770FD /* LeftImage.png in Resources */,
 				03B8368F2495530D00B949E1 /* start.png in Resources */,
-				0361DFA41FAC2141004770FD /* FrontImage.png in Resources */,
+				03CB481F249FB08C00E6A3C8 /* spacemarsUP.png in Resources */,
 				03B836A524955EB700B949E1 /* idle.u4d in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3109,11 +3120,12 @@
 				03722BA42029F0F50080D069 /* U4DTextureData.mm in Sources */,
 				03722BB92029F0F50080D069 /* U4DAnimation.mm in Sources */,
 				0341AC07204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
-				03BA57382432E110003A69ED /* MainScene.mm in Sources */,
+				03BA57382432E110003A69ED /* LevelOneScene.mm in Sources */,
 				03A3E2F3246D8BAB00FBCBAD /* U4DTouchesReleasedState.mm in Sources */,
 				03722BD02029F0F50080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722B742029F0F50080D069 /* modelShader.metal in Sources */,
 				0354C3DB235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
+				03D0C4C324AF8575001A7D5F /* Meteor.mm in Sources */,
 				03A3E2E9246D8B1700FBCBAD /* U4DTouchesStateManager.mm in Sources */,
 				03722BCF2029F0F50080D069 /* U4DParticleData.mm in Sources */,
 				03722BD42029F0F50080D069 /* U4DBoneData.mm in Sources */,
@@ -3263,7 +3275,7 @@
 				0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722B822029F0F50080D069 /* U4DFontLoader.mm in Sources */,
 				03722B5A2029F0F50080D069 /* U4DBoneIndices.mm in Sources */,
-				03BA57412432E110003A69ED /* GameLogic.mm in Sources */,
+				03BA57412432E110003A69ED /* LevelOneLogic.mm in Sources */,
 				03A3E3202474209C00FBCBAD /* U4DButtonStateInterface.mm in Sources */,
 				03722BB52029F0F50080D069 /* U4DEntity.mm in Sources */,
 				03722BCD2029F0F50080D069 /* U4DAABB.mm in Sources */,
@@ -3289,7 +3301,7 @@
 				03722BA52029F0F50080D069 /* U4DCallbackInterface.mm in Sources */,
 				03722B642029F0F50080D069 /* U4DPlane.mm in Sources */,
 				0323DBAE202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
-				03BA573B2432E110003A69ED /* Earth.mm in Sources */,
+				03BA573B2432E110003A69ED /* LevelOneWorld.mm in Sources */,
 				03722B122029F0220080D069 /* AppDelegate.mm in Sources */,
 				03A3E342247420C800FBCBAD /* U4DJoystickIdleState.mm in Sources */,
 				034F2A2A217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
@@ -3511,11 +3523,12 @@
 				03722CDE2029F0F80080D069 /* U4DTextureData.mm in Sources */,
 				03722CF32029F0F80080D069 /* U4DAnimation.mm in Sources */,
 				0341AC09204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
-				03BA57392432E110003A69ED /* MainScene.mm in Sources */,
+				03BA57392432E110003A69ED /* LevelOneScene.mm in Sources */,
 				03A3E2F4246D8BAB00FBCBAD /* U4DTouchesReleasedState.mm in Sources */,
 				03722D0A2029F0F80080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722CAE2029F0F80080D069 /* modelShader.metal in Sources */,
 				0354C3DC235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
+				03D0C4C424AF8575001A7D5F /* Meteor.mm in Sources */,
 				03A3E2EA246D8B1700FBCBAD /* U4DTouchesStateManager.mm in Sources */,
 				03722D092029F0F80080D069 /* U4DParticleData.mm in Sources */,
 				03722D0E2029F0F80080D069 /* U4DBoneData.mm in Sources */,
@@ -3665,7 +3678,7 @@
 				0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722CBC2029F0F80080D069 /* U4DFontLoader.mm in Sources */,
 				03722C942029F0F80080D069 /* U4DBoneIndices.mm in Sources */,
-				03BA57422432E110003A69ED /* GameLogic.mm in Sources */,
+				03BA57422432E110003A69ED /* LevelOneLogic.mm in Sources */,
 				03A3E3212474209C00FBCBAD /* U4DButtonStateInterface.mm in Sources */,
 				03722CEF2029F0F80080D069 /* U4DEntity.mm in Sources */,
 				03722D072029F0F80080D069 /* U4DAABB.mm in Sources */,
@@ -3691,7 +3704,7 @@
 				03722CDF2029F0F80080D069 /* U4DCallbackInterface.mm in Sources */,
 				03722C9E2029F0F80080D069 /* U4DPlane.mm in Sources */,
 				0323DBB0202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
-				03BA573C2432E110003A69ED /* Earth.mm in Sources */,
+				03BA573C2432E110003A69ED /* LevelOneWorld.mm in Sources */,
 				03722B392029F0220080D069 /* AppDelegate.mm in Sources */,
 				03A3E343247420C800FBCBAD /* U4DJoystickIdleState.mm in Sources */,
 				034F2A2B217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
@@ -3760,7 +3773,7 @@
 				03494C161F57BD4C00ACE0EC /* nonVisibleShader.metal in Sources */,
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
-				03BA57372432E110003A69ED /* MainScene.mm in Sources */,
+				03BA57372432E110003A69ED /* LevelOneScene.mm in Sources */,
 				0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
@@ -3784,7 +3797,7 @@
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
 				032B9A20247818DD00412B5B /* U4DLayerManager.mm in Sources */,
 				03F2DAF61F191A2600F77B78 /* worldShader.metal in Sources */,
-				03BA573A2432E110003A69ED /* Earth.mm in Sources */,
+				03BA573A2432E110003A69ED /* LevelOneWorld.mm in Sources */,
 				0323DBB3202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03494BB11F48AE8600ACE0EC /* U4DText.mm in Sources */,
 				038BF24622793B1300B129A5 /* U4DPursuit.mm in Sources */,
@@ -3825,6 +3838,7 @@
 				03E6EDE51943D866007AD131 /* U4DDynamicModel.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				037D2BE22445EA7900AB3FEF /* U4DCohesion.mm in Sources */,
+				03D0C4C224AF8575001A7D5F /* Meteor.mm in Sources */,
 				03A3E3192474209C00FBCBAD /* U4DButtonIdleState.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				031723CA1933FE54001584B1 /* lodepng.mm in Sources */,
@@ -3882,7 +3896,7 @@
 				03CAE6402051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
 				03CAE652205192F500391B57 /* U4DMacMouseDraggedState.mm in Sources */,
 				0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
-				03BA57402432E110003A69ED /* GameLogic.mm in Sources */,
+				03BA57402432E110003A69ED /* LevelOneLogic.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03A3E341247420C800FBCBAD /* U4DJoystickIdleState.mm in Sources */,
 				036964DA2493C5AC0043C1C6 /* StartMenu.mm in Sources */,

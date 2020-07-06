@@ -16,7 +16,7 @@
 #include "U4DVector2n.h"
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
-#include "MainScene.h"
+#include "LevelOneScene.h"
 #include "StartScene.h"
 #include "CommonProtocols.h"
 
@@ -110,10 +110,10 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    //MainScene *mainScene=new MainScene();
-    StartScene *startScene=new StartScene();
+    LevelOneScene *levelOneScene=new LevelOneScene();
+    //StartScene *startScene=new StartScene();
     
-    sceneManager->changeScene(startScene);
+    sceneManager->changeScene(levelOneScene);
     
 }
 
@@ -321,25 +321,9 @@
     
     //USE THIS CODE SNIPPET TO GET THE ABSOLUTE POSITION OF THE MOUSE CURSOR
     
-    NSPoint mouseMovePos = [theEvent locationInWindow];
-
-    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
-
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-
-    if(gameController!=nullptr){
-
-        gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
-
-    }
-    
-    //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
-    
-//    static bool mouseWrap = false;
+//    NSPoint mouseMovePos = [theEvent locationInWindow];
+//
+//    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
 //
 //    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 //
@@ -347,39 +331,55 @@
 //
 //    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
 //
-//    if(!mouseWrap) {
+//    if(gameController!=nullptr){
 //
-//        int xDelta;
-//        int yDelta;
+//        gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
 //
-//        //get the delta movement
-//        CGGetLastMouseDelta(&xDelta, &yDelta);
-//
-//        //get the center position of the view
-//        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
-//
-//        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
-//
-//        //move the cursor back to the center
-//
-//        // CGAssociateMouseAndMouseCursorPosition(false);
-//        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
-//        //CGAssociateMouseAndMouseCursorPosition(true);
-//
-//        mouseWrap = true;
-//
-//        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
-//
-//        if(gameController!=nullptr){
-//
-//            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActiveDelta, mouseDeltaLocation);
-//
-//        }
-//
-//    } else {
-//
-//        mouseWrap = false;
 //    }
+    
+    //USE THIS CODE SNIPPET TO GET THE DELTA POSITION OF THE MOUSE CURSOR. SINCE CGWARPMOUSECURSORPOSITION CALLS THE CALLBACK AGAIN, SO WE HAVE TO IGNORE IT EVERY SECOND CALL.
+    
+    static bool mouseWrap = false;
+
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+
+    if(!mouseWrap) {
+
+        int xDelta;
+        int yDelta;
+
+        //get the delta movement
+        CGGetLastMouseDelta(&xDelta, &yDelta);
+
+        //get the center position of the view
+        NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
+
+        NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
+
+        //move the cursor back to the center
+
+        // CGAssociateMouseAndMouseCursorPosition(false);
+        CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
+        //CGAssociateMouseAndMouseCursorPosition(true);
+
+        mouseWrap = true;
+
+        U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
+
+        if(gameController!=nullptr){
+
+            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActiveDelta, mouseDeltaLocation);
+
+        }
+
+    } else {
+
+        mouseWrap = false;
+    }
     
 }
 

@@ -64,8 +64,8 @@ private:
     //Navigation system
     U4DEngine::U4DNavigation *navigationSystem;
     
-    //pointer to the hero of the game
-    Player *hero;
+    //pointer to the leader of the game
+    Player *leader;
     
     U4DEngine::U4DMatrix3n rampOrientation;
     
@@ -113,7 +113,7 @@ public:
     
     U4DEngine::U4DVector3n desiredNavigationVelocity();
     
-    void setHero(Player *uHero);
+    void setLeader(Player *uLeader);
     
     
     

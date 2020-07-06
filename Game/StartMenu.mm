@@ -11,7 +11,7 @@
 #include "U4DCamera.h"
 #include "U4DLights.h"
 #include "U4DLayerManager.h"
-#include "MainScene.h"
+#include "LevelOneScene.h"
 #include "U4DSceneManager.h"
 #include "U4DCallback.h"
 #include "U4DResourceLoader.h"
@@ -78,9 +78,9 @@ void StartMenu::play(){
         //get instance of scene manager
         U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
-        MainScene *mainScene=new MainScene();
+        LevelOneScene *levelOneScene=new LevelOneScene();
 
-        sceneManager->changeScene(mainScene);
+        sceneManager->changeScene(levelOneScene);
         
     }
     
