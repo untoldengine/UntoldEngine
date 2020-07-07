@@ -13,7 +13,9 @@
 #import "U4DCamera.h"
 #include "U4DTouches.h"
 #include "U4DControllerInterface.h"
-#include "MainScene.h"
+#include "U4DSceneManager.h"
+#include "LevelOneScene.h"
+#include "StartScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController{
@@ -21,8 +23,6 @@
     MTKView *metalView;
     
     U4DRenderer *renderer;
-    
-    MainScene *mainScene;
     
 }
 
@@ -86,9 +86,14 @@
     float contentScale = metalView.contentScaleFactor;
     director->setScreenScaleFactor(contentScale);
     
+    //call the scene manager
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+
     //initialize the scene for your game
-    mainScene=new MainScene();
-    mainScene->init();
+    //LevelOneScene *levelOneScene=new LevelOneScene();
+    StartScene *startScene=new StartScene();
+    
+    sceneManager->changeScene(startScene);
     
 }
 
@@ -101,7 +106,11 @@
 
 - (void)touchesBegan:(NSSet *)touches withEvent:(UIEvent *)event {
     
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
 
     if(gameController!=nullptr){
 
@@ -121,7 +130,11 @@
 
 - (void)touchesEnded:(NSSet *)touches withEvent:(UIEvent *)event{
     
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
 
     if(gameController!=nullptr){
 
@@ -142,7 +155,11 @@
 
 - (void)touchesMoved:(NSSet *)touches withEvent:(UIEvent *)event{
     
-    U4DEngine::U4DControllerInterface *gameController=mainScene->getGameController();
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
 
     if(gameController!=nullptr){
 

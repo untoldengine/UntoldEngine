@@ -92,6 +92,7 @@ enum MouseMovementDirection{
     backwardDir,
     rightDir,
     leftDir,
+    noDir,
 };
 
 typedef enum{

@@ -46,6 +46,7 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
     
     CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
     
+    
     //check the astronaut model exists
     if(pPlayer!=nullptr){
         
@@ -55,21 +56,29 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
             
             case U4DEngine::ioTouch:
             {
-                if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesBegan){
+                mouseMovementDirection=noDir;
+                
+                if (controllerInputMessage.elementUIName.compare("buttonA")!=0 && controllerInputMessage.elementUIName.compare("buttonB")!=0 && controllerInputMessage.elementUIName.compare("joystick")!=0 ) {
                     
-                    if(pPlayer->getState()!=shooting){
-                        pPlayer->changeState(shooting);
-                    }
-                    
-                }else if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesEnded){
-                    
-                    if(pPlayer->getState()!=pPlayer->getPreviousState()){
+                    if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesBegan){
 
-                         pPlayer->changeState(pPlayer->getPreviousState());
+                        if(pPlayer->getState()!=shooting){
+
+                            pPlayer->changeState(shooting);
+                        }
+
+                    }else if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesEnded){
+
+                        if(pPlayer->getState()!=pPlayer->getPreviousState()){
+
+                             pPlayer->changeState(pPlayer->getPreviousState());
+                        }
+
                     }
                     
                 }
                 
+
             }
                 break;
             case U4DEngine::mouseLeftButton:

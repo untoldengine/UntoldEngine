@@ -45,7 +45,7 @@ private:
     /**
      * @brief position of the button of the texture
      */
-    U4DVector3n centerPosition;
+    U4DVector2n centerPosition;
     
     /**
      * @brief current touch position detected

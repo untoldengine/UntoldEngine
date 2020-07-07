@@ -37,7 +37,7 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
     backgroundImage.setImage(uBackGroundImage,uBackgroundWidth,uBackgroundHeight);
     
     
-    U4DVector3n translation(xPosition,yPosition,0.0);
+    U4DVector2n translation(xPosition,yPosition);
     translateTo(translation);     //move the joyStick
     
     
@@ -49,12 +49,16 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
 
     
     //get the original center position of the joystick
-    originalPosition=getLocalPosition();
+    originalPosition.x=getLocalPosition().x;
+    originalPosition.y=getLocalPosition().y;
     
     
     //get the coordinates of the box
-    centerBackgroundPosition=backgroundImage.getLocalPosition();
-    centerImagePosition=getLocalPosition();
+    centerBackgroundPosition.x=backgroundImage.getLocalPosition().x;
+    centerBackgroundPosition.y=backgroundImage.getLocalPosition().y;
+    
+    centerImagePosition.x=getLocalPosition().x;
+    centerImagePosition.y=getLocalPosition().y;
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -152,9 +156,9 @@ bool U4DJoyStick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosi
     
     bool withinBoundary=false;
     
-    U4DVector3n pos(uPosition.x,uPosition.y,0.0);
+    U4DVector2n pos(uPosition.x,uPosition.y);
     
-    U4DVector3n distance=(pos-centerBackgroundPosition);
+    U4DVector2n distance=(pos-centerBackgroundPosition);
     
     float distanceMagnitude=distance.magnitude();
     

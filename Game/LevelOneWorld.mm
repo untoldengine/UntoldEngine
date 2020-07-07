@@ -292,7 +292,7 @@ void LevelOneWorld::init(){
         myText->setText("exit: cmd+w");
 
         //If desire, set the text position. Remember the coordinates for 2D objects, such as text is [-1.0,1.0]
-        myText->translateTo(0.50, -0.90, 0.0);
+        myText->translateTo(0.50, -0.70, 0.0);
 
         //6. Add the text to the scenegraph
         addChild(myText,-2);

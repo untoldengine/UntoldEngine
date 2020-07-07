@@ -29,14 +29,15 @@ U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uW
     
     buttonImages.setImage(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
-    U4DVector3n translation(xPosition,yPosition,0.0);
+    U4DVector2n translation(xPosition,yPosition);
     
     translateTo(translation);     //move the button
     
     buttonImages.translateTo(translation);  //move the image
     
     //get the coordinates of the box
-    centerPosition=getLocalPosition();
+    centerPosition.x=getLocalPosition().x;
+    centerPosition.y=getLocalPosition().y;
     
     U4DDirector *director=U4DDirector::sharedInstance();
     

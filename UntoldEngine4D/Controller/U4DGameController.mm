@@ -14,7 +14,7 @@
 
 namespace U4DEngine {
 
-    U4DGameController::U4DGameController():receivedAction(false){
+    U4DGameController::U4DGameController():receivedAction(false),gameWorld(nullptr),gameModel(nullptr){
         
     }
         
@@ -87,9 +87,13 @@ namespace U4DEngine {
     void U4DGameController::sendUserInputUpdate(void *uData){
         
         //Send the user input to the MVC components.
-        gameWorld->receiveUserInputUpdate(uData);
+        if(gameWorld!=nullptr && gameModel!=nullptr){
+            
+            gameWorld->receiveUserInputUpdate(uData);
+            
+            gameModel->receiveUserInputUpdate(uData);
         
-        gameModel->receiveUserInputUpdate(uData);
+        }
         
     }
 
