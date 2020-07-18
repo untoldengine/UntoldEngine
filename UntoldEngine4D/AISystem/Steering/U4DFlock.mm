@@ -30,6 +30,11 @@ namespace U4DEngine {
         U4DAlign alignBehavior;
         U4DCohesion cohesionBehavior;
         
+        //set max speed
+        separationBehavior.setMaxSpeed(maxSpeed);
+        alignBehavior.setMaxSpeed(maxSpeed);
+        cohesionBehavior.setMaxSpeed(maxSpeed);
+        
         U4DVector3n separationDesiredVelocity=separationBehavior.getSteering(uPursuer,uNeighborsContainer);
         U4DVector3n cohesionDesiredVelocity=cohesionBehavior.getSteering(uPursuer,uNeighborsContainer);
         U4DVector3n alignDesiredVelocity=alignBehavior.getSteering(uPursuer,uNeighborsContainer);
@@ -51,6 +56,12 @@ namespace U4DEngine {
         }
         
         return finalDesiredVelocity;
+        
+    }
+
+    void U4DFlock::setMaxSpeed(float uMaxSpeed){
+        
+        maxSpeed=uMaxSpeed;
         
     }
 

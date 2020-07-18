@@ -32,5 +32,7 @@ void LevelOneScene::init(){
     //anchor mouse
     setAnchorMouse(true);
     
+    //[NSCursor hide];
+    
 }
 

@@ -141,7 +141,6 @@ namespace U4DEngine {
     
     void U4DRenderImage::updateSpaceUniforms(){
         
-        U4DCamera *camera=U4DCamera::sharedInstance();
         U4DDirector *director=U4DDirector::sharedInstance();
         
         U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();

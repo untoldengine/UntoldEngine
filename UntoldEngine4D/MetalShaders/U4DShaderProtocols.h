@@ -105,4 +105,10 @@ typedef struct{
     
 }UniformGeometryProperty;
 
+typedef struct{
+    
+    vector_float4 shaderParameter[24];
+    
+}UniformShaderEntityProperty;
+
 #endif /* U4DShaderProtocols_h */

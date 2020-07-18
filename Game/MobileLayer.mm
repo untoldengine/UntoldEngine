@@ -74,17 +74,17 @@ void MobileLayer::actionOnButtonA(){
             //move player forward
             pPlayer->setForceDirection(forceDir);
             
-            if(pPlayer->getState()!=patrol){
-                pPlayer->changeState(patrol);
-            }
+//            if(pPlayer->getState()!=patrol){
+//                pPlayer->changeState(patrol);
+//            }
             
             
         }else if (buttonA->getIsReleased()){
             
             //stop player
-            if (pPlayer->getState()!=patrolidle) {
-                pPlayer->changeState(patrolidle);
-            }
+//            if (pPlayer->getState()!=patrolidle) {
+//                pPlayer->changeState(patrolidle);
+//            }
         }
         
     }
@@ -109,17 +109,17 @@ void MobileLayer::actionOnButtonB(){
             //move player forward
             pPlayer->setForceDirection(forceDir);
             
-            if(pPlayer->getState()!=patrol){
-                pPlayer->changeState(patrol);
-            }
+//            if(pPlayer->getState()!=patrol){
+//                pPlayer->changeState(patrol);
+//            }
             
             
         }else if (buttonB->getIsReleased()){
             
             //stop player
-            if (pPlayer->getState()!=patrolidle) {
-                pPlayer->changeState(patrolidle);
-            }
+//            if (pPlayer->getState()!=patrolidle) {
+//                pPlayer->changeState(patrolidle);
+//            }
         }
         
     }

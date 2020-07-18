@@ -38,5 +38,7 @@ public:
     
     void receiveUserInputUpdate(void *uData);
     
+    void setActivePlayer(Player *uActivePlayer);
+    
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

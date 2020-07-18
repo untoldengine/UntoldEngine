@@ -95,3 +95,9 @@ float2 hash(float2 u)
     return -1.0 + 2.0*fract( 16.0 * k*fract( u.x*u.y*(u.x+u.y)) );
 }
 
+float mod(float x, float y){
+
+    return x-y*floor(x/y);
+    
+}
+

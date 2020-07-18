@@ -12,6 +12,7 @@
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
 #include "StartScene.h"
+#include "Ball.h"
 
 using namespace U4DEngine;
 
@@ -35,10 +36,15 @@ void LevelOneLogic::init(){
     LevelOneWorld *pEarth=dynamic_cast<LevelOneWorld*>(getGameWorld());
     
     //2. Search for the Astronaut object
-    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("astronaut0"));
+    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("player0"));
     
 }
 
+void LevelOneLogic::setActivePlayer(Player *uActivePlayer){
+    
+    pPlayer=uActivePlayer;
+    
+}
 
 void LevelOneLogic::receiveUserInputUpdate(void *uData){
     
@@ -62,17 +68,11 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                     
                     if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesBegan){
 
-                        if(pPlayer->getState()!=shooting){
-
-                            pPlayer->changeState(shooting);
-                        }
+                        
 
                     }else if(controllerInputMessage.inputElementAction==U4DEngine::ioTouchesEnded){
 
-                        if(pPlayer->getState()!=pPlayer->getPreviousState()){
 
-                             pPlayer->changeState(pPlayer->getPreviousState());
-                        }
 
                     }
                     
@@ -86,18 +86,12 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::mouseButtonPressed) {
                     
-                    if(pPlayer->getState()!=shooting){
-                        pPlayer->changeState(shooting);
-                    }
+                    
                         
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseButtonReleased){
                     
                     
-//                    if(pPlayer->getState()!=pPlayer->getPreviousState()){
-//
-//                        pPlayer->changeState(pPlayer->getPreviousState());
-//                   }
                     
                 }
             }
@@ -110,19 +104,12 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
-                    //4a. What action to take if button was pressed
-                    mouseMovementDirection=leftDir;
                     
-                    if(pPlayer->getState()!=patrol){
-                        pPlayer->changeState(patrol);
-                    }
                     
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==leftDir) {
-                        pPlayer->changeState(patrolidle);
-                    }
+                    
                     
                 }
             }
@@ -135,19 +122,12 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 //7. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
-                    //7a. What action to take if button was pressed
-                    mouseMovementDirection=rightDir;
                     
-                    if(pPlayer->getState()!=patrol){
-                        pPlayer->changeState(patrol);
-                    }
                     
                     //8. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==rightDir) {
-                        pPlayer->changeState(patrolidle);
-                    }
+                    
 
                 }
                 
@@ -160,20 +140,11 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
-                    //5a. what action to take if button was pressed
-                    mouseMovementDirection=forwardDir;
-
-                    if (pPlayer->getState()!=patrol) {
-                        pPlayer->changeState(patrol);
-                    }
                     
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==forwardDir) {
-                        pPlayer->changeState(patrolidle);
-                    }
-                    
+                   
                 }
             }
                 break;
@@ -183,97 +154,164 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
-                    //5a. what action to take if button was pressed
-                    mouseMovementDirection=backwardDir;
-                    
-                    if (pPlayer->getState()!=patrol) {
-                        pPlayer->changeState(patrol);
-                    }
+                   
                     
                     
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if (pPlayer->getState()!=patrolidle && mouseMovementDirection==backwardDir) {
-                        pPlayer->changeState(patrolidle);
-                        
-                    }
+                    
                     
                 }
                 
             }
                 break;
                 
+            case U4DEngine::padButtonA:
+                
+                if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
+                    
+                    pPlayer->setEnablePassing(true);
+                    
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
+                    
+                }
+                
+                break;
+                
+            case U4DEngine::padLeftThumbstick:
+            
+                if(controllerInputMessage.inputElementAction==U4DEngine::padThumbstickMoved){
+                    
+                    //Get joystick direction
+                    U4DEngine::U4DVector3n joystickDirection(controllerInputMessage.joystickDirection.x,0.0,controllerInputMessage.joystickDirection.y);
+                    
+                    //Get entity forward vector for the player
+                    U4DEngine::U4DVector3n v=pPlayer->getViewInDirection();
+                    
+                    v.normalize();
+                    
+                    //set an up-vector
+                    U4DVector3n upVector(0.0,1.0,0.0);
+                    
+                    U4DMatrix3n m=pPlayer->getAbsoluteMatrixOrientation();
+                    
+                    //transform the up vector
+                    upVector=m*upVector;
+                    
+                    U4DEngine::U4DVector3n posDir=v.cross(upVector);
+                    
+                    //Get the angle between the analog joystick direction and the view direction
+                    float angle=v.angle(joystickDirection);
+                    
+                    //if the dot product between the joystick-direction and the positive direction is less than zero, flip the angle
+                    if(joystickDirection.dot(posDir)>0.0){
+                        angle*=-1.0;
+                    }
+                    
+                    //create a quaternion between the angle and the upvector
+                    U4DEngine::U4DQuaternion newOrientation(angle,upVector);
+                    
+                    //Get current orientation of the player
+                    U4DEngine::U4DQuaternion modelOrientation=pPlayer->getAbsoluteSpaceOrientation();
+                    
+                    //create slerp interpolation
+                    U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation, 1.0);
+                    
+                    //rotate the character
+                    pPlayer->rotateBy(p);
+                    
+                    //set the force direction
+                    U4DEngine::U4DVector3n forceDir=pPlayer->getViewInDirection();
+            
+                    forceDir.y=0.0;
+            
+                    forceDir.normalize();
+            
+                    pPlayer->setForceDirection(forceDir);
+                    
+                    pPlayer->setEnableDribbling(true);
+                    
+                    pPlayer->setDribblingDirection(joystickDirection);
+                    
+                }else if (controllerInputMessage.inputElementAction==U4DEngine::padThumbstickReleased){
+                    
+                    pPlayer->setEnableDribbling(false);
+                    
+                }
+            
+            break;
+                
             case U4DEngine::mouse:
             {
                 
                 if(controllerInputMessage.inputElementAction==U4DEngine::mouseActive){
-                    
-                //USE THIS SNIPPET WHEN YOU ONLY WANT THE MOUSE DELTA LOCATION
-                U4DEngine::U4DVector2n delta=controllerInputMessage.mouseDeltaPosition;
-                //set y to zero
-                delta.y=0.0;
-                float deltaMagnitude=delta.magnitude();
-                delta.normalize();
+                
+                    //USE THIS SNIPPET WHEN YOU ONLY WANT THE MOUSE DELTA LOCATION
+                    U4DEngine::U4DVector2n delta=controllerInputMessage.mouseDeltaPosition;
+                    //set y to zero
+                    delta.y=0.0;
+                    float deltaMagnitude=delta.magnitude();
+                    delta.normalize();
 
-                U4DEngine::U4DVector3n axis;
+                    U4DEngine::U4DVector3n axis;
 
-                U4DEngine::U4DVector3n mouseDirection(delta.x,delta.y,0.0);
-                U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-                U4DEngine::U4DVector3n xVector(1.0,0.0,0.0);
+                    U4DEngine::U4DVector3n mouseDirection(delta.x,delta.y,0.0);
+                    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+                    U4DEngine::U4DVector3n xVector(1.0,0.0,0.0);
 
-                //get the dot product
-                float upDot, xDot;
+                    //get the dot product
+                    float upDot, xDot;
 
-                upDot=mouseDirection.dot(upVector);
-                xDot=mouseDirection.dot(xVector);
+                    upDot=mouseDirection.dot(upVector);
+                    xDot=mouseDirection.dot(xVector);
 
-                U4DEngine::U4DVector3n v=pPlayer->getViewInDirection();
-                v.normalize();
+                    U4DEngine::U4DVector3n v=pPlayer->getViewInDirection();
+                    v.normalize();
 
-                if(mouseDirection.magnitude()>0){
-                    //if direction is closest to upvector
-                    if(std::abs(upDot)>=std::abs(xDot)){
-                        //rotate about x axis
+                    if(mouseDirection.magnitude()>0){
+                        //if direction is closest to upvector
+                        if(std::abs(upDot)>=std::abs(xDot)){
+                            //rotate about x axis
 
-                        if(upDot>0.0){
-                            axis=v.cross(upVector);
+                            if(upDot>0.0){
+                                axis=v.cross(upVector);
 
-                        }else{
-                            axis=v.cross(upVector)*-1.0;
+                            }else{
+                                axis=v.cross(upVector)*-1.0;
 
-                        }
-                    }else{
-
-                        //rotate about y axis
-                        if(xDot>0.0){
-
-                            axis=upVector;
-
+                            }
                         }else{
 
-                            axis=upVector*-1.0;
+                            //rotate about y axis
+                            if(xDot>0.0){
+
+                                axis=upVector;
+
+                            }else{
+
+                                axis=upVector*-1.0;
+                            }
+
                         }
 
+
+                        float angle=0.03*deltaMagnitude;
+
+                        float biasAngleAccumulator=0.20;
+
+                        angleAccumulator=angleAccumulator*biasAngleAccumulator+angle*(1.0-biasAngleAccumulator);
+
+                        U4DEngine::U4DQuaternion newOrientation(angleAccumulator,axis);
+
+                        U4DEngine::U4DQuaternion modelOrientation=pPlayer->getAbsoluteSpaceOrientation();
+
+                        U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation,1.0);
+
+                        pPlayer->rotateBy(p);
+                        
                     }
 
-
-                    float angle=0.03*deltaMagnitude;
-
-                    float biasAngleAccumulator=0.20;
-
-                    angleAccumulator=angleAccumulator*biasAngleAccumulator+angle*(1.0-biasAngleAccumulator);
-
-                    U4DEngine::U4DQuaternion newOrientation(angleAccumulator,axis);
-
-                    U4DEngine::U4DQuaternion modelOrientation=pPlayer->getAbsoluteSpaceOrientation();
-
-                    U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation,1.0);
-
-                    pPlayer->rotateBy(p);
-
-                }
-                    
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseInactive){
                     
                     
@@ -287,41 +325,41 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 break;
         }
         
-        //set the force direction
-        U4DEngine::U4DVector3n forceDir=pPlayer->getViewInDirection();
-        
-        forceDir.y=0.0;
-        
-        forceDir.normalize();
-        
-        if (mouseMovementDirection==forwardDir) {
-         
-            pPlayer->setForceDirection(forceDir);
-        
-        }else if (mouseMovementDirection==backwardDir){
-            
-            //go backwards. reverse direction
-            forceDir*=-1.0;
-            
-            pPlayer->setForceDirection(forceDir);
-        
-        }else if (mouseMovementDirection==leftDir){
-            
-            //go left
-            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-            forceDir=forceDir.cross(upVector);
-            
-            pPlayer->setForceDirection(forceDir);
-            
-        }else if (mouseMovementDirection==rightDir){
-            
-            //go right
-            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-            forceDir=upVector.cross(forceDir);
-            
-            pPlayer->setForceDirection(forceDir);
-            
-        }
+//        //set the force direction
+//        U4DEngine::U4DVector3n forceDir=pPlayer->getViewInDirection();
+//
+//        forceDir.y=0.0;
+//
+//        forceDir.normalize();
+//
+//        if (mouseMovementDirection==forwardDir) {
+//
+//            pPlayer->setForceDirection(forceDir);
+//
+//        }else if (mouseMovementDirection==backwardDir){
+//
+//            //go backwards. reverse direction
+//            forceDir*=-1.0;
+//
+//            pPlayer->setForceDirection(forceDir);
+//
+//        }else if (mouseMovementDirection==leftDir){
+//
+//            //go left
+//            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+//            forceDir=forceDir.cross(upVector);
+//
+//            pPlayer->setForceDirection(forceDir);
+//
+//        }else if (mouseMovementDirection==rightDir){
+//
+//            //go right
+//            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+//            forceDir=upVector.cross(forceDir);
+//
+//            pPlayer->setForceDirection(forceDir);
+//
+//        }
         
         
     }

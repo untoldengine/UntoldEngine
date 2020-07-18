@@ -16,18 +16,15 @@
 #include "U4DAnimation.h"
 #include "U4DDynamicModel.h"
 #include "Player.h"
+#include "U4DShaderEntity.h"
 
 class LevelOneWorld:public U4DEngine::U4DWorld{
 
 private:
     
-    Player *astronaut0;
-    Player *astronaut1;
+    std::vector<Player *> teammates;
     U4DEngine::U4DGameObject *ground;
-    U4DEngine::U4DGameObject *stones[31];
-    U4DEngine::U4DGameObject *trees[28];
-    U4DEngine::U4DGameObject *lander;
-    U4DEngine::U4DGameObject *sky;
+    U4DEngine::U4DShaderEntity *shader;
     
 public:
    

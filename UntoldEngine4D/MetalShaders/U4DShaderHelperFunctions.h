@@ -80,4 +80,9 @@ float noise(float2 st);
  */
 float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor);
 
+/**
+ @brief Computes mod
+ */
+float mod(float x, float y);
+
 #endif /* U4DShaderHelperFunctions_h */

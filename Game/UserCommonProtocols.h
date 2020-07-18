@@ -75,17 +75,22 @@ enum{
     idle,
     walking,
     running,
-    patrol,
-    patrolidle,
-    shooting,
-    dead,
-    attack,
     avoidance,
-    navigate,
-    asteroidCollided,
-    asteroidExplosion
-    
+    arrive,
+    pursuit,
+    dribbling,
+    halt,
+    passing,
+    supporting,
+
 }CHARACTERSTATE;
+
+enum{
+    
+    stopped,
+    rolling,
+    
+}BALLSTATE;
 
 enum MouseMovementDirection{
     forwardDir,
