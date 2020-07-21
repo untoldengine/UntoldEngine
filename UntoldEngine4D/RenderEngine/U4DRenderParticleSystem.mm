@@ -180,7 +180,7 @@ namespace U4DEngine {
     
     void U4DRenderParticleSystem::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.diffuseTexture.empty() && rawImageData.size()>0){
+        if (!u4dObject->textureInformation.texture0.empty() && rawImageData.size()>0){
             
             createTextureObject();
             
@@ -237,9 +237,9 @@ namespace U4DEngine {
     
     }
     
-    void U4DRenderParticleSystem::setDiffuseTexture(const char* uTexture){
+    void U4DRenderParticleSystem::setTexture0(const char* uTexture){
         
-        u4dObject->textureInformation.diffuseTexture=uTexture;
+        u4dObject->textureInformation.texture0=uTexture;
         
     }
     

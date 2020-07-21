@@ -26,7 +26,7 @@ U4DShaderEntity::U4DShaderEntity():shaderParameterContainer(24,U4DVector4n(0.0,0
 
     void U4DShaderEntity::setTexture0(const char* uTexture0){
         
-        renderManager->setDiffuseTexture(uTexture0);
+        renderManager->setTexture0(uTexture0);
     
     }
     

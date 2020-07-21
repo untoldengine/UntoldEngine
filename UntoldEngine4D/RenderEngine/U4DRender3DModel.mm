@@ -13,6 +13,7 @@
 #include "U4DLights.h"
 #include "U4DMaterialData.h"
 #include "U4DColorData.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
 
@@ -199,7 +200,7 @@ namespace U4DEngine {
     
     void U4DRender3DModel::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.diffuseTexture.empty() && u4dObject->bodyCoordinates.uVContainer.size()!=0){
+        if (!u4dObject->textureInformation.texture0.empty() && u4dObject->bodyCoordinates.uVContainer.size()!=0){
             
             if (rawImageData.size()>0) {
                 
@@ -335,9 +336,11 @@ namespace U4DEngine {
     
     void U4DRender3DModel::loadMTLNormalMapTexture(){
         
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+        
         if (!u4dObject->textureInformation.normalBumpTexture.empty() && u4dObject->bodyCoordinates.tangentContainer.size()!=0){
             
-            decodeImage(u4dObject->textureInformation.normalBumpTexture);
+            resourceLoader->loadNormalMap(u4dObject, u4dObject->textureInformation.normalBumpTexture);
             
             if (rawImageData.size()>0) {
                 

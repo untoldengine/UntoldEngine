@@ -124,9 +124,9 @@ namespace U4DEngine {
     
     void U4DRenderShaderEntity::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.diffuseTexture.empty()){
+        if (!u4dObject->textureInformation.texture0.empty()){
             
-            decodeImage(u4dObject->textureInformation.diffuseTexture);
+            decodeImage(u4dObject->textureInformation.texture0);
             
             createTextureObject();
             
@@ -138,9 +138,9 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderShaderEntity::setDiffuseTexture(const char* uTexture){
+    void U4DRenderShaderEntity::setTexture0(const char* uTexture){
         
-        u4dObject->textureInformation.diffuseTexture=uTexture;
+        u4dObject->textureInformation.texture0=uTexture;
         
     }
     

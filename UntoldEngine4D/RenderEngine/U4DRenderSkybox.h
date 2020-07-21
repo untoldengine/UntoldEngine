@@ -122,10 +122,10 @@ namespace U4DEngine {
         /**
          * @brief Sets the texture image for the image
          * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
-         * 
+         *
          * @param uTexture texture name
          */
-        void setDiffuseTexture(const char* uTexture);
+        void setTexture0(const char* uTexture);
         
         /**
          * @brief clears all attributes containers

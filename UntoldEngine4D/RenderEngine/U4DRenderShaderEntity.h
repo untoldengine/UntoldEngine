@@ -119,7 +119,7 @@ namespace U4DEngine {
          *
          * @param uTexture texture name
          */
-        void setDiffuseTexture(const char* uTexture);
+        void setTexture0(const char* uTexture);
         
         /**
          @brief Method which returns the absolute space of the entity

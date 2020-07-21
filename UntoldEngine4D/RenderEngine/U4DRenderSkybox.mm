@@ -156,9 +156,9 @@ namespace U4DEngine {
 
     }
     
-    void U4DRenderSkybox::setDiffuseTexture(const char* uTexture){
+    void U4DRenderSkybox::setTexture0(const char* uTexture){
         
-        u4dObject->textureInformation.diffuseTexture=uTexture;
+        u4dObject->textureInformation.texture0=uTexture;
         
     }
     

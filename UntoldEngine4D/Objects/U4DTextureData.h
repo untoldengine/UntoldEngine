@@ -34,57 +34,59 @@ public:
     ~U4DTextureData();
     
     /**
-     @brief Name of the texture representing the emission component
+     @brief Name of the texture representing the texture0
      */
-    std::string emissionTexture;
+    std::string texture0;
     
     /**
-     @brief Name of the texture representing the diffuse component
+     @brief Name of the texture representing the texture1
      */
-    std::string diffuseTexture;
+    std::string texture1;
     
     /**
-     @brief Name of the texture representing the ambient component
+     @brief Name of the texture representing the texture2
      */
-    std::string ambientTexture;
+    std::string texture2;
     
     /**
-     @brief Name of the texture representing the specular component
+     @brief Name of the texture representing the texture3
      */
-    std::string specularTexture;
+    std::string texture3;
     
     /**
      @brief Name of the texture representing the normal map texture
      */
     std::string normalBumpTexture;
     
-    /**
-     @brief Method which sets the emission texture
-     
-     @param uData string data with the name of the emission texture
-     */
-    void setEmissionTexture(std::string uData);
+    
     
     /**
-     @brief Method which sets the diffuse texture
+     @brief Method which sets the texture0
      
-     @param uData string data with the name of the diffuse texture
+     @param uData string data with the name of the texture
      */
-    void setDiffuseTexture(std::string uData);
+    void setTexture0(std::string uData);
     
     /**
-     @brief Method which sets the ambient texture
+     @brief Method which sets the texture1
      
-     @param uData string data with the name of the ambient texture
+     @param uData string data with the name of the texture
      */
-    void setAmbientTexture(std::string uData);
+    void setTexture1(std::string uData);
     
     /**
-     @brief Method which sets the specular texture
+     @brief Method which sets the texture2
      
-     @param uData string data with the name of the specular texture
+     @param uData string data with the name of the texture
      */
-    void setSpecularTexture(std::string uData);
+    void setTexture2(std::string uData);
+    
+    /**
+     @brief Method which sets the texture3
+     
+     @param uData string data with the name of the texture
+     */
+    void setTexture3(std::string uData);
     
     /**
      @brief Method which sets the normal-map texture

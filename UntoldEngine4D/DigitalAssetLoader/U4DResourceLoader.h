@@ -428,6 +428,8 @@ class U4DResourceLoader {
         */
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights, std::vector<float> uWeights);
     
+        void loadNormalMap(U4DModel *uModel,std::string uNormalMapName);
+        
         /**
          @brief Clears the data in the containers
          */

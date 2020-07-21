@@ -750,12 +750,11 @@ namespace U4DEngine {
                 //TEXTURE IMAGE
                 if (modelsContainer.at(n).textureNameSize>0) {
                     
-                    uModel->textureInformation.setDiffuseTexture(modelsContainer.at(n).textureImage);
-                    
                     for(int t=0;t<texturesContainer.size();t++){
 
                         if (texturesContainer.at(t).name.compare(modelsContainer.at(n).textureImage)==0) {
-
+                            
+                            uModel->textureInformation.setTexture0(modelsContainer.at(n).textureImage);
                             uModel->renderManager->setRawImageData(texturesContainer.at(t).image);
                             uModel->renderManager->setImageWidth(texturesContainer.at(t).width);
                             uModel->renderManager->setImageHeight(texturesContainer.at(t).height);
@@ -1490,7 +1489,7 @@ namespace U4DEngine {
                 uParticleSystem->particleSystemData.blendingFactorDest=n.blendFunctionDestination;
 
                 //texture
-                uParticleSystem->textureInformation.setDiffuseTexture(n.texture);
+                uParticleSystem->textureInformation.setTexture0(n.texture);
                 
                 for(int t=0;t<texturesContainer.size();t++){
 
@@ -1523,6 +1522,22 @@ namespace U4DEngine {
         
         return false;
         
+        
+    }
+
+    void U4DResourceLoader::loadNormalMap(U4DModel *uModel,std::string uNormalMapName){
+        
+        for(int t=0;t<texturesContainer.size();t++){
+
+            if (texturesContainer.at(t).name.compare(uNormalMapName)==0) {
+                
+                uModel->renderManager->setRawImageData(texturesContainer.at(t).image);
+                uModel->renderManager->setImageWidth(texturesContainer.at(t).width);
+                uModel->renderManager->setImageHeight(texturesContainer.at(t).height);
+
+            }
+
+        }
         
     }
 

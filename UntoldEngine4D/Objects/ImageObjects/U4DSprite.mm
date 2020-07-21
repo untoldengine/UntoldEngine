@@ -44,7 +44,7 @@ namespace U4DEngine {
                         
                         spriteAtlasImage = spriteLoader->spriteAtlasImage.c_str();
                         
-                        renderManager->setDiffuseTexture(spriteAtlasImage);
+                        renderManager->setTexture0(spriteAtlasImage);
                         
                         //set the rectangle for the sprite
                         setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);

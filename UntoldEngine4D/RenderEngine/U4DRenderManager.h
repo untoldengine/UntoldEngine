@@ -361,20 +361,20 @@ namespace U4DEngine {
         virtual void initTextureSamplerObjectNull(){};
         
         /**
-         * @brief Sets the diffuse texture data
-         * @details The diffuse texture is the main texture used for entities
-         * 
-         * @param uTexture Diffuse texture
+         * @brief Sets the texture0 image for the image
+         * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
+         *
+         * @param uTexture texture name
          */
-        virtual void setDiffuseTexture(const char* uTexture){};
+        virtual void setTexture0(const char* uTexture){};
         
         /**
-         * @brief Sets the ambient texture data      
-         * @details The ambient texture is the secondary texture used for entities
-         * 
-         * @param uTexture Ambient texture
+         * @brief Sets the texture image1 for the image
+         * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
+         *
+         * @param uTexture texture name
          */
-        virtual void setAmbientTexture(const char* uTexture){};
+        virtual void setTexture1(const char* uTexture){};
         
         /**
          * @brief Loads textures into skybox container

@@ -130,21 +130,12 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
         
         //compute the binormal.
         float3 binormal=normalize(cross(normalVectorInMVSpace,tangentVectorInMVSpace))*vert.tangent.w;
+
+        float3x3 tangentSpace=float3x3{tangentVectorInMVSpace,binormal,normalVectorInMVSpace};
+
+        tangentSpace=transpose(tangentSpace);
         
-        
-        //Transformation matrix from model-world-view space to tangent space.
-//        float3x3 tangentSpace=float3x3{{tangentVectorInMVSpace.x,tangentVectorInMVSpace.y,tangentVectorInMVSpace.z},
-//                                        {binormal.x,binormal.y,binormal.z},
-//                                        {normalVectorInMVSpace.x,normalVectorInMVSpace.y,normalVectorInMVSpace.z}};
-//
-//        
-//        tangentSpace=transpose(tangentSpace);
-        
-        float3x3 tangentSpace=float3x3{{tangentVectorInMVSpace.x,binormal.x,normalVectorInMVSpace.x},
-            {tangentVectorInMVSpace.y,binormal.y,normalVectorInMVSpace.y},
-            {tangentVectorInMVSpace.z,binormal.z,normalVectorInMVSpace.z}};
-        
-        float4 lightPos=uniformSpace.modelViewSpace*lightPosition;
+        float4 lightPos=uniformSpace.viewSpace*lightPosition;
         
         vertexOut.lightPositionInTangentSpace.xyz=tangentSpace*float3(lightPos.xyz);
         
@@ -195,7 +186,8 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     if(uniformModelRenderFlags.enableNormalMap){
         
         //sample the normal maptexture color
-        float4 sampledNormalMapColor=texture.sample(normalMapSam,vertexOut.uvCoords.xy);
+        float4 sampledNormalMapColor=normalMaptexture.sample(normalMapSam,vertexOut.uvCoords.xy);
+        sampledNormalMapColor = normalize(sampledNormalMapColor * 2.0 - 1.0);
         
         totalLights=computeLights(vertexOut.lightPositionInTangentSpace, vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
         
@@ -215,15 +207,15 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     if(uniformModelRenderFlags.hasTexture){
         
         //sample the texture color
-        float4 sampledColor=texture.sample(sam,vertexOut.uvCoords.xy);
+        float4 sampledTexture0Color=texture.sample(sam,vertexOut.uvCoords.xy);
         
         //discard the fragment if the alpha value less than 0.15
-        if(sampledColor.a<0.15){
+        if(sampledTexture0Color.a<0.15){
             
             discard_fragment();
             
         }
-        finalColor=float4(mix(sampledColor,totalLights,0.5));
+        finalColor=float4(mix(sampledTexture0Color,totalLights,0.3));
         
     }else{
         

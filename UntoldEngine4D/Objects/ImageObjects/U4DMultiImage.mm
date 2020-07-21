@@ -40,8 +40,8 @@ namespace U4DEngine {
     
     void U4DMultiImage::setImage(const char* uTextureOne,const char* uTextureTwo,float uWidth,float uHeight){
         
-        renderManager->setDiffuseTexture(uTextureOne);
-        renderManager->setAmbientTexture(uTextureTwo);
+        renderManager->setTexture0(uTextureOne);
+        renderManager->setTexture1(uTextureTwo);
         setImageDimension(uWidth, uHeight);
         renderManager->loadRenderingInformation();
     }

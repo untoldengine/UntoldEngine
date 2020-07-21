@@ -39,6 +39,8 @@ float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uN
         
         specularLight=uLightColor.specularColor*uMaterial.specularMaterialColor*pow(max(dot(reflectionVector,viewVector),0.0),uMaterial.specularReflectionPower);
         
+        specularLight=clamp(specularLight,0.0,1.0);
+        
     }
     
     return float4(ambientLight+diffuseLight+specularLight,1.0);

@@ -37,6 +37,8 @@ bool Ball::init(const char* uModelName){
         //set enable shadows
         setEnableShadow(true);
         
+        setNormalMapTexture("Ball_Normal_Map.png");
+        
         //enable kinetic behavior
         enableKineticsBehavior();
         

@@ -48,7 +48,7 @@ namespace U4DEngine {
         
         const char * fontAtlasImage = fontLoader->fontAtlasImage.c_str();
         
-        renderManager->setDiffuseTexture(fontAtlasImage);
+        renderManager->setTexture0(fontAtlasImage);
         
         
     }

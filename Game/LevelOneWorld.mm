@@ -71,6 +71,8 @@ void LevelOneWorld::init(){
         //set shadows
         ground->setEnableShadow(true);
         
+        ground->setNormalMapTexture("FieldNormalMap.png");
+        
         //send info to gpu
         ground->loadRenderingInformation();
 

@@ -30,9 +30,10 @@ bool Player::init(const char* uModelName){
     if (loadModel(uModelName)) {
         
         //enable shadows
-        setEnableShadow(true);
+        //setEnableShadow(true);
         
-
+        setNormalMapTexture("redkitnormal.png");
+        
         //set the state of the character
         setState(idle);
         
