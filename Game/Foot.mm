@@ -7,6 +7,7 @@
 //
 
 #include "Foot.h"
+#include "Ball.h"
 
 Foot::Foot(Player *uPlayer):player(uPlayer){
     
@@ -38,5 +39,20 @@ bool Foot::init(const char* uModelName){
 }
    
 void Foot::update(double dt){
+    
+    if (getModelHasCollided()) {
+        
+        Ball *ball=Ball::sharedInstance();
+        
+        ball->setKickBallParameters(kickMagnitude, kickDirection);
+
+    }
+    
+}
+
+void Foot::setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection){
+    
+    kickMagnitude=uKickMagnitude;
+    kickDirection=uKickDirection;
     
 }

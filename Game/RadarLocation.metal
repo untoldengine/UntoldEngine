@@ -88,6 +88,7 @@ fragment float4 fragmentRadarShader(VertexOutput vertexOut [[stage_in]], constan
     float4 finalColor=mix(float4(color,1.0),fieldTexture,0.3);
     
     return finalColor;
+    
 }
 
 

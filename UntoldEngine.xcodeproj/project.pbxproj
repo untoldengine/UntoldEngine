@@ -21,6 +21,51 @@
 		03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D5A19B96B4400ABDC55 /* U4DBoneData.mm */; };
 		03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D5D19B96B5400ABDC55 /* U4DArmatureData.mm */; };
 		03068D6B19BFFFC400ABDC55 /* U4DAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03068D6919BFFFC400ABDC55 /* U4DAnimation.mm */; };
+		030BB38324D70212008CB06E /* MenuScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38124D70212008CB06E /* MenuScene.mm */; };
+		030BB38424D70212008CB06E /* MenuScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38124D70212008CB06E /* MenuScene.mm */; };
+		030BB38524D70212008CB06E /* MenuScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38124D70212008CB06E /* MenuScene.mm */; };
+		030BB38824D7022E008CB06E /* MenuWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38624D7022E008CB06E /* MenuWorld.mm */; };
+		030BB38924D7022E008CB06E /* MenuWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38624D7022E008CB06E /* MenuWorld.mm */; };
+		030BB38A24D7022E008CB06E /* MenuWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38624D7022E008CB06E /* MenuWorld.mm */; };
+		030BB38D24D7023B008CB06E /* MenuLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38B24D7023B008CB06E /* MenuLogic.mm */; };
+		030BB38E24D7023B008CB06E /* MenuLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38B24D7023B008CB06E /* MenuLogic.mm */; };
+		030BB38F24D7023B008CB06E /* MenuLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB38B24D7023B008CB06E /* MenuLogic.mm */; };
+		030BB39124D70F1D008CB06E /* menuscene.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39024D70F1D008CB06E /* menuscene.u4d */; };
+		030BB39224D70F1D008CB06E /* menuscene.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39024D70F1D008CB06E /* menuscene.u4d */; };
+		030BB39324D70F1D008CB06E /* menuscene.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39024D70F1D008CB06E /* menuscene.u4d */; };
+		030BB39524D715F2008CB06E /* walkingAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39424D715F2008CB06E /* walkingAnimation.u4d */; };
+		030BB39624D715F2008CB06E /* walkingAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39424D715F2008CB06E /* walkingAnimation.u4d */; };
+		030BB39724D715F2008CB06E /* walkingAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39424D715F2008CB06E /* walkingAnimation.u4d */; };
+		030BB39D24D74BBD008CB06E /* futbolstartscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39C24D74BBC008CB06E /* futbolstartscreen.png */; };
+		030BB39E24D74BBD008CB06E /* futbolstartscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39C24D74BBC008CB06E /* futbolstartscreen.png */; };
+		030BB39F24D74BBD008CB06E /* futbolstartscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB39C24D74BBC008CB06E /* futbolstartscreen.png */; };
+		030BB3A124D7C827008CB06E /* futbolmenuscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A024D7C827008CB06E /* futbolmenuscreen.png */; };
+		030BB3A224D7C827008CB06E /* futbolmenuscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A024D7C827008CB06E /* futbolmenuscreen.png */; };
+		030BB3A324D7C827008CB06E /* futbolmenuscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A024D7C827008CB06E /* futbolmenuscreen.png */; };
+		030BB3A524D84DFE008CB06E /* futbolblankscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A424D84DFE008CB06E /* futbolblankscreen.png */; };
+		030BB3A624D84DFE008CB06E /* futbolblankscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A424D84DFE008CB06E /* futbolblankscreen.png */; };
+		030BB3A724D84DFE008CB06E /* futbolblankscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A424D84DFE008CB06E /* futbolblankscreen.png */; };
+		030BB3A924D8515D008CB06E /* futbolloadingscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A824D8515D008CB06E /* futbolloadingscreen.png */; };
+		030BB3AA24D8515D008CB06E /* futbolloadingscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A824D8515D008CB06E /* futbolloadingscreen.png */; };
+		030BB3AB24D8515D008CB06E /* futbolloadingscreen.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3A824D8515D008CB06E /* futbolloadingscreen.png */; };
+		030BB3AD24D86069008CB06E /* menuSelectionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3AC24D86069008CB06E /* menuSelectionShader.metal */; };
+		030BB3AE24D86069008CB06E /* menuSelectionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3AC24D86069008CB06E /* menuSelectionShader.metal */; };
+		030BB3AF24D86069008CB06E /* menuSelectionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3AC24D86069008CB06E /* menuSelectionShader.metal */; };
+		030BB3B124D86146008CB06E /* menuSelection.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3B024D86146008CB06E /* menuSelection.png */; };
+		030BB3B224D86146008CB06E /* menuSelection.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3B024D86146008CB06E /* menuSelection.png */; };
+		030BB3B324D86146008CB06E /* menuSelection.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3B024D86146008CB06E /* menuSelection.png */; };
+		030BB3B524D8F103008CB06E /* KitShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3B424D8F103008CB06E /* KitShader.metal */; };
+		030BB3B624D8F103008CB06E /* KitShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3B424D8F103008CB06E /* KitShader.metal */; };
+		030BB3B724D8F103008CB06E /* KitShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3B424D8F103008CB06E /* KitShader.metal */; };
+		030BB3B924D9AAA8008CB06E /* KitMenuShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3B824D9AAA8008CB06E /* KitMenuShader.metal */; };
+		030BB3BA24D9AAA8008CB06E /* KitMenuShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3B824D9AAA8008CB06E /* KitMenuShader.metal */; };
+		030BB3BB24D9AAA8008CB06E /* KitMenuShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3B824D9AAA8008CB06E /* KitMenuShader.metal */; };
+		030BB3BD24D9AFBB008CB06E /* teamkitmenu.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3BC24D9AFBB008CB06E /* teamkitmenu.png */; };
+		030BB3BE24D9AFBB008CB06E /* teamkitmenu.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3BC24D9AFBB008CB06E /* teamkitmenu.png */; };
+		030BB3BF24D9AFBB008CB06E /* teamkitmenu.png in Resources */ = {isa = PBXBuildFile; fileRef = 030BB3BC24D9AFBB008CB06E /* teamkitmenu.png */; };
+		030BB3C224DA4CE6008CB06E /* TeamSettings.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3C024DA4CE6008CB06E /* TeamSettings.mm */; };
+		030BB3C324DA4CE6008CB06E /* TeamSettings.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3C024DA4CE6008CB06E /* TeamSettings.mm */; };
+		030BB3C424DA4CE6008CB06E /* TeamSettings.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030BB3C024DA4CE6008CB06E /* TeamSettings.mm */; };
 		030C3DFC19298226009EF31B /* U4DDirector.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030C3DFB19298226009EF31B /* U4DDirector.mm */; };
 		0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */; };
 		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; };
@@ -67,6 +112,12 @@
 		032DBF3924571F7D00299B11 /* navmeshAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032DBF3724571F7C00299B11 /* navmeshAttributes.u4d */; };
 		032DBF3A24571F7D00299B11 /* navmeshAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 032DBF3724571F7C00299B11 /* navmeshAttributes.u4d */; };
 		033343011F8DA84A0013FB1E /* particleSystemShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033343001F8DA84A0013FB1E /* particleSystemShader.metal */; };
+		033A231324DAF12C00B8DCC5 /* PlayMenuLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 033A231124DAF12C00B8DCC5 /* PlayMenuLayer.mm */; };
+		033A231424DAF12C00B8DCC5 /* PlayMenuLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 033A231124DAF12C00B8DCC5 /* PlayMenuLayer.mm */; };
+		033A231524DAF12C00B8DCC5 /* PlayMenuLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 033A231124DAF12C00B8DCC5 /* PlayMenuLayer.mm */; };
+		033A231824DAF64200B8DCC5 /* MainMenuLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 033A231624DAF64200B8DCC5 /* MainMenuLayer.mm */; };
+		033A231924DAF64200B8DCC5 /* MainMenuLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 033A231624DAF64200B8DCC5 /* MainMenuLayer.mm */; };
+		033A231A24DAF64200B8DCC5 /* MainMenuLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 033A231624DAF64200B8DCC5 /* MainMenuLayer.mm */; };
 		0341ABFE204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
 		0341ABFF204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
 		0341AC00204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
@@ -834,6 +885,27 @@
 		03B1698A24C1F28100636D3D /* rightpassAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B1698924C1F28100636D3D /* rightpassAnimation.u4d */; };
 		03B1698B24C1F28100636D3D /* rightpassAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B1698924C1F28100636D3D /* rightpassAnimation.u4d */; };
 		03B1698C24C1F28100636D3D /* rightpassAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B1698924C1F28100636D3D /* rightpassAnimation.u4d */; };
+		03B169A224C7304B00636D3D /* rightshotAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169A124C7304A00636D3D /* rightshotAnimation.u4d */; };
+		03B169A324C7304B00636D3D /* rightshotAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169A124C7304A00636D3D /* rightshotAnimation.u4d */; };
+		03B169A424C7304B00636D3D /* rightshotAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169A124C7304A00636D3D /* rightshotAnimation.u4d */; };
+		03B169AE24C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169AD24C9CA9600636D3D /* rightstandtackleAnimation.u4d */; };
+		03B169AF24C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169AD24C9CA9600636D3D /* rightstandtackleAnimation.u4d */; };
+		03B169B024C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169AD24C9CA9600636D3D /* rightstandtackleAnimation.u4d */; };
+		03B169B224C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169B124C9CAC500636D3D /* rightforwardcontainAnimation.u4d */; };
+		03B169B324C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169B124C9CAC500636D3D /* rightforwardcontainAnimation.u4d */; };
+		03B169B424C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03B169B124C9CAC500636D3D /* rightforwardcontainAnimation.u4d */; };
+		03B169CB24CDC0D600636D3D /* FieldAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B169C924CDC0D600636D3D /* FieldAnalyzer.mm */; };
+		03B169CC24CDC0D600636D3D /* FieldAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B169C924CDC0D600636D3D /* FieldAnalyzer.mm */; };
+		03B169CD24CDC0D600636D3D /* FieldAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B169C924CDC0D600636D3D /* FieldAnalyzer.mm */; };
+		03B169CF24CDCC1100636D3D /* InfluenceMapShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03B169CE24CDCC1100636D3D /* InfluenceMapShader.metal */; };
+		03B169D024CDCC1100636D3D /* InfluenceMapShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03B169CE24CDCC1100636D3D /* InfluenceMapShader.metal */; };
+		03B169D124CDCC1100636D3D /* InfluenceMapShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03B169CE24CDCC1100636D3D /* InfluenceMapShader.metal */; };
+		03B169E724D12E3D00636D3D /* NavigationMapShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03B169E624D12E3D00636D3D /* NavigationMapShader.metal */; };
+		03B169E824D12E3D00636D3D /* NavigationMapShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03B169E624D12E3D00636D3D /* NavigationMapShader.metal */; };
+		03B169E924D12E3D00636D3D /* NavigationMapShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03B169E624D12E3D00636D3D /* NavigationMapShader.metal */; };
+		03B169EC24D2FAEB00636D3D /* PathAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B169EA24D2FAEB00636D3D /* PathAnalyzer.mm */; };
+		03B169ED24D2FAEB00636D3D /* PathAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B169EA24D2FAEB00636D3D /* PathAnalyzer.mm */; };
+		03B169EE24D2FAEB00636D3D /* PathAnalyzer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B169EA24D2FAEB00636D3D /* PathAnalyzer.mm */; };
 		03B1FFB92487EB1D0039DD6B /* MobileLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */; };
 		03B1FFBA2487EB1D0039DD6B /* MobileLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */; };
 		03B1FFBB2487EB1D0039DD6B /* MobileLayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */; };
@@ -936,6 +1008,12 @@
 		03D5E5252252528500395D3F /* U4DRayCast.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E5222252528500395D3F /* U4DRayCast.mm */; };
 		03D5E5262252528500395D3F /* U4DRayCast.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03D5E5222252528500395D3F /* U4DRayCast.mm */; };
 		03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DB6E80192F0260006E21D0 /* U4DVector4n.mm */; };
+		03DC902524D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03DC902424D3DCDF00BED23B /* fieldNavAttributes.u4d */; };
+		03DC902624D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03DC902424D3DCDF00BED23B /* fieldNavAttributes.u4d */; };
+		03DC902724D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03DC902424D3DCDF00BED23B /* fieldNavAttributes.u4d */; };
+		03DC902B24D5AF7000BED23B /* Team.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DC902924D5AF7000BED23B /* Team.mm */; };
+		03DC902C24D5AF7000BED23B /* Team.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DC902924D5AF7000BED23B /* Team.mm */; };
+		03DC902D24D5AF7000BED23B /* Team.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03DC902924D5AF7000BED23B /* Team.mm */; };
 		03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */; };
 		03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5E1943D6FE007AD131 /* U4DTouchesController.mm */; };
 		03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED641943D6FE007AD131 /* U4DControllerInterface.mm */; };
@@ -1016,6 +1094,25 @@
 		03068D5E19B96B5400ABDC55 /* U4DArmatureData.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DArmatureData.h; sourceTree = "<group>"; };
 		03068D6919BFFFC400ABDC55 /* U4DAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAnimation.mm; sourceTree = "<group>"; };
 		03068D6A19BFFFC400ABDC55 /* U4DAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimation.h; sourceTree = "<group>"; };
+		030BB38124D70212008CB06E /* MenuScene.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MenuScene.mm; path = Game/MenuScene.mm; sourceTree = SOURCE_ROOT; };
+		030BB38224D70212008CB06E /* MenuScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MenuScene.h; path = Game/MenuScene.h; sourceTree = SOURCE_ROOT; };
+		030BB38624D7022E008CB06E /* MenuWorld.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MenuWorld.mm; path = Game/MenuWorld.mm; sourceTree = SOURCE_ROOT; };
+		030BB38724D7022E008CB06E /* MenuWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MenuWorld.h; path = Game/MenuWorld.h; sourceTree = SOURCE_ROOT; };
+		030BB38B24D7023B008CB06E /* MenuLogic.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MenuLogic.mm; path = Game/MenuLogic.mm; sourceTree = SOURCE_ROOT; };
+		030BB38C24D7023B008CB06E /* MenuLogic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MenuLogic.h; path = Game/MenuLogic.h; sourceTree = SOURCE_ROOT; };
+		030BB39024D70F1D008CB06E /* menuscene.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = menuscene.u4d; sourceTree = "<group>"; };
+		030BB39424D715F2008CB06E /* walkingAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = walkingAnimation.u4d; sourceTree = "<group>"; };
+		030BB39C24D74BBC008CB06E /* futbolstartscreen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = futbolstartscreen.png; sourceTree = "<group>"; };
+		030BB3A024D7C827008CB06E /* futbolmenuscreen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = futbolmenuscreen.png; sourceTree = "<group>"; };
+		030BB3A424D84DFE008CB06E /* futbolblankscreen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = futbolblankscreen.png; sourceTree = "<group>"; };
+		030BB3A824D8515D008CB06E /* futbolloadingscreen.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = futbolloadingscreen.png; sourceTree = "<group>"; };
+		030BB3AC24D86069008CB06E /* menuSelectionShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = menuSelectionShader.metal; path = Game/menuSelectionShader.metal; sourceTree = SOURCE_ROOT; };
+		030BB3B024D86146008CB06E /* menuSelection.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = menuSelection.png; sourceTree = "<group>"; };
+		030BB3B424D8F103008CB06E /* KitShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = KitShader.metal; path = Game/KitShader.metal; sourceTree = SOURCE_ROOT; };
+		030BB3B824D9AAA8008CB06E /* KitMenuShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = KitMenuShader.metal; path = Game/KitMenuShader.metal; sourceTree = SOURCE_ROOT; };
+		030BB3BC24D9AFBB008CB06E /* teamkitmenu.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = teamkitmenu.png; sourceTree = "<group>"; };
+		030BB3C024DA4CE6008CB06E /* TeamSettings.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = TeamSettings.mm; path = Game/TeamSettings.mm; sourceTree = SOURCE_ROOT; };
+		030BB3C124DA4CE6008CB06E /* TeamSettings.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = TeamSettings.h; path = Game/TeamSettings.h; sourceTree = SOURCE_ROOT; };
 		030C3DFA19298226009EF31B /* U4DDirector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDirector.h; sourceTree = "<group>"; };
 		030C3DFB19298226009EF31B /* U4DDirector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDirector.mm; sourceTree = "<group>"; };
 		0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHTree.mm; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.mm; sourceTree = "<group>"; };
@@ -1057,6 +1154,10 @@
 		032DBF272455ECF200299B11 /* redBulletEmitter.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = redBulletEmitter.u4d; sourceTree = "<group>"; };
 		032DBF3724571F7C00299B11 /* navmeshAttributes.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = navmeshAttributes.u4d; sourceTree = "<group>"; };
 		033343001F8DA84A0013FB1E /* particleSystemShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = particleSystemShader.metal; path = MetalShaders/particleSystemShader.metal; sourceTree = "<group>"; };
+		033A231124DAF12C00B8DCC5 /* PlayMenuLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = PlayMenuLayer.mm; path = Game/PlayMenuLayer.mm; sourceTree = SOURCE_ROOT; };
+		033A231224DAF12C00B8DCC5 /* PlayMenuLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlayMenuLayer.h; path = Game/PlayMenuLayer.h; sourceTree = SOURCE_ROOT; };
+		033A231624DAF64200B8DCC5 /* MainMenuLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MainMenuLayer.mm; path = Game/MainMenuLayer.mm; sourceTree = SOURCE_ROOT; };
+		033A231724DAF64200B8DCC5 /* MainMenuLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MainMenuLayer.h; path = Game/MainMenuLayer.h; sourceTree = SOURCE_ROOT; };
 		0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyPressedState.mm; path = MacKeys/U4DMacKeyPressedState.mm; sourceTree = "<group>"; };
 		0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyReleasedState.mm; path = MacKeys/U4DMacKeyReleasedState.mm; sourceTree = "<group>"; };
 		0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKey.mm; path = MacKeys/U4DMacKey.mm; sourceTree = "<group>"; };
@@ -1118,12 +1219,12 @@
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
 		036964C4248E85180043C1C6 /* U4DSceneManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSceneManager.mm; sourceTree = "<group>"; };
 		036964C5248E85180043C1C6 /* U4DSceneManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DSceneManager.h; sourceTree = "<group>"; };
-		036964D32493C5940043C1C6 /* StartScene.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StartScene.mm; path = Game/StartScene.mm; sourceTree = SOURCE_ROOT; };
-		036964D42493C5940043C1C6 /* StartScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StartScene.h; path = Game/StartScene.h; sourceTree = SOURCE_ROOT; };
-		036964D82493C5AC0043C1C6 /* StartMenu.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StartMenu.mm; path = Game/StartMenu.mm; sourceTree = SOURCE_ROOT; };
-		036964D92493C5AC0043C1C6 /* StartMenu.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StartMenu.h; path = Game/StartMenu.h; sourceTree = SOURCE_ROOT; };
-		036964DD2493C5C70043C1C6 /* StartLogic.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StartLogic.mm; path = Game/StartLogic.mm; sourceTree = SOURCE_ROOT; };
-		036964DE2493C5C70043C1C6 /* StartLogic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StartLogic.h; path = Game/StartLogic.h; sourceTree = SOURCE_ROOT; };
+		036964D32493C5940043C1C6 /* StartScene.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StartScene.mm; path = game/StartScene.mm; sourceTree = SOURCE_ROOT; };
+		036964D42493C5940043C1C6 /* StartScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StartScene.h; path = game/StartScene.h; sourceTree = SOURCE_ROOT; };
+		036964D82493C5AC0043C1C6 /* StartMenu.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StartMenu.mm; path = game/StartMenu.mm; sourceTree = SOURCE_ROOT; };
+		036964D92493C5AC0043C1C6 /* StartMenu.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StartMenu.h; path = game/StartMenu.h; sourceTree = SOURCE_ROOT; };
+		036964DD2493C5C70043C1C6 /* StartLogic.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = StartLogic.mm; path = game/StartLogic.mm; sourceTree = SOURCE_ROOT; };
+		036964DE2493C5C70043C1C6 /* StartLogic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = StartLogic.h; path = game/StartLogic.h; sourceTree = SOURCE_ROOT; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AED62231C131600211205 /* U4DMacMouseDeltaMovedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseDeltaMovedState.mm; path = MacMouse/U4DMacMouseDeltaMovedState.mm; sourceTree = "<group>"; };
@@ -1353,6 +1454,15 @@
 		03B1698124BA126C00636D3D /* rightdribbleAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = rightdribbleAnimation.u4d; sourceTree = "<group>"; };
 		03B1698524BB586500636D3D /* rightsolehaltAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = rightsolehaltAnimation.u4d; sourceTree = "<group>"; };
 		03B1698924C1F28100636D3D /* rightpassAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = rightpassAnimation.u4d; sourceTree = "<group>"; };
+		03B169A124C7304A00636D3D /* rightshotAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = rightshotAnimation.u4d; sourceTree = "<group>"; };
+		03B169AD24C9CA9600636D3D /* rightstandtackleAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = rightstandtackleAnimation.u4d; sourceTree = "<group>"; };
+		03B169B124C9CAC500636D3D /* rightforwardcontainAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = rightforwardcontainAnimation.u4d; sourceTree = "<group>"; };
+		03B169C924CDC0D600636D3D /* FieldAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = FieldAnalyzer.mm; path = Game/FieldAnalyzer.mm; sourceTree = SOURCE_ROOT; };
+		03B169CA24CDC0D600636D3D /* FieldAnalyzer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = FieldAnalyzer.h; path = Game/FieldAnalyzer.h; sourceTree = SOURCE_ROOT; };
+		03B169CE24CDCC1100636D3D /* InfluenceMapShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = InfluenceMapShader.metal; path = Game/InfluenceMapShader.metal; sourceTree = SOURCE_ROOT; };
+		03B169E624D12E3D00636D3D /* NavigationMapShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = NavigationMapShader.metal; path = Game/NavigationMapShader.metal; sourceTree = SOURCE_ROOT; };
+		03B169EA24D2FAEB00636D3D /* PathAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = PathAnalyzer.mm; path = Game/PathAnalyzer.mm; sourceTree = SOURCE_ROOT; };
+		03B169EB24D2FAEB00636D3D /* PathAnalyzer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PathAnalyzer.h; path = Game/PathAnalyzer.h; sourceTree = SOURCE_ROOT; };
 		03B1FFB72487EB1D0039DD6B /* MobileLayer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = MobileLayer.mm; path = Game/MobileLayer.mm; sourceTree = SOURCE_ROOT; };
 		03B1FFB82487EB1D0039DD6B /* MobileLayer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = MobileLayer.h; path = Game/MobileLayer.h; sourceTree = SOURCE_ROOT; };
 		03B5E7E8193A3F4700800EC8 /* tinyxml2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tinyxml2.h; sourceTree = "<group>"; };
@@ -1363,13 +1473,13 @@
 		03B836832495530C00B949E1 /* quit.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = quit.png; sourceTree = "<group>"; };
 		03B836842495530D00B949E1 /* startPressed.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = startPressed.png; sourceTree = "<group>"; };
 		03B836852495530D00B949E1 /* start.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = start.png; sourceTree = "<group>"; };
-		03BA572A2432E10E003A69ED /* LevelOneScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneScene.h; path = Game/LevelOneScene.h; sourceTree = SOURCE_ROOT; };
-		03BA572C2432E10F003A69ED /* LevelOneLogic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneLogic.h; path = Game/LevelOneLogic.h; sourceTree = SOURCE_ROOT; };
-		03BA572E2432E10F003A69ED /* LevelOneScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneScene.mm; path = Game/LevelOneScene.mm; sourceTree = SOURCE_ROOT; };
-		03BA572F2432E10F003A69ED /* LevelOneWorld.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneWorld.mm; path = Game/LevelOneWorld.mm; sourceTree = SOURCE_ROOT; };
-		03BA57312432E10F003A69ED /* LevelOneLogic.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneLogic.mm; path = Game/LevelOneLogic.mm; sourceTree = SOURCE_ROOT; };
+		03BA572A2432E10E003A69ED /* LevelOneScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneScene.h; path = game/LevelOneScene.h; sourceTree = SOURCE_ROOT; };
+		03BA572C2432E10F003A69ED /* LevelOneLogic.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneLogic.h; path = game/LevelOneLogic.h; sourceTree = SOURCE_ROOT; };
+		03BA572E2432E10F003A69ED /* LevelOneScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneScene.mm; path = game/LevelOneScene.mm; sourceTree = SOURCE_ROOT; };
+		03BA572F2432E10F003A69ED /* LevelOneWorld.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneWorld.mm; path = game/LevelOneWorld.mm; sourceTree = SOURCE_ROOT; };
+		03BA57312432E10F003A69ED /* LevelOneLogic.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneLogic.mm; path = game/LevelOneLogic.mm; sourceTree = SOURCE_ROOT; };
 		03BA57332432E110003A69ED /* UserCommonProtocols.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UserCommonProtocols.h; path = Game/UserCommonProtocols.h; sourceTree = SOURCE_ROOT; };
-		03BA57352432E110003A69ED /* LevelOneWorld.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneWorld.h; path = Game/LevelOneWorld.h; sourceTree = SOURCE_ROOT; };
+		03BA57352432E110003A69ED /* LevelOneWorld.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = LevelOneWorld.h; path = game/LevelOneWorld.h; sourceTree = SOURCE_ROOT; };
 		03C278851F80046B00AF463C /* U4DVisibilityManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityManager.mm; path = VisibilityManager/U4DVisibilityManager.mm; sourceTree = "<group>"; };
 		03C278861F80046B00AF463C /* U4DVisibilityManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityManager.h; path = VisibilityManager/U4DVisibilityManager.h; sourceTree = "<group>"; };
 		03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityCulling.mm; path = VisibilityManager/U4DVisibilityCulling.mm; sourceTree = "<group>"; };
@@ -1400,8 +1510,8 @@
 		03CB47F1249C29AC00E6A3C8 /* U4DSceneLoadingState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DSceneLoadingState.h; sourceTree = "<group>"; };
 		03CB47F5249C29C800E6A3C8 /* U4DSceneActiveState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSceneActiveState.mm; sourceTree = "<group>"; };
 		03CB47F6249C29C800E6A3C8 /* U4DSceneActiveState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DSceneActiveState.h; sourceTree = "<group>"; };
-		03CB47FA249D5DC400E6A3C8 /* LoadingWorld.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = LoadingWorld.mm; path = Game/LoadingWorld.mm; sourceTree = SOURCE_ROOT; };
-		03CB47FB249D5DC400E6A3C8 /* LoadingWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LoadingWorld.h; path = Game/LoadingWorld.h; sourceTree = SOURCE_ROOT; };
+		03CB47FA249D5DC400E6A3C8 /* LoadingWorld.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = LoadingWorld.mm; path = game/LoadingWorld.mm; sourceTree = SOURCE_ROOT; };
+		03CB47FB249D5DC400E6A3C8 /* LoadingWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = LoadingWorld.h; path = game/LoadingWorld.h; sourceTree = SOURCE_ROOT; };
 		03CEE28F1775324000B09A52 /* Constants.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAnimationManager.mm; sourceTree = "<group>"; };
 		03CF11F51E56313400E47C67 /* U4DAnimationManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimationManager.h; sourceTree = "<group>"; };
@@ -1430,6 +1540,9 @@
 		03D5E5232252528500395D3F /* U4DRayCast.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DRayCast.h; path = RayCast/U4DRayCast.h; sourceTree = "<group>"; };
 		03DB6E80192F0260006E21D0 /* U4DVector4n.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DVector4n.mm; sourceTree = "<group>"; };
 		03DB6E81192F0260006E21D0 /* U4DVector4n.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DVector4n.h; sourceTree = "<group>"; };
+		03DC902424D3DCDF00BED23B /* fieldNavAttributes.u4d */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = fieldNavAttributes.u4d; sourceTree = "<group>"; };
+		03DC902924D5AF7000BED23B /* Team.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = Team.mm; path = Game/Team.mm; sourceTree = SOURCE_ROOT; };
+		03DC902A24D5AF7000BED23B /* Team.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Team.h; path = Game/Team.h; sourceTree = SOURCE_ROOT; };
 		03E6ED5B1943D6FE007AD131 /* U4DKeyboardController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DKeyboardController.h; sourceTree = "<group>"; };
 		03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DKeyboardController.mm; sourceTree = "<group>"; };
 		03E6ED5D1943D6FE007AD131 /* U4DTouchesController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouchesController.h; sourceTree = "<group>"; };
@@ -1711,21 +1824,10 @@
 		036FB55718CE9CB8000EA639 /* Game */ = {
 			isa = PBXGroup;
 			children = (
+				03DC902E24D6FF2000BED23B /* Scenes */,
+				03DC902824D5AF5800BED23B /* Teams */,
+				03B169C824CDC0B000636D3D /* Analyzers */,
 				03D0C4D524B57F30001A7D5F /* UserShaders */,
-				036964D42493C5940043C1C6 /* StartScene.h */,
-				036964D32493C5940043C1C6 /* StartScene.mm */,
-				036964DE2493C5C70043C1C6 /* StartLogic.h */,
-				036964DD2493C5C70043C1C6 /* StartLogic.mm */,
-				036964D92493C5AC0043C1C6 /* StartMenu.h */,
-				036964D82493C5AC0043C1C6 /* StartMenu.mm */,
-				03CB47FB249D5DC400E6A3C8 /* LoadingWorld.h */,
-				03CB47FA249D5DC400E6A3C8 /* LoadingWorld.mm */,
-				03BA572A2432E10E003A69ED /* LevelOneScene.h */,
-				03BA572E2432E10F003A69ED /* LevelOneScene.mm */,
-				03BA57352432E110003A69ED /* LevelOneWorld.h */,
-				03BA572F2432E10F003A69ED /* LevelOneWorld.mm */,
-				03BA572C2432E10F003A69ED /* LevelOneLogic.h */,
-				03BA57312432E10F003A69ED /* LevelOneLogic.mm */,
 				03BA57332432E110003A69ED /* UserCommonProtocols.h */,
 				03A66BE424508C95004DC4ED /* Player.h */,
 				03A66BE324508C95004DC4ED /* Player.mm */,
@@ -1735,6 +1837,8 @@
 				03B1697D24BA107E00636D3D /* Foot.mm */,
 				03B1697824BA0CE900636D3D /* Ball.h */,
 				03B1697724BA0CE900636D3D /* Ball.mm */,
+				030BB3C124DA4CE6008CB06E /* TeamSettings.h */,
+				030BB3C024DA4CE6008CB06E /* TeamSettings.mm */,
 			);
 			name = Game;
 			path = game;
@@ -2083,7 +2187,19 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				030BB39024D70F1D008CB06E /* menuscene.u4d */,
+				030BB3BC24D9AFBB008CB06E /* teamkitmenu.png */,
+				030BB3B024D86146008CB06E /* menuSelection.png */,
+				030BB3A024D7C827008CB06E /* futbolmenuscreen.png */,
+				030BB3A824D8515D008CB06E /* futbolloadingscreen.png */,
+				030BB3A424D84DFE008CB06E /* futbolblankscreen.png */,
+				030BB39C24D74BBC008CB06E /* futbolstartscreen.png */,
+				030BB39424D715F2008CB06E /* walkingAnimation.u4d */,
 				034350F72481506E006ACD2B /* back.png */,
+				03DC902424D3DCDF00BED23B /* fieldNavAttributes.u4d */,
+				03B169A124C7304A00636D3D /* rightshotAnimation.u4d */,
+				03B169B124C9CAC500636D3D /* rightforwardcontainAnimation.u4d */,
+				03B169AD24C9CA9600636D3D /* rightstandtackleAnimation.u4d */,
 				03B1698924C1F28100636D3D /* rightpassAnimation.u4d */,
 				03B1698524BB586500636D3D /* rightsolehaltAnimation.u4d */,
 				03B1697024BA0B8D00636D3D /* gameloadingimage.png */,
@@ -2340,6 +2456,17 @@
 			path = ObjectManager;
 			sourceTree = "<group>";
 		};
+		03B169C824CDC0B000636D3D /* Analyzers */ = {
+			isa = PBXGroup;
+			children = (
+				03B169CA24CDC0D600636D3D /* FieldAnalyzer.h */,
+				03B169C924CDC0D600636D3D /* FieldAnalyzer.mm */,
+				03B169EB24D2FAEB00636D3D /* PathAnalyzer.h */,
+				03B169EA24D2FAEB00636D3D /* PathAnalyzer.mm */,
+			);
+			name = Analyzers;
+			sourceTree = "<group>";
+		};
 		03B5E7E3193A3F4100800EC8 /* DigitalAssetLoader */ = {
 			isa = PBXGroup;
 			children = (
@@ -2419,6 +2546,11 @@
 			children = (
 				03D0C4D624B57F6A001A7D5F /* LoadingCircle.metal */,
 				03AFA2E724B758320075A2D3 /* RadarLocation.metal */,
+				03B169CE24CDCC1100636D3D /* InfluenceMapShader.metal */,
+				03B169E624D12E3D00636D3D /* NavigationMapShader.metal */,
+				030BB3AC24D86069008CB06E /* menuSelectionShader.metal */,
+				030BB3B424D8F103008CB06E /* KitShader.metal */,
+				030BB3B824D9AAA8008CB06E /* KitMenuShader.metal */,
 			);
 			name = UserShaders;
 			sourceTree = "<group>";
@@ -2468,6 +2600,70 @@
 				03D5E5222252528500395D3F /* U4DRayCast.mm */,
 			);
 			name = RayCast;
+			sourceTree = "<group>";
+		};
+		03DC902824D5AF5800BED23B /* Teams */ = {
+			isa = PBXGroup;
+			children = (
+				03DC902A24D5AF7000BED23B /* Team.h */,
+				03DC902924D5AF7000BED23B /* Team.mm */,
+			);
+			name = Teams;
+			sourceTree = "<group>";
+		};
+		03DC902E24D6FF2000BED23B /* Scenes */ = {
+			isa = PBXGroup;
+			children = (
+				03DC903124D6FF4A00BED23B /* MatchScene */,
+				03DC903024D6FF4200BED23B /* MenuScene */,
+				03DC902F24D6FF2700BED23B /* StartScene */,
+			);
+			name = Scenes;
+			sourceTree = "<group>";
+		};
+		03DC902F24D6FF2700BED23B /* StartScene */ = {
+			isa = PBXGroup;
+			children = (
+				036964D42493C5940043C1C6 /* StartScene.h */,
+				036964D32493C5940043C1C6 /* StartScene.mm */,
+				036964DE2493C5C70043C1C6 /* StartLogic.h */,
+				036964DD2493C5C70043C1C6 /* StartLogic.mm */,
+				036964D92493C5AC0043C1C6 /* StartMenu.h */,
+				036964D82493C5AC0043C1C6 /* StartMenu.mm */,
+			);
+			name = StartScene;
+			sourceTree = "<group>";
+		};
+		03DC903024D6FF4200BED23B /* MenuScene */ = {
+			isa = PBXGroup;
+			children = (
+				030BB38224D70212008CB06E /* MenuScene.h */,
+				030BB38124D70212008CB06E /* MenuScene.mm */,
+				030BB38724D7022E008CB06E /* MenuWorld.h */,
+				030BB38624D7022E008CB06E /* MenuWorld.mm */,
+				030BB38C24D7023B008CB06E /* MenuLogic.h */,
+				030BB38B24D7023B008CB06E /* MenuLogic.mm */,
+				033A231224DAF12C00B8DCC5 /* PlayMenuLayer.h */,
+				033A231124DAF12C00B8DCC5 /* PlayMenuLayer.mm */,
+				033A231724DAF64200B8DCC5 /* MainMenuLayer.h */,
+				033A231624DAF64200B8DCC5 /* MainMenuLayer.mm */,
+			);
+			name = MenuScene;
+			sourceTree = "<group>";
+		};
+		03DC903124D6FF4A00BED23B /* MatchScene */ = {
+			isa = PBXGroup;
+			children = (
+				03CB47FB249D5DC400E6A3C8 /* LoadingWorld.h */,
+				03CB47FA249D5DC400E6A3C8 /* LoadingWorld.mm */,
+				03BA572A2432E10E003A69ED /* LevelOneScene.h */,
+				03BA572E2432E10F003A69ED /* LevelOneScene.mm */,
+				03BA57352432E110003A69ED /* LevelOneWorld.h */,
+				03BA572F2432E10F003A69ED /* LevelOneWorld.mm */,
+				03BA572C2432E10F003A69ED /* LevelOneLogic.h */,
+				03BA57312432E10F003A69ED /* LevelOneLogic.mm */,
+			);
+			name = MatchScene;
 			sourceTree = "<group>";
 		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
@@ -2862,27 +3058,38 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				030BB39624D715F2008CB06E /* walkingAnimation.u4d in Resources */,
 				0343510A2481506E006ACD2B /* backPressed.png in Resources */,
+				030BB39E24D74BBD008CB06E /* futbolstartscreen.png in Resources */,
 				03722D432029F16C0080D069 /* ButtonB.png in Resources */,
 				03B8368A2495530D00B949E1 /* quit.png in Resources */,
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
+				030BB3A624D84DFE008CB06E /* futbolblankscreen.png in Resources */,
 				03AFA2DB24B74BB60075A2D3 /* idleAnimation.u4d in Resources */,
 				03B836872495530D00B949E1 /* quitPressed.png in Resources */,
 				03722D2D2029F16C0080D069 /* myFont.xml in Resources */,
 				03722D442029F16C0080D069 /* ButtonBPressed.png in Resources */,
+				03B169AF24C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */,
 				03AFA2DE24B74BB60075A2D3 /* soccerTextures.u4d in Resources */,
 				03B1698B24C1F28100636D3D /* rightpassAnimation.u4d in Resources */,
 				03722D402029F16C0080D069 /* joystickDriver.png in Resources */,
 				03B1698324BA126C00636D3D /* rightdribbleAnimation.u4d in Resources */,
 				032DBF292455ECF300299B11 /* redBulletEmitter.u4d in Resources */,
+				03DC902624D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */,
+				030BB3AA24D8515D008CB06E /* futbolloadingscreen.png in Resources */,
+				030BB39224D70F1D008CB06E /* menuscene.u4d in Resources */,
+				030BB3BE24D9AFBB008CB06E /* teamkitmenu.png in Resources */,
 				03722D3F2029F16C0080D069 /* joyStickBackground.png in Resources */,
 				03B1697224BA0B8D00636D3D /* gamestartimage.png in Resources */,
 				034351042481506E006ACD2B /* back.png in Resources */,
 				034350FB2481506E006ACD2B /* settings.png in Resources */,
 				03B1696D24B8A41600636D3D /* radarfield.png in Resources */,
 				03722D2C2029F16C0080D069 /* myFont.png in Resources */,
+				030BB3A224D7C827008CB06E /* futbolmenuscreen.png in Resources */,
+				03B169B324C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */,
 				034351012481506E006ACD2B /* settingsPressed.png in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
+				03B169A324C7304B00636D3D /* rightshotAnimation.u4d in Resources */,
 				03722D422029F16C0080D069 /* ButtonAPressed.png in Resources */,
 				032DBF3924571F7D00299B11 /* navmeshAttributes.u4d in Resources */,
 				034350FE2481506E006ACD2B /* levelsPressed.png in Resources */,
@@ -2895,6 +3102,7 @@
 				03AFA2E124B74BB60075A2D3 /* runningAnimation.u4d in Resources */,
 				03AFA2D824B74BB60075A2D3 /* soccergame.u4d in Resources */,
 				03B1698724BB586500636D3D /* rightsolehaltAnimation.u4d in Resources */,
+				030BB3B224D86146008CB06E /* menuSelection.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2922,6 +3130,7 @@
 				03AFA2D924B74BB60075A2D3 /* soccergame.u4d in Resources */,
 				034350FF2481506E006ACD2B /* levelsPressed.png in Resources */,
 				03B8368B2495530D00B949E1 /* quit.png in Resources */,
+				03B169A424C7304B00636D3D /* rightshotAnimation.u4d in Resources */,
 				03722D602029F16D0080D069 /* myFont.png in Resources */,
 				03AFA2E224B74BB60075A2D3 /* runningAnimation.u4d in Resources */,
 				03B1698C24C1F28100636D3D /* rightpassAnimation.u4d in Resources */,
@@ -2929,14 +3138,23 @@
 				034351082481506E006ACD2B /* levels.png in Resources */,
 				034350FC2481506E006ACD2B /* settings.png in Resources */,
 				03722D732029F16D0080D069 /* joyStickBackground.png in Resources */,
+				030BB3A724D84DFE008CB06E /* futbolblankscreen.png in Resources */,
 				0343510B2481506E006ACD2B /* backPressed.png in Resources */,
 				03722D742029F16D0080D069 /* joystickDriver.png in Resources */,
 				03AFA2DC24B74BB60075A2D3 /* idleAnimation.u4d in Resources */,
+				030BB39324D70F1D008CB06E /* menuscene.u4d in Resources */,
+				030BB3B324D86146008CB06E /* menuSelection.png in Resources */,
+				030BB3A324D7C827008CB06E /* futbolmenuscreen.png in Resources */,
 				03722D782029F16D0080D069 /* ButtonBPressed.png in Resources */,
 				034351022481506E006ACD2B /* settingsPressed.png in Resources */,
 				03B8368E2495530D00B949E1 /* startPressed.png in Resources */,
 				03722D772029F16D0080D069 /* ButtonB.png in Resources */,
+				030BB39724D715F2008CB06E /* walkingAnimation.u4d in Resources */,
+				03B169B424C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */,
 				03722D762029F16D0080D069 /* ButtonAPressed.png in Resources */,
+				030BB3BF24D9AFBB008CB06E /* teamkitmenu.png in Resources */,
+				03B169B024C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */,
+				030BB39F24D74BBD008CB06E /* futbolstartscreen.png in Resources */,
 				03B1698424BA126C00636D3D /* rightdribbleAnimation.u4d in Resources */,
 				032DBF3A24571F7D00299B11 /* navmeshAttributes.u4d in Resources */,
 				03722D752029F16D0080D069 /* ButtonA.png in Resources */,
@@ -2946,7 +3164,9 @@
 				03B1698824BB586500636D3D /* rightsolehaltAnimation.u4d in Resources */,
 				034351052481506E006ACD2B /* back.png in Resources */,
 				03722D612029F16D0080D069 /* myFont.xml in Resources */,
+				030BB3AB24D8515D008CB06E /* futbolloadingscreen.png in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
+				03DC902724D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */,
 				03B1697324BA0B8D00636D3D /* gamestartimage.png in Resources */,
 				03B1697624BA0B8D00636D3D /* gameloadingimage.png in Resources */,
 				03B1696E24B8A41600636D3D /* radarfield.png in Resources */,
@@ -2962,14 +3182,21 @@
 				039EC6C01FB57F5C0098BB5C /* myFont.xml in Resources */,
 				034351092481506E006ACD2B /* backPressed.png in Resources */,
 				03AFA2E024B74BB60075A2D3 /* runningAnimation.u4d in Resources */,
+				03B169AE24C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */,
 				03C737A41A4F1D9F001B4F77 /* joystickDriver.png in Resources */,
+				030BB3B124D86146008CB06E /* menuSelection.png in Resources */,
 				03798F8D1934DA8E00CF0600 /* ButtonB.png in Resources */,
+				03DC902524D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */,
 				03798F8E1934DA8E00CF0600 /* ButtonBPressed.png in Resources */,
 				032DBF282455ECF300299B11 /* redBulletEmitter.u4d in Resources */,
+				030BB39124D70F1D008CB06E /* menuscene.u4d in Resources */,
+				030BB3A524D84DFE008CB06E /* futbolblankscreen.png in Resources */,
 				039EC6BF1FB57F5C0098BB5C /* myFont.png in Resources */,
 				03B1697124BA0B8D00636D3D /* gamestartimage.png in Resources */,
 				03A66BDD245089B6004DC4ED /* gamescene.u4d in Resources */,
+				030BB3A124D7C827008CB06E /* futbolmenuscreen.png in Resources */,
 				03AFA2DA24B74BB60075A2D3 /* idleAnimation.u4d in Resources */,
+				03B169A224C7304B00636D3D /* rightshotAnimation.u4d in Resources */,
 				034350FA2481506E006ACD2B /* settings.png in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
 				03B1698624BB586500636D3D /* rightsolehaltAnimation.u4d in Resources */,
@@ -2983,11 +3210,16 @@
 				03AFA2D724B74BB60075A2D3 /* soccergame.u4d in Resources */,
 				03B8368C2495530D00B949E1 /* startPressed.png in Resources */,
 				03B1698224BA126C00636D3D /* rightdribbleAnimation.u4d in Resources */,
+				030BB39524D715F2008CB06E /* walkingAnimation.u4d in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
 				03B1698A24C1F28100636D3D /* rightpassAnimation.u4d in Resources */,
 				034351032481506E006ACD2B /* back.png in Resources */,
+				030BB39D24D74BBD008CB06E /* futbolstartscreen.png in Resources */,
+				030BB3BD24D9AFBB008CB06E /* teamkitmenu.png in Resources */,
 				03B1696C24B8A41600636D3D /* radarfield.png in Resources */,
+				03B169B224C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */,
 				03B8368F2495530D00B949E1 /* start.png in Resources */,
+				030BB3A924D8515D008CB06E /* futbolloadingscreen.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3012,12 +3244,14 @@
 				03A3E2DF246D891500FBCBAD /* U4DTouches.mm in Sources */,
 				03722B7B2029F0F50080D069 /* U4DLights.mm in Sources */,
 				03722B632029F0F50080D069 /* U4DKeyboardController.mm in Sources */,
+				03B169E824D12E3D00636D3D /* NavigationMapShader.metal in Sources */,
 				038BF242227939F600B129A5 /* U4DArrive.mm in Sources */,
 				0341AC2B204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */,
 				0341AC19204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
 				03722BAD2029F0F50080D069 /* U4DImage.mm in Sources */,
 				038BF22B2278898600B129A5 /* U4DSeek.mm in Sources */,
 				03722BB02029F0F50080D069 /* particleSystemShader.metal in Sources */,
+				03DC902C24D5AF7000BED23B /* Team.mm in Sources */,
 				03722B892029F0F50080D069 /* U4DScene.mm in Sources */,
 				03722BB72029F0F50080D069 /* U4DVisibleEntity.mm in Sources */,
 				03722BEF2029F0F50080D069 /* U4DCallback.mm in Sources */,
@@ -3038,6 +3272,7 @@
 				03722BD02029F0F50080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722B742029F0F50080D069 /* modelShader.metal in Sources */,
 				0354C3DB235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
+				033A231424DAF12C00B8DCC5 /* PlayMenuLayer.mm in Sources */,
 				03A3E2E9246D8B1700FBCBAD /* U4DTouchesStateManager.mm in Sources */,
 				03722BCF2029F0F50080D069 /* U4DParticleData.mm in Sources */,
 				03722BD42029F0F50080D069 /* U4DBoneData.mm in Sources */,
@@ -3082,6 +3317,8 @@
 				038BF24722793B1300B129A5 /* U4DPursuit.mm in Sources */,
 				03722B962029F0F50080D069 /* skyboxShader.metal in Sources */,
 				037D2BE82445EFE300AB3FEF /* U4DFlock.mm in Sources */,
+				03B169CC24CDC0D600636D3D /* FieldAnalyzer.mm in Sources */,
+				030BB3BA24D9AAA8008CB06E /* KitMenuShader.metal in Sources */,
 				03722B8A2029F0F50080D069 /* U4DBVHCollision.mm in Sources */,
 				03722B9A2029F0F50080D069 /* U4DManifoldGeneration.mm in Sources */,
 				0341AC31204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
@@ -3090,8 +3327,10 @@
 				03A3E3232474209C00FBCBAD /* U4DButtonReleasedState.mm in Sources */,
 				03CAE64D205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03722B952029F0F50080D069 /* U4DRender3DModel.mm in Sources */,
+				030BB3AE24D86069008CB06E /* menuSelectionShader.metal in Sources */,
 				03F02A882443EC1D007B073D /* U4DSeparation.mm in Sources */,
 				03722BBD2029F0F50080D069 /* U4DTransformation.mm in Sources */,
+				030BB38424D70212008CB06E /* MenuScene.mm in Sources */,
 				03722B5D2029F0F50080D069 /* lightShader.metal in Sources */,
 				0323DBB4202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03A3E34724757ADC00FBCBAD /* U4DLayer.mm in Sources */,
@@ -3104,6 +3343,7 @@
 				03722B972029F0F50080D069 /* multiImageShader.metal in Sources */,
 				03722BDD2029F0F50080D069 /* U4DGameObject.mm in Sources */,
 				03722B6C2029F0F50080D069 /* U4DDualQuaternion.mm in Sources */,
+				033A231924DAF64200B8DCC5 /* MainMenuLayer.mm in Sources */,
 				03722B8E2029F0F50080D069 /* U4DWorld.mm in Sources */,
 				03722BEA2029F0F50080D069 /* U4DVisibilityManager.mm in Sources */,
 				038BF24C22793B2B00B129A5 /* U4DWander.mm in Sources */,
@@ -3132,6 +3372,7 @@
 				03CAE6412051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
 				03722DE4202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722B552029F0F50080D069 /* U4DOBB.mm in Sources */,
+				03B169ED24D2FAEB00636D3D /* PathAnalyzer.mm in Sources */,
 				03722B802029F0F50080D069 /* U4DParticleEmitterInterface.mm in Sources */,
 				03A3E33C247420C800FBCBAD /* U4DJoystickReleasedState.mm in Sources */,
 				03D5E51F224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
@@ -3152,12 +3393,16 @@
 				038BF23D22792CAC00B129A5 /* U4DFlee.mm in Sources */,
 				03CB47FD249D5DC400E6A3C8 /* LoadingWorld.mm in Sources */,
 				03A3E339247420C800FBCBAD /* U4DJoystickActiveState.mm in Sources */,
+				030BB38E24D7023B008CB06E /* MenuLogic.mm in Sources */,
+				030BB38924D7022E008CB06E /* MenuWorld.mm in Sources */,
+				030BB3B624D8F103008CB06E /* KitShader.metal in Sources */,
 				03A66BE624508C95004DC4ED /* Player.mm in Sources */,
 				03722B7A2029F0F50080D069 /* U4DRenderer.mm in Sources */,
 				03722BC72029F0F50080D069 /* U4DRenderSprite.mm in Sources */,
 				03D0C4CE24B4B90C001A7D5F /* U4DShaderEntity.mm in Sources */,
 				03722BDC2029F0F50080D069 /* U4DModel.mm in Sources */,
 				03722BAC2029F0F50080D069 /* U4DBlendAnimation.mm in Sources */,
+				030BB3C324DA4CE6008CB06E /* TeamSettings.mm in Sources */,
 				03722B6F2029F0F50080D069 /* U4DBVHTree.mm in Sources */,
 				03722BAF2029F0F50080D069 /* U4DCollisionAlgorithm.mm in Sources */,
 				03722B612029F0F50080D069 /* U4DParticleEmitterFactory.mm in Sources */,
@@ -3208,6 +3453,7 @@
 				03722B8D2029F0F50080D069 /* U4DGJKAlgorithm.mm in Sources */,
 				03722BA22029F0F50080D069 /* lodepng.mm in Sources */,
 				03722BA62029F0F50080D069 /* U4DRenderFont.mm in Sources */,
+				03B169D024CDCC1100636D3D /* InfluenceMapShader.metal in Sources */,
 				03D5E51A224DCAFC00395D3F /* U4DMeshOctreeNode.mm in Sources */,
 				03CB47EE249C299500E6A3C8 /* U4DSceneIdleState.mm in Sources */,
 				03D0C4D824B57F6A001A7D5F /* LoadingCircle.metal in Sources */,
@@ -3418,12 +3664,14 @@
 				03A3E2E0246D891500FBCBAD /* U4DTouches.mm in Sources */,
 				03722CB52029F0F80080D069 /* U4DLights.mm in Sources */,
 				03722C9D2029F0F80080D069 /* U4DKeyboardController.mm in Sources */,
+				03B169E924D12E3D00636D3D /* NavigationMapShader.metal in Sources */,
 				038BF243227939F600B129A5 /* U4DArrive.mm in Sources */,
 				0341AC2D204D8D59006E14A9 /* U4DMacArrowKeyActiveState.mm in Sources */,
 				0341AC1B204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
 				03722CE72029F0F80080D069 /* U4DImage.mm in Sources */,
 				038BF22C2278898600B129A5 /* U4DSeek.mm in Sources */,
 				03722CEA2029F0F80080D069 /* particleSystemShader.metal in Sources */,
+				03DC902D24D5AF7000BED23B /* Team.mm in Sources */,
 				03722CC32029F0F80080D069 /* U4DScene.mm in Sources */,
 				03722CF12029F0F80080D069 /* U4DVisibleEntity.mm in Sources */,
 				03722D292029F0F80080D069 /* U4DCallback.mm in Sources */,
@@ -3444,6 +3692,7 @@
 				03722D0A2029F0F80080D069 /* U4DCollisionEngine.mm in Sources */,
 				03722CAE2029F0F80080D069 /* modelShader.metal in Sources */,
 				0354C3DC235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
+				033A231524DAF12C00B8DCC5 /* PlayMenuLayer.mm in Sources */,
 				03A3E2EA246D8B1700FBCBAD /* U4DTouchesStateManager.mm in Sources */,
 				03722D092029F0F80080D069 /* U4DParticleData.mm in Sources */,
 				03722D0E2029F0F80080D069 /* U4DBoneData.mm in Sources */,
@@ -3488,6 +3737,8 @@
 				038BF24822793B1300B129A5 /* U4DPursuit.mm in Sources */,
 				03722CD02029F0F80080D069 /* skyboxShader.metal in Sources */,
 				037D2BE92445EFE300AB3FEF /* U4DFlock.mm in Sources */,
+				03B169CD24CDC0D600636D3D /* FieldAnalyzer.mm in Sources */,
+				030BB3BB24D9AAA8008CB06E /* KitMenuShader.metal in Sources */,
 				03722CC42029F0F80080D069 /* U4DBVHCollision.mm in Sources */,
 				03722CD42029F0F80080D069 /* U4DManifoldGeneration.mm in Sources */,
 				0341AC33204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
@@ -3496,8 +3747,10 @@
 				03A3E3242474209C00FBCBAD /* U4DButtonReleasedState.mm in Sources */,
 				03CAE64F205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03722CCF2029F0F80080D069 /* U4DRender3DModel.mm in Sources */,
+				030BB3AF24D86069008CB06E /* menuSelectionShader.metal in Sources */,
 				03F02A892443EC1D007B073D /* U4DSeparation.mm in Sources */,
 				03722CF72029F0F80080D069 /* U4DTransformation.mm in Sources */,
+				030BB38524D70212008CB06E /* MenuScene.mm in Sources */,
 				03722C972029F0F80080D069 /* lightShader.metal in Sources */,
 				0323DBB6202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03A3E34824757ADC00FBCBAD /* U4DLayer.mm in Sources */,
@@ -3510,6 +3763,7 @@
 				03722CD12029F0F80080D069 /* multiImageShader.metal in Sources */,
 				03722D172029F0F80080D069 /* U4DGameObject.mm in Sources */,
 				03722CA62029F0F80080D069 /* U4DDualQuaternion.mm in Sources */,
+				033A231A24DAF64200B8DCC5 /* MainMenuLayer.mm in Sources */,
 				03722CC82029F0F80080D069 /* U4DWorld.mm in Sources */,
 				03722D242029F0F80080D069 /* U4DVisibilityManager.mm in Sources */,
 				038BF24D22793B2B00B129A5 /* U4DWander.mm in Sources */,
@@ -3538,6 +3792,7 @@
 				03CAE6432051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
 				03722DE6202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03722C8F2029F0F80080D069 /* U4DOBB.mm in Sources */,
+				03B169EE24D2FAEB00636D3D /* PathAnalyzer.mm in Sources */,
 				03722CBA2029F0F80080D069 /* U4DParticleEmitterInterface.mm in Sources */,
 				03A3E33D247420C800FBCBAD /* U4DJoystickReleasedState.mm in Sources */,
 				03D5E520224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
@@ -3558,12 +3813,16 @@
 				038BF23E22792CAC00B129A5 /* U4DFlee.mm in Sources */,
 				03CB47FE249D5DC400E6A3C8 /* LoadingWorld.mm in Sources */,
 				03A3E33A247420C800FBCBAD /* U4DJoystickActiveState.mm in Sources */,
+				030BB38F24D7023B008CB06E /* MenuLogic.mm in Sources */,
+				030BB38A24D7022E008CB06E /* MenuWorld.mm in Sources */,
+				030BB3B724D8F103008CB06E /* KitShader.metal in Sources */,
 				03A66BE724508C96004DC4ED /* Player.mm in Sources */,
 				03722CB42029F0F80080D069 /* U4DRenderer.mm in Sources */,
 				03722D012029F0F80080D069 /* U4DRenderSprite.mm in Sources */,
 				03D0C4CF24B4B90C001A7D5F /* U4DShaderEntity.mm in Sources */,
 				03722D162029F0F80080D069 /* U4DModel.mm in Sources */,
 				03722CE62029F0F80080D069 /* U4DBlendAnimation.mm in Sources */,
+				030BB3C424DA4CE6008CB06E /* TeamSettings.mm in Sources */,
 				03722CA92029F0F80080D069 /* U4DBVHTree.mm in Sources */,
 				03722CE92029F0F80080D069 /* U4DCollisionAlgorithm.mm in Sources */,
 				03722C9B2029F0F80080D069 /* U4DParticleEmitterFactory.mm in Sources */,
@@ -3614,6 +3873,7 @@
 				03722CC72029F0F80080D069 /* U4DGJKAlgorithm.mm in Sources */,
 				03722CDC2029F0F80080D069 /* lodepng.mm in Sources */,
 				03722CE02029F0F80080D069 /* U4DRenderFont.mm in Sources */,
+				03B169D124CDCC1100636D3D /* InfluenceMapShader.metal in Sources */,
 				03D5E51B224DCAFC00395D3F /* U4DMeshOctreeNode.mm in Sources */,
 				03CB47EF249C299500E6A3C8 /* U4DSceneIdleState.mm in Sources */,
 				03D0C4D924B57F6A001A7D5F /* LoadingCircle.metal in Sources */,
@@ -3654,6 +3914,7 @@
 				03A3E2F7246D8BCA00FBCBAD /* U4DTouchesMovedState.mm in Sources */,
 				038249231FA252AE00DFEFE3 /* U4DParticleEmitterSphere.mm in Sources */,
 				03AEF86B19CF4DAC00082589 /* U4DBoneIndices.mm in Sources */,
+				030BB3B524D8F103008CB06E /* KitShader.metal in Sources */,
 				03F2DB131F191F9B00F77B78 /* U4DRenderSkybox.mm in Sources */,
 				03A3E332247420C800FBCBAD /* U4DJoystickStateInterface.mm in Sources */,
 				03CB47E8249C297800E6A3C8 /* U4DSceneStateManager.mm in Sources */,
@@ -3686,10 +3947,12 @@
 				03A3E2E8246D8B1700FBCBAD /* U4DTouchesStateManager.mm in Sources */,
 				03EF780D1CD32FF500BA0C87 /* U4DCollisionResponse.mm in Sources */,
 				0314B0B91C6FC09100EB8C34 /* U4DBVHTree.mm in Sources */,
+				03B169EC24D2FAEB00636D3D /* PathAnalyzer.mm in Sources */,
 				03D34DF11F8DB01100476149 /* U4DRenderParticleSystem.mm in Sources */,
 				03CF11F61E56313400E47C67 /* U4DAnimationManager.mm in Sources */,
 				03494C161F57BD4C00ACE0EC /* nonVisibleShader.metal in Sources */,
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
+				03B169CF24CDCC1100636D3D /* InfluenceMapShader.metal in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
 				03BA57372432E110003A69ED /* LevelOneScene.mm in Sources */,
 				0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
@@ -3704,6 +3967,7 @@
 				03F2DB0D1F191F9B00F77B78 /* U4DRenderer.mm in Sources */,
 				03B718EA1A0AA83000C94651 /* U4DLights.mm in Sources */,
 				03A3E3222474209C00FBCBAD /* U4DButtonReleasedState.mm in Sources */,
+				030BB38324D70212008CB06E /* MenuScene.mm in Sources */,
 				03B5E7EA193A3F4700800EC8 /* tinyxml2.mm in Sources */,
 				03759BB6175B0383002EB5D9 /* U4DQuaternion.mm in Sources */,
 				03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */,
@@ -3713,7 +3977,10 @@
 				03CB47ED249C299500E6A3C8 /* U4DSceneIdleState.mm in Sources */,
 				038249221FA252AE00DFEFE3 /* U4DParticleEmitterTorus.mm in Sources */,
 				03CAE64C205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
+				03B169CB24CDC0D600636D3D /* FieldAnalyzer.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
+				030BB3B924D9AAA8008CB06E /* KitMenuShader.metal in Sources */,
+				03B169E724D12E3D00636D3D /* NavigationMapShader.metal in Sources */,
 				032B9A20247818DD00412B5B /* U4DLayerManager.mm in Sources */,
 				03F2DAF61F191A2600F77B78 /* worldShader.metal in Sources */,
 				03BA573A2432E110003A69ED /* LevelOneWorld.mm in Sources */,
@@ -3732,6 +3999,7 @@
 				03759BC0175B0383002EB5D9 /* U4DWorld.mm in Sources */,
 				0354C3DA235F3D2D009DD151 /* U4DShaderHelperFunctions.metal in Sources */,
 				03CAE63A2051925E00391B57 /* U4DMacMouse.mm in Sources */,
+				030BB3AD24D86069008CB06E /* menuSelectionShader.metal in Sources */,
 				0327B1AA1B0BBC370087BACC /* U4DBoundingVolume.mm in Sources */,
 				030205521B6E9CD7005A72E8 /* U4DSegment.mm in Sources */,
 				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
@@ -3740,6 +4008,7 @@
 				03F2DB141F191F9B00F77B78 /* U4DRenderWorld.mm in Sources */,
 				038BF22A2278898600B129A5 /* U4DSeek.mm in Sources */,
 				03F2DB121F191F9B00F77B78 /* U4DRenderMultiImage.mm in Sources */,
+				030BB38D24D7023B008CB06E /* MenuLogic.mm in Sources */,
 				03F2DB0C1F191F9B00F77B78 /* U4DRender3DModel.mm in Sources */,
 				03CB47F7249C29C800E6A3C8 /* U4DSceneActiveState.mm in Sources */,
 				03F2DAF51F191A2600F77B78 /* skyboxShader.metal in Sources */,
@@ -3765,6 +4034,7 @@
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				03722DFD202CBF690080D069 /* U4DPadButtonPressedState.mm in Sources */,
 				0341ABFE204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
+				03DC902B24D5AF7000BED23B /* Team.mm in Sources */,
 				03D0C4D224B577FB001A7D5F /* U4DRenderShaderEntity.mm in Sources */,
 				03494BAE1F4723A400ACE0EC /* U4DRenderFont.mm in Sources */,
 				036C244C176790F100ADC1A6 /* U4DGameModelInterface.mm in Sources */,
@@ -3773,6 +4043,7 @@
 				03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */,
 				03B1697924BA0CE900636D3D /* Ball.mm in Sources */,
 				0323DBB9202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
+				033A231324DAF12C00B8DCC5 /* PlayMenuLayer.mm in Sources */,
 				03722DE3202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03B1FFB92487EB1D0039DD6B /* MobileLayer.mm in Sources */,
 				038BF25B228C577500B129A5 /* U4DNavMesh.mm in Sources */,
@@ -3853,9 +4124,11 @@
 				03A3E2D82465A4AF00FBCBAD /* U4DInputElement.mm in Sources */,
 				03D0C4D724B57F6A001A7D5F /* LoadingCircle.metal in Sources */,
 				038BF26B2293883C00B129A5 /* U4DNavMeshLoader.mm in Sources */,
+				030BB3C224DA4CE6008CB06E /* TeamSettings.mm in Sources */,
 				03E6EDE61943D866007AD131 /* U4DStaticModel.mm in Sources */,
 				0323DBAD202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03E6ED831943D78C007AD131 /* U4DMultiImage.mm in Sources */,
+				030BB38824D7022E008CB06E /* MenuWorld.mm in Sources */,
 				03A3E2F2246D8BAB00FBCBAD /* U4DTouchesReleasedState.mm in Sources */,
 				03A3E3162474209C00FBCBAD /* U4DButtonPressedState.mm in Sources */,
 				03D5E51E224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
@@ -3872,6 +4145,7 @@
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
 				0341AC36204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03A3E2E3246D8AFA00FBCBAD /* U4DTouchesStateInterface.mm in Sources */,
+				033A231824DAF64200B8DCC5 /* MainMenuLayer.mm in Sources */,
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
 				036AED64231C131600211205 /* U4DMacMouseDeltaMovedState.mm in Sources */,
 				038BF2502279E7E500B129A5 /* U4DFollowPath.mm in Sources */,

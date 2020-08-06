@@ -131,5 +131,35 @@ namespace U4DEngine {
         followPath.setMaxSpeed(uNavigationSpeed);
         
     }
+
+    U4DNavMesh *U4DNavigation::getNavMesh(){
+        return navMesh;
+    }
+
+    std::vector<U4DSegment> U4DNavigation::getNavPath(){
+        
+        //Because we use the Steering Behavior Arrive to slowly navigate the entity to its final position,
+        //I've broken down the path into two. Therefore, we need to append the final target position as a path to the final path computed. See getSteering() to see the reason. 99% of the path is driven by the FollowPath behavior, the last 1% is driven by the Arrive behavior.
+        
+        std::vector<U4DSegment> totalPath=path;
+        
+        //get last segment in the path
+        int pathSize=(int)path.size();
+        
+        U4DSegment preLastPathSegment=path.at(pathSize-1);
+        
+        //get point B in last segment
+        U4DPoint3n pointB=preLastPathSegment.pointB;
+        
+        //create final path
+        U4DPoint3n targetPositionPoint=targetPosition.toPoint();
+        
+        U4DSegment lastPath(pointB,targetPositionPoint);
+        
+        totalPath.push_back(lastPath);
+        
+        return totalPath;
+        
+    }
     
 }

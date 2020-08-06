@@ -13,9 +13,11 @@
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
 #include "LevelOneLogic.h"
+#include "PathAnalyzer.h"
+#include "Team.h"
 
 
-Player::Player():motionAccumulator(0.0,0.0,0.0),rightFoot(nullptr),dribblingDirection(0.0,0.0,0.0),dribble(false),passBall(false){
+Player::Player():motionAccumulator(0.0,0.0,0.0),rightFoot(nullptr),dribblingDirection(0.0,0.0,0.0),dribble(false),passBall(false),shootBall(false),standTackleOpponent(false){
     
 
 }
@@ -30,9 +32,22 @@ bool Player::init(const char* uModelName){
     if (loadModel(uModelName)) {
         
         //enable shadows
-        //setEnableShadow(true);
+        setEnableShadow(true);
         
         setNormalMapTexture("redkitnormal.png");
+        
+        setShader("vertexKitShader","fragmentKitShader");
+        
+        //Default Uniform
+        U4DEngine::U4DVector4n jersey(0.8,0.66,0.07,0.0);
+        U4DEngine::U4DVector4n shorts(0.07,0.28,0.61,0.0);
+        U4DEngine::U4DVector4n cleats(0.0,0.0,0.0,0.0);
+        U4DEngine::U4DVector4n socks(0.9,0.9,0.9,0.0);
+        
+        updateShaderParameterContainer(0,jersey);
+        updateShaderParameterContainer(1,shorts);
+        updateShaderParameterContainer(2,cleats);
+        updateShaderParameterContainer(3,socks);
         
         //set the state of the character
         setState(idle);
@@ -50,6 +65,12 @@ bool Player::init(const char* uModelName){
         haltAnimation=new U4DEngine::U4DAnimation(this);
         
         passingAnimation=new U4DEngine::U4DAnimation(this);
+        
+        shootingAnimation=new U4DEngine::U4DAnimation(this);
+        
+        standTackleAnimation=new U4DEngine::U4DAnimation(this);
+        
+        containAnimation=new U4DEngine::U4DAnimation(this);
         
         //load the animation data
         if(loadAnimationToModel(runningAnimation, "running")){
@@ -75,6 +96,23 @@ bool Player::init(const char* uModelName){
         //load the right pass animation data
         if(loadAnimationToModel(passingAnimation, "rightpass")){
             passingAnimation->setPlayContinuousLoop(false);
+        }
+        
+        //load the shooting animation data
+        if(loadAnimationToModel(shootingAnimation, "shooting")){
+            shootingAnimation->setPlayContinuousLoop(false);
+        }
+        
+        //load the stand tackle animation data
+        if(loadAnimationToModel(standTackleAnimation,"standtackle")){
+            
+            standTackleAnimation->setPlayContinuousLoop(false);
+            
+        }
+        
+        //load the contain animation data
+        if(loadAnimationToModel(containAnimation, "forwardcontain")){
+            
         }
         
         
@@ -119,7 +157,6 @@ bool Player::init(const char* uModelName){
             
         }
         
-        
         return true;
     }
     
@@ -160,13 +197,21 @@ void Player::update(double dt){
             
         }else{
             
-            if(dribble==true){
-                
-                changeState(dribbling);
-                
-            }else if(passBall==true){
+            if(passBall==true){
                 
                 changeState(passing);
+                
+            }else if(shootBall==true){
+                
+                changeState(shooting);
+                
+            }else if(standTackleOpponent==true){
+                
+                changeState(standtackle);
+                
+            }else if(dribble==true){
+                
+                changeState(dribbling);
                 
             }else{
                 
@@ -178,19 +223,7 @@ void Player::update(double dt){
         
     }else if(state==dribbling){
         
-        Ball *ball=Ball::sharedInstance();
-        
-        ball->setKickVelocity(15.0);
-        
-        if(forceDirection==U4DEngine::U4DVector3n(0.0,0.0,0.0)){
-            
-            U4DEngine::U4DVector3n viewDir=getViewInDirection();
-            
-            ball->setForceDirection(viewDir);
-            
-        }else{
-            ball->setForceDirection(dribblingDirection);
-        }
+        rightFoot->setKickBallParameters(15.0,dribblingDirection);
     
         //apply a force
         applyForce(1.0, dt);
@@ -213,8 +246,10 @@ void Player::update(double dt){
         
         updateFootSpaceWithAnimation(haltAnimation);
         
+        rightFoot->setKickBallParameters(0.0,dribblingDirection);
+        
         Ball *ball=Ball::sharedInstance();
-        ball->setKickVelocity(0.0);
+        
         ball->changeState(stopped);
         
         //remove all velocities from the character
@@ -222,6 +257,11 @@ void Player::update(double dt){
         
         setVelocity(zero);
         setAngularVelocity(zero);
+        
+        for(const auto &n:team->getTeammatesForPlayer(this)){
+                
+            n->changeState(idle);
+        }
         
         if(dribble==true){
             
@@ -231,19 +271,7 @@ void Player::update(double dt){
         
     }else if(state==passing){
         
-        Ball *ball=Ball::sharedInstance();
-        
-        ball->setKickVelocity(47.0);
-        
-        if(forceDirection==U4DEngine::U4DVector3n(0.0,0.0,0.0)){
-            
-            U4DEngine::U4DVector3n viewDir=getViewInDirection();
-            
-            ball->setForceDirection(viewDir);
-            
-        }else{
-            ball->setForceDirection(dribblingDirection);
-        }
+        rightFoot->setKickBallParameters(47.0,dribblingDirection);
         
         //apply a force
         applyForce(5.0, dt);
@@ -260,21 +288,38 @@ void Player::update(double dt){
         
         passBall=false;
         
+    }else if(state==shooting){
+        
+        rightFoot->setKickBallParameters(87.0,dribblingDirection);
+        
+        //apply a force
+        applyForce(5.0, dt);
+        
+        updateFootSpaceWithAnimation(shootingAnimation);
+        
+        //if animation has stopped, the switch to idle
+        if (shootingAnimation->getAnimationIsPlaying()==false) {
+            
+            changeState(idle);
+        }
+        
+        shootBall=false;
+        
     }else if(state==supporting){
         
         U4DEngine::U4DFlock flockBehavior;
-        
-        flockBehavior.setMaxSpeed(5.0);
-        
+
+        flockBehavior.setMaxSpeed(10.0);
+
         std::vector<U4DDynamicModel*> tempNeighbors;
-        for(const auto &n:teammates){
+        for(const auto &n:team->getTeammatesForPlayer(this)){
             tempNeighbors.push_back(n);
         }
 
         U4DEngine::U4DVector3n desiredVelocity=flockBehavior.getSteering(this, tempNeighbors);
-        
+
         if(!(desiredVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
-        
+
             desiredVelocity.y=0.0;
             applyVelocity(desiredVelocity, dt);
             setViewDirection(desiredVelocity);
@@ -310,8 +355,85 @@ void Player::update(double dt){
             
         }
         
+    }else if(state==defending){
+
+        //apply a force
+        applyForce(10.0, dt);
         
+        updateFootSpaceWithAnimation(runningAnimation);
         
+        if(standTackleOpponent==true){
+            
+            //check the distance between the player and the ball
+            U4DEngine::U4DVector3n ballPosition=getBallPositionOffset();
+            ballPosition.y=getAbsolutePosition().y;
+            
+            float distanceToBall=(ballPosition-getAbsolutePosition()).magnitude();
+            
+            if (distanceToBall<1.0) {
+        
+                changeState(arrive);
+                
+            }
+            
+        }
+        
+    }else if(state==standtackle){
+        
+        rightFoot->setKickBallParameters(15.0,dribblingDirection);
+        
+        applyForce(5.0, dt);
+        
+        updateFootSpaceWithAnimation(standTackleAnimation);
+        
+        if (standTackleAnimation->getAnimationIsPlaying()==false) {
+            
+            standTackleOpponent=false;
+            changeState(defending);
+            
+        }
+        
+    }else if(state==contain){
+    
+        updateFootSpaceWithAnimation(containAnimation);
+        
+        applyForce(5.0, dt);
+        
+        if(standTackleOpponent==true){
+            
+            //check the distance between the player and the ball
+            U4DEngine::U4DVector3n ballPosition=getBallPositionOffset();
+            ballPosition.y=getAbsolutePosition().y;
+            
+            float distanceToBall=(ballPosition-getAbsolutePosition()).magnitude();
+            
+            if (distanceToBall<1.0) {
+        
+                changeState(arrive);
+                
+            }
+            
+        }
+        
+    }else if(state==navigate){
+    
+        //if object is in attack mode, it will get its velocity from the navigation system.
+       
+//        updateFootSpaceWithAnimation(runningAnimation);
+//        PathAnalyzer *pathAnalyzer=PathAnalyzer::sharedInstance();
+//
+//        U4DEngine::U4DVector3n finalVelocity=pathAnalyzer->desiredNavigationVelocity();
+//
+//        finalVelocity.y=0.0;
+//
+//        if(!(finalVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
+//
+//           applyVelocity(finalVelocity, dt);
+//
+//           setViewDirection(finalVelocity);
+//
+//        }
+
     }else if(state==idle){
         
         updateFootSpaceWithAnimation(idleAnimation);
@@ -421,9 +543,9 @@ void Player::changeState(int uState){
         {
             //change animaiton to dribbling
             currentAnimation=dribblingAnimation;
-        
+            
             //Make all teammates as supporting player
-            for(const auto &n:teammates){
+            for(const auto &n:team->getTeammatesForPlayer(this)){
                 n->changeState(supporting);
             }
             
@@ -444,7 +566,14 @@ void Player::changeState(int uState){
             
             pursuitBehavior.setMaxSpeed(15.0);
             
+            team->setControllingPlayer(this); 
+            
             currentAnimation=runningAnimation;
+            
+            //Make all teammates as supporting player
+            for(const auto &n:team->getTeammatesForPlayer(this)){
+                n->changeState(supporting);
+            }
         }
             
             break;
@@ -454,6 +583,37 @@ void Player::changeState(int uState){
             currentAnimation=runningAnimation;
             
         }
+            break;
+            
+        case shooting:
+        
+            currentAnimation=shootingAnimation;
+            
+            break;
+            
+        case defending:
+        
+            currentAnimation=runningAnimation;
+            
+            break;
+            
+        case standtackle:
+            
+            currentAnimation=standTackleAnimation;
+            
+            break;
+            
+        case contain:
+            
+            currentAnimation=containAnimation;
+            
+            break;
+            
+        case navigate:
+            
+            currentAnimation=runningAnimation;
+            
+            break;
             
         default:
             break;
@@ -474,7 +634,9 @@ void Player::setForceDirection(U4DEngine::U4DVector3n &uForceDirection){
 }
 
 void Player::setDribblingDirection(U4DEngine::U4DVector3n &uDribblingDirection){
+    
     dribblingDirection=uDribblingDirection;
+    
 }
 
 void Player::applyForce(float uFinalVelocity, double dt){
@@ -560,6 +722,14 @@ void Player::setEnablePassing(bool uValue){
     passBall=uValue;
 }
 
+void Player::setEnableShooting(bool uValue){
+    shootBall=uValue;
+}
+
+void Player::setEnableStandTackle(bool uValue){
+    standTackleOpponent=uValue;
+}
+
 U4DEngine::U4DVector3n Player::getBallPositionOffset(){
     
     Ball *ball=Ball::sharedInstance();
@@ -596,52 +766,45 @@ void Player::updateFootSpaceWithAnimation(U4DEngine::U4DAnimation *uAnimation){
     
 }
 
-void Player::addTeammates(std::vector<Player*> uTeammates){
-
-    for(const auto &n:uTeammates){
-        
-        //make sure not to add itself as a teammate
-        if(n!=this){
-            teammates.push_back(n);
-        }
-    }
- 
-}
-
 void Player::closestPlayerToIntersect(){
     
     Ball *ball=Ball::sharedInstance();
-    
+
     float maxDistanceToBall=1000.0;
     Player *closestPlayer=nullptr;
-    
-    for (const auto &n:teammates) {
+
+    for (const auto &n:team->getTeammatesForPlayer(this)) {
 
         //distace to ball
         float d=(ball->getAbsolutePosition()-n->getAbsolutePosition()).magnitude();
-        
+
         if((n!=this)&&(d<maxDistanceToBall)){
-                        
+
             maxDistanceToBall=d;
             closestPlayer=n;
-            
+
         }
     }
-    
+
     if(closestPlayer!=nullptr){
-        
+
         //chose the player closest to intersect the ball. For now, just do this.
         closestPlayer->changeState(pursuit);
-        
+
         //assign it as the active player
         U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-        
+
         U4DEngine::U4DScene *scene=sceneManager->getCurrentScene();
-        
+
         LevelOneLogic *levelOneLogic=dynamic_cast<LevelOneLogic*>(scene->gameModel);
-        
+
         levelOneLogic->setActivePlayer(closestPlayer);
-        
+
     }
     
 }
+
+void Player::addToTeam(Team *uTeam){
+    team=uTeam;
+}
+

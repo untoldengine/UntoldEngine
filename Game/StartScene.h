@@ -21,12 +21,15 @@
 #include "StartMenu.h"
 #include "StartLogic.h"
 
+
+
 class StartScene:public U4DEngine::U4DScene {
 
 private:
     
     StartMenu *startMenu;
     StartLogic *startLogic;
+    
     
 public:
 

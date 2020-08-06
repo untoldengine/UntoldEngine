@@ -82,8 +82,20 @@ enum{
     halt,
     passing,
     supporting,
+    shooting,
+    defending,
+    standtackle,
+    contain,
+    navigate,
 
 }CHARACTERSTATE;
+
+enum{
+    
+    selectingKit,
+    selectingOptionsInMenu,
+    
+}MENUSTATE;
 
 enum{
     

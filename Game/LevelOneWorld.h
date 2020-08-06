@@ -16,15 +16,20 @@
 #include "U4DAnimation.h"
 #include "U4DDynamicModel.h"
 #include "Player.h"
+#include "Team.h"
 #include "U4DShaderEntity.h"
 
 class LevelOneWorld:public U4DEngine::U4DWorld{
 
 private:
     
-    std::vector<Player *> teammates;
+    Team* teamA;
+    Team* teamB;
+    
     U4DEngine::U4DGameObject *ground;
-    U4DEngine::U4DShaderEntity *shader;
+    U4DEngine::U4DShaderEntity *playerVisualizerShader;
+    U4DEngine::U4DShaderEntity *influenceMapShader;
+    U4DEngine::U4DShaderEntity *navigationMapShader;
     
 public:
    

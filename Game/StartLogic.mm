@@ -8,6 +8,8 @@
 
 #include "StartLogic.h"
 #include "CommonProtocols.h"
+#include "U4DSceneManager.h"
+#include "MenuScene.h"
 
 using namespace U4DEngine;
 
@@ -55,6 +57,26 @@ void StartLogic::receiveUserInputUpdate(void *uData){
                     
                 }
             }
+                
+            case U4DEngine::padButtonA:
+            
+            if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
+                
+                std::cout<<"going to menu"<<std::endl;
+                //get instance of scene manager
+                U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+
+                //Switch to other Menu Screen
+                MenuScene *menuScene=new MenuScene();
+
+                sceneManager->changeScene(menuScene);
+                
+                
+            }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
+                
+            }
+            
+            break;
                 
                 break;
                 

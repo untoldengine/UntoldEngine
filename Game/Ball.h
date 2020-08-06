@@ -18,8 +18,6 @@ class Ball:public U4DEngine::U4DGameObject {
     
 private:
     
-    U4DEngine::U4DVector3n forceDirection;
-    
     static Ball* instance;
     
     //state of the character
@@ -28,7 +26,9 @@ private:
     //previous state of the character
     int previousState;
     
-    float kickVelocity;
+    float kickMagnitude;
+    
+    U4DEngine::U4DVector3n kickDirection;
     
 protected:
     
@@ -47,8 +47,6 @@ public:
     
     void update(double dt);
     
-    void setForceDirection(U4DEngine::U4DVector3n &uForceDirection);
-       
     void applyForce(float uFinalVelocity, double dt);
     
     void applyRoll(float uFinalVelocity,double dt);
@@ -61,8 +59,8 @@ public:
     
     void changeState(int uState);
     
-    void setKickVelocity(float uKickVelocity);
-    
+    void setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection);
+
 };
 
 #endif /* Ball_hpp */

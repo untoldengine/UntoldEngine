@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-U4DShaderEntity::U4DShaderEntity():shaderParameterContainer(24,U4DVector4n(0.0,0.0,0.0,0.0)){
+U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParamSize,U4DVector4n(0.0,0.0,0.0,0.0)),enableBlending(true){
         
         renderManager=new U4DRenderShaderEntity(this);
         
@@ -92,6 +92,14 @@ U4DShaderEntity::U4DShaderEntity():shaderParameterContainer(24,U4DVector4n(0.0,0
             
         }
     
+    }
+
+    void U4DShaderEntity::setEnableBlending(bool uValue){
+        enableBlending=uValue;
+    }
+
+    bool U4DShaderEntity::getEnableBlending(){
+        return enableBlending;
     }
 
 }

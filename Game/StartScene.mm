@@ -27,6 +27,6 @@ void StartScene::init(){
     //create model component
     startLogic=new StartLogic();
     
-    loadComponents(startMenu,startLogic);
+    loadComponents(startMenu, startLogic);
     
 }

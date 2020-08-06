@@ -24,10 +24,12 @@ namespace U4DEngine {
         
         std::vector<U4DVector4n> shaderParameterContainer;
         
+        bool enableBlending;
+        
     public:
         
         
-        U4DShaderEntity();
+        U4DShaderEntity(int uParamSize);
         
         ~U4DShaderEntity();
     
@@ -50,6 +52,10 @@ namespace U4DEngine {
         void updateShaderParameterContainer(int uPosition, U4DVector4n &uParamater);
         
         std::vector<U4DVector4n> getShaderParameterContainer();
+        
+        void setEnableBlending(bool uValue);
+        
+        bool getEnableBlending();
         
     };
 

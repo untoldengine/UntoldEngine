@@ -10,7 +10,7 @@
 
 Ball* Ball::instance=0;
 
-Ball::Ball():kickVelocity(0.0){
+Ball::Ball():kickMagnitude(0.0){
     
 }
 
@@ -49,6 +49,8 @@ bool Ball::init(const char* uModelName){
         //enable collision detection
         enableCollisionBehavior();
         
+        setState(idle);
+        
         //send info to the GPU
         loadRenderingInformation();
         
@@ -81,17 +83,18 @@ void Ball::update(double dt){
     }
     
     if (getModelHasCollided()) {
-        applyForce(kickVelocity, dt);
+        
+        applyForce(kickMagnitude, dt);
         changeState(rolling);
     }
     
 }
 
 
-void Ball::setForceDirection(U4DEngine::U4DVector3n &uForceDirection){
+void Ball::setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection){
     
-    forceDirection=uForceDirection;
-    
+    kickMagnitude=uKickMagnitude;
+    kickDirection=uKickDirection;
 }
 
 void Ball::applyForce(float uFinalVelocity, double dt){
@@ -99,13 +102,13 @@ void Ball::applyForce(float uFinalVelocity, double dt){
     //force =m*(vf-vi)/dt
     
     //get the force direction and normalize
-    forceDirection.normalize();
+    kickDirection.normalize();
     
     //get mass
     float mass=getMass();
     
     //calculate force
-    U4DEngine::U4DVector3n force=(forceDirection*uFinalVelocity*mass)/dt;
+    U4DEngine::U4DVector3n force=(kickDirection*uFinalVelocity*mass)/dt;
     
     //apply force to the character
     addForce(force);
@@ -117,21 +120,16 @@ void Ball::applyForce(float uFinalVelocity, double dt){
     
 }
 
-void Ball::setKickVelocity(float uKickVelocity){
-    
-    kickVelocity=uKickVelocity;
-}
-
 void Ball::applyRoll(float uFinalVelocity, double dt){
     
     //get the force direction and normalize
-    forceDirection.normalize();
+    kickDirection.normalize();
     
     //get mass
     float mass=getMass();
     
     //calculate force
-    U4DEngine::U4DVector3n force=(forceDirection*uFinalVelocity*mass)/dt;
+    U4DEngine::U4DVector3n force=(kickDirection*uFinalVelocity*mass)/dt;
     
     //apply moment to ball
     U4DEngine::U4DVector3n upAxis(0.0,getModelDimensions().z/2.0,0.0);

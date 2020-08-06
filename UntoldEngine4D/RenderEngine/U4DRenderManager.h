@@ -160,6 +160,11 @@ namespace U4DEngine {
         id<MTLBuffer> uniformShaderEntityPropertyBuffer;
         
         /**
+         @brief Uniform for the model user-defined parameters
+         */
+        id<MTLBuffer> uniformModelShaderParametersBuffer;
+        
+        /**
          * @brief buffer for the raw image data of a texture
          */
         std::vector<unsigned char> rawImageData;

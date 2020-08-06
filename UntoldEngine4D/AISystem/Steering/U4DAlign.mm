@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
 
-    U4DAlign::U4DAlign():neighborDistance(20.0){
+    U4DAlign::U4DAlign():neighborDistance(40.0){
             
         }
 

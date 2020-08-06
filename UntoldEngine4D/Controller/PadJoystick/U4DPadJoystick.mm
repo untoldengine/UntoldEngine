@@ -64,7 +64,7 @@ namespace U4DEngine {
     
             U4DEngine::U4DVector2n joystickDirection=getDataPosition();
     
-            joystickDirection.normalize();
+            //joystickDirection.normalize();
     
     
             if (getDirectionReversal()) {

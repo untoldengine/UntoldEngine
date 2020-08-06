@@ -134,6 +134,9 @@ namespace U4DEngine {
          */
         virtual void clearModelAttributeData();
         
+        /**
+        * @brief Update the users parameters used in the shader
+        */
         void updateShaderEntityParams();
         
         /**

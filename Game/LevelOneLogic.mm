@@ -140,11 +140,9 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
-                    
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                   
                 }
             }
                 break;
@@ -171,7 +169,9 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 
                 if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
                     
-                    pPlayer->setEnablePassing(true);
+                        
+                        pPlayer->setEnablePassing(true);
+                    
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
                     
@@ -179,12 +179,53 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 
                 break;
                 
+            case U4DEngine::padButtonB:
+                
+                if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
+                    
+                        
+                        pPlayer->setEnableStandTackle(true);
+                    
+                    
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
+                    
+                }
+                
+                break;
+                
+            case U4DEngine::padRightTrigger:
+                
+                if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
+                    
+                    pPlayer->setEnableShooting(true);
+                    
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
+                    
+                }
+                
+                break;
+                
+            case U4DEngine::padLeftTrigger:
+            
+                if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
+                    
+                    pPlayer->changeState(contain);
+                    
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
+                    
+                    pPlayer->changeState(defending);
+                }
+            
+            break;
+                
             case U4DEngine::padLeftThumbstick:
             
                 if(controllerInputMessage.inputElementAction==U4DEngine::padThumbstickMoved){
                     
                     //Get joystick direction
                     U4DEngine::U4DVector3n joystickDirection(controllerInputMessage.joystickDirection.x,0.0,controllerInputMessage.joystickDirection.y);
+                    
+                    joystickDirection.normalize();
                     
                     //Get entity forward vector for the player
                     U4DEngine::U4DVector3n v=pPlayer->getViewInDirection();
@@ -249,6 +290,7 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 
                     //USE THIS SNIPPET WHEN YOU ONLY WANT THE MOUSE DELTA LOCATION
                     U4DEngine::U4DVector2n delta=controllerInputMessage.mouseDeltaPosition;
+                    
                     //set y to zero
                     delta.y=0.0;
                     float deltaMagnitude=delta.magnitude();

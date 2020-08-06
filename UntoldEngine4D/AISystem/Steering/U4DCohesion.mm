@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
 
-    U4DCohesion::U4DCohesion():neighborDistance(20.0){
+    U4DCohesion::U4DCohesion():neighborDistance(40.0){
             
         }
 

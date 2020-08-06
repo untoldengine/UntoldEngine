@@ -43,7 +43,11 @@ namespace U4DEngine {
         mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
         mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
 
-        mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
+        if(u4dObject->getEnableBlending()){
+            mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
+        }else{
+            mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=NO;
+        }
         
         //rgb blending
         mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;

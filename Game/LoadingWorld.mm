@@ -21,7 +21,7 @@ LoadingWorld::LoadingWorld(){
 
 LoadingWorld::~LoadingWorld(){
     
-    
+    delete loadingBackgroundImage;
     
 }
 
@@ -38,11 +38,11 @@ void LoadingWorld::init(){
     float width=director->getDisplayWidth();
     float height=director->getDisplayHeight();
     
-    loadingBackgroundImage->setImage("gameloadingimage.png",width,height);
+    loadingBackgroundImage->setImage("futbolloadingscreen.png",width,height);
     
     addChild(loadingBackgroundImage);
     
-    U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity();
+    U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity(0);
     
     shader->setShader("vertexLoadingCircleShader","fragmentLoadingCircleShader");
     

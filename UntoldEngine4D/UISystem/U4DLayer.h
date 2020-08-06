@@ -28,7 +28,7 @@ namespace U4DEngine {
         U4DLayer(std::string uLayerName);
         
         //destructor
-        ~U4DLayer();
+        virtual ~U4DLayer();
         
         virtual void init(){};
         

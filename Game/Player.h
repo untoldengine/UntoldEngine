@@ -15,18 +15,17 @@
 #include "U4DAnimationManager.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
-#include "U4DNavigation.h"
 #include "U4DArrive.h"
 #include "U4DFlock.h"
 #include "U4DPursuit.h"
 
 class Foot;
+class Team;
 
 class Player:public U4DEngine::U4DGameObject {
 
 private:
 
-    
     //state of the character
     int state;
     
@@ -48,6 +47,15 @@ private:
     //passing animation
     U4DEngine::U4DAnimation *passingAnimation;
     
+    //shooting animation
+    U4DEngine::U4DAnimation *shootingAnimation;
+    
+    //stand tackle animation
+    U4DEngine::U4DAnimation *standTackleAnimation;
+    
+    //contain animation
+    U4DEngine::U4DAnimation *containAnimation;
+    
     //Animation Manager
     U4DEngine::U4DAnimationManager *animationManager;
     
@@ -64,6 +72,9 @@ private:
     
     U4DEngine::U4DPursuit pursuitBehavior;
     
+    //Team player belongs to
+    Team *team;
+    
     //right foot
     Foot *rightFoot;
     
@@ -71,7 +82,9 @@ private:
     
     bool passBall;
     
-    std::vector<Player*> teammates;
+    bool shootBall;
+    
+    bool standTackleOpponent;
     
 public:
     
@@ -108,13 +121,19 @@ public:
     
     void setEnablePassing(bool uValue);
     
+    void setEnableShooting(bool uValue);
+    
+    void setEnableStandTackle(bool uValue);
+    
     U4DEngine::U4DVector3n getBallPositionOffset();
     
     void updateFootSpaceWithAnimation(U4DEngine::U4DAnimation *uAnimation);
     
-    void addTeammates(std::vector<Player*> uTeammates);
-    
     void closestPlayerToIntersect();
+    
+    void addToTeam(Team *uTeam);
+    
+    
     
 };
 

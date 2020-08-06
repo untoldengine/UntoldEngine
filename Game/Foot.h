@@ -20,6 +20,10 @@ private:
     
     Player *player;
     
+    float kickMagnitude;
+    
+    U4DEngine::U4DVector3n kickDirection;
+    
 public:
     
     Foot(Player *uPlayer);
@@ -29,6 +33,8 @@ public:
     bool init(const char* uModelName);
        
     void update(double dt);
+    
+    void setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection);
     
 };
 

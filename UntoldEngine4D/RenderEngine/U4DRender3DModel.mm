@@ -232,6 +232,9 @@ namespace U4DEngine {
         loadMTLMaterialInformation();
         
         loadMTLLightColorInformation();
+        
+        //load user-defined parameters uniform
+        uniformModelShaderParametersBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelShaderProperty) options:MTLResourceStorageModeShared];
     
     }
     
@@ -501,6 +504,7 @@ namespace U4DEngine {
             updateModelRenderFlags();
             updateBoneSpaceUniforms();
             updateShadowProperties();
+            updateModelShaderParametersUniform();
             
             //update the global uniforms
             updateGlobalDataUniforms();
@@ -523,6 +527,8 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:5];
             
+            [uRenderEncoder setVertexBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:6];
+            
             //set texture in fragment
             [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
             //set the samplers
@@ -538,6 +544,7 @@ namespace U4DEngine {
             [uRenderEncoder setFragmentBuffer:lightColorUniform offset:0 atIndex:3];
             [uRenderEncoder setFragmentBuffer:shadowPropertiesBuffer offset:0 atIndex:4];
             [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
+            [uRenderEncoder setFragmentBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:6];
             
             [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
             [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];
@@ -723,6 +730,27 @@ namespace U4DEngine {
     void U4DRender3DModel::setImageHeight(unsigned int uImageHeight){
         
         imageHeight=uImageHeight;
+    }
+
+    void U4DRender3DModel::updateModelShaderParametersUniform(){
+        
+        int sizeOfModelParameterVector=(int)u4dObject->getModelShaderParameterContainer().size();
+        
+        UniformModelShaderProperty uniformModelShaderProperty;
+        
+        for(int i=0;i<sizeOfModelParameterVector;i++){
+        
+            //load param1
+            U4DVector4n shaderParameter=u4dObject->getModelShaderParameterContainer().at(i);
+            
+            vector_float4 shaderParameterSIMD=convertToSIMD(shaderParameter);
+            
+            uniformModelShaderProperty.shaderParameter[i]=shaderParameterSIMD;
+            
+        }
+        
+        memcpy(uniformModelShaderParametersBuffer.contents,(void*)&uniformModelShaderProperty, sizeof(UniformModelShaderProperty));
+        
     }
 
 

@@ -27,8 +27,8 @@ StartMenu::StartMenu(){
 StartMenu::~StartMenu(){
     
     delete menuLayer;
-    delete playButton;
-    delete quitButton;
+//    delete playButton;
+//    delete quitButton;
     
 }
 
@@ -47,23 +47,23 @@ void StartMenu::init(){
 
     //create buttons as children of layer
 
-    menuLayer->setBackgroundImage("gamestartimage.png");
+    menuLayer->setBackgroundImage("futbolstartscreen.png");
 
-    //Create the UI Elements
-    playButton=new U4DEngine::U4DButton("start",0.6,-0.4,150.0,61.0,"start.png","startPressed.png");
-    quitButton=new U4DEngine::U4DButton("quit",0.6,-0.75,150.0,61.0,"quit.png","quitPressed.png");
-
-    //Create the callback for button
-    U4DEngine::U4DCallback<StartMenu>* playButtonCallback=new U4DEngine::U4DCallback<StartMenu>;
-
-    playButtonCallback->scheduleClassWithMethod(this, &StartMenu::play);
-
-    playButton->setCallbackAction(playButtonCallback);
-
-    //add button to the layer
-
-    menuLayer->addChild(playButton);
-    menuLayer->addChild(quitButton);
+//    //Create the UI Elements
+//    playButton=new U4DEngine::U4DButton("start",0.6,-0.4,150.0,61.0,"start.png","startPressed.png");
+//    quitButton=new U4DEngine::U4DButton("quit",0.6,-0.75,150.0,61.0,"quit.png","quitPressed.png");
+//
+//    //Create the callback for button
+//    U4DEngine::U4DCallback<StartMenu>* playButtonCallback=new U4DEngine::U4DCallback<StartMenu>;
+//
+//    playButtonCallback->scheduleClassWithMethod(this, &StartMenu::play);
+//
+//    playButton->setCallbackAction(playButtonCallback);
+//
+//    //add button to the layer
+//
+//    menuLayer->addChild(playButton);
+//    menuLayer->addChild(quitButton);
 
     layerManager->addLayerToContainer(menuLayer);
 
@@ -78,12 +78,12 @@ void StartMenu::play(){
     //change scene
     if (playButton->getIsReleased()) {
         
-        //get instance of scene manager
-        U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-
-        LevelOneScene *levelOneScene=new LevelOneScene();
-
-        sceneManager->changeScene(levelOneScene);
+//        //get instance of scene manager
+//        U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+//
+//        LevelOneScene *levelOneScene=new LevelOneScene();
+//
+//        sceneManager->changeScene(levelOneScene);
         
     }
     
