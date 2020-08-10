@@ -14,6 +14,8 @@
 #include "U4DJoystickIdleState.h"
 #include "U4DJoystickActiveState.h"
 #include "U4DJoystickReleasedState.h"
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
 
 namespace U4DEngine {
     
@@ -23,6 +25,12 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
     stateManager=new U4DJoystickStateManager(this);
     
     setName(uName);
+    
+    //set controller
+    //Get the touch controller
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    controllerInterface=sceneManager->getGameController();
     
     setEntityType(CONTROLLERINPUT);
     
@@ -149,7 +157,40 @@ void U4DJoyStick::update(double dt){
 
 void U4DJoyStick::action(){
     
-    pCallback->action();
+    //pCallback->action();
+    CONTROLLERMESSAGE controllerMessage;
+    
+    controllerMessage.elementUIName=getName();
+    
+    controllerMessage.inputElementType=U4DEngine::uiJoystick;
+    
+    if (getIsActive()) {
+
+        controllerMessage.inputElementAction=U4DEngine::uiJoystickMoved;
+
+        U4DEngine::U4DVector2n joystickDirection=getDataPosition();
+
+        if (getDirectionReversal()) {
+
+            controllerMessage.joystickChangeDirection=true;
+
+        }else{
+
+            controllerMessage.joystickChangeDirection=false;
+
+        }
+
+        controllerMessage.joystickDirection=joystickDirection;
+
+    }else {
+
+       controllerMessage.inputElementAction=U4DEngine::uiJoystickReleased;
+
+    }
+
+    controllerInterface->sendUserInputUpdate(&controllerMessage);
+    
+    
 }
 
 bool U4DJoyStick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){

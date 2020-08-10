@@ -27,6 +27,9 @@ public:
     void init();
     
     void receiveUserInputUpdate(void *uData);
+    
+    void changeToMainScene();
+    
 };
 
 #endif /* StartLogic_hpp */

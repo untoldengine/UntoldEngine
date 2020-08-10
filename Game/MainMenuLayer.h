@@ -11,13 +11,21 @@
 
 #include <stdio.h>
 #include "U4DLayer.h"
+#include "U4DButton.h"
+#include "U4DJoystick.h"
 #include "U4DShaderEntity.h"
+#include "U4DFontLoader.h"
+#include "U4DText.h"
 
 class MainMenuLayer:public U4DEngine::U4DLayer {
     
 private:
     
     U4DEngine::U4DShaderEntity *menuShader;
+    U4DEngine::U4DButton *aButton;
+    U4DEngine::U4DJoyStick *joystick;
+    U4DEngine::U4DFontLoader *fontLoader;
+    U4DEngine::U4DText *menuInstructions;
     int menuSelection;
     
 public:

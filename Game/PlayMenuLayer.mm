@@ -15,12 +15,16 @@ PlayMenuLayer::PlayMenuLayer(std::string uLayerName):U4DEngine::U4DLayer(uLayerN
 
 PlayMenuLayer::~PlayMenuLayer(){
     
-    std::cout<<"deleted layer and its children"<<std::endl;
-    
     delete player;
     delete walkAnimation;
     delete kitMenuShader;
     
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
+        delete aButton;
+        delete joystick;
+    }
 }
 
 void PlayMenuLayer::init(){
@@ -50,7 +54,7 @@ void PlayMenuLayer::init(){
         //send info to gpu
         player->loadRenderingInformation();
         
-        player->translateBy(-2.0,0.0,0.0);
+        player->translateBy(-2.5,0.0,0.0);
 
         //add to layer scenegraph
         addChild(player);
@@ -85,6 +89,19 @@ void PlayMenuLayer::init(){
 
     //add to layer scenegraph
     addChild(kitMenuShader,-10);
+    
+    //Create the UI Elements
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
+        aButton=new U4DEngine::U4DButton("buttonA",0.6,-0.6,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
+
+        //create the Joystick
+        joystick=new U4DEngine::U4DJoyStick("joystick",-0.7,-0.6,"joyStickBackground.png",130.0,130.0,"joystickDriver.png",80.0,80.0);
+        
+        addChild(aButton,-20);
+        addChild(joystick);
+    }
 
 }
 

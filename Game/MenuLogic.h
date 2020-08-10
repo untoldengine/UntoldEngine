@@ -32,5 +32,8 @@ public:
     void init();
     
     void receiveUserInputUpdate(void *uData);
+    
+    void changeToSelection();
+    
 };
 #endif /* MenuLogic_hpp */

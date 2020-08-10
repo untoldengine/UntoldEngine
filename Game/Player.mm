@@ -169,7 +169,7 @@ void Player::update(double dt){
     if(state==running){
         
         //apply a force
-        applyForce(10.0, dt);
+        applyForce(15.0, dt);
         
         updateFootSpaceWithAnimation(runningAnimation);
         
@@ -637,6 +637,56 @@ void Player::setDribblingDirection(U4DEngine::U4DVector3n &uDribblingDirection){
     
     dribblingDirection=uDribblingDirection;
     
+}
+
+void Player::setMoveDirection(U4DEngine::U4DVector3n &uMoveDirection){
+    
+    uMoveDirection.normalize();
+
+    //Get entity forward vector for the player
+    U4DEngine::U4DVector3n v=getViewInDirection();
+
+    v.normalize();
+
+    //set an up-vector
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+
+    U4DEngine::U4DMatrix3n m=getAbsoluteMatrixOrientation();
+
+    //transform the up vector
+    upVector=m*upVector;
+
+    U4DEngine::U4DVector3n posDir=v.cross(upVector);
+
+    //Get the angle between the analog joystick direction and the view direction
+    float angle=v.angle(uMoveDirection);
+
+    //if the dot product between the joystick-direction and the positive direction is less than zero, flip the angle
+    if(uMoveDirection.dot(posDir)>0.0){
+        angle*=-1.0;
+    }
+
+    //create a quaternion between the angle and the upvector
+    U4DEngine::U4DQuaternion newOrientation(angle,upVector);
+
+    //Get current orientation of the player
+    U4DEngine::U4DQuaternion modelOrientation=getAbsoluteSpaceOrientation();
+
+    //create slerp interpolation
+    U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation, 1.0);
+
+    //rotate the character
+    rotateBy(p);
+
+    //set the force direction
+    U4DEngine::U4DVector3n forceDir=getViewInDirection();
+
+    forceDir.y=0.0;
+
+    forceDir.normalize();
+
+    setForceDirection(forceDir);
+
 }
 
 void Player::applyForce(float uFinalVelocity, double dt){

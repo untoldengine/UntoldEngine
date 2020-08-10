@@ -92,7 +92,7 @@ public:
     /**
      * @brief Pointer to the controller interface
      * @details Usually the controller interface for button is the touch interface
-     * 
+     *
      */
     U4DControllerInterface *controllerInterface;
     

@@ -83,6 +83,13 @@ public:
     U4DCallbackInterface *pCallback;
     
     /**
+     * @brief Pointer to the controller interface
+     * @details Usually the controller interface for button is the touch interface
+     *
+     */
+    U4DControllerInterface *controllerInterface;
+    
+    /**
      * @brief the buttonImages member is a U4DMultiImage entity 
      * @details This member holds both images for the pressed and released state
      * 

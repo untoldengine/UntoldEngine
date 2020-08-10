@@ -105,6 +105,8 @@ public:
     
     void changeState(int uState);
     
+    void setMoveDirection(U4DEngine::U4DVector3n &uMoveDirection);
+    
     void setForceDirection(U4DEngine::U4DVector3n &uForceDirection);
     
     void setDribblingDirection(U4DEngine::U4DVector3n &uDribblingDirection);

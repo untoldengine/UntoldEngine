@@ -107,7 +107,7 @@ typedef struct{
 
 typedef struct{
     
-    vector_float4 shaderParameter[512];
+    vector_float4 shaderParameter[10];
     
 }UniformShaderEntityProperty;
 

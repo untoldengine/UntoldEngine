@@ -30,7 +30,6 @@ namespace U4DEngine {
     U4DText::~U4DText(){
         
         delete renderManager;
-        delete fontLoader;
         
     }
 

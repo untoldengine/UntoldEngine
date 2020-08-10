@@ -649,6 +649,8 @@ namespace U4DEngine {
         
         //touch elements
         ioTouch,
+        uiJoystick,
+        uiButton,
 
     }INPUTELEMENTTYPE;
 
@@ -681,6 +683,12 @@ namespace U4DEngine {
         ioTouchesMoved,
         ioTouchesEnded,
         ioTouchesIdle,
+        
+        //ui elements
+        uiJoystickMoved,
+        uiJoystickReleased,
+        uiButtonPressed,
+        uiButtonReleased,
         
         noAction
 

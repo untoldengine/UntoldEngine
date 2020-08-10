@@ -28,7 +28,7 @@ To run the the Untold Engine, you need the following tools:
 
 ## Current Version
 
-Beta version v0.0.14. See current [Release Notes](https://untoldengine.com/api/docs/html/md___users_haroldserrano__desktop__untold_engine_studio_api_docs_releasenotes.html) for improvement and fixes.
+Beta version v0.0.14. See current [Release Notes](https://www.untoldengine.com/release-notes) for improvement and fixes.
 
 ## License
 
