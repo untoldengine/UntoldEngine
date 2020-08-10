@@ -160,12 +160,12 @@ namespace U4DEngine {
         void initTextureSamplerObjectNull();
         
         /**
-         * @brief Sets the diffuse texture data
-         * @details The diffuse texture is the main texture used for entities
-         * 
-         * @param uTexture Diffuse texture
+         * @brief Sets the texture image for the image
+         * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
+         *
+         * @param uTexture texture name
          */
-        void setDiffuseTexture(const char* uTexture);
+        void setTexture0(const char* uTexture);
         
         /**
          @brief Gets the absolute space of the entity

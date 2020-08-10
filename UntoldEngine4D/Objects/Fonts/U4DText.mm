@@ -30,7 +30,6 @@ namespace U4DEngine {
     U4DText::~U4DText(){
         
         delete renderManager;
-        delete fontLoader;
         
     }
 
@@ -48,7 +47,7 @@ namespace U4DEngine {
         
         const char * fontAtlasImage = fontLoader->fontAtlasImage.c_str();
         
-        renderManager->setDiffuseTexture(fontAtlasImage);
+        renderManager->setTexture0(fontAtlasImage);
         
         
     }

@@ -13,15 +13,19 @@
 #include "U4DGameObject.h"
 #include "U4DAnimation.h"
 #include "U4DAnimationManager.h"
-#include "Weapon.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
-#include "U4DNavigation.h"
+#include "U4DArrive.h"
+#include "U4DFlock.h"
+#include "U4DPursuit.h"
+
+class Foot;
+class Team;
 
 class Player:public U4DEngine::U4DGameObject {
 
 private:
-    
+
     //state of the character
     int state;
     
@@ -31,17 +35,26 @@ private:
     //running animation
     U4DEngine::U4DAnimation *runningAnimation;
     
+    //patrol idle animation
+    U4DEngine::U4DAnimation *idleAnimation;
+    
+    //dribbling animation
+    U4DEngine::U4DAnimation *dribblingAnimation;
+    
+    //halt animation
+    U4DEngine::U4DAnimation *haltAnimation;
+    
+    //passing animation
+    U4DEngine::U4DAnimation *passingAnimation;
+    
     //shooting animation
     U4DEngine::U4DAnimation *shootingAnimation;
     
-    //patrol animation
-    U4DEngine::U4DAnimation *patrolAnimation;
+    //stand tackle animation
+    U4DEngine::U4DAnimation *standTackleAnimation;
     
-    //patrol idle animation
-    U4DEngine::U4DAnimation *patrolIdleAnimation;
-    
-    //dead animation
-    U4DEngine::U4DAnimation *deadAnimation;
+    //contain animation
+    U4DEngine::U4DAnimation *containAnimation;
     
     //Animation Manager
     U4DEngine::U4DAnimationManager *animationManager;
@@ -49,26 +62,29 @@ private:
     //force direction
     U4DEngine::U4DVector3n forceDirection;
     
-    //pistol pointer
-    Weapon *pistol;
-    
-    //map level
-    U4DEngine::U4DGameObject *map;
-    
-    //scheduler for navigation
-    U4DEngine::U4DCallback<Player> *navigationScheduler;
-    
-    //timer for navivation
-    U4DEngine::U4DTimer *navigationTimer;
-    
-    //Navigation system
-    U4DEngine::U4DNavigation *navigationSystem;
-    
-    //pointer to the hero of the game
-    Player *hero;
-    
+    //dribbling direction
+    U4DEngine::U4DVector3n dribblingDirection;
+
     //motion accumulator
     U4DEngine::U4DVector3n motionAccumulator;
+    
+    U4DEngine::U4DArrive arriveBehavior;
+    
+    U4DEngine::U4DPursuit pursuitBehavior;
+    
+    //Team player belongs to
+    Team *team;
+    
+    //right foot
+    Foot *rightFoot;
+    
+    bool dribble;
+    
+    bool passBall;
+    
+    bool shootBall;
+    
+    bool standTackleOpponent;
     
 public:
     
@@ -89,7 +105,11 @@ public:
     
     void changeState(int uState);
     
+    void setMoveDirection(U4DEngine::U4DVector3n &uMoveDirection);
+    
     void setForceDirection(U4DEngine::U4DVector3n &uForceDirection);
+    
+    void setDribblingDirection(U4DEngine::U4DVector3n &uDribblingDirection);
     
     void applyForce(float uFinalVelocity, double dt);
     
@@ -97,19 +117,23 @@ public:
     
     void setViewDirection(U4DEngine::U4DVector3n &uViewDirection);
     
-    void setWeapon(Weapon *uPistol);
+    void setFoot(Foot *uRightFoot);
     
-    void setMap(U4DEngine::U4DGameObject *uMap);
+    void setEnableDribbling(bool uValue);
     
-    bool testMapIntersection();
+    void setEnablePassing(bool uValue);
     
-    void shoot();
+    void setEnableShooting(bool uValue);
     
-    void computeNavigation();
+    void setEnableStandTackle(bool uValue);
     
-    U4DEngine::U4DVector3n desiredNavigationVelocity();
+    U4DEngine::U4DVector3n getBallPositionOffset();
     
-    void setHero(Player *uHero);
+    void updateFootSpaceWithAnimation(U4DEngine::U4DAnimation *uAnimation);
+    
+    void closestPlayerToIntersect();
+    
+    void addToTeam(Team *uTeam);
     
     
     

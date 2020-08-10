@@ -8,6 +8,8 @@
 
 #include "U4DRenderManager.h"
 #include "U4DDirector.h"
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
 #include "U4DShaderProtocols.h"
 #include <simd/simd.h>
 #include "lodepng.h"
@@ -15,7 +17,7 @@
 
 namespace U4DEngine {
 
-    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil),samplerDescriptor(nil),globalDataUniform(nil){
+    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),samplerDescriptor(nil),globalDataUniform(nil){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
@@ -54,6 +56,8 @@ namespace U4DEngine {
         lightColorUniform=nil;
         uniformParticlePropertyBuffer=nil;
         uniformParticleSystemPropertyBuffer=nil;
+        uniformShaderEntityPropertyBuffer=nil;
+        uniformModelShaderParametersBuffer=nil;
         globalDataUniform=nil;
         
 
@@ -411,6 +415,8 @@ namespace U4DEngine {
     void U4DRenderManager::updateGlobalDataUniforms(){
         
         U4DDirector *director=U4DDirector::sharedInstance();
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
         
         //get the resolution of the display
         U4DVector2n resolution(director->getDisplayWidth(),director->getDisplayHeight());
@@ -418,7 +424,7 @@ namespace U4DEngine {
         vector_float2 resolutionSIMD=convertToSIMD(resolution);
         
         UniformGlobalData uniformGlobalData;
-        uniformGlobalData.time=director->getGlobalTime(); //set the global time
+        uniformGlobalData.time=scene->getGlobalTime(); //set the global time
         uniformGlobalData.resolution=resolutionSIMD; //set the display resolution
         
         memcpy(globalDataUniform.contents, (void*)&uniformGlobalData, sizeof(UniformGlobalData));

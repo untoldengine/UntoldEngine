@@ -64,6 +64,8 @@ namespace U4DEngine {
         
         U4DLayer *getActiveLayer();
         
+        void clear();
+        
     };
 
 }

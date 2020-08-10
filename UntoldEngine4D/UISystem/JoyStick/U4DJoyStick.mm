@@ -14,6 +14,8 @@
 #include "U4DJoystickIdleState.h"
 #include "U4DJoystickActiveState.h"
 #include "U4DJoystickReleasedState.h"
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
 
 namespace U4DEngine {
     
@@ -23,6 +25,12 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
     stateManager=new U4DJoystickStateManager(this);
     
     setName(uName);
+    
+    //set controller
+    //Get the touch controller
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    controllerInterface=sceneManager->getGameController();
     
     setEntityType(CONTROLLERINPUT);
     
@@ -37,7 +45,7 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
     backgroundImage.setImage(uBackGroundImage,uBackgroundWidth,uBackgroundHeight);
     
     
-    U4DVector3n translation(xPosition,yPosition,0.0);
+    U4DVector2n translation(xPosition,yPosition);
     translateTo(translation);     //move the joyStick
     
     
@@ -49,12 +57,16 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
 
     
     //get the original center position of the joystick
-    originalPosition=getLocalPosition();
+    originalPosition.x=getLocalPosition().x;
+    originalPosition.y=getLocalPosition().y;
     
     
     //get the coordinates of the box
-    centerBackgroundPosition=backgroundImage.getLocalPosition();
-    centerImagePosition=getLocalPosition();
+    centerBackgroundPosition.x=backgroundImage.getLocalPosition().x;
+    centerBackgroundPosition.y=backgroundImage.getLocalPosition().y;
+    
+    centerImagePosition.x=getLocalPosition().x;
+    centerImagePosition.y=getLocalPosition().y;
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -145,16 +157,49 @@ void U4DJoyStick::update(double dt){
 
 void U4DJoyStick::action(){
     
-    pCallback->action();
+    //pCallback->action();
+    CONTROLLERMESSAGE controllerMessage;
+    
+    controllerMessage.elementUIName=getName();
+    
+    controllerMessage.inputElementType=U4DEngine::uiJoystick;
+    
+    if (getIsActive()) {
+
+        controllerMessage.inputElementAction=U4DEngine::uiJoystickMoved;
+
+        U4DEngine::U4DVector2n joystickDirection=getDataPosition();
+
+        if (getDirectionReversal()) {
+
+            controllerMessage.joystickChangeDirection=true;
+
+        }else{
+
+            controllerMessage.joystickChangeDirection=false;
+
+        }
+
+        controllerMessage.joystickDirection=joystickDirection;
+
+    }else {
+
+       controllerMessage.inputElementAction=U4DEngine::uiJoystickReleased;
+
+    }
+
+    controllerInterface->sendUserInputUpdate(&controllerMessage);
+    
+    
 }
 
 bool U4DJoyStick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){
     
     bool withinBoundary=false;
     
-    U4DVector3n pos(uPosition.x,uPosition.y,0.0);
+    U4DVector2n pos(uPosition.x,uPosition.y);
     
-    U4DVector3n distance=(pos-centerBackgroundPosition);
+    U4DVector2n distance=(pos-centerBackgroundPosition);
     
     float distanceMagnitude=distance.magnitude();
     

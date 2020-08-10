@@ -10,7 +10,7 @@
 
 namespace U4DEngine {
     
-    U4DNavMeshNode::U4DNavMeshNode():index(0),gCost(0.0),hCost(0.0),fCost(0.0),connection(0),category(nodeInUnvisited),traversable(true),distanceToDefinedPosition(0.0){
+U4DNavMeshNode::U4DNavMeshNode():index(0),gCost(0.0),hCost(0.0),fCost(0.0),connection(0),category(nodeInUnvisited),traversable(true),distanceToDefinedPosition(0.0),weight(0.0){
         
     }
     

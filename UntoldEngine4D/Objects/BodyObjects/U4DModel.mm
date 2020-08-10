@@ -23,7 +23,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(10,U4DVector4n(0.0,0.0,0.0,0.0)){
         
         renderManager=new U4DRender3DModel(this);
         
@@ -361,6 +361,20 @@ namespace U4DEngine {
         
         return cullingPhaseBoundingVolumeVisibility;
         
+    }
+
+    void U4DModel::updateShaderParameterContainer(int uPosition, U4DVector4n &uParamater){
+        
+        if (uPosition<shaderParameterContainer.size()) {
+            
+            shaderParameterContainer.at(uPosition)=uParamater;
+            
+        }
+        
+    }
+
+    std::vector<U4DVector4n> U4DModel::getModelShaderParameterContainer(){
+        return shaderParameterContainer;
     }
     
 }

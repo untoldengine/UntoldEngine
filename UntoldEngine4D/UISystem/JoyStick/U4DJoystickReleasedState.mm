@@ -39,9 +39,7 @@ namespace U4DEngine {
         
         uJoyStick->dataMagnitude=0.0;
         
-        if (uJoyStick->pCallback!=NULL) {
-            uJoyStick->action();
-        }
+        uJoyStick->action();
         
         if (uJoyStick->controllerInterface!=NULL) {
             uJoyStick->controllerInterface->setReceivedAction(true);

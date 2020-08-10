@@ -23,6 +23,11 @@ namespace U4DEngine {
         
     private:
         
+        /**
+         @brief maximum speed for steering
+         */
+        float maxSpeed;
+        
     public:
         
         /**
@@ -43,6 +48,13 @@ namespace U4DEngine {
          @return velocity vector to apply to 3D model
          */
         U4DVector3n getSteering(U4DDynamicModel *uPursuer, std::vector<U4DDynamicModel*> uNeighborsContainer);
+        
+        /**
+         @brief sets the maximum speed for steering
+
+         @param uMaxSpeed maximum steering speed
+         */
+        void setMaxSpeed(float uMaxSpeed);
         
     };
     

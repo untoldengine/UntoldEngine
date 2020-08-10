@@ -83,7 +83,7 @@ U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterf
         }
 
         controllerMessage.inputPosition=getDataPosition();
-
+        
         controllerMessage.previousMousePosition=getPreviousDataPosition();
 
         controllerMessage.mouseDeltaPosition=getDataDeltaPosition();

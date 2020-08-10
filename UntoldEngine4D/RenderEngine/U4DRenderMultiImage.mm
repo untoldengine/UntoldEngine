@@ -26,9 +26,9 @@ namespace U4DEngine {
     
     void U4DRenderMultiImage::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.diffuseTexture.empty()){
+        if (!u4dObject->textureInformation.texture0.empty()){
             
-            decodeImage(u4dObject->textureInformation.diffuseTexture);
+            decodeImage(u4dObject->textureInformation.texture0);
             
             createTextureObject();
             
@@ -39,9 +39,9 @@ namespace U4DEngine {
         
         
         
-        if (!u4dObject->textureInformation.ambientTexture.empty()) {
+        if (!u4dObject->textureInformation.texture1.empty()) {
             
-            decodeImage(u4dObject->textureInformation.ambientTexture);
+            decodeImage(u4dObject->textureInformation.texture1);
             
             createSecondaryTextureObject();
             
@@ -80,15 +80,15 @@ namespace U4DEngine {
     }
     
     
-    void U4DRenderMultiImage::setDiffuseTexture(const char* uTexture){
+    void U4DRenderMultiImage::setTexture0(const char* uTexture){
         
-        u4dObject->textureInformation.diffuseTexture=uTexture;
+        u4dObject->textureInformation.texture0=uTexture;
         
     }
     
-    void U4DRenderMultiImage::setAmbientTexture(const char* uTexture){
+    void U4DRenderMultiImage::setTexture1(const char* uTexture){
         
-        u4dObject->textureInformation.ambientTexture=uTexture;
+        u4dObject->textureInformation.texture1=uTexture;
         
     }
     

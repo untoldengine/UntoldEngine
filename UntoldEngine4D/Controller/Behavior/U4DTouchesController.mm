@@ -19,7 +19,7 @@ namespace U4DEngine {
         
     void U4DTouchesController::init(){
         
-            userTouch=new U4DTouches(U4DEngine::ioTouch,this);
+           userTouch=new U4DTouches(U4DEngine::ioTouch,this);
            
            registerInputEntity(userTouch);
         

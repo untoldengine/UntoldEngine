@@ -1,0 +1,5126 @@
+<?xml version="1.0" encoding="utf-8"?>
+<UntoldEngine xmlns="" version="0.0.2">
+<asset>
+<!--Start of Navigation Data-->
+<navigation_mesh>
+<nav_mesh name="Navmesh">
+<node index="0">
+<node_location>-28.733650 0.733637 -51.506374</node_location>
+<node_neighbours>1 </node_neighbours>
+</node>
+<node index="1">
+<node_location>-26.533649 0.666970 -51.106377</node_location>
+<node_neighbours>0 2 </node_neighbours>
+</node>
+<node index="2">
+<node_location>-25.583651 0.800304 -51.006374</node_location>
+<node_neighbours>1 3 </node_neighbours>
+</node>
+<node index="3">
+<node_location>-25.183649 0.666970 -51.406376</node_location>
+<node_neighbours>2 80 </node_neighbours>
+</node>
+<node index="4">
+<node_location>-28.351490 0.733636 -33.211346</node_location>
+<node_neighbours>18 5 </node_neighbours>
+</node>
+<node index="5">
+<node_location>-27.918159 0.400302 -34.778011</node_location>
+<node_neighbours>4 19 </node_neighbours>
+</node>
+<node index="6">
+<node_location>-28.447510 0.733636 -39.308926</node_location>
+<node_neighbours>21 20 </node_neighbours>
+</node>
+<node index="7">
+<node_location>-27.805130 1.666970 -43.328285</node_location>
+<node_neighbours>20 22 </node_neighbours>
+</node>
+<node index="8">
+<node_location>-27.761820 1.933637 -45.596920</node_location>
+<node_neighbours>22 9 </node_neighbours>
+</node>
+<node index="9">
+<node_location>-27.939598 1.933637 -46.808033</node_location>
+<node_neighbours>8 10 </node_neighbours>
+</node>
+<node index="10">
+<node_location>-28.639597 1.666970 -47.083031</node_location>
+<node_neighbours>9 23 </node_neighbours>
+</node>
+<node index="11">
+<node_location>-31.837631 1.933637 -48.373798</node_location>
+<node_neighbours>23 24 </node_neighbours>
+</node>
+<node index="12">
+<node_location>-35.939648 1.533637 -50.211983</node_location>
+<node_neighbours>24 25 </node_neighbours>
+</node>
+<node index="13">
+<node_location>-38.553650 1.666970 -49.773518</node_location>
+<node_neighbours>25 26 </node_neighbours>
+</node>
+<node index="14">
+<node_location>-38.535568 1.400303 -43.358807</node_location>
+<node_neighbours>28 27 </node_neighbours>
+</node>
+<node index="15">
+<node_location>-37.158047 1.333636 -38.999691</node_location>
+<node_neighbours>27 29 </node_neighbours>
+</node>
+<node index="16">
+<node_location>-33.510014 1.466969 -37.208927</node_location>
+<node_neighbours>31 30 </node_neighbours>
+</node>
+<node index="17">
+<node_location>-31.063992 1.466969 -34.811348</node_location>
+<node_neighbours>32 18 </node_neighbours>
+</node>
+<node index="18">
+<node_location>-29.213993 1.266969 -33.611347</node_location>
+<node_neighbours>17 4 </node_neighbours>
+</node>
+<node index="19">
+<node_location>-28.720003 0.466969 -36.187382</node_location>
+<node_neighbours>32 21 5 </node_neighbours>
+</node>
+<node index="20">
+<node_location>-29.286768 1.266970 -41.441944</node_location>
+<node_neighbours>33 7 6 </node_neighbours>
+</node>
+<node index="21">
+<node_location>-29.316025 0.466969 -37.384956</node_location>
+<node_neighbours>19 30 6 </node_neighbours>
+</node>
+<node index="22">
+<node_location>-28.667744 1.666970 -44.396603</node_location>
+<node_neighbours>34 8 7 </node_neighbours>
+</node>
+<node index="23">
+<node_location>-30.533579 1.666970 -46.975452</node_location>
+<node_neighbours>35 11 10 </node_neighbours>
+</node>
+<node index="24">
+<node_location>-33.833630 2.000304 -48.704399</node_location>
+<node_neighbours>36 12 11 </node_neighbours>
+</node>
+<node index="25">
+<node_location>-37.049648 1.600304 -50.021980</node_location>
+<node_neighbours>37 13 12 </node_neighbours>
+</node>
+<node index="26">
+<node_location>-37.655643 2.200303 -48.274727</node_location>
+<node_neighbours>37 28 13 </node_neighbours>
+</node>
+<node index="27">
+<node_location>-37.637463 1.266970 -40.594978</node_location>
+<node_neighbours>38 15 14 </node_neighbours>
+</node>
+<node index="28">
+<node_location>-37.637562 2.000304 -45.860020</node_location>
+<node_neighbours>26 39 14 </node_neighbours>
+</node>
+<node index="29">
+<node_location>-35.655960 1.800303 -39.690582</node_location>
+<node_neighbours>38 31 15 </node_neighbours>
+</node>
+<node index="30">
+<node_location>-31.599358 1.000303 -37.018288</node_location>
+<node_neighbours>21 32 16 </node_neighbours>
+</node>
+<node index="31">
+<node_location>-33.857925 1.533636 -39.099819</node_location>
+<node_neighbours>29 33 16 </node_neighbours>
+</node>
+<node index="32">
+<node_location>-31.003336 1.000303 -35.820713</node_location>
+<node_neighbours>30 19 17 </node_neighbours>
+</node>
+<node index="33">
+<node_location>-31.951349 1.466970 -41.299503</node_location>
+<node_neighbours>31 40 20 </node_neighbours>
+</node>
+<node index="34">
+<node_location>-30.749477 1.466970 -44.898159</node_location>
+<node_neighbours>40 35 22 </node_neighbours>
+</node>
+<node index="35">
+<node_location>-31.937534 1.600303 -46.090900</node_location>
+<node_neighbours>34 41 23 </node_neighbours>
+</node>
+<node index="36">
+<node_location>-34.935619 2.066970 -47.905613</node_location>
+<node_neighbours>42 37 24 </node_neighbours>
+</node>
+<node index="37">
+<node_location>-36.151638 2.133637 -48.523190</node_location>
+<node_neighbours>36 26 25 </node_neighbours>
+</node>
+<node index="38">
+<node_location>-36.135376 1.733636 -41.285870</node_location>
+<node_neighbours>43 29 27 </node_neighbours>
+</node>
+<node index="39">
+<node_location>-36.135521 2.000303 -44.897713</node_location>
+<node_neighbours>42 43 28 </node_neighbours>
+</node>
+<node index="40">
+<node_location>-32.551445 1.666970 -43.687401</node_location>
+<node_neighbours>44 34 33 </node_neighbours>
+</node>
+<node index="41">
+<node_location>-33.739552 1.866970 -46.084084</node_location>
+<node_neighbours>44 42 35 </node_neighbours>
+</node>
+<node index="42">
+<node_location>-34.937584 2.133637 -46.694847</node_location>
+<node_neighbours>41 39 36 </node_neighbours>
+</node>
+<node index="43">
+<node_location>-35.531445 1.866970 -43.087399</node_location>
+<node_neighbours>39 44 38 </node_neighbours>
+</node>
+<node index="44">
+<node_location>-34.343483 1.800303 -44.282558</node_location>
+<node_neighbours>43 41 40 </node_neighbours>
+</node>
+<node index="45">
+<node_location>-29.168650 0.933637 -50.681374</node_location>
+<node_neighbours>46 </node_neighbours>
+</node>
+<node index="46">
+<node_location>-27.668650 1.066970 -49.581379</node_location>
+<node_neighbours>45 47 </node_neighbours>
+</node>
+<node index="47">
+<node_location>-26.593653 1.000304 -50.006374</node_location>
+<node_neighbours>46 </node_neighbours>
+</node>
+<node index="48">
+<node_location>-36.943649 1.333637 -51.106377</node_location>
+<node_neighbours>49 </node_neighbours>
+</node>
+<node index="49">
+<node_location>-34.443649 1.466970 -51.106377</node_location>
+<node_neighbours>48 50 </node_neighbours>
+</node>
+<node index="50">
+<node_location>-31.318649 1.400304 -50.281376</node_location>
+<node_neighbours>49 51 </node_neighbours>
+</node>
+<node index="51">
+<node_location>-30.318649 1.600304 -49.056374</node_location>
+<node_neighbours>50 52 </node_neighbours>
+</node>
+<node index="52">
+<node_location>-28.318649 1.400304 -48.656376</node_location>
+<node_neighbours>51 53 </node_neighbours>
+</node>
+<node index="53">
+<node_location>-27.943649 1.733637 -48.081379</node_location>
+<node_neighbours>52 </node_neighbours>
+</node>
+<node index="54">
+<node_location>-31.276979 3.333636 -29.473040</node_location>
+<node_neighbours>55 </node_neighbours>
+</node>
+<node index="55">
+<node_location>-31.876982 3.533636 -28.473040</node_location>
+<node_neighbours>54 56 </node_neighbours>
+</node>
+<node index="56">
+<node_location>-32.876984 3.600302 -28.473040</node_location>
+<node_neighbours>55 57 </node_neighbours>
+</node>
+<node index="57">
+<node_location>-34.860317 2.533636 -28.639706</node_location>
+<node_neighbours>56 58 </node_neighbours>
+</node>
+<node index="58">
+<node_location>-36.426987 1.466969 -27.973040</node_location>
+<node_neighbours>57 59 </node_neighbours>
+</node>
+<node index="59">
+<node_location>-38.426987 0.333635 -27.973040</node_location>
+<node_neighbours>58 </node_neighbours>
+</node>
+<node index="60">
+<node_location>-37.152145 1.333636 -37.211983</node_location>
+<node_neighbours>69 68 </node_neighbours>
+</node>
+<node index="61">
+<node_location>-38.551636 0.600302 -33.503193</node_location>
+<node_neighbours>68 62 </node_neighbours>
+</node>
+<node index="62">
+<node_location>-38.034969 0.600302 -29.669857</node_location>
+<node_neighbours>61 70 </node_neighbours>
+</node>
+<node index="63">
+<node_location>-35.358280 2.200302 -29.734550</node_location>
+<node_neighbours>70 71 </node_neighbours>
+</node>
+<node index="64">
+<node_location>-32.176960 3.333636 -31.181068</node_location>
+<node_neighbours>71 72 </node_neighbours>
+</node>
+<node index="65">
+<node_location>-29.406151 2.000302 -32.306377</node_location>
+<node_neighbours>72 </node_neighbours>
+</node>
+<node index="66">
+<node_location>-32.256130 2.266969 -34.214397</node_location>
+<node_neighbours>72 73 </node_neighbours>
+</node>
+<node index="67">
+<node_location>-34.708141 1.866969 -36.007584</node_location>
+<node_neighbours>73 69 </node_neighbours>
+</node>
+<node index="68">
+<node_location>-37.647633 1.133636 -35.808796</node_location>
+<node_neighbours>74 61 60 </node_neighbours>
+</node>
+<node index="69">
+<node_location>-35.654133 1.866969 -35.513191</node_location>
+<node_neighbours>67 74 60 </node_neighbours>
+</node>
+<node index="70">
+<node_location>-36.532932 1.400302 -30.764696</node_location>
+<node_neighbours>75 63 62 </node_neighbours>
+</node>
+<node index="71">
+<node_location>-33.774921 3.133636 -31.275906</node_location>
+<node_neighbours>76 64 63 </node_neighbours>
+</node>
+<node index="72">
+<node_location>-31.006126 2.733636 -32.414402</node_location>
+<node_neighbours>66 65 64 </node_neighbours>
+</node>
+<node index="73">
+<node_location>-33.995617 2.333636 -34.615608</node_location>
+<node_neighbours>76 67 66 </node_neighbours>
+</node>
+<node index="74">
+<node_location>-36.149624 1.666969 -34.110004</node_location>
+<node_neighbours>69 75 68 </node_neighbours>
+</node>
+<node index="75">
+<node_location>-35.551590 1.933636 -32.899242</node_location>
+<node_neighbours>74 76 70 </node_neighbours>
+</node>
+<node index="76">
+<node_location>-34.343578 2.600302 -32.910454</node_location>
+<node_neighbours>75 73 71 </node_neighbours>
+</node>
+<node index="77">
+<node_location>-15.943650 3.266970 -50.506378</node_location>
+<node_neighbours>84 </node_neighbours>
+</node>
+<node index="78">
+<node_location>-21.243652 1.000304 -51.506374</node_location>
+<node_neighbours>79 </node_neighbours>
+</node>
+<node index="79">
+<node_location>-22.443649 1.066970 -51.106377</node_location>
+<node_neighbours>78 333 80 </node_neighbours>
+</node>
+<node index="80">
+<node_location>-23.743652 0.933637 -51.006374</node_location>
+<node_neighbours>79 3 </node_neighbours>
+</node>
+<node index="81">
+<node_location>-14.943649 3.733637 -48.506378</node_location>
+<node_neighbours>82 500 </node_neighbours>
+</node>
+<node index="82">
+<node_location>-15.493649 3.933637 -48.756378</node_location>
+<node_neighbours>81 83 </node_neighbours>
+</node>
+<node index="83">
+<node_location>-15.493649 3.866971 -49.656380</node_location>
+<node_neighbours>82 84 </node_neighbours>
+</node>
+<node index="84">
+<node_location>-16.193649 3.866971 -49.556377</node_location>
+<node_neighbours>83 77 </node_neighbours>
+</node>
+<node index="85">
+<node_location>-32.793644 1.400298 26.518631</node_location>
+<node_neighbours>91 </node_neighbours>
+</node>
+<node index="86">
+<node_location>-33.189640 1.666965 24.563023</node_location>
+<node_neighbours>91 87 </node_neighbours>
+</node>
+<node index="87">
+<node_location>-34.614639 1.600298 23.700525</node_location>
+<node_neighbours>86 92 </node_neighbours>
+</node>
+<node index="88">
+<node_location>-36.653645 1.733632 22.833628</node_location>
+<node_neighbours>92 93 </node_neighbours>
+</node>
+<node index="89">
+<node_location>-38.968651 1.400298 21.631128</node_location>
+<node_neighbours>93 </node_neighbours>
+</node>
+<node index="90">
+<node_location>-38.553642 1.400298 25.133631</node_location>
+<node_neighbours>93 94 </node_neighbours>
+</node>
+<node index="91">
+<node_location>-35.089638 1.533631 25.713022</node_location>
+<node_neighbours>94 86 85 </node_neighbours>
+</node>
+<node index="92">
+<node_location>-35.624638 1.800298 24.040522</node_location>
+<node_neighbours>94 88 87 </node_neighbours>
+</node>
+<node index="93">
+<node_location>-38.078644 1.666965 23.121128</node_location>
+<node_neighbours>90 89 88 </node_neighbours>
+</node>
+<node index="94">
+<node_location>-37.049641 1.533631 25.478022</node_location>
+<node_neighbours>92 91 90 </node_neighbours>
+</node>
+<node index="95">
+<node_location>-3.993649 1.400303 -38.956383</node_location>
+<node_neighbours>96 </node_neighbours>
+</node>
+<node index="96">
+<node_location>-3.293650 1.133636 -38.456383</node_location>
+<node_neighbours>95 </node_neighbours>
+</node>
+<node index="97">
+<node_location>-13.472216 0.866965 26.265059</node_location>
+<node_neighbours>107 </node_neighbours>
+</node>
+<node index="98">
+<node_location>-8.859920 0.666965 26.292416</node_location>
+<node_neighbours>107 108 </node_neighbours>
+</node>
+<node index="99">
+<node_location>-4.480481 0.666965 25.958344</node_location>
+<node_neighbours>108 109 </node_neighbours>
+</node>
+<node index="100">
+<node_location>-1.607929 2.133632 23.172195</node_location>
+<node_neighbours>109 103 </node_neighbours>
+</node>
+<node index="101">
+<node_location>2.177785 2.600298 20.700771</node_location>
+<node_neighbours>103 102 </node_neighbours>
+</node>
+<node index="102">
+<node_location>3.392070 2.466965 19.515057</node_location>
+<node_neighbours>101 </node_neighbours>
+</node>
+<node index="103">
+<node_location>-0.129358 3.066965 21.236485</node_location>
+<node_neighbours>101 100 </node_neighbours>
+</node>
+<node index="104">
+<node_location>-4.716196 2.133632 23.194061</node_location>
+<node_neighbours>109 110 </node_neighbours>
+</node>
+<node index="105">
+<node_location>-8.009919 1.400298 24.013845</node_location>
+<node_neighbours>110 106 </node_neighbours>
+</node>
+<node index="106">
+<node_location>-9.052776 1.400298 24.428131</node_location>
+<node_neighbours>105 107 </node_neighbours>
+</node>
+<node index="107">
+<node_location>-10.574205 1.066965 25.463844</node_location>
+<node_neighbours>106 98 97 </node_neighbours>
+</node>
+<node index="108">
+<node_location>-5.839614 0.866965 25.499990</node_location>
+<node_neighbours>110 99 98 </node_neighbours>
+</node>
+<node index="109">
+<node_location>-3.587624 1.733632 24.094061</node_location>
+<node_neighbours>104 100 99 </node_neighbours>
+</node>
+<node index="110">
+<node_location>-6.511043 1.266965 24.257137</node_location>
+<node_neighbours>108 105 104 </node_neighbours>
+</node>
+<node index="111">
+<node_location>5.756357 1.200298 24.693624</node_location>
+<node_neighbours>112 408 </node_neighbours>
+</node>
+<node index="112">
+<node_location>6.156355 1.000298 25.293625</node_location>
+<node_neighbours>111 </node_neighbours>
+</node>
+<node index="113">
+<node_location>-37.453781 0.733633 -0.943454</node_location>
+<node_neighbours>156 114 </node_neighbours>
+</node>
+<node index="114">
+<node_location>-37.042015 0.733633 2.268312</node_location>
+<node_neighbours>113 157 </node_neighbours>
+</node>
+<node index="115">
+<node_location>-35.116425 1.666966 7.913325</node_location>
+<node_neighbours>158 116 </node_neighbours>
+</node>
+<node index="116">
+<node_location>-34.222309 2.200299 10.078032</node_location>
+<node_neighbours>115 159 </node_neighbours>
+</node>
+<node index="117">
+<node_location>-30.847189 1.666965 16.259829</node_location>
+<node_neighbours>161 160 </node_neighbours>
+</node>
+<node index="118">
+<node_location>-28.915747 0.733632 21.308603</node_location>
+<node_neighbours>162 119 </node_neighbours>
+</node>
+<node index="119">
+<node_location>-28.245159 1.266965 22.932131</node_location>
+<node_neighbours>118 163 </node_neighbours>
+</node>
+<node index="120">
+<node_location>-26.970446 1.866965 25.749926</node_location>
+<node_neighbours>163 121 </node_neighbours>
+</node>
+<node index="121">
+<node_location>-24.575487 1.466965 26.291105</node_location>
+<node_neighbours>120 164 </node_neighbours>
+</node>
+<node index="122">
+<node_location>-20.181482 1.133631 26.295500</node_location>
+<node_neighbours>164 165 </node_neighbours>
+</node>
+<node index="123">
+<node_location>-14.065229 1.733631 24.856169</node_location>
+<node_neighbours>165 166 </node_neighbours>
+</node>
+<node index="124">
+<node_location>-9.652140 1.800298 23.232109</node_location>
+<node_neighbours>166 167 </node_neighbours>
+</node>
+<node index="125">
+<node_location>-8.015278 1.733632 22.822216</node_location>
+<node_neighbours>167 168 </node_neighbours>
+</node>
+<node index="126">
+<node_location>-5.315559 2.800298 21.978039</node_location>
+<node_neighbours>168 169 </node_neighbours>
+</node>
+<node index="127">
+<node_location>-1.524484 3.466965 20.340797</node_location>
+<node_neighbours>171 170 </node_neighbours>
+</node>
+<node index="128">
+<node_location>2.898583 2.466965 18.714767</node_location>
+<node_neighbours>170 129 </node_neighbours>
+</node>
+<node index="129">
+<node_location>4.388676 1.733632 17.490112</node_location>
+<node_neighbours>128 172 </node_neighbours>
+</node>
+<node index="130">
+<node_location>3.491611 -0.199701 13.273518</node_location>
+<node_neighbours>172 131 </node_neighbours>
+</node>
+<node index="131">
+<node_location>3.120643 -0.466368 10.257388</node_location>
+<node_neighbours>130 173 </node_neighbours>
+</node>
+<node index="132">
+<node_location>1.687750 0.333633 6.642044</node_location>
+<node_neighbours>173 174 </node_neighbours>
+</node>
+<node index="133">
+<node_location>1.328579 0.000300 2.441333</node_location>
+<node_neighbours>174 175 </node_neighbours>
+</node>
+<node index="134">
+<node_location>0.199005 0.533633 -2.979017</node_location>
+<node_neighbours>175 176 </node_neighbours>
+</node>
+<node index="135">
+<node_location>-0.770383 0.266967 -8.397497</node_location>
+<node_neighbours>176 177 </node_neighbours>
+</node>
+<node index="136">
+<node_location>-1.673440 0.066968 -12.609694</node_location>
+<node_neighbours>177 178 </node_neighbours>
+</node>
+<node index="137">
+<node_location>-0.170456 0.800301 -16.822340</node_location>
+<node_neighbours>178 138 </node_neighbours>
+</node>
+<node index="138">
+<node_location>-0.393038 1.133635 -18.632019</node_location>
+<node_neighbours>137 139 </node_neighbours>
+</node>
+<node index="139">
+<node_location>-0.615618 1.200302 -20.441696</node_location>
+<node_neighbours>138 179 </node_neighbours>
+</node>
+<node index="140">
+<node_location>-1.498630 1.066968 -24.669949</node_location>
+<node_neighbours>179 180 </node_neighbours>
+</node>
+<node index="141">
+<node_location>-2.327351 1.466969 -27.667074</node_location>
+<node_neighbours>180 142 </node_neighbours>
+</node>
+<node index="142">
+<node_location>-2.475737 1.000302 -28.873526</node_location>
+<node_neighbours>141 181 </node_neighbours>
+</node>
+<node index="143">
+<node_location>-2.866431 0.133636 -34.033997</node_location>
+<node_neighbours>181 144 </node_neighbours>
+</node>
+<node index="144">
+<node_location>-3.163206 0.133636 -36.446899</node_location>
+<node_neighbours>143 </node_neighbours>
+</node>
+<node index="145">
+<node_location>-10.797303 0.666969 -32.502232</node_location>
+<node_neighbours>182 146 </node_neighbours>
+</node>
+<node index="146">
+<node_location>-13.984803 1.133636 -31.189730</node_location>
+<node_neighbours>145 183 </node_neighbours>
+</node>
+<node index="147">
+<node_location>-19.029015 0.733635 -29.500820</node_location>
+<node_neighbours>185 184 </node_neighbours>
+</node>
+<node index="148">
+<node_location>-23.953566 0.066969 -26.169382</node_location>
+<node_neighbours>184 186 </node_neighbours>
+</node>
+<node index="149">
+<node_location>-27.458855 1.466968 -23.931334</node_location>
+<node_neighbours>186 150 </node_neighbours>
+</node>
+<node index="150">
+<node_location>-28.423561 2.200302 -21.837217</node_location>
+<node_neighbours>149 187 </node_neighbours>
+</node>
+<node index="151">
+<node_location>-29.989943 2.333635 -17.348646</node_location>
+<node_neighbours>187 188 </node_neighbours>
+</node>
+<node index="152">
+<node_location>-32.162659 1.533634 -15.263316</node_location>
+<node_neighbours>188 189 </node_neighbours>
+</node>
+<node index="153">
+<node_location>-32.888008 1.800301 -12.490119</node_location>
+<node_neighbours>189 190 </node_neighbours>
+</node>
+<node index="154">
+<node_location>-33.846527 2.333634 -9.184602</node_location>
+<node_neighbours>190 191 </node_neighbours>
+</node>
+<node index="155">
+<node_location>-36.252216 2.000300 -5.371161</node_location>
+<node_neighbours>192 156 </node_neighbours>
+</node>
+<node index="156">
+<node_location>-35.950584 1.466967 -2.143534</node_location>
+<node_neighbours>155 193 113 </node_neighbours>
+</node>
+<node index="157">
+<node_location>-34.938290 1.533633 4.071664</node_location>
+<node_neighbours>194 158 114 </node_neighbours>
+</node>
+<node index="158">
+<node_location>-34.353878 1.933633 6.469618</node_location>
+<node_neighbours>157 195 115 </node_neighbours>
+</node>
+<node index="159">
+<node_location>-32.269447 1.866966 10.439990</node_location>
+<node_neighbours>195 161 116 </node_neighbours>
+</node>
+<node index="160">
+<node_location>-28.132990 1.866965 17.939808</node_location>
+<node_neighbours>196 162 117 </node_neighbours>
+</node>
+<node index="161">
+<node_location>-30.459032 1.800299 12.833551</node_location>
+<node_neighbours>159 197 117 </node_neighbours>
+</node>
+<node index="162">
+<node_location>-27.542723 1.466965 19.741526</node_location>
+<node_neighbours>160 198 118 </node_neighbours>
+</node>
+<node index="163">
+<node_location>-26.277842 1.733631 23.753141</node_location>
+<node_neighbours>199 120 119 </node_neighbours>
+</node>
+<node index="164">
+<node_location>-22.684752 1.666965 25.492973</node_location>
+<node_neighbours>200 122 121 </node_neighbours>
+</node>
+<node index="165">
+<node_location>-18.060211 1.866965 24.886610</node_location>
+<node_neighbours>201 123 122 </node_neighbours>
+</node>
+<node index="166">
+<node_location>-11.766583 2.333632 22.858931</node_location>
+<node_neighbours>202 124 123 </node_neighbours>
+</node>
+<node index="167">
+<node_location>-8.845202 1.933632 22.067837</node_location>
+<node_neighbours>203 125 124 </node_neighbours>
+</node>
+<node index="168">
+<node_location>-7.115764 2.266965 21.849483</node_location>
+<node_neighbours>204 126 125 </node_neighbours>
+</node>
+<node index="169">
+<node_location>-4.347547 3.266965 20.626526</node_location>
+<node_neighbours>205 171 126 </node_neighbours>
+</node>
+<node index="170">
+<node_location>0.289172 3.000299 19.004793</node_location>
+<node_neighbours>206 128 127 </node_neighbours>
+</node>
+<node index="171">
+<node_location>-3.163613 3.400299 20.024998</node_location>
+<node_neighbours>169 207 127 </node_neighbours>
+</node>
+<node index="172">
+<node_location>2.994899 0.866965 15.386130</node_location>
+<node_neighbours>208 130 129 </node_neighbours>
+</node>
+<node index="173">
+<node_location>0.813327 -0.066367 8.760645</node_location>
+<node_neighbours>209 132 131 </node_neighbours>
+</node>
+<node index="174">
+<node_location>-0.459382 0.000299 5.167171</node_location>
+<node_neighbours>210 133 132 </node_neighbours>
+</node>
+<node index="175">
+<node_location>-1.354577 0.000300 0.371917</node_location>
+<node_neighbours>211 134 133 </node_neighbours>
+</node>
+<node index="176">
+<node_location>-2.785796 0.333634 -5.037879</node_location>
+<node_neighbours>212 135 134 </node_neighbours>
+</node>
+<node index="177">
+<node_location>-4.138886 -0.133033 -10.445978</node_location>
+<node_neighbours>213 136 135 </node_neighbours>
+</node>
+<node index="178">
+<node_location>-3.093799 0.466968 -15.251465</node_location>
+<node_neighbours>214 137 136 </node_neighbours>
+</node>
+<node index="179">
+<node_location>-2.251245 1.000302 -21.882687</node_location>
+<node_neighbours>215 140 139 </node_neighbours>
+</node>
+<node index="180">
+<node_location>-3.592010 1.266969 -26.091934</node_location>
+<node_neighbours>216 141 140 </node_neighbours>
+</node>
+<node index="181">
+<node_location>-4.440455 0.600302 -31.233404</node_location>
+<node_neighbours>182 143 142 </node_neighbours>
+</node>
+<node index="182">
+<node_location>-8.047133 0.666969 -30.848412</node_location>
+<node_neighbours>181 217 145 </node_neighbours>
+</node>
+<node index="183">
+<node_location>-14.228590 0.800302 -28.936357</node_location>
+<node_neighbours>218 185 146 </node_neighbours>
+</node>
+<node index="184">
+<node_location>-21.151430 0.200302 -26.276327</node_location>
+<node_neighbours>219 148 147 </node_neighbours>
+</node>
+<node index="185">
+<node_location>-16.616552 1.000302 -28.341198</node_location>
+<node_neighbours>183 220 147 </node_neighbours>
+</node>
+<node index="186">
+<node_location>-25.138992 0.466968 -23.808680</node_location>
+<node_neighbours>221 149 148 </node_neighbours>
+</node>
+<node index="187">
+<node_location>-27.893385 2.066968 -19.308897</node_location>
+<node_neighbours>222 151 150 </node_neighbours>
+</node>
+<node index="188">
+<node_location>-30.426600 1.800301 -15.352642</node_location>
+<node_neighbours>223 152 151 </node_neighbours>
+</node>
+<node index="189">
+<node_location>-31.877609 1.333634 -13.635293</node_location>
+<node_neighbours>224 153 152 </node_neighbours>
+</node>
+<node index="190">
+<node_location>-32.355595 1.733634 -10.174228</node_location>
+<node_neighbours>225 154 153 </node_neighbours>
+</node>
+<node index="191">
+<node_location>-33.431664 2.266967 -7.327873</node_location>
+<node_neighbours>226 192 154 </node_neighbours>
+</node>
+<node index="192">
+<node_location>-34.631470 2.600301 -6.132078</node_location>
+<node_neighbours>191 227 155 </node_neighbours>
+</node>
+<node index="193">
+<node_location>-34.331421 2.000300 -0.502100</node_location>
+<node_neighbours>228 194 156 </node_neighbours>
+</node>
+<node index="194">
+<node_location>-33.730888 2.066966 2.501332</node_location>
+<node_neighbours>193 229 157 </node_neighbours>
+</node>
+<node index="195">
+<node_location>-31.953955 2.000299 7.913929</node_location>
+<node_neighbours>230 159 158 </node_neighbours>
+</node>
+<node index="196">
+<node_location>-25.942432 2.733632 16.898302</node_location>
+<node_neighbours>231 198 160 </node_neighbours>
+</node>
+<node index="197">
+<node_location>-27.751118 1.133632 12.694236</node_location>
+<node_neighbours>232 231 161 </node_neighbours>
+</node>
+<node index="198">
+<node_location>-25.352167 2.333632 18.700018</node_location>
+<node_neighbours>196 233 162 </node_neighbours>
+</node>
+<node index="199">
+<node_location>-24.153698 1.533632 22.286318</node_location>
+<node_neighbours>233 200 163 </node_neighbours>
+</node>
+<node index="200">
+<node_location>-22.955568 1.866965 23.484978</node_location>
+<node_neighbours>199 234 164 </node_neighbours>
+</node>
+<node index="201">
+<node_location>-18.755667 2.333632 22.277082</node_location>
+<node_neighbours>234 235 165 </node_neighbours>
+</node>
+<node index="202">
+<node_location>-12.157824 2.000299 20.492054</node_location>
+<node_neighbours>237 236 166 </node_neighbours>
+</node>
+<node index="203">
+<node_location>-8.549862 1.666965 19.896891</node_location>
+<node_neighbours>236 204 167 </node_neighbours>
+</node>
+<node index="204">
+<node_location>-7.341852 1.933632 19.885681</node_location>
+<node_neighbours>203 205 168 </node_neighbours>
+</node>
+<node index="205">
+<node_location>-6.137920 2.266965 19.284151</node_location>
+<node_neighbours>204 238 169 </node_neighbours>
+</node>
+<node index="206">
+<node_location>-1.342141 2.133632 17.481991</node_location>
+<node_neighbours>207 208 170 </node_neighbours>
+</node>
+<node index="207">
+<node_location>-3.752070 2.400299 18.087914</node_location>
+<node_neighbours>238 206 171 </node_neighbours>
+</node>
+<node index="208">
+<node_location>-0.126508 0.733632 15.087984</node_location>
+<node_neighbours>206 239 172 </node_neighbours>
+</node>
+<node index="209">
+<node_location>-1.343298 -0.333034 10.287230</node_location>
+<node_neighbours>239 240 173 </node_neighbours>
+</node>
+<node index="210">
+<node_location>-5.548244 -0.133034 4.885842</node_location>
+<node_neighbours>241 211 174 </node_neighbours>
+</node>
+<node index="211">
+<node_location>-6.146665 -0.066367 2.503491</node_location>
+<node_neighbours>210 242 175 </node_neighbours>
+</node>
+<node index="212">
+<node_location>-7.341828 -0.133033 -4.095667</node_location>
+<node_neighbours>244 243 176 </node_neighbours>
+</node>
+<node index="213">
+<node_location>-7.960826 -0.133033 -10.085398</node_location>
+<node_neighbours>243 245 177 </node_neighbours>
+</node>
+<node index="214">
+<node_location>-6.761790 0.800301 -16.684364</node_location>
+<node_neighbours>246 215 178 </node_neighbours>
+</node>
+<node index="215">
+<node_location>-5.548269 1.133635 -20.299454</node_location>
+<node_neighbours>214 247 179 </node_neighbours>
+</node>
+<node index="216">
+<node_location>-6.732878 0.866969 -25.113205</node_location>
+<node_neighbours>247 248 180 </node_neighbours>
+</node>
+<node index="217">
+<node_location>-9.755229 1.000302 -28.114027</node_location>
+<node_neighbours>248 218 182 </node_neighbours>
+</node>
+<node index="218">
+<node_location>-12.749187 0.666969 -27.514471</node_location>
+<node_neighbours>217 249 183 </node_neighbours>
+</node>
+<node index="219">
+<node_location>-19.336905 0.533635 -24.519571</node_location>
+<node_neighbours>220 250 184 </node_neighbours>
+</node>
+<node index="220">
+<node_location>-16.927027 0.733635 -25.709444</node_location>
+<node_neighbours>251 219 185 </node_neighbours>
+</node>
+<node index="221">
+<node_location>-22.946497 0.133635 -20.906012</node_location>
+<node_neighbours>250 222 186 </node_neighbours>
+</node>
+<node index="222">
+<node_location>-24.736183 1.000301 -18.500347</node_location>
+<node_neighbours>221 252 187 </node_neighbours>
+</node>
+<node index="223">
+<node_location>-29.533638 1.666968 -14.323727</node_location>
+<node_neighbours>253 224 188 </node_neighbours>
+</node>
+<node index="224">
+<node_location>-30.743469 1.200301 -13.129907</node_location>
+<node_neighbours>223 254 189 </node_neighbours>
+</node>
+<node index="225">
+<node_location>-30.152817 1.400301 -8.916606</node_location>
+<node_neighbours>254 255 190 </node_neighbours>
+</node>
+<node index="226">
+<node_location>-31.938232 2.133634 -5.304831</node_location>
+<node_neighbours>255 227 191 </node_neighbours>
+</node>
+<node index="227">
+<node_location>-33.138039 2.466967 -4.109036</node_location>
+<node_neighbours>226 228 192 </node_neighbours>
+</node>
+<node index="228">
+<node_location>-33.139622 2.400300 -1.706685</node_location>
+<node_neighbours>227 256 193 </node_neighbours>
+</node>
+<node index="229">
+<node_location>-31.936981 2.333633 1.897829</node_location>
+<node_neighbours>256 257 194 </node_neighbours>
+</node>
+<node index="230">
+<node_location>-29.546135 1.266966 6.706926</node_location>
+<node_neighbours>259 258 195 </node_neighbours>
+</node>
+<node index="231">
+<node_location>-25.948717 1.866965 15.079007</node_location>
+<node_neighbours>197 260 196 </node_neighbours>
+</node>
+<node index="232">
+<node_location>-27.145508 0.266966 10.298255</node_location>
+<node_neighbours>258 261 197 </node_neighbours>
+</node>
+<node index="233">
+<node_location>-24.153988 1.866965 19.882627</node_location>
+<node_neighbours>262 199 198 </node_neighbours>
+</node>
+<node index="234">
+<node_location>-21.147753 1.800298 21.677971</node_location>
+<node_neighbours>263 201 200 </node_neighbours>
+</node>
+<node index="235">
+<node_location>-16.953939 2.266965 19.866575</node_location>
+<node_neighbours>264 237 201 </node_neighbours>
+</node>
+<node index="236">
+<node_location>-9.748040 1.200298 18.694283</node_location>
+<node_neighbours>265 203 202 </node_neighbours>
+</node>
+<node index="237">
+<node_location>-14.564012 1.866965 19.280657</node_location>
+<node_neighbours>235 266 202 </node_neighbours>
+</node>
+<node index="238">
+<node_location>-5.540176 1.466965 17.491226</node_location>
+<node_neighbours>267 207 205 </node_neighbours>
+</node>
+<node index="239">
+<node_location>-1.934807 -0.199701 13.295504</node_location>
+<node_neighbours>268 209 208 </node_neighbours>
+</node>
+<node index="240">
+<node_location>-3.759317 -0.066368 10.289650</node_location>
+<node_neighbours>268 269 209 </node_neighbours>
+</node>
+<node index="241">
+<node_location>-7.353854 -0.066367 7.281823</node_location>
+<node_neighbours>269 270 210 </node_neighbours>
+</node>
+<node index="242">
+<node_location>-9.758801 -0.066367 1.900436</node_location>
+<node_neighbours>271 244 211 </node_neighbours>
+</node>
+<node index="243">
+<node_location>-9.148355 -0.199700 -7.094704</node_location>
+<node_neighbours>272 213 212 </node_neighbours>
+</node>
+<node index="244">
+<node_location>-9.745326 -0.266367 -1.098601</node_location>
+<node_neighbours>242 273 212 </node_neighbours>
+</node>
+<node index="245">
+<node_location>-10.369124 -0.133033 -11.897876</node_location>
+<node_neighbours>274 246 213 </node_neighbours>
+</node>
+<node index="246">
+<node_location>-10.363564 0.200301 -14.897806</node_location>
+<node_neighbours>245 275 214 </node_neighbours>
+</node>
+<node index="247">
+<node_location>-7.936521 0.800301 -22.107986</node_location>
+<node_neighbours>276 216 215 </node_neighbours>
+</node>
+<node index="248">
+<node_location>-9.141031 1.000302 -26.313839</node_location>
+<node_neighbours>249 217 216 </node_neighbours>
+</node>
+<node index="249">
+<node_location>-12.134988 0.666969 -25.714283</node_location>
+<node_neighbours>248 277 218 </node_neighbours>
+</node>
+<node index="250">
+<node_location>-19.946545 0.066968 -21.509960</node_location>
+<node_neighbours>278 221 219 </node_neighbours>
+</node>
+<node index="251">
+<node_location>-15.736809 0.866968 -23.911676</node_location>
+<node_neighbours>277 278 220 </node_neighbours>
+</node>
+<node index="252">
+<node_location>-22.937571 0.600301 -14.302201</node_location>
+<node_neighbours>280 279 222 </node_neighbours>
+</node>
+<node index="253">
+<node_location>-28.341261 1.800301 -11.920930</node_location>
+<node_neighbours>279 254 223 </node_neighbours>
+</node>
+<node index="254">
+<node_location>-29.551092 1.333634 -10.727111</node_location>
+<node_neighbours>253 225 224 </node_neighbours>
+</node>
+<node index="255">
+<node_location>-30.150320 1.866967 -5.903938</node_location>
+<node_neighbours>281 226 225 </node_neighbours>
+</node>
+<node index="256">
+<node_location>-31.341396 2.266967 -0.500128</node_location>
+<node_neighbours>282 229 228 </node_neighbours>
+</node>
+<node index="257">
+<node_location>-29.532852 1.400300 2.512094</node_location>
+<node_neighbours>283 259 229 </node_neighbours>
+</node>
+<node index="258">
+<node_location>-27.141912 0.266966 7.909088</node_location>
+<node_neighbours>284 232 230 </node_neighbours>
+</node>
+<node index="259">
+<node_location>-28.334530 0.800300 4.306548</node_location>
+<node_neighbours>257 285 230 </node_neighbours>
+</node>
+<node index="260">
+<node_location>-24.160997 0.866966 13.284107</node_location>
+<node_neighbours>261 286 231 </node_neighbours>
+</node>
+<node index="261">
+<node_location>-24.749489 -0.266368 10.295834</node_location>
+<node_neighbours>287 260 232 </node_neighbours>
+</node>
+<node index="262">
+<node_location>-22.342142 2.400299 18.681993</node_location>
+<node_neighbours>286 263 233 </node_neighbours>
+</node>
+<node index="263">
+<node_location>-20.534037 2.000299 19.278677</node_location>
+<node_neighbours>262 264 234 </node_neighbours>
+</node>
+<node index="264">
+<node_location>-18.742191 2.133632 18.078043</node_location>
+<node_neighbours>263 288 235 </node_neighbours>
+</node>
+<node index="265">
+<node_location>-10.952310 0.733632 16.888172</node_location>
+<node_neighbours>266 289 236 </node_neighbours>
+</node>
+<node index="266">
+<node_location>-13.962335 1.133632 16.886198</node_location>
+<node_neighbours>290 265 237 </node_neighbours>
+</node>
+<node index="267">
+<node_location>-6.146557 0.466965 15.084035</node_location>
+<node_neighbours>289 268 238 </node_neighbours>
+</node>
+<node index="268">
+<node_location>-4.350827 0.066966 13.297924</node_location>
+<node_neighbours>267 240 239 </node_neighbours>
+</node>
+<node index="269">
+<node_location>-5.555433 -0.066368 9.684175</node_location>
+<node_neighbours>291 241 240 </node_neighbours>
+</node>
+<node index="270">
+<node_location>-10.355676 -0.399701 8.484433</node_location>
+<node_neighbours>293 292 241 </node_neighbours>
+</node>
+<node index="271">
+<node_location>-14.554626 -0.599700 3.098652</node_location>
+<node_neighbours>292 294 242 </node_neighbours>
+</node>
+<node index="272">
+<node_location>-12.752383 0.000300 -7.101072</node_location>
+<node_neighbours>295 274 243 </node_neighbours>
+</node>
+<node index="273">
+<node_location>-13.951465 -0.333033 -1.706051</node_location>
+<node_neighbours>294 296 244 </node_neighbours>
+</node>
+<node index="274">
+<node_location>-13.366870 0.066967 -10.104951</node_location>
+<node_neighbours>272 297 245 </node_neighbours>
+</node>
+<node index="275">
+<node_location>-12.764000 0.800301 -17.913343</node_location>
+<node_neighbours>298 276 246 </node_neighbours>
+</node>
+<node index="276">
+<node_location>-11.550477 1.066968 -21.508432</node_location>
+<node_neighbours>275 277 247 </node_neighbours>
+</node>
+<node index="277">
+<node_location>-13.340790 0.800302 -23.914097</node_location>
+<node_neighbours>276 251 249 </node_neighbours>
+</node>
+<node index="278">
+<node_location>-17.550524 0.600302 -21.512379</node_location>
+<node_neighbours>251 298 250 </node_neighbours>
+</node>
+<node index="279">
+<node_location>-25.339054 1.266967 -10.711953</node_location>
+<node_neighbours>299 253 252 </node_neighbours>
+</node>
+<node index="280">
+<node_location>-18.153444 -0.333032 -13.707935</node_location>
+<node_neighbours>298 297 252 </node_neighbours>
+</node>
+<node index="281">
+<node_location>-28.351995 1.600300 -4.109485</node_location>
+<node_neighbours>300 282 255 </node_neighbours>
+</node>
+<node index="282">
+<node_location>-28.941586 1.733633 -1.695923</node_location>
+<node_neighbours>281 283 256 </node_neighbours>
+</node>
+<node index="283">
+<node_location>-27.135254 0.733633 0.107321</node_location>
+<node_neighbours>282 301 257 </node_neighbours>
+</node>
+<node index="284">
+<node_location>-25.342201 0.000299 6.105396</node_location>
+<node_neighbours>285 287 258 </node_neighbours>
+</node>
+<node index="285">
+<node_location>-25.344505 -0.066367 4.308521</node_location>
+<node_neighbours>302 284 259 </node_neighbours>
+</node>
+<node index="286">
+<node_location>-22.352695 1.666966 15.096586</node_location>
+<node_neighbours>303 262 260 </node_neighbours>
+</node>
+<node index="287">
+<node_location>-24.151892 -0.333034 7.911061</node_location>
+<node_neighbours>284 304 261 </node_neighbours>
+</node>
+<node index="288">
+<node_location>-18.140463 1.533632 16.287539</node_location>
+<node_neighbours>303 290 264 </node_neighbours>
+</node>
+<node index="289">
+<node_location>-9.156581 0.533632 15.082059</node_location>
+<node_neighbours>291 267 265 </node_neighbours>
+</node>
+<node index="290">
+<node_location>-15.750536 0.933632 15.681614</node_location>
+<node_neighbours>288 305 266 </node_neighbours>
+</node>
+<node index="291">
+<node_location>-9.156966 0.133632 12.690473</node_location>
+<node_neighbours>289 293 269 </node_neighbours>
+</node>
+<node index="292">
+<node_location>-13.956110 -0.599701 6.088899</node_location>
+<node_neighbours>306 271 270 </node_neighbours>
+</node>
+<node index="293">
+<node_location>-10.953081 -0.133034 12.084996</node_location>
+<node_neighbours>291 305 270 </node_neighbours>
+</node>
+<node index="294">
+<node_location>-16.355061 -0.533034 0.703116</node_location>
+<node_neighbours>307 273 271 </node_neighbours>
+</node>
+<node index="295">
+<node_location>-15.140101 -0.199700 -5.306170</node_location>
+<node_neighbours>296 308 272 </node_neighbours>
+</node>
+<node index="296">
+<node_location>-15.143793 -0.199700 -3.504901</node_location>
+<node_neighbours>309 295 273 </node_neighbours>
+</node>
+<node index="297">
+<node_location>-16.950897 -0.133033 -10.111318</node_location>
+<node_neighbours>310 280 274 </node_neighbours>
+</node>
+<node index="298">
+<node_location>-16.368027 0.266968 -17.919712</node_location>
+<node_neighbours>280 278 275 </node_neighbours>
+</node>
+<node index="299">
+<node_location>-22.950462 0.200300 -7.115783</node_location>
+<node_neighbours>310 300 279 </node_neighbours>
+</node>
+<node index="300">
+<node_location>-24.756073 0.533634 -4.719802</node_location>
+<node_neighbours>299 311 281 </node_neighbours>
+</node>
+<node index="301">
+<node_location>-25.337027 -0.199700 1.293879</node_location>
+<node_neighbours>312 302 283 </node_neighbours>
+</node>
+<node index="302">
+<node_location>-24.744604 -0.399700 3.700625</node_location>
+<node_neighbours>301 313 285 </node_neighbours>
+</node>
+<node index="303">
+<node_location>-19.942865 0.666966 13.902767</node_location>
+<node_neighbours>314 288 286 </node_neighbours>
+</node>
+<node index="304">
+<node_location>-21.758175 -0.599701 6.111766</node_location>
+<node_neighbours>313 314 287 </node_neighbours>
+</node>
+<node index="305">
+<node_location>-13.948908 0.066966 13.283211</node_location>
+<node_neighbours>306 293 290 </node_neighbours>
+</node>
+<node index="306">
+<node_location>-15.741622 -0.599701 9.092777</node_location>
+<node_neighbours>305 314 292 </node_neighbours>
+</node>
+<node index="307">
+<node_location>-18.759186 -0.599700 0.108849</node_location>
+<node_neighbours>316 315 294 </node_neighbours>
+</node>
+<node index="308">
+<node_location>-18.150127 -0.266366 -5.308145</node_location>
+<node_neighbours>317 310 295 </node_neighbours>
+</node>
+<node index="309">
+<node_location>-18.145712 -0.133033 -2.910189</node_location>
+<node_neighbours>315 317 296 </node_neighbours>
+</node>
+<node index="310">
+<node_location>-19.346436 -0.266366 -7.109414</node_location>
+<node_neighbours>308 299 297 </node_neighbours>
+</node>
+<node index="311">
+<node_location>-22.937750 0.066967 -2.905348</node_location>
+<node_neighbours>318 312 300 </node_neighbours>
+</node>
+<node index="312">
+<node_location>-24.133337 0.066967 -0.507391</node_location>
+<node_neighbours>311 319 301 </node_neighbours>
+</node>
+<node index="313">
+<node_location>-22.348583 -0.599700 3.698205</node_location>
+<node_neighbours>316 304 302 </node_neighbours>
+</node>
+<node index="314">
+<node_location>-19.345654 -0.599701 9.106409</node_location>
+<node_neighbours>304 306 303 </node_neighbours>
+</node>
+<node index="315">
+<node_location>-19.357510 -0.333033 -1.705607</node_location>
+<node_neighbours>320 309 307 </node_neighbours>
+</node>
+<node index="316">
+<node_location>-21.150887 -0.933034 1.901330</node_location>
+<node_neighbours>313 319 307 </node_neighbours>
+</node>
+<node index="317">
+<node_location>-19.341827 -0.466366 -3.515665</node_location>
+<node_neighbours>309 318 308 </node_neighbours>
+</node>
+<node index="318">
+<node_location>-21.135736 -0.266367 -2.912163</node_location>
+<node_neighbours>317 320 311 </node_neighbours>
+</node>
+<node index="319">
+<node_location>-22.343216 -0.466367 0.102480</node_location>
+<node_neighbours>320 316 312 </node_neighbours>
+</node>
+<node index="320">
+<node_location>-21.139524 -0.333033 -1.698791</node_location>
+<node_neighbours>319 318 315 </node_neighbours>
+</node>
+<node index="321">
+<node_location>-28.695074 1.866965 26.140764</node_location>
+<node_neighbours>322 </node_neighbours>
+</node>
+<node index="322">
+<node_location>-29.835073 1.666965 24.760765</node_location>
+<node_neighbours>321 323 </node_neighbours>
+</node>
+<node index="323">
+<node_location>-30.540789 1.133632 23.249342</node_location>
+<node_neighbours>322 324 </node_neighbours>
+</node>
+<node index="324">
+<node_location>-31.789358 0.666965 21.902199</node_location>
+<node_neighbours>323 325 </node_neighbours>
+</node>
+<node index="325">
+<node_location>-32.277931 0.600298 20.325056</node_location>
+<node_neighbours>324 326 </node_neighbours>
+</node>
+<node index="326">
+<node_location>-34.232220 0.866965 18.616484</node_location>
+<node_neighbours>325 327 </node_neighbours>
+</node>
+<node index="327">
+<node_location>-35.155075 1.266965 16.020771</node_location>
+<node_neighbours>326 328 </node_neighbours>
+</node>
+<node index="328">
+<node_location>-37.326504 1.200299 14.377913</node_location>
+<node_neighbours>327 329 </node_neighbours>
+</node>
+<node index="329">
+<node_location>-37.272217 1.200299 12.636484</node_location>
+<node_neighbours>328 330 </node_neighbours>
+</node>
+<node index="330">
+<node_location>-38.086502 0.733632 11.157912</node_location>
+<node_neighbours>329 331 </node_neighbours>
+</node>
+<node index="331">
+<node_location>-38.900787 0.333632 9.679340</node_location>
+<node_neighbours>330 </node_neighbours>
+</node>
+<node index="332">
+<node_location>-20.943651 2.066970 -50.006374</node_location>
+<node_neighbours>403 333 </node_neighbours>
+</node>
+<node index="333">
+<node_location>-21.943649 1.666970 -50.306377</node_location>
+<node_neighbours>332 79 </node_neighbours>
+</node>
+<node index="334">
+<node_location>-25.523649 0.266969 -29.606375</node_location>
+<node_neighbours>352 </node_neighbours>
+</node>
+<node index="335">
+<node_location>-18.351345 0.733636 -31.432835</node_location>
+<node_neighbours>354 353 </node_neighbours>
+</node>
+<node index="336">
+<node_location>-15.049379 1.266969 -33.210266</node_location>
+<node_neighbours>353 355 </node_neighbours>
+</node>
+<node index="337">
+<node_location>-12.815423 0.800303 -34.509823</node_location>
+<node_neighbours>355 356 </node_neighbours>
+</node>
+<node index="338">
+<node_location>-8.927413 0.266969 -35.667702</node_location>
+<node_neighbours>356 357 </node_neighbours>
+</node>
+<node index="339">
+<node_location>-4.273650 0.533636 -37.489712</node_location>
+<node_neighbours>358 </node_neighbours>
+</node>
+<node index="340">
+<node_location>-4.997462 0.933636 -38.654980</node_location>
+<node_neighbours>358 341 </node_neighbours>
+</node>
+<node index="341">
+<node_location>-6.261748 0.933636 -39.476410</node_location>
+<node_neighbours>340 359 </node_neighbours>
+</node>
+<node index="342">
+<node_location>-9.278329 0.933636 -40.628056</node_location>
+<node_neighbours>361 360 </node_neighbours>
+</node>
+<node index="343">
+<node_location>-11.863857 1.533636 -42.677490</node_location>
+<node_neighbours>360 344 </node_neighbours>
+</node>
+<node index="344">
+<node_location>-13.235287 1.666970 -43.534634</node_location>
+<node_neighbours>343 362 </node_neighbours>
+</node>
+<node index="345">
+<node_location>-16.507044 2.133636 -44.905617</node_location>
+<node_neighbours>362 363 </node_neighbours>
+</node>
+<node index="346">
+<node_location>-20.643625 2.800303 -45.414402</node_location>
+<node_neighbours>363 364 </node_neighbours>
+</node>
+<node index="347">
+<node_location>-24.788498 3.200304 -45.807583</node_location>
+<node_neighbours>366 365 </node_neighbours>
+</node>
+<node index="348">
+<node_location>-26.280159 2.733637 -46.095264</node_location>
+<node_neighbours>365 </node_neighbours>
+</node>
+<node index="349">
+<node_location>-26.601196 1.800303 -43.329811</node_location>
+<node_neighbours>365 367 </node_neighbours>
+</node>
+<node index="350">
+<node_location>-26.641514 0.400303 -39.313320</node_location>
+<node_neighbours>369 368 </node_neighbours>
+</node>
+<node index="351">
+<node_location>-25.512066 0.000302 -34.774513</node_location>
+<node_neighbours>370 352 </node_neighbours>
+</node>
+<node index="352">
+<node_location>-23.925398 -0.066364 -32.107845</node_location>
+<node_neighbours>351 371 334 </node_neighbours>
+</node>
+<node index="353">
+<node_location>-15.977076 1.066969 -33.236729</node_location>
+<node_neighbours>372 336 335 </node_neighbours>
+</node>
+<node index="354">
+<node_location>-19.939089 0.333636 -32.296581</node_location>
+<node_neighbours>371 373 335 </node_neighbours>
+</node>
+<node index="355">
+<node_location>-14.221151 0.866969 -34.680382</node_location>
+<node_neighbours>374 337 336 </node_neighbours>
+</node>
+<node index="356">
+<node_location>-11.339186 0.333636 -35.737808</node_location>
+<node_neighbours>375 338 337 </node_neighbours>
+</node>
+<node index="357">
+<node_location>-7.925230 0.066969 -37.037365</node_location>
+<node_neighbours>377 376 338 </node_neighbours>
+</node>
+<node index="358">
+<node_location>-5.377461 0.533636 -37.688316</node_location>
+<node_neighbours>376 340 339 </node_neighbours>
+</node>
+<node index="359">
+<node_location>-7.259564 0.533636 -39.179405</node_location>
+<node_neighbours>376 361 341 </node_neighbours>
+</node>
+<node index="360">
+<node_location>-11.169966 1.066970 -40.956310</node_location>
+<node_neighbours>378 343 342 </node_neighbours>
+</node>
+<node index="361">
+<node_location>-8.447575 0.400303 -39.188194</node_location>
+<node_neighbours>359 377 342 </node_neighbours>
+</node>
+<node index="362">
+<node_location>-14.941539 1.600303 -43.605297</node_location>
+<node_neighbours>379 345 344 </node_neighbours>
+</node>
+<node index="363">
+<node_location>-18.507021 1.933637 -44.413643</node_location>
+<node_neighbours>380 346 345 </node_neighbours>
+</node>
+<node index="364">
+<node_location>-22.068146 1.933637 -44.116055</node_location>
+<node_neighbours>381 366 346 </node_neighbours>
+</node>
+<node index="365">
+<node_location>-25.982149 2.600303 -44.896477</node_location>
+<node_neighbours>349 348 347 </node_neighbours>
+</node>
+<node index="366">
+<node_location>-23.870159 2.133637 -44.109241</node_location>
+<node_neighbours>364 367 347 </node_neighbours>
+</node>
+<node index="367">
+<node_location>-25.074921 1.266970 -42.642574</node_location>
+<node_neighbours>366 382 349 </node_neighbours>
+</node>
+<node index="368">
+<node_location>-25.712044 -0.133031 -37.982536</node_location>
+<node_neighbours>369 370 350 </node_neighbours>
+</node>
+<node index="369">
+<node_location>-25.678707 0.266970 -39.649204</node_location>
+<node_neighbours>382 368 350 </node_neighbours>
+</node>
+<node index="370">
+<node_location>-24.515926 -0.199697 -36.777061</node_location>
+<node_neighbours>368 383 351 </node_neighbours>
+</node>
+<node index="371">
+<node_location>-21.733143 -0.066364 -32.904922</node_location>
+<node_neighbours>384 354 352 </node_neighbours>
+</node>
+<node index="372">
+<node_location>-16.950863 0.600303 -34.700024</node_location>
+<node_neighbours>373 385 353 </node_neighbours>
+</node>
+<node index="373">
+<node_location>-18.752878 0.400303 -34.693207</node_location>
+<node_neighbours>386 372 354 </node_neighbours>
+</node>
+<node index="374">
+<node_location>-13.940982 0.400303 -36.509895</node_location>
+<node_neighbours>385 375 355 </node_neighbours>
+</node>
+<node index="375">
+<node_location>-12.139016 0.133636 -37.100658</node_location>
+<node_neighbours>374 387 356 </node_neighbours>
+</node>
+<node index="376">
+<node_location>-6.725278 0.200303 -37.641312</node_location>
+<node_neighbours>359 358 357 </node_neighbours>
+</node>
+<node index="377">
+<node_location>-9.137052 0.066969 -37.711422</node_location>
+<node_neighbours>387 361 357 </node_neighbours>
+</node>
+<node index="378">
+<node_location>-12.141224 0.533636 -39.509636</node_location>
+<node_neighbours>387 388 360 </node_neighbours>
+</node>
+<node index="379">
+<node_location>-15.135424 1.066970 -41.909821</node_location>
+<node_neighbours>388 389 362 </node_neighbours>
+</node>
+<node index="380">
+<node_location>-18.743530 1.066970 -43.106506</node_location>
+<node_neighbours>389 381 363 </node_neighbours>
+</node>
+<node index="381">
+<node_location>-20.547510 0.800303 -42.508926</node_location>
+<node_neighbours>380 390 364 </node_neighbours>
+</node>
+<node index="382">
+<node_location>-24.476791 0.466970 -40.843914</node_location>
+<node_neighbours>391 369 367 </node_neighbours>
+</node>
+<node index="383">
+<node_location>-21.751106 -0.266364 -37.119762</node_location>
+<node_neighbours>391 384 370 </node_neighbours>
+</node>
+<node index="384">
+<node_location>-20.554989 -0.066364 -35.914288</node_location>
+<node_neighbours>383 386 371 </node_neighbours>
+</node>
+<node index="385">
+<node_location>-15.742997 0.333636 -36.503078</node_location>
+<node_neighbours>392 374 372 </node_neighbours>
+</node>
+<node index="386">
+<node_location>-19.347029 0.066969 -36.509445</node_location>
+<node_neighbours>384 393 373 </node_neighbours>
+</node>
+<node index="387">
+<node_location>-10.939065 0.066969 -37.704605</node_location>
+<node_neighbours>378 377 375 </node_neighbours>
+</node>
+<node index="388">
+<node_location>-13.943287 0.666970 -40.106766</node_location>
+<node_neighbours>392 379 378 </node_neighbours>
+</node>
+<node index="389">
+<node_location>-16.937437 0.733636 -41.903008</node_location>
+<node_neighbours>394 380 379 </node_neighbours>
+</node>
+<node index="390">
+<node_location>-19.949381 0.266970 -40.710266</node_location>
+<node_neighbours>394 391 381 </node_neighbours>
+</node>
+<node index="391">
+<node_location>-21.745304 0.000303 -39.519951</node_location>
+<node_neighbours>390 383 382 </node_neighbours>
+</node>
+<node index="392">
+<node_location>-15.731152 0.200303 -38.303711</node_location>
+<node_neighbours>393 388 385 </node_neighbours>
+</node>
+<node index="393">
+<node_location>-17.533169 0.133636 -38.316895</node_location>
+<node_neighbours>394 392 386 </node_neighbours>
+</node>
+<node index="394">
+<node_location>-17.547318 0.266970 -40.113136</node_location>
+<node_neighbours>393 390 389 </node_neighbours>
+</node>
+<node index="395">
+<node_location>-22.493652 3.066970 -47.706379</node_location>
+<node_neighbours>403 </node_neighbours>
+</node>
+<node index="396">
+<node_location>-19.136986 3.666970 -46.616375</node_location>
+<node_neighbours>405 404 </node_neighbours>
+</node>
+<node index="397">
+<node_location>-16.972979 3.466970 -46.311981</node_location>
+<node_neighbours>404 398 </node_neighbours>
+</node>
+<node index="398">
+<node_location>-15.939644 3.600303 -46.811981</node_location>
+<node_neighbours>397 399 </node_neighbours>
+</node>
+<node index="399">
+<node_location>-16.189644 4.133637 -47.861980</node_location>
+<node_neighbours>398 400 </node_neighbours>
+</node>
+<node index="400">
+<node_location>-16.689644 4.066971 -48.561981</node_location>
+<node_neighbours>399 401 </node_neighbours>
+</node>
+<node index="401">
+<node_location>-17.439644 3.866971 -48.911983</node_location>
+<node_neighbours>400 406 </node_neighbours>
+</node>
+<node index="402">
+<node_location>-19.053650 3.466970 -48.916374</node_location>
+<node_neighbours>406 405 </node_neighbours>
+</node>
+<node index="403">
+<node_location>-20.893650 2.666970 -48.506374</node_location>
+<node_neighbours>405 395 332 </node_neighbours>
+</node>
+<node index="404">
+<node_location>-18.082979 4.000304 -46.921989</node_location>
+<node_neighbours>406 397 396 </node_neighbours>
+</node>
+<node index="405">
+<node_location>-19.603651 3.333637 -47.816380</node_location>
+<node_neighbours>403 402 396 </node_neighbours>
+</node>
+<node index="406">
+<node_location>-18.049644 4.066971 -48.121986</node_location>
+<node_neighbours>404 402 401 </node_neighbours>
+</node>
+<node index="407">
+<node_location>-0.376976 0.466965 26.560293</node_location>
+<node_neighbours>411 </node_neighbours>
+</node>
+<node index="408">
+<node_location>4.646357 0.800298 25.083624</node_location>
+<node_neighbours>411 409 111 </node_neighbours>
+</node>
+<node index="409">
+<node_location>4.046357 1.200298 23.483624</node_location>
+<node_neighbours>408 410 </node_neighbours>
+</node>
+<node index="410">
+<node_location>1.713024 0.933631 24.150290</node_location>
+<node_neighbours>409 411 </node_neighbours>
+</node>
+<node index="411">
+<node_location>2.313024 0.533631 25.750290</node_location>
+<node_neighbours>410 408 407 </node_neighbours>
+</node>
+<node index="412">
+<node_location>-38.182110 1.466967 -10.587142</node_location>
+<node_neighbours>413 </node_neighbours>
+</node>
+<node index="413">
+<node_location>-38.182110 1.600301 -12.887142</node_location>
+<node_neighbours>412 414 </node_neighbours>
+</node>
+<node index="414">
+<node_location>-37.048775 1.933635 -15.237143</node_location>
+<node_neighbours>413 415 </node_neighbours>
+</node>
+<node index="415">
+<node_location>-34.841087 2.333635 -16.490990</node_location>
+<node_neighbours>414 416 </node_neighbours>
+</node>
+<node index="416">
+<node_location>-32.948776 2.466968 -19.537144</node_location>
+<node_neighbours>415 417 </node_neighbours>
+</node>
+<node index="417">
+<node_location>-32.134247 2.866968 -21.483299</node_location>
+<node_neighbours>416 418 </node_neighbours>
+</node>
+<node index="418">
+<node_location>-29.867582 3.000302 -23.883299</node_location>
+<node_neighbours>417 419 </node_neighbours>
+</node>
+<node index="419">
+<node_location>-28.789803 2.133635 -24.983297</node_location>
+<node_neighbours>418 </node_neighbours>
+</node>
+<node index="420">
+<node_location>-23.929899 0.066969 -28.562626</node_location>
+<node_neighbours>421 </node_neighbours>
+</node>
+<node index="421">
+<node_location>-20.211149 0.333635 -30.093876</node_location>
+<node_neighbours>420 422 </node_neighbours>
+</node>
+<node index="422">
+<node_location>-18.024899 0.933636 -31.070959</node_location>
+<node_neighbours>421 423 </node_neighbours>
+</node>
+<node index="423">
+<node_location>-15.394899 1.466969 -32.120960</node_location>
+<node_neighbours>422 424 </node_neighbours>
+</node>
+<node index="424">
+<node_location>-14.793650 1.466969 -32.456375</node_location>
+<node_neighbours>423 425 </node_neighbours>
+</node>
+<node index="425">
+<node_location>-13.173650 1.200302 -33.156380</node_location>
+<node_neighbours>424 426 </node_neighbours>
+</node>
+<node index="426">
+<node_location>-10.587399 0.733636 -34.133461</node_location>
+<node_neighbours>425 427 </node_neighbours>
+</node>
+<node index="427">
+<node_location>-7.817399 0.266969 -35.416794</node_location>
+<node_neighbours>426 428 </node_neighbours>
+</node>
+<node index="428">
+<node_location>-5.117400 0.200303 -36.583462</node_location>
+<node_neighbours>427 429 </node_neighbours>
+</node>
+<node index="429">
+<node_location>-3.637400 0.266969 -37.050133</node_location>
+<node_neighbours>428 </node_neighbours>
+</node>
+<node index="430">
+<node_location>-28.538603 1.866965 26.059593</node_location>
+<node_neighbours>431 </node_neighbours>
+</node>
+<node index="431">
+<node_location>-29.209192 1.600298 24.436064</node_location>
+<node_neighbours>430 432 </node_neighbours>
+</node>
+<node index="432">
+<node_location>-30.071377 1.066965 23.005812</node_location>
+<node_neighbours>431 433 </node_neighbours>
+</node>
+<node index="433">
+<node_location>-30.694065 0.533632 21.333961</node_location>
+<node_neighbours>432 434 </node_neighbours>
+</node>
+<node index="434">
+<node_location>-31.652048 0.533632 20.000349</node_location>
+<node_neighbours>433 435 </node_neighbours>
+</node>
+<node index="435">
+<node_location>-33.009193 1.000299 17.536064</node_location>
+<node_neighbours>434 436 </node_neighbours>
+</node>
+<node index="436">
+<node_location>-33.392387 1.533632 15.622619</node_location>
+<node_neighbours>435 437 </node_neighbours>
+</node>
+<node index="437">
+<node_location>-35.483986 1.800299 12.365896</node_location>
+<node_neighbours>436 438 </node_neighbours>
+</node>
+<node index="438">
+<node_location>-35.499950 1.800299 10.848669</node_location>
+<node_neighbours>437 439 </node_neighbours>
+</node>
+<node index="439">
+<node_location>-36.745327 1.200299 9.804971</node_location>
+<node_neighbours>438 440 </node_neighbours>
+</node>
+<node index="440">
+<node_location>-36.665497 1.000299 8.191104</node_location>
+<node_neighbours>439 441 </node_neighbours>
+</node>
+<node index="441">
+<node_location>-38.006676 0.400299 7.244046</node_location>
+<node_neighbours>440 442 </node_neighbours>
+</node>
+<node index="442">
+<node_location>-38.549530 0.333633 3.958332</node_location>
+<node_neighbours>441 </node_neighbours>
+</node>
+<node index="443">
+<node_location>-38.926983 0.200302 -23.623041</node_location>
+<node_neighbours>444 </node_neighbours>
+</node>
+<node index="444">
+<node_location>-38.426987 0.333635 -25.823040</node_location>
+<node_neighbours>443 445 </node_neighbours>
+</node>
+<node index="445">
+<node_location>-36.876987 1.133635 -24.273041</node_location>
+<node_neighbours>444 446 </node_neighbours>
+</node>
+<node index="446">
+<node_location>-35.326984 2.000302 -24.923042</node_location>
+<node_neighbours>445 447 </node_neighbours>
+</node>
+<node index="447">
+<node_location>-34.876984 2.333635 -26.473040</node_location>
+<node_neighbours>446 448 </node_neighbours>
+</node>
+<node index="448">
+<node_location>-32.793652 3.333635 -25.356377</node_location>
+<node_neighbours>447 449 </node_neighbours>
+</node>
+<node index="449">
+<node_location>-32.360317 3.533636 -26.689709</node_location>
+<node_neighbours>448 450 </node_neighbours>
+</node>
+<node index="450">
+<node_location>-31.260315 3.466969 -25.789707</node_location>
+<node_neighbours>449 451 </node_neighbours>
+</node>
+<node index="451">
+<node_location>-30.843649 3.400302 -26.906374</node_location>
+<node_neighbours>450 </node_neighbours>
+</node>
+<node index="452">
+<node_location>-38.961296 0.466967 -3.853434</node_location>
+<node_neighbours>453 </node_neighbours>
+</node>
+<node index="453">
+<node_location>-37.755413 1.333634 -6.471080</node_location>
+<node_neighbours>452 454 </node_neighbours>
+</node>
+<node index="454">
+<node_location>-36.549530 2.000301 -9.088726</node_location>
+<node_neighbours>453 455 </node_neighbours>
+</node>
+<node index="455">
+<node_location>-36.493874 1.933634 -10.801849</node_location>
+<node_neighbours>454 456 </node_neighbours>
+</node>
+<node index="456">
+<node_location>-34.323284 2.333634 -13.213615</node_location>
+<node_neighbours>455 457 </node_neighbours>
+</node>
+<node index="457">
+<node_location>-33.599754 2.000301 -14.784204</node_location>
+<node_neighbours>456 458 </node_neighbours>
+</node>
+<node index="458">
+<node_location>-33.562653 2.133635 -15.926285</node_location>
+<node_neighbours>457 459 </node_neighbours>
+</node>
+<node index="459">
+<node_location>-31.688896 2.200301 -18.401398</node_location>
+<node_neighbours>458 460 </node_neighbours>
+</node>
+<node index="460">
+<node_location>-30.946815 2.666969 -20.543026</node_location>
+<node_neighbours>459 461 </node_neighbours>
+</node>
+<node index="461">
+<node_location>-29.778038 2.933635 -22.018595</node_location>
+<node_neighbours>460 462 </node_neighbours>
+</node>
+<node index="462">
+<node_location>-28.813332 2.200302 -24.112711</node_location>
+<node_neighbours>461 </node_neighbours>
+</node>
+<node index="463">
+<node_location>-25.557938 3.266970 -47.206379</node_location>
+<node_neighbours>464 </node_neighbours>
+</node>
+<node index="464">
+<node_location>-24.386507 3.733637 -47.006374</node_location>
+<node_neighbours>463 465 </node_neighbours>
+</node>
+<node index="465">
+<node_location>-22.722223 3.600303 -46.806374</node_location>
+<node_neighbours>464 466 </node_neighbours>
+</node>
+<node index="466">
+<node_location>-20.655556 3.533637 -46.406380</node_location>
+<node_neighbours>465 467 </node_neighbours>
+</node>
+<node index="467">
+<node_location>-19.976984 3.466970 -46.206379</node_location>
+<node_neighbours>466 468 </node_neighbours>
+</node>
+<node index="468">
+<node_location>-17.348412 3.066970 -45.806377</node_location>
+<node_neighbours>467 469 </node_neighbours>
+</node>
+<node index="469">
+<node_location>-16.015078 2.600303 -45.506378</node_location>
+<node_neighbours>468 </node_neighbours>
+</node>
+<node index="470">
+<node_location>-29.373646 1.800298 26.058626</node_location>
+<node_neighbours>471 </node_neighbours>
+</node>
+<node index="471">
+<node_location>-30.513645 1.600298 24.678627</node_location>
+<node_neighbours>470 478 </node_neighbours>
+</node>
+<node index="472">
+<node_location>-32.603642 0.933631 22.723627</node_location>
+<node_neighbours>478 477 </node_neighbours>
+</node>
+<node index="473">
+<node_location>-34.899643 1.066965 19.568022</node_location>
+<node_neighbours>480 479 </node_neighbours>
+</node>
+<node index="474">
+<node_location>-38.683647 0.933632 16.513626</node_location>
+<node_neighbours>475 </node_neighbours>
+</node>
+<node index="475">
+<node_location>-38.208649 1.333632 19.101128</node_location>
+<node_neighbours>474 479 </node_neighbours>
+</node>
+<node index="476">
+<node_location>-36.039642 1.533632 21.638025</node_location>
+<node_neighbours>479 480 </node_neighbours>
+</node>
+<node index="477">
+<node_location>-33.838642 1.200298 22.666126</node_location>
+<node_neighbours>480 472 </node_neighbours>
+</node>
+<node index="478">
+<node_location>-32.033642 1.333632 23.988632</node_location>
+<node_neighbours>472 471 </node_neighbours>
+</node>
+<node index="479">
+<node_location>-36.704643 1.400298 19.395523</node_location>
+<node_neighbours>476 475 473 </node_neighbours>
+</node>
+<node index="480">
+<node_location>-34.234642 1.200298 21.810520</node_location>
+<node_neighbours>477 476 473 </node_neighbours>
+</node>
+<node index="481">
+<node_location>-38.310314 1.066968 -17.806374</node_location>
+<node_neighbours>482 </node_neighbours>
+</node>
+<node index="482">
+<node_location>-37.793648 0.933635 -20.323040</node_location>
+<node_neighbours>481 483 </node_neighbours>
+</node>
+<node index="483">
+<node_location>-36.243649 1.733635 -20.973040</node_location>
+<node_neighbours>482 484 </node_neighbours>
+</node>
+<node index="484">
+<node_location>-34.693649 2.600302 -21.623039</node_location>
+<node_neighbours>483 485 </node_neighbours>
+</node>
+<node index="485">
+<node_location>-33.660320 2.933635 -22.056374</node_location>
+<node_neighbours>484 486 </node_neighbours>
+</node>
+<node index="486">
+<node_location>-32.704762 3.000302 -22.089708</node_location>
+<node_neighbours>485 487 </node_neighbours>
+</node>
+<node index="487">
+<node_location>-30.738092 3.333635 -24.489710</node_location>
+<node_neighbours>486 488 </node_neighbours>
+</node>
+<node index="488">
+<node_location>-29.921427 3.066968 -24.706377</node_location>
+<node_neighbours>487 </node_neighbours>
+</node>
+<node index="489">
+<node_location>-12.596030 1.666970 -44.068283</node_location>
+<node_neighbours>490 </node_neighbours>
+</node>
+<node index="490">
+<node_location>-11.224602 1.533636 -43.211143</node_location>
+<node_neighbours>489 491 </node_neighbours>
+</node>
+<node index="491">
+<node_location>-10.588888 1.600303 -42.932568</node_location>
+<node_neighbours>490 492 </node_neighbours>
+</node>
+<node index="492">
+<node_location>-9.336508 1.466970 -42.070663</node_location>
+<node_neighbours>491 493 </node_neighbours>
+</node>
+<node index="493">
+<node_location>-8.124602 1.400303 -41.511139</node_location>
+<node_neighbours>492 494 </node_neighbours>
+</node>
+<node index="494">
+<node_location>-6.574601 1.466970 -40.661140</node_location>
+<node_neighbours>493 495 </node_neighbours>
+</node>
+<node index="495">
+<node_location>-5.957935 1.400303 -40.077805</node_location>
+<node_neighbours>494 </node_neighbours>
+</node>
+<node index="496">
+<node_location>3.442071 2.066965 21.379339</node_location>
+<node_neighbours>497 </node_neighbours>
+</node>
+<node index="497">
+<node_location>1.308738 1.466965 23.246008</node_location>
+<node_neighbours>496 498 </node_neighbours>
+</node>
+<node index="498">
+<node_location>-1.434118 1.066965 24.503149</node_location>
+<node_neighbours>497 499 </node_neighbours>
+</node>
+<node index="499">
+<node_location>-3.719832 0.466965 26.217434</node_location>
+<node_neighbours>498 </node_neighbours>
+</node>
+<node index="500">
+<node_location>-14.543651 3.600304 -49.306377</node_location>
+<node_neighbours>81 502 </node_neighbours>
+</node>
+<node index="501">
+<node_location>-12.393651 2.000304 -51.206383</node_location>
+<node_neighbours>502 </node_neighbours>
+</node>
+<node index="502">
+<node_location>-12.893651 2.600304 -49.906384</node_location>
+<node_neighbours>501 503 500 </node_neighbours>
+</node>
+<node index="503">
+<node_location>-12.393651 2.133637 -49.106377</node_location>
+<node_neighbours>502 504 </node_neighbours>
+</node>
+<node index="504">
+<node_location>-10.993651 1.266970 -49.566376</node_location>
+<node_neighbours>503 505 </node_neighbours>
+</node>
+<node index="505">
+<node_location>-8.993650 0.733637 -50.966381</node_location>
+<node_neighbours>504 </node_neighbours>
+</node>
+<node index="506">
+<node_location>-0.793649 2.800304 -48.656380</node_location>
+<node_neighbours>507 </node_neighbours>
+</node>
+<node index="507">
+<node_location>-0.693649 3.600303 -45.556377</node_location>
+<node_neighbours>506 508 </node_neighbours>
+</node>
+<node index="508">
+<node_location>-1.543650 3.666970 -43.906380</node_location>
+<node_neighbours>507 </node_neighbours>
+</node>
+<node index="509">
+<node_location>-7.843649 1.600303 -42.223045</node_location>
+<node_neighbours>510 </node_neighbours>
+</node>
+<node index="510">
+<node_location>-9.393650 1.533636 -43.073051</node_location>
+<node_neighbours>509 511 </node_neighbours>
+</node>
+<node index="511">
+<node_location>-10.943651 1.533637 -43.923046</node_location>
+<node_neighbours>510 512 </node_neighbours>
+</node>
+<node index="512">
+<node_location>-11.893650 1.533637 -45.273048</node_location>
+<node_neighbours>511 513 </node_neighbours>
+</node>
+<node index="513">
+<node_location>-12.910316 1.733637 -45.139709</node_location>
+<node_neighbours>512 </node_neighbours>
+</node>
+<node index="514">
+<node_location>-2.943650 1.666971 -50.206383</node_location>
+<node_neighbours>522 </node_neighbours>
+</node>
+<node index="515">
+<node_location>-8.353650 0.933637 -50.076378</node_location>
+<node_neighbours>524 523 </node_neighbours>
+</node>
+<node index="516">
+<node_location>-10.937632 1.466970 -48.058800</node_location>
+<node_neighbours>523 517 </node_neighbours>
+</node>
+<node index="517">
+<node_location>-11.737632 1.666970 -47.198799</node_location>
+<node_neighbours>516 518 </node_neighbours>
+</node>
+<node index="518">
+<node_location>-11.320965 1.466970 -46.532135</node_location>
+<node_neighbours>517 525 </node_neighbours>
+</node>
+<node index="519">
+<node_location>-8.824944 1.533637 -43.734550</node_location>
+<node_neighbours>525 526 </node_neighbours>
+</node>
+<node index="520">
+<node_location>-4.753601 2.733636 -42.612427</node_location>
+<node_neighbours>526 521 </node_neighbours>
+</node>
+<node index="521">
+<node_location>-3.553602 3.333637 -44.912430</node_location>
+<node_neighbours>520 527 </node_neighbours>
+</node>
+<node index="522">
+<node_location>-4.849621 2.200304 -48.710014</node_location>
+<node_neighbours>527 524 514 </node_neighbours>
+</node>
+<node index="523">
+<node_location>-9.347630 1.200304 -48.568798</node_location>
+<node_neighbours>528 516 515 </node_neighbours>
+</node>
+<node index="524">
+<node_location>-6.959621 1.400304 -49.420010</node_location>
+<node_neighbours>522 528 515 </node_neighbours>
+</node>
+<node index="525">
+<node_location>-10.318926 1.333637 -46.126976</node_location>
+<node_neighbours>529 519 518 </node_neighbours>
+</node>
+<node index="526">
+<node_location>-7.051562 1.800303 -43.707272</node_location>
+<node_neighbours>529 520 519 </node_neighbours>
+</node>
+<node index="527">
+<node_location>-4.659573 2.800304 -46.616058</node_location>
+<node_neighbours>530 522 521 </node_neighbours>
+</node>
+<node index="528">
+<node_location>-7.953602 1.666970 -47.912430</node_location>
+<node_neighbours>524 530 523 </node_neighbours>
+</node>
+<node index="529">
+<node_location>-8.545544 1.600303 -46.099693</node_location>
+<node_neighbours>530 526 525 </node_neighbours>
+</node>
+<node index="530">
+<node_location>-7.353554 2.000304 -46.708481</node_location>
+<node_neighbours>529 528 527 </node_neighbours>
+</node>
+<node index="531">
+<node_location>2.006350 1.266970 -51.236382</node_location>
+<node_neighbours>532 </node_neighbours>
+</node>
+<node index="532">
+<node_location>3.806350 2.066970 -50.236382</node_location>
+<node_neighbours>531 533 </node_neighbours>
+</node>
+<node index="533">
+<node_location>5.356351 2.666970 -49.486382</node_location>
+<node_neighbours>532 534 </node_neighbours>
+</node>
+<node index="534">
+<node_location>6.056350 2.000304 -50.086380</node_location>
+<node_neighbours>533 </node_neighbours>
+</node>
+<node index="535">
+<node_location>4.199208 1.133637 -51.486382</node_location>
+<node_neighbours>536 </node_neighbours>
+</node>
+<node index="536">
+<node_location>6.699208 1.266970 -51.086380</node_location>
+<node_neighbours>535 537 </node_neighbours>
+</node>
+<node index="537">
+<node_location>8.099208 1.133637 -51.006378</node_location>
+<node_neighbours>536 538 </node_neighbours>
+</node>
+<node index="538">
+<node_location>9.299209 1.000304 -51.406380</node_location>
+<node_neighbours>537 </node_neighbours>
+</node>
+<node index="539">
+<node_location>4.356349 3.866970 -46.406384</node_location>
+<node_neighbours>540 </node_neighbours>
+</node>
+<node index="540">
+<node_location>3.656350 3.333637 -45.181377</node_location>
+<node_neighbours>539 541 </node_neighbours>
+</node>
+<node index="541">
+<node_location>2.456350 2.800303 -43.681377</node_location>
+<node_neighbours>540 </node_neighbours>
+</node>
+<node index="542">
+<node_location>0.496350 1.666970 -50.666378</node_location>
+<node_neighbours>549 543 </node_neighbours>
+</node>
+<node index="543">
+<node_location>0.096351 2.533637 -49.366379</node_location>
+<node_neighbours>542 550 </node_neighbours>
+</node>
+<node index="544">
+<node_location>0.198365 3.600303 -45.053192</node_location>
+<node_neighbours>551 545 </node_neighbours>
+</node>
+<node index="545">
+<node_location>0.848365 3.200303 -43.503197</node_location>
+<node_neighbours>544 546 </node_neighbours>
+</node>
+<node index="546">
+<node_location>1.948364 3.133637 -44.303192</node_location>
+<node_neighbours>545 552 </node_neighbours>
+</node>
+<node index="547">
+<node_location>2.960355 3.733637 -46.511986</node_location>
+<node_neighbours>552 553 </node_neighbours>
+</node>
+<node index="548">
+<node_location>3.546351 3.466970 -48.416378</node_location>
+<node_neighbours>553 549 </node_neighbours>
+</node>
+<node index="549">
+<node_location>2.296351 2.466970 -49.666378</node_location>
+<node_neighbours>548 542 </node_neighbours>
+</node>
+<node index="550">
+<node_location>0.600357 3.533637 -47.871986</node_location>
+<node_neighbours>553 551 543 </node_neighbours>
+</node>
+<node index="551">
+<node_location>0.602371 3.800304 -46.658798</node_location>
+<node_neighbours>550 552 544 </node_neighbours>
+</node>
+<node index="552">
+<node_location>1.752370 3.533637 -45.908806</node_location>
+<node_neighbours>551 547 546 </node_neighbours>
+</node>
+<node index="553">
+<node_location>2.250356 3.666970 -47.921982</node_location>
+<node_neighbours>550 548 547 </node_neighbours>
+</node>
+<node index="554">
+<node_location>13.356352 5.466970 -45.606380</node_location>
+<node_neighbours>570 </node_neighbours>
+</node>
+<node index="555">
+<node_location>15.356351 2.066970 -51.506378</node_location>
+<node_neighbours>556 </node_neighbours>
+</node>
+<node index="556">
+<node_location>14.756351 2.733637 -50.906380</node_location>
+<node_neighbours>555 557 564 </node_neighbours>
+</node>
+<node index="557">
+<node_location>14.856352 3.266970 -50.306377</node_location>
+<node_neighbours>556 </node_neighbours>
+</node>
+<node index="558">
+<node_location>3.056351 3.066970 -43.906380</node_location>
+<node_neighbours>559 577 </node_neighbours>
+</node>
+<node index="559">
+<node_location>3.156351 3.200303 -44.381378</node_location>
+<node_neighbours>558 </node_neighbours>
+</node>
+<node index="560">
+<node_location>11.906351 5.133637 -47.981380</node_location>
+<node_neighbours>561 </node_neighbours>
+</node>
+<node index="561">
+<node_location>12.606350 5.000304 -48.581383</node_location>
+<node_neighbours>560 562 </node_neighbours>
+</node>
+<node index="562">
+<node_location>12.856350 4.666970 -49.031380</node_location>
+<node_neighbours>561 563 </node_neighbours>
+</node>
+<node index="563">
+<node_location>13.556350 4.200304 -49.556377</node_location>
+<node_neighbours>562 564 </node_neighbours>
+</node>
+<node index="564">
+<node_location>14.056350 3.266970 -50.456383</node_location>
+<node_neighbours>563 556 </node_neighbours>
+</node>
+<node index="565">
+<node_location>9.016352 1.000303 -40.586380</node_location>
+<node_neighbours>566 </node_neighbours>
+</node>
+<node index="566">
+<node_location>8.016352 0.733636 -40.386379</node_location>
+<node_neighbours>565 567 </node_neighbours>
+</node>
+<node index="567">
+<node_location>5.516352 0.600303 -40.386379</node_location>
+<node_neighbours>566 568 </node_neighbours>
+</node>
+<node index="568">
+<node_location>3.916352 0.933636 -40.786377</node_location>
+<node_neighbours>567 569 </node_neighbours>
+</node>
+<node index="569">
+<node_location>1.956351 1.000303 -40.506378</node_location>
+<node_neighbours>568 </node_neighbours>
+</node>
+<node index="570">
+<node_location>12.356352 5.400304 -46.206383</node_location>
+<node_neighbours>595 571 554 </node_neighbours>
+</node>
+<node index="571">
+<node_location>12.506351 5.533637 -47.006378</node_location>
+<node_neighbours>570 572 </node_neighbours>
+</node>
+<node index="572">
+<node_location>12.256351 5.400304 -47.706375</node_location>
+<node_neighbours>571 573 </node_neighbours>
+</node>
+<node index="573">
+<node_location>12.956351 5.266971 -48.306381</node_location>
+<node_neighbours>572 </node_neighbours>
+</node>
+<node index="574">
+<node_location>11.121028 4.733637 -45.640923</node_location>
+<node_neighbours>583 575 </node_neighbours>
+</node>
+<node index="575">
+<node_location>9.854362 4.600304 -46.657593</node_location>
+<node_neighbours>574 584 </node_neighbours>
+</node>
+<node index="576">
+<node_location>6.646352 3.933637 -46.566376</node_location>
+<node_neighbours>586 585 </node_neighbours>
+</node>
+<node index="577">
+<node_location>4.048366 3.000303 -44.303192</node_location>
+<node_neighbours>585 578 558 </node_neighbours>
+</node>
+<node index="578">
+<node_location>3.048365 2.066970 -42.403194</node_location>
+<node_neighbours>577 579 </node_neighbours>
+</node>
+<node index="579">
+<node_location>4.608366 1.600303 -41.983196</node_location>
+<node_neighbours>578 587 </node_neighbours>
+</node>
+<node index="580">
+<node_location>9.018390 1.400303 -41.181221</node_location>
+<node_neighbours>588 581 </node_neighbours>
+</node>
+<node index="581">
+<node_location>10.858390 2.400303 -41.701218</node_location>
+<node_neighbours>580 589 </node_neighbours>
+</node>
+<node index="582">
+<node_location>11.517047 4.000304 -43.443340</node_location>
+<node_neighbours>589 583 </node_neighbours>
+</node>
+<node index="583">
+<node_location>10.715056 4.200304 -44.444550</node_location>
+<node_neighbours>582 590 574 </node_neighbours>
+</node>
+<node index="584">
+<node_location>8.858367 4.133637 -46.063194</node_location>
+<node_neighbours>590 586 575 </node_neighbours>
+</node>
+<node index="585">
+<node_location>5.438366 3.333637 -45.413193</node_location>
+<node_neighbours>591 577 576 </node_neighbours>
+</node>
+<node index="586">
+<node_location>7.650358 3.733637 -46.071983</node_location>
+<node_neighbours>584 592 576 </node_neighbours>
+</node>
+<node index="587">
+<node_location>6.014385 1.933637 -42.775616</node_location>
+<node_neighbours>591 588 579 </node_neighbours>
+</node>
+<node index="588">
+<node_location>7.824409 1.800303 -42.173641</node_location>
+<node_neighbours>587 593 580 </node_neighbours>
+</node>
+<node index="589">
+<node_location>10.852419 3.133637 -42.704849</node_location>
+<node_neighbours>593 582 581 </node_neighbours>
+</node>
+<node index="590">
+<node_location>9.452395 3.866970 -44.916824</node_location>
+<node_neighbours>594 584 583 </node_neighbours>
+</node>
+<node index="591">
+<node_location>5.844386 2.733637 -44.305614</node_location>
+<node_neighbours>592 587 585 </node_neighbours>
+</node>
+<node index="592">
+<node_location>7.056377 3.133637 -44.914406</node_location>
+<node_neighbours>594 591 586 </node_neighbours>
+</node>
+<node index="593">
+<node_location>8.858438 2.666970 -43.097271</node_location>
+<node_neighbours>594 589 588 </node_neighbours>
+</node>
+<node index="594">
+<node_location>8.260406 3.200304 -44.308037</node_location>
+<node_neighbours>593 592 590 </node_neighbours>
+</node>
+<node index="595">
+<node_location>12.023018 5.066970 -45.539715</node_location>
+<node_neighbours>570 596 </node_neighbours>
+</node>
+<node index="596">
+<node_location>12.423018 4.666970 -43.939713</node_location>
+<node_neighbours>595 </node_neighbours>
+</node>
+<node index="597">
+<node_location>24.806358 4.133637 -49.056381</node_location>
+<node_neighbours>598 </node_neighbours>
+</node>
+<node index="598">
+<node_location>25.606356 3.600304 -48.556381</node_location>
+<node_neighbours>597 599 </node_neighbours>
+</node>
+<node index="599">
+<node_location>25.556358 3.666970 -48.281384</node_location>
+<node_neighbours>598 600 </node_neighbours>
+</node>
+<node index="600">
+<node_location>24.656353 4.266971 -48.231380</node_location>
+<node_neighbours>599 601 </node_neighbours>
+</node>
+<node index="601">
+<node_location>23.306353 4.533637 -48.156384</node_location>
+<node_neighbours>600 602 </node_neighbours>
+</node>
+<node index="602">
+<node_location>21.606354 4.800304 -48.306377</node_location>
+<node_neighbours>601 603 </node_neighbours>
+</node>
+<node index="603">
+<node_location>20.706354 5.000303 -48.706383</node_location>
+<node_neighbours>602 </node_neighbours>
+</node>
+<node index="604">
+<node_location>28.556353 1.733637 -46.706387</node_location>
+<node_neighbours>653 614 </node_neighbours>
+</node>
+<node index="605">
+<node_location>27.323025 3.200304 -48.589718</node_location>
+<node_neighbours>606 </node_neighbours>
+</node>
+<node index="606">
+<node_location>27.256355 3.333637 -49.456387</node_location>
+<node_neighbours>605 607 </node_neighbours>
+</node>
+<node index="607">
+<node_location>26.489687 3.666971 -49.523052</node_location>
+<node_neighbours>606 608 </node_neighbours>
+</node>
+<node index="608">
+<node_location>26.439684 3.600304 -50.173050</node_location>
+<node_neighbours>607 609 </node_neighbours>
+</node>
+<node index="609">
+<node_location>27.139687 2.800304 -50.973053</node_location>
+<node_neighbours>608 </node_neighbours>
+</node>
+<node index="610">
+<node_location>29.089687 2.000304 -51.373051</node_location>
+<node_neighbours>611 </node_neighbours>
+</node>
+<node index="611">
+<node_location>29.156353 2.466970 -50.506382</node_location>
+<node_neighbours>610 612 </node_neighbours>
+</node>
+<node index="612">
+<node_location>29.223024 2.333637 -49.639713</node_location>
+<node_neighbours>611 613 </node_neighbours>
+</node>
+<node index="613">
+<node_location>30.756355 2.266970 -49.106380</node_location>
+<node_neighbours>612 634 614 </node_neighbours>
+</node>
+<node index="614">
+<node_location>30.056353 2.266970 -47.106384</node_location>
+<node_neighbours>613 604 </node_neighbours>
+</node>
+<node index="615">
+<node_location>32.656353 3.333636 -40.606380</node_location>
+<node_neighbours>617 616 </node_neighbours>
+</node>
+<node index="616">
+<node_location>32.656353 3.266970 -39.506382</node_location>
+<node_neighbours>615 642 </node_neighbours>
+</node>
+<node index="617">
+<node_location>34.056355 4.200303 -40.406384</node_location>
+<node_neighbours>615 618 </node_neighbours>
+</node>
+<node index="618">
+<node_location>34.256355 4.400303 -41.206387</node_location>
+<node_neighbours>617 631 619 </node_neighbours>
+</node>
+<node index="619">
+<node_location>35.656353 4.533637 -41.206383</node_location>
+<node_neighbours>618 635 </node_neighbours>
+</node>
+<node index="620">
+<node_location>39.156353 0.466970 -48.486385</node_location>
+<node_neighbours>621 632 </node_neighbours>
+</node>
+<node index="621">
+<node_location>38.789684 0.733637 -46.286381</node_location>
+<node_neighbours>620 622 </node_neighbours>
+</node>
+<node index="622">
+<node_location>39.089687 0.866970 -45.286381</node_location>
+<node_neighbours>621 623 </node_neighbours>
+</node>
+<node index="623">
+<node_location>38.689690 1.400303 -44.606384</node_location>
+<node_neighbours>622 </node_neighbours>
+</node>
+<node index="624">
+<node_location>36.260357 0.866970 -50.911987</node_location>
+<node_neighbours>627 625 </node_neighbours>
+</node>
+<node index="625">
+<node_location>34.660358 1.733637 -49.511990</node_location>
+<node_neighbours>624 626 633 </node_neighbours>
+</node>
+<node index="626">
+<node_location>36.560356 1.666970 -48.311985</node_location>
+<node_neighbours>625 627 </node_neighbours>
+</node>
+<node index="627">
+<node_location>38.160358 0.800304 -49.711990</node_location>
+<node_neighbours>626 624 632 </node_neighbours>
+</node>
+<node index="628">
+<node_location>34.156349 3.533637 -46.906384</node_location>
+<node_neighbours>629 633 </node_neighbours>
+</node>
+<node index="629">
+<node_location>33.606350 3.933637 -45.906384</node_location>
+<node_neighbours>628 630 </node_neighbours>
+</node>
+<node index="630">
+<node_location>34.106350 4.466970 -44.206379</node_location>
+<node_neighbours>629 631 </node_neighbours>
+</node>
+<node index="631">
+<node_location>33.506355 4.133637 -42.906387</node_location>
+<node_neighbours>630 618 </node_neighbours>
+</node>
+<node index="632">
+<node_location>38.656353 0.600304 -49.206379</node_location>
+<node_neighbours>620 627 </node_neighbours>
+</node>
+<node index="633">
+<node_location>33.356350 2.400303 -48.906384</node_location>
+<node_neighbours>628 634 625 </node_neighbours>
+</node>
+<node index="634">
+<node_location>32.556355 2.466970 -48.906384</node_location>
+<node_neighbours>633 613 </node_neighbours>
+</node>
+<node index="635">
+<node_location>36.436352 4.466969 -40.626385</node_location>
+<node_neighbours>636 619 </node_neighbours>
+</node>
+<node index="636">
+<node_location>36.336357 4.933636 -38.226383</node_location>
+<node_neighbours>635 637 </node_neighbours>
+</node>
+<node index="637">
+<node_location>35.756355 5.066969 -36.206383</node_location>
+<node_neighbours>636 647 </node_neighbours>
+</node>
+<node index="638">
+<node_location>37.256359 3.000301 -10.956381</node_location>
+<node_neighbours>639 </node_neighbours>
+</node>
+<node index="639">
+<node_location>37.356354 2.800301 -10.356381</node_location>
+<node_neighbours>638 640 </node_neighbours>
+</node>
+<node index="640">
+<node_location>37.006355 2.866967 -9.956381</node_location>
+<node_neighbours>639 </node_neighbours>
+</node>
+<node index="641">
+<node_location>34.156353 4.000300 -6.606381</node_location>
+<node_neighbours>1090 674 </node_neighbours>
+</node>
+<node index="642">
+<node_location>31.956352 2.666969 -38.806381</node_location>
+<node_neighbours>616 649 </node_neighbours>
+</node>
+<node index="643">
+<node_location>36.839687 3.400302 -29.314716</node_location>
+<node_neighbours>644 </node_neighbours>
+</node>
+<node index="644">
+<node_location>36.139687 4.066969 -30.714714</node_location>
+<node_neighbours>643 645 </node_neighbours>
+</node>
+<node index="645">
+<node_location>36.456356 4.400302 -31.506380</node_location>
+<node_neighbours>644 646 </node_neighbours>
+</node>
+<node index="646">
+<node_location>35.806358 5.000303 -33.131382</node_location>
+<node_neighbours>645 647 </node_neighbours>
+</node>
+<node index="647">
+<node_location>36.306358 5.200302 -34.031384</node_location>
+<node_neighbours>646 637 </node_neighbours>
+</node>
+<node index="648">
+<node_location>31.156353 2.000303 -36.806381</node_location>
+<node_neighbours>868 649 </node_neighbours>
+</node>
+<node index="649">
+<node_location>30.856350 2.200303 -39.306385</node_location>
+<node_neighbours>648 642 </node_neighbours>
+</node>
+<node index="650">
+<node_location>29.106350 1.266970 -41.806381</node_location>
+<node_neighbours>651 </node_neighbours>
+</node>
+<node index="651">
+<node_location>29.256350 0.866970 -43.231384</node_location>
+<node_neighbours>650 652 </node_neighbours>
+</node>
+<node index="652">
+<node_location>29.356350 0.933637 -44.181381</node_location>
+<node_neighbours>651 653 </node_neighbours>
+</node>
+<node index="653">
+<node_location>28.606350 1.200303 -44.856380</node_location>
+<node_neighbours>652 654 604 </node_neighbours>
+</node>
+<node index="654">
+<node_location>27.556353 1.133637 -44.756382</node_location>
+<node_neighbours>653 655 </node_neighbours>
+</node>
+<node index="655">
+<node_location>27.056353 0.866970 -44.156384</node_location>
+<node_neighbours>654 </node_neighbours>
+</node>
+<node index="656">
+<node_location>18.123020 1.866970 -43.939713</node_location>
+<node_neighbours>657 </node_neighbours>
+</node>
+<node index="657">
+<node_location>19.423019 2.000303 -44.739712</node_location>
+<node_neighbours>656 </node_neighbours>
+</node>
+<node index="658">
+<node_location>3.542065 0.266969 -38.349236</node_location>
+<node_neighbours>659 </node_neighbours>
+</node>
+<node index="659">
+<node_location>7.542065 0.333636 -38.949234</node_location>
+<node_neighbours>658 660 </node_neighbours>
+</node>
+<node index="660">
+<node_location>9.896351 0.533636 -39.086380</node_location>
+<node_neighbours>659 661 </node_neighbours>
+</node>
+<node index="661">
+<node_location>11.896351 0.733636 -39.386379</node_location>
+<node_neighbours>660 662 </node_neighbours>
+</node>
+<node index="662">
+<node_location>13.696352 0.666970 -39.386379</node_location>
+<node_neighbours>661 </node_neighbours>
+</node>
+<node index="663">
+<node_location>34.189690 3.533636 -30.239716</node_location>
+<node_neighbours>664 </node_neighbours>
+</node>
+<node index="664">
+<node_location>34.789692 4.133636 -30.839714</node_location>
+<node_neighbours>663 665 </node_neighbours>
+</node>
+<node index="665">
+<node_location>35.323021 4.200303 -30.673048</node_location>
+<node_neighbours>664 666 </node_neighbours>
+</node>
+<node index="666">
+<node_location>36.023022 3.533636 -29.273050</node_location>
+<node_neighbours>665 </node_neighbours>
+</node>
+<node index="667">
+<node_location>36.906357 3.133634 -10.823047</node_location>
+<node_neighbours>668 </node_neighbours>
+</node>
+<node index="668">
+<node_location>36.606354 3.200301 -10.123048</node_location>
+<node_neighbours>667 669 </node_neighbours>
+</node>
+<node index="669">
+<node_location>35.856354 3.533634 -9.173048</node_location>
+<node_neighbours>668 </node_neighbours>
+</node>
+<node index="670">
+<node_location>36.056358 3.333634 -11.373048</node_location>
+<node_neighbours>671 </node_neighbours>
+</node>
+<node index="671">
+<node_location>34.556358 3.466968 -11.673048</node_location>
+<node_neighbours>670 672 </node_neighbours>
+</node>
+<node index="672">
+<node_location>34.656357 3.600301 -10.173048</node_location>
+<node_neighbours>671 673 </node_neighbours>
+</node>
+<node index="673">
+<node_location>33.531357 3.933634 -9.256381</node_location>
+<node_neighbours>672 674 </node_neighbours>
+</node>
+<node index="674">
+<node_location>33.631355 4.066967 -7.056380</node_location>
+<node_neighbours>673 641 </node_neighbours>
+</node>
+<node index="675">
+<node_location>31.566572 2.000302 -27.558611</node_location>
+<node_neighbours>692 691 </node_neighbours>
+</node>
+<node index="676">
+<node_location>31.489857 2.133636 -31.052565</node_location>
+<node_neighbours>691 693 </node_neighbours>
+</node>
+<node index="677">
+<node_location>30.495800 1.866969 -35.560905</node_location>
+<node_neighbours>693 694 </node_neighbours>
+</node>
+<node index="678">
+<node_location>24.460360 1.800303 -42.211987</node_location>
+<node_neighbours>696 695 867 </node_neighbours>
+</node>
+<node index="679">
+<node_location>20.326353 1.466970 -43.036377</node_location>
+<node_neighbours>695 697 </node_neighbours>
+</node>
+<node index="680">
+<node_location>19.248367 1.466970 -41.403198</node_location>
+<node_neighbours>697 698 </node_neighbours>
+</node>
+<node index="681">
+<node_location>17.584385 0.666970 -39.785614</node_location>
+<node_neighbours>698 699 </node_neighbours>
+</node>
+<node index="682">
+<node_location>20.400528 0.266969 -31.248167</node_location>
+<node_neighbours>701 700 </node_neighbours>
+</node>
+<node index="683">
+<node_location>24.129927 0.800302 -22.979971</node_location>
+<node_neighbours>703 702 </node_neighbours>
+</node>
+<node index="684">
+<node_location>26.053522 1.800301 -19.094763</node_location>
+<node_neighbours>702 704 </node_neighbours>
+</node>
+<node index="685">
+<node_location>28.296000 1.666968 -15.148442</node_location>
+<node_neighbours>706 705 </node_neighbours>
+</node>
+<node index="686">
+<node_location>29.334446 1.066967 -12.388494</node_location>
+<node_neighbours>705 687 </node_neighbours>
+</node>
+<node index="687">
+<node_location>30.456669 1.600301 -12.110716</node_location>
+<node_neighbours>686 707 </node_neighbours>
+</node>
+<node index="688">
+<node_location>31.152662 2.333634 -15.255111</node_location>
+<node_neighbours>707 708 </node_neighbours>
+</node>
+<node index="689">
+<node_location>31.270649 2.133635 -18.768295</node_location>
+<node_neighbours>708 709 </node_neighbours>
+</node>
+<node index="690">
+<node_location>31.380625 1.600302 -22.290270</node_location>
+<node_neighbours>711 710 </node_neighbours>
+</node>
+<node index="691">
+<node_location>30.756739 2.333636 -29.594795</node_location>
+<node_neighbours>712 676 675 </node_neighbours>
+</node>
+<node index="692">
+<node_location>30.658827 1.933635 -25.455687</node_location>
+<node_neighbours>710 713 675 </node_neighbours>
+</node>
+<node index="693">
+<node_location>30.595972 2.066969 -32.557087</node_location>
+<node_neighbours>714 677 676 </node_neighbours>
+</node>
+<node index="694">
+<node_location>29.154579 2.066970 -36.519825</node_location>
+<node_neighbours>716 715 677 </node_neighbours>
+</node>
+<node index="695">
+<node_location>21.550358 1.666970 -42.821983</node_location>
+<node_neighbours>717 679 678 </node_neighbours>
+</node>
+<node index="696">
+<node_location>25.560383 2.333637 -40.720013</node_location>
+<node_neighbours>719 718 678 </node_neighbours>
+</node>
+<node index="697">
+<node_location>20.218367 1.666970 -41.533195</node_location>
+<node_neighbours>717 680 679 </node_neighbours>
+</node>
+<node index="698">
+<node_location>19.276400 1.266970 -39.982430</node_location>
+<node_neighbours>720 681 680 </node_neighbours>
+</node>
+<node index="699">
+<node_location>18.570454 0.933636 -38.114086</node_location>
+<node_neighbours>720 701 681 </node_neighbours>
+</node>
+<node index="700">
+<node_location>23.298731 0.266969 -27.253584</node_location>
+<node_neighbours>721 703 682 </node_neighbours>
+</node>
+<node index="701">
+<node_location>19.756594 0.733636 -35.106640</node_location>
+<node_neighbours>699 722 682 </node_neighbours>
+</node>
+<node index="702">
+<node_location>25.288206 1.400302 -21.429466</node_location>
+<node_neighbours>723 684 683 </node_neighbours>
+</node>
+<node index="703">
+<node_location>23.894800 0.400302 -25.452055</node_location>
+<node_neighbours>700 724 683 </node_neighbours>
+</node>
+<node index="704">
+<node_location>27.022465 2.133635 -19.156528</node_location>
+<node_neighbours>726 725 684 </node_neighbours>
+</node>
+<node index="705">
+<node_location>29.340757 1.533634 -13.897223</node_location>
+<node_neighbours>707 686 685 </node_neighbours>
+</node>
+<node index="706">
+<node_location>28.822519 2.266968 -16.772581</node_location>
+<node_neighbours>725 708 685 </node_neighbours>
+</node>
+<node index="707">
+<node_location>30.462976 2.066967 -13.619447</node_location>
+<node_neighbours>705 688 687 </node_neighbours>
+</node>
+<node index="708">
+<node_location>30.556959 2.400301 -17.157026</node_location>
+<node_neighbours>706 689 688 </node_neighbours>
+</node>
+<node index="709">
+<node_location>30.576933 2.200302 -19.518999</node_location>
+<node_neighbours>727 711 689 </node_neighbours>
+</node>
+<node index="710">
+<node_location>30.652882 1.733635 -23.667343</node_location>
+<node_neighbours>728 692 690 </node_neighbours>
+</node>
+<node index="711">
+<node_location>30.566908 1.933635 -20.720974</node_location>
+<node_neighbours>709 729 690 </node_neighbours>
+</node>
+<node index="712">
+<node_location>29.252928 2.333636 -29.293394</node_location>
+<node_neighbours>731 730 691 </node_neighbours>
+</node>
+<node index="713">
+<node_location>29.247080 2.133635 -25.097155</node_location>
+<node_neighbours>728 732 692 </node_neighbours>
+</node>
+<node index="714">
+<node_location>29.258776 2.333636 -32.909634</node_location>
+<node_neighbours>730 716 693 </node_neighbours>
+</node>
+<node index="715">
+<node_location>27.338512 2.533636 -37.721352</node_location>
+<node_neighbours>733 719 694 </node_neighbours>
+</node>
+<node index="716">
+<node_location>28.650719 2.333636 -34.122375</node_location>
+<node_neighbours>714 734 694 </node_neighbours>
+</node>
+<node index="717">
+<node_location>21.442371 1.866970 -41.318802</node_location>
+<node_neighbours>735 697 695 </node_neighbours>
+</node>
+<node index="718">
+<node_location>23.266405 2.733636 -40.712433</node_location>
+<node_neighbours>736 735 696 </node_neighbours>
+</node>
+<node index="719">
+<node_location>26.146425 2.733637 -39.520458</node_location>
+<node_neighbours>715 736 696 </node_neighbours>
+</node>
+<node index="720">
+<node_location>20.262466 1.533636 -38.310902</node_location>
+<node_neighbours>737 699 698 </node_neighbours>
+</node>
+<node index="721">
+<node_location>24.450869 1.000302 -29.910528</node_location>
+<node_neighbours>739 738 700 </node_neighbours>
+</node>
+<node index="722">
+<node_location>22.050720 0.933636 -32.902370</node_location>
+<node_neighbours>740 739 701 </node_neighbours>
+</node>
+<node index="723">
+<node_location>26.253122 1.600302 -22.697599</node_location>
+<node_neighbours>724 726 702 </node_neighbours>
+</node>
+<node index="724">
+<node_location>25.643049 1.000302 -25.103523</node_location>
+<node_neighbours>741 723 703 </node_neighbours>
+</node>
+<node index="725">
+<node_location>28.218485 2.333635 -18.558950</node_location>
+<node_neighbours>727 706 704 </node_neighbours>
+</node>
+<node index="726">
+<node_location>27.465158 2.200302 -21.502443</node_location>
+<node_neighbours>723 742 704 </node_neighbours>
+</node>
+<node index="727">
+<node_location>29.259214 2.533635 -19.694099</node_location>
+<node_neighbours>725 729 709 </node_neighbours>
+</node>
+<node index="728">
+<node_location>29.241133 1.933635 -23.308813</node_location>
+<node_neighbours>742 713 710 </node_neighbours>
+</node>
+<node index="729">
+<node_location>29.249189 2.266968 -20.896074</node_location>
+<node_neighbours>727 742 711 </node_neighbours>
+</node>
+<node index="730">
+<node_location>28.648848 2.400302 -31.103712</node_location>
+<node_neighbours>743 714 712 </node_neighbours>
+</node>
+<node index="731">
+<node_location>28.658970 2.133636 -28.093840</node_location>
+<node_neighbours>732 744 712 </node_neighbours>
+</node>
+<node index="732">
+<node_location>28.661036 2.133635 -26.296709</node_location>
+<node_neighbours>741 731 713 </node_neighbours>
+</node>
+<node index="733">
+<node_location>25.632591 2.933636 -36.521034</node_location>
+<node_neighbours>746 745 715 </node_neighbours>
+</node>
+<node index="734">
+<node_location>27.446739 2.533636 -33.524796</node_location>
+<node_neighbours>743 746 716 </node_neighbours>
+</node>
+<node index="735">
+<node_location>22.058392 2.400303 -40.701221</node_location>
+<node_neighbours>718 747 717 </node_neighbours>
+</node>
+<node index="736">
+<node_location>23.852448 3.133636 -39.512878</node_location>
+<node_neighbours>719 748 718 </node_neighbours>
+</node>
+<node index="737">
+<node_location>21.450478 2.266969 -38.302116</node_location>
+<node_neighbours>747 749 720 </node_neighbours>
+</node>
+<node index="738">
+<node_location>26.252882 1.600302 -29.917343</node_location>
+<node_neighbours>743 744 721 </node_neighbours>
+</node>
+<node index="739">
+<node_location>23.846790 1.200302 -31.700844</node_location>
+<node_neighbours>722 750 721 </node_neighbours>
+</node>
+<node index="740">
+<node_location>22.056618 1.733636 -35.314659</node_location>
+<node_neighbours>749 751 722 </node_neighbours>
+</node>
+<node index="741">
+<node_location>26.859018 1.400302 -26.309893</node_location>
+<node_neighbours>744 732 724 </node_neighbours>
+</node>
+<node index="742">
+<node_location>28.651152 2.133635 -22.106840</node_location>
+<node_neighbours>728 729 726 </node_neighbours>
+</node>
+<node index="743">
+<node_location>27.450819 2.400302 -31.714476</node_location>
+<node_neighbours>738 734 730 </node_neighbours>
+</node>
+<node index="744">
+<node_location>26.856958 1.400302 -28.107027</node_location>
+<node_neighbours>741 738 731 </node_neighbours>
+</node>
+<node index="745">
+<node_location>23.836521 3.133636 -37.702560</node_location>
+<node_neighbours>752 748 733 </node_neighbours>
+</node>
+<node index="746">
+<node_location>26.244677 2.666970 -34.721928</node_location>
+<node_neighbours>734 750 733 </node_neighbours>
+</node>
+<node index="747">
+<node_location>22.050430 2.733636 -39.486061</node_location>
+<node_neighbours>748 737 735 </node_neighbours>
+</node>
+<node index="748">
+<node_location>23.248466 3.133636 -38.895298</node_location>
+<node_neighbours>745 747 736 </node_neighbours>
+</node>
+<node index="749">
+<node_location>22.058535 2.466969 -37.109375</node_location>
+<node_neighbours>752 740 737 </node_neighbours>
+</node>
+<node index="750">
+<node_location>24.446693 2.133636 -34.108746</node_location>
+<node_neighbours>751 746 739 </node_neighbours>
+</node>
+<node index="751">
+<node_location>23.244629 2.200303 -35.305870</node_location>
+<node_neighbours>752 750 740 </node_neighbours>
+</node>
+<node index="752">
+<node_location>23.246546 2.933636 -37.100586</node_location>
+<node_neighbours>751 749 745 </node_neighbours>
+</node>
+<node index="753">
+<node_location>33.389687 2.733635 -29.939714</node_location>
+<node_neighbours>754 </node_neighbours>
+</node>
+<node index="754">
+<node_location>34.123020 3.266969 -29.673048</node_location>
+<node_neighbours>753 755 </node_neighbours>
+</node>
+<node index="755">
+<node_location>34.889687 3.400303 -29.139715</node_location>
+<node_neighbours>754 756 </node_neighbours>
+</node>
+<node index="756">
+<node_location>35.956356 3.200302 -28.606384</node_location>
+<node_neighbours>755 </node_neighbours>
+</node>
+<node index="757">
+<node_location>28.706360 -0.266367 -1.014712</node_location>
+<node_neighbours>772 </node_neighbours>
+</node>
+<node index="758">
+<node_location>26.096359 -1.066367 1.408623</node_location>
+<node_neighbours>772 773 </node_neighbours>
+</node>
+<node index="759">
+<node_location>22.960363 -0.733034 4.338017</node_location>
+<node_neighbours>773 774 </node_neighbours>
+</node>
+<node index="760">
+<node_location>18.614391 0.000299 7.869386</node_location>
+<node_neighbours>776 775 </node_neighbours>
+</node>
+<node index="761">
+<node_location>16.735411 -0.733034 9.629465</node_location>
+<node_neighbours>778 777 </node_neighbours>
+</node>
+<node index="762">
+<node_location>13.408493 0.400299 13.361677</node_location>
+<node_neighbours>780 779 </node_neighbours>
+</node>
+<node index="763">
+<node_location>9.981358 1.266965 15.506122</node_location>
+<node_neighbours>764 </node_neighbours>
+</node>
+<node index="764">
+<node_location>11.224214 1.533632 15.820407</node_location>
+<node_neighbours>763 779 </node_neighbours>
+</node>
+<node index="765">
+<node_location>15.652497 1.200299 16.491072</node_location>
+<node_neighbours>782 781 </node_neighbours>
+</node>
+<node index="766">
+<node_location>19.740227 0.666965 16.712828</node_location>
+<node_neighbours>783 767 </node_neighbours>
+</node>
+<node index="767">
+<node_location>20.883083 1.000299 16.827112</node_location>
+<node_neighbours>766 768 </node_neighbours>
+</node>
+<node index="768">
+<node_location>22.354513 1.400299 16.784256</node_location>
+<node_neighbours>767 769 </node_neighbours>
+</node>
+<node index="769">
+<node_location>23.554512 0.933632 15.567589</node_location>
+<node_neighbours>768 784 </node_neighbours>
+</node>
+<node index="770">
+<node_location>24.912428 -0.599701 10.976816</node_location>
+<node_neighbours>786 785 </node_neighbours>
+</node>
+<node index="771">
+<node_location>27.300385 -0.666367 5.314990</node_location>
+<node_neighbours>788 787 </node_neighbours>
+</node>
+<node index="772">
+<node_location>27.496359 -0.733034 0.975289</node_location>
+<node_neighbours>787 758 757 </node_neighbours>
+</node>
+<node index="773">
+<node_location>25.150366 -1.199700 3.228017</node_location>
+<node_neighbours>789 759 758 </node_neighbours>
+</node>
+<node index="774">
+<node_location>22.266384 -0.333034 5.995596</node_location>
+<node_neighbours>791 790 759 </node_neighbours>
+</node>
+<node index="775">
+<node_location>18.412449 -0.466368 9.172124</node_location>
+<node_neighbours>792 778 760 </node_neighbours>
+</node>
+<node index="776">
+<node_location>20.460434 -0.066367 7.803938</node_location>
+<node_neighbours>790 793 760 </node_neighbours>
+</node>
+<node index="777">
+<node_location>16.793491 -0.733034 10.759178</node_location>
+<node_neighbours>794 780 761 </node_neighbours>
+</node>
+<node index="778">
+<node_location>17.808468 -0.799701 9.769704</node_location>
+<node_neighbours>775 794 761 </node_neighbours>
+</node>
+<node index="779">
+<node_location>12.526349 1.400299 15.613462</node_location>
+<node_neighbours>782 764 762 </node_neighbours>
+</node>
+<node index="780">
+<node_location>15.591575 0.133632 12.553889</node_location>
+<node_neighbours>777 795 762 </node_neighbours>
+</node>
+<node index="781">
+<node_location>17.017723 0.466965 14.981499</node_location>
+<node_neighbours>795 796 765 </node_neighbours>
+</node>
+<node index="782">
+<node_location>14.097488 1.466965 15.998411</node_location>
+<node_neighbours>779 795 765 </node_neighbours>
+</node>
+<node index="783">
+<node_location>19.413742 0.333632 14.979077</node_location>
+<node_neighbours>796 797 766 </node_neighbours>
+</node>
+<node index="784">
+<node_location>22.350603 0.200299 13.861092</node_location>
+<node_neighbours>797 786 769 </node_neighbours>
+</node>
+<node index="785">
+<node_location>24.602474 -0.999701 9.187431</node_location>
+<node_neighbours>798 788 770 </node_neighbours>
+</node>
+<node index="786">
+<node_location>22.958519 -0.333034 12.061986</node_location>
+<node_neighbours>784 799 770 </node_neighbours>
+</node>
+<node index="787">
+<node_location>27.140387 -0.733034 3.396657</node_location>
+<node_neighbours>789 772 771 </node_neighbours>
+</node>
+<node index="788">
+<node_location>25.790436 -0.866367 7.992272</node_location>
+<node_neighbours>785 800 771 </node_neighbours>
+</node>
+<node index="789">
+<node_location>25.644394 -0.999701 4.874386</node_location>
+<node_neighbours>787 801 773 </node_neighbours>
+</node>
+<node index="790">
+<node_location>21.658421 -0.066367 7.210754</node_location>
+<node_neighbours>802 776 774 </node_neighbours>
+</node>
+<node index="791">
+<node_location>23.866407 -0.666367 6.087570</node_location>
+<node_neighbours>801 803 774 </node_neighbours>
+</node>
+<node index="792">
+<node_location>19.654510 -0.799701 9.704258</node_location>
+<node_neighbours>793 804 775 </node_neighbours>
+</node>
+<node index="793">
+<node_location>20.852495 -0.533034 9.111073</node_location>
+<node_neighbours>805 792 776 </node_neighbours>
+</node>
+<node index="794">
+<node_location>17.866550 -0.799701 10.899416</node_location>
+<node_neighbours>778 806 777 </node_neighbours>
+</node>
+<node index="795">
+<node_location>15.462714 0.733632 14.488839</node_location>
+<node_neighbours>781 782 780 </node_neighbours>
+</node>
+<node index="796">
+<node_location>18.223669 0.133632 13.793157</node_location>
+<node_neighbours>806 783 781 </node_neighbours>
+</node>
+<node index="797">
+<node_location>20.252689 0.066965 13.286865</node_location>
+<node_neighbours>807 784 783 </node_neighbours>
+</node>
+<node index="798">
+<node_location>23.248516 -0.799701 9.088651</node_location>
+<node_neighbours>805 802 785 </node_neighbours>
+</node>
+<node index="799">
+<node_location>21.450577 -0.799701 10.885786</node_location>
+<node_neighbours>804 805 786 </node_neighbours>
+</node>
+<node index="800">
+<node_location>25.040462 -0.799701 7.275912</node_location>
+<node_neighbours>803 801 788 </node_neighbours>
+</node>
+<node index="801">
+<node_location>25.054419 -0.866367 6.076359</node_location>
+<node_neighbours>800 791 789 </node_neighbours>
+</node>
+<node index="802">
+<node_location>23.248470 -0.466367 7.904702</node_location>
+<node_neighbours>803 798 790 </node_neighbours>
+</node>
+<node index="803">
+<node_location>23.852451 -0.599701 7.287123</node_location>
+<node_neighbours>800 802 791 </node_neighbours>
+</node>
+<node index="804">
+<node_location>20.242567 -0.799701 10.896996</node_location>
+<node_neighbours>799 807 792 </node_neighbours>
+</node>
+<node index="805">
+<node_location>22.050529 -0.866368 9.701837</node_location>
+<node_neighbours>798 799 793 </node_neighbours>
+</node>
+<node index="806">
+<node_location>18.464584 -0.466368 11.510180</node_location>
+<node_neighbours>807 796 794 </node_neighbours>
+</node>
+<node index="807">
+<node_location>19.652594 -0.466368 11.498970</node_location>
+<node_neighbours>806 804 797 </node_neighbours>
+</node>
+<node index="808">
+<node_location>35.406357 3.533634 -12.006381</node_location>
+<node_neighbours>809 </node_neighbours>
+</node>
+<node index="809">
+<node_location>33.906357 3.666968 -12.306382</node_location>
+<node_neighbours>808 810 </node_neighbours>
+</node>
+<node index="810">
+<node_location>33.006359 3.200301 -12.506381</node_location>
+<node_neighbours>809 </node_neighbours>
+</node>
+<node index="811">
+<node_location>26.856356 1.133637 -43.006382</node_location>
+<node_neighbours>812 867 </node_neighbours>
+</node>
+<node index="812">
+<node_location>27.906353 1.200303 -42.356380</node_location>
+<node_neighbours>811 </node_neighbours>
+</node>
+<node index="813">
+<node_location>39.156353 1.466968 -25.506382</node_location>
+<node_neighbours>814 821 </node_neighbours>
+</node>
+<node index="814">
+<node_location>39.456352 1.066968 -24.246384</node_location>
+<node_neighbours>813 </node_neighbours>
+</node>
+<node index="815">
+<node_location>16.976353 0.733636 -41.086380</node_location>
+<node_neighbours>816 </node_neighbours>
+</node>
+<node index="816">
+<node_location>18.056353 1.133636 -42.106380</node_location>
+<node_neighbours>815 817 </node_neighbours>
+</node>
+<node index="817">
+<node_location>18.703020 1.400303 -42.859711</node_location>
+<node_neighbours>816 818 </node_neighbours>
+</node>
+<node index="818">
+<node_location>20.003021 1.533637 -43.659710</node_location>
+<node_neighbours>817 </node_neighbours>
+</node>
+<node index="819">
+<node_location>37.896355 2.466969 -27.226381</node_location>
+<node_neighbours>820 </node_neighbours>
+</node>
+<node index="820">
+<node_location>38.316353 2.066969 -25.786381</node_location>
+<node_neighbours>819 821 </node_neighbours>
+</node>
+<node index="821">
+<node_location>38.876354 1.533635 -23.866383</node_location>
+<node_neighbours>820 813 </node_neighbours>
+</node>
+<node index="822">
+<node_location>33.379688 2.533635 -29.049715</node_location>
+<node_neighbours>836 823 </node_neighbours>
+</node>
+<node index="823">
+<node_location>32.756355 1.933635 -27.576384</node_location>
+<node_neighbours>822 837 </node_neighbours>
+</node>
+<node index="824">
+<node_location>32.576408 1.600302 -21.692430</node_location>
+<node_neighbours>839 838 </node_neighbours>
+</node>
+<node index="825">
+<node_location>32.458420 2.066968 -18.759247</node_location>
+<node_neighbours>838 826 </node_neighbours>
+</node>
+<node index="826">
+<node_location>32.338421 2.400301 -16.439247</node_location>
+<node_neighbours>825 827 </node_neighbours>
+</node>
+<node index="827">
+<node_location>33.198421 2.933635 -14.499248</node_location>
+<node_neighbours>826 840 </node_neighbours>
+</node>
+<node index="828">
+<node_location>36.306435 3.133634 -14.110459</node_location>
+<node_neighbours>840 829 </node_neighbours>
+</node>
+<node index="829">
+<node_location>37.956432 2.333634 -14.210459</node_location>
+<node_neighbours>828 830 </node_neighbours>
+</node>
+<node index="830">
+<node_location>38.656429 1.733635 -17.210461</node_location>
+<node_neighbours>829 841 </node_neighbours>
+</node>
+<node index="831">
+<node_location>37.778393 1.800302 -22.061222</node_location>
+<node_neighbours>841 842 </node_neighbours>
+</node>
+<node index="832">
+<node_location>37.810383 2.200302 -24.590014</node_location>
+<node_neighbours>842 843 </node_neighbours>
+</node>
+<node index="833">
+<node_location>36.800362 2.666969 -27.231989</node_location>
+<node_neighbours>844 834 </node_neighbours>
+</node>
+<node index="834">
+<node_location>36.127026 2.866969 -27.978655</node_location>
+<node_neighbours>833 835 </node_neighbours>
+</node>
+<node index="835">
+<node_location>35.060360 3.066969 -28.511986</node_location>
+<node_neighbours>834 836 </node_neighbours>
+</node>
+<node index="836">
+<node_location>34.283695 2.733636 -28.155319</node_location>
+<node_neighbours>835 845 822 </node_neighbours>
+</node>
+<node index="837">
+<node_location>33.648369 2.133635 -26.073195</node_location>
+<node_neighbours>845 846 823 </node_neighbours>
+</node>
+<node index="838">
+<node_location>32.958466 1.933635 -19.525297</node_location>
+<node_neighbours>847 825 824 </node_neighbours>
+</node>
+<node index="839">
+<node_location>33.658443 2.066968 -22.467272</node_location>
+<node_neighbours>846 848 824 </node_neighbours>
+</node>
+<node index="840">
+<node_location>34.998497 3.000301 -16.403326</node_location>
+<node_neighbours>847 828 827 </node_neighbours>
+</node>
+<node index="841">
+<node_location>37.258469 2.200302 -20.405300</node_location>
+<node_neighbours>848 831 830 </node_neighbours>
+</node>
+<node index="842">
+<node_location>36.972424 2.266968 -23.164856</node_location>
+<node_neighbours>849 832 831 </node_neighbours>
+</node>
+<node index="843">
+<node_location>36.682396 2.600302 -25.326828</node_location>
+<node_neighbours>849 844 832 </node_neighbours>
+</node>
+<node index="844">
+<node_location>36.092373 2.666969 -26.528803</node_location>
+<node_neighbours>843 845 833 </node_neighbours>
+</node>
+<node index="845">
+<node_location>34.642376 2.533636 -26.918800</node_location>
+<node_neighbours>844 837 836 </node_neighbours>
+</node>
+<node index="846">
+<node_location>34.260410 2.333635 -24.258039</node_location>
+<node_neighbours>849 839 837 </node_neighbours>
+</node>
+<node index="847">
+<node_location>34.638542 2.333635 -19.109377</node_location>
+<node_neighbours>848 840 838 </node_neighbours>
+</node>
+<node index="848">
+<node_location>35.248520 2.466968 -20.311352</node_location>
+<node_neighbours>841 847 839 </node_neighbours>
+</node>
+<node index="849">
+<node_location>35.844440 2.666969 -23.901672</node_location>
+<node_neighbours>846 843 842 </node_neighbours>
+</node>
+<node index="850">
+<node_location>27.675110 -0.533033 -0.968878</node_location>
+<node_neighbours>851 </node_neighbours>
+</node>
+<node index="851">
+<node_location>25.975109 -1.066367 0.581122</node_location>
+<node_neighbours>850 852 </node_neighbours>
+</node>
+<node index="852">
+<node_location>24.606359 -1.133034 1.743622</node_location>
+<node_neighbours>851 853 </node_neighbours>
+</node>
+<node index="853">
+<node_location>22.831358 -0.666367 3.293622</node_location>
+<node_neighbours>852 854 </node_neighbours>
+</node>
+<node index="854">
+<node_location>21.650106 -0.266367 4.456121</node_location>
+<node_neighbours>853 855 </node_neighbours>
+</node>
+<node index="855">
+<node_location>19.356358 0.266966 6.393621</node_location>
+<node_neighbours>854 856 </node_neighbours>
+</node>
+<node index="856">
+<node_location>18.212608 0.133633 7.556123</node_location>
+<node_neighbours>855 857 </node_neighbours>
+</node>
+<node index="857">
+<node_location>16.937607 -0.266367 8.718622</node_location>
+<node_neighbours>856 858 </node_neighbours>
+</node>
+<node index="858">
+<node_location>16.306356 -0.533034 9.106122</node_location>
+<node_neighbours>857 859 </node_neighbours>
+</node>
+<node index="859">
+<node_location>13.925107 -0.399701 11.431123</node_location>
+<node_neighbours>858 860 </node_neighbours>
+</node>
+<node index="860">
+<node_location>11.800107 0.333632 13.368623</node_location>
+<node_neighbours>859 861 </node_neighbours>
+</node>
+<node index="861">
+<node_location>11.075107 0.400299 13.756122</node_location>
+<node_neighbours>860 </node_neighbours>
+</node>
+<node index="862">
+<node_location>1.542065 0.533636 -38.849236</node_location>
+<node_neighbours>863 </node_neighbours>
+</node>
+<node index="863">
+<node_location>2.942065 0.600303 -39.649235</node_location>
+<node_neighbours>862 864 </node_neighbours>
+</node>
+<node index="864">
+<node_location>4.942066 0.400303 -39.649235</node_location>
+<node_neighbours>863 865 </node_neighbours>
+</node>
+<node index="865">
+<node_location>7.442066 0.533636 -39.649235</node_location>
+<node_neighbours>864 866 </node_neighbours>
+</node>
+<node index="866">
+<node_location>8.542065 0.533636 -39.449234</node_location>
+<node_neighbours>865 </node_neighbours>
+</node>
+<node index="867">
+<node_location>25.156353 1.400303 -43.006382</node_location>
+<node_neighbours>811 678 </node_neighbours>
+</node>
+<node index="868">
+<node_location>31.189684 1.800303 -34.856384</node_location>
+<node_neighbours>648 869 </node_neighbours>
+</node>
+<node index="869">
+<node_location>32.189686 1.866969 -31.556379</node_location>
+<node_neighbours>868 </node_neighbours>
+</node>
+<node index="870">
+<node_location>3.354409 0.200303 -37.003643</node_location>
+<node_neighbours>902 871 </node_neighbours>
+</node>
+<node index="871">
+<node_location>0.528602 0.133636 -36.100414</node_location>
+<node_neighbours>870 903 </node_neighbours>
+</node>
+<node index="872">
+<node_location>0.217463 0.133636 -32.488403</node_location>
+<node_neighbours>903 904 </node_neighbours>
+</node>
+<node index="873">
+<node_location>-0.079718 0.800302 -29.475948</node_location>
+<node_neighbours>904 874 </node_neighbours>
+</node>
+<node index="874">
+<node_location>0.068668 1.266969 -28.269497</node_location>
+<node_neighbours>873 905 </node_neighbours>
+</node>
+<node index="875">
+<node_location>0.893360 1.266968 -25.258736</node_location>
+<node_neighbours>905 906 </node_neighbours>
+</node>
+<node index="876">
+<node_location>1.192246 1.133635 -21.644753</node_location>
+<node_neighbours>908 907 </node_neighbours>
+</node>
+<node index="877">
+<node_location>1.410943 0.933635 -18.629599</node_location>
+<node_neighbours>907 878 </node_neighbours>
+</node>
+<node index="878">
+<node_location>1.633524 0.600301 -16.819920</node_location>
+<node_neighbours>877 909 </node_neighbours>
+</node>
+<node index="879">
+<node_location>2.524496 0.333634 -12.606829</node_location>
+<node_neighbours>909 910 </node_neighbours>
+</node>
+<node index="880">
+<node_location>2.827410 0.800301 -9.006474</node_location>
+<node_neighbours>910 911 </node_neighbours>
+</node>
+<node index="881">
+<node_location>3.202648 0.533634 -3.584234</node_location>
+<node_neighbours>913 912 </node_neighbours>
+</node>
+<node index="882">
+<node_location>3.712126 0.400300 1.828218</node_location>
+<node_neighbours>912 914 </node_neighbours>
+</node>
+<node index="883">
+<node_location>4.097194 0.400299 6.056638</node_location>
+<node_neighbours>914 915 </node_neighbours>
+</node>
+<node index="884">
+<node_location>5.519824 -0.066367 8.470263</node_location>
+<node_neighbours>917 916 </node_neighbours>
+</node>
+<node index="885">
+<node_location>5.876884 0.066966 13.869897</node_location>
+<node_neighbours>919 918 </node_neighbours>
+</node>
+<node index="886">
+<node_location>6.282163 1.266965 16.890400</node_location>
+<node_neighbours>918 </node_neighbours>
+</node>
+<node index="887">
+<node_location>11.282573 -0.333034 11.962153</node_location>
+<node_neighbours>921 920 </node_neighbours>
+</node>
+<node index="888">
+<node_location>16.776783 -0.133034 8.034493</node_location>
+<node_neighbours>922 889 </node_neighbours>
+</node>
+<node index="889">
+<node_location>18.551785 0.266966 6.484493</node_location>
+<node_neighbours>888 923 </node_neighbours>
+</node>
+<node index="890">
+<node_location>21.528652 -0.266367 3.135833</node_location>
+<node_neighbours>925 924 </node_neighbours>
+</node>
+<node index="891">
+<node_location>23.897659 -1.066367 1.590228</node_location>
+<node_neighbours>924 926 </node_neighbours>
+</node>
+<node index="892">
+<node_location>27.334301 -0.466367 -1.548355</node_location>
+<node_neighbours>928 927 </node_neighbours>
+</node>
+<node index="893">
+<node_location>29.251348 0.666967 -6.011044</node_location>
+<node_neighbours>927 894 </node_neighbours>
+</node>
+<node index="894">
+<node_location>29.251348 0.866967 -8.511045</node_location>
+<node_neighbours>893 929 </node_neighbours>
+</node>
+<node index="895">
+<node_location>28.742985 0.733634 -11.776271</node_location>
+<node_neighbours>929 930 </node_neighbours>
+</node>
+<node index="896">
+<node_location>26.498402 1.000301 -15.143670</node_location>
+<node_neighbours>930 931 </node_neighbours>
+</node>
+<node index="897">
+<node_location>25.451887 1.333635 -17.896360</node_location>
+<node_neighbours>931 932 </node_neighbours>
+</node>
+<node index="898">
+<node_location>23.542210 0.733635 -21.785070</node_location>
+<node_neighbours>932 933 </node_neighbours>
+</node>
+<node index="899">
+<node_location>18.008438 0.266969 -33.047272</node_location>
+<node_neighbours>935 934 </node_neighbours>
+</node>
+<node index="900">
+<node_location>13.898391 0.400303 -38.381222</node_location>
+<node_neighbours>934 936 </node_neighbours>
+</node>
+<node index="901">
+<node_location>9.796425 0.266969 -37.490456</node_location>
+<node_neighbours>936 937 </node_neighbours>
+</node>
+<node index="902">
+<node_location>6.046473 0.000303 -35.996510</node_location>
+<node_neighbours>937 938 870 </node_neighbours>
+</node>
+<node index="903">
+<node_location>2.018746 0.066969 -33.898571</node_location>
+<node_neighbours>939 872 871 </node_neighbours>
+</node>
+<node index="904">
+<node_location>1.039458 0.400302 -30.290230</node_location>
+<node_neighbours>940 873 872 </node_neighbours>
+</node>
+<node index="905">
+<node_location>1.195999 1.266969 -27.283142</node_location>
+<node_neighbours>941 875 874 </node_neighbours>
+</node>
+<node index="906">
+<node_location>1.954556 1.133635 -24.282873</node_location>
+<node_neighbours>942 908 875 </node_neighbours>
+</node>
+<node index="907">
+<node_location>2.095223 1.133635 -20.061523</node_location>
+<node_neighbours>943 877 876 </node_neighbours>
+</node>
+<node index="908">
+<node_location>1.956667 1.133635 -23.081793</node_location>
+<node_neighbours>906 944 876 </node_neighbours>
+</node>
+<node index="909">
+<node_location>2.908118 0.533634 -15.246180</node_location>
+<node_neighbours>945 879 878 </node_neighbours>
+</node>
+<node index="910">
+<node_location>3.656842 0.666967 -11.052089</node_location>
+<node_neighbours>946 880 879 </node_neighbours>
+</node>
+<node index="911">
+<node_location>4.413578 1.266967 -6.849208</node_location>
+<node_neighbours>947 913 880 </node_neighbours>
+</node>
+<node index="912">
+<node_location>4.032612 0.400300 -0.846416</node_location>
+<node_neighbours>948 882 881 </node_neighbours>
+</node>
+<node index="913">
+<node_location>4.417848 1.000300 -4.443097</node_location>
+<node_neighbours>911 949 881 </node_neighbours>
+</node>
+<node index="914">
+<node_location>4.333609 0.466966 3.968651</node_location>
+<node_neighbours>950 883 882 </node_neighbours>
+</node>
+<node index="915">
+<node_location>5.015909 0.466966 5.788562</node_location>
+<node_neighbours>951 917 883 </node_neighbours>
+</node>
+<node index="916">
+<node_location>7.572451 -0.466368 9.395650</node_location>
+<node_neighbours>952 919 884 </node_neighbours>
+</node>
+<node index="917">
+<node_location>6.215958 0.466966 6.392510</node_location>
+<node_neighbours>915 953 884 </node_neighbours>
+</node>
+<node index="918">
+<node_location>7.273658 0.666965 15.382798</node_location>
+<node_neighbours>921 886 885 </node_neighbours>
+</node>
+<node index="919">
+<node_location>7.558543 -0.599701 11.779153</node_location>
+<node_neighbours>916 921 885 </node_neighbours>
+</node>
+<node index="920">
+<node_location>12.375985 -0.399701 8.959841</node_location>
+<node_neighbours>952 954 887 </node_neighbours>
+</node>
+<node index="921">
+<node_location>8.955317 0.000299 13.292054</node_location>
+<node_neighbours>918 919 887 </node_neighbours>
+</node>
+<node index="922">
+<node_location>15.979918 0.133633 7.138311</node_location>
+<node_neighbours>954 923 888 </node_neighbours>
+</node>
+<node index="923">
+<node_location>17.754917 0.533633 5.588310</node_location>
+<node_neighbours>922 925 889 </node_neighbours>
+</node>
+<node index="924">
+<node_location>22.226208 -0.733034 1.819940</node_location>
+<node_neighbours>955 891 890 </node_neighbours>
+</node>
+<node index="925">
+<node_location>18.956787 0.400300 3.789651</node_location>
+<node_neighbours>923 956 890 </node_neighbours>
+</node>
+<node index="926">
+<node_location>23.717590 -1.199700 -0.140537</node_location>
+<node_neighbours>957 928 891 </node_neighbours>
+</node>
+<node index="927">
+<node_location>28.060543 0.066967 -4.315520</node_location>
+<node_neighbours>958 893 892 </node_neighbours>
+</node>
+<node index="928">
+<node_location>24.935482 -0.999700 -1.341620</node_location>
+<node_neighbours>926 959 892 </node_neighbours>
+</node>
+<node index="929">
+<node_location>28.660202 0.600301 -9.803159</node_location>
+<node_neighbours>960 895 894 </node_neighbours>
+</node>
+<node index="930">
+<node_location>26.951694 0.533634 -13.280229</node_location>
+<node_neighbours>961 896 895 </node_neighbours>
+</node>
+<node index="931">
+<node_location>25.227268 0.933634 -16.166986</node_location>
+<node_neighbours>962 897 896 </node_neighbours>
+</node>
+<node index="932">
+<node_location>24.098856 0.866968 -19.036163</node_location>
+<node_neighbours>963 898 897 </node_neighbours>
+</node>
+<node index="933">
+<node_location>20.907270 0.133635 -23.061361</node_location>
+<node_neighbours>965 964 898 </node_neighbours>
+</node>
+<node index="934">
+<node_location>14.960479 0.200303 -36.892113</node_location>
+<node_neighbours>966 900 899 </node_neighbours>
+</node>
+<node index="935">
+<node_location>17.916571 0.066969 -30.838610</node_location>
+<node_neighbours>964 967 899 </node_neighbours>
+</node>
+<node index="936">
+<node_location>11.998464 0.200303 -36.785301</node_location>
+<node_neighbours>968 901 900 </node_neighbours>
+</node>
+<node index="937">
+<node_location>7.848487 -0.133031 -36.003326</node_location>
+<node_neighbours>969 902 901 </node_neighbours>
+</node>
+<node index="938">
+<node_location>5.844676 0.000302 -32.901928</node_location>
+<node_neighbours>970 939 902 </node_neighbours>
+</node>
+<node index="939">
+<node_location>4.642756 0.133636 -31.707214</node_location>
+<node_neighbours>938 971 903 </node_neighbours>
+</node>
+<node index="940">
+<node_location>2.840934 0.533635 -29.304602</node_location>
+<node_neighbours>971 941 904 </node_neighbours>
+</node>
+<node index="941">
+<node_location>2.849088 0.933635 -27.503967</node_location>
+<node_neighbours>940 972 905 </node_neighbours>
+</node>
+<node index="942">
+<node_location>3.453310 1.400302 -25.101805</node_location>
+<node_neighbours>972 973 906 </node_neighbours>
+</node>
+<node index="943">
+<node_location>3.443818 1.333635 -19.700348</node_location>
+<node_neighbours>975 974 907 </node_neighbours>
+</node>
+<node index="944">
+<node_location>3.457533 1.533635 -22.699644</node_location>
+<node_neighbours>973 975 908 </node_neighbours>
+</node>
+<node index="945">
+<node_location>4.652262 1.000301 -15.496023</node_location>
+<node_neighbours>974 976 909 </node_neighbours>
+</node>
+<node index="946">
+<node_location>6.436677 1.333634 -11.898067</node_location>
+<node_neighbours>976 977 910 </node_neighbours>
+</node>
+<node index="947">
+<node_location>6.449296 1.600300 -6.495527</node_location>
+<node_neighbours>979 978 911 </node_neighbours>
+</node>
+<node index="948">
+<node_location>5.243879 0.866967 -1.103750</node_location>
+<node_neighbours>949 980 912 </node_neighbours>
+</node>
+<node index="949">
+<node_location>5.851696 1.266967 -2.890755</node_location>
+<node_neighbours>981 948 913 </node_neighbours>
+</node>
+<node index="950">
+<node_location>5.252275 0.733633 3.096626</node_location>
+<node_neighbours>980 951 914 </node_neighbours>
+</node>
+<node index="951">
+<node_location>5.860383 0.800300 4.313312</node_location>
+<node_neighbours>950 982 915 </node_neighbours>
+</node>
+<node index="952">
+<node_location>10.062638 0.066966 7.906238</node_location>
+<node_neighbours>983 920 916 </node_neighbours>
+</node>
+<node index="953">
+<node_location>7.654484 0.600299 5.505603</node_location>
+<node_neighbours>982 984 917 </node_neighbours>
+</node>
+<node index="954">
+<node_location>14.177903 0.266966 7.145126</node_location>
+<node_neighbours>985 922 920 </node_neighbours>
+</node>
+<node index="955">
+<node_location>21.452131 -0.533033 0.084780</node_location>
+<node_neighbours>986 957 924 </node_neighbours>
+</node>
+<node index="956">
+<node_location>17.258320 0.533633 2.476180</node_location>
+<node_neighbours>988 987 925 </node_neighbours>
+</node>
+<node index="957">
+<node_location>22.056015 -0.933033 -1.100697</node_location>
+<node_neighbours>955 989 926 </node_neighbours>
+</node>
+<node index="958">
+<node_location>26.263592 0.000300 -5.307446</node_location>
+<node_neighbours>991 990 927 </node_neighbours>
+</node>
+<node index="959">
+<node_location>24.465847 -0.666367 -2.894517</node_location>
+<node_neighbours>992 991 928 </node_neighbours>
+</node>
+<node index="960">
+<node_location>27.465124 0.400301 -9.493744</node_location>
+<node_neighbours>990 993 929 </node_neighbours>
+</node>
+<node index="961">
+<node_location>25.080759 0.333634 -12.507750</node_location>
+<node_neighbours>993 994 930 </node_neighbours>
+</node>
+<node index="962">
+<node_location>23.864353 0.466968 -16.116919</node_location>
+<node_neighbours>995 963 931 </node_neighbours>
+</node>
+<node index="963">
+<node_location>23.258162 0.533635 -17.908318</node_location>
+<node_neighbours>962 996 932 </node_neighbours>
+</node>
+<node index="964">
+<node_location>18.512880 -0.133031 -27.257341</node_location>
+<node_neighbours>997 935 933 </node_neighbours>
+</node>
+<node index="965">
+<node_location>19.057777 -0.133032 -21.519903</node_location>
+<node_neighbours>999 998 933 </node_neighbours>
+</node>
+<node index="966">
+<node_location>13.660599 0.000303 -34.692242</node_location>
+<node_neighbours>967 968 934 </node_neighbours>
+</node>
+<node index="967">
+<node_location>14.266690 -0.133031 -33.488739</node_location>
+<node_neighbours>1000 966 935 </node_neighbours>
+</node>
+<node index="968">
+<node_location>11.858584 -0.199697 -34.705429</node_location>
+<node_neighbours>966 1001 936 </node_neighbours>
+</node>
+<node index="969">
+<node_location>8.240600 -0.199698 -34.112244</node_location>
+<node_neighbours>1002 970 937 </node_neighbours>
+</node>
+<node index="970">
+<node_location>7.038729 0.000302 -32.313583</node_location>
+<node_neighbours>969 1003 938 </node_neighbours>
+</node>
+<node index="971">
+<node_location>4.642949 0.333635 -29.311420</node_location>
+<node_neighbours>1004 940 939 </node_neighbours>
+</node>
+<node index="972">
+<node_location>4.045203 1.200302 -26.298492</node_location>
+<node_neighbours>1005 942 941 </node_neighbours>
+</node>
+<node index="973">
+<node_location>4.049427 1.666968 -23.896330</node_location>
+<node_neighbours>1006 944 942 </node_neighbours>
+</node>
+<node index="974">
+<node_location>4.652071 1.466968 -17.311817</node_location>
+<node_neighbours>1007 945 943 </node_neighbours>
+</node>
+<node index="975">
+<node_location>4.041707 1.733635 -20.901430</node_location>
+<node_neighbours>944 1008 943 </node_neighbours>
+</node>
+<node index="976">
+<node_location>7.048475 1.466968 -13.702651</node_location>
+<node_neighbours>1009 946 945 </node_neighbours>
+</node>
+<node index="977">
+<node_location>8.244832 1.733634 -10.697433</node_location>
+<node_neighbours>1010 979 946 </node_neighbours>
+</node>
+<node index="978">
+<node_location>7.661576 1.733634 -4.100627</node_location>
+<node_neighbours>1011 981 947 </node_neighbours>
+</node>
+<node index="979">
+<node_location>7.649102 1.600300 -8.291321</node_location>
+<node_neighbours>977 1012 947 </node_neighbours>
+</node>
+<node index="980">
+<node_location>5.842059 1.133633 0.698858</node_location>
+<node_neighbours>1013 950 948 </node_neighbours>
+</node>
+<node index="981">
+<node_location>7.059706 1.666967 -2.901967</node_location>
+<node_neighbours>978 1014 949 </node_neighbours>
+</node>
+<node index="982">
+<node_location>7.048394 0.866966 4.302102</node_location>
+<node_neighbours>1015 953 951 </node_neighbours>
+</node>
+<node index="983">
+<node_location>10.062542 0.666966 6.098340</node_location>
+<node_neighbours>984 985 952 </node_neighbours>
+</node>
+<node index="984">
+<node_location>8.862494 0.666966 5.494391</node_location>
+<node_neighbours>1016 983 953 </node_neighbours>
+</node>
+<node index="985">
+<node_location>12.466523 0.866966 5.480761</node_location>
+<node_neighbours>983 1017 954 </node_neighbours>
+</node>
+<node index="986">
+<node_location>19.659996 0.000300 -1.118276</node_location>
+<node_neighbours>987 1018 955 </node_neighbours>
+</node>
+<node index="987">
+<node_location>17.848103 0.333633 0.078412</node_location>
+<node_neighbours>1019 986 956 </node_neighbours>
+</node>
+<node index="988">
+<node_location>13.668344 1.200300 3.078153</node_location>
+<node_neighbours>1017 1020 956 </node_neighbours>
+</node>
+<node index="989">
+<node_location>22.069830 -0.799700 -2.892097</node_location>
+<node_neighbours>1021 992 957 </node_neighbours>
+</node>
+<node index="990">
+<node_location>26.259323 0.266967 -7.693555</node_location>
+<node_neighbours>1022 960 958 </node_neighbours>
+</node>
+<node index="991">
+<node_location>25.067719 -0.199700 -4.093178</node_location>
+<node_neighbours>959 1023 958 </node_neighbours>
+</node>
+<node index="992">
+<node_location>23.261770 -0.733033 -3.484834</node_location>
+<node_neighbours>989 1023 959 </node_neighbours>
+</node>
+<node index="993">
+<node_location>25.676971 0.333634 -10.694378</node_location>
+<node_neighbours>1024 961 960 </node_neighbours>
+</node>
+<node index="994">
+<node_location>22.672604 0.133634 -13.708384</node_location>
+<node_neighbours>1025 995 961 </node_neighbours>
+</node>
+<node index="995">
+<node_location>22.658405 0.200301 -15.508573</node_location>
+<node_neighbours>994 1026 962 </node_neighbours>
+</node>
+<node index="996">
+<node_location>21.454084 0.200301 -18.498634</node_location>
+<node_neighbours>1026 999 963 </node_neighbours>
+</node>
+<node index="997">
+<node_location>14.863095 -0.133031 -28.699575</node_location>
+<node_neighbours>1027 1000 964 </node_neighbours>
+</node>
+<node index="998">
+<node_location>16.661757 -0.266365 -21.517481</node_location>
+<node_neighbours>1029 1028 965 </node_neighbours>
+</node>
+<node index="999">
+<node_location>19.661951 -0.133032 -19.701689</node_location>
+<node_neighbours>996 1030 965 </node_neighbours>
+</node>
+<node index="1000">
+<node_location>13.064820 -0.133031 -31.690081</node_location>
+<node_neighbours>997 1031 967 </node_neighbours>
+</node>
+<node index="1001">
+<node_location>10.662662 -0.199698 -33.515110</node_location>
+<node_neighbours>1032 1002 968 </node_neighbours>
+</node>
+<node index="1002">
+<node_location>9.454652 -0.066364 -33.523903</node_location>
+<node_neighbours>1001 1033 969 </node_neighbours>
+</node>
+<node index="1003">
+<node_location>8.252831 0.066969 -31.121292</node_location>
+<node_neighbours>1033 1034 970 </node_neighbours>
+</node>
+<node index="1004">
+<node_location>5.859113 0.800302 -27.521994</node_location>
+<node_neighbours>1035 1005 971 </node_neighbours>
+</node>
+<node index="1005">
+<node_location>5.253213 1.266969 -26.309704</node_location>
+<node_neighbours>1004 1006 972 </node_neighbours>
+</node>
+<node index="1006">
+<node_location>5.249379 1.733635 -24.500278</node_location>
+<node_neighbours>1005 1036 973 </node_neighbours>
+</node>
+<node index="1007">
+<node_location>6.454085 1.800301 -17.318632</node_location>
+<node_neighbours>1008 1037 974 </node_neighbours>
+</node>
+<node index="1008">
+<node_location>5.839838 1.933635 -19.702768</node_location>
+<node_neighbours>1038 1007 975 </node_neighbours>
+</node>
+<node index="1009">
+<node_location>8.854423 2.066968 -14.310993</node_location>
+<node_neighbours>1037 1039 976 </node_neighbours>
+</node>
+<node index="1010">
+<node_location>10.640852 1.600301 -10.699853</node_location>
+<node_neighbours>1041 1040 977 </node_neighbours>
+</node>
+<node index="1011">
+<node_location>8.853518 1.600300 -4.713364</node_location>
+<node_neighbours>1012 1042 978 </node_neighbours>
+</node>
+<node index="1012">
+<node_location>9.443252 1.600300 -7.095079</node_location>
+<node_neighbours>1040 1011 979 </node_neighbours>
+</node>
+<node index="1013">
+<node_location>7.044122 1.533633 1.315991</node_location>
+<node_neighbours>1014 1015 980 </node_neighbours>
+</node>
+<node index="1014">
+<node_location>7.653953 1.666967 -0.497829</node_location>
+<node_neighbours>1043 1013 981 </node_neighbours>
+</node>
+<node index="1015">
+<node_location>7.642350 1.200300 3.702549</node_location>
+<node_neighbours>1013 1016 982 </node_neighbours>
+</node>
+<node index="1016">
+<node_location>8.850407 1.066966 4.295287</node_location>
+<node_neighbours>1015 1044 984 </node_neighbours>
+</node>
+<node index="1017">
+<node_location>11.880431 1.266966 4.277259</node_location>
+<node_neighbours>1044 988 985 </node_neighbours>
+</node>
+<node index="1018">
+<node_location>18.453663 0.000300 -4.101522</node_location>
+<node_neighbours>1045 1021 986 </node_neighbours>
+</node>
+<node index="1019">
+<node_location>16.055969 0.800300 -1.104645</node_location>
+<node_neighbours>1047 1046 987 </node_neighbours>
+</node>
+<node index="1020">
+<node_location>13.052180 1.200300 1.288728</node_location>
+<node_neighbours>1048 1047 988 </node_neighbours>
+</node>
+<node index="1021">
+<node_location>20.259611 -0.399700 -4.689866</node_location>
+<node_neighbours>1018 1049 989 </node_neighbours>
+</node>
+<node index="1022">
+<node_location>23.867237 0.000301 -8.292661</node_location>
+<node_neighbours>1050 1024 990 </node_neighbours>
+</node>
+<node index="1023">
+<node_location>23.863640 -0.266366 -4.683494</node_location>
+<node_neighbours>992 1050 991 </node_neighbours>
+</node>
+<node index="1024">
+<node_location>23.271025 0.066967 -10.106034</node_location>
+<node_neighbours>1022 1025 993 </node_neighbours>
+</node>
+<node index="1025">
+<node_location>21.466801 -0.066366 -11.908196</node_location>
+<node_neighbours>1024 1051 994 </node_neighbours>
+</node>
+<node index="1026">
+<node_location>20.852262 0.000301 -16.696024</node_location>
+<node_neighbours>1052 996 995 </node_neighbours>
+</node>
+<node index="1027">
+<node_location>14.245352 0.133635 -25.706648</node_location>
+<node_neighbours>1028 1053 997 </node_neighbours>
+</node>
+<node index="1028">
+<node_location>15.451637 0.066968 -22.707354</node_location>
+<node_neighbours>1054 1027 998 </node_neighbours>
+</node>
+<node index="1029">
+<node_location>16.653990 -0.266365 -19.106531</node_location>
+<node_neighbours>1030 1055 998 </node_neighbours>
+</node>
+<node index="1030">
+<node_location>17.850056 -0.399699 -18.505003</node_location>
+<node_neighbours>1052 1029 999 </node_neighbours>
+</node>
+<node index="1031">
+<node_location>11.262855 -0.066364 -31.099318</node_location>
+<node_neighbours>1056 1032 1000 </node_neighbours>
+</node>
+<node index="1032">
+<node_location>10.668754 -0.133031 -32.311607</node_location>
+<node_neighbours>1031 1033 1001 </node_neighbours>
+</node>
+<node index="1033">
+<node_location>9.460744 0.000302 -32.320396</node_location>
+<node_neighbours>1032 1003 1002 </node_neighbours>
+</node>
+<node index="1034">
+<node_location>8.266980 0.200302 -29.305050</node_location>
+<node_neighbours>1057 1035 1003 </node_neighbours>
+</node>
+<node index="1035">
+<node_location>7.067125 0.733635 -27.513205</node_location>
+<node_neighbours>1034 1058 1004 </node_neighbours>
+</node>
+<node index="1036">
+<node_location>6.459501 1.666968 -23.310408</node_location>
+<node_neighbours>1059 1038 1006 </node_neighbours>
+</node>
+<node index="1037">
+<node_location>8.260225 1.933634 -16.111181</node_location>
+<node_neighbours>1060 1009 1007 </node_neighbours>
+</node>
+<node index="1038">
+<node_location>7.051733 1.800302 -20.899456</node_location>
+<node_neighbours>1036 1061 1008 </node_neighbours>
+</node>
+<node index="1039">
+<node_location>10.636437 1.866968 -14.297809</node_location>
+<node_neighbours>1063 1062 1009 </node_neighbours>
+</node>
+<node index="1040">
+<node_location>10.639127 1.266967 -8.309346</node_location>
+<node_neighbours>1064 1012 1010 </node_neighbours>
+</node>
+<node index="1041">
+<node_location>11.842723 1.133634 -11.918514</node_location>
+<node_neighbours>1062 1065 1010 </node_neighbours>
+</node>
+<node index="1042">
+<node_location>9.459659 1.200300 -3.525914</node_location>
+<node_neighbours>1067 1066 1011 </node_neighbours>
+</node>
+<node index="1043">
+<node_location>8.866137 1.733633 1.289175</node_location>
+<node_neighbours>1066 1044 1014 </node_neighbours>
+</node>
+<node index="1044">
+<node_location>9.464363 1.466966 3.695733</node_location>
+<node_neighbours>1043 1017 1016 </node_neighbours>
+</node>
+<node index="1045">
+<node_location>16.045509 0.466967 -5.302156</node_location>
+<node_neighbours>1046 1068 1018 </node_neighbours>
+</node>
+<node index="1046">
+<node_location>15.459708 0.933633 -3.501967</node_location>
+<node_neighbours>1069 1045 1019 </node_neighbours>
+</node>
+<node index="1047">
+<node_location>14.850021 1.000300 -0.496302</node_location>
+<node_neighbours>1020 1070 1019 </node_neighbours>
+</node>
+<node index="1048">
+<node_location>11.260046 1.200300 0.085672</node_location>
+<node_neighbours>1066 1071 1020 </node_neighbours>
+</node>
+<node index="1049">
+<node_location>20.255341 -0.399700 -7.095976</node_location>
+<node_neighbours>1072 1050 1021 </node_neighbours>
+</node>
+<node index="1050">
+<node_location>22.667431 -0.333033 -6.496868</node_location>
+<node_neighbours>1023 1049 1022 </node_neighbours>
+</node>
+<node index="1051">
+<node_location>19.668716 -0.266366 -12.502908</node_location>
+<node_neighbours>1072 1073 1025 </node_neighbours>
+</node>
+<node index="1052">
+<node_location>19.050249 -0.266366 -16.689209</node_location>
+<node_neighbours>1073 1030 1026 </node_neighbours>
+</node>
+<node index="1053">
+<node_location>11.847222 0.333635 -26.905310</node_location>
+<node_neighbours>1074 1056 1027 </node_neighbours>
+</node>
+<node index="1054">
+<node_location>13.651733 0.333635 -21.499456</node_location>
+<node_neighbours>1076 1075 1028 </node_neighbours>
+</node>
+<node index="1055">
+<node_location>16.050106 0.000301 -17.901054</node_location>
+<node_neighbours>1077 1076 1029 </node_neighbours>
+</node>
+<node index="1056">
+<node_location>10.662999 0.133635 -29.307470</node_location>
+<node_neighbours>1053 1057 1031 </node_neighbours>
+</node>
+<node index="1057">
+<node_location>9.469044 0.200302 -28.707916</node_location>
+<node_neighbours>1056 1078 1034 </node_neighbours>
+</node>
+<node index="1058">
+<node_location>7.669237 1.000302 -26.312122</node_location>
+<node_neighbours>1078 1059 1035 </node_neighbours>
+</node>
+<node index="1059">
+<node_location>7.665401 1.333635 -24.522697</node_location>
+<node_neighbours>1058 1079 1036 </node_neighbours>
+</node>
+<node index="1060">
+<node_location>9.444108 1.733635 -17.296658</node_location>
+<node_neighbours>1061 1063 1037 </node_neighbours>
+</node>
+<node index="1061">
+<node_location>8.849863 1.466968 -19.700794</node_location>
+<node_neighbours>1080 1060 1038 </node_neighbours>
+</node>
+<node index="1062">
+<node_location>11.840516 1.200301 -13.707492</node_location>
+<node_neighbours>1081 1041 1039 </node_neighbours>
+</node>
+<node index="1063">
+<node_location>10.636244 1.466968 -16.093601</node_location>
+<node_neighbours>1060 1082 1039 </node_neighbours>
+</node>
+<node index="1064">
+<node_location>11.843205 0.866967 -7.719029</node_location>
+<node_neighbours>1065 1083 1040 </node_neighbours>
+</node>
+<node index="1065">
+<node_location>13.052941 0.533634 -10.120747</node_location>
+<node_neighbours>1084 1064 1041 </node_neighbours>
+</node>
+<node index="1066">
+<node_location>9.475967 1.400300 -0.524645</node_location>
+<node_neighbours>1048 1043 1042 </node_neighbours>
+</node>
+<node index="1067">
+<node_location>10.651600 1.066967 -4.118652</node_location>
+<node_neighbours>1085 1071 1042 </node_neighbours>
+</node>
+<node index="1068">
+<node_location>14.849298 0.466967 -7.095529</node_location>
+<node_neighbours>1083 1086 1045 </node_neighbours>
+</node>
+<node index="1069">
+<node_location>13.661625 1.200300 -4.096680</node_location>
+<node_neighbours>1070 1085 1046 </node_neighbours>
+</node>
+<node index="1070">
+<node_location>13.655823 1.200300 -2.296492</node_location>
+<node_neighbours>1071 1069 1047 </node_neighbours>
+</node>
+<node index="1071">
+<node_location>11.853808 1.000300 -2.309676</node_location>
+<node_neighbours>1067 1070 1048 </node_neighbours>
+</node>
+<node index="1072">
+<node_location>18.458984 -0.266366 -10.101193</node_location>
+<node_neighbours>1086 1051 1049 </node_neighbours>
+</node>
+<node index="1073">
+<node_location>18.456438 -0.266366 -14.897809</node_location>
+<node_neighbours>1077 1052 1051 </node_neighbours>
+</node>
+<node index="1074">
+<node_location>10.647320 0.600302 -25.717413</node_location>
+<node_neighbours>1079 1078 1053 </node_neighbours>
+</node>
+<node index="1075">
+<node_location>11.247656 0.800301 -22.109772</node_location>
+<node_neighbours>1080 1079 1054 </node_neighbours>
+</node>
+<node index="1076">
+<node_location>14.257970 0.266968 -19.104109</node_location>
+<node_neighbours>1055 1087 1054 </node_neighbours>
+</node>
+<node index="1077">
+<node_location>16.652361 -0.133032 -15.508127</node_location>
+<node_neighbours>1073 1088 1055 </node_neighbours>
+</node>
+<node index="1078">
+<node_location>8.863194 0.600302 -26.911678</node_location>
+<node_neighbours>1074 1058 1057 </node_neighbours>
+</node>
+<node index="1079">
+<node_location>10.049479 1.000302 -23.912382</node_location>
+<node_neighbours>1074 1075 1059 </node_neighbours>
+</node>
+<node index="1080">
+<node_location>10.049814 1.000301 -20.304743</node_location>
+<node_neighbours>1075 1087 1061 </node_neighbours>
+</node>
+<node index="1081">
+<node_location>13.644401 0.533634 -14.912968</node_location>
+<node_neighbours>1082 1088 1062 </node_neighbours>
+</node>
+<node index="1082">
+<node_location>12.436196 0.800301 -16.697552</node_location>
+<node_neighbours>1087 1081 1063 </node_neighbours>
+</node>
+<node index="1083">
+<node_location>12.449346 0.933634 -6.511579</node_location>
+<node_neighbours>1068 1085 1064 </node_neighbours>
+</node>
+<node index="1084">
+<node_location>14.868815 0.133634 -11.315011</node_location>
+<node_neighbours>1088 1086 1065 </node_neighbours>
+</node>
+<node index="1085">
+<node_location>11.847475 1.200300 -5.312918</node_location>
+<node_neighbours>1083 1069 1067 </node_neighbours>
+</node>
+<node index="1086">
+<node_location>16.059032 0.000301 -9.497245</node_location>
+<node_neighbours>1084 1072 1068 </node_neighbours>
+</node>
+<node index="1087">
+<node_location>12.444013 0.600301 -18.504557</node_location>
+<node_neighbours>1082 1080 1076 </node_neighbours>
+</node>
+<node index="1088">
+<node_location>15.462483 0.066968 -14.318255</node_location>
+<node_neighbours>1084 1081 1077 </node_neighbours>
+</node>
+<node index="1089">
+<node_location>33.656353 3.666967 -5.206381</node_location>
+<node_neighbours>1090 1128 </node_neighbours>
+</node>
+<node index="1090">
+<node_location>34.156353 3.866967 -5.706381</node_location>
+<node_neighbours>1089 641 </node_neighbours>
+</node>
+<node index="1091">
+<node_location>24.956358 1.533632 16.176956</node_location>
+<node_neighbours>1103 </node_neighbours>
+</node>
+<node index="1092">
+<node_location>27.819618 1.866965 17.189100</node_location>
+<node_neighbours>1103 1104 </node_neighbours>
+</node>
+<node index="1093">
+<node_location>31.936195 2.400299 17.697889</node_location>
+<node_neighbours>1106 1105 </node_neighbours>
+</node>
+<node index="1094">
+<node_location>35.599213 3.066965 18.793621</node_location>
+<node_neighbours>1096 1095 </node_neighbours>
+</node>
+<node index="1095">
+<node_location>36.770645 2.933632 18.993620</node_location>
+<node_neighbours>1094 </node_neighbours>
+</node>
+<node index="1096">
+<node_location>36.184929 3.000299 17.393621</node_location>
+<node_neighbours>1094 1105 </node_neighbours>
+</node>
+<node index="1097">
+<node_location>35.409893 1.666965 12.516517</node_location>
+<node_neighbours>1108 1107 </node_neighbours>
+</node>
+<node index="1098">
+<node_location>33.712944 1.266966 8.680598</node_location>
+<node_neighbours>1110 1109 </node_neighbours>
+</node>
+<node index="1099">
+<node_location>31.065445 0.666966 1.773923</node_location>
+<node_neighbours>1111 1100 </node_neighbours>
+</node>
+<node index="1100">
+<node_location>29.656357 0.133633 -1.589713</node_location>
+<node_neighbours>1099 </node_neighbours>
+</node>
+<node index="1101">
+<node_location>28.512375 -0.333034 5.326200</node_location>
+<node_neighbours>1113 1112 </node_neighbours>
+</node>
+<node index="1102">
+<node_location>27.310411 -0.133034 10.983631</node_location>
+<node_neighbours>1112 1114 </node_neighbours>
+</node>
+<node index="1103">
+<node_location>26.162474 1.200299 15.672432</node_location>
+<node_neighbours>1115 1092 1091 </node_neighbours>
+</node>
+<node index="1104">
+<node_location>29.419737 1.466965 16.588968</node_location>
+<node_neighbours>1116 1106 1092 </node_neighbours>
+</node>
+<node index="1105">
+<node_location>34.279053 2.600299 16.597887</node_location>
+<node_neighbours>1108 1096 1093 </node_neighbours>
+</node>
+<node index="1106">
+<node_location>30.607744 1.733632 16.597757</node_location>
+<node_neighbours>1104 1117 1093 </node_neighbours>
+</node>
+<node index="1107">
+<node_location>33.507950 0.800299 10.919254</node_location>
+<node_neighbours>1118 1110 1097 </node_neighbours>
+</node>
+<node index="1108">
+<node_location>34.158566 1.866966 14.302598</node_location>
+<node_neighbours>1105 1119 1097 </node_neighbours>
+</node>
+<node index="1109">
+<node_location>32.467510 1.066966 7.454389</node_location>
+<node_neighbours>1120 1111 1098 </node_neighbours>
+</node>
+<node index="1110">
+<node_location>32.901909 0.733633 9.719700</node_location>
+<node_neighbours>1107 1121 1098 </node_neighbours>
+</node>
+<node index="1111">
+<node_location>31.565472 0.733633 4.765897</node_location>
+<node_neighbours>1109 1113 1099 </node_neighbours>
+</node>
+<node index="1112">
+<node_location>28.816433 -0.133034 8.607877</node_location>
+<node_neighbours>1122 1102 1101 </node_neighbours>
+</node>
+<node index="1113">
+<node_location>30.162399 0.200300 4.609841</node_location>
+<node_neighbours>1111 1120 1101 </node_neighbours>
+</node>
+<node index="1114">
+<node_location>28.356504 0.333632 12.668801</node_location>
+<node_neighbours>1123 1115 1102 </node_neighbours>
+</node>
+<node index="1115">
+<node_location>27.758568 0.600299 14.465935</node_location>
+<node_neighbours>1114 1116 1103 </node_neighbours>
+</node>
+<node index="1116">
+<node_location>29.258684 0.866965 15.082470</node_location>
+<node_neighbours>1115 1117 1104 </node_neighbours>
+</node>
+<node index="1117">
+<node_location>30.446693 1.133632 15.091259</node_location>
+<node_neighbours>1116 1119 1106 </node_neighbours>
+</node>
+<node index="1118">
+<node_location>31.658587 0.533632 12.094575</node_location>
+<node_neighbours>1119 1123 1107 </node_neighbours>
+</node>
+<node index="1119">
+<node_location>31.654655 1.066965 13.896102</node_location>
+<node_neighbours>1117 1118 1108 </node_neighbours>
+</node>
+<node index="1120">
+<node_location>31.064438 0.533633 7.298332</node_location>
+<node_neighbours>1122 1113 1109 </node_neighbours>
+</node>
+<node index="1121">
+<node_location>31.060507 0.400299 9.699861</node_location>
+<node_neighbours>1123 1122 1110 </node_neighbours>
+</node>
+<node index="1122">
+<node_location>30.468472 0.400299 8.504703</node_location>
+<node_neighbours>1120 1121 1112 </node_neighbours>
+</node>
+<node index="1123">
+<node_location>30.454561 0.333632 11.488206</node_location>
+<node_neighbours>1121 1118 1114 </node_neighbours>
+</node>
+<node index="1124">
+<node_location>37.456356 1.800300 -0.306379</node_location>
+<node_neighbours>1131 </node_neighbours>
+</node>
+<node index="1125">
+<node_location>36.546356 2.066967 -2.416381</node_location>
+<node_neighbours>1131 1126 </node_neighbours>
+</node>
+<node index="1126">
+<node_location>35.946362 2.733634 -3.416381</node_location>
+<node_neighbours>1125 1127 </node_neighbours>
+</node>
+<node index="1127">
+<node_location>35.246361 3.333634 -4.016381</node_location>
+<node_neighbours>1126 1128 </node_neighbours>
+</node>
+<node index="1128">
+<node_location>34.346355 3.333634 -4.016381</node_location>
+<node_neighbours>1127 1129 1089 </node_neighbours>
+</node>
+<node index="1129">
+<node_location>33.146358 2.400300 -3.116380</node_location>
+<node_neighbours>1128 1130 </node_neighbours>
+</node>
+<node index="1130">
+<node_location>33.846359 2.200300 -1.716379</node_location>
+<node_neighbours>1129 1131 </node_neighbours>
+</node>
+<node index="1131">
+<node_location>36.046356 2.333633 -1.516379</node_location>
+<node_neighbours>1130 1125 1124 </node_neighbours>
+</node>
+<node index="1132">
+<node_location>39.296356 0.866967 -0.969237</node_location>
+<node_neighbours>1133 </node_neighbours>
+</node>
+<node index="1133">
+<node_location>38.976360 1.000300 -3.209237</node_location>
+<node_neighbours>1132 1134 </node_neighbours>
+</node>
+<node index="1134">
+<node_location>39.136360 1.000300 -4.374951</node_location>
+<node_neighbours>1133 1135 </node_neighbours>
+</node>
+<node index="1135">
+<node_location>38.736359 1.066967 -6.032094</node_location>
+<node_neighbours>1134 1136 </node_neighbours>
+</node>
+<node index="1136">
+<node_location>39.056358 0.733634 -6.649237</node_location>
+<node_neighbours>1135 1137 </node_neighbours>
+</node>
+<node index="1137">
+<node_location>38.556358 1.133634 -8.063523</node_location>
+<node_neighbours>1136 1138 </node_neighbours>
+</node>
+<node index="1138">
+<node_location>38.956356 1.200301 -9.263524</node_location>
+<node_neighbours>1137 </node_neighbours>
+</node>
+<node index="1139">
+<node_location>25.989687 3.800298 21.426954</node_location>
+<node_neighbours>1140 </node_neighbours>
+</node>
+<node index="1140">
+<node_location>25.039690 4.266965 20.976954</node_location>
+<node_neighbours>1139 1141 </node_neighbours>
+</node>
+<node index="1141">
+<node_location>24.539690 4.266965 20.076956</node_location>
+<node_neighbours>1140 1142 </node_neighbours>
+</node>
+<node index="1142">
+<node_location>24.789690 3.733632 19.226957</node_location>
+<node_neighbours>1141 </node_neighbours>
+</node>
+<node index="1143">
+<node_location>39.106354 1.866966 13.022190</node_location>
+<node_neighbours>1151 </node_neighbours>
+</node>
+<node index="1144">
+<node_location>38.658398 1.600299 6.527349</node_location>
+<node_neighbours>1153 1152 </node_neighbours>
+</node>
+<node index="1145">
+<node_location>37.262375 2.133633 1.301202</node_location>
+<node_neighbours>1152 1154 </node_neighbours>
+</node>
+<node index="1146">
+<node_location>33.848373 2.266967 0.096807</node_location>
+<node_neighbours>1154 1147 </node_neighbours>
+</node>
+<node index="1147">
+<node_location>32.148373 1.466967 -0.503194</node_location>
+<node_neighbours>1146 1148 </node_neighbours>
+</node>
+<node index="1148">
+<node_location>33.157463 1.733633 2.660442</node_location>
+<node_neighbours>1147 1155 </node_neighbours>
+</node>
+<node index="1149">
+<node_location>35.512939 1.866966 8.080598</node_location>
+<node_neighbours>1155 1156 </node_neighbours>
+</node>
+<node index="1150">
+<node_location>37.051811 2.266966 13.211803</node_location>
+<node_neighbours>1157 </node_neighbours>
+</node>
+<node index="1151">
+<node_location>38.296402 2.066966 12.016140</node_location>
+<node_neighbours>1157 1153 1143 </node_neighbours>
+</node>
+<node index="1152">
+<node_location>37.864418 2.000300 3.706359</node_location>
+<node_neighbours>1158 1145 1144 </node_neighbours>
+</node>
+<node index="1153">
+<node_location>37.848446 2.000299 9.521298</node_location>
+<node_neighbours>1151 1156 1144 </node_neighbours>
+</node>
+<node index="1154">
+<node_location>35.854393 2.733633 1.904387</node_location>
+<node_neighbours>1158 1146 1145 </node_neighbours>
+</node>
+<node index="1155">
+<node_location>35.459503 2.400300 5.665601</node_location>
+<node_neighbours>1158 1149 1148 </node_neighbours>
+</node>
+<node index="1156">
+<node_location>36.493896 2.000299 9.110911</node_location>
+<node_neighbours>1153 1157 1149 </node_neighbours>
+</node>
+<node index="1157">
+<node_location>36.941860 2.066966 11.605752</node_location>
+<node_neighbours>1156 1151 1150 </node_neighbours>
+</node>
+<node index="1158">
+<node_location>36.456432 2.600300 4.309545</node_location>
+<node_neighbours>1155 1154 1152 </node_neighbours>
+</node>
+<node index="1159">
+<node_location>36.203976 2.933632 19.643620</node_location>
+<node_neighbours>1160 </node_neighbours>
+</node>
+<node index="1160">
+<node_location>35.032547 3.066965 19.443621</node_location>
+<node_neighbours>1159 1165 </node_neighbours>
+</node>
+<node index="1161">
+<node_location>31.346077 2.666965 18.888018</node_location>
+<node_neighbours>1166 1162 </node_neighbours>
+</node>
+<node index="1162">
+<node_location>28.417509 2.400299 18.388018</node_location>
+<node_neighbours>1161 1167 </node_neighbours>
+</node>
+<node index="1163">
+<node_location>25.289690 3.133632 18.526957</node_location>
+<node_neighbours>1167 </node_neighbours>
+</node>
+<node index="1164">
+<node_location>27.256355 3.400298 21.276955</node_location>
+<node_neighbours>1168 </node_neighbours>
+</node>
+<node index="1165">
+<node_location>32.784924 3.000299 20.293623</node_location>
+<node_neighbours>1166 1160 </node_neighbours>
+</node>
+<node index="1166">
+<node_location>30.855598 2.866966 20.038017</node_location>
+<node_neighbours>1165 1168 1161 </node_neighbours>
+</node>
+<node index="1167">
+<node_location>26.893694 3.000299 18.821350</node_location>
+<node_neighbours>1168 1163 1162 </node_neighbours>
+</node>
+<node index="1168">
+<node_location>28.160362 3.200299 20.271349</node_location>
+<node_neighbours>1167 1166 1164 </node_neighbours>
+</node>
+<node index="1169">
+<node_location>36.956360 2.133634 -5.006381</node_location>
+<node_neighbours>1170 </node_neighbours>
+</node>
+<node index="1170">
+<node_location>37.836361 1.466967 -5.246381</node_location>
+<node_neighbours>1169 1171 </node_neighbours>
+</node>
+<node index="1171">
+<node_location>37.636360 1.666967 -3.446381</node_location>
+<node_neighbours>1170 1172 </node_neighbours>
+</node>
+<node index="1172">
+<node_location>38.376358 1.266967 -3.066381</node_location>
+<node_neighbours>1171 1173 </node_neighbours>
+</node>
+<node index="1173">
+<node_location>38.696358 1.133633 -0.826380</node_location>
+<node_neighbours>1172 </node_neighbours>
+</node>
+<node index="1174">
+<node_location>19.036358 1.733631 26.773624</node_location>
+<node_neighbours>1175 </node_neighbours>
+</node>
+<node index="1175">
+<node_location>21.636358 1.866964 26.373625</node_location>
+<node_neighbours>1174 1176 </node_neighbours>
+</node>
+<node index="1176">
+<node_location>22.556358 1.666964 26.293623</node_location>
+<node_neighbours>1175 1177 </node_neighbours>
+</node>
+<node index="1177">
+<node_location>22.956358 1.200298 26.693623</node_location>
+<node_neighbours>1176 1242 </node_neighbours>
+</node>
+<node index="1178">
+<node_location>23.056358 4.333632 20.643621</node_location>
+<node_neighbours>1179 </node_neighbours>
+</node>
+<node index="1179">
+<node_location>23.806358 4.466965 20.693621</node_location>
+<node_neighbours>1178 1180 </node_neighbours>
+</node>
+<node index="1180">
+<node_location>24.306358 4.466965 21.593622</node_location>
+<node_neighbours>1179 </node_neighbours>
+</node>
+<node index="1181">
+<node_location>20.989691 3.666965 21.526957</node_location>
+<node_neighbours>1182 </node_neighbours>
+</node>
+<node index="1182">
+<node_location>22.389692 4.400299 21.876951</node_location>
+<node_neighbours>1181 1183 </node_neighbours>
+</node>
+<node index="1183">
+<node_location>22.589691 4.000299 23.176954</node_location>
+<node_neighbours>1182 1184 </node_neighbours>
+</node>
+<node index="1184">
+<node_location>23.756357 3.933632 22.843622</node_location>
+<node_neighbours>1183 </node_neighbours>
+</node>
+<node index="1185">
+<node_location>12.656358 2.066965 26.573624</node_location>
+<node_neighbours>1186 </node_neighbours>
+</node>
+<node index="1186">
+<node_location>11.156357 2.400298 25.793625</node_location>
+<node_neighbours>1185 1192 </node_neighbours>
+</node>
+<node index="1187">
+<node_location>8.846356 2.400298 24.203625</node_location>
+<node_neighbours>1192 1188 </node_neighbours>
+</node>
+<node index="1188">
+<node_location>7.346356 2.133631 23.783627</node_location>
+<node_neighbours>1187 1189 </node_neighbours>
+</node>
+<node index="1189">
+<node_location>6.846356 1.466965 24.483624</node_location>
+<node_neighbours>1188 1190 </node_neighbours>
+</node>
+<node index="1190">
+<node_location>6.846357 1.000298 25.683624</node_location>
+<node_neighbours>1189 1191 </node_neighbours>
+</node>
+<node index="1191">
+<node_location>8.346356 1.266965 26.283627</node_location>
+<node_neighbours>1190 1192 </node_neighbours>
+</node>
+<node index="1192">
+<node_location>9.846356 2.000298 25.503622</node_location>
+<node_neighbours>1191 1187 1186 </node_neighbours>
+</node>
+<node index="1193">
+<node_location>7.423023 3.533631 21.726959</node_location>
+<node_neighbours>1194 </node_neighbours>
+</node>
+<node index="1194">
+<node_location>7.756357 4.000299 20.593624</node_location>
+<node_neighbours>1193 1195 </node_neighbours>
+</node>
+<node index="1195">
+<node_location>8.089692 3.666965 19.460291</node_location>
+<node_neighbours>1194 </node_neighbours>
+</node>
+<node index="1196">
+<node_location>11.965881 2.133632 16.774574</node_location>
+<node_neighbours>1197 </node_neighbours>
+</node>
+<node index="1197">
+<node_location>14.632547 1.933632 17.691238</node_location>
+<node_neighbours>1196 1198 </node_neighbours>
+</node>
+<node index="1198">
+<node_location>16.423025 1.333632 17.610289</node_location>
+<node_neighbours>1197 1199 </node_neighbours>
+</node>
+<node index="1199">
+<node_location>18.480167 1.266965 18.596003</node_location>
+<node_neighbours>1198 1200 </node_neighbours>
+</node>
+<node index="1200">
+<node_location>19.242071 1.133632 18.022194</node_location>
+<node_neighbours>1199 1201 </node_neighbours>
+</node>
+<node index="1201">
+<node_location>20.384928 1.466965 18.136480</node_location>
+<node_neighbours>1200 </node_neighbours>
+</node>
+<node index="1202">
+<node_location>17.516359 2.266965 26.333622</node_location>
+<node_neighbours>1207 </node_neighbours>
+</node>
+<node index="1203">
+<node_location>22.336357 2.466965 25.573622</node_location>
+<node_neighbours>1204 </node_neighbours>
+</node>
+<node index="1204">
+<node_location>21.869692 3.200298 24.706953</node_location>
+<node_neighbours>1203 1208 </node_neighbours>
+</node>
+<node index="1205">
+<node_location>19.979691 3.333632 22.216959</node_location>
+<node_neighbours>1209 1206 </node_neighbours>
+</node>
+<node index="1206">
+<node_location>18.126358 2.866965 23.043623</node_location>
+<node_neighbours>1205 1210 </node_neighbours>
+</node>
+<node index="1207">
+<node_location>18.820364 2.666965 25.528019</node_location>
+<node_neighbours>1210 1208 1202 </node_neighbours>
+</node>
+<node index="1208">
+<node_location>20.673697 3.133631 24.701349</node_location>
+<node_neighbours>1207 1209 1204 </node_neighbours>
+</node>
+<node index="1209">
+<node_location>19.883696 3.466965 23.611353</node_location>
+<node_neighbours>1208 1210 1205 </node_neighbours>
+</node>
+<node index="1210">
+<node_location>18.030363 3.000298 24.438017</node_location>
+<node_neighbours>1209 1207 1206 </node_neighbours>
+</node>
+<node index="1211">
+<node_location>18.823023 1.866965 19.710289</node_location>
+<node_neighbours>1222 </node_neighbours>
+</node>
+<node index="1212">
+<node_location>15.381706 1.800299 18.580137</node_location>
+<node_neighbours>1224 1223 </node_neighbours>
+</node>
+<node index="1213">
+<node_location>11.527029 2.600299 17.654682</node_location>
+<node_neighbours>1223 1214 </node_neighbours>
+</node>
+<node index="1214">
+<node_location>10.260363 2.800299 17.888018</node_location>
+<node_neighbours>1213 1215 </node_neighbours>
+</node>
+<node index="1215">
+<node_location>9.893697 3.533632 19.054684</node_location>
+<node_neighbours>1214 1225 </node_neighbours>
+</node>
+<node index="1216">
+<node_location>8.962377 4.066965 20.801203</node_location>
+<node_neighbours>1225 1226 </node_neighbours>
+</node>
+<node index="1217">
+<node_location>8.619065 3.533632 22.536514</node_location>
+<node_neighbours>1226 1218 </node_neighbours>
+</node>
+<node index="1218">
+<node_location>9.452398 3.066965 23.623180</node_location>
+<node_neighbours>1217 1227 </node_neighbours>
+</node>
+<node index="1219">
+<node_location>11.546406 3.200298 24.387573</node_location>
+<node_neighbours>1227 1228 </node_neighbours>
+</node>
+<node index="1220">
+<node_location>14.436359 2.533631 26.133625</node_location>
+<node_neighbours>1229 </node_neighbours>
+</node>
+<node index="1221">
+<node_location>17.538397 2.400298 22.458784</node_location>
+<node_neighbours>1230 1222 </node_neighbours>
+</node>
+<node index="1222">
+<node_location>18.125063 1.866965 20.215448</node_location>
+<node_neighbours>1221 1224 1211 </node_neighbours>
+</node>
+<node index="1223">
+<node_location>13.419044 2.533632 18.657866</node_location>
+<node_neighbours>1231 1213 1212 </node_neighbours>
+</node>
+<node index="1224">
+<node_location>16.817078 1.600298 19.818632</node_location>
+<node_neighbours>1222 1232 1212 </node_neighbours>
+</node>
+<node index="1225">
+<node_location>10.199716 3.866965 20.062263</node_location>
+<node_neighbours>1233 1216 1215 </node_neighbours>
+</node>
+<node index="1226">
+<node_location>9.425085 4.000299 21.844091</node_location>
+<node_neighbours>1234 1217 1216 </node_neighbours>
+</node>
+<node index="1227">
+<node_location>10.842447 3.466965 23.517126</node_location>
+<node_neighbours>1234 1219 1218 </node_neighbours>
+</node>
+<node index="1228">
+<node_location>13.144464 3.266965 23.770315</node_location>
+<node_neighbours>1235 1229 1219 </node_neighbours>
+</node>
+<node index="1229">
+<node_location>14.534417 2.933631 24.736362</node_location>
+<node_neighbours>1228 1230 1220 </node_neighbours>
+</node>
+<node index="1230">
+<node_location>16.236456 2.533632 23.261524</node_location>
+<node_neighbours>1229 1236 1221 </node_neighbours>
+</node>
+<node index="1231">
+<node_location>14.260411 2.400299 19.891962</node_location>
+<node_neighbours>1232 1237 1223 </node_neighbours>
+</node>
+<node index="1232">
+<node_location>16.058445 1.866965 20.502729</node_location>
+<node_neighbours>1236 1231 1224 </node_neighbours>
+</node>
+<node index="1233">
+<node_location>11.256430 3.800298 21.089546</node_location>
+<node_neighbours>1237 1234 1225 </node_neighbours>
+</node>
+<node index="1234">
+<node_location>10.648468 3.933632 22.304708</node_location>
+<node_neighbours>1233 1227 1226 </node_neighbours>
+</node>
+<node index="1235">
+<node_location>14.252499 2.933632 22.291075</node_location>
+<node_neighbours>1237 1236 1228 </node_neighbours>
+</node>
+<node index="1236">
+<node_location>16.064489 2.266965 21.702284</node_location>
+<node_neighbours>1235 1232 1230 </node_neighbours>
+</node>
+<node index="1237">
+<node_location>13.058445 3.133632 21.082729</node_location>
+<node_neighbours>1235 1233 1231 </node_neighbours>
+</node>
+<node index="1238">
+<node_location>30.131355 0.666964 26.993620</node_location>
+<node_neighbours>1239 </node_neighbours>
+</node>
+<node index="1239">
+<node_location>28.556358 0.466964 26.693623</node_location>
+<node_neighbours>1238 1240 </node_neighbours>
+</node>
+<node index="1240">
+<node_location>26.981356 0.733631 26.393625</node_location>
+<node_neighbours>1239 1241 </node_neighbours>
+</node>
+<node index="1241">
+<node_location>26.056358 1.133631 26.293623</node_location>
+<node_neighbours>1240 1242 </node_neighbours>
+</node>
+<node index="1242">
+<node_location>25.656355 0.933631 26.693623</node_location>
+<node_neighbours>1241 1177 </node_neighbours>
+</node>
+<node index="1243">
+<node_location>30.223024 3.066965 21.660288</node_location>
+<node_neighbours>1244 </node_neighbours>
+</node>
+<node index="1244">
+<node_location>30.589689 3.066965 21.410288</node_location>
+<node_neighbours>1243 1245 </node_neighbours>
+</node>
+<node index="1245">
+<node_location>33.423019 3.000299 20.660288</node_location>
+<node_neighbours>1244 1246 </node_neighbours>
+</node>
+<node index="1246">
+<node_location>36.256359 2.933632 19.910286</node_location>
+<node_neighbours>1245 </node_neighbours>
+</node>
+<node index="1247">
+<node_location>30.698027 0.733631 26.593622</node_location>
+<node_neighbours>1248 </node_neighbours>
+</node>
+<node index="1248">
+<node_location>29.123024 0.533631 26.293623</node_location>
+<node_neighbours>1247 1249 </node_neighbours>
+</node>
+<node index="1249">
+<node_location>28.348024 1.200298 25.193628</node_location>
+<node_neighbours>1248 1250 </node_neighbours>
+</node>
+<node index="1250">
+<node_location>26.681358 1.400298 25.193628</node_location>
+<node_neighbours>1249 </node_neighbours>
+</node>
+<node index="1251">
+<node_location>36.923027 2.666965 19.960287</node_location>
+<node_neighbours>1260 </node_neighbours>
+</node>
+<node index="1252">
+<node_location>32.327038 2.866965 21.854685</node_location>
+<node_neighbours>1262 1261 </node_neighbours>
+</node>
+<node index="1253">
+<node_location>28.623030 2.000298 23.993626</node_location>
+<node_neighbours>1261 </node_neighbours>
+</node>
+<node index="1254">
+<node_location>31.827028 1.466965 25.288019</node_location>
+<node_neighbours>1261 1263 </node_neighbours>
+</node>
+<node index="1255">
+<node_location>34.410389 2.066965 26.289991</node_location>
+<node_neighbours>1263 1264 </node_neighbours>
+</node>
+<node index="1256">
+<node_location>37.746365 2.133631 26.518623</node_location>
+<node_neighbours>1264 1257 </node_neighbours>
+</node>
+<node index="1257">
+<node_location>38.786362 1.800298 26.518623</node_location>
+<node_neighbours>1256 </node_neighbours>
+</node>
+<node index="1258">
+<node_location>37.600391 2.133631 24.564989</node_location>
+<node_neighbours>1264 1265 </node_neighbours>
+</node>
+<node index="1259">
+<node_location>37.748371 1.800298 22.246807</node_location>
+<node_neighbours>1265 1260 </node_neighbours>
+</node>
+<node index="1260">
+<node_location>36.815041 2.333632 21.063473</node_location>
+<node_neighbours>1259 1266 1251 </node_neighbours>
+</node>
+<node index="1261">
+<node_location>30.527031 2.066965 23.788019</node_location>
+<node_neighbours>1254 1253 1252 </node_neighbours>
+</node>
+<node index="1262">
+<node_location>34.825043 2.800298 21.953474</node_location>
+<node_neighbours>1266 1267 1252 </node_neighbours>
+</node>
+<node index="1263">
+<node_location>33.454395 2.200298 24.884388</node_location>
+<node_neighbours>1267 1255 1254 </node_neighbours>
+</node>
+<node index="1264">
+<node_location>36.860394 2.400298 25.714989</node_location>
+<node_neighbours>1258 1256 1255 </node_neighbours>
+</node>
+<node index="1265">
+<node_location>36.942402 2.000298 23.743176</node_location>
+<node_neighbours>1268 1259 1258 </node_neighbours>
+</node>
+<node index="1266">
+<node_location>36.013050 2.466965 21.962261</node_location>
+<node_neighbours>1268 1262 1260 </node_neighbours>
+</node>
+<node index="1267">
+<node_location>34.652405 2.733632 23.483179</node_location>
+<node_neighbours>1268 1263 1262 </node_neighbours>
+</node>
+<node index="1268">
+<node_location>35.840412 2.400298 23.491966</node_location>
+<node_neighbours>1267 1266 1265 </node_neighbours>
+</node>
+<node index="1269">
+<node_location>38.931358 1.333632 20.468618</node_location>
+<node_neighbours>1270 </node_neighbours>
+</node>
+<node index="1270">
+<node_location>39.231354 1.066965 21.208618</node_location>
+<node_neighbours>1269 1271 </node_neighbours>
+</node>
+<node index="1271">
+<node_location>39.156361 1.333632 23.233620</node_location>
+<node_neighbours>1270 1272 </node_neighbours>
+</node>
+<node index="1272">
+<node_location>39.381363 1.466965 24.438622</node_location>
+<node_neighbours>1271 1273 </node_neighbours>
+</node>
+<node index="1273">
+<node_location>39.381363 1.600298 25.998623</node_location>
+<node_neighbours>1272 </node_neighbours>
+</node>
+<node index="1274">
+<node_location>38.256355 1.800298 21.343620</node_location>
+<node_neighbours>1275 </node_neighbours>
+</node>
+<node index="1275">
+<node_location>38.631359 1.466965 21.918621</node_location>
+<node_neighbours>1274 1276 </node_neighbours>
+</node>
+<node index="1276">
+<node_location>38.781361 1.600298 23.643623</node_location>
+<node_neighbours>1275 1277 </node_neighbours>
+</node>
+<node index="1277">
+<node_location>39.006363 1.733631 24.218620</node_location>
+<node_neighbours>1276 1278 </node_neighbours>
+</node>
+<node index="1278">
+<node_location>39.231365 1.733631 25.943621</node_location>
+<node_neighbours>1277 </node_neighbours>
+</node>
+</nav_mesh>
+</navigation_mesh>
+</asset>
+</UntoldEngine>

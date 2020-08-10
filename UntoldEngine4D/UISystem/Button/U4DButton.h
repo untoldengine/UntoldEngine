@@ -45,7 +45,7 @@ private:
     /**
      * @brief position of the button of the texture
      */
-    U4DVector3n centerPosition;
+    U4DVector2n centerPosition;
     
     /**
      * @brief current touch position detected
@@ -81,6 +81,13 @@ public:
      * 
      */
     U4DCallbackInterface *pCallback;
+    
+    /**
+     * @brief Pointer to the controller interface
+     * @details Usually the controller interface for button is the touch interface
+     *
+     */
+    U4DControllerInterface *controllerInterface;
     
     /**
      * @brief the buttonImages member is a U4DMultiImage entity 

@@ -11,7 +11,9 @@
 #include "U4DGameModelInterface.h"
 #include "U4DEntityManager.h"
 #include "CommonProtocols.h"
-
+#include "U4DLayer.h"
+#include "U4DEntity.h"
+#include "U4DLayerManager.h"
 #include "U4DRenderWorld.h"
 
 namespace U4DEngine {
@@ -38,6 +40,16 @@ namespace U4DEngine {
     
         return *this;
     
+    }
+
+    U4DWorld::~U4DWorld(){
+        
+        //set root entity to null
+        entityManager->setRootEntity(nullptr);
+        
+        delete entityManager;
+        delete renderManager;
+        
     }
     
     U4DEntityManager* U4DWorld::getEntityManager(){
@@ -132,6 +144,37 @@ namespace U4DEngine {
     void U4DWorld::changeVisibilityInterval(float uValue){
         
         entityManager->changeVisibilityInterval(uValue);
+    }
+
+    void U4DWorld::receiveUserInputUpdate(void *uData){
+        
+        U4DLayerManager *layerManager=U4DLayerManager::sharedInstance();
+        
+        U4DLayer *activeLayer=layerManager->getActiveLayer();
+        
+        CONTROLLERMESSAGE &controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        U4DEngine::INPUTELEMENTACTION inputAction=static_cast<U4DEngine::INPUTELEMENTACTION>(controllerInputMessage.inputElementAction);
+        
+        //Go through the layer's children and check if the input coordinates lie within their boundaries
+        if (activeLayer!=nullptr) {
+            
+            U4DEntity *child=activeLayer->getLastChild();
+            
+            while (child!=nullptr) {
+                
+                if(child->changeState(inputAction, controllerInputMessage.inputPosition)){
+                    
+                    controllerInputMessage.elementUIName=child->getName();
+                    
+                }
+                
+                child=child->getPrevSibling();
+                
+            }
+            
+        }
+        
     }
 
 }

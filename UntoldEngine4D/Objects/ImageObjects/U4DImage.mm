@@ -35,7 +35,7 @@ namespace U4DEngine {
 
     void U4DImage::setImage(const char* uTextureImage,float uWidth,float uHeight){
         
-        renderManager->setDiffuseTexture(uTextureImage);
+        renderManager->setTexture0(uTextureImage);
         setImageDimension(uWidth, uHeight);
         renderManager->loadRenderingInformation();
     }

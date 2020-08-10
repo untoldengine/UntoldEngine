@@ -92,7 +92,7 @@ public:
     /**
      * @brief Pointer to the controller interface
      * @details Usually the controller interface for button is the touch interface
-     * 
+     *
      */
     U4DControllerInterface *controllerInterface;
     
@@ -119,7 +119,7 @@ public:
     /**
      * @brief original center position of the joystick texture
      */
-    U4DVector3n originalPosition;
+    U4DVector2n originalPosition;
     
     /**
      * @brief current position of joystick texture
@@ -129,12 +129,12 @@ public:
     /**
      * @brief position of joystick background texture image
      */
-    U4DVector3n centerBackgroundPosition;
+    U4DVector2n centerBackgroundPosition;
 
     /**
      * @brief position of joystick texture image
      */
-    U4DVector3n centerImagePosition;
+    U4DVector2n centerImagePosition;
     
     /**
      * @brief radius of joystick background texture

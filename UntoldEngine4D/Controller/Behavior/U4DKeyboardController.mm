@@ -19,6 +19,18 @@ namespace U4DEngine {
     //destructor
     U4DKeyboardController::~U4DKeyboardController(){
         
+        //delete the objects
+        delete keyW;
+        delete keyA;
+        delete keyD;
+        delete keyS;
+        
+        delete macKeyShift;
+        delete macKeySpace;
+        delete arrowKey;
+        
+        delete mouseLeftButton;
+        delete macMouse;
     }
 
     void U4DKeyboardController::init(){
@@ -29,6 +41,7 @@ namespace U4DEngine {
         keyD=new U4DMacKey(U4DEngine::macKeyD,this);
         keyS=new U4DMacKey(U4DEngine::macKeyS, this);
         macKeyShift=new U4DMacKey(U4DEngine::macShiftKey,this);
+        macKeySpace=new U4DMacKey(U4DEngine::macSpaceKey,this);
         arrowKey=new U4DMacArrowKey(U4DEngine::macArrowKey,this);
         
         mouseLeftButton=new U4DMacMouse(U4DEngine::mouseLeftButton,this);
@@ -39,6 +52,7 @@ namespace U4DEngine {
         registerInputEntity(keyD);
         registerInputEntity(keyS);
         registerInputEntity(macKeyShift);
+        registerInputEntity(macKeySpace);
         registerInputEntity(arrowKey);
         
         registerInputEntity(mouseLeftButton);

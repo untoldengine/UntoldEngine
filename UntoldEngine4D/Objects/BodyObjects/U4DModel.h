@@ -76,6 +76,8 @@ namespace U4DEngine {
          */
         U4DBoundingVolume *cullingPhaseBoundingVolume;
         
+        std::vector<U4DVector4n> shaderParameterContainer;
+        
         
     protected:
         
@@ -336,6 +338,10 @@ namespace U4DEngine {
          @return Returns true if the engine should render the culling-phase bounding volume
          */
         bool getCullingPhaseBoundingVolumeVisibility();
+        
+        void updateShaderParameterContainer(int uPosition, U4DVector4n &uParamater);
+        
+        std::vector<U4DVector4n> getModelShaderParameterContainer();
         
     };
     

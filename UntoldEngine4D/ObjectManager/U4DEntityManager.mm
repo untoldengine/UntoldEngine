@@ -65,6 +65,11 @@ namespace U4DEngine {
 
     U4DEntityManager::~U4DEntityManager(){
 
+        delete bvhTreeManager;
+        delete collisionAlgorithm;
+        delete manifoldGenerationAlgorithm;
+        delete collisionResponse;
+        delete visibilityManager;
         delete collisionEngine;
         delete physicsEngine;
         delete integratorMethod;

@@ -46,6 +46,11 @@ namespace U4DEngine {
         U4DPoint3n position;
         
         /**
+         @brief node weights
+         */
+        float weight;
+        
+        /**
          @brief vector containing the neighbours of the node. The vector contains the indeces of the neighbours
          */
         std::vector<int> neighborsIndex;

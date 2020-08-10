@@ -65,7 +65,6 @@ namespace U4DEngine {
             
         }
         
-        
     }
         
         
@@ -97,6 +96,18 @@ namespace U4DEngine {
         }
 
         return topLayer;
+        
+    }
+
+    void U4DLayerManager::clear(){
+    
+        //clear container and stack
+        layerContainer.clear();
+        
+        //empty the stack
+        while(!layerStack.empty()){
+            popLayer();
+        }
         
     }
 

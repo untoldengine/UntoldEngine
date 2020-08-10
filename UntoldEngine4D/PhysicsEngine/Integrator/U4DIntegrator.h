@@ -34,7 +34,7 @@ public:
     /**
      @brief Destructor for the class
      */
-    ~U4DIntegrator(){};
+    virtual ~U4DIntegrator(){};
 };
 
 }

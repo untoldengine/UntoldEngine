@@ -150,6 +150,16 @@ namespace U4DEngine {
          */
         void setNavigationSpeed(float uNavigationSpeed);
         
+        /**
+         @brief get pointer to navigation mesh object. This object contains the navigation mesh nodes
+         */
+        U4DNavMesh *getNavMesh();
+        
+        /**
+         @brief get navigation path
+         */
+        std::vector<U4DSegment> getNavPath();
+        
     };
     
 }

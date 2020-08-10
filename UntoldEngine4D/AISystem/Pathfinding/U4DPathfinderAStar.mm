@@ -8,6 +8,7 @@
 
 #include "U4DPathfinderAStar.h"
 #include <algorithm>
+#include <cmath>
 
 namespace U4DEngine {
     
@@ -168,7 +169,7 @@ namespace U4DEngine {
         uCurrentNode.hCost=(uCurrentNode.position-uEndNode.position).magnitude();
         
         //set fCost=gCost+hCost
-        uCurrentNode.fCost=uCurrentNode.gCost+uCurrentNode.hCost;
+        uCurrentNode.fCost=(uCurrentNode.gCost+uCurrentNode.hCost)*(1.0-uCurrentNode.weight);
         
     }
     

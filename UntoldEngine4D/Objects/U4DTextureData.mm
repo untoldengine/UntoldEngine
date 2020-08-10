@@ -18,24 +18,24 @@ U4DTextureData::~U4DTextureData(){
     
 }
     
-void U4DTextureData::setEmissionTexture(std::string uData){
+void U4DTextureData::setTexture0(std::string uData){
     
-    emissionTexture=uData;
+    texture0=uData;
 }
 
-void U4DTextureData::setDiffuseTexture(std::string uData){
+void U4DTextureData::setTexture1(std::string uData){
     
-    diffuseTexture=uData;
+    texture1=uData;
 }
 
-void U4DTextureData::setAmbientTexture(std::string uData){
+void U4DTextureData::setTexture2(std::string uData){
     
-    ambientTexture=uData;
+    texture2=uData;
 }
 
-void U4DTextureData::setSpecularTexture(std::string uData){
+void U4DTextureData::setTexture3(std::string uData){
     
-    specularTexture=uData;
+    texture3=uData;
 }
 
 void U4DTextureData::setNormalBumpTexture(std::string uData){

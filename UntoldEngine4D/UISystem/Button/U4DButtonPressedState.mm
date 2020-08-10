@@ -35,10 +35,7 @@ namespace U4DEngine {
         
         uButton->buttonImages.changeImage();
         
-        if (uButton->pCallback!=NULL) {
-            uButton->action();
-        }
-        
+        uButton->action();
         
     }
     

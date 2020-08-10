@@ -257,6 +257,11 @@ namespace U4DEngine {
         
         void setImageHeight(unsigned int uImageHeight);
         
+        /**
+        * @brief Update the users parameters used in the shader
+        */
+        void updateModelShaderParametersUniform();
+        
     };
 
 }

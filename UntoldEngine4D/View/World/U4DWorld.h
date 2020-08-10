@@ -16,8 +16,6 @@
 #include "U4DVisibleEntity.h"
 #include "U4DVertexData.h"
 #include "CommonProtocols.h"
-
-#include <MetalKit/MetalKit.h>
 #include "U4DRenderManager.h"
 
 namespace U4DEngine {
@@ -74,7 +72,7 @@ public:
     /**
      @brief class destructor
      */
-    virtual ~U4DWorld(){};
+    virtual ~U4DWorld();
     
     /**
      @brief copy constructor
@@ -169,6 +167,9 @@ public:
      @param uValue time interval.
      */
     void changeVisibilityInterval(float uValue);
+    
+    void receiveUserInputUpdate(void *uData);
+
     
 };
     

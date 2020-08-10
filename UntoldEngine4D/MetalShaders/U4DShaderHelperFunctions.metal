@@ -39,6 +39,8 @@ float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uN
         
         specularLight=uLightColor.specularColor*uMaterial.specularMaterialColor*pow(max(dot(reflectionVector,viewVector),0.0),uMaterial.specularReflectionPower);
         
+        specularLight=clamp(specularLight,0.0,1.0);
+        
     }
     
     return float4(ambientLight+diffuseLight+specularLight,1.0);
@@ -93,5 +95,11 @@ float2 hash(float2 u)
     const float2 k = float2( 0.3183099, 0.3678794 );
     u = u*k + k.yx;
     return -1.0 + 2.0*fract( 16.0 * k*fract( u.x*u.y*(u.x+u.y)) );
+}
+
+float mod(float x, float y){
+
+    return x-y*floor(x/y);
+    
 }
 
