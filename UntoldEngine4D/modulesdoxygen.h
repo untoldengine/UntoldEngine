@@ -14,6 +14,7 @@
  @defgroup renderingengine Rendering Engine
  @defgroup physicsengine Physics Engine
  @defgroup gameobjects Game Objects
+ @defgroup scene Scene Manager
  @defgroup animation Animation
  @defgroup controller Controller
  @defgroup loader Loaders

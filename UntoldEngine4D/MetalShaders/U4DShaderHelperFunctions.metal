@@ -103,3 +103,29 @@ float mod(float x, float y){
     
 }
 
+float sharpen(float d, float w, float2 resolution){
+    float e = 1. / min(resolution.y , resolution.x);
+    return 1. - smoothstep(-e, e, d - w);
+}
+
+
+
+float sdfCircle(float2 p, float2 c, float r){
+    return abs(r - length(p - c));
+}
+
+float sdfLine( float2 p, float2 a, float2 b){
+    float2 pa = p - a, ba = b - a;
+    float h = clamp(dot(pa,ba) / dot(ba,ba), 0., 1.);
+    return length(pa - ba * h);
+}
+
+float sdfTriangle(float2 p ){
+    
+    const float k = sqrt(3.0);
+    p.x = abs(p.x) - 1.0;
+    p.y = p.y + 1.0/k;
+    if( p.x+k*p.y>0.0 ) p = float2(p.x-k*p.y,-k*p.x-p.y)/2.0;
+    p.x -= clamp( p.x, -2.0, 0.0 );
+    return -length(p)*sign(p.y);
+}

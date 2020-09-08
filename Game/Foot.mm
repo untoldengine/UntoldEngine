@@ -8,6 +8,7 @@
 
 #include "Foot.h"
 #include "Ball.h"
+#include "UserCommonProtocols.h"
 
 Foot::Foot(Player *uPlayer):player(uPlayer){
     
@@ -27,6 +28,20 @@ bool Foot::init(const char* uModelName){
         //enable collision detection
         enableCollisionBehavior();
         
+        pauseCollisionBehavior();
+        
+        //set player as a collision sensor. Meaning only detection is enabled but not the collision response
+        setIsCollisionSensor(true);
+        
+        //I am of type
+        setCollisionFilterCategory(kFoot);
+        
+        //I collide with type of ball.
+        setCollisionFilterMask(kBall);
+        
+        //set a tag
+        setCollidingTag("foot");
+        
         //send info to the GPU
         loadRenderingInformation();
         
@@ -43,9 +58,12 @@ void Foot::update(double dt){
     if (getModelHasCollided()) {
         
         Ball *ball=Ball::sharedInstance();
-        
+
         ball->setKickBallParameters(kickMagnitude, kickDirection);
 
+        ball->changeState(kicked);
+
+        pauseCollisionBehavior();
     }
     
 }

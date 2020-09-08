@@ -30,6 +30,12 @@ class Team {
     
     Player* controllingPlayer;
     
+    U4DEngine::U4DVector3n startingPosition;
+    
+    int playerIndex;
+    
+    std::vector<U4DEngine::U4DVector3n> formationPosition;
+    
     public:
     
     Team();
@@ -49,6 +55,14 @@ class Team {
     void setOppositeTeam(Team *uTeam);
     
     void setControllingPlayer(Player *uPlayer);
+    
+    Player *getControllingPlayer();
+    
+    void computeFormationPosition();
+    
+    std::vector<U4DEngine::U4DVector3n> getFormationPosition();
+    
+    U4DEngine::U4DVector3n getFormationPositionAtIndex(int uIndex);
     
 };
 #endif /* Teams_hpp */

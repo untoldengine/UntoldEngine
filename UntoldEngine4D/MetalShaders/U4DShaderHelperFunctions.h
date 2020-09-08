@@ -43,6 +43,8 @@ constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
     float2( 0.684194,0.167302)
 };
 
+#define M_PI 3.1415926535897932384626433832795
+
 /**
  @brief random functions for 1d
  */
@@ -84,5 +86,16 @@ float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uN
  @brief Computes mod
  */
 float mod(float x, float y);
+
+/**
+ @brief sharpens the lines
+ */
+float sharpen(float d, float w, float2 resolution);
+
+float sdfCircle(float2 p, float2 c, float r);
+
+float sdfLine( float2 p, float2 a, float2 b);
+
+float sdfTriangle(float2 p );
 
 #endif /* U4DShaderHelperFunctions_h */

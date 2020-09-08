@@ -26,7 +26,7 @@ namespace U4DEngine{
 namespace U4DEngine {
     
 /**
- @ingroup gameobjects
+ @ingroup scene
  @brief The U4DScene class represents the scene (universe) object of the game. A scene can have multiple worlds. A world represents the View Component of the Model-View-Controller pattern.
  */
 class U4DScene{

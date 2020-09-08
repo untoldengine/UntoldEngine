@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
 
-U4DSeparation::U4DSeparation():desiredSeparation(5.0){
+U4DSeparation::U4DSeparation():desiredSeparation(15.0){
         
     }
 

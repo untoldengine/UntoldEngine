@@ -289,11 +289,11 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
             
                 if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
                     
-                    pPlayer->changeState(contain);
+                    //pPlayer->changeState(contain);
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
                     
-                    pPlayer->changeState(defending);
+                    //pPlayer->changeState(defending);
                 }
             
             break;

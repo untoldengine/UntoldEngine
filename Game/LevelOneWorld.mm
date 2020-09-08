@@ -27,6 +27,9 @@
 #include "PathAnalyzer.h"
 #include "TeamSettings.h"
 
+#include "PlayerStateIdle.h"
+#include "PlayerStateChase.h"
+
 using namespace U4DEngine;
 
 void LevelOneWorld::init(){
@@ -193,9 +196,7 @@ void LevelOneWorld::init(){
             
             addChild(players[i]);
             
-            players[i]->changeState(idle);
-            
-            players[i]->addToTeam(teamA);
+            players[i]->changeState(PlayerStateIdle::sharedInstance());
             
             teamA->addPlayer(players[i]);
         
@@ -219,15 +220,13 @@ void LevelOneWorld::init(){
             
             addChild(oppositePlayers[i]); 
             
-            oppositePlayers[i]->changeState(idle);
-            
-            oppositePlayers[i]->addToTeam(teamB);
+            oppositePlayers[i]->changeState(PlayerStateIdle::sharedInstance());
             
             teamB->addPlayer(oppositePlayers[i]);
         }
     }
     
-    players[0]->changeState(pursuit);
+    players[0]->changeState(PlayerStateChase::sharedInstance());
     
     teamA->startAnalyzing();
     

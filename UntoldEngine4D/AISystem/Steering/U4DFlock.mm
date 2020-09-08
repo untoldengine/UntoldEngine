@@ -55,6 +55,8 @@ namespace U4DEngine {
             finalDesiredVelocity=cohesionDesiredVelocity;
         }
         
+        finalDesiredVelocity=(separationDesiredVelocity+alignDesiredVelocity+cohesionDesiredVelocity)*0.33;
+        
         return finalDesiredVelocity;
         
     }

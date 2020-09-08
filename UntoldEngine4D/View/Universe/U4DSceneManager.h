@@ -16,7 +16,7 @@
 namespace U4DEngine {
 
     /**
-    @ingroup gameobjects
+    @ingroup scene
     @brief The U4DSceneManager class is in charge of managing the current scene enabled.
     */
     class U4DSceneManager {
