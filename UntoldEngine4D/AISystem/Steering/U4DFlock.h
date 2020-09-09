@@ -28,6 +28,12 @@ namespace U4DEngine {
          */
         float maxSpeed;
         
+        float desiredSeparation;
+        
+        float neighborDistanceAlignment;
+        
+        float neighborDistanceCohesion;
+        
     public:
         
         /**
@@ -55,6 +61,15 @@ namespace U4DEngine {
          @param uMaxSpeed maximum steering speed
          */
         void setMaxSpeed(float uMaxSpeed);
+        
+        /**
+         @brief Sets the corresponding separation, alignment and cohesion neighbor distance
+         
+         @param uNeighborSeparationDistance Distance for neighbor separation
+         @param uNeighborAlignDistance Distance for neighbor alignment
+         @param uNeighborCohesionDistance Distance for neighbor cohesion
+         */
+        void setNeighborsDistance(float uNeighborSeparationDistance, float uNeighborAlignDistance, float uNeighborCohesionDistance);
         
     };
     

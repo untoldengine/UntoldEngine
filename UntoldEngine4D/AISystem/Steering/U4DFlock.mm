@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
 
-    U4DFlock::U4DFlock(){
+U4DFlock::U4DFlock():maxSpeed(25.0),desiredSeparation(5.0),neighborDistanceAlignment(20.0),neighborDistanceCohesion(20.0){
             
         }
 
@@ -35,26 +35,32 @@ namespace U4DEngine {
         alignBehavior.setMaxSpeed(maxSpeed);
         cohesionBehavior.setMaxSpeed(maxSpeed);
         
+        //set neighbor distance
+        separationBehavior.setDesiredSeparation(desiredSeparation);
+        alignBehavior.setNeighborDistance(neighborDistanceAlignment);
+        cohesionBehavior.setNeighborDistance(neighborDistanceCohesion);
+        
         U4DVector3n separationDesiredVelocity=separationBehavior.getSteering(uPursuer,uNeighborsContainer);
         U4DVector3n cohesionDesiredVelocity=cohesionBehavior.getSteering(uPursuer,uNeighborsContainer);
         U4DVector3n alignDesiredVelocity=alignBehavior.getSteering(uPursuer,uNeighborsContainer);
         
         U4DVector3n finalDesiredVelocity;
         
-        //Priorities: 1. Separation. 2. Alignment. 3. Cohesion
-        if(separationDesiredVelocity.magnitudeSquare()>U4DEngine::zeroEpsilon) {
-
-            finalDesiredVelocity=separationDesiredVelocity;
-
-        }else if(alignDesiredVelocity.magnitudeSquare()>U4DEngine::zeroEpsilon) {
-
-            finalDesiredVelocity=alignDesiredVelocity;
-
-        }else{
-
-            finalDesiredVelocity=cohesionDesiredVelocity;
-        }
+//        //Priorities: 1. Separation. 2. Alignment. 3. Cohesion
+//        if(separationDesiredVelocity.magnitudeSquare()>U4DEngine::zeroEpsilon) {
+//
+//            finalDesiredVelocity=separationDesiredVelocity;
+//
+//        }else if(alignDesiredVelocity.magnitudeSquare()>U4DEngine::zeroEpsilon) {
+//
+//            finalDesiredVelocity=alignDesiredVelocity;
+//
+//        }else{
+//
+//            finalDesiredVelocity=cohesionDesiredVelocity;
+//        }
         
+        //Using blending for the final flocking velocity
         finalDesiredVelocity=(separationDesiredVelocity+alignDesiredVelocity+cohesionDesiredVelocity)*0.33;
         
         return finalDesiredVelocity;
@@ -64,6 +70,14 @@ namespace U4DEngine {
     void U4DFlock::setMaxSpeed(float uMaxSpeed){
         
         maxSpeed=uMaxSpeed;
+        
+    }
+
+    void U4DFlock::setNeighborsDistance(float uNeighborSeparationDistance, float uNeighborAlignDistance, float uNeighborCohesionDistance){
+        
+        desiredSeparation=uNeighborSeparationDistance;
+        neighborDistanceAlignment=uNeighborAlignDistance;
+        neighborDistanceCohesion=uNeighborCohesionDistance;
         
     }
 

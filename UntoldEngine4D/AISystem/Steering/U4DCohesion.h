@@ -45,6 +45,13 @@ namespace U4DEngine {
          @return velocity vector to apply to 3D model
          */
         U4DVector3n getSteering(U4DDynamicModel *uPursuer, std::vector<U4DDynamicModel*> uNeighborsContainer);
+      
+        /**
+         @brief Sets the desired neighbor distance which will be influenced by the behavior
+         
+         @param uNeighborDistance Neighbor distance
+         */
+        void setNeighborDistance(float uNeighborDistance);
         
     };
     

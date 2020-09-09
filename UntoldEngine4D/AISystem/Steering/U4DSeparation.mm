@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
 
-U4DSeparation::U4DSeparation():desiredSeparation(15.0){
+U4DSeparation::U4DSeparation():desiredSeparation(5.0){
         
     }
 
@@ -64,6 +64,10 @@ U4DSeparation::U4DSeparation():desiredSeparation(15.0){
         
         return U4DVector3n(0.0,0.0,0.0);
         
+    }
+
+    void U4DSeparation::setDesiredSeparation(float uDesiredSeparation){
+        desiredSeparation=uDesiredSeparation;
     }
 
 }
