@@ -60,6 +60,10 @@ float _o(float2 uv) {
     return abs(length(float2(uv.x,max(0.,abs(uv.y)-.15)))-.25);
 }
 
+float _i(float2 uv) {
+    return length(float2(uv.x,max(0.,abs(uv.y)-.4)));
+}
+
 float _j(float2 uv) {
     uv.x+=.2;
     uv.y+=.55;
@@ -158,6 +162,51 @@ float tt(float2 uv) {
     return x;
 }
 
+float ssub(float2 uv) {
+    return length(float2(max(0.,abs(uv.x)-.25),uv.y-.1));
+}
+
+float rr(float2 uv) {
+    uv.x -= .05;
+    float x =atan2(uv.x,uv.y-0.15)<1.14&&uv.y>0.?_o(uv):length(float2(uv.x-.22734,uv.y-.254));
+    
+    //)?_o(uv):length(float2(uv.x-.22734,uv.y+.254))+.4);
+    
+    uv.x+=.25;
+    return min(x,_i(uv));
+}
+
+float ii(float2 uv) {
+    return min(_i(uv),length(float2(uv.x,uv.y-.6)));
+}
+
+float pp(float2 uv) {
+    float x = _o(uv);
+    uv.x += .25;
+    uv.y += .4;
+    return min(x,_l(uv));
+}
+
+float ff(float2 uv) {
+    uv.x *= -1.;
+    uv.x += .05;
+    float x = _j(float2(uv.x,-uv.y));
+    uv.y -= .4;
+    x = min(x,length(float2(max(0.,abs(uv.x-.05)-.25),uv.y)));
+    return x;
+}
+
+float uu(float2 uv) {
+    return _u(uv,.25,.25);
+}
+
+float nn(float2 uv) {
+    uv.y *= -1.;
+    float x = _u(uv,.25,.25);
+    uv.x+=.25;
+    return min(x,_i(uv));
+}
+
 float3 passText(float2 st,float2 resolution){
 
     st.y*=-1.0;
@@ -186,13 +235,76 @@ float3 passText(float2 st,float2 resolution){
     
 }
 
+float3 shiftText(float2 st, float2 resolution){
+    
+    st.y*=-1.0;
+    
+    //render s
+    float s=ss(st);
+    s=sharpen(s,0.06,resolution);
+    
+    float3 color=float3(s);
+
+    //render h
+    float h=hh(st-float2(0.7,0.0));
+    
+    h=sharpen(h,0.06,resolution);
+    
+    color=max(color,float3(h));
+    
+    //render i
+    float i=ii(st-float2(1.4,0.0));
+    
+    i=sharpen(i,0.06,resolution);
+    
+    color=max(color,float3(i));
+
+    //render f
+    float f=ff(st-float2(2.1,0.0));
+    
+    f=sharpen(f,0.06,resolution);
+    
+    color=max(color,float3(f));
+
+    //render t
+    
+    float t=tt(st-float2(2.8,0.0));
+    
+    t=sharpen(t,0.06,resolution);
+    
+     return max(color,float3(t));
+    
+}
+
+float3 runText(float2 st, float2 resolution){
+    
+    st.y*=-1.0;
+    
+    //render r
+    float r=rr(st);
+    r=sharpen(r,0.06,resolution);
+    
+    float3 color=float3(r);
+    
+    //render u
+    float u=uu(st-float2(0.7,0.0));
+    u=sharpen(u,0.06,resolution);
+    color=max(color,float3(u));
+    
+    //render n
+    float n=nn(st-float2(1.4,0.0));
+    n=sharpen(n,0.06,resolution);
+    
+    return max(color,float3(n));
+}
+
 float3 shootText(float2 st, float2 resolution){
 
     st.y*=-1.0;
     
     float s=SS(st);
     s=sharpen(s,0.06,resolution);
-    float3 color=max(color,s);
+    float3 color=float3(s);
     
     float h=hh(st-float2(0.7,0.0));
     h=sharpen(h,0.06,resolution);
@@ -246,7 +358,13 @@ float3 createRing(float2 st, float2 resolution){
     
 }
 
-vertex VertexOutput vertexIndicatorShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(2)]], uint vid [[vertex_id]]){
+float sdfRoundBox(float2 p, float2 b, float r )
+{
+    float2 d = abs(p)-b;
+    return abs(length(max(d,0.0)) + min(max(d.x,d.y),0.0))-r;
+}
+
+vertex VertexOutput vertexInstructionsShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(2)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -259,7 +377,7 @@ vertex VertexOutput vertexIndicatorShader(VertexInput vert [[stage_in]], constan
     return vertexOut;
 }
 
-fragment float4 fragmentIndicatorShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(0)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(1)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentInstructionsShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(0)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(1)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
     
     float2 st=-1. + 2. * vertexOut.uvCoords;
     
@@ -267,48 +385,81 @@ fragment float4 fragmentIndicatorShader(VertexOutput vertexOut [[stage_in]], con
     
     //float playerDirection=sign(uniformShaderEntityProperty.shaderParameter[0].x);
     
-    st*=3.0;
-    
-    st.x+=0.1;
-    st.y+=0.7;
-    
     float2 tST=st;
+
+    tST*=3.0;
+
+    tST.x+=0.1;
+    tST.y+=0.7;
     
     tST=scale(float2(10.0,5.0))*tST;
-    
+
     tST.y+=0.5;
     tST.x-=1.5;
-    
+
     float t=sdfTriangle(tST*4.0);
-    
+
     t=sharpen(t,0.06,uniformGlobalData.resolution);
-    
+
     color=max(color,t)*float3(1.0,0.0,0.0);
+
+    //INSTRUNCTIONS FOR GAMEPAD
+//    st.x+=0.1;
+//
+//    color=max(color,createCircle(st,uniformGlobalData.resolution));
+//
+//    color=max(color,createCross(st,uniformGlobalData.resolution));
+
+//    float2 passST=st;
+//
+//    passST*=12.0;
+//    passST.x+=3.5;
+//
+//    color=max(color,passText(passST,uniformGlobalData.resolution));
+//
+//    st.y+=0.2;
+//
+//    color=max(color,createCircle(st,uniformGlobalData.resolution));
+//    color=max(color,createRing(st,uniformGlobalData.resolution));
+//
+//    float2 shootST=st;
+//
+//    shootST*=12.0;
+//    shootST.x+=4.0;
+//
+//    color=max(color,shootText(shootST,uniformGlobalData.resolution));
     
-    st.x+=0.1;
+    
+    float2 instST=st;
 
-    color=max(color,createCircle(st,uniformGlobalData.resolution));
-
-    color=max(color,createCross(st,uniformGlobalData.resolution));
-
-    float2 passST=st;
-
-    passST*=12.0;
-    passST.x+=3.5;
-
-    color=max(color,passText(passST,uniformGlobalData.resolution));
-
-    st.y+=0.2;
-
-    color=max(color,createCircle(st,uniformGlobalData.resolution));
-    color=max(color,createRing(st,uniformGlobalData.resolution));
-
-    float2 shootST=st;
-
-    shootST*=12.0;
-    shootST.x+=4.0;
-
-    color=max(color,shootText(shootST,uniformGlobalData.resolution));
+    instST*=36.0;
+    instST.y+=10.0;
+    instST.x+=10.0;
+    
+    color=max(color,runText(instST,uniformGlobalData.resolution));
+    
+    color=max(color,shiftText(instST-float2(3.0,0.0),uniformGlobalData.resolution));
+    
+    float shiftBox=sdfRoundBox(instST-float2(4.5,0.0),float2(2.0,1.0),0.1);
+    
+    shiftBox=sharpen(shiftBox,0.03,uniformGlobalData.resolution);
+    
+    color=max(color,float3(shiftBox)*float3(1.0,0.0,0.0));
+    
+    instST.y-=3.0;
+    
+    color=max(color,passText(instST,uniformGlobalData.resolution));
+    
+    float s=ss(float2(instST.x,-instST.y)-float2(4.0,0.0));
+    s=sharpen(s,0.06,uniformGlobalData.resolution);
+    
+    color=max(color,float3(s));
+    
+    float sBox=sdfRoundBox(instST-float2(4.0,0.0),float2(1.0,1.0),0.1);
+        
+    sBox=sharpen(sBox,0.03,uniformGlobalData.resolution);
+    
+    color=max(color,float3(sBox)*float3(1.0,0.0,0.0));
     
     return float4(color,1.0);
     

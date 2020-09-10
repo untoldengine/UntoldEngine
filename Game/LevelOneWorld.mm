@@ -12,23 +12,20 @@
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DLights.h"
-#include "U4DSkybox.h"
 #include "U4DResourceLoader.h"
-#include "U4DFontLoader.h"
-#include "U4DLayerManager.h"
-#include "U4DText.h"
-#include "U4DLogger.h"
 #include "UserCommonProtocols.h"
 #include "U4DCameraInterface.h"
 #include "U4DCameraBasicFollow.h"
-#include "LevelOneUILayer.h"
+#include "U4DLayerManager.h"
+#include "Player.h"
 #include "Ball.h"
-#include "FieldAnalyzer.h"
-#include "PathAnalyzer.h"
-#include "TeamSettings.h"
-
+#include "Team.h"
+#include "LevelOneLogic.h"
+#include "LevelOneUILayer.h"
 #include "PlayerStateIdle.h"
 #include "PlayerStateChase.h"
+#include "PlayerStateGroupNav.h"
+#include "TeamSettings.h"
 
 using namespace U4DEngine;
 
@@ -68,7 +65,11 @@ void LevelOneWorld::init(){
     resourceLoader->loadAnimationData("rightstandtackleAnimation.u4d");
     
     resourceLoader->loadAnimationData("rightforwardcontainAnimation.u4d");
+ 
+    resourceLoader->loadAnimationData("righttapAnimation.u4d");
     
+    
+    U4DDirector *director=U4DDirector::sharedInstance();
     //RENDER THE MODELS
     
     //render the ground
@@ -92,47 +93,47 @@ void LevelOneWorld::init(){
     }
     
     
-    U4DEngine::U4DGameObject *ads[5];
-
-    for(int i=0;i<sizeof(ads)/sizeof(ads[0]);i++){
-
-        std::string name="ad";
-
-        name+=std::to_string(i);
-
-        ads[i]=new U4DEngine::U4DGameObject();
-
-        if(ads[i]->loadModel(name.c_str())){
-
-            ads[i]->setEnableShadow(true);
-
-            ads[i]->loadRenderingInformation();
-
-            addChild(ads[i]);
-        }
-
-    }
-
-    U4DEngine::U4DGameObject *bleachers[11];
-
-    for(int i=0;i<sizeof(bleachers)/sizeof(bleachers[0]);i++){
-
-        std::string name="bleacher";
-
-        name+=std::to_string(i);
-
-        bleachers[i]=new U4DEngine::U4DGameObject();
-
-        if(bleachers[i]->loadModel(name.c_str())){
-
-            bleachers[i]->setEnableShadow(true);
-
-            bleachers[i]->loadRenderingInformation();
-
-            addChild(bleachers[i]);
-        }
-
-    }
+//    U4DEngine::U4DGameObject *ads[5];
+//
+//    for(int i=0;i<sizeof(ads)/sizeof(ads[0]);i++){
+//
+//        std::string name="ad";
+//
+//        name+=std::to_string(i);
+//
+//        ads[i]=new U4DEngine::U4DGameObject();
+//
+//        if(ads[i]->loadModel(name.c_str())){
+//
+//            ads[i]->setEnableShadow(true);
+//
+//            ads[i]->loadRenderingInformation();
+//
+//            addChild(ads[i]);
+//        }
+//
+//    }
+//
+//    U4DEngine::U4DGameObject *bleachers[11];
+//
+//    for(int i=0;i<sizeof(bleachers)/sizeof(bleachers[0]);i++){
+//
+//        std::string name="bleacher";
+//
+//        name+=std::to_string(i);
+//
+//        bleachers[i]=new U4DEngine::U4DGameObject();
+//
+//        if(bleachers[i]->loadModel(name.c_str())){
+//
+//            bleachers[i]->setEnableShadow(true);
+//
+//            bleachers[i]->loadRenderingInformation();
+//
+//            addChild(bleachers[i]);
+//        }
+//
+//    }
 
     U4DEngine::U4DGameObject *fieldGoals[2];
 
@@ -158,79 +159,84 @@ void LevelOneWorld::init(){
     //render the ball
     Ball *ball=Ball::sharedInstance();
     
-    if (ball->init("ball")) {
+    if (ball->init("ball2")) {
         
         addChild(ball);
         
     }
     
-    //Initialize both teams
-    teamA=new Team();
-    teamB=new Team();
     
-    teamA->setOppositeTeam(teamB);
-    teamB->setOppositeTeam(teamA);
+   //Initialize both teams
+   teamA=new Team();
+   teamB=new Team();
+   
+   LevelOneLogic *levelOneLogic=dynamic_cast<LevelOneLogic*>(getGameModel());
+   
+   levelOneLogic->setControllingTeam(teamA);
+    
+   TeamSettings *teamSettings=TeamSettings::sharedInstance();
+   std::vector<U4DEngine::U4DVector4n> teamAKit=teamSettings->getTeamAKit();
+   
+   Player *players[3];
+   
+   for(int i=0;i<sizeof(players)/sizeof(players[0]);i++){
+       
+       std::string name="player";
+       name+=std::to_string(i);
+       
+       players[i]=new Player();
+       
+       if(players[i]->init(name.c_str())){
+       
+           //I am of type
+           players[i]->setCollisionFilterCategory(kPlayer);
+           
+           //I collide with type of bullet and player. The enemies can collide among themselves.
+           players[i]->setCollisionFilterMask(kPlayer);
+           
+           //set a tag
+           players[i]->setCollidingTag("player");
+           
+           //load the team kit
+           for(int j=0;j<teamAKit.size();j++){
+               
+               players[i]->updateShaderParameterContainer(j,teamAKit.at(j));
+               
+           }
+           
+           addChild(players[i]);
+           
+           teamA->addPlayer(players[i]);
+       }
 
-    TeamSettings *teamSettings=TeamSettings::sharedInstance();
-    std::vector<U4DEngine::U4DVector4n> teamAKit=teamSettings->getTeamAKit();
-    
-    //create the player object and render it
-    
-    Player *players[3];
-    
-    for(int i=0;i<sizeof(players)/sizeof(players[0]);i++){
-        
-        std::string name="player";
-        name+=std::to_string(i);
-        
-        players[i]=new Player();
-        
-        if(players[i]->init(name.c_str())){
-        
-            //load the team kit
-            for(int j=0;j<teamAKit.size();j++){
-                
-                players[i]->updateShaderParameterContainer(j,teamAKit.at(j));
-                
-            }
-            
-            addChild(players[i]);
-            
-            players[i]->changeState(PlayerStateIdle::sharedInstance());
-            
-            teamA->addPlayer(players[i]);
-        
-        }
+   }
+   
+   players[0]->changeState(PlayerStateChase::sharedInstance());
+   
+   players[1]->changeState(PlayerStateGroupNav::sharedInstance());
+   
+   players[2]->changeState(PlayerStateGroupNav::sharedInstance());
+   
+   
+   Player *oppositePlayers[3];
 
-    }
-    
-    
-    
-    
-    Player *oppositePlayers[3];
-    
-    for(int i=0;i<sizeof(oppositePlayers)/sizeof(oppositePlayers[0]);i++){
-        
-        std::string name="oppositeplayer";
-        name+=std::to_string(i);
-        
-        oppositePlayers[i]=new Player();
-        
-        if(oppositePlayers[i]->init(name.c_str())){
-            
-            addChild(oppositePlayers[i]); 
-            
-            oppositePlayers[i]->changeState(PlayerStateIdle::sharedInstance());
-            
-            teamB->addPlayer(oppositePlayers[i]);
-        }
-    }
-    
-    players[0]->changeState(PlayerStateChase::sharedInstance());
-    
-    teamA->startAnalyzing();
-    
-    
+   for(int i=0;i<sizeof(oppositePlayers)/sizeof(oppositePlayers[0]);i++){
+
+       std::string name="oppositeplayer";
+       name+=std::to_string(i);
+
+       oppositePlayers[i]=new Player();
+
+       if(oppositePlayers[i]->init(name.c_str())){
+
+           addChild(oppositePlayers[i]);
+
+           teamB->addPlayer(oppositePlayers[i]);
+
+       }
+
+   }
+   
     //Visualizers
     
     playerVisualizerShader=new U4DEngine::U4DShaderEntity(22);
@@ -247,40 +253,7 @@ void LevelOneWorld::init(){
 
     addChild(playerVisualizerShader,-10);
     
-    //Uncomment this section to view the visualizers
-//    //Create influence map shader
-//    influenceMapShader=new U4DEngine::U4DShaderEntity(441);
-//
-//    influenceMapShader->setShader("vertexInfluenceShader", "fragmentInfluenceShader");
-//
-//    influenceMapShader->setTexture0("radarField.png");
-//
-//    influenceMapShader->setShaderDimension(200.0, 113.0);
-//
-//    influenceMapShader->translateTo(0.7, -0.7, 0.0);
-//
-//    influenceMapShader->loadRenderingInformation();
-//
-//    addChild(influenceMapShader,-10);
-//
-//
-//    //Create Navigation map shader
-//    navigationMapShader=new U4DEngine::U4DShaderEntity(30);
-//
-//    navigationMapShader->setShader("vertexNavigationShader", "fragmentNavigationShader");
-//
-//    navigationMapShader->setTexture0("radarField.png");
-//
-//    navigationMapShader->setShaderDimension(200.0, 113.0);
-//
-//    navigationMapShader->translateTo(-0.7, -0.7, 0.0);
-//
-//    navigationMapShader->loadRenderingInformation();
-//
-//    addChild(navigationMapShader,-10);
     
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-
     if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
 
         //Create Mobile Layer with buttons & joystic
@@ -297,6 +270,22 @@ void LevelOneWorld::init(){
         layerManager->addLayerToContainer(levelOneUILayer);
 
         layerManager->pushLayer("levelOneUILayer");
+    
+    }else{
+        
+        //Create Player Indicator shader
+        playerIndicatorShader=new U4DEngine::U4DShaderEntity(1);
+
+        playerIndicatorShader->setShader("vertexInstructionsShader", "fragmentInstructionsShader");
+
+        playerIndicatorShader->setShaderDimension(director->getDisplayWidth(), director->getDisplayHeight());
+
+        playerIndicatorShader->loadRenderingInformation();
+
+        addChild(playerIndicatorShader,-10);
+
+        levelOneLogic->setPlayerIndicator(playerIndicatorShader);
+    
     }
     
     //Instantiate the camera
@@ -306,7 +295,7 @@ void LevelOneWorld::init(){
     U4DEngine::U4DCameraInterface *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
 
     //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
-    cameraBasicFollow->setParameters(ball,0.0,25.0,-40.0);
+    cameraBasicFollow->setParameters(ball,0.0,25.0,-50.0);
 
     //set the camera behavior
     camera->setCameraBehavior(cameraBasicFollow);
@@ -342,36 +331,7 @@ void LevelOneWorld::update(double dt){
         index++;
     }
 
-      //Uncomment this section to view the visualizers
-//    FieldAnalyzer *fieldAnalyzer=FieldAnalyzer::sharedInstance();
-//
-//    for(int i=0;i<fieldAnalyzer->getCellContainer().size();i++){
-//
-//        Cell cell=fieldAnalyzer->getCellContainer().at(i);
-//
-//        U4DVector4n cellProperty(cell.x,cell.y,cell.influence,cell.isTeam);
-//
-//        influenceMapShader->updateShaderParameterContainer(i, cellProperty);
-//
-//    }
-//
-//    PathAnalyzer *pathAnalyzer=PathAnalyzer::sharedInstance();
-//
-//    //send size of path
-//    U4DEngine::U4DVector4n navParam0(pathAnalyzer->getNavigationPath().size(),0.0,0.0,0.0);
-//    navigationMapShader->updateShaderParameterContainer(0, navParam0);
-//
-//    int p=1;
-//
-//    //This print the computed path, but the path does not contain the target position
-//    for(auto &n:pathAnalyzer->getNavigationPath()){
-//
-//        U4DEngine::U4DVector4n navParam(n.pointA.x/80.0,n.pointA.z/45.0,n.pointB.x/80.0,n.pointB.z/45.0);
-//        navigationMapShader->updateShaderParameterContainer(p, navParam);
-//
-//        p++;
-//
-//    }
+      
     
 }
 

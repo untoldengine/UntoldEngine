@@ -77,8 +77,8 @@ void DebugWorld::init(){
         //ground->setShader("vertexFieldBoundShader","fragmentFieldBoundShader");
         
         //ground->setShader("vertexBallPredictionShader","fragmentBallPredictionShader");
-        ground->setShader("vertexIndicatorDirectionShader","fragmentIndicatorDirectionShader");
-        
+        //ground->setShader("vertexIndicatorDirectionShader","fragmentIndicatorDirectionShader");
+        ground->setShader("vertexFieldShader", "fragmentFieldShader");
         //set shadows
         ground->setEnableShadow(true);
         
@@ -162,20 +162,52 @@ void DebugWorld::init(){
     }
     
     
-//    //Create Player Indicator shader
-//    playerIndicatorShader=new U4DEngine::U4DShaderEntity(1);
-//
-//    playerIndicatorShader->setShader("vertexIndicatorShader", "fragmentIndicatorShader");
-//
-//    U4DDirector *director=U4DDirector::sharedInstance();
-//
-//    playerIndicatorShader->setShaderDimension(director->getDisplayWidth(), director->getDisplayHeight());
-//
-//    playerIndicatorShader->loadRenderingInformation();
-//
-//    addChild(playerIndicatorShader,-10);
-//
-//    debugLogic->setPlayerIndicator(playerIndicatorShader);
+    //Create Player Indicator shader
+    playerIndicatorShader=new U4DEngine::U4DShaderEntity(1);
+
+    playerIndicatorShader->setShader("vertexInstructionsShader", "fragmentInstructionsShader");
+
+    U4DDirector *director=U4DDirector::sharedInstance();
+
+    playerIndicatorShader->setShaderDimension(director->getDisplayWidth(), director->getDisplayHeight());
+
+    playerIndicatorShader->loadRenderingInformation();
+
+    addChild(playerIndicatorShader,-10);
+
+    debugLogic->setPlayerIndicator(playerIndicatorShader);
+    
+    //Uncomment this section to view the visualizers
+    //    //Create influence map shader
+    //    influenceMapShader=new U4DEngine::U4DShaderEntity(441);
+    //
+    //    influenceMapShader->setShader("vertexInfluenceShader", "fragmentInfluenceShader");
+    //
+    //    influenceMapShader->setTexture0("radarField.png");
+    //
+    //    influenceMapShader->setShaderDimension(200.0, 113.0);
+    //
+    //    influenceMapShader->translateTo(0.7, -0.7, 0.0);
+    //
+    //    influenceMapShader->loadRenderingInformation();
+    //
+    //    addChild(influenceMapShader,-10);
+    //
+    //
+    //    //Create Navigation map shader
+    //    navigationMapShader=new U4DEngine::U4DShaderEntity(30);
+    //
+    //    navigationMapShader->setShader("vertexNavigationShader", "fragmentNavigationShader");
+    //
+    //    navigationMapShader->setTexture0("radarField.png");
+    //
+    //    navigationMapShader->setShaderDimension(200.0, 113.0);
+    //
+    //    navigationMapShader->translateTo(-0.7, -0.7, 0.0);
+    //
+    //    navigationMapShader->loadRenderingInformation();
+    //
+    //    addChild(navigationMapShader,-10);
     
     //Instantiate the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
@@ -228,7 +260,37 @@ void DebugWorld::init(){
 }
 
 void DebugWorld::update(double dt){
-    
+ 
+    //Uncomment this section to view the visualizers
+    //    FieldAnalyzer *fieldAnalyzer=FieldAnalyzer::sharedInstance();
+    //
+    //    for(int i=0;i<fieldAnalyzer->getCellContainer().size();i++){
+    //
+    //        Cell cell=fieldAnalyzer->getCellContainer().at(i);
+    //
+    //        U4DVector4n cellProperty(cell.x,cell.y,cell.influence,cell.isTeam);
+    //
+    //        influenceMapShader->updateShaderParameterContainer(i, cellProperty);
+    //
+    //    }
+    //
+    //    PathAnalyzer *pathAnalyzer=PathAnalyzer::sharedInstance();
+    //
+    //    //send size of path
+    //    U4DEngine::U4DVector4n navParam0(pathAnalyzer->getNavigationPath().size(),0.0,0.0,0.0);
+    //    navigationMapShader->updateShaderParameterContainer(0, navParam0);
+    //
+    //    int p=1;
+    //
+    //    //This print the computed path, but the path does not contain the target position
+    //    for(auto &n:pathAnalyzer->getNavigationPath()){
+    //
+    //        U4DEngine::U4DVector4n navParam(n.pointA.x/80.0,n.pointA.z/45.0,n.pointB.x/80.0,n.pointB.z/45.0);
+    //        navigationMapShader->updateShaderParameterContainer(p, navParam);
+    //
+    //        p++;
+    //
+    //    }
 }
 
 //Sets the configuration for the engine: Perspective view, shadows, light

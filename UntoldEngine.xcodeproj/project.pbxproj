@@ -710,9 +710,9 @@
 		0375BA5524FFE04E00D19CE4 /* IndicatorDirectionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA5424FFE04E00D19CE4 /* IndicatorDirectionShader.metal */; };
 		0375BA5624FFE04E00D19CE4 /* IndicatorDirectionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA5424FFE04E00D19CE4 /* IndicatorDirectionShader.metal */; };
 		0375BA5724FFE04E00D19CE4 /* IndicatorDirectionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA5424FFE04E00D19CE4 /* IndicatorDirectionShader.metal */; };
-		0375BA592500809400D19CE4 /* PlayerIndicatorShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA582500809400D19CE4 /* PlayerIndicatorShader.metal */; };
-		0375BA5A2500809400D19CE4 /* PlayerIndicatorShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA582500809400D19CE4 /* PlayerIndicatorShader.metal */; };
-		0375BA5B2500809400D19CE4 /* PlayerIndicatorShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA582500809400D19CE4 /* PlayerIndicatorShader.metal */; };
+		0375BA592500809400D19CE4 /* PlayerInstructionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA582500809400D19CE4 /* PlayerInstructionShader.metal */; };
+		0375BA5A2500809400D19CE4 /* PlayerInstructionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA582500809400D19CE4 /* PlayerInstructionShader.metal */; };
+		0375BA5B2500809400D19CE4 /* PlayerInstructionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA582500809400D19CE4 /* PlayerInstructionShader.metal */; };
 		0375BA5E2501E8D400D19CE4 /* PlayerStateIntercept.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA5C2501E8D400D19CE4 /* PlayerStateIntercept.mm */; };
 		0375BA5F2501E8D400D19CE4 /* PlayerStateIntercept.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA5C2501E8D400D19CE4 /* PlayerStateIntercept.mm */; };
 		0375BA602501E8D400D19CE4 /* PlayerStateIntercept.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0375BA5C2501E8D400D19CE4 /* PlayerStateIntercept.mm */; };
@@ -1354,7 +1354,7 @@
 		0375BA4F24FFD97900D19CE4 /* PlayAnalyzer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = PlayAnalyzer.mm; path = Game/PlayAnalyzer.mm; sourceTree = SOURCE_ROOT; };
 		0375BA5024FFD97900D19CE4 /* PlayAnalyzer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlayAnalyzer.h; path = Game/PlayAnalyzer.h; sourceTree = SOURCE_ROOT; };
 		0375BA5424FFE04E00D19CE4 /* IndicatorDirectionShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = IndicatorDirectionShader.metal; path = Game/IndicatorDirectionShader.metal; sourceTree = SOURCE_ROOT; };
-		0375BA582500809400D19CE4 /* PlayerIndicatorShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = PlayerIndicatorShader.metal; path = Game/PlayerIndicatorShader.metal; sourceTree = SOURCE_ROOT; };
+		0375BA582500809400D19CE4 /* PlayerInstructionShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = PlayerInstructionShader.metal; path = Game/PlayerInstructionShader.metal; sourceTree = SOURCE_ROOT; };
 		0375BA5C2501E8D400D19CE4 /* PlayerStateIntercept.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = PlayerStateIntercept.mm; path = Game/PlayerStateIntercept.mm; sourceTree = SOURCE_ROOT; };
 		0375BA5D2501E8D400D19CE4 /* PlayerStateIntercept.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = PlayerStateIntercept.h; path = Game/PlayerStateIntercept.h; sourceTree = SOURCE_ROOT; };
 		0375BA612503D6A700D19CE4 /* PlayerStateGroupNav.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = PlayerStateGroupNav.mm; path = Game/PlayerStateGroupNav.mm; sourceTree = SOURCE_ROOT; };
@@ -2656,7 +2656,7 @@
 				0375BA1324F0CA4A00D19CE4 /* FieldBoundShader.metal */,
 				0375BA1724F7506400D19CE4 /* BallPredictionShader.metal */,
 				0375BA5424FFE04E00D19CE4 /* IndicatorDirectionShader.metal */,
-				0375BA582500809400D19CE4 /* PlayerIndicatorShader.metal */,
+				0375BA582500809400D19CE4 /* PlayerInstructionShader.metal */,
 			);
 			name = UserShaders;
 			sourceTree = "<group>";
@@ -3509,7 +3509,7 @@
 				03722DDC202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
 				03722B882029F0F50080D069 /* U4DText.mm in Sources */,
 				036964C7248E85190043C1C6 /* U4DSceneManager.mm in Sources */,
-				0375BA5A2500809400D19CE4 /* PlayerIndicatorShader.metal in Sources */,
+				0375BA5A2500809400D19CE4 /* PlayerInstructionShader.metal in Sources */,
 				03722B592029F0F50080D069 /* U4DParticleEmitterSphere.mm in Sources */,
 				03A3E31D2474209C00FBCBAD /* U4DButton.mm in Sources */,
 				03722DF8202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
@@ -3950,7 +3950,7 @@
 				03722DDE202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
 				03722CC22029F0F80080D069 /* U4DText.mm in Sources */,
 				036964C8248E85190043C1C6 /* U4DSceneManager.mm in Sources */,
-				0375BA5B2500809400D19CE4 /* PlayerIndicatorShader.metal in Sources */,
+				0375BA5B2500809400D19CE4 /* PlayerInstructionShader.metal in Sources */,
 				03722C932029F0F80080D069 /* U4DParticleEmitterSphere.mm in Sources */,
 				03A3E31E2474209C00FBCBAD /* U4DButton.mm in Sources */,
 				03722DFA202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
@@ -4077,7 +4077,7 @@
 				0375BA3724FCB23B00D19CE4 /* PlayerStateHalt.mm in Sources */,
 				03BA57372432E110003A69ED /* LevelOneScene.mm in Sources */,
 				0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
-				0375BA592500809400D19CE4 /* PlayerIndicatorShader.metal in Sources */,
+				0375BA592500809400D19CE4 /* PlayerInstructionShader.metal in Sources */,
 				0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
 				03A3E2DE246D891500FBCBAD /* U4DTouches.mm in Sources */,

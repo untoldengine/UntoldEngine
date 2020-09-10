@@ -94,7 +94,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenScaleFactorChanged:) name:NSWindowDidChangeBackingPropertiesNotification object:nil];
     
     //If using the keyboard, then set it to false. If using a controller then set it to true
-    director->setGamePadControllerPresent(true);
+    director->setGamePadControllerPresent(false);
 
 }
 
@@ -111,11 +111,11 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    //LevelOneScene *levelOneScene=new LevelOneScene();
+    LevelOneScene *levelOneScene=new LevelOneScene();
     //StartScene *startScene=new StartScene();
-    DebugScene *debugScene=new DebugScene();
+    //DebugScene *debugScene=new DebugScene();
     
-    sceneManager->changeScene(debugScene);
+    sceneManager->changeScene(levelOneScene);
     
 }
 

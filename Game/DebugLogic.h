@@ -34,6 +34,12 @@ private:
     
     U4DEngine::U4DShaderEntity *pPlayerIndicator;
     
+    MouseMovementDirection mouseMovementDirection;
+    
+    U4DEngine::U4DVector2n currentMousePosition;
+    
+    bool showDirectionLine;
+    
 public:
     
     DebugLogic();

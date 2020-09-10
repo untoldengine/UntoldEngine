@@ -7,6 +7,7 @@
 //
 
 #include "DebugLogic.h"
+#include "U4DDirector.h"
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
 #include "Ball.h"
@@ -20,7 +21,7 @@
 #include "PlayerStateShoot.h"
 #include "PlayerStateTap.h"
 
-DebugLogic::DebugLogic():stickActive(false),stickDirection(0.0,0.0,0.0),controllingTeam(nullptr){
+DebugLogic::DebugLogic():stickActive(false),stickDirection(0.0,0.0,0.0),controllingTeam(nullptr),currentMousePosition(0.5,0.5),showDirectionLine(false){
     
 }
 
@@ -49,37 +50,45 @@ void DebugLogic::update(double dt){
     
     if (pPlayer!=nullptr) {
         U4DEngine::U4DVector3n playerDir=pPlayer->getViewInDirection();
-        
+
         U4DEngine::U4DVector4n params(playerDir.x,playerDir.y,playerDir.z,0.0);
 
         pGround->updateShaderParameterContainer(0, params);
+//
+//        U4DEngine::U4DVector3n activePlayerPosition=pPlayer->getAbsolutePosition();
+//
+//        U4DEngine::U4DVector4n params2(activePlayerPosition.x,activePlayerPosition.z,0.0,0.0);
+//
+//        pGround->updateShaderParameterContainer(1, params2);
+//
+//
+//        //send team formation
+//
+        controllingTeam->computeFormationPosition();
+//
+//        std::vector<U4DEngine::U4DVector3n> formation=controllingTeam->getFormationPosition();
+//
+//        for(int i=0;i<formation.size();i++){
+//
+//            U4DEngine::U4DVector4n params3(formation.at(i).x,formation.at(i).z,0.0,0.0);
+//
+//            pGround->updateShaderParameterContainer(i+2, params3);
+//
+//        }
+//
+        //send data to player indicator
+         pPlayerIndicator->updateShaderParameterContainer(0, params);
+
+    }
+    
+    if (showDirectionLine==true) {
         
         U4DEngine::U4DVector3n activePlayerPosition=pPlayer->getAbsolutePosition();
         
-        U4DEngine::U4DVector4n params2(activePlayerPosition.x,activePlayerPosition.z,0.0,0.0);
-        
-        pGround->updateShaderParameterContainer(1, params2);
-        
-        
-        //send team formation
-        
-        controllingTeam->computeFormationPosition();
-        
-        std::vector<U4DEngine::U4DVector3n> formation=controllingTeam->getFormationPosition();
-        
-        for(int i=0;i<formation.size();i++){
-
-            U4DEngine::U4DVector4n params3(formation.at(i).x,formation.at(i).z,0.0,0.0);
-
-            pGround->updateShaderParameterContainer(i+2, params3);
-
-        }
-        
-        //send data to player indicator
-        //pPlayerIndicator->updateShaderParameterContainer(0, params);
+        U4DEngine::U4DVector4n params(activePlayerPosition.x/100.0,activePlayerPosition.z/67.0,currentMousePosition.x,currentMousePosition.y);
+        pGround->updateShaderParameterContainer(0.0, params);
         
     }
-    
     
 }
 
@@ -93,6 +102,20 @@ void DebugLogic::init(){
     
     //3. Get the field object
     pGround=dynamic_cast<U4DEngine::U4DGameObject*>(pEarth->searchChild("field"));
+    
+    //get instance of director
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    //get device type
+    if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
+        
+        if(!director->getGamePadControllerPresent()){
+            
+            //show lines if using keyboard support
+            showDirectionLine=true;
+        
+        }
+    }
 }
 
 void DebugLogic::setControllingTeam(Team *uTeam){
@@ -192,7 +215,7 @@ void DebugLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
-                    
+                    pPlayer->setEnablePassing(true);
                     
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
@@ -210,13 +233,16 @@ void DebugLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
-                    
+                    pPlayer->setEnableDribbling(true);
 
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
+                    pPlayer->setEnableHalt(true);
                     
-
+                    if(pPlayer->getCurrentState()!=PlayerStateChase::sharedInstance()){
+                        pPlayer->changeState(PlayerStateChase::sharedInstance());
+                    }
                 }
                 
             }
@@ -310,7 +336,20 @@ void DebugLogic::receiveUserInputUpdate(void *uData){
                 
                 if(controllerInputMessage.inputElementAction==U4DEngine::mouseActive){
                 
+                    //SNIPPET TO USE FOR MOUSE ABSOLUTE POSITION
+                    currentMousePosition=controllerInputMessage.inputPosition;
                     
+                    U4DEngine::U4DVector3n mousedirection(controllerInputMessage.inputPosition.x,0.0,controllerInputMessage.inputPosition.y);
+
+                    if(pPlayer->getCurrentState()!=PlayerStateTap::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateHalt::sharedInstance()){
+                         
+                         pPlayer->setMoveDirection(mousedirection);
+                     }
+                    
+
+                    pPlayer->setEnableDribbling(true);
+
+                    pPlayer->setDribblingDirection(mousedirection);
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseInactive){
                     

@@ -90,10 +90,10 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    //LevelOneScene *levelOneScene=new LevelOneScene();
-    StartScene *startScene=new StartScene();
+    LevelOneScene *levelOneScene=new LevelOneScene();
+    //StartScene *startScene=new StartScene();
     
-    sceneManager->changeScene(startScene);
+    sceneManager->changeScene(levelOneScene);
     
 }
 

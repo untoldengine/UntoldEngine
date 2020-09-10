@@ -50,7 +50,7 @@ void PlayerStateGroupNav::enter(Player *uPlayer){
     
     uPlayer->flockBehavior.setMaxSpeed(arriveMaxSpeed);
     
-    uPlayer->flockBehavior.setNeighborsDistance(15.0, 10.0, 10.0);
+    uPlayer->flockBehavior.setNeighborsDistance(15.0, 40.0, 40.0);
     
     //set the avoidance max speed
     uPlayer->avoidanceBehavior.setMaxSpeed(avoidanceMaxSpeed);
