@@ -7,10 +7,12 @@
 //
 
 #include "Ball.h"
+#include "U4DNumerical.h"
+#include "UserCommonProtocols.h"
 
 Ball* Ball::instance=0;
 
-Ball::Ball():kickMagnitude(0.0){
+Ball::Ball():kickMagnitude(0.0),motionAccumulator(0.0,0.0,0.0){
     
 }
 
@@ -37,8 +39,13 @@ bool Ball::init(const char* uModelName){
         //set enable shadows
         setEnableShadow(true);
         
-        setNormalMapTexture("Ball_Normal_Map.png");
+        setNormalMapTexture("ballNormal2.png");
         
+        initInertiaTensorType(U4DEngine::sphericalInertia);
+        
+        initMass(5.0);
+        U4DEngine::U4DVector2n dragCoeff(0.0,0.0);
+        setDragCoefficient(dragCoeff);
         //enable kinetic behavior
         enableKineticsBehavior();
         
@@ -46,8 +53,24 @@ bool Ball::init(const char* uModelName){
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
         setGravity(zero);
         
+        //set default view of the character
+        U4DEngine::U4DVector3n viewDirectionVector(0.0,0.0,1.0);
+        setEntityForwardVector(viewDirectionVector);
+        
         //enable collision detection
         enableCollisionBehavior();
+        
+        //set player as a collision sensor. Meaning only detection is enabled but not the collision response
+        setIsCollisionSensor(true);
+        
+        //I am of type
+        setCollisionFilterCategory(kBall);
+        
+        //I collide with type of ball.
+        setCollisionFilterMask(kFoot);
+        
+        //set a tag
+        setCollidingTag("ball");
         
         setState(idle);
         
@@ -70,7 +93,7 @@ void Ball::update(double dt){
     
     if(state==rolling){
         
-        applyRoll(2.0,dt);
+       // applyRoll(2.0,dt);
 
     }else if (state==stopped){
 
@@ -79,17 +102,63 @@ void Ball::update(double dt){
 
         setVelocity(zero);
         setAngularVelocity(zero);
-
+        
+    }else if(state==kicked){
+        
+        U4DEngine::U4DVector3n dir=kickDirection*kickMagnitude;
+        applyVelocity(dir, dt);
+        
+    }else if(state==decelerating){
+        
+        //remove all velocities from the character
+        decelerate(dt);
+        
     }
     
-    if (getModelHasCollided()) {
-        
-        applyForce(kickMagnitude, dt);
-        changeState(rolling);
+//    if (getModelHasCollided()) {
+//
+//        applyForce(kickMagnitude, dt);
+//        changeState(rolling);
+//    }
+    if(state==kicked && !getModelHasCollided()){
+        changeState(decelerating);
     }
     
 }
 
+U4DEngine::U4DVector3n Ball::predictPosition(double dt, float uTimeScale){
+    
+    float a=-kickMagnitude;
+    float vi=getVelocity().magnitude();
+    float t=dt*uTimeScale;
+    
+    float sf=vi*t+(0.5)*(a)*(t*t);
+
+    U4DEngine::U4DVector3n finalPosition=getAbsolutePosition()+kickDirection*sf;
+    
+    return finalPosition;
+    
+}
+
+float Ball::timeToCoverDistance(U4DEngine::U4DVector3n &uFinalPosition){
+    
+    U4DEngine::U4DVector3n velocity=kickDirection*kickMagnitude;
+     
+    float u=velocity.magnitude();
+    
+    float distanceToCover=(uFinalPosition-getAbsolutePosition()).magnitude();
+    
+    float a=kickMagnitude;
+    
+    float term=u*u+2.0*distanceToCover*a;
+    
+    if(term<=0) return -1.0;
+    
+    float v=sqrt(term);
+    
+    return (v-u)/a;
+    
+}
 
 void Ball::setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection){
     
@@ -177,30 +246,90 @@ void Ball::changeState(int uState){
             
             break;
         
+        case decelerating:
+
+            break;
             
         default:
             break;
     }
 }
 
-//void Ball::applyVelocity(U4DEngine::U4DVector3n &uFinalVelocity, double dt){
-//
-//    //force=m*(vf-vi)/dt
-//
-//    //get mass
-//    float mass=getMass();
-//
-//    //calculate force
-//    U4DEngine::U4DVector3n force=(uFinalVelocity*mass)/dt;
-//
-//    //apply force
-//    addForce(force);
-//
-//    //set initial velocity to zero
-//    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-//    setVelocity(zero);
-//
-//}
+void Ball::applyVelocity(U4DEngine::U4DVector3n &uFinalVelocity, double dt){
+
+    //force=m*(vf-vi)/dt
+    
+    //get mass
+    float mass=getMass();
+
+    //smooth out the motion of the camera by using a Recency Weighted Average.
+    //The RWA keeps an average of the last few values, with more recent values being more
+    //significant. The bias parameter controls how much significance is given to previous values.
+    //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+    //A bias of 1 ignores the new value altogether.
+    float biasMotionAccumulator=0.4;
+    
+    motionAccumulator=motionAccumulator*biasMotionAccumulator+uFinalVelocity*(1.0-biasMotionAccumulator);
+    
+    //calculate force
+    U4DEngine::U4DVector3n force=(motionAccumulator*mass)/dt;
+
+    //apply force
+    addForce(force);
+    
+    //apply moment to ball
+    U4DEngine::U4DVector3n upAxis(0.0,getModelDimensions().z/2.0,0.0);
+    
+    force*=0.25;
+    
+    U4DEngine::U4DVector3n moment=upAxis.cross(force);
+    
+    addMoment(moment);
+
+    //set initial velocity to zero
+    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+    setVelocity(zero);
+    setAngularVelocity(zero);
+
+}
+
+void Ball::decelerate(double dt){
+    
+    //awake the ball
+    setAwake(true);
+
+    U4DEngine::U4DVector3n ballVelocity=getVelocity();
+
+    //smooth out the motion of the camera by using a Recency Weighted Average.
+    //The RWA keeps an average of the last few values, with more recent values being more
+    //significant. The bias parameter controls how much significance is given to previous values.
+    //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all. In this case, full stop.
+    //A bias of 1 ignores the new value altogether. In this case, no deceleration.
+    float biasMotionAccumulator=0.95;
+
+    motionAccumulator=motionAccumulator*biasMotionAccumulator+ballVelocity*(1.0-biasMotionAccumulator);
+    
+    U4DEngine::U4DVector3n force=(motionAccumulator*getMass())/dt;
+    
+    addForce(force);
+
+   //apply moment to ball
+    U4DEngine::U4DVector3n upAxis(0.0,getModelDimensions().z/2.0,0.0);
+    
+    force*=0.25;
+    
+    U4DEngine::U4DVector3n moment=upAxis.cross(force);
+    
+    addMoment(moment);
+
+    //zero out the velocities
+    U4DEngine::U4DVector3n initialVelocity(0.0,0.0,0.0);
+
+    setVelocity(initialVelocity);
+    setAngularVelocity(initialVelocity);
+    
+}
+
 //
 //void Ball::setViewDirection(U4DEngine::U4DVector3n &uViewDirection){
 //

@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
 
-    U4DAlign::U4DAlign():neighborDistance(40.0){
+    U4DAlign::U4DAlign():neighborDistance(20.0){
             
         }
 
@@ -58,6 +58,10 @@ namespace U4DEngine {
         
         return U4DVector3n(0.0,0.0,0.0);
         
+    }
+
+    void U4DAlign::setNeighborDistance(float uNeighborDistance){
+        neighborDistance=uNeighborDistance;
     }
 
 }

@@ -45,6 +45,13 @@ namespace U4DEngine {
          */
         U4DVector3n getSteering(U4DDynamicModel *uPursuer, std::vector<U4DDynamicModel*> uNeighborsContainer);
         
+        /**
+         @brief Sets the separation for the neighbors
+         
+         @param uDesiredSeparation separation desired between neighbors
+         */
+        void setDesiredSeparation(float uDesiredSeparation);
+        
     };
     
 }

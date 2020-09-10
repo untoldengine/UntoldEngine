@@ -8,28 +8,43 @@
 
 #include "LevelOneLogic.h"
 #include "LevelOneWorld.h"
-#include "CommonProtocols.h"
-#include "U4DSceneManager.h"
-#include "U4DScene.h"
 #include "U4DDirector.h"
-#include "StartScene.h"
+#include "CommonProtocols.h"
+#include "UserCommonProtocols.h"
 #include "Ball.h"
+#include "LevelOneWorld.h"
+#include "Team.h"
+#include "PlayerStateIdle.h"
+#include "PlayerStateDribble.h"
+#include "PlayerStateChase.h"
+#include "PlayerStateHalt.h"
+#include "PlayerStatePass.h"
+#include "PlayerStateShoot.h"
+#include "PlayerStateTap.h"
 
-using namespace U4DEngine;
-
-LevelOneLogic::LevelOneLogic():pPlayer(nullptr),currentMousePosition(0.5,0.5),showDirectionLine(false){
-    
+LevelOneLogic::LevelOneLogic():stickActive(false),stickDirection(0.0,0.0,0.0),controllingTeam(nullptr),currentMousePosition(0.5,0.5),showDirectionLine(false){
     
 }
 
 LevelOneLogic::~LevelOneLogic(){
     
-   
 }
 
 void LevelOneLogic::update(double dt){
     
-    if (showDirectionLine==true) {
+    pPlayer=controllingTeam->getControllingPlayer();
+    controllingTeam->computeFormationPosition();
+    
+    
+    if (showDirectionLine==true && pPlayer!=nullptr) {
+        
+        U4DEngine::U4DVector3n playerDir=pPlayer->getViewInDirection();
+
+        U4DEngine::U4DVector4n params0(playerDir.x,playerDir.y,playerDir.z,0.0);
+        
+        //send data to player indicator
+        pPlayerIndicator->updateShaderParameterContainer(0, params0);
+        
         
         U4DEngine::U4DVector3n activePlayerPosition=pPlayer->getAbsolutePosition();
         
@@ -52,7 +67,7 @@ void LevelOneLogic::init(){
     pGround=dynamic_cast<U4DEngine::U4DGameObject*>(pEarth->searchChild("field"));
     
     //get instance of director
-    U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     
     //get device type
     if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
@@ -64,26 +79,30 @@ void LevelOneLogic::init(){
         
         }
     }
+}
+
+void LevelOneLogic::setControllingTeam(Team *uTeam){
+    
+    controllingTeam=uTeam;
     
 }
 
-void LevelOneLogic::setActivePlayer(Player *uActivePlayer){
+void LevelOneLogic::setPlayerIndicator(U4DEngine::U4DShaderEntity *uPlayerIndicator){
     
-    pPlayer=uActivePlayer;
+    pPlayerIndicator=uPlayerIndicator;
     
 }
 
 void LevelOneLogic::receiveUserInputUpdate(void *uData){
     
-    //1. Get the user-input message from the structure
+    U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
     
-    CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+    if(controllingTeam!=nullptr){
+        pPlayer=controllingTeam->getControllingPlayer();
+    }
     
     
-    //check the astronaut model exists
     if(pPlayer!=nullptr){
-        
-        //2. Determine what was pressed, buttons, keys or joystick
         
         switch (controllerInputMessage.inputElementType) {
             
@@ -99,7 +118,11 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                         
                         U4DEngine::U4DVector3n joystickDirection3d(digitalJoystickDirection.x,0.0,digitalJoystickDirection.y);
 
-                        pPlayer->setMoveDirection(joystickDirection3d);
+                        if(pPlayer->getCurrentState()!=PlayerStateTap::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateHalt::sharedInstance()){
+                             
+                             pPlayer->setMoveDirection(joystickDirection3d);
+                         }
+                        
 
                         pPlayer->setEnableDribbling(true);
 
@@ -107,7 +130,11 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                     
                     }else if(controllerInputMessage.inputElementAction==U4DEngine::uiJoystickReleased){
 
-                        pPlayer->setEnableDribbling(false);
+                        pPlayer->setEnableHalt(true);
+                        
+                        if(pPlayer->getCurrentState()!=PlayerStateChase::sharedInstance()){
+                            pPlayer->changeState(PlayerStateChase::sharedInstance());
+                        }
 
                     }
                     
@@ -140,7 +167,6 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 }
                 
                 break;
-                
             case U4DEngine::mouseLeftButton:
             {
                 //4. If button was pressed
@@ -183,7 +209,7 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
                     
                     
-                    pPlayer->setEnableShooting(true);
+                    
                     
                     //8. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
@@ -238,8 +264,11 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    pPlayer->setEnableDribbling(false);
-
+                    pPlayer->setEnableHalt(true);
+                    
+                    if(pPlayer->getCurrentState()!=PlayerStateChase::sharedInstance()){
+                        pPlayer->changeState(PlayerStateChase::sharedInstance());
+                    }
                 }
                 
             }
@@ -249,7 +278,6 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 
                 if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
                     
-                        
                     pPlayer->setEnablePassing(true);
                     
                     
@@ -263,9 +291,7 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 
                 if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
                     
-                        
-                    pPlayer->setEnableStandTackle(true);
-                    
+                    pPlayer->setEnableShooting(true);
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
                     
@@ -277,7 +303,7 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                 
                 if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
                     
-                    pPlayer->setEnableShooting(true);
+                    
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
                     
@@ -289,34 +315,45 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
             
                 if (controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed) {
                     
-                    pPlayer->changeState(contain);
+                    
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
                     
-                    pPlayer->changeState(defending);
+                    
                 }
             
             break;
                 
             case U4DEngine::padLeftThumbstick:
-            
+                
                 if(controllerInputMessage.inputElementAction==U4DEngine::padThumbstickMoved){
+                                   
+                   //Get joystick direction
+                   U4DEngine::U4DVector3n joystickDirection(controllerInputMessage.joystickDirection.x,0.0,controllerInputMessage.joystickDirection.y);
+                   
+                    stickDirection=joystickDirection;
                     
-                    //Get joystick direction
-                    U4DEngine::U4DVector3n joystickDirection(controllerInputMessage.joystickDirection.x,0.0,controllerInputMessage.joystickDirection.y);
-                    
-                    pPlayer->setMoveDirection(joystickDirection);
+                    if(pPlayer->getCurrentState()!=PlayerStateTap::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateHalt::sharedInstance()){
+                        
+                        pPlayer->setMoveDirection(joystickDirection);
+                    }
+                   
 
-                    pPlayer->setEnableDribbling(true);
+                   pPlayer->setEnableDribbling(true);
 
-                    pPlayer->setDribblingDirection(joystickDirection);
-                    
-                    
-                }else if (controllerInputMessage.inputElementAction==U4DEngine::padThumbstickReleased){
-                    
-                    pPlayer->setEnableDribbling(false);
-                    
-                }
+                   pPlayer->setDribblingDirection(joystickDirection);
+                   
+                   
+               }else if (controllerInputMessage.inputElementAction==U4DEngine::padThumbstickReleased){
+                   
+                   
+                   pPlayer->setEnableHalt(true);
+                   
+                   if(pPlayer->getCurrentState()!=PlayerStateChase::sharedInstance()){
+                       pPlayer->changeState(PlayerStateChase::sharedInstance());
+                   }
+                   
+               }
             
             break;
                 
@@ -330,7 +367,13 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                     
                     U4DEngine::U4DVector3n mousedirection(controllerInputMessage.inputPosition.x,0.0,controllerInputMessage.inputPosition.y);
 
-                    pPlayer->setMoveDirection(mousedirection);
+                    if(pPlayer->getCurrentState()!=PlayerStateTap::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateHalt::sharedInstance()){
+                         
+                         pPlayer->setMoveDirection(mousedirection);
+                     }
+                    
+
+                    pPlayer->setEnableDribbling(true);
 
                     pPlayer->setDribblingDirection(mousedirection);
 
@@ -346,7 +389,8 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
             default:
                 break;
         }
-        
     }
+    
+    
     
 }

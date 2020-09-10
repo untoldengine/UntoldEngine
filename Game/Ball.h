@@ -30,6 +30,8 @@ private:
     
     U4DEngine::U4DVector3n kickDirection;
     
+    U4DEngine::U4DVector3n motionAccumulator;
+   
 protected:
     
     //constructor
@@ -49,7 +51,11 @@ public:
     
     void applyForce(float uFinalVelocity, double dt);
     
+    void applyVelocity(U4DEngine::U4DVector3n &uFinalVelocity, double dt);
+    
     void applyRoll(float uFinalVelocity,double dt);
+    
+    void decelerate(double dt);
     
     void setState(int uState);
     
@@ -60,6 +66,10 @@ public:
     void changeState(int uState);
     
     void setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection);
+
+    U4DEngine::U4DVector3n predictPosition(double dt, float uTimeScale);
+    
+    float timeToCoverDistance(U4DEngine::U4DVector3n &uFinalPosition);
 
 };
 

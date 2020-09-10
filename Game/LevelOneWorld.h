@@ -31,6 +31,8 @@ private:
     U4DEngine::U4DShaderEntity *influenceMapShader;
     U4DEngine::U4DShaderEntity *navigationMapShader;
     
+    U4DEngine::U4DShaderEntity *playerIndicatorShader;
+    
 public:
    
     LevelOneWorld(){};

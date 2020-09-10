@@ -66,4 +66,8 @@ U4DSeparation::U4DSeparation():desiredSeparation(5.0){
         
     }
 
+    void U4DSeparation::setDesiredSeparation(float uDesiredSeparation){
+        desiredSeparation=uDesiredSeparation;
+    }
+
 }

@@ -16,8 +16,15 @@
 #include "U4DCallback.h"
 #include "U4DTimer.h"
 #include "U4DArrive.h"
+#include "U4DAvoidance.h"
 #include "U4DFlock.h"
 #include "U4DPursuit.h"
+#include "U4DFlock.h"
+
+#include "UserCommonProtocols.h"
+
+class PlayerStateInterface;
+class PlayerStateManager;
 
 class Foot;
 class Team;
@@ -26,11 +33,8 @@ class Player:public U4DEngine::U4DGameObject {
 
 private:
 
-    //state of the character
-    int state;
-    
-    //previous state of the character
-    int previousState;
+    //state manager
+    PlayerStateManager *stateManager;
     
     //running animation
     U4DEngine::U4DAnimation *runningAnimation;
@@ -56,54 +60,69 @@ private:
     //contain animation
     U4DEngine::U4DAnimation *containAnimation;
     
+    //tap animation
+    U4DEngine::U4DAnimation *tapAnimation;
+    
     //Animation Manager
     U4DEngine::U4DAnimationManager *animationManager;
     
     //force direction
     U4DEngine::U4DVector3n forceDirection;
     
-    //dribbling direction
-    U4DEngine::U4DVector3n dribblingDirection;
+    
 
     //motion accumulator
     U4DEngine::U4DVector3n motionAccumulator;
     
-    U4DEngine::U4DArrive arriveBehavior;
+    U4DEngine::U4DVector3n forceMotionAccumulator;
     
-    U4DEngine::U4DPursuit pursuitBehavior;
     
     //Team player belongs to
     Team *team;
     
-    //right foot
-    Foot *rightFoot;
-    
-    bool dribble;
-    
-    bool passBall;
-    
-    bool shootBall;
-    
-    bool standTackleOpponent;
-    
+    int playerIndex;
+
 public:
     
     Player();
     
     ~Player();
     
+    bool dribbleBall;
+    
+    bool passBall;
+    
+    bool shootBall;
+    
+    bool haltBall;
+    
+    bool standTackleOpponent;
+    
+    U4DEngine::U4DArrive arriveBehavior;
+    
+    U4DEngine::U4DPursuit pursuitBehavior;
+    
+    U4DEngine::U4DAvoidance avoidanceBehavior;
+    
+    U4DEngine::U4DFlock flockBehavior;
+    
+    //right foot
+    Foot *rightFoot;
+    
+    //dribbling direction
+    U4DEngine::U4DVector3n dribblingDirection;
+    
     //init method. It loads all the rendering information among other things.
     bool init(const char* uModelName);
     
     void update(double dt);
     
-    void setState(int uState);
+
+    PlayerStateInterface *getCurrentState();
     
-    int getState();
+    PlayerStateInterface *getPreviousState();
     
-    int getPreviousState();
-    
-    void changeState(int uState);
+    void changeState(PlayerStateInterface *uState);
     
     void setMoveDirection(U4DEngine::U4DVector3n &uMoveDirection);
     
@@ -127,15 +146,25 @@ public:
     
     void setEnableStandTackle(bool uValue);
     
+    void setEnableHalt(bool uValue);
+    
     U4DEngine::U4DVector3n getBallPositionOffset();
     
     void updateFootSpaceWithAnimation(U4DEngine::U4DAnimation *uAnimation);
     
-    void closestPlayerToIntersect();
-    
     void addToTeam(Team *uTeam);
     
+    Team *getTeam();
     
+    U4DEngine::U4DAnimationManager *getAnimationManager();
+    
+    U4DEngine::U4DAnimation *getAnimationToPlay();
+    
+    void handleMessage(Message &uMsg);
+    
+    void setPlayerIndex(int uIndex);
+    
+    int getPlayerIndex();
     
 };
 

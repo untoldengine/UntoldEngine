@@ -11,9 +11,10 @@
 
 #include <iostream>
 #include "U4DGameModel.h"
-#include "UserCommonProtocols.h"
-#include "U4DGameObject.h"
 #include "Player.h"
+#include "U4DShaderEntity.h"
+
+class Team;
 
 class LevelOneLogic:public U4DEngine::U4DGameModel{
     
@@ -21,10 +22,17 @@ private:
     
     //player
     Player *pPlayer;
+
+    //controlling team
+    Team *controllingTeam;
     
     U4DEngine::U4DGameObject *pGround;
-     
-    float angleAccumulator;
+    
+    bool stickActive;
+    
+    U4DEngine::U4DVector3n stickDirection;
+    
+    U4DEngine::U4DShaderEntity *pPlayerIndicator;
     
     MouseMovementDirection mouseMovementDirection;
     
@@ -44,7 +52,9 @@ public:
     
     void receiveUserInputUpdate(void *uData);
     
-    void setActivePlayer(Player *uActivePlayer);
+    void setControllingTeam(Team *uTeam);
+    
+    void setPlayerIndicator(U4DEngine::U4DShaderEntity *uPlayerIndicator);
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

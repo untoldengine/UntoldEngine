@@ -39,11 +39,7 @@ float sdLine( float2 p, float2 a, float2 b)
     return length(pa - ba * h);
 }
 
-float sharpen(float d, float w, float2 resolution)
-{
-    float e = 1. / min(resolution.y , resolution.x);
-    return 1. - smoothstep(-e, e, d - w);
-}
+
 
 
 vertex VertexOutput vertexNavigationShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(2)]], uint vid [[vertex_id]]){

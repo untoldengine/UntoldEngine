@@ -9,8 +9,9 @@
 #include "Team.h"
 #include "FieldAnalyzer.h"
 #include "PathAnalyzer.h"
+#include "Constants.h"
 
-Team::Team():controllingPlayer(nullptr){
+Team::Team():controllingPlayer(nullptr),startingPosition(0.0,0.0,0.0),playerIndex(0){
     
     //Create the callback. Notice that you need to provide the name of the class
     scheduler=new U4DEngine::U4DCallback<Team>;
@@ -33,7 +34,12 @@ Team::~Team(){
 
 void Team::addPlayer(Player *uPlayer){
     
+    uPlayer->addToTeam(this);
     players.push_back(uPlayer);
+    
+    uPlayer->setPlayerIndex(playerIndex);
+    
+    playerIndex++;
     
 }
 
@@ -91,3 +97,43 @@ void Team::setControllingPlayer(Player *uPlayer){
     
 }
 
+Player *Team::getControllingPlayer(){
+    return controllingPlayer;
+}
+
+
+void Team::computeFormationPosition(){
+
+    formationPosition.clear();
+    
+    float radius=15.0;
+
+    for(int i=1;i<=getPlayers().size();i++){
+
+        float x=radius*cos(i*U4DEngine::PI/2.0);
+        float z=radius*sin(i*U4DEngine::PI/2.0);
+
+        U4DEngine::U4DVector3n pos(x,0.0,z);
+
+        pos+=(startingPosition+controllingPlayer->getAbsolutePosition());
+
+        formationPosition.push_back(pos);
+
+    }
+
+}
+
+std::vector<U4DEngine::U4DVector3n> Team::getFormationPosition(){
+    return formationPosition;
+}
+
+U4DEngine::U4DVector3n Team::getFormationPositionAtIndex(int uIndex){
+    
+    U4DEngine::U4DVector3n position;
+    
+    if(formationPosition.size()>0){
+        position=formationPosition.at(uIndex);
+    }
+    
+    return position;
+}
