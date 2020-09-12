@@ -74,6 +74,7 @@
         director->setAspect(aspect);
         
         director->setDisplayWidthHeight(mtkView.frame.size.width, mtkView.frame.size.height);
+        mtkView.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
         
         director->setMTLView(mtkView);
         
@@ -288,6 +289,7 @@
     mtlShadowRenderPipelineDescriptor.vertexFunction=vertexShadowProgram;
     mtlShadowRenderPipelineDescriptor.fragmentFunction=nil;
     mtlShadowRenderPipelineDescriptor.depthAttachmentPixelFormat=shadowTexture.pixelFormat;
+   
     
     shadowVertexDesc=[[MTLVertexDescriptor alloc] init];
     
@@ -360,6 +362,7 @@
     
     MTLTextureDescriptor *shadowTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:1024 height:1024 mipmapped:NO];
     
+    shadowTextureDescriptor.usage=MTLTextureUsageRenderTarget|MTLTextureUsageShaderRead;
     shadowTextureDescriptor.storageMode=MTLStorageModePrivate;
     
     shadowTexture=[mtlDevice newTextureWithDescriptor:shadowTextureDescriptor];

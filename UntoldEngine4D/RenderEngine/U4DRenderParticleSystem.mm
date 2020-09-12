@@ -22,7 +22,7 @@ namespace U4DEngine {
         u4dObject=uU4DParticleSystem;
         
         //It seems we do need to init the texture objects with a null descriptor
-        //initTextureSamplerObjectNull();
+        initTextureSamplerObjectNull();
     }
     
     U4DRenderParticleSystem::~U4DRenderParticleSystem(){
