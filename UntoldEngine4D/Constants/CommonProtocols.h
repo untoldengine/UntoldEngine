@@ -455,12 +455,7 @@ namespace U4DEngine {
         /**
          @brief Entity is a 3D parent model entity
          */
-        PARENT,
-        
-        /**
-         @brief Entity represents an input controller
-         */
-        CONTROLLERINPUT
+        PARENT
         
     }ENTITYTYPE;
 

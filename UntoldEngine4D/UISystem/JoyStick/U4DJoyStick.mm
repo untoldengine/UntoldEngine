@@ -32,8 +32,6 @@ U4DJoyStick::U4DJoyStick(std::string uName, float xPosition,float yPosition,cons
     
     controllerInterface=sceneManager->getGameController();
     
-    setEntityType(CONTROLLERINPUT);
-    
     joyStickWidth=uJoyStickWidth;
     joyStickHeight=uJoyStickHeight;
     

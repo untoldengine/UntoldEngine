@@ -33,8 +33,6 @@ U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uW
     
     controllerInterface=sceneManager->getGameController();
     
-    setEntityType(CONTROLLERINPUT);
-    
     buttonImages.setImage(uButtonImage1,uButtonImage2,uWidth,uHeight);
     
     U4DVector2n translation(xPosition,yPosition);
