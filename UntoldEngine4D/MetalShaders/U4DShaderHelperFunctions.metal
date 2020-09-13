@@ -108,9 +108,13 @@ float sharpen(float d, float w, float2 resolution){
     return 1. - smoothstep(-e, e, d - w);
 }
 
+float sdfCircle(float2 p,float r){
 
+    return length(p)-r;
+    
+}
 
-float sdfCircle(float2 p, float2 c, float r){
+float sdfRing(float2 p, float2 c, float r){
     return abs(r - length(p - c));
 }
 

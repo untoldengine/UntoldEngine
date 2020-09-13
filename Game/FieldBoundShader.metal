@@ -43,7 +43,7 @@ float3 arrow(float2 st,float2 resolution){
 
     st.y*=-1.0;
     //arrow
-        float c=sdfCircle(st,float2(0.0,0.0),0.3);
+        float c=sdfRing(st,float2(0.0,0.0),0.3);
   c=sharpen(c,0.06,resolution);
   
   float s=1.0-step(0.0,st.y);

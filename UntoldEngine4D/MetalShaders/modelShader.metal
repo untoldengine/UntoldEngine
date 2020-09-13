@@ -51,7 +51,7 @@ struct VertexOutput{
 
 
 
-vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant float4 &lightPosition[[buffer(2)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(3)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(4)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant float4 &lightPosition[[buffer(2)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(3)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(4)]], constant UniformGlobalData &uniformGlobalData [[buffer(5)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(6)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -159,7 +159,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
 }
 
 
-fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(1)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(2)]], constant UniformLightColor &uniformLightColor [[buffer(3)]],constant UniformModelShadowProperties &uniformModelShadowProperties [[buffer(4)]], texture2d<float> texture[[texture(0)]], depth2d<float> shadowTexture [[texture(1)]], texture2d<float> normalMaptexture[[texture(2)]], sampler sam [[sampler(0)]], sampler normalMapSam [[sampler(1)]]){
+fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(1)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(2)]], constant UniformLightColor &uniformLightColor [[buffer(3)]],constant UniformModelShadowProperties &uniformModelShadowProperties [[buffer(4)]], constant UniformGlobalData &uniformGlobalData [[buffer(5)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(6)]], texture2d<float> texture[[texture(0)]], depth2d<float> shadowTexture [[texture(1)]], texture2d<float> normalMaptexture[[texture(2)]], sampler sam [[sampler(0)]], sampler normalMapSam [[sampler(1)]]){
     
     
     float4 totalLights;
@@ -215,7 +215,8 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
             discard_fragment();
             
         }
-        finalColor=float4(mix(sampledTexture0Color,totalLights,0.3));
+        //finalColor=float4(mix(sampledTexture0Color,totalLights,0.3));
+        finalColor=sampledTexture0Color*mix(totalLights,float4(1.0),0.7); //Let's try this combination for the final color. You can play with this.
         
     }else{
         
@@ -230,7 +231,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
         
         // Compute the direction of the light ray betweent the light position and the vertices of the surface
-        float3 lightRayDirection=normalize(vertexOut.lightPosition.xyz-vertexOut.verticesInMVSpace.xyz);
+        //float3 lightRayDirection=normalize(vertexOut.lightPosition.xyz-vertexOut.verticesInMVSpace.xyz);
         
         float biasShadow=uniformModelShadowProperties.biasDepth;
         //float biasShadow = max(0.01*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.01);

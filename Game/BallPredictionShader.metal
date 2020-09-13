@@ -223,7 +223,7 @@ fragment float4 fragmentBallPredictionShader(VertexOutput vertexOut [[stage_in]]
     
     float2 ballPredictedPosition=float2(uniformModelShaderProperty.shaderParameter[0].x,uniformModelShaderProperty.shaderParameter[0].y);
 
-    float c=sdfCircle(st,ballPredictedPosition,0.005);
+    float c=sdfRing(st,ballPredictedPosition,0.005);
         c=sharpen(c,0.02*0.09,uniformGlobalData.resolution);
     
     color+=float3(c);

@@ -254,7 +254,7 @@ fragment float4 fragmentIndicatorDirectionShader(VertexOutput vertexOut [[stage_
     
     st=rotate2d(angle)*st;
     
-    float c=sdfCircle(st,float2(0.0,0.0),0.5);
+    float c=sdfRing(st,float2(0.0,0.0),0.5);
       
     c=sharpen(c,0.06,uniformGlobalData.resolution);
       
@@ -311,7 +311,7 @@ fragment float4 fragmentIndicatorDirectionShader(VertexOutput vertexOut [[stage_
 
         float2 playerFormation=float2(uniformModelShaderProperty.shaderParameter[i].x*0.3,uniformModelShaderProperty.shaderParameter[i].y*0.45);
 
-    float mRing=sdfCircle(formationST,float2(playerFormation.x,playerFormation.y),0.5);
+    float mRing=sdfRing(formationST,float2(playerFormation.x,playerFormation.y),0.5);
 
         mRing=sharpen(mRing,0.06,uniformGlobalData.resolution);
 

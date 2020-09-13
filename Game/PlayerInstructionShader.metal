@@ -44,18 +44,6 @@ float sdTriangleIsos(float2 p, float2 q )
     return -sqrt(d.x)*sign(d.y);
 }
 
-
-float sdfRing(float2 p, float2 c, float r)
-{
-    return abs(r - length(p - c));
-}
-
-float sdfCircle(float2 p,float r){
-
-    return length(p)-r;
-    
-}
-
 float _o(float2 uv) {
     return abs(length(float2(uv.x,max(0.,abs(uv.y)-.15)))-.25);
 }
