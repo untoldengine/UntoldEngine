@@ -43,7 +43,7 @@ void LevelOneLogic::update(double dt){
         U4DEngine::U4DVector4n params0(playerDir.x,playerDir.y,playerDir.z,0.0);
         
         //send data to player indicator
-        pPlayerIndicator->updateShaderParameterContainer(0, params0);
+        //pPlayerIndicator->updateShaderParameterContainer(0, params0);
         
         
         U4DEngine::U4DVector3n activePlayerPosition=pPlayer->getAbsolutePosition();

@@ -18,7 +18,7 @@
 #include "U4DSceneManager.h"
 #include "LevelOneScene.h"
 #include "StartScene.h"
-#include "DebugScene.h"
+#include "SandboxScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController
@@ -113,7 +113,7 @@
     //initialize the scene for your game
     LevelOneScene *levelOneScene=new LevelOneScene();
     //StartScene *startScene=new StartScene();
-    //DebugScene *debugScene=new DebugScene();
+    //SandboxScene *debugScene=new SandboxScene();
     
     sceneManager->changeScene(levelOneScene);
     

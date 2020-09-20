@@ -38,7 +38,7 @@ void LoadingWorld::init(){
     float width=director->getDisplayWidth();
     float height=director->getDisplayHeight();
     
-    loadingBackgroundImage->setImage("futbolloadingscreen.png",width,height);
+    loadingBackgroundImage->setImage("footballerloadingscreen.png",width,height);
     
     addChild(loadingBackgroundImage);
     
@@ -48,7 +48,7 @@ void LoadingWorld::init(){
     
     shader->setShaderDimension(width/2.0, height/2.0);
     
-    shader->translateTo(0.0, -0.6, 0.0);
+    shader->translateTo(0.0, -0.3, 0.0);
     
     shader->loadRenderingInformation();
     

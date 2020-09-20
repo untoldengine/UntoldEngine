@@ -39,7 +39,7 @@ bool Ball::init(const char* uModelName){
         //set enable shadows
         setEnableShadow(true);
         
-        setNormalMapTexture("ballNormal2.png");
+        setNormalMapTexture("Ball_Normal_Map.png");
         
         initInertiaTensorType(U4DEngine::sphericalInertia);
         

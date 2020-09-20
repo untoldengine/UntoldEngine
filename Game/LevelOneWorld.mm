@@ -159,7 +159,7 @@ void LevelOneWorld::init(){
     //render the ball
     Ball *ball=Ball::sharedInstance();
     
-    if (ball->init("ball2")) {
+    if (ball->init("ball")) {
         
         addChild(ball);
         
@@ -274,17 +274,17 @@ void LevelOneWorld::init(){
     }else{
         
         //Create Player Indicator shader
-        playerIndicatorShader=new U4DEngine::U4DShaderEntity(1);
-
-        playerIndicatorShader->setShader("vertexInstructionsShader", "fragmentInstructionsShader");
-
-        playerIndicatorShader->setShaderDimension(director->getDisplayWidth(), director->getDisplayHeight());
-
-        playerIndicatorShader->loadRenderingInformation();
-
-        addChild(playerIndicatorShader,-10);
-
-        levelOneLogic->setPlayerIndicator(playerIndicatorShader);
+//        playerIndicatorShader=new U4DEngine::U4DShaderEntity(1);
+//
+//        playerIndicatorShader->setShader("vertexInstructionsShader", "fragmentInstructionsShader");
+//
+//        playerIndicatorShader->setShaderDimension(director->getDisplayWidth(), director->getDisplayHeight());
+//
+//        playerIndicatorShader->loadRenderingInformation();
+//
+//        addChild(playerIndicatorShader,-10);
+//
+//        levelOneLogic->setPlayerIndicator(playerIndicatorShader);
     
     }
     
@@ -341,7 +341,7 @@ void LevelOneWorld::setupConfiguration(){
     U4DDirector *director=U4DDirector::sharedInstance();
     
     //Compute the perspective space matrix
-    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.01f, 400.0f);
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(65.0f, director->getAspect(), 0.01f, 400.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space
