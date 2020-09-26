@@ -94,12 +94,12 @@ void PlayMenuLayer::init(){
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
 
     if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
-        aButton=new U4DEngine::U4DButton("buttonA",0.6,-0.6,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
+//        aButton=new U4DEngine::U4DButton("buttonA",0.6,-0.6,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
 
         //create the Joystick
-        joystick=new U4DEngine::U4DJoyStick("joystick",-0.7,-0.6,"joyStickBackground.png",130.0,130.0,"joystickDriver.png",80.0,80.0);
+        joystick=new U4DEngine::U4DJoystick("joystick",-0.7,-0.6,"joyStickBackground.png",130.0,130.0,"joystickDriver.png");
         
-        addChild(aButton,-20);
+        //addChild(aButton,-20);
         addChild(joystick);
     }
 

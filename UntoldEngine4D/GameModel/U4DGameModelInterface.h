@@ -48,6 +48,7 @@ public:
     virtual U4DEntity* searchChild(std::string uName)=0;
     
     virtual void receiveUserInputUpdate(void *uData)=0;
+    
 };
     
 }

@@ -52,9 +52,9 @@ void StartMenu::init(){
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     
     if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
-        startButton=new U4DEngine::U4DButton("buttonA",0.0,-0.5,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
-
-        menuLayer->addChild(startButton);
+//        startButton=new U4DEngine::U4DButton("buttonA",0.0,-0.5,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
+//
+//        menuLayer->addChild(startButton);
         
     }else{
         
@@ -66,7 +66,7 @@ void StartMenu::init(){
         fontLoader->loadFontAssetFile("gameFont.xml", "gameFont.png");
         
         //3. Create a text object. Provide the font loader object and the spacing between letters
-        menuInstructions=new U4DEngine::U4DText(fontLoader, 30);
+        menuInstructions=new U4DEngine::U4DText(fontLoader);
         
         if(director->getGamePadControllerPresent()){
             

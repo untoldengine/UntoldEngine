@@ -1,5 +1,5 @@
 //
-//  U4DJoyStick.h
+//  U4DJoystick.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 8/17/13.
@@ -16,48 +16,59 @@
 #include "U4DImage.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
+#include "U4DShaderEntity.h"
 
 namespace U4DEngine {
     class U4DControllerInterface;
-    class U4DJoystickStateInterface;
-    class U4DJoystickStateManager;
+
 }
 
 namespace U4DEngine {
     
 /**
  * @ingroup controller
- * @brief The U4DJoyStick class controls the joystick entity 
+ * @brief The U4DJoystick class controls the joystick entity
  */
-class U4DJoyStick:public U4DEntity{
+class U4DJoystick:public U4DShaderEntity{
   
 private:
     
-    /**
-     * @brief A state manager that updates the state of the joystick whenever it is moved or released
-     */
-    U4DJoystickStateManager *stateManager;
+    
+    int state;
+    
+    int previousState;
     
     /**
-     * @brief width of joystick background texture
+     * @brief current position of joystick texture
      */
-    float backgroundWidth;
+    U4DVector2n currentPosition;
+    
+    /**
+     * @brief position of joystick
+     */
+    U4DVector2n centerPosition;
 
     /**
-     * @brief height of joystick background texture
+     * @brief radius of joystick background texture
      */
-    float backgroundHeight;
-    
-    /**
-     * @brief width of joystick texture
-     */
-    float joyStickWidth;
+    float backgroundRadius;
 
     /**
-     * @brief height of joystick texture
+     * @brief radius of joystick texture
      */
-    float joyStickHeight;
+    float joyStickRadius;
     
+    /**
+     * @brief Is the joystick currently being touched or moved
+     */
+    bool isActive;
+    
+    /**
+     * @brief Did the joystick do a sudden reverse in direction
+     */
+    bool directionReversal;
+    
+    void initJoystickProperties(std::string uName, float xPosition,float yPosition, float uBackgroundWidth,float uBackgroundHeight);
     
 public:
     
@@ -72,15 +83,15 @@ public:
      * @param uBackgroundWidth background texture width
      * @param uBackgroundHeight background texture height
      * @param uJoyStickImage joystick texture name
-     * @param uJoyStickWidth joystick texture width
-     * @param uJoyStickHeight joystick texture height
      */
-    U4DJoyStick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage,float uJoyStickWidth,float uJoyStickHeight);
+    U4DJoystick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage);
+    
+    U4DJoystick(std::string uName, float xPosition,float yPosition, float uBackgroundWidth,float uBackgroundHeight);
     
     /**
      * @brief Class destructor
      */
-    ~U4DJoyStick();
+    ~U4DJoystick();
     
     /**
      * @brief Pointer to the callback object
@@ -97,16 +108,6 @@ public:
     U4DControllerInterface *controllerInterface;
     
     /**
-     * @brief background U4DImage entity for joystick
-     */
-    U4DImage backgroundImage;
-
-    /**
-     * @brief U4DImage entity for joystick
-     */
-    U4DImage joyStickImage;
-    
-    /**
      * @brief joystick data position 
      */
     U4DVector2n dataPosition;
@@ -116,51 +117,6 @@ public:
      */
     float dataMagnitude;
     
-    /**
-     * @brief original center position of the joystick texture
-     */
-    U4DVector2n originalPosition;
-    
-    /**
-     * @brief current position of joystick texture
-     */
-    U4DVector2n currentPosition;
-    
-    /**
-     * @brief position of joystick background texture image
-     */
-    U4DVector2n centerBackgroundPosition;
-
-    /**
-     * @brief position of joystick texture image
-     */
-    U4DVector2n centerImagePosition;
-    
-    /**
-     * @brief radius of joystick background texture
-     */
-    float backgroundImageRadius;
-
-    /**
-     * @brief radius of joystick texture
-     */
-    float joyStickImageRadius;
-    
-    /**
-     * @brief Is the joystick currently being touched or moved
-     */
-    bool isActive;
-    
-    /**
-     * @brief Did the joystick do a sudden reverse in direction
-     */
-    bool directionReversal;
-    
-    /**
-     * @brief Renders both the background image and the joystick at its new position
-     */
-    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
-
     /**
      * @brief Updates the state of joystick
      * @details The state manager updates the state of the joystick. The states are either idle, active or released
@@ -174,58 +130,6 @@ public:
      * @details The method the callback pointer calls is set up during the initialization of the controller. This is set up by the user.
      */
     void action();
-    
-    /**
-     * @brief Set the width texture of the joystick
-     * 
-     * @param uJoyStickWidth width
-     */
-    void setJoyStickWidth(float uJoyStickWidth);
-
-    /**
-     * @brief Set the height texture of the joystick
-     * 
-     * @param uJoyStickHeight height
-     */
-    void setJoyStickHeight(float uJoyStickHeight);
-
-    /**
-     * @brief Get the joystick texture width
-     * @return width of texture
-     */
-    float getJoyStickWidth();
-
-    /**
-     * @brief Get the joystick texture height
-     * @return height of texture
-     */
-    float getJoyStickHeight();
-    
-    /**
-     * @brief Set the background texture width
-     * 
-     * @param uJoyStickBackgroundWidth texture width
-     */
-    void setJoyStickBackgroundWidth(float uJoyStickBackgroundWidth);
-
-    /**
-     * @brief Set the background texture height
-     * 
-     * @param uJoyStickBackgroundHeight texture height
-     */
-    void setJoyStickBackgroundHeight(float uJoyStickBackgroundHeight);
-    
-    /**
-     * @brief Get the texture background width
-     * @return texture width
-     */
-    float getJoyStickBackgroundWidth();
-
-    /**
-     * @brief Get the texture background height
-     * @return texture height
-     */
-    float getJoyStickBackgroundHeight();
     
     /**
      * @brief Changes the state of the joystick
@@ -281,18 +185,16 @@ public:
     void setCallbackAction(U4DCallbackInterface *uAction);
     
     /**
-     * @brief Initializes the controller interface
-     * @details The controller interface for joystick is usually the touch controller (U4DTouchController)
-     * 
-     * @param uControllerInterface controller interface object
-     */
-    void setControllerInterface(U4DControllerInterface* uControllerInterface);
-    
-    /**
      * @brief Did the user reverse the joystick movement
      * @return true if a reversal in direction did occur
      */
     bool getDirectionReversal();
+    
+    void changeState(int uState);
+    
+    int getState();
+    
+    void setState(int uState);
 
 };
 

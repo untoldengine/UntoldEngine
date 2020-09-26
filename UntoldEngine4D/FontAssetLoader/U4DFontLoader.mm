@@ -47,13 +47,8 @@ void U4DFontLoader::loadFont(){
     
     tinyxml2::XMLNode* font = doc.FirstChildElement("font");
     
-    
-    //<info face="ArialMT" size="64" bold="0" italic="0" chasrset="" unicode="0" stretchH="100" smooth="1" aa="1" padding="0,0,0,0" spacing="2,2"/>
-    
     tinyxml2::XMLElement* infoElem = font->FirstChildElement("info");
     const char* infoFontSize=infoElem->Attribute("size");
-    
-    //<common lineHeight="72" base="58" scaleW="512" scaleH="512" pages="1" packed="0"/>
     
     tinyxml2::XMLElement* commonElem = font->FirstChildElement("common");
     const char* lineHeight=commonElem->Attribute("lineHeight");
@@ -69,11 +64,10 @@ void U4DFontLoader::loadFont(){
     fontAtlasWidth=atof(atlasWidth);
     fontAtlasHeight=atof(atlasHeight);
     
-    //<pages><page id="0" file="testfont.png"/></pages>
+
     tinyxml2::XMLElement* pagesElem = font->FirstChildElement("pages");
     tinyxml2::XMLElement* pageElem=pagesElem->FirstChildElement("page");
     
-    //uImageName=pageElem->Attribute("file");
     
     tinyxml2::XMLElement* elem = font->FirstChildElement("chars");
     

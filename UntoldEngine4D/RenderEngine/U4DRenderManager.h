@@ -124,6 +124,11 @@ namespace U4DEngine {
          */
         MTLSamplerDescriptor *samplerDescriptor;
         
+        
+        id<MTLSamplerState> secondarySamplerStateObject;
+        
+        MTLSamplerDescriptor *secondarySamplerDescriptor;
+        
         /**
          * @brief Pointer for second Texture object
          */
@@ -308,7 +313,9 @@ namespace U4DEngine {
          */
         void createSamplerObject();
         
-        virtual void createSecondaryTextureObject(){};
+        void createSecondaryTextureObject();
+        
+        void createSecondarySamplerObject();
         
         /**
          * @brief Creates a Normal Map Texture

@@ -24,15 +24,15 @@ void LevelOneUILayer::init(){
     //Create UI Elements
     
     //create the Joystick
-    joystick=new U4DEngine::U4DJoyStick("joystick",-0.7,-0.6,"joyStickBackground.png",130.0,130.0,"joystickDriver.png",80.0,80.0);
+    joystick=new U4DEngine::U4DJoystick("joystick",-0.7,-0.6,"joyStickBackground.png",130.0,130.0,"joystickDriver.png");
     
     //create the buttons
-    buttonA=new U4DEngine::U4DButton("buttonA",0.4,-0.6,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
-    buttonB=new U4DEngine::U4DButton("buttonB",0.7,-0.6,103.0,103.0,"ButtonB.png","ButtonBPressed.png");
-    
+//    buttonA=new U4DEngine::U4DButton("buttonA",0.4,-0.6,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
+//    buttonB=new U4DEngine::U4DButton("buttonB",0.7,-0.6,103.0,103.0,"ButtonB.png","ButtonBPressed.png");
+//
     addChild(joystick);
-    addChild(buttonA);
-    addChild(buttonB);
+    //addChild(buttonA);
+    ///addChild(buttonB);
     
 }
 

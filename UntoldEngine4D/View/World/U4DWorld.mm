@@ -165,7 +165,9 @@ namespace U4DEngine {
                 
                 if(child->changeState(inputAction, controllerInputMessage.inputPosition)){
                     
-                    controllerInputMessage.elementUIName=child->getName();
+                    //mute the message since it was handle by the UI element
+                    controllerInputMessage.inputElementAction=-1;
+                    controllerInputMessage.inputElementType=-1;
                     
                 }
                 

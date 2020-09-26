@@ -14,8 +14,6 @@ It took me over five years to develop the *Untold Engine* from scratch. I spent 
 
 Before running the engine, please visit the [Docs](https://untoldengine.github.io/api/docs/html/index.html).
 
-> Note: There is an issue that I haven't had time to get to it yet. But make sure to disable the Metal API Validation before running the engine. To do so, click on your Active Scheme, click on Edit Scheme, select the Options tab, then disable the Metal API Validation. I will try to fix that in the next version. 
-
 ## What you need?
 
 To run the the Untold Engine, you need the following tools:

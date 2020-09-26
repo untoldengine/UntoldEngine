@@ -47,12 +47,12 @@ void MainMenuLayer::init(){
 
     if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
         
-        aButton=new U4DEngine::U4DButton("buttonA",0.7,-0.6,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
+//        aButton=new U4DEngine::U4DButton("buttonA",0.7,-0.6,103.0,103.0,"ButtonA.png","ButtonAPressed.png");
 
         //create the Joystick
-        joystick=new U4DEngine::U4DJoyStick("joystick",-0.7,-0.6,"joyStickBackground.png",130.0,130.0,"joystickDriver.png",80.0,80.0);
+        joystick=new U4DEngine::U4DJoystick("joystick",-0.7,-0.6,"joyStickBackground.png",130.0,130.0,"joystickDriver.png");
         
-        addChild(aButton);
+        //addChild(aButton);
         addChild(joystick);
     
     }else{
@@ -69,7 +69,7 @@ void MainMenuLayer::init(){
             fontLoader->loadFontAssetFile("gameFont.xml", "gameFont.png");
             
             //3. Create a text object. Provide the font loader object and the spacing between letters
-            menuInstructions=new U4DEngine::U4DText(fontLoader, 30);
+            menuInstructions=new U4DEngine::U4DText(fontLoader);
             
             menuInstructions->setText("USE ARROW KEYS. SPACE TO ENTER");
             

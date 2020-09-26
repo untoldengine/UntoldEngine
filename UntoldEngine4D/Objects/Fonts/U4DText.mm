@@ -13,7 +13,7 @@
 
 namespace U4DEngine {
     
-    U4DText::U4DText(U4DFontLoader* uFontLoader, float uTextSpacing):textSpacing(uTextSpacing),currentTextContainerSize(0){
+    U4DText::U4DText(U4DFontLoader* uFontLoader):currentTextContainerSize(0){
         
         renderManager=new U4DRenderFont(this);
             
@@ -50,6 +50,14 @@ namespace U4DEngine {
         renderManager->setTexture0(fontAtlasImage);
         
         
+    }
+
+    void U4DText::setText(float uFloatValue){
+        
+        char value[10];
+        sprintf(value, "%0.4f", uFloatValue);
+
+        setText(value);
     }
 
     void U4DText::setText(const char* uText){
@@ -125,11 +133,9 @@ namespace U4DEngine {
 
     void U4DText::loadText(){
         
-        float lastTextYOffset=0.0;
-        float currentTextYOffset=0.0;
-        float lastTextXAdvance=0.0;
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
+        float lastCharYOffset=0.0;
+        float currentCharYOffset=0.0;
+        float lastCharXAdvance=0.0;
         
         for (int i=0; i<textContainer.size(); i++) {
             
@@ -137,25 +143,19 @@ namespace U4DEngine {
             
             textData=textContainer.at(i);
             
-            currentTextYOffset=1.0-textData.yOffset;
+            currentCharYOffset=1.0-textData.yOffset;
             
-            U4DVector3n fontPositionOffset(lastTextXAdvance/director->getDisplayWidth(),currentTextYOffset/director->getDisplayHeight(), 0.0);
+            U4DVector3n charPositionOffset(lastCharXAdvance,currentCharYOffset, 0.0);
             
-            U4DVector2n fontUV(textData.x,textData.y);
+            U4DVector2n charUV(textData.x,textData.y);
             
-            setTextDimension(fontPositionOffset,fontUV,i,textData.width,textData.height,fontLoader->fontAtlasWidth,fontLoader->fontAtlasHeight);
+            setTextDimension(charPositionOffset,charUV,i,textData.width,textData.height);
             
-            lastTextYOffset=textData.yOffset;
+            lastCharYOffset=textData.yOffset;
             
-            lastTextXAdvance=lastTextXAdvance+textData.xAdvance+textSpacing;
+            lastCharXAdvance+=(textData.xAdvance);
             
         }
-        
-    }
-        
-    void U4DText::setTextSpacing(float uTextSpacing){
-        
-        textSpacing=uTextSpacing;
         
     }
 
@@ -165,16 +165,20 @@ namespace U4DEngine {
         
     }
     
-    void U4DText::setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight){
+    void U4DText::setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
-        float widthFontTexture=uTextWidth/uAtlasWidth;
-        float heightFontTexture=uTextHeight/uAtlasHeight;
+        float widthFontTexture=uTextWidth/fontLoader->fontAtlasWidth;
+        float heightFontTexture=uTextHeight/fontLoader->fontAtlasHeight;
         
         float width=uTextWidth/director->getDisplayWidth();
         float height=uTextHeight/director->getDisplayHeight();
         float depth=0.0;
+        
+        uFontPositionOffset.x/=director->getDisplayWidth();
+        uFontPositionOffset.y/=director->getDisplayHeight();
+        
         
         
         //vertices

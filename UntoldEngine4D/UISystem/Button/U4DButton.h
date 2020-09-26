@@ -13,15 +13,15 @@
 #include <vector>
 #include "U4DDirector.h"
 #include "U4DEntity.h"
-#include "U4DMultiImage.h"
 #include "U4DCallbackInterface.h"
 #include "CommonProtocols.h"
+#include "U4DShaderEntity.h"
 
 namespace U4DEngine {
     class U4DImage;
     class U4DControllerInterface;
-    class U4DButtonStateManager;
-    class U4DButtonStateInterface;
+    class U4DFontLoader;
+    class U4DText;
 }
 
 namespace U4DEngine {
@@ -31,14 +31,10 @@ namespace U4DEngine {
  * @brief The U4DButton class manages button entities
  * 
  */
-class U4DButton:public U4DEntity{
+class U4DButton:public U4DShaderEntity{
   
 private:
     
-    /**
-     * @brief A state manager that updates the state of the button whenever it is pressed, released or moved
-     */
-    U4DButtonStateManager *stateManager;
     
     float left,right,bottom,top;
     
@@ -48,11 +44,18 @@ private:
     U4DVector2n centerPosition;
     
     /**
-     * @brief current touch position detected
+     * @brief current position detected
      */
-    U4DVector2n currentTouchPosition;
+    U4DVector2n currentPosition;
     
-
+    int state;
+    
+    int previousState;
+    
+    U4DText *labelText;
+    
+    void initButtonProperties(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight);
+    
 public:
     
     /**
@@ -64,10 +67,10 @@ public:
      * @param yPosition y-axis position
      * @param uWidth width of button
      * @param uHeight height of button
-     * @param uButtonImage1 main image used for button. Normally used when button is idle/released
-     * @param uButtonImage2 secondary image used for button. Normally used when button is pressed
      */
-    U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage1,const char* uButtonImage2);
+    U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, U4DFontLoader *uFontLoader);
+    
+    U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage);
     
     /**
      * @brief Destructor for the class
@@ -88,21 +91,6 @@ public:
      *
      */
     U4DControllerInterface *controllerInterface;
-    
-    /**
-     * @brief the buttonImages member is a U4DMultiImage entity 
-     * @details This member holds both images for the pressed and released state
-     * 
-     */
-    U4DMultiImage buttonImages;
-    
-    /**
-     * @brief Renders the button
-     * @details Renders the button with the image specified by its current state. If the button is in a pressed state, then it will render the main image. otherwise it renders the secondary image
-     * 
-     * @param uRenderEncoder encoder object
-     */
-    void render(id <MTLRenderCommandEncoder> uRenderEncoder);
     
     /**
      * @brief Calls the state manager to update the state of the button
@@ -145,6 +133,14 @@ public:
      */
     void setCallbackAction(U4DCallbackInterface *uAction);
 
+    void changeState(int uState);
+    
+    int getState();
+    
+    void setState(int uState);
+    
+    
+    
 };
 
 }

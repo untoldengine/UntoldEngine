@@ -36,46 +36,62 @@ namespace U4DEngine {
 
     void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameModelInterface *uGameModel){
         
-        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        if (uGameWorld!=nullptr  && uGameModel!=nullptr) {
+            
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            
+            gameWorld=uGameWorld;
+            gameController=sceneManager->getGameController();
+            gameModel=uGameModel;
+            
+            gameWorld->setGameController(gameController);
+            gameWorld->setGameModel(gameModel);
+            
+            gameController->setGameWorld(uGameWorld);
+            gameController->setGameModel(gameModel);
+            
+            gameModel->setGameWorld(gameWorld);
+            gameModel->setGameController(sceneManager->getGameController());
+            gameModel->setGameEntityManager(gameWorld->getEntityManager());
+            
+            sceneStateManager->changeState(U4DSceneActiveState::sharedInstance());
+            
+        }else{
+            
+            std::cout<<"The Game World or the the Game Model (logic) are nullptr"<<std::endl;
+        }
         
-        gameWorld=uGameWorld;
-        gameController=sceneManager->getGameController();
-        gameModel=uGameModel;
-        
-        gameWorld->setGameController(gameController);
-        gameWorld->setGameModel(gameModel);
-        
-        gameController->setGameWorld(uGameWorld);
-        gameController->setGameModel(gameModel);
-        
-        gameModel->setGameWorld(gameWorld);
-        gameModel->setGameController(sceneManager->getGameController());
-        gameModel->setGameEntityManager(gameWorld->getEntityManager());
-        
-        sceneStateManager->changeState(U4DSceneActiveState::sharedInstance());
     
     }
 
     void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameModelInterface *uGameModel){
      
-        loadingWorld=uLoadingWorld;
-        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        if (uGameWorld!=nullptr  && uGameModel!=nullptr && uLoadingWorld!=nullptr) {
+            
+            loadingWorld=uLoadingWorld;
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            
+            gameWorld=uGameWorld;
+            gameController=sceneManager->getGameController();
+            gameModel=uGameModel;
+            
+            gameWorld->setGameController(gameController);
+            gameWorld->setGameModel(gameModel);
+            
+            gameController->setGameWorld(uGameWorld);
+            gameController->setGameModel(gameModel);
+            
+            gameModel->setGameWorld(gameWorld);
+            gameModel->setGameController(sceneManager->getGameController());
+            gameModel->setGameEntityManager(gameWorld->getEntityManager());
+            
+            sceneStateManager->changeState(U4DSceneLoadingState::sharedInstance());
+            
+        }else{
+            
+            std::cout<<"The Game World, Loading World or the the Game Model (logic) are nullptr"<<std::endl;
+        }
         
-        gameWorld=uGameWorld;
-        gameController=sceneManager->getGameController();
-        gameModel=uGameModel;
-        
-        gameWorld->setGameController(gameController);
-        gameWorld->setGameModel(gameModel);
-        
-        gameController->setGameWorld(uGameWorld);
-        gameController->setGameModel(gameModel);
-        
-        gameModel->setGameWorld(gameWorld);
-        gameModel->setGameController(sceneManager->getGameController());
-        gameModel->setGameEntityManager(gameWorld->getEntityManager());
-        
-        sceneStateManager->changeState(U4DSceneLoadingState::sharedInstance());
         
     }
 

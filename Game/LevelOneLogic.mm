@@ -32,26 +32,26 @@ LevelOneLogic::~LevelOneLogic(){
 
 void LevelOneLogic::update(double dt){
     
-    pPlayer=controllingTeam->getControllingPlayer();
-    controllingTeam->computeFormationPosition();
-    
-    
-    if (showDirectionLine==true && pPlayer!=nullptr) {
-        
-        U4DEngine::U4DVector3n playerDir=pPlayer->getViewInDirection();
-
-        U4DEngine::U4DVector4n params0(playerDir.x,playerDir.y,playerDir.z,0.0);
-        
-        //send data to player indicator
-        //pPlayerIndicator->updateShaderParameterContainer(0, params0);
-        
-        
-        U4DEngine::U4DVector3n activePlayerPosition=pPlayer->getAbsolutePosition();
-        
-        U4DEngine::U4DVector4n params(activePlayerPosition.x/100.0,activePlayerPosition.z/67.0,currentMousePosition.x,currentMousePosition.y);
-        pGround->updateShaderParameterContainer(0.0, params);
-        
-    }
+//    pPlayer=controllingTeam->getControllingPlayer();
+//    controllingTeam->computeFormationPosition();
+//
+//
+//    if (showDirectionLine==true && pPlayer!=nullptr) {
+//
+//        U4DEngine::U4DVector3n playerDir=pPlayer->getViewInDirection();
+//
+//        U4DEngine::U4DVector4n params0(playerDir.x,playerDir.y,playerDir.z,0.0);
+//
+//        //send data to player indicator
+//        //pPlayerIndicator->updateShaderParameterContainer(0, params0);
+//
+//
+//        U4DEngine::U4DVector3n activePlayerPosition=pPlayer->getAbsolutePosition();
+//
+//        U4DEngine::U4DVector4n params(activePlayerPosition.x/100.0,activePlayerPosition.z/67.0,currentMousePosition.x,currentMousePosition.y);
+//        pGround->updateShaderParameterContainer(0.0, params);
+//
+//    }
     
 }
 
@@ -365,17 +365,17 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                     //SNIPPET TO USE FOR MOUSE ABSOLUTE POSITION
                     currentMousePosition=controllerInputMessage.inputPosition;
                     
-                    U4DEngine::U4DVector3n mousedirection(controllerInputMessage.inputPosition.x,0.0,controllerInputMessage.inputPosition.y);
-
-                    if(pPlayer->getCurrentState()!=PlayerStateTap::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateHalt::sharedInstance()){
-                         
-                         pPlayer->setMoveDirection(mousedirection);
-                     }
-                    
-
-                    pPlayer->setEnableDribbling(true);
-
-                    pPlayer->setDribblingDirection(mousedirection);
+//                    U4DEngine::U4DVector3n mousedirection(controllerInputMessage.inputPosition.x,0.0,controllerInputMessage.inputPosition.y);
+//
+//                    if(pPlayer->getCurrentState()!=PlayerStateTap::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateHalt::sharedInstance()){
+//
+//                         pPlayer->setMoveDirection(mousedirection);
+//                     }
+//
+//
+//                    pPlayer->setEnableDribbling(true);
+//
+//                    pPlayer->setDribblingDirection(mousedirection);
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseInactive){
                     

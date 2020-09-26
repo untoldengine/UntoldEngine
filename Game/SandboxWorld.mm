@@ -14,10 +14,19 @@
 #include "U4DResourceLoader.h"
 #include "SandboxLogic.h"
 
+#include "U4DSlider.h"
+#include "U4DWindow.h"
+#include "U4DJoystick.h"
+#include "U4DSkybox.h"
+#include "U4DLayerManager.h"
+#include "U4DLayer.h"
+#include "U4DCallback.h"
+
+#include "U4DFontLoader.h"
 
 using namespace U4DEngine;
 
-SandboxWorld::SandboxWorld(){
+SandboxWorld::SandboxWorld():showCollisionVolume(false),showNarrowVolume(false){
     
 }
 
@@ -35,7 +44,259 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     
     /*---LOAD SCENE ASSETS HERE--*/
+    //Load binary file with scene data
+    U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
+
+    resourceLoader->loadSceneData("soccergame.u4d");
+
+    //Load binary file with texture data
+   resourceLoader->loadTextureData("soccerTextures.u4d");
     
+    //1. Create a Font Loader object
+    U4DEngine::U4DFontLoader *uiFont=new U4DEngine::U4DFontLoader();
+
+    //2. Load font data into the font loader object. Such as the xml file and image file
+    uiFont->loadFontAssetFile("uiFont.xml", "uiFont.png");
+    
+    //render the ground
+    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
+
+    if(ground->loadModel("field")){
+
+        //ground->setShader("vertexFieldShader", "fragmentFieldShader");
+
+
+        //set shadows
+        ground->setEnableShadow(true);
+
+        ground->setNormalMapTexture("FieldNormalMap.png");
+
+        //send info to gpu
+        ground->loadRenderingInformation();
+
+        //add to scenegraph
+        addChild(ground);
+    }
+
+    player=new U4DEngine::U4DGameObject();
+
+    if (player->loadModel("player0")) {
+
+        player->setEnableShadow(true);
+
+        player->enableCollisionBehavior();
+
+        player->loadRenderingInformation();
+
+        addChild(player);
+    }
+
+    U4DEngine::U4DGameObject *ads[5];
+
+    for(int i=0;i<sizeof(ads)/sizeof(ads[0]);i++){
+
+        std::string name="ad";
+
+        name+=std::to_string(i);
+
+        ads[i]=new U4DEngine::U4DGameObject();
+
+        if(ads[i]->loadModel(name.c_str())){
+
+            ads[i]->setEnableShadow(true);
+
+            ads[i]->loadRenderingInformation();
+
+            addChild(ads[i]);
+        }
+
+    }
+
+    U4DEngine::U4DGameObject *bleachers[11];
+
+    for(int i=0;i<sizeof(bleachers)/sizeof(bleachers[0]);i++){
+
+        std::string name="bleacher";
+
+        name+=std::to_string(i);
+
+        bleachers[i]=new U4DEngine::U4DGameObject();
+
+        if(bleachers[i]->loadModel(name.c_str())){
+
+            bleachers[i]->setEnableShadow(true);
+
+            bleachers[i]->loadRenderingInformation();
+
+            addChild(bleachers[i]);
+        }
+
+    }
+    
+
+    
+    //create layer manager
+    U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+
+    //set this view (U4DWorld subclass) to the layer Manager
+    layerManager->setWorld(this);
+
+    //create Layers
+    U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
+
+    U4DEngine::U4DWindow *uiWindow=new U4DEngine::U4DWindow("windowA", -0.5, 0.0, 300.0, 400.0, "My Window", uiFont);
+    
+    //Create buttons to add to the layer
+    buttonA=new U4DEngine::U4DButton("buttonA",-0.7,0.3,50.0,20.0,"hi",uiFont);
+   
+    sliderA=new U4DEngine::U4DSlider("sliderA",-0.7,0.2,80.0,20.0,"Pos x",uiFont);
+    sliderB=new U4DEngine::U4DSlider("sliderB",-0.7,0.0,80.0,20.0,"Pos y",uiFont);
+    
+    checkbox=new U4DEngine::U4DCheckbox("checkbox",-0.7,0.4,20.0,20.0,"Show Broad Volume",uiFont);
+    
+    checkboxB=new U4DEngine::U4DCheckbox("checkboxB",-0.7,0.5,20.0,20.0,"Show Convex Hull",uiFont);
+    
+    //joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,"joyStickBackground.png",90.0,90.0,"joystickDriver.png");
+    joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,90.0,90.0);
+    
+//    //create a callback
+//    U4DEngine::U4DCallback<SandboxWorld>* buttonACallback=new U4DEngine::U4DCallback<SandboxWorld>;
+//
+//    buttonACallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnButtonA);
+//
+//    buttonA->setCallbackAction(buttonACallback);
+//
+    //create a callback
+    U4DEngine::U4DCallback<SandboxWorld>* sliderACallback=new U4DEngine::U4DCallback<SandboxWorld>;
+
+    sliderACallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnSlider);
+
+    sliderA->setCallbackAction(sliderACallback);
+    
+    U4DEngine::U4DCallback<SandboxWorld>* sliderBCallback=new U4DEngine::U4DCallback<SandboxWorld>;
+
+    sliderBCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnSliderB);
+
+    sliderB->setCallbackAction(sliderBCallback);
+//
+    //create a callback
+    U4DEngine::U4DCallback<SandboxWorld>* joystickCallback=new U4DEngine::U4DCallback<SandboxWorld>;
+
+    joystickCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnJoystick);
+
+    joystickA->setCallbackAction(joystickCallback);
+    
+    //create a callback
+    U4DEngine::U4DCallback<SandboxWorld>* checkboxCallback=new U4DEngine::U4DCallback<SandboxWorld>;
+    
+    checkboxCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnCheckbox);
+    
+    checkbox->setCallbackAction(checkboxCallback);
+    
+    //create a callback
+    U4DEngine::U4DCallback<SandboxWorld>* checkboxBCallback=new U4DEngine::U4DCallback<SandboxWorld>;
+    
+    checkboxBCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnCheckboxB);
+    
+    checkboxB->setCallbackAction(checkboxBCallback);
+    
+    
+
+    
+    //add the buttons to the layer
+    
+    mainMenuLayer->addChild(buttonA);
+    mainMenuLayer->addChild(sliderA);
+    mainMenuLayer->addChild(joystickA);
+    mainMenuLayer->addChild(checkbox);
+    mainMenuLayer->addChild(sliderB);
+    mainMenuLayer->addChild(checkboxB);
+    
+    mainMenuLayer->addChild(uiWindow);
+    
+    layerManager->addLayerToContainer(mainMenuLayer);
+
+    //push layer
+    layerManager->pushLayer("menuLayer");
+    
+    
+
+}
+
+void SandboxWorld::actionOnButtonA(){
+    
+    if(buttonA->getIsPressed()){
+        
+        
+    }else if (buttonA->getIsReleased()){
+        
+        
+    }
+    
+}
+
+void SandboxWorld::actionOnSlider(){
+    
+    if(sliderA->getIsActive()){
+        
+        //player->translateBy(sliderA->dataValue, 0.0, 0.0);
+        
+    }else if (sliderA->getIsReleased()){
+        
+        
+    }
+    
+}
+
+void SandboxWorld::actionOnSliderB(){
+    
+    if(sliderB->getIsActive()){
+        
+        //player->translateBy(0.0,0.0,sliderB->dataValue);
+        
+    }else if (sliderA->getIsReleased()){
+        
+        
+    }
+    
+}
+
+void SandboxWorld::actionOnJoystick(){
+    
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+    
+    if (joystickA->getIsActive()) {
+        
+        camera->translateBy(0.0,joystickA->dataPosition.y,joystickA->dataPosition.x);
+        
+    }else{
+    
+        
+    }
+    
+}
+
+void SandboxWorld::actionOnCheckbox(){
+    
+    
+    if (checkbox->getIsPressed()) {
+        
+        //showCollisionVolume=!showCollisionVolume;
+       // setEnableGrid(showCollisionVolume);
+        //player->setBroadPhaseBoundingVolumeVisibility(showCollisionVolume);
+    }
+    
+}
+
+void SandboxWorld::actionOnCheckboxB(){
+    
+    
+    if (checkboxB->getIsPressed()) {
+        
+        //showNarrowVolume=!showNarrowVolume;
+       
+       // player->setNarrowPhaseBoundingVolumeVisibility(showNarrowVolume);
+    }
     
 }
 
@@ -59,7 +320,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-10.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,25.0,-50.0);
     
     //translate camera
     camera->translateTo(cameraPosition);

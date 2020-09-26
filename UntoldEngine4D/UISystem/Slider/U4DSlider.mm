@@ -1,72 +1,35 @@
 //
-//  U4DButton.cpp
+//  U4DSlider.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 8/11/13.
-//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
+//  Created by Harold Serrano on 9/21/20.
+//  Copyright © 2020 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DButton.h"
+#include "U4DSlider.h"
 #include "Constants.h"
 #include "U4DVector2n.h"
 #include "U4DDirector.h"
 #include "U4DControllerInterface.h"
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
+
 #include "U4DFontLoader.h"
 #include "U4DText.h"
 
 namespace U4DEngine {
     
-U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, U4DFontLoader *uFontLoader):U4DShaderEntity(1.0){
-    
-    initButtonProperties(uName,xPosition,yPosition,uWidth,uHeight);
-    
-    //add text
-    labelText=new U4DEngine::U4DText(uFontLoader); 
-
-    labelText->setText(uLabel.c_str());
-    
-    loadRenderingInformation();
-    
-    addChild(labelText);
-    
-    U4DVector3n pos=getAbsolutePosition();
-    
-    labelText->translateTo(pos);
-    
-}
-
-U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage):U4DShaderEntity(1.0){
-    
-    
-    initButtonProperties(uName,xPosition,yPosition,uWidth,uHeight);
-    
-    setTexture0(uButtonImage);
-    
-    setEnableAdditiveRendering(false);
-    
-    loadRenderingInformation();
-    
-}
-
-void U4DButton::initButtonProperties(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight){
-    
-    
-    pCallback=nullptr;
-    
-    controllerInterface=nullptr;
-    
-    currentPosition=U4DVector2n(0.0,0.0);
+U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, U4DFontLoader *uFontLoader):U4DShaderEntity(1.0),pCallback(NULL),controllerInterface(NULL),currentPosition(0.0,0.0),dataValue(0.0){
     
     setName(uName);
     
     //set controller
+    //Get the touch controller
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
     
     controllerInterface=sceneManager->getGameController();
     
-    setShader("vertexUIButtonShader", "fragmentUIButtonShader");
+    setShader("vertexUISliderShader", "fragmentUISliderShader");
     
     setShaderDimension(uWidth, uHeight);
 
@@ -87,44 +50,82 @@ void U4DButton::initButtonProperties(std::string uName, float xPosition,float yP
     bottom=centerPosition.y-uHeight/director->getDisplayHeight();
     
     //set initial state
-    setState(U4DEngine::uipressed);
+    setState(U4DEngine::uireleased);
     
+    //add text
+    
+    labelText=new U4DEngine::U4DText(uFontLoader);
+
+    labelText->setText(uLabel.c_str());
+    
+    valueText=new U4DEngine::U4DText(uFontLoader);
+
+    valueText->setText(0.0);
+
+    loadRenderingInformation();
+    
+    addChild(labelText);
+    addChild(valueText);
+    
+    U4DVector3n pos=getAbsolutePosition();
+    
+    labelText->translateTo(right+U4DEngine::uiPadding,pos.y,0.0);
+    valueText->translateTo(left,bottom-U4DEngine::uiPadding, 0.0);
+
 }
     
-U4DButton::~U4DButton(){
-    
+U4DSlider::~U4DSlider(){
     
 }
 
-void U4DButton::update(double dt){
+
+void U4DSlider::update(double dt){
+
+    if(state==U4DEngine::uimoving){
+        
+        U4DVector2n sliderPosition=(currentPosition-centerPosition)*(1.0/getShaderWidth());
+        
+        dataValue=sliderPosition.x;
+        
+        valueText->setText(dataValue);
+        
+        U4DVector4n param(sliderPosition.x,0.0,0.0,0.0);
+        
+        updateShaderParameterContainer(0, param);
+        
+        action();
+    }
 
 }
 
-void U4DButton::action(){
+void U4DSlider::action(){
     
     CONTROLLERMESSAGE controllerMessage;
     
     controllerMessage.elementUIName=getName();
     
-    controllerMessage.inputElementType=U4DEngine::uiButton;
+    controllerMessage.inputElementType=U4DEngine::uiSlider;
 
     U4DVector4n param(0.0,0.0,0.0,0.0);
     
     if (getIsPressed()) {
         
         param=U4DVector4n(1.0,0.0,0.0,0.0);
-        
-        controllerMessage.inputElementAction=U4DEngine::uiButtonPressed;
+        updateShaderParameterContainer(0, param);
+        controllerMessage.inputElementAction=U4DEngine::uiSliderPressed;
 
     }else if(getIsReleased()){
         
-        controllerMessage.inputElementAction=U4DEngine::uiButtonReleased;
+        updateShaderParameterContainer(0, param);
+        controllerMessage.inputElementAction=U4DEngine::uiSliderReleased;
+
+    }else if(getIsActive()){
+        
+        controllerMessage.inputElementAction=U4DEngine::uiSliderMoved;
 
     }
     
-    updateShaderParameterContainer(0, param);
-    
-    if(pCallback!=nullptr){
+    if (pCallback!=nullptr) {
         
         pCallback->action();
         
@@ -136,7 +137,7 @@ void U4DButton::action(){
 
 }
 
-void U4DButton::changeState(int uState){
+void U4DSlider::changeState(int uState){
     
     previousState=state;
     
@@ -147,16 +148,19 @@ void U4DButton::changeState(int uState){
          
          case U4DEngine::uipressed:
             
-            action();
+            //action();
             
             break;
             
         case U4DEngine::uireleased:
             
-            action();
+            //action();
             
             break;
             
+        case U4DEngine::uimoving:
+            
+            break;
             
         default:
             break;
@@ -165,25 +169,24 @@ void U4DButton::changeState(int uState){
     
 }
 
-int U4DButton::getState(){
+int U4DSlider::getState(){
     
     return state;
     
 }
 
-void U4DButton::setState(int uState){
+void U4DSlider::setState(int uState){
     state=uState;
 }
 
-
-bool U4DButton::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){
+bool U4DSlider::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){
     
     bool withinBoundary=false;
     
     if (uPosition.x>left && uPosition.x<right) {
         
         if (uPosition.y>bottom && uPosition.y<top) {
-
+            
             currentPosition=uPosition;
             
             withinBoundary=true;
@@ -192,14 +195,12 @@ bool U4DButton::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPositi
                 
                 changeState(U4DEngine::uipressed);
                 
-                
             }else if((uInputAction==U4DEngine::mouseButtonDragged || uInputAction==U4DEngine::ioTouchesMoved) && (getState()==U4DEngine::uipressed)){
                 
                 changeState(U4DEngine::uimoving);
                 
-                
             }else if((uInputAction==U4DEngine::mouseButtonReleased || uInputAction==U4DEngine::ioTouchesEnded) && (getState()==U4DEngine::uipressed || getState()==U4DEngine::uimoving)){
-            
+                
                 changeState(U4DEngine::uireleased);
                 
             }
@@ -217,6 +218,7 @@ bool U4DButton::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPositi
             U4DNumerical numerical;
             
             if (numerical.areEqual(touchDistance, 0.0, buttonTouchEpsilon)) {
+                
                 changeState(U4DEngine::uireleased);
                 
             }
@@ -229,24 +231,30 @@ bool U4DButton::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPositi
     
 }
     
-void U4DButton::setCallbackAction(U4DCallbackInterface *uAction){
+void U4DSlider::setCallbackAction(U4DCallbackInterface *uAction){
     
     //set the callback
     pCallback=uAction;
     
 }
     
-bool U4DButton::getIsPressed(){
+bool U4DSlider::getIsPressed(){
     
     return (getState()==U4DEngine::uipressed);
     
 }
 
-bool U4DButton::getIsReleased(){
+bool U4DSlider::getIsReleased(){
     
     return (getState()==U4DEngine::uireleased);
     
-} 
+}
+
+bool U4DSlider::getIsActive(){
+    
+    return (getState()==U4DEngine::uimoving);
+    
+}
     
 
 }

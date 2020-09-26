@@ -8,6 +8,10 @@
 
 #include "U4DMacMouseDraggedState.h"
 #include "U4DControllerInterface.h"
+#include "U4DMacMouseIdleState.h"
+#include "U4DMacMouseStateManager.h"
+#include "U4DNumerical.h"
+#include "Constants.h"
 
 namespace U4DEngine {
     
@@ -38,31 +42,36 @@ namespace U4DEngine {
     
     void U4DMacMouseDraggedState::execute(U4DMacMouse *uMacMouse, double dt){
         
-        U4DEngine::U4DVector2n absoluteMouseAxis=uMacMouse->dataPosition-uMacMouse->previousDataPosition;
+        U4DNumerical numerical;
         
-        //make sure that the mouse drag is not too close to its initial position.
-        if (absoluteMouseAxis.magnitude()<1.0) {
-            
-            absoluteMouseAxis=uMacMouse->dataPosition;
-            
-        }
+        U4DEngine::U4DVector2n mouseDirection=uMacMouse->dataPosition-uMacMouse->previousDataPosition;
         
-        absoluteMouseAxis.normalize();
+        //Test if the mouse has stopped by using a Recency Weithted Average
         
-        if (uMacMouse->dataPosition.dot(absoluteMouseAxis)<-0.9) {
+        //smooth out the motion of the camera by using a Recency Weighted Average.
+        //The RWA keeps an average of the last few values, with more recent values being more
+        //significant. The bias parameter controls how much significance is given to previous values.
+        //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+        //A bias of 1 ignores the new value altogether.
+        float biasMotionAccumulator=0.0;
+        
+        uMacMouse->motionAccumulator=uMacMouse->motionAccumulator*biasMotionAccumulator+uMacMouse->dataPosition*(1.0-biasMotionAccumulator);
+        
+        
+        float zeroValue=0.0;
+        
+        //if the motion accumulator is closed to zero, then it means the mouse has stopped
+        if (numerical.areEqual(mouseDirection.magnitude(), zeroValue, U4DEngine::zeroEpsilon)) {
             
-            uMacMouse->directionReversal=true;
-            
-        }else{
-            uMacMouse->directionReversal=false;
-            
+            uMacMouse->getStateManager()->changeState(U4DMacMouseIdleState::sharedInstance()); 
+
         }
         
         uMacMouse->previousDataPosition=uMacMouse->dataPosition;
         
-        uMacMouse->dataPosition=absoluteMouseAxis;
+        uMacMouse->dataPosition=uMacMouse->motionAccumulator;
         
-        uMacMouse->dataMagnitude=absoluteMouseAxis.magnitude();
+        uMacMouse->dataMagnitude=uMacMouse->motionAccumulator.magnitude();
         
         
         uMacMouse->action();

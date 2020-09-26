@@ -28,7 +28,7 @@ namespace U4DEngine {
     private:
         
         U4DMacMouseStateManager *stateManager;
-                
+        
     public:
         
         U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface);
@@ -42,6 +42,8 @@ namespace U4DEngine {
         U4DVector2n dataDeltaPosition;
         
         U4DVector2n previousDataDeltaPosition;
+        
+        U4DVector2n motionAccumulator;
         
         float dataMagnitude;
         

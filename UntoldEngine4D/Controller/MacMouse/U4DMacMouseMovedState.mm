@@ -17,7 +17,7 @@ namespace U4DEngine {
     
     U4DMacMouseMovedState* U4DMacMouseMovedState::instance=0;
     
-    U4DMacMouseMovedState::U4DMacMouseMovedState():motionAccumulator(0.0,0.0){
+    U4DMacMouseMovedState::U4DMacMouseMovedState(){
         
     }
     
@@ -53,9 +53,9 @@ namespace U4DEngine {
         //significant. The bias parameter controls how much significance is given to previous values.
         //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
         //A bias of 1 ignores the new value altogether.
-        float biasMotionAccumulator=0.50;
+        float biasMotionAccumulator=0.0;
         
-        motionAccumulator=motionAccumulator*biasMotionAccumulator+uMacMouse->dataPosition*(1.0-biasMotionAccumulator);
+        uMacMouse->motionAccumulator=uMacMouse->motionAccumulator*biasMotionAccumulator+uMacMouse->dataPosition*(1.0-biasMotionAccumulator);
         
         
         float zeroValue=0.0;
@@ -69,9 +69,9 @@ namespace U4DEngine {
         
         uMacMouse->previousDataPosition=uMacMouse->dataPosition;
         
-        uMacMouse->dataPosition=motionAccumulator;
+        uMacMouse->dataPosition=uMacMouse->motionAccumulator;
         
-        uMacMouse->dataMagnitude=motionAccumulator.magnitude();
+        uMacMouse->dataMagnitude=uMacMouse->motionAccumulator.magnitude();
         
         
         uMacMouse->action();

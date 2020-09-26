@@ -23,7 +23,7 @@ private:
     
     U4DEngine::U4DShaderEntity *menuShader;
     U4DEngine::U4DButton *aButton;
-    U4DEngine::U4DJoyStick *joystick;
+    U4DEngine::U4DJoystick *joystick;
     U4DEngine::U4DFontLoader *fontLoader;
     U4DEngine::U4DText *menuInstructions;
     int menuSelection;

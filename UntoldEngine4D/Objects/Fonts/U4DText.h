@@ -46,11 +46,6 @@ namespace U4DEngine {
         std::vector<TEXTDATA> textContainer;
         
         /**
-         @brief space between text
-         */
-        float textSpacing;
-        
-        /**
          @brief size of the text container
          */
         int currentTextContainerSize;
@@ -67,7 +62,7 @@ namespace U4DEngine {
          
          @param uFontLoader Font loader object
          */
-        U4DText(U4DFontLoader* uFontLoader, float uTextSpacing);
+        U4DText(U4DFontLoader* uFontLoader);
 
         /**
          @brief Destructor of class
@@ -101,14 +96,7 @@ namespace U4DEngine {
          */
         void setText(const char* uText);
         
-        
-        /**
-         @brief sets the spacing between letters
-
-         @param uTextSpacing spacing distance
-         */
-        void setTextSpacing(float uTextSpacing);
-        
+        void setText(float uFloatValue);
         
         /**
          @brief parses the text into individual letters
@@ -141,10 +129,8 @@ namespace U4DEngine {
          @param uTextCount letter count
          @param uTextWidth texture text width
          @param uTextHeight texture text height
-         @param uAtlasWidth image atlas width
-         @param uAtlasHeight image atlas height
          */
-        void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight);
+        void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight);
     };
         
 }

@@ -25,7 +25,7 @@ private:
     U4DEngine::U4DAnimation *walkAnimation;
     U4DEngine::U4DShaderEntity *kitMenuShader;
     U4DEngine::U4DButton *aButton;
-    U4DEngine::U4DJoyStick *joystick;
+    U4DEngine::U4DJoystick *joystick;
     int kitSelection;
     
 public:

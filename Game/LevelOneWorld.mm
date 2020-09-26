@@ -26,6 +26,10 @@
 #include "PlayerStateChase.h"
 #include "PlayerStateGroupNav.h"
 #include "TeamSettings.h"
+#include "U4DButton.h"
+#include "U4DSlider.h"
+#include "U4DLayerManager.h"
+#include "U4DLayer.h"
 
 using namespace U4DEngine;
 
@@ -211,11 +215,11 @@ void LevelOneWorld::init(){
 
    }
    
-   players[0]->changeState(PlayerStateChase::sharedInstance());
+   //players[0]->changeState(PlayerStateChase::sharedInstance());
    
-   players[1]->changeState(PlayerStateGroupNav::sharedInstance());
+   //players[1]->changeState(PlayerStateGroupNav::sharedInstance());
    
-   players[2]->changeState(PlayerStateGroupNav::sharedInstance());
+   //players[2]->changeState(PlayerStateGroupNav::sharedInstance());
    
    
    Player *oppositePlayers[3];
@@ -253,25 +257,50 @@ void LevelOneWorld::init(){
 
     addChild(playerVisualizerShader,-10);
     
+    //create layer manager
+    U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+
+    //set this view (U4DWorld subclass) to the layer Manager
+    layerManager->setWorld(this);
+
+    //create Layers
+    U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
+
+    //Create buttons to add to the layer
+    //U4DEngine::U4DButton *buttonA=new U4DEngine::U4DButton("buttonA",-0.6,0.0,103.0,20.0,"ButtonA.png","ButtonAPressed.png");
+//    U4DEngine::U4DSlider *sliderA=new U4DEngine::U4DSlider("sliderA",-0.6,-0.1,103.0,20.0);
+//    U4DEngine::U4DSlider *sliderB=new U4DEngine::U4DSlider("sliderB",-0.6,-0.2,103.0,20.0);
+//    U4DEngine::U4DSlider *sliderC=new U4DEngine::U4DSlider("sliderC",-0.6,-0.3,103.0,20.0);
+//
+    //add the buttons to the layer
+   // mainMenuLayer->addChild(buttonA);
+//    mainMenuLayer->addChild(sliderA);
+//    mainMenuLayer->addChild(sliderB);
+//    mainMenuLayer->addChild(sliderC);
     
-    if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
+    layerManager->addLayerToContainer(mainMenuLayer);
 
-        //Create Mobile Layer with buttons & joystic
-        U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
-
-        //set the world (view component) for the layer manager --MAY WANT TO FIX THIS. DONT LIKE SETTING THE VIEW HERE FOR THE LAYER MANAGER
-        layerManager->setWorld(this);
-
-        //create the Mobile Layer
-        LevelOneUILayer *levelOneUILayer=new LevelOneUILayer("levelOneUILayer");
-
-        levelOneUILayer->init();
-
-        layerManager->addLayerToContainer(levelOneUILayer);
-
-        layerManager->pushLayer("levelOneUILayer");
+    //push layer
+    layerManager->pushLayer("menuLayer");
     
-    }else{
+//    if (director->getDeviceOSType()==U4DEngine::deviceOSIOS) {
+//
+//        //Create Mobile Layer with buttons & joystic
+//        U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+//
+//        //set the world (view component) for the layer manager --MAY WANT TO FIX THIS. DONT LIKE SETTING THE VIEW HERE FOR THE LAYER MANAGER
+//        layerManager->setWorld(this);
+//
+//        //create the Mobile Layer
+//        LevelOneUILayer *levelOneUILayer=new LevelOneUILayer("levelOneUILayer");
+//
+//        levelOneUILayer->init();
+//
+//        layerManager->addLayerToContainer(levelOneUILayer);
+//
+//        layerManager->pushLayer("levelOneUILayer");
+//
+//    }else{
         
         //Create Player Indicator shader
 //        playerIndicatorShader=new U4DEngine::U4DShaderEntity(1);
@@ -286,7 +315,7 @@ void LevelOneWorld::init(){
 //
 //        levelOneLogic->setPlayerIndicator(playerIndicatorShader);
     
-    }
+   // }
     
     //Instantiate the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();

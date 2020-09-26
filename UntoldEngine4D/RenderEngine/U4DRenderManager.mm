@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
 
-    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),samplerDescriptor(nil),globalDataUniform(nil){
+    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),samplerDescriptor(nil),globalDataUniform(nil),secondarySamplerDescriptor(nil),secondarySamplerStateObject(nil){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
@@ -33,6 +33,7 @@ namespace U4DEngine {
         [mtlRenderPipelineState release];
         [mtlLibrary release];
         [samplerDescriptor release];
+        [secondarySamplerDescriptor release];
         
         mtlRenderPipelineDescriptor=nil;
         samplerDescriptor=nil;
@@ -59,6 +60,9 @@ namespace U4DEngine {
         uniformShaderEntityPropertyBuffer=nil;
         uniformModelShaderParametersBuffer=nil;
         globalDataUniform=nil;
+        
+        secondarySamplerStateObject=nil;
+        
         
 
     }
@@ -135,6 +139,44 @@ namespace U4DEngine {
         
         samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:samplerDescriptor];
         
+    }
+
+    void U4DRenderManager::createSecondaryTextureObject(){
+        
+        //Create the texture descriptor
+        
+        MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:imageWidth height:imageHeight mipmapped:NO];
+        
+        //Create the texture object
+        secondaryTextureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
+        
+        //Copy the raw image data into the texture object
+        
+        MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
+        
+        [secondaryTextureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
+        
+    }
+
+    void U4DRenderManager::createSecondarySamplerObject(){
+        
+        //Create a sampler descriptor
+        
+        secondarySamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        
+        //Set the filtering and addressing settings
+        secondarySamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
+        secondarySamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
+        
+        //set the addressing mode for the S component
+        secondarySamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
+        
+        //set the addressing mode for the T component
+        secondarySamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
+        
+        //Create the sampler state object
+        
+        secondarySamplerStateObject=[mtlDevice newSamplerStateWithDescriptor:secondarySamplerDescriptor];
     }
     
     void U4DRenderManager::createNormalMapTextureObject(){

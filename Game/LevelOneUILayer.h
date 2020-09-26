@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include <string>
 #include "U4DLayer.h"
-#include "U4DJoyStick.h"
+#include "U4DJoystick.h"
 #include "U4DButton.h"
 #include "Player.h"
 
@@ -22,7 +22,7 @@ private:
     
     U4DEngine::U4DButton *buttonA;
     U4DEngine::U4DButton *buttonB;
-    U4DEngine::U4DJoyStick *joystick;
+    U4DEngine::U4DJoystick *joystick;
     
     
 public:

@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParamSize,U4DVector4n(0.0,0.0,0.0,0.0)),enableBlending(true){
+U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParamSize,U4DVector4n(0.0,0.0,0.0,0.0)),enableBlending(true),enableAdditiveRendering(true){
         
         renderManager=new U4DRenderShaderEntity(this);
         
@@ -29,6 +29,13 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
         renderManager->setTexture0(uTexture0);
     
     }
+
+
+    void U4DShaderEntity::setTexture1(const char* uTexture1){
+        
+        renderManager->setTexture1(uTexture1);
+
+    }
     
 
     void U4DShaderEntity::setShaderDimension(float uWidth,float uHeight){
@@ -36,15 +43,15 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
         U4DDirector *director=U4DDirector::sharedInstance();
         
         //make a rectangle
-        float width=uWidth/director->getDisplayWidth();
-        float height=uHeight/director->getDisplayHeight();
+        shaderWidth=uWidth/director->getDisplayWidth();
+        shaderHeight=uHeight/director->getDisplayHeight();
         float depth=0.0;
         
         //vertices
-        U4DEngine::U4DVector3n v1(width,height,depth);
-        U4DEngine::U4DVector3n v4(width,-height,depth);
-        U4DEngine::U4DVector3n v2(-width,-height,depth);
-        U4DEngine::U4DVector3n v3(-width,height,depth);
+        U4DEngine::U4DVector3n v1(shaderWidth,shaderHeight,depth);
+        U4DEngine::U4DVector3n v4(shaderWidth,-shaderHeight,depth);
+        U4DEngine::U4DVector3n v2(-shaderWidth,-shaderHeight,depth);
+        U4DEngine::U4DVector3n v3(-shaderWidth,shaderHeight,depth);
         
         bodyCoordinates.addVerticesDataToContainer(v1);
         bodyCoordinates.addVerticesDataToContainer(v4);
@@ -71,6 +78,17 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
         bodyCoordinates.addIndexDataToContainer(i1);
         bodyCoordinates.addIndexDataToContainer(i2);
         
+    }
+
+    float U4DShaderEntity::getShaderWidth(){
+        
+        return shaderWidth;
+        
+    }
+        
+    float U4DShaderEntity::getShaderHeight(){
+        
+        return shaderHeight;
     }
 
     void U4DShaderEntity::render(id <MTLRenderCommandEncoder> uRenderEncoder){
@@ -102,4 +120,21 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
         return enableBlending;
     }
 
+    bool U4DShaderEntity::getEnableAdditiveRendering(){
+        
+        return enableAdditiveRendering;
+    }
+
+    void U4DShaderEntity::setEnableAdditiveRendering(bool uValue){
+        enableAdditiveRendering=uValue;
+    }
+
+    void U4DShaderEntity::setHasTexture(bool uValue){
+            hasTexture=uValue;
+        }
+        
+        
+    bool U4DShaderEntity::getHasTexture(){
+            return hasTexture;
+        }
 }

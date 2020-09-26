@@ -33,25 +33,99 @@ void SandboxLogic::init(){
     
 }
 
+
 void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
     
-        
         switch (controllerInputMessage.inputElementType) {
             
+            case U4DEngine::uiButton:
+                
+                if(controllerInputMessage.inputElementAction==U4DEngine::uiButtonPressed){
+                    
+                    
+                    if (controllerInputMessage.elementUIName.compare("buttonA")==0) {
+                        
+                        //std::cout<<"Button A pressed"<<std::endl;
+                    
+                    
+                    }
+                    
+                }else if (controllerInputMessage.inputElementAction==U4DEngine::uiButtonReleased){
+                
+                    if (controllerInputMessage.elementUIName.compare("buttonA")==0) {
+                        
+                        //std::cout<<"Button A released"<<std::endl;
+                    
+                    
+                    }
+                
+                }
+                
+                break;
+                
+            case U4DEngine::uiSlider:
+                
+                if(controllerInputMessage.inputElementAction==U4DEngine::uiSliderMoved){
+                    
+                    
+                    if (controllerInputMessage.elementUIName.compare("sliderA")==0) {
+                        
+                        //std::cout<<"slider moving"<<std::endl;
+                    
+                    
+                    }
+                    
+                }else if (controllerInputMessage.inputElementAction==U4DEngine::uiSliderReleased){
+                
+                    if (controllerInputMessage.elementUIName.compare("sliderA")==0) {
+                        
+                        //std::cout<<"slider released"<<std::endl;
+                    
+                    
+                    }
+                
+                }
+                
+                break;
+            
+            case U4DEngine::uiJoystick:
+            
+            if(controllerInputMessage.inputElementAction==U4DEngine::uiJoystickMoved){
+                
+                
+                if (controllerInputMessage.elementUIName.compare("joystick")==0) {
+                    
+                    //std::cout<<"joystick moving"<<std::endl;
+                
+                
+                }
+                
+            }else if (controllerInputMessage.inputElementAction==U4DEngine::uiJoystickReleased){
+            
+                if (controllerInputMessage.elementUIName.compare("joystick")==0) {
+                    
+                    //std::cout<<"joystick released"<<std::endl;
+                
+                
+                }
+            
+            }
+            
+            break;
                 
             case U4DEngine::mouseLeftButton:
             {
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::mouseButtonPressed) {
                     
-                    
+                    //std::cout<<"left clicked"<<std::endl;
                         
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseButtonReleased){
                     
-                    
+                    //std::cout<<"left released"<<std::endl;
                     
                 }
             }
@@ -219,11 +293,11 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     
                     U4DEngine::U4DVector3n mousedirection(controllerInputMessage.inputPosition.x,0.0,controllerInputMessage.inputPosition.y);
 
-                    
+                    //std::cout<<"Mouse moving"<<std::endl;
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseInactive){
                     
-                    
+                    //std::cout<<"Mouse stopped"<<std::endl;
                 }
                 
             }

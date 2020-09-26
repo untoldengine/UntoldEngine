@@ -644,8 +644,11 @@ namespace U4DEngine {
         
         //touch elements
         ioTouch,
+        
+        //ui elements
         uiJoystick,
         uiButton,
+        uiSlider,
 
     }INPUTELEMENTTYPE;
 
@@ -685,6 +688,10 @@ namespace U4DEngine {
         uiButtonPressed,
         uiButtonReleased,
         
+        uiSliderPressed,
+        uiSliderReleased,
+        uiSliderMoved,
+        
         noAction
 
     }INPUTELEMENTACTION;
@@ -704,6 +711,13 @@ namespace U4DEngine {
         std::string elementUIName;
         
     }CONTROLLERMESSAGE;
+
+    enum{
+        uipressed,
+        uireleased,
+        uimoving,
+        
+    }UIELEMENTSTATES;
 
 }
 
