@@ -252,7 +252,6 @@
 		03722B7E2029F0F50080D069 /* U4DQuaternion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B8B175B0383002EB5D9 /* U4DQuaternion.mm */; };
 		03722B7F2029F0F50080D069 /* U4DVector3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B8D175B0383002EB5D9 /* U4DVector3n.mm */; };
 		03722B802029F0F50080D069 /* U4DParticleEmitterInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038249201FA252AE00DFEFE3 /* U4DParticleEmitterInterface.mm */; };
-		03722B822029F0F50080D069 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03722B832029F0F50080D069 /* U4DParticleEmitterTorus.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038249171FA252AD00DFEFE3 /* U4DParticleEmitterTorus.mm */; };
 		03722B852029F0F50080D069 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
 		03722B862029F0F50080D069 /* worldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DAEF1F191A2600F77B78 /* worldShader.metal */; };
@@ -374,7 +373,6 @@
 		03722C1B2029F0F70080D069 /* U4DQuaternion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B8B175B0383002EB5D9 /* U4DQuaternion.mm */; };
 		03722C1C2029F0F70080D069 /* U4DVector3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B8D175B0383002EB5D9 /* U4DVector3n.mm */; };
 		03722C1D2029F0F70080D069 /* U4DParticleEmitterInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038249201FA252AE00DFEFE3 /* U4DParticleEmitterInterface.mm */; };
-		03722C1F2029F0F70080D069 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03722C202029F0F70080D069 /* U4DParticleEmitterTorus.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038249171FA252AD00DFEFE3 /* U4DParticleEmitterTorus.mm */; };
 		03722C222029F0F70080D069 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
 		03722C232029F0F70080D069 /* worldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DAEF1F191A2600F77B78 /* worldShader.metal */; };
@@ -496,7 +494,6 @@
 		03722CB82029F0F80080D069 /* U4DQuaternion.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B8B175B0383002EB5D9 /* U4DQuaternion.mm */; };
 		03722CB92029F0F80080D069 /* U4DVector3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B8D175B0383002EB5D9 /* U4DVector3n.mm */; };
 		03722CBA2029F0F80080D069 /* U4DParticleEmitterInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038249201FA252AE00DFEFE3 /* U4DParticleEmitterInterface.mm */; };
-		03722CBC2029F0F80080D069 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03722CBD2029F0F80080D069 /* U4DParticleEmitterTorus.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038249171FA252AD00DFEFE3 /* U4DParticleEmitterTorus.mm */; };
 		03722CBF2029F0F80080D069 /* U4DPoint3n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03EF2DFD1B6D5EF200F26945 /* U4DPoint3n.mm */; };
 		03722CC02029F0F80080D069 /* worldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03F2DAEF1F191A2600F77B78 /* worldShader.metal */; };
@@ -802,15 +799,15 @@
 		0397E48A251C1B1D0020EBD9 /* uiFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 0397E488251C1B1D0020EBD9 /* uiFont.png */; };
 		0397E48B251C1B1D0020EBD9 /* uiFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 0397E488251C1B1D0020EBD9 /* uiFont.png */; };
 		0397E48C251C1B1E0020EBD9 /* uiFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 0397E488251C1B1D0020EBD9 /* uiFont.png */; };
-		0397E48D251C1B1E0020EBD9 /* uiFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E489251C1B1D0020EBD9 /* uiFont.xml */; };
-		0397E48E251C1B1E0020EBD9 /* uiFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E489251C1B1D0020EBD9 /* uiFont.xml */; };
-		0397E48F251C1B1E0020EBD9 /* uiFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E489251C1B1D0020EBD9 /* uiFont.xml */; };
 		0397E4C7251DAB470020EBD9 /* U4DWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0397E4C5251DAB470020EBD9 /* U4DWindow.mm */; };
 		0397E4C8251DAB470020EBD9 /* U4DWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0397E4C5251DAB470020EBD9 /* U4DWindow.mm */; };
 		0397E4C9251DAB470020EBD9 /* U4DWindow.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0397E4C5251DAB470020EBD9 /* U4DWindow.mm */; };
 		0397E4CB251DAD950020EBD9 /* windowUIShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0397E4CA251DAD950020EBD9 /* windowUIShader.metal */; };
 		0397E4CC251DAD950020EBD9 /* windowUIShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0397E4CA251DAD950020EBD9 /* windowUIShader.metal */; };
 		0397E4CD251DAD950020EBD9 /* windowUIShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 0397E4CA251DAD950020EBD9 /* windowUIShader.metal */; };
+		0397E4D225201F010020EBD9 /* uiFont.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4D125201F000020EBD9 /* uiFont.u4d */; };
+		0397E4D325201F010020EBD9 /* uiFont.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4D125201F000020EBD9 /* uiFont.u4d */; };
+		0397E4D425201F010020EBD9 /* uiFont.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4D125201F000020EBD9 /* uiFont.u4d */; };
 		039DB55C223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55D223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55E223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
@@ -877,7 +874,6 @@
 		03A96D702518EE2A00E8BA19 /* U4DSlider.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A96D6E2518EE2A00E8BA19 /* U4DSlider.mm */; };
 		03A96D712518EE2A00E8BA19 /* U4DSlider.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A96D6E2518EE2A00E8BA19 /* U4DSlider.mm */; };
 		03A96D722518EE2A00E8BA19 /* U4DSlider.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A96D6E2518EE2A00E8BA19 /* U4DSlider.mm */; };
-		03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */; };
 		03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03A9F70D1AE08C6F00E81A00 /* U4DSpriteLoader.mm */; };
 		03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFEF11775F3F5002DDD03 /* U4DEntity.mm */; };
 		03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03ADFEF71775F71C002DDD03 /* U4DVisibleEntity.mm */; };
@@ -951,12 +947,6 @@
 		03BC378624DF06B800BDAE76 /* StartMenu.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BC378424DF06B800BDAE76 /* StartMenu.mm */; };
 		03BC378724DF06B800BDAE76 /* StartMenu.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BC378424DF06B800BDAE76 /* StartMenu.mm */; };
 		03BC378824DF06B800BDAE76 /* StartMenu.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03BC378424DF06B800BDAE76 /* StartMenu.mm */; };
-		03BC379324E086F600BDAE76 /* gameFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03BC379124E086F600BDAE76 /* gameFont.xml */; };
-		03BC379424E086F600BDAE76 /* gameFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03BC379124E086F600BDAE76 /* gameFont.xml */; };
-		03BC379524E086F600BDAE76 /* gameFont.xml in Resources */ = {isa = PBXBuildFile; fileRef = 03BC379124E086F600BDAE76 /* gameFont.xml */; };
-		03BC379624E086F600BDAE76 /* gameFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03BC379224E086F600BDAE76 /* gameFont.png */; };
-		03BC379724E086F600BDAE76 /* gameFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03BC379224E086F600BDAE76 /* gameFont.png */; };
-		03BC379824E086F600BDAE76 /* gameFont.png in Resources */ = {isa = PBXBuildFile; fileRef = 03BC379224E086F600BDAE76 /* gameFont.png */; };
 		03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278851F80046B00AF463C /* U4DVisibilityManager.mm */; };
 		03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */; };
 		03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */ = {isa = PBXBuildFile; fileRef = 03C737A11A4F1D9F001B4F77 /* joyStickBackground.png */; };
@@ -1429,10 +1419,10 @@
 		0397E480251B979C0020EBD9 /* U4DCheckbox.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DCheckbox.h; path = UISystem/Checkbox/U4DCheckbox.h; sourceTree = "<group>"; };
 		0397E484251B98C30020EBD9 /* checkboxUIShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = checkboxUIShader.metal; path = MetalShaders/checkboxUIShader.metal; sourceTree = "<group>"; };
 		0397E488251C1B1D0020EBD9 /* uiFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = uiFont.png; sourceTree = "<group>"; };
-		0397E489251C1B1D0020EBD9 /* uiFont.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = uiFont.xml; sourceTree = "<group>"; };
 		0397E4C5251DAB470020EBD9 /* U4DWindow.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DWindow.mm; path = UISystem/Window/U4DWindow.mm; sourceTree = "<group>"; };
 		0397E4C6251DAB470020EBD9 /* U4DWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DWindow.h; path = UISystem/Window/U4DWindow.h; sourceTree = "<group>"; };
 		0397E4CA251DAD950020EBD9 /* windowUIShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = windowUIShader.metal; path = MetalShaders/windowUIShader.metal; sourceTree = "<group>"; };
+		0397E4D125201F000020EBD9 /* uiFont.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = uiFont.u4d; sourceTree = "<group>"; };
 		039DB55A223F08C200E323D4 /* U4DRay.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRay.mm; sourceTree = "<group>"; };
 		039DB55B223F08C200E323D4 /* U4DRay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DRay.h; sourceTree = "<group>"; };
 		039DB55F224279C800E323D4 /* U4DPolygonData.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPolygonData.mm; sourceTree = "<group>"; };
@@ -1471,8 +1461,6 @@
 		03A96D6725186B7800E8BA19 /* buttonUIShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = buttonUIShader.metal; path = MetalShaders/buttonUIShader.metal; sourceTree = "<group>"; };
 		03A96D6E2518EE2A00E8BA19 /* U4DSlider.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSlider.mm; path = UISystem/Slider/U4DSlider.mm; sourceTree = "<group>"; };
 		03A96D6F2518EE2A00E8BA19 /* U4DSlider.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DSlider.h; path = UISystem/Slider/U4DSlider.h; sourceTree = "<group>"; };
-		03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFontLoader.h; sourceTree = "<group>"; };
-		03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DFontLoader.mm; sourceTree = "<group>"; };
 		03A9F70C1AE08C6F00E81A00 /* U4DSpriteLoader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DSpriteLoader.h; sourceTree = "<group>"; };
 		03A9F70D1AE08C6F00E81A00 /* U4DSpriteLoader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSpriteLoader.mm; sourceTree = "<group>"; };
 		03ADFEEF1775F37A002DDD03 /* U4DWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DWorld.h; sourceTree = "<group>"; };
@@ -1520,8 +1508,6 @@
 		03BC378024DF066C00BDAE76 /* LevelOneLogic.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = LevelOneLogic.mm; path = Game/LevelOneLogic.mm; sourceTree = SOURCE_ROOT; };
 		03BC378424DF06B800BDAE76 /* StartMenu.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = StartMenu.mm; path = Game/StartMenu.mm; sourceTree = SOURCE_ROOT; };
 		03BC378524DF06B800BDAE76 /* StartMenu.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = StartMenu.h; path = Game/StartMenu.h; sourceTree = SOURCE_ROOT; };
-		03BC379124E086F600BDAE76 /* gameFont.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = gameFont.xml; sourceTree = "<group>"; };
-		03BC379224E086F600BDAE76 /* gameFont.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = gameFont.png; sourceTree = "<group>"; };
 		03C278851F80046B00AF463C /* U4DVisibilityManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityManager.mm; path = VisibilityManager/U4DVisibilityManager.mm; sourceTree = "<group>"; };
 		03C278861F80046B00AF463C /* U4DVisibilityManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityManager.h; path = VisibilityManager/U4DVisibilityManager.h; sourceTree = "<group>"; };
 		03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityCulling.mm; path = VisibilityManager/U4DVisibilityCulling.mm; sourceTree = "<group>"; };
@@ -2050,7 +2036,6 @@
 				03E6ED591943D6FE007AD131 /* Controller */,
 				03B5E7E7193A3F4700800EC8 /* XMLParser */,
 				03A9F70B1AE08C6F00E81A00 /* SpritesAssetLoader */,
-				03A9F7031ADB2F3600E81A00 /* FontAssetLoader */,
 				03B5E7E3193A3F4100800EC8 /* DigitalAssetLoader */,
 				031723C71933FE54001584B1 /* PNGLoader */,
 				036C2449176790DA00ADC1A6 /* GameModel */,
@@ -2281,8 +2266,8 @@
 			isa = PBXGroup;
 			children = (
 				030BB39024D70F1D008CB06E /* menuscene.u4d */,
+				0397E4D125201F000020EBD9 /* uiFont.u4d */,
 				0397E488251C1B1D0020EBD9 /* uiFont.png */,
-				0397E489251C1B1D0020EBD9 /* uiFont.xml */,
 				0397E47A251ADF050020EBD9 /* buttononly.png */,
 				03A96D632516C90D00E8BA19 /* footballerloadingscreen.png */,
 				03A96D532516470900E8BA19 /* rightdribbleAnimation.u4d */,
@@ -2290,8 +2275,6 @@
 				03A96D552516470900E8BA19 /* soccergame.u4d */,
 				03A96D562516470900E8BA19 /* soccerTextures.u4d */,
 				0375BA0F24F0061A00D19CE4 /* righttapAnimation.u4d */,
-				03BC379224E086F600BDAE76 /* gameFont.png */,
-				03BC379124E086F600BDAE76 /* gameFont.xml */,
 				030BB3BC24D9AFBB008CB06E /* teamkitmenu.png */,
 				030BB3B024D86146008CB06E /* menuSelection.png */,
 				030BB3A824D8515D008CB06E /* futbolloadingscreen.png */,
@@ -2519,15 +2502,6 @@
 				03A96D6E2518EE2A00E8BA19 /* U4DSlider.mm */,
 			);
 			name = Slider;
-			sourceTree = "<group>";
-		};
-		03A9F7031ADB2F3600E81A00 /* FontAssetLoader */ = {
-			isa = PBXGroup;
-			children = (
-				03A9F7041ADB2F3600E81A00 /* U4DFontLoader.h */,
-				03A9F7051ADB2F3600E81A00 /* U4DFontLoader.mm */,
-			);
-			path = FontAssetLoader;
 			sourceTree = "<group>";
 		};
 		03A9F70B1AE08C6F00E81A00 /* SpritesAssetLoader */ = {
@@ -3174,8 +3148,8 @@
 				03722D442029F16C0080D069 /* ButtonBPressed.png in Resources */,
 				03B169AF24C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */,
 				03B1698B24C1F28100636D3D /* rightpassAnimation.u4d in Resources */,
+				0397E4D325201F010020EBD9 /* uiFont.u4d in Resources */,
 				03722D402029F16C0080D069 /* joystickDriver.png in Resources */,
-				03BC379424E086F600BDAE76 /* gameFont.xml in Resources */,
 				03DC902624D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */,
 				030BB3AA24D8515D008CB06E /* futbolloadingscreen.png in Resources */,
 				030BB39224D70F1D008CB06E /* menuscene.u4d in Resources */,
@@ -3187,7 +3161,6 @@
 				03B1697224BA0B8D00636D3D /* gamestartimage.png in Resources */,
 				03B1696D24B8A41600636D3D /* radarfield.png in Resources */,
 				0397E47C251ADF060020EBD9 /* buttononly.png in Resources */,
-				0397E48E251C1B1E0020EBD9 /* uiFont.xml in Resources */,
 				03B169B324C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
 				0375BA1124F0061A00D19CE4 /* righttapAnimation.u4d in Resources */,
@@ -3199,7 +3172,6 @@
 				03B1697524BA0B8D00636D3D /* gameloadingimage.png in Resources */,
 				03722D412029F16C0080D069 /* ButtonA.png in Resources */,
 				03B1698724BB586500636D3D /* rightsolehaltAnimation.u4d in Resources */,
-				03BC379724E086F600BDAE76 /* gameFont.png in Resources */,
 				030BB3B224D86146008CB06E /* menuSelection.png in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3233,9 +3205,7 @@
 				0397E48C251C1B1E0020EBD9 /* uiFont.png in Resources */,
 				030BB39324D70F1D008CB06E /* menuscene.u4d in Resources */,
 				03A96D5F2516470A00E8BA19 /* soccergame.u4d in Resources */,
-				03BC379524E086F600BDAE76 /* gameFont.xml in Resources */,
 				030BB3B324D86146008CB06E /* menuSelection.png in Resources */,
-				03BC379824E086F600BDAE76 /* gameFont.png in Resources */,
 				0397E47D251ADF060020EBD9 /* buttononly.png in Resources */,
 				03722D782029F16D0080D069 /* ButtonBPressed.png in Resources */,
 				03722D772029F16D0080D069 /* ButtonB.png in Resources */,
@@ -3252,7 +3222,7 @@
 				030BB3AB24D8515D008CB06E /* futbolloadingscreen.png in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
 				03DC902724D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */,
-				0397E48F251C1B1E0020EBD9 /* uiFont.xml in Resources */,
+				0397E4D425201F010020EBD9 /* uiFont.u4d in Resources */,
 				03B1697324BA0B8D00636D3D /* gamestartimage.png in Resources */,
 				03B1697624BA0B8D00636D3D /* gameloadingimage.png in Resources */,
 				03A96D592516470A00E8BA19 /* rightdribbleAnimation.u4d in Resources */,
@@ -3278,23 +3248,21 @@
 				03AFA2DA24B74BB60075A2D3 /* idleAnimation.u4d in Resources */,
 				03B169A224C7304B00636D3D /* rightshotAnimation.u4d in Resources */,
 				03C737A31A4F1D9F001B4F77 /* joyStickBackground.png in Resources */,
-				03BC379624E086F600BDAE76 /* gameFont.png in Resources */,
 				0375BA1024F0061A00D19CE4 /* righttapAnimation.u4d in Resources */,
 				03B1698624BB586500636D3D /* rightsolehaltAnimation.u4d in Resources */,
 				03B1697424BA0B8D00636D3D /* gameloadingimage.png in Resources */,
 				03A96D572516470A00E8BA19 /* rightdribbleAnimation.u4d in Resources */,
 				03798F8C1934DA8E00CF0600 /* ButtonAPressed.png in Resources */,
-				03BC379324E086F600BDAE76 /* gameFont.xml in Resources */,
 				030BB39524D715F2008CB06E /* walkingAnimation.u4d in Resources */,
 				03A96D5A2516470A00E8BA19 /* runningAnimation.u4d in Resources */,
 				03A96D5D2516470A00E8BA19 /* soccergame.u4d in Resources */,
 				03798F8B1934DA8E00CF0600 /* ButtonA.png in Resources */,
+				0397E4D225201F010020EBD9 /* uiFont.u4d in Resources */,
 				03A96D642516C90D00E8BA19 /* footballerloadingscreen.png in Resources */,
 				03B1698A24C1F28100636D3D /* rightpassAnimation.u4d in Resources */,
 				030BB39D24D74BBD008CB06E /* futbolstartscreen.png in Resources */,
 				030BB3BD24D9AFBB008CB06E /* teamkitmenu.png in Resources */,
 				03B1696C24B8A41600636D3D /* radarfield.png in Resources */,
-				0397E48D251C1B1E0020EBD9 /* uiFont.xml in Resources */,
 				03B169B224C9CAC500636D3D /* rightforwardcontainAnimation.u4d in Resources */,
 				030BB3A924D8515D008CB06E /* futbolloadingscreen.png in Resources */,
 				0397E47B251ADF060020EBD9 /* buttononly.png in Resources */,
@@ -3527,7 +3495,6 @@
 				03CAE6472051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				03722B6E2029F0F50080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
-				03722B822029F0F50080D069 /* U4DFontLoader.mm in Sources */,
 				03722B5A2029F0F50080D069 /* U4DBoneIndices.mm in Sources */,
 				0397E4782519B1460020EBD9 /* joystickUIShader.metal in Sources */,
 				03722BB52029F0F50080D069 /* U4DEntity.mm in Sources */,
@@ -3709,7 +3676,6 @@
 				03CAE6482051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				03722C0B2029F0F70080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC38204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
-				03722C1F2029F0F70080D069 /* U4DFontLoader.mm in Sources */,
 				03722BF72029F0F70080D069 /* U4DBoneIndices.mm in Sources */,
 				03722C522029F0F70080D069 /* U4DEntity.mm in Sources */,
 				03722C6A2029F0F70080D069 /* U4DAABB.mm in Sources */,
@@ -3965,7 +3931,6 @@
 				03CAE6492051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				03722CA82029F0F80080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
-				03722CBC2029F0F80080D069 /* U4DFontLoader.mm in Sources */,
 				03722C942029F0F80080D069 /* U4DBoneIndices.mm in Sources */,
 				0397E4792519B1460020EBD9 /* joystickUIShader.metal in Sources */,
 				03722CEF2029F0F80080D069 /* U4DEntity.mm in Sources */,
@@ -4090,7 +4055,6 @@
 				03759BB6175B0383002EB5D9 /* U4DQuaternion.mm in Sources */,
 				03759BB7175B0383002EB5D9 /* U4DVector3n.mm in Sources */,
 				038249271FA252AE00DFEFE3 /* U4DParticleEmitterInterface.mm in Sources */,
-				03A9F7061ADB2F3600E81A00 /* U4DFontLoader.mm in Sources */,
 				03CB47ED249C299500E6A3C8 /* U4DSceneIdleState.mm in Sources */,
 				038249221FA252AE00DFEFE3 /* U4DParticleEmitterTorus.mm in Sources */,
 				03CAE64C205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,

@@ -9,18 +9,20 @@
 #include "U4DText.h"
 #include "U4DDirector.h"
 #include "U4DRenderFont.h"
-#include "U4DFontLoader.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
-    U4DText::U4DText(U4DFontLoader* uFontLoader):currentTextContainerSize(0){
+    U4DText::U4DText(std::string uFontName):currentTextContainerSize(0){
         
         renderManager=new U4DRenderFont(this);
             
-        setShader("vertexFontImageShader", "fragmentFontImageShader");
+        setShader("vertexFontImageShader", "fragmentFontImageShader"); 
         
-        fontLoader=uFontLoader;
-       
+        U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
+        
+        resourceLoader->loadFontToText(this, uFontName);
+        
         setFont();
             
         textContainer.clear();
@@ -45,7 +47,7 @@ namespace U4DEngine {
 
     void U4DText::setFont(){
         
-        const char * fontAtlasImage = fontLoader->fontAtlasImage.c_str();
+        const char * fontAtlasImage = fontData.texture.c_str();
         
         renderManager->setTexture0(fontAtlasImage);
         
@@ -104,23 +106,23 @@ namespace U4DEngine {
         //break down the text
         for (int i=0; i<strlen(text); i++) {
             
-            for (int j=0; j<fontLoader->fontData.size(); j++) {
+            for (int j=0; j<fontData.characterData.size(); j++) {
                 
-                if (text[i]==*fontLoader->fontData[j].letter) {
+                if (text[i]==*fontData.characterData[j].letter) {
                     
                     //copy the chars into the textContainer
                     TEXTDATA textData;
                     
-                    textData.x=fontLoader->fontData[j].x/fontLoader->fontAtlasWidth;
-                    textData.y=fontLoader->fontData[j].y/fontLoader->fontAtlasHeight;
-                    textData.width=fontLoader->fontData[j].width;
-                    textData.height=fontLoader->fontData[j].height;
+                    textData.x=fontData.characterData[j].x/fontData.fontAtlasWidth;
+                    textData.y=fontData.characterData[j].y/fontData.fontAtlasHeight;
+                    textData.width=fontData.characterData[j].width;
+                    textData.height=fontData.characterData[j].height;
                     
-                    textData.xOffset=fontLoader->fontData[j].xoffset;
-                    textData.yOffset=fontLoader->fontData[j].yoffset;
-                    textData.xAdvance=fontLoader->fontData[j].xadvance;
+                    textData.xOffset=fontData.characterData[j].xoffset;
+                    textData.yOffset=fontData.characterData[j].yoffset;
+                    textData.xAdvance=fontData.characterData[j].xadvance;
                     
-                    textData.letter=fontLoader->fontData[j].letter;
+                    textData.letter=fontData.characterData[j].letter;
                     
                     textContainer.push_back(textData);
                     
@@ -169,8 +171,8 @@ namespace U4DEngine {
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
-        float widthFontTexture=uTextWidth/fontLoader->fontAtlasWidth;
-        float heightFontTexture=uTextHeight/fontLoader->fontAtlasHeight;
+        float widthFontTexture=uTextWidth/fontData.fontAtlasWidth;
+        float heightFontTexture=uTextHeight/fontData.fontAtlasHeight;
         
         float width=uTextWidth/director->getDisplayWidth();
         float height=uTextHeight/director->getDisplayHeight();

@@ -22,8 +22,6 @@
 #include "U4DLayer.h"
 #include "U4DCallback.h"
 
-#include "U4DFontLoader.h"
-
 using namespace U4DEngine;
 
 SandboxWorld::SandboxWorld():showCollisionVolume(false),showNarrowVolume(false){
@@ -52,11 +50,8 @@ void SandboxWorld::init(){
     //Load binary file with texture data
    resourceLoader->loadTextureData("soccerTextures.u4d");
     
-    //1. Create a Font Loader object
-    U4DEngine::U4DFontLoader *uiFont=new U4DEngine::U4DFontLoader();
-
-    //2. Load font data into the font loader object. Such as the xml file and image file
-    uiFont->loadFontAssetFile("uiFont.xml", "uiFont.png");
+   resourceLoader->loadFontData("uiFont.u4d");
+    
     
     //render the ground
     U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
@@ -144,17 +139,17 @@ void SandboxWorld::init(){
     //create Layers
     U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
 
-    U4DEngine::U4DWindow *uiWindow=new U4DEngine::U4DWindow("windowA", -0.5, 0.0, 300.0, 400.0, "My Window", uiFont);
+    U4DEngine::U4DWindow *uiWindow=new U4DEngine::U4DWindow("windowA", -0.5, 0.0, 300.0, 400.0, "My Window", "uiFont");
     
     //Create buttons to add to the layer
-    buttonA=new U4DEngine::U4DButton("buttonA",-0.7,0.3,50.0,20.0,"hi",uiFont);
+    buttonA=new U4DEngine::U4DButton("buttonA",-0.7,0.3,50.0,20.0,"hi","uiFont");
    
-    sliderA=new U4DEngine::U4DSlider("sliderA",-0.7,0.2,80.0,20.0,"Pos x",uiFont);
-    sliderB=new U4DEngine::U4DSlider("sliderB",-0.7,0.0,80.0,20.0,"Pos y",uiFont);
+    sliderA=new U4DEngine::U4DSlider("sliderA",-0.7,0.2,80.0,20.0,"Pos x","uiFont");
+    sliderB=new U4DEngine::U4DSlider("sliderB",-0.7,0.0,80.0,20.0,"Pos y","uiFont");
     
-    checkbox=new U4DEngine::U4DCheckbox("checkbox",-0.7,0.4,20.0,20.0,"Show Broad Volume",uiFont);
+    checkbox=new U4DEngine::U4DCheckbox("checkbox",-0.7,0.4,20.0,20.0,"Show Broad Volume","uiFont");
     
-    checkboxB=new U4DEngine::U4DCheckbox("checkboxB",-0.7,0.5,20.0,20.0,"Show Convex Hull",uiFont);
+    checkboxB=new U4DEngine::U4DCheckbox("checkboxB",-0.7,0.5,20.0,20.0,"Show Convex Hull","uiFont");
     
     //joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,"joyStickBackground.png",90.0,90.0,"joystickDriver.png");
     joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,90.0,90.0);

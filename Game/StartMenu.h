@@ -13,7 +13,6 @@
 #include "U4DWorld.h"
 #include "U4DButton.h"
 #include "U4DLayer.h"
-#include "U4DFontLoader.h"
 #include "U4DText.h"
 
 class StartMenu:public U4DEngine::U4DWorld {
@@ -22,7 +21,6 @@ private:
 
     U4DEngine::U4DButton *startButton;
     U4DEngine::U4DLayer *menuLayer;
-    U4DEngine::U4DFontLoader *fontLoader;
     U4DEngine::U4DText *menuInstructions;
     
 public:

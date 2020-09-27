@@ -14,11 +14,11 @@
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
 #include "U4DText.h"
-#include "U4DFontLoader.h"
+
 
 namespace U4DEngine {
     
-U4DCheckbox::U4DCheckbox(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, U4DFontLoader *uFontLoader):U4DShaderEntity(1.0),pCallback(NULL),controllerInterface(NULL),currentPosition(0.0,0.0),dataValue(0.0){
+U4DCheckbox::U4DCheckbox(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData):U4DShaderEntity(1.0),pCallback(NULL),controllerInterface(NULL),currentPosition(0.0,0.0),dataValue(0.0){
     
     setName(uName);
     
@@ -53,7 +53,7 @@ U4DCheckbox::U4DCheckbox(std::string uName, float xPosition,float yPosition,floa
     
     //add text
     
-    labelText=new U4DEngine::U4DText(uFontLoader);
+    labelText=new U4DEngine::U4DText(uFontData);
 
     labelText->setText(uLabel.c_str());
     

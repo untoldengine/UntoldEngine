@@ -21,7 +21,6 @@ namespace U4DEngine {
     class U4DImage;
     class U4DControllerInterface;
     class U4DText;
-    class U4DFontLoader;
 }
 
 namespace U4DEngine {
@@ -59,7 +58,7 @@ private:
 public:
     
     
-    U4DWindow(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, U4DFontLoader *uFontLoader);
+    U4DWindow(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData);
     
     
     ~U4DWindow();

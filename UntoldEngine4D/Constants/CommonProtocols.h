@@ -71,64 +71,6 @@ namespace U4DEngine {
         
     }SPRITEANIMATIONDATA;
 
-
-    /**
-     @brief The FONTDATA structure holds font character data
-     */
-    typedef struct{
-        
-        /**
-         @brief Font character ID
-         */
-        int ID;
-        
-        /**
-         @brief Font character x-coordinate position
-         */
-        float x;
-        
-        /**
-         @brief Font character y-coordinate position
-         */
-        float y;
-        
-        /**
-         @brief Font character width
-         */
-        float width;
-        
-        /**
-         @brief Font character height
-         */
-        float height;
-        
-        /**
-         @brief Font character x-offset position
-         */
-        float xoffset;
-        
-        /**
-         @brief Font character y-offset position
-         */
-        float yoffset;
-        
-        /**
-         @brief Font character x-advance
-         */
-        float xadvance;
-        
-        /**
-         @brief Size of font
-         */
-        int infoFontSize;
-        
-        /**
-         @brief Font character letter name
-         */
-        const char *letter;
-        
-    }FONTDATA;
-
     /**
      @brief The TEXTDATA structure holds text information
      */
@@ -431,6 +373,69 @@ namespace U4DEngine {
         int blendingFactorDest;
         
     }PARTICLESYSTEMDATA;
+
+
+    typedef struct{
+        
+        /**
+         @brief Font character ID
+         */
+        int ID;
+        
+        /**
+         @brief Font character x-coordinate position
+         */
+        float x;
+        
+        /**
+         @brief Font character y-coordinate position
+         */
+        float y;
+        
+        /**
+         @brief Font character width
+         */
+        float width;
+        
+        /**
+         @brief Font character height
+         */
+        float height;
+        
+        /**
+         @brief Font character x-offset position
+         */
+        float xoffset;
+        
+        /**
+         @brief Font character y-offset position
+         */
+        float yoffset;
+        
+        /**
+         @brief Font character x-advance
+         */
+        float xadvance;
+        
+        /**
+         @brief Font character letter name
+         */
+         const char* letter;
+        
+    }CHARACTERDATA;
+
+    typedef struct{
+        
+        std::string name;
+        int fontSize;
+        float fontAtlasWidth;
+        float fontAtlasHeight;
+        std::string texture;
+        int charCount;
+        std::vector<CHARACTERDATA> characterData;
+        
+    }FONTDATA;
+
     
     /**
      @brief The ENTITYTYPE enumeration holds the type of an entity

@@ -21,6 +21,7 @@
 #include "U4DLogger.h"
 #include "U4DDirector.h"
 #include "U4DLogger.h"
+#include "U4DText.h"
 
 namespace U4DEngine {
 
@@ -698,6 +699,120 @@ namespace U4DEngine {
         
         //load particle into container
         particlesContainer.push_back(particle);
+        
+        return true;
+        
+    }
+
+
+    bool U4DResourceLoader::loadFontData(std::string uFilepath){
+        
+        std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        if(!file){
+            
+            logger->log("Error: Couldn't load the Font Asset File, No file %s exist.",uFilepath.c_str());
+            
+            return false;
+            
+        }
+        
+        file.seekg(0);
+        
+        FONTDATARAW fonts;
+        
+        //READ NAME
+        size_t fontNamelen=0;
+        file.read((char*)&fontNamelen,sizeof(fontNamelen));
+        fonts.name.resize(fontNamelen);
+        file.read((char*)&fonts.name[0],fontNamelen);
+        
+        //font size
+        int fontSize=0;
+        file.read((char*)&fontSize,sizeof(int));
+        file.read((char*)&fonts.fontSize, sizeof(fontSize));
+        
+        //Font ATLAS Width
+        float atlasWidthSize=0;
+        file.read((char*)&atlasWidthSize,sizeof(float));
+        file.read((char*)&fonts.fontAtlasWidth, sizeof(atlasWidthSize));
+        
+        //Font ATLAS Height
+        float atlasHeightSize=0;
+        file.read((char*)&atlasHeightSize,sizeof(float));
+        file.read((char*)&fonts.fontAtlasHeight, sizeof(atlasHeightSize));
+        
+        //texture
+        //get the size of the string
+         size_t fontTexturelen=0;
+         file.read((char*)&fontTexturelen,sizeof(fontTexturelen));
+         fonts.texture.resize(fontTexturelen);
+         file.read((char*)&fonts.texture[0],fontTexturelen);
+        
+        //WRITE NUMBER OF Characters
+        int charCountSize=0;
+        file.read((char*)&charCountSize,sizeof(int));
+        file.read((char*)&fonts.charCount, sizeof(charCountSize));
+        
+        for (int i=0; i<charCountSize; i++) {
+            
+            CHARACTERDATARAW characterData;
+            
+            //id int
+            int idSize=0;
+            file.read((char*)&idSize,sizeof(int));
+            file.read((char*)&characterData.ID, sizeof(idSize));
+            
+            //x-position float
+            float xPositionSize=0;
+            file.read((char*)&xPositionSize,sizeof(float));
+            file.read((char*)&characterData.x, sizeof(xPositionSize));
+            
+            //y-position
+            float yPositionSize=0;
+            file.read((char*)&yPositionSize,sizeof(float));
+            file.read((char*)&characterData.y, sizeof(yPositionSize));
+
+            //width
+            float widthSize=0;
+            file.read((char*)&widthSize,sizeof(float));
+            file.read((char*)&characterData.width, sizeof(widthSize));
+
+            //height
+            float heightSize=0;
+            file.read((char*)&heightSize,sizeof(float));
+            file.read((char*)&characterData.height, sizeof(heightSize));
+
+            //x-offset
+            float xOffsetSize=0;
+            file.read((char*)&xOffsetSize,sizeof(float));
+            file.read((char*)&characterData.xoffset, sizeof(xOffsetSize));
+
+            //y-offset
+            float yOffsetSize=0;
+            file.read((char*)&yOffsetSize,sizeof(float));
+            file.read((char*)&characterData.yoffset, sizeof(yOffsetSize));
+
+            //x advance
+            float xAdvanceSize=0;
+            file.read((char*)&xAdvanceSize,sizeof(float));
+            file.read((char*)&characterData.xadvance, sizeof(xAdvanceSize));
+            
+            size_t letterlen=0;
+            file.read((char*)&letterlen,sizeof(letterlen));
+            characterData.letter.resize(letterlen);
+            file.read((char*)&characterData.letter[0],letterlen);
+            
+            fonts.characterData.push_back(characterData);
+            
+        }
+        
+        //load data into font container
+        fontsContainer.push_back(fonts);
+        
+        logger->log("Success: Font Asset File %s succesfully Loaded.",uFilepath.c_str());
         
         return true;
         
@@ -1522,6 +1637,79 @@ namespace U4DEngine {
         
         return false;
         
+        
+    }
+
+
+    bool U4DResourceLoader::loadFontToText(U4DText *uText, std::string uFontName){
+        
+        //find the model in the container
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        for(const auto &n:fontsContainer){
+
+            if (n.name.compare(uFontName)==0) {
+                
+                //name
+                uText->fontData.name=n.name;
+                
+                //font size
+                uText->fontData.fontSize=n.fontSize;
+                
+                //font width
+                uText->fontData.fontAtlasWidth=n.fontAtlasWidth;
+                
+                //height
+                uText->fontData.fontAtlasHeight=n.fontAtlasHeight;
+                
+                //texture
+                uText->fontData.texture=n.texture;
+                
+                //character count
+                uText->fontData.charCount=n.charCount;
+                
+                for(int i=0;i<n.charCount;i++){
+                
+                    CHARACTERDATA characterData;
+                    
+                    //ID
+                    characterData.ID=n.characterData.at(i).ID;
+                    
+                    //x-pos
+                    characterData.x=n.characterData.at(i).x;
+                    
+                    //y-pos
+                    characterData.y=n.characterData.at(i).y;
+                    
+                    //width
+                    characterData.width=n.characterData.at(i).width;
+                    
+                    //height
+                    characterData.height=n.characterData.at(i).height;
+                    
+                    //x-offset
+                    characterData.xoffset=n.characterData.at(i).xoffset;
+                    
+                    //y-offset
+                    characterData.yoffset=n.characterData.at(i).yoffset;
+                    
+                    //x-advance
+                    characterData.xadvance=n.characterData.at(i).xadvance;
+                    
+                    //letter
+                    characterData.letter=n.characterData.at(i).letter.c_str();
+                    
+                    uText->fontData.characterData.push_back(characterData);
+                    
+                }
+                
+                return true;
+            }
+        }
+        
+        logger->log("Error: The font %s does not exist.",uFontName.c_str());
+        
+        return false;
         
     }
 

@@ -20,7 +20,6 @@
 namespace U4DEngine {
     class U4DImage;
     class U4DControllerInterface;
-    class U4DFontLoader;
     class U4DText;
 }
 
@@ -68,7 +67,7 @@ public:
      * @param uWidth width of button
      * @param uHeight height of button
      */
-    U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, U4DFontLoader *uFontLoader);
+    U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData);
     
     U4DButton(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight,const char* uButtonImage);
     

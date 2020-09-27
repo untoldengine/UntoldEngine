@@ -33,7 +33,7 @@ class U4DQuaternion;
 class U4DLights;
 class U4DAnimation;
 class U4DParticleSystem;
-
+class U4DText;
 }
 
 namespace U4DEngine {
@@ -155,6 +155,67 @@ namespace U4DEngine {
         
     }PARTICLESRAW;
 
+    typedef struct{
+        
+        /**
+         @brief Font character ID
+         */
+        int ID;
+        
+        /**
+         @brief Font character x-coordinate position
+         */
+        float x;
+        
+        /**
+         @brief Font character y-coordinate position
+         */
+        float y;
+        
+        /**
+         @brief Font character width
+         */
+        float width;
+        
+        /**
+         @brief Font character height
+         */
+        float height;
+        
+        /**
+         @brief Font character x-offset position
+         */
+        float xoffset;
+        
+        /**
+         @brief Font character y-offset position
+         */
+        float yoffset;
+        
+        /**
+         @brief Font character x-advance
+         */
+        float xadvance;
+        
+        /**
+         @brief Font character letter name
+         */
+         std::string letter;
+        
+    }CHARACTERDATARAW;
+
+    typedef struct{
+        
+        std::string name;
+        int fontSize;
+        float fontAtlasWidth;
+        float fontAtlasHeight;
+        std::string texture;
+        int charCount;
+        std::vector<CHARACTERDATARAW> characterData;
+        
+    }FONTDATARAW;
+
 }
 
 namespace U4DEngine {
@@ -191,6 +252,11 @@ class U4DResourceLoader {
         @brief Container holding convex hull data
         */
         std::vector<CONVEXHULLRAW> convexHullContainer;
+    
+        /**
+         @brief Container holding font data
+         */
+        std::vector<FONTDATARAW> fontsContainer;
         
     protected:
         
@@ -251,6 +317,15 @@ class U4DResourceLoader {
         @return Returns true if the particle data was successfully loaded
         */
         bool loadParticleData(std::string uFilepath);
+    
+        /**
+         @brief Method that loads font data information
+         
+        @param uFilepath Name of the binary file containing font data
+         
+        @return true if the font data was successfully loaded
+         */
+        bool loadFontData(std::string uFilepath);
         
         /**
         @brief Method which loads all particle asset information into the particle entity
@@ -261,6 +336,16 @@ class U4DResourceLoader {
         @return Returns true if the particle data entity was loaded successfully into the particle system
         */
         bool loadParticeToParticleSystem(U4DParticleSystem *uParticleSystem, std::string uParticleName);
+    
+    
+        /**
+         @brief Method that loads font asset information into the text entity
+         
+         @param uText text entity
+         @param uFontName Name of the font asst
+         @return true if the font data entity was loaded successfully inot the text entity
+         */
+        bool loadFontToText(U4DText *uText, std::string uFontName);
         
         /**
         @brief Method which loads all 3D asset information into the 3D model entity

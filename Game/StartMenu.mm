@@ -19,14 +19,13 @@
 
 using namespace U4DEngine;
 
-StartMenu::StartMenu():fontLoader(nullptr),menuInstructions(nullptr){
+StartMenu::StartMenu():menuInstructions(nullptr){
     
 }
 
 StartMenu::~StartMenu(){
     
     delete menuLayer;
-    delete fontLoader;
     delete menuInstructions;
     
 }
@@ -59,14 +58,10 @@ void StartMenu::init(){
     }else{
         
         //load up text
-        //1. Create a Font Loader object
-        fontLoader=new U4DEngine::U4DFontLoader();
-
-        //2. Load font data into the font loader object. Such as the xml file and image file
-        fontLoader->loadFontAssetFile("gameFont.xml", "gameFont.png");
+        
         
         //3. Create a text object. Provide the font loader object and the spacing between letters
-        menuInstructions=new U4DEngine::U4DText(fontLoader);
+        menuInstructions=new U4DEngine::U4DText("gameFont");
         
         if(director->getGamePadControllerPresent()){
             

@@ -14,12 +14,11 @@
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
 
-#include "U4DFontLoader.h"
 #include "U4DText.h"
 
 namespace U4DEngine {
     
-U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, U4DFontLoader *uFontLoader):U4DShaderEntity(1.0),pCallback(NULL),controllerInterface(NULL),currentPosition(0.0,0.0),dataValue(0.0){
+U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData):U4DShaderEntity(1.0),pCallback(NULL),controllerInterface(NULL),currentPosition(0.0,0.0),dataValue(0.0){
     
     setName(uName);
     
@@ -54,11 +53,11 @@ U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uW
     
     //add text
     
-    labelText=new U4DEngine::U4DText(uFontLoader);
+    labelText=new U4DEngine::U4DText(uFontData);
 
     labelText->setText(uLabel.c_str());
     
-    valueText=new U4DEngine::U4DText(uFontLoader);
+    valueText=new U4DEngine::U4DText(uFontData);
 
     valueText->setText(0.0);
 

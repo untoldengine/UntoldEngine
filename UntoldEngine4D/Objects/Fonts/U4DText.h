@@ -14,11 +14,6 @@
 #include "CommonProtocols.h"
 #include "U4DImage.h"
 
-namespace U4DEngine {
-    
-    class U4DFontLoader;
-
-}
 
 namespace U4DEngine {
 
@@ -30,11 +25,6 @@ namespace U4DEngine {
         
     private:
 
-        /**
-         @brief Pointer to font loader
-         */
-        U4DFontLoader *fontLoader;
-        
         /**
          @brief Text to render
          */
@@ -60,9 +50,8 @@ namespace U4DEngine {
         /**
          @brief Constructor of class
          
-         @param uFontLoader Font loader object
          */
-        U4DText(U4DFontLoader* uFontLoader);
+        U4DText(std::string uFontName);
 
         /**
          @brief Destructor of class
@@ -79,10 +68,6 @@ namespace U4DEngine {
          */
         U4DText& operator=(const U4DText& value);
 
-        /**
-         @brief Name of font image
-         */
-        const char* fontImage;
         
         /**
          @brief Method which sets font  to use
@@ -131,6 +116,8 @@ namespace U4DEngine {
          @param uTextHeight texture text height
          */
         void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight);
+        
+        U4DEngine::FONTDATA fontData;
     };
         
 }
