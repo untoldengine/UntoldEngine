@@ -155,6 +155,11 @@ namespace U4DEngine {
         
         void initTextureSamplerObjectNull();
         
+        void setRawImageData(std::vector<unsigned char> uRawImageData);
+        
+        void setImageWidth(unsigned int uImageWidth);
+        
+        void setImageHeight(unsigned int uImageHeight);
 
     };
 

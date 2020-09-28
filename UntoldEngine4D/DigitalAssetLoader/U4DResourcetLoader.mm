@@ -9,6 +9,7 @@
 #include "U4DResourceLoader.h"
 #include "CommonProtocols.h"
 #include "Constants.h"
+#include "U4DRenderManager.h"
 #include "U4DModel.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector4n.h"
@@ -1663,7 +1664,21 @@ namespace U4DEngine {
                 uText->fontData.fontAtlasHeight=n.fontAtlasHeight;
                 
                 //texture
-                uText->fontData.texture=n.texture;
+                //uText->fontData.texture=n.texture;
+                
+                uText->textureInformation.setTexture0(n.texture);
+                
+                for(int t=0;t<texturesContainer.size();t++){
+
+                    if (texturesContainer.at(t).name.compare(n.texture)==0) {
+                        
+                        uText->renderManager->setRawImageData(texturesContainer.at(t).image);
+                        uText->renderManager->setImageWidth(texturesContainer.at(t).width);
+                        uText->renderManager->setImageHeight(texturesContainer.at(t).height); 
+
+                    }
+
+                }
                 
                 //character count
                 uText->fontData.charCount=n.charCount;
@@ -1726,6 +1741,27 @@ namespace U4DEngine {
             }
 
         }
+        
+    }
+
+    bool U4DResourceLoader::loadTextureDataToEntity(U4DRenderManager *uRenderManager, const char* uTextureName){
+        
+        for(int t=0;t<texturesContainer.size();t++){
+
+            if (texturesContainer.at(t).name.compare(std::string(uTextureName))==0) {
+                
+                uRenderManager->setRawImageData(texturesContainer.at(t).image);
+                
+                uRenderManager->setImageWidth(texturesContainer.at(t).width);
+                
+                uRenderManager->setImageHeight(texturesContainer.at(t).height);
+                
+                return true;
+            }
+
+        }
+        
+        return false;
         
     }
 

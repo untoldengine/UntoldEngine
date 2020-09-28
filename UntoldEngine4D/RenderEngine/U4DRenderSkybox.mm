@@ -12,6 +12,7 @@
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
 #include "U4DLogger.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
@@ -125,13 +126,22 @@ namespace U4DEngine {
     
     void U4DRenderSkybox::createTextureObject(){
         
-        int skyboxTextureSize;
-        //decode the image to get the height of the texture so we can create
-        decodeImage(getSkyboxTexturesContainer().at(0));
+        int skyboxTextureSize = 0;
         
-        skyboxTextureSize=imageWidth;
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
         
-        clearRawImageData();
+        const char* tempSkyboxTexture=getSkyboxTexturesContainer().at(0);
+        
+        for(int t=0;t<resourceLoader->texturesContainer.size();t++){
+
+            if (resourceLoader->texturesContainer.at(t).name.compare(std::string(tempSkyboxTexture))==0) {
+                
+                skyboxTextureSize=resourceLoader->texturesContainer.at(t).width;
+                
+            }
+
+        }
+        
         
         //once we have the total size of the texture, then proceed with creating the texture object.
         
@@ -144,13 +154,28 @@ namespace U4DEngine {
         
         for (int slice=0; slice<6; slice++) {
             
-            skyboxImage=decodeImage(getSkyboxTexturesContainer().at(slice));
+            const char* tempSkyboxTexture=getSkyboxTexturesContainer().at(slice);
             
-            MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
-            
-            [textureObject replaceRegion:region mipmapLevel:0 slice:slice withBytes:&skyboxImage[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
-            
-            skyboxImage.clear();
+            for(int t=0;t<resourceLoader->texturesContainer.size();t++){
+
+                if (resourceLoader->texturesContainer.at(t).name.compare(std::string(tempSkyboxTexture))==0) {
+                    
+                    setRawImageData(resourceLoader->texturesContainer.at(t).image);
+                    
+                    imageWidth=resourceLoader->texturesContainer.at(t).width;
+                    imageHeight=resourceLoader->texturesContainer.at(t).height;
+                    
+                    MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
+        
+                    [textureObject replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
+        
+                    clearRawImageData();
+                    
+                    break;
+                    
+                }
+
+            }
             
         }
 
@@ -260,6 +285,23 @@ namespace U4DEngine {
         
         u4dObject->bodyCoordinates.verticesContainer.clear();
         
+    }
+
+    void U4DRenderSkybox::setRawImageData(std::vector<unsigned char> uRawImageData){
+        
+        rawImageData=uRawImageData;
+        
+    }
+
+    void U4DRenderSkybox::setImageWidth(unsigned int uImageWidth){
+        
+        imageWidth=uImageWidth;
+        
+    }
+
+    void U4DRenderSkybox::setImageHeight(unsigned int uImageHeight){
+        
+        imageHeight=uImageHeight;
     }
     
     

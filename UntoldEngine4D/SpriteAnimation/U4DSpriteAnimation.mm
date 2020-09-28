@@ -73,7 +73,7 @@ void U4DSpriteAnimation::runAnimation(){
         
         const char* currentSprite=spriteAnimationData.animationSprites.at(spriteAnimationFrame);
         
-        sprite->setSprite(currentSprite);
+        sprite->updateSprite(currentSprite);
         
         spriteAnimationFrame++;
         

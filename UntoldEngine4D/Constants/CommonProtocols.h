@@ -44,12 +44,12 @@ namespace U4DEngine {
         /**
          @brief Sprite width
          */
-        int width;
+        float width;
         
         /**
          @brief Sprite height
          */
-        int height;
+        float height;
         
     }SPRITEDATA;
 

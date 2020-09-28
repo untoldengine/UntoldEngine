@@ -115,13 +115,17 @@ namespace U4DEngine {
     
     void U4DRenderImage::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.texture0.empty()){
-            
-            decodeImage(u4dObject->textureInformation.texture0);
+        if (!u4dObject->textureInformation.texture0.empty() && rawImageData.size()>0){
             
             createTextureObject();
             
             createSamplerObject();
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("ERROR: No data found for the Image Texture");
             
         }
         
@@ -230,6 +234,37 @@ namespace U4DEngine {
         
         u4dObject->bodyCoordinates.verticesContainer.clear();
         u4dObject->bodyCoordinates.uVContainer.clear();
+    }
+
+    void U4DRenderImage::setRawImageData(std::vector<unsigned char> uRawImageData){
+        
+        rawImageData=uRawImageData;
+        
+    }
+
+    void U4DRenderImage::setImageWidth(unsigned int uImageWidth){
+        
+        imageWidth=uImageWidth;
+        
+    }
+
+    void U4DRenderImage::setImageHeight(unsigned int uImageHeight){
+        
+        imageHeight=uImageHeight;
+    }
+
+    void U4DRenderImage::initTextureSamplerObjectNull(){
+        
+        MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
+        
+        //Create the null texture object
+        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
+        //Create the null texture sampler object
+        nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        
+        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        
     }
 
 

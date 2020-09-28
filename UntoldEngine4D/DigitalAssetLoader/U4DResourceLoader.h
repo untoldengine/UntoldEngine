@@ -22,6 +22,7 @@
 namespace U4DEngine {
     
 class U4DEntity;
+class U4DRenderManager;
 class U4DModel;
 class U4DMatrix4n;
 class U4DVector3n;
@@ -238,10 +239,7 @@ class U4DResourceLoader {
         */
         std::vector<ANIMATIONSRAW> animationsContainer;
     
-        /**
-        @brief Container holding all the textures used in the scene
-        */
-        std::vector<TEXTURESRAW> texturesContainer;
+        
     
         /**
         @brief Container holding particle data
@@ -281,6 +279,11 @@ class U4DResourceLoader {
         @brief  Shared Instance for the digital asset loader Singleton
         */
         static U4DResourceLoader* sharedInstance();
+    
+        /**
+        @brief Container holding all the textures used in the scene
+        */
+        std::vector<TEXTURESRAW> texturesContainer;
         
         /**
         @brief Method which loads all scene asset data into the game
@@ -514,6 +517,8 @@ class U4DResourceLoader {
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights, std::vector<float> uWeights);
     
         void loadNormalMap(U4DModel *uModel,std::string uNormalMapName);
+        
+        bool loadTextureDataToEntity(U4DRenderManager *uRenderManager, const char* uTextureName);
         
         /**
          @brief Clears the data in the containers

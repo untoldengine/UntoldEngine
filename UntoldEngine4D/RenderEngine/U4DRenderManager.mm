@@ -12,7 +12,6 @@
 #include "U4DScene.h"
 #include "U4DShaderProtocols.h"
 #include <simd/simd.h>
-#include "lodepng.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {
@@ -216,118 +215,6 @@ namespace U4DEngine {
         //Create the sampler state object
         
         samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:samplerDescriptor];
-        
-    }
-    
-    void U4DRenderManager::decodeImage(std::string uTexture){
-        
-        imageWidth=0.0;
-        imageHeight=0.0;
-        
-        // Load file and decode image.
-        const char * textureImage = uTexture.c_str();
-        
-        unsigned error = lodepng::decode(rawImageData, imageWidth, imageHeight,textureImage);
-        
-        //if there's an error, display it
-        if(error){
-            std::cout << "decoder error " << error << ": " <<uTexture<<" file is "<< lodepng_error_text(error) << std::endl;
-        }else{
-            
-            //Flip and invert the image
-            unsigned char* imagePtr=&rawImageData[0];
-            
-            int halfTheHeightInPixels=imageHeight/2;
-            int heightInPixels=imageHeight;
-            
-            
-            //Assume RGBA for 4 components per pixel
-            int numColorComponents=4;
-            
-            //Assuming each color component is an unsigned char
-            int widthInChars=imageWidth*numColorComponents;
-            
-            unsigned char *top=NULL;
-            unsigned char *bottom=NULL;
-            unsigned char temp=0;
-            
-            for( int h = 0; h < halfTheHeightInPixels; ++h )
-            {
-                top = imagePtr + h * widthInChars;
-                bottom = imagePtr + (heightInPixels - h - 1) * widthInChars;
-                
-                for( int w = 0; w < widthInChars; ++w )
-                {
-                    // Swap the chars around.
-                    temp = *top;
-                    *top = *bottom;
-                    *bottom = temp;
-                    
-                    ++top;
-                    ++bottom;
-                }
-            }
-        }
-        
-    }
-    
-    std::vector<unsigned char> U4DRenderManager::decodeImage(const char *uTexture){
-        
-        // Load file and decode image.
-        std::vector<unsigned char> image;
-        unsigned int width, height;
-        
-        unsigned error;
-        
-        error = lodepng::decode(image, width, height,uTexture);
-        
-        //if there's an error, display it
-        if(error){
-            std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-        }else{
-            
-            
-            //Flip and invert the image
-            unsigned char* imagePtr=&image[0];
-            
-            int halfTheHeightInPixels=height/2;
-            int heightInPixels=height;
-            
-            //Assume RGBA for 4 components per pixel
-            int numColorComponents=4;
-            
-            //Assuming each color component is an unsigned char
-            int widthInChars=width*numColorComponents;
-            
-            unsigned char *top=NULL;
-            unsigned char *bottom=NULL;
-            unsigned char temp=0;
-            
-            for( int h = 0; h < halfTheHeightInPixels; ++h )
-            {
-                top = imagePtr + h * widthInChars;
-                bottom = imagePtr + (heightInPixels - h - 1) * widthInChars;
-                
-                for( int w = 0; w < widthInChars; ++w )
-                {
-                    // Swap the chars around.
-                    temp = *top;
-                    *top = *bottom;
-                    *bottom = temp;
-                    
-                    ++top;
-                    ++bottom;
-                }
-            }
-            
-            
-        }
-        
-        imageWidth=width;
-        imageHeight=height;
-        
-        
-        return image;
         
     }
     

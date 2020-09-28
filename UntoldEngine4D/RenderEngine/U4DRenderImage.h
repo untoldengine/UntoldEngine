@@ -18,6 +18,7 @@
 #include "U4DIndex.h"
 #include "U4DImage.h"
 
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -53,6 +54,11 @@ namespace U4DEngine {
          * @brief vector for the aligned attribute data. The attributes need to be aligned before they are processed by the GPU
          */
         std::vector<AttributeAlignedImageData> attributeAlignedContainer;
+        
+        /**
+         * @brief Pointer to the null sampler descriptor used for texturing
+         */
+        MTLSamplerDescriptor *nullSamplerDescriptor;
         
     public:
         
@@ -134,6 +140,18 @@ namespace U4DEngine {
          * @details clears attributes containers such as vertices and UVs
          */
         virtual void clearModelAttributeData();
+        
+        void setRawImageData(std::vector<unsigned char> uRawImageData);
+        
+        void setImageWidth(unsigned int uImageWidth);
+        
+        void setImageHeight(unsigned int uImageHeight);
+        
+        /**
+         * @brief Set texture sampler to NULL
+         * @details Creates a texture and sampler object and initializes to NULL
+         */
+        void initTextureSamplerObjectNull();
 
     };
 

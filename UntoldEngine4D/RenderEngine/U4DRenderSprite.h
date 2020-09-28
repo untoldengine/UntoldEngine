@@ -75,6 +75,7 @@ namespace U4DEngine {
          */
         void updateSpriteBufferUniform();
         
+        
     };
     
 }

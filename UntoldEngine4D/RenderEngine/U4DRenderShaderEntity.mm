@@ -10,6 +10,7 @@
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
 
@@ -142,32 +143,37 @@ namespace U4DEngine {
     
     void U4DRenderShaderEntity::loadMTLTexture(){
         
+        //TODO: THIS SECTION NEEDS TO BE CLEANED.
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+        
         if (!u4dObject->textureInformation.texture0.empty()){
             
-            decodeImage(u4dObject->textureInformation.texture0);
-            
-            createTextureObject();
-            
-            createSamplerObject();
-            
-            clearRawImageData();
-            
-            u4dObject->setHasTexture(true);
-            
+            if(resourceLoader->loadTextureDataToEntity(this, u4dObject->textureInformation.texture0.c_str())){
+                
+                createTextureObject();
+                
+                createSamplerObject();
+                
+                clearRawImageData();
+                
+                u4dObject->setHasTexture(true);
+                
+            }
+               
         }
         
         if (!u4dObject->textureInformation.texture1.empty()) {
-                   
-           decodeImage(u4dObject->textureInformation.texture1);
            
-           createSecondaryTextureObject();
-           
-           createSecondarySamplerObject();
-           
-           clearRawImageData();
-       
-           //u4dObject->setHasTexture1(true);
-        
+            if(resourceLoader->loadTextureDataToEntity(this, u4dObject->textureInformation.texture1.c_str())){
+                
+                createSecondaryTextureObject();
+                
+                createSecondarySamplerObject();
+                
+                clearRawImageData();
+                
+            }
+            
         }
         
     }
@@ -346,6 +352,23 @@ namespace U4DEngine {
         
         secondarySamplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
+    }
+
+    void U4DRenderShaderEntity::setRawImageData(std::vector<unsigned char> uRawImageData){
+            
+            rawImageData=uRawImageData;
+            
+        }
+
+        void U4DRenderShaderEntity::setImageWidth(unsigned int uImageWidth){
+            
+            imageWidth=uImageWidth;
+            
+        }
+
+        void U4DRenderShaderEntity::setImageHeight(unsigned int uImageHeight){
+            
+            imageHeight=uImageHeight;
     }
 
 

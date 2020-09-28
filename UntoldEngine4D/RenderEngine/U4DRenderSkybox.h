@@ -140,6 +140,12 @@ namespace U4DEngine {
          */
         U4DDualQuaternion getEntitySpace();
         
+        void setRawImageData(std::vector<unsigned char> uRawImageData);
+               
+        void setImageWidth(unsigned int uImageWidth);
+               
+        void setImageHeight(unsigned int uImageHeight);
+        
     };
     
 }

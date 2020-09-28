@@ -338,23 +338,6 @@ namespace U4DEngine {
         virtual void setGeometryLineColor(U4DVector4n &uGeometryLineColor){};
         
         /**
-         * @brief Decodes the image texture
-         * @details Decodes the texture using the lodepng library. It flips and inverts the image.
-         * 
-         * @param uTexture The image representing the texture
-         */
-        void decodeImage(std::string uTexture);
-        
-        /**
-         * @brief Decodes the image texture
-         * @details Decodes the texture using the lodepng library. It flips and inverts the image.
-         * 
-         * @param uTexture The image representing the texture
-         * @return Buffer containing the raw image data
-         */
-        std::vector<unsigned char> decodeImage(const char *uTexture);
-        
-        /**
          * @brief Clear the raw image data
          * @details Clears the decode image data used for texturing
          */

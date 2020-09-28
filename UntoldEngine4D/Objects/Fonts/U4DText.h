@@ -40,11 +40,6 @@ namespace U4DEngine {
          */
         int currentTextContainerSize;
         
-        /**
-         @brief pointer to the rendering manager
-         */
-        U4DRenderManager *renderManager;
-        
     public:
         
         /**
@@ -57,6 +52,11 @@ namespace U4DEngine {
          @brief Destructor of class
          */
         ~U4DText();
+        
+        /**
+         @brief pointer to the rendering manager
+         */
+        U4DRenderManager *renderManager;
         
         /**
          @brief Copy constructor
