@@ -52,58 +52,11 @@ void SandboxWorld::init(){
     resourceLoader->loadSceneData("soccergame.u4d");
 
     //Load binary file with texture data
-   resourceLoader->loadTextureData("soccerTextures.u4d");
+    resourceLoader->loadTextureData("soccerTextures.u4d");
     
-   resourceLoader->loadFontData("uiFont.u4d");
+    resourceLoader->loadTextureData("uiTextures.u4d");
     
-    U4DEngine::U4DImage *myImage=new U4DEngine::U4DImage();
-    
-    myImage->setImage("ButtonA.png", 103.0, 103.0);
-    
-    addChild(myImage);
-    
-    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-
-    //initialize the skybox
-    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-
-    //add the skybox to the scenegraph with a z-depth of -1
-    addChild(skybox);
-
-    //Line 1. create a a sprite loader object
-    U4DEngine::U4DSpriteLoader *spriteLoader=new U4DEngine::U4DSpriteLoader();
-
-    //Line 2. load the sprite information into the loader
-    spriteLoader->loadSpritesAssetFile("loading.xml", "loading.png");
-
-    //Line 3. Create a sprite object
-    U4DEngine::U4DSprite *mySprite=new U4DEngine::U4DSprite(spriteLoader);
-
-    //Line 4. Set the sprite to render
-    mySprite->setSprite("loading1.png");
-
-    //Line 5.Add it to the world
-    addChild(mySprite,-2);
-
-    //Line 6. translate the sprite
-    mySprite->translateTo(0.0,0.5,0.0);
-
-
-    //Line 7. Load all the sprite animation data into the structure
-    U4DEngine::SPRITEANIMATIONDATA spriteAnimationData;
-
-    spriteAnimationData.animationSprites.push_back("loading1.png");
-    spriteAnimationData.animationSprites.push_back("loading2.png");
-    spriteAnimationData.animationSprites.push_back("loading3.png");
-
-    //Line 8. set a delay for the animation
-    spriteAnimationData.delay=0.2;
-
-    //Line 9. create a sprite animation object
-    U4DEngine::U4DSpriteAnimation *spriteAnim=new U4DEngine::U4DSpriteAnimation(mySprite,spriteAnimationData);
-
-    //Line 10. Play the sprite animation
-    spriteAnim->play();
+    resourceLoader->loadFontData("uiFont.u4d");
     
     //render the ground
     U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
@@ -201,8 +154,8 @@ void SandboxWorld::init(){
     
     checkboxB=new U4DEngine::U4DCheckbox("checkboxB",-0.7,0.5,20.0,20.0,"Show Convex Hull","uiFont");
     
-    joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,"joyStickBackground.png",90.0,90.0,"joyStickDriver.png");
-    //joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,90.0,90.0);
+    
+    joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,90.0,90.0);
     
 //    //create a callback
 //    U4DEngine::U4DCallback<SandboxWorld>* buttonACallback=new U4DEngine::U4DCallback<SandboxWorld>;

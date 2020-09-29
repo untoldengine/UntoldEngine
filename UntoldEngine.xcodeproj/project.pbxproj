@@ -758,6 +758,12 @@
 		0397E4DE252180EE0020EBD9 /* loading.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4DD252180ED0020EBD9 /* loading.xml */; };
 		0397E4DF252180EE0020EBD9 /* loading.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4DD252180ED0020EBD9 /* loading.xml */; };
 		0397E4E0252180EE0020EBD9 /* loading.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4DD252180ED0020EBD9 /* loading.xml */; };
+		0397E4E62523796B0020EBD9 /* sceneTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E52523796B0020EBD9 /* sceneTextures.u4d */; };
+		0397E4E72523796B0020EBD9 /* sceneTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E52523796B0020EBD9 /* sceneTextures.u4d */; };
+		0397E4E82523796B0020EBD9 /* sceneTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E52523796B0020EBD9 /* sceneTextures.u4d */; };
+		0397E4EA2523797D0020EBD9 /* uiTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E92523797C0020EBD9 /* uiTextures.u4d */; };
+		0397E4EB2523797D0020EBD9 /* uiTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E92523797C0020EBD9 /* uiTextures.u4d */; };
+		0397E4EC2523797D0020EBD9 /* uiTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E92523797C0020EBD9 /* uiTextures.u4d */; };
 		039DB55C223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55D223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55E223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
@@ -1345,6 +1351,8 @@
 		0397E4CA251DAD950020EBD9 /* windowUIShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = windowUIShader.metal; path = MetalShaders/windowUIShader.metal; sourceTree = "<group>"; };
 		0397E4D125201F000020EBD9 /* uiFont.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = uiFont.u4d; sourceTree = "<group>"; };
 		0397E4DD252180ED0020EBD9 /* loading.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = loading.xml; sourceTree = "<group>"; };
+		0397E4E52523796B0020EBD9 /* sceneTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = sceneTextures.u4d; sourceTree = "<group>"; };
+		0397E4E92523797C0020EBD9 /* uiTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = uiTextures.u4d; sourceTree = "<group>"; };
 		039DB55A223F08C200E323D4 /* U4DRay.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRay.mm; sourceTree = "<group>"; };
 		039DB55B223F08C200E323D4 /* U4DRay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DRay.h; sourceTree = "<group>"; };
 		039DB55F224279C800E323D4 /* U4DPolygonData.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPolygonData.mm; sourceTree = "<group>"; };
@@ -2170,6 +2178,8 @@
 				030BB39024D70F1D008CB06E /* menuscene.u4d */,
 				0397E4DD252180ED0020EBD9 /* loading.xml */,
 				0397E4D125201F000020EBD9 /* uiFont.u4d */,
+				0397E4E92523797C0020EBD9 /* uiTextures.u4d */,
+				0397E4E52523796B0020EBD9 /* sceneTextures.u4d */,
 				03A96D532516470900E8BA19 /* rightdribbleAnimation.u4d */,
 				03A96D542516470900E8BA19 /* runningAnimation.u4d */,
 				03A96D552516470900E8BA19 /* soccergame.u4d */,
@@ -3026,7 +3036,9 @@
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
 				03AFA2DB24B74BB60075A2D3 /* idleAnimation.u4d in Resources */,
 				03B169AF24C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */,
+				0397E4E72523796B0020EBD9 /* sceneTextures.u4d in Resources */,
 				03B1698B24C1F28100636D3D /* rightpassAnimation.u4d in Resources */,
+				0397E4EB2523797D0020EBD9 /* uiTextures.u4d in Resources */,
 				0397E4D325201F010020EBD9 /* uiFont.u4d in Resources */,
 				03DC902624D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */,
 				030BB39224D70F1D008CB06E /* menuscene.u4d in Resources */,
@@ -3058,8 +3070,10 @@
 				03B169A424C7304B00636D3D /* rightshotAnimation.u4d in Resources */,
 				03B1698C24C1F28100636D3D /* rightpassAnimation.u4d in Resources */,
 				03A96D622516470A00E8BA19 /* soccerTextures.u4d in Resources */,
+				0397E4EC2523797D0020EBD9 /* uiTextures.u4d in Resources */,
 				03AFA2DC24B74BB60075A2D3 /* idleAnimation.u4d in Resources */,
 				030BB39324D70F1D008CB06E /* menuscene.u4d in Resources */,
+				0397E4E82523796B0020EBD9 /* sceneTextures.u4d in Resources */,
 				03A96D5F2516470A00E8BA19 /* soccergame.u4d in Resources */,
 				03A96D5C2516470A00E8BA19 /* runningAnimation.u4d in Resources */,
 				030BB39724D715F2008CB06E /* walkingAnimation.u4d in Resources */,
@@ -3079,6 +3093,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				03B169AE24C9CA9600636D3D /* rightstandtackleAnimation.u4d in Resources */,
+				0397E4EA2523797D0020EBD9 /* uiTextures.u4d in Resources */,
 				03A96D602516470A00E8BA19 /* soccerTextures.u4d in Resources */,
 				03DC902524D3DCDF00BED23B /* fieldNavAttributes.u4d in Resources */,
 				030BB39124D70F1D008CB06E /* menuscene.u4d in Resources */,
@@ -3087,6 +3102,7 @@
 				03B169A224C7304B00636D3D /* rightshotAnimation.u4d in Resources */,
 				0375BA1024F0061A00D19CE4 /* righttapAnimation.u4d in Resources */,
 				03B1698624BB586500636D3D /* rightsolehaltAnimation.u4d in Resources */,
+				0397E4E62523796B0020EBD9 /* sceneTextures.u4d in Resources */,
 				03A96D572516470A00E8BA19 /* rightdribbleAnimation.u4d in Resources */,
 				030BB39524D715F2008CB06E /* walkingAnimation.u4d in Resources */,
 				03A96D5A2516470A00E8BA19 /* runningAnimation.u4d in Resources */,

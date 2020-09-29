@@ -354,22 +354,4 @@ namespace U4DEngine {
         
     }
 
-    void U4DRenderShaderEntity::setRawImageData(std::vector<unsigned char> uRawImageData){
-            
-            rawImageData=uRawImageData;
-            
-        }
-
-        void U4DRenderShaderEntity::setImageWidth(unsigned int uImageWidth){
-            
-            imageWidth=uImageWidth;
-            
-        }
-
-        void U4DRenderShaderEntity::setImageHeight(unsigned int uImageHeight){
-            
-            imageHeight=uImageHeight;
-    }
-
-
 }

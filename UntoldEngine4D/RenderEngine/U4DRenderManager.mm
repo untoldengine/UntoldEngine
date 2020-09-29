@@ -359,5 +359,23 @@ namespace U4DEngine {
         memcpy(globalDataUniform.contents, (void*)&uniformGlobalData, sizeof(UniformGlobalData));
         
     }
+
+    void U4DRenderManager::setRawImageData(std::vector<unsigned char> uRawImageData){
+            
+            rawImageData=uRawImageData;
+            
+        }
+
+    void U4DRenderManager::setImageWidth(unsigned int uImageWidth){
+        
+        imageWidth=uImageWidth;
+        
+    }
+
+    void U4DRenderManager::setImageHeight(unsigned int uImageHeight){
+        
+        imageHeight=uImageHeight;
+    }
+
 }
 

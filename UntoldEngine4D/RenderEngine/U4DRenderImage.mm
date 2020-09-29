@@ -236,23 +236,6 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.uVContainer.clear();
     }
 
-    void U4DRenderImage::setRawImageData(std::vector<unsigned char> uRawImageData){
-        
-        rawImageData=uRawImageData;
-        
-    }
-
-    void U4DRenderImage::setImageWidth(unsigned int uImageWidth){
-        
-        imageWidth=uImageWidth;
-        
-    }
-
-    void U4DRenderImage::setImageHeight(unsigned int uImageHeight){
-        
-        imageHeight=uImageHeight;
-    }
-
     void U4DRenderImage::initTextureSamplerObjectNull(){
         
         MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];

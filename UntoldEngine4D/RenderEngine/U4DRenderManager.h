@@ -468,11 +468,11 @@ namespace U4DEngine {
          */
         void setIsWithinFrustum(bool uValue);
         
-        virtual void setRawImageData(std::vector<unsigned char> uRawImageData){};
+        void setRawImageData(std::vector<unsigned char> uRawImageData);
         
-        virtual void setImageWidth(unsigned int uImageWidth){};
+        void setImageWidth(unsigned int uImageWidth);
         
-        virtual void setImageHeight(unsigned int uImageHeight){};
+        void setImageHeight(unsigned int uImageHeight);
         
     };
     

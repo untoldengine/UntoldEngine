@@ -715,23 +715,6 @@ namespace U4DEngine {
     }
 
 
-    void U4DRender3DModel::setRawImageData(std::vector<unsigned char> uRawImageData){
-        
-        rawImageData=uRawImageData;
-        
-    }
-
-    void U4DRender3DModel::setImageWidth(unsigned int uImageWidth){
-        
-        imageWidth=uImageWidth;
-        
-    }
-
-    void U4DRender3DModel::setImageHeight(unsigned int uImageHeight){
-        
-        imageHeight=uImageHeight;
-    }
-
     void U4DRender3DModel::updateModelShaderParametersUniform(){
         
         int sizeOfModelParameterVector=(int)u4dObject->getModelShaderParameterContainer().size();

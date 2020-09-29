@@ -419,22 +419,5 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.uVContainer.clear();
         
     }
-
-    void U4DRenderParticleSystem::setRawImageData(std::vector<unsigned char> uRawImageData){
-        
-        rawImageData=uRawImageData;
-        
-    }
-
-    void U4DRenderParticleSystem::setImageWidth(unsigned int uImageWidth){
-        
-        imageWidth=uImageWidth;
-        
-    }
-
-    void U4DRenderParticleSystem::setImageHeight(unsigned int uImageHeight){
-        
-        imageHeight=uImageHeight;
-}
     
 }
