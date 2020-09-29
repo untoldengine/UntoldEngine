@@ -195,13 +195,6 @@ namespace U4DEngine {
          */
         U4DVector3n getEntityLocalPosition();
         
-        void setRawImageData(std::vector<unsigned char> uRawImageData);
-        
-        void setImageWidth(unsigned int uImageWidth);
-        
-        void setImageHeight(unsigned int uImageHeight);
-        
-        
     };
     
 }

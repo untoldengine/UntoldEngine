@@ -286,23 +286,6 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.verticesContainer.clear();
         
     }
-
-    void U4DRenderSkybox::setRawImageData(std::vector<unsigned char> uRawImageData){
-        
-        rawImageData=uRawImageData;
-        
-    }
-
-    void U4DRenderSkybox::setImageWidth(unsigned int uImageWidth){
-        
-        imageWidth=uImageWidth;
-        
-    }
-
-    void U4DRenderSkybox::setImageHeight(unsigned int uImageHeight){
-        
-        imageHeight=uImageHeight;
-    }
     
     
 }

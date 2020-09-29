@@ -141,12 +141,6 @@ namespace U4DEngine {
          */
         virtual void clearModelAttributeData();
         
-        void setRawImageData(std::vector<unsigned char> uRawImageData);
-        
-        void setImageWidth(unsigned int uImageWidth);
-        
-        void setImageHeight(unsigned int uImageHeight);
-        
         /**
          * @brief Set texture sampler to NULL
          * @details Creates a texture and sampler object and initializes to NULL
