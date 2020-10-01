@@ -150,9 +150,9 @@ namespace U4DEngine {
             
             if(resourceLoader->loadTextureDataToEntity(this, u4dObject->textureInformation.texture0.c_str())){
                 
-                createTextureObject();
+                createTextureObject(textureObject[0]);
                 
-                createSamplerObject();
+                createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
                 
                 clearRawImageData();
                 
@@ -166,9 +166,9 @@ namespace U4DEngine {
            
             if(resourceLoader->loadTextureDataToEntity(this, u4dObject->textureInformation.texture1.c_str())){
                 
-                createSecondaryTextureObject();
+                createTextureObject(textureObject[1]);
                 
-                createSecondarySamplerObject();
+                createSamplerObject(samplerStateObject[1],samplerDescriptor[1]);
                 
                 clearRawImageData();
                 
@@ -256,13 +256,13 @@ namespace U4DEngine {
             
             [uRenderEncoder setFragmentBuffer:uniformShaderEntityPropertyBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentTexture:secondaryTextureObject atIndex:1];
+            [uRenderEncoder setFragmentTexture:textureObject[1] atIndex:1];
             
-            [uRenderEncoder setFragmentSamplerState:secondarySamplerStateObject atIndex:1];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:1];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -339,18 +339,18 @@ namespace U4DEngine {
         MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null texture sampler object
         nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
-        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
         
         //Do the same for the second texture object
-        secondaryTextureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        textureObject[1]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
-        secondarySamplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerStateObject[1]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
     }
 

@@ -117,9 +117,9 @@ namespace U4DEngine {
         
         if (!u4dObject->textureInformation.texture0.empty() && rawImageData.size()>0){
             
-            createTextureObject();
+            createTextureObject(textureObject[0]);
             
-            createSamplerObject();
+            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
             
         }else{
             
@@ -192,9 +192,9 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -241,12 +241,12 @@ namespace U4DEngine {
         MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null texture sampler object
         nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
-        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
     }
 

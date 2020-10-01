@@ -105,6 +105,8 @@ void U4DSlider::action(){
     
     controllerMessage.inputElementType=U4DEngine::uiSlider;
 
+    controllerMessage.dataValue=dataValue;
+    
     U4DVector4n param(0.0,0.0,0.0,0.0);
     
     if (getIsPressed()) {

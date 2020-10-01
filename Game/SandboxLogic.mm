@@ -13,7 +13,7 @@
 #include "SandboxWorld.h"
 
 
-SandboxLogic::SandboxLogic(){
+SandboxLogic::SandboxLogic():showBroadPhaseVolume(false),showNarrowPhaseVolume(false){
     
 }
 
@@ -29,8 +29,10 @@ void SandboxLogic::update(double dt){
 void SandboxLogic::init(){
     
     //1. Get a pointer to the LevelOneWorld object
-    //SandboxWorld *pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
+    SandboxWorld *pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
     
+    //2. Search for the player object
+    pAstronaut=dynamic_cast<U4DEngine::U4DGameObject*>(pEarth->searchChild("astronaut"));
 }
 
 
@@ -72,20 +74,28 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     
                     if (controllerInputMessage.elementUIName.compare("sliderA")==0) {
                         
-                        //std::cout<<"slider moving"<<std::endl;
-                    
-                    
-                    }
-                    
-                }else if (controllerInputMessage.inputElementAction==U4DEngine::uiSliderReleased){
-                
-                    if (controllerInputMessage.elementUIName.compare("sliderA")==0) {
+                        float dataValue=controllerInputMessage.dataValue;
                         
-                        //std::cout<<"slider released"<<std::endl;
+                        //get the sign
+                        float d=(dataValue > 0) ? 1 : ((dataValue < 0) ? -1 : 0);
+                        
+                        d*=0.1;
+                        
+                        pAstronaut->translateBy(d, 0.0, 0.0);
                     
-                    
+                    }else if(controllerInputMessage.elementUIName.compare("sliderB")==0){
+                        
+                        float dataValue=controllerInputMessage.dataValue;
+                        
+                        //get the sign
+                        float d=(dataValue > 0) ? 1 : ((dataValue < 0) ? -1 : 0);
+                        
+                        d*=0.1;
+                        
+                        pAstronaut->translateBy(0.0, 0.0,d);
+                        
                     }
-                
+                    
                 }
                 
                 break;
@@ -98,7 +108,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.elementUIName.compare("joystick")==0) {
                     
                     //std::cout<<"joystick moving"<<std::endl;
-                
+                    float dir=controllerInputMessage.joystickDirection.x;
+                    
+                    pAstronaut->rotateBy(0.0, dir, 0.0);
                 
                 }
                 
@@ -114,6 +126,26 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
             }
             
             break;
+                
+            case U4DEngine::uiCheckbox:
+                
+                if(controllerInputMessage.inputElementAction==U4DEngine::uiCheckboxPressed){
+                    
+                    
+                    if (controllerInputMessage.elementUIName.compare("checkboxA")==0) {
+                        
+                        showBroadPhaseVolume=!showBroadPhaseVolume;
+                        pAstronaut->setBroadPhaseBoundingVolumeVisibility(showBroadPhaseVolume);
+                    
+                    }else if(controllerInputMessage.elementUIName.compare("checkboxB")==0){
+                     
+                        showNarrowPhaseVolume=!showNarrowPhaseVolume;
+                        pAstronaut->setNarrowPhaseBoundingVolumeVisibility(showNarrowPhaseVolume);
+                    }
+                    
+                }
+                
+                break;
                 
             case U4DEngine::mouseLeftButton:
             {

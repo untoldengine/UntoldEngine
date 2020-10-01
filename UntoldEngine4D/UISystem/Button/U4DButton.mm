@@ -32,7 +32,7 @@ U4DButton::U4DButton(std::string uName, float xPosition,float yPosition,float uW
     
     U4DVector3n pos=getAbsolutePosition();
     
-    labelText->translateTo(pos);
+    labelText->translateTo(left+U4DEngine::uiPadding,pos.y,0.0);
     
 }
 

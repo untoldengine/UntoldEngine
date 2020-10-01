@@ -53,13 +53,13 @@ fragment float4 fragmentUIWindowShader(VertexOutput vertexOut [[stage_in]], cons
     color=float3(b)*float3(0.2);
     
     //do the top border
-    float t=sdfBox(st+float2(0.0,0.97),float2(1.0,0.03));
+    float t=sdfBox(st+float2(0.0,0.97),float2(1.0,0.05));
     
     t=sharpen(t,0.01,uniformGlobalData.resolution);
     
     color=max(color,t);
     
-    return float4(color,0.6);
+    return float4(color,0.4);
     
 }
 
