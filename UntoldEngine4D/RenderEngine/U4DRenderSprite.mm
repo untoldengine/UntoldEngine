@@ -60,9 +60,9 @@ namespace U4DEngine {
             [uRenderEncoder setVertexBuffer:uniformSpriteBuffer offset:0 atIndex:2];
             
             //diffuse texture
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -71,5 +71,6 @@ namespace U4DEngine {
         }
         
     }
+
     
 }

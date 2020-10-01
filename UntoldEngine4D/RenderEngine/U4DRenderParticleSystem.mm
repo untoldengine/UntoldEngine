@@ -182,9 +182,9 @@ namespace U4DEngine {
         
         if (!u4dObject->textureInformation.texture0.empty() && rawImageData.size()>0){
             
-            createTextureObject();
+            createTextureObject(textureObject[0]);
             
-            createSamplerObject();
+            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);   
             
             u4dObject->setHasTexture(true);
             
@@ -351,10 +351,10 @@ namespace U4DEngine {
             [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
             
             //set texture in fragment
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
             //set the samplers
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
             
             //set the draw command
@@ -370,12 +370,12 @@ namespace U4DEngine {
         MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null texture sampler object
         nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
-        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
     }
     
@@ -419,22 +419,5 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.uVContainer.clear();
         
     }
-
-    void U4DRenderParticleSystem::setRawImageData(std::vector<unsigned char> uRawImageData){
-        
-        rawImageData=uRawImageData;
-        
-    }
-
-    void U4DRenderParticleSystem::setImageWidth(unsigned int uImageWidth){
-        
-        imageWidth=uImageWidth;
-        
-    }
-
-    void U4DRenderParticleSystem::setImageHeight(unsigned int uImageHeight){
-        
-        imageHeight=uImageHeight;
-}
     
 }

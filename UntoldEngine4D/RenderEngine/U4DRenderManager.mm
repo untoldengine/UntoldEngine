@@ -12,12 +12,11 @@
 #include "U4DScene.h"
 #include "U4DShaderProtocols.h"
 #include <simd/simd.h>
-#include "lodepng.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {
 
-    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),samplerDescriptor(nil),globalDataUniform(nil){
+U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),globalDataUniform(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr},normalSamplerDescriptor(nil){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
@@ -32,10 +31,10 @@ namespace U4DEngine {
         [depthStencilDescriptor release];
         [mtlRenderPipelineState release];
         [mtlLibrary release];
-        [samplerDescriptor release];
+        
+        
         
         mtlRenderPipelineDescriptor=nil;
-        samplerDescriptor=nil;
         vertexDesc=nil;
         depthStencilDescriptor=nil;
         mtlLibrary=nil;
@@ -47,11 +46,9 @@ namespace U4DEngine {
         indicesBuffer=nil;
         uniformSpaceBuffer=nil;
         uniformModelRenderFlagsBuffer=nil;
-        textureObject=nil;
         normalMapTextureObject=nil;
-        samplerStateObject=nil;
         samplerNormalMapStateObject=nil;
-        secondaryTextureObject=nil;
+        
         lightPositionUniform=nil;
         lightColorUniform=nil;
         uniformParticlePropertyBuffer=nil;
@@ -60,7 +57,21 @@ namespace U4DEngine {
         uniformModelShaderParametersBuffer=nil;
         globalDataUniform=nil;
         
-
+        for(int i=0;i<4;i++){
+            
+            textureObject[i]=nil;
+            samplerStateObject[i]=nil;
+            
+            if (samplerDescriptor[i]!=nullptr) {
+                [samplerDescriptor[i] release];
+            }
+            
+        }
+        
+        if (normalSamplerDescriptor!=nil) {
+            [normalSamplerDescriptor release];
+        }
+        
     }
     
     void U4DRenderManager::loadRenderingInformation(){
@@ -98,42 +109,42 @@ namespace U4DEngine {
         rawImageData.clear();
     }
     
-    void U4DRenderManager::createTextureObject(){
+    void U4DRenderManager::createTextureObject(id<MTLTexture> &uTextureObject){
         
         //Create the texture descriptor
         
         MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:imageWidth height:imageHeight mipmapped:NO];
         
         //Create the texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
+        uTextureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
         
         //Copy the raw image data into the texture object
         
         MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
         
-        [textureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
+        [uTextureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
         
     }
     
-    void U4DRenderManager::createSamplerObject(){
+    void U4DRenderManager::createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor){
         
         //Create a sampler descriptor
         
-        samplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        uSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
         //Set the filtering and addressing settings
-        samplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
-        samplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
+        uSamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
+        uSamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
         
         //set the addressing mode for the S component
-        samplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
+        uSamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //set the addressing mode for the T component
-        samplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
+        uSamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //Create the sampler state object
         
-        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:samplerDescriptor];
+        uSamplerStateObject=[mtlDevice newSamplerStateWithDescriptor:uSamplerDescriptor];
         
     }
     
@@ -159,133 +170,21 @@ namespace U4DEngine {
         
         //Create a sampler descriptor
         
-        MTLSamplerDescriptor *samplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        normalSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
         //Set the filtering and addressing settings
-        samplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
-        samplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
+        normalSamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
+        normalSamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
         
         //set the addressing mode for the S component
-        samplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
+        normalSamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //set the addressing mode for the T component
-        samplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
+        normalSamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //Create the sampler state object
         
-        samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:samplerDescriptor];
-        
-    }
-    
-    void U4DRenderManager::decodeImage(std::string uTexture){
-        
-        imageWidth=0.0;
-        imageHeight=0.0;
-        
-        // Load file and decode image.
-        const char * textureImage = uTexture.c_str();
-        
-        unsigned error = lodepng::decode(rawImageData, imageWidth, imageHeight,textureImage);
-        
-        //if there's an error, display it
-        if(error){
-            std::cout << "decoder error " << error << ": " <<uTexture<<" file is "<< lodepng_error_text(error) << std::endl;
-        }else{
-            
-            //Flip and invert the image
-            unsigned char* imagePtr=&rawImageData[0];
-            
-            int halfTheHeightInPixels=imageHeight/2;
-            int heightInPixels=imageHeight;
-            
-            
-            //Assume RGBA for 4 components per pixel
-            int numColorComponents=4;
-            
-            //Assuming each color component is an unsigned char
-            int widthInChars=imageWidth*numColorComponents;
-            
-            unsigned char *top=NULL;
-            unsigned char *bottom=NULL;
-            unsigned char temp=0;
-            
-            for( int h = 0; h < halfTheHeightInPixels; ++h )
-            {
-                top = imagePtr + h * widthInChars;
-                bottom = imagePtr + (heightInPixels - h - 1) * widthInChars;
-                
-                for( int w = 0; w < widthInChars; ++w )
-                {
-                    // Swap the chars around.
-                    temp = *top;
-                    *top = *bottom;
-                    *bottom = temp;
-                    
-                    ++top;
-                    ++bottom;
-                }
-            }
-        }
-        
-    }
-    
-    std::vector<unsigned char> U4DRenderManager::decodeImage(const char *uTexture){
-        
-        // Load file and decode image.
-        std::vector<unsigned char> image;
-        unsigned int width, height;
-        
-        unsigned error;
-        
-        error = lodepng::decode(image, width, height,uTexture);
-        
-        //if there's an error, display it
-        if(error){
-            std::cout << "decoder error " << error << ": " << lodepng_error_text(error) << std::endl;
-        }else{
-            
-            
-            //Flip and invert the image
-            unsigned char* imagePtr=&image[0];
-            
-            int halfTheHeightInPixels=height/2;
-            int heightInPixels=height;
-            
-            //Assume RGBA for 4 components per pixel
-            int numColorComponents=4;
-            
-            //Assuming each color component is an unsigned char
-            int widthInChars=width*numColorComponents;
-            
-            unsigned char *top=NULL;
-            unsigned char *bottom=NULL;
-            unsigned char temp=0;
-            
-            for( int h = 0; h < halfTheHeightInPixels; ++h )
-            {
-                top = imagePtr + h * widthInChars;
-                bottom = imagePtr + (heightInPixels - h - 1) * widthInChars;
-                
-                for( int w = 0; w < widthInChars; ++w )
-                {
-                    // Swap the chars around.
-                    temp = *top;
-                    *top = *bottom;
-                    *bottom = temp;
-                    
-                    ++top;
-                    ++bottom;
-                }
-            }
-            
-            
-        }
-        
-        imageWidth=width;
-        imageHeight=height;
-        
-        
-        return image;
+        samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:normalSamplerDescriptor];
         
     }
     
@@ -430,5 +329,23 @@ namespace U4DEngine {
         memcpy(globalDataUniform.contents, (void*)&uniformGlobalData, sizeof(UniformGlobalData));
         
     }
+
+    void U4DRenderManager::setRawImageData(std::vector<unsigned char> uRawImageData){
+            
+            rawImageData=uRawImageData;
+            
+        }
+
+    void U4DRenderManager::setImageWidth(unsigned int uImageWidth){
+        
+        imageWidth=uImageWidth;
+        
+    }
+
+    void U4DRenderManager::setImageHeight(unsigned int uImageHeight){
+        
+        imageHeight=uImageHeight;
+    }
+
 }
 

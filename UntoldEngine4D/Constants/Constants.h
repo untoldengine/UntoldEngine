@@ -142,6 +142,11 @@ namespace U4DEngine {
      */
     const float particleAngularAccelDivider=5.0;
     
+    /**
+     @brief padding for ui elements
+     */
+    const float uiPadding=0.02;
+    
 }
 
 #endif

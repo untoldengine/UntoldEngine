@@ -102,7 +102,17 @@ namespace U4DEngine {
         /**
          * @brief Pointer that represents the texture object
          */
-        id<MTLTexture> textureObject;
+        id<MTLTexture> textureObject[4];
+        
+        /**
+         * @brief Pointer to the Sampler State object
+         */
+        id<MTLSamplerState> samplerStateObject[4];
+        
+        /**
+         * @brief Pointer to the Sampler descriptor
+         */
+        MTLSamplerDescriptor *samplerDescriptor[4];
 
         /**
          * @brief Pointer to the Normal Map texture
@@ -110,24 +120,14 @@ namespace U4DEngine {
         id<MTLTexture> normalMapTextureObject;
         
         /**
-         * @brief Pointer to the Sampler State object
-         */
-        id<MTLSamplerState> samplerStateObject;
-
-        /**
          * @brief Pointer to the Normal Map Sampler
          */
         id<MTLSamplerState> samplerNormalMapStateObject;
         
         /**
-         * @brief Pointer to the Sampler descriptor
-         */
-        MTLSamplerDescriptor *samplerDescriptor;
-        
-        /**
-         * @brief Pointer for second Texture object
-         */
-        id<MTLTexture> secondaryTextureObject;
+        * @brief Pointer to the Normal Map Sampler descriptor
+        */
+        MTLSamplerDescriptor *normalSamplerDescriptor;
         
         /**
          * @brief Uniform for the Light Position
@@ -300,15 +300,13 @@ namespace U4DEngine {
          * @brief Creates a texture object to be applied to an entity
          * @details It creates a texture descriptor, and loads texture raw data into a newly created texture object
          */
-        virtual void createTextureObject();
+        virtual void createTextureObject(id<MTLTexture> &uTextureObject);
         
         /**
          * @brief Creates a sampler object required for texturing
          * @details Creates a sampler descriptor and sets the filtering and addressing settings. Loads the sampler descriptor into a newly created sampler object.
          */
-        void createSamplerObject();
-        
-        virtual void createSecondaryTextureObject(){};
+        void createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor);
         
         /**
          * @brief Creates a Normal Map Texture
@@ -329,23 +327,6 @@ namespace U4DEngine {
          * @param uGeometryLineColor Vector denoting the desired color
          */
         virtual void setGeometryLineColor(U4DVector4n &uGeometryLineColor){};
-        
-        /**
-         * @brief Decodes the image texture
-         * @details Decodes the texture using the lodepng library. It flips and inverts the image.
-         * 
-         * @param uTexture The image representing the texture
-         */
-        void decodeImage(std::string uTexture);
-        
-        /**
-         * @brief Decodes the image texture
-         * @details Decodes the texture using the lodepng library. It flips and inverts the image.
-         * 
-         * @param uTexture The image representing the texture
-         * @return Buffer containing the raw image data
-         */
-        std::vector<unsigned char> decodeImage(const char *uTexture);
         
         /**
          * @brief Clear the raw image data
@@ -478,11 +459,11 @@ namespace U4DEngine {
          */
         void setIsWithinFrustum(bool uValue);
         
-        virtual void setRawImageData(std::vector<unsigned char> uRawImageData){};
+        void setRawImageData(std::vector<unsigned char> uRawImageData);
         
-        virtual void setImageWidth(unsigned int uImageWidth){};
+        void setImageWidth(unsigned int uImageWidth);
         
-        virtual void setImageHeight(unsigned int uImageHeight){};
+        void setImageHeight(unsigned int uImageHeight);
         
     };
     

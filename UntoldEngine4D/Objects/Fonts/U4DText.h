@@ -14,11 +14,6 @@
 #include "CommonProtocols.h"
 #include "U4DImage.h"
 
-namespace U4DEngine {
-    
-    class U4DFontLoader;
-
-}
 
 namespace U4DEngine {
 
@@ -31,11 +26,6 @@ namespace U4DEngine {
     private:
 
         /**
-         @brief Pointer to font loader
-         */
-        U4DFontLoader *fontLoader;
-        
-        /**
          @brief Text to render
          */
         const char* text;
@@ -46,33 +36,27 @@ namespace U4DEngine {
         std::vector<TEXTDATA> textContainer;
         
         /**
-         @brief space between text
-         */
-        float textSpacing;
-        
-        /**
          @brief size of the text container
          */
         int currentTextContainerSize;
-        
-        /**
-         @brief pointer to the rendering manager
-         */
-        U4DRenderManager *renderManager;
         
     public:
         
         /**
          @brief Constructor of class
          
-         @param uFontLoader Font loader object
          */
-        U4DText(U4DFontLoader* uFontLoader, float uTextSpacing);
+        U4DText(std::string uFontName);
 
         /**
          @brief Destructor of class
          */
         ~U4DText();
+        
+        /**
+         @brief pointer to the rendering manager
+         */
+        U4DRenderManager *renderManager;
         
         /**
          @brief Copy constructor
@@ -84,10 +68,6 @@ namespace U4DEngine {
          */
         U4DText& operator=(const U4DText& value);
 
-        /**
-         @brief Name of font image
-         */
-        const char* fontImage;
         
         /**
          @brief Method which sets font  to use
@@ -101,14 +81,7 @@ namespace U4DEngine {
          */
         void setText(const char* uText);
         
-        
-        /**
-         @brief sets the spacing between letters
-
-         @param uTextSpacing spacing distance
-         */
-        void setTextSpacing(float uTextSpacing);
-        
+        void setText(float uFloatValue);
         
         /**
          @brief parses the text into individual letters
@@ -141,10 +114,10 @@ namespace U4DEngine {
          @param uTextCount letter count
          @param uTextWidth texture text width
          @param uTextHeight texture text height
-         @param uAtlasWidth image atlas width
-         @param uAtlasHeight image atlas height
          */
-        void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight, float uAtlasWidth,float uAtlasHeight);
+        void setTextDimension(U4DVector3n &uFontPositionOffset, U4DVector2n &uFontUV, int uTextCount, float uTextWidth,float uTextHeight);
+        
+        U4DEngine::FONTDATA fontData;
     };
         
 }

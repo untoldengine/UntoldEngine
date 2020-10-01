@@ -11,6 +11,7 @@ using namespace metal;
 
 #include <simd/simd.h>
 #include "U4DShaderProtocols.h"
+#include "U4DShaderHelperFunctions.h"
 
 struct VertexInput {
     
@@ -43,7 +44,7 @@ vertex VertexOutput vertexFontImageShader(VertexInput vert [[stage_in]], constan
 fragment float4 fragmentFontImageShader(VertexOutput vertexOut [[stage_in]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
     
     float4 sampledColor=texture.sample(sam,vertexOut.uvCoords);
-    
+
     return sampledColor;
     
 }

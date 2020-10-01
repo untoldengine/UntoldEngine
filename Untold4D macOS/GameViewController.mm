@@ -16,9 +16,7 @@
 #include "U4DVector2n.h"
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
-#include "LevelOneScene.h"
-#include "StartScene.h"
-#include "DebugScene.h"
+#include "SandboxScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController
@@ -111,11 +109,9 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    LevelOneScene *levelOneScene=new LevelOneScene();
-    //StartScene *startScene=new StartScene();
-    //DebugScene *debugScene=new DebugScene();
+    SandboxScene *sandboxScene=new SandboxScene();
     
-    sceneManager->changeScene(levelOneScene);
+    sceneManager->changeScene(sandboxScene);
     
 }
 
@@ -390,7 +386,6 @@
     U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
-            
         gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonDragged, mouseLocation);
         
     }

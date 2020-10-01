@@ -83,19 +83,44 @@ float noise(float2 st);
 float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor);
 
 /**
- @brief Computes mod
+ @brief Computes the modulus
  */
 float mod(float x, float y);
 
 /**
- @brief sharpens the lines
+ @brief sharpens the sdf object
  */
 float sharpen(float d, float w, float2 resolution);
 
-float sdfCircle(float2 p, float2 c, float r);
+/**
+ @brief sdf for a circle
+ @param p space coordinate, i.e. st
+ @param r circle radius
+ */
+float sdfCircle(float2 p,float r);
 
+/**
+ @brief sdf for a ring
+ @param p space coordinate, i.e. st
+ @param c ring center
+ @param r ring inner radius
+*/
+float sdfRing(float2 p, float2 c, float r);
+
+/**
+ @brief sdf for a line
+ @param p space coordnate, i.e. st
+ @param a starting point of line
+ @param b ending point of line
+ */
 float sdfLine( float2 p, float2 a, float2 b);
 
+/**
+ @brief sdf for a triangle
+ @param p space coordinate, i.e. st
+ */
 float sdfTriangle(float2 p );
+
+float sdfBox( float2 p, float2 b);
 
 #endif /* U4DShaderHelperFunctions_h */

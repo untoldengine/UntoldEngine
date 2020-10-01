@@ -44,12 +44,12 @@ namespace U4DEngine {
         /**
          @brief Sprite width
          */
-        int width;
+        float width;
         
         /**
          @brief Sprite height
          */
-        int height;
+        float height;
         
     }SPRITEDATA;
 
@@ -70,64 +70,6 @@ namespace U4DEngine {
         float delay;
         
     }SPRITEANIMATIONDATA;
-
-
-    /**
-     @brief The FONTDATA structure holds font character data
-     */
-    typedef struct{
-        
-        /**
-         @brief Font character ID
-         */
-        int ID;
-        
-        /**
-         @brief Font character x-coordinate position
-         */
-        float x;
-        
-        /**
-         @brief Font character y-coordinate position
-         */
-        float y;
-        
-        /**
-         @brief Font character width
-         */
-        float width;
-        
-        /**
-         @brief Font character height
-         */
-        float height;
-        
-        /**
-         @brief Font character x-offset position
-         */
-        float xoffset;
-        
-        /**
-         @brief Font character y-offset position
-         */
-        float yoffset;
-        
-        /**
-         @brief Font character x-advance
-         */
-        float xadvance;
-        
-        /**
-         @brief Size of font
-         */
-        int infoFontSize;
-        
-        /**
-         @brief Font character letter name
-         */
-        const char *letter;
-        
-    }FONTDATA;
 
     /**
      @brief The TEXTDATA structure holds text information
@@ -431,6 +373,69 @@ namespace U4DEngine {
         int blendingFactorDest;
         
     }PARTICLESYSTEMDATA;
+
+
+    typedef struct{
+        
+        /**
+         @brief Font character ID
+         */
+        int ID;
+        
+        /**
+         @brief Font character x-coordinate position
+         */
+        float x;
+        
+        /**
+         @brief Font character y-coordinate position
+         */
+        float y;
+        
+        /**
+         @brief Font character width
+         */
+        float width;
+        
+        /**
+         @brief Font character height
+         */
+        float height;
+        
+        /**
+         @brief Font character x-offset position
+         */
+        float xoffset;
+        
+        /**
+         @brief Font character y-offset position
+         */
+        float yoffset;
+        
+        /**
+         @brief Font character x-advance
+         */
+        float xadvance;
+        
+        /**
+         @brief Font character letter name
+         */
+         const char* letter;
+        
+    }CHARACTERDATA;
+
+    typedef struct{
+        
+        std::string name;
+        int fontSize;
+        float fontAtlasWidth;
+        float fontAtlasHeight;
+        std::string texture;
+        int charCount;
+        std::vector<CHARACTERDATA> characterData;
+        
+    }FONTDATA;
+
     
     /**
      @brief The ENTITYTYPE enumeration holds the type of an entity
@@ -455,12 +460,7 @@ namespace U4DEngine {
         /**
          @brief Entity is a 3D parent model entity
          */
-        PARENT,
-        
-        /**
-         @brief Entity represents an input controller
-         */
-        CONTROLLERINPUT
+        PARENT
         
     }ENTITYTYPE;
 
@@ -649,8 +649,12 @@ namespace U4DEngine {
         
         //touch elements
         ioTouch,
+        
+        //ui elements
         uiJoystick,
         uiButton,
+        uiSlider,
+        uiCheckbox,
 
     }INPUTELEMENTTYPE;
 
@@ -690,6 +694,13 @@ namespace U4DEngine {
         uiButtonPressed,
         uiButtonReleased,
         
+        uiSliderPressed,
+        uiSliderReleased,
+        uiSliderMoved,
+        
+        uiCheckboxPressed,
+        uiCheckboxReleased,
+        
         noAction
 
     }INPUTELEMENTACTION;
@@ -707,8 +718,16 @@ namespace U4DEngine {
         bool mouseChangeDirection;
         U4DVector2n arrowKeyDirection;
         std::string elementUIName;
+        float dataValue;
         
     }CONTROLLERMESSAGE;
+
+    enum{
+        uipressed,
+        uireleased,
+        uimoving,
+        
+    }UIELEMENTSTATES;
 
 }
 

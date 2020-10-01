@@ -73,6 +73,13 @@ namespace U4DEngine {
         void setSprite(const char* uSprite);
         
         /**
+         @brief Update sprite
+         
+         @param uSprit Name of sprite image
+         */
+        void updateSprite(const char* uSprite);
+        
+        /**
          * @brief Renders the current entity
          * @details Updates the space matrix and any rendering flags. It encodes the pipeline, buffers and issues the draw command
          *

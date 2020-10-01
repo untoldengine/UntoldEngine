@@ -26,6 +26,20 @@ namespace U4DEngine {
         
         bool enableBlending;
         
+        float shaderWidth;
+        
+        float shaderHeight;
+        
+        /**
+         @brief additive rendering variable. If additive rendering is enabled, then the shaders will blend their colors among each other
+         */
+        bool enableAdditiveRendering;
+        
+        /**
+         @brief Variable which contains information if the shader has textures
+         */
+        bool hasTexture;
+        
     public:
         
         
@@ -46,6 +60,8 @@ namespace U4DEngine {
         void setShaderDimension(float uWidth,float uHeight);
         
         void setTexture0(const char* uTexture0);
+        
+        void setTexture1(const char* uTexture1);
 
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
@@ -56,6 +72,29 @@ namespace U4DEngine {
         void setEnableBlending(bool uValue);
         
         bool getEnableBlending();
+        
+        float getShaderWidth();
+        
+        float getShaderHeight();
+        
+        /**
+         @brief sets whether additive rendering should be enabled.
+         @details If additive rendering is enabled, then the shaders will blend their colors among each other. Default is true
+         
+         @param uValue true or false. true means additive rendering is enabled
+         */
+        void setEnableAdditiveRendering(bool uValue);
+        
+        /**
+         @brief gets whether additive rendering was enabled
+         @details If additive rendering is enabled, then the shaders will blend their colors among each other
+
+         @return true if additive rendering is enabled
+         */
+        bool getEnableAdditiveRendering();
+        
+        void setHasTexture(bool uValue);
+        bool getHasTexture();
         
     };
 

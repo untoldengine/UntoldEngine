@@ -23,7 +23,7 @@
 namespace U4DEngine {
     
     
-U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface):U4DInputElement(uInputElementType,uControllerInterface),isActive(false),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0),previousDataPosition(0.0,0.0),dataDeltaPosition(0.0, 0.0),previousDataDeltaPosition(0.0, 0.0){
+U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterface* uControllerInterface):U4DInputElement(uInputElementType,uControllerInterface),isActive(false),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0),previousDataPosition(0.0,0.0),dataDeltaPosition(0.0, 0.0),previousDataDeltaPosition(0.0, 0.0),motionAccumulator(0.0,0.0){
         
         stateManager=new U4DMacMouseStateManager(this);
         
@@ -72,8 +72,10 @@ U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterf
     
             controllerMessage.inputElementAction=U4DEngine::mouseButtonReleased;
         
-        //Dragged has not been implemented here
-        
+        }else if(getIsDragged()){
+            
+            controllerMessage.inputElementAction=U4DEngine::mouseButtonDragged;
+            
         }else if(getIsMoving()) {
         
                 controllerMessage.inputElementAction=U4DEngine::mouseActive;
@@ -104,11 +106,11 @@ U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterf
             
         }else if (uInputAction==U4DEngine::mouseButtonDragged) {
             
-            dataPosition=uPosition;
+            dataPosition=mapMousePosition(uPosition);
             
             stateManager->changeState(U4DMacMouseDraggedState::sharedInstance());
             
-        }else if(uInputAction==U4DEngine::mouseButtonReleased && ((stateManager->getCurrentState()==U4DMacMouseDraggedState::sharedInstance()) || (stateManager->getCurrentState()==U4DMacMousePressedState::sharedInstance()))){
+        }else if(uInputAction==U4DEngine::mouseButtonReleased){
             
             dataPosition=mapMousePosition(uPosition);
             

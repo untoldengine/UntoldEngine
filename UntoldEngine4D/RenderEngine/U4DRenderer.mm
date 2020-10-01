@@ -194,10 +194,16 @@
             
         }
         
-        // Add a final command to present the cleared drawable to the screen
+        // Add a final command to present the cleared drawable to the screen-Original
         [commandBuffer presentDrawable:view.currentDrawable];
-        //This method is the latest method provided by Metal, but it seems buggy. Sometimes, it creates micro-stuttering. Leaving it here for now.
-        //[commandBuffer presentDrawable:view.currentDrawable afterMinimumDuration:1.0/view.preferredFramesPerSecond];
+        
+        //This method is the latest method provided by Metal, but it seems buggy. Sometimes, it creates micro-stuttering. Leaving it here for now. Don't forget to remove this warning
+//        if (@available(macOS 10.15.4, *)) {
+//            [commandBuffer presentDrawable:view.currentDrawable afterMinimumDuration:1.0/view.preferredFramesPerSecond];
+//        } else {
+//            // Fallback on earlier versions
+//            [commandBuffer presentDrawable:view.currentDrawable];
+//        }
         
         // Finalize rendering here & push the command buffer to the GPU
         [commandBuffer commit];

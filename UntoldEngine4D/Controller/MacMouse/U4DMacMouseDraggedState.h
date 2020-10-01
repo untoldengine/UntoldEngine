@@ -23,6 +23,8 @@ namespace U4DEngine {
         
         ~U4DMacMouseDraggedState();
         
+        
+        
     public:
         
         static U4DMacMouseDraggedState* instance;

@@ -115,13 +115,17 @@ namespace U4DEngine {
     
     void U4DRenderImage::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.texture0.empty()){
+        if (!u4dObject->textureInformation.texture0.empty() && rawImageData.size()>0){
             
-            decodeImage(u4dObject->textureInformation.texture0);
+            createTextureObject(textureObject[0]);
             
-            createTextureObject();
+            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
             
-            createSamplerObject();
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("ERROR: No data found for the Image Texture");
             
         }
         
@@ -188,9 +192,9 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -230,6 +234,20 @@ namespace U4DEngine {
         
         u4dObject->bodyCoordinates.verticesContainer.clear();
         u4dObject->bodyCoordinates.uVContainer.clear();
+    }
+
+    void U4DRenderImage::initTextureSamplerObjectNull(){
+        
+        MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
+        
+        //Create the null texture object
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
+        //Create the null texture sampler object
+        nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        
+        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        
     }
 
 

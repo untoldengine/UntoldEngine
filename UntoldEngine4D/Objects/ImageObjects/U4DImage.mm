@@ -9,6 +9,7 @@
 #include "U4DImage.h"
 #include "U4DRenderImage.h"
 #include "U4DDirector.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
@@ -34,10 +35,19 @@ namespace U4DEngine {
     }
 
     void U4DImage::setImage(const char* uTextureImage,float uWidth,float uHeight){
+                
+        textureInformation.setTexture0(uTextureImage);
         
-        renderManager->setTexture0(uTextureImage);
-        setImageDimension(uWidth, uHeight);
-        renderManager->loadRenderingInformation();
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+        
+        if(resourceLoader->loadTextureDataToEntity(renderManager, uTextureImage)){
+            
+            setImageDimension(uWidth, uHeight);
+            
+            renderManager->loadRenderingInformation();
+            
+        }
+        
     }
 
     void U4DImage::render(id <MTLRenderCommandEncoder> uRenderEncoder){

@@ -34,6 +34,7 @@ namespace U4DEngine {
     void U4DMacMouseReleasedState::enter(U4DMacMouse *uMacMouse){
         
         uMacMouse->dataMagnitude=0.0;
+        //uMacMouse->motionAccumulator=U4DVector2n(0.0,0.0);
         
         uMacMouse->action();
         

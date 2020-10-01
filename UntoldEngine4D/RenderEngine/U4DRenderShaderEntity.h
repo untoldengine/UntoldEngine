@@ -46,6 +46,11 @@ namespace U4DEngine {
          */
         U4DShaderEntity *u4dObject;
         
+        /**
+         * @brief Pointer to the null sampler descriptor used for texturing
+         */
+        MTLSamplerDescriptor *nullSamplerDescriptor;
+        
     protected:
         
         /**
@@ -121,6 +126,8 @@ namespace U4DEngine {
          */
         void setTexture0(const char* uTexture);
         
+        void setTexture1(const char* uTexture);
+        
         /**
          @brief Method which returns the absolute space of the entity
          
@@ -145,6 +152,8 @@ namespace U4DEngine {
          */
         void loadMTLAdditionalInformation();
         
+        
+        void initTextureSamplerObjectNull();
 
     };
 

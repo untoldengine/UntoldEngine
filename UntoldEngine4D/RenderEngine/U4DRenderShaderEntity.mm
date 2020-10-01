@@ -10,12 +10,17 @@
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
 
     U4DRenderShaderEntity::U4DRenderShaderEntity(U4DShaderEntity *uU4DShaderEntity){
         
         u4dObject=uU4DShaderEntity;
+        
+        //It seems we do need to init the texture objects with a null descriptor
+        initTextureSamplerObjectNull();
+        
     }
     
     U4DRenderShaderEntity::~U4DRenderShaderEntity(){
@@ -51,10 +56,20 @@ namespace U4DEngine {
         
         //rgb blending
         mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
+       
+        //original blend factor
+        //mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceColor;
+        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
         
-        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceColor;
-        
-        mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+        if (u4dObject->getEnableAdditiveRendering()) {
+
+            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+
+        }else{
+
+            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+
+        }
         
         //alpha blending
         mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
@@ -128,17 +143,38 @@ namespace U4DEngine {
     
     void U4DRenderShaderEntity::loadMTLTexture(){
         
+        //TODO: THIS SECTION NEEDS TO BE CLEANED.
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+        
         if (!u4dObject->textureInformation.texture0.empty()){
             
-            decodeImage(u4dObject->textureInformation.texture0);
-            
-            createTextureObject();
-            
-            createSamplerObject();
-            
+            if(resourceLoader->loadTextureDataToEntity(this, u4dObject->textureInformation.texture0.c_str())){
+                
+                createTextureObject(textureObject[0]);
+                
+                createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
+                
+                clearRawImageData();
+                
+                u4dObject->setHasTexture(true);
+                
+            }
+               
         }
         
-        clearRawImageData();
+        if (!u4dObject->textureInformation.texture1.empty()) {
+           
+            if(resourceLoader->loadTextureDataToEntity(this, u4dObject->textureInformation.texture1.c_str())){
+                
+                createTextureObject(textureObject[1]);
+                
+                createSamplerObject(samplerStateObject[1],samplerDescriptor[1]);
+                
+                clearRawImageData();
+                
+            }
+            
+        }
         
     }
     
@@ -147,7 +183,15 @@ namespace U4DEngine {
         u4dObject->textureInformation.texture0=uTexture;
         
     }
+
+    void U4DRenderShaderEntity::setTexture1(const char* uTexture){
+        
+        u4dObject->textureInformation.texture1=uTexture;
+        
+    }
     
+    
+
     U4DDualQuaternion U4DRenderShaderEntity::getEntitySpace(){
         return u4dObject->getLocalSpace();
     }
@@ -212,9 +256,13 @@ namespace U4DEngine {
             
             [uRenderEncoder setFragmentBuffer:uniformShaderEntityPropertyBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
+            
+            [uRenderEncoder setFragmentTexture:textureObject[1] atIndex:1];
+            
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:1];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -241,6 +289,7 @@ namespace U4DEngine {
             
         }
         
+        uniformShaderEntityProperty.hasTexture=u4dObject->getHasTexture();
         memcpy(uniformShaderEntityPropertyBuffer.contents,(void*)&uniformShaderEntityProperty, sizeof(UniformShaderEntityProperty));
         
     }
@@ -285,5 +334,24 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.uVContainer.clear();
     }
 
+    void U4DRenderShaderEntity::initTextureSamplerObjectNull(){
+        
+        MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
+        
+        //Create the null texture object
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
+        //Create the null texture sampler object
+        nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        
+        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        
+        
+        //Do the same for the second texture object
+        textureObject[1]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
+        samplerStateObject[1]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        
+    }
 
 }

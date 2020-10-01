@@ -108,6 +108,7 @@ typedef struct{
 typedef struct{
     
     vector_float4 shaderParameter[10];
+    bool hasTexture;
     
 }UniformShaderEntityProperty;
 

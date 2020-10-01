@@ -22,6 +22,7 @@
 namespace U4DEngine {
     
 class U4DEntity;
+class U4DRenderManager;
 class U4DModel;
 class U4DMatrix4n;
 class U4DVector3n;
@@ -33,7 +34,7 @@ class U4DQuaternion;
 class U4DLights;
 class U4DAnimation;
 class U4DParticleSystem;
-
+class U4DText;
 }
 
 namespace U4DEngine {
@@ -155,6 +156,67 @@ namespace U4DEngine {
         
     }PARTICLESRAW;
 
+    typedef struct{
+        
+        /**
+         @brief Font character ID
+         */
+        int ID;
+        
+        /**
+         @brief Font character x-coordinate position
+         */
+        float x;
+        
+        /**
+         @brief Font character y-coordinate position
+         */
+        float y;
+        
+        /**
+         @brief Font character width
+         */
+        float width;
+        
+        /**
+         @brief Font character height
+         */
+        float height;
+        
+        /**
+         @brief Font character x-offset position
+         */
+        float xoffset;
+        
+        /**
+         @brief Font character y-offset position
+         */
+        float yoffset;
+        
+        /**
+         @brief Font character x-advance
+         */
+        float xadvance;
+        
+        /**
+         @brief Font character letter name
+         */
+         std::string letter;
+        
+    }CHARACTERDATARAW;
+
+    typedef struct{
+        
+        std::string name;
+        int fontSize;
+        float fontAtlasWidth;
+        float fontAtlasHeight;
+        std::string texture;
+        int charCount;
+        std::vector<CHARACTERDATARAW> characterData;
+        
+    }FONTDATARAW;
+
 }
 
 namespace U4DEngine {
@@ -177,10 +239,7 @@ class U4DResourceLoader {
         */
         std::vector<ANIMATIONSRAW> animationsContainer;
     
-        /**
-        @brief Container holding all the textures used in the scene
-        */
-        std::vector<TEXTURESRAW> texturesContainer;
+        
     
         /**
         @brief Container holding particle data
@@ -191,6 +250,11 @@ class U4DResourceLoader {
         @brief Container holding convex hull data
         */
         std::vector<CONVEXHULLRAW> convexHullContainer;
+    
+        /**
+         @brief Container holding font data
+         */
+        std::vector<FONTDATARAW> fontsContainer;
         
     protected:
         
@@ -215,6 +279,11 @@ class U4DResourceLoader {
         @brief  Shared Instance for the digital asset loader Singleton
         */
         static U4DResourceLoader* sharedInstance();
+    
+        /**
+        @brief Container holding all the textures used in the scene
+        */
+        std::vector<TEXTURESRAW> texturesContainer;
         
         /**
         @brief Method which loads all scene asset data into the game
@@ -251,6 +320,15 @@ class U4DResourceLoader {
         @return Returns true if the particle data was successfully loaded
         */
         bool loadParticleData(std::string uFilepath);
+    
+        /**
+         @brief Method that loads font data information
+         
+        @param uFilepath Name of the binary file containing font data
+         
+        @return true if the font data was successfully loaded
+         */
+        bool loadFontData(std::string uFilepath);
         
         /**
         @brief Method which loads all particle asset information into the particle entity
@@ -261,6 +339,16 @@ class U4DResourceLoader {
         @return Returns true if the particle data entity was loaded successfully into the particle system
         */
         bool loadParticeToParticleSystem(U4DParticleSystem *uParticleSystem, std::string uParticleName);
+    
+    
+        /**
+         @brief Method that loads font asset information into the text entity
+         
+         @param uText text entity
+         @param uFontName Name of the font asst
+         @return true if the font data entity was loaded successfully inot the text entity
+         */
+        bool loadFontToText(U4DText *uText, std::string uFontName);
         
         /**
         @brief Method which loads all 3D asset information into the 3D model entity
@@ -429,6 +517,8 @@ class U4DResourceLoader {
         void loadVertexBoneWeightsToBody(std::vector<float> &uVertexWeights, std::vector<float> uWeights);
     
         void loadNormalMap(U4DModel *uModel,std::string uNormalMapName);
+        
+        bool loadTextureDataToEntity(U4DRenderManager *uRenderManager, const char* uTextureName);
         
         /**
          @brief Clears the data in the containers

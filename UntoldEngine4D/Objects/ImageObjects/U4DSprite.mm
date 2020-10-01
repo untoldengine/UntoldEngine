@@ -7,19 +7,21 @@
 //
 
 #include "U4DSprite.h"
+#include <string>
 #include "U4DRenderSprite.h"
 #include "U4DDirector.h"
-#include <string>
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
-        U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr),spriteOffset(0.0,0.0){
+    U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr),spriteOffset(0.0,0.0){
         
-        renderManager=new U4DRenderSprite(this);
-        
-        setShader("vertexSpriteShader", "fragmentSpriteShader");
-        
-        spriteLoader=uSpriteLoader;
+            renderManager=new U4DRenderSprite(this);
+            
+            setShader("vertexSpriteShader", "fragmentSpriteShader");
+            
+            spriteLoader=uSpriteLoader;
+                
         
     }
         
@@ -31,46 +33,62 @@ namespace U4DEngine {
 
     void U4DSprite::setSprite(const char* uSprite){
 
-            //search for the sprite in the atlas manager
-            SPRITEDATA spriteData;
+        //search for the sprite in the atlas manager
+        SPRITEDATA spriteData;
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+        
+        //THIS SECTION NEEDS TO BE FIXED. 
+        for (int i=0; i<spriteLoader->spriteData.size(); i++) {
             
-            for (int i=0; i<spriteLoader->spriteData.size(); i++) {
-                
-                spriteData=spriteLoader->spriteData.at(i);
-                
-                if (strcmp(spriteData.name, uSprite)==0) {
-                    
-                    if (spriteAtlasImage==nullptr) {
-                        
-                        spriteAtlasImage = spriteLoader->spriteAtlasImage.c_str();
-                        
-                        renderManager->setTexture0(spriteAtlasImage);
-                        
-                        //set the rectangle for the sprite
-                        setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
-                        
-                        U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
-                        
-                        setSpriteOffset(offset);
-                        
-                        renderManager->loadRenderingInformation();
-                        
-                        
-                    }else{
-                     
-                        //set the offset for the sprite
-                        U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
-                        
-                        setSpriteOffset(offset);
-                        
-                    }
-                    
-                    break;
-                    
-                }
+            spriteData=spriteLoader->spriteData.at(i);
             
+            if (strcmp(spriteData.name, uSprite)==0) {
+                
+                    renderManager->setTexture0(spriteLoader->spriteAtlasImage.c_str());
+
+                if(resourceLoader->loadTextureDataToEntity(renderManager, spriteLoader->spriteAtlasImage.c_str())){
+
+                    //set the rectangle for the sprite
+                    setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
+
+                    U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
+
+                    setSpriteOffset(offset);
+
+                    renderManager->loadRenderingInformation();
+                    
+                    
+                }                   
+                
+                break;
+                
             }
         
+        }
+        
+    }
+
+    void U4DSprite::updateSprite(const char* uSprite){
+        
+        //search for the sprite in the atlas manager
+        SPRITEDATA spriteData;
+        
+        for (int i=0; i<spriteLoader->spriteData.size(); i++) {
+            
+            spriteData=spriteLoader->spriteData.at(i);
+            
+            if (strcmp(spriteData.name, uSprite)==0) {
+                
+                //set the offset for the sprite
+                U4DVector2n offset(spriteData.x/spriteLoader->spriteAtlasWidth,spriteData.y/spriteLoader->spriteAtlasHeight);
+                
+                setSpriteOffset(offset);
+                    
+                break;
+                
+            }
+        
+        }
     }
 
 

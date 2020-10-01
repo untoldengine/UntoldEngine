@@ -12,6 +12,7 @@
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
 #include "U4DLogger.h"
+#include "U4DResourceLoader.h"
 
 namespace U4DEngine {
     
@@ -109,9 +110,9 @@ namespace U4DEngine {
         
         if (getSkyboxTexturesContainer().size()==6){
             
-            createTextureObject();
+            createTextureObject(textureObject[0]);
             
-            createSamplerObject();
+            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
             
         }else{
             
@@ -123,34 +124,58 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderSkybox::createTextureObject(){
+    void U4DRenderSkybox::createTextureObject(id<MTLTexture> &uTexture){ 
         
-        int skyboxTextureSize;
-        //decode the image to get the height of the texture so we can create
-        decodeImage(getSkyboxTexturesContainer().at(0));
+        int skyboxTextureSize = 0;
         
-        skyboxTextureSize=imageWidth;
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
         
-        clearRawImageData();
+        const char* tempSkyboxTexture=getSkyboxTexturesContainer().at(0);
+        
+        for(int t=0;t<resourceLoader->texturesContainer.size();t++){
+
+            if (resourceLoader->texturesContainer.at(t).name.compare(std::string(tempSkyboxTexture))==0) {
+                
+                skyboxTextureSize=resourceLoader->texturesContainer.at(t).width;
+                
+            }
+
+        }
+        
         
         //once we have the total size of the texture, then proceed with creating the texture object.
         
         MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm size:skyboxTextureSize mipmapped:NO];
         
         //Create the texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:textureDescriptor];
         
         std::vector<unsigned char> skyboxImage;
         
         for (int slice=0; slice<6; slice++) {
             
-            skyboxImage=decodeImage(getSkyboxTexturesContainer().at(slice));
+            const char* tempSkyboxTexture=getSkyboxTexturesContainer().at(slice);
             
-            MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
-            
-            [textureObject replaceRegion:region mipmapLevel:0 slice:slice withBytes:&skyboxImage[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
-            
-            skyboxImage.clear();
+            for(int t=0;t<resourceLoader->texturesContainer.size();t++){
+
+                if (resourceLoader->texturesContainer.at(t).name.compare(std::string(tempSkyboxTexture))==0) {
+                    
+                    setRawImageData(resourceLoader->texturesContainer.at(t).image);
+                    
+                    imageWidth=resourceLoader->texturesContainer.at(t).width;
+                    imageHeight=resourceLoader->texturesContainer.at(t).height;
+                    
+                    MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
+        
+                    [textureObject[0] replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
+        
+                    clearRawImageData();
+                    
+                    break;
+                    
+                }
+
+            }
             
         }
 
@@ -218,9 +243,9 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];

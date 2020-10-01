@@ -250,12 +250,6 @@ namespace U4DEngine {
          @return Returns the entity local position
          */
         U4DVector3n getEntityLocalPosition();
-
-        void setRawImageData(std::vector<unsigned char> uRawImageData);
-        
-        void setImageWidth(unsigned int uImageWidth);
-        
-        void setImageHeight(unsigned int uImageHeight);
         
         /**
         * @brief Update the users parameters used in the shader

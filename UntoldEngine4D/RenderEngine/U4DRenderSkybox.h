@@ -111,7 +111,7 @@ namespace U4DEngine {
          * @brief Creates the texture object for the skybox
          * @details It computes the size of the skybox and creates a texture object for the skybox
          */
-        void createTextureObject();
+        void createTextureObject(id<MTLTexture> &uTexture);
         
         /**
          * @brief It aligns all attribute data
@@ -139,6 +139,7 @@ namespace U4DEngine {
          @return Returns the entity absolure space-Orientation and Position
          */
         U4DDualQuaternion getEntitySpace();
+        
         
     };
     
