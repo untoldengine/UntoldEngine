@@ -16,8 +16,6 @@
 #include "U4DVector2n.h"
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
-#include "LevelOneScene.h"
-#include "StartScene.h"
 #include "SandboxScene.h"
 #include "CommonProtocols.h"
 
@@ -111,8 +109,6 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    //LevelOneScene *levelOneScene=new LevelOneScene();
-    //StartScene *startScene=new StartScene();
     SandboxScene *sandboxScene=new SandboxScene();
     
     sceneManager->changeScene(sandboxScene);

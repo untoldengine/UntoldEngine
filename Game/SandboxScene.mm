@@ -16,7 +16,7 @@ SandboxScene::~SandboxScene(){
     
     delete sandboxWorld;
     delete sandboxLogic;
-    
+    delete loadingScene;
 }
 
 void SandboxScene::init(){
@@ -24,9 +24,12 @@ void SandboxScene::init(){
     //create view component
     sandboxWorld=new SandboxWorld();
     
+    //create loading screen
+    loadingScene=new SandboxLoading();
+    
     //create model component
     sandboxLogic=new SandboxLogic();
     
-    loadComponents(sandboxWorld, sandboxLogic);
+    loadComponents(sandboxWorld,loadingScene, sandboxLogic);
     
 }

@@ -110,9 +110,9 @@ namespace U4DEngine {
         
         if (getSkyboxTexturesContainer().size()==6){
             
-            createTextureObject();
+            createTextureObject(textureObject[0]);
             
-            createSamplerObject();
+            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
             
         }else{
             
@@ -124,7 +124,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderSkybox::createTextureObject(){
+    void U4DRenderSkybox::createTextureObject(id<MTLTexture> &uTexture){ 
         
         int skyboxTextureSize = 0;
         
@@ -148,7 +148,7 @@ namespace U4DEngine {
         MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm size:skyboxTextureSize mipmapped:NO];
         
         //Create the texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:textureDescriptor];
         
         std::vector<unsigned char> skyboxImage;
         
@@ -167,7 +167,7 @@ namespace U4DEngine {
                     
                     MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
         
-                    [textureObject replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
+                    [textureObject[0] replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
         
                     clearRawImageData();
                     
@@ -243,9 +243,9 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];

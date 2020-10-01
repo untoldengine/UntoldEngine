@@ -102,7 +102,17 @@ namespace U4DEngine {
         /**
          * @brief Pointer that represents the texture object
          */
-        id<MTLTexture> textureObject;
+        id<MTLTexture> textureObject[4];
+        
+        /**
+         * @brief Pointer to the Sampler State object
+         */
+        id<MTLSamplerState> samplerStateObject[4];
+        
+        /**
+         * @brief Pointer to the Sampler descriptor
+         */
+        MTLSamplerDescriptor *samplerDescriptor[4];
 
         /**
          * @brief Pointer to the Normal Map texture
@@ -110,29 +120,14 @@ namespace U4DEngine {
         id<MTLTexture> normalMapTextureObject;
         
         /**
-         * @brief Pointer to the Sampler State object
-         */
-        id<MTLSamplerState> samplerStateObject;
-
-        /**
          * @brief Pointer to the Normal Map Sampler
          */
         id<MTLSamplerState> samplerNormalMapStateObject;
         
         /**
-         * @brief Pointer to the Sampler descriptor
-         */
-        MTLSamplerDescriptor *samplerDescriptor;
-        
-        
-        id<MTLSamplerState> secondarySamplerStateObject;
-        
-        MTLSamplerDescriptor *secondarySamplerDescriptor;
-        
-        /**
-         * @brief Pointer for second Texture object
-         */
-        id<MTLTexture> secondaryTextureObject;
+        * @brief Pointer to the Normal Map Sampler descriptor
+        */
+        MTLSamplerDescriptor *normalSamplerDescriptor;
         
         /**
          * @brief Uniform for the Light Position
@@ -305,17 +300,13 @@ namespace U4DEngine {
          * @brief Creates a texture object to be applied to an entity
          * @details It creates a texture descriptor, and loads texture raw data into a newly created texture object
          */
-        virtual void createTextureObject();
+        virtual void createTextureObject(id<MTLTexture> &uTextureObject);
         
         /**
          * @brief Creates a sampler object required for texturing
          * @details Creates a sampler descriptor and sets the filtering and addressing settings. Loads the sampler descriptor into a newly created sampler object.
          */
-        void createSamplerObject();
-        
-        void createSecondaryTextureObject();
-        
-        void createSecondarySamplerObject();
+        void createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor);
         
         /**
          * @brief Creates a Normal Map Texture

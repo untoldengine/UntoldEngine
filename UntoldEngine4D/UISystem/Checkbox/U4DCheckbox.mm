@@ -82,22 +82,18 @@ void U4DCheckbox::action(){
     
     controllerMessage.elementUIName=getName();
     
-    controllerMessage.inputElementType=U4DEngine::uiSlider;
+    controllerMessage.inputElementType=U4DEngine::uiCheckbox;
 
     U4DVector4n param(dataValue,0.0,0.0,0.0);
     updateShaderParameterContainer(0, param);
     
     if (getIsPressed()) {
         
-        controllerMessage.inputElementAction=U4DEngine::uiSliderPressed;
+        controllerMessage.inputElementAction=U4DEngine::uiCheckboxPressed;
 
     }else if(getIsReleased()){
         
-        controllerMessage.inputElementAction=U4DEngine::uiSliderReleased;
-
-    }else if(getIsActive()){
-        
-        controllerMessage.inputElementAction=U4DEngine::uiSliderMoved;
+        controllerMessage.inputElementAction=U4DEngine::uiCheckboxReleased;
 
     }
     

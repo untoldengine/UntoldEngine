@@ -156,7 +156,7 @@ void U4DJoystick::action(){
         }
 
         controllerMessage.joystickDirection=joystickDirection;
-
+        
     }else {
 
        controllerMessage.inputElementAction=U4DEngine::uiJoystickReleased;

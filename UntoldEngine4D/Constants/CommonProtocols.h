@@ -654,6 +654,7 @@ namespace U4DEngine {
         uiJoystick,
         uiButton,
         uiSlider,
+        uiCheckbox,
 
     }INPUTELEMENTTYPE;
 
@@ -697,6 +698,9 @@ namespace U4DEngine {
         uiSliderReleased,
         uiSliderMoved,
         
+        uiCheckboxPressed,
+        uiCheckboxReleased,
+        
         noAction
 
     }INPUTELEMENTACTION;
@@ -714,6 +718,7 @@ namespace U4DEngine {
         bool mouseChangeDirection;
         U4DVector2n arrowKeyDirection;
         std::string elementUIName;
+        float dataValue;
         
     }CONTROLLERMESSAGE;
 

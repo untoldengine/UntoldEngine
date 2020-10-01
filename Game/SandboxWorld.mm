@@ -22,13 +22,10 @@
 #include "U4DLayer.h"
 #include "U4DCallback.h"
 
-#include "U4DImage.h"
-#include "U4DSprite.h"
-#include "U4DSpriteAnimation.h"
 
 using namespace U4DEngine;
 
-SandboxWorld::SandboxWorld():showCollisionVolume(false),showNarrowVolume(false){
+SandboxWorld::SandboxWorld():showAnimation(false),showParticles(false){
     
 }
 
@@ -49,89 +46,111 @@ void SandboxWorld::init(){
     //Load binary file with scene data
     U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
 
-    resourceLoader->loadSceneData("soccergame.u4d");
+    //The spaceScene.u4d file contains the data for the astronaut model and island
+    //All of the .u4d files are found in the Resource folder. Note, you will need to use the Digital Asset Converter tool to convert all game asset data into .u4d files. For more info, go to www.untoldengine.com.
+    resourceLoader->loadSceneData("spaceScene.u4d");
 
-    //Load binary file with texture data
-    resourceLoader->loadTextureData("soccerTextures.u4d");
+    //Load binary file with texture data for the astronaut
+    resourceLoader->loadTextureData("spaceTextures.u4d");
     
+    //load ui textures contains images that can be used for the UIs. Look at the joystick instance below.
     resourceLoader->loadTextureData("uiTextures.u4d");
     
+    //load particle data
+    resourceLoader->loadParticleData("redBulletEmitter.u4d");
+    
+    //Load binary file with animation data
+    resourceLoader->loadAnimationData("astronautWalkAnim.u4d");
+    
+    //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");
     
-    //render the ground
-    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
+    
+    //Create an instance of U4DGameObject type
+    myAstronaut=new U4DEngine::U4DGameObject();
 
-    if(ground->loadModel("field")){
+    //Load attribute (rendering information) into the game entity
+    if (myAstronaut->loadModel("astronaut")) {
 
-        //ground->setShader("vertexFieldShader", "fragmentFieldShader");
+        myAstronaut->setEnableShadow(true);
+        
+        myAstronaut->setNormalMapTexture("astronautNormalMap.png");
+        
+        myAstronaut->enableKineticsBehavior();
+        
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+        
+        myAstronaut->setGravity(zero);
+        
+        myAstronaut->enableCollisionBehavior();
+        
+        //Line 4. Load rendering information into the GPU
+        myAstronaut->loadRenderingInformation();
 
+        //Line 5. Add astronaut to the scenegraph
+        addChild(myAstronaut);
+        
+        //store original position
+        originalPosition=myAstronaut->getAbsolutePosition();
 
-        //set shadows
-        ground->setEnableShadow(true);
-
-        ground->setNormalMapTexture("FieldNormalMap.png");
-
-        //send info to gpu
-        ground->loadRenderingInformation();
-
-        //add to scenegraph
-        addChild(ground);
     }
+    
+    // Create an Animation object and link it to the 3D model
+    walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
 
-    player=new U4DEngine::U4DGameObject();
+    //Load animation data into the animation object
+    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
 
-    if (player->loadModel("player0")) {
-
-        player->setEnableShadow(true);
-
-        player->enableCollisionBehavior();
-
-        player->loadRenderingInformation();
-
-        addChild(player);
-    }
-
-    U4DEngine::U4DGameObject *ads[5];
-
-    for(int i=0;i<sizeof(ads)/sizeof(ads[0]);i++){
-
-        std::string name="ad";
-
-        name+=std::to_string(i);
-
-        ads[i]=new U4DEngine::U4DGameObject();
-
-        if(ads[i]->loadModel(name.c_str())){
-
-            ads[i]->setEnableShadow(true);
-
-            ads[i]->loadRenderingInformation();
-
-            addChild(ads[i]);
-        }
+        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
 
     }
 
-    U4DEngine::U4DGameObject *bleachers[11];
+    
+    //Create an instance of U4DGameObject type
+    U4DEngine::U4DGameObject *island=new U4DEngine::U4DGameObject();
 
-    for(int i=0;i<sizeof(bleachers)/sizeof(bleachers[0]);i++){
+    //Line 3. Load attribute (rendering information) into the game entity
+    if (island->loadModel("island")) {
 
-        std::string name="bleacher";
+        island->setEnableShadow(true);
+        
+        //Line 4. Load rendering information into the GPU
+        island->loadRenderingInformation();
 
-        name+=std::to_string(i);
-
-        bleachers[i]=new U4DEngine::U4DGameObject();
-
-        if(bleachers[i]->loadModel(name.c_str())){
-
-            bleachers[i]->setEnableShadow(true);
-
-            bleachers[i]->loadRenderingInformation();
-
-            addChild(bleachers[i]);
-        }
+        //Line 5. Add astronaut to the scenegraph
+        addChild(island);
 
     }
+    
+    //Create a particle system
+    particleSystem=new U4DEngine::U4DParticleSystem();
+
+    //3.Load the particle's attributes file and particle texture into the Particle System entity
+    if(particleSystem->loadParticle("redBulletEmitter")){
+
+        //4. load the attributes into the GPU
+        particleSystem->loadRenderingInformation();
+
+        //5.add the particle system to the scenegraph. If you are using a Skybox, make sure to set the proper order of the particle system in the scenegraph. In this instance,
+        //I set the order to -5
+        addChild(particleSystem,-5);
+
+        particleSystem->translateBy(1.0, 0.5, 0.0);
+
+        
+    }
+    
+    //Render a skybox
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+    
+    //initialize the skybox
+    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+
+    //add the skybox to the scenegraph with appropriate z-depth
+    addChild(skybox);
+    
+    
+    //If you want UI elements, you need to create a layer and make each UI a child of the layer.
     
     //create layer manager
     U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
@@ -142,74 +161,61 @@ void SandboxWorld::init(){
     //create Layers
     U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
 
-    U4DEngine::U4DWindow *uiWindow=new U4DEngine::U4DWindow("windowA", -0.5, 0.0, 300.0, 400.0, "My Window", "uiFont");
+    //create UIs
+    U4DEngine::U4DWindow *uiWindow=new U4DEngine::U4DWindow("windowA", -0.5, 0.3, 300.0, 270.0, "My Window", "uiFont");
     
     //Create buttons to add to the layer
-    buttonA=new U4DEngine::U4DButton("buttonA",-0.7,0.3,50.0,20.0,"hi","uiFont");
-   
-    sliderA=new U4DEngine::U4DSlider("sliderA",-0.7,0.2,80.0,20.0,"Pos x","uiFont");
-    sliderB=new U4DEngine::U4DSlider("sliderB",-0.7,0.0,80.0,20.0,"Pos y","uiFont");
+    sliderA=new U4DEngine::U4DSlider("sliderA",-0.7,0.5,80.0,20.0,"Pos x","uiFont");
+    sliderB=new U4DEngine::U4DSlider("sliderB",-0.7,0.35,80.0,20.0,"Pos z","uiFont");
     
-    checkbox=new U4DEngine::U4DCheckbox("checkbox",-0.7,0.4,20.0,20.0,"Show Broad Volume","uiFont");
+    checkbox=new U4DEngine::U4DCheckbox("checkboxA",-0.8,0.2,20.0,20.0,"Show Broad Volume","uiFont");
     
-    checkboxB=new U4DEngine::U4DCheckbox("checkboxB",-0.7,0.5,20.0,20.0,"Show Convex Hull","uiFont");
+    checkboxB=new U4DEngine::U4DCheckbox("checkboxB",-0.8,0.1,20.0,20.0,"Show Convex Hull","uiFont");
     
+    checkboxC=new U4DEngine::U4DCheckbox("checkboxC",-0.8,0.0,20.0,20.0,"Animate","uiFont");
     
-    joystickA=new U4DEngine::U4DJoystick("joystick",-0.7,-0.3,90.0,90.0);
+    checkboxD=new U4DEngine::U4DCheckbox("checkboxD",-0.8,-0.1,20.0,20.0,"Particles","uiFont");
     
-//    //create a callback
-//    U4DEngine::U4DCallback<SandboxWorld>* buttonACallback=new U4DEngine::U4DCallback<SandboxWorld>;
-//
-//    buttonACallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnButtonA);
-//
-//    buttonA->setCallbackAction(buttonACallback);
-//
-    //create a callback
-    U4DEngine::U4DCallback<SandboxWorld>* sliderACallback=new U4DEngine::U4DCallback<SandboxWorld>;
+    //You can use UIs with images also
+    joystickA=new U4DEngine::U4DJoystick("joystick",-0.25,0.1,"joyStickBackground.png",90.0,90.0,"joyStickDriver.png");
+    
+    //or without images
+    //joystickA=new U4DEngine::U4DJoystick("joystick",-0.25,0.1,90.0,90.0);
+    
+    buttonA=new U4DEngine::U4DButton("buttonA",-0.25,0.5,50.0,20.0,"Reset","uiFont");
+    
+    //UI elements can have callbacks if you want. If not, all messages are sent to the Logic component. In this case, to "SandboxLogic". Look into receiveUserInputUpdate() method.
+    
+    //create a callback for button A
+    U4DEngine::U4DCallback<SandboxWorld>* buttonACallback=new U4DEngine::U4DCallback<SandboxWorld>;
 
-    sliderACallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnSlider);
+    buttonACallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnButtonA);
 
-    sliderA->setCallbackAction(sliderACallback);
+    buttonA->setCallbackAction(buttonACallback);
     
-    U4DEngine::U4DCallback<SandboxWorld>* sliderBCallback=new U4DEngine::U4DCallback<SandboxWorld>;
-
-    sliderBCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnSliderB);
-
-    sliderB->setCallbackAction(sliderBCallback);
-//
-    //create a callback
-    U4DEngine::U4DCallback<SandboxWorld>* joystickCallback=new U4DEngine::U4DCallback<SandboxWorld>;
-
-    joystickCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnJoystick);
-
-    joystickA->setCallbackAction(joystickCallback);
+    //create a callback for checkbox C
+    U4DEngine::U4DCallback<SandboxWorld>* checkboxCCallback=new U4DEngine::U4DCallback<SandboxWorld>;
     
-    //create a callback
-    U4DEngine::U4DCallback<SandboxWorld>* checkboxCallback=new U4DEngine::U4DCallback<SandboxWorld>;
+    checkboxCCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnCheckboxC);
     
-    checkboxCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnCheckbox);
+    checkboxC->setCallbackAction(checkboxCCallback);
     
-    checkbox->setCallbackAction(checkboxCallback);
+    //create a callback for checkbox D
+    U4DEngine::U4DCallback<SandboxWorld>* checkboxDCallback=new U4DEngine::U4DCallback<SandboxWorld>;
     
-    //create a callback
-    U4DEngine::U4DCallback<SandboxWorld>* checkboxBCallback=new U4DEngine::U4DCallback<SandboxWorld>;
+    checkboxDCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnCheckboxD);
     
-    checkboxBCallback->scheduleClassWithMethod(this, &SandboxWorld::actionOnCheckboxB);
-    
-    checkboxB->setCallbackAction(checkboxBCallback);
-    
-    
-
+    checkboxD->setCallbackAction(checkboxDCallback);
     
     //add the buttons to the layer
-    
     mainMenuLayer->addChild(buttonA);
     mainMenuLayer->addChild(sliderA);
     mainMenuLayer->addChild(joystickA);
     mainMenuLayer->addChild(checkbox);
     mainMenuLayer->addChild(sliderB);
     mainMenuLayer->addChild(checkboxB);
-    
+    mainMenuLayer->addChild(checkboxC);
+    mainMenuLayer->addChild(checkboxD);
     mainMenuLayer->addChild(uiWindow);
     
     layerManager->addLayerToContainer(mainMenuLayer);
@@ -217,85 +223,50 @@ void SandboxWorld::init(){
     //push layer
     layerManager->pushLayer("menuLayer");
     
-    
-
 }
 
 void SandboxWorld::actionOnButtonA(){
     
     if(buttonA->getIsPressed()){
-        
-        
+    
     }else if (buttonA->getIsReleased()){
         
-        
+         myAstronaut->translateTo(originalPosition);
     }
     
 }
 
-void SandboxWorld::actionOnSlider(){
+void SandboxWorld::actionOnCheckboxC(){
     
-    if(sliderA->getIsActive()){
+    if (checkboxC->getIsPressed() && walkAnimation!=nullptr) {
         
-        //player->translateBy(sliderA->dataValue, 0.0, 0.0);
+        showAnimation=!showAnimation;
         
-    }else if (sliderA->getIsReleased()){
-        
-        
+        if (showAnimation==true) {
+
+            walkAnimation->play();
+            
+        }else{
+            walkAnimation->stop();
+        }
     }
     
 }
 
-void SandboxWorld::actionOnSliderB(){
+void SandboxWorld::actionOnCheckboxD(){
     
-    if(sliderB->getIsActive()){
+    if (checkboxD->getIsPressed() && particleSystem!=nullptr) {
         
-        //player->translateBy(0.0,0.0,sliderB->dataValue);
+        showParticles=!showParticles;
         
-    }else if (sliderA->getIsReleased()){
-        
-        
-    }
-    
-}
+        if (showParticles==true) {
 
-void SandboxWorld::actionOnJoystick(){
-    
-    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    
-    if (joystickA->getIsActive()) {
-        
-        camera->translateBy(0.0,joystickA->dataPosition.y,joystickA->dataPosition.x);
-        
-    }else{
-    
-        
+            particleSystem->play();
+            
+        }else{
+            particleSystem->stop();
+        }
     }
-    
-}
-
-void SandboxWorld::actionOnCheckbox(){
-    
-    
-    if (checkbox->getIsPressed()) {
-        
-        //showCollisionVolume=!showCollisionVolume;
-       // setEnableGrid(showCollisionVolume);
-        //player->setBroadPhaseBoundingVolumeVisibility(showCollisionVolume);
-    }
-    
-}
-
-void SandboxWorld::actionOnCheckboxB(){
-    
-    
-    if (checkboxB->getIsPressed()) {
-        
-        //showNarrowVolume=!showNarrowVolume;
-       
-       // player->setNarrowPhaseBoundingVolumeVisibility(showNarrowVolume);
-    }
-    
 }
 
 void SandboxWorld::update(double dt){
@@ -313,12 +284,12 @@ void SandboxWorld::setupConfiguration(){
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space
-    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-30.0f, 30.0f, -30.0f, 30.0f, -30.0f, 30.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,25.0,-50.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,3.0,-5.0);
     
     //translate camera
     camera->translateTo(cameraPosition);
@@ -328,7 +299,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Create light object, translate it and set diffuse and specular color
     U4DLights *light=U4DLights::sharedInstance();
-    light->translateTo(50.0,50.0,-50.0);
+    light->translateTo(10.0,10.0,-10.0);
     U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
     U4DEngine::U4DVector3n specular(0.2,0.2,0.2);
     light->setDiffuseColor(diffuse);

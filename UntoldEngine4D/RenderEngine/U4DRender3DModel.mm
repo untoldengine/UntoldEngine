@@ -204,9 +204,9 @@ namespace U4DEngine {
             
             if (rawImageData.size()>0) {
                 
-                createTextureObject();
+                createTextureObject(textureObject[0]);
                 
-                createSamplerObject();
+                createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
                 
                 u4dObject->setHasTexture(true);
                 
@@ -530,9 +530,9 @@ namespace U4DEngine {
             [uRenderEncoder setVertexBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:6];
             
             //set texture in fragment
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             //set the samplers
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
             
             //set the shadow texture
             [uRenderEncoder setFragmentTexture:shadowTexture atIndex:1];
@@ -592,7 +592,7 @@ namespace U4DEngine {
         nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null normal texture object
         normalMapTextureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
@@ -603,7 +603,7 @@ namespace U4DEngine {
         //Create the null texture sampler object
         nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
-        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
     }

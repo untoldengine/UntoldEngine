@@ -16,7 +16,7 @@
 
 namespace U4DEngine {
 
-    U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),textureObject(nil),normalMapTextureObject(nil),samplerStateObject(nil),samplerNormalMapStateObject(nil),secondaryTextureObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),samplerDescriptor(nil),globalDataUniform(nil),secondarySamplerDescriptor(nil),secondarySamplerStateObject(nil){
+U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),globalDataUniform(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr},normalSamplerDescriptor(nil){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
@@ -31,11 +31,10 @@ namespace U4DEngine {
         [depthStencilDescriptor release];
         [mtlRenderPipelineState release];
         [mtlLibrary release];
-        [samplerDescriptor release];
-        [secondarySamplerDescriptor release];
+        
+        
         
         mtlRenderPipelineDescriptor=nil;
-        samplerDescriptor=nil;
         vertexDesc=nil;
         depthStencilDescriptor=nil;
         mtlLibrary=nil;
@@ -47,11 +46,9 @@ namespace U4DEngine {
         indicesBuffer=nil;
         uniformSpaceBuffer=nil;
         uniformModelRenderFlagsBuffer=nil;
-        textureObject=nil;
         normalMapTextureObject=nil;
-        samplerStateObject=nil;
         samplerNormalMapStateObject=nil;
-        secondaryTextureObject=nil;
+        
         lightPositionUniform=nil;
         lightColorUniform=nil;
         uniformParticlePropertyBuffer=nil;
@@ -60,10 +57,21 @@ namespace U4DEngine {
         uniformModelShaderParametersBuffer=nil;
         globalDataUniform=nil;
         
-        secondarySamplerStateObject=nil;
+        for(int i=0;i<4;i++){
+            
+            textureObject[i]=nil;
+            samplerStateObject[i]=nil;
+            
+            if (samplerDescriptor[i]!=nullptr) {
+                [samplerDescriptor[i] release];
+            }
+            
+        }
         
+        if (normalSamplerDescriptor!=nil) {
+            [normalSamplerDescriptor release];
+        }
         
-
     }
     
     void U4DRenderManager::loadRenderingInformation(){
@@ -101,81 +109,43 @@ namespace U4DEngine {
         rawImageData.clear();
     }
     
-    void U4DRenderManager::createTextureObject(){
+    void U4DRenderManager::createTextureObject(id<MTLTexture> &uTextureObject){
         
         //Create the texture descriptor
         
         MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:imageWidth height:imageHeight mipmapped:NO];
         
         //Create the texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
+        uTextureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
         
         //Copy the raw image data into the texture object
         
         MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
         
-        [textureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
+        [uTextureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
         
     }
     
-    void U4DRenderManager::createSamplerObject(){
+    void U4DRenderManager::createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor){
         
         //Create a sampler descriptor
         
-        samplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        uSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
         //Set the filtering and addressing settings
-        samplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
-        samplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
+        uSamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
+        uSamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
         
         //set the addressing mode for the S component
-        samplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
+        uSamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //set the addressing mode for the T component
-        samplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
+        uSamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //Create the sampler state object
         
-        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:samplerDescriptor];
+        uSamplerStateObject=[mtlDevice newSamplerStateWithDescriptor:uSamplerDescriptor];
         
-    }
-
-    void U4DRenderManager::createSecondaryTextureObject(){
-        
-        //Create the texture descriptor
-        
-        MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:imageWidth height:imageHeight mipmapped:NO];
-        
-        //Create the texture object
-        secondaryTextureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
-        
-        //Copy the raw image data into the texture object
-        
-        MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
-        
-        [secondaryTextureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
-        
-    }
-
-    void U4DRenderManager::createSecondarySamplerObject(){
-        
-        //Create a sampler descriptor
-        
-        secondarySamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
-        
-        //Set the filtering and addressing settings
-        secondarySamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
-        secondarySamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
-        
-        //set the addressing mode for the S component
-        secondarySamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
-        
-        //set the addressing mode for the T component
-        secondarySamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
-        
-        //Create the sampler state object
-        
-        secondarySamplerStateObject=[mtlDevice newSamplerStateWithDescriptor:secondarySamplerDescriptor];
     }
     
     void U4DRenderManager::createNormalMapTextureObject(){
@@ -200,21 +170,21 @@ namespace U4DEngine {
         
         //Create a sampler descriptor
         
-        MTLSamplerDescriptor *samplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        normalSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
         //Set the filtering and addressing settings
-        samplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
-        samplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
+        normalSamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
+        normalSamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
         
         //set the addressing mode for the S component
-        samplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
+        normalSamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //set the addressing mode for the T component
-        samplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
+        normalSamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
         
         //Create the sampler state object
         
-        samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:samplerDescriptor];
+        samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:normalSamplerDescriptor];
         
     }
     
