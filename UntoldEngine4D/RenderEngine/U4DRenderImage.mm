@@ -140,7 +140,7 @@ namespace U4DEngine {
     }
     
     U4DDualQuaternion U4DRenderImage::getEntitySpace(){
-        return u4dObject->getLocalSpace();
+        return u4dObject->getAbsoluteSpace();
     }
     
     void U4DRenderImage::updateSpaceUniforms(){

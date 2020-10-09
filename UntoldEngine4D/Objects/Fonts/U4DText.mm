@@ -23,8 +23,6 @@ namespace U4DEngine {
         
         resourceLoader->loadFontToText(this, uFontName);
         
-        //setFont();
-            
         textContainer.clear();
         
     }

@@ -68,12 +68,15 @@ U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uW
     
     U4DVector3n pos=getAbsolutePosition();
     
-    labelText->translateTo(right+U4DEngine::uiPadding,pos.y,0.0);
-    valueText->translateTo(left,bottom-U4DEngine::uiPadding, 0.0);
+    labelText->translateBy(right-centerPosition.x+U4DEngine::uiPadding,0.0,0.0);
+    valueText->translateBy(0.0,bottom-centerPosition.y-U4DEngine::uiPadding, 0.0);
 
 }
     
 U4DSlider::~U4DSlider(){
+    
+    delete labelText;
+    delete valueText;
     
 }
 
