@@ -28,12 +28,12 @@ namespace U4DEngine {
     void U4DSkybox::initSkyBox(float uSize,const char* positiveXImage,const char* negativeXImage,const char* positiveYImage,const char* negativeYImage,const char* positiveZImage, const char* negativeZImage){
         
         //add the images to the vector
-        renderManager->addTexturesToSkyboxContainer(positiveXImage);
-        renderManager->addTexturesToSkyboxContainer(negativeXImage);
-        renderManager->addTexturesToSkyboxContainer(positiveYImage);
-        renderManager->addTexturesToSkyboxContainer(negativeYImage);
-        renderManager->addTexturesToSkyboxContainer(negativeZImage);
-        renderManager->addTexturesToSkyboxContainer(positiveZImage);
+        textureInformation.texture0=positiveXImage;
+        textureInformation.texture1=negativeXImage;
+        textureInformation.texture2=positiveYImage;
+        textureInformation.texture3=negativeYImage;
+        textureInformation.texture4=negativeZImage;
+        textureInformation.texture5=positiveZImage;
         
         //calculate the vertices
         setSkyboxDimension(uSize);

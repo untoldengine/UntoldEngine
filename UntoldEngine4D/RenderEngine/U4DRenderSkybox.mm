@@ -13,15 +13,26 @@
 #include "U4DCamera.h"
 #include "U4DLogger.h"
 #include "U4DResourceLoader.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
-    U4DRenderSkybox::U4DRenderSkybox(U4DSkybox *uU4DSkybox){
+    U4DRenderSkybox::U4DRenderSkybox(U4DSkybox *uU4DSkybox):textureObject{nil},samplerStateObject{nil},samplerDescriptor{nullptr}{
         
         u4dObject=uU4DSkybox;
     }
     
     U4DRenderSkybox::~U4DRenderSkybox(){
+        
+        [textureObject setPurgeableState:MTLPurgeableStateEmpty];
+        [textureObject release];
+        
+        [samplerStateObject release];
+        [samplerDescriptor release];
+         
+        textureObject=nil;
+        samplerStateObject=nil;
+        samplerDescriptor=nil;
         
     }
     
@@ -108,11 +119,11 @@ namespace U4DEngine {
         
         //Create the texture descriptor
         
-        if (getSkyboxTexturesContainer().size()==6){
+        if (!u4dObject->textureInformation.texture0.empty()){
             
-            createTextureObject(textureObject[0]);
+            createTextureObject(textureObject);
             
-            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
+            createSamplerObject(samplerStateObject,samplerDescriptor);
             
         }else{
             
@@ -128,13 +139,13 @@ namespace U4DEngine {
         
         int skyboxTextureSize = 0;
         
-        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+        std::vector<std::string> tempSkyboxTexture{u4dObject->textureInformation.texture0,u4dObject->textureInformation.texture1,u4dObject->textureInformation.texture2,u4dObject->textureInformation.texture3,u4dObject->textureInformation.texture4,u4dObject->textureInformation.texture5};
         
-        const char* tempSkyboxTexture=getSkyboxTexturesContainer().at(0);
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
         
         for(int t=0;t<resourceLoader->texturesContainer.size();t++){
 
-            if (resourceLoader->texturesContainer.at(t).name.compare(std::string(tempSkyboxTexture))==0) {
+            if (resourceLoader->texturesContainer.at(t).name.compare(u4dObject->textureInformation.texture0)==0) {
                 
                 skyboxTextureSize=resourceLoader->texturesContainer.at(t).width;
                 
@@ -148,17 +159,16 @@ namespace U4DEngine {
         MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm size:skyboxTextureSize mipmapped:NO];
         
         //Create the texture object
-        textureObject[0]=[mtlDevice newTextureWithDescriptor:textureDescriptor];
+        textureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
         
         std::vector<unsigned char> skyboxImage;
         
         for (int slice=0; slice<6; slice++) {
             
-            const char* tempSkyboxTexture=getSkyboxTexturesContainer().at(slice);
             
             for(int t=0;t<resourceLoader->texturesContainer.size();t++){
 
-                if (resourceLoader->texturesContainer.at(t).name.compare(std::string(tempSkyboxTexture))==0) {
+                if (resourceLoader->texturesContainer.at(t).name.compare(tempSkyboxTexture.at(slice))==0) {
                     
                     setRawImageData(resourceLoader->texturesContainer.at(t).image);
                     
@@ -167,7 +177,7 @@ namespace U4DEngine {
                     
                     MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
         
-                    [textureObject[0] replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
+                    [textureObject replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
         
                     clearRawImageData();
                     
@@ -179,12 +189,6 @@ namespace U4DEngine {
             
         }
 
-    }
-    
-    void U4DRenderSkybox::setTexture0(const char* uTexture){
-        
-        u4dObject->textureInformation.texture0=uTexture;
-        
     }
     
     U4DDualQuaternion U4DRenderSkybox::getEntitySpace(){
@@ -216,8 +220,8 @@ namespace U4DEngine {
         
         U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
         
-        
-        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+        U4DNumerical numerical;
+        matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
         
         
         UniformSpace uniformSpace;
@@ -243,9 +247,9 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -260,6 +264,8 @@ namespace U4DEngine {
         //create the structure that contains the align data
         AttributeAlignedSkyboxData attributeAlignedData;
         
+        U4DNumerical numerical;
+        
         //initialize the container to a temp container
         std::vector<AttributeAlignedSkyboxData> attributeAlignedContainerTemp(u4dObject->bodyCoordinates.getVerticesDataFromContainer().size(),attributeAlignedData);
         
@@ -271,7 +277,7 @@ namespace U4DEngine {
         for(int i=0;i<attributeAlignedContainer.size();i++){
             
             U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
-            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.xyz=numerical.convertToSIMD(vertexData);
             attributeAlignedContainer.at(i).position.w=1.0;
             
         }

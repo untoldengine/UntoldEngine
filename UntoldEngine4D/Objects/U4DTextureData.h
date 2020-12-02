@@ -54,11 +54,24 @@ public:
     std::string texture3;
     
     /**
+     @brief Name of the texture representing the texture4
+     */
+    std::string texture4;
+    
+    /**
+     @brief Name of the texture representing the texture5
+     */
+    std::string texture5;
+    
+    /**
+     @brief Name of the texture representing the texture6
+     */
+    std::string texture6;
+    
+    /**
      @brief Name of the texture representing the normal map texture
      */
     std::string normalBumpTexture;
-    
-    
     
     /**
      @brief Method which sets the texture0

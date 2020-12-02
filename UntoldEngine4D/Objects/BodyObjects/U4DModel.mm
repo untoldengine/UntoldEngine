@@ -92,6 +92,32 @@ namespace U4DEngine {
         
     }
     
+    void U4DModel::setTexture0(std::string uTexture0){
+        textureInformation.texture0=uTexture0;
+    }
+        
+    void U4DModel::setTexture1(std::string uTexture1){
+        textureInformation.texture1=uTexture1;
+    }
+
+    void U4DModel::setRawImageData(std::vector<unsigned char> uRawImageData){
+      
+        renderManager->setRawImageData(uRawImageData);
+        
+    }
+        
+    void U4DModel::setImageWidth(unsigned int uImageWidth){
+        
+        renderManager->setImageWidth(uImageWidth);
+        
+    }
+        
+    void U4DModel::setImageHeight(unsigned int uImageHeight){
+        
+        renderManager->setImageHeight(uImageHeight);
+    
+    }
+
     void U4DModel::setEnableShadow(bool uValue){
         enableShadow=uValue;
     }

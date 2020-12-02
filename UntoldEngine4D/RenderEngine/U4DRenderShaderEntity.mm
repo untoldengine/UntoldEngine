@@ -11,10 +11,11 @@
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
 #include "U4DResourceLoader.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
 
-    U4DRenderShaderEntity::U4DRenderShaderEntity(U4DShaderEntity *uU4DShaderEntity){
+    U4DRenderShaderEntity::U4DRenderShaderEntity(U4DShaderEntity *uU4DShaderEntity): uniformShaderEntityPropertyBuffer(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr}{
         
         u4dObject=uU4DShaderEntity;
         
@@ -24,6 +25,24 @@ namespace U4DEngine {
     }
     
     U4DRenderShaderEntity::~U4DRenderShaderEntity(){
+        
+        uniformShaderEntityPropertyBuffer=nil;
+        
+        for(int i=0;i<4;i++){
+            
+            [textureObject[i] setPurgeableState:MTLPurgeableStateEmpty];
+            [textureObject[i] release];
+            
+            [samplerStateObject[i] release];
+            
+            textureObject[i]=nil;
+            samplerStateObject[i]=nil;
+            
+            if (samplerDescriptor[i]!=nullptr) {
+                [samplerDescriptor[i] release];
+            }
+            
+        }
         
     }
     
@@ -177,23 +196,9 @@ namespace U4DEngine {
         }
         
     }
-    
-    void U4DRenderShaderEntity::setTexture0(const char* uTexture){
-        
-        u4dObject->textureInformation.texture0=uTexture;
-        
-    }
-
-    void U4DRenderShaderEntity::setTexture1(const char* uTexture){
-        
-        u4dObject->textureInformation.texture1=uTexture;
-        
-    }
-    
-    
 
     U4DDualQuaternion U4DRenderShaderEntity::getEntitySpace(){
-        return u4dObject->getLocalSpace();
+        return u4dObject->getAbsoluteSpace();
     }
     
     void U4DRenderShaderEntity::updateSpaceUniforms(){
@@ -218,8 +223,9 @@ namespace U4DEngine {
         
         U4DMatrix4n mvpSpace=orthogonalProjection*modelWorldViewSpace;
         
+        U4DNumerical numerical;
         
-        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+        matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
         
         
         UniformSpace uniformSpace;
@@ -274,6 +280,8 @@ namespace U4DEngine {
 
     void U4DRenderShaderEntity::updateShaderEntityParams(){
         
+        U4DNumerical numerical;
+        
         int sizeOfShaderParameterVector=(int)u4dObject->getShaderParameterContainer().size();
         
         UniformShaderEntityProperty uniformShaderEntityProperty;
@@ -283,7 +291,7 @@ namespace U4DEngine {
             //load param1
             U4DVector4n shaderParameter=u4dObject->getShaderParameterContainer().at(i);
             
-            vector_float4 shaderParameterSIMD=convertToSIMD(shaderParameter);
+            vector_float4 shaderParameterSIMD=numerical.convertToSIMD(shaderParameter);
             
             uniformShaderEntityProperty.shaderParameter[i]=shaderParameterSIMD;
             
@@ -305,6 +313,7 @@ namespace U4DEngine {
     void U4DRenderShaderEntity::alignedAttributeData(){
         
         AttributeAlignedShaderEntityData attributeAlignedData;
+        U4DNumerical numerical;
         
         std::vector<AttributeAlignedShaderEntityData> attributeAlignedContainerTemp(u4dObject->bodyCoordinates.getVerticesDataFromContainer().size(),attributeAlignedData);
 
@@ -314,12 +323,12 @@ namespace U4DEngine {
             
             U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
             
-            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.xyz=numerical.convertToSIMD(vertexData);
             attributeAlignedContainer.at(i).position.w=1.0;
             
             U4DVector2n uvData=u4dObject->bodyCoordinates.uVContainer.at(i);
             
-            attributeAlignedContainer.at(i).uv.xy=convertToSIMD(uvData);
+            attributeAlignedContainer.at(i).uv.xy=numerical.convertToSIMD(uvData);
             
         }
         

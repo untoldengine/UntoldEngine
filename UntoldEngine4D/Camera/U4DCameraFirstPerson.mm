@@ -55,15 +55,19 @@ namespace U4DEngine {
             U4DVector3n newCameraDirection=motionAccumulator;
             
             //multiply the view direction vector by a large value to keep the model looking into the distance
-            newCameraDirection*=1000.0;
-            
+            newCameraDirection*=10000.0;
+
             camera->viewInDirection(newCameraDirection);
-            
+
             //translate camera along the direction of the view direction of the model
-            U4DVector3n newCameraPosition=modelPosition+modelViewDirection*zOffset;
-            
-            newCameraPosition.y=yOffset+modelPosition.y;
-            
+            U4DVector3n offsetVector(xOffset,yOffset,zOffset);
+
+            U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
+
+            U4DVector3n n=m*offsetVector;
+
+            U4DVector3n newCameraPosition=modelPosition+n;
+
             camera->translateTo(newCameraPosition);
             
         }

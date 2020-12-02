@@ -11,6 +11,7 @@
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
@@ -132,8 +133,8 @@ namespace U4DEngine {
         
         U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
         
-        
-        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+        U4DNumerical numerical;
+        matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
         
         
         UniformSpace uniformSpace;

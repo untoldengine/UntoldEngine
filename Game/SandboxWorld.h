@@ -16,6 +16,7 @@
 #include "U4DJoystick.h"
 #include "U4DSlider.h"
 #include "U4DCheckbox.h"
+#include "U4DWindow.h"
 #include "U4DText.h"
 #include "U4DAnimation.h"
 #include "U4DParticleSystem.h"
@@ -38,6 +39,7 @@ private:
     U4DEngine::U4DCheckbox *checkboxB;
     U4DEngine::U4DCheckbox *checkboxC;
     U4DEngine::U4DCheckbox *checkboxD;
+    U4DEngine::U4DWindow *uiWindow;
     
     bool showAnimation;
     bool showParticles;
@@ -64,6 +66,8 @@ public:
     void actionOnCheckboxC();
     
     void actionOnCheckboxD();
+    
+    void actionOnSliderA();
     
 };
 #endif /* DebugWorld_hpp */

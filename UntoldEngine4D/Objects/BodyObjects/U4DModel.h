@@ -343,6 +343,16 @@ namespace U4DEngine {
         
         std::vector<U4DVector4n> getModelShaderParameterContainer();
         
+        void setTexture0(std::string uTexture0);
+        
+        void setTexture1(std::string uTexture1);
+        
+        void setRawImageData(std::vector<unsigned char> uRawImageData);
+        
+        void setImageWidth(unsigned int uImageWidth);
+        
+        void setImageHeight(unsigned int uImageHeight);
+        
     };
     
 }

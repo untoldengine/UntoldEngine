@@ -44,8 +44,8 @@ namespace U4DEngine {
             
             if (strcmp(spriteData.name, uSprite)==0) {
                 
-                    renderManager->setTexture0(spriteLoader->spriteAtlasImage.c_str());
-
+                textureInformation.texture0=spriteLoader->spriteAtlasImage.c_str();
+                    
                 if(resourceLoader->loadTextureDataToEntity(renderManager, spriteLoader->spriteAtlasImage.c_str())){
 
                     //set the rectangle for the sprite

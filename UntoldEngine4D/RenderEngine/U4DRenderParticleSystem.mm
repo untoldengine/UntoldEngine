@@ -14,10 +14,11 @@
 #include "U4DLights.h"
 #include "U4DMaterialData.h"
 #include "U4DColorData.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
-    U4DRenderParticleSystem::U4DRenderParticleSystem(U4DParticleSystem *uU4DParticleSystem):nullSamplerDescriptor(nil){
+    U4DRenderParticleSystem::U4DRenderParticleSystem(U4DParticleSystem *uU4DParticleSystem):nullSamplerDescriptor(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil),textureObject{nil},samplerStateObject{nil},samplerDescriptor{nullptr}{
         
         u4dObject=uU4DParticleSystem;
         
@@ -31,6 +32,24 @@ namespace U4DEngine {
         
         nullSamplerDescriptor=nil;
         
+        [uniformParticlePropertyBuffer setPurgeableState:MTLPurgeableStateEmpty];
+        [uniformParticlePropertyBuffer release];
+        
+        [uniformParticleSystemPropertyBuffer setPurgeableState:MTLPurgeableStateEmpty];
+        [uniformParticleSystemPropertyBuffer release];
+        
+        uniformParticlePropertyBuffer=nil;
+        uniformParticleSystemPropertyBuffer=nil;
+        
+        [textureObject setPurgeableState:MTLPurgeableStateEmpty];
+        [textureObject release];
+      
+        [samplerStateObject release];
+        [samplerDescriptor release];
+       
+        textureObject=nil;
+        samplerStateObject=nil;
+        samplerDescriptor=nil;
     }
     
     U4DDualQuaternion U4DRenderParticleSystem::getEntitySpace(){
@@ -182,9 +201,9 @@ namespace U4DEngine {
         
         if (!u4dObject->textureInformation.texture0.empty() && rawImageData.size()>0){
             
-            createTextureObject(textureObject[0]);
+            createTextureObject(textureObject);
             
-            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);   
+            createSamplerObject(samplerStateObject,samplerDescriptor);
             
             u4dObject->setHasTexture(true);
             
@@ -237,13 +256,10 @@ namespace U4DEngine {
     
     }
     
-    void U4DRenderParticleSystem::setTexture0(const char* uTexture){
-        
-        u4dObject->textureInformation.texture0=uTexture;
-        
-    }
     
     void U4DRenderParticleSystem::updateParticlePropertiesInformation(){
+        
+        U4DNumerical numerical;
         
         int numberOfParticlesToRender=(int)u4dObject->getParticleRenderDataContainer().size();
         
@@ -254,7 +270,7 @@ namespace U4DEngine {
                 //load particle color
                 U4DVector4n color=u4dObject->getParticleRenderDataContainer().at(i).color;
                 
-                vector_float4 colorSIMD=convertToSIMD(color);
+                vector_float4 colorSIMD=numerical.convertToSIMD(color);
                 
                 uniformParticleProperty[i].color=colorSIMD;
                 
@@ -302,11 +318,13 @@ namespace U4DEngine {
             U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
             
             //Conver to SIMD
-            matrix_float4x4 modelSpaceSIMD=convertToSIMD(modelSpace);
-            matrix_float4x4 worldModelSpaceSIMD=convertToSIMD(worldSpace);
-            matrix_float4x4 viewWorldModelSpaceSIMD=convertToSIMD(modelWorldViewSpace);
-            matrix_float4x4 viewSpaceSIMD=convertToSIMD(viewSpace);
-            matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+            U4DNumerical numerical;
+            
+            matrix_float4x4 modelSpaceSIMD=numerical.convertToSIMD(modelSpace);
+            matrix_float4x4 worldModelSpaceSIMD=numerical.convertToSIMD(worldSpace);
+            matrix_float4x4 viewWorldModelSpaceSIMD=numerical.convertToSIMD(modelWorldViewSpace);
+            matrix_float4x4 viewSpaceSIMD=numerical.convertToSIMD(viewSpace);
+            matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
             
             
             uniformSpace[i].modelSpace=modelSpaceSIMD;
@@ -351,10 +369,10 @@ namespace U4DEngine {
             [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
             
             //set texture in fragment
-            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
             
             //set the samplers
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
             
             
             //set the draw command
@@ -370,19 +388,20 @@ namespace U4DEngine {
         MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
-        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null texture sampler object
         nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
-        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
     }
     
     void U4DRenderParticleSystem::alignedAttributeData(){
 
         AttributeAlignedParticleData attributeAlignedData;
-
+        U4DNumerical numerical;
+        
         std::vector<AttributeAlignedParticleData> attributeAlignedContainerTemp(u4dObject->bodyCoordinates.getVerticesDataFromContainer().size(),attributeAlignedData);
 
         attributeAlignedContainer=attributeAlignedContainerTemp;
@@ -393,14 +412,14 @@ namespace U4DEngine {
         for(int i=0;i<attributeAlignedContainer.size();i++){
 
             U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
-            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.xyz=numerical.convertToSIMD(vertexData);
             attributeAlignedContainer.at(i).position.w=1.0;
 
             if (alignUVContainer) {
                 
                 U4DVector2n uvData=u4dObject->bodyCoordinates.uVContainer.at(i);
                 
-                attributeAlignedContainer.at(i).uv.xy=convertToSIMD(uvData);
+                attributeAlignedContainer.at(i).uv.xy=numerical.convertToSIMD(uvData);
                 attributeAlignedContainer.at(i).uv.z=0.0;
                 attributeAlignedContainer.at(i).uv.w=0.0;
                 

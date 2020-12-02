@@ -64,12 +64,14 @@ U4DWindow::U4DWindow(std::string uName, float xPosition,float yPosition,float uW
     
     U4DVector3n pos=getAbsolutePosition();
     
-    labelText->translateTo(left+U4DEngine::uiPadding,top-U4DEngine::uiPadding,0.0);
+    //labelText->translateTo(left+U4DEngine::uiPadding,top-U4DEngine::uiPadding,0.0);
+    labelText->translateBy(left/2.0+5.0*U4DEngine::uiPadding,top/2.0+3.0*U4DEngine::uiPadding,0.0);
 
 }
     
 U4DWindow::~U4DWindow(){
     
+    delete labelText;
 }
 
 
@@ -126,7 +128,24 @@ bool U4DWindow::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPositi
     
     bool withinBoundary=false;
     
+    if (uPosition.x>left && uPosition.x<right) {
     
+        if (uPosition.y>bottom && uPosition.y<top) {
+         
+            withinBoundary=true;
+            
+            U4DEntity *child=this->getLastChild();
+            
+            while (child!=nullptr) {
+                
+                
+                child=child->getPrevSibling();
+                
+            }
+            
+        }
+        
+    }
     
     return withinBoundary;
     

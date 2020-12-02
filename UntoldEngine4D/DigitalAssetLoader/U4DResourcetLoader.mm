@@ -864,23 +864,7 @@ namespace U4DEngine {
                 loadSpecularHardnessData(uModel, modelsContainer.at(n).specularHardness);
                 
                 //TEXTURE IMAGE
-                if (modelsContainer.at(n).textureNameSize>0) {
-                    
-                    for(int t=0;t<texturesContainer.size();t++){
-
-                        if (texturesContainer.at(t).name.compare(modelsContainer.at(n).textureImage)==0) {
-                            
-                            uModel->textureInformation.setTexture0(modelsContainer.at(n).textureImage);
-                            uModel->renderManager->setRawImageData(texturesContainer.at(t).image);
-                            uModel->renderManager->setImageWidth(texturesContainer.at(t).width);
-                            uModel->renderManager->setImageHeight(texturesContainer.at(t).height);
-
-                        }
-
-                    }
-                    
-                
-                }
+                uModel->setTexture0(modelsContainer.at(n).textureImage);
                 
                 //LOCAL MATRIX
                 loadEntityMatrixSpace(uModel, modelsContainer.at(n).localMatrix);

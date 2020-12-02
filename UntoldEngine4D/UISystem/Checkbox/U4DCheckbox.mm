@@ -62,12 +62,14 @@ U4DCheckbox::U4DCheckbox(std::string uName, float xPosition,float yPosition,floa
     addChild(labelText);
     
     U4DVector3n pos=getAbsolutePosition();
-    
-    labelText->translateTo(right+U4DEngine::uiPadding,pos.y,0.0);
+
+    labelText->translateBy(right-centerPosition.x+U4DEngine::uiPadding,0.0,0.0);
 
 }
     
 U4DCheckbox::~U4DCheckbox(){
+    
+    delete labelText;
     
 }
 

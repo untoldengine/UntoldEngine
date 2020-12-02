@@ -46,14 +46,24 @@ namespace U4DEngine {
         U4DSkybox *u4dObject;
         
         /**
-         * @brief Pointer to the uniform buffer that holds all 6 textures for the skybox         
-         */
-        id<MTLTexture> textureSkyboxObject[6];
-        
-        /**
          * @brief vector for the aligned attribute data. The attributes need to be aligned before they are processed by the GPU
          */
         std::vector<AttributeAlignedSkyboxData> attributeAlignedContainer;
+        
+        /**
+         * @brief Pointer that represents the texture object
+         */
+        id<MTLTexture> textureObject;
+        
+        /**
+         * @brief Pointer to the Sampler State object
+         */
+        id<MTLSamplerState> samplerStateObject;
+        
+        /**
+         * @brief Pointer to the Sampler descriptor
+         */
+        MTLSamplerDescriptor *samplerDescriptor;
         
     public:
         
@@ -120,14 +130,6 @@ namespace U4DEngine {
         void alignedAttributeData();
         
         /**
-         * @brief Sets the texture image for the image
-         * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
-         *
-         * @param uTexture texture name
-         */
-        void setTexture0(const char* uTexture);
-        
-        /**
          * @brief clears all attributes containers
          * @details clears attributes containers such as vertices and UVs
          */
@@ -139,7 +141,6 @@ namespace U4DEngine {
          @return Returns the entity absolure space-Orientation and Position
          */
         U4DDualQuaternion getEntitySpace();
-        
         
     };
     

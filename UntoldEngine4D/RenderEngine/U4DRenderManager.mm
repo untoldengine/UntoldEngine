@@ -13,14 +13,15 @@
 #include "U4DShaderProtocols.h"
 #include <simd/simd.h>
 #include "U4DLogger.h"
+#include "U4DResourceLoader.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
 
-U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformParticleSystemPropertyBuffer(nil),uniformParticlePropertyBuffer(nil), uniformShaderEntityPropertyBuffer(nil),uniformModelShaderParametersBuffer(nil),globalDataUniform(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr},normalSamplerDescriptor(nil){
+U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),globalDataUniform(nil){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         mtlDevice=director->getMTLDevice();
-        
         
     }
     
@@ -32,8 +33,6 @@ U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(fal
         [mtlRenderPipelineState release];
         [mtlLibrary release];
         
-        
-        
         mtlRenderPipelineDescriptor=nil;
         vertexDesc=nil;
         depthStencilDescriptor=nil;
@@ -42,35 +41,21 @@ U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(fal
         depthStencilState=nil;
         vertexProgram=nil;
         fragmentProgram=nil;
+        
+        [attributeBuffer setPurgeableState:MTLPurgeableStateEmpty];
+        [indicesBuffer setPurgeableState:MTLPurgeableStateEmpty];
+        [uniformSpaceBuffer setPurgeableState:MTLPurgeableStateEmpty];
+        [globalDataUniform setPurgeableState:MTLPurgeableStateEmpty];
+        
+        [attributeBuffer release];
+        [indicesBuffer release];
+        [uniformSpaceBuffer release];
+        [globalDataUniform release];
+        
         attributeBuffer=nil;
         indicesBuffer=nil;
         uniformSpaceBuffer=nil;
-        uniformModelRenderFlagsBuffer=nil;
-        normalMapTextureObject=nil;
-        samplerNormalMapStateObject=nil;
-        
-        lightPositionUniform=nil;
-        lightColorUniform=nil;
-        uniformParticlePropertyBuffer=nil;
-        uniformParticleSystemPropertyBuffer=nil;
-        uniformShaderEntityPropertyBuffer=nil;
-        uniformModelShaderParametersBuffer=nil;
         globalDataUniform=nil;
-        
-        for(int i=0;i<4;i++){
-            
-            textureObject[i]=nil;
-            samplerStateObject[i]=nil;
-            
-            if (samplerDescriptor[i]!=nullptr) {
-                [samplerDescriptor[i] release];
-            }
-            
-        }
-        
-        if (normalSamplerDescriptor!=nil) {
-            [normalSamplerDescriptor release];
-        }
         
     }
     
@@ -148,148 +133,27 @@ U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(fal
         
     }
     
-    void U4DRenderManager::createNormalMapTextureObject(){
+    
+
+    bool U4DRenderManager::createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName){
         
-        //Create the texture descriptor
+        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
         
-        MTLTextureDescriptor *normalMapTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:imageWidth height:imageHeight mipmapped:NO];
+        if(resourceLoader->loadTextureDataToEntity(this, uTextureName.c_str())){
+            
+            createTextureObject(uTextureObject);
+            
+            createSamplerObject(uSamplerStateObject,uSamplerDescriptor);
+            
+            clearRawImageData();
+            
+            return true;
+        }
         
-        //Create the normal texture object
-        normalMapTextureObject=[mtlDevice newTextureWithDescriptor:normalMapTextureDescriptor];
-        
-        //Copy the normal map raw image data into the texture object
-        
-        MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
-        
-        [normalMapTextureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
-        
+        return false;
         
     }
     
-    void U4DRenderManager::createNormalMapSamplerObject(){
-        
-        //Create a sampler descriptor
-        
-        normalSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
-        
-        //Set the filtering and addressing settings
-        normalSamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
-        normalSamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
-        
-        //set the addressing mode for the S component
-        normalSamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
-        
-        //set the addressing mode for the T component
-        normalSamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
-        
-        //Create the sampler state object
-        
-        samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:normalSamplerDescriptor];
-        
-    }
-    
-    void U4DRenderManager::addTexturesToSkyboxContainer(const char* uTextures){
-        
-        skyboxTexturesContainer.push_back(uTextures);
-    }
-    
-    std::vector<const char*> U4DRenderManager::getSkyboxTexturesContainer(){
-        
-        return skyboxTexturesContainer;
-        
-    }
-    
-    
-    matrix_float4x4 U4DRenderManager::convertToSIMD(U4DEngine::U4DMatrix4n &uMatrix){
-        
-        // 4x4 matrix - column major. X vector is 0, 1, 2, etc.
-        //	0	4	8	12
-        //	1	5	9	13
-        //	2	6	10	14
-        //	3	7	11	15
-        
-        matrix_float4x4 m;
-        
-        m.columns[0][0]=uMatrix.matrixData[0];
-        m.columns[0][1]=uMatrix.matrixData[1];
-        m.columns[0][2]=uMatrix.matrixData[2];
-        m.columns[0][3]=uMatrix.matrixData[3];
-        
-        m.columns[1][0]=uMatrix.matrixData[4];
-        m.columns[1][1]=uMatrix.matrixData[5];
-        m.columns[1][2]=uMatrix.matrixData[6];
-        m.columns[1][3]=uMatrix.matrixData[7];
-        
-        m.columns[2][0]=uMatrix.matrixData[8];
-        m.columns[2][1]=uMatrix.matrixData[9];
-        m.columns[2][2]=uMatrix.matrixData[10];
-        m.columns[2][3]=uMatrix.matrixData[11];
-        
-        m.columns[3][0]=uMatrix.matrixData[12];
-        m.columns[3][1]=uMatrix.matrixData[13];
-        m.columns[3][2]=uMatrix.matrixData[14];
-        m.columns[3][3]=uMatrix.matrixData[15];
-        
-        return m;
-        
-    }
-    
-    matrix_float3x3 U4DRenderManager::convertToSIMD(U4DEngine::U4DMatrix3n &uMatrix){
-        
-        //	0	3	6
-        //	1	4	7
-        //	2	5	8
-        
-        matrix_float3x3 m;
-        
-        m.columns[0][0]=uMatrix.matrixData[0];
-        m.columns[0][1]=uMatrix.matrixData[1];
-        m.columns[0][2]=uMatrix.matrixData[2];
-        
-        m.columns[1][0]=uMatrix.matrixData[3];
-        m.columns[1][1]=uMatrix.matrixData[4];
-        m.columns[1][2]=uMatrix.matrixData[5];
-        
-        m.columns[2][0]=uMatrix.matrixData[6];
-        m.columns[2][1]=uMatrix.matrixData[7];
-        m.columns[2][2]=uMatrix.matrixData[8];
-        
-        return m;
-        
-    }
-    
-    vector_float4 U4DRenderManager::convertToSIMD(U4DEngine::U4DVector4n &uVector){
-        
-        vector_float4 v;
-        
-        v.x=uVector.x;
-        v.y=uVector.y;
-        v.z=uVector.z;
-        v.w=uVector.w;
-        
-        return v;
-    }
-    
-    vector_float3 U4DRenderManager::convertToSIMD(U4DEngine::U4DVector3n &uVector){
-        
-        vector_float3 v;
-        
-        v.x=uVector.x;
-        v.y=uVector.y;
-        v.z=uVector.z;
-        
-        return v;
-    }
-    
-    vector_float2 U4DRenderManager::convertToSIMD(U4DEngine::U4DVector2n &uVector){
-        
-        vector_float2 v;
-        
-        v.x=uVector.x;
-        v.y=uVector.y;
-        
-        return v;
-    }
 
     void U4DRenderManager::setIsWithinFrustum(bool uValue){
         
@@ -313,6 +177,8 @@ U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(fal
     
     void U4DRenderManager::updateGlobalDataUniforms(){
         
+        U4DNumerical numerical;
+        
         U4DDirector *director=U4DDirector::sharedInstance();
         U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
         U4DScene *scene=sceneManager->getCurrentScene();
@@ -320,7 +186,7 @@ U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(fal
         //get the resolution of the display
         U4DVector2n resolution(director->getDisplayWidth(),director->getDisplayHeight());
         
-        vector_float2 resolutionSIMD=convertToSIMD(resolution);
+        vector_float2 resolutionSIMD=numerical.convertToSIMD(resolution);
         
         UniformGlobalData uniformGlobalData;
         uniformGlobalData.time=scene->getGlobalTime(); //set the global time
