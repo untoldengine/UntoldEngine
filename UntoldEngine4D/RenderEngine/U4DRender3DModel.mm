@@ -14,10 +14,11 @@
 #include "U4DMaterialData.h"
 #include "U4DColorData.h"
 #include "U4DResourceLoader.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
 
-    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil){
+    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformModelShaderParametersBuffer(nil),normalSamplerDescriptor(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr}{ 
         
         u4dObject=uU4DModel;
         
@@ -36,6 +37,35 @@ namespace U4DEngine {
         nullSamplerDescriptor=nil;
         shadowTexture=nil;
         shadowPropertiesBuffer=nil;
+        
+        uniformModelRenderFlagsBuffer=nil;
+        normalMapTextureObject=nil;
+        samplerNormalMapStateObject=nil;
+        
+        lightPositionUniform=nil;
+        lightColorUniform=nil;
+        
+        uniformModelShaderParametersBuffer=nil;
+        
+        for(int i=0;i<4;i++){
+            
+            [textureObject[i] setPurgeableState:MTLPurgeableStateEmpty];
+            [textureObject[i] release];
+            
+            [samplerStateObject[i] release];
+            
+            textureObject[i]=nil;
+            samplerStateObject[i]=nil;
+            
+            if (samplerDescriptor[i]!=nullptr) {
+                [samplerDescriptor[i] release];
+            }
+            
+        }
+        
+        if (normalSamplerDescriptor!=nil) {
+            [normalSamplerDescriptor release];
+        }
     }
     
     U4DDualQuaternion U4DRender3DModel::getEntitySpace(){
@@ -200,26 +230,44 @@ namespace U4DEngine {
     
     void U4DRender3DModel::loadMTLTexture(){
         
-        if (!u4dObject->textureInformation.texture0.empty() && u4dObject->bodyCoordinates.uVContainer.size()!=0){
+        if(u4dObject->bodyCoordinates.uVContainer.size()!=0){
             
-            if (rawImageData.size()>0) {
+            //load texture0
+            if (!u4dObject->textureInformation.texture0.empty()){
                 
-                createTextureObject(textureObject[0]);
+                if (createTextureAndSamplerObjects(textureObject[0], samplerStateObject[0], samplerDescriptor[0], u4dObject->textureInformation.texture0.c_str())) {
+                    
+                    u4dObject->setHasTexture(true);
+                    
+                }else{
+                    
+                    U4DLogger *logger=U4DLogger::sharedInstance();
+                    
+                    logger->log("ERROR: No data found for the Image Texture %s",u4dObject->textureInformation.texture0.c_str());
+                    
+                }
                 
-                createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
-                
-                u4dObject->setHasTexture(true);
-                
-            }else{
-                U4DLogger *logger=U4DLogger::sharedInstance();
-                
-                logger->log("ERROR: No data found for the Image Texture");
             }
             
-            //after loading the image, clear the vector holding the image in CPU
+            //load texture1
+            if (!u4dObject->textureInformation.texture1.empty()){
+                    
+                if (createTextureAndSamplerObjects(textureObject[1], samplerStateObject[1], samplerDescriptor[1], u4dObject->textureInformation.texture1.c_str())) {
+                    
+                    //set any flags here
+                    
+                }else{
+                    
+                    U4DLogger *logger=U4DLogger::sharedInstance();
+                    
+                    logger->log("ERROR: No data found for the Image Texture %s", u4dObject->textureInformation.texture1.c_str());
+                    
+                }
+                
+            }
             
-            clearRawImageData();
         }
+        
         
     }
     
@@ -240,6 +288,8 @@ namespace U4DEngine {
     
     void U4DRender3DModel::loadMTLLightColorInformation(){
         
+        U4DNumerical numerical;
+        
         lightColorUniform=[mtlDevice newBufferWithLength:sizeof(UniformLightColor) options:MTLResourceStorageModeShared];
         
         U4DLights *light=U4DLights::sharedInstance();
@@ -249,8 +299,8 @@ namespace U4DEngine {
         U4DVector3n diffuseColor=light->getDiffuseColor();
         U4DVector3n specularColor=light->getSpecularColor();
         
-        vector_float3 diffuseColorSIMD=convertToSIMD(diffuseColor);
-        vector_float3 specularColorSIMD=convertToSIMD(specularColor);
+        vector_float3 diffuseColorSIMD=numerical.convertToSIMD(diffuseColor);
+        vector_float3 specularColorSIMD=numerical.convertToSIMD(specularColor);
         
         uniformLightColor.diffuseColor=diffuseColorSIMD;
         uniformLightColor.specularColor=specularColorSIMD;
@@ -264,6 +314,7 @@ namespace U4DEngine {
         //create the uniform
         uniformMaterialBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelMaterial) options:MTLResourceStorageModeShared];
         
+        U4DNumerical numerical;
         
         if (u4dObject->materialInformation.materialIndexColorContainer.size()!=0) {
             
@@ -277,7 +328,7 @@ namespace U4DEngine {
                 color.z=u4dObject->materialInformation.diffuseMaterialColorContainer.at(i).colorData[2];
                 color.w=u4dObject->materialInformation.diffuseMaterialColorContainer.at(i).colorData[3];
                 
-                vector_float4 colorSIMD=convertToSIMD(color);
+                vector_float4 colorSIMD=numerical.convertToSIMD(color);
                 
                 uniformModelMaterial.diffuseMaterialColor[i]=colorSIMD;
                 
@@ -291,7 +342,7 @@ namespace U4DEngine {
                 color.z=u4dObject->materialInformation.specularMaterialColorContainer.at(i).colorData[2];
                 color.w=u4dObject->materialInformation.specularMaterialColorContainer.at(i).colorData[3];
                 
-                vector_float4 colorSIMD=convertToSIMD(color);
+                vector_float4 colorSIMD=numerical.convertToSIMD(color);
                 
                 uniformModelMaterial.specularMaterialColor[i]=colorSIMD;
                 
@@ -365,16 +416,57 @@ namespace U4DEngine {
         }
         
     }
+
+    void U4DRender3DModel::createNormalMapTextureObject(){
+        
+        //Create the texture descriptor
+        
+        MTLTextureDescriptor *normalMapTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:imageWidth height:imageHeight mipmapped:NO];
+        
+        //Create the normal texture object
+        normalMapTextureObject=[mtlDevice newTextureWithDescriptor:normalMapTextureDescriptor];
+        
+        //Copy the normal map raw image data into the texture object
+        
+        MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
+        
+        [normalMapTextureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
+        
+        
+    }
+
+    void U4DRender3DModel::createNormalMapSamplerObject(){
+        
+        //Create a sampler descriptor
+        
+        normalSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
+        
+        //Set the filtering and addressing settings
+        normalSamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
+        normalSamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
+        
+        //set the addressing mode for the S component
+        normalSamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
+        
+        //set the addressing mode for the T component
+        normalSamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
+        
+        //Create the sampler state object
+        
+        samplerNormalMapStateObject=[mtlDevice newSamplerStateWithDescriptor:normalSamplerDescriptor];
+        
+    }
     
     void U4DRender3DModel::updateBoneSpaceUniforms(){
         
         UniformBoneSpace uniformBoneSpace;
+        U4DNumerical numerical;
         
         for(int i=0;i<u4dObject->armatureBoneMatrix.size();i++){
             
             U4DMatrix4n boneSpace=u4dObject->armatureBoneMatrix.at(i);
             
-            uniformBoneSpace.boneSpace[i]=convertToSIMD(boneSpace);
+            uniformBoneSpace.boneSpace[i]=numerical.convertToSIMD(boneSpace);
             
         }
         
@@ -430,16 +522,18 @@ namespace U4DEngine {
         U4DVector4n lightPosition(lightPos.x, lightPos.y, lightPos.z, 1.0);
         
         //Conver to SIMD
-        matrix_float4x4 modelSpaceSIMD=convertToSIMD(modelSpace);
-        matrix_float4x4 worldModelSpaceSIMD=convertToSIMD(worldSpace);
-        matrix_float4x4 viewWorldModelSpaceSIMD=convertToSIMD(modelWorldViewSpace);
-        matrix_float4x4 viewSpaceSIMD=convertToSIMD(viewSpace);
-        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+        U4DNumerical numerical;
         
-        matrix_float3x3 normalSpaceSIMD=convertToSIMD(normalSpace);
-        vector_float4 lightPositionSIMD=convertToSIMD(lightPosition);
+        matrix_float4x4 modelSpaceSIMD=numerical.convertToSIMD(modelSpace);
+        matrix_float4x4 worldModelSpaceSIMD=numerical.convertToSIMD(worldSpace);
+        matrix_float4x4 viewWorldModelSpaceSIMD=numerical.convertToSIMD(modelWorldViewSpace);
+        matrix_float4x4 viewSpaceSIMD=numerical.convertToSIMD(viewSpace);
+        matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
         
-        matrix_float4x4 lightShadowProjectionSpaceSIMD=convertToSIMD(lightShadowProjectionSpace);
+        matrix_float3x3 normalSpaceSIMD=numerical.convertToSIMD(normalSpace);
+        vector_float4 lightPositionSIMD=numerical.convertToSIMD(lightPosition);
+        
+        matrix_float4x4 lightShadowProjectionSpaceSIMD=numerical.convertToSIMD(lightShadowProjectionSpace);
         
         UniformSpace uniformSpace;
         uniformSpace.modelSpace=modelSpaceSIMD;
@@ -484,9 +578,11 @@ namespace U4DEngine {
         lightShadowProjectionSpace=orthogonalProjection*lightSpace;
         
         //Convert to SIMD
-        matrix_float4x4 lightShadowProjectionSpaceSIMD=convertToSIMD(lightShadowProjectionSpace);
+        U4DNumerical numerical;
         
-        matrix_float4x4 modelMatrixSIMD=convertToSIMD(modelSpace);
+        matrix_float4x4 lightShadowProjectionSpaceSIMD=numerical.convertToSIMD(lightShadowProjectionSpace);
+        
+        matrix_float4x4 modelMatrixSIMD=numerical.convertToSIMD(modelSpace);
         
         
         UniformSpace uniformSpace;
@@ -548,6 +644,12 @@ namespace U4DEngine {
             
             [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
             [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];
+            
+            //texture1
+            [uRenderEncoder setFragmentTexture:textureObject[1] atIndex:3];
+            //set the samplers
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:3];
+            
             
             
             //set the draw command
@@ -630,6 +732,8 @@ namespace U4DEngine {
         bool alignMaterialContainer=false;
         bool alignArmature=false;
         
+        U4DNumerical numerical;
+        
         if (u4dObject->bodyCoordinates.uVContainer.size()>0) alignUVContainer=true;
         if (u4dObject->bodyCoordinates.tangentContainer.size()>0) alignTangentContainer=true;
         if (u4dObject->materialInformation.materialIndexColorContainer.size()>0) alignMaterialContainer=true;
@@ -662,12 +766,12 @@ namespace U4DEngine {
             
             //align vertex data
             U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
-            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.xyz=numerical.convertToSIMD(vertexData);
             attributeAlignedContainer.at(i).position.w=1.0;
             
             //align normal data
             U4DVector3n normalData=u4dObject->bodyCoordinates.normalContainer.at(i);
-            attributeAlignedContainer.at(i).normal.xyz=convertToSIMD(normalData);
+            attributeAlignedContainer.at(i).normal.xyz=numerical.convertToSIMD(normalData);
             attributeAlignedContainer.at(i).normal.w=1.0;
             
             //align uv data
@@ -675,7 +779,7 @@ namespace U4DEngine {
                 
                 U4DVector2n uvData=u4dObject->bodyCoordinates.uVContainer.at(i);
                 
-                attributeAlignedContainer.at(i).uv.xy=convertToSIMD(uvData);
+                attributeAlignedContainer.at(i).uv.xy=numerical.convertToSIMD(uvData);
                 attributeAlignedContainer.at(i).uv.z=0.0;
                 attributeAlignedContainer.at(i).uv.w=0.0;
                 
@@ -686,7 +790,7 @@ namespace U4DEngine {
                 
                 U4DVector4n tangentData=u4dObject->bodyCoordinates.tangentContainer.at(i);
                 
-                attributeAlignedContainer.at(i).tangent.xyzw=convertToSIMD(tangentData);
+                attributeAlignedContainer.at(i).tangent.xyzw=numerical.convertToSIMD(tangentData);
                 
             }
             
@@ -702,11 +806,11 @@ namespace U4DEngine {
                 
                 U4DVector4n vertexWeightData=u4dObject->bodyCoordinates.vertexWeightsContainer.at(i);
                 
-                attributeAlignedContainer.at(i).vertexWeight.xyzw=convertToSIMD(vertexWeightData);
+                attributeAlignedContainer.at(i).vertexWeight.xyzw=numerical.convertToSIMD(vertexWeightData);
                 
                 U4DVector4n boneIndexData=u4dObject->bodyCoordinates.boneIndicesContainer.at(i);
                 
-                attributeAlignedContainer.at(i).boneIndex.xyzw=convertToSIMD(boneIndexData);
+                attributeAlignedContainer.at(i).boneIndex.xyzw=numerical.convertToSIMD(boneIndexData);
                 
             }
             
@@ -717,6 +821,8 @@ namespace U4DEngine {
 
     void U4DRender3DModel::updateModelShaderParametersUniform(){
         
+        U4DNumerical numerical;
+        
         int sizeOfModelParameterVector=(int)u4dObject->getModelShaderParameterContainer().size();
         
         UniformModelShaderProperty uniformModelShaderProperty;
@@ -726,7 +832,7 @@ namespace U4DEngine {
             //load param1
             U4DVector4n shaderParameter=u4dObject->getModelShaderParameterContainer().at(i);
             
-            vector_float4 shaderParameterSIMD=convertToSIMD(shaderParameter);
+            vector_float4 shaderParameterSIMD=numerical.convertToSIMD(shaderParameter);
             
             uniformModelShaderProperty.shaderParameter[i]=shaderParameterSIMD;
             

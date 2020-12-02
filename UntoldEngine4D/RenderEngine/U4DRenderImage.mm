@@ -10,15 +10,26 @@
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
 
-    U4DRenderImage::U4DRenderImage(U4DImage *uU4DImage){
+    U4DRenderImage::U4DRenderImage(U4DImage *uU4DImage):textureObject{nil},samplerStateObject{nil},samplerDescriptor{nullptr}{
         
         u4dObject=uU4DImage;
     }
     
     U4DRenderImage::~U4DRenderImage(){
+        
+        [textureObject setPurgeableState:MTLPurgeableStateEmpty];
+        [textureObject release];
+       
+        [samplerStateObject release];
+        [samplerDescriptor release];
+        
+        textureObject=nil;
+        samplerStateObject=nil;
+        samplerDescriptor=nil;
         
     }
     
@@ -117,9 +128,9 @@ namespace U4DEngine {
         
         if (!u4dObject->textureInformation.texture0.empty() && rawImageData.size()>0){
             
-            createTextureObject(textureObject[0]);
+            createTextureObject(textureObject);
             
-            createSamplerObject(samplerStateObject[0],samplerDescriptor[0]);
+            createSamplerObject(samplerStateObject,samplerDescriptor);
             
         }else{
             
@@ -133,11 +144,6 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderImage::setTexture0(const char* uTexture){
-        
-        u4dObject->textureInformation.texture0=uTexture;
-        
-    }
     
     U4DDualQuaternion U4DRenderImage::getEntitySpace(){
         return u4dObject->getAbsoluteSpace();
@@ -165,8 +171,9 @@ namespace U4DEngine {
         
         U4DMatrix4n mvpSpace=orthogonalProjection*modelWorldViewSpace;
         
+        U4DNumerical numerical;
         
-        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+        matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
         
         
         UniformSpace uniformSpace;
@@ -192,9 +199,9 @@ namespace U4DEngine {
             
             [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
             
-            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -207,6 +214,7 @@ namespace U4DEngine {
     void U4DRenderImage::alignedAttributeData(){
         
         AttributeAlignedImageData attributeAlignedData;
+        U4DNumerical numerical;
         
         std::vector<AttributeAlignedImageData> attributeAlignedContainerTemp(u4dObject->bodyCoordinates.getVerticesDataFromContainer().size(),attributeAlignedData);
 
@@ -216,12 +224,12 @@ namespace U4DEngine {
             
             U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
             
-            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.xyz=numerical.convertToSIMD(vertexData);
             attributeAlignedContainer.at(i).position.w=1.0;
             
             U4DVector2n uvData=u4dObject->bodyCoordinates.uVContainer.at(i);
             
-            attributeAlignedContainer.at(i).uv.xy=convertToSIMD(uvData);
+            attributeAlignedContainer.at(i).uv.xy=numerical.convertToSIMD(uvData);
             
         }
         
@@ -241,12 +249,12 @@ namespace U4DEngine {
         MTLTextureDescriptor *nullDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:1 height:1 mipmapped:NO];
         
         //Create the null texture object
-        textureObject[0]=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        textureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
         //Create the null texture sampler object
         nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
         
-        samplerStateObject[0]=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
+        samplerStateObject=[mtlDevice newSamplerStateWithDescriptor:nullSamplerDescriptor];
         
     }
 

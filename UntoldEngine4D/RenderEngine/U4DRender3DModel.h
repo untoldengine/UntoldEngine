@@ -64,6 +64,21 @@ namespace U4DEngine {
         U4DMatrix4n lightShadowProjectionSpace;
         
         /**
+         * @brief Pointer that represents the texture object
+         */
+        id<MTLTexture> textureObject[4];
+        
+        /**
+         * @brief Pointer to the Sampler State object
+         */
+        id<MTLSamplerState> samplerStateObject[4];
+        
+        /**
+         * @brief Pointer to the Sampler descriptor
+         */
+        MTLSamplerDescriptor *samplerDescriptor[4];
+        
+        /**
          * @brief Pointer to the shadow texture 
          */
         id<MTLTexture> shadowTexture;
@@ -92,6 +107,41 @@ namespace U4DEngine {
          * @brief vector for the aligned attribute data. The attributes need to be aligned before they are processed by the GPU
          */
         std::vector<AttributeAlignedModelData> attributeAlignedContainer;
+        
+        /**
+         * @brief Pointer to the Uniform that holds the several rendering flags
+         */
+        id<MTLBuffer> uniformModelRenderFlagsBuffer;
+
+        /**
+         * @brief Pointer to the Normal Map texture
+         */
+        id<MTLTexture> normalMapTextureObject;
+        
+        /**
+         * @brief Pointer to the Normal Map Sampler
+         */
+        id<MTLSamplerState> samplerNormalMapStateObject;
+        
+        /**
+        * @brief Pointer to the Normal Map Sampler descriptor
+        */
+        MTLSamplerDescriptor *normalSamplerDescriptor;
+        
+        /**
+         * @brief Uniform for the Light Position
+         */
+        id<MTLBuffer> lightPositionUniform;
+
+        /**
+         @brief Uniform for the model user-defined parameters
+         */
+        id<MTLBuffer> uniformModelShaderParametersBuffer;
+        
+        /**
+         * @brief Uniform for the light color
+         */
+        id<MTLBuffer> lightColorUniform;
         
     public:
         
@@ -255,6 +305,18 @@ namespace U4DEngine {
         * @brief Update the users parameters used in the shader
         */
         void updateModelShaderParametersUniform();
+        
+        /**
+         * @brief Creates a Normal Map Texture
+         * @details Creates a texture descriptor and a texture object. Copies the Normal Map raw image data into the texture object.
+         */
+        void createNormalMapTextureObject();
+        
+        /**
+         * @brief Creates a Normal Map Sampler
+         * @details Creates a sampler descriptor, sets the filtering and addressing setting and creates a sampler object using the sampler descriptor
+         */
+        void createNormalMapSamplerObject();
         
     };
 

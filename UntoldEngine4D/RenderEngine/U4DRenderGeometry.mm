@@ -10,6 +10,7 @@
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
 #include "U4DCamera.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
@@ -142,11 +143,13 @@ namespace U4DEngine {
     
     void U4DRenderGeometry::setGeometryLineColor(U4DVector4n &uGeometryLineColor){
         
+        U4DNumerical numerical;
+        
         geometryLineColor=uGeometryLineColor;
         
         UniformGeometryProperty uniformGeometryProperty;
         
-        vector_float4 geometryLineColorSIMD=convertToSIMD(geometryLineColor);
+        vector_float4 geometryLineColorSIMD=numerical.convertToSIMD(geometryLineColor);
         
         uniformGeometryProperty.lineColor=geometryLineColorSIMD;
         
@@ -178,8 +181,9 @@ namespace U4DEngine {
         
         U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
         
+        U4DNumerical numerical;
         
-        matrix_float4x4 mvpSpaceSIMD=convertToSIMD(mvpSpace);
+        matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
         
         
         UniformSpace uniformSpace;
@@ -216,6 +220,8 @@ namespace U4DEngine {
     
     void U4DRenderGeometry::alignedAttributeData(){
         
+        U4DNumerical numerical;
+        
         //create the structure that contains the align data
         AttributeAlignedGeometryData attributeAlignedData;
         
@@ -230,7 +236,7 @@ namespace U4DEngine {
             
             //align vertex data
             U4DVector3n vertexData=u4dObject->bodyCoordinates.verticesContainer.at(i);
-            attributeAlignedContainer.at(i).position.xyz=convertToSIMD(vertexData);
+            attributeAlignedContainer.at(i).position.xyz=numerical.convertToSIMD(vertexData);
             attributeAlignedContainer.at(i).position.w=1.0;
             
             

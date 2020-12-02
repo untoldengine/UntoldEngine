@@ -9,6 +9,7 @@
 #include "U4DRenderSprite.h"
 #include "U4DShaderProtocols.h"
 #include "U4DDirector.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
@@ -19,6 +20,10 @@ namespace U4DEngine {
     }
     
     U4DRenderSprite::~U4DRenderSprite(){
+        
+        [uniformSpriteBuffer release];
+        
+        uniformSpriteBuffer=nil;
         
     }
     
@@ -31,7 +36,9 @@ namespace U4DEngine {
     
     void U4DRenderSprite::updateSpriteBufferUniform(){
         
-        vector_float2 spriteOffsetSIMD=convertToSIMD(u4dObject->getSpriteOffset());
+        U4DNumerical numerical;
+        
+        vector_float2 spriteOffsetSIMD=numerical.convertToSIMD(u4dObject->getSpriteOffset());
         
         UniformSpriteProperty spriteProperty;
         spriteProperty.offset=spriteOffsetSIMD;
@@ -60,9 +67,9 @@ namespace U4DEngine {
             [uRenderEncoder setVertexBuffer:uniformSpriteBuffer offset:0 atIndex:2];
             
             //diffuse texture
-            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];

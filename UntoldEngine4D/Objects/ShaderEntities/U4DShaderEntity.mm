@@ -26,14 +26,14 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
 
     void U4DShaderEntity::setTexture0(const char* uTexture0){
         
-        renderManager->setTexture0(uTexture0);
+        textureInformation.texture0=uTexture0;
     
     }
 
 
     void U4DShaderEntity::setTexture1(const char* uTexture1){
         
-        renderManager->setTexture1(uTexture1);
+        textureInformation.texture1=uTexture1;
 
     }
     

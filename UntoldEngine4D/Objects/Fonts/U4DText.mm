@@ -47,7 +47,7 @@ namespace U4DEngine {
         
         const char * fontAtlasImage = fontData.texture.c_str();
         
-        renderManager->setTexture0(fontAtlasImage);
+        textureInformation.texture0=fontAtlasImage;
         
         
     }

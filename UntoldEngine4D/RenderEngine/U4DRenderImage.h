@@ -60,6 +60,21 @@ namespace U4DEngine {
          */
         MTLSamplerDescriptor *nullSamplerDescriptor;
         
+        /**
+         * @brief Pointer that represents the texture object
+         */
+        id<MTLTexture> textureObject;
+        
+        /**
+         * @brief Pointer to the Sampler State object
+         */
+        id<MTLSamplerState> samplerStateObject;
+        
+        /**
+         * @brief Pointer to the Sampler descriptor
+         */
+        MTLSamplerDescriptor *samplerDescriptor;
+        
     public:
         
         /**
@@ -119,14 +134,6 @@ namespace U4DEngine {
          * @details Aligns vertices and uv. This is necessary when using Metal
          */
         void alignedAttributeData();
-        
-         /**
-         * @brief Sets the texture image for the image
-         * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
-         *
-         * @param uTexture texture name
-         */
-        void setTexture0(const char* uTexture);
         
         /**
          @brief Method which returns the absolute space of the entity

@@ -93,76 +93,21 @@ namespace U4DEngine {
          * @brief Pointer to the Uniform that holds the Space matrix
          */
         id<MTLBuffer> uniformSpaceBuffer;
-        
-        /**
-         * @brief Pointer to the Uniform that holds the several rendering flags
-         */
-        id<MTLBuffer> uniformModelRenderFlagsBuffer;
-        
-        /**
-         * @brief Pointer that represents the texture object
-         */
-        id<MTLTexture> textureObject[4];
-        
-        /**
-         * @brief Pointer to the Sampler State object
-         */
-        id<MTLSamplerState> samplerStateObject[4];
-        
-        /**
-         * @brief Pointer to the Sampler descriptor
-         */
-        MTLSamplerDescriptor *samplerDescriptor[4];
 
-        /**
-         * @brief Pointer to the Normal Map texture
-         */
-        id<MTLTexture> normalMapTextureObject;
-        
-        /**
-         * @brief Pointer to the Normal Map Sampler
-         */
-        id<MTLSamplerState> samplerNormalMapStateObject;
-        
-        /**
-        * @brief Pointer to the Normal Map Sampler descriptor
-        */
-        MTLSamplerDescriptor *normalSamplerDescriptor;
-        
-        /**
-         * @brief Uniform for the Light Position
-         */
-        id<MTLBuffer> lightPositionUniform;
-        
         /**
          * @brief Pointer to the Uniform that holds Global data such as time, resolution,etc
          */
         id<MTLBuffer> globalDataUniform;
         
         /**
-         * @brief Uniform for the light color
+         * @brief Variable to determine if object should be rendered
          */
-        id<MTLBuffer> lightColorUniform;
+        bool eligibleToRender;
         
         /**
-         * @brief Uniform for the Particle System property
+         * @brief Variable to determine if the 3D object is within the frustum
          */
-        id<MTLBuffer> uniformParticleSystemPropertyBuffer;
-        
-        /**
-         * @brief Uniform for the Particle Property
-         */
-        id<MTLBuffer> uniformParticlePropertyBuffer;
-        
-        /**
-         * @brief Uniform for the Shader Entity Property
-         */
-        id<MTLBuffer> uniformShaderEntityPropertyBuffer;
-        
-        /**
-         @brief Uniform for the model user-defined parameters
-         */
-        id<MTLBuffer> uniformModelShaderParametersBuffer;
+        bool isWithinFrustum;
         
         /**
          * @brief buffer for the raw image data of a texture
@@ -178,21 +123,6 @@ namespace U4DEngine {
          * @brief Height of the texture image
          */
         unsigned int imageHeight;
-        
-        /**
-         * @brief Buffer for the skybox raw data
-         */
-        std::vector<const char*> skyboxTexturesContainer;
-        
-        /**
-         * @brief Variable to determine if object should be rendered
-         */
-        bool eligibleToRender;
-        
-        /**
-         * @brief Variable to determine if the 3D object is within the frustum
-         */
-        bool isWithinFrustum;
         
     public:
         
@@ -213,7 +143,7 @@ namespace U4DEngine {
          * @details It initializes the library and pipeline. It then loads vertices, normals, UV coordinates and animation data into the GPU
          */
         void loadRenderingInformation();
-
+        
         /**
          * @brief Initializes the library shaders
          * @details It initializes the vertex and fragment shaders for the entity
@@ -246,12 +176,6 @@ namespace U4DEngine {
         virtual void loadMTLAdditionalInformation(){}
         
         /**
-         * @brief Loads Normal Map raw data
-         * @details It decodes the normal map texture data, creates a texture object, a texture sampler, and loads the normal map data into a buffer
-         */
-        virtual void loadMTLNormalMapTexture(){};
-        
-        /**
          * @brief Updates the space matrix of the entity
          * @details Updates the model space matrix of the entity by computing the world, view and perspective/orthogonal (depending on entity type) space matrix
          */
@@ -261,8 +185,7 @@ namespace U4DEngine {
          * @brief Updates the space matrix of the shadow
          * @details Updates the current shadow matrix by computing the current light space projection matrix
          */
-        virtual void updateShadowSpaceUniforms(){};
-        
+    
         virtual void updateRenderingInformation(){};
         
         virtual void modifyRenderingInformation(){};
@@ -309,18 +232,6 @@ namespace U4DEngine {
         void createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor);
         
         /**
-         * @brief Creates a Normal Map Texture
-         * @details Creates a texture descriptor and a texture object. Copies the Normal Map raw image data into the texture object.
-         */
-        void createNormalMapTextureObject();
-        
-        /**
-         * @brief Creates a Normal Map Sampler
-         * @details Creates a sampler descriptor, sets the filtering and addressing setting and creates a sampler object using the sampler descriptor
-         */
-        void createNormalMapSamplerObject();
-        
-        /**
          * @brief Set line color for geometric entities
          * @details Geometric entities such as cubes, spheres etc are rendered only with lines. This method sets the particular color.
          * 
@@ -345,38 +256,6 @@ namespace U4DEngine {
          * @details It initializes the sampler object to null. The object is later used to store sampler settings
          */
         virtual void initTextureSamplerObjectNull(){};
-        
-        /**
-         * @brief Sets the texture0 image for the image
-         * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
-         *
-         * @param uTexture texture name
-         */
-        virtual void setTexture0(const char* uTexture){};
-        
-        /**
-         * @brief Sets the texture image1 for the image
-         * @details It sets the texture that will be decoded into raw data and loaded into the texture buffer
-         *
-         * @param uTexture texture name
-         */
-        virtual void setTexture1(const char* uTexture){};
-        
-        /**
-         * @brief Loads textures into skybox container
-         * @details Loads all six textures into the skybox container
-         * 
-         * @param uTextures Skybox textures
-         */
-        void addTexturesToSkyboxContainer(const char* uTextures);
-        
-        /**
-         * @brief Returns skybox textures
-         * @details Returns a vector containing all six skybox textures
-         * @return skybox textures
-         */
-        std::vector<const char*> getSkyboxTexturesContainer();
-
         
         /**
          @brief Method which returns the absolute space of the entity
@@ -407,51 +286,6 @@ namespace U4DEngine {
         virtual U4DVector3n getEntityLocalPosition(){};
 
         /**
-         * @brief Converts 4x4 matrix to SIMD format
-         * @details Converts 4x4 matrix to SIMD format used by the GPU shaders
-         * 
-         * @param uMatrix 3x3 Matrix
-         * @return Matrix in SIMD format
-         */
-        matrix_float4x4 convertToSIMD(U4DEngine::U4DMatrix4n &uMatrix);
-        
-        /**
-         * @brief Converts 3x3 matrix to SIMD format
-         * @details Converts 3x3 matrix to SIMD format used by the GPU shaders
-         * 
-         * @param uMatrix 3x3 Matrix    
-         * @return Matrix in SIMD format
-         */
-        matrix_float3x3 convertToSIMD(U4DEngine::U4DMatrix3n &uMatrix);
-        
-        /**
-         * @brief Converts vector of 4 dimensions into SIMD format
-         * @details Converts vector of 4n dimentsions into SIMD format
-         * 
-         * @param uVector 4n vector dimension
-         * @return vector in SIMD format
-         */
-        vector_float4 convertToSIMD(U4DEngine::U4DVector4n &uVector);
-        
-        /**
-         * @brief Converts vector of 3 dimensions into SIMD format
-         * @details Converts vector of 3n dimentsions into SIMD format
-         * 
-         * @param uVector 3n vector dimension
-         * @return vector in SIMD format
-         */
-        vector_float3 convertToSIMD(U4DEngine::U4DVector3n &uVector);
-        
-        /**
-         * @brief Converts vector of 2 dimensions into SIMD format
-         * @details Converts vector of 2n dimentsions into SIMD format
-         * 
-         * @param uVector 2n vector dimension
-         * @return vector in SIMD format
-         */
-        vector_float2 convertToSIMD(U4DEngine::U4DVector2n &uVector);
-        
-        /**
          * @brief Sets property used to determine if entity is within frustum
          * @details If the property is set, the entity is rendered, else is ignored
          * 
@@ -464,6 +298,8 @@ namespace U4DEngine {
         void setImageWidth(unsigned int uImageWidth);
         
         void setImageHeight(unsigned int uImageHeight);
+        
+        bool createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName);
         
     };
     

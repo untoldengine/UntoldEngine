@@ -41,6 +41,8 @@ namespace U4DEngine {
         
         removeAllParticles();
         
+        delete renderManager;
+        
     }
     
     void U4DParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
