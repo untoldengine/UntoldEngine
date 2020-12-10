@@ -26,6 +26,7 @@
 #include "U4DCamera.h"
 #include "U4DPlane.h"
 #include "U4DDirector.h"
+#include "U4DProfilerManager.h"
 
 namespace U4DEngine {
     
@@ -87,6 +88,10 @@ namespace U4DEngine {
     //draw
     void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
     
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        
+        profilerManager->startProfiling("Rendering");
+        
         U4DEntity* child=rootEntity;
     
         while (child!=NULL) {
@@ -107,10 +112,15 @@ namespace U4DEngine {
         
         }
         
+        profilerManager->stopProfiling();
     }
     
     
     void U4DEntityManager::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
+        
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        
+        profilerManager->startProfiling("Shadows");
         
         U4DEntity* child=rootEntity;
         
@@ -132,6 +142,7 @@ namespace U4DEngine {
             child=child->next;
         }
 
+        profilerManager->stopProfiling();
         
     }
 
@@ -148,6 +159,10 @@ namespace U4DEngine {
         U4DEntity* child=rootEntity;
         
         //BROAD PHASE COLLISION STARTS
+        
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        
+        profilerManager->startProfiling("Collision");
         
         while (child!=NULL) {
 
@@ -181,7 +196,12 @@ namespace U4DEngine {
         //clean up all collision containers
         collisionEngine->clearContainers();
         
+        profilerManager->stopProfiling();
+        
         //update the positions
+        
+        profilerManager->startProfiling("Update");
+        
         child=rootEntity;
         
         while (child!=NULL) {
@@ -191,8 +211,11 @@ namespace U4DEngine {
             child=child->next;
         }
 
+        profilerManager->stopProfiling();
         
         //update the physics
+        profilerManager->startProfiling("Physics");
+        
         child=rootEntity;
         while (child!=NULL) {
             
@@ -208,6 +231,8 @@ namespace U4DEngine {
             
             child=child->next;
         }
+        
+        profilerManager->stopProfiling();
         
         //clean everything up
         child=rootEntity;

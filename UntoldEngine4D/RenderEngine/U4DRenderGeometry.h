@@ -112,6 +112,18 @@ namespace U4DEngine {
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
         /**
+         * @brief Updates the geometry rendering data
+         * @details This method is called by the geometry U4DBoundingVolume class whenever the data changes
+         */
+        void updateRenderingInformation();
+        
+        /**
+         * @brief Modifies geometry rendering data if required
+         * @details This method is called by the U4DBoundingVolume class. If the attribute container size changes, it loads a new set of attributes.
+         */
+        void modifyRenderingInformation();
+        
+        /**
          * @brief Aligns attribute data
          * @details Aligns the vertices before sending them to the GPU
          */

@@ -46,6 +46,11 @@ namespace U4DEngine {
         renderManager->loadRenderingInformation();
     }
 
+    void U4DBoundingVolume::updateRenderingInformation(){
+        
+        renderManager->updateRenderingInformation();
+    }
+
     void U4DBoundingVolume::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         if (visibility==true) {

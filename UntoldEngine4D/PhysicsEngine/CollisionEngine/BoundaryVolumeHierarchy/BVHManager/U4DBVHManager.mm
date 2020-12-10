@@ -19,7 +19,7 @@
 #include <stack>
 #include <float.h>
 #include <algorithm>
-
+#include "U4DDebugger.h"
 
 namespace U4DEngine{
     
@@ -107,6 +107,32 @@ namespace U4DEngine{
     }
     
     void U4DBVHManager::startCollision(){
+
+        //THIS SECTION IS FOR DEBUGGING PURPOSES ONLY
+        U4DDebugger *debugger=U4DDebugger::sharedInstance();
+        
+        if (debugger->getEnableDebugger() && debugger->getShowBVHTree() && treeContainer.size()>0) {
+            
+            std::vector<U4DPoint3n> minPointsContainer;
+            std::vector<U4DPoint3n> maxPointsContainer;
+            U4DBVHTree *childLeaf=treeContainer.at(0).get();
+            
+            while (childLeaf!=nullptr) {
+                
+                U4DAABB *aabb=childLeaf->getAABBVolume();
+                
+                U4DPoint3n minPoint=aabb->getMinPoint();
+                U4DPoint3n maxPoint=aabb->getMaxPoint();
+                
+                minPointsContainer.push_back(minPoint);
+                maxPointsContainer.push_back(maxPoint);
+                 
+                childLeaf=childLeaf->next;
+            }
+            
+            debugger->loadBVHTreeData(minPointsContainer, maxPointsContainer);
+            
+        }
         
         //check sphere vs spher collisions
         bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);

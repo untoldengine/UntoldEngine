@@ -72,7 +72,7 @@ fragment float4 fragmentUIButtonShader(VertexOutput vertexOut [[stage_in]], cons
         
         b=sharpen(b,0.01,uniformGlobalData.resolution);
         
-        color=float3(b)*float3(0.96,0.18,0.25);
+        color=float3(b)*backgroundColor;
         
         finalColor=float4(color,1.0);
         

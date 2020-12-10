@@ -105,13 +105,38 @@ namespace U4DEngine {
         
         return true;
     }
+
+    void U4DRenderGeometry::updateRenderingInformation(){
+        
+        alignedAttributeData();
+        
+        memcpy(attributeBuffer.contents, (void*)&attributeAlignedContainer[0], sizeof(AttributeAlignedGeometryData)*attributeAlignedContainer.size());
+        
+        memcpy(indicesBuffer.contents, (void*)&u4dObject->bodyCoordinates.indexContainer[0], sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size());
+        
+        clearModelAttributeData();
+        
+    }
+        
+    void U4DRenderGeometry::modifyRenderingInformation(){
+        
+        alignedAttributeData();
+        
+        attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedGeometryData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
+        
+        //load the index into the buffer
+        indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
+        
+        clearModelAttributeData();
+        
+    }
     
     void U4DRenderGeometry::loadMTLAdditionalInformation(){
         
         //create the uniform
         uniformGeometryBuffer=[mtlDevice newBufferWithLength:sizeof(UniformGeometryProperty) options:MTLResourceStorageModeShared];
 
-        U4DVector4n defaultLineColor(1.0,1.0,1.0,1.0);
+        U4DVector4n defaultLineColor(0.0,1.0,0.0,1.0);
         
         setGeometryLineColor(defaultLineColor);
     }

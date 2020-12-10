@@ -13,7 +13,7 @@
 #include <vector>
 #include "CommonProtocols.h"
 #include "U4DImage.h"
-
+#include <string>
 
 namespace U4DEngine {
 
@@ -82,6 +82,8 @@ namespace U4DEngine {
         void setText(const char* uText);
         
         void setText(float uFloatValue);
+        
+        void log(const char* uLog, ...);
         
         /**
          @brief parses the text into individual letters

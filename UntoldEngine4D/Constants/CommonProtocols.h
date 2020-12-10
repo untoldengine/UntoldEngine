@@ -111,6 +111,16 @@ namespace U4DEngine {
         float xAdvance;
         
         /**
+         @brief line space offset
+         */
+        float lineSpaceOffset;
+        
+        /**
+         @brief flag to inform the characters is in the beginning of a new line
+         */
+        bool lineReset;
+        
+        /**
          @brief Text letter name
          */
         const char* letter;

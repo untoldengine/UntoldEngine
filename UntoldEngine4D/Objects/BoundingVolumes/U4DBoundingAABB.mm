@@ -95,8 +95,19 @@ namespace U4DEngine {
         bodyCoordinates.addIndexDataToContainer(i7);
         bodyCoordinates.addIndexDataToContainer(i8);
         
-        loadRenderingInformation();
+        //loadRenderingInformation();
 
+    }
+
+    void U4DBoundingAABB::updateBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){
+        
+        bodyCoordinates.verticesContainer.clear();
+        bodyCoordinates.indexContainer.clear();
+        
+        computeBoundingVolume(uMin, uMax);
+        
+        updateRenderingInformation();
+        
     }
     
 }

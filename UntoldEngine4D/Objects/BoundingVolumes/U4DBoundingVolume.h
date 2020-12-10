@@ -88,6 +88,15 @@ namespace U4DEngine {
          */
         virtual void computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){};
         
+        
+        /**
+         @brief Method which updates a AABB bounding volume
+         
+         @param uMin 3D point representing the minimum coordinate point
+         @param uMax 3D point representing the maximum coordinate point
+         */
+        virtual void updateBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){};
+        
         /**
          @brief Method which computes a OBB bounding volume
          
@@ -129,7 +138,13 @@ namespace U4DEngine {
          @brief Method which loads the attribute information needed for rendering
          */
         void loadRenderingInformation();
+        
+        /**
+         @brief Method which updates the attribute information needed for rendering
+         */
+        void updateRenderingInformation();
 
+        
         /**
          @brief Method which sets the radius for the spherical bounding volume
          

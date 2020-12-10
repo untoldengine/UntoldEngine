@@ -47,6 +47,10 @@ private:
     
     float aspect;
     
+    float fps;
+    
+    float fpsAccumulator;
+    
     U4DMatrix4n perspectiveSpace;
     
     U4DMatrix4n orthographicSpace;
@@ -381,6 +385,16 @@ public:
      @todo document this
      */
     float getScreenScaleFactor();
+    
+    /**
+     @brief sets the fps
+     */
+    void setFPS(float uFPS);
+    
+    /*
+     @brief getFPS();
+     */
+    float getFPS();
     
 };
 
