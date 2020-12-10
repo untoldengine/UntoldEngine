@@ -73,6 +73,14 @@ namespace U4DEngine {
          */
         void computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax);
         
+        /**
+        @brief Method which updates a AABB bounding volume
+        
+        @param uMin 3D point representing the minimum coordinate point
+        @param uMax 3D point representing the maximum coordinate point
+        */
+        void updateBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax);
+        
     };
     
 }

@@ -50,13 +50,13 @@ fragment float4 fragmentUISliderShader(VertexOutput vertexOut [[stage_in]], cons
     
     b=sharpen(b,0.01,uniformGlobalData.resolution);
     
-    color=float3(b)*float3(0.96,0.18,0.25);
+    color=float3(b)*backgroundColor;
     
     float s=sdfBox(st-float2(uniformShaderEntityProperty.shaderParameter[0].x,0.0),float2(0.05,1.0));
     
     s=sharpen(s,0.01,uniformGlobalData.resolution);
     
-    color=max(color,float3(s)*float3(0.8));
+    color=max(color,float3(s)*foregroundColor);
     
     return float4(color,1.0);
     

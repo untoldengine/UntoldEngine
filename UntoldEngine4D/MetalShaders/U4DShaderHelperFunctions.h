@@ -45,6 +45,11 @@ constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
 
 #define M_PI 3.1415926535897932384626433832795
 
+constant float3 backgroundColor=float3(0.20,0.23,0.28);
+constant float3 foregroundColor=float3(0.88,0.69,0.17);
+constant float3 panelColor=float3(0.2,0.23,0.28);
+constant float3 borderPanelColor=float3(0.96,0.964,0.98);
+
 /**
  @brief random functions for 1d
  */

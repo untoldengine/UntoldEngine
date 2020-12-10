@@ -20,6 +20,7 @@
 #include "U4DText.h"
 #include "U4DAnimation.h"
 #include "U4DParticleSystem.h"
+#include "U4DBoundingBVH.h"
 
 class SandboxWorld:public U4DEngine::U4DWorld {
     
@@ -27,22 +28,7 @@ private:
     
     
     U4DEngine::U4DGameObject *myAstronaut;
-    U4DEngine::U4DVector3n originalPosition;
-    U4DEngine::U4DAnimation *walkAnimation;
-    U4DEngine::U4DParticleSystem *particleSystem;
     
-    U4DEngine::U4DButton *buttonA;
-    U4DEngine::U4DJoystick *joystickA;
-    U4DEngine::U4DSlider *sliderA;
-    U4DEngine::U4DSlider *sliderB;
-    U4DEngine::U4DCheckbox *checkbox;
-    U4DEngine::U4DCheckbox *checkboxB;
-    U4DEngine::U4DCheckbox *checkboxC;
-    U4DEngine::U4DCheckbox *checkboxD;
-    U4DEngine::U4DWindow *uiWindow;
-    
-    bool showAnimation;
-    bool showParticles;
     
 public:
     

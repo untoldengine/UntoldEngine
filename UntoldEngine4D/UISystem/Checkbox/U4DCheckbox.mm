@@ -92,11 +92,11 @@ void U4DCheckbox::action(){
     if (getIsPressed()) {
         
         controllerMessage.inputElementAction=U4DEngine::uiCheckboxPressed;
-
+        
     }else if(getIsReleased()){
         
         controllerMessage.inputElementAction=U4DEngine::uiCheckboxReleased;
-
+        
     }
     
     if (pCallback!=nullptr) {
@@ -209,13 +209,13 @@ void U4DCheckbox::setCallbackAction(U4DCallbackInterface *uAction){
     
 bool U4DCheckbox::getIsPressed(){
     
-    return (getState()==U4DEngine::uipressed);
+    return (getState()==U4DEngine::uipressed &&  dataValue== 1.0);
     
 }
 
 bool U4DCheckbox::getIsReleased(){
     
-    return (getState()==U4DEngine::uireleased);
+    return (getState()==U4DEngine::uireleased  && dataValue==0.0);
     
 }
 

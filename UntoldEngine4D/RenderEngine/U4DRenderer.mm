@@ -50,6 +50,9 @@
     
     float contentScale;
     
+    int frameCount;
+    float timePassedSinceLastFrame;
+    
 }
 
 /// Initialize with the MetalKit view from which we'll obtain our Metal device.  We'll also use this
@@ -113,6 +116,10 @@
         
         firstUpdateCall=true;
         
+        //init fps time properties
+        frameCount=0;
+        timePassedSinceLastFrame=0.0;
+        
     }else{
         
         // figure out the time since we last we drew
@@ -122,6 +129,22 @@
         
         // keep track of the time interval between draws
         timeSinceLastUpdatePreviousTime = currentTime;
+        
+        //get fps
+        timePassedSinceLastFrame+=timeSinceLastUpdate;
+        
+        if(timePassedSinceLastFrame>1.0){
+            
+            U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+            
+            float fps=frameCount/timePassedSinceLastFrame;
+            
+            frameCount=0.0;
+            timePassedSinceLastFrame=0.0;
+            
+            director->setFPS(fps);
+            
+        }
         
     }
     
@@ -138,6 +161,7 @@
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
     //call the update call before the render
+    frameCount++;
     
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
     

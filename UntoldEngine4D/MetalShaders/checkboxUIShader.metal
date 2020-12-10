@@ -52,7 +52,7 @@ fragment float4 fragmentUICheckboxShader(VertexOutput vertexOut [[stage_in]], co
     
     b=sharpen(b,0.01,uniformGlobalData.resolution);
     
-    color=float3(b)*float3(0.8);
+    color=float3(b)*backgroundColor;
     
     if(uniformShaderEntityProperty.shaderParameter[0].x==1){
         
@@ -60,7 +60,7 @@ fragment float4 fragmentUICheckboxShader(VertexOutput vertexOut [[stage_in]], co
         
         s=sharpen(s,0.01,uniformGlobalData.resolution);
         
-        color=max(color,float3(s)*float3(0.96,0.18,0.25));
+        color=max(color,float3(s)*foregroundColor);
 
     }
     

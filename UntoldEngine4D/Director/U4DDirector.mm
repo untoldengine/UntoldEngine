@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-    U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(1.0){
+U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(1.0),fps(0.0),fpsAccumulator(0.0){
     }
     
     U4DDirector::~U4DDirector(){
@@ -313,6 +313,25 @@ namespace U4DEngine {
         
         return m;
         
+    }
+
+    void U4DDirector::setFPS(float uFPS){
+        
+        //smooth out the value by using a Recency Weighted Average.
+        //The RWA keeps an average of the last few values, with more recent values being more
+        //significant. The bias parameter controls how much significance is given to previous values.
+        //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+        //A bias of 1 ignores the new value altogether.
+        float biasMotionAccumulator=0.2;
+        
+        fpsAccumulator=fpsAccumulator*biasMotionAccumulator+uFPS*(1.0-biasMotionAccumulator);
+        
+        fps=fpsAccumulator;
+        
+    }
+        
+    float U4DDirector::getFPS(){
+        return fps;
     }
 
 }
