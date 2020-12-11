@@ -71,6 +71,10 @@ namespace U4DEngine {
          */
         MTLSamplerDescriptor *samplerDescriptor[4];
         
+        //variables for triple buffering
+        TRIPLEBUFFER propertiesTripleBuffer;
+        
+        
     protected:
         
         /**

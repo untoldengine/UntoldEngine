@@ -24,6 +24,16 @@
 
 namespace U4DEngine {
 
+typedef struct{
+    
+    uint32_t offset;
+
+    uint8_t index;
+
+    void* address;
+    
+}TRIPLEBUFFER;
+
 /**
  * @ingroup renderingengine
  * @brief      The U4DRenderManager class manages all rendering for 3D models, images, skyboxes, etc

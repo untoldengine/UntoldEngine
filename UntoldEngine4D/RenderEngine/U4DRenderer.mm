@@ -11,7 +11,7 @@
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DSceneManager.h"
-
+#include "Constants.h"
 
 /// Main class performing the rendering
 @implementation U4DRenderer
@@ -53,6 +53,10 @@
     int frameCount;
     float timePassedSinceLastFrame;
     
+    //set up the semaphores
+    dispatch_semaphore_t inFlightSemaphore;
+    
+    
 }
 
 /// Initialize with the MetalKit view from which we'll obtain our Metal device.  We'll also use this
@@ -65,6 +69,8 @@
         mtlDevice = mtkView.device;
         
         mtlCommandQueue = [mtlDevice newCommandQueue];
+        
+        inFlightSemaphore=dispatch_semaphore_create(U4DEngine::kMaxBuffersInFlight);
         
         float aspect=mtkView.bounds.size.width/mtkView.bounds.size.height;
         
@@ -160,6 +166,9 @@
 /// Called whenever the view needs to render
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
+    //Wait until the semaphore command buffer has completed its work
+    dispatch_semaphore_wait(inFlightSemaphore, DISPATCH_TIME_FOREVER);
+    
     //call the update call before the render
     frameCount++;
     
@@ -182,6 +191,14 @@
         // Create a new command buffer for each renderpass to the current drawable
         id <MTLCommandBuffer> commandBuffer = [mtlCommandQueue commandBuffer];
         commandBuffer.label = @"MyCommand";
+        
+        __block dispatch_semaphore_t block_sema = inFlightSemaphore;
+        [commandBuffer addCompletedHandler:^(id<MTLCommandBuffer> buffer)
+         {
+            //GPU work is complete
+            //Signal the semaphore to start the CPU work
+             dispatch_semaphore_signal(block_sema);
+         }];
         
         //Check if models are within the frustum, then render shadows
         if(director->getModelsWithinFrustum()==true){
@@ -213,7 +230,7 @@
             //   but for the purposes of this sample, we will create it which implicitly invokes
             //   a GPU command to clear our drawable
             
-            // Since we aren't drawing anything, indicate we're finished using this encoder
+            // Indicate we're finished using this encoder
             [renderEncoder endEncoding];
             
         }

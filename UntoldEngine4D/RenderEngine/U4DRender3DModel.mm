@@ -18,7 +18,7 @@
 
 namespace U4DEngine {
 
-    U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformModelShaderParametersBuffer(nil),normalSamplerDescriptor(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr}{ 
+U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformModelShaderParametersBuffer(nil),normalSamplerDescriptor(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr},isRenderingShadows(false){
         
         u4dObject=uU4DModel;
         
@@ -210,11 +210,15 @@ namespace U4DEngine {
         attributeBuffer=[mtlDevice newBufferWithBytes:&attributeAlignedContainer[0] length:sizeof(AttributeAlignedModelData)*attributeAlignedContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
         
         //create the uniform
-        uniformSpaceBuffer=[mtlDevice newBufferWithLength:sizeof(UniformSpace) options:MTLResourceStorageModeShared];
+        NSUInteger dynamicUniformSpaceBuffer=U4DEngine::kAlignedUniformSpaceSize*U4DEngine::kMaxBuffersInFlight;
+        
+        NSUInteger dynamicUniformBoneBuffer=U4DEngine::kAlignedUniformBoneSize*U4DEngine::kMaxBuffersInFlight;
+        
+        uniformSpaceBuffer=[mtlDevice newBufferWithLength:dynamicUniformSpaceBuffer options:MTLResourceStorageModeShared];
         
         uniformModelRenderFlagsBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelRenderFlags) options:MTLResourceStorageModeShared];
         
-        uniformBoneBuffer=[mtlDevice newBufferWithLength:sizeof(UniformBoneSpace) options:MTLResourceStorageModeShared];
+        uniformBoneBuffer=[mtlDevice newBufferWithLength:dynamicUniformBoneBuffer options:MTLResourceStorageModeShared];
         
         lightPositionUniform=[mtlDevice newBufferWithLength:sizeof(vector_float4) options:MTLResourceStorageModeShared];
         
@@ -459,18 +463,30 @@ namespace U4DEngine {
     
     void U4DRender3DModel::updateBoneSpaceUniforms(){
         
-        UniformBoneSpace uniformBoneSpace;
+        if (isRenderingShadows==true) {
+            boneTripleBuffer.index =shadowTripleBuffer.index;
+        }else{
+            boneTripleBuffer.index =spaceTripleBuffer.index;
+        }
+        
+        boneTripleBuffer.offset = U4DEngine::kAlignedUniformBoneSize * boneTripleBuffer.index;
+        
+        boneTripleBuffer.address = ((uint8_t*)uniformBoneBuffer.contents) + boneTripleBuffer.offset;
+        
+        
+        UniformBoneSpace *uniformBoneSpace=(UniformBoneSpace*)boneTripleBuffer.address;
+        
         U4DNumerical numerical;
         
         for(int i=0;i<u4dObject->armatureBoneMatrix.size();i++){
             
             U4DMatrix4n boneSpace=u4dObject->armatureBoneMatrix.at(i);
             
-            uniformBoneSpace.boneSpace[i]=numerical.convertToSIMD(boneSpace);
+            uniformBoneSpace->boneSpace[i]=numerical.convertToSIMD(boneSpace);
             
         }
         
-        memcpy(uniformBoneBuffer.contents, (void*)&uniformBoneSpace, sizeof(UniformBoneSpace));
+        //memcpy(uniformBoneBuffer.contents, (void*)&uniformBoneSpace, sizeof(UniformBoneSpace));
         
     }
     
@@ -486,6 +502,12 @@ namespace U4DEngine {
     }
     
     void U4DRender3DModel::updateSpaceUniforms(){
+        
+        spaceTripleBuffer.index = (spaceTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
+        
+        spaceTripleBuffer.offset = U4DEngine::kAlignedUniformSpaceSize * spaceTripleBuffer.index;
+        
+        spaceTripleBuffer.address = ((uint8_t*)uniformSpaceBuffer.contents) + spaceTripleBuffer.offset;
         
         U4DCamera *camera=U4DCamera::sharedInstance();
         U4DLights *light=U4DLights::sharedInstance();
@@ -525,7 +547,7 @@ namespace U4DEngine {
         U4DNumerical numerical;
         
         matrix_float4x4 modelSpaceSIMD=numerical.convertToSIMD(modelSpace);
-        matrix_float4x4 worldModelSpaceSIMD=numerical.convertToSIMD(worldSpace);
+        //matrix_float4x4 worldModelSpaceSIMD=numerical.convertToSIMD(worldSpace);
         matrix_float4x4 viewWorldModelSpaceSIMD=numerical.convertToSIMD(modelWorldViewSpace);
         matrix_float4x4 viewSpaceSIMD=numerical.convertToSIMD(viewSpace);
         matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
@@ -535,16 +557,17 @@ namespace U4DEngine {
         
         matrix_float4x4 lightShadowProjectionSpaceSIMD=numerical.convertToSIMD(lightShadowProjectionSpace);
         
-        UniformSpace uniformSpace;
-        uniformSpace.modelSpace=modelSpaceSIMD;
-        uniformSpace.viewSpace=viewSpaceSIMD;
-        uniformSpace.modelViewSpace=viewWorldModelSpaceSIMD;
-        uniformSpace.modelViewProjectionSpace=mvpSpaceSIMD;
-        uniformSpace.normalSpace=normalSpaceSIMD;
-        uniformSpace.lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
+        UniformSpace *uniformSpace=(UniformSpace*)spaceTripleBuffer.address;
+        
+        uniformSpace->modelSpace=modelSpaceSIMD;
+        uniformSpace->viewSpace=viewSpaceSIMD;
+        uniformSpace->modelViewSpace=viewWorldModelSpaceSIMD;
+        uniformSpace->modelViewProjectionSpace=mvpSpaceSIMD;
+        uniformSpace->normalSpace=normalSpaceSIMD;
+        uniformSpace->lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
         
         
-        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
+        //memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
         memcpy(lightPositionUniform.contents, (void*)&lightPositionSIMD, sizeof(vector_float4));
         
         
@@ -564,6 +587,13 @@ namespace U4DEngine {
     }
     
     void U4DRender3DModel::updateShadowSpaceUniforms(){
+        
+        
+        shadowTripleBuffer.index = (shadowTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
+
+        shadowTripleBuffer.offset = U4DEngine::kAlignedUniformSpaceSize * shadowTripleBuffer.index;
+        
+        shadowTripleBuffer.address = ((uint8_t*)uniformSpaceBuffer.contents) + shadowTripleBuffer.offset;
         
         U4DLights *light=U4DLights::sharedInstance();
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -585,10 +615,11 @@ namespace U4DEngine {
         matrix_float4x4 modelMatrixSIMD=numerical.convertToSIMD(modelSpace);
         
         
-        UniformSpace uniformSpace;
-        uniformSpace.modelSpace=modelMatrixSIMD;
-        uniformSpace.lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
-        memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
+        UniformSpace *uniformSpace=(UniformSpace*)shadowTripleBuffer.address;
+        uniformSpace->modelSpace=modelMatrixSIMD;
+        uniformSpace->lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
+        
+        //memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
         
     }
     
@@ -596,6 +627,7 @@ namespace U4DEngine {
         
         if (eligibleToRender==true && isWithinFrustum==true) {
             
+            isRenderingShadows=false;
             updateSpaceUniforms();
             updateModelRenderFlags();
             updateBoneSpaceUniforms();
@@ -613,13 +645,13 @@ namespace U4DEngine {
             //encode the buffers
             [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
             
-            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:spaceTripleBuffer.offset atIndex:1];
             
             [uRenderEncoder setVertexBuffer:lightPositionUniform offset:0 atIndex:2];
             
             [uRenderEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:3];
             
-            [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:4];
+            [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:boneTripleBuffer.offset atIndex:4];
             
             [uRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:5];
             
@@ -665,7 +697,7 @@ namespace U4DEngine {
         if (eligibleToRender==true) {
             
             //set the shadow texture
-            
+            isRenderingShadows=true;
             shadowTexture=uShadowTexture;
             
             updateShadowSpaceUniforms();
@@ -676,11 +708,11 @@ namespace U4DEngine {
             
             [uRenderShadowEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
             
-            [uRenderShadowEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            [uRenderShadowEncoder setVertexBuffer:uniformSpaceBuffer offset:shadowTripleBuffer.offset atIndex:1];
             
             [uRenderShadowEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:2];
             
-            [uRenderShadowEncoder setVertexBuffer:uniformBoneBuffer offset:0 atIndex:3];
+            [uRenderShadowEncoder setVertexBuffer:uniformBoneBuffer offset:boneTripleBuffer.offset atIndex:3];
             
             [uRenderShadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
             

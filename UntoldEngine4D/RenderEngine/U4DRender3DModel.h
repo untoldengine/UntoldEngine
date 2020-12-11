@@ -143,6 +143,16 @@ namespace U4DEngine {
          */
         id<MTLBuffer> lightColorUniform;
         
+        //variables for triple buffering
+        
+        TRIPLEBUFFER spaceTripleBuffer;
+        
+        TRIPLEBUFFER shadowTripleBuffer;
+        
+        TRIPLEBUFFER boneTripleBuffer;
+        
+        bool isRenderingShadows;
+        
     public:
         
         /**

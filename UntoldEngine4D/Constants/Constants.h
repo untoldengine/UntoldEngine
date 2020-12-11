@@ -9,6 +9,8 @@
 #ifndef UntoldEngine_Constants_h
 #define UntoldEngine_Constants_h
 
+#include "U4DShaderProtocols.h"
+
 namespace U4DEngine {
     
     /**
@@ -146,6 +148,14 @@ namespace U4DEngine {
      @brief padding for ui elements
      */
     const float uiPadding=0.02;
+
+    static const int kMaxBuffersInFlight = 3;
+
+    static const size_t kAlignedUniformSpaceSize = (sizeof(UniformSpace) & ~0xFF) + 0x100;
+
+    static const size_t kAlignedUniformBoneSize = (sizeof(UniformBoneSpace) & ~0xFF) + 0x100;
+    
+    static const size_t kAlignedUniformShaderPropertySize = (sizeof(UniformShaderEntityProperty) & ~0xFF) + 0x100;
     
 }
 
