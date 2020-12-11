@@ -260,7 +260,7 @@ namespace U4DEngine {
             
             [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:0];
             
-            [uRenderEncoder setFragmentBuffer:uniformShaderEntityPropertyBuffer offset:0 atIndex:1];
+            [uRenderEncoder setFragmentBuffer:uniformShaderEntityPropertyBuffer offset:propertiesTripleBuffer.offset atIndex:1];
             
             [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
             
@@ -282,9 +282,15 @@ namespace U4DEngine {
         
         U4DNumerical numerical;
         
+        propertiesTripleBuffer.index = (propertiesTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
+        
+        propertiesTripleBuffer.offset = U4DEngine::kAlignedUniformShaderPropertySize * propertiesTripleBuffer.index;
+        
+        propertiesTripleBuffer.address = ((uint8_t*)uniformShaderEntityPropertyBuffer.contents) + propertiesTripleBuffer.offset;
+        
         int sizeOfShaderParameterVector=(int)u4dObject->getShaderParameterContainer().size();
         
-        UniformShaderEntityProperty uniformShaderEntityProperty;
+        UniformShaderEntityProperty *uniformShaderEntityProperty=(UniformShaderEntityProperty*)propertiesTripleBuffer.address;
         
         for(int i=0;i<sizeOfShaderParameterVector;i++){
         
@@ -293,20 +299,21 @@ namespace U4DEngine {
             
             vector_float4 shaderParameterSIMD=numerical.convertToSIMD(shaderParameter);
             
-            uniformShaderEntityProperty.shaderParameter[i]=shaderParameterSIMD;
+            uniformShaderEntityProperty->shaderParameter[i]=shaderParameterSIMD;
             
         }
         
-        uniformShaderEntityProperty.hasTexture=u4dObject->getHasTexture();
-        memcpy(uniformShaderEntityPropertyBuffer.contents,(void*)&uniformShaderEntityProperty, sizeof(UniformShaderEntityProperty));
+        uniformShaderEntityProperty->hasTexture=u4dObject->getHasTexture();
+        //memcpy(uniformShaderEntityPropertyBuffer.contents,(void*)&uniformShaderEntityProperty, sizeof(UniformShaderEntityProperty));
         
     }
 
     void U4DRenderShaderEntity::loadMTLAdditionalInformation(){
         
         //load additional information
+        NSUInteger dynamicUniformShaderPropertyBuffer=U4DEngine::kAlignedUniformShaderPropertySize*U4DEngine::kMaxBuffersInFlight; 
         
-        uniformShaderEntityPropertyBuffer=[mtlDevice newBufferWithLength:sizeof(UniformShaderEntityProperty) options:MTLResourceStorageModeShared];
+        uniformShaderEntityPropertyBuffer=[mtlDevice newBufferWithLength:dynamicUniformShaderPropertyBuffer options:MTLResourceStorageModeShared];
     
     }
     
