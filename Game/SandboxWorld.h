@@ -20,7 +20,6 @@
 #include "U4DText.h"
 #include "U4DAnimation.h"
 #include "U4DParticleSystem.h"
-#include "U4DBoundingBVH.h"
 
 class SandboxWorld:public U4DEngine::U4DWorld {
     

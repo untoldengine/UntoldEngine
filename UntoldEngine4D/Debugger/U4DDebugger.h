@@ -16,7 +16,9 @@
 #include "U4DText.h"
 #include "U4DCheckbox.h"
 #include "U4DSlider.h"
-#include "U4DBoundingBVH.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
+#include "U4DAABB.h"
 
 namespace U4DEngine {
 
@@ -24,13 +26,15 @@ namespace U4DEngine {
         
     private:
         
+        U4DCallback<U4DDebugger> *scheduler;
+        
+        U4DTimer *timer;
+        
         U4DWorld *world;
         
         U4DText *consoleLabel;
                 
         U4DText *profilerLabel;
-        
-        U4DCheckbox *checkboxShowBVH;
         
         U4DCheckbox *checkboxShowNarrowPhaseVolume;
         
@@ -38,15 +42,13 @@ namespace U4DEngine {
         
         U4DCheckbox *checkboxShowProfiler;
         
-        U4DBoundingBVH *bvhTree;
-        
         static U4DDebugger* instance;
         
         bool enableDebugger;
         
-        bool showBVHTree;
-        
         bool uiLoaded;
+        
+        std::vector<U4DAABB*> aabbContainer;
         
     protected:
         
@@ -60,13 +62,9 @@ namespace U4DEngine {
         
         std::string getEntitiesInScenegraph();
         
-        void update(double dt);
+        void runDebugger();
         
         void setEnableDebugger(bool uValue, U4DWorld *uWorld);
-        
-        bool getShowBVHTree();
-        
-        void loadBVHTreeData(std::vector<U4DPoint3n> &uMin, std::vector<U4DPoint3n> &uMax);
         
         bool getEnableDebugger();
         

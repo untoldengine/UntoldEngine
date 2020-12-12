@@ -20,13 +20,21 @@ namespace U4DEngine {
 
     U4DDebugger* U4DDebugger::instance=0;
 
-    U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nullptr),profilerLabel(nullptr),showBVHTree(false),bvhTree(nullptr){
+    U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nullptr),profilerLabel(nullptr){
         
+        scheduler=new U4DCallback<U4DDebugger>;
         
+        timer=new U4DTimer(scheduler);
         
     }
         
     U4DDebugger::~U4DDebugger(){
+        
+        //unsubscribe the timer
+        scheduler->unScheduleTimer(timer);
+        
+        delete scheduler;
+        delete timer;
         
     }
         
@@ -58,28 +66,6 @@ namespace U4DEngine {
         return entitiesNames;
     }
 
-    void U4DDebugger::update(double dt){
-        
-        if(enableDebugger && consoleLabel!=nullptr){
-            
-            U4DDirector *director=U4DDirector::sharedInstance();
-            U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
-            
-            float fps=director->getFPS();
-//            std::string entitiesNames=getEntitiesInScenegraph();
-            
-            std::string profilerData=profilerManager->getProfileLog();
-            
-            consoleLabel->log("Console:\n FPS Avg: %f",fps);
-
-//            entitiesLabel->log("Entities in Scenegraph:\n %s",entitiesNames.c_str());
-            
-            profilerLabel->log("Profiler:\n %s",profilerData.c_str());
-            
-        }
-            
-    }
-
     void U4DDebugger::setEnableDebugger(bool uValue, U4DWorld *uWorld){
         enableDebugger=uValue;
         
@@ -103,8 +89,6 @@ namespace U4DEngine {
             profilerLabel=new U4DText("uiFont");
             profilerLabel->setText("Profiler");
             profilerLabel->translateTo(-0.7,0.6,0.0);
-
-            checkboxShowBVH=new U4DEngine::U4DCheckbox("checkboxBVH",0.5,0.7,20.0,20.0,"Draw Collision BVH","uiFont");
             
             checkboxShowProfiler=new U4DEngine::U4DCheckbox("checkboxProfiler",0.5,0.6,20.0,20.0,"Run Profiler","uiFont");
             
@@ -114,7 +98,6 @@ namespace U4DEngine {
 
             engineProfilerLayer->addChild(consoleLabel);
             engineProfilerLayer->addChild(profilerLabel);
-            engineProfilerLayer->addChild(checkboxShowBVH);
             engineProfilerLayer->addChild(checkboxShowProfiler);
             engineProfilerLayer->addChild(checkboxShowNarrowPhaseVolume);
             engineProfilerLayer->addChild(checkboxShowBroadPhaseVolume);
@@ -123,13 +106,6 @@ namespace U4DEngine {
 
             //push layer
             layerManager->pushLayer("engineProfilerLayer");
-
-            //create a callback for checkbox bvh
-            U4DCallback<U4DDebugger>* checkboxShowBVHCallback=new U4DCallback<U4DDebugger>;
-
-            checkboxShowBVHCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowBVH);
-
-            checkboxShowBVH->setCallbackAction(checkboxShowBVHCallback);
             
             //create a callback for checkbox profiler
             U4DCallback<U4DDebugger>* checkboxShowProfilerCallback=new U4DCallback<U4DDebugger>;
@@ -152,54 +128,34 @@ namespace U4DEngine {
 
            checkboxShowNarrowPhaseVolume->setCallbackAction(checkboxShowNarrowPhaseCallback);
 
-        
+           scheduler->scheduleClassWithMethodAndDelay(this, &U4DDebugger::runDebugger, timer,1.0, true);
+            
             uiLoaded=true;
             
         }
     }
+    
+    void U4DDebugger::runDebugger(){
         
+        U4DDirector *director=U4DDirector::sharedInstance();
+                    U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+                    
+        float fps=director->getFPS();
+        std::string profilerData=profilerManager->getProfileLog();
+        
+        consoleLabel->log("Console:\n FPS Avg: %f",fps);
+
+        profilerLabel->log("Profiler:\n %s",profilerData.c_str());
+        
+        
+        
+    }
     bool U4DDebugger::getEnableDebugger(){
         
         return enableDebugger;
     
     }
 
-    void U4DDebugger::loadBVHTreeData(std::vector<U4DPoint3n> &uMin, std::vector<U4DPoint3n> &uMax){
-        
-        bvhTree->updateBoundingVolume(uMin, uMax);
-        
-    }
-
-    bool U4DDebugger::getShowBVHTree(){
-        return showBVHTree;
-    }
-
-    void U4DDebugger::actionCheckboxShowBVH(){
-        
-        if (checkboxShowBVH->getIsPressed()) {
-            
-            bvhTree=new U4DBoundingBVH();
-            
-            U4DPoint3n minPoint(0.0,0.0,0.0);
-            U4DPoint3n maxPoint(0.0,0.0,0.0);
-            std::vector<U4DPoint3n> minPoints{minPoint};
-            std::vector<U4DPoint3n> maxPoints{maxPoint};
-            bvhTree->computeBoundingVolume(minPoints, maxPoints);
-            bvhTree->loadRenderingInformation();
-            bvhTree->setVisibility(true);
-            world->addChild(bvhTree);
-            
-            showBVHTree=true;
-                        
-        }else if(checkboxShowBVH->getIsReleased()){
-            
-            world->removeChild(bvhTree);
-            delete bvhTree;
-            
-            showBVHTree=false;
-            
-        }
-    }
 
     void U4DDebugger::actionCheckboxShowProfiler(){
         

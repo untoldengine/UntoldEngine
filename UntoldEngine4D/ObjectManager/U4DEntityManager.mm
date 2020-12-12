@@ -179,22 +179,26 @@ namespace U4DEngine {
             child=child->next;
         }
 
-        collisionEngine->detectBroadPhaseCollisions(dt);
-        
-        //BROAD PHASE COLLISION STARTS ENDS
-        
-
-        //NARROW COLLISION STAGE STARTS
-        
-        //compute collision detection
-        collisionEngine->detectNarrowPhaseCollision(dt);
-       
-        
-        //NARROW COLLISION STAGE ENDS
-
-        
-        //clean up all collision containers
-        collisionEngine->clearContainers();
+        //Only compute collision if there are more than 1 models with collision behaviors
+        if (collisionEngine->getNumberOfModelsInContainer()>1) {
+            
+            //compute the broad phase collision
+            collisionEngine->detectBroadPhaseCollisions(dt);
+             
+             //BROAD PHASE COLLISION STARTS ENDS
+             
+             //NARROW COLLISION STAGE STARTS
+             
+             //compute collision detection
+             collisionEngine->detectNarrowPhaseCollision(dt);
+            
+             
+             //NARROW COLLISION STAGE ENDS
+        }
+             
+         //clean up all collision containers
+         collisionEngine->clearContainers();
+            
         
         profilerManager->stopProfiling();
         
