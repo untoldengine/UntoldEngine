@@ -95,7 +95,7 @@ namespace U4DEngine {
         bodyCoordinates.addIndexDataToContainer(i7);
         bodyCoordinates.addIndexDataToContainer(i8);
         
-        //loadRenderingInformation();
+        loadRenderingInformation();
 
     }
 

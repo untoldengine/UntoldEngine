@@ -95,7 +95,7 @@ void SandboxWorld::init(){
         addChild(myAstronaut);
         
     }
-    
+  
     //Line 2. Create an Animation object and link it to the 3D model
     U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
 
@@ -135,8 +135,6 @@ void SandboxWorld::init(){
         //Line 5. Add astronaut to the scenegraph
         addChild(island);
         
-        
-
     }
     
     U4DDirector *director=U4DDirector::sharedInstance();
@@ -144,15 +142,15 @@ void SandboxWorld::init(){
     float width=director->getDisplayWidth();
     float height=director->getDisplayHeight();
     U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity(0);
-    
+
     shader->setShader("vertexLoadingCircleShader","fragmentLoadingCircleShader");
-    
+
     shader->setShaderDimension(width/2.0, height/2.0);
-    
+
     shader->translateTo(0.0, -0.3, 0.0);
-    
+
     shader->loadRenderingInformation();
-    
+
     addChild(shader,-10);
     
     //Create a particle system
@@ -170,9 +168,9 @@ void SandboxWorld::init(){
 
         particleSystem->translateBy(1.0, 0.5, 0.0);
 
-        
+
     }
-    
+
     particleSystem->play();
     
 //    //Render a skybox
@@ -192,11 +190,6 @@ void SandboxWorld::init(){
 
 
 void SandboxWorld::update(double dt){
- 
-    U4DDebugger *debugger=U4DDebugger::sharedInstance();
-    if (debugger->getEnableDebugger()) {
-        debugger->update(dt);
-    }
     
 }
 
@@ -216,7 +209,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-15.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,7.0,-15.0);
     
     //translate camera
     camera->translateTo(cameraPosition);

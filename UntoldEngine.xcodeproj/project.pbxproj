@@ -861,9 +861,6 @@
 		03FA5F89257AB98A008CC0AB /* U4DDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA5F87257AB98A008CC0AB /* U4DDebugger.mm */; };
 		03FA5F8A257AB98B008CC0AB /* U4DDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA5F87257AB98A008CC0AB /* U4DDebugger.mm */; };
 		03FA5F8B257AB98B008CC0AB /* U4DDebugger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA5F87257AB98A008CC0AB /* U4DDebugger.mm */; };
-		03FA6102257ED2F6008CC0AB /* U4DBoundingBVH.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6100257ED2F5008CC0AB /* U4DBoundingBVH.mm */; };
-		03FA6103257ED2F6008CC0AB /* U4DBoundingBVH.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6100257ED2F5008CC0AB /* U4DBoundingBVH.mm */; };
-		03FA6104257ED2F6008CC0AB /* U4DBoundingBVH.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6100257ED2F5008CC0AB /* U4DBoundingBVH.mm */; };
 		03FA611E258116A1008CC0AB /* U4DProfilerManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA611C258116A1008CC0AB /* U4DProfilerManager.mm */; };
 		03FA611F258116A1008CC0AB /* U4DProfilerManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA611C258116A1008CC0AB /* U4DProfilerManager.mm */; };
 		03FA6120258116A1008CC0AB /* U4DProfilerManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA611C258116A1008CC0AB /* U4DProfilerManager.mm */; };
@@ -1339,8 +1336,6 @@
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
 		03FA5F87257AB98A008CC0AB /* U4DDebugger.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DDebugger.mm; path = Debugger/U4DDebugger.mm; sourceTree = "<group>"; };
 		03FA5F88257AB98A008CC0AB /* U4DDebugger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DDebugger.h; path = Debugger/U4DDebugger.h; sourceTree = "<group>"; };
-		03FA6100257ED2F5008CC0AB /* U4DBoundingBVH.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingBVH.mm; path = BoundingVolumes/U4DBoundingBVH.mm; sourceTree = "<group>"; };
-		03FA6101257ED2F5008CC0AB /* U4DBoundingBVH.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DBoundingBVH.h; path = BoundingVolumes/U4DBoundingBVH.h; sourceTree = "<group>"; };
 		03FA611C258116A1008CC0AB /* U4DProfilerManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DProfilerManager.mm; path = Profiler/U4DProfilerManager.mm; sourceTree = "<group>"; };
 		03FA611D258116A1008CC0AB /* U4DProfilerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DProfilerManager.h; path = Profiler/U4DProfilerManager.h; sourceTree = "<group>"; };
 		03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DProfilerNode.mm; path = Profiler/U4DProfilerNode.mm; sourceTree = "<group>"; };
@@ -1465,8 +1460,6 @@
 				0327B1A71B0BBC370087BACC /* U4DBoundingSphere.mm */,
 				038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */,
 				038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */,
-				03FA6101257ED2F5008CC0AB /* U4DBoundingBVH.h */,
-				03FA6100257ED2F5008CC0AB /* U4DBoundingBVH.mm */,
 			);
 			name = BoundingVolumes;
 			sourceTree = "<group>";
@@ -2941,7 +2934,6 @@
 				03722B772029F0F50080D069 /* spriteShader.metal in Sources */,
 				03722B8D2029F0F50080D069 /* U4DGJKAlgorithm.mm in Sources */,
 				03722BA62029F0F50080D069 /* U4DRenderFont.mm in Sources */,
-				03FA6103257ED2F6008CC0AB /* U4DBoundingBVH.mm in Sources */,
 				03D5E51A224DCAFC00395D3F /* U4DMeshOctreeNode.mm in Sources */,
 				03CB47EE249C299500E6A3C8 /* U4DSceneIdleState.mm in Sources */,
 				03D0C4D824B57F6A001A7D5F /* LoadingCircle.metal in Sources */,
@@ -3332,7 +3324,6 @@
 				03722CB12029F0F80080D069 /* spriteShader.metal in Sources */,
 				03722CC72029F0F80080D069 /* U4DGJKAlgorithm.mm in Sources */,
 				03722CE02029F0F80080D069 /* U4DRenderFont.mm in Sources */,
-				03FA6104257ED2F6008CC0AB /* U4DBoundingBVH.mm in Sources */,
 				03D5E51B224DCAFC00395D3F /* U4DMeshOctreeNode.mm in Sources */,
 				03CB47EF249C299500E6A3C8 /* U4DSceneIdleState.mm in Sources */,
 				03D0C4D924B57F6A001A7D5F /* LoadingCircle.metal in Sources */,
@@ -3554,7 +3545,6 @@
 				030449A217B8548500A3A2AE /* U4DVector2n.mm in Sources */,
 				03A3E2D82465A4AF00FBCBAD /* U4DInputElement.mm in Sources */,
 				03D0C4D724B57F6A001A7D5F /* LoadingCircle.metal in Sources */,
-				03FA6102257ED2F6008CC0AB /* U4DBoundingBVH.mm in Sources */,
 				038BF26B2293883C00B129A5 /* U4DNavMeshLoader.mm in Sources */,
 				03E6EDE61943D866007AD131 /* U4DStaticModel.mm in Sources */,
 				0323DBAD202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,

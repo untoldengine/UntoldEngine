@@ -148,6 +148,11 @@ namespace U4DEngine {
          */
         void clearContainers();
         
+        /*
+         @brief returns the number of models in the container
+         */
+        int getNumberOfModelsInContainer();
+        
     };
 
 }
