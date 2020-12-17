@@ -311,6 +311,8 @@ typedef struct{
         
         bool createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName);
         
+        virtual void hotReloadShaders(std::string uFilepath){};
+        
     };
     
 }

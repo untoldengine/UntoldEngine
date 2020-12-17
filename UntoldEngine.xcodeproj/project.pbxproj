@@ -677,9 +677,6 @@
 		0397E4D225201F010020EBD9 /* uiFont.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4D125201F000020EBD9 /* uiFont.u4d */; };
 		0397E4D325201F010020EBD9 /* uiFont.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4D125201F000020EBD9 /* uiFont.u4d */; };
 		0397E4D425201F010020EBD9 /* uiFont.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4D125201F000020EBD9 /* uiFont.u4d */; };
-		0397E4DE252180EE0020EBD9 /* loading.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4DD252180ED0020EBD9 /* loading.xml */; };
-		0397E4DF252180EE0020EBD9 /* loading.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4DD252180ED0020EBD9 /* loading.xml */; };
-		0397E4E0252180EE0020EBD9 /* loading.xml in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4DD252180ED0020EBD9 /* loading.xml */; };
 		0397E4E62523796B0020EBD9 /* sceneTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E52523796B0020EBD9 /* sceneTextures.u4d */; };
 		0397E4E72523796B0020EBD9 /* sceneTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E52523796B0020EBD9 /* sceneTextures.u4d */; };
 		0397E4E82523796B0020EBD9 /* sceneTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0397E4E52523796B0020EBD9 /* sceneTextures.u4d */; };
@@ -907,6 +904,7 @@
 		03068D6A19BFFFC400ABDC55 /* U4DAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DAnimation.h; sourceTree = "<group>"; };
 		030C3DFA19298226009EF31B /* U4DDirector.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDirector.h; sourceTree = "<group>"; };
 		030C3DFB19298226009EF31B /* U4DDirector.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDirector.mm; sourceTree = "<group>"; };
+		031413EC2589D03B005BF4A4 /* Untold4D.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Untold4D.entitlements; sourceTree = "<group>"; };
 		0314B0B71C6FC09100EB8C34 /* U4DBVHTree.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHTree.mm; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.mm; sourceTree = "<group>"; };
 		0314B0B81C6FC09100EB8C34 /* U4DBVHTree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHTree.h; path = BoundaryVolumeHierarchy/BVHTree/U4DBVHTree.h; sourceTree = "<group>"; };
 		0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHManager.mm; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.mm; sourceTree = "<group>"; };
@@ -1154,7 +1152,6 @@
 		0397E4C6251DAB470020EBD9 /* U4DWindow.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DWindow.h; path = UISystem/Window/U4DWindow.h; sourceTree = "<group>"; };
 		0397E4CA251DAD950020EBD9 /* windowUIShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = windowUIShader.metal; path = MetalShaders/windowUIShader.metal; sourceTree = "<group>"; };
 		0397E4D125201F000020EBD9 /* uiFont.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = uiFont.u4d; sourceTree = "<group>"; };
-		0397E4DD252180ED0020EBD9 /* loading.xml */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = loading.xml; sourceTree = "<group>"; };
 		0397E4E52523796B0020EBD9 /* sceneTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = sceneTextures.u4d; sourceTree = "<group>"; };
 		0397E4E92523797C0020EBD9 /* uiTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = uiTextures.u4d; sourceTree = "<group>"; };
 		039DB55A223F08C200E323D4 /* U4DRay.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRay.mm; sourceTree = "<group>"; };
@@ -1574,6 +1571,7 @@
 		03722B362029F0220080D069 /* Untold4D macOS */ = {
 			isa = PBXGroup;
 			children = (
+				031413EC2589D03B005BF4A4 /* Untold4D.entitlements */,
 				03722B372029F0220080D069 /* AppDelegate.h */,
 				03722B382029F0220080D069 /* AppDelegate.mm */,
 				03722B3A2029F0220080D069 /* GameViewController.h */,
@@ -1896,7 +1894,6 @@
 				03019FF725256DC20005CDDD /* redBulletEmitter.u4d */,
 				03019FE62524DCFF0005CDDD /* spaceScene.u4d */,
 				03019FE72524DD000005CDDD /* spaceTextures.u4d */,
-				0397E4DD252180ED0020EBD9 /* loading.xml */,
 				0397E4D125201F000020EBD9 /* uiFont.u4d */,
 				0397E4E92523797C0020EBD9 /* uiTextures.u4d */,
 				0397E4E52523796B0020EBD9 /* sceneTextures.u4d */,
@@ -2677,7 +2674,6 @@
 			files = (
 				03019FF925256DC20005CDDD /* redBulletEmitter.u4d in Resources */,
 				03019FE92524DD000005CDDD /* spaceScene.u4d in Resources */,
-				0397E4DF252180EE0020EBD9 /* loading.xml in Resources */,
 				03019FEC2524DD000005CDDD /* spaceTextures.u4d in Resources */,
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
 				0397E4E72523796B0020EBD9 /* sceneTextures.u4d in Resources */,
@@ -2705,7 +2701,6 @@
 				0397E4EC2523797D0020EBD9 /* uiTextures.u4d in Resources */,
 				0397E4E82523796B0020EBD9 /* sceneTextures.u4d in Resources */,
 				03019FED2524DD000005CDDD /* spaceTextures.u4d in Resources */,
-				0397E4E0252180EE0020EBD9 /* loading.xml in Resources */,
 				03019FFA25256DC20005CDDD /* redBulletEmitter.u4d in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
 				0397E4D425201F010020EBD9 /* uiFont.u4d in Resources */,
@@ -2717,7 +2712,6 @@
 			buildActionMask = 2147483647;
 			files = (
 				0397E4EA2523797D0020EBD9 /* uiTextures.u4d in Resources */,
-				0397E4DE252180EE0020EBD9 /* loading.xml in Resources */,
 				03019FEF2524DD0B0005CDDD /* astronautWalkAnim.u4d in Resources */,
 				0397E4E62523796B0020EBD9 /* sceneTextures.u4d in Resources */,
 				03019FF825256DC20005CDDD /* redBulletEmitter.u4d in Resources */,
@@ -3788,6 +3782,7 @@
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = "Untold4D macOS/Untold4D.entitlements";
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
@@ -3827,6 +3822,7 @@
 				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
 				CLANG_WARN_STRICT_PROTOTYPES = YES;
 				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = "Untold4D macOS/Untold4D.entitlements";
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
