@@ -169,6 +169,8 @@ namespace U4DEngine {
         
         void initTextureSamplerObjectNull();
 
+        void hotReloadShaders(std::string uFilepath);
+        
     };
 
 }

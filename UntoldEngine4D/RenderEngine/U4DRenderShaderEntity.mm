@@ -12,6 +12,9 @@
 #include "U4DCamera.h"
 #include "U4DResourceLoader.h"
 #include "U4DNumerical.h"
+#include "U4DLogger.h"
+#include <iostream>
+#include <fstream> //for file i/o
 
 namespace U4DEngine {
 
@@ -132,6 +135,82 @@ namespace U4DEngine {
         //create the rendering pipeline object
         
         mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
+        
+    }
+
+    void U4DRenderShaderEntity::hotReloadShaders(std::string uFilepath){
+        
+        //reload the library
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        NSError *error;
+        std::ifstream ifs(uFilepath);
+        
+        std::string shaderContent;
+        shaderContent.assign( (std::istreambuf_iterator<char>(ifs) ),
+                        (std::istreambuf_iterator<char>()));
+        
+        NSString* shaderCode = [NSString stringWithUTF8String:shaderContent.c_str()];
+        
+        
+//        NSString* filepathNSString = [NSString stringWithUTF8String:uFilepath.c_str()];
+//
+//        NSString *shaderCode= [NSString stringWithContentsOfFile:filepathNSString encoding:NSUTF8StringEncoding error:&error];
+//
+//        if(!shaderCode){
+//            NSLog(@"Error: %@",error.localizedDescription);
+//        }
+        
+        id<MTLLibrary> tempMTLLibrary=[mtlDevice newLibraryWithSource:shaderCode options:nil error:&error];
+        
+        if (!tempMTLLibrary) {
+            
+            //NSLog(@"error loading file %@",error.localizedDescription);
+            std::string errorDesc= std::string([error.localizedDescription UTF8String]);
+            logger->log("Error: loading the library for hot reloading. %s",errorDesc.c_str());
+            
+        }else{
+            
+            MTLRenderPipelineDescriptor *tempMTLRenderPipelineDescriptor;
+            
+            //temporarily copy the library, shader program and descriptor until we know that the hot reload was a success
+            
+            tempMTLRenderPipelineDescriptor=mtlRenderPipelineDescriptor;
+            
+            std::string vertexShaderName=u4dObject->getVertexShader();
+            std::string fragmentShaderName=u4dObject->getFragmentShader();
+            
+            id<MTLFunction> tempVertexProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
+            id<MTLFunction> tempFragmentProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
+            
+             //since we already have a pointer to our pipeline descriptor, the only thing we need to update are the shader programs
+             tempMTLRenderPipelineDescriptor.vertexFunction=tempVertexProgram;
+             tempMTLRenderPipelineDescriptor.fragmentFunction=tempFragmentProgram;
+             
+             //create the rendering pipeline object
+             
+             id<MTLRenderPipelineState> tempMTLRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:tempMTLRenderPipelineDescriptor error:&error];
+            
+            if(!tempMTLRenderPipelineState){
+        
+                //NSLog(@"The pipeline was unable to be created: %@",error.localizedDescription);
+        
+                std::string errorDesc= std::string([error.localizedDescription UTF8String]);
+                logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            
+            }else{
+                
+                logger->log("The pipeline was updated");
+                
+                mtlRenderPipelineDescriptor=tempMTLRenderPipelineDescriptor;
+                mtlRenderPipelineState=tempMTLRenderPipelineState;
+                vertexProgram=tempVertexProgram;
+                fragmentProgram=tempFragmentProgram;
+                mtlLibrary=tempMTLLibrary;
+                
+            }
+            
+        }
         
     }
     
