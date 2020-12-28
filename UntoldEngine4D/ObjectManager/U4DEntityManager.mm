@@ -90,7 +90,7 @@ namespace U4DEngine {
     
         U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
         
-        profilerManager->startProfiling("Rendering");
+        profilerManager->startProfiling("Final Pass Render");
         
         U4DEntity* child=rootEntity;
     
@@ -143,6 +143,36 @@ namespace U4DEngine {
         }
 
         profilerManager->stopProfiling();
+        
+    }
+
+    void U4DEntityManager::renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
+        
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+            
+            profilerManager->startProfiling("Offscreen Render Pass");
+            
+            U4DEntity* child=rootEntity;
+        
+            while (child!=NULL) {
+                
+                if(child->isRoot()){
+                    
+                    child->absoluteSpace=child->localSpace;
+            
+                }else{
+                    
+                    child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
+                   
+                }
+         
+                child->renderOffscreen(uOffscreenRenderEncoder, uOffscreenTexture);
+            
+                child=child->next;
+            
+            }
+            
+            profilerManager->stopProfiling();
         
     }
 
@@ -211,7 +241,7 @@ namespace U4DEngine {
         while (child!=NULL) {
             
             child->update(dt);
-            
+            child->updateAllUniforms();
             child=child->next;
         }
 

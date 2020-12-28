@@ -60,6 +60,12 @@ namespace U4DEngine{
         
     }
 
+    void U4DSceneStateManager::renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
+        
+        currentState->renderOffscreen(scene, uOffscreenRenderEncoder, uOffscreenTexture);
+        
+    }
+
 
     U4DSceneStateInterface *U4DSceneStateManager::getCurrentState(){
         

@@ -78,6 +78,12 @@ namespace U4DEngine {
         uScene->gameWorld->entityManager->renderShadow(uRenderShadowEncoder, uShadowTexture);
         
     }
+
+    void U4DSceneActiveState::renderOffscreen(U4DScene *uScene, id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
+        
+        uScene->gameWorld->entityManager->renderOffscreen(uOffscreenRenderEncoder, uOffscreenTexture); 
+        
+    }
     
     void U4DSceneActiveState::exit(U4DScene *uScene){
         

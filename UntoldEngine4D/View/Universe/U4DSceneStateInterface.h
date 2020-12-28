@@ -56,6 +56,11 @@ namespace U4DEngine {
         virtual void renderShadow(U4DScene *uScene,id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture)=0;
         
         /**
+         @todo document this
+         */
+        virtual void renderOffscreen(U4DScene *uScene, id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture)=0;
+        
+        /**
         @brief exits current state
         @param uScene scene to exit
         */

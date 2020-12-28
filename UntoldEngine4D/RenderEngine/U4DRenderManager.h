@@ -26,9 +26,9 @@ namespace U4DEngine {
 
 typedef struct{
     
-    uint32_t offset;
+    uint32_t offset=0.0;
 
-    uint8_t index;
+    uint8_t index=0;
 
     void* address;
     
@@ -53,11 +53,22 @@ typedef struct{
          * @brief Pointer representing the state of the render pipeline
          */
         id<MTLRenderPipelineState> mtlRenderPipelineState;
+        
+        /**
+         * @brief Pointer representing the state of the offscreen render pipeline
+         */
+        id<MTLRenderPipelineState> mtlOffscreenRenderPipelineState;
 
         /**
          * @brief Pointer for the rendering pipeline descriptor
          */
         MTLRenderPipelineDescriptor *mtlRenderPipelineDescriptor;
+        
+        
+        /**
+         @todo document this
+         */
+        MTLRenderPipelineDescriptor *mtlOffscreenRenderPipelineDescriptor;
         
         /**
          * @brief Pointer for the depth stencil state
@@ -78,6 +89,23 @@ typedef struct{
          * @brief Pointer to the shader fragment program
          */
         id<MTLFunction> fragmentProgram;
+        
+        
+        /**
+         * @brief Pointer that holds the library of offscreen shaders
+         */
+        id<MTLLibrary> mtlOffscreenRenderLibrary;
+        
+        /**
+         * @brief Pointer to the shader vertex program for offscreen rendering
+         */
+        id<MTLFunction> vertexOffscreenProgram;
+        
+        /**
+         * @brief Pointer to the shader fragment program for offscreen rendering
+         */
+        id<MTLFunction> fragmentOffscreenProgram;
+        
         
         /**
          * @brief Pointer to the vertex descriptors
@@ -166,6 +194,17 @@ typedef struct{
          */
         virtual void initMTLRenderPipeline(){};
         
+        
+        /**
+         @todo document this
+         */
+        virtual void initMTLOffscreenRenderLibrary(){};
+        
+        /**
+         @todo document this
+         */
+        virtual void initMTLOffscreenRenderPipeline(){};
+        
         /**
          * @brief Loads the attributes and Uniform data
          * @details It prepares the attribute data so that it is aligned. It then loads the attributes into a buffer. It also loads uniform data into a buffer
@@ -190,6 +229,11 @@ typedef struct{
          * @details Updates the model space matrix of the entity by computing the world, view and perspective/orthogonal (depending on entity type) space matrix
          */
         virtual void updateSpaceUniforms(){};
+        
+        /**
+         @todo document this
+         */
+        virtual void updateAllUniforms(){};
         
         /**
          * @brief Updates the space matrix of the shadow
@@ -228,6 +272,11 @@ typedef struct{
          * @param uShadowTexture Texture shadow for the current entity
          */
         virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
+        
+        /**
+         @todo document this
+         */
+        virtual void renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture){};
         
         /**
          * @brief Creates a texture object to be applied to an entity
@@ -312,6 +361,7 @@ typedef struct{
         bool createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName);
         
         virtual void hotReloadShaders(std::string uFilepath){};
+        
         
     };
     

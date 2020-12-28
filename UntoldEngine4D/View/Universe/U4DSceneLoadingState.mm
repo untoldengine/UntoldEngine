@@ -76,6 +76,10 @@ namespace U4DEngine {
         //no shadows need to be rendered here
         
     }
+
+    void U4DSceneLoadingState::renderOffscreen(U4DScene *uScene, id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
+        //no offscreen need to be rendered here
+    }
     
     void U4DSceneLoadingState::exit(U4DScene *uScene){
         

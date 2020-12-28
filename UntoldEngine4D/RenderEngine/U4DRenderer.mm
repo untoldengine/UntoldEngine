@@ -34,6 +34,8 @@
     
     id<MTLDepthStencilState> mtlShadowDepthStencilState;
     
+    MTLRenderPassDescriptor *mtlOffscreenRenderPassDescriptor;
+    
     id<MTLLibrary> mtlShadowLibrary;
     
     id<MTLFunction> vertexShadowProgram;
@@ -41,6 +43,10 @@
     id<MTLFunction> fragmentShadowProgram;
 
     id<MTLTexture> shadowTexture;
+    
+    id<MTLTexture> offscreenRenderTexture;
+    
+    id<MTLTexture> offscreenDepthTexture;
     
     MTLDepthStencilDescriptor *shadowDepthStencilDescriptor;
     
@@ -66,6 +72,7 @@
     self = [super init];
     if(self)
     {
+        
         mtlDevice = mtkView.device;
         
         mtlCommandQueue = [mtlDevice newCommandQueue];
@@ -100,7 +107,9 @@
         director->setOrthographicShadowSpace(orthographicShadowSpace);
         
         
+        
         [self initShadows];
+        [self initOffscreenRenderPass];
         
     }
     
@@ -166,6 +175,7 @@
 /// Called whenever the view needs to render
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
+    view.framebufferOnly=false;
     //Wait until the semaphore command buffer has completed its work
     dispatch_semaphore_wait(inFlightSemaphore, DISPATCH_TIME_FOREVER);
     
@@ -179,11 +189,9 @@
     
     float screenContentScale=director->getScreenScaleFactor();
     
+    currentScene->determineVisibility();
+    
     if (currentScene!=nullptr) {
-        
-        [self update];
-        
-        currentScene->determineVisibility();
         
         view.clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
         view.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
@@ -200,17 +208,69 @@
              dispatch_semaphore_signal(block_sema);
          }];
         
+        [self update];
+        
         //Check if models are within the frustum, then render shadows
         if(director->getModelsWithinFrustum()==true){
-           [self renderShadows:commandBuffer];
+           
+            //create a shadow encoder
+            id<MTLRenderCommandEncoder> shadowEncoder=[commandBuffer renderCommandEncoderWithDescriptor:mtlShadowRenderPassDescriptor];
+            
+            [shadowEncoder pushDebugGroup:@"Shadow Pass"];
+            shadowEncoder.label = @"MyShadowEncoder";
+            
+            //set the states
+            [shadowEncoder setRenderPipelineState:mtlShadowRenderPipelineState];
+            [shadowEncoder setDepthStencilState:mtlShadowDepthStencilState];
+            [shadowEncoder setViewport:(MTLViewport){0.0, 0.0, 1024, 1024, 0.0, 1.0 }];
+            
+            //render every model shadow
+            currentScene->renderShadow(shadowEncoder,shadowTexture);
+            
+            [shadowEncoder popDebugGroup];
+            //end encoding
+            [shadowEncoder endEncoding];
+            
         }
+        
+        {
+            //set offscreen texture render
+            
+            id<MTLRenderCommandEncoder> offscreenRenderEncoder=[commandBuffer renderCommandEncoderWithDescriptor:mtlOffscreenRenderPassDescriptor];
+
+            [offscreenRenderEncoder pushDebugGroup:@"offscreen Rendering"];
+            offscreenRenderEncoder.label=@"Offscreen Render Pass";
+
+            [offscreenRenderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024.0, 1024.0, 0.0, 1.0 }];
+
+            //render models offscreen
+            currentScene->renderOffscreen(offscreenRenderEncoder,offscreenRenderTexture);
+
+            [offscreenRenderEncoder popDebugGroup];
+            [offscreenRenderEncoder endEncoding];
+            
+        }
+        
+//        //create blit encoder
+//        id<MTLBlitCommandEncoder> blitEncoder=[commandBuffer blitCommandEncoder];
+//        [blitEncoder pushDebugGroup:@"Blit Encoder"];
+//        blitEncoder.label=@"Blit Encoder-active";
+//
+//        [blitEncoder copyFromTexture:offscreenRenderTexture toTexture:view.currentDrawable.texture];
+//
+//        [blitEncoder popDebugGroup];
+//        [blitEncoder endEncoding];
+        
         
         // Obtain a renderPassDescriptor generated from the view's drawable textures
         MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+        //renderPassDescriptor.depthAttachment.loadAction=MTLLoadActionClear;
+        //renderPassDescriptor.depthAttachment.clearDepth=1.0;
 
+        //start final pass
         // If we've gotten a renderPassDescriptor we can render to the drawable, otherwise we'll
         //   skip any rendering this frame because we have no drawable to draw to
         if(renderPassDescriptor != nil)
@@ -218,7 +278,7 @@
             
             id <MTLRenderCommandEncoder> renderEncoder =
             [commandBuffer renderCommandEncoderWithDescriptor:renderPassDescriptor];
-            
+            [renderEncoder pushDebugGroup:@"final pass"];
             renderEncoder.label = @"MyRenderEncoder";
             
             [renderEncoder setViewport:(MTLViewport){0.0, 0.0, view.bounds.size.width*screenContentScale, view.bounds.size.height*screenContentScale, 0.0, 1.0 }];
@@ -226,10 +286,8 @@
             //Render Models here
             currentScene->render(renderEncoder);
             
-            // We would normally use a render command encoder to tell Metal to draw our objects,
-            //   but for the purposes of this sample, we will create it which implicitly invokes
-            //   a GPU command to clear our drawable
             
+            [renderEncoder popDebugGroup];
             // Indicate we're finished using this encoder
             [renderEncoder endEncoding];
             
@@ -268,25 +326,25 @@
 
 - (void)renderShadows:(id <MTLCommandBuffer>) uCommandBuffer{
     
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    //U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    //U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
     //create a shadow command buffer
     
-    //create a shadow encoder
-    id<MTLRenderCommandEncoder> shadowEncoder=[uCommandBuffer renderCommandEncoderWithDescriptor:mtlShadowRenderPassDescriptor];
-    
-    shadowEncoder.label = @"MyShadowEncoder";
-    
-    //set the states
-    [shadowEncoder setRenderPipelineState:mtlShadowRenderPipelineState];
-    [shadowEncoder setDepthStencilState:mtlShadowDepthStencilState];
-    [shadowEncoder setViewport:(MTLViewport){0.0, 0.0, 1024, 1024, 0.0, 1.0 }];
-    
-    //render every model shadow
-    currentScene->renderShadow(shadowEncoder,shadowTexture);
-    
-    //end encoding
-    [shadowEncoder endEncoding];
+//    //create a shadow encoder
+//    id<MTLRenderCommandEncoder> shadowEncoder=[uCommandBuffer renderCommandEncoderWithDescriptor:mtlShadowRenderPassDescriptor];
+//
+//    shadowEncoder.label = @"MyShadowEncoder";
+//
+//    //set the states
+//    [shadowEncoder setRenderPipelineState:mtlShadowRenderPipelineState];
+//    [shadowEncoder setDepthStencilState:mtlShadowDepthStencilState];
+//    [shadowEncoder setViewport:(MTLViewport){0.0, 0.0, 1024, 1024, 0.0, 1.0 }];
+//
+//    //render every model shadow
+//    currentScene->renderShadow(shadowEncoder,shadowTexture);
+//
+//    //end encoding
+//    [shadowEncoder endEncoding];
     
     
 }
@@ -413,6 +471,46 @@
     shadowTextureDescriptor.storageMode=MTLStorageModePrivate;
     
     shadowTexture=[mtlDevice newTextureWithDescriptor:shadowTextureDescriptor];
+    
+}
+
+- (void) initOffscreenRenderPass{
+    
+    
+    //create texture descriptor
+    MTLTextureDescriptor *offscreenRenderTextureDescriptor = [MTLTextureDescriptor new];
+    offscreenRenderTextureDescriptor.textureType = MTLTextureType2D;
+    offscreenRenderTextureDescriptor.width = 1024.0;
+    offscreenRenderTextureDescriptor.height = 1024.0;
+    offscreenRenderTextureDescriptor.pixelFormat = MTLPixelFormatRGBA8Unorm;
+    offscreenRenderTextureDescriptor.usage = MTLTextureUsageRenderTarget |
+                          MTLTextureUsageShaderRead;
+    
+    //create first pass texture
+    
+    offscreenRenderTexture=[mtlDevice newTextureWithDescriptor:offscreenRenderTextureDescriptor];
+    
+    //create depth texture
+    MTLTextureDescriptor *offscreenDepthTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:1024 height:1024 mipmapped:NO];
+    
+    offscreenDepthTextureDescriptor.usage=MTLTextureUsageRenderTarget|MTLTextureUsageShaderRead;
+    offscreenDepthTextureDescriptor.storageMode=MTLStorageModePrivate;
+    
+    offscreenDepthTexture=[mtlDevice newTextureWithDescriptor:offscreenDepthTextureDescriptor];
+    
+    //set up the offscreen render pass descriptor
+    
+    mtlOffscreenRenderPassDescriptor=[MTLRenderPassDescriptor new];
+    mtlOffscreenRenderPassDescriptor.colorAttachments[0].texture=offscreenRenderTexture;
+    mtlOffscreenRenderPassDescriptor.depthAttachment.texture=offscreenDepthTexture;
+    
+    mtlOffscreenRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+    mtlOffscreenRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
+    mtlOffscreenRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+    
+    mtlOffscreenRenderPassDescriptor.depthAttachment.loadAction=MTLLoadActionClear;
+    mtlOffscreenRenderPassDescriptor.depthAttachment.clearDepth=1.0;
+    mtlOffscreenRenderPassDescriptor.depthAttachment.storeAction=MTLStoreActionStore;
     
 }
 

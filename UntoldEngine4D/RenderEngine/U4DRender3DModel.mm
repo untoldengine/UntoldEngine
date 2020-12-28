@@ -18,7 +18,7 @@
 
 namespace U4DEngine {
 
-U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformModelShaderParametersBuffer(nil),normalSamplerDescriptor(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr},isRenderingShadows(false){
+U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformModelShaderParametersBuffer(nil),normalSamplerDescriptor(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr}{
         
         u4dObject=uU4DModel;
         
@@ -105,6 +105,42 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
         
     }
+
+void U4DRender3DModel::initMTLOffscreenRenderLibrary(){
+    
+    mtlOffscreenRenderLibrary=[mtlDevice newDefaultLibrary];
+    
+    std::string vertexOffscreenShaderName=u4dObject->getVertexOffscreenShader();
+    std::string fragmentOffscreenShaderName=u4dObject->getFragmentOffscreenShader();
+    
+    vertexOffscreenProgram=[mtlOffscreenRenderLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexOffscreenShaderName.c_str()]];
+    
+    fragmentOffscreenProgram=[mtlOffscreenRenderLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentOffscreenShaderName.c_str()]];
+    
+}
+    
+    void U4DRender3DModel::initMTLOffscreenRenderPipeline(){
+    
+        NSError *error;
+        
+        mtlOffscreenRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
+        mtlOffscreenRenderPipelineDescriptor.vertexFunction=vertexOffscreenProgram;
+        mtlOffscreenRenderPipelineDescriptor.fragmentFunction=fragmentOffscreenProgram;
+        mtlOffscreenRenderPipelineDescriptor.colorAttachments[0].pixelFormat=MTLPixelFormatRGBA8Unorm;
+        mtlOffscreenRenderPipelineDescriptor.depthAttachmentPixelFormat=MTLPixelFormatDepth32Float;
+        
+        mtlOffscreenRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
+        
+        mtlOffscreenRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlOffscreenRenderPipelineDescriptor error:&error];
+        
+        if (!mtlOffscreenRenderPipelineState) {
+//            U4DLogger *logger=U4DLogger::sharedInstance();
+//            logger->log("Error creating the offscreen pipeline");
+//
+            NSLog(@"Error: Unable to create the offscreen pipeline %@",error.localizedDescription);
+        }
+        
+    }
     
     void U4DRender3DModel::initMTLRenderPipeline(){
         
@@ -176,7 +212,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
 //        MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
 //        stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
 //        stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
-//        
+//
 //        depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
 //        depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
         
@@ -463,11 +499,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
     
     void U4DRender3DModel::updateBoneSpaceUniforms(){
         
-        if (isRenderingShadows==true) {
-            boneTripleBuffer.index =shadowTripleBuffer.index;
-        }else{
-            boneTripleBuffer.index =spaceTripleBuffer.index;
-        }
+        boneTripleBuffer.index = (boneTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
         
         boneTripleBuffer.offset = U4DEngine::kAlignedUniformBoneSize * boneTripleBuffer.index;
         
@@ -622,20 +654,26 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         //memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
         
     }
+
+    void U4DRender3DModel::updateAllUniforms(){
+        
+        updateSpaceUniforms();
+        updateModelRenderFlags();
+        updateBoneSpaceUniforms();
+        updateShadowProperties();
+        updateModelShaderParametersUniform();
+        
+        updateShadowSpaceUniforms();
+        
+        //update the global uniforms
+        updateGlobalDataUniforms();
+        
+    }
     
     void U4DRender3DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         if (eligibleToRender==true && isWithinFrustum==true) {
             
-            isRenderingShadows=false;
-            updateSpaceUniforms();
-            updateModelRenderFlags();
-            updateBoneSpaceUniforms();
-            updateShadowProperties();
-            updateModelShaderParametersUniform();
-            
-            //update the global uniforms
-            updateGlobalDataUniforms();
             
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
@@ -674,6 +712,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
             [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
             [uRenderEncoder setFragmentBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:6];
             
+            //set normal texture
             [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
             [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];
             
@@ -682,6 +721,8 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
             //set the samplers
             [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:3];
             
+            //set offscreen texture
+            [uRenderEncoder setFragmentTexture:offscreenTexture atIndex:4];
             
             
             //set the draw command
@@ -697,12 +738,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         if (eligibleToRender==true) {
             
             //set the shadow texture
-            isRenderingShadows=true;
             shadowTexture=uShadowTexture;
-            
-            updateShadowSpaceUniforms();
-            updateModelRenderFlags();
-            updateBoneSpaceUniforms();
             
             [uRenderShadowEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
             
@@ -718,6 +754,37 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
             
         }
         
+    }
+
+
+    void U4DRender3DModel::renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture){
+
+            //set the offscreen texture
+            offscreenTexture=uOffscreenTexture;
+            
+            //encode the pipeline
+            [uRenderOffscreenEncoder setRenderPipelineState:mtlOffscreenRenderPipelineState];
+            
+            [uRenderOffscreenEncoder setDepthStencilState:depthStencilState];
+            
+            //encode the buffers
+            [uRenderOffscreenEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            
+            [uRenderOffscreenEncoder setVertexBuffer:uniformSpaceBuffer offset:spaceTripleBuffer.offset atIndex:1];
+            
+            //set texture in fragment
+            [uRenderOffscreenEncoder setFragmentTexture:textureObject[0] atIndex:0];
+            //set the samplers
+            
+            [uRenderOffscreenEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
+            
+            
+            [uRenderOffscreenEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:5];
+            
+            
+            //set the draw command
+            [uRenderOffscreenEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
+            
     }
     
     void U4DRender3DModel::initTextureSamplerObjectNull(){

@@ -84,6 +84,11 @@ namespace U4DEngine {
         id<MTLTexture> shadowTexture;
         
         /**
+         @brief Pointer to the offscreen texture
+         */
+        id<MTLTexture> offscreenTexture;
+        
+        /**
          * @brief pointer to the material information buffer, such as diffuse, specular colors and intensities.
          */
         id<MTLBuffer> uniformMaterialBuffer;
@@ -151,8 +156,6 @@ namespace U4DEngine {
         
         TRIPLEBUFFER boneTripleBuffer;
         
-        bool isRenderingShadows;
-        
     public:
         
         /**
@@ -180,6 +183,16 @@ namespace U4DEngine {
          * @details It prepares the rendering descriptor with the appropriate color attachment, depth attachment, shaders and attributes
          */
         void initMTLRenderPipeline();
+        
+        /**
+        @todo document this
+        */
+        void initMTLOffscreenRenderLibrary();
+        
+        /**
+         @todo document this
+         */
+        void initMTLOffscreenRenderPipeline();
         
         /**
          * @brief Loads the attributes and Uniform data
@@ -243,6 +256,12 @@ namespace U4DEngine {
         void updateModelRenderFlags();
         
         /**
+         @todo document this
+         */
+        void updateAllUniforms();
+        
+        
+        /**
          * @brief Renders the current entity
          * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
          * 
@@ -258,6 +277,11 @@ namespace U4DEngine {
          * @param uShadowTexture Texture shadow for the current entity
          */
         void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
+        
+        /**
+         @todo document this
+         */
+        void renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture);
         
         /**
          * @brief Initializes a null texture sampler object

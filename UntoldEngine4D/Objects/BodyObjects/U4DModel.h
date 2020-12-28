@@ -145,6 +145,11 @@ namespace U4DEngine {
         virtual void update(double dt){};
         
         /**
+         @todo document this
+         */
+        void updateAllUniforms();
+        
+        /**
          * @brief Renders the current entity
          * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
          *
@@ -161,6 +166,11 @@ namespace U4DEngine {
          */
         void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
         
+        
+        /**
+         @todo document this
+         */
+        void renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture);
         
         /**
          @brief sets the Normal Map texture used for the 3d model
@@ -352,6 +362,7 @@ namespace U4DEngine {
         void setImageWidth(unsigned int uImageWidth);
         
         void setImageHeight(unsigned int uImageHeight);
+        
         
     };
     

@@ -42,6 +42,16 @@ protected:
      */
     std::string fragmentShader;
     
+    /*
+     @todo document this
+     */
+    std::string offscreenVertexShader;
+    
+    /*
+     @todo document this
+     */
+    std::string offscreenFragmentShader;
+    
 public:
     
     /**
@@ -76,6 +86,11 @@ public:
     virtual void update(double dt){};
     
     /**
+     @todo document this
+     */
+    virtual void updateAllUniforms(){};
+    
+    /**
      @brief Method which loads all rendering information for the entiy
      */
     void loadRenderingInformation();
@@ -104,6 +119,10 @@ public:
      */
     virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
     
+    /*
+     @todo document this
+     */
+    virtual void renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture){};
     
     /**
      @brief sets the shader used for rendering the entity
@@ -113,6 +132,10 @@ public:
      */
     void setShader(std::string uVertexShaderName, std::string uFragmentShaderName);
     
+    /*
+     @todo document this
+     */
+    void setOffscreenShader(std::string uVertexShaderName, std::string uFragmentShaderName);
     
     /**
      @brief get the name of the vertex shader
@@ -128,6 +151,17 @@ public:
      @return name of the fragment shader
      */
     std::string getFragmentShader();
+    
+    /**
+     @todo document this
+     */
+    std::string getVertexOffscreenShader();
+    
+    /**
+     @todo document this
+     */
+    std::string getFragmentOffscreenShader();
+    
 };
     
 }

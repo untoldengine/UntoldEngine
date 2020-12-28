@@ -160,6 +160,11 @@ namespace U4DEngine {
         
     }
 
+    void U4DScene::renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
+        
+        getSceneStateManager()->renderOffscreen(uOffscreenRenderEncoder, uOffscreenTexture);
+    }
+
 
     void U4DScene::determineVisibility(){
         

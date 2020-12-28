@@ -523,12 +523,22 @@ public:
      */
     virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
     
+    /*
+     @todo document this
+     */
+    virtual void renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture){};
+    
     /**
      @brief Updates the state of each entity
      
      @param dt time-step value
      */
     virtual void update(double dt){};
+    
+    /**
+     @todo document this
+     */
+    virtual void updateAllUniforms(){};
     
     /**
      @brief Loads all rendering information for the entiy

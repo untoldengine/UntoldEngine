@@ -31,6 +31,12 @@ namespace U4DEngine {
         
     }
     
+    void U4DVisibleEntity::setOffscreenShader(std::string uVertexShaderName, std::string uFragmentShaderName){
+    
+        offscreenVertexShader=uVertexShaderName;
+        offscreenFragmentShader=uFragmentShaderName;
+        
+    }
     
     std::string U4DVisibleEntity::getVertexShader(){
         
@@ -40,7 +46,13 @@ namespace U4DEngine {
     std::string U4DVisibleEntity::getFragmentShader(){
         return fragmentShader;
     }
-    
+
+    std::string U4DVisibleEntity::getVertexOffscreenShader(){
+        return offscreenVertexShader;
+    }
+    std::string U4DVisibleEntity::getFragmentOffscreenShader(){
+        return offscreenFragmentShader;
+    }
     
     void U4DVisibleEntity::loadRenderingInformation(){
         

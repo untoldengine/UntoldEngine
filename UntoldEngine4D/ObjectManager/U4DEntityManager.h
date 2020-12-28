@@ -138,6 +138,11 @@ namespace U4DEngine {
         void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
         
         /**
+         @todo document this
+         */
+        void renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture);
+        
+        /**
          @brief Updates the state of each entity
          @details It updates the space matrix and calls the physics engine and collision system to evaluate each entity.
          

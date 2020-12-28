@@ -75,6 +75,12 @@
 		032B9A22247818DD00412B5B /* U4DLayerManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032B9A1E247818DD00412B5B /* U4DLayerManager.mm */; };
 		032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */; };
 		033343011F8DA84A0013FB1E /* particleSystemShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033343001F8DA84A0013FB1E /* particleSystemShader.metal */; };
+		033AEDFB258FC01D007F1CFD /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033AEDFA258FC01D007F1CFD /* OffscreenRender.metal */; };
+		033AEDFC258FC01D007F1CFD /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033AEDFA258FC01D007F1CFD /* OffscreenRender.metal */; };
+		033AEDFD258FC01D007F1CFD /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033AEDFA258FC01D007F1CFD /* OffscreenRender.metal */; };
+		033AEDFF258FD37E007F1CFD /* FinalRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033AEDFE258FD37E007F1CFD /* FinalRender.metal */; };
+		033AEE00258FD37E007F1CFD /* FinalRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033AEDFE258FD37E007F1CFD /* FinalRender.metal */; };
+		033AEE01258FD37E007F1CFD /* FinalRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 033AEDFE258FD37E007F1CFD /* FinalRender.metal */; };
 		0341ABFE204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
 		0341ABFF204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
 		0341AC00204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
@@ -940,6 +946,8 @@
 		032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DBlendAnimation.mm; sourceTree = "<group>"; };
 		032BD8A01E567FC300C158A1 /* U4DBlendAnimation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DBlendAnimation.h; sourceTree = "<group>"; };
 		033343001F8DA84A0013FB1E /* particleSystemShader.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = particleSystemShader.metal; path = MetalShaders/particleSystemShader.metal; sourceTree = "<group>"; };
+		033AEDFA258FC01D007F1CFD /* OffscreenRender.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = OffscreenRender.metal; path = Game/OffscreenRender.metal; sourceTree = SOURCE_ROOT; };
+		033AEDFE258FD37E007F1CFD /* FinalRender.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = FinalRender.metal; path = Game/FinalRender.metal; sourceTree = SOURCE_ROOT; };
 		0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyPressedState.mm; path = MacKeys/U4DMacKeyPressedState.mm; sourceTree = "<group>"; };
 		0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyReleasedState.mm; path = MacKeys/U4DMacKeyReleasedState.mm; sourceTree = "<group>"; };
 		0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKey.mm; path = MacKeys/U4DMacKey.mm; sourceTree = "<group>"; };
@@ -2200,6 +2208,8 @@
 			isa = PBXGroup;
 			children = (
 				03D0C4D624B57F6A001A7D5F /* LoadingCircle.metal */,
+				033AEDFA258FC01D007F1CFD /* OffscreenRender.metal */,
+				033AEDFE258FD37E007F1CFD /* FinalRender.metal */,
 			);
 			name = UserShaders;
 			sourceTree = "<group>";
@@ -2820,6 +2830,7 @@
 				03CAE64D205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03722B952029F0F50080D069 /* U4DRender3DModel.mm in Sources */,
 				03F02A882443EC1D007B073D /* U4DSeparation.mm in Sources */,
+				033AEE00258FD37E007F1CFD /* FinalRender.metal in Sources */,
 				03722BBD2029F0F50080D069 /* U4DTransformation.mm in Sources */,
 				03722B5D2029F0F50080D069 /* lightShader.metal in Sources */,
 				0323DBB4202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
@@ -2860,6 +2871,7 @@
 				03722B552029F0F50080D069 /* U4DOBB.mm in Sources */,
 				03722B802029F0F50080D069 /* U4DParticleEmitterInterface.mm in Sources */,
 				03D5E51F224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
+				033AEDFC258FC01D007F1CFD /* OffscreenRender.metal in Sources */,
 				03A3E2D92465A4AF00FBCBAD /* U4DInputElement.mm in Sources */,
 				03722BC42029F0F50080D069 /* U4DPhysicsEngine.mm in Sources */,
 				03722B7F2029F0F50080D069 /* U4DVector3n.mm in Sources */,
@@ -3210,6 +3222,7 @@
 				03CAE64F205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03722CCF2029F0F80080D069 /* U4DRender3DModel.mm in Sources */,
 				03F02A892443EC1D007B073D /* U4DSeparation.mm in Sources */,
+				033AEE01258FD37E007F1CFD /* FinalRender.metal in Sources */,
 				03722CF72029F0F80080D069 /* U4DTransformation.mm in Sources */,
 				03722C972029F0F80080D069 /* lightShader.metal in Sources */,
 				0323DBB6202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
@@ -3250,6 +3263,7 @@
 				03722C8F2029F0F80080D069 /* U4DOBB.mm in Sources */,
 				03722CBA2029F0F80080D069 /* U4DParticleEmitterInterface.mm in Sources */,
 				03D5E520224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
+				033AEDFD258FC01D007F1CFD /* OffscreenRender.metal in Sources */,
 				03A3E2DA2465A4AF00FBCBAD /* U4DInputElement.mm in Sources */,
 				03722CFE2029F0F80080D069 /* U4DPhysicsEngine.mm in Sources */,
 				03722CB92029F0F80080D069 /* U4DVector3n.mm in Sources */,
@@ -3432,6 +3446,7 @@
 				036964C6248E85190043C1C6 /* U4DSceneManager.mm in Sources */,
 				03A3E34624757ADC00FBCBAD /* U4DLayer.mm in Sources */,
 				03F2DB141F191F9B00F77B78 /* U4DRenderWorld.mm in Sources */,
+				033AEDFB258FC01D007F1CFD /* OffscreenRender.metal in Sources */,
 				038BF22A2278898600B129A5 /* U4DSeek.mm in Sources */,
 				03F2DB0C1F191F9B00F77B78 /* U4DRender3DModel.mm in Sources */,
 				03CB47F7249C29C800E6A3C8 /* U4DSceneActiveState.mm in Sources */,
@@ -3522,6 +3537,7 @@
 				03722DEB202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				03068D5C19B96B4400ABDC55 /* U4DBoneData.mm in Sources */,
 				03722DDB202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
+				033AEDFF258FD37E007F1CFD /* FinalRender.metal in Sources */,
 				038BF24B22793B2B00B129A5 /* U4DWander.mm in Sources */,
 				03F02A8C24453A6E007B073D /* U4DAlign.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkybox.mm in Sources */,
@@ -3795,7 +3811,7 @@
 				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
-				MTL_ENABLE_DEBUG_INFO = YES;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
 				PROVISIONING_PROFILE_SPECIFIER = "";

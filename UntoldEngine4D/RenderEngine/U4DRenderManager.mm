@@ -64,6 +64,9 @@ U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(fal
         initMTLRenderLibrary();
         initMTLRenderPipeline();
         
+        initMTLOffscreenRenderLibrary();
+        initMTLOffscreenRenderPipeline();
+        
         if(loadMTLBuffer()){
             
             loadMTLTexture();

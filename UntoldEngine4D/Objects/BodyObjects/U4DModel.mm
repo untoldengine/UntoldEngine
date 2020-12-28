@@ -68,6 +68,12 @@ namespace U4DEngine {
         renderManager->renderShadow(uRenderShadowEncoder,uShadowTexture);
         
     }
+
+    void U4DModel::renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture){
+        
+        renderManager->renderOffscreen(uRenderOffscreenEncoder, uOffscreenTexture);
+        
+    }
     
     void U4DModel::setNormalMapTexture(std::string uTexture){
         
@@ -80,6 +86,10 @@ namespace U4DEngine {
         
         enableNormalMap=uValue;
         
+    }
+
+    void U4DModel::updateAllUniforms(){
+        renderManager->updateAllUniforms();
     }
     
     bool U4DModel::getEnableNormalMap(){

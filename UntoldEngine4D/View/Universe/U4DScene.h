@@ -144,6 +144,11 @@ public:
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder) final;
     
     /**
+     @todo document this
+     */
+    virtual void renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture) final;
+    
+    /**
      * @brief Renders the shadow for a 3D entity
      * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
      *

@@ -90,6 +90,11 @@ namespace U4DEngine {
         void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
         
         /**
+         @todo document this
+         */
+        void renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture);
+        
+        /**
          @brief sets to true if it is safe to change the scene state
          */
         bool isSafeToChangeState();

@@ -45,6 +45,11 @@ namespace U4DEngine {
     void U4DSceneIdleState::renderShadow(U4DScene *uScene, id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
         
     }
+
+
+    void U4DSceneIdleState::renderOffscreen(U4DScene *uScene, id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
+        
+    }
             
     
     void U4DSceneIdleState::exit(U4DScene *uScene){
