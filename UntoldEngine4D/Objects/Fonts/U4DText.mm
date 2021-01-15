@@ -10,14 +10,16 @@
 #include "U4DDirector.h"
 #include "U4DRenderFont.h"
 #include "U4DResourceLoader.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
     U4DText::U4DText(std::string uFontName):currentTextContainerSize(0){
         
-        renderManager=new U4DRenderFont(this);
+        renderEntity=new U4DRenderFont(this);
             
-        setShader("vertexFontImageShader", "fragmentFontImageShader"); 
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("imagepipeline"));
         
         U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
         
@@ -29,7 +31,7 @@ namespace U4DEngine {
         
     U4DText::~U4DText(){
         
-        delete renderManager;
+        delete renderEntity;
         
     }
 
@@ -83,7 +85,7 @@ namespace U4DEngine {
             
             loadText();
             
-            renderManager->loadRenderingInformation();
+            renderEntity->loadRenderingInformation();
             
         }else{
             
@@ -93,18 +95,18 @@ namespace U4DEngine {
             //parse new text
             parseText(uText);
             
-            renderManager->clearModelAttributeData();
+            renderEntity->clearModelAttributeData();
             
             loadText();
             
             //test if textcontainer size is equal to currenttext container size
             if (textContainer.size()==currentTextContainerSize) {
                 
-                renderManager->updateRenderingInformation();
+                renderEntity->updateRenderingInformation();
                 
             }else{
                 
-                renderManager->modifyRenderingInformation();
+                renderEntity->modifyRenderingInformation();
             }
             
         }
@@ -187,7 +189,7 @@ namespace U4DEngine {
 
     void U4DText::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        renderEntity->render(uRenderEncoder);
         
     }
     
@@ -257,7 +259,5 @@ namespace U4DEngine {
         
         
     }
-    
-    
 
 }

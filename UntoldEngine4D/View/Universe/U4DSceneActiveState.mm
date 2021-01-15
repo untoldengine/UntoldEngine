@@ -66,23 +66,11 @@ namespace U4DEngine {
         
     }
 
-    void U4DSceneActiveState::render(U4DScene *uScene, id <MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DSceneActiveState::render(U4DScene *uScene, id <MTLCommandBuffer> uCommandBuffer){
         
-        uScene->gameWorld->entityManager->render(uRenderEncoder);
+        uScene->gameWorld->entityManager->render(uCommandBuffer);
         
         safeToChangeState=true;
-    }
-        
-    void U4DSceneActiveState::renderShadow(U4DScene *uScene, id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-        
-        uScene->gameWorld->entityManager->renderShadow(uRenderShadowEncoder, uShadowTexture);
-        
-    }
-
-    void U4DSceneActiveState::renderOffscreen(U4DScene *uScene, id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
-        
-        uScene->gameWorld->entityManager->renderOffscreen(uOffscreenRenderEncoder, uOffscreenTexture); 
-        
     }
     
     void U4DSceneActiveState::exit(U4DScene *uScene){

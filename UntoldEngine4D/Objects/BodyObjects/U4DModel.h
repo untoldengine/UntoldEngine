@@ -20,7 +20,7 @@
 #include "U4DAnimation.h"
 #include "CommonProtocols.h"
 #include <MetalKit/MetalKit.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 
 namespace U4DEngine {
     
@@ -62,7 +62,6 @@ namespace U4DEngine {
         
         bool enableNormalMap;
         
-        bool enableShadow;
         
         bool enableTexture;
         
@@ -157,20 +156,7 @@ namespace U4DEngine {
          */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
-        /**
-         * @brief Renders the shadow for a 3D entity
-         * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
-         *
-         * @param uRenderShadowEncoder Metal encoder object for the current entity
-         * @param uShadowTexture Texture shadow for the current entity
-         */
-        void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
         
-        
-        /**
-         @todo document this
-         */
-        void renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture);
         
         /**
          @brief sets the Normal Map texture used for the 3d model
@@ -195,21 +181,6 @@ namespace U4DEngine {
          */
         bool getEnableNormalMap();
         
-        
-        /**
-         @brief Enables shadow rendering on the 3d model
-
-         @param uValue true to enable shadow rendering
-         */
-        void setEnableShadow(bool uValue);
-        
-        
-        /**
-         @brief gets if shadow rendering has been enabled on the 3d model
-
-         @return true if shadow rendering is enabled
-         */
-        bool getEnableShadow();
         
         
         /**

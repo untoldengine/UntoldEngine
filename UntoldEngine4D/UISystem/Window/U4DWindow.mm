@@ -27,7 +27,7 @@ U4DWindow::U4DWindow(std::string uName, float xPosition,float yPosition,float uW
     
     controllerInterface=sceneManager->getGameController();
     
-    setShader("vertexUIWindowShader", "fragmentUIWindowShader");
+    //setShader("vertexUIWindowShader", "fragmentUIWindowShader");
     
     setShaderDimension(uWidth, uHeight);
 

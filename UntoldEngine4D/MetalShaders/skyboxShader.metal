@@ -24,7 +24,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexSkyboxShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexSkyboxShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -37,7 +37,7 @@ vertex VertexOutput vertexSkyboxShader(VertexInput vert [[stage_in]], constant U
     return vertexOut;
 }
 
-fragment float4 fragmentSkyboxShader(VertexOutput vertexOut [[stage_in]], texturecube<float> skyboxTexture[[texture(0)]], sampler skyboxSampler [[sampler(0)]]){
+fragment float4 fragmentSkyboxShader(VertexOutput vertexOut [[stage_in]], texturecube<float> skyboxTexture[[texture(fiTexture0)]], sampler skyboxSampler [[sampler(fiSampler0)]]){
     
     float3 texCoords = float3(vertexOut.uvCoords.x, vertexOut.uvCoords.y, -vertexOut.uvCoords.z);
     

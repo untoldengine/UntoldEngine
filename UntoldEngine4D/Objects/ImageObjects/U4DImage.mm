@@ -10,26 +10,32 @@
 #include "U4DRenderImage.h"
 #include "U4DDirector.h"
 #include "U4DResourceLoader.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
     U4DImage::U4DImage(){
         
-        renderManager=new U4DRenderImage(this);
-        setShader("vertexImageShader", "fragmentImageShader");
+        setEntityType(U4DEngine::IMAGE);
+        renderEntity=new U4DRenderImage(this);
+        
+        //setRenderPassFilter(U4DEngine::imageRenderPass);
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("imagepipeline"));
         
     };
 
     U4DImage::~U4DImage(){
         
-        delete renderManager;
+        delete renderEntity;
         
     }
 
     U4DImage::U4DImage(const char* uTextureImage,float uWidth,float uHeight){
         
-        renderManager=new U4DRenderImage(this);
-        setShader("vertexImageShader", "fragmentImageShader");
+        renderEntity=new U4DRenderImage(this);
+       
         setImage(uTextureImage, uWidth, uHeight);
         
     }
@@ -40,11 +46,11 @@ namespace U4DEngine {
         
         U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
         
-        if(resourceLoader->loadTextureDataToEntity(renderManager, uTextureImage)){
+        if(resourceLoader->loadTextureDataToEntity(renderEntity, uTextureImage)){
             
             setImageDimension(uWidth, uHeight);
             
-            renderManager->loadRenderingInformation();
+            renderEntity->loadRenderingInformation();
             
         }
         
@@ -52,7 +58,7 @@ namespace U4DEngine {
 
     void U4DImage::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        renderEntity->render(uRenderEncoder);
     }
     
     void U4DImage::setImageDimension(float uWidth,float uHeight){

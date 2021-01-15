@@ -18,14 +18,20 @@
 #include "U4DCamera.h"
 #include "U4DDirector.h"
 #include "U4DResourceLoader.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
     U4DParticleSystem::U4DParticleSystem():maxNumberOfParticles(50),hasTexture(false),enableAdditiveRendering(true),enableNoise(false),noiseDetail(4.0){
         
-        renderManager=new U4DRenderParticleSystem(this);
+        renderEntity=new U4DRenderParticleSystem(this);
         
-        setShader("vertexParticleSystemShader", "fragmentParticleSystemShader");
+        //setShader("vertexParticleSystemShader", "fragmentParticleSystemShader");
+        
+        //setRenderPassFilter(U4DEngine::particlesRenderPassMask);
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("particlepipeline"));
         
         particlePhysics=new U4DParticlePhysics();
         
@@ -41,13 +47,13 @@ namespace U4DEngine {
         
         removeAllParticles();
         
-        delete renderManager;
+        delete renderEntity;
         
     }
     
     void U4DParticleSystem::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        renderEntity->render(uRenderEncoder);
         
     }
     

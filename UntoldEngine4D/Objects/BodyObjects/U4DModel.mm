@@ -18,20 +18,24 @@
 #include "U4DRender3DModel.h"
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingAABB.h"
+#include "U4DRenderManager.h"
 
 #pragma mark-set up the body vertices
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),enableShadow(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(10,U4DVector4n(0.0,0.0,0.0,0.0)){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(10,U4DVector4n(0.0,0.0,0.0,0.0)){
         
-        renderManager=new U4DRender3DModel(this);
+        renderEntity=new U4DRender3DModel(this);
         
         armatureManager=new U4DArmatureData(this);
         
-        setShader("vertexModelShader", "fragmentModelShader");
-        
         setEntityType(MODEL);
+        
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("modelpipeline"));
+        renderEntity->makePassPipelinePair(U4DEngine::shadowPass, renderManager->searchPipeline("shadowpipeline"));
         
         cullingPhaseBoundingVolume=nullptr;
         
@@ -39,7 +43,7 @@ namespace U4DEngine {
     
     U4DModel::~U4DModel(){
         
-        delete renderManager;
+        delete renderEntity;
         delete cullingPhaseBoundingVolume;
         delete armatureManager;
     };
@@ -60,19 +64,7 @@ namespace U4DEngine {
     
     void U4DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
-    }
-    
-    void U4DModel::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-        
-        renderManager->renderShadow(uRenderShadowEncoder,uShadowTexture);
-        
-    }
-
-    void U4DModel::renderOffscreen(id <MTLRenderCommandEncoder> uRenderOffscreenEncoder, id<MTLTexture> uOffscreenTexture){
-        
-        renderManager->renderOffscreen(uRenderOffscreenEncoder, uOffscreenTexture);
-        
+        renderEntity->render(uRenderEncoder);
     }
     
     void U4DModel::setNormalMapTexture(std::string uTexture){
@@ -89,7 +81,7 @@ namespace U4DEngine {
     }
 
     void U4DModel::updateAllUniforms(){
-        renderManager->updateAllUniforms();
+        renderEntity->updateAllUniforms();
     }
     
     bool U4DModel::getEnableNormalMap(){
@@ -112,28 +104,20 @@ namespace U4DEngine {
 
     void U4DModel::setRawImageData(std::vector<unsigned char> uRawImageData){
       
-        renderManager->setRawImageData(uRawImageData);
+        renderEntity->setRawImageData(uRawImageData);
         
     }
         
     void U4DModel::setImageWidth(unsigned int uImageWidth){
         
-        renderManager->setImageWidth(uImageWidth);
+        renderEntity->setImageWidth(uImageWidth);
         
     }
         
     void U4DModel::setImageHeight(unsigned int uImageHeight){
         
-        renderManager->setImageHeight(uImageHeight);
+        renderEntity->setImageHeight(uImageHeight);
     
-    }
-
-    void U4DModel::setEnableShadow(bool uValue){
-        enableShadow=uValue;
-    }
-    
-    bool U4DModel::getEnableShadow(){
-        return enableShadow;
     }
     
     void U4DModel::setHasNormalMap(bool uValue){
@@ -351,7 +335,7 @@ namespace U4DEngine {
     
     void U4DModel::setModelVisibility(bool uValue){
     
-        renderManager->setIsWithinFrustum(uValue);
+        renderEntity->setIsWithinFrustum(uValue);
     }
 
     void U4DModel::initCullingBoundingVolume(){

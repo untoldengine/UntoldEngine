@@ -29,7 +29,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexLoadingCircleShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(2)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexLoadingCircleShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -42,7 +42,7 @@ vertex VertexOutput vertexLoadingCircleShader(VertexInput vert [[stage_in]], con
     return vertexOut;
 }
 
-fragment float4 fragmentLoadingCircleShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(0)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentLoadingCircleShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]]){
     
     float2 st=vertexOut.uvCoords;
     

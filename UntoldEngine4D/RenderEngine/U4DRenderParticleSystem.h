@@ -10,7 +10,7 @@
 #define U4DRenderParticleSystem_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include <vector>
 #include <simd/simd.h>
 #include "U4DParticleSystem.h"
@@ -42,7 +42,7 @@ namespace U4DEngine {
      * @ingroup renderingengine
      * @brief The U4DRenderParticleSystem class manages the rendering of particles used in the particle system
      */
-    class U4DRenderParticleSystem:public U4DRenderManager {
+    class U4DRenderParticleSystem:public U4DRenderEntity {
         
     private:
         
@@ -103,17 +103,7 @@ namespace U4DEngine {
          */
         ~U4DRenderParticleSystem();
         
-        /**
-         * @brief Initializes the library shaders
-         * @details It initializes the vertex and fragment shaders for the entity
-         */
-        void initMTLRenderLibrary();
         
-        /**
-         * @brief Initializes the Rendering Pipeline
-         * @details It prepares the rendering descriptor with the appropriate color attachment, depth attachment, shaders and attributes
-         */
-        void initMTLRenderPipeline();
         
         /**
          * @brief Loads the attributes and Uniform data
@@ -183,34 +173,6 @@ namespace U4DEngine {
          * @details Creates a texture and sampler object and initializes to NULL
          */
         void initTextureSamplerObjectNull();
-        
-        /**
-         @brief Gets the absolute space of the entity
-         
-         @return Returns the entity absolure space-Orientation and Position
-         */
-        U4DDualQuaternion getEntitySpace();
-        
-        /**
-         @brief Gets the local space of the entity
-         
-         @return Returns the entity local space-Orientation and Position
-         */
-        U4DDualQuaternion getEntityLocalSpace();
-        
-        /**
-         @brief Gets the absolute position of the entity
-         
-         @return Returns the entity absolute position
-         */
-        U4DVector3n getEntityAbsolutePosition();
-        
-        /**
-         @brief Gets the local position of the entity
-         
-         @return Returns the entity local position
-         */
-        U4DVector3n getEntityLocalPosition();
         
     };
     

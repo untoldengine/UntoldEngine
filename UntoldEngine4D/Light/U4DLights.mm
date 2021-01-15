@@ -20,7 +20,7 @@ namespace U4DEngine {
         
         entityForwardVector=U4DVector3n(0,0,-1);
         
-        renderManager=new U4DRenderLights(this);
+        renderEntity=new U4DRenderLights(this);
         
         U4DPoint3n uMax(0.1,0.1,0.1);
         U4DPoint3n uMin(-0.1,-0.1,-0.1);
@@ -35,9 +35,9 @@ namespace U4DEngine {
         
         translateTo(0.0,0.0,0.0);
         
-        setShader("vertexLightShader", "fragmentLightShader");
+        //setShader("vertexLightShader", "fragmentLightShader");
         
-        renderManager->loadRenderingInformation();
+        renderEntity->loadRenderingInformation();
        
     };
     
@@ -56,7 +56,7 @@ namespace U4DEngine {
     
     void U4DLights::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        renderEntity->render(uRenderEncoder);
     }
     
     void U4DLights::computeLightVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){

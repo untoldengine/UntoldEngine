@@ -24,6 +24,10 @@
 #include "U4DDebugger.h"
 #include "U4DBoundingAABB.h"
 #include "U4DProfilerManager.h"
+#include "U4DImage.h"
+#include "U4DText.h"
+#include "U4DRenderManager.h"
+
 
 using namespace U4DEngine;
 
@@ -68,7 +72,7 @@ void SandboxWorld::init(){
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");
     
-    //setEnableGrid(true);
+    setEnableGrid(true);
     
     //Create an instance of U4DGameObject type
     myAstronaut=new U4DEngine::U4DGameObject();
@@ -76,14 +80,6 @@ void SandboxWorld::init(){
     //Load attribute (rendering information) into the game entity
     if (myAstronaut->loadModel("astronaut")) {
 
-        //myAstronaut->setShader("vertexFinalRenderShader","fragmentFinalRenderShader");
-
-        myAstronaut->setOffscreenShader("vertexOffscreenShader", "fragmentOffscreenShader");
-
-        myAstronaut->setEnableShadow(true);
-        
-        //myAstronaut->setNormalMapTexture("astronautNormalMap.png");
-        
         myAstronaut->enableKineticsBehavior();
         
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
@@ -101,32 +97,27 @@ void SandboxWorld::init(){
     }
   
     //Line 2. Create an Animation object and link it to the 3D model
-//    U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
+    U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
 
-//    //Line 3. Load animation data into the animation object
-//    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
-//
-//        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
-//
-//    }
-//
-//    //Line 4. Check if the animation object exist and play the animation
-//    if (walkAnimation!=nullptr) {
-//
-//        walkAnimation->play();
-//
-//    }
+    //Line 3. Load animation data into the animation object
+    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
+
+        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
+
+    }
+
+    //Line 4. Check if the animation object exist and play the animation
+    if (walkAnimation!=nullptr) {
+
+        walkAnimation->play();
+
+    }
     
     //Create an instance of U4DGameObject type
     U4DEngine::U4DGameObject *island=new U4DEngine::U4DGameObject();
 
     //Line 3. Load attribute (rendering information) into the game entity
     if (island->loadModel("island")) {
-
-        //island->setShader("vertexFinalRenderShader","fragmentFinalRenderShader");
-        island->setOffscreenShader("vertexOffscreenShader", "fragmentOffscreenShader");
-        
-        island->setEnableShadow(true);
 
         island->enableKineticsBehavior();
 
@@ -144,61 +135,23 @@ void SandboxWorld::init(){
 
     }
     
-//    U4DDirector *director=U4DDirector::sharedInstance();
-//    //use the dimensions of the display
-//    float width=director->getDisplayWidth();
-//    float height=director->getDisplayHeight();
-//    U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity(0);
-//
-//    shader->setShader("vertexLoadingCircleShader","fragmentLoadingCircleShader");
-//
-//    shader->setShaderDimension(width/2.0, height/2.0);
-//
-//    shader->translateTo(0.0, -0.3, 0.0);
-//
-//    shader->loadRenderingInformation();
-//
-//    addChild(shader,-10);
-//
-//    //Create a particle system
-//    U4DEngine::U4DParticleSystem *particleSystem=new U4DEngine::U4DParticleSystem();
-//
-//    //3.Load the particle's attributes file and particle texture into the Particle System entity
-//    if(particleSystem->loadParticle("redBulletEmitter")){
-//
-//        //4. load the attributes into the GPU
-//        particleSystem->loadRenderingInformation();
-//
-//        //5.add the particle system to the scenegraph. If you are using a Skybox, make sure to set the proper order of the particle system in the scenegraph. In this instance,
-//        //I set the order to -5
-//        addChild(particleSystem,-5);
-//
-//        particleSystem->translateBy(1.0, 0.5, 0.0);
-//
-//
-//    }
-//
-//    particleSystem->play();
-    
-//    //Render a skybox
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    //initialize the skybox
-//    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-//
-//    //add the skybox to the scenegraph with appropriate z-depth
-//    addChild(skybox);
-    
+    //Render a skybox
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+
+    //initialize the skybox
+    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+
+    //add the skybox to the scenegraph with appropriate z-depth
+    addChild(skybox);
+
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
     debugger->setEnableDebugger(true,this);
-    
     
 }
 
 
 void SandboxWorld::update(double dt){
     
-    myAstronaut->rotateBy(0.0,1.0,0.0);
     
 }
 
@@ -218,7 +171,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-5.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-15.0);
     
     //translate camera
     camera->translateTo(cameraPosition);

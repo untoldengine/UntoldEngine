@@ -48,21 +48,9 @@ namespace U4DEngine{
         
     }
 
-    void U4DSceneStateManager::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DSceneStateManager::render(id <MTLCommandBuffer> uCommandBuffer){
         
-        currentState->render(scene, uRenderEncoder);
-        
-    }
-
-    void U4DSceneStateManager::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-        
-        currentState->renderShadow(scene, uRenderShadowEncoder, uShadowTexture);
-        
-    }
-
-    void U4DSceneStateManager::renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
-        
-        currentState->renderOffscreen(scene, uOffscreenRenderEncoder, uOffscreenTexture);
+        currentState->render(scene, uCommandBuffer);
         
     }
 

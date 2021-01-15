@@ -27,7 +27,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexParticleSystemShader(VertexInput vert [[stage_in]], constant UniformSpace *uniformSpace [[buffer(1)]], constant UniformParticleProperty *uniformParticleProperty [[buffer(2)]], uint vid [[vertex_id]], ushort iid [[instance_id]]){
+vertex VertexOutput vertexParticleSystemShader(VertexInput vert [[stage_in]], constant UniformSpace *uniformSpace [[buffer(viSpaceBuffer)]], constant UniformParticleProperty *uniformParticleProperty [[buffer(viParticlesPropertiesBuffer)]], uint vid [[vertex_id]], ushort iid [[instance_id]]){
     
     VertexOutput vertexOut;
     
@@ -58,7 +58,7 @@ vertex VertexOutput vertexParticleSystemShader(VertexInput vert [[stage_in]], co
     return vertexOut;
 }
 
-fragment float4 fragmentParticleSystemShader(VertexOutput vertexOut [[stage_in]], constant UniformParticleSystemProperty &uniformParticleSystemProperty [[buffer(0)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentParticleSystemShader(VertexOutput vertexOut [[stage_in]], constant UniformParticleSystemProperty &uniformParticleSystemProperty [[buffer(fiParticleSysPropertiesBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]]){
     
     float4 sampledColor;
     

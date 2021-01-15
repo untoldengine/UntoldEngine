@@ -12,7 +12,6 @@
 #include "UserCommonProtocols.h"
 #include "SandboxWorld.h"
 
-
 SandboxLogic::SandboxLogic():showBroadPhaseVolume(false),showNarrowPhaseVolume(false){
     
 }

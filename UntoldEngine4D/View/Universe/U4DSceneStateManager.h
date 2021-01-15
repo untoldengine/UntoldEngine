@@ -79,20 +79,8 @@ namespace U4DEngine {
         @param uScene scene to render
         @param uRenderEncoder metal render encoder
         */
-        void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        void render(id <MTLCommandBuffer> uCommandBuffer);
         
-        /**
-        @brief Renders current scene shadows
-        @param uScene scene to render
-        @param uRenderShadowEncoder metal render encoder
-        @param uShadowTexture shadow textures
-        */
-        void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
-        
-        /**
-         @todo document this
-         */
-        void renderOffscreen(id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture);
         
         /**
          @brief sets to true if it is safe to change the scene state

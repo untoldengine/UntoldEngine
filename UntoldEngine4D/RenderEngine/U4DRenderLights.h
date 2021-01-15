@@ -10,7 +10,7 @@
 #define U4DRenderLights_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
@@ -35,7 +35,7 @@ namespace U4DEngine {
      * @ingroup renderingengine
      * @brief The U4DRenderLights class manages the rendering of the light entity. Note, it wiil simply render a sphere.
      */
-    class U4DRenderLights:public U4DRenderManager {
+    class U4DRenderLights:public U4DRenderEntity {
         
     private:
         
@@ -71,18 +71,6 @@ namespace U4DEngine {
          @return Returns the entity absolure space-Orientation and Position
          */
         U4DDualQuaternion getEntitySpace();
-        
-        /**
-         * @brief Initializes the library shaders
-         * @details It initializes the vertex and fragment shaders for the entity
-         */
-        void initMTLRenderLibrary();
-        
-        /**
-         * @brief Initializes the Rendering Pipeline
-         * @details It prepares the rendering descriptor with the appropriate color attachment, depth attachment, shaders and attributes
-         */
-        void initMTLRenderPipeline();
         
         /**
          * @brief Loads the attributes and Uniform data

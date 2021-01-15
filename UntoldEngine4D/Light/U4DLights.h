@@ -15,7 +15,7 @@
 #include "U4DVector2n.h"
 #include "U4DIndex.h"
 #include "U4DVertexData.h"
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DVisibleEntity.h"
 
 namespace U4DEngine {
@@ -27,11 +27,6 @@ namespace U4DEngine {
     class U4DLights:public U4DVisibleEntity{
         
     private:
-        
-        /**
-         @brief pointer to the render manager in charge of rendering the light shape. In this case, it is simply a small cube.
-         */
-        U4DRenderManager *renderManager;
         
         /**
          @brief The diffuse color of the light

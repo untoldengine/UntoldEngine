@@ -9,18 +9,19 @@
 #include "U4DShaderEntity.h"
 #include "U4DRenderShaderEntity.h"
 #include "U4DDirector.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 
 U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParamSize,U4DVector4n(0.0,0.0,0.0,0.0)),enableBlending(true),enableAdditiveRendering(true),requestToHotReload(false){
         
-        renderManager=new U4DRenderShaderEntity(this);
+        renderEntity=new U4DRenderShaderEntity(this);
         
     }
 
     U4DShaderEntity::~U4DShaderEntity(){
         
-        delete renderManager;
+        delete renderEntity;
         
     }
 
@@ -93,7 +94,7 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
 
     void U4DShaderEntity::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        renderEntity->render(uRenderEncoder);
         
     }
 
@@ -102,7 +103,7 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
         //TODO: THIS WILL HAVE TO BE FIXED. IT NEEDS TO BE MORE MODULAR
         if(requestToHotReload){
             
-            renderManager->hotReloadShaders(hotReloadShaderFile);
+            renderEntity->hotReloadShaders(hotReloadShaderFile);
             
             requestToHotReload=false;
             

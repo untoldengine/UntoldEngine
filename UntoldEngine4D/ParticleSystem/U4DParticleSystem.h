@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include "U4DVisibleEntity.h"
 #include <MetalKit/MetalKit.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DVertexData.h"
 #include "U4DTextureData.h"
 #include "U4DParticle.h"

@@ -10,7 +10,7 @@
 #define U4DRenderGeometry_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
@@ -35,7 +35,7 @@ namespace U4DEngine {
      * @ingroup renderingengine
      * @brief The U4DRenderGeometry manages the rendering of geometric entities such as cubes, spheres, etc
      */
-    class U4DRenderGeometry:public U4DRenderManager {
+    class U4DRenderGeometry:public U4DRenderEntity {
         
     private:
         
@@ -72,17 +72,6 @@ namespace U4DEngine {
          */
         ~U4DRenderGeometry();
         
-        /**
-         * @brief Initializes the library shaders
-         * @details It initializes the vertex and fragment shaders for the entity
-         */
-        void initMTLRenderLibrary();
-        
-        /**
-         * @brief Initializes the Rendering Pipeline
-         * @details It prepares the rendering descriptor with the appropriate color attachment, depth attachment, shaders and attributes
-         */
-        void initMTLRenderPipeline();
         
         /**
          * @brief Loads the attributes and Uniform data
@@ -143,33 +132,7 @@ namespace U4DEngine {
          */
         void clearModelAttributeData();
         
-        /**
-         @brief Method which returns the absolute space of the entity
-         
-         @return Returns the entity absolure space-Orientation and Position
-         */
-        U4DDualQuaternion getEntitySpace();
         
-        /**
-         @brief Method which returns the local space of the entity
-         
-         @return Returns the entity local space-Orientation and Position
-         */
-        U4DDualQuaternion getEntityLocalSpace();
-        
-        /**
-         @brief Method which returns the absolute position of the entity
-         
-         @return Returns the entity absolute position
-         */
-        U4DVector3n getEntityAbsolutePosition();
-        
-        /**
-         @brief Method which returns the local position of the entity
-         
-         @return Returns the entity local position
-         */
-        U4DVector3n getEntityLocalPosition();
     };
     
 }

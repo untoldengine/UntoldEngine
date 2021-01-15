@@ -63,23 +63,14 @@ namespace U4DEngine {
         
     }
 
-    void U4DSceneLoadingState::render(U4DScene *uScene, id <MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DSceneLoadingState::render(U4DScene *uScene, id <MTLCommandBuffer> uCommandBuffer){
         
-        uScene->loadingWorld->entityManager->render(uRenderEncoder);
+        uScene->loadingWorld->entityManager->render(uCommandBuffer);
         
         safeToChangeState=true;
         
     }
         
-    void U4DSceneLoadingState::renderShadow(U4DScene *uScene, id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-        
-        //no shadows need to be rendered here
-        
-    }
-
-    void U4DSceneLoadingState::renderOffscreen(U4DScene *uScene, id <MTLRenderCommandEncoder> uOffscreenRenderEncoder, id<MTLTexture> uOffscreenTexture){
-        //no offscreen need to be rendered here
-    }
     
     void U4DSceneLoadingState::exit(U4DScene *uScene){
         

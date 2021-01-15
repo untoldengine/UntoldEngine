@@ -167,6 +167,7 @@ namespace U4DEngine {
          */
         float getParticleTangentialAcceleration();
         
+        
     };
     
 }

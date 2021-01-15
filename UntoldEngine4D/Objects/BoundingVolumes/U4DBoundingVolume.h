@@ -19,7 +19,7 @@
 #include "U4DVisibleEntity.h"
 #include "U4DPoint3n.h"
 
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 
 namespace U4DEngine {
     class U4DSphere;
@@ -43,8 +43,6 @@ namespace U4DEngine {
         bool visibility;
         
     public:
-        
-        U4DRenderManager *renderManager;
         
         /**
          @brief Constructor of class

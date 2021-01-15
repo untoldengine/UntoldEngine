@@ -26,7 +26,7 @@ struct VertexOutput{
     float4 color;
 };
 
-vertex VertexOutput vertexOffscreenShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(5)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexOffscreenShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut; 
     
@@ -44,7 +44,7 @@ vertex VertexOutput vertexOffscreenShader(VertexInput vert [[stage_in]], constan
 }
 
 
-fragment float4 fragmentOffscreenShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(5)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentOffscreenShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]]){
     
     
     float4 sampledTextureColor=texture.sample(sam,vertexOut.uvCoords.xy);

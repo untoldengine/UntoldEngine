@@ -10,7 +10,7 @@
 #define U4DRenderSkybox_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
@@ -36,7 +36,7 @@ namespace U4DEngine {
      * @brief The U4DRenderSkybox class manages the rendering of the skybox entity
      * 
      */
-    class U4DRenderSkybox:public U4DRenderManager {
+    class U4DRenderSkybox:public U4DRenderEntity {
         
     private:
         
@@ -78,17 +78,6 @@ namespace U4DEngine {
          */
         ~U4DRenderSkybox();
         
-        /**
-         * @brief Initializes the library shaders
-         * @details It initializes the vertex and fragment shaders for the entity
-         */
-        void initMTLRenderLibrary();
-        
-        /**
-         * @brief Initializes the Rendering Pipeline
-         * @details It prepares the rendering descriptor with the appropriate color attachment, depth attachment, shaders and attributes
-         */
-        void initMTLRenderPipeline();
         
         /**
          * @brief Loads the attributes and Uniform data
@@ -135,12 +124,7 @@ namespace U4DEngine {
          */
         void clearModelAttributeData();
         
-        /**
-         @brief Method which returns the absolute space of the entity
-         
-         @return Returns the entity absolure space-Orientation and Position
-         */
-        U4DDualQuaternion getEntitySpace();
+       
         
     };
     
