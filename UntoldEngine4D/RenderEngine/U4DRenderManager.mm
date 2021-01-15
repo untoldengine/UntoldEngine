@@ -7,174 +7,49 @@
 //
 
 #include "U4DRenderManager.h"
-#include "U4DDirector.h"
-#include "U4DSceneManager.h"
-#include "U4DScene.h"
-#include "U4DShaderProtocols.h"
 #include <simd/simd.h>
-#include "U4DLogger.h"
-#include "U4DResourceLoader.h"
+#include "U4DSceneManager.h"
+#include "CommonProtocols.h"
+#include "U4DDirector.h"
+#include "U4DShaderProtocols.h"
+#include "U4DLights.h"
+#include "U4DDirector.h"
 #include "U4DNumerical.h"
+#include "U4DRenderEntity.h"
+
+#include "U4DModelPipeline.h"
+#include "U4DShadowRenderPipeline.h"
+#include "U4DImagePipeline.h"
+#include "U4DOffscreenPipeline.h"
+#include "U4DSkyboxPipeline.h"
+#include "U4DParticlesPipeline.h"
+#include "U4DShaderEntityPipeline.h"
+#include "U4DGeometryPipeline.h"
+#include "U4DWorldPipeline.h"
 
 namespace U4DEngine {
 
-U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(false),mtlDevice(nil),mtlRenderPipelineState(nil),depthStencilState(nil),mtlRenderPipelineDescriptor(nil),mtlLibrary(nil),vertexProgram(nil),fragmentProgram(nil),vertexDesc(nil),depthStencilDescriptor(nil),attributeBuffer(nil),indicesBuffer(nil),uniformSpaceBuffer(nil),globalDataUniform(nil){
+    U4DRenderManager* U4DRenderManager::instance=0;
         
-        U4DDirector *director=U4DDirector::sharedInstance();
-        mtlDevice=director->getMTLDevice();
+    U4DRenderManager* U4DRenderManager::sharedInstance(){
+        
+        if (instance==0) {
+            instance=new U4DRenderManager();
+            
+        }
+        
+        return instance;
+    }
+
+    U4DRenderManager::U4DRenderManager(){
         
     }
     
     U4DRenderManager::~U4DRenderManager(){
 
-        [mtlRenderPipelineDescriptor release];
-        [vertexDesc release];
-        [depthStencilDescriptor release];
-        [mtlRenderPipelineState release];
-        [mtlLibrary release];
-        
-        mtlRenderPipelineDescriptor=nil;
-        vertexDesc=nil;
-        depthStencilDescriptor=nil;
-        mtlLibrary=nil;
-        mtlRenderPipelineState=nil;
-        depthStencilState=nil;
-        vertexProgram=nil;
-        fragmentProgram=nil;
-        
-        [attributeBuffer setPurgeableState:MTLPurgeableStateEmpty];
-        [indicesBuffer setPurgeableState:MTLPurgeableStateEmpty];
-        [uniformSpaceBuffer setPurgeableState:MTLPurgeableStateEmpty];
-        [globalDataUniform setPurgeableState:MTLPurgeableStateEmpty];
-        
-        [attributeBuffer release];
-        [indicesBuffer release];
-        [uniformSpaceBuffer release];
-        [globalDataUniform release];
-        
-        attributeBuffer=nil;
-        indicesBuffer=nil;
-        uniformSpaceBuffer=nil;
-        globalDataUniform=nil;
         
     }
-    
-    void U4DRenderManager::loadRenderingInformation(){
-        
-        initMTLRenderLibrary();
-        initMTLRenderPipeline();
-        
-        if(loadMTLBuffer()){
-            
-            loadMTLTexture();
-            
-            //loads additional information such as normal map, bones, etc if it exists.
-            loadMTLAdditionalInformation();
-            
-            //load global uniform
-            loadMTLGlobalDataUniforms();
-            
-            //clear all model attribute data
-            clearModelAttributeData();
-            
-        }else{
-            
-            U4DLogger *logger=U4DLogger::sharedInstance();
-            
-            logger->log("ERROR: No rendering data was found for the object. This object will not be rendered by the engine");
-            
-        }
-        
-    }
-    
-    void U4DRenderManager::clearRawImageData(){
-        
-        imageWidth=0;
-        imageHeight=0;
-        rawImageData.clear();
-    }
-    
-    void U4DRenderManager::createTextureObject(id<MTLTexture> &uTextureObject){
-        
-        //Create the texture descriptor
-        
-        MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:imageWidth height:imageHeight mipmapped:NO];
-        
-        //Create the texture object
-        uTextureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
-        
-        //Copy the raw image data into the texture object
-        
-        MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
-        
-        [uTextureObject replaceRegion:region mipmapLevel:0 withBytes:&rawImageData[0] bytesPerRow:4*imageWidth];
-        
-    }
-    
-    void U4DRenderManager::createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor){
-        
-        //Create a sampler descriptor
-        
-        uSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];
-        
-        //Set the filtering and addressing settings
-        uSamplerDescriptor.minFilter=MTLSamplerMinMagFilterLinear;
-        uSamplerDescriptor.magFilter=MTLSamplerMinMagFilterLinear;
-        
-        //set the addressing mode for the S component
-        uSamplerDescriptor.sAddressMode=MTLSamplerAddressModeClampToEdge;
-        
-        //set the addressing mode for the T component
-        uSamplerDescriptor.tAddressMode=MTLSamplerAddressModeClampToEdge;
-        
-        //Create the sampler state object
-        
-        uSamplerStateObject=[mtlDevice newSamplerStateWithDescriptor:uSamplerDescriptor];
-        
-    }
-    
-    
-
-    bool U4DRenderManager::createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName){
-        
-        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
-        
-        if(resourceLoader->loadTextureDataToEntity(this, uTextureName.c_str())){
-            
-            createTextureObject(uTextureObject);
-            
-            createSamplerObject(uSamplerStateObject,uSamplerDescriptor);
-            
-            clearRawImageData();
-            
-            return true;
-        }
-        
-        return false;
-        
-    }
-    
-
-    void U4DRenderManager::setIsWithinFrustum(bool uValue){
-        
-        if(uValue==true){
-            
-            U4DDirector *director=U4DDirector::sharedInstance();
-            
-            director->setModelsWithinFrustum(true);
-            
-        }
-        
-        isWithinFrustum=uValue;
-        
-    }
-    
-    void U4DRenderManager::loadMTLGlobalDataUniforms(){
-        
-        globalDataUniform=[mtlDevice newBufferWithLength:sizeof(UniformGlobalData) options:MTLResourceStorageModeShared];
-        
-    }
-    
+ 
     void U4DRenderManager::updateGlobalDataUniforms(){
         
         U4DNumerical numerical;
@@ -195,23 +70,247 @@ U4DRenderManager::U4DRenderManager():eligibleToRender(false),isWithinFrustum(fal
         memcpy(globalDataUniform.contents, (void*)&uniformGlobalData, sizeof(UniformGlobalData));
         
     }
+        
+    void U4DRenderManager::updateLightDataUniforms(){
+        
+        U4DLights *light=U4DLights::sharedInstance();
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        //get the light position in view space
+        U4DVector3n lightPos=light->getAbsolutePosition();
+        
+        U4DVector4n lightPosition(lightPos.x, lightPos.y, lightPos.z, 1.0);
+        
+        //get the light color
+        U4DVector3n diffuseColor=light->getDiffuseColor();
+        U4DVector3n specularColor=light->getSpecularColor();
+        
+        //get the light orthogonal shadow projection
+        U4DMatrix4n lightSpace=light->getLocalSpace().transformDualQuaternionToMatrix4n();
+        
+        U4DMatrix4n orthogonalProjection=director->getOrthographicShadowSpace();
+                
+        //Transfom the Model-View Space into the Projection space
+        U4DMatrix4n lightShadowProjectionSpace=orthogonalProjection*lightSpace;
+        
+        //Convert to SIMD
+        U4DNumerical numerical;
+        
+        matrix_float4x4 lightShadowProjectionSpaceSIMD=numerical.convertToSIMD(lightShadowProjectionSpace);
+        vector_float4 lightPositionSIMD=numerical.convertToSIMD(lightPosition);
+        vector_float3 diffuseColorSIMD=numerical.convertToSIMD(diffuseColor);
+        vector_float3 specularColorSIMD=numerical.convertToSIMD(specularColor);
+        
+        UniformLightProperties lightProperties;
+        
+        lightProperties.lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
+        lightProperties.lightPosition=lightPositionSIMD;
+        lightProperties.diffuseColor=diffuseColorSIMD;
+        lightProperties.specularColor=specularColorSIMD;
+        
+        memcpy(lightPropertiesUniform.contents, (void*)&lightProperties, sizeof(UniformLightProperties));
+        
+    }
 
-    void U4DRenderManager::setRawImageData(std::vector<unsigned char> uRawImageData){
+    void U4DRenderManager::initRenderPipelines(id <MTLDevice> uMTLDevice){
+        
+        //init global data buffer
+        globalDataUniform=[uMTLDevice newBufferWithLength:sizeof(UniformGlobalData) options:MTLResourceStorageModeShared];
+        
+        //init light buffer
+        lightPropertiesUniform=[uMTLDevice newBufferWithLength:sizeof(UniformLightProperties) options:MTLResourceStorageModeShared];
+        
+        U4DModelPipeline* modelPipeline=new U4DModelPipeline(uMTLDevice, "modelpipeline");
+        modelPipeline->initRenderPass("vertexModelShader", "fragmentModelShader");
+
+        U4DShadowRenderPipeline* shadowPipeline=new U4DShadowRenderPipeline(uMTLDevice,"shadowpipeline");
+        shadowPipeline->initRenderPass("vertexShadowShader", " ");
+        
+        U4DImagePipeline* imagePipeline=new U4DImagePipeline(uMTLDevice,"imagepipeline");
+        imagePipeline->initRenderPass("vertexImageShader","fragmentImageShader");
+        
+        U4DGeometryPipeline* geometryPipeline=new U4DGeometryPipeline(uMTLDevice,"geometrypipeline");
+        geometryPipeline->initRenderPass("vertexGeometryShader", "fragmentGeometryShader"); 
+        
+        U4DOffscreenPipeline* offscreenPipeline=new U4DOffscreenPipeline(uMTLDevice,"offscreenpipeline");
+        offscreenPipeline->initRenderPass("vertexOffscreenShader","fragmentOffscreenShader");
+        
+        U4DSkyboxPipeline* skyboxPipeline=new U4DSkyboxPipeline(uMTLDevice,"skyboxpipeline");
+        skyboxPipeline->initRenderPass("vertexSkyboxShader", "fragmentSkyboxShader");
+        
+        U4DParticlesPipeline* particlePipeline=new U4DParticlesPipeline(uMTLDevice,"particlepipeline");
+        particlePipeline->initRenderPass("vertexParticleSystemShader", "fragmentParticleSystemShader");
+        
+        U4DShaderEntityPipeline* checkboxPipeline=new U4DShaderEntityPipeline(uMTLDevice, "checkboxpipeline");
+        checkboxPipeline->initRenderPass("vertexUICheckboxShader", "fragmentUICheckboxShader");
+        
+        U4DShaderEntityPipeline* sliderPipeline=new U4DShaderEntityPipeline(uMTLDevice, "sliderpipeline");
+        sliderPipeline->initRenderPass("vertexUISliderShader", "fragmentUISliderShader");
+        
+        U4DShaderEntityPipeline* buttonPipeline=new U4DShaderEntityPipeline(uMTLDevice, "buttonpipeline");
+        buttonPipeline->initRenderPass("vertexUIButtonShader", "fragmentUIButtonShader");
+        
+        U4DShaderEntityPipeline* joystickPipeline=new U4DShaderEntityPipeline(uMTLDevice, "joystickpipeline");
+        joystickPipeline->initRenderPass("vertexUIJoystickShader", "fragmentUIJoystickShader");
+        
+        U4DWorldPipeline *worldPipeline=new U4DWorldPipeline(uMTLDevice,"worldpipeline");
+        worldPipeline->initRenderPass("vertexWorldShader", "fragmentWorldShader");
+        
+        renderingPipelineContainer.push_back(modelPipeline);
+        renderingPipelineContainer.push_back(shadowPipeline);
+        renderingPipelineContainer.push_back(geometryPipeline);
+        renderingPipelineContainer.push_back(imagePipeline);
+        renderingPipelineContainer.push_back(offscreenPipeline);
+        renderingPipelineContainer.push_back(skyboxPipeline);
+        renderingPipelineContainer.push_back(particlePipeline);
+        renderingPipelineContainer.push_back(checkboxPipeline);
+        renderingPipelineContainer.push_back(sliderPipeline);
+        renderingPipelineContainer.push_back(buttonPipeline);
+        renderingPipelineContainer.push_back(joystickPipeline);
+        renderingPipelineContainer.push_back(worldPipeline);
+        
+    }
+
+    void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        updateLightDataUniforms();
+        updateGlobalDataUniforms();
+        
+        U4DRenderPipelineInterface *shadowPipeline=searchPipeline("shadowpipeline");
+        
+        id <MTLRenderCommandEncoder> shadowRenderEncoder =
+        [uCommandBuffer renderCommandEncoderWithDescriptor:shadowPipeline->mtlRenderPassDescriptor];
+        
+        [shadowRenderEncoder pushDebugGroup:@"Shadow Pass"];
+        shadowRenderEncoder.label = @"Shadow Render Pass";
+        
+        [shadowRenderEncoder setVertexBuffer:lightPropertiesUniform offset:0 atIndex:viLightPropertiesBuffer];
+        
+        
+        U4DEntity *child=uRootEntity;
+
+        while (child!=NULL) {
             
-            rawImageData=uRawImageData;
+            U4DRenderEntity *renderEntity=child->getRenderEntity();
+            
+            if(renderEntity!=nullptr){
+                
+                U4DRenderPipelineInterface* shadowPipe=renderEntity->getPipeline(U4DEngine::shadowPass);
+
+                if (shadowPipe!=nullptr) {
+                    shadowPipe->executePass(shadowRenderEncoder, child);
+                }
+                
+            }
+            
+               child=child->next;
+
+           }
+        
+        [shadowRenderEncoder popDebugGroup];
+        //end encoding
+        [shadowRenderEncoder endEncoding];
+
+//        id <MTLRenderCommandEncoder> offscreenRenderEncoder=[uCommandBuffer renderCommandEncoderWithDescriptor:offscreenPipeline->mtlRenderPassDescriptor];
+//
+//        [offscreenRenderEncoder pushDebugGroup:@"Offscreen pass"];
+//        offscreenRenderEncoder.label=@"Offscreen render pass";
+//
+//        child=uRootEntity;
+//
+//        while (child!=NULL) {
+//
+//            if((child->getRenderPassFilter()&U4DEngine::offscreenRenderPass)==U4DEngine::offscreenRenderPass){
+//
+//                offscreenPipeline->executePass(offscreenRenderEncoder, child);
+//
+//            }
+//
+//               child=child->next;
+//
+//           }
+//
+//        [offscreenRenderEncoder popDebugGroup];
+//        [offscreenRenderEncoder endEncoding];
+        
+        
+        U4DRenderPipelineInterface *modelPipeline=searchPipeline("modelpipeline");
+        
+        MTLRenderPassDescriptor * mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
+               mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
+               mtlRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
+               mtlRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
+        
+        
+        id <MTLRenderCommandEncoder> finalCompRenderEncoder =
+        [uCommandBuffer renderCommandEncoderWithDescriptor:mtlRenderPassDescriptor];
+        
+        if(finalCompRenderEncoder!=nil){
+            
+            [finalCompRenderEncoder pushDebugGroup:@"Final Comp Pass"];
+            finalCompRenderEncoder.label = @"Final Comp Render Pass";
+            
+            [finalCompRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
+            
+            [finalCompRenderEncoder setVertexBuffer:lightPropertiesUniform offset:0 atIndex:viLightPropertiesBuffer];
+            
+            [finalCompRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
+            
+            [finalCompRenderEncoder setFragmentBuffer:lightPropertiesUniform offset:0 atIndex:fiLightPropertiesBuffer];
+            
+            modelPipeline->inputTexture=shadowPipeline->targetTexture;
+            
+            U4DEntity *child=uRootEntity;
+
+            while (child!=NULL) {
+
+                U4DRenderEntity *renderEntity=child->getRenderEntity();
+                           
+                if(renderEntity!=nullptr){
+                      
+                    U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+
+                    if (renderPipeline!=nullptr) {
+                        renderPipeline->executePass(finalCompRenderEncoder, child);
+                    }
+                    
+                }
+                
+                child=child->next;
+
+               }
+            
+            [finalCompRenderEncoder popDebugGroup];
+            //end encoding
+            [finalCompRenderEncoder endEncoding];
             
         }
-
-    void U4DRenderManager::setImageWidth(unsigned int uImageWidth){
-        
-        imageWidth=uImageWidth;
         
     }
 
-    void U4DRenderManager::setImageHeight(unsigned int uImageHeight){
+    U4DRenderPipelineInterface* U4DRenderManager::searchPipeline(std::string uPipelineName){
         
-        imageHeight=uImageHeight;
+        U4DRenderPipelineInterface *pipeline=nullptr;
+        
+        for(const auto &n:renderingPipelineContainer){
+                
+            if (n->getName().compare(uPipelineName)==0) {
+                
+                pipeline=n;
+                break;
+                
+            }
+            
+        }
+        
+        return pipeline;
     }
-
+ 
+    void U4DRenderManager::addRenderPipeline(U4DRenderPipelineInterface* uRenderPipeline){
+        renderingPipelineContainer.push_back(uRenderPipeline);
+    }
+    
 }
 

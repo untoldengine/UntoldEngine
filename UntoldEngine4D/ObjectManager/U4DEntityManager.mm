@@ -27,6 +27,7 @@
 #include "U4DPlane.h"
 #include "U4DDirector.h"
 #include "U4DProfilerManager.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -86,11 +87,12 @@ namespace U4DEngine {
 
     #pragma mark-draw
     //draw
-    void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DEntityManager::render(id <MTLCommandBuffer> uCommandBuffer){
     
         U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
         
-        profilerManager->startProfiling("Rendering");
+        profilerManager->startProfiling("Final Pass Render");
         
         U4DEntity* child=rootEntity;
     
@@ -106,45 +108,20 @@ namespace U4DEngine {
                
             }
      
-            child->render(uRenderEncoder);
+            //child->render(uRenderEncoder);
+            
+            //sort the entities
+            //renderManager->sortEntity(child);
         
             child=child->next;
         
         }
         
+        renderManager->render(uCommandBuffer,rootEntity); 
+        
         profilerManager->stopProfiling();
     }
     
-    
-    void U4DEntityManager::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-        
-        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
-        
-        profilerManager->startProfiling("Shadows");
-        
-        U4DEntity* child=rootEntity;
-        
-        
-        while (child!=NULL) {
-            
-            if(child->isRoot()){
-                
-                child->absoluteSpace=child->localSpace;
-                
-            }else{
-                
-                child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
-                
-            }
-            
-            child->renderShadow(uRenderShadowEncoder, uShadowTexture);
-            
-            child=child->next;
-        }
-
-        profilerManager->stopProfiling();
-        
-    }
 
 
     #pragma mark-update
@@ -206,12 +183,13 @@ namespace U4DEngine {
         
         profilerManager->startProfiling("Update");
         
+        
         child=rootEntity;
         
         while (child!=NULL) {
             
             child->update(dt);
-            
+            child->updateAllUniforms();
             child=child->next;
         }
 

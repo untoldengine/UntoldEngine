@@ -10,7 +10,7 @@
 #define U4DRenderImage_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
@@ -39,7 +39,7 @@ namespace U4DEngine {
      * @brief The U4DRenderImage class manages the rendering of all 2D images 
      * 
      */
-    class U4DRenderImage:public U4DRenderManager {
+    class U4DRenderImage:public U4DRenderEntity {
         
     private:
         
@@ -134,13 +134,6 @@ namespace U4DEngine {
          * @details Aligns vertices and uv. This is necessary when using Metal
          */
         void alignedAttributeData();
-        
-        /**
-         @brief Method which returns the absolute space of the entity
-         
-         @return Returns the entity absolure space-Orientation and Position
-         */
-        U4DDualQuaternion getEntitySpace();
         
         /**
          * @brief clears all attributes containers

@@ -25,6 +25,7 @@ namespace U4DEngine {
     class U4DQuaternion;
     class U4DTransformation;
     class U4DEntityManager;
+    class U4DRenderEntity;
 }
 
 namespace U4DEngine {
@@ -515,20 +516,16 @@ public:
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder){};
     
     /**
-     * @brief Renders the shadow for a 3D entity
-     * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
-     *
-     * @param uRenderShadowEncoder Metal encoder object for the current entity
-     * @param uShadowTexture Texture shadow for the current entity
-     */
-    virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
-    
-    /**
      @brief Updates the state of each entity
      
      @param dt time-step value
      */
     virtual void update(double dt){};
+    
+    /**
+     @todo document this
+     */
+    virtual void updateAllUniforms(){};
     
     /**
      @brief Loads all rendering information for the entiy
@@ -617,6 +614,8 @@ public:
     virtual bool isKineticsBehaviorEnabled(){};
     
     virtual bool changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){};
+    
+    virtual U4DRenderEntity *getRenderEntity(){return NULL;};
     
 };
 

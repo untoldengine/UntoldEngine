@@ -27,7 +27,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexUIJoystickShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(2)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexUIJoystickShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -40,7 +40,7 @@ vertex VertexOutput vertexUIJoystickShader(VertexInput vert [[stage_in]], consta
     return vertexOut;
 }
 
-fragment float4 fragmentUIJoystickShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(0)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(1)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]], texture2d<float> texture2[[texture(1)]], sampler sam2 [[sampler(1)]]){
+fragment float4 fragmentUIJoystickShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(fiShaderEntityPropertyBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]], texture2d<float> texture2[[texture(fiTexture1)]], sampler sam2 [[sampler(fiSampler1)]]){
     
     float2 st=-1.0+2.0*vertexOut.uvCoords;
     float3 color =float3(0.0);

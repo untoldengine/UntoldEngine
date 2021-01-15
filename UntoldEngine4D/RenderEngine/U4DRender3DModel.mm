@@ -15,10 +15,11 @@
 #include "U4DColorData.h"
 #include "U4DResourceLoader.h"
 #include "U4DNumerical.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
 
-U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),shadowPropertiesBuffer(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),lightPositionUniform(nil),lightColorUniform(nil),uniformModelShaderParametersBuffer(nil),normalSamplerDescriptor(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr},isRenderingShadows(false){
+U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):uniformMaterialBuffer(nil),uniformBoneBuffer(nil),nullSamplerDescriptor(nil),uniformModelRenderFlagsBuffer(nil),normalMapTextureObject(nil),samplerNormalMapStateObject(nil),uniformModelShaderParametersBuffer(nil),normalSamplerDescriptor(nil),textureObject{nil,nil,nil,nil},samplerStateObject{nil,nil,nil,nil},samplerDescriptor{nullptr,nullptr,nullptr,nullptr}{
         
         u4dObject=uU4DModel;
         
@@ -31,19 +32,13 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         
         [uniformBoneBuffer release];
         [nullSamplerDescriptor release];
-        [shadowPropertiesBuffer release];
         
         uniformBoneBuffer=nil;
         nullSamplerDescriptor=nil;
-        shadowTexture=nil;
-        shadowPropertiesBuffer=nil;
         
         uniformModelRenderFlagsBuffer=nil;
         normalMapTextureObject=nil;
         samplerNormalMapStateObject=nil;
-        
-        lightPositionUniform=nil;
-        lightColorUniform=nil;
         
         uniformModelShaderParametersBuffer=nil;
         
@@ -68,128 +63,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         }
     }
     
-    U4DDualQuaternion U4DRender3DModel::getEntitySpace(){
-        
-        return u4dObject->getAbsoluteSpace();
-        
-    }
-    
-    U4DDualQuaternion U4DRender3DModel::getEntityLocalSpace(){
-        
-        return u4dObject->getLocalSpace();
-        
-    }
-    
-    U4DVector3n U4DRender3DModel::getEntityAbsolutePosition(){
-        
-        
-        return u4dObject->getAbsolutePosition();
-        
-    }
-    
-    U4DVector3n U4DRender3DModel::getEntityLocalPosition(){
-        
-        return u4dObject->getLocalPosition();
-        
-    }
 
-    
-    void U4DRender3DModel::initMTLRenderLibrary(){
-        
-        mtlLibrary=[mtlDevice newDefaultLibrary];
-        
-        std::string vertexShaderName=u4dObject->getVertexShader();
-        std::string fragmentShaderName=u4dObject->getFragmentShader();
-        
-        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
-        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
-        
-    }
-    
-    void U4DRender3DModel::initMTLRenderPipeline(){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        
-        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
-        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
-        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
-        
-        //set the vertex descriptors
-        
-        vertexDesc=[[MTLVertexDescriptor alloc] init];
-        
-        //position data
-        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[0].bufferIndex=0;
-        vertexDesc.attributes[0].offset=0;
-        
-        //normal data
-        vertexDesc.attributes[1].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[1].bufferIndex=0;
-        vertexDesc.attributes[1].offset=4*sizeof(float);
-        
-        //uv data
-        vertexDesc.attributes[2].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[2].bufferIndex=0;
-        vertexDesc.attributes[2].offset=8*sizeof(float);
-        
-        //tangent data
-        vertexDesc.attributes[3].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[3].bufferIndex=0;
-        vertexDesc.attributes[3].offset=12*sizeof(float);
-        
-        //Material data
-        vertexDesc.attributes[4].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[4].bufferIndex=0;
-        vertexDesc.attributes[4].offset=16*sizeof(float);
-        
-        //vertex weight
-        vertexDesc.attributes[5].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[5].bufferIndex=0;
-        vertexDesc.attributes[5].offset=20*sizeof(float);
-        
-        //bone index
-        vertexDesc.attributes[6].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[6].bufferIndex=0;
-        vertexDesc.attributes[6].offset=24*sizeof(float);
-        
-        //stride with padding
-        vertexDesc.layouts[0].stride=28*sizeof(float);
-        
-        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
-        
-        
-        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        
-        
-        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-        
-        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
-        
-        depthStencilDescriptor.depthWriteEnabled=YES;
-        
-//        //add stencil description
-//        MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
-//        stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
-//        stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
-//        
-//        depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
-//        depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
-        
-        
-        //create depth stencil state
-        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-        
-        
-        //create the rendering pipeline object
-        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
-        
-    }
-    
     bool U4DRender3DModel::loadMTLBuffer(){
         
         //Align the attribute data
@@ -219,10 +93,6 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         uniformModelRenderFlagsBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelRenderFlags) options:MTLResourceStorageModeShared];
         
         uniformBoneBuffer=[mtlDevice newBufferWithLength:dynamicUniformBoneBuffer options:MTLResourceStorageModeShared];
-        
-        lightPositionUniform=[mtlDevice newBufferWithLength:sizeof(vector_float4) options:MTLResourceStorageModeShared];
-        
-        shadowPropertiesBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelShadowProperties) options:MTLResourceStorageModeShared];
         
         //load the index into the buffer
         indicesBuffer=[mtlDevice newBufferWithBytes:&u4dObject->bodyCoordinates.indexContainer[0] length:sizeof(int)*3*u4dObject->bodyCoordinates.indexContainer.size() options:MTLResourceOptionCPUCacheModeDefault];
@@ -283,35 +153,12 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         
         loadMTLMaterialInformation();
         
-        loadMTLLightColorInformation();
-        
         //load user-defined parameters uniform
         uniformModelShaderParametersBuffer=[mtlDevice newBufferWithLength:sizeof(UniformModelShaderProperty) options:MTLResourceStorageModeShared];
     
     }
     
-    void U4DRender3DModel::loadMTLLightColorInformation(){
-        
-        U4DNumerical numerical;
-        
-        lightColorUniform=[mtlDevice newBufferWithLength:sizeof(UniformLightColor) options:MTLResourceStorageModeShared];
-        
-        U4DLights *light=U4DLights::sharedInstance();
-        
-        UniformLightColor uniformLightColor;
-        
-        U4DVector3n diffuseColor=light->getDiffuseColor();
-        U4DVector3n specularColor=light->getSpecularColor();
-        
-        vector_float3 diffuseColorSIMD=numerical.convertToSIMD(diffuseColor);
-        vector_float3 specularColorSIMD=numerical.convertToSIMD(specularColor);
-        
-        uniformLightColor.diffuseColor=diffuseColorSIMD;
-        uniformLightColor.specularColor=specularColorSIMD;
-        
-        memcpy(lightColorUniform.contents, (void*)&uniformLightColor, sizeof(UniformLightColor));
-        
-    }
+    
     
     void U4DRender3DModel::loadMTLMaterialInformation(){
         
@@ -388,8 +235,6 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         }
         
         
-        
-        
     }
     
     void U4DRender3DModel::loadMTLNormalMapTexture(){
@@ -463,11 +308,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
     
     void U4DRender3DModel::updateBoneSpaceUniforms(){
         
-        if (isRenderingShadows==true) {
-            boneTripleBuffer.index =shadowTripleBuffer.index;
-        }else{
-            boneTripleBuffer.index =spaceTripleBuffer.index;
-        }
+        boneTripleBuffer.index = (boneTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
         
         boneTripleBuffer.offset = U4DEngine::kAlignedUniformBoneSize * boneTripleBuffer.index;
         
@@ -490,17 +331,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         
     }
     
-    void U4DRender3DModel::updateShadowProperties(){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        UniformModelShadowProperties shadowProperties;
-        
-        shadowProperties.biasDepth=director->getShadowBiasDepth();
-        
-        memcpy(shadowPropertiesBuffer.contents, (void*)&shadowProperties, sizeof(UniformModelShadowProperties));
-    }
-    
+
     void U4DRender3DModel::updateSpaceUniforms(){
         
         spaceTripleBuffer.index = (spaceTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
@@ -510,10 +341,9 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         spaceTripleBuffer.address = ((uint8_t*)uniformSpaceBuffer.contents) + spaceTripleBuffer.offset;
         
         U4DCamera *camera=U4DCamera::sharedInstance();
-        U4DLights *light=U4DLights::sharedInstance();
         U4DDirector *director=U4DDirector::sharedInstance();
         
-        U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
+        U4DMatrix4n modelSpace=u4dObject->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
         
         U4DMatrix4n worldSpace(1,0,0,0,
                                 0,1,0,0,
@@ -537,11 +367,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         normalSpace.invert();
         
         normalSpace=normalSpace.transpose();
-        
-        //get the light position in view space
-        U4DVector3n lightPos=light->getAbsolutePosition();
-        
-        U4DVector4n lightPosition(lightPos.x, lightPos.y, lightPos.z, 1.0);
+    
         
         //Conver to SIMD
         U4DNumerical numerical;
@@ -553,9 +379,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
         
         matrix_float3x3 normalSpaceSIMD=numerical.convertToSIMD(normalSpace);
-        vector_float4 lightPositionSIMD=numerical.convertToSIMD(lightPosition);
-        
-        matrix_float4x4 lightShadowProjectionSpaceSIMD=numerical.convertToSIMD(lightShadowProjectionSpace);
+
         
         UniformSpace *uniformSpace=(UniformSpace*)spaceTripleBuffer.address;
         
@@ -564,11 +388,9 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         uniformSpace->modelViewSpace=viewWorldModelSpaceSIMD;
         uniformSpace->modelViewProjectionSpace=mvpSpaceSIMD;
         uniformSpace->normalSpace=normalSpaceSIMD;
-        uniformSpace->lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
         
         
         //memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
-        memcpy(lightPositionUniform.contents, (void*)&lightPositionSIMD, sizeof(vector_float4));
         
         
     }
@@ -577,7 +399,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         
         //update the rendering flags
         UniformModelRenderFlags modelFlags;
-        modelFlags.enableShadows=u4dObject->getEnableShadow();
+        //modelFlags.enableShadows=u4dObject->getEnableShadow();
         modelFlags.enableNormalMap=u4dObject->getEnableNormalMap();
         modelFlags.hasTexture=u4dObject->getHasTexture();
         modelFlags.hasArmature=u4dObject->getHasArmature();
@@ -586,40 +408,15 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         
     }
     
-    void U4DRender3DModel::updateShadowSpaceUniforms(){
-        
-        
-        shadowTripleBuffer.index = (shadowTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
+    
 
-        shadowTripleBuffer.offset = U4DEngine::kAlignedUniformSpaceSize * shadowTripleBuffer.index;
+    void U4DRender3DModel::updateAllUniforms(){
         
-        shadowTripleBuffer.address = ((uint8_t*)uniformSpaceBuffer.contents) + shadowTripleBuffer.offset;
+        updateSpaceUniforms();
+        updateModelRenderFlags();
+        updateBoneSpaceUniforms();
+        updateModelShaderParametersUniform();
         
-        U4DLights *light=U4DLights::sharedInstance();
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
-        
-        U4DMatrix4n lightSpace=light->getLocalSpace().transformDualQuaternionToMatrix4n();
-        
-        U4DMatrix4n orthogonalProjection=director->getOrthographicShadowSpace();
-                
-        //Transfom the Model-View Space into the Projection space
-        lightShadowProjectionSpace=orthogonalProjection*lightSpace;
-        
-        //Convert to SIMD
-        U4DNumerical numerical;
-        
-        matrix_float4x4 lightShadowProjectionSpaceSIMD=numerical.convertToSIMD(lightShadowProjectionSpace);
-        
-        matrix_float4x4 modelMatrixSIMD=numerical.convertToSIMD(modelSpace);
-        
-        
-        UniformSpace *uniformSpace=(UniformSpace*)shadowTripleBuffer.address;
-        uniformSpace->modelSpace=modelMatrixSIMD;
-        uniformSpace->lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
-        
-        //memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
         
     }
     
@@ -627,61 +424,42 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         
         if (eligibleToRender==true && isWithinFrustum==true) {
             
-            isRenderingShadows=false;
-            updateSpaceUniforms();
-            updateModelRenderFlags();
-            updateBoneSpaceUniforms();
-            updateShadowProperties();
-            updateModelShaderParametersUniform();
-            
-            //update the global uniforms
-            updateGlobalDataUniforms();
-            
-            //encode the pipeline
-            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-            
-            [uRenderEncoder setDepthStencilState:depthStencilState];
-            
             //encode the buffers
-            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:viAttributeBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:spaceTripleBuffer.offset atIndex:1];
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:spaceTripleBuffer.offset atIndex:viSpaceBuffer];
             
-            [uRenderEncoder setVertexBuffer:lightPositionUniform offset:0 atIndex:2];
             
-            [uRenderEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:3];
+            [uRenderEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:viModelRenderFlagBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:boneTripleBuffer.offset atIndex:4];
+            [uRenderEncoder setVertexBuffer:uniformBoneBuffer offset:boneTripleBuffer.offset atIndex:viBoneBuffer];
             
-            [uRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:5];
             
-            [uRenderEncoder setVertexBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:6];
+            [uRenderEncoder setVertexBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:viModelShaderPropertyBuffer];
             
             //set texture in fragment
-            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:fiTexture0];
             //set the samplers
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
-            
-            //set the shadow texture
-            [uRenderEncoder setFragmentTexture:shadowTexture atIndex:1];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:fiSampler0];
             
             
             //set data used in fragment
-            [uRenderEncoder setFragmentBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:1];
-            [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:2];
-            [uRenderEncoder setFragmentBuffer:lightColorUniform offset:0 atIndex:3];
-            [uRenderEncoder setFragmentBuffer:shadowPropertiesBuffer offset:0 atIndex:4];
-            [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
-            [uRenderEncoder setFragmentBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:6];
+            [uRenderEncoder setFragmentBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:fiModelRenderFlagsBuffer];
+            [uRenderEncoder setFragmentBuffer:uniformMaterialBuffer offset:0 atIndex:fiMaterialBuffer];
             
-            [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:2];
-            [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:1];
+            [uRenderEncoder setFragmentBuffer:uniformModelShaderParametersBuffer offset:0 atIndex:fiModelShaderPropertyBuffer];
+            
+            //set normal texture
+            [uRenderEncoder setFragmentTexture:normalMapTextureObject atIndex:fiNormalTexture];
+            [uRenderEncoder setFragmentSamplerState:samplerNormalMapStateObject atIndex:fiNormalSampler];
             
             //texture1
-            [uRenderEncoder setFragmentTexture:textureObject[1] atIndex:3];
+            [uRenderEncoder setFragmentTexture:textureObject[1] atIndex:fiTexture1];
             //set the samplers
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:3];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:fiSampler1];
             
+            //set offscreen texture
+            //[uRenderEncoder setFragmentTexture:offscreenTexture atIndex:4];
             
             
             //set the draw command
@@ -689,34 +467,6 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
             
         }
         
-        
-    }
-    
-    void U4DRender3DModel::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-     
-        if (eligibleToRender==true) {
-            
-            //set the shadow texture
-            isRenderingShadows=true;
-            shadowTexture=uShadowTexture;
-            
-            updateShadowSpaceUniforms();
-            updateModelRenderFlags();
-            updateBoneSpaceUniforms();
-            
-            [uRenderShadowEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
-            
-            [uRenderShadowEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
-            
-            [uRenderShadowEncoder setVertexBuffer:uniformSpaceBuffer offset:shadowTripleBuffer.offset atIndex:1];
-            
-            [uRenderShadowEncoder setVertexBuffer:uniformModelRenderFlagsBuffer offset:0 atIndex:2];
-            
-            [uRenderShadowEncoder setVertexBuffer:uniformBoneBuffer offset:boneTripleBuffer.offset atIndex:3];
-            
-            [uRenderShadowEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
-            
-        }
         
     }
     
@@ -731,8 +481,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):shadowTexture(nil),unifo
         //Create the null normal texture object
         normalMapTextureObject=[mtlDevice newTextureWithDescriptor:nullDescriptor];
         
-        //Create the null shadow texture object
-        shadowTexture=[mtlDevice newTextureWithDescriptor:nullDescriptor];
+        
         
         //Create the null texture sampler object
         nullSamplerDescriptor=[[MTLSamplerDescriptor alloc] init];

@@ -470,7 +470,9 @@ namespace U4DEngine {
         /**
          @brief Entity is a 3D parent model entity
          */
-        PARENT
+        PARENT,
+        
+        IMAGE,
         
     }ENTITYTYPE;
 
@@ -738,6 +740,14 @@ namespace U4DEngine {
         uimoving,
         
     }UIELEMENTSTATES;
+
+    typedef enum{
+       
+        finalPass=0,
+        shadowPass=1,
+        offscreenPass=2,
+        
+    }RENDERPASS;
 
 }
 

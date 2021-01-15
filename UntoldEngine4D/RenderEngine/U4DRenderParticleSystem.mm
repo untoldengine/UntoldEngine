@@ -52,123 +52,98 @@ namespace U4DEngine {
         samplerDescriptor=nil;
     }
     
-    U4DDualQuaternion U4DRenderParticleSystem::getEntitySpace(){
-        
-        return u4dObject->getAbsoluteSpace();
-        
-    }
     
-    U4DDualQuaternion U4DRenderParticleSystem::getEntityLocalSpace(){
-        
-        return u4dObject->getLocalSpace();
-        
-    }
-    
-    U4DVector3n U4DRenderParticleSystem::getEntityAbsolutePosition(){
-        
-        
-        return u4dObject->getAbsolutePosition();
-        
-    }
-    
-    U4DVector3n U4DRenderParticleSystem::getEntityLocalPosition(){
-        
-        return u4dObject->getLocalPosition();
-        
-    }
-    
-    
-    void U4DRenderParticleSystem::initMTLRenderLibrary(){
-        
-        mtlLibrary=[mtlDevice newDefaultLibrary];
-        
-        std::string vertexShaderName=u4dObject->getVertexShader();
-        std::string fragmentShaderName=u4dObject->getFragmentShader();
-        
-        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
-        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
-        
-    }
-    
-    void U4DRenderParticleSystem::initMTLRenderPipeline(){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        
-        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
-        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
-        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
-        
-        mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
-        
-        //rgb blending
-        mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
-        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
-        
-        if (u4dObject->getEnableAdditiveRendering()) {
-
-            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
-
-        }else{
-
-            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-
-        }
-        
-        //alpha blending
-        mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
-        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorSource();
-        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorDest();
-        
-        //set the vertex descriptors
-        
-        vertexDesc=[[MTLVertexDescriptor alloc] init];
-        
-        //position data
-        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[0].bufferIndex=0;
-        vertexDesc.attributes[0].offset=0;
-        
-        //uv data
-        vertexDesc.attributes[1].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[1].bufferIndex=0;
-        vertexDesc.attributes[1].offset=4*sizeof(float);
-        
-        //stride with padding
-        vertexDesc.layouts[0].stride=8*sizeof(float);
-        
-        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
-        
-        
-        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        
-        
-        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-        
-        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
-        
-        depthStencilDescriptor.depthWriteEnabled=NO;
-        
-        //        //add stencil description
-        //        MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
-        //        stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
-        //        stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
-        //
-        //        depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
-        //        depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
-        
-        
-        //create depth stencil state
-        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-        
-        
-        //create the rendering pipeline object
-        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
-        
-    }
+//    void U4DRenderParticleSystem::initMTLRenderLibrary(){
+//
+//        mtlLibrary=[mtlDevice newDefaultLibrary];
+//
+//        std::string vertexShaderName=u4dObject->getVertexShader();
+//        std::string fragmentShaderName=u4dObject->getFragmentShader();
+//
+//        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
+//        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
+//
+//    }
+//
+//    void U4DRenderParticleSystem::initMTLRenderPipeline(){
+//
+//        U4DDirector *director=U4DDirector::sharedInstance();
+//
+//
+//        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
+//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
+//        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
+//        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
+//        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
+//
+//        mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
+//
+//        //rgb blending
+//        mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
+//        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
+//
+//        if (u4dObject->getEnableAdditiveRendering()) {
+//
+//            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+//
+//        }else{
+//
+//            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+//
+//        }
+//
+//        //alpha blending
+//        mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
+//        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorSource();
+//        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorDest();
+//
+//        //set the vertex descriptors
+//
+//        vertexDesc=[[MTLVertexDescriptor alloc] init];
+//
+//        //position data
+//        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
+//        vertexDesc.attributes[0].bufferIndex=0;
+//        vertexDesc.attributes[0].offset=0;
+//
+//        //uv data
+//        vertexDesc.attributes[1].format=MTLVertexFormatFloat4;
+//        vertexDesc.attributes[1].bufferIndex=0;
+//        vertexDesc.attributes[1].offset=4*sizeof(float);
+//
+//        //stride with padding
+//        vertexDesc.layouts[0].stride=8*sizeof(float);
+//
+//        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
+//
+//
+//        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
+//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
+//
+//
+//        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+//
+//        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
+//
+//        depthStencilDescriptor.depthWriteEnabled=NO;
+//
+//        //        //add stencil description
+//        //        MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
+//        //        stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
+//        //        stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
+//        //
+//        //        depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
+//        //        depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
+//
+//
+//        //create depth stencil state
+//        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+//
+//
+//        //create the rendering pipeline object
+//        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
+//
+//    }
     
     bool U4DRenderParticleSystem::loadMTLBuffer(){
         
@@ -346,33 +321,22 @@ namespace U4DEngine {
             
             updateSpaceUniforms();
             updateParticlePropertiesInformation();
-            //update the global uniforms
-            updateGlobalDataUniforms();
-            
-            //encode the pipeline
-            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-            
-            [uRenderEncoder setDepthStencilState:depthStencilState];
             
             //encode the buffers
-            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:viAttributeBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:viSpaceBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformParticlePropertyBuffer offset:0 atIndex:2];
+            [uRenderEncoder setVertexBuffer:uniformParticlePropertyBuffer offset:0 atIndex:viParticlesPropertiesBuffer];
             
-            [uRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:5];
-    
             //encode buffer in fragment
-            [uRenderEncoder setFragmentBuffer:uniformParticleSystemPropertyBuffer offset:0 atIndex:0];
-            
-            [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:5];
+            [uRenderEncoder setFragmentBuffer:uniformParticleSystemPropertyBuffer offset:0 atIndex:fiParticleSysPropertiesBuffer];
             
             //set texture in fragment
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:fiTexture0];
             
             //set the samplers
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:fiSampler0];
             
             
             //set the draw command

@@ -11,13 +11,60 @@
 
 #include <simd/simd.h>
 
+typedef enum VertexBufferIndices{
+    
+    viAttributeBuffer= 0,
+    viSpaceBuffer = 1,
+    viModelRenderFlagBuffer=2,
+    viBoneBuffer=3,
+    viModelShaderPropertyBuffer=4,
+    viGlobalDataBuffer=5,
+    viLightPropertiesBuffer=6,
+    viParticlesPropertiesBuffer=7,
+    
+}VertexBufferIndices;
+
+typedef enum FragmentBufferIndices{
+    
+    fiMaterialBuffer=0,
+    fiModelRenderFlagsBuffer=1,
+    fiModelShaderPropertyBuffer=2,
+    fiGlobalDataBuffer=3,
+    fiLightPropertiesBuffer=4,
+    fiShadowPropertiesBuffer=5,
+    fiParticleSysPropertiesBuffer=6,
+    fiShaderEntityPropertyBuffer=7,
+    fiGeometryBuffer=8,
+    
+}FragmentBufferIndices;
+
+typedef enum FragmentTextureIndices{
+    
+    fiTexture0=0,
+    fiTexture1=1,
+    fiTexture2=2,
+    fiTexture3=3,
+    fiNormalTexture=4,
+    fiDepthTexture=5,
+    
+}FragmentTextureIndices;
+
+typedef enum FragmentSamplerIndices{
+    
+    fiSampler0=0,
+    fiSampler1=1,
+    fiSampler2=2,
+    fiSampler3=3,
+    fiNormalSampler=4,
+    
+}FragmentSamplerIndices;
+
 typedef struct{
     matrix_float4x4 modelSpace;
     matrix_float4x4 modelViewProjectionSpace;
     matrix_float4x4 modelViewSpace;
     matrix_float4x4 viewSpace;
     matrix_float3x3 normalSpace;
-    matrix_float4x4 lightShadowProjectionSpace;
 } UniformSpace;
 
 typedef struct{
@@ -40,7 +87,16 @@ typedef struct{
     
     float biasDepth;
     
-}UniformModelShadowProperties;
+}UniformShadowProperties;
+
+typedef struct{
+    
+    vector_float4 lightPosition;
+    vector_float3 diffuseColor;
+    vector_float3 specularColor;
+    matrix_float4x4 lightShadowProjectionSpace;
+    
+}UniformLightProperties;
 
 typedef struct{
     
@@ -51,13 +107,6 @@ typedef struct{
     float specularMaterialHardness[10];
     
 }UniformModelMaterial;
-
-typedef struct{
-    
-    vector_float3 diffuseColor;
-    vector_float3 specularColor;
-    
-}UniformLightColor;
 
 typedef struct{
     

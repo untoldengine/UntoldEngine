@@ -10,7 +10,7 @@
 #define U4DRenderSprite_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DRenderImage.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"

@@ -10,7 +10,7 @@
 #define U4DRenderFont_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DRenderImage.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
@@ -75,6 +75,7 @@ namespace U4DEngine {
          * @details clears attributes containers such as vertices and UVs
          */
         void clearModelAttributeData();
+        
     };
     
 }

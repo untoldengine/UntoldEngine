@@ -45,15 +45,9 @@ namespace U4DEngine {
         @param uScene scene to render
         @param uRenderEncoder metal render encoder
         */
-        virtual void render(U4DScene *uScene,id <MTLRenderCommandEncoder> uRenderEncoder)=0;
+        virtual void render(U4DScene *uScene,id <MTLCommandBuffer> uCommandBuffer)=0;
         
-        /**
-         @brief Renders current scene shadows
-         @param uScene scene to render
-         @param uRenderShadowEncoder metal render encoder
-         @param uShadowTexture shadow textures
-         */
-        virtual void renderShadow(U4DScene *uScene,id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture)=0;
+        
         
         /**
         @brief exits current state

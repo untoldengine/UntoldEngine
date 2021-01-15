@@ -55,9 +55,9 @@ namespace U4DEngine {
             updateSpriteBufferUniform();
             
             //encode the pipeline
-            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-            
-            [uRenderEncoder setDepthStencilState:depthStencilState];
+//            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+//
+//            [uRenderEncoder setDepthStencilState:depthStencilState];
             
             //encode the buffers
             [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];

@@ -15,6 +15,7 @@
 #include "U4DEntity.h"
 #include "U4DLayerManager.h"
 #include "U4DRenderWorld.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -24,10 +25,14 @@ namespace U4DEngine {
         entityManager=new U4DEntityManager();
         entityManager->setRootEntity(this);
         
-        renderManager=new U4DRenderWorld(this);
-        setShader("vertexWorldShader", "fragmentWorldShader");
+        renderEntity=new U4DRenderWorld(this);
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("worldpipeline"));
+        
         buildGrid();
-        renderManager->loadRenderingInformation();
+        renderEntity->loadRenderingInformation();
+        
     }
     
     
@@ -48,7 +53,7 @@ namespace U4DEngine {
         entityManager->setRootEntity(nullptr);
         
         delete entityManager;
-        delete renderManager;
+        delete renderEntity;
         
     }
     
@@ -82,7 +87,7 @@ namespace U4DEngine {
     void U4DWorld::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         if (enableGrid) {
-            renderManager->render(uRenderEncoder);
+            renderEntity->render(uRenderEncoder);
         }
     }
     

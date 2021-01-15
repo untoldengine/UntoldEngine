@@ -54,19 +54,19 @@ namespace U4DEngine {
             updateSpaceUniforms();
             
             //encode the pipeline
-            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-            
-            [uRenderEncoder setDepthStencilState:depthStencilState];
+//            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
+//
+//            [uRenderEncoder setDepthStencilState:depthStencilState];
             
             //encode the buffers
-            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:viAttributeBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:viSpaceBuffer];
             
             //diffuse texture
-            [uRenderEncoder setFragmentTexture:textureObject atIndex:0];
+            [uRenderEncoder setFragmentTexture:textureObject atIndex:fiTexture0];
             
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject atIndex:fiSampler0];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -86,5 +86,6 @@ namespace U4DEngine {
         u4dObject->bodyCoordinates.uVContainer.clear();
         u4dObject->bodyCoordinates.indexContainer.clear();
     }
+
     
 }

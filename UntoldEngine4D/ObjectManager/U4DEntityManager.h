@@ -126,16 +126,7 @@ namespace U4DEngine {
          *
          * @param uRenderEncoder Metal encoder object for the current entity
          */
-        void render(id<MTLRenderCommandEncoder> uRenderEncoder);
-        
-        /**
-         * @brief Renders the shadow for each 3D entity
-         * @details It calls the individual render-shadow method of each entity in the scenegraph
-         *
-         * @param uRenderShadowEncoder Metal encoder object for the current entity
-         * @param uShadowTexture Texture shadow for the current entity
-         */
-        void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
+        void render(id <MTLCommandBuffer> uCommandBuffer);
         
         /**
          @brief Updates the state of each entity

@@ -18,7 +18,7 @@
 #include "U4DEntity.h"
 
 #include <MetalKit/MetalKit.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 
 namespace U4DEngine {
  
@@ -32,15 +32,6 @@ private:
     
 protected:
     
-    /**
-     @brief name of the vertex shader used for rendering
-     */
-    std::string vertexShader;
-    
-    /**
-     @brief name of the fragment shader used for rendering
-     */
-    std::string fragmentShader;
     
 public:
     
@@ -76,6 +67,11 @@ public:
     virtual void update(double dt){};
     
     /**
+     @todo document this
+     */
+    virtual void updateAllUniforms(){};
+    
+    /**
      @brief Method which loads all rendering information for the entiy
      */
     void loadRenderingInformation();
@@ -83,9 +79,9 @@ public:
     //metal methods
     
     /**
-     @brief pointer to the rendering manager
+     @brief pointer to the rendering entity
      */
-    U4DRenderManager *renderManager;
+    U4DRenderEntity *renderEntity;
     
     /**
      * @brief Renders the current entity
@@ -96,38 +92,14 @@ public:
     virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder){};
     
     /**
-     * @brief Renders the shadow for a 3D entity
-     * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
-     *
-     * @param uRenderShadowEncoder Metal encoder object for the current entity
-     * @param uShadowTexture Texture shadow for the current entity
-     */
-    virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){};
-    
-    
-    /**
-     @brief sets the shader used for rendering the entity
-
-     @param uVertexShaderName name of the vertex shader
-     @param uFragmentShaderName name of the fragment shader
-     */
-    void setShader(std::string uVertexShaderName, std::string uFragmentShaderName);
-    
-    
-    /**
-     @brief get the name of the vertex shader
-
-     @return name of the vertex shader
-     */
-    std::string getVertexShader();
-    
-    
-    /**
      @brief get the name of the fragment shader
 
      @return name of the fragment shader
      */
     std::string getFragmentShader();
+    
+    U4DRenderEntity *getRenderEntity();
+    
 };
     
 }

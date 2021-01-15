@@ -51,7 +51,7 @@ struct VertexOutput{
 
 
 
-vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant float4 &lightPosition[[buffer(2)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(3)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(4)]], constant UniformGlobalData &uniformGlobalData [[buffer(5)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(6)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformLightProperties &uniformLightProperties [[buffer(viLightPropertiesBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(viModelShaderPropertyBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -117,7 +117,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
     //Pass the normal vector in MV space
     vertexOut.normalVectorInMVSpace=normalVectorInMVSpace;
     
-    vertexOut.lightPosition=uniformSpace.viewSpace*lightPosition;
+    vertexOut.lightPosition=uniformSpace.viewSpace*uniformLightProperties.lightPosition;
     
     //compute Normal Map
     if(uniformModelRenderFlags.enableNormalMap){
@@ -135,7 +135,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
 
         tangentSpace=transpose(tangentSpace);
         
-        float4 lightPos=uniformSpace.viewSpace*lightPosition;
+        float4 lightPos=uniformSpace.viewSpace*uniformLightProperties.lightPosition;
         
         vertexOut.lightPositionInTangentSpace.xyz=tangentSpace*float3(lightPos.xyz);
         
@@ -147,7 +147,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
     //shadow coordinates
     if(uniformModelRenderFlags.enableShadows){
         
-        vertexOut.shadowCoords=(uniformSpace.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
+        vertexOut.shadowCoords=(uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
         
     }
     
@@ -159,7 +159,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
 }
 
 
-fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(1)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(2)]], constant UniformLightColor &uniformLightColor [[buffer(3)]],constant UniformModelShadowProperties &uniformModelShadowProperties [[buffer(4)]], constant UniformGlobalData &uniformGlobalData [[buffer(5)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(6)]], texture2d<float> texture[[texture(0)]], depth2d<float> shadowTexture [[texture(1)]], texture2d<float> normalMaptexture[[texture(2)]], sampler sam [[sampler(0)]], sampler normalMapSam [[sampler(1)]]){
+fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(fiModelRenderFlagsBuffer)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(fiMaterialBuffer)]],constant UniformLightProperties &uniformLightProperties [[buffer(fiLightPropertiesBuffer)]] ,constant UniformShadowProperties &uniformModelShadowProperties [[buffer(fiShadowPropertiesBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(fiModelShaderPropertyBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], depth2d<float> shadowTexture [[texture(fiDepthTexture)]], texture2d<float> normalMaptexture[[texture(fiNormalTexture)]], sampler sam [[sampler(fiSampler0)]], sampler normalMapSam [[sampler(fiNormalSampler)]]){
     
     
     float4 totalLights;
@@ -179,8 +179,8 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     //set the light color
     LightColor lightColor;
     lightColor.ambientColor=float3(0.1,0.1,0.1);
-    lightColor.diffuseColor=uniformLightColor.diffuseColor;
-    lightColor.specularColor=uniformLightColor.specularColor;
+    lightColor.diffuseColor=uniformLightProperties.diffuseColor;
+    lightColor.specularColor=uniformLightProperties.specularColor;
     
     //compute Normal Map
     if(uniformModelRenderFlags.enableNormalMap){
@@ -226,7 +226,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     
     //compute shadow
     
-    if(uniformModelRenderFlags.enableShadows){
+    //if(uniformModelRenderFlags.enableShadows){
         
         constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
         
@@ -264,7 +264,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         
         finalColor*=visibility;
         
-    }
+    //}
     
     return finalColor;
 

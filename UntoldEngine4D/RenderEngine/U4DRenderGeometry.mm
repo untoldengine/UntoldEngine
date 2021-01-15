@@ -27,60 +27,6 @@ namespace U4DEngine {
         uniformGeometryBuffer=nil;
     }
     
-    void U4DRenderGeometry::initMTLRenderLibrary(){
-        
-        mtlLibrary=[mtlDevice newDefaultLibrary];
-        
-        std::string vertexShaderName=u4dObject->getVertexShader();
-        std::string fragmentShaderName=u4dObject->getFragmentShader();
-        
-        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
-        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
-        
-    }
-    
-    void U4DRenderGeometry::initMTLRenderPipeline(){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
-        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
-        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
-        
-        //set the vertex descriptors
-        
-        vertexDesc=[[MTLVertexDescriptor alloc] init];
-        
-        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[0].bufferIndex=0;
-        vertexDesc.attributes[0].offset=0;
-        
-        //stride
-        vertexDesc.layouts[0].stride=4*sizeof(float);
-        
-        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
-        
-        
-        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        
-        
-        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-        
-        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
-        
-        depthStencilDescriptor.depthWriteEnabled=YES;
-        
-        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-        
-        //create the rendering pipeline object
-        
-        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
-        
-    }
-    
     bool U4DRenderGeometry::loadMTLBuffer(){
         
         //Align the attribute data
@@ -141,30 +87,6 @@ namespace U4DEngine {
         setGeometryLineColor(defaultLineColor);
     }
     
-    U4DDualQuaternion U4DRenderGeometry::getEntitySpace(){
-        
-        return u4dObject->getAbsoluteSpace();
-        
-    }
-    
-    U4DDualQuaternion U4DRenderGeometry::getEntityLocalSpace(){
-        
-        return u4dObject->getLocalSpace();
-        
-    }
-    
-    U4DVector3n U4DRenderGeometry::getEntityAbsolutePosition(){
-        
-        
-        return u4dObject->getAbsolutePosition();
-        
-    }
-    
-    U4DVector3n U4DRenderGeometry::getEntityLocalPosition(){
-        
-        return u4dObject->getLocalPosition();
-        
-    }
     
     void U4DRenderGeometry::setGeometryLineColor(U4DVector4n &uGeometryLineColor){
         
@@ -187,7 +109,7 @@ namespace U4DEngine {
         U4DCamera *camera=U4DCamera::sharedInstance();
         U4DDirector *director=U4DDirector::sharedInstance();
         
-        U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
+        U4DMatrix4n modelSpace=u4dObject->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
         
         U4DMatrix4n worldSpace(1,0,0,0,
                                0,1,0,0,
@@ -224,17 +146,12 @@ namespace U4DEngine {
         
             updateSpaceUniforms();
             
-            //encode the pipeline
-            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-            
-            [uRenderEncoder setDepthStencilState:depthStencilState];
-            
             //encode the buffers
-            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:viAttributeBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:viSpaceBuffer];
             
-            [uRenderEncoder setFragmentBuffer:uniformGeometryBuffer offset:0 atIndex:0];
+            [uRenderEncoder setFragmentBuffer:uniformGeometryBuffer offset:0 atIndex:fiGeometryBuffer];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeLineStrip indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];

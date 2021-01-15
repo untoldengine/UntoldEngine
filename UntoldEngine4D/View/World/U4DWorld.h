@@ -16,7 +16,7 @@
 #include "U4DVisibleEntity.h"
 #include "U4DVertexData.h"
 #include "CommonProtocols.h"
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 
 namespace U4DEngine {
     

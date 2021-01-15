@@ -13,21 +13,24 @@
 #include "U4DMatrix3n.h"
 #include <float.h>
 #include "U4DRenderGeometry.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
     
     U4DBoundingVolume::U4DBoundingVolume():visibility(false){
         
-        renderManager=new U4DRenderGeometry(this);
-        setShader("vertexGeometryShader", "fragmentGeometryShader");
+        renderEntity=new U4DRenderGeometry(this);
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("geometrypipeline"));
         
     }
     
     
     U4DBoundingVolume::~U4DBoundingVolume(){
         
-        delete renderManager;
+        delete renderEntity;
         
     }
     
@@ -43,25 +46,25 @@ namespace U4DEngine {
     
     void U4DBoundingVolume::loadRenderingInformation(){
 
-        renderManager->loadRenderingInformation();
+        renderEntity->loadRenderingInformation();
     }
 
     void U4DBoundingVolume::updateRenderingInformation(){
         
-        renderManager->updateRenderingInformation();
+        renderEntity->updateRenderingInformation();
     }
 
     void U4DBoundingVolume::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         if (visibility==true) {
-            renderManager->render(uRenderEncoder);
+            renderEntity->render(uRenderEncoder);
         }
         
     }
     
     void U4DBoundingVolume::setLineColor(U4DVector4n &lineColor){
         
-        renderManager->setGeometryLineColor(lineColor);
+        renderEntity->setGeometryLineColor(lineColor);
     }
     
     void U4DBoundingVolume::setVisibility(bool uValue){

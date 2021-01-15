@@ -141,15 +141,8 @@ public:
      *
      * @param uRenderEncoder Metal encoder object for the current entity
      */
-    virtual void render(id <MTLRenderCommandEncoder> uRenderEncoder) final;
+    virtual void render(id <MTLCommandBuffer> uCommandBuffer) final;
     
-    /**
-     * @brief Renders the shadow for a 3D entity
-     * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
-     *
-     * @param uShadowTexture Texture shadow for the current entity
-     */
-    virtual void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture) final;
     
     U4DControllerInterface *getGameController();
     

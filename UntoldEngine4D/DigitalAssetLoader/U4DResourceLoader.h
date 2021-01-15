@@ -22,7 +22,7 @@
 namespace U4DEngine {
     
 class U4DEntity;
-class U4DRenderManager;
+class U4DRenderEntity;
 class U4DModel;
 class U4DMatrix4n;
 class U4DVector3n;
@@ -518,7 +518,7 @@ class U4DResourceLoader {
     
         void loadNormalMap(U4DModel *uModel,std::string uNormalMapName);
         
-        bool loadTextureDataToEntity(U4DRenderManager *uRenderManager, const char* uTextureName);
+        bool loadTextureDataToEntity(U4DRenderEntity *uRenderEntity, const char* uTextureName);
         
         /**
          @brief Clears the data in the containers

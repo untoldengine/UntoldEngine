@@ -11,6 +11,8 @@
 #include "UserCommonProtocols.h"
 #include "U4DShaderEntity.h"
 #include "U4DResourceLoader.h"
+#include "U4DRenderManager.h"
+#include "U4DShaderEntityPipeline.h"
 
 using namespace U4DEngine;
 
@@ -46,9 +48,19 @@ void SandboxLoading::init(){
     
     addChild(loadingBackgroundImage);
     
+    U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+    
+    //create a new pipeline for the loading circle shader
+    U4DShaderEntityPipeline* shaderPipeline=new U4DShaderEntityPipeline(director->getMTLDevice(), "loadingcirclepipeline"); 
+    
+    shaderPipeline->initRenderPass("vertexLoadingCircleShader","fragmentLoadingCircleShader");
+    
+    renderManager->addRenderPipeline(shaderPipeline);
+    //create the loading circle shader entity
     U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity(0);
     
-    shader->setShader("vertexLoadingCircleShader","fragmentLoadingCircleShader");
+    //link the pipeline to the entity
+    shader->renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("loadingcirclepipeline")); 
     
     shader->setShaderDimension(width/2.0, height/2.0);
     

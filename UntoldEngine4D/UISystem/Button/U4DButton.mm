@@ -14,6 +14,7 @@
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
 #include "U4DText.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -65,7 +66,8 @@ void U4DButton::initButtonProperties(std::string uName, float xPosition,float yP
     
     controllerInterface=sceneManager->getGameController();
     
-    setShader("vertexUIButtonShader", "fragmentUIButtonShader");
+    U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+    renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("buttonpipeline"));
     
     setShaderDimension(uWidth, uHeight);
 

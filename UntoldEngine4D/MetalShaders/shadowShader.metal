@@ -32,7 +32,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexShadowShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(2)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(3)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexShadowShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformLightProperties &uniformLightProperties [[buffer(viLightPropertiesBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -63,12 +63,12 @@ vertex VertexOutput vertexShadowShader(VertexInput vert [[stage_in]], constant U
             
         }
         
-        position=uniformSpace.lightShadowProjectionSpace*(uniformSpace.modelSpace*newVertex);
+        position=uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*newVertex);
         
         //if no armature exist, then do shadow mapping as normal
     }else{
         
-        position=uniformSpace.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position));
+        position=uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position));
         
     }
     

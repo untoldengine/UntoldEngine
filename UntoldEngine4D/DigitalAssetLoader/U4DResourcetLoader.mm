@@ -9,7 +9,7 @@
 #include "U4DResourceLoader.h"
 #include "CommonProtocols.h"
 #include "Constants.h"
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DModel.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector4n.h"
@@ -1595,9 +1595,9 @@ namespace U4DEngine {
 
                     if (texturesContainer.at(t).name.compare(n.texture)==0) {
                         
-                        uParticleSystem->renderManager->setRawImageData(texturesContainer.at(t).image);
-                        uParticleSystem->renderManager->setImageWidth(texturesContainer.at(t).width);
-                        uParticleSystem->renderManager->setImageHeight(texturesContainer.at(t).height);
+                        uParticleSystem->renderEntity->setRawImageData(texturesContainer.at(t).image);
+                        uParticleSystem->renderEntity->setImageWidth(texturesContainer.at(t).width);
+                        uParticleSystem->renderEntity->setImageHeight(texturesContainer.at(t).height);
 
                     }
 
@@ -1656,9 +1656,9 @@ namespace U4DEngine {
 
                     if (texturesContainer.at(t).name.compare(n.texture)==0) {
                         
-                        uText->renderManager->setRawImageData(texturesContainer.at(t).image);
-                        uText->renderManager->setImageWidth(texturesContainer.at(t).width);
-                        uText->renderManager->setImageHeight(texturesContainer.at(t).height); 
+                        uText->renderEntity->setRawImageData(texturesContainer.at(t).image);
+                        uText->renderEntity->setImageWidth(texturesContainer.at(t).width);
+                        uText->renderEntity->setImageHeight(texturesContainer.at(t).height);
 
                     }
 
@@ -1718,9 +1718,9 @@ namespace U4DEngine {
 
             if (texturesContainer.at(t).name.compare(uNormalMapName)==0) {
                 
-                uModel->renderManager->setRawImageData(texturesContainer.at(t).image);
-                uModel->renderManager->setImageWidth(texturesContainer.at(t).width);
-                uModel->renderManager->setImageHeight(texturesContainer.at(t).height);
+                uModel->renderEntity->setRawImageData(texturesContainer.at(t).image);
+                uModel->renderEntity->setImageWidth(texturesContainer.at(t).width);
+                uModel->renderEntity->setImageHeight(texturesContainer.at(t).height);
 
             }
 
@@ -1728,17 +1728,17 @@ namespace U4DEngine {
         
     }
 
-    bool U4DResourceLoader::loadTextureDataToEntity(U4DRenderManager *uRenderManager, const char* uTextureName){
+    bool U4DResourceLoader::loadTextureDataToEntity(U4DRenderEntity *uRenderEntity, const char* uTextureName){
         
         for(int t=0;t<texturesContainer.size();t++){
 
             if (texturesContainer.at(t).name.compare(std::string(uTextureName))==0) {
                 
-                uRenderManager->setRawImageData(texturesContainer.at(t).image);
+                uRenderEntity->setRawImageData(texturesContainer.at(t).image);
                 
-                uRenderManager->setImageWidth(texturesContainer.at(t).width);
+                uRenderEntity->setImageWidth(texturesContainer.at(t).width);
                 
-                uRenderManager->setImageHeight(texturesContainer.at(t).height);
+                uRenderEntity->setImageHeight(texturesContainer.at(t).height);
                 
                 return true;
             }

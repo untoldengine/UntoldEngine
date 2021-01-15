@@ -24,6 +24,10 @@
 #include "U4DDebugger.h"
 #include "U4DBoundingAABB.h"
 #include "U4DProfilerManager.h"
+#include "U4DImage.h"
+#include "U4DText.h"
+#include "U4DRenderManager.h"
+
 
 using namespace U4DEngine;
 
@@ -76,10 +80,6 @@ void SandboxWorld::init(){
     //Load attribute (rendering information) into the game entity
     if (myAstronaut->loadModel("astronaut")) {
 
-        myAstronaut->setEnableShadow(true);
-        
-        myAstronaut->setNormalMapTexture("astronautNormalMap.png");
-        
         myAstronaut->enableKineticsBehavior();
         
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
@@ -119,77 +119,39 @@ void SandboxWorld::init(){
     //Line 3. Load attribute (rendering information) into the game entity
     if (island->loadModel("island")) {
 
-        island->setEnableShadow(true);
-        
         island->enableKineticsBehavior();
-        
+
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-        
+
         island->setGravity(zero);
-        
+
         island->enableCollisionBehavior();
-        
+
         //Line 4. Load rendering information into the GPU
         island->loadRenderingInformation();
 
         //Line 5. Add astronaut to the scenegraph
         addChild(island);
-        
-    }
-    
-    U4DDirector *director=U4DDirector::sharedInstance();
-    //use the dimensions of the display
-    float width=director->getDisplayWidth();
-    float height=director->getDisplayHeight();
-    U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity(0);
-
-    shader->setShader("vertexLoadingCircleShader","fragmentLoadingCircleShader");
-
-    shader->setShaderDimension(width/2.0, height/2.0);
-
-    shader->translateTo(0.0, -0.3, 0.0);
-
-    shader->loadRenderingInformation();
-
-    addChild(shader,-10);
-    
-    //Create a particle system
-    U4DEngine::U4DParticleSystem *particleSystem=new U4DEngine::U4DParticleSystem();
-
-    //3.Load the particle's attributes file and particle texture into the Particle System entity
-    if(particleSystem->loadParticle("redBulletEmitter")){
-
-        //4. load the attributes into the GPU
-        particleSystem->loadRenderingInformation();
-
-        //5.add the particle system to the scenegraph. If you are using a Skybox, make sure to set the proper order of the particle system in the scenegraph. In this instance,
-        //I set the order to -5
-        addChild(particleSystem,-5);
-
-        particleSystem->translateBy(1.0, 0.5, 0.0);
-
 
     }
+    
+    //Render a skybox
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
 
-    particleSystem->play();
-    
-//    //Render a skybox
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    //initialize the skybox
-//    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-//
-//    //add the skybox to the scenegraph with appropriate z-depth
-//    addChild(skybox);
-    
+    //initialize the skybox
+    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+
+    //add the skybox to the scenegraph with appropriate z-depth
+    addChild(skybox);
+
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
     debugger->setEnableDebugger(true,this);
-    
     
 }
 
 
 void SandboxWorld::update(double dt){
+    
     
 }
 
@@ -209,7 +171,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,7.0,-15.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-15.0);
     
     //translate camera
     camera->translateTo(cameraPosition);
