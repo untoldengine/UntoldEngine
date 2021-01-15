@@ -10,7 +10,7 @@
 #define U4DRenderWorld_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include "U4DMatrix4n.h"
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
@@ -37,7 +37,7 @@ namespace U4DEngine {
      * @ingroup renderingengine
      * @brief The U4DRenderWorld class manages the rendering of the world entity. It mainly renders the grid lines
      */
-    class U4DRenderWorld:public U4DRenderManager {
+    class U4DRenderWorld:public U4DRenderEntity {
         
     private:
         
@@ -69,18 +69,6 @@ namespace U4DEngine {
          * @brief Desctructor for class
          */
         ~U4DRenderWorld();
-        
-        /**
-         * @brief Initializes the library shaders
-         * @details It initializes the vertex and fragment shaders for the entity
-         */
-        void initMTLRenderLibrary();
-        
-        /**
-         * @brief Initializes the Rendering Pipeline
-         * @details It prepares the rendering descriptor with the appropriate color attachment, depth attachment, shaders and attributes
-         */
-        void initMTLRenderPipeline();
         
         /**
          * @brief Loads the attributes and Uniform data

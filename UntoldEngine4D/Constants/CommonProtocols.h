@@ -111,6 +111,16 @@ namespace U4DEngine {
         float xAdvance;
         
         /**
+         @brief line space offset
+         */
+        float lineSpaceOffset;
+        
+        /**
+         @brief flag to inform the characters is in the beginning of a new line
+         */
+        bool lineReset;
+        
+        /**
          @brief Text letter name
          */
         const char* letter;
@@ -460,7 +470,9 @@ namespace U4DEngine {
         /**
          @brief Entity is a 3D parent model entity
          */
-        PARENT
+        PARENT,
+        
+        IMAGE,
         
     }ENTITYTYPE;
 
@@ -728,6 +740,14 @@ namespace U4DEngine {
         uimoving,
         
     }UIELEMENTSTATES;
+
+    typedef enum{
+       
+        finalPass=0,
+        shadowPass=1,
+        offscreenPass=2,
+        
+    }RENDERPASS;
 
 }
 

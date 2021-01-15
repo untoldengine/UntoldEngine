@@ -15,7 +15,7 @@
 #include "U4DVertexData.h"
 #include "U4DTextureData.h"
 #include <MetalKit/MetalKit.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 
 namespace U4DEngine {
 
@@ -30,7 +30,7 @@ private:
     /**
      @brief pointer to the rendering manager
      */
-    U4DRenderManager *renderManager;
+    //U4DRenderEntity *renderEntity;
 
 public:
 

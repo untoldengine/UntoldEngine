@@ -32,7 +32,7 @@ float3 lerp(float3 a, float3 b, float t){
     
 }
 
-vertex VertexOutput vertexUIButtonShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(2)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexUIButtonShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -45,7 +45,7 @@ vertex VertexOutput vertexUIButtonShader(VertexInput vert [[stage_in]], constant
     return vertexOut;
 }
 
-fragment float4 fragmentUIButtonShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(0)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(1)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentUIButtonShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(fiShaderEntityPropertyBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]]){
     
     float2 st=-1.0+2.0*vertexOut.uvCoords;
     float4 finalColor;
@@ -72,7 +72,7 @@ fragment float4 fragmentUIButtonShader(VertexOutput vertexOut [[stage_in]], cons
         
         b=sharpen(b,0.01,uniformGlobalData.resolution);
         
-        color=float3(b)*float3(0.96,0.18,0.25);
+        color=float3(b)*backgroundColor;
         
         finalColor=float4(color,1.0);
         

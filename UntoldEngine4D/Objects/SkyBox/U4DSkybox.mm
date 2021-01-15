@@ -10,18 +10,23 @@
 #include "U4DCamera.h"
 #include "U4DIndex.h"
 #include "U4DRenderSkybox.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
     U4DSkybox::U4DSkybox(){
-        renderManager=new U4DRenderSkybox(this);
-        setShader("vertexSkyboxShader", "fragmentSkyboxShader");
+        renderEntity=new U4DRenderSkybox(this);
+        //setShader("vertexSkyboxShader", "fragmentSkyboxShader");
+        //setRenderPassFilter(U4DEngine::skyboxRenderPassMask);
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("skyboxpipeline"));
         
     }
         
     U4DSkybox::~U4DSkybox(){
 
-        delete renderManager;
+        delete renderEntity;
         
     }
     
@@ -37,13 +42,13 @@ namespace U4DEngine {
         
         //calculate the vertices
         setSkyboxDimension(uSize);
-        renderManager->loadRenderingInformation();
+        renderEntity->loadRenderingInformation();
         
     }
     
     void U4DSkybox::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        renderEntity->render(uRenderEncoder);
         
     }
     
@@ -165,5 +170,6 @@ namespace U4DEngine {
         
         
     }
+
 }
 

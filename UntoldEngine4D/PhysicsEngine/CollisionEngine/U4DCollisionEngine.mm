@@ -56,6 +56,10 @@ namespace U4DEngine {
         boundaryVolumeHierarchyManager->addModelToTreeContainer(uModel);
         
     }
+
+    int U4DCollisionEngine::getNumberOfModelsInContainer(){
+        return (int)boundaryVolumeHierarchyManager->getModelsContainer().size();
+    }
     
     void U4DCollisionEngine::detectBroadPhaseCollisions(float dt){
         

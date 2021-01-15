@@ -10,7 +10,7 @@
 #define U4DRender3DModel_hpp
 
 #include <stdio.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 #include <vector>
 #include <simd/simd.h>
 #include "U4DModel.h"
@@ -49,7 +49,7 @@ namespace U4DEngine {
      * @details It manages the rendering of all 3D models such as game characters. It also manages shadows and animation rendering.
      * 
      */
-    class U4DRender3DModel:public U4DRenderManager {
+    class U4DRender3DModel:public U4DRenderEntity {
         
     private:
         
@@ -58,10 +58,7 @@ namespace U4DEngine {
          */
         U4DModel *u4dObject;
         
-        /**
-         * @brief The light Shadow projection space matrix used for generating shadows
-         */
-        U4DMatrix4n lightShadowProjectionSpace;
+        
         
         /**
          * @brief Pointer that represents the texture object
@@ -79,11 +76,6 @@ namespace U4DEngine {
         MTLSamplerDescriptor *samplerDescriptor[4];
         
         /**
-         * @brief Pointer to the shadow texture 
-         */
-        id<MTLTexture> shadowTexture;
-        
-        /**
          * @brief pointer to the material information buffer, such as diffuse, specular colors and intensities.
          */
         id<MTLBuffer> uniformMaterialBuffer;
@@ -92,11 +84,6 @@ namespace U4DEngine {
          * @brief pointer to the bone buffer used for 3D animations
          */
         id<MTLBuffer> uniformBoneBuffer;
-        
-        /**
-         * @brief pointer to the shadow property buffer, such as shadow depth bias
-         */
-        id<MTLBuffer> shadowPropertiesBuffer;
         
         /**
          * @brief Null sampler descriptor. This is used during the initialization.
@@ -128,20 +115,22 @@ namespace U4DEngine {
         */
         MTLSamplerDescriptor *normalSamplerDescriptor;
         
-        /**
-         * @brief Uniform for the Light Position
-         */
-        id<MTLBuffer> lightPositionUniform;
+        
 
         /**
          @brief Uniform for the model user-defined parameters
          */
         id<MTLBuffer> uniformModelShaderParametersBuffer;
         
-        /**
-         * @brief Uniform for the light color
-         */
-        id<MTLBuffer> lightColorUniform;
+        
+        
+        //variables for triple buffering
+        
+        TRIPLEBUFFER spaceTripleBuffer;
+        
+        TRIPLEBUFFER shadowTripleBuffer;
+        
+        TRIPLEBUFFER boneTripleBuffer;
         
     public:
         
@@ -158,18 +147,6 @@ namespace U4DEngine {
          * @details It releases the bone buffer, shadow buffer and sampler descriptor.
          */
         ~U4DRender3DModel();
-        
-        /**
-         * @brief Initializes the library shaders
-         * @details It initializes the vertex and fragment shaders for the entity
-         */
-        void initMTLRenderLibrary();
-        
-        /**
-         * @brief Initializes the Rendering Pipeline
-         * @details It prepares the rendering descriptor with the appropriate color attachment, depth attachment, shaders and attributes
-         */
-        void initMTLRenderPipeline();
         
         /**
          * @brief Loads the attributes and Uniform data
@@ -202,11 +179,6 @@ namespace U4DEngine {
          */
         void loadMTLMaterialInformation();
         
-        /**
-         * @brief Loads light information into the GPU
-         * @details Loads light color information such as the light diffuse and specular color.
-         */
-        void loadMTLLightColorInformation();
         
         /**
          * @brief Updates the space matrix of the 3D entity
@@ -214,11 +186,7 @@ namespace U4DEngine {
          */
         void updateSpaceUniforms();
         
-        /**
-         * @brief Updates the shadow space matrix
-         * @details It updates the light space matrix and uses the orthogonal projection to update the shadow space matrix
-         */
-        void updateShadowSpaceUniforms();
+        
         
         /**
          * @brief Updates the space matrix of each bone used in animation
@@ -233,21 +201,18 @@ namespace U4DEngine {
         void updateModelRenderFlags();
         
         /**
+         @todo document this
+         */
+        void updateAllUniforms();
+        
+        
+        /**
          * @brief Renders the current entity
          * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
          * 
          * @param uRenderEncoder Metal encoder object for the current entity
          */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
-        
-        /**
-         * @brief Renders the shadow for a 3D entity
-         * @details Updates the shadow space matrix, any rendering flags. It also sends the attributes and space uniforms to the GPU
-         *
-         * @param uRenderShadowEncoder Metal encoder object for the current entity
-         * @param uShadowTexture Texture shadow for the current entity
-         */
-        void renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture);
         
         /**
          * @brief Initializes a null texture sampler object
@@ -266,40 +231,6 @@ namespace U4DEngine {
          * @details clears attributes containers such as vertices, normal maps, uv, tangent, material data, vertex weights and bones
          */
         void clearModelAttributeData();
-        
-        /**
-         * @brief Updates the shadow properties
-         * @details Updates properties such as shadow bias depth
-         */
-        void updateShadowProperties();
-        
-        /**
-         @brief Method which returns the absolute space of the entity
-         
-         @return Returns the entity absolure space-Orientation and Position
-         */
-        U4DDualQuaternion getEntitySpace();
-        
-        /**
-         @brief Method which returns the local space of the entity
-         
-         @return Returns the entity local space-Orientation and Position
-         */
-        U4DDualQuaternion getEntityLocalSpace();
-        
-        /**
-         @brief Method which returns the absolute position of the entity
-         
-         @return Returns the entity absolute position
-         */
-        U4DVector3n getEntityAbsolutePosition();
-        
-        /**
-         @brief Method which returns the local position of the entity
-         
-         @return Returns the entity local position
-         */
-        U4DVector3n getEntityLocalPosition();
         
         /**
         * @brief Update the users parameters used in the shader

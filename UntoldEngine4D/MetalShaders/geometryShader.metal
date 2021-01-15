@@ -24,7 +24,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexGeometryShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexGeometryShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -35,7 +35,7 @@ vertex VertexOutput vertexGeometryShader(VertexInput vert [[stage_in]], constant
     return vertexOut;
 }
 
-fragment float4 fragmentGeometryShader(VertexOutput vertexOut [[stage_in]], constant UniformGeometryProperty &uniformGeometryProperty [[buffer(0)]]){
+fragment float4 fragmentGeometryShader(VertexOutput vertexOut [[stage_in]], constant UniformGeometryProperty &uniformGeometryProperty [[buffer(fiGeometryBuffer)]]){
     
     return uniformGeometryProperty.lineColor;
     

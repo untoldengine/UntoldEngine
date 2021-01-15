@@ -24,7 +24,7 @@ struct VertexOutput{
     float4 color;
 };
 
-vertex VertexOutput vertexWorldShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexWorldShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     

@@ -12,7 +12,6 @@
 #include "UserCommonProtocols.h"
 #include "SandboxWorld.h"
 
-
 SandboxLogic::SandboxLogic():showBroadPhaseVolume(false),showNarrowPhaseVolume(false){
     
 }
@@ -175,7 +174,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    
+                    pAstronaut->translateBy(-1.0, 0.0, 0.0);
                     
                 }
             }
@@ -194,7 +193,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //8. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    
+                    pAstronaut->translateBy(1.0, 0.0, 0.0);
 
                 }
                 

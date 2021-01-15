@@ -20,7 +20,6 @@
 #include <float.h>
 #include <algorithm>
 
-
 namespace U4DEngine{
     
     U4DBVHManager::U4DBVHManager(){
@@ -100,7 +99,7 @@ namespace U4DEngine{
             
             //6. build left and right node
             buildBVHNode(nodeLeaf.get(), 0, nodeLeaf->getSplitIndex());
-            buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), nodeLeaf->getModelsContainer().size());
+            buildBVHNode(nodeLeaf.get(), nodeLeaf->getSplitIndex(), (int)nodeLeaf->getModelsContainer().size());
         
         }
         
@@ -224,7 +223,7 @@ namespace U4DEngine{
         auto closestModelToHalfDistance=std::min_element(tempVectorOfModelPosition.cbegin(), tempVectorOfModelPosition.cend());
         
         //Get the actual index in the vector which corresponds to the minimum element
-        int splitIndex=std::distance(tempVectorOfModelPosition.cbegin(), closestModelToHalfDistance);
+        int splitIndex=(int)std::distance(tempVectorOfModelPosition.cbegin(), closestModelToHalfDistance);
         
         //make sure that the node doesn't end up with empty nodes.
         float positionOfModelAlongLongestVector=uNode->getModelsContainer().at(splitIndex)->getBroadPhaseBoundingVolume()->getLocalPosition().dot(uNode->getAABBVolume()->getLongestAABBDimensionVector());

@@ -27,7 +27,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexUIWindowShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformGlobalData &uniformGlobalData [[buffer(2)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexUIWindowShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -40,7 +40,7 @@ vertex VertexOutput vertexUIWindowShader(VertexInput vert [[stage_in]], constant
     return vertexOut;
 }
 
-fragment float4 fragmentUIWindowShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(0)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(1)]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentUIWindowShader(VertexOutput vertexOut [[stage_in]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], constant UniformShaderEntityProperty &uniformShaderEntityProperty [[buffer(fiShaderEntityPropertyBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]]){
     
     float2 st=-1.0+2.0*vertexOut.uvCoords;
     
@@ -50,16 +50,16 @@ fragment float4 fragmentUIWindowShader(VertexOutput vertexOut [[stage_in]], cons
     
     b=sharpen(b,0.01,uniformGlobalData.resolution);
     
-    color=float3(b)*float3(0.2);
+    color=float3(b)*panelColor;
     
     //do the top border
     float t=sdfBox(st+float2(0.0,0.97),float2(1.0,0.05));
     
     t=sharpen(t,0.01,uniformGlobalData.resolution);
     
-    color=max(color,t);
+    color=max(color,float3(t)*borderPanelColor);
     
-    return float4(color,0.4);
+    return float4(color,0.7);
     
 }
 

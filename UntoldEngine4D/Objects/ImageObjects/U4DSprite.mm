@@ -16,9 +16,11 @@ namespace U4DEngine {
     
     U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr),spriteOffset(0.0,0.0){
         
-            renderManager=new U4DRenderSprite(this);
+            renderEntity=new U4DRenderSprite(this);
             
-            setShader("vertexSpriteShader", "fragmentSpriteShader");
+            //setShader("vertexSpriteShader", "fragmentSpriteShader");
+            
+            //setRenderPassFilter(U4DEngine::imageRenderPass);
             
             spriteLoader=uSpriteLoader;
                 
@@ -27,7 +29,7 @@ namespace U4DEngine {
         
     U4DSprite::~U4DSprite(){
 
-        delete renderManager;
+        delete renderEntity;
         
     }
 
@@ -46,7 +48,7 @@ namespace U4DEngine {
                 
                 textureInformation.texture0=spriteLoader->spriteAtlasImage.c_str();
                     
-                if(resourceLoader->loadTextureDataToEntity(renderManager, spriteLoader->spriteAtlasImage.c_str())){
+                if(resourceLoader->loadTextureDataToEntity(renderEntity, spriteLoader->spriteAtlasImage.c_str())){
 
                     //set the rectangle for the sprite
                     setSpriteDimension(spriteData.width, spriteData.height,spriteLoader->spriteAtlasWidth,spriteLoader->spriteAtlasHeight);
@@ -55,7 +57,7 @@ namespace U4DEngine {
 
                     setSpriteOffset(offset);
 
-                    renderManager->loadRenderingInformation();
+                    renderEntity->loadRenderingInformation();
                     
                     
                 }                   
@@ -94,7 +96,7 @@ namespace U4DEngine {
 
     void U4DSprite::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        renderManager->render(uRenderEncoder);
+        renderEntity->render(uRenderEncoder);
         
     }
     

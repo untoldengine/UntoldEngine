@@ -14,7 +14,7 @@
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
 #include "U4DText.h"
-
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -28,7 +28,9 @@ U4DCheckbox::U4DCheckbox(std::string uName, float xPosition,float yPosition,floa
     
     controllerInterface=sceneManager->getGameController();
     
-    setShader("vertexUICheckboxShader", "fragmentUICheckboxShader");
+    //setShader("vertexUICheckboxShader", "fragmentUICheckboxShader");
+    U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+    renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("checkboxpipeline"));
     
     setShaderDimension(uWidth, uHeight);
 
@@ -92,11 +94,11 @@ void U4DCheckbox::action(){
     if (getIsPressed()) {
         
         controllerMessage.inputElementAction=U4DEngine::uiCheckboxPressed;
-
+        
     }else if(getIsReleased()){
         
         controllerMessage.inputElementAction=U4DEngine::uiCheckboxReleased;
-
+        
     }
     
     if (pCallback!=nullptr) {
@@ -209,13 +211,13 @@ void U4DCheckbox::setCallbackAction(U4DCallbackInterface *uAction){
     
 bool U4DCheckbox::getIsPressed(){
     
-    return (getState()==U4DEngine::uipressed);
+    return (getState()==U4DEngine::uipressed &&  dataValue== 1.0);
     
 }
 
 bool U4DCheckbox::getIsReleased(){
     
-    return (getState()==U4DEngine::uireleased);
+    return (getState()==U4DEngine::uireleased  && dataValue==0.0);
     
 }
 

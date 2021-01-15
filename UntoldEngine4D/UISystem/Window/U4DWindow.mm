@@ -27,7 +27,7 @@ U4DWindow::U4DWindow(std::string uName, float xPosition,float yPosition,float uW
     
     controllerInterface=sceneManager->getGameController();
     
-    setShader("vertexUIWindowShader", "fragmentUIWindowShader");
+    //setShader("vertexUIWindowShader", "fragmentUIWindowShader");
     
     setShaderDimension(uWidth, uHeight);
 
@@ -64,8 +64,8 @@ U4DWindow::U4DWindow(std::string uName, float xPosition,float yPosition,float uW
     
     U4DVector3n pos=getAbsolutePosition();
     
-    //labelText->translateTo(left+U4DEngine::uiPadding,top-U4DEngine::uiPadding,0.0);
-    labelText->translateBy(left/2.0+5.0*U4DEngine::uiPadding,top/2.0+3.0*U4DEngine::uiPadding,0.0);
+    labelText->translateTo(left+U4DEngine::uiPadding,top-U4DEngine::uiPadding,0.0);
+    //labelText->translateBy(left/2.0+5.0*U4DEngine::uiPadding,top/2.0+3.0*U4DEngine::uiPadding,0.0);
 
 }
     

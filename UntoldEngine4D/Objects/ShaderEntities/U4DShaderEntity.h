@@ -14,7 +14,7 @@
 #include "U4DVertexData.h"
 #include "U4DTextureData.h"
 #include <MetalKit/MetalKit.h>
-#include "U4DRenderManager.h"
+#include "U4DRenderEntity.h"
 
 namespace U4DEngine {
 
@@ -40,6 +40,10 @@ namespace U4DEngine {
          */
         bool hasTexture;
         
+        bool requestToHotReload;
+        
+        std::string hotReloadShaderFile;
+        
     public:
         
         
@@ -64,6 +68,8 @@ namespace U4DEngine {
         void setTexture1(const char* uTexture1);
 
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
+        
+        void update(double dt);
         
         void updateShaderParameterContainer(int uPosition, U4DVector4n &uParamater);
         
@@ -94,7 +100,10 @@ namespace U4DEngine {
         bool getEnableAdditiveRendering();
         
         void setHasTexture(bool uValue);
+        
         bool getHasTexture();
+        
+        void hotReloadShaders(std::string uFilepath);
         
     };
 

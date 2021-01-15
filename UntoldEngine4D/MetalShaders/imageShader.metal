@@ -27,7 +27,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexImageShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexImageShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -40,7 +40,7 @@ vertex VertexOutput vertexImageShader(VertexInput vert [[stage_in]], constant Un
     return vertexOut;
 }
 
-fragment float4 fragmentImageShader(VertexOutput vertexOut [[stage_in]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentImageShader(VertexOutput vertexOut [[stage_in]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]]){
     
     float4 sampledColor=texture.sample(sam,vertexOut.uvCoords);
     

@@ -24,30 +24,15 @@ namespace U4DEngine {
     }
 
     
-    void U4DVisibleEntity::setShader(std::string uVertexShaderName, std::string uFragmentShaderName){
-        
-        vertexShader=uVertexShaderName;
-        fragmentShader=uFragmentShaderName;
-        
-    }
-    
-    
-    std::string U4DVisibleEntity::getVertexShader(){
-        
-        return vertexShader;
-    }
-    
-    std::string U4DVisibleEntity::getFragmentShader(){
-        return fragmentShader;
-    }
-    
-    
     void U4DVisibleEntity::loadRenderingInformation(){
         
-        renderManager->loadRenderingInformation();
+        renderEntity->loadRenderingInformation();
         
     }
 
+    U4DRenderEntity *U4DVisibleEntity::getRenderEntity(){
+        return renderEntity;
+    }
 
 }
 

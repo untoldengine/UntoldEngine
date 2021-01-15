@@ -148,17 +148,12 @@ namespace U4DEngine {
         
     }
 
-    void U4DScene::render(id <MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DScene::render(id <MTLCommandBuffer> uCommandBuffer){
 
-        getSceneStateManager()->render(uRenderEncoder);
+        getSceneStateManager()->render(uCommandBuffer);
         
     }
     
-    void U4DScene::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-        
-        getSceneStateManager()->renderShadow(uRenderShadowEncoder, uShadowTexture);
-        
-    }
 
 
     void U4DScene::determineVisibility(){

@@ -48,7 +48,7 @@
     //   further calls until the renderer has returned from that long -[AAPLRender drawInMTKView:]
     //   call.  In other words, the view will drop frames.  So we should set this to a frame rate
     //   that we think our renderer can consistently maintain.
-    metalView.preferredFramesPerSecond = 30;
+    metalView.preferredFramesPerSecond = 60;
     
     metalView.autoResizeDrawable=YES;
     

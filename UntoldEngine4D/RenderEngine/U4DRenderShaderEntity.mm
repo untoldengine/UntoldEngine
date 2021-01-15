@@ -12,6 +12,9 @@
 #include "U4DCamera.h"
 #include "U4DResourceLoader.h"
 #include "U4DNumerical.h"
+#include "U4DLogger.h"
+#include <iostream>
+#include <fstream> //for file i/o
 
 namespace U4DEngine {
 
@@ -46,94 +49,170 @@ namespace U4DEngine {
         
     }
     
-    void U4DRenderShaderEntity::initMTLRenderLibrary(){
-        
-        mtlLibrary=[mtlDevice newDefaultLibrary];
-        
-        std::string vertexShaderName=u4dObject->getVertexShader();
-        std::string fragmentShaderName=u4dObject->getFragmentShader();
-        
-        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
-        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
-        
-    }
-    
-    void U4DRenderShaderEntity::initMTLRenderPipeline(){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
-        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
+//    void U4DRenderShaderEntity::initMTLRenderLibrary(){
+//
+//        mtlLibrary=[mtlDevice newDefaultLibrary];
+//
+//        std::string vertexShaderName=u4dObject->getVertexShader();
+//        std::string fragmentShaderName=u4dObject->getFragmentShader();
+//
+//        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
+//        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
+//
+//    }
+//
+//    void U4DRenderShaderEntity::initMTLRenderPipeline(){
+//
+//        U4DDirector *director=U4DDirector::sharedInstance();
+//
+//        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
+//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
+//        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
+//        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
+//
+//        if(u4dObject->getEnableBlending()){
+//            mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
+//        }else{
+//            mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=NO;
+//        }
+//
+//        //rgb blending
+//        mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
+//
+//        //original blend factor
+//        //mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceColor;
+//        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
+//
+//        if (u4dObject->getEnableAdditiveRendering()) {
+//
+//            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+//
+//        }else{
+//
+//            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+//
+//        }
+//
+//        //alpha blending
+//        mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
+//
+//        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorSourceAlpha;
+//
+//        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
+//
+//
+//        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
+//
+//        //set the vertex descriptors
+//
+//        vertexDesc=[[MTLVertexDescriptor alloc] init];
+//
+//        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
+//        vertexDesc.attributes[0].bufferIndex=0;
+//        vertexDesc.attributes[0].offset=0;
+//
+//        vertexDesc.attributes[1].format=MTLVertexFormatFloat2;
+//        vertexDesc.attributes[1].bufferIndex=0;
+//        vertexDesc.attributes[1].offset=4*sizeof(float);
+//
+//        //stride is 10 but must provide padding so it makes it 12
+//        vertexDesc.layouts[0].stride=8*sizeof(float);
+//
+//        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
+//
+//
+//        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
+//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
+//
+//        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
+//
+//        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
+//
+//        depthStencilDescriptor.depthWriteEnabled=NO;
+//
+//        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
+//
+//        //create the rendering pipeline object
+//
+//        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
+//
+//    }
 
-        if(u4dObject->getEnableBlending()){
-            mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
-        }else{
-            mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=NO;
-        }
-        
-        //rgb blending
-        mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
-       
-        //original blend factor
-        //mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceColor;
-        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
-        
-        if (u4dObject->getEnableAdditiveRendering()) {
-
-            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
-
-        }else{
-
-            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-
-        }
-        
-        //alpha blending
-        mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
-        
-        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorSourceAlpha;
-        
-        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-        
-        
-        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
-
-        //set the vertex descriptors
-        
-        vertexDesc=[[MTLVertexDescriptor alloc] init];
-        
-        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
-        vertexDesc.attributes[0].bufferIndex=0;
-        vertexDesc.attributes[0].offset=0;
-        
-        vertexDesc.attributes[1].format=MTLVertexFormatFloat2;
-        vertexDesc.attributes[1].bufferIndex=0;
-        vertexDesc.attributes[1].offset=4*sizeof(float);
-        
-        //stride is 10 but must provide padding so it makes it 12
-        vertexDesc.layouts[0].stride=8*sizeof(float);
-        
-        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
-        
-        
-        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
-        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-        
-        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-        
-        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
-        
-        depthStencilDescriptor.depthWriteEnabled=NO;
-        
-        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-        
-        //create the rendering pipeline object
-        
-        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
-        
-    }
+//    void U4DRenderShaderEntity::hotReloadShaders(std::string uFilepath){
+//
+//        //reload the library
+//        U4DLogger *logger=U4DLogger::sharedInstance();
+//
+//        NSError *error;
+//        std::ifstream ifs(uFilepath);
+//
+//        std::string shaderContent;
+//        shaderContent.assign( (std::istreambuf_iterator<char>(ifs) ),
+//                        (std::istreambuf_iterator<char>()));
+//
+//        NSString* shaderCode = [NSString stringWithUTF8String:shaderContent.c_str()];
+//
+//
+////        NSString* filepathNSString = [NSString stringWithUTF8String:uFilepath.c_str()];
+////
+////        NSString *shaderCode= [NSString stringWithContentsOfFile:filepathNSString encoding:NSUTF8StringEncoding error:&error];
+////
+////        if(!shaderCode){
+////            NSLog(@"Error: %@",error.localizedDescription);
+////        }
+//
+//        id<MTLLibrary> tempMTLLibrary=[mtlDevice newLibraryWithSource:shaderCode options:nil error:&error];
+//
+//        if (!tempMTLLibrary) {
+//
+//            //NSLog(@"error loading file %@",error.localizedDescription);
+//            std::string errorDesc= std::string([error.localizedDescription UTF8String]);
+//            logger->log("Error: loading the library for hot reloading. %s",errorDesc.c_str());
+//
+//        }else{
+//
+//            MTLRenderPipelineDescriptor *tempMTLRenderPipelineDescriptor;
+//
+//            //temporarily copy the library, shader program and descriptor until we know that the hot reload was a success
+//
+//            tempMTLRenderPipelineDescriptor=mtlRenderPipelineDescriptor;
+//
+//            std::string vertexShaderName=u4dObject->getVertexShader();
+//            std::string fragmentShaderName=u4dObject->getFragmentShader();
+//
+//            id<MTLFunction> tempVertexProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
+//            id<MTLFunction> tempFragmentProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
+//
+//             //since we already have a pointer to our pipeline descriptor, the only thing we need to update are the shader programs
+//             tempMTLRenderPipelineDescriptor.vertexFunction=tempVertexProgram;
+//             tempMTLRenderPipelineDescriptor.fragmentFunction=tempFragmentProgram;
+//
+//             //create the rendering pipeline object
+//
+//             id<MTLRenderPipelineState> tempMTLRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:tempMTLRenderPipelineDescriptor error:&error];
+//
+//            if(!tempMTLRenderPipelineState){
+//
+//                //NSLog(@"The pipeline was unable to be created: %@",error.localizedDescription);
+//
+//                std::string errorDesc= std::string([error.localizedDescription UTF8String]);
+//                logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+//
+//            }else{
+//
+//                logger->log("The pipeline was updated");
+//
+//                mtlRenderPipelineDescriptor=tempMTLRenderPipelineDescriptor;
+//                mtlRenderPipelineState=tempMTLRenderPipelineState;
+//                vertexProgram=tempVertexProgram;
+//                fragmentProgram=tempFragmentProgram;
+//                mtlLibrary=tempMTLLibrary;
+//
+//            }
+//
+//        }
+//
+//    }
     
     bool U4DRenderShaderEntity::loadMTLBuffer(){
         
@@ -196,16 +275,12 @@ namespace U4DEngine {
         }
         
     }
-
-    U4DDualQuaternion U4DRenderShaderEntity::getEntitySpace(){
-        return u4dObject->getAbsoluteSpace();
-    }
     
     void U4DRenderShaderEntity::updateSpaceUniforms(){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
-        U4DMatrix4n modelSpace=getEntitySpace().transformDualQuaternionToMatrix4n();
+        U4DMatrix4n modelSpace=u4dObject->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
         
         U4DMatrix4n worldSpace(1,0,0,0,
                                0,1,0,0,
@@ -242,33 +317,23 @@ namespace U4DEngine {
             updateSpaceUniforms();
             
             //update the global uniforms
-            updateGlobalDataUniforms();
+            
             updateShaderEntityParams();
             
-            //encode the pipeline
-            [uRenderEncoder setRenderPipelineState:mtlRenderPipelineState];
-            
-            [uRenderEncoder setDepthStencilState:depthStencilState];
-            
             //encode the buffers
-            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:viAttributeBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:viSpaceBuffer];
             
-            [uRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:2];
+            [uRenderEncoder setFragmentBuffer:uniformShaderEntityPropertyBuffer offset:propertiesTripleBuffer.offset atIndex:fiShaderEntityPropertyBuffer];
             
+            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:fiTexture0];
             
-            [uRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:0];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:fiSampler0];
             
-            [uRenderEncoder setFragmentBuffer:uniformShaderEntityPropertyBuffer offset:0 atIndex:1];
+            [uRenderEncoder setFragmentTexture:textureObject[1] atIndex:fiTexture1];
             
-            [uRenderEncoder setFragmentTexture:textureObject[0] atIndex:0];
-            
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[0] atIndex:0];
-            
-            [uRenderEncoder setFragmentTexture:textureObject[1] atIndex:1];
-            
-            [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:1];
+            [uRenderEncoder setFragmentSamplerState:samplerStateObject[1] atIndex:fiSampler1];
             
             //set the draw command
             [uRenderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:[indicesBuffer length]/sizeof(int) indexType:MTLIndexTypeUInt32 indexBuffer:indicesBuffer indexBufferOffset:0];
@@ -282,9 +347,15 @@ namespace U4DEngine {
         
         U4DNumerical numerical;
         
+        propertiesTripleBuffer.index = (propertiesTripleBuffer.index + 1) % U4DEngine::kMaxBuffersInFlight;
+        
+        propertiesTripleBuffer.offset = U4DEngine::kAlignedUniformShaderPropertySize * propertiesTripleBuffer.index;
+        
+        propertiesTripleBuffer.address = ((uint8_t*)uniformShaderEntityPropertyBuffer.contents) + propertiesTripleBuffer.offset;
+        
         int sizeOfShaderParameterVector=(int)u4dObject->getShaderParameterContainer().size();
         
-        UniformShaderEntityProperty uniformShaderEntityProperty;
+        UniformShaderEntityProperty *uniformShaderEntityProperty=(UniformShaderEntityProperty*)propertiesTripleBuffer.address;
         
         for(int i=0;i<sizeOfShaderParameterVector;i++){
         
@@ -293,20 +364,21 @@ namespace U4DEngine {
             
             vector_float4 shaderParameterSIMD=numerical.convertToSIMD(shaderParameter);
             
-            uniformShaderEntityProperty.shaderParameter[i]=shaderParameterSIMD;
+            uniformShaderEntityProperty->shaderParameter[i]=shaderParameterSIMD;
             
         }
         
-        uniformShaderEntityProperty.hasTexture=u4dObject->getHasTexture();
-        memcpy(uniformShaderEntityPropertyBuffer.contents,(void*)&uniformShaderEntityProperty, sizeof(UniformShaderEntityProperty));
+        uniformShaderEntityProperty->hasTexture=u4dObject->getHasTexture();
+        //memcpy(uniformShaderEntityPropertyBuffer.contents,(void*)&uniformShaderEntityProperty, sizeof(UniformShaderEntityProperty));
         
     }
 
     void U4DRenderShaderEntity::loadMTLAdditionalInformation(){
         
         //load additional information
+        NSUInteger dynamicUniformShaderPropertyBuffer=U4DEngine::kAlignedUniformShaderPropertySize*U4DEngine::kMaxBuffersInFlight; 
         
-        uniformShaderEntityPropertyBuffer=[mtlDevice newBufferWithLength:sizeof(UniformShaderEntityProperty) options:MTLResourceStorageModeShared];
+        uniformShaderEntityPropertyBuffer=[mtlDevice newBufferWithLength:dynamicUniformShaderPropertyBuffer options:MTLResourceStorageModeShared];
     
     }
     

@@ -26,6 +26,8 @@
 #include "U4DCamera.h"
 #include "U4DPlane.h"
 #include "U4DDirector.h"
+#include "U4DProfilerManager.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -85,8 +87,13 @@ namespace U4DEngine {
 
     #pragma mark-draw
     //draw
-    void U4DEntityManager::render(id<MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DEntityManager::render(id <MTLCommandBuffer> uCommandBuffer){
     
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        
+        profilerManager->startProfiling("Final Pass Render");
+        
         U4DEntity* child=rootEntity;
     
         while (child!=NULL) {
@@ -101,39 +108,20 @@ namespace U4DEngine {
                
             }
      
-            child->render(uRenderEncoder);
+            //child->render(uRenderEncoder);
+            
+            //sort the entities
+            //renderManager->sortEntity(child);
         
             child=child->next;
         
         }
         
+        renderManager->render(uCommandBuffer,rootEntity); 
+        
+        profilerManager->stopProfiling();
     }
     
-    
-    void U4DEntityManager::renderShadow(id <MTLRenderCommandEncoder> uRenderShadowEncoder, id<MTLTexture> uShadowTexture){
-        
-        U4DEntity* child=rootEntity;
-        
-        
-        while (child!=NULL) {
-            
-            if(child->isRoot()){
-                
-                child->absoluteSpace=child->localSpace;
-                
-            }else{
-                
-                child->absoluteSpace=child->localSpace*child->parent->absoluteSpace;
-                
-            }
-            
-            child->renderShadow(uRenderShadowEncoder, uShadowTexture);
-            
-            child=child->next;
-        }
-
-        
-    }
 
 
     #pragma mark-update
@@ -148,6 +136,10 @@ namespace U4DEngine {
         U4DEntity* child=rootEntity;
         
         //BROAD PHASE COLLISION STARTS
+        
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        
+        profilerManager->startProfiling("Collision");
         
         while (child!=NULL) {
 
@@ -164,35 +156,48 @@ namespace U4DEngine {
             child=child->next;
         }
 
-        collisionEngine->detectBroadPhaseCollisions(dt);
+        //Only compute collision if there are more than 1 models with collision behaviors
+        if (collisionEngine->getNumberOfModelsInContainer()>1) {
+            
+            //compute the broad phase collision
+            collisionEngine->detectBroadPhaseCollisions(dt);
+             
+             //BROAD PHASE COLLISION STARTS ENDS
+             
+             //NARROW COLLISION STAGE STARTS
+             
+             //compute collision detection
+             collisionEngine->detectNarrowPhaseCollision(dt);
+            
+             
+             //NARROW COLLISION STAGE ENDS
+        }
+             
+         //clean up all collision containers
+         collisionEngine->clearContainers();
+            
         
-        //BROAD PHASE COLLISION STARTS ENDS
-        
-
-        //NARROW COLLISION STAGE STARTS
-        
-        //compute collision detection
-        collisionEngine->detectNarrowPhaseCollision(dt);
-       
-        
-        //NARROW COLLISION STAGE ENDS
-
-        
-        //clean up all collision containers
-        collisionEngine->clearContainers();
+        profilerManager->stopProfiling();
         
         //update the positions
+        
+        profilerManager->startProfiling("Update");
+        
+        
         child=rootEntity;
         
         while (child!=NULL) {
             
             child->update(dt);
-            
+            child->updateAllUniforms();
             child=child->next;
         }
 
+        profilerManager->stopProfiling();
         
         //update the physics
+        profilerManager->startProfiling("Physics");
+        
         child=rootEntity;
         while (child!=NULL) {
             
@@ -208,6 +213,8 @@ namespace U4DEngine {
             
             child=child->next;
         }
+        
+        profilerManager->stopProfiling();
         
         //clean everything up
         child=rootEntity;
