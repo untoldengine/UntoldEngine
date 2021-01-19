@@ -9,7 +9,6 @@
 #include "U4DShaderEntity.h"
 #include "U4DRenderShaderEntity.h"
 #include "U4DDirector.h"
-#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 

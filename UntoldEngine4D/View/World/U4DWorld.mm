@@ -15,7 +15,6 @@
 #include "U4DEntity.h"
 #include "U4DLayerManager.h"
 #include "U4DRenderWorld.h"
-#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -27,8 +26,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderWorld(this);
         
-        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("worldpipeline"));
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "worldpipeline");
         
         buildGrid();
         renderEntity->loadRenderingInformation();

@@ -15,6 +15,7 @@
 #include "U4DLogger.h"
 #include "U4DResourceLoader.h"
 #include "U4DNumerical.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 
@@ -66,9 +67,24 @@ U4DRenderEntity::U4DRenderEntity():eligibleToRender(false),isWithinFrustum(false
         
     }
 
-    void U4DRenderEntity::makePassPipelinePair(int uRenderPassKey, U4DRenderPipelineInterface *uPipeline){
+    void U4DRenderEntity::makePassPipelinePair(int uRenderPassKey, std::string uPipelineName){
         
-        renderPassPipelineMap.insert(std::make_pair(uRenderPassKey, uPipeline));
+        U4DRenderPipelineInterface *pipeline=nullptr;
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        
+        pipeline=renderManager->searchPipeline(uPipelineName);
+        
+        if (pipeline!=nullptr) {
+            renderPassPipelineMap.insert(std::make_pair(uRenderPassKey, pipeline));
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("The pair for pipeline %s was not successful. The pipeline was not found", uPipelineName.c_str());
+            
+        }
+        
         
     }
         
