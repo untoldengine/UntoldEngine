@@ -13,7 +13,6 @@
 #include "U4DMatrix3n.h"
 #include <float.h>
 #include "U4DRenderGeometry.h"
-#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -22,8 +21,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderGeometry(this);
         
-        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("geometrypipeline"));
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "geometrypipeline");
         
     }
     

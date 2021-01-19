@@ -60,7 +60,7 @@ void SandboxLoading::init(){
     U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity(0);
     
     //link the pipeline to the entity
-    shader->renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("loadingcirclepipeline")); 
+    shader->renderEntity->makePassPipelinePair(U4DEngine::finalPass, "loadingcirclepipeline"); 
     
     shader->setShaderDimension(width/2.0, height/2.0);
     

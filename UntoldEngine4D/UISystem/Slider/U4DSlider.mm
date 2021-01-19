@@ -13,7 +13,6 @@
 #include "U4DControllerInterface.h"
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
-#include "U4DRenderManager.h"
 #include "U4DText.h"
 
 namespace U4DEngine {
@@ -28,9 +27,7 @@ U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uW
     
     controllerInterface=sceneManager->getGameController();
     
-    
-    U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-    renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("sliderpipeline"));
+    renderEntity->makePassPipelinePair(U4DEngine::finalPass, "sliderpipeline");
     
     setShaderDimension(uWidth, uHeight);
 

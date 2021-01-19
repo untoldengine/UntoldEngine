@@ -18,13 +18,8 @@ namespace U4DEngine {
         
             renderEntity=new U4DRenderSprite(this);
             
-            //setShader("vertexSpriteShader", "fragmentSpriteShader");
-            
-            //setRenderPassFilter(U4DEngine::imageRenderPass);
-            
             spriteLoader=uSpriteLoader;
                 
-        
     }
         
     U4DSprite::~U4DSprite(){

@@ -10,7 +10,7 @@
 #include "U4DRenderImage.h"
 #include "U4DDirector.h"
 #include "U4DResourceLoader.h"
-#include "U4DRenderManager.h"
+
 
 namespace U4DEngine {
     
@@ -19,10 +19,7 @@ namespace U4DEngine {
         setEntityType(U4DEngine::IMAGE);
         renderEntity=new U4DRenderImage(this);
         
-        //setRenderPassFilter(U4DEngine::imageRenderPass);
-        
-        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("imagepipeline"));
+        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "imagepipeline");
         
     };
 

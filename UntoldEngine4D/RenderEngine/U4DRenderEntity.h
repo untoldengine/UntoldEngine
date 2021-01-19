@@ -218,7 +218,7 @@ typedef struct{
         
         virtual void hotReloadShaders(std::string uFilepath){};
         
-        void makePassPipelinePair(int uRenderPassKey, U4DRenderPipelineInterface *uPipeline);
+        void makePassPipelinePair(int uRenderPassKey, std::string uPipelineName);
         
         U4DRenderPipelineInterface *getPipeline(int uRenderPassKey);
         
