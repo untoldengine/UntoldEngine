@@ -14,6 +14,7 @@
 #include "U4DShaderProtocols.h"
 #include "U4DNumerical.h"
 #include "U4DLights.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
 
@@ -143,14 +144,16 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
          //create the render pipeline
          mtlRenderPassPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPassPipelineDescriptor error:&error];
         
-        if(!mtlRenderPassPipelineState){
+        U4DLogger *logger=U4DLogger::sharedInstance();
         
-            //NSLog(@"The pipeline was unable to be created: %@",error.localizedDescription);
-            U4DLogger *logger=U4DLogger::sharedInstance();
+        if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
+        }else{
+            
+            logger->log("Success: The pipeline %s was properly configured",name.c_str());
         }
         
     }
