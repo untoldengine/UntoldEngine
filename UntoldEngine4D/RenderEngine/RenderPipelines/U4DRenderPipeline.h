@@ -88,10 +88,6 @@ namespace U4DEngine {
         
         ~U4DRenderPipeline();
         
-        
-        
-        
-        
         id<MTLTexture> targetDepthTexture;
         
         void initRenderPass(std::string uVertexShader, std::string uFragmentShader);
@@ -107,36 +103,14 @@ namespace U4DEngine {
         virtual void initRenderPassPipeline(){};
         
         void initRenderPassAdditionalInfo();
-        
-//        void bindResources(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uRootEntity, int uRenderPass);
-        
+               
         virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){};
         
         id<MTLTexture> getTargetTexture();
         
         void setInputTexture(id<MTLTexture> uInputTexture);
         
-        /**
-         * @brief Creates a texture object to be applied to an entity
-         * @details It creates a texture descriptor, and loads texture raw data into a newly created texture object
-         */
-        void createTextureObject(id<MTLTexture> &uTextureObject);
-        
-        /**
-         * @brief Creates a sampler object required for texturing
-         * @details Creates a sampler descriptor and sets the filtering and addressing settings. Loads the sampler descriptor into a newly created sampler object.
-         */
-        void createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor);
-        
-        /**
-         * @brief Initializes texture sampler object to null
-         * @details It initializes the sampler object to null. The object is later used to store sampler settings
-         */
-        void initTextureSamplerObjectNull();
-        
-        bool createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName);
-        
-        void hotReloadShaders(std::string uFilepath);
+        void hotReloadShaders(std::string uFilepath, std::string uVertexShader, std::string uFragmentShader);
         
         std::string getName();
         

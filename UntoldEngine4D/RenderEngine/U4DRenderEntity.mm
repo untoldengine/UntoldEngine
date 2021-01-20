@@ -87,6 +87,12 @@ U4DRenderEntity::U4DRenderEntity():eligibleToRender(false),isWithinFrustum(false
         
         
     }
+
+    void U4DRenderEntity::removePassPipelinePair(int uRenderPassKey){
+        
+        renderPassPipelineMap.erase(uRenderPassKey);
+        
+    }
         
     U4DRenderPipelineInterface *U4DRenderEntity::getPipeline(int uRenderPassKey){
         

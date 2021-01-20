@@ -36,59 +36,6 @@ namespace U4DEngine {
         
     }
     
-//    void U4DRenderSkybox::initMTLRenderLibrary(){
-//
-//        mtlLibrary=[mtlDevice newDefaultLibrary];
-//
-//        std::string vertexShaderName=u4dObject->getVertexShader();
-//        std::string fragmentShaderName=u4dObject->getFragmentShader();
-//
-//        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
-//        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
-//
-//    }
-//
-//    void U4DRenderSkybox::initMTLRenderPipeline(){
-//
-//        U4DDirector *director=U4DDirector::sharedInstance();
-//
-//        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
-//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-//        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
-//        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
-//        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
-//
-//        //set the vertex descriptors
-//
-//        vertexDesc=[[MTLVertexDescriptor alloc] init];
-//
-//        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
-//        vertexDesc.attributes[0].bufferIndex=0;
-//        vertexDesc.attributes[0].offset=0;
-//
-//        //stride
-//        vertexDesc.layouts[0].stride=4*sizeof(float);
-//
-//        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
-//
-//
-//        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
-//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-//
-//
-//        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-//
-//        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
-//
-//        depthStencilDescriptor.depthWriteEnabled=NO;
-//
-//        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-//
-//        //create the rendering pipeline object
-//
-//        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
-//
-//    }
     
     bool U4DRenderSkybox::loadMTLBuffer(){
         

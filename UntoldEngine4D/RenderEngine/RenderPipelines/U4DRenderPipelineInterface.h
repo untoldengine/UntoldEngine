@@ -45,6 +45,8 @@ namespace U4DEngine {
         
         virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity)=0;
         
+        virtual void hotReloadShaders(std::string uFilepath, std::string uVertexShader, std::string uFragmentShader)=0;
+        
         virtual std::string getName()=0;
         
     };

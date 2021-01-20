@@ -12,7 +12,9 @@
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
 #include "U4DLights.h"
-
+#include "U4DLogger.h"
+#include <iostream>
+#include <fstream> //for file i/o
 
 namespace U4DEngine {
 
@@ -68,48 +70,69 @@ namespace U4DEngine {
         inputTexture=uInputTexture;
     }
 
-//    void U4DRenderPipeline::bindResources(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uRootEntity, int uRenderPass){
-//
-////        for(const auto &n:renderPassEntityContainer){
-////
-////            n->render(uRenderEncoder);
-////
-////        }
-//
-//        U4DEntity *child=uRootEntity;
-//
-//        while (child!=NULL) {
-//
-//            if((child->getRenderPassFilter()&uRenderPass)==uRenderPass){
-//
-//                child->render(uRenderEncoder);
-//
-//            }
-//
-//               child=child->next;
-//
-//           }
-//
-//    }
+    void U4DRenderPipeline::hotReloadShaders(std::string uFilepath, std::string uVertexShader, std::string uFragmentShader){
 
-    void U4DRenderPipeline::createTextureObject(id<MTLTexture> &uTextureObject){
-        
-    }
+        //reload the library
+        U4DLogger *logger=U4DLogger::sharedInstance();
 
-    void U4DRenderPipeline::createSamplerObject(id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor){
+        NSError *error;
         
-    }
+        std::ifstream ifs(uFilepath);
 
-    void U4DRenderPipeline::initTextureSamplerObjectNull(){
-        
-    }
+        std::string shaderContent;
+        shaderContent.assign( (std::istreambuf_iterator<char>(ifs) ),
+                        (std::istreambuf_iterator<char>()));
 
-    bool U4DRenderPipeline::createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName){
-        
-    }
+        NSString* shaderCode = [NSString stringWithUTF8String:shaderContent.c_str()];
 
-    void U4DRenderPipeline::hotReloadShaders(std::string uFilepath){
-        
+        id<MTLLibrary> tempMTLLibrary=[mtlDevice newLibraryWithSource:shaderCode options:nil error:&error];
+
+        if (!tempMTLLibrary) {
+
+            //NSLog(@"error loading file %@",error.localizedDescription);
+            std::string errorDesc= std::string([error.localizedDescription UTF8String]);
+            logger->log("Error: loading the library for hot reloading. %s",errorDesc.c_str());
+
+        }else{
+
+            MTLRenderPipelineDescriptor *tempMTLRenderPipelineDescriptor;
+
+            //temporarily copy the library, shader program and descriptor until we know that the hot reload was a success
+
+            tempMTLRenderPipelineDescriptor=mtlRenderPassPipelineDescriptor;
+
+            id<MTLFunction> tempVertexProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:uVertexShader.c_str()]];
+            id<MTLFunction> tempFragmentProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:uFragmentShader.c_str()]];
+
+             //since we already have a pointer to our pipeline descriptor, the only thing we need to update are the shader programs
+             tempMTLRenderPipelineDescriptor.vertexFunction=tempVertexProgram;
+             tempMTLRenderPipelineDescriptor.fragmentFunction=tempFragmentProgram;
+
+             //create the rendering pipeline object
+
+             id<MTLRenderPipelineState> tempMTLRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:tempMTLRenderPipelineDescriptor error:&error];
+
+            if(!tempMTLRenderPipelineState){
+
+                //NSLog(@"The pipeline was unable to be created: %@",error.localizedDescription);
+
+                std::string errorDesc= std::string([error.localizedDescription UTF8String]);
+                logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+
+            }else{
+
+                logger->log("The pipeline was updated");
+
+                mtlRenderPassPipelineDescriptor=tempMTLRenderPipelineDescriptor;
+                mtlRenderPassPipelineState=tempMTLRenderPipelineState;
+                vertexProgram=tempVertexProgram;
+                fragmentProgram=tempFragmentProgram;
+                mtlLibrary=tempMTLLibrary;
+
+            }
+
+        }
+
     }
 
 }

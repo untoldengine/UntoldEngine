@@ -216,9 +216,9 @@ typedef struct{
         
         bool createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName);
         
-        virtual void hotReloadShaders(std::string uFilepath){};
-        
         void makePassPipelinePair(int uRenderPassKey, std::string uPipelineName);
+        
+        void removePassPipelinePair(int uRenderPassKey);
         
         U4DRenderPipelineInterface *getPipeline(int uRenderPassKey);
         
