@@ -48,7 +48,12 @@ namespace U4DEngine {
         
         bool uiLoaded;
         
-        std::vector<U4DAABB*> aabbContainer;
+        bool enableShaderReload;
+        
+        std::string pipelineToReload;
+        std::string shaderFilePath;
+        std::string vertexShaderName;
+        std::string fragmentShaderName;
         
     protected:
         
@@ -75,6 +80,8 @@ namespace U4DEngine {
         void actionCheckboxShowNarrowPhaseVolume();
         
         void actionCheckboxShowProfiler();
+        
+        void reloadShader(std::string uPipelineToReload, std::string uFilepath, std::string uVertexShader, std::string uFragmentShader);
         
     };
 

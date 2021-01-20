@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParamSize,U4DVector4n(0.0,0.0,0.0,0.0)),enableBlending(true),enableAdditiveRendering(true),requestToHotReload(false){
+U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParamSize,U4DVector4n(0.0,0.0,0.0,0.0)),enableBlending(true),enableAdditiveRendering(true){
         
         renderEntity=new U4DRenderShaderEntity(this);
         
@@ -99,14 +99,6 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
 
     void U4DShaderEntity::update(double dt){
         
-        //TODO: THIS WILL HAVE TO BE FIXED. IT NEEDS TO BE MORE MODULAR
-        if(requestToHotReload){
-            
-            renderEntity->hotReloadShaders(hotReloadShaderFile);
-            
-            requestToHotReload=false;
-            
-        }
     }
 
     std::vector<U4DVector4n> U4DShaderEntity::getShaderParameterContainer(){
@@ -149,12 +141,5 @@ U4DShaderEntity::U4DShaderEntity(int uParamSize):shaderParameterContainer(uParam
     bool U4DShaderEntity::getHasTexture(){
             return hasTexture;
         }
-
-    void U4DShaderEntity::hotReloadShaders(std::string uFilepath){
-        
-        hotReloadShaderFile=uFilepath;
-        requestToHotReload=true;
-        
-    }
 
 }
