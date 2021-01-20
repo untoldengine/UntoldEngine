@@ -22,7 +22,7 @@ namespace U4DEngine {
 
     U4DDebugger* U4DDebugger::instance=0;
 
-    U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nullptr),profilerLabel(nullptr){
+U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nullptr),profilerLabel(nullptr),enableShaderReload(false){
         
         scheduler=new U4DCallback<U4DDebugger>;
         
