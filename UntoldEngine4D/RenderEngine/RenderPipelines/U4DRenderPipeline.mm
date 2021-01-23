@@ -11,7 +11,6 @@
 #include "U4DDirector.h"
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
-#include "U4DLights.h"
 #include "U4DLogger.h"
 #include <iostream>
 #include <fstream> //for file i/o

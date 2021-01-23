@@ -12,11 +12,11 @@
 #include "CommonProtocols.h"
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
-#include "U4DLights.h"
+#include "U4DDirectionalLight.h"
 #include "U4DDirector.h"
 #include "U4DNumerical.h"
 #include "U4DRenderEntity.h"
-
+#include "U4DPointLight.h"
 #include "U4DModelPipeline.h"
 #include "U4DShadowRenderPipeline.h"
 #include "U4DImagePipeline.h"
@@ -26,6 +26,8 @@
 #include "U4DShaderEntityPipeline.h"
 #include "U4DGeometryPipeline.h"
 #include "U4DWorldPipeline.h"
+#include "U4DGBufferPipeline.h"
+#include "U4DCompositionPipeline.h"
 
 namespace U4DEngine {
 
@@ -56,6 +58,8 @@ namespace U4DEngine {
         
         U4DDirector *director=U4DDirector::sharedInstance();
         U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DPointLight *pointLight=U4DPointLight::sharedInstance();
+        
         U4DScene *scene=sceneManager->getCurrentScene();
         
         //get the resolution of the display
@@ -63,17 +67,22 @@ namespace U4DEngine {
         
         vector_float2 resolutionSIMD=numerical.convertToSIMD(resolution);
         
+        int numberOfPointLights=(int)pointLight->pointLightsContainer.size();
+        
+        
         UniformGlobalData uniformGlobalData;
         uniformGlobalData.time=scene->getGlobalTime(); //set the global time
         uniformGlobalData.resolution=resolutionSIMD; //set the display resolution
+        uniformGlobalData.numberOfPointLights=numberOfPointLights; //set the number of points light
+        
         
         memcpy(globalDataUniform.contents, (void*)&uniformGlobalData, sizeof(UniformGlobalData));
         
     }
         
-    void U4DRenderManager::updateLightDataUniforms(){
+    void U4DRenderManager::updateDirLightDataUniforms(){
         
-        U4DLights *light=U4DLights::sharedInstance();
+        U4DDirectionalLight *light=U4DDirectionalLight::sharedInstance();
         U4DDirector *director=U4DDirector::sharedInstance();
         
         //get the light position in view space
@@ -101,14 +110,42 @@ namespace U4DEngine {
         vector_float3 diffuseColorSIMD=numerical.convertToSIMD(diffuseColor);
         vector_float3 specularColorSIMD=numerical.convertToSIMD(specularColor);
         
-        UniformLightProperties lightProperties;
+        UniformDirectionalLightProperties lightProperties;
         
         lightProperties.lightShadowProjectionSpace=lightShadowProjectionSpaceSIMD;
         lightProperties.lightPosition=lightPositionSIMD;
         lightProperties.diffuseColor=diffuseColorSIMD;
         lightProperties.specularColor=specularColorSIMD;
         
-        memcpy(lightPropertiesUniform.contents, (void*)&lightProperties, sizeof(UniformLightProperties));
+        memcpy(directionalLightPropertiesUniform.contents, (void*)&lightProperties, sizeof(UniformDirectionalLightProperties));
+        
+    }
+
+    void U4DRenderManager::updatePointLightDataUniforms(){
+        
+        U4DPointLight *pointLights=U4DPointLight::sharedInstance();
+        int numberOfPointLights=(int)pointLights->pointLightsContainer.size();
+        UniformPointLightProperties uniformPointLightProperty[numberOfPointLights];
+            
+            for(int i=0;i<numberOfPointLights;i++){
+                
+                //load position
+                U4DVector3n pos=pointLights->pointLightsContainer.at(i).position;
+                U4DVector4n position(pos.x,pos.y,pos.z,1.0);
+                U4DVector3n diffuse=pointLights->pointLightsContainer.at(i).diffuseColor;
+                
+                //Convert to SIMD
+                U4DNumerical numerical;
+                
+                vector_float4 positionSIMD=numerical.convertToSIMD(position);
+                vector_float3 diffuseSIMD=numerical.convertToSIMD(diffuse);
+                
+                uniformPointLightProperty[i].lightPosition=positionSIMD;
+                uniformPointLightProperty[i].diffuseColor=diffuseSIMD;
+                
+            }
+            
+        memcpy(pointLightsPropertiesUniform.contents,(void*)&uniformPointLightProperty, sizeof(UniformPointLightProperties)*numberOfPointLights);
         
     }
 
@@ -117,8 +154,11 @@ namespace U4DEngine {
         //init global data buffer
         globalDataUniform=[uMTLDevice newBufferWithLength:sizeof(UniformGlobalData) options:MTLResourceStorageModeShared];
         
-        //init light buffer
-        lightPropertiesUniform=[uMTLDevice newBufferWithLength:sizeof(UniformLightProperties) options:MTLResourceStorageModeShared];
+        //init dir light buffer
+        directionalLightPropertiesUniform=[uMTLDevice newBufferWithLength:sizeof(UniformDirectionalLightProperties) options:MTLResourceStorageModeShared];
+        
+        //init point light buffer
+        pointLightsPropertiesUniform=[uMTLDevice newBufferWithLength:sizeof(UniformPointLightProperties)*U4DEngine::maxNumberOfLights options:MTLResourceStorageModeShared]; 
         
         U4DModelPipeline* modelPipeline=new U4DModelPipeline(uMTLDevice, "modelpipeline");
         modelPipeline->initRenderPass("vertexModelShader", "fragmentModelShader");
@@ -156,6 +196,12 @@ namespace U4DEngine {
         U4DWorldPipeline *worldPipeline=new U4DWorldPipeline(uMTLDevice,"worldpipeline");
         worldPipeline->initRenderPass("vertexWorldShader", "fragmentWorldShader");
         
+        U4DGBufferPipeline *gBufferPipeline=new U4DGBufferPipeline(uMTLDevice,"gbufferpipeline");
+        gBufferPipeline->initRenderPass("vertexGBufferShader","fragmentGBufferShader");
+        
+        U4DCompositionPipeline *compositionPipeline=new U4DCompositionPipeline(uMTLDevice,"compositionpipeline");
+        compositionPipeline->initRenderPass("vertexCompShader","fragmentCompShader");
+        
         renderingPipelineContainer.push_back(modelPipeline);
         renderingPipelineContainer.push_back(shadowPipeline);
         renderingPipelineContainer.push_back(geometryPipeline);
@@ -168,6 +214,8 @@ namespace U4DEngine {
         renderingPipelineContainer.push_back(buttonPipeline);
         renderingPipelineContainer.push_back(joystickPipeline);
         renderingPipelineContainer.push_back(worldPipeline);
+        renderingPipelineContainer.push_back(gBufferPipeline);
+        renderingPipelineContainer.push_back(compositionPipeline);
         
     }
 
@@ -175,7 +223,8 @@ namespace U4DEngine {
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
-        updateLightDataUniforms();
+        updateDirLightDataUniforms();
+        updatePointLightDataUniforms();
         updateGlobalDataUniforms();
         
         U4DRenderPipelineInterface *shadowPipeline=searchPipeline("shadowpipeline");
@@ -186,7 +235,7 @@ namespace U4DEngine {
         [shadowRenderEncoder pushDebugGroup:@"Shadow Pass"];
         shadowRenderEncoder.label = @"Shadow Render Pass";
         
-        [shadowRenderEncoder setVertexBuffer:lightPropertiesUniform offset:0 atIndex:viLightPropertiesBuffer];
+        [shadowRenderEncoder setVertexBuffer:directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];
         
         
         U4DEntity *child=uRootEntity;
@@ -212,7 +261,9 @@ namespace U4DEngine {
         [shadowRenderEncoder popDebugGroup];
         //end encoding
         [shadowRenderEncoder endEncoding];
-
+//
+//        U4DRenderPipelineInterface *offscreenPipeline=searchPipeline("offscreenpipeline");
+//
 //        id <MTLRenderCommandEncoder> offscreenRenderEncoder=[uCommandBuffer renderCommandEncoderWithDescriptor:offscreenPipeline->mtlRenderPassDescriptor];
 //
 //        [offscreenRenderEncoder pushDebugGroup:@"Offscreen pass"];
@@ -222,9 +273,15 @@ namespace U4DEngine {
 //
 //        while (child!=NULL) {
 //
-//            if((child->getRenderPassFilter()&U4DEngine::offscreenRenderPass)==U4DEngine::offscreenRenderPass){
+//            U4DRenderEntity *renderEntity=child->getRenderEntity();
 //
-//                offscreenPipeline->executePass(offscreenRenderEncoder, child);
+//            if(renderEntity!=nullptr){
+//
+//                U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::offscreenPass);
+//
+//                if (renderPipeline!=nullptr) {
+//                    renderPipeline->executePass(offscreenRenderEncoder, child);
+//                }
 //
 //            }
 //
@@ -235,58 +292,132 @@ namespace U4DEngine {
 //        [offscreenRenderEncoder popDebugGroup];
 //        [offscreenRenderEncoder endEncoding];
         
+        //G-Buffer Pass
+        U4DRenderPipelineInterface *gBufferPipeline=searchPipeline("gbufferpipeline");
+
+        id <MTLRenderCommandEncoder> gBufferRenderEncoder =
+        [uCommandBuffer renderCommandEncoderWithDescriptor:gBufferPipeline->mtlRenderPassDescriptor];
+
+        [gBufferRenderEncoder pushDebugGroup:@"G-Buffer Pass"];
+        gBufferRenderEncoder.label = @"G-Buffer Render Pass";
+
+        [gBufferRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
+
+        [gBufferRenderEncoder setVertexBuffer:directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];
+
+        [gBufferRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
+
+        [gBufferRenderEncoder setFragmentBuffer:directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
+
+        gBufferPipeline->inputTexture=shadowPipeline->targetTexture;
+
+        child=uRootEntity;
+
+        while (child!=NULL) {
+
+            U4DRenderEntity *renderEntity=child->getRenderEntity();
+
+            if(renderEntity!=nullptr){
+
+                U4DRenderPipelineInterface* gBufferPipeline=renderEntity->getPipeline(U4DEngine::gBufferPass);
+
+                if (gBufferPipeline!=nullptr) {
+                    gBufferPipeline->executePass(gBufferRenderEncoder, child);
+                }
+
+            }
+
+               child=child->next;
+
+           }
+
+        [gBufferRenderEncoder popDebugGroup];
+        //end encoding
+        [gBufferRenderEncoder endEncoding];
         
-        U4DRenderPipelineInterface *modelPipeline=searchPipeline("modelpipeline");
+        
+        
         
         MTLRenderPassDescriptor * mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
                mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
                mtlRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
                mtlRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
         
-        
-        id <MTLRenderCommandEncoder> finalCompRenderEncoder =
+        //Composition Pass
+        U4DRenderPipelineInterface *compositionPipeline=searchPipeline("compositionpipeline");
+
+        id <MTLRenderCommandEncoder> compositionRenderEncoder =
         [uCommandBuffer renderCommandEncoderWithDescriptor:mtlRenderPassDescriptor];
-        
-        if(finalCompRenderEncoder!=nil){
-            
-            [finalCompRenderEncoder pushDebugGroup:@"Final Comp Pass"];
-            finalCompRenderEncoder.label = @"Final Comp Render Pass";
-            
-            [finalCompRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
-            
-            [finalCompRenderEncoder setVertexBuffer:lightPropertiesUniform offset:0 atIndex:viLightPropertiesBuffer];
-            
-            [finalCompRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
-            
-            [finalCompRenderEncoder setFragmentBuffer:lightPropertiesUniform offset:0 atIndex:fiLightPropertiesBuffer];
-            
-            modelPipeline->inputTexture=shadowPipeline->targetTexture;
-            
-            U4DEntity *child=uRootEntity;
 
-            while (child!=NULL) {
+        if(compositionRenderEncoder!=nil){
 
-                U4DRenderEntity *renderEntity=child->getRenderEntity();
-                           
-                if(renderEntity!=nullptr){
-                      
-                    U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+            [compositionRenderEncoder pushDebugGroup:@"Composition Pass"];
+            compositionRenderEncoder.label = @"Composition Render Pass";
 
-                    if (renderPipeline!=nullptr) {
-                        renderPipeline->executePass(finalCompRenderEncoder, child);
-                    }
-                    
-                }
-                
-                child=child->next;
+            compositionPipeline->albedoTexture=gBufferPipeline->albedoTexture;
+            compositionPipeline->normalTexture=gBufferPipeline->normalTexture;
+            compositionPipeline->positionTexture=gBufferPipeline->positionTexture;
+            compositionPipeline->depthTexture=gBufferPipeline->depthTexture;
 
-               }
+            [compositionRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
             
-            [finalCompRenderEncoder popDebugGroup];
+            [compositionRenderEncoder setFragmentBuffer:directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
+            
+            [compositionRenderEncoder setFragmentBuffer:pointLightsPropertiesUniform offset:0 atIndex:fiPointLightsPropertiesBuffer]; 
+
+            compositionPipeline->executePass(compositionRenderEncoder);
+
+            [compositionRenderEncoder popDebugGroup];
             //end encoding
-            [finalCompRenderEncoder endEncoding];
-            
+            [compositionRenderEncoder endEncoding];
+
         }
+        
+//        //Final Pass
+//            U4DRenderPipelineInterface *modelPipeline=searchPipeline("modelpipeline");
+//        id <MTLRenderCommandEncoder> finalCompRenderEncoder =
+//        [uCommandBuffer renderCommandEncoderWithDescriptor:mtlRenderPassDescriptor];
+//
+//        if(finalCompRenderEncoder!=nil){
+//
+//            [finalCompRenderEncoder pushDebugGroup:@"Final Comp Pass"];
+//            finalCompRenderEncoder.label = @"Final Comp Render Pass";
+//
+//            [finalCompRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
+//
+//            [finalCompRenderEncoder setVertexBuffer:directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];
+//
+//            [finalCompRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
+//
+//            [finalCompRenderEncoder setFragmentBuffer:directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
+//
+//            modelPipeline->inputTexture=shadowPipeline->targetTexture;
+//
+//            child=uRootEntity;
+//
+//            while (child!=NULL) {
+//
+//                U4DRenderEntity *renderEntity=child->getRenderEntity();
+//
+//                if(renderEntity!=nullptr){
+//
+//                    U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+//
+//                    if (renderPipeline!=nullptr) {
+//                        renderPipeline->executePass(finalCompRenderEncoder, child);
+//                    }
+//
+//                }
+//
+//                child=child->next;
+//
+//               }
+//
+//            [finalCompRenderEncoder popDebugGroup];
+//            //end encoding
+//            [finalCompRenderEncoder endEncoding];
+
+//        }
         
     }
 

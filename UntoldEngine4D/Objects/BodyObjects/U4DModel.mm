@@ -34,6 +34,8 @@ namespace U4DEngine {
         
         renderEntity->makePassPipelinePair(U4DEngine::finalPass, "modelpipeline");
         renderEntity->makePassPipelinePair(U4DEngine::shadowPass, "shadowpipeline");
+        renderEntity->makePassPipelinePair(U4DEngine::offscreenPass, "offscreenpipeline");
+        renderEntity->makePassPipelinePair(U4DEngine::gBufferPass, "gbufferpipeline");
         
         cullingPhaseBoundingVolume=nullptr;
         

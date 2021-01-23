@@ -13,7 +13,6 @@
 #include "U4DSceneManager.h"
 #include "U4DShaderProtocols.h"
 #include "U4DNumerical.h"
-#include "U4DLights.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {

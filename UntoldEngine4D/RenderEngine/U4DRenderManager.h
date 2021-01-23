@@ -32,7 +32,10 @@ namespace U4DEngine {
          */
         id<MTLBuffer> globalDataUniform;
         
-        id<MTLBuffer> lightPropertiesUniform;
+        id<MTLBuffer> directionalLightPropertiesUniform;
+        
+        id<MTLBuffer> pointLightsPropertiesUniform;
+        
         /**
          @brief Instace for the U4DRenderManager singleton
          */
@@ -66,7 +69,9 @@ namespace U4DEngine {
         
         void updateGlobalDataUniforms();
         
-        void updateLightDataUniforms();
+        void updateDirLightDataUniforms();
+        
+        void updatePointLightDataUniforms();
         
         U4DRenderPipelineInterface* searchPipeline(std::string uPipelineName);
         

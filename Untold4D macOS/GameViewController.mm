@@ -9,7 +9,6 @@
 #import "GameViewController.h"
 #import "U4DRenderer.h"
 #import "U4DDirector.h"
-#import "U4DLights.h"
 #import "U4DCamera.h"
 #include "U4DTouches.h"
 #include "U4DLogger.h"

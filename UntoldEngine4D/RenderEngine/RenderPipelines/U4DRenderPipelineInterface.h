@@ -31,6 +31,11 @@ namespace U4DEngine {
         
         id<MTLTexture> inputTexture;
         
+        id<MTLTexture> albedoTexture;
+        id<MTLTexture> normalTexture;
+        id<MTLTexture> positionTexture;
+        id<MTLTexture> depthTexture;
+        
         virtual ~U4DRenderPipelineInterface(){};
         
         virtual void initRenderPass(std::string uVertexShader, std::string uFragmentShader)=0;
@@ -40,10 +45,10 @@ namespace U4DEngine {
         virtual void initRenderPassDesc()=0;
         virtual void initRenderPassPipeline()=0;
         virtual void initRenderPassAdditionalInfo()=0;
-        
-//        virtual void bindResources(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uRootEntity, int uRenderPass)=0;
-        
+               
         virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity)=0;
+        
+        virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder)=0;
         
         virtual void hotReloadShaders(std::string uFilepath, std::string uVertexShader, std::string uFragmentShader)=0;
         

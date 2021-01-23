@@ -106,6 +106,8 @@ namespace U4DEngine {
                
         virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){};
         
+        virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder){};
+        
         id<MTLTexture> getTargetTexture();
         
         void setInputTexture(id<MTLTexture> uInputTexture);

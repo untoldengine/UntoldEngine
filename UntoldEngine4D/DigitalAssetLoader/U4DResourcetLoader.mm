@@ -18,7 +18,6 @@
 #include "U4DBoneData.h"
 #include "U4DAnimation.h"
 #include "U4DParticleSystem.h"
-#include "U4DLights.h"
 #include "U4DLogger.h"
 #include "U4DDirector.h"
 #include "U4DLogger.h"

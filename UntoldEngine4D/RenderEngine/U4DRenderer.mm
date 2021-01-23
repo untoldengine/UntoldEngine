@@ -182,7 +182,7 @@
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
+        
         // If we've gotten a renderPassDescriptor we can render to the drawable, otherwise we'll
         //   skip any rendering this frame because we have no drawable to draw to
         if(renderPassDescriptor != nil)

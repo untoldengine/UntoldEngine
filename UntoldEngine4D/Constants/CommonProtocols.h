@@ -746,8 +746,17 @@ namespace U4DEngine {
         finalPass=0,
         shadowPass=1,
         offscreenPass=2,
+        gBufferPass=3,
         
     }RENDERPASS;
+
+    typedef struct{
+    
+        U4DVector3n diffuseColor;
+        U4DVector3n specularColor;
+        
+        
+    }LIGHTDATA;
 
 }
 
