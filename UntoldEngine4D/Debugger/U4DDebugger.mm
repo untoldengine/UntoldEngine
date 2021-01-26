@@ -171,7 +171,10 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
 
     void U4DDebugger::reloadShader(std::string uPipelineToReload, std::string uFilepath, std::string uVertexShader, std::string uFragmentShader){
      
+        //set flag to reload a shader
         enableShaderReload=true;
+        
+        //pipeline and shader info
         pipelineToReload=uPipelineToReload;
         shaderFilePath=uFilepath;
         vertexShaderName=uVertexShader;

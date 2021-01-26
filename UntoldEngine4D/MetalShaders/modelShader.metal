@@ -177,7 +177,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     material.specularReflectionPower=float(uniformModelMaterial.specularMaterialHardness[vertexOut.materialIndex]);
     
     //set the light color
-    LightColor lightColor;
+    Light lightColor;
     lightColor.ambientColor=float3(0.1,0.1,0.1);
     lightColor.diffuseColor=uniformLightProperties.diffuseColor;
     lightColor.specularColor=uniformLightProperties.specularColor;
@@ -189,11 +189,14 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         float4 sampledNormalMapColor=normalMaptexture.sample(normalMapSam,vertexOut.uvCoords.xy);
         sampledNormalMapColor = normalize(sampledNormalMapColor * 2.0 - 1.0);
         
-        totalLights=computeLights(vertexOut.lightPositionInTangentSpace, vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
+        lightColor.position=vertexOut.lightPositionInTangentSpace;
+        
+        totalLights=computeLightColor(vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
         
     }else{
     
-        totalLights=computeLights(vertexOut.lightPosition, vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material, lightColor);
+        lightColor.position=vertexOut.lightPosition;
+        totalLights=computeLightColor(vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material, lightColor);
         
     }
     

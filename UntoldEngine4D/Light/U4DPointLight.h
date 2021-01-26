@@ -20,6 +20,9 @@ namespace U4DEngine{
         U4DVector3n position;
         U4DVector3n diffuseColor;
         U4DVector3n specularColor;
+        float constantAttenuation;
+        float linearAttenuation;
+        float expAttenuation;
         
     }POINTLIGHT;
 
@@ -42,7 +45,7 @@ namespace U4DEngine{
         
         std::vector<POINTLIGHT> pointLightsContainer;
         
-        void addLight(U4DVector3n &uLightPosition, U4DVector3n &uDiffuseColor);
+        void addLight(U4DVector3n &uLightPosition, U4DVector3n &uDiffuseColor, float uConstantAtten, float uLinearAtten, float uExpAtten);
         
     };
 

@@ -56,29 +56,32 @@ fragment float4 fragmentCompShader(VertexOutput vertexOut [[stage_in]], constant
     material.ambientMaterialColor=float3(1.0)*material.diffuseMaterialColor;
     
     //set the light color
-    LightColor lightColor;
-    lightColor.ambientColor=float3(0.5,0.5,0.5);
-    lightColor.diffuseColor=uniformDirLightProperties.diffuseColor;
-    lightColor.specularColor=uniformDirLightProperties.specularColor;
+    Light dirLight;
+    dirLight.ambientColor=float3(0.5,0.5,0.5);
+    dirLight.diffuseColor=uniformDirLightProperties.diffuseColor;
+    dirLight.specularColor=uniformDirLightProperties.specularColor;
     
-    float4 diffuseColor=computeLights(lightPosition, positionData, normalData.rgb, material, lightColor);
+    float4 diffuseColor=computeLightColor(positionData, normalData.rgb, material, dirLight);
     
     float4 pointColor=float4(0.0,0.0,0.0,1.0);
     
     for(int i=0; i<uniformGlobalData.numberOfPointLights;i++){
         
-        LightColor pointLightColor;
+        Light pointLight;
         
-        pointLightColor.ambientColor=float3(0.5);
-        pointLightColor.diffuseColor=uniformPointLightProperties[i].diffuseColor;
+        pointLight.ambientColor=float3(0.5);
+        pointLight.diffuseColor=uniformPointLightProperties[i].diffuseColor;
+        pointLight.constantAttenuation=uniformPointLightProperties[i].constantAttenuation;
+        pointLight.linearAttenuation=uniformPointLightProperties[i].linearAttenuation;
+        pointLight.expAttenuation=uniformPointLightProperties[i].expAttenuation;
         
-        float4 pointLightPos=uniformSpace.viewSpace*uniformPointLightProperties[i].lightPosition;
+        pointLight.position=uniformSpace.viewSpace*uniformPointLightProperties[i].lightPosition;
         
-        pointColor+=computeLights(pointLightPos, positionData, normalData.rgb, material, pointLightColor);
+        pointColor+=computePointLightColor(positionData, normalData.rgb, material, pointLight);
         
     }
     
-    //diffuseColor=mix(diffuseColor,pointColor,0.5);
+    diffuseColor=max(diffuseColor,pointColor);
     diffuseColor.a=1.0;
     
     float shadow=albedoData.a;

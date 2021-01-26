@@ -71,35 +71,38 @@ namespace U4DEngine {
 
     void U4DRenderPipeline::hotReloadShaders(std::string uFilepath, std::string uVertexShader, std::string uFragmentShader){
 
-        //reload the library
         U4DLogger *logger=U4DLogger::sharedInstance();
 
         NSError *error;
         
+        //read in the shader file using input stream
         std::ifstream ifs(uFilepath);
 
+        //load the content of the shader into string
         std::string shaderContent;
         shaderContent.assign( (std::istreambuf_iterator<char>(ifs) ),
                         (std::istreambuf_iterator<char>()));
 
         NSString* shaderCode = [NSString stringWithUTF8String:shaderContent.c_str()];
 
+        //create temporary library with shader content
         id<MTLLibrary> tempMTLLibrary=[mtlDevice newLibraryWithSource:shaderCode options:nil error:&error];
 
+        //if temp library failed, then display why
         if (!tempMTLLibrary) {
 
-            //NSLog(@"error loading file %@",error.localizedDescription);
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
             logger->log("Error: loading the library for hot reloading. %s",errorDesc.c_str());
 
         }else{
 
+            //create temp pipeline descriptor
             MTLRenderPipelineDescriptor *tempMTLRenderPipelineDescriptor;
 
-            //temporarily copy the library, shader program and descriptor until we know that the hot reload was a success
-
+            //copy data from original descriptor
             tempMTLRenderPipelineDescriptor=mtlRenderPassPipelineDescriptor;
 
+            //create temp vertex and fragment programs
             id<MTLFunction> tempVertexProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:uVertexShader.c_str()]];
             id<MTLFunction> tempFragmentProgram=[tempMTLLibrary newFunctionWithName:[NSString stringWithUTF8String:uFragmentShader.c_str()]];
 
@@ -107,26 +110,28 @@ namespace U4DEngine {
              tempMTLRenderPipelineDescriptor.vertexFunction=tempVertexProgram;
              tempMTLRenderPipelineDescriptor.fragmentFunction=tempFragmentProgram;
 
-             //create the rendering pipeline object
+             //create a temp rendering pipeline
 
              id<MTLRenderPipelineState> tempMTLRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:tempMTLRenderPipelineDescriptor error:&error];
 
+            //check if temp pipeline was successfully created. If so, swap it with primary pipeline
             if(!tempMTLRenderPipelineState){
-
-                //NSLog(@"The pipeline was unable to be created: %@",error.localizedDescription);
-
+                
+                //Pipeline failed
                 std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-                logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+                logger->log("Error: The pipeline %s was unable to be hot-reloaded. %s",name.c_str(),errorDesc.c_str());
 
             }else{
 
-                logger->log("The pipeline was updated");
-
+                //Pipeline was successfully hot-reloaded
                 mtlRenderPassPipelineDescriptor=tempMTLRenderPipelineDescriptor;
                 mtlRenderPassPipelineState=tempMTLRenderPipelineState;
                 vertexProgram=tempVertexProgram;
                 fragmentProgram=tempFragmentProgram;
                 mtlLibrary=tempMTLLibrary;
+                
+                logger->log("The pipeline %s was hot-reloaded",name.c_str());
+
 
             }
 

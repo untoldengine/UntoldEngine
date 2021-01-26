@@ -9,11 +9,16 @@
 #ifndef U4DShaderHelperFunctions_h
 #define U4DShaderHelperFunctions_h
 
-struct LightColor{
+struct Light{
     
     float3 ambientColor;
     float3 diffuseColor;
     float3 specularColor;
+    float4 position;
+    float constantAttenuation;
+    float linearAttenuation;
+    float expAttenuation;
+    
 };
 
 struct Material{
@@ -85,7 +90,9 @@ float noise(float2 st);
  @param uMaterial Material properties
  @param uLightColor light color properties
  */
-float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor);
+float4 computeLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, Light uLight);
+
+float4 computePointLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, Light uLight);
 
 /**
  @brief Computes the modulus

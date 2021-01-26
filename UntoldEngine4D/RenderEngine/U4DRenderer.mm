@@ -64,7 +64,7 @@
         
         director->setDisplayWidthHeight(mtkView.frame.size.width, mtkView.frame.size.height);
         mtkView.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
-        
+        mtkView.framebufferOnly=false; //this seems to be needed for the referred rendering.
         director->setMTLView(mtkView);
         
         //compute perspective space

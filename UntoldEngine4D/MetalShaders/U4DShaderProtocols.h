@@ -105,6 +105,9 @@ typedef struct{
     vector_float4 lightPosition;
     vector_float3 diffuseColor;
     vector_float3 specularColor;
+    float constantAttenuation;
+    float linearAttenuation;
+    float expAttenuation;
     
 }UniformPointLightProperties;
 
