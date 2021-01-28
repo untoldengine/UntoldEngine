@@ -24,8 +24,12 @@ U4DGBufferPipeline::~U4DGBufferPipeline(){
 
 void U4DGBufferPipeline::initRenderPassTargetTexture(){
     
+    U4DDirector *director=U4DDirector::sharedInstance();
     
-    MTLTextureDescriptor *albedoTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:2880 height:1552 mipmapped:NO];
+    float width=director->getMTLView().bounds.size.width;
+    float height=director->getMTLView().bounds.size.height;
+    
+    MTLTextureDescriptor *albedoTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:width height:height mipmapped:NO];
 
     albedoTextureDescriptor.usage=MTLTextureUsageRenderTarget|MTLTextureUsageShaderRead;
     albedoTextureDescriptor.storageMode=MTLStorageModePrivate;
@@ -42,21 +46,21 @@ void U4DGBufferPipeline::initRenderPassTargetTexture(){
     
     albedoTexture=[mtlDevice newTextureWithDescriptor:albedoTextureDescriptor];
     
-    MTLTextureDescriptor *normalTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float width:2880 height:1552 mipmapped:NO];
+    MTLTextureDescriptor *normalTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float width:width height:height mipmapped:NO];
     
     normalTextureDescriptor.usage=MTLTextureUsageRenderTarget|MTLTextureUsageShaderRead;
     normalTextureDescriptor.storageMode=MTLStorageModePrivate;
     
     normalTexture=[mtlDevice newTextureWithDescriptor:normalTextureDescriptor];
     
-    MTLTextureDescriptor *positionTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float width:2880 height:1552 mipmapped:NO];
+    MTLTextureDescriptor *positionTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA16Float width:width height:height mipmapped:NO];
     
     positionTextureDescriptor.usage=MTLTextureUsageRenderTarget|MTLTextureUsageShaderRead;
     positionTextureDescriptor.storageMode=MTLStorageModePrivate;
     
     positionTexture=[mtlDevice newTextureWithDescriptor:positionTextureDescriptor];
     
-    MTLTextureDescriptor *depthTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:2880 height:1552 mipmapped:NO];
+    MTLTextureDescriptor *depthTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:width height:height mipmapped:NO];
     
     depthTextureDescriptor.usage=MTLTextureUsageRenderTarget|MTLTextureUsageShaderRead;
     depthTextureDescriptor.storageMode=MTLStorageModePrivate;
@@ -149,7 +153,11 @@ void U4DGBufferPipeline::initRenderPassPipeline(){
 
 void U4DGBufferPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
     
-    [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, 2880.0,1552.0, 0.0, 1.0}];
+    U4DDirector *director=U4DDirector::sharedInstance();
+    
+    float screenContentScale=director->getScreenScaleFactor();
+    
+    [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
     
     //encode the pipeline
     [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

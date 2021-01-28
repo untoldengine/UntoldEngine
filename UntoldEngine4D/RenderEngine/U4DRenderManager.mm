@@ -28,6 +28,11 @@
 #include "U4DWorldPipeline.h"
 #include "U4DGBufferPipeline.h"
 #include "U4DCompositionPipeline.h"
+#include "U4DShadowPass.h"
+#include "U4DFinalPass.h"
+#include "U4DOffscreenPass.h"
+#include "U4DGBufferPass.h"
+#include "U4DCompositionPass.h"
 
 namespace U4DEngine {
 
@@ -226,218 +231,26 @@ namespace U4DEngine {
 
     void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
         
-        U4DDirector *director=U4DDirector::sharedInstance();
         
         updateDirLightDataUniforms();
         updatePointLightDataUniforms();
         updateGlobalDataUniforms();
         
-        U4DRenderPipelineInterface *shadowPipeline=searchPipeline("shadowpipeline");
+        U4DShadowPass shadowPass("shadowpipeline");
+        shadowPass.executePass(uCommandBuffer, uRootEntity, nullptr);
         
-        id <MTLRenderCommandEncoder> shadowRenderEncoder =
-        [uCommandBuffer renderCommandEncoderWithDescriptor:shadowPipeline->mtlRenderPassDescriptor];
+//        U4DOffscreenPass offscreenPass("offscreenpipeline");
+//        offscreenPass.executePass(uCommandBuffer, uRootEntity, nullptr);
         
-        [shadowRenderEncoder pushDebugGroup:@"Shadow Pass"];
-        shadowRenderEncoder.label = @"Shadow Render Pass";
+//        U4DGBufferPass gBufferPass("gbufferpipeline");
+//        gBufferPass.executePass(uCommandBuffer, uRootEntity, &shadowPass);
+//
+//        U4DCompositionPass compositionPass("compositionpipeline");
+//        compositionPass.executePass(uCommandBuffer, uRootEntity, &gBufferPass);
         
-        [shadowRenderEncoder setVertexBuffer:directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];
+        U4DFinalPass finalPass("modelpipeline");
+        finalPass.executePass(uCommandBuffer, uRootEntity, &shadowPass);
         
-        
-        U4DEntity *child=uRootEntity;
-
-        while (child!=NULL) {
-            
-            U4DRenderEntity *renderEntity=child->getRenderEntity();
-            
-            if(renderEntity!=nullptr){
-                
-                U4DRenderPipelineInterface* shadowPipe=renderEntity->getPipeline(U4DEngine::shadowPass);
-
-                if (shadowPipe!=nullptr) {
-                    shadowPipe->executePass(shadowRenderEncoder, child);
-                }
-                
-            }
-            
-               child=child->next;
-
-           }
-        
-        [shadowRenderEncoder popDebugGroup];
-        //end encoding
-        [shadowRenderEncoder endEncoding];
-//
-//        U4DRenderPipelineInterface *offscreenPipeline=searchPipeline("offscreenpipeline");
-//
-//        id <MTLRenderCommandEncoder> offscreenRenderEncoder=[uCommandBuffer renderCommandEncoderWithDescriptor:offscreenPipeline->mtlRenderPassDescriptor];
-//
-//        [offscreenRenderEncoder pushDebugGroup:@"Offscreen pass"];
-//        offscreenRenderEncoder.label=@"Offscreen render pass";
-//
-//        child=uRootEntity;
-//
-//        while (child!=NULL) {
-//
-//            U4DRenderEntity *renderEntity=child->getRenderEntity();
-//
-//            if(renderEntity!=nullptr){
-//
-//                U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::offscreenPass);
-//
-//                if (renderPipeline!=nullptr) {
-//                    renderPipeline->executePass(offscreenRenderEncoder, child);
-//                }
-//
-//            }
-//
-//               child=child->next;
-//
-//           }
-//
-//        [offscreenRenderEncoder popDebugGroup];
-//        [offscreenRenderEncoder endEncoding];
-        
-        //G-Buffer Pass
-//        U4DRenderPipelineInterface *gBufferPipeline=searchPipeline("gbufferpipeline");
-//
-//        id <MTLRenderCommandEncoder> gBufferRenderEncoder =
-//        [uCommandBuffer renderCommandEncoderWithDescriptor:gBufferPipeline->mtlRenderPassDescriptor];
-//
-//        [gBufferRenderEncoder pushDebugGroup:@"G-Buffer Pass"];
-//        gBufferRenderEncoder.label = @"G-Buffer Render Pass";
-//
-//        [gBufferRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
-//
-//        [gBufferRenderEncoder setVertexBuffer:directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];
-//
-//        [gBufferRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
-//
-//        [gBufferRenderEncoder setFragmentBuffer:directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
-//
-//        gBufferPipeline->inputTexture=shadowPipeline->targetTexture;
-//
-//        child=uRootEntity;
-//
-//        while (child!=NULL) {
-//
-//            U4DRenderEntity *renderEntity=child->getRenderEntity();
-//
-//            if(renderEntity!=nullptr){
-//
-//                U4DRenderPipelineInterface* gBufferPipeline=renderEntity->getPipeline(U4DEngine::gBufferPass);
-//
-//                if (gBufferPipeline!=nullptr) {
-//                    gBufferPipeline->executePass(gBufferRenderEncoder, child);
-//                }
-//
-//            }
-//
-//               child=child->next;
-//
-//           }
-//
-//        [gBufferRenderEncoder popDebugGroup];
-//        //end encoding
-//        [gBufferRenderEncoder endEncoding];
-
-        MTLRenderPassDescriptor * mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
-               mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
-               mtlRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-               mtlRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-        
-        //blit Encoder Pass
-    
-//        id<MTLBlitCommandEncoder> blitCommandEncoder=uCommandBuffer.blitCommandEncoder;
-//
-//        [blitCommandEncoder copyFromTexture:gBufferPipeline->depthTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0.0, 0.0, 0.0) sourceSize:MTLSizeMake(director->getMTLView().drawableSize.width,director->getMTLView().drawableSize.height,1) toTexture:mtlRenderPassDescriptor.depthAttachment.texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0.0, 0.0, 0.0)];
-//
-//        [blitCommandEncoder endEncoding];
-//
-//        mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
-//               mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
-//               mtlRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-//               mtlRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
-//
-//        mtlRenderPassDescriptor.depthAttachment.clearDepth=1.0;
-//        mtlRenderPassDescriptor.depthAttachment.storeAction=MTLStoreActionStore;
-//        mtlRenderPassDescriptor.depthAttachment.loadAction=MTLLoadActionLoad;
-//
-//        //Composition Pass
-//        U4DRenderPipelineInterface *compositionPipeline=searchPipeline("compositionpipeline");
-//
-//        id <MTLRenderCommandEncoder> compositionRenderEncoder =
-//        [uCommandBuffer renderCommandEncoderWithDescriptor:mtlRenderPassDescriptor];
-//
-//        if(compositionRenderEncoder!=nil){
-//
-//            [compositionRenderEncoder pushDebugGroup:@"Composition Pass"];
-//            compositionRenderEncoder.label = @"Composition Render Pass";
-//
-//            compositionPipeline->albedoTexture=gBufferPipeline->albedoTexture;
-//            compositionPipeline->normalTexture=gBufferPipeline->normalTexture;
-//            compositionPipeline->positionTexture=gBufferPipeline->positionTexture;
-//            compositionPipeline->depthTexture=gBufferPipeline->depthTexture;
-//
-//            [compositionRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
-//
-//            [compositionRenderEncoder setFragmentBuffer:directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
-//
-//            [compositionRenderEncoder setFragmentBuffer:pointLightsPropertiesUniform offset:0 atIndex:fiPointLightsPropertiesBuffer];
-//
-//            compositionPipeline->executePass(compositionRenderEncoder);
-//
-//            [compositionRenderEncoder popDebugGroup];
-//            //end encoding
-//            [compositionRenderEncoder endEncoding];
-//
-//        }
-        
-        //Final Pass
-
-            U4DRenderPipelineInterface *modelPipeline=searchPipeline("modelpipeline");
-        id <MTLRenderCommandEncoder> finalCompRenderEncoder =
-        [uCommandBuffer renderCommandEncoderWithDescriptor:mtlRenderPassDescriptor];
-
-        if(finalCompRenderEncoder!=nil){
-
-            [finalCompRenderEncoder pushDebugGroup:@"Final Comp Pass"];
-            finalCompRenderEncoder.label = @"Final Comp Render Pass";
-
-            [finalCompRenderEncoder setVertexBuffer:globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
-
-            [finalCompRenderEncoder setVertexBuffer:directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];
-
-            [finalCompRenderEncoder setFragmentBuffer:globalDataUniform offset:0 atIndex:fiGlobalDataBuffer];
-
-            [finalCompRenderEncoder setFragmentBuffer:directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
-
-            modelPipeline->inputTexture=shadowPipeline->targetTexture;
-
-            child=uRootEntity;
-
-            while (child!=NULL) {
-
-                U4DRenderEntity *renderEntity=child->getRenderEntity();
-
-                if(renderEntity!=nullptr){
-
-                    U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::finalPass);
-
-                    if (renderPipeline!=nullptr) {
-                        renderPipeline->executePass(finalCompRenderEncoder, child);
-                    }
-
-                }
-
-                child=child->next;
-
-               }
-
-            [finalCompRenderEncoder popDebugGroup];
-            //end encoding
-            [finalCompRenderEncoder endEncoding];
-
-        }
 
     }
 

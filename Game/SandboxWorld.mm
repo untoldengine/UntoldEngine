@@ -207,6 +207,7 @@ void SandboxWorld::init(){
     //add the skybox to the scenegraph with appropriate z-depth
     addChild(skybox);
 //
+    //Need to load the lights from blender, this is not efficient.
     U4DEngine::U4DPointLight *pointLights=U4DEngine::U4DPointLight::sharedInstance();
         
     
@@ -283,7 +284,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,15.0,-80.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-30.0);
     
     //translate camera
     camera->translateTo(cameraPosition);
@@ -302,7 +303,7 @@ void SandboxWorld::setupConfiguration(){
     addChild(light);
     
     //Set the view direction of the camera and light
-    //camera->viewInDirection(origin);
+    camera->viewInDirection(origin);
     
     light->viewInDirection(origin);
     

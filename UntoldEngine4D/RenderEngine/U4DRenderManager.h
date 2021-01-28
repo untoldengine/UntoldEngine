@@ -27,14 +27,7 @@ namespace U4DEngine {
         
     private:
         
-        /**
-         * @brief Pointer to the Uniform that holds Global data such as time, resolution,etc
-         */
-        id<MTLBuffer> globalDataUniform;
         
-        id<MTLBuffer> directionalLightPropertiesUniform;
-        
-        id<MTLBuffer> pointLightsPropertiesUniform;
         
         /**
          @brief Instace for the U4DRenderManager singleton
@@ -62,6 +55,16 @@ namespace U4DEngine {
     public:
         
         static U4DRenderManager* sharedInstance();
+        
+        /**
+         * @brief Pointer to the Uniform that holds Global data such as time, resolution,etc
+         */
+        id<MTLBuffer> globalDataUniform;
+        
+        id<MTLBuffer> directionalLightPropertiesUniform;
+        
+        id<MTLBuffer> pointLightsPropertiesUniform;
+        
         
         void initRenderPipelines(id <MTLDevice> uMTLDevice);
         
