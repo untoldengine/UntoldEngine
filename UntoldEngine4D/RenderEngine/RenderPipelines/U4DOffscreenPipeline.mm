@@ -111,10 +111,6 @@ namespace U4DEngine{
         
         if(mtlRenderPassDescriptor!=nil){
             
-            
-                        
-            [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024.0, 1024.0, 0.0, 1.0 }];
-            
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];
 

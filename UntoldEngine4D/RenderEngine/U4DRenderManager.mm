@@ -244,7 +244,7 @@ namespace U4DEngine {
         
 //        U4DOffscreenPass offscreenPass("offscreenpipeline");
 //        offscreenPass.executePass(uCommandBuffer, uRootEntity, nullptr);
-        
+//
 //        U4DGBufferPass gBufferPass("gbufferpipeline");
 //        gBufferPass.executePass(uCommandBuffer, uRootEntity, &shadowPass);
 //

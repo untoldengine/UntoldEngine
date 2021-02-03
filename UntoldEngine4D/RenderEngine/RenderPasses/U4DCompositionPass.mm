@@ -31,20 +31,20 @@ void U4DCompositionPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEn
     U4DDirector *director=U4DDirector::sharedInstance();
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
     
-    //blit Encoder Pass
-    id<MTLBlitCommandEncoder> blitCommandEncoder=uCommandBuffer.blitCommandEncoder;
-
-    [blitCommandEncoder copyFromTexture:uPreviousRenderPass->getPipeline()->depthTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0.0, 0.0, 0.0) sourceSize:MTLSizeMake(director->getMTLView().drawableSize.width,director->getMTLView().drawableSize.height,1) toTexture:mtlRenderPassDescriptor.depthAttachment.texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0.0, 0.0, 0.0)];
-
-    [blitCommandEncoder endEncoding];
+    //blit Encoder Pass-THIS SECTION WAS REMOVED SINCE IT BREAKS WHEN SWITCHING SCREENS. FOR NOW, NO TRANSPARENCIES WILL WORK.
+//    id<MTLBlitCommandEncoder> blitCommandEncoder=uCommandBuffer.blitCommandEncoder;
+//
+//    [blitCommandEncoder copyFromTexture:uPreviousRenderPass->getPipeline()->depthTexture sourceSlice:0 sourceLevel:0 sourceOrigin:MTLOriginMake(0.0, 0.0, 0.0) sourceSize:MTLSizeMake(director->getMTLView().drawableSize.width,director->getMTLView().drawableSize.height,1) toTexture:mtlRenderPassDescriptor.depthAttachment.texture destinationSlice:0 destinationLevel:0 destinationOrigin:MTLOriginMake(0.0, 0.0, 0.0)];
+//
+//    [blitCommandEncoder endEncoding];
     
     mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
     mtlRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
-    mtlRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionLoad;
+    mtlRenderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
     
-    mtlRenderPassDescriptor.depthAttachment.clearDepth=1.0;
-    mtlRenderPassDescriptor.depthAttachment.storeAction=MTLStoreActionStore;
-    mtlRenderPassDescriptor.depthAttachment.loadAction=MTLLoadActionLoad;
+//    mtlRenderPassDescriptor.depthAttachment.clearDepth=1.0;
+//    mtlRenderPassDescriptor.depthAttachment.storeAction=MTLStoreActionStore;
+//    mtlRenderPassDescriptor.depthAttachment.loadAction=MTLLoadActionLoad;
    
     //Composition Pass
     id <MTLRenderCommandEncoder> compositionRenderEncoder =
@@ -55,6 +55,8 @@ void U4DCompositionPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEn
         [compositionRenderEncoder pushDebugGroup:@"Composition Pass"];
         compositionRenderEncoder.label = @"Composition Render Pass";
 
+        [compositionRenderEncoder setViewport:(MTLViewport){0.0, 0.0, (director->getMTLView().drawableSize.width), (director->getMTLView().drawableSize.height), 0.0, 1.0 }];
+        
         pipeline->albedoTexture=uPreviousRenderPass->getPipeline()->albedoTexture;
         pipeline->normalTexture=uPreviousRenderPass->getPipeline()->normalTexture;
         pipeline->positionTexture=uPreviousRenderPass->getPipeline()->positionTexture;

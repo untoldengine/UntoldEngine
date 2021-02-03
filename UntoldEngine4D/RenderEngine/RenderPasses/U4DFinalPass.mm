@@ -52,7 +52,9 @@ void U4DFinalPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *
 
         [finalCompRenderEncoder pushDebugGroup:@"Final Comp Pass"];
         finalCompRenderEncoder.label = @"Final Comp Render Pass";
-
+        
+        [finalCompRenderEncoder setViewport:(MTLViewport){0.0, 0.0, (director->getMTLView().drawableSize.width), (director->getMTLView().drawableSize.height), 0.0, 1.0 }];
+        
         [finalCompRenderEncoder setVertexBuffer:renderManager->globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
 
         [finalCompRenderEncoder setVertexBuffer:renderManager->directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];

@@ -26,8 +26,8 @@ void U4DGBufferPipeline::initRenderPassTargetTexture(){
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
-    float width=director->getMTLView().bounds.size.width;
-    float height=director->getMTLView().bounds.size.height;
+    float width=director->getMTLView().drawableSize.width;
+    float height=director->getMTLView().drawableSize.height;
     
     MTLTextureDescriptor *albedoTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm width:width height:height mipmapped:NO];
 
@@ -153,18 +153,10 @@ void U4DGBufferPipeline::initRenderPassPipeline(){
 
 void U4DGBufferPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
     
-    U4DDirector *director=U4DDirector::sharedInstance();
-    
-    float screenContentScale=director->getScreenScaleFactor();
-    
-    [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
-    
     //encode the pipeline
     [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];
 
     [uRenderEncoder setDepthStencilState:mtlRenderPassDepthStencilState];
-    
-    //[uRenderEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
     
     //inpute texture here is the depth texture for the shadow
     [uRenderEncoder setFragmentTexture:inputTexture atIndex:fiDepthTexture]; 

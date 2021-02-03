@@ -32,6 +32,8 @@ void U4DOffscreenPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEnti
     [offscreenRenderEncoder pushDebugGroup:@"Offscreen pass"];
     offscreenRenderEncoder.label=@"Offscreen render pass";
 
+    [offscreenRenderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024.0, 1024.0, 0.0, 1.0 }];
+    
     U4DEntity *child=uRootEntity;
 
     while (child!=NULL) {
