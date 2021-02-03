@@ -103,10 +103,6 @@ namespace U4DEngine{
 
     void U4DCompositionPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        float screenContentScale=director->getScreenScaleFactor();
-        
         U4DCamera *camera=U4DCamera::sharedInstance();
         
         U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
@@ -120,9 +116,6 @@ namespace U4DEngine{
         uniformSpace.viewSpace=viewSpaceSIMD;
         
         memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
-        
-        
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

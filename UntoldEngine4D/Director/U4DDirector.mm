@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(1.0),fps(0.0),fpsAccumulator(0.0){
+U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(2.0),fps(0.0),fpsAccumulator(0.0){
     }
     
     U4DDirector::~U4DDirector(){
@@ -150,10 +150,12 @@ U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0)
     }
     
     void U4DDirector::setScreenScaleFactor(float uScreenScaleFactor){
-        if(screenScaleFactor==0){
-            screenScaleFactor=1.0;
+        if(uScreenScaleFactor==0.0){
+            screenScaleFactor=2.0;
+        }else{
+            screenScaleFactor=uScreenScaleFactor;
         }
-        screenScaleFactor=uScreenScaleFactor;
+        
     }
     
     float U4DDirector::getScreenScaleFactor(){

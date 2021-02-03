@@ -169,9 +169,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         //set the states
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];
         [uRenderEncoder setDepthStencilState:mtlRenderPassDepthStencilState];
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024, 1024, 0.0, 1.0 }];
-    
-        [uRenderEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
+        
         
         //bind resources
         

@@ -11,7 +11,7 @@
 #include "U4DRenderPipelineInterface.h"
 #include "U4DShaderProtocols.h"
 #include "U4DEntity.h"
-
+#include "U4DDirector.h"
 
 namespace U4DEngine{
 
@@ -26,6 +26,9 @@ U4DGBufferPass::~U4DGBufferPass(){
 void U4DGBufferPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity, U4DRenderPassInterface *uPreviousRenderPass){
     
     U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+    U4DDirector *director=U4DDirector::sharedInstance();
+    
+    float screenScaleFactor=director->getScreenScaleFactor()/2.0;
     
     id <MTLRenderCommandEncoder> gBufferRenderEncoder =
     [uCommandBuffer renderCommandEncoderWithDescriptor:pipeline->mtlRenderPassDescriptor];
@@ -33,6 +36,8 @@ void U4DGBufferPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity
     [gBufferRenderEncoder pushDebugGroup:@"G-Buffer Pass"];
     gBufferRenderEncoder.label = @"G-Buffer Render Pass";
 
+    [gBufferRenderEncoder setViewport:(MTLViewport){0.0, 0.0, (director->getMTLView().drawableSize.width/screenScaleFactor), (director->getMTLView().drawableSize.height/screenScaleFactor), 0.0, 1.0 }];
+    
     [gBufferRenderEncoder setVertexBuffer:renderManager->globalDataUniform offset:0 atIndex:viGlobalDataBuffer];
 
     [gBufferRenderEncoder setVertexBuffer:renderManager->directionalLightPropertiesUniform offset:0 atIndex:viDirLightPropertiesBuffer];

@@ -209,48 +209,48 @@ void SandboxWorld::init(){
 //
     //Need to load the lights from blender, this is not efficient.
     U4DEngine::U4DPointLight *pointLights=U4DEngine::U4DPointLight::sharedInstance();
-        
-    
+
+
         U4DEngine::U4DVector3n light0(0.0,1.0,0.0);
         U4DEngine::U4DVector3n light1(0.0,2.0,-10.0);
         U4DEngine::U4DVector3n light2(0.0,1.0,-20.0);
         U4DEngine::U4DVector3n light3(0.0,2.0,10.0);
-        
+
         U4DEngine::U4DVector3n light4(-12.0,1.0,0.0);
         U4DEngine::U4DVector3n light5(12.0,2.0,-10.0);
         U4DEngine::U4DVector3n light6(-12.0,1.0,-20.0);
         U4DEngine::U4DVector3n light7(12.0,2.0,10.0);
-        
+
         U4DEngine::U4DVector3n light8(12.0,1.0,0.0);
         U4DEngine::U4DVector3n light9(-12.0,2.0,-10.0);
         U4DEngine::U4DVector3n light10(12.0,1.0,-20.0);
         U4DEngine::U4DVector3n light11(-12.0,2.0,10.0);
-        
+
         U4DEngine::U4DVector3n light12(0.0,1.0,-35.0);
         U4DEngine::U4DVector3n light13(-12.0,2.0,-35.0);
         U4DEngine::U4DVector3n light14(12.0,1.0,-35.0);
         U4DEngine::U4DVector3n light15(-24.0,2.0,-35.0);
-        
+
         U4DEngine::U4DVector3n diffuseColor0(1.0,0.0,0.0);
         U4DEngine::U4DVector3n diffuseColor1(0.0,0.0,1.0);
         U4DEngine::U4DVector3n diffuseColor2(1.0,0.0,1.0);
         U4DEngine::U4DVector3n diffuseColor3(0.0,1.0,1.0);
-        
+
         pointLights->addLight(light0, diffuseColor0,1.0,0.4,0.004);
         pointLights->addLight(light1, diffuseColor1,1.0,0.4,0.004);
         pointLights->addLight(light2, diffuseColor2,2.0,0.4,0.004);
         pointLights->addLight(light3, diffuseColor3,1.0,0.4,0.004);
-        
+
         pointLights->addLight(light4, diffuseColor0,1.0,0.4,0.004);
         pointLights->addLight(light5, diffuseColor1,1.0,0.4,0.004);
         pointLights->addLight(light6, diffuseColor2,2.0,0.4,0.004);
         pointLights->addLight(light7, diffuseColor3,1.0,0.4,0.004);
-        
+
         pointLights->addLight(light8, diffuseColor0,1.0,0.4,0.004);
         pointLights->addLight(light9, diffuseColor1,1.0,0.4,0.004);
         pointLights->addLight(light10, diffuseColor2,2.0,0.4,0.004);
         pointLights->addLight(light11, diffuseColor3,1.0,0.4,0.004);
-        
+
         pointLights->addLight(light12, diffuseColor0,1.0,0.4,0.004);
         pointLights->addLight(light13, diffuseColor1,1.0,0.4,0.004);
         pointLights->addLight(light14, diffuseColor2,2.0,0.4,0.004);
@@ -284,7 +284,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-30.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,3.0,-50.0);
     
     //translate camera
     camera->translateTo(cameraPosition);
