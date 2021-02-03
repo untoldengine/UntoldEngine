@@ -14,6 +14,7 @@
 #include "U4DShaderProtocols.h"
 #include "U4DDirectionalLight.h"
 #include "U4DDirector.h"
+#include "U4DDebugger.h"
 #include "U4DNumerical.h"
 #include "U4DRenderEntity.h"
 #include "U4DPointLight.h"
@@ -33,6 +34,7 @@
 #include "U4DOffscreenPass.h"
 #include "U4DGBufferPass.h"
 #include "U4DCompositionPass.h"
+#include "U4DEditorPass.h"
 
 namespace U4DEngine {
 
@@ -231,6 +233,7 @@ namespace U4DEngine {
 
     void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
         
+        U4DDebugger *debugger=U4DDebugger::sharedInstance();
         
         updateDirLightDataUniforms();
         updatePointLightDataUniforms();
@@ -250,6 +253,15 @@ namespace U4DEngine {
         
         U4DFinalPass finalPass("modelpipeline");
         finalPass.executePass(uCommandBuffer, uRootEntity, &shadowPass);
+        
+        
+        //Editor Pass
+        if (debugger->getEnableDebugger()) {
+            
+            U4DEditorPass editorPass("none");
+            editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
+            
+        }
         
 
     }

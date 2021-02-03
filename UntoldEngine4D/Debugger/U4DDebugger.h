@@ -30,7 +30,7 @@ namespace U4DEngine {
         
         U4DTimer *timer;
         
-        U4DWorld *world;
+        
         
         U4DText *consoleLabel;
                 
@@ -62,6 +62,8 @@ namespace U4DEngine {
         ~U4DDebugger();
         
     public:
+        U4DWorld *world;
+        std::string profilerData;
         
         static U4DDebugger* sharedInstance();
         

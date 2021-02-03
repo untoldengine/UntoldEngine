@@ -137,7 +137,7 @@ void SandboxWorld::init(){
 
     }
     
-//    //Create an instance of U4DGameObject type
+    //Create an instance of U4DGameObject type
 //    myAstronaut=new U4DEngine::U4DGameObject();
 //
 //    //Load attribute (rendering information) into the game entity
@@ -284,7 +284,7 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-30.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-20.0);
     
     //translate camera
     camera->translateTo(cameraPosition);

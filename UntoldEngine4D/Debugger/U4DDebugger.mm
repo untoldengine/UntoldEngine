@@ -17,6 +17,8 @@
 #include "U4DProfilerManager.h"
 #include "U4DRenderManager.h"
 #include "U4DRenderPipelineInterface.h"
+#include "U4DSlider.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
 
@@ -74,61 +76,67 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
         if (uiLoaded==false) {
             
             world=uWorld;
+            U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
             
-            //create layer manager
-            U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
-
-            //set this view (U4DWorld subclass) to the layer Manager
-            layerManager->setWorld(world);
-
-            //create Layers
-            U4DLayer* engineProfilerLayer=new U4DLayer("engineProfilerLayer");
-
-            consoleLabel=new U4DText("uiFont");
-            consoleLabel->setText("Console");
-            consoleLabel->translateTo(-0.7,0.7,0.0);
+            profilerManager->setEnableProfiler(true);
             
-            profilerLabel=new U4DText("uiFont");
-            profilerLabel->setText("Profiler");
-            profilerLabel->translateTo(-0.7,0.6,0.0);
-            
-            checkboxShowProfiler=new U4DEngine::U4DCheckbox("checkboxProfiler",0.5,0.6,20.0,20.0,"Run Profiler","uiFont");
-            
-            checkboxShowNarrowPhaseVolume=new U4DEngine::U4DCheckbox("checkboxNarrowPhase",0.5,0.5,20.0,20.0,"Draw Narrow Phase Volume","uiFont");
-            
-            checkboxShowBroadPhaseVolume=new U4DEngine::U4DCheckbox("checkboxBroadPhase",0.5,0.4,20.0,20.0,"Draw Broad Phase Volume","uiFont");
-
-            engineProfilerLayer->addChild(consoleLabel);
-            engineProfilerLayer->addChild(profilerLabel);
-            engineProfilerLayer->addChild(checkboxShowProfiler);
-            engineProfilerLayer->addChild(checkboxShowNarrowPhaseVolume);
-            engineProfilerLayer->addChild(checkboxShowBroadPhaseVolume);
-
-            layerManager->addLayerToContainer(engineProfilerLayer);
-
-            //push layer
-            layerManager->pushLayer("engineProfilerLayer");
-            
-            //create a callback for checkbox profiler
-            U4DCallback<U4DDebugger>* checkboxShowProfilerCallback=new U4DCallback<U4DDebugger>;
-
-            checkboxShowProfilerCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowProfiler);
-
-            checkboxShowProfiler->setCallbackAction(checkboxShowProfilerCallback);
-            
-            //create a callback for checkbox show broad phase
-            U4DCallback<U4DDebugger>* checkboxShowBroadPhaseCallback=new U4DCallback<U4DDebugger>;
-
-            checkboxShowBroadPhaseCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowBroadPhaseVolume);
-
-            checkboxShowBroadPhaseVolume->setCallbackAction(checkboxShowBroadPhaseCallback);
-            
-            //create a callback for checkbox show narrow phase
-           U4DCallback<U4DDebugger>* checkboxShowNarrowPhaseCallback=new U4DCallback<U4DDebugger>;
-
-           checkboxShowNarrowPhaseCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowNarrowPhaseVolume);
-
-           checkboxShowNarrowPhaseVolume->setCallbackAction(checkboxShowNarrowPhaseCallback);
+//            //create layer manager
+//            U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+//
+//            //set this view (U4DWorld subclass) to the layer Manager
+//            layerManager->setWorld(world);
+//
+//            //create Layers
+//            U4DLayer* engineProfilerLayer=new U4DLayer("engineProfilerLayer");
+//
+//            consoleLabel=new U4DText("uiFont");
+//            consoleLabel->setText("Console");
+//            consoleLabel->translateTo(-0.7,0.7,0.0);
+//
+//            profilerLabel=new U4DText("uiFont");
+//            profilerLabel->setText("Profiler");
+//            profilerLabel->translateTo(-0.7,0.6,0.0);
+//
+//            checkboxShowProfiler=new U4DEngine::U4DCheckbox("checkboxProfiler",0.5,0.6,20.0,20.0,"Run Profiler","uiFont");
+//
+//            checkboxShowNarrowPhaseVolume=new U4DEngine::U4DCheckbox("checkboxNarrowPhase",0.5,0.5,20.0,20.0,"Draw Narrow Phase Volume","uiFont");
+//
+//            checkboxShowBroadPhaseVolume=new U4DEngine::U4DCheckbox("checkboxBroadPhase",0.5,0.4,20.0,20.0,"Draw Broad Phase Volume","uiFont");
+//
+//            U4DSlider *slider=new U4DSlider("slider",0.0,0.8,80.0,20.0,"slider","uiFont");
+//
+//            engineProfilerLayer->addChild(consoleLabel);
+//            engineProfilerLayer->addChild(profilerLabel);
+//            engineProfilerLayer->addChild(checkboxShowProfiler);
+//            engineProfilerLayer->addChild(checkboxShowNarrowPhaseVolume);
+//            engineProfilerLayer->addChild(checkboxShowBroadPhaseVolume);
+//            engineProfilerLayer->addChild(slider);
+//
+//            layerManager->addLayerToContainer(engineProfilerLayer);
+//
+//            //push layer
+//            layerManager->pushLayer("engineProfilerLayer");
+//
+//            //create a callback for checkbox profiler
+//            U4DCallback<U4DDebugger>* checkboxShowProfilerCallback=new U4DCallback<U4DDebugger>;
+//
+//            checkboxShowProfilerCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowProfiler);
+//
+//            checkboxShowProfiler->setCallbackAction(checkboxShowProfilerCallback);
+//
+//            //create a callback for checkbox show broad phase
+//            U4DCallback<U4DDebugger>* checkboxShowBroadPhaseCallback=new U4DCallback<U4DDebugger>;
+//
+//            checkboxShowBroadPhaseCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowBroadPhaseVolume);
+//
+//            checkboxShowBroadPhaseVolume->setCallbackAction(checkboxShowBroadPhaseCallback);
+//
+//            //create a callback for checkbox show narrow phase
+//           U4DCallback<U4DDebugger>* checkboxShowNarrowPhaseCallback=new U4DCallback<U4DDebugger>;
+//
+//           checkboxShowNarrowPhaseCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowNarrowPhaseVolume);
+//
+//           checkboxShowNarrowPhaseVolume->setCallbackAction(checkboxShowNarrowPhaseCallback);
 
            scheduler->scheduleClassWithMethodAndDelay(this, &U4DDebugger::runDebugger, timer,1.0, true);
             
@@ -140,14 +148,13 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
     void U4DDebugger::runDebugger(){
         
         U4DDirector *director=U4DDirector::sharedInstance();
-                    U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
-                    
-        float fps=director->getFPS();
-        std::string profilerData=profilerManager->getProfileLog();
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
         
-        consoleLabel->log("Console:\n FPS Avg: %f",fps);
-
-        profilerLabel->log("Profiler:\n %s",profilerData.c_str());
+        float fps=director->getFPS();
+        profilerData=profilerManager->getProfileLog();
+//        consoleLabel->log("Console:\n FPS Avg: %f",fps);
+//
+//        profilerLabel->log("Profiler:\n %s",profilerData.c_str());
         
         if (enableShaderReload==true) {
             
