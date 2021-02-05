@@ -284,11 +284,9 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-<<<<<<< HEAD
-    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-20.0);
-=======
+
     U4DEngine::U4DVector3n cameraPosition(0.0,3.0,-50.0);
->>>>>>> issue-263
+
     
     //translate camera
     camera->translateTo(cameraPosition);
