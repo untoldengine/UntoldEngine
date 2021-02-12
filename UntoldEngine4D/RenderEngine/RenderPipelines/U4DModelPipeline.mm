@@ -151,10 +151,6 @@ namespace U4DEngine{
 
         [uRenderEncoder setDepthStencilState:mtlRenderPassDepthStencilState];
         
-        
-        //inpute texture here is the depth texture for the shadow
-        [uRenderEncoder setFragmentTexture:inputTexture atIndex:fiDepthTexture];
-        
         [uRenderEncoder setFragmentBuffer:shadowPropertiesUniform offset:0 atIndex:fiShadowPropertiesBuffer];
         
         

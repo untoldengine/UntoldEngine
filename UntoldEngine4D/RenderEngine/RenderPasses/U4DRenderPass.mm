@@ -11,7 +11,7 @@
 
 namespace U4DEngine{
 
-    U4DRenderPass::U4DRenderPass(std::string uPipelineName):pipelineName(uPipelineName){
+    U4DRenderPass::U4DRenderPass(std::string uPipelineName):pipelineName(uPipelineName),pipeline(nullptr){
         
         U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
         

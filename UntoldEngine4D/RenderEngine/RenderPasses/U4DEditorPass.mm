@@ -62,8 +62,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
     if(imGUIRenderEncoder!=nil){
 
-        [imGUIRenderEncoder pushDebugGroup:@"Final Comp Pass"];
-        imGUIRenderEncoder.label = @"Final Comp Render Pass";
+        [imGUIRenderEncoder pushDebugGroup:@"Editor Comp Pass"];
+        imGUIRenderEncoder.label = @"Editor Comp Render Pass";
 
         // Start the Dear ImGui frame
         ImGui_ImplMetal_NewFrame(mtlRenderPassDescriptor);

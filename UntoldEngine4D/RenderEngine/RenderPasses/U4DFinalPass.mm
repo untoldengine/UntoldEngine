@@ -29,6 +29,8 @@ void U4DFinalPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *
     U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
     U4DDirector *director=U4DDirector::sharedInstance();
     
+    pipeline->inputTexture=uPreviousRenderPass->getPipeline()->targetTexture;
+
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
            mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
            mtlRenderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
@@ -63,8 +65,10 @@ void U4DFinalPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *
 
         [finalCompRenderEncoder setFragmentBuffer:renderManager->directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
 
-        pipeline->inputTexture=uPreviousRenderPass->getPipeline()->targetTexture;
-
+        //inpute texture here is the depth texture for the shadow
+        [finalCompRenderEncoder setFragmentTexture:pipeline->inputTexture atIndex:fiDepthTexture];
+        
+        
         U4DEntity *child=uRootEntity;
 
         while (child!=NULL) {

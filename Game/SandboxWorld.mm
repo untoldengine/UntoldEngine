@@ -27,6 +27,7 @@
 #include "U4DImage.h"
 #include "U4DText.h"
 #include "U4DRenderManager.h"
+#include "U4DModelPipeline.h"
 #include "U4DPointLight.h"
 
 using namespace U4DEngine;
@@ -71,6 +72,16 @@ void SandboxWorld::init(){
     
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");
+    
+    //code snippet to add a new pipeline
+    U4DEngine::U4DRenderManager *renderManager=U4DEngine::U4DRenderManager::sharedInstance();
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    U4DEngine::U4DModelPipeline *nonvisiblePipeline=new U4DEngine::U4DModelPipeline(director->getMTLDevice(),"nonvisible");
+    
+    nonvisiblePipeline->initRenderPass("vertexNonVisibleShader", "fragmentNonVisibleShader");
+    
+    renderManager->addRenderPipeline(nonvisiblePipeline);
     
     setEnableGrid(true);
     
@@ -120,7 +131,7 @@ void SandboxWorld::init(){
 
     //Line 3. Load attribute (rendering information) into the game entity
     if (paperplane->loadModel("paperplane")) {
-
+        
 //            ground->enableKineticsBehavior();
 //
 //            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
@@ -142,6 +153,8 @@ void SandboxWorld::init(){
 //
 //    //Load attribute (rendering information) into the game entity
 //    if (myAstronaut->loadModel("astronaut")) {
+//
+//
 //
 //        myAstronaut->enableKineticsBehavior();
 //
@@ -182,6 +195,7 @@ void SandboxWorld::init(){
 //    //Line 3. Load attribute (rendering information) into the game entity
 //    if (ground->loadModel("island")) {
 //
+//
 //        ground->enableKineticsBehavior();
 //
 //        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
@@ -199,13 +213,13 @@ void SandboxWorld::init(){
 //    }
     
     //Render a skybox
-    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-
-    //initialize the skybox
-    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-
-    //add the skybox to the scenegraph with appropriate z-depth
-    addChild(skybox);
+//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+//
+//    //initialize the skybox
+//    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+//
+//    //add the skybox to the scenegraph with appropriate z-depth
+//    addChild(skybox);
 //
     //Need to load the lights from blender, this is not efficient.
     U4DEngine::U4DPointLight *pointLights=U4DEngine::U4DPointLight::sharedInstance();
@@ -285,7 +299,7 @@ void SandboxWorld::setupConfiguration(){
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(0.0,3.0,-50.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,10.0,-30.0);
 
     
     //translate camera

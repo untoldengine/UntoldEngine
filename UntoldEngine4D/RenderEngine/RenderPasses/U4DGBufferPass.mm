@@ -30,6 +30,8 @@ void U4DGBufferPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity
     
     float screenScaleFactor=director->getScreenScaleFactor()/2.0;
     
+    pipeline->inputTexture=uPreviousRenderPass->getPipeline()->targetTexture;
+    
     id <MTLRenderCommandEncoder> gBufferRenderEncoder =
     [uCommandBuffer renderCommandEncoderWithDescriptor:pipeline->mtlRenderPassDescriptor];
 
@@ -46,7 +48,8 @@ void U4DGBufferPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity
 
     [gBufferRenderEncoder setFragmentBuffer:renderManager->directionalLightPropertiesUniform offset:0 atIndex:fiDirLightPropertiesBuffer];
 
-    pipeline->inputTexture=uPreviousRenderPass->getPipeline()->targetTexture;
+    //inpute texture here is the depth texture for the shadow
+    [gBufferRenderEncoder setFragmentTexture:pipeline->inputTexture atIndex:fiDepthTexture];
 
     U4DEntity *child=uRootEntity;
 
