@@ -8,9 +8,9 @@
 
 #include <metal_stdlib>
 #include <simd/simd.h>
+#include "U4DShaderProtocols.h"
+
 using namespace metal;
-#include "../UntoldEngine4D/MetalShaders/U4DShaderProtocols.h"
-#include "../UntoldEngine4D/MetalShaders/U4DShaderHelperFunctions.h"
 
 struct VertexInput {
     
