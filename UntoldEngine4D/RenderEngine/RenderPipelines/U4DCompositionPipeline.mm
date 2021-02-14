@@ -15,7 +15,7 @@
 
 namespace U4DEngine{
 
-    U4DCompositionPipeline::U4DCompositionPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DCompositionPipeline::U4DCompositionPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -44,15 +44,15 @@ namespace U4DEngine{
         
     }
 
-    void U4DCompositionPipeline::initRenderPassTargetTexture(){
+    void U4DCompositionPipeline::initTargetTexture(){
         
     }
 
-    void U4DCompositionPipeline::initRenderPassDesc(){
+    void U4DCompositionPipeline::initPassDesc(){
         
     }
 
-    void U4DCompositionPipeline::initRenderPassPipeline(){
+    bool U4DCompositionPipeline::buildPipeline(){
         
         
         quadVerticesBuffer=[mtlDevice newBufferWithBytes:&quadVertices[0] length:sizeof(float)*(sizeof(quadVertices)/sizeof(quadVertices[0])) options:MTLResourceOptionCPUCacheModeDefault];
@@ -97,11 +97,14 @@ namespace U4DEngine{
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
         
     }
 
-    void U4DCompositionPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder){
+    void U4DCompositionPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder){
         
         U4DCamera *camera=U4DCamera::sharedInstance();
         

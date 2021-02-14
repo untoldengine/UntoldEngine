@@ -27,19 +27,19 @@ namespace U4DEngine{
         
     public:
         
-        U4DCompositionPipeline(id <MTLDevice> uMTLDevice, std::string uName);
+        U4DCompositionPipeline(std::string uName);
         
         ~U4DCompositionPipeline();
         
         void initVertexDesc();
         
-        void initRenderPassTargetTexture();
+        void initTargetTexture();
         
-        void initRenderPassDesc();
+        void initPassDesc();
         
-        void initRenderPassPipeline();
+        bool buildPipeline();
         
-        void executePass(id <MTLRenderCommandEncoder> uRenderEncoder);
+        void executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder);
         
     };
 

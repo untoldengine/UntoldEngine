@@ -14,7 +14,7 @@
 
 namespace U4DEngine{
 
-U4DGBufferPipeline::U4DGBufferPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DModelPipeline(uMTLDevice, uName){
+U4DGBufferPipeline::U4DGBufferPipeline(std::string uName):U4DModelPipeline(uName){
     
 }
 
@@ -22,7 +22,7 @@ U4DGBufferPipeline::~U4DGBufferPipeline(){
     
 }
 
-void U4DGBufferPipeline::initRenderPassTargetTexture(){
+void U4DGBufferPipeline::initTargetTexture(){
     
     U4DDirector *director=U4DDirector::sharedInstance();
     
@@ -70,7 +70,7 @@ void U4DGBufferPipeline::initRenderPassTargetTexture(){
     depthTexture.label=@"depth-texture";
 }
 
-void U4DGBufferPipeline::initRenderPassDesc(){
+void U4DGBufferPipeline::initPassDesc(){
     
     //create a shadow pass descriptor
     mtlRenderPassDescriptor=[MTLRenderPassDescriptor new];
@@ -110,7 +110,7 @@ void U4DGBufferPipeline::initRenderPassDesc(){
     
 }
 
-void U4DGBufferPipeline::initRenderPassPipeline(){
+bool U4DGBufferPipeline::buildPipeline(){
     
     NSError *error;
     
@@ -147,11 +147,14 @@ void U4DGBufferPipeline::initRenderPassPipeline(){
     }else{
         
         logger->log("Success: The pipeline %s was properly configured",name.c_str());
+        return true;
     }
+    
+    return false;
 }
 
 
-void U4DGBufferPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+void U4DGBufferPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
     
     //encode the pipeline
     [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

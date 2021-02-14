@@ -25,7 +25,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderParticleSystem(this);
         
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "particlepipeline");
+        renderEntity->setPipelineForPass("particlepipeline",U4DEngine::finalPass);
         
         particlePhysics=new U4DParticlePhysics();
         

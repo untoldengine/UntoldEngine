@@ -67,7 +67,7 @@ void U4DCompositionPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEn
 
         [compositionRenderEncoder setFragmentBuffer:renderManager->pointLightsPropertiesUniform offset:0 atIndex:fiPointLightsPropertiesBuffer];
 
-        pipeline->executePass(compositionRenderEncoder);
+        pipeline->executePipeline(compositionRenderEncoder);
 
         [compositionRenderEncoder popDebugGroup];
         //end encoding

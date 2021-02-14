@@ -27,7 +27,7 @@ U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uW
     
     controllerInterface=sceneManager->getGameController();
     
-    renderEntity->makePassPipelinePair(U4DEngine::finalPass, "sliderpipeline");
+    renderEntity->setPipelineForPass("sliderpipeline",U4DEngine::finalPass);
     
     setShaderDimension(uWidth, uHeight);
 

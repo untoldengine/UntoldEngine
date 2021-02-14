@@ -11,13 +11,18 @@
 #include "U4DDirector.h"
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
+#include "U4DRenderManager.h"
 #include "U4DLogger.h"
 #include <iostream>
 #include <fstream> //for file i/o
 
 namespace U4DEngine {
 
-    U4DRenderPipeline::U4DRenderPipeline(id <MTLDevice> uMTLDevice, std::string uName):mtlDevice(uMTLDevice),name(uName){
+    U4DRenderPipeline::U4DRenderPipeline(std::string uName):name(uName){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        mtlDevice=director->getMTLDevice();
         
     }
         
@@ -25,15 +30,21 @@ namespace U4DEngine {
         
     }
 
-    void U4DRenderPipeline::initRenderPass(std::string uVertexShader, std::string uFragmentShader){
+    void U4DRenderPipeline::initPipeline(std::string uVertexShader, std::string uFragmentShader){
         
-        initRenderPassTargetTexture();
+        initTargetTexture();
         initVertexDesc();
-        initRenderPassLibrary(uVertexShader,uFragmentShader);
-        initRenderPassDesc();
-        initRenderPassPipeline();
-        initRenderPassAdditionalInfo();
+        initPassDesc();
         
+        initLibrary(uVertexShader,uFragmentShader);
+        initAdditionalInfo();
+        
+        if(buildPipeline()){
+            
+            U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+            renderManager->addRenderPipeline(this);
+            
+        }
         
     }
 
@@ -43,7 +54,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DRenderPipeline::initRenderPassLibrary(std::string uVertexShader, std::string uFragmentShader){
+    void U4DRenderPipeline::initLibrary(std::string uVertexShader, std::string uFragmentShader){
         
         //init the library
         mtlLibrary=[mtlDevice newDefaultLibrary];
@@ -53,7 +64,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DRenderPipeline::initRenderPassAdditionalInfo(){
+    void U4DRenderPipeline::initAdditionalInfo(){
         
         
         

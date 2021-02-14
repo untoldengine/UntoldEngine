@@ -17,7 +17,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderFont(this);
             
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "imagepipeline");
+        renderEntity->setPipelineForPass("imagepipeline",U4DEngine::finalPass);
         
         U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
         

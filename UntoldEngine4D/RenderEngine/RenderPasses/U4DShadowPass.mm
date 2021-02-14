@@ -53,7 +53,7 @@ void U4DShadowPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             U4DRenderPipelineInterface* shadowPipe=renderEntity->getPipeline(U4DEngine::shadowPass);
 
             if (shadowPipe!=nullptr) {
-                shadowPipe->executePass(shadowRenderEncoder, child);
+                shadowPipe->executePipeline(shadowRenderEncoder, child);
             }
             
         }

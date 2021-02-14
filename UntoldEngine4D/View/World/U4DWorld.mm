@@ -26,7 +26,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderWorld(this);
         
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "worldpipeline");
+        renderEntity->setPipelineForPass("worldpipeline",U4DEngine::finalPass);
         
         buildGrid();
         renderEntity->loadRenderingInformation();

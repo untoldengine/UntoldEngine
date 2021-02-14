@@ -27,7 +27,7 @@ U4DCheckbox::U4DCheckbox(std::string uName, float xPosition,float yPosition,floa
     
     controllerInterface=sceneManager->getGameController();
     
-    renderEntity->makePassPipelinePair(U4DEngine::finalPass, "checkboxpipeline");
+    renderEntity->setPipelineForPass("checkboxpipeline",U4DEngine::finalPass);
     
     setShaderDimension(uWidth, uHeight);
 

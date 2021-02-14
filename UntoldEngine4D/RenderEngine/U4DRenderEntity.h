@@ -216,7 +216,7 @@ typedef struct{
         
         bool createTextureAndSamplerObjects(id<MTLTexture> &uTextureObject, id<MTLSamplerState> &uSamplerStateObject, MTLSamplerDescriptor *uSamplerDescriptor, std::string uTextureName);
         
-        void makePassPipelinePair(int uRenderPassKey, std::string uPipelineName);
+        void setPipelineForPass(std::string uPipelineName,int uRenderPassKey);
         
         void removePassPipelinePair(int uRenderPassKey);
         

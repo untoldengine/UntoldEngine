@@ -66,7 +66,7 @@ namespace U4DEngine {
         id<MTLBuffer> pointLightsPropertiesUniform;
         
         
-        void initRenderPipelines(id <MTLDevice> uMTLDevice);
+        void initRenderPipelines();
         
         void render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity);
         
@@ -80,6 +80,7 @@ namespace U4DEngine {
         
         void addRenderPipeline(U4DRenderPipelineInterface* uRenderPipeline);
         
+        void makePipelineWithShader(std::string uPipelineName, std::string uVertexShaderName, std::string uFragmentShaderName);
     };
     
 }

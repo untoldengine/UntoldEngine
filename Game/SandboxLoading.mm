@@ -47,20 +47,18 @@ void SandboxLoading::init(){
     loadingBackgroundImage->setImage("loadingscreen.png",width,height);
     
     addChild(loadingBackgroundImage);
-    
-    U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-    
+
     //create a new pipeline for the loading circle shader
-    U4DShaderEntityPipeline* shaderPipeline=new U4DShaderEntityPipeline(director->getMTLDevice(), "loadingcirclepipeline"); 
+    U4DShaderEntityPipeline* shaderPipeline=new U4DShaderEntityPipeline("loadingcirclepipeline");
     
-    shaderPipeline->initRenderPass("vertexLoadingCircleShader","fragmentLoadingCircleShader");
+    shaderPipeline->initPipeline("vertexLoadingCircleShader","fragmentLoadingCircleShader");
     
-    renderManager->addRenderPipeline(shaderPipeline);
+    
     //create the loading circle shader entity
     U4DEngine::U4DShaderEntity *shader=new U4DEngine::U4DShaderEntity(0);
     
     //link the pipeline to the entity
-    shader->renderEntity->makePassPipelinePair(U4DEngine::finalPass, "loadingcirclepipeline"); 
+    shader->setPipeline("loadingcirclepipeline");
     
     shader->setShaderDimension(width/2.0, height/2.0);
     

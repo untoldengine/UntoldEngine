@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DWorldPipeline::U4DWorldPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DWorldPipeline::U4DWorldPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -20,7 +20,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DWorldPipeline::initRenderPassTargetTexture(){
+    void U4DWorldPipeline::initTargetTexture(){
         
     }
 
@@ -41,11 +41,11 @@ namespace U4DEngine {
         
     }
 
-    void U4DWorldPipeline::initRenderPassDesc(){
+    void U4DWorldPipeline::initPassDesc(){
         
     }
 
-    void U4DWorldPipeline::initRenderPassPipeline(){
+    bool U4DWorldPipeline::buildPipeline(){
         
         NSError *error;
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -81,15 +81,18 @@ namespace U4DEngine {
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
 
-    }
-
-    void U4DWorldPipeline::initRenderPassAdditionalInfo(){
+        return false;
         
     }
 
-    void U4DWorldPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DWorldPipeline::initAdditionalInfo(){
+        
+    }
+
+    void U4DWorldPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

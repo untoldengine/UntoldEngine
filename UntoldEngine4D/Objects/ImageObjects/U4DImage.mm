@@ -19,7 +19,7 @@ namespace U4DEngine {
         setEntityType(U4DEngine::IMAGE);
         renderEntity=new U4DRenderImage(this);
         
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "imagepipeline");
+        renderEntity->setPipelineForPass("imagepipeline", U4DEngine::finalPass);
         
     };
 

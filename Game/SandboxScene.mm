@@ -30,6 +30,6 @@ void SandboxScene::init(){
     //create model component
     sandboxLogic=new SandboxLogic();
     
-    loadComponents(sandboxWorld, sandboxLogic);
+    loadComponents(sandboxWorld, loadingScene, sandboxLogic);
     
 }

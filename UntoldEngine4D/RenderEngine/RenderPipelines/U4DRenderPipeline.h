@@ -84,29 +84,29 @@ namespace U4DEngine {
         
     public:
         
-        U4DRenderPipeline(id <MTLDevice> uMTLDevice, std::string uName);
+        U4DRenderPipeline(std::string uName);
         
         ~U4DRenderPipeline();
         
         id<MTLTexture> targetDepthTexture;
         
-        void initRenderPass(std::string uVertexShader, std::string uFragmentShader);
+        void initPipeline(std::string uVertexShader, std::string uFragmentShader);
         
-        virtual void initRenderPassTargetTexture(){};
+        virtual void initTargetTexture(){};
         
         virtual void initVertexDesc(){};
         
-        void initRenderPassLibrary(std::string uVertexShader, std::string uFragmentShader);
+        void initLibrary(std::string uVertexShader, std::string uFragmentShader);
         
-        virtual void initRenderPassDesc(){};
+        virtual void initPassDesc(){};
         
-        virtual void initRenderPassPipeline(){};
+        virtual bool buildPipeline(){};
         
-        void initRenderPassAdditionalInfo();
+        void initAdditionalInfo();
                
-        virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){};
+        virtual void executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){};
         
-        virtual void executePass(id <MTLRenderCommandEncoder> uRenderEncoder){};
+        virtual void executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder){};
         
         id<MTLTexture> getTargetTexture();
         

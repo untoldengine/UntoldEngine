@@ -14,7 +14,7 @@
 
 namespace U4DEngine{
 
-    U4DOffscreenPipeline::U4DOffscreenPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DModelPipeline(uMTLDevice, uName){
+    U4DOffscreenPipeline::U4DOffscreenPipeline(std::string uName):U4DModelPipeline(uName){
        
     }
 
@@ -22,7 +22,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DOffscreenPipeline::initRenderPassTargetTexture(){
+    void U4DOffscreenPipeline::initTargetTexture(){
         
         //create texture descriptor
         MTLTextureDescriptor *offscreenRenderTextureDescriptor = [MTLTextureDescriptor new];
@@ -49,7 +49,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DOffscreenPipeline::initRenderPassDesc(){
+    void U4DOffscreenPipeline::initPassDesc(){
         
         //set up the offscreen render pass descriptor
         
@@ -66,7 +66,7 @@ namespace U4DEngine{
         mtlRenderPassDescriptor.depthAttachment.storeAction=MTLStoreActionStore;
     }
 
-    void U4DOffscreenPipeline::initRenderPassPipeline(){
+    bool U4DOffscreenPipeline::buildPipeline(){
         
         NSError *error;
 
@@ -101,11 +101,14 @@ namespace U4DEngine{
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
         
     }
 
-    void U4DOffscreenPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DOffscreenPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         

@@ -21,7 +21,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderGeometry(this);
         
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "geometrypipeline");
+        renderEntity->setPipelineForPass("geometrypipeline",U4DEngine::finalPass);
         
     }
     

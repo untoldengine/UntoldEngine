@@ -73,16 +73,6 @@ void SandboxWorld::init(){
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");
     
-    //code snippet to add a new pipeline
-    U4DEngine::U4DRenderManager *renderManager=U4DEngine::U4DRenderManager::sharedInstance();
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
-    U4DEngine::U4DModelPipeline *nonvisiblePipeline=new U4DEngine::U4DModelPipeline(director->getMTLDevice(),"nonvisible");
-    
-    nonvisiblePipeline->initRenderPass("vertexNonVisibleShader", "fragmentNonVisibleShader");
-    
-    renderManager->addRenderPipeline(nonvisiblePipeline);
-    
     setEnableGrid(true);
     
     U4DEngine::U4DGameObject *houses[40];
@@ -110,6 +100,7 @@ void SandboxWorld::init(){
         //Line 3. Load attribute (rendering information) into the game entity
         if (ground->loadModel("ground")) {
 
+            
 //            ground->enableKineticsBehavior();
 //
 //            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
@@ -213,14 +204,14 @@ void SandboxWorld::init(){
 //    }
     
     //Render a skybox
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    //initialize the skybox
-//    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-//
-//    //add the skybox to the scenegraph with appropriate z-depth
-//    addChild(skybox);
-//
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+
+    //initialize the skybox
+    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+
+    //add the skybox to the scenegraph with appropriate z-depth
+    addChild(skybox);
+
     //Need to load the lights from blender, this is not efficient.
     U4DEngine::U4DPointLight *pointLights=U4DEngine::U4DPointLight::sharedInstance();
 

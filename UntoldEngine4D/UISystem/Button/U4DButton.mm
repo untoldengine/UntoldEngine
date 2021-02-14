@@ -65,7 +65,7 @@ void U4DButton::initButtonProperties(std::string uName, float xPosition,float yP
     
     controllerInterface=sceneManager->getGameController();
     
-    renderEntity->makePassPipelinePair(U4DEngine::finalPass, "buttonpipeline");
+    renderEntity->setPipelineForPass("buttonpipeline",U4DEngine::finalPass);
     
     setShaderDimension(uWidth, uHeight);
 

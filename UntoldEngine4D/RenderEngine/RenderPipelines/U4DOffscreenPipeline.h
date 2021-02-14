@@ -20,17 +20,17 @@ namespace U4DEngine {
         
     public:
         
-        U4DOffscreenPipeline(id <MTLDevice> uMTLDevice, std::string uName);
+        U4DOffscreenPipeline(std::string uName);
         
         ~U4DOffscreenPipeline();
         
-        void initRenderPassDesc();
+        void initPassDesc();
         
-        void initRenderPassTargetTexture();
+        void initTargetTexture();
         
-        void initRenderPassPipeline();
+        bool buildPipeline();
         
-        void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
+        void executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
         
     };
 

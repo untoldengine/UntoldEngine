@@ -45,7 +45,7 @@ void U4DOffscreenPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEnti
             U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::offscreenPass);
 
             if (renderPipeline!=nullptr) {
-                renderPipeline->executePass(offscreenRenderEncoder, child);
+                renderPipeline->executePipeline(offscreenRenderEncoder, child);
             }
 
         }

@@ -87,7 +87,7 @@
         director->setOrthographicShadowSpace(orthographicShadowSpace);
         
         U4DEngine::U4DRenderManager *renderManager=U4DEngine::U4DRenderManager::sharedInstance();
-        renderManager->initRenderPipelines(mtlDevice);
+        renderManager->initRenderPipelines();
         
         IMGUI_CHECKVERSION();
         ImGui::CreateContext();

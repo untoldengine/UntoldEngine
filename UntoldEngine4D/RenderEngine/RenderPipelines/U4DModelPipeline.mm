@@ -14,7 +14,7 @@
 
 namespace U4DEngine{
 
-    U4DModelPipeline::U4DModelPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DModelPipeline::U4DModelPipeline(std::string uName):U4DRenderPipeline(uName){
         
         
     }
@@ -23,7 +23,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DModelPipeline::initRenderPassTargetTexture(){
+    void U4DModelPipeline::initTargetTexture(){
         
         //the target for this is the default framebuffer
     }
@@ -76,7 +76,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DModelPipeline::initRenderPassDesc(){
+    void U4DModelPipeline::initPassDesc(){
     
         U4DDirector *director=U4DDirector::sharedInstance();
         
@@ -87,7 +87,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DModelPipeline::initRenderPassPipeline(){
+    bool U4DModelPipeline::buildPipeline(){
         
         NSError *error;
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -123,11 +123,14 @@ namespace U4DEngine{
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
         
     }
 
-    void U4DModelPipeline::initRenderPassAdditionalInfo(){
+    void U4DModelPipeline::initAdditionalInfo(){
     
         
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -143,7 +146,7 @@ namespace U4DEngine{
 //        memcpy(shadowPropertiesBuffer.contents, (void*)&shadowProperties, sizeof(UniformModelShadowProperties));
     }
 
-    void U4DModelPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DModelPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         
         //encode the pipeline

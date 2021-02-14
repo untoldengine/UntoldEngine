@@ -62,7 +62,7 @@ void U4DGBufferPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity
             U4DRenderPipelineInterface* gBufferPipeline=renderEntity->getPipeline(U4DEngine::gBufferPass);
 
             if (gBufferPipeline!=nullptr) {
-                gBufferPipeline->executePass(gBufferRenderEncoder, child);
+                gBufferPipeline->executePipeline(gBufferRenderEncoder, child);
             }
 
         }

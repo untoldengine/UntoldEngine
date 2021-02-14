@@ -12,7 +12,7 @@
 
 namespace U4DEngine{
 
-    U4DParticlesPipeline::U4DParticlesPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DParticlesPipeline::U4DParticlesPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -20,7 +20,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DParticlesPipeline::initRenderPassTargetTexture(){
+    void U4DParticlesPipeline::initTargetTexture(){
         
     }
 
@@ -47,11 +47,11 @@ namespace U4DEngine{
         
     }
 
-    void U4DParticlesPipeline::initRenderPassDesc(){
+    void U4DParticlesPipeline::initPassDesc(){
         
     }
 
-    void U4DParticlesPipeline::initRenderPassPipeline(){
+    bool U4DParticlesPipeline::buildPipeline(){
 
         NSError *error;
         
@@ -114,15 +114,18 @@ namespace U4DEngine{
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
 
     }
 
-    void U4DParticlesPipeline::initRenderPassAdditionalInfo(){
+    void U4DParticlesPipeline::initAdditionalInfo(){
         
     }
 
-    void U4DParticlesPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DParticlesPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

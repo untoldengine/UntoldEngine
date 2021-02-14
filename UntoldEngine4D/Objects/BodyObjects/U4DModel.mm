@@ -32,10 +32,10 @@ namespace U4DEngine {
         
         setEntityType(MODEL);
         
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, "modelpipeline");
-        renderEntity->makePassPipelinePair(U4DEngine::shadowPass, "shadowpipeline");
-        renderEntity->makePassPipelinePair(U4DEngine::offscreenPass, "offscreenpipeline");
-        renderEntity->makePassPipelinePair(U4DEngine::gBufferPass, "gbufferpipeline");
+        renderEntity->setPipelineForPass("modelpipeline",U4DEngine::finalPass);
+        renderEntity->setPipelineForPass("shadowpipeline",U4DEngine::shadowPass);
+        renderEntity->setPipelineForPass("offscreenpipeline",U4DEngine::offscreenPass);
+        renderEntity->setPipelineForPass("gbufferpipeline",U4DEngine::gBufferPass);
         
         cullingPhaseBoundingVolume=nullptr;
         

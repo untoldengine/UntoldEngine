@@ -22,24 +22,23 @@ private:
     
 public:
     
-    U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std::string uName);
+    U4DShadowRenderPipeline(std::string uName);
     
     ~U4DShadowRenderPipeline();
     
-    void initRenderPassLibrary(std::string uVertexShader, std::string uFragmentShader);
+    void initLibrary(std::string uVertexShader, std::string uFragmentShader);
     
-    void initRenderPassTargetTexture();
+    void initTargetTexture();
     
     void initVertexDesc();
 
-    void initRenderPassDesc();
+    void initPassDesc();
     
-    void initRenderPassPipeline();
+    bool buildPipeline();
     
-    void initRenderPassAdditionalInfo();
+    void initAdditionalInfo();
     
-    
-    void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
+    void executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
     
     
 };

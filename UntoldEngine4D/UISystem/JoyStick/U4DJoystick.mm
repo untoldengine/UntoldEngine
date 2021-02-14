@@ -43,7 +43,7 @@ void U4DJoystick::initJoystickProperties(std::string uName, float xPosition,floa
     
      setName(uName);
      
-     renderEntity->makePassPipelinePair(U4DEngine::finalPass, "joystickpipeline"); 
+     renderEntity->setPipelineForPass("joystickpipeline",U4DEngine::finalPass); 
     
      setShaderDimension(uBackgroundWidth, uBackgroundHeight);
 

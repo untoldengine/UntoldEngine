@@ -12,7 +12,7 @@
 
 namespace U4DEngine{
 
-    U4DSkyboxPipeline::U4DSkyboxPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DSkyboxPipeline::U4DSkyboxPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -20,7 +20,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassTargetTexture(){
+    void U4DSkyboxPipeline::initTargetTexture(){
         
     }
 
@@ -42,11 +42,11 @@ namespace U4DEngine{
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassDesc(){
+    void U4DSkyboxPipeline::initPassDesc(){
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassPipeline(){
+    bool U4DSkyboxPipeline::buildPipeline(){
         
         NSError *error;
         
@@ -82,16 +82,17 @@ namespace U4DEngine{
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
 
+        return false;
+    }
+
+    void U4DSkyboxPipeline::initAdditionalInfo(){
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassAdditionalInfo(){
-        
-    }
-
-    void U4DSkyboxPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DSkyboxPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

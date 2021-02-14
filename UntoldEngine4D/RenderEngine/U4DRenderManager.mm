@@ -161,73 +161,62 @@ namespace U4DEngine {
         
     }
 
-    void U4DRenderManager::initRenderPipelines(id <MTLDevice> uMTLDevice){
+    void U4DRenderManager::initRenderPipelines(){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        id<MTLDevice> mtlDevice=director->getMTLDevice();
         
         //init global data buffer
-        globalDataUniform=[uMTLDevice newBufferWithLength:sizeof(UniformGlobalData) options:MTLResourceStorageModeShared];
+        globalDataUniform=[mtlDevice newBufferWithLength:sizeof(UniformGlobalData) options:MTLResourceStorageModeShared];
         
         //init dir light buffer
-        directionalLightPropertiesUniform=[uMTLDevice newBufferWithLength:sizeof(UniformDirectionalLightProperties) options:MTLResourceStorageModeShared];
+        directionalLightPropertiesUniform=[mtlDevice newBufferWithLength:sizeof(UniformDirectionalLightProperties) options:MTLResourceStorageModeShared];
         
         //init point light buffer
-        pointLightsPropertiesUniform=[uMTLDevice newBufferWithLength:sizeof(UniformPointLightProperties)*U4DEngine::maxNumberOfLights options:MTLResourceStorageModeShared]; 
+        pointLightsPropertiesUniform=[mtlDevice newBufferWithLength:sizeof(UniformPointLightProperties)*U4DEngine::maxNumberOfLights options:MTLResourceStorageModeShared];
         
-        U4DModelPipeline* modelPipeline=new U4DModelPipeline(uMTLDevice, "modelpipeline");
-        modelPipeline->initRenderPass("vertexModelShader", "fragmentModelShader");
+        U4DModelPipeline* modelPipeline=new U4DModelPipeline("modelpipeline");
+        modelPipeline->initPipeline("vertexModelShader", "fragmentModelShader");
 
-        U4DShadowRenderPipeline* shadowPipeline=new U4DShadowRenderPipeline(uMTLDevice,"shadowpipeline");
-        shadowPipeline->initRenderPass("vertexShadowShader", " ");
+        U4DShadowRenderPipeline* shadowPipeline=new U4DShadowRenderPipeline("shadowpipeline");
+        shadowPipeline->initPipeline("vertexShadowShader", " ");
         
-        U4DImagePipeline* imagePipeline=new U4DImagePipeline(uMTLDevice,"imagepipeline");
-        imagePipeline->initRenderPass("vertexImageShader","fragmentImageShader");
+        U4DImagePipeline* imagePipeline=new U4DImagePipeline("imagepipeline");
+        imagePipeline->initPipeline("vertexImageShader","fragmentImageShader");
         
-        U4DGeometryPipeline* geometryPipeline=new U4DGeometryPipeline(uMTLDevice,"geometrypipeline");
-        geometryPipeline->initRenderPass("vertexGeometryShader", "fragmentGeometryShader"); 
+        U4DGeometryPipeline* geometryPipeline=new U4DGeometryPipeline("geometrypipeline");
+        geometryPipeline->initPipeline("vertexGeometryShader", "fragmentGeometryShader");
         
-        U4DOffscreenPipeline* offscreenPipeline=new U4DOffscreenPipeline(uMTLDevice,"offscreenpipeline");
-        offscreenPipeline->initRenderPass("vertexOffscreenShader","fragmentOffscreenShader");
+        U4DOffscreenPipeline* offscreenPipeline=new U4DOffscreenPipeline("offscreenpipeline");
+        offscreenPipeline->initPipeline("vertexOffscreenShader","fragmentOffscreenShader");
         
-        U4DSkyboxPipeline* skyboxPipeline=new U4DSkyboxPipeline(uMTLDevice,"skyboxpipeline");
-        skyboxPipeline->initRenderPass("vertexSkyboxShader", "fragmentSkyboxShader");
+        U4DSkyboxPipeline* skyboxPipeline=new U4DSkyboxPipeline("skyboxpipeline");
+        skyboxPipeline->initPipeline("vertexSkyboxShader", "fragmentSkyboxShader");
         
-        U4DParticlesPipeline* particlePipeline=new U4DParticlesPipeline(uMTLDevice,"particlepipeline");
-        particlePipeline->initRenderPass("vertexParticleSystemShader", "fragmentParticleSystemShader");
+        U4DParticlesPipeline* particlePipeline=new U4DParticlesPipeline("particlepipeline");
+        particlePipeline->initPipeline("vertexParticleSystemShader", "fragmentParticleSystemShader");
         
-        U4DShaderEntityPipeline* checkboxPipeline=new U4DShaderEntityPipeline(uMTLDevice, "checkboxpipeline");
-        checkboxPipeline->initRenderPass("vertexUICheckboxShader", "fragmentUICheckboxShader");
+        U4DShaderEntityPipeline* checkboxPipeline=new U4DShaderEntityPipeline("checkboxpipeline");
+        checkboxPipeline->initPipeline("vertexUICheckboxShader", "fragmentUICheckboxShader");
         
-        U4DShaderEntityPipeline* sliderPipeline=new U4DShaderEntityPipeline(uMTLDevice, "sliderpipeline");
-        sliderPipeline->initRenderPass("vertexUISliderShader", "fragmentUISliderShader");
+        U4DShaderEntityPipeline* sliderPipeline=new U4DShaderEntityPipeline("sliderpipeline");
+        sliderPipeline->initPipeline("vertexUISliderShader", "fragmentUISliderShader");
         
-        U4DShaderEntityPipeline* buttonPipeline=new U4DShaderEntityPipeline(uMTLDevice, "buttonpipeline");
-        buttonPipeline->initRenderPass("vertexUIButtonShader", "fragmentUIButtonShader");
+        U4DShaderEntityPipeline* buttonPipeline=new U4DShaderEntityPipeline("buttonpipeline");
+        buttonPipeline->initPipeline("vertexUIButtonShader", "fragmentUIButtonShader");
         
-        U4DShaderEntityPipeline* joystickPipeline=new U4DShaderEntityPipeline(uMTLDevice, "joystickpipeline");
-        joystickPipeline->initRenderPass("vertexUIJoystickShader", "fragmentUIJoystickShader");
+        U4DShaderEntityPipeline* joystickPipeline=new U4DShaderEntityPipeline("joystickpipeline");
+        joystickPipeline->initPipeline("vertexUIJoystickShader", "fragmentUIJoystickShader");
         
-        U4DWorldPipeline *worldPipeline=new U4DWorldPipeline(uMTLDevice,"worldpipeline");
-        worldPipeline->initRenderPass("vertexWorldShader", "fragmentWorldShader");
+        U4DWorldPipeline *worldPipeline=new U4DWorldPipeline("worldpipeline");
+        worldPipeline->initPipeline("vertexWorldShader", "fragmentWorldShader");
         
-        U4DGBufferPipeline *gBufferPipeline=new U4DGBufferPipeline(uMTLDevice,"gbufferpipeline");
-        gBufferPipeline->initRenderPass("vertexGBufferShader","fragmentGBufferShader");
+        U4DGBufferPipeline *gBufferPipeline=new U4DGBufferPipeline("gbufferpipeline");
+        gBufferPipeline->initPipeline("vertexGBufferShader","fragmentGBufferShader");
         
-        U4DCompositionPipeline *compositionPipeline=new U4DCompositionPipeline(uMTLDevice,"compositionpipeline");
-        compositionPipeline->initRenderPass("vertexCompShader","fragmentCompShader");
-        
-        renderingPipelineContainer.push_back(modelPipeline);
-        renderingPipelineContainer.push_back(shadowPipeline);
-        renderingPipelineContainer.push_back(geometryPipeline);
-        renderingPipelineContainer.push_back(imagePipeline);
-        renderingPipelineContainer.push_back(offscreenPipeline);
-        renderingPipelineContainer.push_back(skyboxPipeline);
-        renderingPipelineContainer.push_back(particlePipeline);
-        renderingPipelineContainer.push_back(checkboxPipeline);
-        renderingPipelineContainer.push_back(sliderPipeline);
-        renderingPipelineContainer.push_back(buttonPipeline);
-        renderingPipelineContainer.push_back(joystickPipeline);
-        renderingPipelineContainer.push_back(worldPipeline);
-        renderingPipelineContainer.push_back(gBufferPipeline);
-        renderingPipelineContainer.push_back(compositionPipeline);
+        U4DCompositionPipeline *compositionPipeline=new U4DCompositionPipeline("compositionpipeline");
+        compositionPipeline->initPipeline("vertexCompShader","fragmentCompShader");
         
     }
 
@@ -286,6 +275,11 @@ namespace U4DEngine {
  
     void U4DRenderManager::addRenderPipeline(U4DRenderPipelineInterface* uRenderPipeline){
         renderingPipelineContainer.push_back(uRenderPipeline);
+    }
+
+    void U4DRenderManager::makePipelineWithShader(std::string uPipelineName, std::string uVertexShaderName, std::string uFragmentShaderName){
+        
+        
     }
     
 }

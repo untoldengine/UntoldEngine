@@ -20,17 +20,17 @@ private:
     
 public:
     
-    U4DGBufferPipeline(id <MTLDevice> uMTLDevice, std::string uName);
+    U4DGBufferPipeline(std::string uName);
     
     ~U4DGBufferPipeline();
     
-    void initRenderPassTargetTexture();
+    void initTargetTexture();
     
-    void initRenderPassDesc();
+    void initPassDesc();
     
-    void initRenderPassPipeline();
+    bool buildPipeline();
     
-    void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
+    void executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
     
 };
 

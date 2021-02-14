@@ -80,7 +80,7 @@ void U4DFinalPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *
                 U4DRenderPipelineInterface* renderPipeline=renderEntity->getPipeline(U4DEngine::finalPass);
 
                 if (renderPipeline!=nullptr) {
-                    renderPipeline->executePass(finalCompRenderEncoder, child);
+                    renderPipeline->executePipeline(finalCompRenderEncoder, child);
                 }
 
             }

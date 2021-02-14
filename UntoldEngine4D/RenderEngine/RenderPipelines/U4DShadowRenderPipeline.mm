@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
 
-U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+U4DShadowRenderPipeline::U4DShadowRenderPipeline(std::string uName):U4DRenderPipeline(uName){
         
         
     }
@@ -26,7 +26,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         
     }
 
-    void U4DShadowRenderPipeline::initRenderPassTargetTexture(){
+    void U4DShadowRenderPipeline::initTargetTexture(){
         
         MTLTextureDescriptor *shadowTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:1024 height:1024 mipmapped:NO];
         
@@ -37,7 +37,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         
     }
 
-    void U4DShadowRenderPipeline::initRenderPassLibrary(std::string uVertexShader, std::string uFragmentShader){
+    void U4DShadowRenderPipeline::initLibrary(std::string uVertexShader, std::string uFragmentShader){
         
         //init the library
         mtlLibrary=[mtlDevice newDefaultLibrary];
@@ -95,7 +95,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
 
     }
 
-    void U4DShadowRenderPipeline::initRenderPassDesc(){
+    void U4DShadowRenderPipeline::initPassDesc(){
         
         //create a shadow pass descriptor
         mtlRenderPassDescriptor=[MTLRenderPassDescriptor new];
@@ -112,7 +112,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         
     }
 
-    void U4DShadowRenderPipeline::initRenderPassPipeline(){
+    bool U4DShadowRenderPipeline::buildPipeline(){
         
         //set the pipeline descriptor
         NSError *error;
@@ -153,17 +153,19 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
         
+        return false;
     }
 
-    void U4DShadowRenderPipeline::initRenderPassAdditionalInfo(){
+    void U4DShadowRenderPipeline::initAdditionalInfo(){
 
         
         
     }
 
-    void U4DShadowRenderPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DShadowRenderPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         
         //set the states

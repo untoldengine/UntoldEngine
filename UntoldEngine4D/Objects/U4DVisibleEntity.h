@@ -100,6 +100,14 @@ public:
     
     U4DRenderEntity *getRenderEntity();
     
+    void setPipelineForPass(std::string uPipelineName,int uRenderPassKey);
+    
+    /**
+     * @brief sets the pipeline for the default final pass
+     * @details The method will remove any previous links between the pipeline and the pass
+     * @param uPipelineName Name of the pipeline to apply
+     */
+    void setPipeline(std::string uPipelineName);
 };
     
 }
