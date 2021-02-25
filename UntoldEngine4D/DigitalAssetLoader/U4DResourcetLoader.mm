@@ -22,6 +22,7 @@
 #include "U4DDirector.h"
 #include "U4DLogger.h"
 #include "U4DText.h"
+#include "U4DPointLight.h"
 
 namespace U4DEngine {
 
@@ -813,6 +814,138 @@ namespace U4DEngine {
         fontsContainer.push_back(fonts);
         
         logger->log("Success: Font Asset File %s succesfully Loaded.",uFilepath.c_str());
+        
+        return true;
+        
+    }
+
+    bool U4DResourceLoader::loadLightData(std::string uFilepath){
+        
+        U4DPointLight *pointLights=U4DPointLight::sharedInstance();
+        
+        std::ifstream file(uFilepath, std::ios::in | std::ios::binary );
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        if(!file){
+            
+            logger->log("Error: Couldn't load the Font Asset File, No file %s exist.",uFilepath.c_str());
+            
+            return false;
+            
+        }
+        
+        file.seekg(0);
+        
+        LIGHTDATARAW lights;
+        
+        //Number of directional lights
+        int numberOfDirLightSize=0;
+        file.read((char*)&numberOfDirLightSize,sizeof(int));
+        file.read((char*)&lights.numberOfDirectionalLights, sizeof(numberOfDirLightSize));
+        
+        for (int i=0; i<numberOfDirLightSize; i++) {
+            
+            DIRECTIONALLIGHTRAW dirLight;
+            
+            //READ NAME
+            size_t lightNamelen=0;
+            file.read((char*)&lightNamelen,sizeof(lightNamelen));
+            dirLight.name.resize(lightNamelen);
+            file.read((char*)&dirLight.name[0],lightNamelen);
+            
+            //Energy
+            float energySize=0;
+            file.read((char*)&energySize,sizeof(float));
+            file.read((char*)&dirLight.energy, sizeof(energySize));
+            
+            //color
+            int colorSize=0;
+            file.read((char*)&colorSize,sizeof(int));
+            std::vector<float> tempColor(colorSize,0);
+            
+            //copy temp to color
+            dirLight.color=tempColor;
+            file.read((char*)&dirLight.color[0], colorSize*sizeof(float));
+            
+            //READ LOCAL MATRIX
+            int localMatrixSize=0;
+            file.read((char*)&localMatrixSize,sizeof(int));
+            std::vector<float> tempLocalMatrix(localMatrixSize,0);
+            
+            //copy temp to light matrix
+            dirLight.localMatrix=tempLocalMatrix;
+            file.read((char*)&dirLight.localMatrix[0], localMatrixSize*sizeof(float));
+            
+            lights.directionalLights.push_back(dirLight);
+            
+        }
+        
+        //Number of point lights
+        int numberOfPointLightSize=0;
+        file.read((char*)&numberOfPointLightSize,sizeof(int));
+        file.read((char*)&lights.numberOfPointLights, sizeof(numberOfPointLightSize));
+        
+        for (int i=0; i<numberOfPointLightSize; i++) {
+            
+            POINTLIGHTRAW pointLight;
+            
+            //READ NAME
+            size_t lightNamelen=0;
+            file.read((char*)&lightNamelen,sizeof(lightNamelen));
+            pointLight.name.resize(lightNamelen);
+            file.read((char*)&pointLight.name[0],lightNamelen);
+            
+            //Energy
+            float energySize=0;
+            file.read((char*)&energySize,sizeof(float));
+            file.read((char*)&pointLight.energy, sizeof(energySize));
+            
+            //Fallout distance
+            float falloutSize=0;
+            file.read((char*)&falloutSize,sizeof(float));
+            file.read((char*)&pointLight.falloutDistance, sizeof(falloutSize));
+            
+            //constant coefficient
+            float constantCoefficientSize=0;
+            file.read((char*)&constantCoefficientSize,sizeof(float));
+            file.read((char*)&pointLight.constantCoefficient, sizeof(constantCoefficientSize));
+            
+            //linear coefficient
+            float linearCoefficientSize=0;
+            file.read((char*)&linearCoefficientSize,sizeof(float));
+            file.read((char*)&pointLight.linearCoefficient, sizeof(linearCoefficientSize));
+            
+            //quadratic coefficient
+            float quadraticCoefficientSize=0;
+            file.read((char*)&quadraticCoefficientSize,sizeof(float));
+            file.read((char*)&pointLight.quadraticCoefficient, sizeof(quadraticCoefficientSize));
+            //color
+            int colorSize=0;
+            file.read((char*)&colorSize,sizeof(int));
+            std::vector<float> tempColor(colorSize,0);
+            
+            //copy temp to color
+            pointLight.color=tempColor;
+            file.read((char*)&pointLight.color[0], colorSize*sizeof(float));
+            
+            //READ LOCAL MATRIX
+            int localMatrixSize=0;
+            file.read((char*)&localMatrixSize,sizeof(int));
+            std::vector<float> tempLocalMatrix(localMatrixSize,0);
+            
+            //copy temp to light matrix
+            pointLight.localMatrix=tempLocalMatrix;
+            file.read((char*)&pointLight.localMatrix[0], localMatrixSize*sizeof(float));
+            
+            U4DVector3n position(pointLight.localMatrix[3],pointLight.localMatrix[7],pointLight.localMatrix[11]);
+            U4DVector3n color(pointLight.color[0],pointLight.color[1],pointLight.color[2]);
+            
+            pointLights->addLight(position, color, pointLight.constantCoefficient,pointLight.linearCoefficient, pointLight.quadraticCoefficient,pointLight.energy, pointLight.falloutDistance);
+            
+        }
+        
+        logger->log("Success: Light Asset File %s succesfully Loaded.",uFilepath.c_str());
         
         return true;
         

@@ -18,6 +18,8 @@ struct Light{
     float constantAttenuation;
     float linearAttenuation;
     float expAttenuation;
+    float energy;
+    float falloutDistance;
     
 };
 

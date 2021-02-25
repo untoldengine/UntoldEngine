@@ -60,7 +60,7 @@ fragment float4 fragmentCompShader(VertexOutput vertexOut [[stage_in]], constant
     dirLight.ambientColor=float3(0.5,0.5,0.5);
     dirLight.diffuseColor=uniformDirLightProperties.diffuseColor;
     dirLight.specularColor=uniformDirLightProperties.specularColor;
-    
+    dirLight.energy=uniformDirLightProperties.energy;
     float4 diffuseColor=computeLightColor(positionData, normalData.rgb, material, dirLight);
     
     float4 pointColor=float4(0.0,0.0,0.0,1.0);
@@ -69,12 +69,13 @@ fragment float4 fragmentCompShader(VertexOutput vertexOut [[stage_in]], constant
         
         Light pointLight;
         
-        pointLight.ambientColor=float3(0.5);
+        pointLight.ambientColor=float3(1.0);
         pointLight.diffuseColor=uniformPointLightProperties[i].diffuseColor;
         pointLight.constantAttenuation=uniformPointLightProperties[i].constantAttenuation;
         pointLight.linearAttenuation=uniformPointLightProperties[i].linearAttenuation;
         pointLight.expAttenuation=uniformPointLightProperties[i].expAttenuation;
-        
+        pointLight.energy=uniformPointLightProperties[i].energy;
+        pointLight.falloutDistance=uniformPointLightProperties[i].falloutDistance;
         pointLight.position=uniformSpace.viewSpace*uniformPointLightProperties[i].lightPosition;
         
         pointColor+=computePointLightColor(positionData, normalData.rgb, material, pointLight);

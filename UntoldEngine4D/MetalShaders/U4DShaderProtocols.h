@@ -96,6 +96,7 @@ typedef struct{
     vector_float4 lightPosition;
     vector_float3 diffuseColor;
     vector_float3 specularColor;
+    float energy;
     matrix_float4x4 lightShadowProjectionSpace;
     
 }UniformDirectionalLightProperties;
@@ -108,6 +109,8 @@ typedef struct{
     float constantAttenuation;
     float linearAttenuation;
     float expAttenuation;
+    float energy;
+    float falloutDistance;
     
 }UniformPointLightProperties;
 

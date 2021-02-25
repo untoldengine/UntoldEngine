@@ -98,8 +98,8 @@ namespace U4DEngine {
         U4DVector4n lightPosition(lightPos.x, lightPos.y, lightPos.z, 1.0);
         
         //get the light color
-        U4DVector3n diffuseColor=light->getDiffuseColor();
-        U4DVector3n specularColor=light->getSpecularColor();
+        U4DVector3n diffuseColor=light->diffuseColor;
+        U4DVector3n specularColor=light->specularColor;
         
         //get the light orthogonal shadow projection
         U4DMatrix4n lightSpace=light->getLocalSpace().transformDualQuaternionToMatrix4n();
@@ -123,6 +123,8 @@ namespace U4DEngine {
         lightProperties.lightPosition=lightPositionSIMD;
         lightProperties.diffuseColor=diffuseColorSIMD;
         lightProperties.specularColor=specularColorSIMD;
+        lightProperties.energy=light->energy; 
+        
         
         memcpy(directionalLightPropertiesUniform.contents, (void*)&lightProperties, sizeof(UniformDirectionalLightProperties));
         
@@ -143,6 +145,9 @@ namespace U4DEngine {
                 float constantAtten=pointLights->pointLightsContainer.at(i).constantAttenuation;
                 float linearAtten=pointLights->pointLightsContainer.at(i).linearAttenuation;
                 float expAtten=pointLights->pointLightsContainer.at(i).expAttenuation;
+                float energy=pointLights->pointLightsContainer.at(i).energy;
+                float falloutDistance=pointLights->pointLightsContainer.at(i).falloutDistance;
+                
                 //Convert to SIMD
                 U4DNumerical numerical;
                 
@@ -154,6 +159,8 @@ namespace U4DEngine {
                 uniformPointLightProperty[i].constantAttenuation=constantAtten;
                 uniformPointLightProperty[i].linearAttenuation=linearAtten;
                 uniformPointLightProperty[i].expAttenuation=expAtten;
+                uniformPointLightProperty[i].energy=energy;
+                uniformPointLightProperty[i].falloutDistance=falloutDistance;
                 
             }
             

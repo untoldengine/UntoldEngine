@@ -176,6 +176,9 @@
 		035FEC9725D983EA005669D7 /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 035FEC9625D983EA005669D7 /* OffscreenRender.metal */; };
 		035FEC9825D983EA005669D7 /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 035FEC9625D983EA005669D7 /* OffscreenRender.metal */; };
 		035FEC9925D983EA005669D7 /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 035FEC9625D983EA005669D7 /* OffscreenRender.metal */; };
+		035FEE0E25E14DCB005669D7 /* flyinglights.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 035FEE0D25E14DCB005669D7 /* flyinglights.u4d */; };
+		035FEE0F25E14DCB005669D7 /* flyinglights.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 035FEE0D25E14DCB005669D7 /* flyinglights.u4d */; };
+		035FEE1025E14DCB005669D7 /* flyinglights.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 035FEE0D25E14DCB005669D7 /* flyinglights.u4d */; };
 		036964C6248E85190043C1C6 /* U4DSceneManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036964C4248E85180043C1C6 /* U4DSceneManager.mm */; };
 		036964C7248E85190043C1C6 /* U4DSceneManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036964C4248E85180043C1C6 /* U4DSceneManager.mm */; };
 		036964C8248E85190043C1C6 /* U4DSceneManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036964C4248E85180043C1C6 /* U4DSceneManager.mm */; };
@@ -1116,6 +1119,7 @@
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
 		035FEC9625D983EA005669D7 /* OffscreenRender.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = OffscreenRender.metal; path = MetalShaders/OffscreenRender.metal; sourceTree = "<group>"; };
+		035FEE0D25E14DCB005669D7 /* flyinglights.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = flyinglights.u4d; sourceTree = "<group>"; };
 		036964C4248E85180043C1C6 /* U4DSceneManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSceneManager.mm; sourceTree = "<group>"; };
 		036964C5248E85180043C1C6 /* U4DSceneManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DSceneManager.h; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
@@ -2089,6 +2093,7 @@
 			isa = PBXGroup;
 			children = (
 				03A7BEB925BA445900F26849 /* flyinghud.u4d */,
+				035FEE0D25E14DCB005669D7 /* flyinglights.u4d */,
 				03A7BEBA25BA445900F26849 /* flyinghudTextures.u4d */,
 				03019FEE2524DD0A0005CDDD /* astronautWalkAnim.u4d */,
 				03019FF725256DC20005CDDD /* redBulletEmitter.u4d */,
@@ -2940,6 +2945,7 @@
 				03A7BEBF25BA445900F26849 /* flyinghudTextures.u4d in Resources */,
 				03A7BEBC25BA445900F26849 /* flyinghud.u4d in Resources */,
 				03019FF925256DC20005CDDD /* redBulletEmitter.u4d in Resources */,
+				035FEE0F25E14DCB005669D7 /* flyinglights.u4d in Resources */,
 				03019FE92524DD000005CDDD /* spaceScene.u4d in Resources */,
 				03019FEC2524DD000005CDDD /* spaceTextures.u4d in Resources */,
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
@@ -2971,6 +2977,7 @@
 				03A7BEBD25BA445900F26849 /* flyinghud.u4d in Resources */,
 				03A7BEC025BA445900F26849 /* flyinghudTextures.u4d in Resources */,
 				03019FFA25256DC20005CDDD /* redBulletEmitter.u4d in Resources */,
+				035FEE1025E14DCB005669D7 /* flyinglights.u4d in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
 				0397E4D425201F010020EBD9 /* uiFont.u4d in Resources */,
 			);
@@ -2981,6 +2988,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				0397E4EA2523797D0020EBD9 /* uiTextures.u4d in Resources */,
+				035FEE0E25E14DCB005669D7 /* flyinglights.u4d in Resources */,
 				03019FEF2524DD0B0005CDDD /* astronautWalkAnim.u4d in Resources */,
 				03A7BEBB25BA445900F26849 /* flyinghud.u4d in Resources */,
 				0397E4E62523796B0020EBD9 /* sceneTextures.u4d in Resources */,

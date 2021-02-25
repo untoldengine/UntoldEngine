@@ -15,7 +15,7 @@ namespace U4DEngine {
     
     U4DDirectionalLight* U4DDirectionalLight::instance=0;
     
-    U4DDirectionalLight::U4DDirectionalLight():diffuseColor(1.0,1.0,1.0), specularColor(1.0,1.0,1.0){
+    U4DDirectionalLight::U4DDirectionalLight():diffuseColor(1.0,1.0,1.0), specularColor(1.0,1.0,1.0),energy(1.0){
                
     };
     

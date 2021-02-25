@@ -181,6 +181,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     lightColor.ambientColor=float3(0.1,0.1,0.1);
     lightColor.diffuseColor=uniformLightProperties.diffuseColor;
     lightColor.specularColor=uniformLightProperties.specularColor;
+    lightColor.energy=uniformLightProperties.energy;
     
     //compute Normal Map
     if(uniformModelRenderFlags.enableNormalMap){

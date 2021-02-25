@@ -23,6 +23,8 @@ namespace U4DEngine{
         float constantAttenuation;
         float linearAttenuation;
         float expAttenuation;
+        float energy;
+        float falloutDistance;
         
     }POINTLIGHT;
 
@@ -45,7 +47,7 @@ namespace U4DEngine{
         
         std::vector<POINTLIGHT> pointLightsContainer;
         
-        void addLight(U4DVector3n &uLightPosition, U4DVector3n &uDiffuseColor, float uConstantAtten, float uLinearAtten, float uExpAtten);
+        void addLight(U4DVector3n &uLightPosition, U4DVector3n &uDiffuseColor, float uConstantAtten, float uLinearAtten, float uExpAtten, float energy, float falloutDistance);
         
     };
 

@@ -31,7 +31,7 @@ namespace U4DEngine{
         return instance;
     }
 
-    void U4DPointLight::addLight(U4DVector3n &uLightPosition, U4DVector3n &uDiffuseColor, float uConstantAtten, float uLinearAtten, float uExpAtten){
+    void U4DPointLight::addLight(U4DVector3n &uLightPosition, U4DVector3n &uDiffuseColor, float uConstantAtten, float uLinearAtten, float uExpAtten,float energy, float falloutDistance){
       
         if(pointLightsContainer.size()<U4DEngine::maxNumberOfLights){
             
@@ -42,6 +42,8 @@ namespace U4DEngine{
             pointLight.constantAttenuation=uConstantAtten;
             pointLight.linearAttenuation=uLinearAtten;
             pointLight.expAttenuation=uExpAtten;
+            pointLight.energy=energy;
+            pointLight.falloutDistance=falloutDistance;
             
             pointLightsContainer.push_back(pointLight);
             

@@ -22,17 +22,6 @@ namespace U4DEngine {
         
     private:
         
-        /**
-         @brief The diffuse color of the light
-         */
-        U4DVector3n diffuseColor;
-        
-        /**
-         @brief The specular color of the light
-         */
-        U4DVector3n specularColor;
-        
-        
         static U4DDirectionalLight* instance;
         
     protected:
@@ -55,6 +44,22 @@ namespace U4DEngine {
          @return Returns an instance of the U4DDirectionalLight Singleton
          */
         static U4DDirectionalLight* sharedInstance();
+        
+        /**
+         @brief The diffuse color of the light
+         */
+        U4DVector3n diffuseColor;
+        
+        /**
+         @brief The specular color of the light
+         */
+        U4DVector3n specularColor;
+        
+        /**
+         @brief light energy
+         */
+        float energy;
+        
         
         /**
          @brief Method which sets the view direction of the light

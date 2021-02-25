@@ -27,7 +27,7 @@ float4 computeLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Mat
     float3 ambientLight=uLight.ambientColor*uMaterial.ambientMaterialColor;
     
     //6. compute diffuse intensity by computing the dot product. We obtain the maximum the value between 0 and the dot product
-    float diffuseIntensity=max(0.0,dot(uNormalInMVSpace,lightRayDirection));
+    float diffuseIntensity=uLight.energy*max(0.0,dot(uNormalInMVSpace,lightRayDirection)); 
     
     //7. compute Diffuse Color
     float3 diffuseLight=diffuseIntensity*uLight.diffuseColor*uMaterial.diffuseMaterialColor;
