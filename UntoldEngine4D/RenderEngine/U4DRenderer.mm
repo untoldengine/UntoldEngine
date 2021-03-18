@@ -14,14 +14,6 @@
 #include "Constants.h"
 #include "U4DRenderManager.h"
 
-#include "imgui.h"
-#include "imgui_impl_metal.h"
-
-#if TARGET_OS_OSX
-#include "imgui_impl_osx.h"
-
-#endif
-
 /// Main class performing the rendering
 @implementation U4DRenderer
 {
@@ -88,19 +80,6 @@
         
         U4DEngine::U4DRenderManager *renderManager=U4DEngine::U4DRenderManager::sharedInstance();
         renderManager->initRenderPipelines();
-        
-        IMGUI_CHECKVERSION();
-        ImGui::CreateContext();
-        ImGuiIO& io = ImGui::GetIO(); (void)io;
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-        //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-
-        // Setup Dear ImGui style
-        ImGui::StyleColorsDark();
-        //ImGui::StyleColorsClassic();
-
-        // Setup Renderer backend
-        ImGui_ImplMetal_Init(mtlDevice);
         
         
     }

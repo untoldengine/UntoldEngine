@@ -80,23 +80,23 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
             
             profilerManager->setEnableProfiler(true);
             
-//            //create layer manager
-//            U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
-//
-//            //set this view (U4DWorld subclass) to the layer Manager
-//            layerManager->setWorld(world);
-//
-//            //create Layers
-//            U4DLayer* engineProfilerLayer=new U4DLayer("engineProfilerLayer");
-//
-//            consoleLabel=new U4DText("uiFont");
-//            consoleLabel->setText("Console");
-//            consoleLabel->translateTo(-0.7,0.7,0.0);
-//
-//            profilerLabel=new U4DText("uiFont");
-//            profilerLabel->setText("Profiler");
-//            profilerLabel->translateTo(-0.7,0.6,0.0);
-//
+            //create layer manager
+            U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+
+            //set this view (U4DWorld subclass) to the layer Manager
+            layerManager->setWorld(world);
+
+            //create Layers
+            U4DLayer* engineProfilerLayer=new U4DLayer("engineProfilerLayer");
+
+            consoleLabel=new U4DText("uiFont");
+            consoleLabel->setText("Console");
+            consoleLabel->translateTo(-0.7,0.7,0.0);
+
+            profilerLabel=new U4DText("uiFont");
+            profilerLabel->setText("Profiler");
+            profilerLabel->translateTo(-0.7,0.6,0.0);
+
 //            checkboxShowProfiler=new U4DEngine::U4DCheckbox("checkboxProfiler",0.5,0.6,20.0,20.0,"Run Profiler","uiFont");
 //
 //            checkboxShowNarrowPhaseVolume=new U4DEngine::U4DCheckbox("checkboxNarrowPhase",0.5,0.5,20.0,20.0,"Draw Narrow Phase Volume","uiFont");
@@ -104,19 +104,19 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
 //            checkboxShowBroadPhaseVolume=new U4DEngine::U4DCheckbox("checkboxBroadPhase",0.5,0.4,20.0,20.0,"Draw Broad Phase Volume","uiFont");
 //
 //            U4DSlider *slider=new U4DSlider("slider",0.0,0.8,80.0,20.0,"slider","uiFont");
-//
-//            engineProfilerLayer->addChild(consoleLabel);
-//            engineProfilerLayer->addChild(profilerLabel);
+
+            engineProfilerLayer->addChild(consoleLabel);
+            engineProfilerLayer->addChild(profilerLabel);
 //            engineProfilerLayer->addChild(checkboxShowProfiler);
 //            engineProfilerLayer->addChild(checkboxShowNarrowPhaseVolume);
 //            engineProfilerLayer->addChild(checkboxShowBroadPhaseVolume);
 //            engineProfilerLayer->addChild(slider);
-//
-//            layerManager->addLayerToContainer(engineProfilerLayer);
-//
-//            //push layer
-//            layerManager->pushLayer("engineProfilerLayer");
-//
+
+            layerManager->addLayerToContainer(engineProfilerLayer);
+
+            //push layer
+            layerManager->pushLayer("engineProfilerLayer");
+
 //            //create a callback for checkbox profiler
 //            U4DCallback<U4DDebugger>* checkboxShowProfilerCallback=new U4DCallback<U4DDebugger>;
 //
@@ -152,9 +152,9 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
         
         float fps=director->getFPS();
         profilerData=profilerManager->getProfileLog();
-//        consoleLabel->log("Console:\n FPS Avg: %f",fps);
-//
-//        profilerLabel->log("Profiler:\n %s",profilerData.c_str());
+        consoleLabel->log("Console:\n FPS Avg: %f",fps);
+
+        profilerLabel->log("Profiler:\n %s",profilerData.c_str());
         
         if (enableShaderReload==true) {
             

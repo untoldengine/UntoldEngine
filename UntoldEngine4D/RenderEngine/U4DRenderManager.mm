@@ -252,12 +252,12 @@ namespace U4DEngine {
         
         
         //Editor Pass
-        if (debugger->getEnableDebugger()) {
-            
-            U4DEditorPass editorPass("none");
-            editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
-            
-        }
+//        if (debugger->getEnableDebugger()) {
+//
+//            U4DEditorPass editorPass("none");
+//            editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
+//
+//        }
         
 
     }

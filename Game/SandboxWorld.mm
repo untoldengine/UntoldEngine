@@ -56,10 +56,10 @@ void SandboxWorld::init(){
     
     //The spaceScene.u4d file contains the data for the astronaut model and ground
     //All of the .u4d files are found in the Resource folder. Note, you will need to use the Digital Asset Converter tool to convert all game asset data into .u4d files. For more info, go to www.untoldengine.com.
-    resourceLoader->loadSceneData("flyinghud.u4d");
+    resourceLoader->loadSceneData("spaceScene.u4d");
 
     //Load binary file with texture data for the astronaut
-    resourceLoader->loadTextureData("flyinghudTextures.u4d");
+    resourceLoader->loadTextureData("spaceTextures.u4d");
     
     //load ui textures contains images that can be used for the UIs. Look at the joystick instance below.
     resourceLoader->loadTextureData("uiTextures.u4d");
@@ -76,144 +76,93 @@ void SandboxWorld::init(){
     //Load light data
     resourceLoader->loadLightData("flyinglights.u4d");
     
-    //setEnableGrid(true);
+    setEnableGrid(true);
     
-    U4DEngine::U4DGameObject *houses[40];
-
-    for(int i=0;i<sizeof(houses)/sizeof(houses[0]);i++){
-
-        std::string name="house";
-        name+=std::to_string(i);
-
-        houses[i]=new U4DEngine::U4DGameObject();
-
-        if (houses[i]->loadModel(name.c_str())) {
-
-
-            houses[i]->loadRenderingInformation();
-
-            addChild(houses[i]);
-
-        }
-    }
-
-        //Create an instance of U4DGameObject type
-        U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
-
-        //Line 3. Load attribute (rendering information) into the game entity
-        if (ground->loadModel("ground")) {
-
-            
-//            ground->enableKineticsBehavior();
-//
-//            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-//
-//            ground->setGravity(zero);
-//
-//            ground->enableCollisionBehavior();
-
-            //Line 4. Load rendering information into the GPU
-            ground->loadRenderingInformation();
-
-            //Line 5. Add astronaut to the scenegraph
-            addChild(ground);
-
-        }
-
     //Create an instance of U4DGameObject type
-    U4DEngine::U4DGameObject *paperplane=new U4DEngine::U4DGameObject();
+    myAstronaut=new U4DEngine::U4DGameObject();
 
-    //Line 3. Load attribute (rendering information) into the game entity
-    if (paperplane->loadModel("paperplane")) {
-        
-//            ground->enableKineticsBehavior();
-//
-//            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-//
-//            ground->setGravity(zero);
-//
-//            ground->enableCollisionBehavior();
+    //Load attribute (rendering information) into the game entity
+    if (myAstronaut->loadModel("astronaut")) {
 
         //Line 4. Load rendering information into the GPU
-        paperplane->loadRenderingInformation();
+        myAstronaut->loadRenderingInformation();
 
         //Line 5. Add astronaut to the scenegraph
-        addChild(paperplane);
+        addChild(myAstronaut);
 
     }
     
     //Create an instance of U4DGameObject type
-//    myAstronaut=new U4DEngine::U4DGameObject();
-//
-//    //Load attribute (rendering information) into the game entity
-//    if (myAstronaut->loadModel("astronaut")) {
-//
-//
-//
-//        myAstronaut->enableKineticsBehavior();
-//
-//        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-//
-//        myAstronaut->setGravity(zero);
-//
-//        myAstronaut->enableCollisionBehavior();
-//
-//        //Line 4. Load rendering information into the GPU
-//        myAstronaut->loadRenderingInformation();
-//
-//        //Line 5. Add astronaut to the scenegraph
-//        addChild(myAstronaut);
-//
-//    }
+    U4DEngine::U4DGameObject *minion=new U4DEngine::U4DGameObject();
+
+    //Load attribute (rendering information) into the game entity
+    if (minion->loadModel("minion")) {
+
+        //Line 4. Load rendering information into the GPU
+        minion->loadRenderingInformation();
+
+        //Line 5. Add astronaut to the scenegraph
+        addChild(minion);
+
+    }
   
-//    //Line 2. Create an Animation object and link it to the 3D model
-//    U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
-//
-//    //Line 3. Load animation data into the animation object
-//    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
-//
-//        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
-//
-//    }
-//
-//    //Line 4. Check if the animation object exist and play the animation
-//    if (walkAnimation!=nullptr) {
-//
-//        walkAnimation->play();
-//
-//    }
+    //Line 2. Create an Animation object and link it to the 3D model
+    U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
+
+    //Line 3. Load animation data into the animation object
+    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
+
+        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
+
+    }
+
+    //Line 4. Check if the animation object exist and play the animation
+    if (walkAnimation!=nullptr) {
+
+        walkAnimation->play();
+
+    }
     
     //Create an instance of U4DGameObject type
-//    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
-//
-//    //Line 3. Load attribute (rendering information) into the game entity
-//    if (ground->loadModel("island")) {
-//
-//
-//        ground->enableKineticsBehavior();
-//
-//        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-//
-//        ground->setGravity(zero);
-//
-//        ground->enableCollisionBehavior();
-//
-//        //Line 4. Load rendering information into the GPU
-//        ground->loadRenderingInformation();
-//
-//        //Line 5. Add astronaut to the scenegraph
-//        addChild(ground);
-//
-//    }
+    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
+
+    //Line 3. Load attribute (rendering information) into the game entity
+    if (ground->loadModel("terrain")) {
+
+        //Line 4. Load rendering information into the GPU
+        ground->loadRenderingInformation();
+
+        //Line 5. Add astronaut to the scenegraph
+        addChild(ground);
+
+    }
+    
+    U4DEngine::U4DGameObject *models[4];
+        
+    for(int i=0;i<sizeof(models)/sizeof(models[0]);i++){
+        
+        std::string name="model";
+        name+=std::to_string(i);
+        
+        models[i]=new U4DEngine::U4DGameObject();
+        
+        if (models[i]->loadModel(name.c_str())) {
+            
+            models[i]->loadRenderingInformation();
+            
+            addChild(models[i]);
+            
+        }
+    }
     
     //Render a skybox
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    //initialize the skybox
-//    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-//
-//    //add the skybox to the scenegraph with appropriate z-depth
-//    addChild(skybox);
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+
+    //initialize the skybox
+    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+
+    //add the skybox to the scenegraph with appropriate z-depth
+    addChild(skybox);
 
 
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
@@ -245,7 +194,7 @@ void SandboxWorld::setupConfiguration(){
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(0.0,20.0,-55.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,4.0,-10.0);
 
     
     //translate camera
@@ -257,7 +206,7 @@ void SandboxWorld::setupConfiguration(){
     //Create light object, translate it and set diffuse and specular color
     U4DDirectionalLight *light=U4DDirectionalLight::sharedInstance();
     light->translateTo(10.0,10.0,-10.0);
-    U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
+    U4DEngine::U4DVector3n diffuse(1.0,1.0,1.0);
     U4DEngine::U4DVector3n specular(0.2,0.2,0.2);
     light->setDiffuseColor(diffuse);
     light->setSpecularColor(specular);
