@@ -196,8 +196,6 @@
              dispatch_semaphore_signal(block_sema);
          }];
         
-        [self update];
-        
         // Obtain a renderPassDescriptor generated from the view's drawable textures
         MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
@@ -226,6 +224,9 @@
         [commandBuffer commit];
         
     }
+    
+    //update the entities
+    [self update];
     
     //check if there is a request to change scene, and if it is safe to do so
     if(sceneManager->getRequestToChangeScene()){
