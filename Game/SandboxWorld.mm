@@ -73,9 +73,6 @@ void SandboxWorld::init(){
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");
     
-    //Load light data
-    resourceLoader->loadLightData("flyinglights.u4d");
-    
     setEnableGrid(true);
     
     //Create an instance of U4DGameObject type
@@ -92,19 +89,6 @@ void SandboxWorld::init(){
 
     }
     
-    //Create an instance of U4DGameObject type
-    U4DEngine::U4DGameObject *minion=new U4DEngine::U4DGameObject();
-
-    //Load attribute (rendering information) into the game entity
-    if (minion->loadModel("minion")) {
-
-        //Line 4. Load rendering information into the GPU
-        minion->loadRenderingInformation();
-
-        //Line 5. Add astronaut to the scenegraph
-        addChild(minion);
-
-    }
   
     //Line 2. Create an Animation object and link it to the 3D model
     U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
@@ -137,7 +121,7 @@ void SandboxWorld::init(){
 
     }
     
-    U4DEngine::U4DGameObject *models[4];
+    U4DEngine::U4DGameObject *models[2];
         
     for(int i=0;i<sizeof(models)/sizeof(models[0]);i++){
         
