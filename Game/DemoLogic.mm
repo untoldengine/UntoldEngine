@@ -315,7 +315,10 @@ void DemoLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    
+                    //CODE SNIPPET to reload shaders. Make sure the path is correct
+//                    U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
+//
+//                    debugger->reloadShader("minimappipeline", "/path_to_your_shader/minimapHotReloadShader.metal", "vertexMinimapShader", "fragmentMinimapShader");
                 }
                 
             }

@@ -49,6 +49,8 @@ fragment float4 fragmentMinimapShader(VertexOutput vertexOut [[stage_in]], const
     float2 st = -1. + 2. * vertexOut.uvCoords;
     st.x*=-1.0;
     
+    float b=abs(sdfBox(st,float2(0.5)))-0.1;
+    
     float4 minimapTexture=texture.sample(sam,vertexOut.uvCoords);
     
     float2 heroPosition=float2(uniformShaderEntityProperty.shaderParameter[0].x,uniformShaderEntityProperty.shaderParameter[0].y);
@@ -58,7 +60,7 @@ fragment float4 fragmentMinimapShader(VertexOutput vertexOut [[stage_in]], const
     
     soldier=sharpen(soldier,0.03,uniformGlobalData.resolution);
     
-    minimapTexture=max(minimapTexture,float4(soldier)*float4(0.0,0.0,0.1,0.0)*1000.0);
+    minimapTexture=max(minimapTexture,float4(soldier)*1.0/float4(0.0,0.0,1.0,0.0));
     
     float m=0.0;
     
@@ -74,8 +76,8 @@ fragment float4 fragmentMinimapShader(VertexOutput vertexOut [[stage_in]], const
         
     }
     
-    minimapTexture=max(minimapTexture,float4(m)*float4(1.0,0.0,0.0,0.0)*1000.0);
-    
+    minimapTexture=max(minimapTexture,float4(m)*float4(1.0,0.0,0.0,0.0));
+    minimapTexture=max(minimapTexture,b);
     return minimapTexture;
     
 }

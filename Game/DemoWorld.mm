@@ -339,7 +339,7 @@ void DemoWorld::update(double dt){
         heroPosition.y/=40.0;
 
         //send the hero's position to the minimap shader
-        U4DVector4n paramPosition(heroPosition.x,heroPosition.y,0.0,0.0);
+        U4DVector4n paramPosition(heroPosition.x,heroPosition.y,yaw,0.0);
         minimapShader->updateShaderParameterContainer(0, paramPosition);
 
         //get position for enemies
