@@ -25,40 +25,6 @@ typedef struct{
 }JoystickMessageData;
 
 
-
-enum{
-    
-    selectingKit,
-    selectingOptionsInMenu,
-    
-}MENUSTATE;
-
-enum{
-    idle,
-    stopped,
-    rolling,
-    kicked,
-    decelerating,
-    
-}BALLSTATE;
-
-typedef struct{
-    
-    Player *senderPlayer;
-    Player *receiverPlayer;
-    int msg;
-    void *extraInfo;
-    
-}Message;
-
-enum{
-    
-    msgChaseBall,
-    msgInterceptBall,
-    msgSupport,
-    
-}PlayerMessage;
-
 enum MouseMovementDirection{
     forwardDir,
     backwardDir,
@@ -69,21 +35,29 @@ enum MouseMovementDirection{
 
 typedef enum{
     
-    kPlayer=0x0002,
-    kBall=0x0004,
-    kFoot=0x0008,
+    kHero=0x0002,
+    kEnemySoldier=0x0004,
+    kBullet=0x0008,
     kOppositePlayer=0x000A,
     
 }GameEntityCollision;
 
-const float dribbleBallSpeed=30.0;
-const float passBallSpeed=45.0;
-const float shootBallSpeed=60.0;
-const float runSpeed=15.0;
-const float arriveMaxSpeed=25.0;
-const float arriveStopRadius=0.5;
-const float arriveSlowRadius=1.0;
-const float pursuitMaxSpeed=30.0;
-const float avoidanceMaxSpeed=35.0;
+typedef enum{
+    
+    idle,
+    patrol,
+    stealth,
+    shooting,
+    dead,
+    
+}PLAYERSTATE;
+
+typedef enum{
+    
+    create,
+    shot,
+    destroy,
+    
+}BULLETSTATE;
 
 #endif /* UserCommonProtocols_h */

@@ -6,6 +6,8 @@
 
 Hi, my name is [Harold Serrano](http://www.haroldserrano.com), and I developed the [Untold Engine](http://www.untoldengine.com), an open source 3D game engine written in C++ and Metal Graphics (API).
 
+![image7](images/image7.png)
+
 It took me over five years to develop the *Untold Engine* from scratch. I spent thousands and thousands of hours developing the Untold Engine, and now I'm releasing it as an open source. 
 
 ![image1](images/image6.png)
@@ -30,7 +32,7 @@ To run the the Untold Engine, you need the following tools:
 
 ## Current Version
 
-Beta version v0.0.14. See current [Release Notes](https://www.untoldengine.com/release-notes) for improvement and fixes.
+Beta version v0.0.15. See current [Release Notes](https://www.untoldengine.com/release-notes) for improvement and fixes.
 
 ![image5](images/image5.png)
 

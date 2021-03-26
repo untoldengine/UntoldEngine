@@ -10,17 +10,13 @@
 #include "U4DCamera.h"
 #include "U4DIndex.h"
 #include "U4DRenderSkybox.h"
-#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
     U4DSkybox::U4DSkybox(){
         renderEntity=new U4DRenderSkybox(this);
-        //setShader("vertexSkyboxShader", "fragmentSkyboxShader");
-        //setRenderPassFilter(U4DEngine::skyboxRenderPassMask);
         
-        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("skyboxpipeline"));
+        renderEntity->setPipelineForPass("skyboxpipeline",U4DEngine::finalPass);
         
     }
         

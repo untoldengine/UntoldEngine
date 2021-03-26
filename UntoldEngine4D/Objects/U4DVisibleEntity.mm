@@ -34,6 +34,14 @@ namespace U4DEngine {
         return renderEntity;
     }
 
+    void U4DVisibleEntity::setPipelineForPass(std::string uPipelineName,int uRenderPassKey){
+        renderEntity->setPipelineForPass(uPipelineName, uRenderPassKey);
+    }
+
+    void U4DVisibleEntity::setPipeline(std::string uPipelineName){
+        renderEntity->setPipelineForPass(uPipelineName, U4DEngine::finalPass);
+    }
+
 }
 
 

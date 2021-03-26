@@ -19,7 +19,7 @@ typedef enum VertexBufferIndices{
     viBoneBuffer=3,
     viModelShaderPropertyBuffer=4,
     viGlobalDataBuffer=5,
-    viLightPropertiesBuffer=6,
+    viDirLightPropertiesBuffer=6,
     viParticlesPropertiesBuffer=7,
     
 }VertexBufferIndices;
@@ -30,11 +30,12 @@ typedef enum FragmentBufferIndices{
     fiModelRenderFlagsBuffer=1,
     fiModelShaderPropertyBuffer=2,
     fiGlobalDataBuffer=3,
-    fiLightPropertiesBuffer=4,
+    fiDirLightPropertiesBuffer=4,
     fiShadowPropertiesBuffer=5,
     fiParticleSysPropertiesBuffer=6,
     fiShaderEntityPropertyBuffer=7,
     fiGeometryBuffer=8,
+    fiPointLightsPropertiesBuffer=9,
     
 }FragmentBufferIndices;
 
@@ -71,6 +72,7 @@ typedef struct{
     
     float time;
     vector_float2 resolution;
+    int numberOfPointLights;
     
 }UniformGlobalData;
 
@@ -94,9 +96,23 @@ typedef struct{
     vector_float4 lightPosition;
     vector_float3 diffuseColor;
     vector_float3 specularColor;
+    float energy;
     matrix_float4x4 lightShadowProjectionSpace;
     
-}UniformLightProperties;
+}UniformDirectionalLightProperties;
+
+typedef struct{
+    
+    vector_float4 lightPosition;
+    vector_float3 diffuseColor;
+    vector_float3 specularColor;
+    float constantAttenuation;
+    float linearAttenuation;
+    float expAttenuation;
+    float energy;
+    float falloutDistance;
+    
+}UniformPointLightProperties;
 
 typedef struct{
     

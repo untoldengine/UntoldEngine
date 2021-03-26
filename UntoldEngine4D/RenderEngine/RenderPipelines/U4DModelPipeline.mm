@@ -14,7 +14,7 @@
 
 namespace U4DEngine{
 
-    U4DModelPipeline::U4DModelPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DModelPipeline::U4DModelPipeline(std::string uName):U4DRenderPipeline(uName){
         
         
     }
@@ -23,7 +23,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DModelPipeline::initRenderPassTargetTexture(){
+    void U4DModelPipeline::initTargetTexture(){
         
         //the target for this is the default framebuffer
     }
@@ -76,7 +76,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DModelPipeline::initRenderPassDesc(){
+    void U4DModelPipeline::initPassDesc(){
     
         U4DDirector *director=U4DDirector::sharedInstance();
         
@@ -87,7 +87,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DModelPipeline::initRenderPassPipeline(){
+    bool U4DModelPipeline::buildPipeline(){
         
         NSError *error;
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -118,16 +118,19 @@ namespace U4DEngine{
         if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
         }else{
             
-            logger->log("Success: The pipeline was properly configured");
+            logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
         
     }
 
-    void U4DModelPipeline::initRenderPassAdditionalInfo(){
+    void U4DModelPipeline::initAdditionalInfo(){
     
         
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -143,22 +146,13 @@ namespace U4DEngine{
 //        memcpy(shadowPropertiesBuffer.contents, (void*)&shadowProperties, sizeof(UniformModelShadowProperties));
     }
 
-    void U4DModelPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DModelPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        float screenContentScale=director->getScreenScaleFactor();
-        
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];
 
         [uRenderEncoder setDepthStencilState:mtlRenderPassDepthStencilState];
-        
-        
-        //inpute texture here is the depth texture for the shadow
-        [uRenderEncoder setFragmentTexture:inputTexture atIndex:fiDepthTexture];
         
         [uRenderEncoder setFragmentBuffer:shadowPropertiesUniform offset:0 atIndex:fiShadowPropertiesBuffer];
         

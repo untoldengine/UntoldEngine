@@ -23,21 +23,21 @@ namespace U4DEngine {
         
     public:
         
-        U4DImagePipeline(id <MTLDevice> uMTLDevice, std::string uName);
+        U4DImagePipeline(std::string uName);
         
         ~U4DImagePipeline();
         
-        void initRenderPassTargetTexture();
+        void initTargetTexture();
         
         void initVertexDesc();
 
-        void initRenderPassDesc();
+        void initPassDesc();
         
-        void initRenderPassPipeline();
+        bool buildPipeline();
         
-        void initRenderPassAdditionalInfo();
+        void initAdditionalInfo();
         
-        void executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
+        void executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity);
         
     };
 

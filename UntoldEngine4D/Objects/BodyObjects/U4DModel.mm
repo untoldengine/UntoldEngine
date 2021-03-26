@@ -18,7 +18,7 @@
 #include "U4DRender3DModel.h"
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingAABB.h"
-#include "U4DRenderManager.h"
+
 
 #pragma mark-set up the body vertices
 
@@ -32,10 +32,10 @@ namespace U4DEngine {
         
         setEntityType(MODEL);
         
-        
-        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("modelpipeline"));
-        renderEntity->makePassPipelinePair(U4DEngine::shadowPass, renderManager->searchPipeline("shadowpipeline"));
+        renderEntity->setPipelineForPass("modelpipeline",U4DEngine::finalPass);
+        renderEntity->setPipelineForPass("shadowpipeline",U4DEngine::shadowPass);
+        renderEntity->setPipelineForPass("offscreenpipeline",U4DEngine::offscreenPass);
+        renderEntity->setPipelineForPass("gbufferpipeline",U4DEngine::gBufferPass);
         
         cullingPhaseBoundingVolume=nullptr;
         

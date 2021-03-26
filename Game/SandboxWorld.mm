@@ -10,7 +10,7 @@
 #include "CommonProtocols.h"
 #include "U4DDirector.h"
 #include "U4DCamera.h"
-#include "U4DLights.h"
+#include "U4DDirectionalLight.h"
 #include "U4DResourceLoader.h"
 #include "SandboxLogic.h"
 
@@ -27,7 +27,8 @@
 #include "U4DImage.h"
 #include "U4DText.h"
 #include "U4DRenderManager.h"
-
+#include "U4DModelPipeline.h"
+#include "U4DPointLight.h"
 
 using namespace U4DEngine;
 
@@ -53,7 +54,7 @@ void SandboxWorld::init(){
     //Load binary file with scene data
     U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
     
-    //The spaceScene.u4d file contains the data for the astronaut model and island
+    //The spaceScene.u4d file contains the data for the astronaut model and ground
     //All of the .u4d files are found in the Resource folder. Note, you will need to use the Digital Asset Converter tool to convert all game asset data into .u4d files. For more info, go to www.untoldengine.com.
     resourceLoader->loadSceneData("spaceScene.u4d");
 
@@ -80,21 +81,14 @@ void SandboxWorld::init(){
     //Load attribute (rendering information) into the game entity
     if (myAstronaut->loadModel("astronaut")) {
 
-        myAstronaut->enableKineticsBehavior();
-        
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-        
-        myAstronaut->setGravity(zero);
-        
-        myAstronaut->enableCollisionBehavior();
-        
         //Line 4. Load rendering information into the GPU
         myAstronaut->loadRenderingInformation();
 
         //Line 5. Add astronaut to the scenegraph
         addChild(myAstronaut);
-        
+
     }
+    
   
     //Line 2. Create an Animation object and link it to the 3D model
     U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
@@ -114,35 +108,46 @@ void SandboxWorld::init(){
     }
     
     //Create an instance of U4DGameObject type
-    U4DEngine::U4DGameObject *island=new U4DEngine::U4DGameObject();
+    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
 
     //Line 3. Load attribute (rendering information) into the game entity
-    if (island->loadModel("island")) {
-
-        island->enableKineticsBehavior();
-
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-
-        island->setGravity(zero);
-
-        island->enableCollisionBehavior();
+    if (ground->loadModel("terrain")) {
 
         //Line 4. Load rendering information into the GPU
-        island->loadRenderingInformation();
+        ground->loadRenderingInformation();
 
         //Line 5. Add astronaut to the scenegraph
-        addChild(island);
+        addChild(ground);
 
+    }
+    
+    U4DEngine::U4DGameObject *models[2];
+        
+    for(int i=0;i<sizeof(models)/sizeof(models[0]);i++){
+        
+        std::string name="model";
+        name+=std::to_string(i);
+        
+        models[i]=new U4DEngine::U4DGameObject();
+        
+        if (models[i]->loadModel(name.c_str())) {
+            
+            models[i]->loadRenderingInformation();
+            
+            addChild(models[i]);
+            
+        }
     }
     
     //Render a skybox
     U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
 
     //initialize the skybox
-    skybox->initSkyBox(20.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
 
     //add the skybox to the scenegraph with appropriate z-depth
     addChild(skybox);
+
 
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
     debugger->setEnableDebugger(true,this);
@@ -151,6 +156,7 @@ void SandboxWorld::init(){
 
 
 void SandboxWorld::update(double dt){
+    
     
     
 }
@@ -162,7 +168,7 @@ void SandboxWorld::setupConfiguration(){
     U4DDirector *director=U4DDirector::sharedInstance();
     
     //Compute the perspective space matrix
-    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.01f, 400.0f);
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.001f, 400.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space
@@ -171,7 +177,9 @@ void SandboxWorld::setupConfiguration(){
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-15.0);
+
+    U4DEngine::U4DVector3n cameraPosition(0.0,4.0,-10.0);
+
     
     //translate camera
     camera->translateTo(cameraPosition);
@@ -180,9 +188,9 @@ void SandboxWorld::setupConfiguration(){
     U4DVector3n origin(0,0,0);
     
     //Create light object, translate it and set diffuse and specular color
-    U4DLights *light=U4DLights::sharedInstance();
+    U4DDirectionalLight *light=U4DDirectionalLight::sharedInstance();
     light->translateTo(10.0,10.0,-10.0);
-    U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
+    U4DEngine::U4DVector3n diffuse(1.0,1.0,1.0);
     U4DEngine::U4DVector3n specular(0.2,0.2,0.2);
     light->setDiffuseColor(diffuse);
     light->setSpecularColor(specular);

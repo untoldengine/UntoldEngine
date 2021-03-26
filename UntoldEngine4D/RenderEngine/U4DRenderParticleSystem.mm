@@ -11,7 +11,6 @@
 #include "U4DShaderProtocols.h"
 #include "U4DDirector.h"
 #include "U4DCamera.h"
-#include "U4DLights.h"
 #include "U4DMaterialData.h"
 #include "U4DColorData.h"
 #include "U4DNumerical.h"
@@ -51,99 +50,6 @@ namespace U4DEngine {
         samplerStateObject=nil;
         samplerDescriptor=nil;
     }
-    
-    
-//    void U4DRenderParticleSystem::initMTLRenderLibrary(){
-//
-//        mtlLibrary=[mtlDevice newDefaultLibrary];
-//
-//        std::string vertexShaderName=u4dObject->getVertexShader();
-//        std::string fragmentShaderName=u4dObject->getFragmentShader();
-//
-//        vertexProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:vertexShaderName.c_str()]];
-//        fragmentProgram=[mtlLibrary newFunctionWithName:[NSString stringWithUTF8String:fragmentShaderName.c_str()]];
-//
-//    }
-//
-//    void U4DRenderParticleSystem::initMTLRenderPipeline(){
-//
-//        U4DDirector *director=U4DDirector::sharedInstance();
-//
-//
-//        mtlRenderPipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
-//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-//        mtlRenderPipelineDescriptor.fragmentFunction=fragmentProgram;
-//        mtlRenderPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
-//        mtlRenderPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
-//
-//        mtlRenderPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
-//
-//        //rgb blending
-//        mtlRenderPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
-//        mtlRenderPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
-//
-//        if (u4dObject->getEnableAdditiveRendering()) {
-//
-//            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
-//
-//        }else{
-//
-//            mtlRenderPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-//
-//        }
-//
-//        //alpha blending
-//        mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
-//        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorSource();
-//        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorDest();
-//
-//        //set the vertex descriptors
-//
-//        vertexDesc=[[MTLVertexDescriptor alloc] init];
-//
-//        //position data
-//        vertexDesc.attributes[0].format=MTLVertexFormatFloat4;
-//        vertexDesc.attributes[0].bufferIndex=0;
-//        vertexDesc.attributes[0].offset=0;
-//
-//        //uv data
-//        vertexDesc.attributes[1].format=MTLVertexFormatFloat4;
-//        vertexDesc.attributes[1].bufferIndex=0;
-//        vertexDesc.attributes[1].offset=4*sizeof(float);
-//
-//        //stride with padding
-//        vertexDesc.layouts[0].stride=8*sizeof(float);
-//
-//        vertexDesc.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
-//
-//
-//        mtlRenderPipelineDescriptor.vertexDescriptor=vertexDesc;
-//        mtlRenderPipelineDescriptor.vertexFunction=vertexProgram;
-//
-//
-//        depthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
-//
-//        depthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
-//
-//        depthStencilDescriptor.depthWriteEnabled=NO;
-//
-//        //        //add stencil description
-//        //        MTLStencilDescriptor *stencilStateDescriptor=[[MTLStencilDescriptor alloc] init];
-//        //        stencilStateDescriptor.stencilCompareFunction=MTLCompareFunctionAlways;
-//        //        stencilStateDescriptor.stencilFailureOperation=MTLStencilOperationKeep;
-//        //
-//        //        depthStencilDescriptor.frontFaceStencil=stencilStateDescriptor;
-//        //        depthStencilDescriptor.backFaceStencil=stencilStateDescriptor;
-//
-//
-//        //create depth stencil state
-//        depthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:depthStencilDescriptor];
-//
-//
-//        //create the rendering pipeline object
-//        mtlRenderPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPipelineDescriptor error:nil];
-//
-//    }
     
     bool U4DRenderParticleSystem::loadMTLBuffer(){
         

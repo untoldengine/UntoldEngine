@@ -10,7 +10,6 @@
 #include "U4DShaderProtocols.h"
 #include "U4DDirector.h"
 #include "U4DCamera.h"
-#include "U4DLights.h"
 #include "U4DMaterialData.h"
 #include "U4DColorData.h"
 #include "U4DResourceLoader.h"

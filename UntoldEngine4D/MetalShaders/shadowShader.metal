@@ -32,7 +32,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexShadowShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformLightProperties &uniformLightProperties [[buffer(viLightPropertiesBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexShadowShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformDirectionalLightProperties &uniformLightProperties [[buffer(viDirLightPropertiesBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     

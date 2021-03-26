@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DWorldPipeline::U4DWorldPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DWorldPipeline::U4DWorldPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -20,7 +20,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DWorldPipeline::initRenderPassTargetTexture(){
+    void U4DWorldPipeline::initTargetTexture(){
         
     }
 
@@ -41,11 +41,11 @@ namespace U4DEngine {
         
     }
 
-    void U4DWorldPipeline::initRenderPassDesc(){
+    void U4DWorldPipeline::initPassDesc(){
         
     }
 
-    void U4DWorldPipeline::initRenderPassPipeline(){
+    bool U4DWorldPipeline::buildPipeline(){
         
         NSError *error;
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -76,26 +76,23 @@ namespace U4DEngine {
         if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
 
-    }
-
-    void U4DWorldPipeline::initRenderPassAdditionalInfo(){
+        return false;
         
     }
 
-    void U4DWorldPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DWorldPipeline::initAdditionalInfo(){
         
-        U4DDirector *director=U4DDirector::sharedInstance();
-            
-        float screenContentScale=director->getScreenScaleFactor();
-        
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
+    }
+
+    void U4DWorldPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

@@ -15,7 +15,7 @@ using namespace metal;
 struct VertexInput {
     
     float4    position [[ attribute(0) ]];
-    float2    uv       [[ attribute(1) ]];
+    float2    uv       [[ attribute(2) ]];
     
 };
 
@@ -27,7 +27,7 @@ struct VertexOutput{
     
 };
 
-vertex VertexOutput vertexNonVisibleShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexNonVisibleShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -38,7 +38,7 @@ vertex VertexOutput vertexNonVisibleShader(VertexInput vert [[stage_in]], consta
     return vertexOut;
 }
 
-fragment float4 fragmentNonVisibleShader(VertexOutput vertexOut [[stage_in]], texture2d<float> texture[[texture(0)]], sampler sam [[sampler(0)]]){
+fragment float4 fragmentNonVisibleShader(VertexOutput vertexOut [[stage_in]], texture2d<float> texture[[texture(fiTexture0)]], sampler sam [[sampler(fiSampler0)]]){
     
     discard_fragment();
     

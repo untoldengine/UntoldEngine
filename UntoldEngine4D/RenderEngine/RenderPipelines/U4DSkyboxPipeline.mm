@@ -12,7 +12,7 @@
 
 namespace U4DEngine{
 
-    U4DSkyboxPipeline::U4DSkyboxPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DSkyboxPipeline::U4DSkyboxPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -20,7 +20,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassTargetTexture(){
+    void U4DSkyboxPipeline::initTargetTexture(){
         
     }
 
@@ -42,11 +42,11 @@ namespace U4DEngine{
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassDesc(){
+    void U4DSkyboxPipeline::initPassDesc(){
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassPipeline(){
+    bool U4DSkyboxPipeline::buildPipeline(){
         
         NSError *error;
         
@@ -77,27 +77,22 @@ namespace U4DEngine{
         if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
         }else{
             
             logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
 
+        return false;
+    }
+
+    void U4DSkyboxPipeline::initAdditionalInfo(){
         
     }
 
-    void U4DSkyboxPipeline::initRenderPassAdditionalInfo(){
-        
-    }
-
-    void U4DSkyboxPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-            
-        float screenContentScale=director->getScreenScaleFactor();
-        
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
+    void U4DSkyboxPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

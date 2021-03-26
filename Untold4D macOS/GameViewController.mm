@@ -9,7 +9,6 @@
 #import "GameViewController.h"
 #import "U4DRenderer.h"
 #import "U4DDirector.h"
-#import "U4DLights.h"
 #import "U4DCamera.h"
 #include "U4DTouches.h"
 #include "U4DLogger.h"
@@ -17,6 +16,7 @@
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
 #include "SandboxScene.h"
+#include "DemoScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController
@@ -94,6 +94,7 @@
     //If using the keyboard, then set it to false. If using a controller then set it to true
     director->setGamePadControllerPresent(false);
 
+
 }
 
 - (void)viewDidAppear {
@@ -109,9 +110,10 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    SandboxScene *sandboxScene=new SandboxScene();
+    //SandboxScene *sandboxScene=new SandboxScene();
+    DemoScene *demoScene=new DemoScene();
     
-    sceneManager->changeScene(sandboxScene);
+    sceneManager->changeScene(demoScene);
     
 }
 
@@ -366,6 +368,7 @@
 
     }
     
+    
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {
@@ -390,6 +393,7 @@
         
     }
     
+   
 }
 
 - (void)mouseDown:(NSEvent *)theEvent {
@@ -431,7 +435,7 @@
         
     }
     
-
+    
 }
 
 - (BOOL)acceptsFirstResponder

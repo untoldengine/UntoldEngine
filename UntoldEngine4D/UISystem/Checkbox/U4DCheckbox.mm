@@ -14,7 +14,6 @@
 #include "U4DNumerical.h"
 #include "U4DSceneManager.h"
 #include "U4DText.h"
-#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -28,9 +27,7 @@ U4DCheckbox::U4DCheckbox(std::string uName, float xPosition,float yPosition,floa
     
     controllerInterface=sceneManager->getGameController();
     
-    //setShader("vertexUICheckboxShader", "fragmentUICheckboxShader");
-    U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-    renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("checkboxpipeline"));
+    renderEntity->setPipelineForPass("checkboxpipeline",U4DEngine::finalPass);
     
     setShaderDimension(uWidth, uHeight);
 

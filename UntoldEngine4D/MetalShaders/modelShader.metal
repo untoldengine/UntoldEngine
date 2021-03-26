@@ -51,7 +51,7 @@ struct VertexOutput{
 
 
 
-vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformLightProperties &uniformLightProperties [[buffer(viLightPropertiesBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(viModelShaderPropertyBuffer)]], uint vid [[vertex_id]]){
+vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformDirectionalLightProperties &uniformLightProperties [[buffer(viDirLightPropertiesBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(viModelShaderPropertyBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
     
@@ -159,7 +159,7 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
 }
 
 
-fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(fiModelRenderFlagsBuffer)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(fiMaterialBuffer)]],constant UniformLightProperties &uniformLightProperties [[buffer(fiLightPropertiesBuffer)]] ,constant UniformShadowProperties &uniformModelShadowProperties [[buffer(fiShadowPropertiesBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(fiModelShaderPropertyBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], depth2d<float> shadowTexture [[texture(fiDepthTexture)]], texture2d<float> normalMaptexture[[texture(fiNormalTexture)]], sampler sam [[sampler(fiSampler0)]], sampler normalMapSam [[sampler(fiNormalSampler)]]){
+fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(fiModelRenderFlagsBuffer)]], constant UniformModelMaterial &uniformModelMaterial [[buffer(fiMaterialBuffer)]],constant UniformDirectionalLightProperties &uniformLightProperties [[buffer(fiDirLightPropertiesBuffer)]] ,constant UniformShadowProperties &uniformModelShadowProperties [[buffer(fiShadowPropertiesBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(fiModelShaderPropertyBuffer)]], texture2d<float> texture[[texture(fiTexture0)]], depth2d<float> shadowTexture [[texture(fiDepthTexture)]], texture2d<float> normalMaptexture[[texture(fiNormalTexture)]], sampler sam [[sampler(fiSampler0)]], sampler normalMapSam [[sampler(fiNormalSampler)]]){
     
     
     float4 totalLights;
@@ -177,10 +177,11 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     material.specularReflectionPower=float(uniformModelMaterial.specularMaterialHardness[vertexOut.materialIndex]);
     
     //set the light color
-    LightColor lightColor;
+    Light lightColor;
     lightColor.ambientColor=float3(0.1,0.1,0.1);
     lightColor.diffuseColor=uniformLightProperties.diffuseColor;
     lightColor.specularColor=uniformLightProperties.specularColor;
+    lightColor.energy=uniformLightProperties.energy;
     
     //compute Normal Map
     if(uniformModelRenderFlags.enableNormalMap){
@@ -189,11 +190,14 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         float4 sampledNormalMapColor=normalMaptexture.sample(normalMapSam,vertexOut.uvCoords.xy);
         sampledNormalMapColor = normalize(sampledNormalMapColor * 2.0 - 1.0);
         
-        totalLights=computeLights(vertexOut.lightPositionInTangentSpace, vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
+        lightColor.position=vertexOut.lightPositionInTangentSpace;
+        
+        totalLights=computeLightColor(vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
         
     }else{
     
-        totalLights=computeLights(vertexOut.lightPosition, vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material, lightColor);
+        lightColor.position=vertexOut.lightPosition;
+        totalLights=computeLightColor(vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material, lightColor);
         
     }
     

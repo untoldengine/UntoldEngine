@@ -10,7 +10,6 @@
 #include "U4DDirector.h"
 #include "U4DRenderFont.h"
 #include "U4DResourceLoader.h"
-#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -18,8 +17,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderFont(this);
             
-        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("imagepipeline"));
+        renderEntity->setPipelineForPass("imagepipeline",U4DEngine::finalPass);
         
         U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
         

@@ -12,8 +12,6 @@
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
-#include "U4DRenderManager.h"
-
 
 namespace U4DEngine {
     
@@ -45,9 +43,7 @@ void U4DJoystick::initJoystickProperties(std::string uName, float xPosition,floa
     
      setName(uName);
      
-     
-     U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-     renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("joystickpipeline")); 
+     renderEntity->setPipelineForPass("joystickpipeline",U4DEngine::finalPass); 
     
      setShaderDimension(uBackgroundWidth, uBackgroundHeight);
 

@@ -40,9 +40,6 @@ namespace U4DEngine {
          */
         bool hasTexture;
         
-        bool requestToHotReload;
-        
-        std::string hotReloadShaderFile;
         
     public:
         
@@ -103,7 +100,6 @@ namespace U4DEngine {
         
         bool getHasTexture();
         
-        void hotReloadShaders(std::string uFilepath);
         
     };
 

@@ -27,12 +27,8 @@ namespace U4DEngine {
         
     private:
         
-        /**
-         * @brief Pointer to the Uniform that holds Global data such as time, resolution,etc
-         */
-        id<MTLBuffer> globalDataUniform;
         
-        id<MTLBuffer> lightPropertiesUniform;
+        
         /**
          @brief Instace for the U4DRenderManager singleton
          */
@@ -60,18 +56,31 @@ namespace U4DEngine {
         
         static U4DRenderManager* sharedInstance();
         
-        void initRenderPipelines(id <MTLDevice> uMTLDevice);
+        /**
+         * @brief Pointer to the Uniform that holds Global data such as time, resolution,etc
+         */
+        id<MTLBuffer> globalDataUniform;
+        
+        id<MTLBuffer> directionalLightPropertiesUniform;
+        
+        id<MTLBuffer> pointLightsPropertiesUniform;
+        
+        
+        void initRenderPipelines();
         
         void render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity);
         
         void updateGlobalDataUniforms();
         
-        void updateLightDataUniforms();
+        void updateDirLightDataUniforms();
+        
+        void updatePointLightDataUniforms();
         
         U4DRenderPipelineInterface* searchPipeline(std::string uPipelineName);
         
         void addRenderPipeline(U4DRenderPipelineInterface* uRenderPipeline);
         
+        void makePipelineWithShader(std::string uPipelineName, std::string uVertexShaderName, std::string uFragmentShaderName);
     };
     
 }

@@ -30,7 +30,7 @@ namespace U4DEngine {
         
         U4DTimer *timer;
         
-        U4DWorld *world;
+        
         
         U4DText *consoleLabel;
                 
@@ -48,7 +48,12 @@ namespace U4DEngine {
         
         bool uiLoaded;
         
-        std::vector<U4DAABB*> aabbContainer;
+        bool enableShaderReload;
+        
+        std::string pipelineToReload;
+        std::string shaderFilePath;
+        std::string vertexShaderName;
+        std::string fragmentShaderName;
         
     protected:
         
@@ -57,6 +62,8 @@ namespace U4DEngine {
         ~U4DDebugger();
         
     public:
+        U4DWorld *world;
+        std::string profilerData;
         
         static U4DDebugger* sharedInstance();
         
@@ -75,6 +82,8 @@ namespace U4DEngine {
         void actionCheckboxShowNarrowPhaseVolume();
         
         void actionCheckboxShowProfiler();
+        
+        void reloadShader(std::string uPipelineToReload, std::string uFilepath, std::string uVertexShader, std::string uFragmentShader);
         
     };
 

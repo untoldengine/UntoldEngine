@@ -18,7 +18,6 @@
 #include "U4DCamera.h"
 #include "U4DDirector.h"
 #include "U4DResourceLoader.h"
-#include "U4DRenderManager.h"
 
 namespace U4DEngine {
     
@@ -26,12 +25,7 @@ namespace U4DEngine {
         
         renderEntity=new U4DRenderParticleSystem(this);
         
-        //setShader("vertexParticleSystemShader", "fragmentParticleSystemShader");
-        
-        //setRenderPassFilter(U4DEngine::particlesRenderPassMask);
-        
-        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-        renderEntity->makePassPipelinePair(U4DEngine::finalPass, renderManager->searchPipeline("particlepipeline"));
+        renderEntity->setPipelineForPass("particlepipeline",U4DEngine::finalPass);
         
         particlePhysics=new U4DParticlePhysics();
         

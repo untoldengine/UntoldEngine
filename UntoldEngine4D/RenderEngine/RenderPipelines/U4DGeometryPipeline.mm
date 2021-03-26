@@ -12,7 +12,7 @@
 
 namespace U4DEngine {
 
-    U4DGeometryPipeline::U4DGeometryPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DGeometryPipeline::U4DGeometryPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
         
@@ -20,7 +20,7 @@ namespace U4DEngine {
         
     }
         
-    void U4DGeometryPipeline::initRenderPassTargetTexture(){
+    void U4DGeometryPipeline::initTargetTexture(){
         
     }
         
@@ -41,11 +41,11 @@ namespace U4DEngine {
         
     }
 
-    void U4DGeometryPipeline::initRenderPassDesc(){
+    void U4DGeometryPipeline::initPassDesc(){
         
     }
         
-    void U4DGeometryPipeline::initRenderPassPipeline(){
+    bool U4DGeometryPipeline::buildPipeline(){
         
         NSError *error;
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -74,26 +74,25 @@ namespace U4DEngine {
         if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
         }else{
             
-            logger->log("Success: The pipeline was properly configured");
+            logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            
+            return true;
         }
+        
+        return false;
 
     }
         
-    void U4DGeometryPipeline::initRenderPassAdditionalInfo(){
+    void U4DGeometryPipeline::initAdditionalInfo(){
         
     }
         
-    void U4DGeometryPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DGeometryPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        float screenContentScale=director->getScreenScaleFactor();
-        
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

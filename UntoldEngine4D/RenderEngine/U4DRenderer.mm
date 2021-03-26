@@ -14,7 +14,6 @@
 #include "Constants.h"
 #include "U4DRenderManager.h"
 
-
 /// Main class performing the rendering
 @implementation U4DRenderer
 {
@@ -64,7 +63,7 @@
         
         director->setDisplayWidthHeight(mtkView.frame.size.width, mtkView.frame.size.height);
         mtkView.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
-        
+        mtkView.framebufferOnly=false; //this seems to be needed for the referred rendering.
         director->setMTLView(mtkView);
         
         //compute perspective space
@@ -80,7 +79,8 @@
         director->setOrthographicShadowSpace(orthographicShadowSpace);
         
         U4DEngine::U4DRenderManager *renderManager=U4DEngine::U4DRenderManager::sharedInstance();
-        renderManager->initRenderPipelines(mtlDevice);
+        renderManager->initRenderPipelines();
+        
         
     }
     
@@ -175,14 +175,12 @@
              dispatch_semaphore_signal(block_sema);
          }];
         
-        [self update];
-        
         // Obtain a renderPassDescriptor generated from the view's drawable textures
         MTLRenderPassDescriptor *renderPassDescriptor = view.currentRenderPassDescriptor;
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
         renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreActionStore;
         renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadActionClear;
-
+        
         // If we've gotten a renderPassDescriptor we can render to the drawable, otherwise we'll
         //   skip any rendering this frame because we have no drawable to draw to
         if(renderPassDescriptor != nil)
@@ -205,6 +203,9 @@
         [commandBuffer commit];
         
     }
+    
+    //update the entities
+    [self update];
     
     //check if there is a request to change scene, and if it is safe to do so
     if(sceneManager->getRequestToChangeScene()){

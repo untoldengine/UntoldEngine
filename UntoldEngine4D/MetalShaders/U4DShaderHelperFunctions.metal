@@ -10,10 +10,10 @@
 using namespace metal;
 #include "U4DShaderHelperFunctions.h"
 
-float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, LightColor uLightColor){
+float4 computeLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, Light uLight){
     
     //2. Compute the direction of the light ray betweent the light position and the vertices of the surface
-    float3 lightRayDirection=normalize(uLightPosition.xyz-uVerticesInMVSpace.xyz);
+    float3 lightRayDirection=normalize(uLight.position.xyz-uVerticesInMVSpace.xyz);
     
     //3. Normalize View Vector
     float3 viewVector=normalize(-uVerticesInMVSpace.xyz);
@@ -24,26 +24,38 @@ float4 computeLights(float4 uLightPosition, float4 uVerticesInMVSpace, float3 uN
     //COMPUTE LIGHTS
     
     //5. compute ambient lighting
-    float3 ambientLight=uLightColor.ambientColor*uMaterial.ambientMaterialColor;
+    float3 ambientLight=uLight.ambientColor*uMaterial.ambientMaterialColor;
     
     //6. compute diffuse intensity by computing the dot product. We obtain the maximum the value between 0 and the dot product
-    float diffuseIntensity=max(0.0,dot(uNormalInMVSpace,lightRayDirection));
+    float diffuseIntensity=uLight.energy*max(0.0,dot(uNormalInMVSpace,lightRayDirection)); 
     
     //7. compute Diffuse Color
-    float3 diffuseLight=diffuseIntensity*uLightColor.diffuseColor*uMaterial.diffuseMaterialColor;
+    float3 diffuseLight=diffuseIntensity*uLight.diffuseColor*uMaterial.diffuseMaterialColor;
     
     //8. compute specular lighting
     float3 specularLight=float3(0.0,0.0,0.0);
     
     if(diffuseIntensity>0.0){
         
-        specularLight=uLightColor.specularColor*uMaterial.specularMaterialColor*pow(max(dot(reflectionVector,viewVector),0.0),uMaterial.specularReflectionPower);
+        specularLight=uLight.specularColor*uMaterial.specularMaterialColor*pow(max(dot(reflectionVector,viewVector),0.0),uMaterial.specularReflectionPower);
         
         specularLight=clamp(specularLight,0.0,1.0);
         
     }
     
     return float4(ambientLight+diffuseLight+specularLight,1.0);
+    
+}
+
+float4 computePointLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, Light uLight){
+    
+    float4 lightColor=computeLightColor(uVerticesInMVSpace, uNormalInMVSpace, uMaterial, uLight);
+    
+    float lightDistance=length(uLight.position.xyz-uVerticesInMVSpace.xyz);
+    
+    float attenuation=uLight.constantAttenuation+uLight.linearAttenuation*lightDistance+uLight.expAttenuation*lightDistance*lightDistance;
+    
+    return lightColor/attenuation;
     
 }
 

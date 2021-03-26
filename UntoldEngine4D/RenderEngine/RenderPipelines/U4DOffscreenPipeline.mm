@@ -14,7 +14,7 @@
 
 namespace U4DEngine{
 
-    U4DOffscreenPipeline::U4DOffscreenPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DModelPipeline(uMTLDevice, uName){
+    U4DOffscreenPipeline::U4DOffscreenPipeline(std::string uName):U4DModelPipeline(uName){
        
     }
 
@@ -22,7 +22,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DOffscreenPipeline::initRenderPassTargetTexture(){
+    void U4DOffscreenPipeline::initTargetTexture(){
         
         //create texture descriptor
         MTLTextureDescriptor *offscreenRenderTextureDescriptor = [MTLTextureDescriptor new];
@@ -49,7 +49,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DOffscreenPipeline::initRenderPassDesc(){
+    void U4DOffscreenPipeline::initPassDesc(){
         
         //set up the offscreen render pass descriptor
         
@@ -66,7 +66,7 @@ namespace U4DEngine{
         mtlRenderPassDescriptor.depthAttachment.storeAction=MTLStoreActionStore;
     }
 
-    void U4DOffscreenPipeline::initRenderPassPipeline(){
+    bool U4DOffscreenPipeline::buildPipeline(){
         
         NSError *error;
 
@@ -96,24 +96,23 @@ namespace U4DEngine{
         if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
         }else{
             
-            logger->log("Success: The pipeline was properly configured");
+            logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
         
     }
 
-    void U4DOffscreenPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DOffscreenPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
         if(mtlRenderPassDescriptor!=nil){
-            
-            
-                        
-            [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024.0, 1024.0, 0.0, 1.0 }];
             
             //encode the pipeline
             [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

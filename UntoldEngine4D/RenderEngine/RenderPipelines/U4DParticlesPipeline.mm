@@ -12,7 +12,7 @@
 
 namespace U4DEngine{
 
-    U4DParticlesPipeline::U4DParticlesPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DParticlesPipeline::U4DParticlesPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -20,7 +20,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DParticlesPipeline::initRenderPassTargetTexture(){
+    void U4DParticlesPipeline::initTargetTexture(){
         
     }
 
@@ -47,11 +47,11 @@ namespace U4DEngine{
         
     }
 
-    void U4DParticlesPipeline::initRenderPassDesc(){
+    void U4DParticlesPipeline::initPassDesc(){
         
     }
 
-    void U4DParticlesPipeline::initRenderPassPipeline(){
+    bool U4DParticlesPipeline::buildPipeline(){
 
         NSError *error;
         
@@ -83,7 +83,11 @@ namespace U4DEngine{
         mtlRenderPassPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
         mtlRenderPassPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorOne;
         mtlRenderPassPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
-
+        ////alpha blending
+        //mtlRenderPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
+        //        mtlRenderPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorSource();
+        //        mtlRenderPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=(MTLBlendFactor)u4dObject->getBlendingFactorDest();
+        
         
         mtlRenderPassPipelineDescriptor.vertexDescriptor=vertexDesc;
         
@@ -105,26 +109,23 @@ namespace U4DEngine{
         if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
         }else{
             
-            logger->log("Success: The pipeline was properly configured");
+            logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
 
     }
 
-    void U4DParticlesPipeline::initRenderPassAdditionalInfo(){
+    void U4DParticlesPipeline::initAdditionalInfo(){
         
     }
 
-    void U4DParticlesPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-            
-        float screenContentScale=director->getScreenScaleFactor();
-        
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
+    void U4DParticlesPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

@@ -11,6 +11,7 @@
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
 #include "SandboxWorld.h"
+#include "U4DDebugger.h"
 
 SandboxLogic::SandboxLogic():showBroadPhaseVolume(false),showNarrowPhaseVolume(false){
     
@@ -73,25 +74,11 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     
                     if (controllerInputMessage.elementUIName.compare("sliderA")==0) {
                         
-                        float dataValue=controllerInputMessage.dataValue;
                         
-                        //get the sign
-                        float d=(dataValue > 0) ? 1 : ((dataValue < 0) ? -1 : 0);
-                        
-                        d*=0.1;
-                        
-                        pAstronaut->translateBy(d, 0.0, 0.0);
                     
                     }else if(controllerInputMessage.elementUIName.compare("sliderB")==0){
                         
-                        float dataValue=controllerInputMessage.dataValue;
                         
-                        //get the sign
-                        float d=(dataValue > 0) ? 1 : ((dataValue < 0) ? -1 : 0);
-                        
-                        d*=0.1;
-                        
-                        pAstronaut->translateBy(0.0, 0.0,d);
                         
                     }
                     
@@ -106,10 +93,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                 
                 if (controllerInputMessage.elementUIName.compare("joystick")==0) {
                     
-                    //std::cout<<"joystick moving"<<std::endl;
-                    float dir=controllerInputMessage.joystickDirection.x;
                     
-                    pAstronaut->rotateBy(0.0, dir, 0.0);
                 
                 }
                 
@@ -133,13 +117,11 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     
                     if (controllerInputMessage.elementUIName.compare("checkboxA")==0) {
                         
-                        showBroadPhaseVolume=!showBroadPhaseVolume;
-                        pAstronaut->setBroadPhaseBoundingVolumeVisibility(showBroadPhaseVolume);
+                        
                     
                     }else if(controllerInputMessage.elementUIName.compare("checkboxB")==0){
                      
-                        showNarrowPhaseVolume=!showNarrowPhaseVolume;
-                        pAstronaut->setNarrowPhaseBoundingVolumeVisibility(showNarrowPhaseVolume);
+                        
                     }
                     
                 }
@@ -174,7 +156,6 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    pAstronaut->translateBy(-1.0, 0.0, 0.0);
                     
                 }
             }
@@ -193,7 +174,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //8. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    pAstronaut->translateBy(1.0, 0.0, 0.0);
+                    
 
                 }
                 
@@ -211,6 +192,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
+                    U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
+                    
+                    debugger->reloadShader("compositionpipeline", "/Users/haroldserrano/Downloads/compositionReloadShader.metal", "vertexCompShader", "fragmentCompShader");
                 }
             }
                 break;

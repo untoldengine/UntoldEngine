@@ -13,11 +13,11 @@
 #include "U4DSceneManager.h"
 #include "U4DShaderProtocols.h"
 #include "U4DNumerical.h"
-#include "U4DLights.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
 
-U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+U4DShadowRenderPipeline::U4DShadowRenderPipeline(std::string uName):U4DRenderPipeline(uName){
         
         
     }
@@ -26,7 +26,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         
     }
 
-    void U4DShadowRenderPipeline::initRenderPassTargetTexture(){
+    void U4DShadowRenderPipeline::initTargetTexture(){
         
         MTLTextureDescriptor *shadowTextureDescriptor=[MTLTextureDescriptor texture2DDescriptorWithPixelFormat:MTLPixelFormatDepth32Float width:1024 height:1024 mipmapped:NO];
         
@@ -37,7 +37,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         
     }
 
-    void U4DShadowRenderPipeline::initRenderPassLibrary(std::string uVertexShader, std::string uFragmentShader){
+    void U4DShadowRenderPipeline::initLibrary(std::string uVertexShader, std::string uFragmentShader){
         
         //init the library
         mtlLibrary=[mtlDevice newDefaultLibrary];
@@ -95,7 +95,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
 
     }
 
-    void U4DShadowRenderPipeline::initRenderPassDesc(){
+    void U4DShadowRenderPipeline::initPassDesc(){
         
         //create a shadow pass descriptor
         mtlRenderPassDescriptor=[MTLRenderPassDescriptor new];
@@ -112,7 +112,7 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
         
     }
 
-    void U4DShadowRenderPipeline::initRenderPassPipeline(){
+    bool U4DShadowRenderPipeline::buildPipeline(){
         
         //set the pipeline descriptor
         NSError *error;
@@ -143,33 +143,35 @@ U4DShadowRenderPipeline::U4DShadowRenderPipeline(id <MTLDevice> uMTLDevice, std:
          //create the render pipeline
          mtlRenderPassPipelineState=[mtlDevice newRenderPipelineStateWithDescriptor:mtlRenderPassPipelineDescriptor error:&error];
         
-        if(!mtlRenderPassPipelineState){
+        U4DLogger *logger=U4DLogger::sharedInstance();
         
-            //NSLog(@"The pipeline was unable to be created: %@",error.localizedDescription);
-            U4DLogger *logger=U4DLogger::sharedInstance();
+        if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
+        }else{
+            
+            logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
         
+        return false;
     }
 
-    void U4DShadowRenderPipeline::initRenderPassAdditionalInfo(){
+    void U4DShadowRenderPipeline::initAdditionalInfo(){
 
         
         
     }
 
-    void U4DShadowRenderPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
+    void U4DShadowRenderPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         
         //set the states
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];
         [uRenderEncoder setDepthStencilState:mtlRenderPassDepthStencilState];
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024, 1024, 0.0, 1.0 }];
-    
-        [uRenderEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
+        
         
         //bind resources
         

@@ -157,6 +157,8 @@ namespace U4DEngine {
     
     static const size_t kAlignedUniformShaderPropertySize = (sizeof(UniformShaderEntityProperty) & ~0xFF) + 0x100;
     
+    const  int maxNumberOfLights=100;
+
 }
 
 #endif

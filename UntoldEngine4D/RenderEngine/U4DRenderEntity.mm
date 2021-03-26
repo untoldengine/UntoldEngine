@@ -15,6 +15,7 @@
 #include "U4DLogger.h"
 #include "U4DResourceLoader.h"
 #include "U4DNumerical.h"
+#include "U4DRenderManager.h"
 
 namespace U4DEngine {
 
@@ -66,9 +67,38 @@ U4DRenderEntity::U4DRenderEntity():eligibleToRender(false),isWithinFrustum(false
         
     }
 
-    void U4DRenderEntity::makePassPipelinePair(int uRenderPassKey, U4DRenderPipelineInterface *uPipeline){
+    void U4DRenderEntity::setPipelineForPass(std::string uPipelineName,int uRenderPassKey){
         
-        renderPassPipelineMap.insert(std::make_pair(uRenderPassKey, uPipeline));
+        U4DRenderPipelineInterface *pipeline=nullptr;
+        
+        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+        
+        //first, let's make sure that the key is not associated with a pipeline. If it is, then unlink the pair.
+        U4DRenderPipelineInterface *previousPipeline=getPipeline(uRenderPassKey);
+        
+        if (previousPipeline!=nullptr) {
+            renderPassPipelineMap.erase(uRenderPassKey);
+        }
+        
+        pipeline=renderManager->searchPipeline(uPipelineName);
+        
+        if (pipeline!=nullptr) {
+            
+            renderPassPipelineMap.insert(std::make_pair(uRenderPassKey, pipeline));
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("The pair for pipeline %s was not successful. The pipeline was not found", uPipelineName.c_str());
+            
+        }
+        
+        
+    }
+
+    void U4DRenderEntity::removePassPipelinePair(int uRenderPassKey){
+        
+        renderPassPipelineMap.erase(uRenderPassKey);
         
     }
         

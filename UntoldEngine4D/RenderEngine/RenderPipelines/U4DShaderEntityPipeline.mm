@@ -12,7 +12,7 @@
 
 namespace U4DEngine{
 
-    U4DShaderEntityPipeline::U4DShaderEntityPipeline(id <MTLDevice> uMTLDevice, std::string uName):U4DRenderPipeline(uMTLDevice, uName){
+    U4DShaderEntityPipeline::U4DShaderEntityPipeline(std::string uName):U4DRenderPipeline(uName){
         
     }
 
@@ -20,7 +20,7 @@ namespace U4DEngine{
         
     }
 
-    void U4DShaderEntityPipeline::initRenderPassTargetTexture(){
+    void U4DShaderEntityPipeline::initTargetTexture(){
         
     }
 
@@ -45,11 +45,11 @@ namespace U4DEngine{
         
     }
 
-    void U4DShaderEntityPipeline::initRenderPassDesc(){
+    void U4DShaderEntityPipeline::initPassDesc(){
         
     }
 
-    void U4DShaderEntityPipeline::initRenderPassPipeline(){
+    bool U4DShaderEntityPipeline::buildPipeline(){
 
         NSError *error;
         
@@ -114,26 +114,23 @@ namespace U4DEngine{
         if(!mtlRenderPassPipelineState){
             
             std::string errorDesc= std::string([error.localizedDescription UTF8String]);
-            logger->log("Error: The pipeline was unable to be created. %s",errorDesc.c_str());
+            logger->log("Error: The pipeline %s was unable to be created. %s",name.c_str(),errorDesc.c_str());
             
         }else{
             
-            logger->log("Success: The pipeline was properly configured");
+            logger->log("Success: The pipeline %s was properly configured",name.c_str());
+            return true;
         }
+        
+        return false;
 
     }
 
-    void U4DShaderEntityPipeline::initRenderPassAdditionalInfo(){
+    void U4DShaderEntityPipeline::initAdditionalInfo(){
         
     }
 
-    void U4DShaderEntityPipeline::executePass(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-            
-        float screenContentScale=director->getScreenScaleFactor();
-        
-        [uRenderEncoder setViewport:(MTLViewport){0.0, 0.0, director->getMTLView().bounds.size.width*screenContentScale, director->getMTLView().bounds.size.height*screenContentScale, 0.0, 1.0 }];
+    void U4DShaderEntityPipeline::executePipeline(id <MTLRenderCommandEncoder> uRenderEncoder, U4DEntity *uEntity){
         
         //encode the pipeline
         [uRenderEncoder setRenderPipelineState:mtlRenderPassPipelineState];

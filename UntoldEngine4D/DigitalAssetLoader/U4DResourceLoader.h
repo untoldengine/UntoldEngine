@@ -217,6 +217,37 @@ namespace U4DEngine {
         
     }FONTDATARAW;
 
+    typedef struct{
+
+        std::string name;
+        float energy;
+        std::vector<float> color;
+        std::vector<float> localMatrix;
+        
+    }DIRECTIONALLIGHTRAW;
+
+
+    typedef struct{
+        
+        std::string name;
+        float energy;
+        float falloutDistance;
+        float constantCoefficient;
+        float linearCoefficient;
+        float quadraticCoefficient;
+        std::vector<float> color;
+        std::vector<float> localMatrix;
+        
+    }POINTLIGHTRAW;
+
+    typedef struct{
+        int numberOfDirectionalLights;
+        int numberOfPointLights;
+        std::vector<DIRECTIONALLIGHTRAW> directionalLights;
+        std::vector<POINTLIGHTRAW> pointLights;
+        
+    }LIGHTDATARAW;
+
 }
 
 namespace U4DEngine {
@@ -239,8 +270,6 @@ class U4DResourceLoader {
         */
         std::vector<ANIMATIONSRAW> animationsContainer;
     
-        
-    
         /**
         @brief Container holding particle data
         */
@@ -256,6 +285,11 @@ class U4DResourceLoader {
          */
         std::vector<FONTDATARAW> fontsContainer;
         
+        /**
+         @brief Container holding light data
+         */
+        std::vector<LIGHTDATARAW> lightsContainer;
+    
     protected:
         
         /**
@@ -329,6 +363,12 @@ class U4DResourceLoader {
         @return true if the font data was successfully loaded
          */
         bool loadFontData(std::string uFilepath);
+    
+        
+        /**
+         @todo document this
+         */
+        bool loadLightData(std::string uFilepath);
         
         /**
         @brief Method which loads all particle asset information into the particle entity
