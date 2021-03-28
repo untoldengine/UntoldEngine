@@ -128,6 +128,11 @@ namespace U4DEngine {
          *
          * @param uValue true for is within the frustum, false if is not
          */
+        
+        /**
+         @todo document this
+         */
+        float remapValue(float uValue,U4DVector2n &uRangeFrom, U4DVector2n &uRangeTo);
             
     };
 

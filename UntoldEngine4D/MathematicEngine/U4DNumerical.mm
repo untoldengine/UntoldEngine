@@ -51,6 +51,13 @@ namespace U4DEngine {
         return uMinValue+r;
     }
 
+    float U4DNumerical::remapValue(float uValue,U4DVector2n &uRangeFrom, U4DVector2n &uRangeTo){
+        
+        float mappedValue = uRangeTo.x + (uRangeTo.y - uRangeTo.x) * ((uValue - uRangeFrom.x) / (uRangeFrom.y - uRangeFrom.x));
+        
+        return mappedValue;
+    }
+
     matrix_float4x4 U4DNumerical::convertToSIMD(U4DEngine::U4DMatrix4n &uMatrix){
         
         // 4x4 matrix - column major. X vector is 0, 1, 2, etc.

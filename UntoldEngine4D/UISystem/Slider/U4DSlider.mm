@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData):U4DShaderEntity(1.0),pCallback(NULL),controllerInterface(NULL),currentPosition(0.0,0.0),dataValue(0.0){
+U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData,U4DVector2n uScaleRange):U4DShaderEntity(1.0),pCallback(NULL),controllerInterface(NULL),currentPosition(0.0,0.0),dataValue(0.0),defaultScaleRange(-1.0, 1.0),scaleRange(uScaleRange){
     
     setName(uName);
     
@@ -68,7 +68,7 @@ U4DSlider::U4DSlider(std::string uName, float xPosition,float yPosition,float uW
     U4DVector3n pos=getAbsolutePosition();
     
     labelText->translateBy(right-centerPosition.x+U4DEngine::uiPadding,0.0,0.0);
-    valueText->translateBy(0.0,bottom-centerPosition.y-U4DEngine::uiPadding, 0.0);
+    valueText->translateBy(left-centerPosition.x+U4DEngine::uiPadding,bottom-centerPosition.y-U4DEngine::uiPadding, 0.0);
 
 }
     
@@ -83,10 +83,11 @@ U4DSlider::~U4DSlider(){
 void U4DSlider::update(double dt){
 
     if(state==U4DEngine::uimoving){
+        U4DNumerical numerical;
         
         U4DVector2n sliderPosition=(currentPosition-centerPosition)*(1.0/getShaderWidth());
         
-        dataValue=sliderPosition.x;
+        dataValue=numerical.remapValue(sliderPosition.x, defaultScaleRange, scaleRange);
         
         valueText->setText(dataValue);
         
@@ -257,6 +258,10 @@ bool U4DSlider::getIsActive(){
     
     return (getState()==U4DEngine::uimoving);
     
+}
+
+void U4DSlider::setScaleRange(U4DVector2n uScaleRange){
+    scaleRange=uScaleRange;
 }
     
 
