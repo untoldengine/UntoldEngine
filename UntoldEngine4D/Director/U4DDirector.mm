@@ -200,7 +200,7 @@ U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0)
         
         setAspect(aspect);
         
-        float fovToRad=fov*(M_PI/180);
+        float fovToRad=fov*(M_PI/180.0);
         float yscale = 1.0f / tanf(fovToRad * 0.5f); // 1 / tan == cot
         float xscale = yscale / aspect;
         float q = far / (far - near);

@@ -11,11 +11,10 @@
 
 namespace U4DEngine {
 
-U4DProfilerNode::U4DProfilerNode(std::string uNodeName):parent(nullptr),next(nullptr),timeAccumulator(0.0){
+U4DProfilerNode::U4DProfilerNode(std::string uNodeName):parent(nullptr),next(nullptr),timeAccumulator(0.0),name(uNodeName){
     
         prevSibling=this;
         lastDescendant=this;
-        name=uNodeName;
         
     }
         
