@@ -57,10 +57,14 @@ private:
     
     U4DText *labelText;
     
+    U4DVector2n defaultScaleRange;
+    
+    U4DVector2n scaleRange;
+    
 public:
     
     
-    U4DSlider(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData);
+    U4DSlider(std::string uName, float xPosition,float yPosition,float uWidth,float uHeight, std::string uLabel, std::string uFontData,U4DVector2n uScaleRange);
     
     
     ~U4DSlider();
@@ -96,7 +100,7 @@ public:
 
     float dataValue;
     
-    
+    void setScaleRange(U4DVector2n uScaleRange);
     
 };
 

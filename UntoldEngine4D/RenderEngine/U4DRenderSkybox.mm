@@ -103,38 +103,36 @@ namespace U4DEngine {
         
         //once we have the total size of the texture, then proceed with creating the texture object.
         
-        MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm size:skyboxTextureSize mipmapped:NO];
-        
-        //Create the texture object
-        textureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
-        
-        std::vector<unsigned char> skyboxImage;
-        
-        for (int slice=0; slice<6; slice++) {
+        if(skyboxTextureSize>0){
             
+            MTLTextureDescriptor *textureDescriptor=[MTLTextureDescriptor textureCubeDescriptorWithPixelFormat:MTLPixelFormatRGBA8Unorm size:skyboxTextureSize mipmapped:NO];
             
-            for(int t=0;t<resourceLoader->texturesContainer.size();t++){
-
-                if (resourceLoader->texturesContainer.at(t).name.compare(tempSkyboxTexture.at(slice))==0) {
-                    
-                    setRawImageData(resourceLoader->texturesContainer.at(t).image);
-                    
-                    imageWidth=resourceLoader->texturesContainer.at(t).width;
-                    imageHeight=resourceLoader->texturesContainer.at(t).height;
-                    
-                    MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
-        
-                    [textureObject replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
-        
-                    clearRawImageData();
-                    
-                    break;
-                    
-                }
-
+            //Create the texture object
+            textureObject=[mtlDevice newTextureWithDescriptor:textureDescriptor];
+            
+            std::vector<unsigned char> skyboxImage;
+            
+            for (int slice=0; slice<6; slice++) {
+                
+                    if (resourceLoader->loadTextureDataToEntity(this, tempSkyboxTexture.at(slice).c_str())) {
+                        
+                        MTLRegion region=MTLRegionMake2D(0, 0, imageWidth, imageHeight);
+            
+                        [textureObject replaceRegion:region mipmapLevel:0 slice:slice withBytes:&rawImageData[0] bytesPerRow:4*imageWidth bytesPerImage:4*imageWidth*imageHeight];
+            
+                        clearRawImageData();
+                        
+                    }
+                
             }
             
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            logger->log("ERROR: One of the textures for the skybox is absent.");
+            
         }
+        
 
     }
     
