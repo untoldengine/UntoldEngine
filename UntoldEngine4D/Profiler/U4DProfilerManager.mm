@@ -52,7 +52,7 @@ namespace U4DEngine {
 
     void U4DProfilerManager::startProfiling(std::string uNodeName){
         
-        if (enableProfiler==true) {
+        if (enableProfiler==true && currentNode!=nullptr) {
             
             if (currentNode->getName()!=uNodeName) {
                 currentNode=searchProfilerNode(uNodeName);
@@ -66,7 +66,7 @@ namespace U4DEngine {
 
     void U4DProfilerManager::stopProfiling(){
         
-        if (enableProfiler==true) {
+        if (enableProfiler==true && currentNode!=nullptr) {
             
             currentNode->stopProfiling();
             currentNode=currentNode->getParent();
