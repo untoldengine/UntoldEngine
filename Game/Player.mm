@@ -2,88 +2,193 @@
 //  Player.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 2/7/21.
-//  Copyright © 2021 Untold Engine Studios. All rights reserved.
+//  Created by Harold Serrano on 4/22/20.
+//  Copyright © 2020 Untold Engine Studios. All rights reserved.
 //
 
 #include "Player.h"
 #include "UserCommonProtocols.h"
-#include "U4DWorld.h"
-#include "U4DGameModelInterface.h"
-#include "U4DGameModel.h"
-#include "U4DLayerManager.h"
-#include "Rifle.h"
-#include "U4DRayCast.h"
-#include "U4DRay.h"
+#include "Foot.h"
+#include "Ball.h"
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
+#include "LevelOneLogic.h"
+#include "PathAnalyzer.h"
+#include "Team.h"
 
-Player::Player():mapLevel(nullptr),playerShooting(false),hero(nullptr),motionAccumulator(0.0,0.0,0.0){
+#include "PlayerStateManager.h"
+#include "PlayerStateInterface.h"
+
+#include "PlayerStateIdle.h"
+#include "PlayerStateChase.h"
+#include "PlayerStateDribble.h"
+#include "PlayerStateHalt.h"
+#include "PlayerStatePass.h"
+#include "PlayerStateShoot.h"
+#include "PlayerStateTap.h"
+#include "PlayerStateIntercept.h"
+#include "PlayerStateGroupNav.h"
+#include "PlayerStateStandTackle.h"
+#include "PlayerStateSlidingTackle.h"
+#include "PlayerStateMark.h"
+#include "PlayerStateJog.h"
+#include "PlayerStateFormation.h"
+#include "PlayerStateWander.h"
+
+Player::Player():motionAccumulator(0.0,0.0,0.0),rightFoot(nullptr),dribblingDirection(0.0,0.0,0.0),dribbleBall(false),passBall(false),shootBall(false),standTackleOpponent(false),haltBall(false),wander(false),forceMotionAccumulator(0.0,0.0,0.0),team(nullptr),playerIndex(0),markingPosition(0.0,0.0,0.0){
     
-    
-    
+
 }
 
 Player::~Player(){
+    
     
 }
 
 bool Player::init(const char* uModelName){
     
-    if(loadModel(uModelName)){
+    if (loadModel(uModelName)) {
         
+        //enable shadows
         
-        //enable the physics engine
-        enableKineticsBehavior();
+        //setNormalMapTexture("redkitnormal.png");
+        
+        //setShader("vertexKitShader","fragmentKitShader");
+        
+        //set state manager
+        stateManager=new PlayerStateManager(this);
+        
+        changeState(PlayerStateIdle::sharedInstance());
+        
+        //create the animation manager
+        animationManager=new U4DEngine::U4DAnimationManager();
+        
+        //create the animation objects
+        runningAnimation=new U4DEngine::U4DAnimation(this);
+        
+        idleAnimation=new U4DEngine::U4DAnimation(this);
+        
+        dribblingAnimation=new U4DEngine::U4DAnimation(this);
+        
+        haltAnimation=new U4DEngine::U4DAnimation(this);
+        
+        passingAnimation=new U4DEngine::U4DAnimation(this);
+        
+        shootingAnimation=new U4DEngine::U4DAnimation(this);
+        
+        standTackleAnimation=new U4DEngine::U4DAnimation(this);
+        
+        containAnimation=new U4DEngine::U4DAnimation(this);
+        
+        tapAnimation=new U4DEngine::U4DAnimation(this);
+        
+        joggingAnimation=new U4DEngine::U4DAnimation(this);
+        
+        slidingTackleAnimation=new U4DEngine::U4DAnimation(this);
+        
+        //load the animation data
+        if(loadAnimationToModel(runningAnimation, "running")){
 
+        }
+
+
+        //load patrol idle animation data
+        if(loadAnimationToModel(idleAnimation,"idle")){
+
+        }
+
+        //load the dribbling animation data
+        if(loadAnimationToModel(dribblingAnimation, "rightdribble")){
+            //dribblingAnimation->setPlayContinuousLoop(false);
+        }
+
+        //load the halt animation data
+        if(loadAnimationToModel(haltAnimation, "rightsolehalt")){
+            haltAnimation->setPlayContinuousLoop(false);
+        }
+
+        //load the right pass animation data
+        if(loadAnimationToModel(passingAnimation, "rightpass")){
+            passingAnimation->setPlayContinuousLoop(false);
+        }
+
+        //load the shooting animation data
+        if(loadAnimationToModel(shootingAnimation, "shooting")){
+            shootingAnimation->setPlayContinuousLoop(false);
+        }
+
+//        //load the stand tackle animation data
+//        if(loadAnimationToModel(standTackleAnimation,"standtackle")){
+//
+//            standTackleAnimation->setPlayContinuousLoop(false);
+//
+//        }
+
+        //load the stand tackle animation data
+        if(loadAnimationToModel(slidingTackleAnimation,"slidingtackle")){
+
+            slidingTackleAnimation->setPlayContinuousLoop(false);
+
+        }
+
+//        //load the contain animation data
+//        if(loadAnimationToModel(containAnimation, "forwardcontain")){
+//
+//        }
+//
+        //load the contain animation data
+        if(loadAnimationToModel(tapAnimation, "righttap")){
+            tapAnimation->setPlayContinuousLoop(false);
+        }
+
+        //load the animation data
+        if(loadAnimationToModel(joggingAnimation, "jogging")){
+
+        }
+        
+        //allow the character to move
+        enableKineticsBehavior();
+        
         //set gravity to zero
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
         setGravity(zero);
         
-        //set an animation manager
-        animationManager=new U4DEngine::U4DAnimationManager();
-
-        //create anim object
-        idleAnimation=new U4DEngine::U4DAnimation(this);
-        patrolAnimation=new U4DEngine::U4DAnimation(this);
-        shootingAnimation=new U4DEngine::U4DAnimation(this);
-        deadAnimation=new U4DEngine::U4DAnimation(this);
-            
-        //load animation
-        if(loadAnimationToModel(idleAnimation, "idle")){
-
-
-        }
-        
-        if(loadAnimationToModel(patrolAnimation, "patrol")){
-
-
-        }
-        
-        if(loadAnimationToModel(shootingAnimation, "shoot")){
-
-            //The shoot animation should only play once and then stop
-            shootingAnimation->setPlayContinuousLoop(false);
-
-        }
-        
-        if(loadAnimationToModel(deadAnimation, "dead")){
-
-            //The dead animation should only play once and then stop
-            deadAnimation->setPlayContinuousLoop(false);
-
-        }
-        
-        //enable collision behavior
+        //enable Collision
         enableCollisionBehavior();
-
-        //since we don't need the exact location of collision, just to detect if it has collided, then we can set the object as a sensor
-        setIsCollisionSensor(true);
-
-        //create a rifle object and add it to the scenegraph of the model
-        rifle=new Rifle();
         
-        if(rifle->init("rifle")){
-            addChild(rifle);
+        //setBroadPhaseBoundingVolumeVisibility(true);
+        
+        //set player as a collision sensor. Meaning only detection is enabled but not the collision response
+        setIsCollisionSensor(true);
+        
+        //I am of type
+        setCollisionFilterCategory(kPlayer);
+        
+        //I collide with type of bullet and player. The enemies can collide among themselves.
+        setCollisionFilterMask(kPlayer);
+        
+        //set a tag
+        setCollidingTag("player");
+        
+        //set default view of the character
+        U4DEngine::U4DVector3n viewDirectionVector(0.0,0.0,-1.0);
+        setEntityForwardVector(viewDirectionVector);
+        
+        //set mass of character
+        initMass(1.0);
+        
+        //send data to the GPU
+        loadRenderingInformation();
+        
+        //render the right foot
+        rightFoot=new Foot(this);
+        
+        if(rightFoot->init("rightfoot")){
+            
+            setFoot(rightFoot);
+            
         }
+        
         
         return true;
     }
@@ -93,263 +198,67 @@ bool Player::init(const char* uModelName){
 }
 
 void Player::update(double dt){
-
-    if (state==patrol && hero!=nullptr) {
-
-        //get the navigation velocity computed by the Game Logic, i.e., DemoLogic
-        //Check if the resulting velocity is set to zero. Do this as a a safeguard. I have to fix this issue.
-        if(!(navigationVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
-
-            applyVelocity(navigationVelocity, dt);
-            setViewDirection(navigationVelocity);
-
-        }
-
-        //Link the rifle to the motion of the animation
-        //declare matrix for the gun space
-        U4DEngine::U4DMatrix4n m;
-
-        //Get the bone animation for "patrol" pose space
-
-        if (getBoneAnimationPose("wrist.R", patrolAnimation, m)) {
-
-            //Apply space to gun
-            rifle->setLocalSpace(m);
-
-        }
-
-        if((hero->getAbsolutePosition()-getAbsolutePosition()).magnitude()<5.0){
-
-            //remove velocities
-            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-
-            setVelocity(zero);
-            setAngularVelocity(zero);
-
-            changeState(shooting);
-        }
-
-    }else if(state==stealth){
     
-        //do a wall test intersection. If the model is colliding, then change the state to idle
-        if(!testMapIntersection()){
-            U4DEngine::U4DVector3n forceDir=forceDirection*8.0;
-            applyVelocity(forceDir, dt);
-
-        }else{
-            changeState(idle);
-        }
-        
-        //link the rifle to the motion of the animation
-        //declare matrix for the gun space
-        U4DEngine::U4DMatrix4n m;
-
-        //Get the bone animation for "patrol" pose space
-
-        if (getBoneAnimationPose("wrist.R", patrolAnimation, m)) {
-
-            //Apply space to gun
-            rifle->setLocalSpace(m);
-
-        }
-        
-    }else if(state==shooting){
-        
-        //link the rifle to the motion of the animation
-        //declare matrix for the gun space
-        U4DEngine::U4DMatrix4n m;
-
-        //Get the bone animation for "running" pose space
-
-        if (getBoneAnimationPose("wrist.R", patrolAnimation, m)) {
-
-            //Apply space to gun
-            rifle->setLocalSpace(m);
-
-        }
-        
-        //check if the shooting animation is playing. If so, then shoot the bullet
-        if(shootingAnimation->getAnimationIsPlaying() && shootingAnimation->getCurrentKeyframe()>0 && playerShooting==false){
-                    
-            shoot();
-
-            playerShooting=true;
-            
-        }else if(shootingAnimation->getAnimationIsPlaying()==false){
-
-            playerShooting=false;
-            changeState(previousState);
-            
-        }
-
-    }else if(state==dead){
-        
-        //declare matrix for the gun space
-        U4DEngine::U4DMatrix4n m;
-
-        //Get the bone animation for "running" pose space
-
-        if (getBoneAnimationPose("wrist.R", deadAnimation, m)) {
-
-            //Apply space to gun
-            rifle->setLocalSpace(m);
-
-        }
-
-        //remove velocities
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-
-        setVelocity(zero);
-        setAngularVelocity(zero);
-        
-    }else if (state==idle){
-
-        //declare matrix for the gun space
-        U4DEngine::U4DMatrix4n m;
-
-        //Get the bone animation for "running" pose space
-
-        if (getBoneAnimationPose("wrist.R", idleAnimation, m)) {
-
-            //Apply space to gun
-            rifle->setLocalSpace(m);
-
-        }
-
-        //remove velocities
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-
-        setVelocity(zero);
-        setAngularVelocity(zero);
-
-    }
+    stateManager->update(dt);
     
 }
 
-void Player::setHero(Player *uHero){
-    hero=uHero;
-}
-
-void Player::setState(int uState){
+void Player::changeState(PlayerStateInterface *uState){
     
-    state=uState;
+    stateManager->safeChangeState(uState);
     
 }
 
-int Player::getState(){
+
+PlayerStateInterface *Player::getCurrentState(){
     
-    return state;
+    return stateManager->getCurrentState();
 }
 
-int Player::getPreviousState(){
+PlayerStateInterface *Player::getPreviousState(){
     
-    return previousState;
-    
+    return stateManager->getPreviousState();
 }
 
-bool Player::testMapIntersection(){
+void Player::setFoot(Foot *uRightFoot){
     
-    bool wallIntersection=false;
+    rightFoot=uRightFoot;
     
-    if (mapLevel!=nullptr) {
-        
-        //create a ray cast
-        U4DEngine::U4DRayCast rayCast;
-        U4DEngine::U4DTriangle hitTriangle;
-        U4DEngine::U4DPoint3n intPoint;
-        float intTime=0.0;
-        
-        //create a ray
-        U4DEngine::U4DPoint3n pos=getAbsolutePosition().toPoint();
-        U4DEngine::U4DVector3n rayDirection=forceDirection;
-        
-        U4DEngine::U4DRay ray(pos,rayDirection);
-        
-        if(rayCast.hit(ray,mapLevel,hitTriangle,intPoint, intTime)){
-            
-                if(intTime<0.7){
-                   
-                    wallIntersection=true;
-                
-                }
+    //make the right foot a child of the player
+    addChild(rightFoot);
+    
+    //declare matrix for the gun space
+    U4DEngine::U4DMatrix4n m;
+    //original toe.R
+    //2. Get the bone rest pose space
+    if(getBoneRestPose("foot.R",m)){
 
-        }
+        //3. Apply space to gun
+        rightFoot->setLocalSpace(m);
         
     }
+        
+}
 
-    return wallIntersection;
+void Player::setForceDirection(U4DEngine::U4DVector3n &uForceDirection){
+    
+    forceDirection=uForceDirection;
     
 }
 
-void Player::testRampIntersection(){
+void Player::setDribblingDirection(U4DEngine::U4DVector3n &uDribblingDirection){
+    
+    dribblingDirection=uDribblingDirection;
     
 }
 
-void Player::changeState(int uState){
-    
-    //set previous state
-    previousState=state;
 
-    //set state
-    setState(uState);
-
-    //We use the animation manager to switch between animations.
-    //ask the animation manager to remove the currently playing animation
-    animationManager->removeCurrentPlayingAnimation();
-
-    U4DEngine::U4DAnimation *currentAnimation=nullptr;
-
-    switch (uState) {
-
-        case idle:
-        {
-
-            currentAnimation=idleAnimation;
-
-        }
-            break;
-
-        case patrol:
-
-            currentAnimation=patrolAnimation;
-
-            break;
-            
-        case stealth:
-
-            currentAnimation=patrolAnimation;
-
-            break;
-
-        case shooting:
-            
-            currentAnimation=shootingAnimation;
-            
-            break;
-            
-        case dead:
-            
-            currentAnimation=deadAnimation;
-            
-            break;
-
-        default:
-            break;
-    }
-
-    //ask the animation to play the next animation
-    if (currentAnimation!=nullptr) {
-        animationManager->setAnimationToPlay(currentAnimation);
-        animationManager->playAnimation();
-    }
-    
-}
 
 void Player::applyForce(float uFinalVelocity, double dt){
     
-    //force=m*(vf-vi)/dt
+    //force =m*(vf-vi)/dt
     
-    //get the force direction
+    //get the force direction and normalize
     forceDirection.normalize();
     
     //get mass
@@ -358,13 +267,38 @@ void Player::applyForce(float uFinalVelocity, double dt){
     //calculate force
     U4DEngine::U4DVector3n force=(forceDirection*uFinalVelocity*mass)/dt;
     
-    force=rampOrientation*force;
-    
     //apply force to the character
     addForce(force);
     
-    //set inital velocity to zero
+    //set initial velocity to zero
+    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+    setVelocity(zero);
     
+}
+
+void Player::applyVelocity(U4DEngine::U4DVector3n &uFinalVelocity, double dt){
+    
+    //force=m*(vf-vi)/dt
+    
+    //get mass
+    float mass=getMass();
+    
+    //smooth out the motion of the camera by using a Recency Weighted Average.
+    //The RWA keeps an average of the last few values, with more recent values being more
+    //significant. The bias parameter controls how much significance is given to previous values.
+    //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+    //A bias of 1 ignores the new value altogether.
+    float biasMotionAccumulator=0.1;
+    
+    forceMotionAccumulator=forceMotionAccumulator*biasMotionAccumulator+uFinalVelocity*(1.0-biasMotionAccumulator);
+    
+    //calculate force
+    U4DEngine::U4DVector3n force=(forceMotionAccumulator*mass)/dt;
+    
+    //apply force
+    addForce(force);
+    
+    //set initial velocity to zero
     U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
     setVelocity(zero);
     
@@ -413,46 +347,200 @@ void Player::setViewDirection(U4DEngine::U4DVector3n &uViewDirection){
     
 }
 
-
-void Player::setForceDirection(U4DEngine::U4DVector3n &uForceDirection){
+void Player::setMoveDirection(U4DEngine::U4DVector3n &uMoveDirection){
     
-    forceDirection=uForceDirection;
+    uMoveDirection.normalize();
+
+    //Get entity forward vector for the player
+    U4DEngine::U4DVector3n v=getViewInDirection();
+
+    v.normalize();
+    
+    //smooth out the motion of the camera by using a Recency Weighted Average.
+    //The RWA keeps an average of the last few values, with more recent values being more
+    //significant. The bias parameter controls how much significance is given to previous values.
+    //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+    //A bias of 1 ignores the new value altogether.
+    float biasMotionAccumulator=0.40;
+    
+    motionAccumulator=motionAccumulator*biasMotionAccumulator+uMoveDirection*(1.0-biasMotionAccumulator);
+    
+    motionAccumulator.normalize();
+
+    //set an up-vector
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+
+    U4DEngine::U4DMatrix3n m=getAbsoluteMatrixOrientation();
+
+    //transform the up vector
+    upVector=m*upVector;
+
+    U4DEngine::U4DVector3n posDir=v.cross(upVector);
+
+    //Get the angle between the analog joystick direction and the view direction
+    float angle=v.angle(motionAccumulator);
+
+    //if the dot product between the joystick-direction and the positive direction is less than zero, flip the angle
+    if(motionAccumulator.dot(posDir)>0.0){
+        angle*=-1.0;
+    }
+    
+    //create a quaternion between the angle and the upvector
+    U4DEngine::U4DQuaternion newOrientation(angle,upVector);
+
+    //Get current orientation of the player
+    U4DEngine::U4DQuaternion modelOrientation=getAbsoluteSpaceOrientation();
+
+    //create slerp interpolation
+    U4DEngine::U4DQuaternion p=modelOrientation.slerp(newOrientation, 1.0);
+
+    //rotate the character
+    rotateBy(p);
+
+    //set the force direction
+    U4DEngine::U4DVector3n forceDir=getViewInDirection();
+
+    forceDir.y=0.0;
+
+    forceDir.normalize();
+
+    setForceDirection(forceDir);
+
+}
+
+void Player::setEnableDribbling(bool uValue){
+    dribbleBall=uValue;
+}
+
+void Player::setEnablePassing(bool uValue){
+    passBall=uValue;
+}
+
+void Player::setEnableShooting(bool uValue){
+    shootBall=uValue;
+}
+
+void Player::setEnableStandTackle(bool uValue){
+    standTackleOpponent=uValue;
+}
+
+void Player::setEnableHalt(bool uValue){
+    haltBall=uValue;
     
 }
 
-void Player::setMap(U4DEngine::U4DGameObject *uMap){
-    mapLevel=uMap;
+U4DEngine::U4DVector3n Player::getBallPositionOffset(){
+    
+    Ball *ball=Ball::sharedInstance();
+    
+    U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+    U4DEngine::U4DVector3n viewDir=getViewInDirection();
+    
+    U4DEngine::U4DVector3n leftHand=viewDir.cross(upVector);
+    
+    U4DEngine::U4DVector3n ballPosition=ball->getAbsolutePosition();
+    
+    U4DEngine::U4DVector3n ballPositionOffset=ballPosition+leftHand*halfwayBallOffset;
+    
+    return ballPositionOffset;
+    
 }
 
-void Player::shoot(){
+void Player::updateFootSpaceWithAnimation(U4DEngine::U4DAnimation *uAnimation){
     
-    U4DEngine::U4DVector3n bulletDirection=getViewInDirection();
-    
-    rifle->shoot(bulletDirection);
+    if (rightFoot!=nullptr) {
+        
+        //declare matrix for the gun space
+        U4DEngine::U4DMatrix4n m;
+        //original is toe.R
+        //2. Get the bone animation "runningAnimation" pose space
+        if(getBoneAnimationPose("foot.R",uAnimation,m)){
+
+            //3. Apply space to gun
+            rightFoot->setLocalSpace(m);
+            
+        }
+        
+    }
     
 }
 
-void Player::applyVelocity(U4DEngine::U4DVector3n &uFinalVelocity, double dt){
+void Player::addToTeam(Team *uTeam){
     
-    //force=m*(vf-vi)/dt
+    team=uTeam;
     
-    //get mass
-    float mass=getMass();
-    
-    //calculate force
-    U4DEngine::U4DVector3n force=(uFinalVelocity*mass)/dt;
-    
-    //apply force to the character
-    addForce(force);
-    
-    //set inital velocity to zero
-    
-    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-    setVelocity(zero);
-
 }
 
-void Player::setNavigationVelocity(U4DEngine::U4DVector3n &uNavigationVelocity){
-    navigationVelocity=uNavigationVelocity;
+Team *Player::getTeam(){
+    return team;
 }
+
+U4DEngine::U4DAnimationManager *Player::getAnimationManager(){
+    return animationManager;
+}
+
+U4DEngine::U4DAnimation *Player::getAnimationToPlay(){
+    
+    U4DEngine::U4DAnimation *currentAnimation=nullptr;
+    
+    //get current state animation
+    if(getCurrentState()==PlayerStateIdle::sharedInstance()){
+       
+        currentAnimation=idleAnimation;
+         
+    }else if (getCurrentState()==PlayerStateChase::sharedInstance() || getCurrentState()==PlayerStateIntercept::sharedInstance() || getCurrentState()==PlayerStateGroupNav::sharedInstance() || getCurrentState()==PlayerStateMark::sharedInstance()|| getCurrentState()==PlayerStateFormation::sharedInstance() || getCurrentState()==PlayerStateWander::sharedInstance()){
+        
+        currentAnimation=runningAnimation;
+        
+    }else if (getCurrentState()==PlayerStateDribble::sharedInstance()){
+        
+        currentAnimation=dribblingAnimation;
+        
+    }else if (getCurrentState()==PlayerStateHalt::sharedInstance()){
+        
+        currentAnimation=haltAnimation;
+        
+    }else if (getCurrentState()==PlayerStatePass::sharedInstance()){
+        
+        currentAnimation=passingAnimation;
+        
+    }else if (getCurrentState()==PlayerStateShoot::sharedInstance()){
+        
+        currentAnimation=shootingAnimation;
+        
+    }else if(getCurrentState()==PlayerStateTap::sharedInstance()){
+        currentAnimation=tapAnimation;
+    }else if(getCurrentState()==PlayerStateStandTackle::sharedInstance()){
+        currentAnimation=standTackleAnimation;
+    }else if(getCurrentState()==PlayerStateSlidingTackle::sharedInstance()){
+        currentAnimation=slidingTackleAnimation;
+    }else if(getCurrentState()==PlayerStateJog::sharedInstance()){
+        currentAnimation=joggingAnimation;
+    }
+    
+    return currentAnimation;
+    
+}
+
+void Player::handleMessage(Message &uMsg){
+    stateManager->handleMessage(uMsg);
+}
+
+
+void Player::setPlayerIndex(int uIndex){
+    playerIndex=uIndex;
+}
+
+int Player::getPlayerIndex(){
+    
+    return playerIndex;
+    
+}
+
+U4DEngine::U4DVector3n Player::getMarkingPosition(){
+    
+    return markingPosition;
+    
+}
+
 

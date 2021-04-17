@@ -97,6 +97,16 @@ namespace U4DEngine {
          */
         void setParameters(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset);
         
+        void setParametersWithBoxTracking(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset,U4DPoint3n uMinPoint, U4DPoint3n uMaxPoint){};
+        
+        void trackBoundingBox(){};
+        
+        U4DBoundingAABB *getBoundingBox(){};
+        
+        void pauseBoxTracking(){};
+        
+        void resumeBoxTracking(){};
+        
     };
     
 }

@@ -9,12 +9,14 @@
 #import "GameViewController.h"
 #import "U4DRenderer.h"
 #import "U4DDirector.h"
-#import "U4DLights.h"
 #import "U4DCamera.h"
 #include "U4DTouches.h"
+#include "U4DLogger.h"
+#include "U4DVector2n.h"
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
 #include "SandboxScene.h"
+#include "LevelOneScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController{
@@ -48,7 +50,7 @@
     //   further calls until the renderer has returned from that long -[AAPLRender drawInMTKView:]
     //   call.  In other words, the view will drop frames.  So we should set this to a frame rate
     //   that we think our renderer can consistently maintain.
-    metalView.preferredFramesPerSecond = 30;
+    metalView.preferredFramesPerSecond = 60;
     
     if(!metalView.device)
     {
@@ -89,9 +91,10 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    SandboxScene *sandboxScene=new SandboxScene();
+    //SandboxScene *sandboxScene=new SandboxScene();
+    LevelOneScene *levelOneScene=new LevelOneScene();
     
-    sceneManager->changeScene(sandboxScene);
+    sceneManager->changeScene(levelOneScene);
     
 }
 
