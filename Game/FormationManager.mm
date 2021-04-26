@@ -10,11 +10,11 @@
 
 FormationManager::FormationManager(){
     
-    U4DEngine::U4DVector3n s0(2.0,0.0,-2.0);
-    U4DEngine::U4DVector3n s1(-2.0,0.0,-2.0);
-    U4DEngine::U4DVector3n s2(-4.0,0.0,2.0);
-    U4DEngine::U4DVector3n s3(0.0,0.0,2.0);
-    U4DEngine::U4DVector3n s4(4.0,0.0,2.0);
+    U4DEngine::U4DVector3n s0(7.0,0.0,-6.0);
+    U4DEngine::U4DVector3n s1(11.0,0.0,7.5);
+    U4DEngine::U4DVector3n s2(0.0,0.0,7.5);
+    U4DEngine::U4DVector3n s3(-11.0,0.0,7.5);
+    U4DEngine::U4DVector3n s4(-7.0,0.0,-6.0);
     
     spots.push_back(s0);
     spots.push_back(s1);

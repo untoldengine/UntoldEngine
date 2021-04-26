@@ -148,7 +148,7 @@ typedef struct{
 
 typedef struct{
     
-    matrix_float4x4 boneSpace[30];
+    matrix_float4x4 boneSpace[60];
     
 }UniformBoneSpace;
 

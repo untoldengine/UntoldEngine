@@ -16,6 +16,7 @@
 #include "PlayerStateShoot.h"
 #include "PlayerStateTap.h"
 #include "PlayerStateIntercept.h"
+#include "PlayerStateGoHome.h"
 #include "PlayAnalyzer.h"
 #include "MessageDispatcher.h"
 #include "Team.h"
@@ -106,6 +107,11 @@ bool PlayerStatePass::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

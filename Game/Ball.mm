@@ -65,12 +65,14 @@ bool Ball::init(const char* uModelName){
         setCollisionFilterCategory(kBall);
         
         //I collide with type of ball.
-        setCollisionFilterMask(kFoot);
+        setCollisionFilterMask(kFoot|kOppositePlayer|kGoalSensor);
         
         //set a tag
         setCollidingTag("ball");
         
         setState(idle);
+        
+        homePosition=getAbsolutePosition();
         
         //send info to the GPU
         loadRenderingInformation();
@@ -111,13 +113,37 @@ void Ball::update(double dt){
         //remove all velocities from the character
         decelerate(dt);
         
+    }else if (state==scored){
+        
+        //remove all velocities from the character
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+
+        setVelocity(zero);
+        setAngularVelocity(zero);
+        
     }
     
-//    if (getModelHasCollided()) {
-//
+    if (getModelHasCollided()) {
+        
+        // Line 2. Get a list of entities it is colliding with
+        for(auto n:getCollisionList()){
+            
+            // Line 3. Check if the entity an island
+            if (n->getCollidingTag().compare("goalsensor0")==0) {
+                
+                //inform the model that a goal was scored
+                pauseCollisionBehavior();
+                changeState(scored);
+                
+            }
+            
+        }
+        
 //        applyForce(kickMagnitude, dt);
 //        changeState(rolling);
-//    }
+    }
+    
+    
     if(state==kicked && !getModelHasCollided()){
         changeState(decelerating);
     }

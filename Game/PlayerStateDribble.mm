@@ -15,6 +15,7 @@
 #include "PlayerStatePass.h"
 #include "PlayerStateShoot.h"
 #include "PlayerStateTap.h"
+#include "PlayerStateGoHome.h"
 #include "MessageDispatcher.h"
 
 PlayerStateDribble* PlayerStateDribble::instance=0;
@@ -55,6 +56,11 @@ void PlayerStateDribble::enter(Player *uPlayer){
     //set the distance to start slowing down
     uPlayer->arriveBehavior.setSlowRadius(arriveSlowRadius);
     
+    //set the avoidance max speed
+    uPlayer->avoidanceBehavior.setMaxSpeed(avoidanceMaxSpeed);
+    
+    uPlayer->avoidanceBehavior.setTimeParameter(20.0);
+    
     //set as the controlling Player
     Team *team=uPlayer->getTeam();
     team->setControllingPlayer(uPlayer);
@@ -88,6 +94,12 @@ void PlayerStateDribble::execute(Player *uPlayer, double dt){
     
     U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer, ballPosition);
     
+//    U4DEngine::U4DVector3n avoidanceBehavior=uPlayer->avoidanceBehavior.getSteering(uPlayer);
+//
+//    if (uPlayer->getModelHasCollidedBroadPhase()) {
+//        finalVelocity=finalVelocity*0.7+avoidanceBehavior*0.3;
+//    }
+    
     //set the final y-component to zero
     finalVelocity.y=0.0;
     
@@ -116,10 +128,11 @@ void PlayerStateDribble::execute(Player *uPlayer, double dt){
          
     }
     
-    uPlayer->rightFoot->resumeCollisionBehavior();
+    
     
     if (currentAnimation->getAnimationIsPlaying()==true && currentAnimation->getCurrentKeyframe()>1) {
         
+        uPlayer->rightFoot->resumeCollisionBehavior();
         uPlayer->rightFoot->setKickBallParameters(dribbleBallSpeed,uPlayer->dribblingDirection);
         
         
@@ -141,6 +154,11 @@ bool PlayerStateDribble::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

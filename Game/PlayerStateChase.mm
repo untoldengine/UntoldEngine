@@ -104,11 +104,11 @@ void PlayerStateChase::execute(Player *uPlayer, double dt){
     //compute the final velocity
     U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer, ballPosition);
     
-    U4DEngine::U4DVector3n avoidanceBehavior=uPlayer->avoidanceBehavior.getSteering(uPlayer);
-    
-    if (uPlayer->getModelHasCollidedBroadPhase()) {
-        finalVelocity=finalVelocity*0.7+avoidanceBehavior*0.3;
-    }
+//    U4DEngine::U4DVector3n avoidanceBehavior=uPlayer->avoidanceBehavior.getSteering(uPlayer);
+//
+//    if (uPlayer->getModelHasCollidedBroadPhase()) {
+//        finalVelocity=finalVelocity*0.7+avoidanceBehavior*0.3;
+//    }
     
     //set the final y-component to zero
     finalVelocity.y=0.0;

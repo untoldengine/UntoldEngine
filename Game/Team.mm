@@ -12,14 +12,17 @@
 #include "PlayAnalyzer.h"
 #include "Constants.h"
 #include "MessageDispatcher.h"
+#include "TeamStateManager.h"
+#include "TeamStateInterface.h"
+#include "TeamStateIdle.h"
 
-Team::Team():controllingPlayer(nullptr),startingPosition(0.0,0.0,0.0),playerIndex(0),markingPlayer(nullptr){
+Team::Team():controllingPlayer(nullptr),startingPosition(0.0,0.0,0.0),playerIndex(0),markingPlayer(nullptr),enableDefenseAnalyzer(false),aiTeam(false){
     
     //Create the callback. Notice that you need to provide the name of the class
-    analyzerScheduler=new U4DEngine::U4DCallback<Team>;
+    defenseScheduler=new U4DEngine::U4DCallback<Team>;
     
     //create the timer
-    analyzerTimer=new U4DEngine::U4DTimer(analyzerScheduler);
+    defenseTimer=new U4DEngine::U4DTimer(defenseScheduler);
     
     //Create the callback. Notice that you need to provide the name of the class
     formationScheduler=new U4DEngine::U4DCallback<Team>;
@@ -27,7 +30,12 @@ Team::Team():controllingPlayer(nullptr),startingPosition(0.0,0.0,0.0),playerInde
     //create the timer
     formationTimer=new U4DEngine::U4DTimer(formationScheduler);
     
+    //set state manager
+    stateManager=new TeamStateManager(this); 
     
+    changeState(TeamStateIdle::sharedInstance());
+    
+    startAnalyzing();
 }
 
 Team::~Team(){
@@ -35,15 +43,35 @@ Team::~Team(){
     //In the class destructor,  make sure to delete the U4DCallback and U4DTimer as follows.
     //Make sure that before deleting the scheduler and timer, to first unsubscribe the timer.
     
-    analyzerScheduler->unScheduleTimer(analyzerTimer);
+    defenseScheduler->unScheduleTimer(defenseTimer);
     formationScheduler->unScheduleTimer(formationTimer);
     
-    delete analyzerScheduler;
-    delete analyzerTimer;
+    delete defenseScheduler;
+    delete defenseTimer;
     
     delete formationScheduler;
     delete formationTimer;
     
+}
+
+void Team::update(double dt){
+    stateManager->update(dt);
+}
+
+TeamStateInterface *Team::getCurrentState(){
+    return stateManager->getCurrentState();
+}
+
+TeamStateInterface *Team::getPreviousState(){
+    return stateManager->getPreviousState();
+}
+
+void Team::changeState(TeamStateInterface *uState){
+    stateManager->safeChangeState(uState);
+}
+
+void Team::handleMessage(Message &uMsg){
+    stateManager->handleMessage(uMsg);
 }
 
 void Team::addPlayer(Player *uPlayer){
@@ -67,63 +95,43 @@ void Team::setOppositeTeam(Team *uTeam){
 
 void Team::startAnalyzing(){
     
-    analyzerScheduler->scheduleClassWithMethodAndDelay(this, &Team::analyzeField, analyzerTimer, 0.2,true);
+    defenseScheduler->scheduleClassWithMethodAndDelay(this, &Team::startAnalyzingDefense, defenseTimer, 0.15,true);
     formationScheduler->scheduleClassWithMethodAndDelay(this, &Team::updateFormation, formationTimer, 0.7,true);
     
+    defenseTimer->setPause(true);
+    formationTimer->setPause(true);
 }
 
 void Team::updateFormation(){
     
-    static bool home=false;
     static bool formation=false;
     
     if (formation==false) {
         
-        if (home==false) {
-            
-            //send formation to home
-            U4DEngine::U4DVector3n homePosition(0.0,0.0,2.0);
-            
-            formationManager.computeFormationPosition(homePosition);
-            
-            for(auto &n:getPlayers()){
-                
-                //send message to player
-                MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+        U4DEngine::U4DVector3n v(0.0,0.0,0.0);
+    
+        for(auto &n:getPlayers()){
 
-                messageDispatcher->sendMessage(0.0, this, n, msgFormation);
-                
-            }
-            
-            home=true;
-            
-        }else{
-            
-                U4DEngine::U4DVector3n v(0.0,0.0,0.0);
-                for(auto &n:getPlayers()){
-        
-                    v+=n->getAbsolutePosition();
-                }
-                v/=getPlayers().size();
-        
-                v.y=0;
-        
-            
-                formationManager.computeFormationPosition(v);
-            
-                for(auto &n:getPlayers()){
-                    
-                    //send message to player
-                    MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+            v+=n->getAbsolutePosition();
+        }
+    
+        v/=getPlayers().size();
 
-                    messageDispatcher->sendMessage(0.0, this, n, msgFormation);
-                    
-                }
+        v.y=0;
+
+    
+        formationManager.computeFormationPosition(v);
+    
+        for(auto &n:getPlayers()){
+            
+            //send message to player
+            MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+
+            messageDispatcher->sendMessage(0.0, this, n, msgFormation);
             
         }
         
-        formation=true;
-        
+        //formation=true;
     }else{
         
         for(auto &n:getPlayers()){
@@ -137,9 +145,12 @@ void Team::updateFormation(){
         
         formation=false;
     }
-    
+       
 }
 
+void Team::startAnalyzingDefense(){
+    enableDefenseAnalyzer=true;
+}
 
 void Team::analyzeField(){
     
@@ -153,15 +164,7 @@ void Team::analyzeField(){
 //    //Get player at index zero for now
 //    pathAnalyzer->computeNavigation(controllingPlayer);
     
-        //get closest player to intersect the ball
-        PlayAnalyzer *playAnalyzer=PlayAnalyzer::sharedInstance();
-
-        Player *teammate=playAnalyzer->closestTeammateToIntersectBall(this);
-
-        //send message to player
-        MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
-    
-        messageDispatcher->sendMessage(0.0, this, teammate, msgMark);
+        
         
     
 }
@@ -221,5 +224,11 @@ void Team::setMarkingPlayer(Player *uPlayer){
 Player *Team::getMarkingPlayer(){
     
     return markingPlayer;
+    
+}
+
+void Team::sendTeamHome(){
+    
+    
     
 }

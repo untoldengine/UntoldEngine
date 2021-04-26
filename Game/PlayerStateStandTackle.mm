@@ -12,6 +12,7 @@
 #include "PlayerStateMark.h"
 #include "PlayerStateIntercept.h"
 #include "PlayerStateFormation.h"
+#include "PlayerStateGoHome.h"
 
 PlayerStateStandTackle* PlayerStateStandTackle::instance=0;
 
@@ -86,7 +87,11 @@ bool PlayerStateStandTackle::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
-        
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

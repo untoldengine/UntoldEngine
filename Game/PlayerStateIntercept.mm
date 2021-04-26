@@ -17,6 +17,7 @@
 #include "PlayerStateShoot.h"
 #include "PlayerStateTap.h"
 #include "PlayerStateJog.h"
+#include "PlayerStateGoHome.h"
 
 PlayerStateIntercept* PlayerStateIntercept::instance=0;
 
@@ -108,6 +109,11 @@ bool PlayerStateIntercept::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

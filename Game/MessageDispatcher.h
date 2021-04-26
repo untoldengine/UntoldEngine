@@ -35,6 +35,8 @@ public:
     void sendMessage(double uDelay, Player *uSenderPlayer, Player *uReceiverPlayer, int uMsg, void* uExtraInfo);
     
     void sendMessage(double uDelay, Team *uTeam, Player *uReceiverPlayer, int uMsg);
+    
+    void sendMessage(double uDelay, Team *uReceiverTeam, int uMsg);
 };
 
 #endif /* MessageDispatcher_hpp */

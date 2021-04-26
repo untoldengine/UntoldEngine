@@ -13,12 +13,33 @@
 #include "U4DGameModel.h"
 #include "Player.h"
 #include "U4DShaderEntity.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
+#include "U4DText.h"
 
 class Team;
 
 class LevelOneLogic:public U4DEngine::U4DGameModel{
     
 private:
+    
+    //declare the callback with the class name
+    U4DEngine::U4DCallback<LevelOneLogic> *outOfBoundScheduler;
+
+    //declare the timer
+    U4DEngine::U4DTimer *outOfBoundTimer;
+    
+    //declare the callback with the class name
+    U4DEngine::U4DCallback<LevelOneLogic> *messageLabelScheduler;
+
+    //declare the timer
+    U4DEngine::U4DTimer *messageLabelTimer;
+    
+    //declare the callback with the class name
+    U4DEngine::U4DCallback<LevelOneLogic> *timeUpScheduler;
+
+    //declare the timer
+    U4DEngine::U4DTimer *timeUpTimer;
     
     //player
     Player *pPlayer;
@@ -43,6 +64,18 @@ private:
     
     bool showDirectionLine;
     
+    std::vector<U4DEngine::U4DVector4n> voronoiSegments;
+    
+    int goalCount;
+    
+    U4DEngine::U4DText *gameClock;
+    
+    U4DEngine::U4DText *score;
+    
+    int clockTime;
+    
+    bool messagleLabelIsShown;
+    
 public:
     
     LevelOneLogic();
@@ -60,6 +93,24 @@ public:
     void setMarkingTeam(Team *uTeam);
     
     void setPlayerIndicator(U4DEngine::U4DShaderEntity *uPlayerIndicator);
+    
+    void computeVoronoi();
+    
+    float clampVoronoi(float x, float upper, float lower);
+    
+    void outOfBound();
+    
+    bool teamsReady();
+    
+    void showGoalLabel();
+    
+    void showOutOfBoundLabel();
+    
+    void removeMessageLabel();
+    
+    void timesUp();
+    
+    void showGameOverLabel();
     
 };
 #endif /* defined(__UntoldEngine__GameLogic__) */

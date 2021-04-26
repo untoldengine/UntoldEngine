@@ -32,10 +32,11 @@
 #include "PlayerStateSlidingTackle.h"
 #include "PlayerStateMark.h"
 #include "PlayerStateJog.h"
+#include "PlayerStateGoHome.h"
 #include "PlayerStateFormation.h"
 #include "PlayerStateWander.h"
 
-Player::Player():motionAccumulator(0.0,0.0,0.0),rightFoot(nullptr),dribblingDirection(0.0,0.0,0.0),dribbleBall(false),passBall(false),shootBall(false),standTackleOpponent(false),haltBall(false),wander(false),forceMotionAccumulator(0.0,0.0,0.0),team(nullptr),playerIndex(0),markingPosition(0.0,0.0,0.0){
+Player::Player():motionAccumulator(0.0,0.0,0.0),rightFoot(nullptr),dribblingDirection(0.0,0.0,0.0),dribbleBall(false),passBall(false),shootBall(false),standTackleOpponent(false),haltBall(false),wander(false),forceMotionAccumulator(0.0,0.0,0.0),team(nullptr),playerIndex(0),markingPosition(0.0,0.0,0.0),atHome(false){
     
 
 }
@@ -180,6 +181,9 @@ bool Player::init(const char* uModelName){
         //send data to the GPU
         loadRenderingInformation();
         
+        //set home position
+        homePosition=getAbsolutePosition();
+        
         //render the right foot
         rightFoot=new Foot(this);
         
@@ -231,7 +235,7 @@ void Player::setFoot(Foot *uRightFoot){
     U4DEngine::U4DMatrix4n m;
     //original toe.R
     //2. Get the bone rest pose space
-    if(getBoneRestPose("foot.R",m)){
+    if(getBoneRestPose("RightFoot",m)){
 
         //3. Apply space to gun
         rightFoot->setLocalSpace(m);
@@ -361,7 +365,7 @@ void Player::setMoveDirection(U4DEngine::U4DVector3n &uMoveDirection){
     //significant. The bias parameter controls how much significance is given to previous values.
     //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
     //A bias of 1 ignores the new value altogether.
-    float biasMotionAccumulator=0.40;
+    float biasMotionAccumulator=0.0;
     
     motionAccumulator=motionAccumulator*biasMotionAccumulator+uMoveDirection*(1.0-biasMotionAccumulator);
     
@@ -454,7 +458,7 @@ void Player::updateFootSpaceWithAnimation(U4DEngine::U4DAnimation *uAnimation){
         U4DEngine::U4DMatrix4n m;
         //original is toe.R
         //2. Get the bone animation "runningAnimation" pose space
-        if(getBoneAnimationPose("foot.R",uAnimation,m)){
+        if(getBoneAnimationPose("RightFoot",uAnimation,m)){
 
             //3. Apply space to gun
             rightFoot->setLocalSpace(m);
@@ -488,7 +492,7 @@ U4DEngine::U4DAnimation *Player::getAnimationToPlay(){
        
         currentAnimation=idleAnimation;
          
-    }else if (getCurrentState()==PlayerStateChase::sharedInstance() || getCurrentState()==PlayerStateIntercept::sharedInstance() || getCurrentState()==PlayerStateGroupNav::sharedInstance() || getCurrentState()==PlayerStateMark::sharedInstance()|| getCurrentState()==PlayerStateFormation::sharedInstance() || getCurrentState()==PlayerStateWander::sharedInstance()){
+    }else if (getCurrentState()==PlayerStateChase::sharedInstance() || getCurrentState()==PlayerStateIntercept::sharedInstance() || getCurrentState()==PlayerStateGroupNav::sharedInstance() || getCurrentState()==PlayerStateMark::sharedInstance()|| getCurrentState()==PlayerStateFormation::sharedInstance() || getCurrentState()==PlayerStateWander::sharedInstance()|| getCurrentState()==PlayerStateGoHome::sharedInstance()){
         
         currentAnimation=runningAnimation;
         
@@ -543,4 +547,11 @@ U4DEngine::U4DVector3n Player::getMarkingPosition(){
     
 }
 
-
+void Player::resetAllFlags(){
+    dribbleBall=false;
+    passBall=false;
+    shootBall=false;
+    haltBall=false;
+    atHome=false;
+    
+}

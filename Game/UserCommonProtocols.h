@@ -41,6 +41,7 @@ enum{
     rolling,
     kicked,
     decelerating,
+    scored,
     
 }BALLSTATE;
 
@@ -48,6 +49,7 @@ typedef struct{
     
     Player *senderPlayer;
     Player *receiverPlayer;
+    Team *receiverTeam;
     Team *team;
     int msg;
     void *extraInfo;
@@ -65,8 +67,19 @@ enum{
     msgFormation,
     msgIdle,
     msgWander,
+    msgGoHome,
     
 }PlayerMessage;
+
+enum{
+
+    msgTeamStart,
+    msgTeamDefend,
+    msgTeamAttack,
+    msgTeamGoHome,
+    msgTeamIdle
+    
+}TeamMessage;
 
 enum MouseMovementDirection{
     forwardDir,
@@ -82,11 +95,13 @@ typedef enum{
     kBall=0x0004,
     kFoot=0x0008,
     kOppositePlayer=0x000A,
+    kGoalSensor=0x0020,
     
 }GameEntityCollision;
 
 //ORIGINAL VALUES
 //const float dribbleBallSpeed=30.0;
+//const float tapBallSpeed=25.0;
 //const float passBallSpeed=45.0;
 //const float shootBallSpeed=150.0;
 //const float runSpeed=15.0;
@@ -108,30 +123,33 @@ typedef enum{
 //const float markArriveSlowRadius=7.0;
 //const float markAvoidanceMaxSpeed=20.0;
 //const float markAvoidanceTimeParameter=10.0;
+//const float markPursuitMaxSpeed=40.0/scaleValue;
 
-const float scaleValue=3.0;
+const float scaleValue=1.0;
 const float dribbleBallSpeed=30.0/scaleValue;
+const float tapBallSpeed=25.0/scaleValue;
 const float passBallSpeed=45.0/scaleValue;
-const float shootBallSpeed=150.0/scaleValue;
-const float runSpeed=15.0/scaleValue;
+const float shootBallSpeed=120.0/scaleValue;
+const float runSpeed=30.0/scaleValue;
 const float arriveMaxSpeed=35.0/scaleValue;
-const float arriveStopRadius=0.5/scaleValue;
+const float arriveStopRadius=0.75/scaleValue;
 const float arriveSlowRadius=1.0/scaleValue;
 const float pursuitMaxSpeed=25.0/scaleValue;
 const float avoidanceMaxSpeed=35.0/scaleValue;
 const float arriveJogMaxSpeed=15.0/scaleValue;
 const float arriveJogStopRadius=0.25/scaleValue;
 const float arriveJogSlowRadius=0.3/scaleValue;
-const float slidingTackleKick=20.0;
-const float halfwayBallOffset=0.1;  //this is the distance between the player's crotch and his right foot.
-const float neighborPlayerSeparationDistance=5.0;
-const float neighborPlayerAlignmentDistance=20.0;
-const float neighborPlayerCohesionDistance=20.0;
-const float markArrivingMaxSpeed=15.0/scaleValue;
-const float markArriveStopRadius=5.0/scaleValue;
-const float markArriveSlowRadius=7.0/scaleValue;
-const float markAvoidanceMaxSpeed=20.0/scaleValue;
-const float markAvoidanceTimeParameter=10.0/scaleValue;
+const float slidingTackleKick=40.0;
+const float halfwayBallOffset=0.2;  //this is the distance between the player's crotch and his right foot.
+const float neighborPlayerSeparationDistance=14.0; //5
+const float neighborPlayerAlignmentDistance=30.0; //20
+const float neighborPlayerCohesionDistance=30.0; //20
+const float markArrivingMaxSpeed=40.0/scaleValue;
+const float markArriveStopRadius=2.0/scaleValue;
+const float markArriveSlowRadius=3.0/scaleValue;
+const float markAvoidanceMaxSpeed=40.0/scaleValue;
+const float markAvoidanceTimeParameter=20.0/scaleValue;
+const float markPursuitMaxSpeed=40.0/scaleValue;
 
 
 #endif /* UserCommonProtocols_h */

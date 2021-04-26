@@ -15,6 +15,7 @@
 #include "PlayerStatePass.h"
 #include "PlayerStateHalt.h"
 #include "PlayerStateTap.h"
+#include "PlayerStateGoHome.h"
 
 PlayerStateShoot* PlayerStateShoot::instance=0;
 
@@ -72,6 +73,7 @@ void PlayerStateShoot::execute(Player *uPlayer, double dt){
 
 void PlayerStateShoot::exit(Player *uPlayer){
     
+    uPlayer->shootBall=false;
 }
 
 bool PlayerStateShoot::isSafeToChangeState(Player *uPlayer){
@@ -83,6 +85,11 @@ bool PlayerStateShoot::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

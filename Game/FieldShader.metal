@@ -37,25 +37,10 @@ struct VertexOutput{
     int materialIndex [[flat]];
 };
 
-
-float sd_Circle(float2 p, float2 c, float r)
-{
-    return abs(r - length(p - c));
+float2x2 rotate2d(float _angle){
+    return float2x2(cos(_angle),-sin(_angle),
+                sin(_angle),cos(_angle));
 }
-
-float sd_Line( float2 p, float2 a, float2 b)
-{
-    float2 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa,ba) / dot(ba,ba), 0., 1.);
-    return length(pa - ba * h);
-}
-
-float sharpen_Shape(float d, float w, float2 resolution)
-{
-    float e = 1. / min(resolution.y , resolution.x);
-    return 1. - smoothstep(-e, e, d - w);
-}
-
 
 vertex VertexOutput vertexFieldShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformDirectionalLightProperties &uniformLightProperties [[buffer(viDirLightPropertiesBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(viModelShaderPropertyBuffer)]], uint vid [[vertex_id]]){
     
@@ -115,11 +100,11 @@ vertex VertexOutput vertexFieldShader(VertexInput vert [[stage_in]], constant Un
     
     
     //shadow coordinates
-    if(uniformModelRenderFlags.enableShadows){
+    //if(uniformModelRenderFlags.enableShadows){
         
         vertexOut.shadowCoords=(uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
         
-    }
+    //}
     
     //send the material index
     vertexOut.materialIndex=vert.materialIndex.x;
@@ -239,36 +224,73 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
         finalColor*=visibility;
         
     //}
-    return finalColor;
+    
     //add lines
-//    float2 st=-1.0+2.0*vertexOut.uvCoords.xy;
-//
-//    float3 color=float3(0.0);
-//
-//
-//    float2 p1=float2(uniformModelShaderProperty.shaderParameter[0].x,uniformModelShaderProperty.shaderParameter[0].y);
-//
-//    float2 mousePosition=float2(uniformModelShaderProperty.shaderParameter[0].z,uniformModelShaderProperty.shaderParameter[0].w);
-//
-//    float2 p3=p1+(mousePosition);
-//
-//    float c=sd_Circle(st,p1,0.009);
-//    c=sharpen_Shape(c,0.001*0.6,uniformGlobalData.resolution);
-//
-//        //color+=float3(c);
-//
-//        c=sd_Circle(st,p3,0.009);
-//        c=sharpen_Shape(c,0.005*0.3,uniformGlobalData.resolution);
-//
-//        color+=float3(c);
-//
-//    float l=sd_Line(st,p1,p3);
-//
-//        l=sharpen_Shape(l,0.005*0.3,uniformGlobalData.resolution);
-//
-//        color+=float3(l);
-//
-//    return mix(float4(color,1.0),finalColor,0.7);
+    float2 st=-1.0+2.0*vertexOut.uvCoords.xy;
+    float2 outOfBoundST=-1.0+2.0*vertexOut.uvCoords.xy;
+    float3 color=float3(0.0);
 
+    float m=0.0;
+    //[0]= player position
+    //[1].x= player yaw
+    //[1].y= out of bound
+    //[1].z= goal
+    float2 p1=float2(-uniformModelShaderProperty.shaderParameter[0].x,-uniformModelShaderProperty.shaderParameter[0].y);
+
+    st=st+p1;
+    st=rotate2d(-uniformModelShaderProperty.shaderParameter[1].x*M_PI/180.0)*st;
+    
+    st*=2.0;
+    
+    float c=sdfRing(st,float2(0.0,0.0),0.09);
+    c=sharpen(c,0.008,uniformGlobalData.resolution);
+
+    color=float3(c);
+    
+    
+    for(int i=0;i<4;i++){
+       
+        float2 lST=st;
+        
+        lST=rotate2d(90.0*i*M_PI/180.0)*lST;
+        
+        float l=sdfLine(lST,float2(0.0,0.0),float2(0.0,0.6));
+        
+        l=sharpen(l,0.002,uniformGlobalData.resolution);
+        
+        m+=l;
+       
+       }
+        
+        color=min(color,1.0-m);
+        
+        float2 tST=-st;
+
+        tST.y-=0.15;
+
+        float t=sdfTriangle(tST*24.0);
+        t=sharpen(t,0.06,uniformGlobalData.resolution);
+
+        color=max(color,float3(t));
+    
+    
+    //voronoi diagrams
+//    int sizep=(int)uniformModelShaderProperty.shaderParameter[0].x;
+//
+//    for(int i=1;i<=sizep;){
+//        float2 p1=float2(uniformModelShaderProperty.shaderParameter[i].x,uniformModelShaderProperty.shaderParameter[i].y);
+//
+//        float2 p2=float2(uniformModelShaderProperty.shaderParameter[i].z,uniformModelShaderProperty.shaderParameter[i].w);
+//
+//        float l=sdfLine(st,p1,p2);
+//        l=sharpen_Shape(l,0.01,uniformGlobalData.resolution);
+//
+//        color=max(color,float3(l)*float3(1.0,0.0,0.0)*20.0);
+//        i=i+1;
+//    }
+    //end voronoi diagram
+    color*=float3(1.0,0.0,0.0);
+    return max(float4(color,1.0),finalColor);
+    
 }
 

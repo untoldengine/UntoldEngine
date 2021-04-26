@@ -15,20 +15,21 @@
 #include "U4DTimer.h"
 #include "FormationManager.h"
 
+class TeamStateInterface;
+class TeamStateManager;
+
 class Team {
     
     private:
     
-        U4DEngine::U4DGameObject *spotManager;
-        
+        //state manager
+        TeamStateManager *stateManager;
+    
         //declare the callback with the class name
-        U4DEngine::U4DCallback<Team> *analyzerScheduler;
+        U4DEngine::U4DCallback<Team> *defenseScheduler;
         U4DEngine::U4DCallback<Team> *formationScheduler;
     
         //declare the timer
-        U4DEngine::U4DTimer *analyzerTimer;
-        U4DEngine::U4DTimer *formationTimer;
-        
         std::vector<Player *> players;
         
         Team* oppositeTeam;
@@ -42,12 +43,29 @@ class Team {
         int playerIndex;
         
         
-    
     public:
     
         Team();
         
         ~Team();
+    
+        void update(double dt);
+    
+        TeamStateInterface *getCurrentState();
+        
+        TeamStateInterface *getPreviousState();
+    
+        void changeState(TeamStateInterface *uState);
+    
+        void handleMessage(Message &uMsg);
+    
+        bool enableDefenseAnalyzer;
+    
+        U4DEngine::U4DTimer *defenseTimer;
+    
+        U4DEngine::U4DTimer *formationTimer;
+    
+        bool aiTeam;
     
         FormationManager formationManager;
         
@@ -72,6 +90,10 @@ class Team {
         Player *getControllingPlayer();
         
         Player *getMarkingPlayer();
+    
+        void sendTeamHome();
+    
+        void startAnalyzingDefense();
         
 };
 #endif /* Teams_hpp */

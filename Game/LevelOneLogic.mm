@@ -6,10 +6,13 @@
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
+#include <stdio.h>
+#include <iostream>
 #include "LevelOneLogic.h"
 #include "LevelOneWorld.h"
 #include "U4DDirector.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 #include "UserCommonProtocols.h"
 #include "Ball.h"
 #include "LevelOneWorld.h"
@@ -21,26 +24,211 @@
 #include "PlayerStatePass.h"
 #include "PlayerStateShoot.h"
 #include "PlayerStateTap.h"
+#include "PlayerStateGoHome.h"
 #include "PlayerStateIntercept.h"
+#include "U4DAABB.h"
+#include "TeamStateGoingHome.h"
+#include "TeamStateReady.h"
+#include "MessageDispatcher.h"
+#include "U4DLayerManager.h"
+#include "U4DLayer.h"
+#include "U4DText.h"
+#include "U4DCameraInterface.h"
+#include "U4DCameraBasicFollow.h"
 
-LevelOneLogic::LevelOneLogic():stickActive(false),stickDirection(0.0,0.0,0.0),controllingTeam(nullptr),currentMousePosition(0.5,0.5),showDirectionLine(false){
+LevelOneLogic::LevelOneLogic():stickActive(false),stickDirection(0.0,0.0,0.0),controllingTeam(nullptr),currentMousePosition(0.5,0.5),showDirectionLine(false),messagleLabelIsShown(false),goalCount(0),clockTime(30){
+    
+    //Create the callback. Notice that you need to provide the name of the class
+    outOfBoundScheduler=new U4DEngine::U4DCallback<LevelOneLogic>;
+
+    //create the timer
+    outOfBoundTimer=new U4DEngine::U4DTimer(outOfBoundScheduler);
+    
+    //Create the callback. Notice that you need to provide the name of the class
+    messageLabelScheduler=new U4DEngine::U4DCallback<LevelOneLogic>;
+
+    //create the timer
+    messageLabelTimer=new U4DEngine::U4DTimer(messageLabelScheduler);
+    
+    //Create the callback. Notice that you need to provide the name of the class
+    timeUpScheduler=new U4DEngine::U4DCallback<LevelOneLogic>;
+
+    //create the timer
+    timeUpTimer=new U4DEngine::U4DTimer(timeUpScheduler);
     
 }
 
 LevelOneLogic::~LevelOneLogic(){
     
+    //In the class destructor,  make sure to delete the U4DCallback and U4DTimer as follows.
+    //Make sure that before deleting the scheduler and timer, to first unsubscribe the timer.
+
+    outOfBoundScheduler->unScheduleTimer(outOfBoundTimer);
+    messageLabelScheduler->unScheduleTimer(messageLabelTimer);
+    timeUpScheduler->unScheduleTimer(timeUpTimer);
+    
+    delete outOfBoundScheduler;
+    delete outOfBoundTimer;
+    
+    delete messageLabelScheduler;
+    delete messageLabelTimer;
+    
+    delete timeUpScheduler;
+    delete timeUpTimer;
+    
+}
+
+void LevelOneLogic::computeVoronoi(){
+//    //VORONOI START-Leaving this as an example
+//    float high = 0.8, low = -0.8;
+//
+//
+//    voronoiSegments.clear();
+//
+//    //fortune's algorithm
+//    int sitesSize=6;
+//
+//    float xValues[sitesSize];
+//    float yValues[sitesSize];
+//
+//
+//    for(int i=0;i<markingTeam->getPlayers().size();i++){
+//
+//        U4DEngine::U4DVector3n pos=markingTeam->getPlayers().at(i)->getAbsolutePosition();
+//
+//        pos.x/=8.0;
+//        pos.z/=14.0;
+//
+//        xValues[i]=pos.x;
+//        yValues[i]=pos.z;
+//
+//    }
+//
+//    U4DEngine::U4DVector3n pos=pPlayer->getAbsolutePosition();
+//    pos.x/=8.0;
+//    pos.z/=14.0;
+//    xValues[5]=pos.x;
+//    yValues[5]=pos.z;
+//
+//
+//    voronoiDiagram::VoronoiDiagramGenerator vdg;
+//
+//    vdg.generateVoronoi(xValues,yValues,sitesSize, -8.0,8.0,-14.0,14.0,0);
+//
+//    vdg.resetIterator();
+//
+//    float x1,y1,x2,y2;
+//
+//    while(vdg.getNext(x1,y1,x2,y2))
+//    {
+//
+//        x1=clampVoronoi(x1, high, low);
+//        y1=clampVoronoi(y1, high, low);
+//        x2=clampVoronoi(x2, high, low);
+//        y2=clampVoronoi(y2, high, low);
+//        U4DEngine::U4DVector4n params(x1,y1,x2,y2);
+//
+//        voronoiSegments.push_back(params);
+//
+//    }
+    
+}
+
+float LevelOneLogic::clampVoronoi(float x, float upper, float lower){ 
+    return std::min(upper, std::max(x, lower));
 }
 
 void LevelOneLogic::update(double dt){
     
     pPlayer=controllingTeam->getControllingPlayer();
+   
+        
+        markingTeam->update(dt);
+        controllingTeam->update(dt);
+        
+        Ball *ball=Ball::sharedInstance();
+        
+        if (ball->getState()==scored) {
+            
+            goalCount++;
+            
+            std::string scoreString="1-";
+            scoreString+=std::to_string(goalCount);
+            
+            score->setText(scoreString.c_str());
+            
+            showGoalLabel();
+            
+            MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+            messageDispatcher->sendMessage(0.0, controllingTeam, msgGoHome);
+            messageDispatcher->sendMessage(0.0, markingTeam, msgGoHome);
+            
+           
+            //send ball home
+            U4DEngine::U4DVector3n ballHomePosition=ball->homePosition;
+            ball->translateTo(ballHomePosition);
+            ball->resumeCollisionBehavior();
+            ball->setState(stopped);
+            
+        }
+    
+    if(pPlayer!=nullptr){
+        
+        U4DEngine::U4DVector3n pos=pPlayer->getAbsolutePosition();
+        pos.x/=22.5;
+        pos.z/=40.0;
+        
+        U4DEngine::U4DVector4n param0(pos.x,pos.z,0.0,0.0);
+        pGround->updateShaderParameterContainer(0, param0);
+        
+        //comput the yaw of the hero soldier
+        U4DEngine::U4DVector3n v0=pPlayer->getEntityForwardVector();
+        U4DEngine::U4DMatrix3n m=pPlayer->getAbsoluteMatrixOrientation();
+        U4DEngine::U4DVector2n heroPosition(pPlayer->getAbsolutePosition().x,pPlayer->getAbsolutePosition().z);
+        U4DEngine::U4DVector3n xDir(1.0,0.0,0.0);
+        U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+
+        U4DEngine::U4DVector3n v1=m*v0;
+
+        float yaw=v0.angle(v1);
+
+        v1.normalize();
+
+        if (xDir.dot(v1)>U4DEngine::zeroEpsilon) {
+
+            yaw=360.0-yaw;
+        }
+
+        //send the yaw information to the navigation shader
+        U4DEngine::U4DVector4n paramAngle(yaw,0.0,0.0,0.0);
+        pGround->updateShaderParameterContainer(1, paramAngle);
+        
+    }
+    
+    
+    //show voronoi lines
+//    U4DEngine::U4DVector4n param0(voronoiSegments.size(),0.0,0.0,0.0);
+//    pGround->updateShaderParameterContainer(0.0, param0);
+//
+//    int count=1;
+//
+//    for(auto &n:voronoiSegments){
+//
+//        pGround->updateShaderParameterContainer(count, n);
+//
+//        count++;
+//
+//    }
+    //end show voronoi lines
+    
+    //pPlayer=controllingTeam->getControllingPlayer();
 
 //    controllingTeam->computeFormationPosition();
 //    markingTeam->computeFormationPosition();
 
     if (showDirectionLine==true && pPlayer!=nullptr) {
 
-        U4DEngine::U4DVector3n playerDir=pPlayer->getViewInDirection();
+        //U4DEngine::U4DVector3n playerDir=pPlayer->getViewInDirection();
 
         //U4DEngine::U4DVector4n params0(playerDir.x,playerDir.y,playerDir.z,0.0);
 
@@ -57,6 +245,155 @@ void LevelOneLogic::update(double dt){
     
 }
 
+void LevelOneLogic::timesUp(){
+    
+    clockTime--;
+    
+    std::string clockTimeString="00:";
+    clockTimeString+=std::to_string(clockTime);
+    
+    gameClock->setText(clockTimeString.c_str());
+    
+    if (clockTime==0.0) {
+        showGameOverLabel();
+        
+        MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+        messageDispatcher->sendMessage(0.0, controllingTeam, msgGoHome);
+        messageDispatcher->sendMessage(0.0, markingTeam, msgGoHome);
+        
+        Ball *ball=Ball::sharedInstance();
+        //send ball home
+        U4DEngine::U4DVector3n ballHomePosition=ball->homePosition;
+        ball->translateTo(ballHomePosition);
+        ball->resumeCollisionBehavior();
+        ball->setState(stopped);
+        
+        clockTime=30.0;
+        goalCount=0;
+        
+    }
+}
+
+void LevelOneLogic::showGameOverLabel(){
+    
+    if (messagleLabelIsShown==true) {
+        removeMessageLabel();
+    }
+    
+    messagleLabelIsShown=true;
+    
+    //create layer manager
+    U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+    
+    //create Layers
+    U4DEngine::U4DLayer* gameOverLayer=new U4DEngine::U4DLayer("gameoverLayer");
+    
+    //3. Create a text object. Provide the name of the font.
+    U4DEngine::U4DText *gameOverText=new U4DEngine::U4DText("dribblyFont");
+
+    if (goalCount<=1) {
+        gameOverText->setText("You Lost");
+    }else{
+        
+        //4. set the text you want to display
+        gameOverText->setText("You Won");
+        
+    }
+    
+    gameOverText->translateBy(-0.7, 0.0, 0.0);
+    
+    //6. Add the text to the scenegraph
+    gameOverLayer->addChild(gameOverText);
+    
+    layerManager->addLayerToContainer(gameOverLayer);
+
+    //push layer
+    layerManager->pushLayer("gameoverLayer");
+    
+    messageLabelTimer->setPause(false);
+}
+
+void LevelOneLogic::showGoalLabel(){
+    
+    if (messagleLabelIsShown==true) {
+        removeMessageLabel();
+    }
+    
+    messagleLabelIsShown=true;
+    
+    //create layer manager
+    U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+    
+    //create Layers
+    U4DEngine::U4DLayer* scoreLayer=new U4DEngine::U4DLayer("scoredLayer");
+    
+    //3. Create a text object. Provide the name of the font.
+    U4DEngine::U4DText *myText=new U4DEngine::U4DText("dribblyFont");
+
+    //4. set the text you want to display
+    myText->setText("Goal");
+
+    myText->translateBy(-0.2, 0.5, 0.0);
+    
+    //6. Add the text to the scenegraph
+    scoreLayer->addChild(myText);
+    
+    layerManager->addLayerToContainer(scoreLayer);
+
+    //push layer
+    layerManager->pushLayer("scoredLayer");
+    
+    messageLabelTimer->setPause(false);
+    
+}
+
+void LevelOneLogic::showOutOfBoundLabel(){
+    
+    if (messagleLabelIsShown==true) {
+        removeMessageLabel();
+    }
+    
+    messagleLabelIsShown=true;
+    
+    //create layer manager
+    U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+    
+    //create Layers
+    U4DEngine::U4DLayer* outOfBoundLayer=new U4DEngine::U4DLayer("outOfBoundLayer");
+    
+    //3. Create a text object. Provide the name of the font.
+    U4DEngine::U4DText *myText=new U4DEngine::U4DText("dribblyFont");
+
+    //4. set the text you want to display
+    myText->setText("Kick-in");
+
+    myText->translateBy(-0.5, 0.0, 0.0);
+    
+    //6. Add the text to the scenegraph
+    outOfBoundLayer->addChild(myText);
+    
+    layerManager->addLayerToContainer(outOfBoundLayer);
+
+    //push layer
+    layerManager->pushLayer("outOfBoundLayer");
+    
+    messageLabelTimer->setPause(false);
+}
+
+void LevelOneLogic::removeMessageLabel(){
+    
+    //create layer manager
+    U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+    
+    layerManager->popLayer();
+    
+    messageLabelTimer->setPause(true);
+    
+    messagleLabelIsShown=false;
+    
+}
+
+
 void LevelOneLogic::init(){
     
     //1. Get a pointer to the LevelOneWorld object
@@ -68,6 +405,28 @@ void LevelOneLogic::init(){
     //3. Get the field object
     pGround=dynamic_cast<U4DEngine::U4DGameObject*>(pEarth->searchChild("field"));
 
+    //3. Create a text object. Provide the name of the font.
+    gameClock=new U4DEngine::U4DText("dribblySmallFont");
+    
+    std::string clockTimeString="00:";
+    clockTimeString+=std::to_string(clockTime);
+    
+    gameClock->setText(clockTimeString.c_str());
+    gameClock->translateTo(0.3, 0.8, 0.0);
+    
+    pEarth->addChild(gameClock,-20);
+    
+    
+    score=new U4DEngine::U4DText("dribblySmallFont");
+    std::string scoreString="1-";
+    scoreString+=std::to_string(goalCount);
+    
+    score->setText(scoreString.c_str());
+    
+    score->translateTo(-0.7, 0.8, 0.0);
+    
+    pEarth->addChild(score,-20);
+    
     //get instance of director
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
 
@@ -82,7 +441,43 @@ void LevelOneLogic::init(){
         }
     }
     
+    controllingTeam->setControllingPlayer(pPlayer);
+    outOfBoundScheduler->scheduleClassWithMethodAndDelay(this, &LevelOneLogic::outOfBound, outOfBoundTimer,1.0, true);
     
+    messageLabelScheduler->scheduleClassWithMethodAndDelay(this, &LevelOneLogic::removeMessageLabel, messageLabelTimer,2.0, true);
+    
+    messageLabelTimer->setPause(true);
+
+    timeUpScheduler->scheduleClassWithMethodAndDelay(this, &LevelOneLogic::timesUp, timeUpTimer,1.0, true);
+}
+
+void LevelOneLogic::outOfBound(){
+    
+    Ball *ball=Ball::sharedInstance();
+    
+    U4DEngine::U4DPoint3n ballPosition=ball->getAbsolutePosition().toPoint();
+    
+    //create a AABB box
+    U4DEngine::U4DPoint3n fieldMinBound(-19.0,-2.0,-34.0);
+    U4DEngine::U4DPoint3n fieldMaxBound(19.0,2.0,34.0);
+    
+    U4DEngine::U4DAABB fieldAABBBox(fieldMinBound,fieldMaxBound);
+            
+    //test if point is within the box
+    if (!fieldAABBBox.isPointInsideAABB(ballPosition) && ball->getState()!=scored) {
+        
+        showOutOfBoundLabel();
+        
+        MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+        messageDispatcher->sendMessage(0.0, controllingTeam, msgGoHome);
+        messageDispatcher->sendMessage(0.0, markingTeam, msgGoHome);
+
+        ball->setState(stopped);
+        //send ball home
+        U4DEngine::U4DVector3n ballHomePosition=ball->homePosition;
+        ball->translateTo(ballHomePosition);
+
+    }
 }
 
 void LevelOneLogic::setControllingTeam(Team *uTeam){
@@ -103,6 +498,25 @@ void LevelOneLogic::setPlayerIndicator(U4DEngine::U4DShaderEntity *uPlayerIndica
     
 }
 
+bool LevelOneLogic::teamsReady(){
+    
+    bool teamsAreReady=false;
+    
+    if(markingTeam->getCurrentState()!=TeamStateGoingHome::sharedInstance() && controllingTeam->getCurrentState()!=TeamStateGoingHome::sharedInstance()){
+        
+        
+        MessageDispatcher *messageDispatcher=MessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, markingTeam, msgTeamStart);
+        messageDispatcher->sendMessage(0.0, controllingTeam, msgTeamStart);
+        
+        teamsAreReady=true;
+    }
+    
+    return teamsAreReady;
+    
+}
+
 void LevelOneLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
@@ -112,7 +526,9 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
     }
     
     
-    if(pPlayer!=nullptr){
+    
+    if(pPlayer!=nullptr && teamsReady()){
+        
         
         switch (controllerInputMessage.inputElementType) {
             
@@ -173,8 +589,8 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                     }else if(controllerInputMessage.inputElementAction==U4DEngine::uiJoystickReleased){
                             
                         //pPlayer->setEnablePassing(true);
-                        pPlayer->setEnableHalt(true);
-                        //pPlayer->setEnableShooting(true);
+                        //pPlayer->setEnableHalt(true);
+                        pPlayer->setEnableShooting(true);
 //
 //                        if(pPlayer->getCurrentState()!=PlayerStateChase::sharedInstance()){
 //                            pPlayer->changeState(PlayerStateChase::sharedInstance());
@@ -393,7 +809,7 @@ void LevelOneLogic::receiveUserInputUpdate(void *uData){
                }else if (controllerInputMessage.inputElementAction==U4DEngine::padThumbstickReleased){
                    
                    
-//                   pPlayer->setEnableHalt(true);
+                   pPlayer->setEnableHalt(true);
 //
 //                   if(pPlayer->getCurrentState()!=PlayerStateHalt::sharedInstance()){
 //                       pPlayer->changeState(PlayerStateHalt::sharedInstance());

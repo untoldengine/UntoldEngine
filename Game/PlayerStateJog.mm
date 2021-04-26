@@ -10,6 +10,7 @@
 #include "Team.h"
 
 #include "PlayerStateHalt.h"
+#include "PlayerStateGoHome.h"
 
 PlayerStateJog* PlayerStateJog::instance=0;
 
@@ -94,6 +95,11 @@ bool PlayerStateJog::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

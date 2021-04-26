@@ -17,6 +17,7 @@
 #include "PlayerStateMark.h"
 #include "PlayerStateIdle.h"
 #include "PlayerStateFormation.h"
+#include "PlayerStateGoHome.h"
 #include "U4DDynamicModel.h"
 #include "UserCommonProtocols.h"
 #include "Team.h"
@@ -24,7 +25,7 @@
 PlayerStateWander* PlayerStateWander::instance=0;
 
 PlayerStateWander::PlayerStateWander(){
-    name="formation";
+    name="wander";
 }
 
 PlayerStateWander::~PlayerStateWander(){
@@ -51,9 +52,9 @@ void PlayerStateWander::enter(Player *uPlayer){
     }
     
     
-    uPlayer->wanderBehavior.setWanderOffset(1.0);
+    uPlayer->wanderBehavior.setWanderOffset(3.0);
     
-    uPlayer->wanderBehavior.setWanderRadius(1.0);
+    uPlayer->wanderBehavior.setWanderRadius(3.0);
     
     uPlayer->wanderBehavior.setWanderRate(2.0);
     
@@ -71,6 +72,7 @@ void PlayerStateWander::execute(Player *uPlayer, double dt){
     ballPosition.y=uPlayer->getAbsolutePosition().y;
     
     U4DEngine::U4DVector3n finalVelocity=uPlayer->wanderBehavior.getSteering(uPlayer, ballPosition);
+    
     
         
     //set the final y-component to zero
@@ -107,6 +109,12 @@ bool PlayerStateWander::handleMessage(Player *uPlayer, Message &uMsg){
         case msgMark:
         {
             uPlayer->changeState(PlayerStateMark::sharedInstance());
+        }
+            break;
+            
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
         }
             break;
             

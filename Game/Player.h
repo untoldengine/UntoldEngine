@@ -73,14 +73,10 @@ private:
     //Animation Manager
     U4DEngine::U4DAnimationManager *animationManager;
     
-    
-    
-    
     //motion accumulator
     U4DEngine::U4DVector3n motionAccumulator;
     
     U4DEngine::U4DVector3n forceMotionAccumulator;
-    
     
     //Team player belongs to
     Team *team;
@@ -91,6 +87,8 @@ private:
     U4DEngine::U4DVector3n markingPosition;
 
 public:
+    
+    U4DEngine::U4DVector3n homePosition;
     
     //force direction
     U4DEngine::U4DVector3n forceDirection;
@@ -111,6 +109,8 @@ public:
     
     bool standTackleOpponent;
     
+    bool atHome;
+    
     U4DEngine::U4DArrive arriveBehavior;
     
     U4DEngine::U4DPursuit pursuitBehavior;
@@ -120,6 +120,8 @@ public:
     U4DEngine::U4DFlock flockBehavior;
     
     U4DEngine::U4DWander wanderBehavior;
+    
+    U4DEngine::U4DVector3n slidingVelocity;
     
     //right foot
     Foot *rightFoot;
@@ -183,6 +185,7 @@ public:
     
     U4DEngine::U4DVector3n getMarkingPosition();
     
+    void resetAllFlags();
     
 };
 

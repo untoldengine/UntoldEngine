@@ -17,8 +17,11 @@
 #include "PlayerStateMark.h"
 #include "PlayerStateIdle.h"
 #include "U4DDynamicModel.h"
+#include "PlayerStateGoHome.h"
 #include "UserCommonProtocols.h"
 #include "Team.h"
+
+#include "Foot.h"
 
 PlayerStateGroupNav* PlayerStateGroupNav::instance=0;
 
@@ -65,6 +68,7 @@ void PlayerStateGroupNav::enter(Player *uPlayer){
     //set the distance to start slowing down
     uPlayer->arriveBehavior.setSlowRadius(arriveSlowRadius);
     
+    //uPlayer->rightFoot->resumeCollisionBehavior();
 }
 
 void PlayerStateGroupNav::execute(Player *uPlayer, double dt){
@@ -138,6 +142,12 @@ bool PlayerStateGroupNav::handleMessage(Player *uPlayer, Message &uMsg){
         case msgMark:
         {
             uPlayer->changeState(PlayerStateMark::sharedInstance()); 
+        }
+            break;
+            
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
         }
             break;
             

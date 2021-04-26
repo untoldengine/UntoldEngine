@@ -41,7 +41,8 @@ private:
     U4DEngine::U4DButton *buttonA;
     
     Player *players[1];
-    
+    Player *oppositePlayers[5];
+
 public:
    
     LevelOneWorld(){};

@@ -42,6 +42,8 @@ protected:
     
 public:
     
+    U4DEngine::U4DVector3n homePosition;
+    
     static Ball* sharedInstance();
     
     //init method. It loads all the rendering information among other things.

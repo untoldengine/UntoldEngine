@@ -14,6 +14,7 @@
 #include "PlayerStateSlidingTackle.h"
 #include "PlayerStateGroupNav.h"
 #include "PlayerStateFormation.h"
+#include "PlayerStateGoHome.h"
 #include "MessageDispatcher.h"
 #include "Ball.h"
 #include "U4DPlane.h"
@@ -61,7 +62,7 @@ void PlayerStateMark::enter(Player *uPlayer){
     uPlayer->avoidanceBehavior.setMaxSpeed(markAvoidanceMaxSpeed);
     
     uPlayer->avoidanceBehavior.setTimeParameter(markAvoidanceTimeParameter);
-    
+    uPlayer->pursuitBehavior.setMaxSpeed(markPursuitMaxSpeed);
     //set as the controlling Player
     Team *team=uPlayer->getTeam();
     team->setMarkingPlayer(uPlayer);
@@ -77,6 +78,7 @@ void PlayerStateMark::enter(Player *uPlayer){
 //
 //    }
     
+    uPlayer->rightFoot->resumeCollisionBehavior();
 }
 
 void PlayerStateMark::execute(Player *uPlayer, double dt){
@@ -88,14 +90,14 @@ void PlayerStateMark::execute(Player *uPlayer, double dt){
        
        uPlayer->updateFootSpaceWithAnimation(currentAnimation);
        
-       
+    
        //compute the final velocity
        U4DEngine::U4DVector3n finalVelocity=uPlayer->pursuitBehavior.getSteering(uPlayer, ball);
        
-       U4DEngine::U4DVector3n avoidanceBehavior=uPlayer->avoidanceBehavior.getSteering(uPlayer);
-       
+//       U4DEngine::U4DVector3n avoidanceBehavior=uPlayer->avoidanceBehavior.getSteering(uPlayer);
+//
 //       if (uPlayer->getModelHasCollidedBroadPhase()) {
-//           finalVelocity=finalVelocity*0.7+avoidanceBehavior*0.3;
+//           finalVelocity=finalVelocity*0.5+avoidanceBehavior*0.5;
 //       }
        
        //set the final y-component to zero
@@ -105,6 +107,8 @@ void PlayerStateMark::execute(Player *uPlayer, double dt){
            
            uPlayer->applyVelocity(finalVelocity, dt);
            uPlayer->setMoveDirection(finalVelocity);
+           
+           
            
        }
        
@@ -130,6 +134,7 @@ void PlayerStateMark::execute(Player *uPlayer, double dt){
             if (playerRay.intersectPlane(ballPlane, intersectionPoint, intersectionTime)) {
                 
                 if (intersectionTime<0.5) {
+                    uPlayer->slidingVelocity=playerDirection;
                     uPlayer->changeState(PlayerStateSlidingTackle::sharedInstance());
                 }
             }
@@ -160,6 +165,12 @@ bool PlayerStateMark::handleMessage(Player *uPlayer, Message &uMsg){
         case msgFormation:
         {
             uPlayer->changeState(PlayerStateFormation::sharedInstance());
+        }
+            break;
+        
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
         }
             break;
             

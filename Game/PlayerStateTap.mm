@@ -15,6 +15,7 @@
 #include "PlayerStatePass.h"
 #include "PlayerStateHalt.h"
 #include "PlayerStateTap.h"
+#include "PlayerStateGoHome.h"
 
 PlayerStateTap* PlayerStateTap::instance=0;
 
@@ -55,7 +56,7 @@ void PlayerStateTap::execute(Player *uPlayer, double dt){
     
     uPlayer->updateFootSpaceWithAnimation(currentAnimation);
     
-    uPlayer->rightFoot->setKickBallParameters(25.0,uPlayer->dribblingDirection);
+    uPlayer->rightFoot->setKickBallParameters(tapBallSpeed,uPlayer->dribblingDirection);
     
     if (currentAnimation->getAnimationIsPlaying()==false || uPlayer->rightFoot->getModelHasCollided()) {
         
@@ -77,6 +78,11 @@ bool PlayerStateTap::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

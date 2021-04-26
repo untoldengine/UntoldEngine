@@ -19,6 +19,7 @@
 #include "PlayerStateGroupNav.h"
 #include "PlayerStateFormation.h"
 #include "PlayerStateMark.h"
+#include "PlayerStateGoHome.h"
 
 PlayerStateIdle* PlayerStateIdle::instance=0;
 
@@ -122,6 +123,18 @@ bool PlayerStateIdle::handleMessage(Player *uPlayer, Message &uMsg){
         case msgMark:
         {
             uPlayer->changeState(PlayerStateMark::sharedInstance());
+        }
+            break;
+            
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
+            
+        case msgChaseBall:
+        {
+            uPlayer->changeState(PlayerStateChase::sharedInstance());
         }
             break;
             

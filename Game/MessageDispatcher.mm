@@ -9,6 +9,7 @@
 #include "MessageDispatcher.h"
 #include "UserCommonProtocols.h"
 #include "Player.h"
+#include "Team.h"
 
 MessageDispatcher* MessageDispatcher::instance=0;
 
@@ -65,6 +66,23 @@ void MessageDispatcher::sendMessage(double uDelay, Team *uTeam, Player *uReceive
         
         //send the message
         uReceiverPlayer->handleMessage(message);
+        
+    }
+}
+
+void MessageDispatcher::sendMessage(double uDelay, Team *uReceiverTeam, int uMsg){
+    
+    //if the receiver team is null, then don't send message
+    
+    if (uReceiverTeam!=nullptr) {
+        //create the message
+        Message message;
+        
+        message.receiverTeam=uReceiverTeam;
+        message.msg=uMsg;
+        
+        //send the message
+        uReceiverTeam->handleMessage(message);
         
     }
 }

@@ -17,9 +17,12 @@
 #include "PlayerStateMark.h"
 #include "PlayerStateIdle.h"
 #include "PlayerStateWander.h"
+#include "PlayerStateGoHome.h"
 #include "U4DDynamicModel.h"
 #include "UserCommonProtocols.h"
 #include "Team.h"
+
+#include "Foot.h"
 
 PlayerStateFormation* PlayerStateFormation::instance=0;
 
@@ -66,12 +69,13 @@ void PlayerStateFormation::enter(Player *uPlayer){
     //set the distance to start slowing down
     uPlayer->arriveBehavior.setSlowRadius(arriveSlowRadius);
     
-    uPlayer->wanderBehavior.setWanderOffset(1.0);
+    uPlayer->wanderBehavior.setWanderOffset(2.0);
     
     uPlayer->wanderBehavior.setWanderRadius(3.0);
     
     uPlayer->wanderBehavior.setWanderRate(1.0);
     
+    //uPlayer->rightFoot->resumeCollisionBehavior();
 }
 
 void PlayerStateFormation::execute(Player *uPlayer, double dt){
@@ -98,6 +102,7 @@ void PlayerStateFormation::execute(Player *uPlayer, double dt){
     //get player formation position
     U4DEngine::U4DVector3n formationPosition=team->formationManager.getFormationPositionAtIndex(uPlayer->getPlayerIndex());
     
+    
     U4DEngine::U4DVector3n formationVelocity=uPlayer->arriveBehavior.getSteering(uPlayer, formationPosition);
     
     U4DEngine::U4DVector3n wanderVelocity=uPlayer->wanderBehavior.getSteering(uPlayer, formationPosition);
@@ -106,9 +111,9 @@ void PlayerStateFormation::execute(Player *uPlayer, double dt){
     
     U4DEngine::U4DVector3n finalVelocity=flockVelocity*0.50+formationVelocity*0.50;
     
-//    if (uPlayer->getModelHasCollidedBroadPhase()) {
-//        finalVelocity=finalVelocity*0.7+avoidanceBehavior*0.3;
-//    }
+    if (uPlayer->getModelHasCollidedBroadPhase()) {
+        finalVelocity=finalVelocity*0.7+avoidanceBehavior*0.3;
+    }
     
     //set the final y-component to zero
     finalVelocity.y=0.0;
@@ -157,6 +162,12 @@ bool PlayerStateFormation::handleMessage(Player *uPlayer, Message &uMsg){
         case msgWander:
         {
             uPlayer->changeState(PlayerStateWander::sharedInstance());
+        }
+            break;
+            
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
         }
             break;
             

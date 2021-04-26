@@ -12,7 +12,8 @@
 #include "PlayerStateMark.h"
 #include "PlayerStateIntercept.h"
 #include "PlayerStateGroupNav.h"
-#include "PlayerStateFormation.h" 
+#include "PlayerStateFormation.h"
+#include "PlayerStateGoHome.h"
 
 PlayerStateSlidingTackle* PlayerStateSlidingTackle::instance=0;
 
@@ -51,6 +52,9 @@ void PlayerStateSlidingTackle::enter(Player *uPlayer){
 //    uPlayer->setVelocity(zero);
 //    uPlayer->setAngularVelocity(zero);
     
+    
+    
+    
 }
 
 void PlayerStateSlidingTackle::execute(Player *uPlayer, double dt){
@@ -59,35 +63,23 @@ void PlayerStateSlidingTackle::execute(Player *uPlayer, double dt){
     
     uPlayer->updateFootSpaceWithAnimation(currentAnimation);
     
-    U4DEngine::U4DVector3n dir=uPlayer->getViewInDirection();
     
-    U4DEngine::U4DVector3n ballPosition=uPlayer->getBallPositionOffset();
-    
-    //change the y-position of the ball to be the same as the player
-    ballPosition.y=uPlayer->getAbsolutePosition().y;
-    
-    //compute the final velocity
-    U4DEngine::U4DVector3n finalVelocity=ballPosition-uPlayer->getAbsolutePosition();
-    
-    
-    //set the final y-component to zero
-    finalVelocity.y=0.0;
-    
-    if(!(finalVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
+    if(!(uPlayer->slidingVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
         
-        uPlayer->applyVelocity(finalVelocity, dt);
-        uPlayer->setMoveDirection(finalVelocity);
+        uPlayer->applyVelocity(uPlayer->slidingVelocity, dt);
+        uPlayer->setMoveDirection(uPlayer->slidingVelocity);
         
     }
-    
-    if (currentAnimation->getAnimationIsPlaying()==true && currentAnimation->getCurrentKeyframe()>0) {
-        uPlayer->rightFoot->resumeCollisionBehavior();
-        uPlayer->rightFoot->setKickBallParameters(slidingTackleKick,dir);
+   
+    uPlayer->rightFoot->resumeCollisionBehavior();
+    if (currentAnimation->getAnimationIsPlaying()==true) {
+        
+        uPlayer->rightFoot->setKickBallParameters(slidingTackleKick,uPlayer->slidingVelocity);
     }
 
     if (currentAnimation->getAnimationIsPlaying()==false) {
-
-        uPlayer->changeState(PlayerStateFormation::sharedInstance());
+        
+        uPlayer->changeState(PlayerStateIdle::sharedInstance());
 
     }
     
@@ -106,7 +98,11 @@ bool PlayerStateSlidingTackle::handleMessage(Player *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
-        
+        case msgGoHome:
+        {
+            uPlayer->changeState(PlayerStateGoHome::sharedInstance());
+        }
+            break;
             
         default:
             break;

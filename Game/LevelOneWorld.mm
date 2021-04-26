@@ -34,12 +34,12 @@
 #include "U4DShaderEntityPipeline.h"
 #include "U4DDebugger.h"
 #include "U4DJoystick.h"
-
 #include "U4DLayerManager.h"
 #include "U4DLayer.h"
 #include "FormationManager.h"
-
 #include "U4DBoundingAABB.h"
+
+#include "TeamStateReady.h"
 
 using namespace U4DEngine;
 
@@ -67,6 +67,11 @@ void LevelOneWorld::init(){
     
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");
+    
+    resourceLoader->loadFontData("dribblyFont.u4d");
+    
+    resourceLoader->loadFontData("dribblySmallFont.u4d");
+    
     
     //Animation for astronaut
     //load binary file with animation data
@@ -126,7 +131,7 @@ void LevelOneWorld::init(){
 
     if(ground->loadModel("field")){
 
-        //ground->setPipeline("fieldpipeline");
+        ground->setPipeline("fieldpipeline");
 //
 //        ground->setNormalMapTexture("FieldNormalMap.png");
         
@@ -135,6 +140,45 @@ void LevelOneWorld::init(){
 
         //add to scenegraph
         addChild(ground);
+    }
+    
+    
+    U4DEngine::U4DGameObject *goalSensor[1];
+
+    for(int i=0;i<sizeof(goalSensor)/sizeof(goalSensor[0]);i++){
+
+        std::string name="goalsensor";
+
+        name+=std::to_string(i);
+
+        goalSensor[i]=new U4DEngine::U4DGameObject();
+
+        if(goalSensor[i]->loadModel(name.c_str())){
+
+            goalSensor[i]->setPipeline("nonvisible");
+            goalSensor[i]->initAsPlatform(true);
+            
+            goalSensor[i]->enableCollisionBehavior();
+            
+            //goalSensor[i]->setBroadPhaseBoundingVolumeVisibility(true);
+            
+            //set player as a collision sensor. Meaning only detection is enabled but not the collision response
+            goalSensor[i]->setIsCollisionSensor(true);
+            
+            //I am of type
+            goalSensor[i]->setCollisionFilterCategory(kGoalSensor);
+            
+            //I collide with type of bullet and player. The enemies can collide among themselves.
+            goalSensor[i]->setCollisionFilterMask(kBall);
+            
+            //set a tag
+            goalSensor[i]->setCollidingTag(name.c_str());
+            
+            goalSensor[i]->loadRenderingInformation();
+
+            addChild(goalSensor[i]);
+        }
+
     }
     
     U4DEngine::U4DGameObject *fieldGoals[2];
@@ -189,7 +233,9 @@ void LevelOneWorld::init(){
     //Initialize both teams
     teamA=new Team();
     teamB=new Team();
-
+    
+    teamB->aiTeam=true;
+    
     teamA->setOppositeTeam(teamB);
     teamB->setOppositeTeam(teamA);
 
@@ -222,15 +268,10 @@ void LevelOneWorld::init(){
             players[i]->rotateBy(0.0, 180.0, 0.0);
             teamA->addPlayer(players[i]);
             
-            
-            
         }
 
     }
 
-
-
-    Player *oppositePlayers[5];
 
     for(int i=0;i<sizeof(oppositePlayers)/sizeof(oppositePlayers[0]);i++){
 
@@ -251,16 +292,14 @@ void LevelOneWorld::init(){
 
     }
 
-    players[0]->changeState(PlayerStateChase::sharedInstance());
+    //players[0]->changeState(PlayerStateChase::sharedInstance());
 
 
 //    oppositePlayers[0]->setEnableStandTackle(true);
     //oppositePlayers[0]->changeState(PlayerStateMark::sharedInstance());
 
-    //teamA->startAnalyzing();
-    teamB->startAnalyzing();
-    
-    
+    teamA->changeState(TeamStateReady::sharedInstance());
+    teamB->changeState(TeamStateReady::sharedInstance());
 
     //Instantiate the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
@@ -269,8 +308,8 @@ void LevelOneWorld::init(){
     U4DEngine::U4DCameraInterface *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
 
     //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
-    //cameraBasicFollow->setParameters(ball,0.0,7.0,-7.0);
-    cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,10.0,-15.0,U4DEngine::U4DPoint3n(-2.0,-2.0,-2.0),U4DEngine::U4DPoint3n(2.0,2.0,2.0));
+    cameraBasicFollow->setParameters(ball,0.0,30.0,-35.0);
+    //cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,30.0,-35.0,U4DEngine::U4DPoint3n(-6.0,-3.0,-6.0),U4DEngine::U4DPoint3n(6.0,3.0,6.0));
     
     //set the camera behavior
     camera->setCameraBehavior(cameraBasicFollow);
@@ -371,6 +410,7 @@ void LevelOneWorld::init(){
 //    U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
 //    debugger->setEnableDebugger(true, this);
     
+
 }
 
 void LevelOneWorld::actionOnButtonA(){
@@ -398,6 +438,52 @@ void LevelOneWorld::actionOnButtonA(){
 
 void LevelOneWorld::update(double dt){
     
+    //START OF MYGAL
+//    std::vector<mygal::Vector2<double>> points;
+//
+//    for(int i=0;i<sizeof(oppositePlayers)/sizeof(oppositePlayers[0]);i++){
+//
+//        U4DEngine::U4DVector3n pos=oppositePlayers[i]->getAbsolutePosition();
+//
+//        pos.x/=8.0;
+//        pos.z/=10.0;
+//        mygal::Vector2<double> v(pos.x,pos.z);
+//        points.push_back(v);
+//
+//    }
+//
+//    // Initialize an instance of Fortune's algorithm
+//    auto algorithm = mygal::FortuneAlgorithm<double>(points);
+//    // Construct the diagram
+//    algorithm.construct();
+//    // Bound the diagram
+//    algorithm.bound(mygal::Box<double>{-8.05, -8.05, 10.05, 10.05});
+//    // Get the constructed diagram
+//    auto diagram = algorithm.getDiagram();
+//    // Compute the intersection between the diagram and a box
+//    diagram.intersect(mygal::Box<double>{-8.0, -8.0, 10.0, 10.0});
+//
+//    //send size
+//    U4DEngine::U4DVector4n param0(diagram.getHalfEdges().size(),0.0,0.0,0.0);
+//    ground->updateShaderParameterContainer(0.0, param0);
+//    int count=1;
+//    for(auto n:diagram.getHalfEdges()){
+//
+//
+//        U4DEngine::U4DVector4n params(n.origin->point.x,n.origin->point.y,n.destination->point.x,n.destination->point.y);
+//        ground->updateShaderParameterContainer(count, params);
+//        count++;
+//    }
+    //END OF MYGAL
+   
+//    std::cout<<"start"<<std::endl;
+//    count=0;
+//    for(auto n:diagram.getHalfEdges()){
+//        std::cout<<"point["<<count<<"]=float4("<<n.origin->point.x<<","<<n.origin->point.y<<","<<n.destination->point.x<<","<<n.destination->point.y<<");"<<std::endl;
+//        count++;
+//    }
+//
+//    std::cout<<"end"<<std::endl;
 //    //get the ball position
 //    Ball *ball=Ball::sharedInstance();
 //
