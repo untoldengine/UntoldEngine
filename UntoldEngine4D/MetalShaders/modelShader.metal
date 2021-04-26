@@ -144,12 +144,9 @@ vertex VertexOutput vertexModelShader(VertexInput vert [[stage_in]], constant Un
     }
     
     
-    //shadow coordinates
-    if(uniformModelRenderFlags.enableShadows){
-        
-        vertexOut.shadowCoords=(uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
-        
-    }
+       
+    vertexOut.shadowCoords=(uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
+     
     
     //send the material index
     vertexOut.materialIndex=vert.materialIndex.x;
@@ -230,7 +227,6 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
     
     //compute shadow
     
-    //if(uniformModelRenderFlags.enableShadows){
         
         constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
         
@@ -268,7 +264,7 @@ fragment float4 fragmentModelShader(VertexOutput vertexOut [[stage_in]], constan
         
         finalColor*=visibility;
         
-    //}
+    
     
     return finalColor;
 

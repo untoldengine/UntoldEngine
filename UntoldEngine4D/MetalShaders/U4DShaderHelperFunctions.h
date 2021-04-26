@@ -137,4 +137,6 @@ float sdfTriangle(float2 p );
 
 float sdfBox( float2 p, float2 b);
 
+float2x2 rotate2d(float uAngle);
+
 #endif /* U4DShaderHelperFunctions_h */

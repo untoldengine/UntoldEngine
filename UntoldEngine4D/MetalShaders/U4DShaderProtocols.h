@@ -80,7 +80,6 @@ typedef struct{
     
     bool hasTexture;
     bool enableNormalMap;
-    bool enableShadows;
     bool hasArmature;
     
 }UniformModelRenderFlags;

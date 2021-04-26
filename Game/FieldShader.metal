@@ -37,11 +37,6 @@ struct VertexOutput{
     int materialIndex [[flat]];
 };
 
-float2x2 rotate2d(float _angle){
-    return float2x2(cos(_angle),-sin(_angle),
-                sin(_angle),cos(_angle));
-}
-
 vertex VertexOutput vertexFieldShader(VertexInput vert [[stage_in]], constant UniformSpace &uniformSpace [[buffer(viSpaceBuffer)]], constant UniformDirectionalLightProperties &uniformLightProperties [[buffer(viDirLightPropertiesBuffer)]], constant UniformModelRenderFlags &uniformModelRenderFlags [[buffer(viModelRenderFlagBuffer)]], constant UniformBoneSpace &uniformBoneSpace [[buffer(viBoneBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(viGlobalDataBuffer)]], constant UniformModelShaderProperty &uniformModelShaderProperty [[buffer(viModelShaderPropertyBuffer)]], uint vid [[vertex_id]]){
     
     VertexOutput vertexOut;
@@ -99,13 +94,9 @@ vertex VertexOutput vertexFieldShader(VertexInput vert [[stage_in]], constant Un
     }
     
     
-    //shadow coordinates
-    //if(uniformModelRenderFlags.enableShadows){
         
-        vertexOut.shadowCoords=(uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
+    vertexOut.shadowCoords=(uniformLightProperties.lightShadowProjectionSpace*(uniformSpace.modelSpace*float4(vert.position)));
         
-    //}
-    
     //send the material index
     vertexOut.materialIndex=vert.materialIndex.x;
     
