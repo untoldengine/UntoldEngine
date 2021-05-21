@@ -24,7 +24,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),hasNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(10,U4DVector4n(0.0,0.0,0.0,0.0)){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),hasNormalMap(false),enableNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(10,U4DVector4n(0.0,0.0,0.0,0.0)){
         
         renderEntity=new U4DRender3DModel(this);
         

@@ -10,11 +10,12 @@
 #define U4DCameraInterface_hpp
 
 #include <stdio.h>
+#include "U4DPoint3n.h"
 
 namespace U4DEngine {
 
     class U4DModel;
-
+    class U4DBoundingAABB;
 }
 
 namespace U4DEngine {
@@ -51,7 +52,18 @@ namespace U4DEngine {
          @param uZOffset z-distance offset
          */
         virtual void setParameters(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset)=0;
+        
+        virtual void setParametersWithBoxTracking(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset,U4DPoint3n uMinPoint, U4DPoint3n uMaxPoint)=0;
 
+        virtual void trackBoundingBox()=0;
+        
+        virtual U4DBoundingAABB *getBoundingBox()=0;
+        
+        virtual void pauseBoxTracking()=0;
+        
+        virtual void resumeBoxTracking()=0;
+        
+        
     };
     
 }

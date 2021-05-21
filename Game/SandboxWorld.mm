@@ -12,23 +12,8 @@
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
 #include "U4DResourceLoader.h"
-#include "SandboxLogic.h"
-
-#include "U4DSlider.h"
-#include "U4DWindow.h"
-#include "U4DJoystick.h"
-#include "U4DSkybox.h"
-#include "U4DLayerManager.h"
-#include "U4DLayer.h"
-#include "U4DCallback.h"
 #include "U4DDebugger.h"
-#include "U4DBoundingAABB.h"
-#include "U4DProfilerManager.h"
-#include "U4DImage.h"
-#include "U4DText.h"
-#include "U4DRenderManager.h"
-#include "U4DModelPipeline.h"
-#include "U4DPointLight.h"
+#include "U4DSkybox.h"
 
 using namespace U4DEngine;
 
@@ -65,7 +50,7 @@ void SandboxWorld::init(){
     resourceLoader->loadTextureData("uiTextures.u4d");
     
     //load particle data
-    resourceLoader->loadParticleData("redBulletEmitter.u4d");
+    //resourceLoader->loadParticleData("redBulletEmitter.u4d");
     
     //Load binary file with animation data
     resourceLoader->loadAnimationData("astronautWalkAnim.u4d");
@@ -81,6 +66,14 @@ void SandboxWorld::init(){
     //Load attribute (rendering information) into the game entity
     if (myAstronaut->loadModel("astronaut")) {
 
+        myAstronaut->enableKineticsBehavior();
+
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+
+        myAstronaut->setGravity(zero);
+
+        myAstronaut->enableCollisionBehavior();
+
         //Line 4. Load rendering information into the GPU
         myAstronaut->loadRenderingInformation();
 
@@ -88,7 +81,6 @@ void SandboxWorld::init(){
         addChild(myAstronaut);
 
     }
-    
   
     //Line 2. Create an Animation object and link it to the 3D model
     U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
@@ -111,7 +103,15 @@ void SandboxWorld::init(){
     U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
 
     //Line 3. Load attribute (rendering information) into the game entity
-    if (ground->loadModel("terrain")) {
+    if (ground->loadModel("island")) {
+
+        ground->enableKineticsBehavior();
+
+        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+
+        ground->setGravity(zero);
+
+        ground->enableCollisionBehavior();
 
         //Line 4. Load rendering information into the GPU
         ground->loadRenderingInformation();
@@ -119,24 +119,6 @@ void SandboxWorld::init(){
         //Line 5. Add astronaut to the scenegraph
         addChild(ground);
 
-    }
-    
-    U4DEngine::U4DGameObject *models[2];
-        
-    for(int i=0;i<sizeof(models)/sizeof(models[0]);i++){
-        
-        std::string name="model";
-        name+=std::to_string(i);
-        
-        models[i]=new U4DEngine::U4DGameObject();
-        
-        if (models[i]->loadModel(name.c_str())) {
-            
-            models[i]->loadRenderingInformation();
-            
-            addChild(models[i]);
-            
-        }
     }
     
     //Render a skybox
@@ -148,7 +130,6 @@ void SandboxWorld::init(){
     //add the skybox to the scenegraph with appropriate z-depth
     addChild(skybox);
 
-
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
     debugger->setEnableDebugger(true,this);
     
@@ -156,7 +137,6 @@ void SandboxWorld::init(){
 
 
 void SandboxWorld::update(double dt){
-    
     
     
 }
@@ -178,7 +158,7 @@ void SandboxWorld::setupConfiguration(){
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(0.0,4.0,-10.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-7.0);
 
     
     //translate camera
@@ -190,7 +170,7 @@ void SandboxWorld::setupConfiguration(){
     //Create light object, translate it and set diffuse and specular color
     U4DDirectionalLight *light=U4DDirectionalLight::sharedInstance();
     light->translateTo(10.0,10.0,-10.0);
-    U4DEngine::U4DVector3n diffuse(1.0,1.0,1.0);
+    U4DEngine::U4DVector3n diffuse(0.5,0.5,0.5);
     U4DEngine::U4DVector3n specular(0.2,0.2,0.2);
     light->setDiffuseColor(diffuse);
     light->setSpecularColor(specular);

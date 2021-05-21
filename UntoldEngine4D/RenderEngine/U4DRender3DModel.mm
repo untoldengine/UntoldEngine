@@ -398,7 +398,6 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):uniformMaterialBuffer(ni
         
         //update the rendering flags
         UniformModelRenderFlags modelFlags;
-        //modelFlags.enableShadows=u4dObject->getEnableShadow();
         modelFlags.enableNormalMap=u4dObject->getEnableNormalMap();
         modelFlags.hasTexture=u4dObject->getHasTexture();
         modelFlags.hasArmature=u4dObject->getHasArmature();

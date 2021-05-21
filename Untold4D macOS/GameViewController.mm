@@ -16,7 +16,6 @@
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
 #include "SandboxScene.h"
-#include "DemoScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController
@@ -110,10 +109,9 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    //SandboxScene *sandboxScene=new SandboxScene();
-    DemoScene *demoScene=new DemoScene();
+    SandboxScene *sandboxScene=new SandboxScene();
     
-    sceneManager->changeScene(demoScene);
+    sceneManager->changeScene(sandboxScene);
     
 }
 

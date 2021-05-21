@@ -12,11 +12,13 @@
 #include <stdio.h>
 #include "U4DCameraInterface.h"
 #include "U4DVector3n.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
 
 namespace U4DEngine {
     
     class U4DModel;
-    
+    class U4DBoundingAABB;
 }
 
 namespace U4DEngine {
@@ -28,6 +30,12 @@ namespace U4DEngine {
     class U4DCameraBasicFollow:public U4DCameraInterface{
         
     private:
+        
+        //declare the callback with the class name
+        U4DEngine::U4DCallback<U4DCameraBasicFollow> *scheduler;
+
+        //declare the timer
+        U4DEngine::U4DTimer *timer;
         
         /**
          @brief Instace for the U4DCameraBasicFollow singleton
@@ -59,6 +67,12 @@ namespace U4DEngine {
          */
         U4DVector3n motionAccumulator;
         
+        U4DVector3n previousBoundingPosition;
+
+        U4DVector3n newBoundingPosition;
+        
+        bool trackBox;
+        
     protected:
         
         /**
@@ -72,6 +86,8 @@ namespace U4DEngine {
         ~U4DCameraBasicFollow();
         
     public:
+        
+        U4DBoundingAABB *cameraBoundingBox;
         
         /**
          @brief Method which returns an instace of the U4DCameraBasicFollow singleton
@@ -96,6 +112,16 @@ namespace U4DEngine {
          @param uZOffset z-distance offset. This offset represents the distance the camera is behind the 3D model
          */
         void setParameters(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset);
+        
+        void setParametersWithBoxTracking(U4DModel *uModel, float uXOffset, float uYOffset, float uZOffset,U4DPoint3n uMinPoint, U4DPoint3n uMaxPoint);
+        
+        void trackBoundingBox();
+        
+        U4DBoundingAABB *getBoundingBox();
+        
+        void pauseBoxTracking();
+        
+        void resumeBoxTracking();
         
     };
     
