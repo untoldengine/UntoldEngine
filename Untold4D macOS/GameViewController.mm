@@ -16,7 +16,6 @@
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
 #include "SandboxScene.h"
-#include "LevelOneScene.h"
 #include "CommonProtocols.h"
 
 @implementation GameViewController
@@ -92,7 +91,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenScaleFactorChanged:) name:NSWindowDidChangeBackingPropertiesNotification object:nil];
     
     //If using the keyboard, then set it to false. If using a controller then set it to true
-    director->setGamePadControllerPresent(true);
+    director->setGamePadControllerPresent(false);
 
 
 }
@@ -110,10 +109,9 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
     //initialize the scene for your game
-    //SandboxScene *sandboxScene=new SandboxScene();
-    LevelOneScene *levelOneScene=new LevelOneScene();
+    SandboxScene *sandboxScene=new SandboxScene();
     
-    sceneManager->changeScene(levelOneScene);
+    sceneManager->changeScene(sandboxScene);
     
 }
 
