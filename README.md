@@ -14,7 +14,7 @@ It took me over five years to develop the *Untold Engine* from scratch. I spent 
 
 ## Running the Untold Engine
 
-Before running the engine, please visit the [Docs](https://untoldengine.github.io/api/docs/html/index.html).
+Before running the engine, please visit the [Docs](https://www.untoldengine.com).
 
 ![image2](images/image1.png)
 
@@ -32,7 +32,7 @@ To run the the Untold Engine, you need the following tools:
 
 ## Current Version
 
-Beta version v0.0.15. See current [Release Notes](https://www.untoldengine.com/release-notes) for improvement and fixes.
+Beta version v0.0.15. See current [Release Notes](https://www.untoldengine.com) for improvement and fixes.
 
 ![image5](images/image5.png)
 
