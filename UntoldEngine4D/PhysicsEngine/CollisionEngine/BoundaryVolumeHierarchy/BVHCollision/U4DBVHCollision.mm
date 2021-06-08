@@ -7,7 +7,6 @@
 //
 
 #include "U4DBVHCollision.h"
-#include "U4DBVHTree.h"
 #include "U4DDynamicModel.h"
 
 namespace U4DEngine {
@@ -20,11 +19,11 @@ namespace U4DEngine {
         
     }
     
-    bool U4DBVHCollision::collisionBetweenTreeVolume(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+    bool U4DBVHCollision::collisionBetweenTreeVolume(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode){
         return uTreeLeftNode->getAABBVolume()->intersectionWithVolume(uTreeRightNode->getAABBVolume());
     }
     
-    bool U4DBVHCollision::descendTreeRule(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode){
+    bool U4DBVHCollision::descendTreeRule(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode){
         
         bool value=false;
         

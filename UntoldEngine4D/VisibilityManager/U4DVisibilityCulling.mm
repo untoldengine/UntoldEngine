@@ -11,7 +11,6 @@
 #include "U4DBoundingAABB.h"
 #include "U4DBoundingVolume.h"
 #include "U4DPoint3n.h"
-#include "U4DBVHTree.h"
 #include "U4DNumerical.h"
 
 namespace U4DEngine {
@@ -24,10 +23,10 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityCulling::startFrustumIntersection(std::vector<std::shared_ptr<U4DBVHTree>>& uTreeContainer, std::vector<U4DPlane> &uPlanes){
+    void U4DVisibilityCulling::startFrustumIntersection(std::vector<std::shared_ptr<U4DNode<U4DBVHNode<U4DModel>>>>& uTreeContainer, std::vector<U4DPlane> &uPlanes){
         
         //get root tree
-        U4DBVHTree *child=uTreeContainer.at(0).get()->next;
+        U4DNode<U4DBVHNode<U4DModel>> *child=uTreeContainer.at(0).get()->next;
         
         if (child->getModelsContainer().size()>1) {
             
@@ -79,7 +78,7 @@ namespace U4DEngine {
         return true;
     }
     
-    void U4DVisibilityCulling::testFrustumIntersection(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode, std::vector<U4DPlane> &uPlanes){
+    void U4DVisibilityCulling::testFrustumIntersection(U4DNode<U4DBVHNode<U4DModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DModel>> *uTreeRightNode, std::vector<U4DPlane> &uPlanes){
         
         if(uTreeLeftNode==NULL && uTreeRightNode==NULL) return;
         
@@ -90,7 +89,7 @@ namespace U4DEngine {
             //analyze left node
             if (uTreeLeftNode->isLeaf()) {
                 
-                U4DDynamicModel *model=uTreeLeftNode->getModelsContainer().at(0);
+                U4DModel *model=uTreeLeftNode->getModelsContainer().at(0);
                 
                 if (model!=nullptr) {
                     
@@ -131,7 +130,7 @@ namespace U4DEngine {
             //analyze right node
             if (uTreeRightNode->isLeaf()) {
                 
-                U4DDynamicModel *model=uTreeRightNode->getModelsContainer().at(0);
+                U4DModel *model=uTreeRightNode->getModelsContainer().at(0);
                 
                 if (model!=nullptr) {
                     

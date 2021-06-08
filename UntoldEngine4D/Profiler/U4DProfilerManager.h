@@ -14,6 +14,7 @@
 #include <iostream>
 
 #include "U4DProfilerNode.h"
+#include "U4DNode.h"
 
 namespace U4DEngine {
 
@@ -21,9 +22,9 @@ namespace U4DEngine {
         
     private:
     
-        U4DProfilerNode *rootNode;
+        U4DNode<U4DProfilerNode> *rootNode;
         
-        U4DProfilerNode *currentNode;
+        U4DNode<U4DProfilerNode> *currentNode;
         
         static U4DProfilerManager *instance;
         
@@ -39,7 +40,7 @@ namespace U4DEngine {
         
         static U4DProfilerManager *sharedInstance();
         
-        U4DProfilerNode *searchProfilerNode(std::string uNodeName);
+        U4DNode<U4DProfilerNode> *searchProfilerNode(std::string uNodeName);
         
         void startProfiling(std::string uNodeName);
         

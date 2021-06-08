@@ -24,6 +24,7 @@
 
 namespace U4DEngine {
     
+    class U4DEntityManager;
     class U4DBoundingVolume;
     
 }
@@ -156,7 +157,50 @@ namespace U4DEngine {
          */
         void render(id <MTLRenderCommandEncoder> uRenderEncoder);
         
+        /**
+         @brief returns the rest pose of the bone. Note, an armature must be present
+         
+         @param uBoneName name of the bone
+         @param uBoneRestPoseMatrix bone rest pose matrix
+         @return returns true if the rootbone rest pose exists. The uBoneRestPoseMatrix will contain the bone rest pose
+         */
+        bool getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPoseMatrix);
+
+        /**
+         @brief returns the animation pose of the bone. Note, an armature must be present and an animation must currently be playing.
+         
+         @param uBoneName name of the bone
+         @param uAnimation current animation being played
+         @param uBoneAnimationPoseMatrix bone animation pose matrix
+         
+         @return returns true along with the animation pose space of the bone. The uBoneAnimationPoseMatrix will contain the animation pose matrix.
+         */
+        bool getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimation, U4DMatrix4n &uBoneAnimationPoseMatrix);
         
+        /**
+        @brief Method which loads Digital Asset data into the game character. Note, the mesh asset binary data must be loaded before calling this method.
+        @param uModelName   Name of the model in the Digital Asset File
+       
+        @return Returns true if the digital asset data was successfully loaded
+        */
+        bool loadModel(const char* uModelName);
+        
+        /**
+        @brief Method which loads Animation data into the game character. Note, the animation asset binary data must be loaded before calling this method.
+    
+        @param uAnimation     Pointer to the animation
+        @param uAnimationName Name of the animation
+        
+        @return Returns true if the animation was successfully loaded
+        */
+        bool loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName);
+        
+        /**
+         @brief self load 3d model into the visibility manager
+
+         @param uEntityManager pointer to the entity manager
+         */
+        void loadIntoVisibilityManager(U4DEntityManager *uEntityManager);
         
         /**
          @brief sets the Normal Map texture used for the 3d model

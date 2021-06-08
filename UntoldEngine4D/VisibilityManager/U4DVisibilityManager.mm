@@ -11,7 +11,6 @@
 #include "U4DBoundingAABB.h"
 #include "U4DBoundingVolume.h"
 #include "U4DPoint3n.h"
-#include "U4DBVHTree.h"
 #include "U4DNumerical.h"
 #include "U4DTimer.h"
 
@@ -33,13 +32,13 @@ namespace U4DEngine {
         delete timer;
     }
     
-    void U4DVisibilityManager::addModelToTreeContainer(U4DDynamicModel* uModel){
+    void U4DVisibilityManager::addModelToTreeContainer(U4DModel* uModel){
         
         modelsContainer.push_back(uModel);
         
     }
     
-    std::vector<U4DDynamicModel *> U4DVisibilityManager::getModelsContainer(){
+    std::vector<U4DModel *> U4DVisibilityManager::getModelsContainer(){
         
         return modelsContainer;
     }
@@ -71,7 +70,7 @@ namespace U4DEngine {
     void U4DVisibilityManager::buildBVH(){
         
         //create parent node
-        std::shared_ptr<U4DBVHTree> root(new U4DBVHTree());
+        std::shared_ptr<U4DNode<U4DBVHNode<U4DModel>>> root(new U4DNode<U4DBVHNode<U4DModel>>());
         
         treeContainer.push_back(root);
         
@@ -83,10 +82,10 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityManager::buildBVHNode(U4DBVHTree *uNode, int uLeftIndex, int uSplitIndex){
+    void U4DVisibilityManager::buildBVHNode(U4DNode<U4DBVHNode<U4DModel>> *uNode, int uLeftIndex, int uSplitIndex){
         
         //1. Create node with current objects
-        std::shared_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
+        std::shared_ptr<U4DNode<U4DBVHNode<U4DModel>>> nodeLeaf(new U4DNode<U4DBVHNode<U4DModel>>());
         
         treeContainer.push_back(nodeLeaf);
         
@@ -96,7 +95,7 @@ namespace U4DEngine {
         //load models in to container
         for (int i=uLeftIndex; i<uSplitIndex; i++) {
             
-            U4DDynamicModel *model=uNode->getModelsContainer().at(i);
+            U4DModel *model=uNode->getModelsContainer().at(i);
             
             nodeLeaf->addModelToContainer(model);
             
@@ -126,7 +125,7 @@ namespace U4DEngine {
     }
     
     
-    void U4DVisibilityManager::calculateBVHVolume(U4DBVHTree *uNode){
+    void U4DVisibilityManager::calculateBVHVolume(U4DNode<U4DBVHNode<U4DModel>> *uNode){
         
         float xMin=FLT_MAX;
         float xMax=FLT_MIN;
@@ -163,7 +162,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityManager::getBVHLongestDimensionVector(U4DBVHTree *uNode){
+    void U4DVisibilityManager::getBVHLongestDimensionVector(U4DNode<U4DBVHNode<U4DModel>> *uNode){
         
         //get the longest dimension of the volume
         float xDimension=std::abs(uNode->getAABBVolume()->getMinPoint().x-uNode->getAABBVolume()->getMaxPoint().x);
@@ -195,7 +194,7 @@ namespace U4DEngine {
         uNode->getAABBVolume()->setLongestAABBDimensionVector(longestDimensionVector);
     }
     
-    void U4DVisibilityManager::getBVHSplitIndex(U4DBVHTree *uNode){
+    void U4DVisibilityManager::getBVHSplitIndex(U4DNode<U4DBVHNode<U4DModel>> *uNode){
         
         //split the longest dimension of the volume in half
         
@@ -249,7 +248,7 @@ namespace U4DEngine {
     }
     
     
-    void U4DVisibilityManager::heapSorting(U4DBVHTree *uNode){
+    void U4DVisibilityManager::heapSorting(U4DNode<U4DBVHNode<U4DModel>> *uNode){
         
         int index=0;
         
@@ -271,7 +270,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityManager::reHeapDown(U4DBVHTree *uNode,int root, int bottom){
+    void U4DVisibilityManager::reHeapDown(U4DNode<U4DBVHNode<U4DModel>> *uNode,int root, int bottom){
         
         int maxChild;
         int rightChild;
@@ -308,10 +307,10 @@ namespace U4DEngine {
     
     
     
-    void U4DVisibilityManager::swap(U4DBVHTree *uNode,int uIndex1, int uIndex2){
+    void U4DVisibilityManager::swap(U4DNode<U4DBVHNode<U4DModel>> *uNode,int uIndex1, int uIndex2){
         
-        U4DDynamicModel* model1=uNode->getModelsContainer().at(uIndex1);
-        U4DDynamicModel* model2=uNode->getModelsContainer().at(uIndex2);
+        U4DModel* model1=uNode->getModelsContainer().at(uIndex1);
+        U4DModel* model2=uNode->getModelsContainer().at(uIndex2);
         
         uNode->addModelToContainerAtIndex(uIndex1, model2);
         uNode->addModelToContainerAtIndex(uIndex2, model1);

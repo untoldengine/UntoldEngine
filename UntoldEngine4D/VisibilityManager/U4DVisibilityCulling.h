@@ -11,13 +11,14 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DDynamicModel.h"
+#include "U4DModel.h"
 #include "U4DVisibilityCulling.h"
+#include "U4DBVHNode.h"
+#include "U4DNode.h"
 
 namespace U4DEngine {
     
     class U4DAABB;
-    class U4DBVHTree;
 }
 
 namespace U4DEngine {
@@ -57,7 +58,7 @@ namespace U4DEngine {
          @param uTreeContainer tree containing the AABB boxes encompassing the 3D models
          @param uPlanes camera planes
          */
-        void startFrustumIntersection(std::vector<std::shared_ptr<U4DBVHTree>>& uTreeContainer, std::vector<U4DPlane> &uPlanes);
+        void startFrustumIntersection(std::vector<std::shared_ptr<U4DNode<U4DBVHNode<U4DModel>>>>& uTreeContainer, std::vector<U4DPlane> &uPlanes);
         
         
         /**
@@ -67,7 +68,7 @@ namespace U4DEngine {
          @param uTreeRightNode right node of tree containing the AABB boxes encompassing the 3D models
          @param uPlanes camera planes
          */
-        void testFrustumIntersection(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode, std::vector<U4DPlane> &uPlanes);
+        void testFrustumIntersection(U4DNode<U4DBVHNode<U4DModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DModel>> *uTreeRightNode, std::vector<U4DPlane> &uPlanes);
         
     };
     
