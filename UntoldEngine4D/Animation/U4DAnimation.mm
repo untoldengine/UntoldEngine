@@ -8,7 +8,6 @@
 
 #include "U4DAnimation.h"
 #include "U4DModel.h"
-#include "U4DBoneData.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
 #include "U4DLogger.h"
@@ -111,7 +110,7 @@ void U4DAnimation::runAnimation(){
     //YOU MUST CLEAR THE U4DMODEL FINAL ANIMATION BONE MATRIX
     u4dModel->armatureBoneMatrix.clear();
     
-    U4DBoneData *boneChild=rootBone;
+    U4DNode<U4DBoneData> *boneChild=rootBone;
     
     ANIMATIONDATA animationData;
     

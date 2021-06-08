@@ -9,7 +9,6 @@
 #include "U4DBlendAnimation.h"
 #include "U4DAnimation.h"
 #include "U4DModel.h"
-#include "U4DBoneData.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
 #include "U4DLogger.h"
@@ -84,7 +83,7 @@ namespace U4DEngine {
         //YOU MUST CLEAR THE U4DMODEL FINAL ANIMATION BONE MATRIX
         nextAnimation->u4dModel->armatureBoneMatrix.clear();
         
-        U4DBoneData *boneChild=rootBone;
+        U4DNode<U4DBoneData> *boneChild=rootBone;
         
         ANIMATIONDATA previousAnimationData;
         ANIMATIONDATA nextAnimationData;

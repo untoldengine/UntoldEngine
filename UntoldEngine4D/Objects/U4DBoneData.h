@@ -96,128 +96,13 @@ public:
     std::vector<float> vertexWeightContainer;
     
     /**
-     @brief Bone parent
-     */
-    U4DBoneData *parent;
-    
-    /**
-     @brief Bone previous sibling
-     */
-    U4DBoneData *prevSibling;
-    
-    /**
-     @brief Bone Next pointer
-     */
-    U4DBoneData *next;
-    
-    /**
-     @brief Bone last descendant
-     */
-    U4DBoneData *lastDescendant;
-    
-    /**
-     @brief Method which returns the first child of the bone in the scenegraph
-     
-     @return First child of the bone
-     */
-    U4DBoneData *getFirstChild();
-    
-    /**
-     @brief Method which returns the last child of the bone in the scenegraph
-     
-     @return Last child of the bone
-     */
-    U4DBoneData *getLastChild();
-    
-    /**
-     @brief Method which returns the next sibling of the bone in the scenegraph
-     
-     @return Next sibling of the bone
-     */
-    U4DBoneData *getNextSibling();
-    
-    /**
-     @brief Method which returns the previous sibling of the bone in the scenegraph
-     
-     @return Previous sibling of the bone
-     */
-    U4DBoneData *getPrevSibling();
-    
-    /**
-     @brief Method which returns the bone's previous sibling in pre-order traversal order
-     
-     @return Returns the bone's previous sibling in pre-order traversal order
-     */
-    U4DBoneData *prevInPreOrderTraversal();
-    
-    /**
-     @brief Method which returns the bone's next pointer in pre-order traversal order
-     
-     @return Returns the bone's next pointer in pre-order traversal order
-     */
-    U4DBoneData *nextInPreOrderTraversal();
-    
-    /**
-     @brief Method which adds a bone to the scenegraph
-     
-     @param uChild Bone to add to the scenegraph
-     */
-    void addBoneToTree(U4DBoneData *uChild);
-    
-    /**
-     @brief Method which removes a bone from the scenegraph
-     
-     @param uChild Bone to remove from the scenegraph
-     */
-    void removeBoneFromTree(U4DBoneData *uChild);
-    
-    /**
-     @brief Method which changes the bone's last descendant in the scenegraph
-     
-     @param uNewLastDescendant Last descendant of the bone
-     */
-    void changeLastDescendant(U4DBoneData *uNewLastDescendant);
-    
-    /**
-     @brief Method which searches for a bone children in the scenegraph
-     
-     @param uBoneName Bone's name
-     
-     @return Children bone with the given name
-     */
-    U4DBoneData *searchChildrenBone(std::string uBoneName);
-    
-    
-    /**
-     @brief Get the index number of the child bone
-
-     @param uBoneName Bone's name
-     @return The index of the bone
-     */
-    int getChildrenBoneIndex(std::string uBoneName);
-    
-    /**
-     @brief Method which returns true if the bone represents a leaf node in the scenegraph
-     
-     @return Returns true if the bone represents a leaf node in the scenegraph
-     */
-    bool isLeaf();
-    
-    /**
-     @brief Method which returns true if the bone represents a root node in the scenegraph
-     
-     @return Returns true if the bone represents a root node in the scenegraph
-     */
-    bool isRoot();
-    
-    
-    /**
      @brief Gets the pose animation space of the bone
 
      @return The pose space animation of the bone
      */
     U4DDualQuaternion getBoneAnimationPoseSpace();
     
+    std::string getName();
 };
     
 }

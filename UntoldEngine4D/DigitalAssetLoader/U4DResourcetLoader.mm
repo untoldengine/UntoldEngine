@@ -16,6 +16,7 @@
 #include "U4DSegment.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
+#include "U4DNode.h"
 #include "U4DAnimation.h"
 #include "U4DParticleSystem.h"
 #include "U4DLogger.h"
@@ -1022,7 +1023,7 @@ namespace U4DEngine {
                     loadSpaceData(uModel->armatureManager->bindShapeSpace, modelsContainer.at(n).armature.bindShapeMatrix);
                     
                     //root bone
-                    U4DBoneData *rootBone=NULL;
+                    U4DNode<U4DBoneData> *rootBone=NULL;
                     
                     //iterate through all the bones in the armature
                     for(auto b:modelsContainer.at(n).armature.bones){
@@ -1030,7 +1031,7 @@ namespace U4DEngine {
                         if (b.parent.compare("root")==0) {
                             
                             //if bone is root, then create a bone with parent set to root
-                            rootBone=new U4DBoneData();
+                            rootBone=new U4DNode<U4DBoneData>();
                             
                             rootBone->name=b.name;
                             
@@ -1053,10 +1054,10 @@ namespace U4DEngine {
                             
                             //1.look for the bone parent
                             
-                            U4DBoneData *boneParent=rootBone->searchChildrenBone(b.parent);
+                            U4DNode<U4DBoneData> *boneParent=rootBone->searchChild(b.parent);
                             
                             //create the new bone
-                            U4DBoneData *childBone=new U4DBoneData();
+                            U4DNode<U4DBoneData> *childBone=new U4DNode<U4DBoneData>();
                             
                             //set name
                             childBone->name=b.name;
@@ -1122,7 +1123,7 @@ namespace U4DEngine {
                 //ANIMATION TRANSFORM
                 loadSpaceData(uAnimation->modelerAnimationTransform, animationsContainer.at(n).poseTransform);
                 
-                U4DBoneData* boneChild = uAnimation->rootBone;
+                U4DNode<U4DBoneData>* boneChild = uAnimation->rootBone;
                 
                 //While there are still bones
                 while (boneChild!=0) {

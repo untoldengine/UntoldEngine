@@ -12,12 +12,13 @@
 #include <stdio.h>
 #include "U4DCallback.h"
 #include "U4DAnimationManager.h"
+#include "U4DBoneData.h"
+#include "U4DNode.h"
 
 namespace U4DEngine {
     
     class U4DAnimation;
     class U4DModel;
-    class U4DBoneData;
     class U4DTimer;
 }
 
@@ -59,7 +60,7 @@ namespace U4DEngine {
         /**
          * @brief rootbone of the armature. Animations require an armature
          */
-        U4DBoneData* rootBone;
+        U4DNode<U4DBoneData>* rootBone;
         
         /**
          @brief 3D Animation scheduler
