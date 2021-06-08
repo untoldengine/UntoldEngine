@@ -12,14 +12,12 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DMeshOctreeNode.h"
-#include "U4DStaticModel.h"
+#include "U4DModel.h"
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
+#include "U4DMeshOctreeNode.h"
+#include "U4DNode.h"
 
-namespace U4DEngine {
-    class U4DMeshOctreeNode;
-    
-}
 
 namespace U4DEngine {
     
@@ -33,12 +31,12 @@ namespace U4DEngine {
         /**
          @brief Pointer to the root tree container
          */
-        std::vector<std::shared_ptr<U4DMeshOctreeNode>> treeContainer;
+        std::vector<std::shared_ptr<U4DNode<U4DMeshOctreeNode>>> treeContainer;
         
         /**
          @brief Pointer to the model whose octree will be based on
          */
-        U4DStaticModel *model;
+        U4DModel *model;
         
         /**
          @brief vector container of the mesh faces in absolute space
@@ -51,7 +49,7 @@ namespace U4DEngine {
          @brief constructor for the U4DMeshOctreeManager. The constructor transforms the 3d mesh faces from local space to absolute space
          @param uModel pointer to the model whose octree will be based on
          */
-        U4DMeshOctreeManager(U4DStaticModel *uModel);
+        U4DMeshOctreeManager(U4DModel *uModel);
         
         /**
          @brief Destructor for the U4DMeshOctreeManager
@@ -71,7 +69,7 @@ namespace U4DEngine {
          @param uCenter center of the AABB box
          @param uSubDivisions current subdivision of the the octree
          */
-        void buildOctreeNode(U4DMeshOctreeNode *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubDivisions);
+        void buildOctreeNode(U4DNode<U4DMeshOctreeNode> *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubDivisions);
         
         /**
          @brief Assigns triangles(faces) of the 3D model mesh to node leaves
@@ -81,7 +79,7 @@ namespace U4DEngine {
         /**
          @brief Returns a pointer to the octree 
          */
-        U4DMeshOctreeNode *getRootNode();
+        U4DNode<U4DMeshOctreeNode> *getRootNode();
         
         /**
          @brief Transforms the mesh faces of the 3D model from local space to absolute space

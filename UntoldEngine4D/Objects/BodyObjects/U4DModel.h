@@ -26,7 +26,7 @@ namespace U4DEngine {
     
     class U4DEntityManager;
     class U4DBoundingVolume;
-    
+    class U4DMeshOctreeManager;
 }
 
 namespace U4DEngine {
@@ -78,6 +78,10 @@ namespace U4DEngine {
         
         std::vector<U4DVector4n> shaderParameterContainer;
         
+        /**
+         @brief Object representing the mesh octree manager
+         */
+        U4DMeshOctreeManager *meshOctreeManager;
         
     protected:
         
@@ -201,6 +205,13 @@ namespace U4DEngine {
          @param uEntityManager pointer to the entity manager
          */
         void loadIntoVisibilityManager(U4DEntityManager *uEntityManager);
+        
+        /**
+         * @brief Get the 3D dimensions
+         * @details Gets the widht, length and depth dimensions of the 3D entity
+         * @return vector with the dimensions
+         */
+        U4DVector3n getModelDimensions();
         
         /**
          @brief sets the Normal Map texture used for the 3d model
@@ -378,6 +389,17 @@ namespace U4DEngine {
         
         void setImageHeight(unsigned int uImageHeight);
         
+        /**
+         * @brief Enables the mesh manager to build an octree
+         * @details Builds an octree for the 3D model using AABB boxes
+         * @param uSubDivisions The subdivisions used for the octree. 1 subdivision=9 nodes, 2 subdivisions=73 node, 3 subdivisions=585 nodes
+         */
+        void enableMeshManager(int uSubDivisions);
+        
+        /**
+         @brief gets a pointer to the mesh manager in charge of building an octree
+         */
+        U4DMeshOctreeManager *getMeshOctreeManager();
         
     };
     

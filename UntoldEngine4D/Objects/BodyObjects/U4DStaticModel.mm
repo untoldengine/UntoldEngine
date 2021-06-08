@@ -11,8 +11,6 @@
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBoundingAABB.h"
-#include "U4DMeshOctreeManager.h"
-#include "U4DMeshOctreeNode.h"
 #include "U4DResourceLoader.h"
 #include "U4DLogger.h"
 #include <algorithm>
@@ -37,8 +35,7 @@ namespace U4DEngine {
         //set the broad phase bounding volume to null
         broadPhaseBoundingVolume=nullptr;
         
-        //set the mesh octree manager to null
-        meshOctreeManager=nullptr;
+        
         
         //set all collision information to zero
         clearCollisionInformation();
@@ -51,7 +48,7 @@ namespace U4DEngine {
         
         delete broadPhaseBoundingVolume;
         
-        delete meshOctreeManager;
+        
         
     }
     
@@ -552,10 +549,7 @@ namespace U4DEngine {
         return collisionFilter.groupIndex;
     }
     
-    U4DVector3n U4DStaticModel::getModelDimensions(){
-        
-        return bodyCoordinates.getModelDimension();
-    }
+    
     
     void U4DStaticModel::setIsCollisionSensor(bool uValue){
         
@@ -614,23 +608,6 @@ namespace U4DEngine {
     
     }
     
-    void U4DStaticModel::enableMeshManager(int uSubDivisions){
-        
-        if(meshOctreeManager==nullptr){
-            
-            //create an instance of the octree mesh manager
-            meshOctreeManager=new U4DMeshOctreeManager(this);
-            
-            //build the octree for the 3D model
-            meshOctreeManager->buildOctree(uSubDivisions);
-            
-        }
-    }
     
-    U4DMeshOctreeManager *U4DStaticModel::getMeshOctreeManager(){
-        
-        return meshOctreeManager;
-        
-    }
     
 }

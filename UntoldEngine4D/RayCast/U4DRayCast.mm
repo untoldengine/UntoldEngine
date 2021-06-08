@@ -9,6 +9,7 @@
 #include "U4DRayCast.h"
 #include "U4DMeshOctreeManager.h"
 #include "U4DMeshOctreeNode.h"
+#include "U4DNode.h"
 
 namespace U4DEngine{
     
@@ -20,7 +21,7 @@ namespace U4DEngine{
         
     }
     
-    bool U4DRayCast::hit(U4DRay &uRay,U4DStaticModel *uModel,U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionParameter){
+    bool U4DRayCast::hit(U4DRay &uRay,U4DModel *uModel,U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionParameter){
         
         //boolean to return hit or non-hit
         bool intersectionFound=false;
@@ -34,14 +35,14 @@ namespace U4DEngine{
         if(meshManager!=nullptr){
          
             //Get the root node of the octree
-            U4DMeshOctreeNode *rootNode=meshManager->getRootNode();
+            U4DNode<U4DMeshOctreeNode> *rootNode=meshManager->getRootNode();
             
             //declare intersection point and intersection parameters
             U4DPoint3n intersectionPoint;
             float intersectionParameter;
             
             //search through the octree
-            U4DMeshOctreeNode *child=rootNode->next;
+            U4DNode<U4DMeshOctreeNode> *child=rootNode->next;
             
             //get the mesh faces of the 3d model in absolute space
             std::vector<U4DTriangle> faceContainer=meshManager->getMeshFacesAbsoluteSpaceContainer();

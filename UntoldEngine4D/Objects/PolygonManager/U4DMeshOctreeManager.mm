@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DMeshOctreeManager::U4DMeshOctreeManager(U4DStaticModel *uModel):model(uModel){
+    U4DMeshOctreeManager::U4DMeshOctreeManager(U4DModel *uModel):model(uModel){
         
         //compute mesh faces in absolute space (recall mesh faces are in local space. You need to convert them to absolute space)
         computeMeshFacesAbsoluteSpace();
@@ -45,7 +45,7 @@ namespace U4DEngine {
         U4DPoint3n centerOfAABB=modelPosition.toPoint();
         
         //get pointer to mesh that make up the model
-        std::shared_ptr<U4DMeshOctreeNode> rootNode(new U4DMeshOctreeNode());
+        std::shared_ptr<U4DNode<U4DMeshOctreeNode>> rootNode(new U4DNode<U4DMeshOctreeNode>());
         
         //store rootNode at treeContainer position 0.
         treeContainer.push_back(rootNode);
@@ -58,12 +58,12 @@ namespace U4DEngine {
         
     }
     
-    void U4DMeshOctreeManager::buildOctreeNode(U4DMeshOctreeNode *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubDivisions){
+    void U4DMeshOctreeManager::buildOctreeNode(U4DNode<U4DMeshOctreeNode> *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubDivisions){
         
         if (uSubDivisions>=0){
             
             //construct and fill in 'root' of this subtree
-            std::shared_ptr<U4DMeshOctreeNode> nodeLeaf(new U4DMeshOctreeNode());
+            std::shared_ptr<U4DNode<U4DMeshOctreeNode>> nodeLeaf(new U4DNode<U4DMeshOctreeNode>());
             
             treeContainer.push_back(nodeLeaf);
             
@@ -96,7 +96,7 @@ namespace U4DEngine {
     void U4DMeshOctreeManager::assignFacesToNodeLeaf(){
         
         //Traverse the tree
-        U4DMeshOctreeNode* child=treeContainer.at(0).get();
+        U4DNode<U4DMeshOctreeNode>* child=treeContainer.at(0).get();
 
         while (child!=NULL) {
 
@@ -125,7 +125,7 @@ namespace U4DEngine {
         
     }
     
-    U4DMeshOctreeNode *U4DMeshOctreeManager::getRootNode(){
+    U4DNode<U4DMeshOctreeNode> *U4DMeshOctreeManager::getRootNode(){
         
         //return root node store at index location 0 in the tree container
         return treeContainer.at(0).get();
