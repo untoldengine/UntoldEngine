@@ -219,8 +219,7 @@ namespace U4DEngine {
 template <typename T>
 U4DNode<T>* U4DNode<T>::searchChild(std::string uName){
     
-    //get the first child
-    U4DNode<T>* child=next;
+    U4DNode<T>* child=this;
     U4DNode<T>* childWithName=nullptr;
     
     U4DLogger *logger=U4DLogger::sharedInstance();

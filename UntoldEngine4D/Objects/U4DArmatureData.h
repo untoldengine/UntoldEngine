@@ -12,9 +12,10 @@
 #include <iostream>
 #include <vector>
 #include "U4DDualQuaternion.h"
+#include "U4DBoneData.h"
+#include "U4DNode.h"
 
 namespace U4DEngine {
-class U4DBoneData;
 class U4DModel;
 }
 
@@ -47,7 +48,7 @@ public:
     /**
      @brief Pointer to the bone representing the root bone.
      */
-    U4DBoneData* rootBone;
+    U4DNode<U4DBoneData>* rootBone;
     
     /**
      @brief Bind shape space of the armature
@@ -57,7 +58,7 @@ public:
     /**
      @brief Container holding all bones belonging to the armature
      */
-    std::vector<U4DBoneData*> boneDataContainer;
+    std::vector<U4DNode<U4DBoneData>*> boneDataContainer;
     
     /**
      @brief Method which adds a bone to the armature tree
@@ -65,7 +66,7 @@ public:
      @param uParent Parent of the bone
      @param uChild  Bone to add
      */
-    void addBoneToTree(U4DBoneData *uParent,U4DBoneData *uChild);
+    void addBoneToTree(U4DNode<U4DBoneData> *uParent,U4DNode<U4DBoneData> *uChild);
     
     /**
      @brief Method which removes a bone from the armature tree
@@ -84,7 +85,7 @@ public:
      
      @param uBoneData Bone to assign as root bone
      */
-    void setRootBone(U4DBoneData* uBoneData);
+    void setRootBone(U4DNode<U4DBoneData>* uBoneData);
 
     /**
      @brief Method which starts the bone sorting and prepares the attribute data (bone weight) of the bones
@@ -97,7 +98,7 @@ public:
      @param uBoneDataContainer    Armature bone container
      @param boneVertexWeightIndex Bone vertex weight array index
      */
-    void prepareAndSendBoneDataToBuffer(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex);
+    void prepareAndSendBoneDataToBuffer(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int boneVertexWeightIndex);
     
     /**
      @brief Method use to heap-down sort the bones
@@ -107,7 +108,7 @@ public:
      @param root                  index of root bone
      @param bottom                bottom index
      */
-    void reHeapDown(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex, int root, int bottom);
+    void reHeapDown(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int boneVertexWeightIndex, int root, int bottom);
     
     /**
      @brief Method to heap sort the bones
@@ -115,7 +116,7 @@ public:
      @param uBoneDataContainer    Armature bone container
      @param boneVertexWeightIndex Bone vertex weight array index
      */
-    void heapSorting(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex);
+    void heapSorting(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int boneVertexWeightIndex);
     
     /**
      @brief Method used to swap the bone's array index
@@ -124,7 +125,7 @@ public:
      @param uindex1            Bone array index
      @param uindex2            Bone array index
      */
-    void swap(std::vector<U4DBoneData*> &uBoneDataContainer,int uindex1, int uindex2);
+    void swap(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int uindex1, int uindex2);
     
     /**
      @brief Method which adds bones to the armature bone container

@@ -7,7 +7,6 @@
 //
 
 #include "U4DArmatureData.h"
-#include "U4DBoneData.h"
 #include "U4DModel.h"
 
 namespace U4DEngine {
@@ -21,9 +20,9 @@ namespace U4DEngine {
     U4DArmatureData::~U4DArmatureData(){
 
         //Remove all bones
-        std::vector<U4DBoneData*> removeBoneContainer;
+        std::vector<U4DNode<U4DBoneData>*> removeBoneContainer;
         
-        U4DBoneData *child=rootBone;
+        U4DNode<U4DBoneData> *child=rootBone;
         
         while (child!=NULL) {
             
@@ -41,16 +40,16 @@ namespace U4DEngine {
         
     }
 
-    void U4DArmatureData::setRootBone(U4DBoneData* uBoneData){
+    void U4DArmatureData::setRootBone(U4DNode<U4DBoneData>* uBoneData){
         
         rootBone=uBoneData;
         
     }
 
 
-    void U4DArmatureData::addBoneToTree(U4DBoneData *uParent, U4DBoneData *uChild){
+    void U4DArmatureData::addBoneToTree(U4DNode<U4DBoneData> *uParent, U4DNode<U4DBoneData> *uChild){
         
-        uParent->addBoneToTree(uChild);
+        uParent->addChild(uChild);
         
         //update index count
         updateBoneIndexCount();
@@ -58,11 +57,11 @@ namespace U4DEngine {
 
     void U4DArmatureData::removeBoneFromTree(std::string uChildBoneName){
         
-        U4DBoneData *uChild=rootBone->searchChildrenBone(uChildBoneName);
+        U4DNode<U4DBoneData> *uChild=rootBone->searchChild(uChildBoneName);
         
         if(rootBone!=NULL){
             
-            rootBone->removeBoneFromTree(uChild);
+            rootBone->removeChild(uChild);
         }
         
         //update index count
@@ -72,7 +71,7 @@ namespace U4DEngine {
     void U4DArmatureData::updateBoneIndexCount(){
         
         //get parent bone
-        U4DBoneData* boneChild = rootBone;
+        U4DNode<U4DBoneData>* boneChild = rootBone;
         
         int indexCount=0;
         
@@ -95,7 +94,7 @@ namespace U4DEngine {
     void U4DArmatureData::setBoneDataContainer(){
         
         //get parent bone
-        U4DBoneData* boneChild = rootBone;
+        U4DNode<U4DBoneData>* boneChild = rootBone;
         
         //add all bones into a vector
         
@@ -115,7 +114,7 @@ namespace U4DEngine {
     void U4DArmatureData::setBoneAbsoluteSpace(){
         
         //get parent bone
-        U4DBoneData* boneChild = rootBone;
+        U4DNode<U4DBoneData>* boneChild = rootBone;
         
         //While there are still bones
         while (boneChild!=0) {
@@ -144,7 +143,7 @@ namespace U4DEngine {
         u4dModel->armatureBoneMatrix.clear();
         
         //get parent bone
-        U4DBoneData* boneChild = rootBone;
+        U4DNode<U4DBoneData>* boneChild = rootBone;
         
         //While there are still bones
         while (boneChild!=0) {
@@ -182,7 +181,7 @@ namespace U4DEngine {
 
     void U4DArmatureData::setVertexWeightsAndBoneIndices(){
         
-        std::vector<U4DBoneData*> dummyBoneDataContainer;
+        std::vector<U4DNode<U4DBoneData>*> dummyBoneDataContainer;
         
         for (int i=0; i<rootBone->vertexWeightContainer.size(); i++) {
             
@@ -191,7 +190,7 @@ namespace U4DEngine {
             
             //copy the temp bone containter to the boneDataContainer
             
-            dummyBoneDataContainer=boneDataContainer;
+            dummyBoneDataContainer=boneDataContainer; 
             
             //Heap sort, the index i represent the current vertex weights I'm working on the bone
             
@@ -205,7 +204,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DArmatureData::prepareAndSendBoneDataToBuffer(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex){
+    void U4DArmatureData::prepareAndSendBoneDataToBuffer(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int boneVertexWeightIndex){
         
         std::vector<float> boneVertexWeights(4,0.0);
         std::vector<float> boneIndices(4,0.0);
@@ -248,7 +247,7 @@ namespace U4DEngine {
     }
 
 
-    void U4DArmatureData::heapSorting(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex){
+    void U4DArmatureData::heapSorting(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int boneVertexWeightIndex){
         
         int index; //index of boneDataContainer element
         
@@ -270,7 +269,7 @@ namespace U4DEngine {
         
     }
 
-    void U4DArmatureData::reHeapDown(std::vector<U4DBoneData*> &uBoneDataContainer,int boneVertexWeightIndex,int root, int bottom){
+    void U4DArmatureData::reHeapDown(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int boneVertexWeightIndex,int root, int bottom){
         
         int maxChild;
         int rightChild;
@@ -307,10 +306,10 @@ namespace U4DEngine {
 
 
 
-    void U4DArmatureData::swap(std::vector<U4DBoneData*> &uBoneDataContainer,int uIndex1, int uIndex2){
+    void U4DArmatureData::swap(std::vector<U4DNode<U4DBoneData>*> &uBoneDataContainer,int uIndex1, int uIndex2){
         
-        U4DBoneData* bone1=uBoneDataContainer.at(uIndex1);
-        U4DBoneData* bone2=uBoneDataContainer.at(uIndex2);
+        U4DNode<U4DBoneData>* bone1=uBoneDataContainer.at(uIndex1);
+        U4DNode<U4DBoneData>* bone2=uBoneDataContainer.at(uIndex2);
         
         uBoneDataContainer.at(uIndex1)=bone2;
         uBoneDataContainer.at(uIndex2)=bone1;

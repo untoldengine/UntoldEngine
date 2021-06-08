@@ -14,6 +14,7 @@
 #include "U4DMatrix3n.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
+#include "U4DNode.h"
 #include "Constants.h"
 #include "U4DRender3DModel.h"
 #include "U4DBoundingVolume.h"
@@ -101,13 +102,13 @@ bool U4DModel::loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnima
 
 bool U4DModel::getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPoseMatrix){
 
-    U4DBoneData *rootBone=armatureManager->rootBone;
+    U4DNode<U4DBoneData> *rootBone=armatureManager->rootBone;
     
     //check if rootbone exist
     if(rootBone!=nullptr){
         
         //get the bone rest pose space
-        U4DDualQuaternion boneRestPoseSpace=rootBone->searchChildrenBone(uBoneName)->restAbsolutePoseSpace;
+        U4DDualQuaternion boneRestPoseSpace=rootBone->searchChild(uBoneName)->restAbsolutePoseSpace;
         
         //get the position of the bone
         U4DQuaternion bonePureQuaternion=boneRestPoseSpace.getPureQuaternionPart();
@@ -115,7 +116,7 @@ bool U4DModel::getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPose
         U4DVector3n bonePosition=bonePureQuaternion.v;
         
         //get the final matrix of the bone in rest pose
-        uBoneRestPoseMatrix=rootBone->searchChildrenBone(uBoneName)->finalSpaceMatrix;
+        uBoneRestPoseMatrix=rootBone->searchChild(uBoneName)->finalSpaceMatrix;
         
         //flip the y and z coordinates to compensate for the different coordinates systems between Blender and the Untold Engine
         //Note that I had to use the location of the rest pose space and use it as the final space matrix location
@@ -134,13 +135,13 @@ bool U4DModel::getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPose
 bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimation, U4DMatrix4n &uBoneAnimationPoseMatrix){
     
 
-    U4DBoneData *rootBone=armatureManager->rootBone;
+    U4DNode<U4DBoneData> *rootBone=armatureManager->rootBone;
     
     //check if rootbone exist and animation is currently being played
     if (rootBone!=nullptr && uAnimation->getAnimationIsPlaying()==true) {
         
         //get the bone animation pose space
-        U4DDualQuaternion boneAnimationPoseSpace=rootBone->searchChildrenBone(uBoneName)->animationPoseSpace;
+        U4DDualQuaternion boneAnimationPoseSpace=rootBone->searchChild(uBoneName)->animationPoseSpace;
         
         //get the position of the bone
         U4DQuaternion bonePureQuaternion=boneAnimationPoseSpace.getPureQuaternionPart();
@@ -148,7 +149,7 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
         U4DVector3n bonePosition=bonePureQuaternion.v;
         
         //get the final matrix of the bone in animation pose
-        uBoneAnimationPoseMatrix=rootBone->searchChildrenBone(uBoneName)->finalSpaceMatrix;
+        uBoneAnimationPoseMatrix=rootBone->searchChild(uBoneName)->finalSpaceMatrix;
         
         //flip the y and z coordinates to compensate for the different coordinates systems between Blender and the Untold Engine
         //Note that I had to use the location of the animation pose space and use it as the final space matrix location
@@ -339,7 +340,7 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
     
     U4DDualQuaternion U4DModel::getBoneAnimationSpace(std::string uName){
         
-        U4DBoneData *bone=armatureManager->rootBone->searchChildrenBone(uName);
+        U4DNode<U4DBoneData> *bone=armatureManager->rootBone->searchChild(uName);
         
         return bone->getBoneAnimationPoseSpace();
         
