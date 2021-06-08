@@ -14,6 +14,8 @@
 #include "U4DMatrix3n.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
+#include "U4DMeshOctreeManager.h"
+#include "U4DMeshOctreeNode.h"
 #include "U4DNode.h"
 #include "Constants.h"
 #include "U4DRender3DModel.h"
@@ -41,6 +43,9 @@ namespace U4DEngine {
         
         cullingPhaseBoundingVolume=nullptr;
         
+        //set the mesh octree manager to null
+        meshOctreeManager=nullptr;
+        
     };
     
     U4DModel::~U4DModel(){
@@ -48,6 +53,7 @@ namespace U4DEngine {
         delete renderEntity;
         delete cullingPhaseBoundingVolume;
         delete armatureManager;
+        delete meshOctreeManager;
     };
     
     U4DModel::U4DModel(const U4DModel& value){
@@ -168,6 +174,11 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
     void U4DModel::loadIntoVisibilityManager(U4DEntityManager *uEntityManager){
         
         uEntityManager->loadIntoVisibilityManager(this);
+    }
+
+    U4DVector3n U4DModel::getModelDimensions(){
+        
+        return bodyCoordinates.getModelDimension();
     }
 
     void U4DModel::setNormalMapTexture(std::string uTexture){
@@ -498,6 +509,25 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
 
     std::vector<U4DVector4n> U4DModel::getModelShaderParameterContainer(){
         return shaderParameterContainer;
+    }
+
+    void U4DModel::enableMeshManager(int uSubDivisions){
+        
+        if(meshOctreeManager==nullptr){
+            
+            //create an instance of the octree mesh manager
+            meshOctreeManager=new U4DMeshOctreeManager(this);
+            
+            //build the octree for the 3D model
+            meshOctreeManager->buildOctree(uSubDivisions); 
+            
+        }
+    }
+
+    U4DMeshOctreeManager *U4DModel::getMeshOctreeManager(){
+        
+        return meshOctreeManager;
+        
     }
     
 }
