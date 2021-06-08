@@ -28,6 +28,7 @@
 #include "U4DDirector.h"
 #include "U4DProfilerManager.h"
 #include "U4DRenderManager.h"
+#include "U4DModel.h"
 
 namespace U4DEngine {
     
@@ -294,7 +295,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DEntityManager::loadIntoVisibilityManager(U4DDynamicModel* uModel){
+    void U4DEntityManager::loadIntoVisibilityManager(U4DModel* uModel){
         
         uModel->setModelVisibility(false);
         

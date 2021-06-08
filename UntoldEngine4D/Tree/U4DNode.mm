@@ -1,58 +1,47 @@
 //
-//  BVHTree.cpp
+//  U4DNode.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 2/13/16.
-//  Copyright © 2016 Untold Engine Studios. All rights reserved.
+//  Created by Harold Serrano on 6/7/21.
+//  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DBVHTree.h"
+#ifndef U4DNode_mm
+#define U4DNode_mm
+
+#include "U4DNode.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
-    U4DBVHTree::U4DBVHTree():parent(nullptr),next(nullptr),splitIndex(0){
+    template <typename T>
+    U4DNode<T>::U4DNode():parent(nullptr),next(nullptr){
         
         prevSibling=this;
         lastDescendant=this;
         
-        aabbVolume=new U4DAABB();
-    }
-    
-    U4DBVHTree::~U4DBVHTree(){
-        
-        delete aabbVolume;
-        
-    }
-    
-    U4DAABB* U4DBVHTree::getAABBVolume(){
-        return aabbVolume;
-    }
-    
-    std::vector<U4DDynamicModel *> U4DBVHTree::getModelsContainer(){
-        
-        return modelsContainer;
-    
-    }
-    
-    void U4DBVHTree::addModelToContainer(U4DDynamicModel *uModel){
-        
-        modelsContainer.push_back(uModel);
-    }
-    
-    void U4DBVHTree::addModelToContainerAtIndex(int uIndex, U4DDynamicModel *uModel){
-        
-        modelsContainer.at(uIndex)=uModel;
-    }
-    
-    void U4DBVHTree::copyModelsContainer(std::vector<U4DDynamicModel *> uModelsContainer){
-        
-        modelsContainer=uModelsContainer;
     }
 
-    //scenegraph methods
-    void U4DBVHTree::addChild(U4DBVHTree *uChild){
+    template <typename T>
+    U4DNode<T>::U4DNode(std::string uNodeName):T(uNodeName),parent(nullptr),next(nullptr){
         
-        U4DBVHTree* lastAddedChild=getFirstChild();
+        prevSibling=this;
+        lastDescendant=this;
+        
+    }
+    
+    template <typename T>
+    U4DNode<T>::~U4DNode(){
+        
+        
+    }
+    
+
+    //scenegraph methods
+    template <typename T>
+    void U4DNode<T>::addChild(U4DNode<T> *uChild){
+        
+        U4DNode* lastAddedChild=getFirstChild();
         
         if(lastAddedChild==0){ //add as first child
             
@@ -94,10 +83,11 @@ namespace U4DEngine {
         }
         
     }
-    
-    void U4DBVHTree::removeChild(U4DBVHTree *uChild){
+
+    template <typename T>
+    void U4DNode<T>::removeChild(U4DNode<T> *uChild){
         
-        U4DBVHTree* sibling = uChild->getNextSibling();
+        U4DNode* sibling = uChild->getNextSibling();
         
         if (sibling)
             sibling->prevSibling = uChild->prevSibling;
@@ -107,16 +97,17 @@ namespace U4DEngine {
         if (lastDescendant == uChild->lastDescendant)
             changeLastDescendant(uChild->prevInPreOrderTraversal());
         
-        if (next == uChild)	// deleting first child?
+        if (next == uChild)    // deleting first child?
             next = uChild->lastDescendant->next;
         else
             uChild->prevSibling->lastDescendant->next = uChild->lastDescendant->next;
         
     }
     
-    U4DBVHTree *U4DBVHTree::prevInPreOrderTraversal(){
+    template <typename T>
+    U4DNode<T> *U4DNode<T>::prevInPreOrderTraversal(){
         
-        U4DBVHTree* prev = 0;
+        U4DNode* prev = 0;
         if (parent)
         {
             if (parent->next == this)
@@ -127,13 +118,15 @@ namespace U4DEngine {
         return prev;
     }
     
-    U4DBVHTree *U4DBVHTree::nextInPreOrderTraversal(){
+    template <typename T>
+    U4DNode<T> *U4DNode<T>::nextInPreOrderTraversal(){
         return next;
     }
     
-    U4DBVHTree *U4DBVHTree::getFirstChild(){
+    template <typename T>
+    U4DNode<T> *U4DNode<T>::getFirstChild(){
         
-        U4DBVHTree* child=NULL;
+        U4DNode* child=NULL;
         if(next && (next->parent==this)){
             child=next;
         }
@@ -141,9 +134,10 @@ namespace U4DEngine {
         return child;
     }
     
-    U4DBVHTree *U4DBVHTree::getLastChild(){
+    template <typename T>
+    U4DNode<T> *U4DNode<T>::getLastChild(){
         
-        U4DBVHTree *child=getFirstChild();
+        U4DNode *child=getFirstChild();
         
         if(child){
             child=child->prevSibling;
@@ -152,26 +146,28 @@ namespace U4DEngine {
         return child;
     }
     
-    U4DBVHTree *U4DBVHTree::getNextSibling(){
+    template <typename T>
+    U4DNode<T> *U4DNode<T>::getNextSibling(){
         
-        U4DBVHTree* sibling = lastDescendant->next;
+        U4DNode* sibling = lastDescendant->next;
         if (sibling && (sibling->parent != parent))
             sibling = 0;
         return sibling;
     }
     
-    
-    U4DBVHTree *U4DBVHTree::getPrevSibling(){
-        U4DBVHTree* sibling = 0;
+    template <typename T>
+    U4DNode<T> *U4DNode<T>::getPrevSibling(){
+        U4DNode* sibling = 0;
         if (parent && (parent->next != this))
             sibling =prevSibling;
         return sibling;
     }
     
-    void U4DBVHTree::changeLastDescendant(U4DBVHTree *uNewLastDescendant){
+    template <typename T>
+    void U4DNode<T>::changeLastDescendant(U4DNode<T> *uNewLastDescendant){
         
-        U4DBVHTree *oldLast=lastDescendant;
-        U4DBVHTree *ancestor=this;
+        U4DNode *oldLast=lastDescendant;
+        U4DNode *ancestor=this;
         
         do{
             ancestor->lastDescendant=uNewLastDescendant;
@@ -180,7 +176,8 @@ namespace U4DEngine {
         
     }
     
-    bool U4DBVHTree::isRoot(){
+    template <typename T>
+    bool U4DNode<T>::isRoot(){
         
         bool value=false;
         
@@ -193,20 +190,68 @@ namespace U4DEngine {
         return value;
     }
     
-    bool U4DBVHTree::isLeaf(){
+    template <typename T>
+    bool U4DNode<T>::isLeaf(){
         
         return (lastDescendant==this);
         
     }
-    
-    void U4DBVHTree::setSplitIndex(int uSplitIndex){
+
+    template <typename T>
+    U4DNode<T>* U4DNode<T>::getParent(){
         
-        splitIndex=uSplitIndex;
-    }
-    
-    int U4DBVHTree::getSplitIndex(){
-        
-        return splitIndex;
+        return parent;
     }
 
+    template <typename T>
+    U4DNode<T>* U4DNode<T>::getRootParent(){
+        
+        U4DNode<T> *rootParent=parent;
+        
+        while (rootParent->isRoot()==false) {
+            
+            rootParent=rootParent->parent;
+        }
+        
+        return rootParent;
+    }
+
+template <typename T>
+U4DNode<T>* U4DNode<T>::searchChild(std::string uName){
+    
+    //get the first child
+    U4DNode<T>* child=next;
+    U4DNode<T>* childWithName=nullptr;
+    
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    
+    while (child!=NULL) {
+        
+        if (child->getName().compare(uName)!=0) {
+            
+            child=child->next;
+            
+        }else if (child->getName().compare(uName)==0){
+            
+            childWithName=child;
+            
+            break;
+            
+        }
+        
+    }
+    
+    if (childWithName==nullptr) {
+        
+        logger->log("Error: Child with name %s was not found.", uName.c_str());
+        
+    }
+    
+    return childWithName;
+    
 }
+
+}
+
+#endif
+

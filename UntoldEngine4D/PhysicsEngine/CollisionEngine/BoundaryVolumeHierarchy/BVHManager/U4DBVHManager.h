@@ -16,11 +16,11 @@
 #include "U4DVector3n.h"
 #include "U4DBroadPhaseCollisionModelPair.h"
 #include "U4DBVHCollision.h"
-
+#include "U4DBVHNode.h"
+#include "U4DNode.h"
 
 namespace U4DEngine {
-    
-    class U4DBVHTree;
+
     class U4DDynamicModel;
     class U4DBVHModelCollision;
     class U4DBVHGroundCollision;
@@ -57,7 +57,7 @@ namespace U4DEngine {
         /**
          @brief Smart pointer to the root tree container
          */
-        std::vector<std::shared_ptr<U4DBVHTree>> treeContainer;
+        std::vector<std::shared_ptr<U4DNode<U4DBVHNode<U4DDynamicModel>>>> treeContainer;
         
         /**
          @brief Constructor of the class
@@ -81,7 +81,7 @@ namespace U4DEngine {
          @param uLeftIndex  Left index
          @param uSplitIndex Split index
          */
-        void buildBVHNode(U4DBVHTree *uNode, int uLeftIndex, int uSplitIndex);
+        void buildBVHNode(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode, int uLeftIndex, int uSplitIndex);
         
         /**
          @brief Method which returns all 3D entities in the BVH tree
@@ -95,21 +95,21 @@ namespace U4DEngine {
          
          @param uNode BVH tree node
          */
-        void calculateBVHVolume(U4DBVHTree *uNode);
+        void calculateBVHVolume(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode);
         
         /**
          @brief Method which computes the BVH node longest dimension vector
          
          @param uNode BVH tree node
          */
-        void getBVHLongestDimensionVector(U4DBVHTree *uNode);
+        void getBVHLongestDimensionVector(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode);
         
         /**
          @brief Method which computes a BVH node split index
          
          @param uNode BVH tree node
          */
-        void getBVHSplitIndex(U4DBVHTree *uNode);
+        void getBVHSplitIndex(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode);
         
         /**
          @brief Method which adds a model to the model container
@@ -128,7 +128,7 @@ namespace U4DEngine {
          
          @param uNode BVH tree node
          */
-        void heapSorting(U4DBVHTree *uNode);
+        void heapSorting(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode);
         
         /**
          @brief Method used to heap-down sort the BVH tree nodes
@@ -137,7 +137,7 @@ namespace U4DEngine {
          @param root   Index of root node
          @param bottom bottom index
          */
-        void reHeapDown(U4DBVHTree *uNode,int root, int bottom);
+        void reHeapDown(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode,int root, int bottom);
         
         /**
          @brief Method used to swap the BVH tree node's array index
@@ -146,7 +146,7 @@ namespace U4DEngine {
          @param uindex1 Node array index
          @param uindex2 Node array index
          */
-        void swap(U4DBVHTree *uNode,int uindex1, int uindex2);
+        void swap(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode,int uindex1, int uindex2);
         
         /**
          @brief Method which returns all broad-phase collision pairs

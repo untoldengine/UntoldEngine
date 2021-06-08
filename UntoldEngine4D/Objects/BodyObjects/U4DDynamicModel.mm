@@ -250,10 +250,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DDynamicModel::loadIntoVisibilityManager(U4DEntityManager *uEntityManager){
-        
-        uEntityManager->loadIntoVisibilityManager(this);
-    }
+    
     
     void U4DDynamicModel::cleanUp(){
         

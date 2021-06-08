@@ -356,12 +356,7 @@ public:
     void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt);
     
     
-    /**
-     @brief self load 3d model into the visibility manager
-
-     @param uEntityManager pointer to the entity manager
-     */
-    void loadIntoVisibilityManager(U4DEntityManager *uEntityManager);
+    
     
     
     /**

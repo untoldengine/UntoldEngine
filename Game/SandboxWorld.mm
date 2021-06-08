@@ -61,13 +61,13 @@ void SandboxWorld::init(){
     setEnableGrid(true);
     
     //Create an instance of U4DGameObject type
-    myAstronaut=new U4DEngine::U4DGameObject();
+    myAstronaut=new U4DEngine::U4DDynamicModel();
 
     //Load attribute (rendering information) into the game entity
     if (myAstronaut->loadModel("astronaut")) {
 
         myAstronaut->enableKineticsBehavior();
-
+        
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
 
         myAstronaut->setGravity(zero);
@@ -100,7 +100,7 @@ void SandboxWorld::init(){
     }
     
     //Create an instance of U4DGameObject type
-    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
+    U4DEngine::U4DDynamicModel *ground=new U4DEngine::U4DDynamicModel();
 
     //Line 3. Load attribute (rendering information) into the game entity
     if (ground->loadModel("island")) {
@@ -148,7 +148,7 @@ void SandboxWorld::setupConfiguration(){
     U4DDirector *director=U4DDirector::sharedInstance();
     
     //Compute the perspective space matrix
-    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.001f, 400.0f);
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(65.0f, director->getAspect(), 0.001f, 400.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space

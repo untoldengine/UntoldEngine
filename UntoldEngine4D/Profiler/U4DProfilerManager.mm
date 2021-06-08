@@ -25,7 +25,7 @@ namespace U4DEngine {
 
     U4DProfilerManager::U4DProfilerManager():enableProfiler(false){
         
-        rootNode=new U4DProfilerNode("root");
+        rootNode=new U4DNode<U4DProfilerNode>("root"); 
         currentNode=rootNode;
     }
         
@@ -35,14 +35,14 @@ namespace U4DEngine {
         
     }
 
-    U4DProfilerNode *U4DProfilerManager::searchProfilerNode(std::string uNodeName){
+    U4DNode<U4DProfilerNode> *U4DProfilerManager::searchProfilerNode(std::string uNodeName){
         
         //child node was found
-        U4DProfilerNode* profilerNode=rootNode->searchChild(uNodeName);
+        U4DNode<U4DProfilerNode>* profilerNode=rootNode->searchChild(uNodeName);
             
         //child node was not found, then create it
         if (profilerNode==nullptr) {
-            profilerNode=new U4DProfilerNode(uNodeName);
+            profilerNode=new U4DNode<U4DProfilerNode>(uNodeName);
             currentNode->addChild(profilerNode);
         }
         
@@ -69,7 +69,7 @@ namespace U4DEngine {
         if (enableProfiler==true && currentNode!=nullptr) {
             
             currentNode->stopProfiling();
-            currentNode=currentNode->getParent();
+            currentNode=currentNode->getParent(); 
             
         }
         
@@ -84,7 +84,7 @@ namespace U4DEngine {
         
         std::string profilerLog;
         
-        U4DProfilerNode *child=rootNode->next;
+        U4DNode<U4DProfilerNode> *child=rootNode->next;
         
         while(child!=nullptr){
             

@@ -7,7 +7,6 @@
 //
 
 #include "U4DBVHManager.h"
-#include "U4DBVHTree.h"
 #include "U4DVector3n.h"
 #include "U4DDynamicModel.h"
 #include "U4DBoundingVolume.h"
@@ -51,7 +50,7 @@ namespace U4DEngine{
         
         //create parent node
         
-        std::shared_ptr<U4DBVHTree> root(new U4DBVHTree());
+        std::shared_ptr<U4DNode<U4DBVHNode<U4DDynamicModel>>> root(new U4DNode<U4DBVHNode<U4DDynamicModel>>());
         
         treeContainer.push_back(root);
         
@@ -63,10 +62,10 @@ namespace U4DEngine{
         
     }
     
-    void U4DBVHManager::buildBVHNode(U4DBVHTree *uNode, int uLeftIndex, int uSplitIndex){
+    void U4DBVHManager::buildBVHNode(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode, int uLeftIndex, int uSplitIndex){
         
         //1. Create node with current objects
-        std::shared_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
+        std::shared_ptr<U4DNode<U4DBVHNode<U4DDynamicModel>>> nodeLeaf(new U4DNode<U4DBVHNode<U4DDynamicModel>>());
         
         treeContainer.push_back(nodeLeaf);
         
@@ -108,7 +107,7 @@ namespace U4DEngine{
     void U4DBVHManager::startCollision(){
         
         //check sphere vs spher collisions
-        bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
+        bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs); 
         
         
     }
@@ -121,7 +120,7 @@ namespace U4DEngine{
     }
     
     
-    void U4DBVHManager::calculateBVHVolume(U4DBVHTree *uNode){
+    void U4DBVHManager::calculateBVHVolume(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode){
         
         float xMin=FLT_MAX;
         float xMax=FLT_MIN;
@@ -158,7 +157,7 @@ namespace U4DEngine{
         
     }
     
-    void U4DBVHManager::getBVHLongestDimensionVector(U4DBVHTree *uNode){
+    void U4DBVHManager::getBVHLongestDimensionVector(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode){
         
         //get the longest dimension of the volume
         float xDimension=std::abs(uNode->getAABBVolume()->getMinPoint().x-uNode->getAABBVolume()->getMaxPoint().x);
@@ -190,7 +189,7 @@ namespace U4DEngine{
         uNode->getAABBVolume()->setLongestAABBDimensionVector(longestDimensionVector);
     }
     
-    void U4DBVHManager::getBVHSplitIndex(U4DBVHTree *uNode){
+    void U4DBVHManager::getBVHSplitIndex(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode){
         
         //split the longest dimension of the volume in half
         
@@ -244,7 +243,7 @@ namespace U4DEngine{
     }
     
     
-    void U4DBVHManager::heapSorting(U4DBVHTree *uNode){
+    void U4DBVHManager::heapSorting(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode){
         
         int index=0;
         
@@ -266,7 +265,7 @@ namespace U4DEngine{
         
     }
     
-    void U4DBVHManager::reHeapDown(U4DBVHTree *uNode,int root, int bottom){
+    void U4DBVHManager::reHeapDown(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode,int root, int bottom){
         
         int maxChild;
         int rightChild;
@@ -303,7 +302,7 @@ namespace U4DEngine{
     
     
     
-    void U4DBVHManager::swap(U4DBVHTree *uNode,int uIndex1, int uIndex2){
+    void U4DBVHManager::swap(U4DNode<U4DBVHNode<U4DDynamicModel>> *uNode,int uIndex1, int uIndex2){
         
         U4DDynamicModel* model1=uNode->getModelsContainer().at(uIndex1);
         U4DDynamicModel* model2=uNode->getModelsContainer().at(uIndex2);
