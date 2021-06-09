@@ -22,10 +22,10 @@ namespace U4DEngine {
         
     }
     
-    void U4DBVHModelCollision::startCollision(std::vector<std::shared_ptr<U4DNode<U4DBVHNode<U4DDynamicModel>>>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
+    void U4DBVHModelCollision::startCollision(std::vector<std::shared_ptr<U4DBVHNode<U4DDynamicModel>>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
        
         //get root tree
-        U4DNode<U4DBVHNode<U4DDynamicModel>> *child=uTreeContainer.at(0).get()->next;
+        U4DBVHNode<U4DDynamicModel> *child=uTreeContainer.at(0).get()->next;
         
         while (child!=NULL) {
             
@@ -47,7 +47,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DBVHModelCollision::collision(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
+    void U4DBVHModelCollision::collision(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
         
         if(uTreeLeftNode==NULL && uTreeRightNode==NULL) return;
         
@@ -78,7 +78,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DBVHModelCollision::collisionBetweenTreeLeafNodes(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
+    void U4DBVHModelCollision::collisionBetweenTreeLeafNodes(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){
         
         
         std::vector<ModelBoundingVolumePair> modelBoundingVolumePair;

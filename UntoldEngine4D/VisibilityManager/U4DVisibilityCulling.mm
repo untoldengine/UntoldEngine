@@ -23,10 +23,10 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityCulling::startFrustumIntersection(std::vector<std::shared_ptr<U4DNode<U4DBVHNode<U4DModel>>>>& uTreeContainer, std::vector<U4DPlane> &uPlanes){
+    void U4DVisibilityCulling::startFrustumIntersection(std::vector<std::shared_ptr<U4DBVHNode<U4DModel>>>& uTreeContainer, std::vector<U4DPlane> &uPlanes){
         
         //get root tree
-        U4DNode<U4DBVHNode<U4DModel>> *child=uTreeContainer.at(0).get()->next;
+        U4DBVHNode<U4DModel> *child=uTreeContainer.at(0).get()->next;
         
         if (child->getModelsContainer().size()>1) {
             
@@ -78,7 +78,7 @@ namespace U4DEngine {
         return true;
     }
     
-    void U4DVisibilityCulling::testFrustumIntersection(U4DNode<U4DBVHNode<U4DModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DModel>> *uTreeRightNode, std::vector<U4DPlane> &uPlanes){
+    void U4DVisibilityCulling::testFrustumIntersection(U4DBVHNode<U4DModel> *uTreeLeftNode, U4DBVHNode<U4DModel> *uTreeRightNode, std::vector<U4DPlane> &uPlanes){
         
         if(uTreeLeftNode==NULL && uTreeRightNode==NULL) return;
         

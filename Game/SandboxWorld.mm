@@ -69,7 +69,7 @@ void SandboxWorld::init(){
         myAstronaut->enableKineticsBehavior();
         
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-
+        
         myAstronaut->setGravity(zero);
 
         myAstronaut->enableCollisionBehavior();
@@ -84,7 +84,7 @@ void SandboxWorld::init(){
   
     //Line 2. Create an Animation object and link it to the 3D model
     U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
-
+    
     //Line 3. Load animation data into the animation object
     if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
 
@@ -105,7 +105,7 @@ void SandboxWorld::init(){
     //Line 3. Load attribute (rendering information) into the game entity
     if (ground->loadModel("island")) {
 
-        ground->enableKineticsBehavior();
+        //ground->enableKineticsBehavior();
 
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
 
@@ -121,14 +121,14 @@ void SandboxWorld::init(){
 
     }
     
-    //Render a skybox
-    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-
-    //initialize the skybox
-    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+//    //Render a skybox
+//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+//
+//    //initialize the skybox
+//    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
 
     //add the skybox to the scenegraph with appropriate z-depth
-    addChild(skybox);
+    //addChild(skybox);
 
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
     debugger->setEnableDebugger(true,this);

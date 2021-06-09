@@ -16,14 +16,14 @@
 #include "U4DMatrix4n.h"
 #include "U4DDualQuaternion.h"
 #include "CommonProtocols.h"
-
+#include "U4DEntityNode.h"
 
 namespace U4DEngine {
 
 /**
  @brief The U4DBoneData class holds bone information for the 3D entity
  */
-class U4DBoneData{
+class U4DBoneData:public U4DEntityNode<U4DBoneData>{
     
 private:
     

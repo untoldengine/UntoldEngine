@@ -16,7 +16,7 @@
 #include "U4DCallback.h"
 #include "U4DMatrix4n.h"
 #include "U4DBoneData.h"
-#include "U4DNode.h"
+
 
 namespace U4DEngine {
 class U4DModel;
@@ -122,7 +122,7 @@ public:
     /**
      @brief Pointer to the root bone of the model armature
      */
-    U4DNode<U4DBoneData>* rootBone;
+    U4DBoneData* rootBone;
     
     /**
      @brief Method which plays the 3D animation

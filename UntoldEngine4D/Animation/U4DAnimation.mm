@@ -110,7 +110,7 @@ void U4DAnimation::runAnimation(){
     //YOU MUST CLEAR THE U4DMODEL FINAL ANIMATION BONE MATRIX
     u4dModel->armatureBoneMatrix.clear();
     
-    U4DNode<U4DBoneData> *boneChild=rootBone;
+    U4DBoneData *boneChild=rootBone;
     
     ANIMATIONDATA animationData;
     

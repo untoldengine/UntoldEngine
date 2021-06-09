@@ -12,7 +12,6 @@
 #include <stdio.h>
 #include "U4DBVHCollision.h"
 #include "U4DBVHNode.h"
-#include "U4DNode.h"
 
 namespace U4DEngine {
     
@@ -58,7 +57,7 @@ namespace U4DEngine {
          @param uTreeContainer            Tree container
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        void startCollision(std::vector<std::shared_ptr<U4DNode<U4DBVHNode<U4DDynamicModel>>>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
+        void startCollision(std::vector<std::shared_ptr<U4DBVHNode<U4DDynamicModel>>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
         
         /**
          @brief Method which detects collisions
@@ -67,7 +66,7 @@ namespace U4DEngine {
          @param uTreeRightNode Right tree node
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        void collision(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
+        void collision(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
         
         /**
          @brief Method which detects broad-phase collision among tree nodes
@@ -76,7 +75,7 @@ namespace U4DEngine {
          @param uTreeRightNode Right tree node
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        void collisionBetweenTreeLeafNodes(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
+        void collisionBetweenTreeLeafNodes(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
         
     };
     

@@ -16,7 +16,7 @@
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
 #include "U4DMeshOctreeNode.h"
-#include "U4DNode.h"
+
 
 
 namespace U4DEngine {
@@ -31,7 +31,7 @@ namespace U4DEngine {
         /**
          @brief Pointer to the root tree container
          */
-        std::vector<std::shared_ptr<U4DNode<U4DMeshOctreeNode>>> treeContainer;
+        std::vector<std::shared_ptr<U4DMeshOctreeNode>> treeContainer;
         
         /**
          @brief Pointer to the model whose octree will be based on
@@ -69,7 +69,7 @@ namespace U4DEngine {
          @param uCenter center of the AABB box
          @param uSubDivisions current subdivision of the the octree
          */
-        void buildOctreeNode(U4DNode<U4DMeshOctreeNode> *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubDivisions);
+        void buildOctreeNode(U4DMeshOctreeNode *uNode, U4DPoint3n &uCenter, float uHalfwidth, int uSubDivisions);
         
         /**
          @brief Assigns triangles(faces) of the 3D model mesh to node leaves
@@ -79,7 +79,7 @@ namespace U4DEngine {
         /**
          @brief Returns a pointer to the octree 
          */
-        U4DNode<U4DMeshOctreeNode> *getRootNode();
+        U4DMeshOctreeNode *getRootNode();
         
         /**
          @brief Transforms the mesh faces of the 3D model from local space to absolute space
