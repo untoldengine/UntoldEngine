@@ -70,7 +70,7 @@ namespace U4DEngine {
     void U4DVisibilityManager::buildBVH(){
         
         //create parent node
-        std::shared_ptr<U4DNode<U4DBVHNode<U4DModel>>> root(new U4DNode<U4DBVHNode<U4DModel>>());
+        std::shared_ptr<U4DBVHNode<U4DModel>> root(new U4DBVHNode<U4DModel>());
         
         treeContainer.push_back(root);
         
@@ -82,10 +82,10 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityManager::buildBVHNode(U4DNode<U4DBVHNode<U4DModel>> *uNode, int uLeftIndex, int uSplitIndex){
+    void U4DVisibilityManager::buildBVHNode(U4DBVHNode<U4DModel> *uNode, int uLeftIndex, int uSplitIndex){
         
         //1. Create node with current objects
-        std::shared_ptr<U4DNode<U4DBVHNode<U4DModel>>> nodeLeaf(new U4DNode<U4DBVHNode<U4DModel>>());
+        std::shared_ptr<U4DBVHNode<U4DModel>> nodeLeaf(new U4DBVHNode<U4DModel>());
         
         treeContainer.push_back(nodeLeaf);
         
@@ -125,7 +125,7 @@ namespace U4DEngine {
     }
     
     
-    void U4DVisibilityManager::calculateBVHVolume(U4DNode<U4DBVHNode<U4DModel>> *uNode){
+    void U4DVisibilityManager::calculateBVHVolume(U4DBVHNode<U4DModel> *uNode){
         
         float xMin=FLT_MAX;
         float xMax=FLT_MIN;
@@ -162,7 +162,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityManager::getBVHLongestDimensionVector(U4DNode<U4DBVHNode<U4DModel>> *uNode){
+    void U4DVisibilityManager::getBVHLongestDimensionVector(U4DBVHNode<U4DModel> *uNode){
         
         //get the longest dimension of the volume
         float xDimension=std::abs(uNode->getAABBVolume()->getMinPoint().x-uNode->getAABBVolume()->getMaxPoint().x);
@@ -194,7 +194,7 @@ namespace U4DEngine {
         uNode->getAABBVolume()->setLongestAABBDimensionVector(longestDimensionVector);
     }
     
-    void U4DVisibilityManager::getBVHSplitIndex(U4DNode<U4DBVHNode<U4DModel>> *uNode){
+    void U4DVisibilityManager::getBVHSplitIndex(U4DBVHNode<U4DModel> *uNode){
         
         //split the longest dimension of the volume in half
         
@@ -248,7 +248,7 @@ namespace U4DEngine {
     }
     
     
-    void U4DVisibilityManager::heapSorting(U4DNode<U4DBVHNode<U4DModel>> *uNode){
+    void U4DVisibilityManager::heapSorting(U4DBVHNode<U4DModel> *uNode){
         
         int index=0;
         
@@ -270,7 +270,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DVisibilityManager::reHeapDown(U4DNode<U4DBVHNode<U4DModel>> *uNode,int root, int bottom){
+    void U4DVisibilityManager::reHeapDown(U4DBVHNode<U4DModel> *uNode,int root, int bottom){
         
         int maxChild;
         int rightChild;
@@ -307,7 +307,7 @@ namespace U4DEngine {
     
     
     
-    void U4DVisibilityManager::swap(U4DNode<U4DBVHNode<U4DModel>> *uNode,int uIndex1, int uIndex2){
+    void U4DVisibilityManager::swap(U4DBVHNode<U4DModel> *uNode,int uIndex1, int uIndex2){
         
         U4DModel* model1=uNode->getModelsContainer().at(uIndex1);
         U4DModel* model2=uNode->getModelsContainer().at(uIndex2);

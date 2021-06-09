@@ -16,7 +16,6 @@
 #include "U4DBoneData.h"
 #include "U4DMeshOctreeManager.h"
 #include "U4DMeshOctreeNode.h"
-#include "U4DNode.h"
 #include "Constants.h"
 #include "U4DRender3DModel.h"
 #include "U4DBoundingVolume.h"
@@ -108,7 +107,7 @@ bool U4DModel::loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnima
 
 bool U4DModel::getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPoseMatrix){
 
-    U4DNode<U4DBoneData> *rootBone=armatureManager->rootBone;
+    U4DBoneData *rootBone=armatureManager->rootBone;
     
     //check if rootbone exist
     if(rootBone!=nullptr){
@@ -141,7 +140,7 @@ bool U4DModel::getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPose
 bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimation, U4DMatrix4n &uBoneAnimationPoseMatrix){
     
 
-    U4DNode<U4DBoneData> *rootBone=armatureManager->rootBone;
+    U4DBoneData *rootBone=armatureManager->rootBone;
     
     //check if rootbone exist and animation is currently being played
     if (rootBone!=nullptr && uAnimation->getAnimationIsPlaying()==true) {
@@ -351,7 +350,7 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
     
     U4DDualQuaternion U4DModel::getBoneAnimationSpace(std::string uName){
         
-        U4DNode<U4DBoneData> *bone=armatureManager->rootBone->searchChild(uName);
+        U4DBoneData *bone=armatureManager->rootBone->searchChild(uName);
         
         return bone->getBoneAnimationPoseSpace();
         

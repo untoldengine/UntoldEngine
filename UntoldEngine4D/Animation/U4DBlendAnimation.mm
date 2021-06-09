@@ -83,7 +83,7 @@ namespace U4DEngine {
         //YOU MUST CLEAR THE U4DMODEL FINAL ANIMATION BONE MATRIX
         nextAnimation->u4dModel->armatureBoneMatrix.clear();
         
-        U4DNode<U4DBoneData> *boneChild=rootBone;
+        U4DBoneData *boneChild=rootBone;
         
         ANIMATIONDATA previousAnimationData;
         ANIMATIONDATA nextAnimationData;

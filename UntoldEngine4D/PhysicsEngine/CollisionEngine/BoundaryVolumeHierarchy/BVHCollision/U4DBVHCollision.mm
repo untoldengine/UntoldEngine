@@ -19,11 +19,11 @@ namespace U4DEngine {
         
     }
     
-    bool U4DBVHCollision::collisionBetweenTreeVolume(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode){
+    bool U4DBVHCollision::collisionBetweenTreeVolume(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode){
         return uTreeLeftNode->getAABBVolume()->intersectionWithVolume(uTreeRightNode->getAABBVolume());
     }
     
-    bool U4DBVHCollision::descendTreeRule(U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeLeftNode, U4DNode<U4DBVHNode<U4DDynamicModel>> *uTreeRightNode){
+    bool U4DBVHCollision::descendTreeRule(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode){
         
         bool value=false;
         

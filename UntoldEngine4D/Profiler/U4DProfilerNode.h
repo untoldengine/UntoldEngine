@@ -12,10 +12,11 @@
 #include <stdio.h>
 #include <chrono>
 #include <string>
+#include "U4DEntityNode.h"
 
 namespace U4DEngine {
 
-    class U4DProfilerNode {
+    class U4DProfilerNode:public U4DEntityNode<U4DProfilerNode> {
         
     private:
         

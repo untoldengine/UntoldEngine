@@ -14,7 +14,7 @@
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
 #include "U4DAABB.h"
-
+#include "U4DEntityNode.h"
 
 namespace U4DEngine {
 
@@ -23,7 +23,7 @@ namespace U4DEngine {
      @brief The U4DBVHNode class represents a node in a BVH tree and is used for Broad-Phase collision.
      */
     template <typename T>
-    class U4DBVHNode{
+    class U4DBVHNode:public U4DEntityNode<U4DBVHNode<T>>{
         
     private:
         

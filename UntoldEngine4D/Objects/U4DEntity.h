@@ -18,6 +18,7 @@
 #include "U4DIndex.h"
 #include "U4DPadAxis.h"
 #include "CommonProtocols.h"
+#include "U4DEntityNode.h"
 #include <MetalKit/MetalKit.h>
 
 namespace U4DEngine {
@@ -34,7 +35,7 @@ namespace U4DEngine {
  @ingroup gameobjects
  @brief The U4DEntity class is a Super-Class for all the entities in a game, such as 3D models, buttons, fonts, etc.
  */
-class U4DEntity{
+class U4DEntity:public U4DEntityNode<U4DEntity>{
   
 private:
 
@@ -100,25 +101,7 @@ public:
      */
     U4DVector3n entityForwardVector;
     
-    /**
-     @brief Entity parent pointer
-     */
-    U4DEntity *parent;
     
-    /**
-     @brief Entity previous sibling pointer
-     */
-    U4DEntity *prevSibling;
-
-    /**
-     @brief Entity Next pointer
-     */
-    U4DEntity *next;
-    
-    /**
-     @brief Entity last descendant pointer
-     */
-    U4DEntity *lastDescendant;
     
     /**
      @brief Entity Constructor. It creates the entity with the local orientation set to zero and local position set to the origin. The forwad vector is set to (0.0,0.0,-1.0). Parent and Next pointer set to null
@@ -413,100 +396,6 @@ public:
      */
     virtual U4DVector3n getViewInDirection(){};
     
-    //scenegraph
-    /**
-     @brief Method which adds a child entity to a scenegraph
-     
-     @param uChild Child entity to add to scenegraph
-     */
-    void addChild(U4DEntity *uChild);
-    
-    /**
-     @brief Method which adds a child entity to a scenegraph at a particular location
-     
-     @param uChild Child entity to add to scenegraph
-     @param uNext location to insert child
-     */
-    void addChild(U4DEntity *uChild, U4DEntity *uNext);
-    
-    /**
-     @brief Method which adds a child entity to a scenegraph at a particular location
-     
-     @param uChild Child entity to add to scenegraph
-     @param uZDepth location to insert child
-     */
-    void addChild(U4DEntity *uChild, int uZDepth);
-    
-    /**
-     @brief Method which removes a child entity from the scenegraph
-     
-     @param uChild Child entity to remove from the scenegraph
-     */
-    void removeChild(U4DEntity *uChild);
-    
-    /**
-     @brief Method which changes the entity's last descendant in the scenegraph
-     
-     @param uNewLastDescendant Last descendant of the entity
-     */
-    void changeLastDescendant(U4DEntity *uNewLastDescendant);
-    
-    /**
-     @brief Method which returns the entity's first child in the scenegraph
-     
-     @return Returns the entity's first child
-     */
-    U4DEntity *getFirstChild();
-    
-    /**
-     @brief Method which returns the entity's last child in the scenegraph
-     
-     @return Returns the entity's last child
-     */
-    U4DEntity *getLastChild();
-    
-    /**
-     @brief Method which returns the entity's next sibling in the scenegraph
-     
-     @return Returns the entity's next sibling
-     */
-    U4DEntity *getNextSibling();
-    
-    /**
-     @brief Method which returns the entity's previous sibling in the scenegraph
-     
-     @return Returns the entity's previous sibling
-     */
-    U4DEntity *getPrevSibling();
-    
-    /**
-     @brief Method which returns the entity's previous sibling in pre-order traversal order
-     
-     @return Returns the entity's previous sibling in pre-order traversal order
-     */
-    U4DEntity *prevInPreOrderTraversal();
-    
-    /**
-     @brief Method which returns the entity's next pointer in pre-order traversal order
-     
-     @return Returns the entity's next pointer in pre-order traversal order
-     */
-    U4DEntity *nextInPreOrderTraversal();
-    
-    /**
-     @brief Method which returns true if the entity represents a leaf node in the scenegraph
-     
-     @return Returns true if the entity represents a leaf node in the scenegraph
-     */
-    bool isLeaf();
-    
-    /**
-     @brief Method which returns true if the entity represents a root node in the scenegraph
-     
-     @return Returns true if the entity represents a root node in the scenegraph
-     */
-    bool isRoot();
-    
     /**
      * @brief Renders the current entity
      * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
@@ -532,29 +421,7 @@ public:
      */
     virtual void loadRenderingInformation(){};
     
-    /**
-     @brief Gets the parent to the entity
-
-     @return pointer to the entity parent
-     */
-    U4DEntity* getParent();
     
-    
-    /**
-     @brief Gets the root parent (top parent in the scenegraph) of the entity
-
-     @return pointer to the root parent
-     */
-    U4DEntity* getRootParent();
-    
-    
-    /**
-     @brief Searches for an entity
-
-     @param uName name of the entity
-     @return pointer to the entity
-     */
-    U4DEntity *searchChild(std::string uName);
     
     
     /**

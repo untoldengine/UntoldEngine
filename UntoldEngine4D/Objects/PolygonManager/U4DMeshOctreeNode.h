@@ -12,13 +12,14 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DAABB.h"
+#include "U4DEntityNode.h"
 
 namespace U4DEngine {
     
     /**
      @brief The U4DMeshOctreeNode class represents a node of the octree bounding a 3d model
      */
-    class U4DMeshOctreeNode {
+    class U4DMeshOctreeNode:public U4DEntityNode<U4DMeshOctreeNode> {
         
     private:
         
