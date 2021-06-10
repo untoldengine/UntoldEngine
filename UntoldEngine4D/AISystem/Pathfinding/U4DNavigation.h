@@ -20,7 +20,7 @@ namespace U4DEngine {
     
     class U4DNavMesh;
     class U4DPathfinderAStar;
-    class U4DDynamicModel;
+    class U4DDynamicAction;
     
 }
 
@@ -95,18 +95,18 @@ namespace U4DEngine {
         /**
          @brief computes the path using the provided starting and target positions
 
-         @param uDynamicModel 3D model representing the pursuer
+         @param uAction Dynamic action representing the pursuer
          @param uTargetPosition target position
          */
-        void computePath(U4DDynamicModel *uDynamicModel, U4DVector3n &uTargetPosition);
+        void computePath(U4DDynamicAction *uAction, U4DVector3n &uTargetPosition);
         
         /**
          @brief Computes the velocity for steering
          
-         @param uDynamicModel 3D model represented as the pursuer
+         @param uAction Dynamic action represented as the pursuer
          @return velocity vector to apply to 3D model
          */
-        U4DVector3n getSteering(U4DDynamicModel *uDynamicModel);
+        U4DVector3n getSteering(U4DDynamicAction *uAction);
         
         /**
          @brief sets the time in the future to predict the position

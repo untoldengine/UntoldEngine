@@ -39,21 +39,21 @@ namespace U4DEngine {
     }
     
     template <typename T>
-    void U4DBVHNode<T>::addModelToContainer(T *uModel){
+    void U4DBVHNode<T>::addModelToContainer(T *uAction){
         
-        modelsContainer.push_back(uModel);
+        modelsContainer.push_back(uAction);
     }
 
     template <typename T>
-    void U4DBVHNode<T>::addModelToContainerAtIndex(int uIndex, T *uModel){
+    void U4DBVHNode<T>::addModelToContainerAtIndex(int uIndex, T *uAction){
         
-        modelsContainer.at(uIndex)=uModel;
+        modelsContainer.at(uIndex)=uAction;
     }
   
     template <typename T>
-    void U4DBVHNode<T>::copyModelsContainer(std::vector<T *> uModelsContainer){
+    void U4DBVHNode<T>::copyModelsContainer(std::vector<T *> uActionsContainer){
         
-        modelsContainer=uModelsContainer;
+        modelsContainer=uActionsContainer;
     }
     
     template <typename T>

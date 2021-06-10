@@ -11,13 +11,13 @@
 
 #include <stdio.h>
 #include "U4DGameModel.h"
-#include "U4DDynamicModel.h"
+#include "U4DModel.h"
 
 class SandboxLogic:public U4DEngine::U4DGameModel{
     
 private:
     
-    U4DEngine::U4DDynamicModel *pAstronaut;
+    U4DEngine::U4DModel *pAstronaut;
     
     bool showBroadPhaseVolume;
     bool showNarrowPhaseVolume;

@@ -7,7 +7,8 @@
 //
 
 #include "U4DWander.h"
-#include "U4DDynamicModel.h"
+#include "U4DModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DNumerical.h"
 
 namespace U4DEngine {
@@ -20,7 +21,7 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DWander::getSteering(U4DDynamicModel *uDynamicModel, U4DVector3n &uTargetPosition){
+    U4DVector3n U4DWander::getSteering(U4DDynamicAction *uAction, U4DVector3n &uTargetPosition){
         
         U4DNumerical numerical;
         
@@ -31,17 +32,17 @@ namespace U4DEngine {
         wanderOrientationAccumulator=wanderOrientationAccumulator*biasMotionAccumulator+wanderOrientation*(1.0-biasMotionAccumulator);
         
         //calculate the combined target orientation
-        U4DEngine::U4DVector3n viewDir=uDynamicModel->getViewInDirection();
+        U4DEngine::U4DVector3n viewDir=uAction->model->getViewInDirection();
         
         U4DEngine::U4DVector3n targetOrientation=viewDir+wanderOrientationAccumulator;
         
         //calculate the center of the wander circle
-        U4DEngine::U4DVector3n targetPosition=uDynamicModel->getAbsolutePosition()+viewDir*wanderOffset;
+        U4DEngine::U4DVector3n targetPosition=uAction->model->getAbsolutePosition()+viewDir*wanderOffset;
         
         //calculate the target location
         targetPosition+=targetOrientation*wanderRadius;
         
-        return U4DSeek::getSteering(uDynamicModel, targetPosition);
+        return U4DSeek::getSteering(uAction, targetPosition);
         
     }
     

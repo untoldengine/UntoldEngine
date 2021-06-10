@@ -1,12 +1,12 @@
 //
-//  U4DStaticModel.cpp
+//  U4DStaticAction.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/22/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DStaticModel.h"
+#include "U4DStaticAction.h"
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingConvex.h"
 #include "U4DBoundingSphere.h"
@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DStaticModel::U4DStaticModel():collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
+    U4DStaticAction::U4DStaticAction(U4DModel *uU4DModel):model(uU4DModel),collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
         
         initMass(10.0);
         
@@ -35,14 +35,15 @@ namespace U4DEngine {
         //set the broad phase bounding volume to null
         broadPhaseBoundingVolume=nullptr;
         
-        
+        //set the name to reference the model that owns the behavior
+        name=model->getName();
         
         //set all collision information to zero
         clearCollisionInformation();
         
     }
     
-    U4DStaticModel::~U4DStaticModel(){
+    U4DStaticAction::~U4DStaticAction(){
     
         delete convexHullBoundingVolume;
         
@@ -52,11 +53,11 @@ namespace U4DEngine {
         
     }
     
-    U4DStaticModel::U4DStaticModel(const U4DStaticModel& value){
+    U4DStaticAction::U4DStaticAction(const U4DStaticAction& value){
     
     }
     
-    U4DStaticModel& U4DStaticModel::operator=(const U4DStaticModel& value){
+    U4DStaticAction& U4DStaticAction::operator=(const U4DStaticAction& value){
         
         return *this;
     
@@ -65,7 +66,7 @@ namespace U4DEngine {
     
     #pragma mark-mass
     //set mass of object
-    void U4DStaticModel::initMass(float uMass){
+    void U4DStaticAction::initMass(float uMass){
         
         
         massProperties.mass=uMass;
@@ -73,19 +74,19 @@ namespace U4DEngine {
         
     }
 
-    float U4DStaticModel::getMass()const{
+    float U4DStaticAction::getMass()const{
         
         return massProperties.mass;
     }
 
 
-    void U4DStaticModel::initCenterOfMass(U4DVector3n& uCenterOfMass){
+    void U4DStaticAction::initCenterOfMass(U4DVector3n& uCenterOfMass){
         
         massProperties.centerOfMass=uCenterOfMass;
         
     }
 
-    U4DVector3n U4DStaticModel::getCenterOfMass(){
+    U4DVector3n U4DStaticAction::getCenterOfMass(){
         
     
         return massProperties.centerOfMass;
@@ -95,7 +96,7 @@ namespace U4DEngine {
 
     #pragma mark-coefficient of Restitution
     //coefficient of restitution
-    void U4DStaticModel::initCoefficientOfRestitution(float uValue){
+    void U4DStaticAction::initCoefficientOfRestitution(float uValue){
 
          if (uValue>1.0) {
              coefficientOfRestitution=1.0;  //coefficient can't be greater than 1
@@ -107,17 +108,17 @@ namespace U4DEngine {
 
     }
 
-    float U4DStaticModel::getCoefficientOfRestitution(){
+    float U4DStaticAction::getCoefficientOfRestitution(){
 
         return coefficientOfRestitution;
     }
     
-    void U4DStaticModel::initInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType){
+    void U4DStaticAction::initInertiaTensorType(INERTIATENSORTYPE uInertiaTensorType){
         
         massProperties.inertiaTensorType=uInertiaTensorType;
     }
     
-    INERTIATENSORTYPE U4DStaticModel::getInertiaTensorType(){
+    INERTIATENSORTYPE U4DStaticAction::getInertiaTensorType(){
         
         return massProperties.inertiaTensorType;
     }
@@ -125,7 +126,7 @@ namespace U4DEngine {
     #pragma mark-inertia tensor
     //set and get the intertia tensor
 
-    void U4DStaticModel::computeInertiaTensor(){
+    void U4DStaticAction::computeInertiaTensor(){
         
         //if the inertia tensor hasn't been computed for the body, then computed. I check this to avoid multiple computations of the inertia tensor. for example, when the collision or physics behaviors are enabled.
         
@@ -149,9 +150,9 @@ namespace U4DEngine {
             INERTIATENSORTYPE inertiaType=getInertiaTensorType();
             
             //Get body dimensions
-            float uX=bodyCoordinates.getModelDimension().x;
-            float uY=bodyCoordinates.getModelDimension().y;
-            float uZ=bodyCoordinates.getModelDimension().z;
+            float uX=model->bodyCoordinates.getModelDimension().x;
+            float uY=model->bodyCoordinates.getModelDimension().y;
+            float uZ=model->bodyCoordinates.getModelDimension().z;
             
             if (inertiaType==sphericalInertia) {
                 
@@ -217,20 +218,20 @@ namespace U4DEngine {
     }
 
 
-    U4DMatrix3n U4DStaticModel::getMomentOfInertiaTensor(){
+    U4DMatrix3n U4DStaticAction::getMomentOfInertiaTensor(){
 
     return massProperties.momentOfInertiaTensor;
      
     }
 
-    U4DMatrix3n U4DStaticModel::getInverseMomentOfInertiaTensor(){
+    U4DMatrix3n U4DStaticAction::getInverseMomentOfInertiaTensor(){
 
     return massProperties.inverseMomentOfInertiaTensor;
 
     }
 
    
-    void U4DStaticModel::updateConvexHullVertices(){
+    void U4DStaticAction::updateConvexHullVertices(){
         
         //update the position of the convex hull vertices
         
@@ -238,8 +239,8 @@ namespace U4DEngine {
         
         for(auto convexHullVertices:getNarrowPhaseBoundingVolume()->getConvexHullVertices()){
             
-            convexHullVertices=getAbsoluteMatrixOrientation()*convexHullVertices;
-            convexHullVertices=convexHullVertices+getAbsolutePosition();
+            convexHullVertices=model->getAbsoluteMatrixOrientation()*convexHullVertices;
+            convexHullVertices=convexHullVertices+model->getAbsolutePosition();
             
             convexHullProperties.convexHullVertices.push_back(convexHullVertices);
             
@@ -248,7 +249,7 @@ namespace U4DEngine {
     }
     
     
-    std::vector<U4DVector3n>& U4DStaticModel::getConvexHullVertices(){
+    std::vector<U4DVector3n>& U4DStaticAction::getConvexHullVertices(){
         
         updateConvexHullVertices();
         
@@ -256,19 +257,19 @@ namespace U4DEngine {
         
     }
     
-    int U4DStaticModel::getConvexHullVerticesCount(){
+    int U4DStaticAction::getConvexHullVerticesCount(){
         
         return convexHullProperties.convexHullVertices.size();
         
     }
     
-    void U4DStaticModel::clearConvexHullVertices(){
+    void U4DStaticAction::clearConvexHullVertices(){
         
         convexHullProperties.convexHullVertices.clear();
     
     }
     
-    void U4DStaticModel::enableCollisionBehavior(){
+    void U4DStaticAction::enableCollisionBehavior(){
         
         //test if the bounding volume object was previously created
         if(convexHullBoundingVolume==nullptr && broadPhaseBoundingVolume==nullptr){
@@ -281,18 +282,18 @@ namespace U4DEngine {
             
             U4DLogger *logger=U4DLogger::sharedInstance();
             
-            logger->log("In Process: Computing Convex Hull for Collision Detection for model: %s",getName().c_str());
+            logger->log("In Process: Computing Convex Hull for Collision Detection for model: %s",model->getName().c_str());
             
             //determine the convex hull of the model
             U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
             
-            CONVEXHULL convexHull=resourceLoader->loadConvexHullForMesh(this);
+            CONVEXHULL convexHull=resourceLoader->loadConvexHullForMesh(model);
             
             //if convex hull valid, then set it to the model and enable collision
             
             if (convexHull.isValid) {
                 
-                logger->log("Success: Convex Hull was properly computed. Collision Detection is enabled for model: %s.",getName().c_str());
+                logger->log("Success: Convex Hull was properly computed. Collision Detection is enabled for model: %s.",model->getName().c_str());
                 
                 //set the convex hull for the bounding volume. Note the convex hull is maintained by the U4DBoundingConvex class
                 convexHullBoundingVolume->setConvexHullVertices(convexHull);
@@ -302,14 +303,14 @@ namespace U4DEngine {
                     
                     U4DVector3n vertex=n.vertex;
                     
-                    bodyCoordinates.addConvexHullVerticesToContainer(vertex);
+                    model->bodyCoordinates.addConvexHullVerticesToContainer(vertex);
                     
                 }
                 
                 //decompose the convex hull into segments
                 for(const auto& n:convexHull.edges){
                     U4DSegment segment=n.segment;
-                    bodyCoordinates.addConvexHullEdgesDataToContainer(segment);
+                    model->bodyCoordinates.addConvexHullEdgesDataToContainer(segment);
                 }
                 
                 
@@ -317,14 +318,14 @@ namespace U4DEngine {
                 for(const auto& n:convexHull.faces){
                     U4DTriangle face=n.triangle;
                     
-                    bodyCoordinates.addConvexHullFacesDataToContainer(face);
+                    model->bodyCoordinates.addConvexHullFacesDataToContainer(face);
                     
                 }
                 
                 //Get body dimensions
-                float xDimension=bodyCoordinates.getModelDimension().x;
-                float yDimension=bodyCoordinates.getModelDimension().y;
-                float zDimension=bodyCoordinates.getModelDimension().z;
+                float xDimension=model->bodyCoordinates.getModelDimension().x;
+                float yDimension=model->bodyCoordinates.getModelDimension().y;
+                float zDimension=model->bodyCoordinates.getModelDimension().z;
                 
                 //set model longest dimension
                 float longestModelDimension=std::max(xDimension, yDimension);
@@ -359,16 +360,16 @@ namespace U4DEngine {
                 }
                 
                 //add convex boundary volume as a child of the object
-                addChild(convexHullBoundingVolume);
+                model->addChild(convexHullBoundingVolume);
                 
                 //add broad boundary volume as a child of the object
-                addChild(broadPhaseBoundingVolume);
+                model->addChild(broadPhaseBoundingVolume);
                 
                 //enable collision
                 collisionEnabled=true;
                 
             }else{
-                logger->log("Error: Computed Convex Hull for model %s is not valid",getName().c_str());
+                logger->log("Error: Computed Convex Hull for model %s is not valid",model->getName().c_str());
                 logger->log("Please visit www.untoldengine.com for a review on Model Topology to produce a valid Convex Hull");
                 
             }
@@ -382,36 +383,36 @@ namespace U4DEngine {
         
     }
     
-    void U4DStaticModel::pauseCollisionBehavior(){
+    void U4DStaticAction::pauseCollisionBehavior(){
         
         collisionEnabled=false;
     }
     
     
-    void U4DStaticModel::resumeCollisionBehavior(){
+    void U4DStaticAction::resumeCollisionBehavior(){
         
         collisionEnabled=true;
     }
     
     
-    bool U4DStaticModel::isCollisionBehaviorEnabled(){
+    bool U4DStaticAction::isCollisionBehaviorEnabled(){
         
         return collisionEnabled;
     
     }
 
-    void U4DStaticModel::setNarrowPhaseBoundingVolumeVisibility(bool uValue){
+    void U4DStaticAction::setNarrowPhaseBoundingVolumeVisibility(bool uValue){
         
         convexHullBoundingVolume->setVisibility(uValue);
         
     }
     
-    bool U4DStaticModel::getNarrowPhaseBoundingVolumeVisibility(){
+    bool U4DStaticAction::getNarrowPhaseBoundingVolumeVisibility(){
         
         return convexHullBoundingVolume->getVisibility();
     }
     
-    U4DBoundingVolume* U4DStaticModel::getNarrowPhaseBoundingVolume(){
+    U4DBoundingVolume* U4DStaticAction::getNarrowPhaseBoundingVolume(){
         
         return convexHullBoundingVolume;
     }
@@ -419,43 +420,43 @@ namespace U4DEngine {
     
     //Broad Phase Bounding Volume
     
-    U4DBoundingVolume* U4DStaticModel::getBroadPhaseBoundingVolume(){
+    U4DBoundingVolume* U4DStaticAction::getBroadPhaseBoundingVolume(){
         
         return broadPhaseBoundingVolume;
         
     }
     
-    void U4DStaticModel::setBroadPhaseBoundingVolumeVisibility(bool uValue){
+    void U4DStaticAction::setBroadPhaseBoundingVolumeVisibility(bool uValue){
         
         broadPhaseBoundingVolume->setVisibility(uValue);
         
     }
     
-    bool U4DStaticModel::getBroadPhaseBoundingVolumeVisibility(){
+    bool U4DStaticAction::getBroadPhaseBoundingVolumeVisibility(){
         
         return broadPhaseBoundingVolume->getVisibility();
     }
     
     
-    void U4DStaticModel::addCollisionContactPoint(U4DVector3n& uContactPoint){
+    void U4DStaticAction::addCollisionContactPoint(U4DVector3n& uContactPoint){
         
         collisionProperties.contactManifoldProperties.contactPoint.push_back(uContactPoint);
         
     }
     
     
-    void U4DStaticModel::setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection){
+    void U4DStaticAction::setCollisionNormalFaceDirection(U4DVector3n& uNormalFaceDirection){
         
         collisionProperties.contactManifoldProperties.normalFaceDirection=uNormalFaceDirection;
     }
     
-    void U4DStaticModel::setCollisionPenetrationDepth(float uPenetrationDepth){
+    void U4DStaticAction::setCollisionPenetrationDepth(float uPenetrationDepth){
         
         collisionProperties.contactManifoldProperties.penetrationDepth=uPenetrationDepth;
         
     }
     
-    void U4DStaticModel::clearCollisionInformation(){
+    void U4DStaticAction::clearCollisionInformation(){
         
         clearCollisionContactPoints();
         collisionProperties.contactManifoldProperties.normalFaceDirection.zero();
@@ -463,146 +464,146 @@ namespace U4DEngine {
         
     }
     
-    void U4DStaticModel::clearCollisionContactPoints(){
+    void U4DStaticAction::clearCollisionContactPoints(){
         collisionProperties.contactManifoldProperties.contactPoint.clear();
     }
     
-    std::vector<U4DVector3n> U4DStaticModel::getCollisionContactPoints(){
+    std::vector<U4DVector3n> U4DStaticAction::getCollisionContactPoints(){
         
         return collisionProperties.contactManifoldProperties.contactPoint;
         
     }
     
-    U4DVector3n U4DStaticModel::getCollisionNormalFaceDirection(){
+    U4DVector3n U4DStaticAction::getCollisionNormalFaceDirection(){
         
         return collisionProperties.contactManifoldProperties.normalFaceDirection;
         
     }
     
-    float U4DStaticModel::getCollisionPenetrationDepth(){
+    float U4DStaticAction::getCollisionPenetrationDepth(){
         
         return collisionProperties.contactManifoldProperties.penetrationDepth;
         
     }
     
-    void U4DStaticModel::setModelHasCollided(bool uValue){
+    void U4DStaticAction::setModelHasCollided(bool uValue){
         collisionProperties.collided=uValue;
     }
     
-    void U4DStaticModel::setModelHasCollidedBroadPhase(bool uValue){
+    void U4DStaticAction::setModelHasCollidedBroadPhase(bool uValue){
         collisionProperties.broadPhaseCollided=uValue;
     }
     
-    bool U4DStaticModel::getModelHasCollided(){
+    bool U4DStaticAction::getModelHasCollided(){
         return collisionProperties.collided;
     }
     
-    bool U4DStaticModel::getModelHasCollidedBroadPhase(){
+    bool U4DStaticAction::getModelHasCollidedBroadPhase(){
         return collisionProperties.broadPhaseCollided;
     }
     
-    void U4DStaticModel::setNormalForce(U4DVector3n& uNormalForce){
+    void U4DStaticAction::setNormalForce(U4DVector3n& uNormalForce){
         
         collisionProperties.contactManifoldProperties.normalForce=uNormalForce;
     }
     
-    U4DVector3n U4DStaticModel::getNormalForce(){
+    U4DVector3n U4DStaticAction::getNormalForce(){
         return collisionProperties.contactManifoldProperties.normalForce;
     }
     
-    void U4DStaticModel::initAsPlatform(bool uValue){
+    void U4DStaticAction::initAsPlatform(bool uValue){
         isPlatform=uValue;
     }
     
-    bool U4DStaticModel::getIsPlatform(){
+    bool U4DStaticAction::getIsPlatform(){
         return isPlatform;
     }
     
-    void U4DStaticModel::setCollisionFilterCategory(int uFilterCategory){
+    void U4DStaticAction::setCollisionFilterCategory(int uFilterCategory){
         
         collisionFilter.category=uFilterCategory;
     }
     
 
-    void U4DStaticModel::setCollisionFilterMask(int uFilterMask){
+    void U4DStaticAction::setCollisionFilterMask(int uFilterMask){
         
         collisionFilter.mask=uFilterMask;
     }
     
-    void U4DStaticModel::setCollisionFilterGroupIndex(signed int uGroupIndex){
+    void U4DStaticAction::setCollisionFilterGroupIndex(signed int uGroupIndex){
         
         collisionFilter.groupIndex=uGroupIndex;
     }
     
-    int U4DStaticModel::getCollisionFilterCategory(){
+    int U4DStaticAction::getCollisionFilterCategory(){
         
         return collisionFilter.category;
     }
     
-    int U4DStaticModel::getCollisionFilterMask(){
+    int U4DStaticAction::getCollisionFilterMask(){
         
         return collisionFilter.mask;
     }
 
-    signed int U4DStaticModel::getCollisionFilterGroupIndex(){
+    signed int U4DStaticAction::getCollisionFilterGroupIndex(){
      
         return collisionFilter.groupIndex;
     }
     
     
     
-    void U4DStaticModel::setIsCollisionSensor(bool uValue){
+    void U4DStaticAction::setIsCollisionSensor(bool uValue){
         
         isCollisionSensor=uValue;
     }
     
-    bool U4DStaticModel::getIsCollisionSensor(){
+    bool U4DStaticAction::getIsCollisionSensor(){
         
         return isCollisionSensor;
     
     }
     
-    void U4DStaticModel::addToCollisionList(U4DStaticModel *uModel){
+    void U4DStaticAction::addToCollisionList(U4DStaticAction *uModel){
         
         collisionList.push_back(uModel);
         
     }
     
-    void U4DStaticModel::addToBroadPhaseCollisionList(U4DStaticModel *uModel){
+    void U4DStaticAction::addToBroadPhaseCollisionList(U4DStaticAction *uModel){
         
         broadPhaseCollisionList.push_back(uModel);
         
     }
     
-    std::vector<U4DStaticModel *> U4DStaticModel::getCollisionList(){
+    std::vector<U4DStaticAction *> U4DStaticAction::getCollisionList(){
         
         return collisionList;
         
     }
     
-    std::vector<U4DStaticModel *> U4DStaticModel::getBroadPhaseCollisionList(){
+    std::vector<U4DStaticAction *> U4DStaticAction::getBroadPhaseCollisionList(){
         
         return broadPhaseCollisionList;
         
     }
     
-    void U4DStaticModel::setCollidingTag(std::string uCollidingTag){
+    void U4DStaticAction::setCollidingTag(std::string uCollidingTag){
         
         collidingTag=uCollidingTag;
     }
     
-    std::string U4DStaticModel::getCollidingTag(){
+    std::string U4DStaticAction::getCollidingTag(){
         
         return collidingTag;
         
     }
     
-    void U4DStaticModel::clearCollisionList(){
+    void U4DStaticAction::clearCollisionList(){
         
         collisionList.clear();
     }
     
-    void U4DStaticModel::clearBroadPhaseCollisionList(){
+    void U4DStaticAction::clearBroadPhaseCollisionList(){
         
         broadPhaseCollisionList.clear();
     

@@ -7,7 +7,7 @@
 //
 
 #include "U4DAvoidance.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingSphere.h"
 #include "U4DSphere.h"
@@ -15,6 +15,7 @@
 #include "U4DPlane.h"
 #include "U4DRay.h"
 #include "U4DPoint3n.h"
+#include "U4DModel.h"
 
 namespace U4DEngine {
     
@@ -26,11 +27,11 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DAvoidance::getSteering(U4DDynamicModel *uPursuer){
+    U4DVector3n U4DAvoidance::getSteering(U4DDynamicAction *uPursuer){
         
         bool intersectionWithPlaneOccurred=false;
         
-        U4DVector3n viewDir=uPursuer->getViewInDirection();
+        U4DVector3n viewDir=uPursuer->model->getViewInDirection();
         
         viewDir.normalize();
         
@@ -43,7 +44,7 @@ namespace U4DEngine {
         
         U4DVector3n predictedPosition;
         
-        U4DPoint3n position=uPursuer->getAbsolutePosition().toPoint();
+        U4DPoint3n position=uPursuer->model->getAbsolutePosition().toPoint();
         
         //ray to intersect generated plane between sphere vs. sphere or sphere vs. aabb
         U4DRay ray(position,velocity);

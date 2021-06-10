@@ -415,14 +415,11 @@ public:
      @todo document this
      */
     virtual void updateAllUniforms(){};
-    
-    /**
-     @brief Loads all rendering information for the entiy
-     */
-    virtual void loadRenderingInformation(){};
-    
-    
-    
+
+//    /**
+//     @brief Loads all rendering information for the entiy
+//     */
+//    virtual void loadRenderingInformation(){};
     
     /**
      @brief Sets the z-depth value used for rendering ordering
@@ -440,45 +437,11 @@ public:
     int getZDepth();
     
     /**
-     @brief Self load 3D model into the collision engine
-     
-     @param uEntityManager pointer to the entity manager
-     */
-    virtual void loadIntoCollisionEngine(U4DEntityManager *uEntityManager){};
-    
-    /**
-     @brief Self load 3D model into the physics engine
-     
-     @param uEntityManager pointer to the entity manager
-     @param dt time step
-     */
-    virtual void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt){};
-    
-    /**
      @brief self load 3d model into the visibility manager
      
      @param uEntityManager pointer to the entity manager
      */
     virtual void loadIntoVisibilityManager(U4DEntityManager *uEntityManager){};
-    
-    /**
-     @brief clear collision information, resets time of impact, resets equilibrium, clears collision list
-     */
-    virtual void cleanUp(){};
-    
-    /**
-     @brief Method which returns if the model can detect collisions
-     
-     @return Returns true if the model can detect collisions
-     */
-    virtual bool isCollisionBehaviorEnabled(){};
-    
-    /**
-     @brief Method which returns if kinetics behavior are allowed to act on the 3D model
-     
-     @return Returns true if kinetics behavior are allowed to act on the 3D model
-     */
-    virtual bool isKineticsBehaviorEnabled(){};
     
     virtual bool changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){};
     

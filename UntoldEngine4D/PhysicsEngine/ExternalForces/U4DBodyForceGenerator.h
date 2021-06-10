@@ -10,11 +10,11 @@
 #define __UntoldEngine__U4DBodyForceGenerator__
 
 #include <iostream>
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 
 namespace U4DEngine {
     
-    class U4DDynamicModel;
+    class U4DDynamicAction;
     
 }
 
@@ -28,7 +28,7 @@ namespace U4DEngine {
         
     public:
         
-        virtual void updateForce(U4DDynamicModel *uModel, float dt)=0;
+        virtual void updateForce(U4DDynamicAction *uAction, float dt)=0;
         
     };
     

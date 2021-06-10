@@ -20,7 +20,7 @@ namespace U4DEngine {
     class U4DCollisionAlgorithm;
     class U4DManifoldGeneration;
     class U4DCollisionResponse;
-    class U4DDynamicModel;
+    class U4DDynamicAction;
     class U4DBVHManager;
 }
 
@@ -116,9 +116,9 @@ namespace U4DEngine {
         /**
          @brief Method which adds the 3D entity to the BVH(Boundary Volume Hierarchy) scenegraph
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          */
-        void addToBroadPhaseCollisionContainer(U4DDynamicModel* uModel);
+        void addToBroadPhaseCollisionContainer(U4DDynamicAction* uAction);
         
         /**
          @brief Method which updates the state of the collision engine
@@ -131,17 +131,17 @@ namespace U4DEngine {
         /**
          @brief Add a 3D model to the collision engine
 
-         @param uModel Pointer to the 3D model to add
+         @param uAction Pointer to the action to add
          */
-        void add(U4DDynamicModel *uModel);
+        void add(U4DDynamicAction *uAction);
         
         
         /**
          @brief Remove the 3D model from the collision engine
 
-         @param uModel pointer to the 3D model to remove
+         @param uAction Pointer to the action to remove
          */
-        void remove(U4DDynamicModel *uModel);
+        void remove(U4DDynamicAction *uAction);
         
         /**
          @brief Method which clears all scenegraphs and containers with 3D entities used during collision

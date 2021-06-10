@@ -8,6 +8,7 @@
 
 #include "U4DRungaKuttaMethod.h"
 #include "Constants.h"
+#include "U4DModel.h"
 #include "U4DTransformation.h"
 
 namespace U4DEngine {
@@ -21,7 +22,7 @@ namespace U4DEngine {
     }
     
     #pragma mark-integrate
-    void U4DRungaKuttaMethod::integrate(U4DDynamicModel *uModel,float dt){
+    void U4DRungaKuttaMethod::integrate(U4DDynamicAction *uAction,float dt){
         
         U4DVector3n velocityNew(0,0,0);
         U4DVector3n displacementNew(0,0,0);
@@ -29,35 +30,35 @@ namespace U4DEngine {
         U4DQuaternion orientationNew;
         
         //set timestep for model
-        dt=dt*uModel->getTimeOfImpact();
+        dt=dt*uAction->getTimeOfImpact();
         
         //calculate the acceleration
-        U4DVector3n linearAcceleration=(uModel->getForce())*(1/uModel->getMass());
+        U4DVector3n linearAcceleration=(uAction->getForce())*(1/uAction->getMass());
         
         //CALCULATE LINEAR POSITION
-        evaluateLinearAspect(uModel,linearAcceleration, dt, velocityNew, displacementNew);
+        evaluateLinearAspect(uAction,linearAcceleration, dt, velocityNew, displacementNew);
         
         //update old velocity and displacement with the new ones
         
         
-        uModel->translateTo(displacementNew);
-        uModel->setVelocity(velocityNew);
+        uAction->model->translateTo(displacementNew);
+        uAction->setVelocity(velocityNew);
 
 
         //CALCULATE ANGULAR POSITION
         
-        U4DVector3n moment=uModel->getMoment();
+        U4DVector3n moment=uAction->getMoment();
         
-        U4DMatrix3n momentOfInertiaTensor=uModel->getMomentOfInertiaTensor();
-        U4DMatrix3n inverseMomentOfInertia=uModel->getInverseMomentOfInertiaTensor();
+        U4DMatrix3n momentOfInertiaTensor=uAction->getMomentOfInertiaTensor();
+        U4DMatrix3n inverseMomentOfInertia=uAction->getInverseMomentOfInertiaTensor();
         
         //get the angular acceleration
-        U4DVector3n angularAcceleration=inverseMomentOfInertia*(moment-(uModel->getAngularVelocity().cross(momentOfInertiaTensor*uModel->getAngularVelocity())));
+        U4DVector3n angularAcceleration=inverseMomentOfInertia*(moment-(uAction->getAngularVelocity().cross(momentOfInertiaTensor*uAction->getAngularVelocity())));
         
         
         
         //get the new angular velocity and new orientation
-        evaluateAngularAspect(uModel, angularAcceleration, dt, angularVelocityNew, orientationNew);
+        evaluateAngularAspect(uAction, angularAcceleration, dt, angularVelocityNew, orientationNew);
 
         
         float norm=orientationNew.norm();
@@ -71,20 +72,20 @@ namespace U4DEngine {
         U4DQuaternion rotation(orientationNew);
         
         //get the current translation
-        U4DQuaternion t=uModel->getLocalSpacePosition();
+        U4DQuaternion t=uAction->model->getLocalSpacePosition();
         
-        uModel->setLocalSpaceOrientation(rotation);
+        uAction->model->setLocalSpaceOrientation(rotation);
         
-        U4DQuaternion d=(t*uModel->getLocalSpaceOrientation())*0.5;
+        U4DQuaternion d=(t*uAction->model->getLocalSpaceOrientation())*0.5;
         
-        uModel->setLocalSpacePosition(d);
+        uAction->model->setLocalSpacePosition(d);
 
         //set the new angular velocity
-        uModel->setAngularVelocity(angularVelocityNew);
+        uAction->setAngularVelocity(angularVelocityNew);
         
     }
 
-    void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicModel *uModel,U4DVector3n &uLinearAcceleration,float dt,U4DVector3n &uVnew,U4DVector3n &uSnew){
+    void U4DRungaKuttaMethod::evaluateLinearAspect(U4DDynamicAction *uAction,U4DVector3n &uLinearAcceleration,float dt,U4DVector3n &uVnew,U4DVector3n &uSnew){
         
         U4DVector3n k1,k2,k3,k4;
         
@@ -94,14 +95,14 @@ namespace U4DEngine {
         k4=(uLinearAcceleration+k3)*dt;
         
         //calculate new velocity
-        uVnew=uModel->getVelocity()+(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
+        uVnew=uAction->getVelocity()+(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
 
         //calculate new position
-        uSnew=uModel->getLocalPosition()+uVnew*dt;
+        uSnew=uAction->model->getLocalPosition()+uVnew*dt;
         
     }
 
-    void U4DRungaKuttaMethod::evaluateAngularAspect(U4DDynamicModel *uModel,U4DVector3n &uAngularAcceleration,float dt,U4DVector3n &uAngularVelocityNew,U4DQuaternion &uOrientationNew){
+    void U4DRungaKuttaMethod::evaluateAngularAspect(U4DDynamicAction *uAction,U4DVector3n &uAngularAcceleration,float dt,U4DVector3n &uAngularVelocityNew,U4DQuaternion &uOrientationNew){
         
         U4DVector3n k1,k2,k3,k4;
         
@@ -114,11 +115,11 @@ namespace U4DEngine {
 
         
         //calculate new angular velocity
-        uAngularVelocityNew=uModel->getAngularVelocity()+(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
+        uAngularVelocityNew=uAction->getAngularVelocity()+(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
         
         
         //get the original orientation of the body
-        uOrientationNew=uModel->getLocalSpaceOrientation();
+        uOrientationNew=uAction->model->getLocalSpaceOrientation();
         
         //calculate the new orientation
         uOrientationNew=uOrientationNew+(uAngularVelocityNew*uOrientationNew)*(dt*0.5);

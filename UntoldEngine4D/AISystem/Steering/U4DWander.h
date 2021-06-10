@@ -14,7 +14,7 @@
 #include "U4DVector3n.h"
 
 namespace U4DEngine {
-    class U4DDynamicModel;
+    class U4DDynamicAction;
 }
 
 namespace U4DEngine{
@@ -55,11 +55,11 @@ namespace U4DEngine{
         /**
          @brief Computes the velocity for steering
          
-         @param uDynamicModel 3D model represented as the pursuer
+         @param uAction Dynamic action represented as the pursuer
          @param uTargetPosition target position in vector format
          @return velocity vector to apply to 3D model
          */
-        U4DVector3n getSteering(U4DDynamicModel *uDynamicModel, U4DVector3n &uTargetPosition);
+        U4DVector3n getSteering(U4DDynamicAction *uAction, U4DVector3n &uTargetPosition);
         
         /**
          @brief sets the wander offset used for the Wander steering behavior. This represents the distance offset between the pursuer and the wander target

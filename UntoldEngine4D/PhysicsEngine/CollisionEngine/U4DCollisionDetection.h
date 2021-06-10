@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "CommonProtocols.h"
 
 namespace U4DEngine {
@@ -39,22 +39,22 @@ namespace U4DEngine {
         /**
          @brief Method with returns true if a collision between two 3D entities have occurred
          
-         @param uModel1 3D model entity
-         @param uModel2 3D model entity
+         @param uAction1 3D model entity
+         @param uAction2 3D model entity
          @param dt      Time-step value
          
          @return Returns true if collision occurred
          */
-        virtual bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){};
+        virtual bool collision(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,float dt){};
         
         /**
          @brief Method which determines the collision manifold
          
-         @param uModel1 3D model entity
-         @param uModel2 3D model entity
+         @param uAction1 3D model entity
+         @param uAction2 3D model entity
          @param uQ      Time-step value
          */
-        virtual void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ){};
+        virtual void determineCollisionManifold(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,std::vector<SIMPLEXDATA> uQ){};
         
         /**
          @brief Method which computes the supporting point in a given direction

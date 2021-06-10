@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include <vector>
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DCollisionAlgorithm.h"
 #include "U4DPoint3n.h"
 #include "U4DSegment.h"
@@ -64,13 +64,13 @@ namespace U4DEngine {
         /**
          @brief Method with returns true if a collision between two 3D entities have occurred
          
-         @param uModel1 3D model entity
-         @param uModel2 3D model entity
+         @param uAction1 3D model entity
+         @param uAction2 3D model entity
          @param dt      Time-step value
          
          @return Returns true if collision occurred
          */
-        bool collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt);
+        bool collision(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,float dt);
         
         /**
          @brief Method which determines the minimum Simplex in the convex-hull set Q

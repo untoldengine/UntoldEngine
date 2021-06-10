@@ -7,7 +7,8 @@
 //
 
 #include "U4DFollowPath.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
+#include "U4DModel.h"
 
 namespace U4DEngine {
     
@@ -19,12 +20,12 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DFollowPath::getSteering(U4DDynamicModel *uDynamicModel, std::vector<U4DSegment> &uPathContainer){
+    U4DVector3n U4DFollowPath::getSteering(U4DDynamicAction *uAction, std::vector<U4DSegment> &uPathContainer){
         
-        U4DVector3n viewDir=uDynamicModel->getViewInDirection();
+        U4DVector3n viewDir=uAction->model->getViewInDirection();
         viewDir.normalize();
         
-        U4DVector3n velocity=uDynamicModel->getVelocity();
+        U4DVector3n velocity=uAction->getVelocity();
         
         //This is a special condition: if the character's velocity is equal to zero, and is close to the path at the start, the entity will not move. To make it move, set the velocity to the current view direction
         if (velocity.magnitudeSquare()==0) {
@@ -33,7 +34,7 @@ namespace U4DEngine {
         
         //get the predicted future location
         
-        U4DVector3n predictedPosition=uDynamicModel->getAbsolutePosition()+velocity*predictTime;
+        U4DVector3n predictedPosition=uAction->model->getAbsolutePosition()+velocity*predictTime;
         
         U4DPoint3n predictedPositionPoint=predictedPosition.toPoint();
         
@@ -66,7 +67,7 @@ namespace U4DEngine {
         
         if(distance<pathRadius){
             
-            return U4DSeek::getSteering(uDynamicModel,predictedPosition);
+            return U4DSeek::getSteering(uAction,predictedPosition);
             
         }else{
             
@@ -84,7 +85,7 @@ namespace U4DEngine {
             
         }
     
-        return U4DSeek::getSteering(uDynamicModel,predictedPosition);
+        return U4DSeek::getSteering(uAction,predictedPosition);
         
     }
     

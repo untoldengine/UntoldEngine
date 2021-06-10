@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "U4DWorld.h"
-#include "U4DDynamicModel.h"
+#include "U4DModel.h"
 #include "U4DButton.h"
 #include "U4DJoystick.h"
 #include "U4DSlider.h"
@@ -26,7 +26,7 @@ class SandboxWorld:public U4DEngine::U4DWorld {
 private:
     
     
-    U4DEngine::U4DDynamicModel *myAstronaut;
+    U4DEngine::U4DModel *myAstronaut;
     
     
 public:

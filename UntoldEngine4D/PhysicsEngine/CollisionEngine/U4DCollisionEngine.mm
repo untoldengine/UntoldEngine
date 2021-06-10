@@ -13,7 +13,7 @@
 #include "U4DGJKAlgorithm.h"
 #include "U4DCollisionResponse.h"
 #include "U4DSHAlgorithm.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DBVHManager.h"
 #include "U4DLogger.h"
 
@@ -51,9 +51,9 @@ namespace U4DEngine {
         
     }
 
-    void U4DCollisionEngine::addToBroadPhaseCollisionContainer(U4DDynamicModel* uModel){
+    void U4DCollisionEngine::addToBroadPhaseCollisionContainer(U4DDynamicAction* uAction){
         
-        boundaryVolumeHierarchyManager->addModelToTreeContainer(uModel);
+        boundaryVolumeHierarchyManager->addModelToTreeContainer(uAction);
         
     }
 
@@ -80,8 +80,8 @@ namespace U4DEngine {
         
         for (auto n:collisionPairs) {
             
-            U4DDynamicModel *model1=n.model1;
-            U4DDynamicModel *model2 =n.model2;
+            U4DDynamicAction *model1=n.model1;
+            U4DDynamicAction *model2 =n.model2;
             
             if (model1->getAwake() || model2->getAwake()) {
                 

@@ -17,7 +17,7 @@
 namespace U4DEngine {
     
     class U4DBroadPhaseCollisionModelPair;
-    class U4DDynamicModel;
+    class U4DDynamicAction;
 }
 
 
@@ -51,7 +51,7 @@ namespace U4DEngine {
          
          @return Returns true if the trees are colliding
          */
-        bool collisionBetweenTreeVolume(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode);
+        bool collisionBetweenTreeVolume(U4DBVHNode<U4DDynamicAction> *uTreeLeftNode, U4DBVHNode<U4DDynamicAction> *uTreeRightNode);
         
         /**
          @brief Method used for the Tree descend rule
@@ -61,7 +61,7 @@ namespace U4DEngine {
          
          @return Returns true if the left node first child is not a null pointer
          */
-        bool descendTreeRule(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode);
+        bool descendTreeRule(U4DBVHNode<U4DDynamicAction> *uTreeLeftNode, U4DBVHNode<U4DDynamicAction> *uTreeRightNode);
         
         /**
          @brief Method which starts the broad-phase collision detection process
@@ -69,7 +69,7 @@ namespace U4DEngine {
          @param uTreeContainer            Tree container
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        virtual void startCollision(std::vector<std::shared_ptr<U4DBVHNode<U4DDynamicModel>>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
+        virtual void startCollision(std::vector<std::shared_ptr<U4DBVHNode<U4DDynamicAction>>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
         
         /**
          @brief Method which detects collisions
@@ -78,7 +78,7 @@ namespace U4DEngine {
          @param uTreeRightNode Right tree node
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        virtual void collision(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
+        virtual void collision(U4DBVHNode<U4DDynamicAction> *uTreeLeftNode, U4DBVHNode<U4DDynamicAction> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
         
         /**
          @brief Method which detects broad-phase collision among tree nodes
@@ -87,12 +87,12 @@ namespace U4DEngine {
          @param uTreeRightNode Right tree node
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        virtual void collisionBetweenTreeLeafNodes(U4DBVHNode<U4DDynamicModel> *uTreeLeftNode, U4DBVHNode<U4DDynamicModel> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
+        virtual void collisionBetweenTreeLeafNodes(U4DBVHNode<U4DDynamicAction> *uTreeLeftNode, U4DBVHNode<U4DDynamicAction> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs){};
         
         /**
          @brief Document this
          */
-        bool shouldModelsCollide(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2);
+        bool shouldModelsCollide(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2);
         
     };
 }

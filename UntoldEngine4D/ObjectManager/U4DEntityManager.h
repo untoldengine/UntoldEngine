@@ -27,7 +27,7 @@ namespace U4DEngine {
     class U4DGravityForceGenerator;
     class U4DDragForceGenerator;
     class U4DIntegrator;
-    class U4DDynamicModel;
+    class U4DDynamicAction;
     class U4DModel;
     class U4DCollisionAlgorithm;
     class U4DManifoldGeneration;
@@ -158,7 +158,7 @@ namespace U4DEngine {
 
          @param uModel pointer to the 3d model
          */
-        void loadIntoCollisionEngine(U4DDynamicModel* uModel);
+        void loadIntoCollisionEngine(U4DDynamicAction* uModel);
         
         
         /**
@@ -167,7 +167,7 @@ namespace U4DEngine {
          @param uModel pointer to the 3d model
          @param dt time-step
          */
-        void loadIntoPhysicsEngine(U4DDynamicModel* uModel,float dt);
+        void loadIntoPhysicsEngine(U4DDynamicAction* uModel,float dt);
         
         
         /**

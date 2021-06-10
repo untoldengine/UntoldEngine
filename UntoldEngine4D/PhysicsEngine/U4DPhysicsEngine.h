@@ -12,7 +12,7 @@
 #include <iostream>
 #include <vector>
 
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DBodyForceGenerator.h"
 #include "U4DIntegrator.h"
 #include "U4DGravityForceGenerator.h"
@@ -68,10 +68,10 @@ namespace U4DEngine {
         /**
          @brief Method which updates all physics forces
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          @param dt     Time-step value
          */
-        void updatePhysicForces(U4DDynamicModel *uModel,float dt);
+        void updatePhysicForces(U4DDynamicAction *uAction,float dt);
         
         /**
          @brief Method which sets the integrator
@@ -83,10 +83,10 @@ namespace U4DEngine {
         /**
          @brief Method which integrates the equation of motion
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          @param dt     Time-step value
          */
-        void integrate(U4DDynamicModel *uModel,float dt);
+        void integrate(U4DDynamicAction *uAction,float dt);
         
         /**
          @brief Method which updates the state of the physics engine

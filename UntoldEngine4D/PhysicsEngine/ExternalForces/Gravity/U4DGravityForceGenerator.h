@@ -17,7 +17,7 @@
 namespace U4DEngine {
     
     class U4DVector3n;
-    class U4DDynamicModel;
+    class U4DDynamicAction;
     
 }
 
@@ -46,10 +46,10 @@ namespace U4DEngine {
         /**
          @brief Method which updates the force acting on the entity
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          @param dt     Time-step value
          */
-        void updateForce(U4DDynamicModel *uModel, float dt);
+        void updateForce(U4DDynamicAction *uAction, float dt);
 
     };
         

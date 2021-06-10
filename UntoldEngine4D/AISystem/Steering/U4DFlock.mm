@@ -7,7 +7,7 @@
 //
 
 #include "U4DFlock.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DSeparation.h"
 #include "U4DAlign.h"
 #include "U4DCohesion.h"
@@ -24,7 +24,7 @@ U4DFlock::U4DFlock():maxSpeed(25.0),desiredSeparation(5.0),neighborDistanceAlign
     }
 
 
-    U4DVector3n U4DFlock::getSteering(U4DDynamicModel *uPursuer, std::vector<U4DDynamicModel*> uNeighborsContainer){
+    U4DVector3n U4DFlock::getSteering(U4DDynamicAction *uPursuer, std::vector<U4DDynamicAction*> uNeighborsContainer){
         
         U4DSeparation separationBehavior;
         U4DAlign alignBehavior;
