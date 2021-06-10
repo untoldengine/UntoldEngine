@@ -436,13 +436,6 @@ public:
      */
     int getZDepth();
     
-    /**
-     @brief self load 3d model into the visibility manager
-     
-     @param uEntityManager pointer to the entity manager
-     */
-    virtual void loadIntoVisibilityManager(U4DEntityManager *uEntityManager){};
-    
     virtual bool changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosition){};
     
     virtual U4DRenderEntity *getRenderEntity(){return NULL;};
