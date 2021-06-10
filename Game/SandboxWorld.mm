@@ -127,14 +127,14 @@ void SandboxWorld::init(){
 
     }
     
-//    //Render a skybox
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    //initialize the skybox
-//    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+    //Render a skybox
+    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+
+    //initialize the skybox
+    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
 
     //add the skybox to the scenegraph with appropriate z-depth
-    //addChild(skybox);
+    addChild(skybox);
 
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
     debugger->setEnableDebugger(true,this);

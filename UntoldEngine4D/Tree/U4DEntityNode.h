@@ -50,6 +50,7 @@ namespace U4DEngine {
          */
         T *lastDescendant;
         
+        
         /**
          @brief Constructor for the class
          */
@@ -72,6 +73,8 @@ namespace U4DEngine {
          @param uChild Child node to add to scenegraph
          */
         void addChild(T *uChild);
+        
+        void addChild(T *uChild, T *uNext);
         
         /**
          @brief Method which removes a child node from the scenegraph

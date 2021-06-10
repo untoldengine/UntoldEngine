@@ -49,10 +49,7 @@ private:
      */
     ENTITYTYPE entityType;
     
-    /**
-     @brief z-depth used for rendering ordering
-     */
-    int zDepth;
+    
     
 protected:
     
@@ -101,7 +98,10 @@ public:
      */
     U4DVector3n entityForwardVector;
     
-    
+    /**
+     @brief z-depth used for rendering ordering
+     */
+    int zDepth;
     
     /**
      @brief Entity Constructor. It creates the entity with the local orientation set to zero and local position set to the origin. The forwad vector is set to (0.0,0.0,-1.0). Parent and Next pointer set to null
