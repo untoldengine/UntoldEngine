@@ -8,6 +8,7 @@
 
 #include "SandboxWorld.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
@@ -28,6 +29,9 @@ SandboxWorld::~SandboxWorld(){
 }
 
 void SandboxWorld::init(){
+    
+    //Print version
+    std::cout<<"Current Version: "<<U4DEngine::untoldengineversion<<std::endl;
     
     /*----DO NOT REMOVE. THIS IS REQUIRED-----*/
     //Configures the perspective view, shadows, lights and camera.
