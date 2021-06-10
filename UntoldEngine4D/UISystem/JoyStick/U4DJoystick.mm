@@ -169,7 +169,7 @@ void U4DJoystick::action(){
     
     }else{
     
-        controllerInterface->getGameModel()->receiveUserInputUpdate(&controllerMessage);
+        controllerInterface->getGameLogic()->receiveUserInputUpdate(&controllerMessage);
     
     }
     

@@ -135,7 +135,7 @@ void U4DSlider::action(){
         
     }else{
         
-        controllerInterface->getGameModel()->receiveUserInputUpdate(&controllerMessage);
+        controllerInterface->getGameLogic()->receiveUserInputUpdate(&controllerMessage);
     
     }
 

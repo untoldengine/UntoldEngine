@@ -14,7 +14,7 @@
 #include "U4DEntityManager.h"
 #include "U4DWorld.h"
 #include "U4DControllerInterface.h"
-#include "U4DGameModelInterface.h"
+#include "U4DGameLogicInterface.h"
 
 namespace U4DEngine{
 
@@ -99,7 +99,7 @@ public:
     /**
      @brief pointer to the game model(logic) interface
      */
-    U4DGameModelInterface *gameModel;
+    U4DGameLogicInterface *gameLogic;
     
     /**
      @brief Pointer to the scene state manager
@@ -115,18 +115,18 @@ public:
      @brief sets the pointer for the world, controller and logic classes
 
      @param uGameWorld pointer to the world object
-     @param uGameModel pointer to the game model interface
+     @param uGameLogic pointer to the game logic interface
      */
-    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameModelInterface *uGameModel) final;
+    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic) final;
     
     /**
     @brief sets the pointer for the world, controller and logic classes and the loading world
 
     @param uGameWorld pointer to the world object
     @param uLoadingWorld pointer to the loading world object
-    @param uGameModel pointer to the game model interface
+    @param uGameLogic pointer to the game logic interface
     */
-    virtual void loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameModelInterface *uGameModel) final;
+    virtual void loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameLogicInterface *uGameLogic) final;
     
     /**
      @brief Method in charge of updating the states of each entity

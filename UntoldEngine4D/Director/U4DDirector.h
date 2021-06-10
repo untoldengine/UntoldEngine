@@ -24,7 +24,7 @@ namespace U4DEngine {
     class U4DWorld;
     class U4DCharacterManager;
     class U4DData;
-    class U4DGameModelInterface;
+    class U4DGameLogicInterface;
     class U4DVector2n;
     class U4DControllerInterface;
     class U4DEntityManager;

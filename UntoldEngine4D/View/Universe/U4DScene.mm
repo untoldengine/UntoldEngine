@@ -34,25 +34,25 @@ namespace U4DEngine {
         
     };
 
-    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameModelInterface *uGameModel){
+    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic){
         
-        if (uGameWorld!=nullptr  && uGameModel!=nullptr) {
+        if (uGameWorld!=nullptr  && uGameLogic!=nullptr) {
             
             U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
             
             gameWorld=uGameWorld;
             gameController=sceneManager->getGameController();
-            gameModel=uGameModel;
+            gameLogic=uGameLogic;
             
             gameWorld->setGameController(gameController);
-            gameWorld->setGameModel(gameModel);
+            gameWorld->setGameLogic(gameLogic);
             
             gameController->setGameWorld(uGameWorld);
-            gameController->setGameModel(gameModel);
+            gameController->setGameLogic(gameLogic);
             
-            gameModel->setGameWorld(gameWorld);
-            gameModel->setGameController(sceneManager->getGameController());
-            gameModel->setGameEntityManager(gameWorld->getEntityManager());
+            gameLogic->setGameWorld(gameWorld);
+            gameLogic->setGameController(sceneManager->getGameController());
+            gameLogic->setGameEntityManager(gameWorld->getEntityManager());
             
             sceneStateManager->changeState(U4DSceneActiveState::sharedInstance());
             
@@ -64,26 +64,26 @@ namespace U4DEngine {
     
     }
 
-    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameModelInterface *uGameModel){
+    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameLogicInterface *uGameLogic){
      
-        if (uGameWorld!=nullptr  && uGameModel!=nullptr && uLoadingWorld!=nullptr) {
+        if (uGameWorld!=nullptr  && uGameLogic!=nullptr && uLoadingWorld!=nullptr) {
             
             loadingWorld=uLoadingWorld;
             U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
             
             gameWorld=uGameWorld;
             gameController=sceneManager->getGameController();
-            gameModel=uGameModel;
+            gameLogic=uGameLogic;
             
             gameWorld->setGameController(gameController);
-            gameWorld->setGameModel(gameModel);
+            gameWorld->setGameLogic(gameLogic);
             
             gameController->setGameWorld(uGameWorld);
-            gameController->setGameModel(gameModel);
+            gameController->setGameLogic(gameLogic);
             
-            gameModel->setGameWorld(gameWorld);
-            gameModel->setGameController(sceneManager->getGameController());
-            gameModel->setGameEntityManager(gameWorld->getEntityManager());
+            gameLogic->setGameWorld(gameWorld);
+            gameLogic->setGameController(sceneManager->getGameController());
+            gameLogic->setGameEntityManager(gameWorld->getEntityManager());
             
             sceneStateManager->changeState(U4DSceneLoadingState::sharedInstance());
             
@@ -107,7 +107,7 @@ namespace U4DEngine {
 
         gameWorld->init();
         
-        gameModel->init();
+        gameLogic->init();
         
         componentsMultithreadLoaded=true;
         

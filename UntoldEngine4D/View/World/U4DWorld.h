@@ -22,7 +22,7 @@ namespace U4DEngine {
     
     class U4DEntity;
     class U4DControllerInterface;
-    class U4DGameModelInterface;
+    class U4DGameLogicInterface;
     class U4DEntityManager;
     class U4DLights;
 }
@@ -45,7 +45,7 @@ private:
     /**
      @brief pointer to the game model
      */
-    U4DGameModelInterface *gameModel;
+    U4DGameLogicInterface *gameLogic;
     
     /**
      @brief enables grid variable
@@ -110,9 +110,9 @@ public:
     /**
      @brief sets the game model (logic) for the game
 
-     @param uGameModel pointer to the game model interface
+     @param uGameLogic pointer to the game logic interface
      */
-    void setGameModel(U4DGameModelInterface *uGameModel);
+    void setGameLogic(U4DGameLogicInterface *uGameLogic);
     
     
     /**
@@ -128,7 +128,7 @@ public:
 
      @return pointer to the game model interface
      */
-    U4DGameModelInterface* getGameModel();
+    U4DGameLogicInterface* getGameLogic();
     
     /**
      * @brief Renders the current entity

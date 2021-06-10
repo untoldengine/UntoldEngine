@@ -1,13 +1,13 @@
 //
-//  GameModelInterface.h
+//  gameLogicInterface.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/11/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef __UntoldEngine__U4DGameModelInterface__
-#define __UntoldEngine__U4DGameModelInterface__
+#ifndef __UntoldEngine__U4DGameLogicInterface__
+#define __UntoldEngine__U4DGameLogicInterface__
 
 #include <iostream>
 #include "CommonProtocols.h"
@@ -23,12 +23,12 @@ class U4DEntity;
 
 namespace U4DEngine {
     
-class U4DGameModelInterface{
+class U4DGameLogicInterface{
     
 public:
 
-    U4DGameModelInterface(){};
-    virtual ~U4DGameModelInterface(){};
+    U4DGameLogicInterface(){};
+    virtual ~U4DGameLogicInterface(){};
     
     virtual void update(double dt)=0;
     virtual void init()=0;
@@ -53,4 +53,4 @@ public:
     
 }
 
-#endif /* defined(__UntoldEngine__U4DGameModelInterface__) */
+#endif /* defined(__UntoldEngine__U4DGameLogicInterface__) */
