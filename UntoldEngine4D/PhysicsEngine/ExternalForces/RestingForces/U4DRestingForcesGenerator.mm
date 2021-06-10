@@ -7,6 +7,7 @@
 //
 
 #include "U4DRestingForcesGenerator.h"
+#include "U4DModel.h"
 #include <vector>
 
 namespace U4DEngine {
@@ -19,19 +20,19 @@ namespace U4DEngine {
         
     }
     
-    void U4DRestingForcesGenerator::updateForce(U4DDynamicModel *uModel, float dt){
+    void U4DRestingForcesGenerator::updateForce(U4DDynamicAction *uAction, float dt){
         
-        generateNormalForce(uModel);
+        generateNormalForce(uAction);
             
     }
     
-    void U4DRestingForcesGenerator::generateNormalForce(U4DDynamicModel *uModel){
+    void U4DRestingForcesGenerator::generateNormalForce(U4DDynamicAction *uAction){
         
         //get normal collision vector
-        U4DVector3n contactCollisionNormal=uModel->getCollisionNormalFaceDirection();
+        U4DVector3n contactCollisionNormal=uAction->getCollisionNormalFaceDirection();
         
         //get mass of model
-        float mass=uModel->getMass();
+        float mass=uAction->getMass();
         
         //calculate the normal force at each contact point
         U4DVector3n normalForce(0.0,0.0,0.0);
@@ -40,32 +41,32 @@ namespace U4DEngine {
         contactCollisionNormal.normalize();
         
         //normalize gravity vector
-        U4DVector3n normGravity=uModel->getGravity();
+        U4DVector3n normGravity=uAction->getGravity();
         normGravity.normalize();
         
         //get the dot product
         float normalDotGravity=contactCollisionNormal.dot(normGravity);
         
-        normalForce=uModel->getGravity()*mass*normalDotGravity;
+        normalForce=uAction->getGravity()*mass*normalDotGravity;
         
         if (normalDotGravity>0) {
             normalForce*=-1.0;
         }
 
-        uModel->addForce(normalForce);
+        uAction->addForce(normalForce);
         
     }
     
-    void U4DRestingForcesGenerator::generateTorqueForce(U4DDynamicModel *uModel){
+    void U4DRestingForcesGenerator::generateTorqueForce(U4DDynamicAction *uAction){
         
         //get center of mass
-        U4DVector3n centerOfMass=uModel->getCenterOfMass()+uModel->getAbsolutePosition();
+        U4DVector3n centerOfMass=uAction->getCenterOfMass()+uAction->model->getAbsolutePosition();
 
         //get contact points
-        std::vector<U4DVector3n> contactManifold=uModel->getCollisionContactPoints();
+        std::vector<U4DVector3n> contactManifold=uAction->getCollisionContactPoints();
 
         //get mass
-        float mass=uModel->getMass();
+        float mass=uAction->getMass();
         
         //calculate torque
         U4DVector3n torque(0.0,0.0,0.0);
@@ -75,10 +76,10 @@ namespace U4DEngine {
             //get the radius from the contact manifold to the center of mass
             U4DVector3n radius=centerOfMass-n;
             
-            torque+=(radius).cross(uModel->getGravity()*mass);
+            torque+=(radius).cross(uAction->getGravity()*mass);
         }
         
-        uModel->addMoment(torque);
+        uAction->addMoment(torque);
        
     }
     

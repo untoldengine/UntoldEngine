@@ -8,7 +8,7 @@
 
 #include "U4DCollisionResponse.h"
 #include "Constants.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include <algorithm>
 
 namespace U4DEngine {
@@ -21,7 +21,7 @@ namespace U4DEngine {
     
     }
     
-    void U4DCollisionResponse::collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
+    void U4DCollisionResponse::collisionResolution(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
         
         //set the linear and angular factor for each model
         U4DVector3n linearImpulseFactorOfModel1(0,0,0);
@@ -31,11 +31,11 @@ namespace U4DEngine {
         U4DVector3n angularImpulseFactorOfModel2(0,0,0);
         
         //Clear all forces
-        uModel1->clearForce();
-        uModel1->clearMoment();
+        uAction1->clearForce();
+        uAction1->clearMoment();
         
-        uModel2->clearForce();
-        uModel2->clearMoment();
+        uAction2->clearForce();
+        uAction2->clearMoment();
         
         //get the contact point and line of action
         
@@ -43,11 +43,11 @@ namespace U4DEngine {
         
         U4DVector3n normalCollisionVector=uCollisionManifoldNode.normalCollisionVector;
         
-        U4DVector3n centerOfMassForModel1=uModel1->getCenterOfMass()+uModel1->getAbsolutePosition();
-        U4DVector3n centerOfMassForModel2=uModel2->getCenterOfMass()+uModel2->getAbsolutePosition();
+        U4DVector3n centerOfMassForModel1=uAction1->getCenterOfMass()+uAction1->model->getAbsolutePosition();
+        U4DVector3n centerOfMassForModel2=uAction2->getCenterOfMass()+uAction2->model->getAbsolutePosition();
         
-        float inverseMassOfModel1=1.0/uModel1->getMass();
-        float inverseMassOfModel2=1.0/uModel2->getMass();
+        float inverseMassOfModel1=1.0/uAction1->getMass();
+        float inverseMassOfModel2=1.0/uAction2->getMass();
         float totalInverseMasses=inverseMassOfModel1+inverseMassOfModel2;
     
         for(auto n:contactManifold){
@@ -61,8 +61,8 @@ namespace U4DEngine {
              vp=v+(wxr)
              */
             
-            U4DVector3n vpModel1=uModel1->getVelocity()+(uModel1->getAngularVelocity().cross(radiusOfModel1));
-            U4DVector3n vpModel2=uModel2->getVelocity()+(uModel2->getAngularVelocity().cross(radiusOfModel2));
+            U4DVector3n vpModel1=uAction1->getVelocity()+(uAction1->getAngularVelocity().cross(radiusOfModel1));
+            U4DVector3n vpModel2=uAction2->getVelocity()+(uAction2->getAngularVelocity().cross(radiusOfModel2));
             
             U4DVector3n vR=vpModel2-vpModel1;
             
@@ -77,15 +77,15 @@ namespace U4DEngine {
             U4DVector3n angularFactorOfModel1;
             U4DVector3n angularFactorOfModel2;
             
-            if(uModel1->isKineticsBehaviorEnabled()){
+            if(uAction1->isKineticsBehaviorEnabled()){
                 
-                angularFactorOfModel1=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
+                angularFactorOfModel1=uAction1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector)).cross(radiusOfModel1);
                 
             }
             
-            if (uModel2->isKineticsBehaviorEnabled()) {
+            if (uAction2->isKineticsBehaviorEnabled()) {
                 
-                angularFactorOfModel2=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
+                angularFactorOfModel2=uAction2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector)).cross(radiusOfModel2);
                 
             }
             
@@ -93,7 +93,7 @@ namespace U4DEngine {
             
             //Compute coefficient of restitution for both bodies
 
-            float coefficientOfRestitution=uModel1->getCoefficientOfRestitution()*uModel2->getCoefficientOfRestitution();
+            float coefficientOfRestitution=uAction1->getCoefficientOfRestitution()*uAction2->getCoefficientOfRestitution();
             
             float impulse=-1*(vR.dot(normalCollisionVector))*(coefficientOfRestitution+1.0)/(totalInverseMasses+totalAngularEffect);
             
@@ -115,9 +115,9 @@ namespace U4DEngine {
              */
             
             
-            angularImpulseFactorOfModel1+=uModel1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector*j));
+            angularImpulseFactorOfModel1+=uAction1->getInverseMomentOfInertiaTensor()*(radiusOfModel1.cross(normalCollisionVector*j));
             
-            angularImpulseFactorOfModel2+=uModel2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector*j));
+            angularImpulseFactorOfModel2+=uAction2->getInverseMomentOfInertiaTensor()*(radiusOfModel2.cross(normalCollisionVector*j));
     
         }
         //Add the new velocity to the previous velocity
@@ -127,8 +127,8 @@ namespace U4DEngine {
          
          */
         
-        U4DVector3n newLinearVelocityOfModel1=uModel1->getVelocity()-linearImpulseFactorOfModel1;
-        U4DVector3n newLinearVelocityOfModel2=uModel2->getVelocity()+linearImpulseFactorOfModel2;
+        U4DVector3n newLinearVelocityOfModel1=uAction1->getVelocity()-linearImpulseFactorOfModel1;
+        U4DVector3n newLinearVelocityOfModel2=uAction2->getVelocity()+linearImpulseFactorOfModel2;
         
         //Add the new angular velocity to the previous velocity
         /*
@@ -138,20 +138,20 @@ namespace U4DEngine {
         
         //determine if model are in equilibrium. If it is, then the angular velocity should be ommitted since there should be no rotation. This prevents from angular velocity to creep into the linear velocity
         
-        if (uModel1->getEquilibrium()) {
+        if (uAction1->getEquilibrium()) {
             
             angularImpulseFactorOfModel1.zero();
             
         }
         
-        if (uModel2->getEquilibrium()) {
+        if (uAction2->getEquilibrium()) {
         
             angularImpulseFactorOfModel2.zero();
             
         }
         
-        U4DVector3n newAngularVelocityOfModel1=uModel1->getAngularVelocity()-angularImpulseFactorOfModel1;
-        U4DVector3n newAngularVelocityOfModel2=uModel2->getAngularVelocity()+angularImpulseFactorOfModel2;
+        U4DVector3n newAngularVelocityOfModel1=uAction1->getAngularVelocity()-angularImpulseFactorOfModel1;
+        U4DVector3n newAngularVelocityOfModel2=uAction2->getAngularVelocity()+angularImpulseFactorOfModel2;
         
         //reduce angular velocity to diminish GJK rotation collision issues
         
@@ -164,20 +164,20 @@ namespace U4DEngine {
         
         //Set the new linear and angular velocities for the models
         
-        if (uModel1->isKineticsBehaviorEnabled()) {
+        if (uAction1->isKineticsBehaviorEnabled()) {
             
-            uModel1->setVelocity(newLinearVelocityOfModel1);
+            uAction1->setVelocity(newLinearVelocityOfModel1);
             
-            uModel1->setAngularVelocity(newAngularVelocityOfModel1);
+            uAction1->setAngularVelocity(newAngularVelocityOfModel1);
             
         }
         
         
-        if(uModel2->isKineticsBehaviorEnabled()){
+        if(uAction2->isKineticsBehaviorEnabled()){
             
-            uModel2->setVelocity(newLinearVelocityOfModel2);
+            uAction2->setVelocity(newLinearVelocityOfModel2);
             
-            uModel2->setAngularVelocity(newAngularVelocityOfModel2);
+            uAction2->setAngularVelocity(newAngularVelocityOfModel2);
         }
         
     }

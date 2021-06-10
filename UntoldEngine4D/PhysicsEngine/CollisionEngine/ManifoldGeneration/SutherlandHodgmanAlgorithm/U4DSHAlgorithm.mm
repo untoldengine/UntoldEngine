@@ -13,6 +13,7 @@
 #include "Constants.h"
 #include "U4DLogger.h"
 #include "U4DNumerical.h"
+#include "U4DModel.h"
 #include <float.h>
 #include <algorithm>
 
@@ -26,7 +27,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
+    void U4DSHAlgorithm::determineCollisionManifold(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,std::vector<SIMPLEXDATA> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
     
         
         POINTINFORMATION pointInformation;
@@ -36,7 +37,7 @@ namespace U4DEngine {
         U4DPlane collisionPlane(uCollisionManifoldNode.normalCollisionVector,uCollisionManifoldNode.collisionClosestPoint);
         
         //test if the model is within the plane and set the normal accordingly
-        pointInformation.point=uModel1->getAbsolutePosition().toPoint();
+        pointInformation.point=uAction1->model->getAbsolutePosition().toPoint();
         
         float direction=collisionPlane.magnitudeSquareOfPointToPlane(pointInformation.point);
 
@@ -63,16 +64,16 @@ namespace U4DEngine {
        
         if (pointInformation.location==outsidePlane ) {
             
-            uModel1->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
+            uAction1->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             
-            uModel2->setCollisionNormalFaceDirection(negateContactNormal);
+            uAction2->setCollisionNormalFaceDirection(negateContactNormal);
             
             
         }else if(pointInformation.location==insidePlane || pointInformation.location==boundaryPlane){
             
-            uModel2->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
+            uAction2->setCollisionNormalFaceDirection(uCollisionManifoldNode.normalCollisionVector);
             
-            uModel1->setCollisionNormalFaceDirection(negateContactNormal);
+            uAction1->setCollisionNormalFaceDirection(negateContactNormal);
             
             uCollisionManifoldNode.normalCollisionVector=negateContactNormal;
             
@@ -80,15 +81,15 @@ namespace U4DEngine {
         
     }
     
-    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
+    bool U4DSHAlgorithm::determineContactManifold(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode){
         
         U4DLogger *logger=U4DLogger::sharedInstance();
         
         //step 1. Create plane
-        U4DVector3n collisionNormalOfModel1=uModel1->getCollisionNormalFaceDirection();
+        U4DVector3n collisionNormalOfModel1=uAction1->getCollisionNormalFaceDirection();
         U4DPlane planeCollisionOfModel1(collisionNormalOfModel1,uCollisionManifoldNode.collisionClosestPoint);
         
-        U4DVector3n collisionNormalOfModel2=uModel2->getCollisionNormalFaceDirection();
+        U4DVector3n collisionNormalOfModel2=uAction2->getCollisionNormalFaceDirection();
         U4DPlane planeCollisionOfModel2(collisionNormalOfModel2,uCollisionManifoldNode.collisionClosestPoint);
         
         if (collisionNormalOfModel1==U4DVector3n(0,0,0) || collisionNormalOfModel2==U4DVector3n(0,0,0)) {
@@ -100,9 +101,9 @@ namespace U4DEngine {
         
         //step 2. For each model determine which face is most parallel to plane, i.e., dot product ~0
         
-        std::vector<CONTACTFACES> parallelFacesModel1=mostParallelFacesToPlane(uModel1, planeCollisionOfModel1);
+        std::vector<CONTACTFACES> parallelFacesModel1=mostParallelFacesToPlane(uAction1, planeCollisionOfModel1);
         
-        std::vector<CONTACTFACES> parallelFacesModel2=mostParallelFacesToPlane(uModel2, planeCollisionOfModel2);
+        std::vector<CONTACTFACES> parallelFacesModel2=mostParallelFacesToPlane(uAction2, planeCollisionOfModel2);
         
         if (parallelFacesModel1.size()==0 || parallelFacesModel2.size()==0) {
             
@@ -238,9 +239,9 @@ namespace U4DEngine {
                 
                 U4DVector3n point=n.pointA.toVector();
                 
-                uModel1->addCollisionContactPoint(point);
+                uAction1->addCollisionContactPoint(point);
                 
-                uModel2->addCollisionContactPoint(point);
+                uAction2->addCollisionContactPoint(point);
                 
                 //add point to collision node
                 uCollisionManifoldNode.contactPoints.push_back(point);
@@ -252,32 +253,32 @@ namespace U4DEngine {
         
         //if contact points are less than two, then the models are not in equilibrium
         if (numberOfPoints<U4DEngine::minimumContactPointsForEquilibrium) {
-            uModel1->setEquilibrium(false);
-            uModel2->setEquilibrium(false);
+            uAction1->setEquilibrium(false);
+            uAction2->setEquilibrium(false);
         }else{
-            uModel1->setEquilibrium(true);
-            uModel2->setEquilibrium(true);
+            uAction1->setEquilibrium(true);
+            uAction2->setEquilibrium(true);
         }
         
         //check if the center of mass is within the reference planes
         
-//        if(!isCenterOfMassWithinReferencePlane(uModel1,polygonEdgesOfModel2)){
+//        if(!isCenterOfMassWithinReferencePlane(uAction1,polygonEdgesOfModel2)){
 //
-//            uModel1->setEquilibrium(false);
+//            uAction1->setEquilibrium(false);
 //
 //        }else{
 //
-//            uModel1->setEquilibrium(true);
+//            uAction1->setEquilibrium(true);
 //
 //        }
 //
-//        if(!isCenterOfMassWithinReferencePlane(uModel2,polygonEdgesOfModel1)){
+//        if(!isCenterOfMassWithinReferencePlane(uAction2,polygonEdgesOfModel1)){
 //
-//            uModel2->setEquilibrium(false);
+//            uAction2->setEquilibrium(false);
 //
 //        }else{
 //
-//            uModel2->setEquilibrium(true);
+//            uAction2->setEquilibrium(true);
 //
 //        }
         
@@ -286,7 +287,7 @@ namespace U4DEngine {
         
     }
     
-    std::vector<CONTACTFACES> U4DSHAlgorithm::mostParallelFacesToPlane(U4DDynamicModel* uModel, U4DPlane& uPlane){
+    std::vector<CONTACTFACES> U4DSHAlgorithm::mostParallelFacesToPlane(U4DDynamicAction* uAction, U4DPlane& uPlane){
         
         std::vector<CONTACTFACES> modelFaces; //faces of each polygon in the model
         
@@ -298,7 +299,7 @@ namespace U4DEngine {
         //Normalize the plane so the dot product between the face normal and the plane falls within [-1,1]
         planeNormal.normalize();
         
-        for(auto n: uModel->bodyCoordinates.getConvexHullFacesDataFromContainer()){
+        for(auto n: uAction->model->bodyCoordinates.getConvexHullFacesDataFromContainer()){
             
             //update all faces with current model position
             
@@ -306,14 +307,14 @@ namespace U4DEngine {
             U4DVector3n vertexB=n.pointB.toVector();
             U4DVector3n vertexC=n.pointC.toVector();
             
-            vertexA=uModel->getAbsoluteMatrixOrientation()*vertexA;
-            vertexA=vertexA+uModel->getAbsolutePosition();
+            vertexA=uAction->model->getAbsoluteMatrixOrientation()*vertexA;
+            vertexA=vertexA+uAction->model->getAbsolutePosition();
             
-            vertexB=uModel->getAbsoluteMatrixOrientation()*vertexB;
-            vertexB=vertexB+uModel->getAbsolutePosition();
+            vertexB=uAction->model->getAbsoluteMatrixOrientation()*vertexB;
+            vertexB=vertexB+uAction->model->getAbsolutePosition();
             
-            vertexC=uModel->getAbsoluteMatrixOrientation()*vertexC;
-            vertexC=vertexC+uModel->getAbsolutePosition();
+            vertexC=uAction->model->getAbsoluteMatrixOrientation()*vertexC;
+            vertexC=vertexC+uAction->model->getAbsolutePosition();
             
             n.pointA=vertexA.toPoint();
             n.pointB=vertexB.toPoint();
@@ -643,9 +644,9 @@ namespace U4DEngine {
     }
     
     
-    bool U4DSHAlgorithm::isCenterOfMassWithinReferencePlane(U4DDynamicModel* uModel,std::vector<CONTACTEDGE>& uReferencePolygons){
+    bool U4DSHAlgorithm::isCenterOfMassWithinReferencePlane(U4DDynamicAction* uAction,std::vector<CONTACTEDGE>& uReferencePolygons){
         
-        U4DPoint3n centerOfMass=(uModel->getCenterOfMass()+uModel->getAbsolutePosition()).toPoint();
+        U4DPoint3n centerOfMass=(uAction->getCenterOfMass()+uAction->model->getAbsolutePosition()).toPoint();
         
         for(auto referencePolygon:uReferencePolygons){
             

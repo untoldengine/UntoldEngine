@@ -7,7 +7,8 @@
 //
 
 #include "U4DSeek.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
+#include "U4DModel.h"
 
 namespace U4DEngine {
  
@@ -19,10 +20,10 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DSeek::getSteering(U4DDynamicModel *uDynamicModel, U4DVector3n &uTargetPosition){
+    U4DVector3n U4DSeek::getSteering(U4DDynamicAction *uAction, U4DVector3n &uTargetPosition){
         
         //get the desired velocity vector by subracting the current position of the target and of the pursuer
-        U4DEngine::U4DVector3n desiredVelocity=uTargetPosition-uDynamicModel->getAbsolutePosition();
+        U4DEngine::U4DVector3n desiredVelocity=uTargetPosition-uAction->model->getAbsolutePosition();
         
         //normalize the velocity. we just want the direction
         desiredVelocity.normalize();
@@ -31,7 +32,7 @@ namespace U4DEngine {
         desiredVelocity*=maxSpeed;
         
         //Compute the final velocity by subtracting the desired velocity minus the current velocity of the character
-        U4DEngine::U4DVector3n finalVelocity=desiredVelocity-uDynamicModel->getVelocity();
+        U4DEngine::U4DVector3n finalVelocity=desiredVelocity-uAction->getVelocity();
         
         return finalVelocity;
         

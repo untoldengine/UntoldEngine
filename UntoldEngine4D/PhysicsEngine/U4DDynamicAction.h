@@ -1,17 +1,18 @@
 //
-//  U4DDynamicModel.h
+//  U4DDynamicAction.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/22/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef __UntoldEngine__U4DDynamicModel__
-#define __UntoldEngine__U4DDynamicModel__
+#ifndef __UntoldEngine__U4DDynamicAction__
+#define __UntoldEngine__U4DDynamicAction__
 
 #include <iostream>
 #include <vector>
-#include "U4DStaticModel.h"
+#include "U4DStaticAction.h"
+#include "U4DModel.h"
 #include "U4DVector3n.h"
 #include "U4DPlane.h"
 #include "U4DParticleData.h"
@@ -27,10 +28,10 @@ namespace U4DEngine {
 
 /**
  @ingroup gameobjects
- @brief The U4DDynamicModel class represents a 3D dynamic model entity
+ @brief The U4DDynamicAction class represents a 3D dynamic model entity
  */
 
-class U4DDynamicModel:public U4DStaticModel{
+class U4DDynamicAction:public U4DStaticAction{
     
 private:
     
@@ -106,22 +107,22 @@ public:
     /**
      @brief Constructor for the class
      */
-    U4DDynamicModel();
+    U4DDynamicAction(U4DModel *uU4DModel);
     
     /**
      @brief Destructor for the class
      */
-    ~U4DDynamicModel();
+    ~U4DDynamicAction();
     
     /**
      @brief Copy constructor
      */
-    U4DDynamicModel(const U4DDynamicModel& value);
+    U4DDynamicAction(const U4DDynamicAction& value);
     
     /**
      @brief Copy constructor
      */
-    U4DDynamicModel& operator=(const U4DDynamicModel& value);
+    U4DDynamicAction& operator=(const U4DDynamicAction& value);
     
     //Add operations
 
@@ -368,4 +369,4 @@ public:
 
 }
 
-#endif /* defined(__UntoldEngine__U4DDynamicModel__) */
+#endif /* defined(__UntoldEngine__U4DDynamicAction__) */

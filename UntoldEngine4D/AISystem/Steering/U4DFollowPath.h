@@ -62,11 +62,11 @@ namespace U4DEngine {
         /**
          @brief Computes the velociry for steering along the provided path
          
-         @param uDynamicModel 3D model represented as the pursuer
+         @param uAction Dynamic action represented as the pursuer
          @param uPathContainer segment vector representing the path the pursuer must follow
          @return velocity vector to apply to 3D model
          */
-        U4DVector3n getSteering(U4DDynamicModel *uDynamicModel, std::vector<U4DSegment> &uPathContainer);
+        U4DVector3n getSteering(U4DDynamicAction *uAction, std::vector<U4DSegment> &uPathContainer);
         
         /**
          @brief sets the time in the future to predict the position

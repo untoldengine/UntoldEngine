@@ -7,8 +7,8 @@
 //
 
 #include "U4DArrive.h"
-
-#include "U4DDynamicModel.h"
+#include "U4DModel.h"
+#include "U4DDynamicAction.h"
 
 namespace U4DEngine {
     
@@ -20,10 +20,10 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DArrive::getSteering(U4DDynamicModel *uDynamicModel, U4DVector3n &uTargetPosition){
+    U4DVector3n U4DArrive::getSteering(U4DDynamicAction *uAction, U4DVector3n &uTargetPosition){
         
         //Get the direction to the target
-        U4DVector3n desiredVelocity=uTargetPosition-uDynamicModel->getAbsolutePosition();
+        U4DVector3n desiredVelocity=uTargetPosition-uAction->model->getAbsolutePosition();
         
         float distance=desiredVelocity.magnitude();
         
@@ -51,7 +51,7 @@ namespace U4DEngine {
         desiredVelocity*=targetSpeed;
         
         //Compute the final velocity by subtracting the desired velocity minus the current velocity of the character
-        U4DEngine::U4DVector3n finalVelocity=desiredVelocity-uDynamicModel->getVelocity();
+        U4DEngine::U4DVector3n finalVelocity=desiredVelocity-uAction->getVelocity();
         
         return finalVelocity;
         

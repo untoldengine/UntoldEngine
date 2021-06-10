@@ -30,6 +30,8 @@
 #include "U4DRenderManager.h"
 #include "U4DModel.h"
 
+#include "U4DKineticDictionary.h"
+
 namespace U4DEngine {
     
     U4DEntityManager::U4DEntityManager(){
@@ -129,8 +131,19 @@ namespace U4DEngine {
     //update
     void U4DEntityManager::update(float dt){
         
+        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
+        std::vector<std::string> kineticBehaviorsContainer;
+        
         //set the root entity
         U4DEntity* child=rootEntity;
+        while (child!=NULL) {
+
+            if (child->getEntityType()==U4DEngine::MODEL) {
+                kineticBehaviorsContainer.push_back(child->getName());
+            }
+
+            child=child->next;
+        }
         
         //BROAD PHASE COLLISION STARTS
         
@@ -138,20 +151,21 @@ namespace U4DEngine {
         
         profilerManager->startProfiling("Collision");
         
-        while (child!=NULL) {
-
-            if (child->getEntityType()==U4DEngine::MODEL) {
+        for(auto n:kineticBehaviorsContainer){
+            
+            U4DDynamicAction *kineticBehavior=kineticDictionary->getKineticBehavior(n);
+            
+            if (kineticBehavior!=nullptr) {
                 
-                    if(child->isCollisionBehaviorEnabled()==true){
+                if(kineticBehavior->isCollisionBehaviorEnabled()==true){
 
-                        //add child to collision bhv manager tree
-                        child->loadIntoCollisionEngine(this);
+                    //add child to collision bhv manager tree
+                    loadIntoCollisionEngine(kineticBehavior);
 
-                    }
+                }
             }
-
-            child=child->next;
         }
+        
 
         //Only compute collision if there are more than 1 models with collision behaviors
         if (collisionEngine->getNumberOfModelsInContainer()>1) {
@@ -195,20 +209,20 @@ namespace U4DEngine {
         //update the physics
         profilerManager->startProfiling("Physics");
         
-        child=rootEntity;
-        while (child!=NULL) {
+        for(auto n:kineticBehaviorsContainer){
             
-            if (child->getEntityType()==U4DEngine::MODEL) {
+            U4DDynamicAction *kineticBehavior=kineticDictionary->getKineticBehavior(n);
             
-                if (child->isKineticsBehaviorEnabled()==true) {
-                    
-                    child->loadIntoPhysicsEngine(this, dt);
-                    
-                }
+            if (kineticBehavior!=nullptr) {
                 
+                if(kineticBehavior->isKineticsBehaviorEnabled()==true){
+
+                    //add child to collision bhv manager tree
+                    loadIntoPhysicsEngine(kineticBehavior, dt);
+
+                }
             }
             
-            child=child->next;
         }
         
         profilerManager->stopProfiling();
@@ -218,17 +232,15 @@ namespace U4DEngine {
         camera->update(dt);
         
         //clean everything up
-        child=rootEntity;
-        while (child!=NULL) {
+        for(auto n:kineticBehaviorsContainer){
             
-            if (child->getEntityType()==U4DEngine::MODEL) {
+            U4DDynamicAction *kineticBehavior=kineticDictionary->getKineticBehavior(n);
+            
+            if (kineticBehavior!=nullptr) {
                 
-                //clear any collision information
-                child->cleanUp();
-                
+                kineticBehavior->cleanUp();
             }
             
-            child=child->next;
         }
         
         
@@ -258,7 +270,6 @@ namespace U4DEngine {
                 
                 if (child->getEntityType()==U4DEngine::MODEL) {
                     
-                        
                     //load the model into a bvh tree container
                     child->loadIntoVisibilityManager(this);
                     
@@ -283,13 +294,13 @@ namespace U4DEngine {
         
     }
     
-    void U4DEntityManager::loadIntoCollisionEngine(U4DDynamicModel* uModel){
+    void U4DEntityManager::loadIntoCollisionEngine(U4DDynamicAction* uModel){
         
         collisionEngine->addToBroadPhaseCollisionContainer(uModel);
         
     }
     
-    void U4DEntityManager::loadIntoPhysicsEngine(U4DDynamicModel* uModel,float dt){
+    void U4DEntityManager::loadIntoPhysicsEngine(U4DDynamicAction* uModel,float dt){
         
         physicsEngine->updatePhysicForces(uModel,dt);
         

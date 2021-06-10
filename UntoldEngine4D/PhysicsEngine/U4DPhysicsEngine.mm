@@ -9,7 +9,7 @@
 #include "U4DPhysicsEngine.h"
 #include "U4DIntegrator.h"
 #include "U4DGravityForceGenerator.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 
 namespace U4DEngine {
     
@@ -26,40 +26,40 @@ namespace U4DEngine {
     }
 
     #pragma mark-update All external Forces
-    void U4DPhysicsEngine::updatePhysicForces(U4DDynamicModel *uModel,float dt){
+    void U4DPhysicsEngine::updatePhysicForces(U4DDynamicAction *uAction,float dt){
         
         
-        if (uModel->getAwake()) {
+        if (uAction->getAwake()) {
             
             //add all the forces for that body
-            gravityForce.updateForce(uModel, dt);
+            gravityForce.updateForce(uAction, dt);
             
-            if (uModel->getModelHasCollided()) {
+            if (uAction->getModelHasCollided()) {
                 
                 //determine resting forces
-                restingForces.updateForce(uModel, dt);
+                restingForces.updateForce(uAction, dt);
                 
             }
             
-            dragForce.updateForce(uModel,dt);
+            dragForce.updateForce(uAction,dt);
             
             //Integrate
-            integrate(uModel, dt);
+            integrate(uAction, dt);
         }
         
         //determine energy condition of the model
-        uModel->computeModelKineticEnergy(dt);
+        uAction->computeModelKineticEnergy(dt);
         
         //clear all forces and moments
-        uModel->clearForce();
-        uModel->clearMoment();
+        uAction->clearForce();
+        uAction->clearMoment();
         
     }
 
     #pragma mark-integrate
-    void U4DPhysicsEngine::integrate(U4DDynamicModel *uModel,float dt){
+    void U4DPhysicsEngine::integrate(U4DDynamicAction *uAction,float dt){
         
-        integrator->integrate(uModel, dt);
+        integrator->integrate(uAction, dt);
     }
 
     #pragma mark-set Integrator

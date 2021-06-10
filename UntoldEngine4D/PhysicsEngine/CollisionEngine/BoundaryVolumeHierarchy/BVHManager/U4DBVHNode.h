@@ -64,24 +64,24 @@ namespace U4DEngine {
         /**
          @brief Method which adds 3D models to the node container
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          */
-        void addModelToContainer(T *uModel);
+        void addModelToContainer(T *uAction);
         
         /**
          @brief Method which add a 3D model at a particular index
          
          @param uIndex           index
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          */
-        void addModelToContainerAtIndex(int uIndex, T *uModel);
+        void addModelToContainerAtIndex(int uIndex, T *uAction);
         
         /**
          @brief Method which makes a copy of the model container
          
-         @param uModelsContainer Model container
+         @param uActionsContainer Model container
          */
-        void copyModelsContainer(std::vector<T *> uModelsContainer);
+        void copyModelsContainer(std::vector<T *> uActionsContainer);
         
         /**
          @brief Method which returns a pointer to the AABB holding volume information about the tree node

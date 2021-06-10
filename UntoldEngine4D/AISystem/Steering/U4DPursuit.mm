@@ -7,7 +7,8 @@
 //
 
 #include "U4DPursuit.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
+#include "U4DModel.h"
 
 namespace U4DEngine {
     
@@ -19,9 +20,9 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DPursuit::getSteering(U4DDynamicModel *uPursuer, U4DDynamicModel *uEvader){
+    U4DVector3n U4DPursuit::getSteering(U4DDynamicAction *uPursuer, U4DDynamicAction *uEvader){
         
-        U4DVector3n toEvader=uEvader->getAbsolutePosition()-uPursuer->getAbsolutePosition();
+        U4DVector3n toEvader=uEvader->model->getAbsolutePosition()-uPursuer->model->getAbsolutePosition();
         
         float speed=uEvader->getVelocity().magnitude();
         
@@ -29,7 +30,7 @@ namespace U4DEngine {
         float lookAheadTime=toEvader.magnitude()/(5.0+speed);
         
         //compute the predicted target position
-        U4DVector3n targetPosition=uEvader->getAbsolutePosition()+uEvader->getVelocity()*lookAheadTime;
+        U4DVector3n targetPosition=uEvader->model->getAbsolutePosition()+uEvader->getVelocity()*lookAheadTime;
         
         return U4DSeek::getSteering(uPursuer, targetPosition);
         

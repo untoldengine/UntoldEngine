@@ -15,6 +15,8 @@
 #include "U4DDebugger.h"
 #include "U4DSkybox.h"
 
+#include "U4DDynamicAction.h"
+
 using namespace U4DEngine;
 
 SandboxWorld::SandboxWorld(){
@@ -61,19 +63,21 @@ void SandboxWorld::init(){
     setEnableGrid(true);
     
     //Create an instance of U4DGameObject type
-    myAstronaut=new U4DEngine::U4DDynamicModel();
+    myAstronaut=new U4DEngine::U4DModel();
 
     //Load attribute (rendering information) into the game entity
     if (myAstronaut->loadModel("astronaut")) {
 
-        myAstronaut->enableKineticsBehavior();
+        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(myAstronaut);
+        
+        kineticAction->enableKineticsBehavior();
         
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
         
-        myAstronaut->setGravity(zero);
+        kineticAction->setGravity(zero);
 
-        myAstronaut->enableCollisionBehavior();
-
+        kineticAction->enableCollisionBehavior();
+        
         //Line 4. Load rendering information into the GPU
         myAstronaut->loadRenderingInformation();
 
@@ -100,18 +104,20 @@ void SandboxWorld::init(){
     }
     
     //Create an instance of U4DGameObject type
-    U4DEngine::U4DDynamicModel *ground=new U4DEngine::U4DDynamicModel();
+    U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
 
     //Line 3. Load attribute (rendering information) into the game entity
     if (ground->loadModel("island")) {
 
-        //ground->enableKineticsBehavior();
-
+        U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
+        
+        //gkinetic->enableKineticsBehavior();
+        
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
 
-        ground->setGravity(zero);
+        gkinetic->setGravity(zero);
 
-        ground->enableCollisionBehavior();
+        gkinetic->enableCollisionBehavior();
 
         //Line 4. Load rendering information into the GPU
         ground->loadRenderingInformation();

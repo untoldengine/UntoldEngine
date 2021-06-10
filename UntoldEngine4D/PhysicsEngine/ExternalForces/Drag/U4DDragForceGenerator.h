@@ -37,10 +37,10 @@ class U4DDragForceGenerator:public U4DBodyForceGenerator{
     /**
      @brief Method which updates the force acting on the entity
      
-     @param uModel 3D model entity
+     @param uAction Dynamic action
      @param dt     Time-step value
      */
-    void updateForce(U4DDynamicModel *uModel, float dt);
+    void updateForce(U4DDynamicAction *uAction, float dt);
         
     };
 

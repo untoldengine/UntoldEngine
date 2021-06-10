@@ -1,98 +1,111 @@
 //
-//  U4DDynamicModel.cpp
+//  U4DDynamicAction.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/22/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "Constants.h"
 #include <cmath>
 #include "U4DDirector.h"
+#include "U4DKineticDictionary.h"
 #include "U4DEntityManager.h"
 
 namespace U4DEngine {
 
-    U4DDynamicModel::U4DDynamicModel():kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(false),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false),gravity(0.0,-10.0,0.0),dragCoefficient(0.9,0.9){
+    U4DDynamicAction::U4DDynamicAction(U4DModel *uU4DModel):U4DStaticAction(uU4DModel),kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(false),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false),gravity(0.0,-10.0,0.0),dragCoefficient(0.9,0.9){
+        
+        //load into dictionary
+        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
+        
+        kineticDictionary->loadBehaviorDictionary(name, this);
+        
     };
     
 
-    U4DDynamicModel::~U4DDynamicModel(){};
+    U4DDynamicAction::~U4DDynamicAction(){
+        
+        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
+        
+        kineticDictionary->removeKineticBehavior(name);
+        
+    };
     
 
-    U4DDynamicModel::U4DDynamicModel(const U4DDynamicModel& value){};
+    U4DDynamicAction::U4DDynamicAction(const U4DDynamicAction& value):U4DStaticAction(value){};
     
 
-    U4DDynamicModel& U4DDynamicModel::operator=(const U4DDynamicModel& value){return *this;};
+    U4DDynamicAction& U4DDynamicAction::operator=(const U4DDynamicAction& value){return *this;};
     
     #pragma mark-add force
-    void U4DDynamicModel::addForce(U4DVector3n& uForce){
+    void U4DDynamicAction::addForce(U4DVector3n& uForce){
         
         force+=uForce;
     }
 
     #pragma mark-clear forces
-    void U4DDynamicModel::clearForce(){
+    void U4DDynamicAction::clearForce(){
         
         force.zero();
     }
 
     #pragma mark-get force
     //get force
-    U4DVector3n U4DDynamicModel::getForce(){
+    U4DVector3n U4DDynamicAction::getForce(){
         
         return force;
         
     }
 
     #pragma mark-add moment
-    void U4DDynamicModel::addMoment(U4DVector3n& uMoment){
+    void U4DDynamicAction::addMoment(U4DVector3n& uMoment){
        
         moment+=uMoment;
     }
 
     #pragma mark-get moment
     //get moment
-    U4DVector3n U4DDynamicModel::getMoment(){
+    U4DVector3n U4DDynamicAction::getMoment(){
         
         return moment;
     }
 
     #pragma mark-clear moment
     //clear moment
-    void U4DDynamicModel::clearMoment(){
+    void U4DDynamicAction::clearMoment(){
         
         moment.zero();
     }
 
     #pragma mark-get velocity
     //set and get velocity
-    U4DVector3n U4DDynamicModel::getVelocity(){
+    U4DVector3n U4DDynamicAction::getVelocity(){
         
         return velocity;
     }
 
     #pragma mark-set velocity
-    void U4DDynamicModel::setVelocity(U4DVector3n &uVelocity){
+    void U4DDynamicAction::setVelocity(U4DVector3n &uVelocity){
         
         velocity=uVelocity;
     }
 
     #pragma mark-get angular velocity
-    U4DVector3n U4DDynamicModel::getAngularVelocity(){
+    U4DVector3n U4DDynamicAction::getAngularVelocity(){
         return angularVelocity;
     }
 
     #pragma mark-set angular velocity
-    void U4DDynamicModel::setAngularVelocity(U4DVector3n& uAngularVelocity){
+    void U4DDynamicAction::setAngularVelocity(U4DVector3n& uAngularVelocity){
         
         angularVelocity=uAngularVelocity;
     }
 
     #pragma mark-is asleep
     //sleep
-    void U4DDynamicModel::setAwake(bool uValue){
+    void U4DDynamicAction::setAwake(bool uValue){
         
         if (uValue) {
 
@@ -112,7 +125,7 @@ namespace U4DEngine {
         }
     }
 
-    bool U4DDynamicModel::getAwake(){
+    bool U4DDynamicAction::getAwake(){
         
         return isAwake;
         
@@ -121,7 +134,7 @@ namespace U4DEngine {
 
     #pragma mark-energy motion
     //energy motion
-    void U4DDynamicModel::computeModelKineticEnergy(float dt){
+    void U4DDynamicAction::computeModelKineticEnergy(float dt){
         
         float currentEnergyMotion=velocity.dot(velocity)+angularVelocity.dot(angularVelocity);
         
@@ -137,12 +150,12 @@ namespace U4DEngine {
         
     }
 
-    float U4DDynamicModel::getModelKineticEnergy(){
+    float U4DDynamicAction::getModelKineticEnergy(){
         
         return modelKineticEnergy;
     }
     
-    void U4DDynamicModel::enableKineticsBehavior(){
+    void U4DDynamicAction::enableKineticsBehavior(){
         
         //make sure that the inertia tensor has been computed before applying physics
         computeInertiaTensor();
@@ -154,27 +167,27 @@ namespace U4DEngine {
         
     }
     
-    void U4DDynamicModel::pauseKineticsBehavior(){
+    void U4DDynamicAction::pauseKineticsBehavior(){
         
         kineticsEnabled=false;
         
         setAwake(false);
     }
     
-    void U4DDynamicModel::resumeKineticsBehavior(){
+    void U4DDynamicAction::resumeKineticsBehavior(){
         
         kineticsEnabled=true;
         
         setAwake(true);
     }
     
-    bool U4DDynamicModel::isKineticsBehaviorEnabled(){
+    bool U4DDynamicAction::isKineticsBehaviorEnabled(){
         
         return kineticsEnabled;
         
     }
     
-    void U4DDynamicModel::setTimeOfImpact(float uTimeOfImpact){
+    void U4DDynamicAction::setTimeOfImpact(float uTimeOfImpact){
         
         if (uTimeOfImpact>1.0) {
             
@@ -188,63 +201,63 @@ namespace U4DEngine {
         
     }
     
-    void U4DDynamicModel::setEquilibrium(bool uValue){
+    void U4DDynamicAction::setEquilibrium(bool uValue){
         
         equilibrium=uValue;
     }
     
-    bool U4DDynamicModel::getEquilibrium(){
+    bool U4DDynamicAction::getEquilibrium(){
         
         return equilibrium;
     }
     
-    float U4DDynamicModel::getTimeOfImpact(){
+    float U4DDynamicAction::getTimeOfImpact(){
         
         return timeOfImpact;
     }
     
-    void U4DDynamicModel::resetTimeOfImpact(){
+    void U4DDynamicAction::resetTimeOfImpact(){
         
         timeOfImpact=1.0; //no collision
     }
     
-    void U4DDynamicModel::setGravity(U4DVector3n& uGravity){
+    void U4DDynamicAction::setGravity(U4DVector3n& uGravity){
     
         gravity=uGravity;
     }
     
-    U4DVector3n U4DDynamicModel::getGravity(){
+    U4DVector3n U4DDynamicAction::getGravity(){
         return gravity;
     }
     
-    void U4DDynamicModel::resetGravity(){
+    void U4DDynamicAction::resetGravity(){
         
         gravity=U4DVector3n(0.0,-10.0,0.0);
         
     }
     
-    void U4DDynamicModel::setDragCoefficient(U4DVector2n& uDragCoefficient){
+    void U4DDynamicAction::setDragCoefficient(U4DVector2n& uDragCoefficient){
         
         dragCoefficient=uDragCoefficient;
     }
     
-    U4DVector2n U4DDynamicModel::getDragCoefficient(){
+    U4DVector2n U4DDynamicAction::getDragCoefficient(){
         
         return dragCoefficient;
     }
     
-    void U4DDynamicModel::resetDragCoefficient(){
+    void U4DDynamicAction::resetDragCoefficient(){
         
         dragCoefficient=U4DVector2n(0.9,0.9);
     }
     
-    void U4DDynamicModel::loadIntoCollisionEngine(U4DEntityManager *uEntityManager){
+    void U4DDynamicAction::loadIntoCollisionEngine(U4DEntityManager *uEntityManager){
         
         uEntityManager->loadIntoCollisionEngine(this);
         
     }
     
-    void U4DDynamicModel::loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt){
+    void U4DDynamicAction::loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt){
         
         uEntityManager->loadIntoPhysicsEngine(this, dt);
         
@@ -252,7 +265,7 @@ namespace U4DEngine {
     
     
     
-    void U4DDynamicModel::cleanUp(){
+    void U4DDynamicAction::cleanUp(){
         
         //clear any collision information
         clearCollisionInformation();

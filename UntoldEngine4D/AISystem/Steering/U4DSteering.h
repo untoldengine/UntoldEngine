@@ -14,7 +14,7 @@
 #include "U4DSegment.h"
 
 namespace U4DEngine {
-    class U4DDynamicModel;
+    class U4DDynamicAction;
 }
 
 namespace U4DEngine {
@@ -49,11 +49,11 @@ namespace U4DEngine {
         /**
          @brief Computes the velocity for steering
 
-         @param uDynamicModel 3D model represented as the pursuer
+         @param uAction Dynamic action represented as the pursuer
          @param uTargetPosition target position in vector format
          @return velocity vector to apply to 3D model
          */
-        virtual U4DVector3n getSteering(U4DDynamicModel *uDynamicModel, U4DVector3n &uTargetPosition){};
+        virtual U4DVector3n getSteering(U4DDynamicAction *uAction, U4DVector3n &uTargetPosition){};
         
         
         /**
@@ -63,25 +63,25 @@ namespace U4DEngine {
          @param uEvader 3D model represented as the evader. Also known as the target
          @return velocity vector to apply to 3D model
          */
-        virtual U4DVector3n getSteering(U4DDynamicModel *uPursuer, U4DDynamicModel *uEvader){};
+        virtual U4DVector3n getSteering(U4DDynamicAction *uPursuer, U4DDynamicAction *uEvader){};
         
         
         /**
          @brief Computes the velociry for steering along the provided path
 
-         @param uDynamicModel 3D model represented as the pursuer
+         @param uAction Dynamic action represented as the pursuer
          @param uPathContainer segment vector representing the path the pursuer must follow
          @return velocity vector to apply to 3D model
          */
-        virtual U4DVector3n getSteering(U4DDynamicModel *uDynamicModel, std::vector<U4DSegment> &uPathContainer){};
+        virtual U4DVector3n getSteering(U4DDynamicAction *uAction, std::vector<U4DSegment> &uPathContainer){};
         
         /**
          @brief Computes the velocity for steering
 
-         @param uDynamicModel 3D model represented as the pursuer
+         @param uAction Dynamic action represented as the pursuer
          @return velocity vector to apply to 3D model
          */
-        virtual U4DVector3n getSteering(U4DDynamicModel *uDynamicModel){};
+        virtual U4DVector3n getSteering(U4DDynamicAction *uAction){};
         
         
         /**
