@@ -54,7 +54,7 @@ namespace U4DEngine {
             if (n->getName().compare(uLayerName)==0) {
                 
                 //add the layer to the view(U4DWorld) component scenegraph
-                world->addChild(n);
+                world->addChild(n,0);
                 
                 //push the layer into the stack
                 layerStack.push(n);
