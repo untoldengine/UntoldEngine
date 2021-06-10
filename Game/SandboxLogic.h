@@ -10,10 +10,10 @@
 #define DebugLogic_hpp
 
 #include <stdio.h>
-#include "U4DGameModel.h"
+#include "U4DGameLogic.h"
 #include "U4DModel.h"
 
-class SandboxLogic:public U4DEngine::U4DGameModel{
+class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     

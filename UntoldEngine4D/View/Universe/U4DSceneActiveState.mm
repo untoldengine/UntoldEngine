@@ -43,7 +43,7 @@ namespace U4DEngine {
         if(!uScene->componentsMultithreadLoaded){
             //set entity manager to main game scene
             uScene->gameWorld->init();
-            uScene->gameModel->init();
+            uScene->gameLogic->init();
         }
         
         
@@ -59,7 +59,7 @@ namespace U4DEngine {
         uScene->gameController->update(dt);
         
         //update the game model
-        uScene->gameModel->update(dt);
+        uScene->gameLogic->update(dt);
         
         //update the entity manager
         uScene->gameWorld->entityManager->update(dt); //need to add dt to view
