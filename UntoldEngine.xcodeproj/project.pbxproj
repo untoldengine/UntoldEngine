@@ -885,6 +885,9 @@
 		03E6871B267282000079ED4D /* U4DDynamicAction.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E68716267282000079ED4D /* U4DDynamicAction.mm */; };
 		03E6871C267282000079ED4D /* U4DDynamicAction.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E68716267282000079ED4D /* U4DDynamicAction.mm */; };
 		03E6871D267282000079ED4D /* U4DDynamicAction.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E68716267282000079ED4D /* U4DDynamicAction.mm */; };
+		03E6873C2672A9950079ED4D /* U4DVisibilityDictionary.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6873A2672A9950079ED4D /* U4DVisibilityDictionary.mm */; };
+		03E6873D2672A9950079ED4D /* U4DVisibilityDictionary.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6873A2672A9950079ED4D /* U4DVisibilityDictionary.mm */; };
+		03E6873E2672A9950079ED4D /* U4DVisibilityDictionary.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6873A2672A9950079ED4D /* U4DVisibilityDictionary.mm */; };
 		03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */; };
 		03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5E1943D6FE007AD131 /* U4DTouchesController.mm */; };
 		03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED641943D6FE007AD131 /* U4DControllerInterface.mm */; };
@@ -1386,6 +1389,8 @@
 		03E68715267282000079ED4D /* U4DStaticAction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DStaticAction.h; sourceTree = "<group>"; };
 		03E68716267282000079ED4D /* U4DDynamicAction.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DDynamicAction.mm; sourceTree = "<group>"; };
 		03E68717267282000079ED4D /* U4DDynamicAction.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DDynamicAction.h; sourceTree = "<group>"; };
+		03E6873A2672A9950079ED4D /* U4DVisibilityDictionary.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityDictionary.mm; path = VisibilityManager/U4DVisibilityDictionary.mm; sourceTree = "<group>"; };
+		03E6873B2672A9950079ED4D /* U4DVisibilityDictionary.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityDictionary.h; path = VisibilityManager/U4DVisibilityDictionary.h; sourceTree = "<group>"; };
 		03E6ED5B1943D6FE007AD131 /* U4DKeyboardController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DKeyboardController.h; sourceTree = "<group>"; };
 		03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DKeyboardController.mm; sourceTree = "<group>"; };
 		03E6ED5D1943D6FE007AD131 /* U4DTouchesController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouchesController.h; sourceTree = "<group>"; };
@@ -2332,6 +2337,8 @@
 				03C278851F80046B00AF463C /* U4DVisibilityManager.mm */,
 				03C278891F8415F700AF463C /* U4DVisibilityCulling.h */,
 				03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */,
+				03E6873B2672A9950079ED4D /* U4DVisibilityDictionary.h */,
+				03E6873A2672A9950079ED4D /* U4DVisibilityDictionary.mm */,
 			);
 			name = VisibilityManager;
 			sourceTree = "<group>";
@@ -3101,6 +3108,7 @@
 				03722DF8202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03019FF5252568440005CDDD /* SandboxLoading.mm in Sources */,
 				03722BCA2029F0F50080D069 /* U4DRenderManager.mm in Sources */,
+				03E6873D2672A9950079ED4D /* U4DVisibilityDictionary.mm in Sources */,
 				0397E482251B979C0020EBD9 /* U4DCheckbox.mm in Sources */,
 				03E686DD267140410079ED4D /* U4DBVHNode.mm in Sources */,
 				0341AC25204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
@@ -3513,6 +3521,7 @@
 				03722DFA202CBF4C0080D069 /* U4DPadButtonStateManager.mm in Sources */,
 				03019FF6252568440005CDDD /* SandboxLoading.mm in Sources */,
 				03722D042029F0F80080D069 /* U4DRenderManager.mm in Sources */,
+				03E6873E2672A9950079ED4D /* U4DVisibilityDictionary.mm in Sources */,
 				0397E483251B979C0020EBD9 /* U4DCheckbox.mm in Sources */,
 				03E686DE267140410079ED4D /* U4DBVHNode.mm in Sources */,
 				0341AC27204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
@@ -3788,6 +3797,7 @@
 				03F2DAF01F191A2600F77B78 /* geometryShader.metal in Sources */,
 				03F2DB0F1F191F9B00F77B78 /* U4DRenderImage.mm in Sources */,
 				0323DBA7202F5FEF0007F087 /* U4DPadJoystickStateManager.mm in Sources */,
+				03E6873C2672A9950079ED4D /* U4DVisibilityDictionary.mm in Sources */,
 				037F25B723F0D5860053FAE0 /* U4DResourcetLoader.mm in Sources */,
 				037C474217B597CB007B8283 /* U4DModel.mm in Sources */,
 				0334697625C190A1001F0702 /* U4DRenderPassInterface.mm in Sources */,

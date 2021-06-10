@@ -31,6 +31,7 @@
 #include "U4DModel.h"
 
 #include "U4DKineticDictionary.h"
+#include "U4DVisibilityDictionary.h"
 
 namespace U4DEngine {
     
@@ -260,21 +261,23 @@ namespace U4DEngine {
             
             //4. clear container
             visibilityManager->clearContainers();
+            U4DVisibilityDictionary *visibleDict=U4DVisibilityDictionary::sharedInstance();
             
             //set the root entity
             U4DEntity* child=rootEntity;
-            
+
             //1. load the models into a bvh tree
-            
+
             while (child!=NULL) {
+
                 
-                if (child->getEntityType()==U4DEngine::MODEL) {
+                U4DModel *model=visibleDict->getVisibleModel(child->getName());
+                
+                if (model!=nullptr) {
                     
-                    //load the model into a bvh tree container
-                    child->loadIntoVisibilityManager(this);
-                    
+                    loadIntoVisibilityManager(model);
                 }
-                
+
                 child=child->next;
             }
             
