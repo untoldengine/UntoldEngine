@@ -27,8 +27,8 @@ namespace U4DEngine {
 namespace U4DEngine {
 
 /**
- @ingroup gameobjects
- @brief The U4DDynamicAction class represents a 3D dynamic model entity
+ @ingroup physicsengine
+ @brief The U4DDynamicAction class represents a actions such as kinetics and collisions applied to a 3D model entity
  */
 
 class U4DDynamicAction:public U4DStaticAction{

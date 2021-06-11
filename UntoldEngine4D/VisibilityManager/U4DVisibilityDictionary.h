@@ -16,7 +16,10 @@
 
 namespace U4DEngine {
 
-
+    /**
+     @ingroup camera
+     @brief The U4DVisibilityDictionary class is a dictionary that keeps tracks of all visible 3D models
+     */
     class U4DVisibilityDictionary {
 
     private:

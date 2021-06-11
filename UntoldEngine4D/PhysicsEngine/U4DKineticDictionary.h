@@ -16,7 +16,10 @@
 
 namespace U4DEngine {
 
-
+    /**
+     @ingroup physicsengine
+     @brief The U4DKineticDictionary class is a dictionary for all actions currently active
+     */
     class U4DKineticDictionary {
 
     private:

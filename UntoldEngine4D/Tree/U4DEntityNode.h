@@ -15,7 +15,7 @@
 namespace U4DEngine {
 
     /**
-     @ingroup physicsengine
+     @ingroup gameobjects
      @brief The U4DEntityNode class represents a node in a Generic tree.
      */
     template <typename T>
