@@ -40,11 +40,11 @@ namespace U4DEngine {
         /**
          @brief Computes the velocity for steering
          
-         @param uPursuer 3D model represented as the pursuer
-         @param uPursuer neighbor vehicles container
+         @param uPursuer Dynamic action represented as the pursuer
+         @param uNeighborsContainer neighbors container
          @return velocity vector to apply to 3D model
          */
-        U4DVector3n getSteering(U4DDynamicModel *uPursuer, std::vector<U4DDynamicModel*> uNeighborsContainer);
+        U4DVector3n getSteering(U4DDynamicAction *uPursuer, std::vector<U4DDynamicAction*> uNeighborsContainer);
       
         /**
          @brief Sets the desired neighbor distance which will be influenced by the behavior

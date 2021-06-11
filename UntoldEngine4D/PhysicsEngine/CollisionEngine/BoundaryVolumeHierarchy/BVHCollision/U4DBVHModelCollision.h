@@ -11,10 +11,11 @@
 
 #include <stdio.h>
 #include "U4DBVHCollision.h"
+#include "U4DBVHNode.h"
 
 namespace U4DEngine {
-    class U4DBVHTree;
-    class U4DDynamicModel;
+    
+    class U4DDynamicAction;
     class U4DBoundingVolume;
 }
 
@@ -22,7 +23,7 @@ namespace U4DEngine {
     
     typedef struct{
         
-        U4DDynamicModel *model;
+        U4DDynamicAction *model;
         U4DBoundingVolume *boundingVolume;
         
     }ModelBoundingVolumePair;
@@ -56,7 +57,7 @@ namespace U4DEngine {
          @param uTreeContainer            Tree container
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        void startCollision(std::vector<std::shared_ptr<U4DBVHTree>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
+        void startCollision(std::vector<std::shared_ptr<U4DBVHNode<U4DDynamicAction>>>& uTreeContainer, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
         
         /**
          @brief Method which detects collisions
@@ -65,7 +66,7 @@ namespace U4DEngine {
          @param uTreeRightNode Right tree node
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        void collision(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
+        void collision(U4DBVHNode<U4DDynamicAction> *uTreeLeftNode, U4DBVHNode<U4DDynamicAction> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
         
         /**
          @brief Method which detects broad-phase collision among tree nodes
@@ -74,7 +75,7 @@ namespace U4DEngine {
          @param uTreeRightNode Right tree node
          @param uBroadPhaseCollisionPairs Container holding broad-phase collision pairs
          */
-        void collisionBetweenTreeLeafNodes(U4DBVHTree *uTreeLeftNode, U4DBVHTree *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
+        void collisionBetweenTreeLeafNodes(U4DBVHNode<U4DDynamicAction> *uTreeLeftNode, U4DBVHNode<U4DDynamicAction> *uTreeRightNode, std::vector<U4DBroadPhaseCollisionModelPair>& uBroadPhaseCollisionPairs);
         
     };
     

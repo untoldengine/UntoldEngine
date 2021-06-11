@@ -11,9 +11,9 @@
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
 #include "U4DBoundingVolume.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DVector3n.h"
-#include "U4DStaticModel.h"
+#include "U4DStaticAction.h"
 
 
 namespace U4DEngine {
@@ -26,7 +26,7 @@ namespace U4DEngine {
     
     }
     
-    bool U4DGJKAlgorithm::collision(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,float dt){
+    bool U4DGJKAlgorithm::collision(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,float dt){
         
         /* KEEP THIS AS REFERENCE- Algorithm to detect collision between non-moving body.
         //clear Q
@@ -36,8 +36,8 @@ namespace U4DEngine {
         
         vPrevious.minkowskiPoint=U4DPoint3n(FLT_MAX,FLT_MAX,FLT_MAX);
         
-        U4DBoundingVolume *boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
-        U4DBoundingVolume *boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
+        U4DBoundingVolume *boundingVolume1=uAction1->getNarrowPhaseBoundingVolume();
+        U4DBoundingVolume *boundingVolume2=uAction2->getNarrowPhaseBoundingVolume();
         
         U4DVector3n dir(1,1,1);
         
@@ -126,10 +126,10 @@ namespace U4DEngine {
         U4DBoundingVolume *boundingVolume2;
 
         //Determine the proper CSO translation vector and Support volumes for GJK
-        relativeCSOTranslation=uModel1->getAbsolutePosition()-uModel2->getAbsolutePosition();
+        relativeCSOTranslation=uAction1->model->getAbsolutePosition()-uAction2->model->getAbsolutePosition();
         
-        boundingVolume1=uModel1->getNarrowPhaseBoundingVolume();
-        boundingVolume2=uModel2->getNarrowPhaseBoundingVolume();
+        boundingVolume1=uAction1->getNarrowPhaseBoundingVolume();
+        boundingVolume2=uAction2->getNarrowPhaseBoundingVolume();
 
         U4DVector3n dir(1,1,1);
 
@@ -176,13 +176,13 @@ namespace U4DEngine {
                         float timeOfImpact=1.0-U4DEngine::minimumTimeOfImpact;
                         
                         //minimum time step allowed
-                        uModel1->setTimeOfImpact(timeOfImpact);
-                        uModel2->setTimeOfImpact(timeOfImpact);
+                        uAction1->setTimeOfImpact(timeOfImpact);
+                        uAction2->setTimeOfImpact(timeOfImpact);
 
                     }else{
 
-                        uModel1->setTimeOfImpact(1.0);
-                        uModel2->setTimeOfImpact(1.0);
+                        uAction1->setTimeOfImpact(1.0);
+                        uAction2->setTimeOfImpact(1.0);
 
                     }
                      

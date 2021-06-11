@@ -12,12 +12,13 @@
 #include <stdio.h>
 #include "U4DCallback.h"
 #include "U4DAnimationManager.h"
+#include "U4DBoneData.h"
+
 
 namespace U4DEngine {
     
     class U4DAnimation;
     class U4DModel;
-    class U4DBoneData;
     class U4DTimer;
 }
 

@@ -21,7 +21,7 @@ namespace U4DEngine {
     class U4DLayer;
     class U4DWorld;
     class U4DVector2n;
-    class U4DGameModelInterface;
+    class U4DGameLogicInterface;
     class U4DPadAxis;
 }
 
@@ -64,11 +64,11 @@ public:
     
     /**
      * @brief Sets the current Model component (MVC) of the game
-     * @details The Model component refers to the U4DGameModel object.
+     * @details The Model component refers to the U4DGameLogic object.
      * 
-     * @param uGameModel the U4DGameModel object
+     * @param uGameLogic the U4DGameLogic object
      */
-    virtual void setGameModel(U4DGameModelInterface *uGameModel)=0;
+    virtual void setGameLogic(U4DGameLogicInterface *uGameLogic)=0;
     
     /**
      * @brief Gets the current U4DWorld entity linked to the controller
@@ -78,11 +78,11 @@ public:
     virtual U4DWorld* getGameWorld()=0;
     
     /**
-     * @brief Gets the current U4DGameModel object linked to the controller
-     * @details The U4DGameModel refers to the model component of the MVC
+     * @brief Gets the current U4DGameLogic object linked to the controller
+     * @details The U4DGameLogic refers to the model component of the MVC
      * @return The current Game Model. i.e. game logic
      */
-    virtual U4DGameModelInterface* getGameModel()=0;
+    virtual U4DGameLogicInterface* getGameLogic()=0;
     
     /**
      * @brief Indicates that an action on the controller has been received
@@ -93,8 +93,8 @@ public:
     virtual void setReceivedAction(bool uValue)=0;
     
     /**
-     * @brief Sends user input to the linked U4DGameModel
-     * @details The controller sends the user input information to the U4DGameModel
+     * @brief Sends user input to the linked U4DGameLogic
+     * @details The controller sends the user input information to the U4DGameLogic
      * 
      * @param uData data containing the informationation about the user input
      */

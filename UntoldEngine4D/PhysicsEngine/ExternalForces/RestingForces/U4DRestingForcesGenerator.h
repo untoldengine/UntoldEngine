@@ -12,7 +12,7 @@
 #include <stdio.h>
 #include "U4DBodyForceGenerator.h"
 #include "U4DVector3n.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 
 namespace U4DEngine {
     
@@ -40,24 +40,24 @@ namespace U4DEngine {
         /**
          @brief Method which updates the force acting on the entity
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          @param dt     Time-step value
          */
-        void updateForce(U4DDynamicModel *uModel, float dt);
+        void updateForce(U4DDynamicAction *uAction, float dt);
         
         /**
          @brief Method which computes the resting normal force acting on the 3D entity
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          */
-        void generateNormalForce(U4DDynamicModel *uModel);
+        void generateNormalForce(U4DDynamicAction *uAction);
         
         /**
          @brief Method which computes the torque force acting on the 3D entity
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          */
-        void generateTorqueForce(U4DDynamicModel *uModel);
+        void generateTorqueForce(U4DDynamicAction *uAction);
         
     };
 }

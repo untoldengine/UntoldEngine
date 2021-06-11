@@ -42,10 +42,10 @@ namespace U4DEngine {
         /**
          @brief Computes the velocity for steering
          
-         @param uPursuer 3D model represented as the pursuer
+         @param uPursuer Dynamic action represented as the pursuer
          @return velocity vector to apply to 3D model
          */
-        U4DVector3n getSteering(U4DDynamicModel *uPursuer);
+        U4DVector3n getSteering(U4DDynamicAction *uPursuer);
         
         /**
          @brief sets the parameter used to detect collision with a plane

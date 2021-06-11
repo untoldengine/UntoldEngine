@@ -8,7 +8,7 @@
 
 #include "U4DWorld.h"
 #include "U4DControllerInterface.h"
-#include "U4DGameModelInterface.h"
+#include "U4DGameLogicInterface.h"
 #include "U4DEntityManager.h"
 #include "CommonProtocols.h"
 #include "U4DLayer.h"
@@ -66,9 +66,9 @@ namespace U4DEngine {
         
     }
     
-    void U4DWorld::setGameModel(U4DGameModelInterface *uGameModel){
+    void U4DWorld::setGameLogic(U4DGameLogicInterface *uGameLogic){
         
-        gameModel=uGameModel;
+        gameLogic=uGameLogic;
         
     }
     
@@ -77,9 +77,9 @@ namespace U4DEngine {
         return gameController;
     }
     
-    U4DGameModelInterface* U4DWorld::getGameModel(){
+    U4DGameLogicInterface* U4DWorld::getGameLogic(){
         
-        return gameModel;
+        return gameLogic;
     }
 
     void U4DWorld::render(id <MTLRenderCommandEncoder> uRenderEncoder){

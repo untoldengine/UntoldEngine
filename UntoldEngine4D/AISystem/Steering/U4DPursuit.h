@@ -14,7 +14,7 @@
 #include "U4DVector3n.h"
 
 namespace U4DEngine {
-    class U4DDynamicModel;
+    class U4DDynamicAction;
 }
 
 namespace U4DEngine{
@@ -42,11 +42,11 @@ namespace U4DEngine{
         /**
          @brief Computes the velocity for steering
          
-         @param uPursuer 3D model represented as the pursuer
-         @param uEvader 3D model represented as the evader. Also known as the target
+         @param uPursuer Dynamic action represented as the pursuer
+         @param uEvader Dynamic action represented as the evader. Also known as the target
          @return velocity vector to apply to 3D model
          */
-        U4DVector3n getSteering(U4DDynamicModel *uPursuer, U4DDynamicModel *uEvader);
+        U4DVector3n getSteering(U4DDynamicAction *uPursuer, U4DDynamicAction *uEvader);
         
     };
     

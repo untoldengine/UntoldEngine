@@ -12,14 +12,12 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DMeshOctreeNode.h"
-#include "U4DStaticModel.h"
+#include "U4DModel.h"
 #include "U4DPoint3n.h"
 #include "U4DVector3n.h"
+#include "U4DMeshOctreeNode.h"
 
-namespace U4DEngine {
-    class U4DMeshOctreeNode;
-    
-}
+
 
 namespace U4DEngine {
     
@@ -38,7 +36,7 @@ namespace U4DEngine {
         /**
          @brief Pointer to the model whose octree will be based on
          */
-        U4DStaticModel *model;
+        U4DModel *model;
         
         /**
          @brief vector container of the mesh faces in absolute space
@@ -51,7 +49,7 @@ namespace U4DEngine {
          @brief constructor for the U4DMeshOctreeManager. The constructor transforms the 3d mesh faces from local space to absolute space
          @param uModel pointer to the model whose octree will be based on
          */
-        U4DMeshOctreeManager(U4DStaticModel *uModel);
+        U4DMeshOctreeManager(U4DModel *uModel);
         
         /**
          @brief Destructor for the U4DMeshOctreeManager

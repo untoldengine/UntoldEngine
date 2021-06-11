@@ -27,7 +27,8 @@ namespace U4DEngine {
     class U4DGravityForceGenerator;
     class U4DDragForceGenerator;
     class U4DIntegrator;
-    class U4DDynamicModel;
+    class U4DDynamicAction;
+    class U4DModel;
     class U4DCollisionAlgorithm;
     class U4DManifoldGeneration;
     class U4DCollisionResponse;
@@ -157,7 +158,7 @@ namespace U4DEngine {
 
          @param uModel pointer to the 3d model
          */
-        void loadIntoCollisionEngine(U4DDynamicModel* uModel);
+        void loadIntoCollisionEngine(U4DDynamicAction* uModel);
         
         
         /**
@@ -166,7 +167,7 @@ namespace U4DEngine {
          @param uModel pointer to the 3d model
          @param dt time-step
          */
-        void loadIntoPhysicsEngine(U4DDynamicModel* uModel,float dt);
+        void loadIntoPhysicsEngine(U4DDynamicAction* uModel,float dt);
         
         
         /**
@@ -174,7 +175,7 @@ namespace U4DEngine {
          @details the visibility manager determines if a 3d model is within the camera frustum
          @param uModel pointer to the 3d model
          */
-        void loadIntoVisibilityManager(U4DDynamicModel* uModel);
+        void loadIntoVisibilityManager(U4DModel* uModel);
         
         /**
          @brief change the current visibility interval. The default is 0.5.

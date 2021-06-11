@@ -32,7 +32,7 @@ void SandboxLogic::init(){
     SandboxWorld *pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
     
     //2. Search for the player object
-    pAstronaut=dynamic_cast<U4DEngine::U4DGameObject*>(pEarth->searchChild("astronaut"));
+    pAstronaut=dynamic_cast<U4DEngine::U4DModel*>(pEarth->searchChild("astronaut"));
 }
 
 

@@ -43,9 +43,9 @@ namespace U4DEngine {
 
         /**
          * @brief the model component (mvc) linked to the controller
-         * @details The Model component refers to the U4DGameModel object.
+         * @details The Model component refers to the U4DGameLogic object.
          */
-        U4DGameModelInterface *gameModel;
+        U4DGameLogicInterface *gameLogic;
 
         /**
          * @brief variable to determine if an action was received
@@ -80,11 +80,11 @@ namespace U4DEngine {
 
         /**
          * @brief Sets the current Model component (MVC) of the game
-         * @details The Model component referst to the U4DGameModel object.
+         * @details The Model component referst to the U4DGameLogic object.
          *
-         * @param uGameModel the U4DGameModel object
+         * @param uGameLogic the U4DGameLogic object
          */
-        void setGameModel(U4DGameModelInterface *uGameModel);
+        void setGameLogic(U4DGameLogicInterface *uGameLogic);
         
         /**
          * @brief Gets the current U4DWorld entity linked to the controller
@@ -94,15 +94,15 @@ namespace U4DEngine {
         U4DWorld* getGameWorld();
 
         /**
-         * @brief Gets the current U4DGameModel object linked to the controller
-         * @details The U4DGameModel refers to the model component of the MVC
+         * @brief Gets the current U4DGameLogic object linked to the controller
+         * @details The U4DGameLogic refers to the model component of the MVC
          * @return The current Game Model. i.e. game logic
          */
-        U4DGameModelInterface* getGameModel();
+        U4DGameLogicInterface* getGameLogic();
         
         /**
-         * @brief Sends user input to the linked U4DGameModel
-         * @details The controller sends the user input information to the U4DGameModel
+         * @brief Sends user input to the linked U4DGameLogic
+         * @details The controller sends the user input information to the U4DGameLogic
          *
          * @param uData data containing the informationation about the user input
          */

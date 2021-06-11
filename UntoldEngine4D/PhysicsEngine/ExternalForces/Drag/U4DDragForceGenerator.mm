@@ -18,9 +18,9 @@ namespace U4DEngine {
     
     }
     
-    void  U4DDragForceGenerator::updateForce(U4DDynamicModel *uModel, float dt){
+    void  U4DDragForceGenerator::updateForce(U4DDynamicAction *uAction, float dt){
 
-        U4DVector2n dragCoefficient=uModel->getDragCoefficient();
+        U4DVector2n dragCoefficient=uAction->getDragCoefficient();
         
         float k1=dragCoefficient.x;
         float k2=dragCoefficient.y;
@@ -28,7 +28,7 @@ namespace U4DEngine {
         U4DVector3n linearDrag;
         float forceDragCoeff;
         
-        linearDrag=uModel->getVelocity();
+        linearDrag=uAction->getVelocity();
         forceDragCoeff=linearDrag.magnitude();
         
         forceDragCoeff=k1*forceDragCoeff+k2*forceDragCoeff*forceDragCoeff;
@@ -37,20 +37,20 @@ namespace U4DEngine {
         linearDrag.normalize();
         linearDrag*=-forceDragCoeff;
         
-        uModel->addForce(linearDrag);
+        uAction->addForce(linearDrag);
         
         //moment
         U4DVector3n angularDrag;
         float momentDragCoeff;
         
-        angularDrag=uModel->getAngularVelocity();
+        angularDrag=uAction->getAngularVelocity();
         momentDragCoeff=angularDrag.magnitude();
         
         momentDragCoeff=k1*momentDragCoeff+k2*momentDragCoeff*momentDragCoeff;
         
         angularDrag.normalize();
         angularDrag*=-momentDragCoeff;
-        uModel->addMoment(angularDrag);
+        uAction->addMoment(angularDrag);
         
     }
 

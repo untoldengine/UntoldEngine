@@ -7,7 +7,6 @@
 //
 
 #include "U4DArmatureData.h"
-#include "U4DBoneData.h"
 #include "U4DModel.h"
 
 namespace U4DEngine {
@@ -50,7 +49,7 @@ namespace U4DEngine {
 
     void U4DArmatureData::addBoneToTree(U4DBoneData *uParent, U4DBoneData *uChild){
         
-        uParent->addBoneToTree(uChild);
+        uParent->addChild(uChild);
         
         //update index count
         updateBoneIndexCount();
@@ -58,11 +57,11 @@ namespace U4DEngine {
 
     void U4DArmatureData::removeBoneFromTree(std::string uChildBoneName){
         
-        U4DBoneData *uChild=rootBone->searchChildrenBone(uChildBoneName);
+        U4DBoneData *uChild=rootBone->searchChild(uChildBoneName);
         
         if(rootBone!=NULL){
             
-            rootBone->removeBoneFromTree(uChild);
+            rootBone->removeChild(uChild);
         }
         
         //update index count
@@ -191,7 +190,7 @@ namespace U4DEngine {
             
             //copy the temp bone containter to the boneDataContainer
             
-            dummyBoneDataContainer=boneDataContainer;
+            dummyBoneDataContainer=boneDataContainer; 
             
             //Heap sort, the index i represent the current vertex weights I'm working on the bone
             

@@ -8,12 +8,15 @@
 
 #include "SandboxWorld.h"
 #include "CommonProtocols.h"
+#include "Constants.h"
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
 #include "U4DResourceLoader.h"
 #include "U4DDebugger.h"
 #include "U4DSkybox.h"
+
+#include "U4DDynamicAction.h"
 
 using namespace U4DEngine;
 
@@ -26,6 +29,9 @@ SandboxWorld::~SandboxWorld(){
 }
 
 void SandboxWorld::init(){
+    
+    //Print version
+    std::cout<<"Current Version: "<<U4DEngine::untoldengineversion<<std::endl;
     
     /*----DO NOT REMOVE. THIS IS REQUIRED-----*/
     //Configures the perspective view, shadows, lights and camera.
@@ -61,19 +67,21 @@ void SandboxWorld::init(){
     setEnableGrid(true);
     
     //Create an instance of U4DGameObject type
-    myAstronaut=new U4DEngine::U4DGameObject();
+    myAstronaut=new U4DEngine::U4DModel();
 
     //Load attribute (rendering information) into the game entity
     if (myAstronaut->loadModel("astronaut")) {
 
-        myAstronaut->enableKineticsBehavior();
-
+        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(myAstronaut);
+        
+        kineticAction->enableKineticsBehavior();
+        
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+        
+        kineticAction->setGravity(zero);
 
-        myAstronaut->setGravity(zero);
-
-        myAstronaut->enableCollisionBehavior();
-
+        kineticAction->enableCollisionBehavior();
+        
         //Line 4. Load rendering information into the GPU
         myAstronaut->loadRenderingInformation();
 
@@ -84,7 +92,7 @@ void SandboxWorld::init(){
   
     //Line 2. Create an Animation object and link it to the 3D model
     U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
-
+    
     //Line 3. Load animation data into the animation object
     if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
 
@@ -100,18 +108,20 @@ void SandboxWorld::init(){
     }
     
     //Create an instance of U4DGameObject type
-    U4DEngine::U4DGameObject *ground=new U4DEngine::U4DGameObject();
+    U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
 
     //Line 3. Load attribute (rendering information) into the game entity
     if (ground->loadModel("island")) {
 
-        ground->enableKineticsBehavior();
-
+        U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
+        
+        //gkinetic->enableKineticsBehavior();
+        
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
 
-        ground->setGravity(zero);
+        gkinetic->setGravity(zero);
 
-        ground->enableCollisionBehavior();
+        gkinetic->enableCollisionBehavior();
 
         //Line 4. Load rendering information into the GPU
         ground->loadRenderingInformation();
@@ -148,7 +158,7 @@ void SandboxWorld::setupConfiguration(){
     U4DDirector *director=U4DDirector::sharedInstance();
     
     //Compute the perspective space matrix
-    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.001f, 400.0f);
+    U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(65.0f, director->getAspect(), 0.001f, 400.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space

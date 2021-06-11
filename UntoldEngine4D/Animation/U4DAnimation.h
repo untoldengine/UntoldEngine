@@ -15,10 +15,11 @@
 #include "CommonProtocols.h"
 #include "U4DCallback.h"
 #include "U4DMatrix4n.h"
+#include "U4DBoneData.h"
+
 
 namespace U4DEngine {
 class U4DModel;
-class U4DBoneData;
 class U4DTimer;
 }
 

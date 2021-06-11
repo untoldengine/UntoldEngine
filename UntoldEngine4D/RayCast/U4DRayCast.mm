@@ -10,6 +10,7 @@
 #include "U4DMeshOctreeManager.h"
 #include "U4DMeshOctreeNode.h"
 
+
 namespace U4DEngine{
     
     U4DRayCast::U4DRayCast(){
@@ -20,7 +21,7 @@ namespace U4DEngine{
         
     }
     
-    bool U4DRayCast::hit(U4DRay &uRay,U4DStaticModel *uModel,U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionParameter){
+    bool U4DRayCast::hit(U4DRay &uRay,U4DModel *uModel,U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionParameter){
         
         //boolean to return hit or non-hit
         bool intersectionFound=false;

@@ -11,7 +11,7 @@
 
 #include "U4DWorld.h"
 #include "U4DScene.h"
-#include "U4DGameModelInterface.h"
+#include "U4DGameLogicInterface.h"
 #include "U4DControllerInterface.h"
 #include "CommonProtocols.h"
 #include "Constants.h"

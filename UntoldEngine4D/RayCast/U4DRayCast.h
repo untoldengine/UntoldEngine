@@ -14,7 +14,7 @@
 #include <cmath>
 #include <float.h>
 #include "U4DRay.h"
-#include "U4DStaticModel.h"
+#include "U4DModel.h"
 #include "U4DTriangle.h"
 
 namespace U4DEngine{
@@ -49,7 +49,7 @@ namespace U4DEngine{
          
          @details Note, to use this method, you need to enable the mesh manager of the 3D model. i.e. enableMeshManager(2)
          */
-        bool hit(U4DRay &uRay,U4DStaticModel *uModel,U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionParameter);
+        bool hit(U4DRay &uRay,U4DModel *uModel,U4DTriangle &uTriangle, U4DPoint3n &uIntersectionPoint, float &uIntersectionParameter);
         
     };
     

@@ -12,10 +12,11 @@
 #include <stdio.h>
 #include <chrono>
 #include <string>
+#include "U4DEntityNode.h"
 
 namespace U4DEngine {
 
-    class U4DProfilerNode {
+    class U4DProfilerNode:public U4DEntityNode<U4DProfilerNode> {
         
     private:
         
@@ -43,115 +44,6 @@ namespace U4DEngine {
         float getTotalTime();
         
         std::string getName();
-        
-        /**
-         @brief Entity parent pointer
-         */
-        U4DProfilerNode *parent;
-        
-        /**
-         @brief Entity previous sibling pointer
-         */
-        U4DProfilerNode *prevSibling;
-
-        /**
-         @brief Entity Next pointer
-         */
-        U4DProfilerNode *next;
-        
-        /**
-         @brief Entity last descendant pointer
-         */
-        U4DProfilerNode *lastDescendant;
-        
-        //scenegraph
-        /**
-         @brief Method which adds a node entity to the tree
-         
-         @param uChild Child entity to add to tree
-         */
-        void addChild(U4DProfilerNode *uChild);
-        
-        /**
-         @brief Method which removes a node entity from the tree
-         
-         @param uChild Child entity to remove from the treeh
-         */
-        void removeChild(U4DProfilerNode *uChild);
-        
-        /**
-         @brief Method which changes the entity's last descendant in the tree
-         
-         @param uNewLastDescendant Last descendant of the entity
-         */
-        void changeLastDescendant(U4DProfilerNode *uNewLastDescendant);
-        
-        /**
-         @brief Method which returns the entity's first child in the tree
-         
-         @return Returns the entity's first child
-         */
-        U4DProfilerNode *getFirstChild();
-        
-        /**
-         @brief Method which returns the entity's last child in the tree
-         
-         @return Returns the entity's last child
-         */
-        U4DProfilerNode *getLastChild();
-        
-        /**
-         @brief Method which returns the entity's next sibling in the tree
-         
-         @return Returns the entity's next sibling
-         */
-        U4DProfilerNode *getNextSibling();
-        
-        /**
-         @brief Method which returns the entity's previous sibling in the tree
-         
-         @return Returns the entity's previous sibling
-         */
-        U4DProfilerNode *getPrevSibling();
-        
-        /**
-         @brief Method which returns the entity's previous sibling in pre-order traversal order
-         
-         @return Returns the entity's previous sibling in pre-order traversal order
-         */
-        U4DProfilerNode *prevInPreOrderTraversal();
-        
-        /**
-         @brief Method which returns the entity's next pointer in pre-order traversal order
-         
-         @return Returns the entity's next pointer in pre-order traversal order
-         */
-        U4DProfilerNode *nextInPreOrderTraversal();
-        
-        /**
-         @brief Method which returns true if the entity represents a leaf node in the tree
-         
-         @return Returns true if the entity represents a leaf node in the tree
-         */
-        bool isLeaf();
-        
-        /**
-         @brief Method which returns true if the entity represents a root node in the tree
-         
-         @return Returns true if the entity represents a root node in the tree
-         */
-        bool isRoot();
-        
-        U4DProfilerNode *searchChild(std::string uName);
-        
-        U4DProfilerNode* getParent();
-        
-        /**
-         @brief Gets the root parent (top parent in the scenegraph) of the node
-
-         @return pointer to the root parent
-         */
-        U4DProfilerNode* getRootParent();
         
     };
 

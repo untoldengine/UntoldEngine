@@ -1053,7 +1053,7 @@ namespace U4DEngine {
                             
                             //1.look for the bone parent
                             
-                            U4DBoneData *boneParent=rootBone->searchChildrenBone(b.parent);
+                            U4DBoneData *boneParent=rootBone->searchChild(b.parent);
                             
                             //create the new bone
                             U4DBoneData *childBone=new U4DBoneData();

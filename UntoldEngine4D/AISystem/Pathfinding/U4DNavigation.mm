@@ -10,7 +10,7 @@
 #include "U4DNavMeshLoader.h"
 #include "U4DNavMesh.h"
 #include "U4DPathfinderAStar.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 
 namespace U4DEngine {
     
@@ -42,7 +42,7 @@ namespace U4DEngine {
         
     }
     
-    void U4DNavigation::computePath(U4DDynamicModel *uDynamicModel, U4DVector3n &uTargetPosition){
+    void U4DNavigation::computePath(U4DDynamicAction *uAction, U4DVector3n &uTargetPosition){
         
         //clear the path container
         path.clear();
@@ -51,7 +51,7 @@ namespace U4DEngine {
         //set target and starting position
         targetPosition=uTargetPosition;
         
-        U4DVector3n startingPosition=uDynamicModel->getAbsolutePosition();
+        U4DVector3n startingPosition=uAction->model->getAbsolutePosition();
         
         U4DPathfinderAStar pathAStar;
         
@@ -80,17 +80,17 @@ namespace U4DEngine {
         
     }
     
-    U4DVector3n U4DNavigation::getSteering(U4DDynamicModel *uDynamicModel){
+    U4DVector3n U4DNavigation::getSteering(U4DDynamicAction *uAction){
         
         if (pathComputed) {
             
             if (followPath.getCurrentPathIndex()!=lastPathInNavMeshIndex ) {
                 
-                return followPath.getSteering(uDynamicModel, path);
+                return followPath.getSteering(uAction, path);
             
             }else{
                     
-                return arrive.getSteering(uDynamicModel, targetPosition);
+                return arrive.getSteering(uAction, targetPosition);
                 
             }
             

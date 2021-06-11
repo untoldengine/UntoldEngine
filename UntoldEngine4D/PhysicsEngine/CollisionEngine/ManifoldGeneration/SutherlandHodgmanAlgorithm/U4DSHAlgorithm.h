@@ -190,24 +190,24 @@ namespace U4DEngine {
         /**
          @brief Method which determines the collision contact manifold. It retrieves the collision contact points of the collision.
          
-         @param uModel1                3D model entity
-         @param uModel2                3D model entity
+         @param uAction1                3D model entity
+         @param uAction2                3D model entity
          @param uQ                     Simplex Data set
          @param uCollisionManifoldNode Collision Manifold node
          
          @return Returns true if the collision contact points were successfully computed
          */
-        bool determineContactManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
+        bool determineContactManifold(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,std::vector<SIMPLEXDATA> uQ, COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
         /**
          @brief Method which determines the collision manifold. It computes the collision planes
          
-         @param uModel1                3D model entity
-         @param uModel2                3D model entity
+         @param uAction1                3D model entity
+         @param uAction2                3D model entity
          @param uQ                     Simplex Data set
          @param uCollisionManifoldNode Collision Manifold node
          */
-        void determineCollisionManifold(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
+        void determineCollisionManifold(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,std::vector<SIMPLEXDATA> uQ,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
         /**
          @brief Method which clips polygons
@@ -222,12 +222,12 @@ namespace U4DEngine {
         /**
          @brief Method which computes the most parallel faces to collision plane
          
-         @param uModel 3D model entity
+         @param uAction Dynamic action
          @param uPlane Collision plane
          
          @return Returns the most parallel faces to plane
          */
-        std::vector<CONTACTFACES> mostParallelFacesToPlane(U4DDynamicModel* uModel, U4DPlane& uPlane);
+        std::vector<CONTACTFACES> mostParallelFacesToPlane(U4DDynamicAction* uAction, U4DPlane& uPlane);
         
         /**
          @brief Method which projects polygon faces to collision plane
@@ -252,12 +252,12 @@ namespace U4DEngine {
         /**
          @brief Method which computes if the 3D entity center of mass is within the boundary of the reference plane
          
-         @param uModel             3D model entity
+         @param uAction             3D model entity
          @param uReferencePolygons Reference polygon
          
          @return Returns true if the 3D entity center of mass is within the boundary of the reference plane
          */
-        bool isCenterOfMassWithinReferencePlane(U4DDynamicModel* uModel,std::vector<CONTACTEDGE>& uReferencePolygons);
+        bool isCenterOfMassWithinReferencePlane(U4DDynamicAction* uAction,std::vector<CONTACTEDGE>& uReferencePolygons);
         
     };
     

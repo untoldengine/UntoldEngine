@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
     
-    class U4DDynamicModel;
+    class U4DDynamicAction;
     class U4DVector3n;
     
 }
@@ -45,11 +45,11 @@ namespace U4DEngine {
         /**
          @brief Method which computes the collision resolution for each 3D entity
          
-         @param uModel1                3D model entity
-         @param uModel2                3D model entity
+         @param uAction1                3D model entity
+         @param uAction2                3D model entity
          @param uCollisionManifoldNode Collision manifold node
          */
-        void collisionResolution(U4DDynamicModel* uModel1, U4DDynamicModel* uModel2,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
+        void collisionResolution(U4DDynamicAction* uAction1, U4DDynamicAction* uAction2,COLLISIONMANIFOLDONODE &uCollisionManifoldNode);
         
     };
 }

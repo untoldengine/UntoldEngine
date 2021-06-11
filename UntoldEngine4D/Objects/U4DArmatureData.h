@@ -12,9 +12,10 @@
 #include <iostream>
 #include <vector>
 #include "U4DDualQuaternion.h"
+#include "U4DBoneData.h"
+
 
 namespace U4DEngine {
-class U4DBoneData;
 class U4DModel;
 }
 

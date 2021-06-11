@@ -10,6 +10,7 @@
 #define UntoldEngine_Constants_h
 
 #include "U4DShaderProtocols.h"
+#include <string>
 
 namespace U4DEngine {
     
@@ -158,6 +159,8 @@ namespace U4DEngine {
     static const size_t kAlignedUniformShaderPropertySize = (sizeof(UniformShaderEntityProperty) & ~0xFF) + 0x100;
     
     const  int maxNumberOfLights=100;
+
+    const std::string untoldengineversion="beta v0.0.16";
 
 }
 

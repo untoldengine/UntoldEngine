@@ -104,7 +104,7 @@ void U4DCheckbox::action(){
         
     }else{
         
-        controllerInterface->getGameModel()->receiveUserInputUpdate(&controllerMessage);
+        controllerInterface->getGameLogic()->receiveUserInputUpdate(&controllerMessage);
     
     }
 

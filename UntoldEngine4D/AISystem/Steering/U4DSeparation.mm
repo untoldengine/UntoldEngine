@@ -7,7 +7,8 @@
 //
 
 #include "U4DSeparation.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
+#include "U4DModel.h"
 
 namespace U4DEngine {
 
@@ -20,7 +21,7 @@ U4DSeparation::U4DSeparation():desiredSeparation(5.0){
     }
 
 
-    U4DVector3n U4DSeparation::getSteering(U4DDynamicModel *uPursuer, std::vector<U4DDynamicModel*> uNeighborsContainer){
+    U4DVector3n U4DSeparation::getSteering(U4DDynamicAction *uPursuer, std::vector<U4DDynamicAction*> uNeighborsContainer){
         
         U4DVector3n avgDesiredVelocity;
         
@@ -31,11 +32,11 @@ U4DSeparation::U4DSeparation():desiredSeparation(5.0){
         for (const auto &n:uNeighborsContainer) {
 
             //distace to neigbhors
-            float d=(uPursuer->getAbsolutePosition()-n->getAbsolutePosition()).magnitude();
+            float d=(uPursuer->model->getAbsolutePosition()-n->model->getAbsolutePosition()).magnitude();
             
             if((n!=uPursuer)&&(d<desiredSeparation)){
                 
-                desiredVelocity=n->getAbsolutePosition()-uPursuer->getAbsolutePosition();
+                desiredVelocity=n->model->getAbsolutePosition()-uPursuer->model->getAbsolutePosition();
                 
                 //normalize the velocity. we just want the direction
                 desiredVelocity.normalize();

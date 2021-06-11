@@ -69,7 +69,7 @@ namespace U4DEngine {
         if (enableProfiler==true && currentNode!=nullptr) {
             
             currentNode->stopProfiling();
-            currentNode=currentNode->getParent();
+            currentNode=currentNode->getParent(); 
             
         }
         

@@ -13,7 +13,7 @@
 #include "U4DCallback.h"
 #include "U4DWindow.h"
 #include "U4DDirector.h"
-#include "U4DStaticModel.h"
+#include "U4DStaticAction.h"
 #include "U4DProfilerManager.h"
 #include "U4DRenderManager.h"
 #include "U4DRenderPipelineInterface.h"
@@ -209,65 +209,65 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
 
     void U4DDebugger::actionCheckboxShowBroadPhaseVolume(){
         
-        U4DEntity *child=world->next;
-        
-        if (checkboxShowBroadPhaseVolume->getIsPressed()) {
-                   
-           while (child!=nullptr) {
-               
-               if(child->isCollisionBehaviorEnabled()==true){
-                   U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
-                   model->setBroadPhaseBoundingVolumeVisibility(true);
-               }
-               
-               child=child->next;
-           }
-                   
-       }else if(checkboxShowBroadPhaseVolume->getIsReleased()){
-       
-           while (child!=nullptr) {
-               
-               if(child->isCollisionBehaviorEnabled()==true){
-                   U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
-                   model->setBroadPhaseBoundingVolumeVisibility(false);
-               }
-               
-               child=child->next;
-           }
-           
-       }
+//        U4DEntity *child=world->next;
+//
+//        if (checkboxShowBroadPhaseVolume->getIsPressed()) {
+//
+//           while (child!=nullptr) {
+//
+//               if(child->isCollisionBehaviorEnabled()==true){
+//                   U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
+//                   model->setBroadPhaseBoundingVolumeVisibility(true);
+//               }
+//
+//               child=child->next;
+//           }
+//
+//       }else if(checkboxShowBroadPhaseVolume->getIsReleased()){
+//
+//           while (child!=nullptr) {
+//
+//               if(child->isCollisionBehaviorEnabled()==true){
+//                   U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
+//                   model->setBroadPhaseBoundingVolumeVisibility(false);
+//               }
+//
+//               child=child->next;
+//           }
+//
+//       }
         
     }
 
     void U4DDebugger::actionCheckboxShowNarrowPhaseVolume(){
         
-        U4DEntity *child=world->next;
-         
-         if (checkboxShowNarrowPhaseVolume->getIsPressed()) {
-                    
-            while (child!=nullptr) {
-                
-                if(child->isCollisionBehaviorEnabled()==true){
-                    U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
-                    model->setNarrowPhaseBoundingVolumeVisibility(true);
-                }
-                
-                child=child->next;
-            }
-                    
-        }else if(checkboxShowNarrowPhaseVolume->getIsReleased()){
-        
-            while (child!=nullptr) {
-                
-                if(child->isCollisionBehaviorEnabled()==true){
-                    U4DStaticModel *model=dynamic_cast<U4DStaticModel*>(child);
-                    model->setNarrowPhaseBoundingVolumeVisibility(false);
-                }
-                
-                child=child->next;
-            }
-            
-        }
+//        U4DEntity *child=world->next;
+//
+//         if (checkboxShowNarrowPhaseVolume->getIsPressed()) {
+//
+//            while (child!=nullptr) {
+//
+//                if(child->isCollisionBehaviorEnabled()==true){
+//                    U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
+//                    model->setNarrowPhaseBoundingVolumeVisibility(true);
+//                }
+//
+//                child=child->next;
+//            }
+//
+//        }else if(checkboxShowNarrowPhaseVolume->getIsReleased()){
+//
+//            while (child!=nullptr) {
+//
+//                if(child->isCollisionBehaviorEnabled()==true){
+//                    U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
+//                    model->setNarrowPhaseBoundingVolumeVisibility(false);
+//                }
+//
+//                child=child->next;
+//            }
+//
+//        }
         
     }
 

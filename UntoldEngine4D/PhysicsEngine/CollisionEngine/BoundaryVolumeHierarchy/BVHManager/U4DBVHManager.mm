@@ -7,9 +7,8 @@
 //
 
 #include "U4DBVHManager.h"
-#include "U4DBVHTree.h"
 #include "U4DVector3n.h"
-#include "U4DDynamicModel.h"
+#include "U4DDynamicAction.h"
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingSphere.h"
 #include "U4DBVHModelCollision.h"
@@ -35,15 +34,15 @@ namespace U4DEngine{
         
     }
     
-    std::vector<U4DDynamicModel *> U4DBVHManager::getModelsContainer(){
+    std::vector<U4DDynamicAction *> U4DBVHManager::getModelsContainer(){
         
         return modelsContainer;
     }
     
-    void U4DBVHManager::addModelToTreeContainer(U4DDynamicModel* uModel){
+    void U4DBVHManager::addModelToTreeContainer(U4DDynamicAction* uAction){
         
             
-       modelsContainer.push_back(uModel);
+       modelsContainer.push_back(uAction);
         
     }
     
@@ -51,7 +50,7 @@ namespace U4DEngine{
         
         //create parent node
         
-        std::shared_ptr<U4DBVHTree> root(new U4DBVHTree());
+        std::shared_ptr<U4DBVHNode<U4DDynamicAction>> root(new U4DBVHNode<U4DDynamicAction>());
         
         treeContainer.push_back(root);
         
@@ -63,10 +62,10 @@ namespace U4DEngine{
         
     }
     
-    void U4DBVHManager::buildBVHNode(U4DBVHTree *uNode, int uLeftIndex, int uSplitIndex){
+    void U4DBVHManager::buildBVHNode(U4DBVHNode<U4DDynamicAction> *uNode, int uLeftIndex, int uSplitIndex){
         
         //1. Create node with current objects
-        std::shared_ptr<U4DBVHTree> nodeLeaf(new U4DBVHTree());
+        std::shared_ptr<U4DBVHNode<U4DDynamicAction>> nodeLeaf(new U4DBVHNode<U4DDynamicAction>());
         
         treeContainer.push_back(nodeLeaf);
         
@@ -76,7 +75,7 @@ namespace U4DEngine{
         //load models in to container
         for (int i=uLeftIndex; i<uSplitIndex; i++) {
             
-            U4DDynamicModel *model=uNode->getModelsContainer().at(i);
+            U4DDynamicAction *model=uNode->getModelsContainer().at(i);
             
             nodeLeaf->addModelToContainer(model);
             
@@ -108,7 +107,7 @@ namespace U4DEngine{
     void U4DBVHManager::startCollision(){
         
         //check sphere vs spher collisions
-        bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs);
+        bvhModelCollision->startCollision(treeContainer, broadPhaseCollisionPairs); 
         
         
     }
@@ -121,7 +120,7 @@ namespace U4DEngine{
     }
     
     
-    void U4DBVHManager::calculateBVHVolume(U4DBVHTree *uNode){
+    void U4DBVHManager::calculateBVHVolume(U4DBVHNode<U4DDynamicAction> *uNode){
         
         float xMin=FLT_MAX;
         float xMax=FLT_MIN;
@@ -158,7 +157,7 @@ namespace U4DEngine{
         
     }
     
-    void U4DBVHManager::getBVHLongestDimensionVector(U4DBVHTree *uNode){
+    void U4DBVHManager::getBVHLongestDimensionVector(U4DBVHNode<U4DDynamicAction> *uNode){
         
         //get the longest dimension of the volume
         float xDimension=std::abs(uNode->getAABBVolume()->getMinPoint().x-uNode->getAABBVolume()->getMaxPoint().x);
@@ -190,7 +189,7 @@ namespace U4DEngine{
         uNode->getAABBVolume()->setLongestAABBDimensionVector(longestDimensionVector);
     }
     
-    void U4DBVHManager::getBVHSplitIndex(U4DBVHTree *uNode){
+    void U4DBVHManager::getBVHSplitIndex(U4DBVHNode<U4DDynamicAction> *uNode){
         
         //split the longest dimension of the volume in half
         
@@ -244,7 +243,7 @@ namespace U4DEngine{
     }
     
     
-    void U4DBVHManager::heapSorting(U4DBVHTree *uNode){
+    void U4DBVHManager::heapSorting(U4DBVHNode<U4DDynamicAction> *uNode){
         
         int index=0;
         
@@ -266,7 +265,7 @@ namespace U4DEngine{
         
     }
     
-    void U4DBVHManager::reHeapDown(U4DBVHTree *uNode,int root, int bottom){
+    void U4DBVHManager::reHeapDown(U4DBVHNode<U4DDynamicAction> *uNode,int root, int bottom){
         
         int maxChild;
         int rightChild;
@@ -303,10 +302,10 @@ namespace U4DEngine{
     
     
     
-    void U4DBVHManager::swap(U4DBVHTree *uNode,int uIndex1, int uIndex2){
+    void U4DBVHManager::swap(U4DBVHNode<U4DDynamicAction> *uNode,int uIndex1, int uIndex2){
         
-        U4DDynamicModel* model1=uNode->getModelsContainer().at(uIndex1);
-        U4DDynamicModel* model2=uNode->getModelsContainer().at(uIndex2);
+        U4DDynamicAction* model1=uNode->getModelsContainer().at(uIndex1);
+        U4DDynamicAction* model2=uNode->getModelsContainer().at(uIndex2);
         
         uNode->addModelToContainerAtIndex(uIndex1, model2);
         uNode->addModelToContainerAtIndex(uIndex2, model1);

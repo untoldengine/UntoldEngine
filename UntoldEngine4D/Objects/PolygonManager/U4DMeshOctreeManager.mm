@@ -11,7 +11,7 @@
 
 namespace U4DEngine {
     
-    U4DMeshOctreeManager::U4DMeshOctreeManager(U4DStaticModel *uModel):model(uModel){
+    U4DMeshOctreeManager::U4DMeshOctreeManager(U4DModel *uModel):model(uModel){
         
         //compute mesh faces in absolute space (recall mesh faces are in local space. You need to convert them to absolute space)
         computeMeshFacesAbsoluteSpace();
@@ -100,7 +100,7 @@ namespace U4DEngine {
 
         while (child!=NULL) {
 
-            if(child->isRoot()){
+            if(child->isRoot()){ 
                 
             }else if(child->isLeaf()){
                

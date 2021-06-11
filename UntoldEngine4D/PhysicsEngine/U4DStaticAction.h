@@ -1,13 +1,13 @@
 //
-//  U4DStaticModel.h
+//  U4DStaticAction.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/22/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef __UntoldEngine__U4DStaticModel__
-#define __UntoldEngine__U4DStaticModel__
+#ifndef __UntoldEngine__U4DStaticAction__
+#define __UntoldEngine__U4DStaticAction__
 
 #include <iostream>
 #include "U4DModel.h"
@@ -16,7 +16,7 @@
 namespace U4DEngine {
     
     class U4DBoundingVolume;
-    class U4DMeshOctreeManager;
+    
 }
 
 namespace U4DEngine {
@@ -150,11 +150,13 @@ namespace U4DEngine {
 
     /**
      @ingroup gameobjects
-     @brief The U4DStaticModel class represents a 3D static model entity
+     @brief The U4DStaticAction class represents a 3D static model entity
      */
-    class U4DStaticModel:public U4DModel{
+    class U4DStaticAction{
         
         private:
+        
+        
         
         /**
          @brief Variable stating if model can detect collisions
@@ -171,10 +173,7 @@ namespace U4DEngine {
          */
         U4DBoundingVolume *broadPhaseBoundingVolume;
         
-        /**
-         @brief Object representing the mesh octree manager
-         */
-        U4DMeshOctreeManager *meshOctreeManager;
+        
         
         /**
          @brief Object representing mass properties of the model
@@ -214,12 +213,12 @@ namespace U4DEngine {
         /**
          @brief vector holding all 3d models the object has collided in the current time step
          */
-        std::vector<U4DStaticModel*> collisionList;
+        std::vector<U4DStaticAction*> collisionList;
         
         /**
          @brief vector holding all 3d models the object has collided (in broad phase) in the current time step
          */
-        std::vector<U4DStaticModel*> broadPhaseCollisionList;
+        std::vector<U4DStaticAction*> broadPhaseCollisionList;
         
         /**
          @brief tag used to identify the 3d model during collisions
@@ -227,23 +226,32 @@ namespace U4DEngine {
         std::string collidingTag;
         
         protected:
+        
+        /**
+         @brief Name of the entity
+         */
+        std::string name;
             
+        
+        
         public:
 
+        U4DModel *model;
+        
         /**
          @brief Constructor for the class
          */
-        U4DStaticModel();
+        U4DStaticAction(U4DModel *uU4DModel);
         
         /**
          @brief Destructor for the class
          */
-        ~U4DStaticModel();
+        ~U4DStaticAction();
         
         /**
          @brief Copy constructor
          */
-        U4DStaticModel(const U4DStaticModel& value);
+        U4DStaticAction(const U4DStaticAction& value);
 
         /**
          @brief Copy constructor
@@ -252,7 +260,7 @@ namespace U4DEngine {
          
          @return Returns a copy of the 3D static model
          */
-        U4DStaticModel& operator=(const U4DStaticModel& value);
+        U4DStaticAction& operator=(const U4DStaticAction& value);
     
         /**
          @brief Method which sets the mass of the model
@@ -596,12 +604,7 @@ namespace U4DEngine {
          */
         signed int getCollisionFilterGroupIndex();
         
-        /**
-         * @brief Get the 3D dimensions
-         * @details Gets the widht, length and depth dimensions of the 3D entity
-         * @return vector with the dimensions
-         */
-        U4DVector3n getModelDimensions();
+        
         
         /**
          * @brief Sets the entity as a collision sensor
@@ -627,7 +630,7 @@ namespace U4DEngine {
          * 
          * @param uModel 3d model currently colliding
          */
-        void addToCollisionList(U4DStaticModel *uModel);
+        void addToCollisionList(U4DStaticAction *uModel);
         
         /**
          * @brief Add all the 3D models the entity is currently colliding in broad phase collision
@@ -635,7 +638,7 @@ namespace U4DEngine {
          *
          * @param uModel 3d model currently colliding
          */
-        void addToBroadPhaseCollisionList(U4DStaticModel *uModel);
+        void addToBroadPhaseCollisionList(U4DStaticAction *uModel);
         
         /**
          * @brief Gets a list of all entities currently colliding with the entity
@@ -643,7 +646,7 @@ namespace U4DEngine {
          *   
          * @return vector with a list of entities
          */
-        std::vector<U4DStaticModel *> getCollisionList();
+        std::vector<U4DStaticAction *> getCollisionList();
         
         /**
          * @brief Gets a list of all entities currently colliding (broad phase stage) with the entity
@@ -651,7 +654,7 @@ namespace U4DEngine {
          *
          * @return vector with a list of entities
          */
-        std::vector<U4DStaticModel *> getBroadPhaseCollisionList();
+        std::vector<U4DStaticAction *> getBroadPhaseCollisionList();
         
         /**
          * @brief Sets a collision tag
@@ -681,20 +684,10 @@ namespace U4DEngine {
          */
         void clearBroadPhaseCollisionList();
         
-        /**
-         * @brief Enables the mesh manager to build an octree
-         * @details Builds an octree for the 3D model using AABB boxes
-         * @param uSubDivisions The subdivisions used for the octree. 1 subdivision=9 nodes, 2 subdivisions=73 node, 3 subdivisions=585 nodes
-         */
-        void enableMeshManager(int uSubDivisions);
         
-        /**
-         @brief gets a pointer to the mesh manager in charge of building an octree
-         */
-        U4DMeshOctreeManager *getMeshOctreeManager();
         
         };
     
 }
 
-#endif /* defined(__UntoldEngine__U4DStaticModel__) */
+#endif /* defined(__UntoldEngine__U4DStaticAction__) */

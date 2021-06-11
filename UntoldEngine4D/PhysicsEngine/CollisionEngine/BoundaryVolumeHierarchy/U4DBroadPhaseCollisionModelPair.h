@@ -12,7 +12,7 @@
 #include <stdio.h>
 
 namespace U4DEngine {
-    class U4DDynamicModel;
+    class U4DDynamicAction;
 }
 
 
@@ -41,12 +41,12 @@ namespace U4DEngine {
         /**
          @brief 3D model entity
          */
-        U4DDynamicModel *model1;
+        U4DDynamicAction *model1;
         
         /**
          @brief 3D model entity
          */
-        U4DDynamicModel *model2;
+        U4DDynamicAction *model2;
     };
     
 }

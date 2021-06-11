@@ -9,7 +9,6 @@
 #include "U4DBlendAnimation.h"
 #include "U4DAnimation.h"
 #include "U4DModel.h"
-#include "U4DBoneData.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
 #include "U4DLogger.h"

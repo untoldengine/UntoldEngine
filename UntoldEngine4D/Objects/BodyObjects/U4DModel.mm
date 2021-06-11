@@ -14,11 +14,15 @@
 #include "U4DMatrix3n.h"
 #include "U4DArmatureData.h"
 #include "U4DBoneData.h"
+#include "U4DMeshOctreeManager.h"
+#include "U4DMeshOctreeNode.h"
 #include "Constants.h"
 #include "U4DRender3DModel.h"
 #include "U4DBoundingVolume.h"
 #include "U4DBoundingAABB.h"
-
+#include "U4DResourceLoader.h"
+#include "U4DEntityManager.h"
+#include "U4DVisibilityDictionary.h"
 
 #pragma mark-set up the body vertices
 
@@ -39,6 +43,9 @@ namespace U4DEngine {
         
         cullingPhaseBoundingVolume=nullptr;
         
+        //set the mesh octree manager to null
+        meshOctreeManager=nullptr;
+        
     };
     
     U4DModel::~U4DModel(){
@@ -46,6 +53,11 @@ namespace U4DEngine {
         delete renderEntity;
         delete cullingPhaseBoundingVolume;
         delete armatureManager;
+        delete meshOctreeManager;
+        
+        U4DVisibilityDictionary *visibilityDict=U4DVisibilityDictionary::sharedInstance();
+        visibilityDict->removeFromVisibilityDictionary(getName());
+        
     };
     
     U4DModel::U4DModel(const U4DModel& value){
@@ -66,7 +78,117 @@ namespace U4DEngine {
         
         renderEntity->render(uRenderEncoder);
     }
+
+bool U4DModel::loadModel(const char* uModelName){
     
+    U4DEngine::U4DResourceLoader *loader=U4DEngine::U4DResourceLoader::sharedInstance();
+    
+    if (loader->loadAssetToMesh(this, uModelName)) {
+        
+       //init the culling bounding volume
+       initCullingBoundingVolume();
+        
+       U4DVisibilityDictionary *visibilityDict=U4DVisibilityDictionary::sharedInstance();
+        
+       visibilityDict->loadIntoVisibilityDictionary(getName(), this);
+       
+       return true;
+        
+    }
+    
+    return false;
+}
+
+bool U4DModel::loadAnimationToModel(U4DAnimation *uAnimation, const char* uAnimationName){
+    
+    U4DEngine::U4DResourceLoader *loader=U4DEngine::U4DResourceLoader::sharedInstance();
+    
+    if (loader->loadAnimationToMesh(uAnimation,uAnimationName)) {
+        
+       
+       return true;
+        
+    }
+    
+    return false;
+    
+}
+
+bool U4DModel::getBoneRestPose(std::string uBoneName, U4DMatrix4n &uBoneRestPoseMatrix){
+
+    U4DBoneData *rootBone=armatureManager->rootBone;
+    
+    //check if rootbone exist
+    if(rootBone!=nullptr){
+        
+        //get the bone rest pose space
+        U4DDualQuaternion boneRestPoseSpace=rootBone->searchChild(uBoneName)->restAbsolutePoseSpace;
+        
+        //get the position of the bone
+        U4DQuaternion bonePureQuaternion=boneRestPoseSpace.getPureQuaternionPart();
+        
+        U4DVector3n bonePosition=bonePureQuaternion.v;
+        
+        //get the final matrix of the bone in rest pose
+        uBoneRestPoseMatrix=rootBone->searchChild(uBoneName)->finalSpaceMatrix;
+        
+        //flip the y and z coordinates to compensate for the different coordinates systems between Blender and the Untold Engine
+        //Note that I had to use the location of the rest pose space and use it as the final space matrix location
+        uBoneRestPoseMatrix.matrixData[12]=bonePosition.x;
+        uBoneRestPoseMatrix.matrixData[13]=bonePosition.z;
+        uBoneRestPoseMatrix.matrixData[14]=bonePosition.y;
+        
+        return true;
+    
+    }
+    
+    return false;
+    
+}
+
+bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimation, U4DMatrix4n &uBoneAnimationPoseMatrix){
+    
+
+    U4DBoneData *rootBone=armatureManager->rootBone;
+    
+    //check if rootbone exist and animation is currently being played
+    if (rootBone!=nullptr && uAnimation->getAnimationIsPlaying()==true) {
+        
+        //get the bone animation pose space
+        U4DDualQuaternion boneAnimationPoseSpace=rootBone->searchChild(uBoneName)->animationPoseSpace;
+        
+        //get the position of the bone
+        U4DQuaternion bonePureQuaternion=boneAnimationPoseSpace.getPureQuaternionPart();
+        
+        U4DVector3n bonePosition=bonePureQuaternion.v;
+        
+        //get the final matrix of the bone in animation pose
+        uBoneAnimationPoseMatrix=rootBone->searchChild(uBoneName)->finalSpaceMatrix;
+        
+        //flip the y and z coordinates to compensate for the different coordinates systems between Blender and the Untold Engine
+        //Note that I had to use the location of the animation pose space and use it as the final space matrix location
+        uBoneAnimationPoseMatrix.matrixData[12]=bonePosition.x;
+        uBoneAnimationPoseMatrix.matrixData[13]=bonePosition.z;
+        uBoneAnimationPoseMatrix.matrixData[14]=bonePosition.y;
+        
+        return true;
+    
+    }
+    
+    return false;
+    
+}
+    
+    void U4DModel::loadIntoVisibilityManager(U4DEntityManager *uEntityManager){
+        
+        uEntityManager->loadIntoVisibilityManager(this);
+    }
+
+    U4DVector3n U4DModel::getModelDimensions(){
+        
+        return bodyCoordinates.getModelDimension();
+    }
+
     void U4DModel::setNormalMapTexture(std::string uTexture){
         
         textureInformation.setNormalBumpTexture(uTexture);
@@ -237,7 +359,7 @@ namespace U4DEngine {
     
     U4DDualQuaternion U4DModel::getBoneAnimationSpace(std::string uName){
         
-        U4DBoneData *bone=armatureManager->rootBone->searchChildrenBone(uName);
+        U4DBoneData *bone=armatureManager->rootBone->searchChild(uName);
         
         return bone->getBoneAnimationPoseSpace();
         
@@ -395,6 +517,25 @@ namespace U4DEngine {
 
     std::vector<U4DVector4n> U4DModel::getModelShaderParameterContainer(){
         return shaderParameterContainer;
+    }
+
+    void U4DModel::enableMeshManager(int uSubDivisions){
+        
+        if(meshOctreeManager==nullptr){
+            
+            //create an instance of the octree mesh manager
+            meshOctreeManager=new U4DMeshOctreeManager(this);
+            
+            //build the octree for the 3D model
+            meshOctreeManager->buildOctree(uSubDivisions); 
+            
+        }
+    }
+
+    U4DMeshOctreeManager *U4DModel::getMeshOctreeManager(){
+        
+        return meshOctreeManager;
+        
     }
     
 }

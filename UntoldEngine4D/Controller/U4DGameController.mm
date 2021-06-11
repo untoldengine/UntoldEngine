@@ -9,12 +9,12 @@
 #include "U4DGameController.h"
 #include "U4DInputElement.h"
 #include "U4DWorld.h"
-#include "U4DGameModelInterface.h"
+#include "U4DGameLogicInterface.h"
 
 
 namespace U4DEngine {
 
-    U4DGameController::U4DGameController():receivedAction(false),gameWorld(nullptr),gameModel(nullptr){
+    U4DGameController::U4DGameController():receivedAction(false),gameWorld(nullptr),gameLogic(nullptr){
         
     }
         
@@ -68,9 +68,9 @@ namespace U4DEngine {
         
     }
 
-    void U4DGameController::setGameModel(U4DGameModelInterface *uGameModel){
+    void U4DGameController::setGameLogic(U4DGameLogicInterface *uGameLogic){
         
-        gameModel=uGameModel;
+        gameLogic=uGameLogic;
         
     }
 
@@ -79,19 +79,19 @@ namespace U4DEngine {
         return gameWorld;
     }
 
-    U4DGameModelInterface* U4DGameController::getGameModel(){
+    U4DGameLogicInterface* U4DGameController::getGameLogic(){
         
-        return gameModel;
+        return gameLogic;
     }
 
     void U4DGameController::sendUserInputUpdate(void *uData){
         
         //need to add this check for ios devices
-        if(gameWorld!=nullptr && gameModel!=nullptr){
+        if(gameWorld!=nullptr && gameLogic!=nullptr){
             //Send the user input to the MVC components.
             gameWorld->receiveUserInputUpdate(uData);
             
-            gameModel->receiveUserInputUpdate(uData);
+            gameLogic->receiveUserInputUpdate(uData);
         }
         
     }
