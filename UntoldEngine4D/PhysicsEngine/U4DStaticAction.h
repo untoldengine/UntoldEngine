@@ -149,8 +149,8 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
-     @ingroup gameobjects
-     @brief The U4DStaticAction class represents a 3D static model entity
+     @ingroup physicsengine
+     @brief The U4DStaticAction class represents actions such as collision detections applied to a 3D model entity
      */
     class U4DStaticAction{
         
