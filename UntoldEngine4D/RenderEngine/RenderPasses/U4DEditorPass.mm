@@ -18,6 +18,14 @@
 #include "U4DDirectionalLight.h"
 #include "U4DLogger.h"
 
+#include "imgui.h"
+#include "imgui_impl_metal.h"
+
+#if TARGET_OS_OSX
+#include "imgui_impl_osx.h"
+
+#endif
+
 namespace U4DEngine{
 
 U4DEditorPass::U4DEditorPass(std::string uPipelineName):U4DRenderPass(uPipelineName){
@@ -33,7 +41,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     U4DDirector *director=U4DDirector::sharedInstance();
     U4DDebugger *debugger=U4DDebugger::sharedInstance();
-    
     
     float fps=director->getFPS();
     std::string profilerData=debugger->profilerData;
@@ -52,7 +59,26 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         [editorRenderEncoder pushDebugGroup:@"Editor Comp Pass"];
         editorRenderEncoder.label = @"Editor Comp Render Pass";
 
+        // Start the Dear ImGui frame
+        ImGui_ImplMetal_NewFrame(mtlRenderPassDescriptor);
+         #if TARGET_OS_OSX
+         ImGui_ImplOSX_NewFrame(director->getMTLView());
+         #endif
+         ImGui::NewFrame();
+
+         {
+             
+             ImGui::Begin("Debugger");                          // Create a window called "Hello, world!" and append into it.
+
+             ImGui::Text("FPS: %f",fps);               // Display some text (you can use a format strings too)
+             ImGui::Text("Profiler:\n %s",profilerData.c_str());
+
+             ImGui::End();
+         }
         
+        ImGui::Render();
+        ImDrawData* draw_data = ImGui::GetDrawData();
+        ImGui_ImplMetal_RenderDrawData(draw_data, uCommandBuffer, editorRenderEncoder);
 
         [editorRenderEncoder popDebugGroup];
         //end encoding
