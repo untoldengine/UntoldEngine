@@ -18,6 +18,14 @@
 #include "SandboxScene.h"
 #include "CommonProtocols.h"
 
+#include "imgui.h"
+ #include "imgui_impl_metal.h"
+
+ #if TARGET_OS_OSX
+ #include "imgui_impl_osx.h"
+
+ #endif
+
 @implementation GameViewController
 {
     MTKView *metalView;
@@ -93,6 +101,14 @@
     //If using the keyboard, then set it to false. If using a controller then set it to true
     director->setGamePadControllerPresent(false);
 
+    NSEventMask eventMask = NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged | NSEventTypeScrollWheel;
+     [NSEvent addLocalMonitorForEventsMatchingMask:eventMask handler:^NSEvent * _Nullable(NSEvent *event)
+     {
+         ImGui_ImplOSX_HandleEvent(event, self.view);
+         return event;
+     }];
+
+     ImGui_ImplOSX_Init();
 
 }
 
@@ -366,7 +382,7 @@
 
     }
     
-    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {
@@ -391,7 +407,7 @@
         
     }
     
-   
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)mouseDown:(NSEvent *)theEvent {
@@ -412,7 +428,7 @@
         
     }
     
-    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
@@ -433,7 +449,7 @@
         
     }
     
-    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (BOOL)acceptsFirstResponder
