@@ -20,7 +20,7 @@
 
 #include "imgui.h"
 #include "imgui_impl_metal.h"
-
+#include "ImGuiFileDialog.h"
 #if TARGET_OS_OSX
 #include "imgui_impl_osx.h"
 
@@ -40,6 +40,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     static bool ScrollToBottom=true;
     static U4DEntity *activeChild=nullptr;
+    static std::string filePathName;
+    static std::string filePath;
+    static bool filesFound=false;
     U4DDirector *director=U4DDirector::sharedInstance();
     U4DDebugger *debugger=U4DDebugger::sharedInstance();
     U4DLogger *logger=U4DLogger::sharedInstance();
@@ -79,7 +82,38 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         }
         
         {
+            ImGui::Begin("Scripts");
+            // open Dialog Simple
+              if (ImGui::Button("Open"))
+                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+
+              // display
+              if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
+              {
+                // action if OK
+                if (ImGuiFileDialog::Instance()->IsOk())
+                {
+                  filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                  filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+                  // action
+                  filesFound=true;
+                }else{
+                  filesFound=false;
+                }
+                
+                // close
+                ImGuiFileDialog::Instance()->Close();
+              }
             
+            if (filesFound) {
+                
+                ImGui::Text("Script %s", filePathName.c_str());
+                ImGui::Button("Run");
+                
+            }
+            
+            
+            ImGui::End();
         {
             
         ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
