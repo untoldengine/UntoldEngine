@@ -30,9 +30,6 @@ SandboxWorld::~SandboxWorld(){
 
 void SandboxWorld::init(){
     
-    //Print version
-    std::cout<<"Current Version: "<<U4DEngine::untoldengineversion<<std::endl;
-    
     /*----DO NOT REMOVE. THIS IS REQUIRED-----*/
     //Configures the perspective view, shadows, lights and camera.
     setupConfiguration();

@@ -12,6 +12,8 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <vector>
+#include "imgui.h"
 
 namespace U4DEngine {
     
@@ -40,6 +42,9 @@ namespace U4DEngine {
         ~U4DLogger();
         
     public:
+        
+        ImGuiTextBuffer logBuffer;
+        ImVector<int>       LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
         
         /**
          @brief Instance for the U4DLogger Singleton

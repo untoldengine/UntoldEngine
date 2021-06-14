@@ -170,6 +170,10 @@ namespace U4DEngine {
 
     void U4DRenderManager::initRenderPipelines(){
         
+        //Print version
+        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+        logger->log("Current Version %s",U4DEngine::untoldengineversion.c_str());
+        
         U4DDirector *director=U4DDirector::sharedInstance();
         
         id<MTLDevice> mtlDevice=director->getMTLDevice();

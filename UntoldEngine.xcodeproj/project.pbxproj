@@ -2445,8 +2445,8 @@
 		03D559E31D58246D00E567D5 /* Logger */ = {
 			isa = PBXGroup;
 			children = (
-				03D559E41D58248A00E567D5 /* U4DLogger.mm */,
 				03D559E51D58248A00E567D5 /* U4DLogger.h */,
+				03D559E41D58248A00E567D5 /* U4DLogger.mm */,
 			);
 			name = Logger;
 			sourceTree = "<group>";
