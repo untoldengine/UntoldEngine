@@ -32,14 +32,27 @@ namespace U4DEngine {
         
         if (debugMode==true) {
 
-            char buffer[1024];
+//START ORIGINAL LOGGER
+//            char buffer[1024];
+//            va_list args;
+//            va_start (args, uLog);
+//            vsprintf (buffer,uLog, args);
+//
+//            logBuffer.push_back(buffer);
+//            std::cout<<buffer<<std::endl;
+//
+//            va_end (args);
+//END ORIGINAL LOGGER
+            
+            int old_size = logBuffer.size();
             va_list args;
-            va_start (args, uLog);
-            vsprintf (buffer,uLog, args);
-            
-            std::cout<<buffer<<std::endl;
-            
-            va_end (args);
+            va_start(args, uLog);
+            logBuffer.appendfv(uLog, args);
+            va_end(args);
+            logBuffer.append("\n");
+            for (int new_size = logBuffer.size(); old_size < new_size; old_size++)
+                if (logBuffer[old_size] == '\n')
+                    LineOffsets.push_back(old_size + 1);
         
         }
     }
