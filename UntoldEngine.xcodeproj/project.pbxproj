@@ -909,6 +909,9 @@
 		03E687882674155E0079ED4D /* imgui_impl_osx.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E687742674155D0079ED4D /* imgui_impl_osx.mm */; };
 		03E687892674155E0079ED4D /* imgui_impl_osx.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E687742674155D0079ED4D /* imgui_impl_osx.mm */; };
 		03E6878A2674155E0079ED4D /* imgui_impl_osx.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E687742674155D0079ED4D /* imgui_impl_osx.mm */; settings = {COMPILER_FLAGS = "-fobjc-arc"; }; };
+		03E687B226771D410079ED4D /* ImGuiFileDialog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 03E687B026771D410079ED4D /* ImGuiFileDialog.cpp */; };
+		03E687B326771D410079ED4D /* ImGuiFileDialog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 03E687B026771D410079ED4D /* ImGuiFileDialog.cpp */; };
+		03E687B426771D410079ED4D /* ImGuiFileDialog.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 03E687B026771D410079ED4D /* ImGuiFileDialog.cpp */; };
 		03E6ED681943D6FE007AD131 /* U4DKeyboardController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */; };
 		03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED5E1943D6FE007AD131 /* U4DTouchesController.mm */; };
 		03E6ED6B1943D6FE007AD131 /* U4DControllerInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03E6ED641943D6FE007AD131 /* U4DControllerInterface.mm */; };
@@ -1427,6 +1430,9 @@
 		03E687732674155D0079ED4D /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imgui.cpp; path = Imgui/imgui.cpp; sourceTree = "<group>"; };
 		03E687742674155D0079ED4D /* imgui_impl_osx.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = imgui_impl_osx.mm; path = Imgui/imgui_impl_osx.mm; sourceTree = "<group>"; };
 		03E687752674155D0079ED4D /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imconfig.h; path = Imgui/imconfig.h; sourceTree = "<group>"; };
+		03E687B026771D410079ED4D /* ImGuiFileDialog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ImGuiFileDialog.cpp; path = Imgui/ImGuiFileDialog.cpp; sourceTree = "<group>"; };
+		03E687B126771D410079ED4D /* ImGuiFileDialog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImGuiFileDialog.h; path = Imgui/ImGuiFileDialog.h; sourceTree = "<group>"; };
+		03E687B926771DD00079ED4D /* ImGuiFileDialogConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImGuiFileDialogConfig.h; path = Imgui/ImGuiFileDialogConfig.h; sourceTree = "<group>"; };
 		03E6ED5B1943D6FE007AD131 /* U4DKeyboardController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DKeyboardController.h; sourceTree = "<group>"; };
 		03E6ED5C1943D6FE007AD131 /* U4DKeyboardController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DKeyboardController.mm; sourceTree = "<group>"; };
 		03E6ED5D1943D6FE007AD131 /* U4DTouchesController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTouchesController.h; sourceTree = "<group>"; };
@@ -2482,6 +2488,9 @@
 		03E68766267415480079ED4D /* Imgui */ = {
 			isa = PBXGroup;
 			children = (
+				03E687B026771D410079ED4D /* ImGuiFileDialog.cpp */,
+				03E687B126771D410079ED4D /* ImGuiFileDialog.h */,
+				03E687B926771DD00079ED4D /* ImGuiFileDialogConfig.h */,
 				03E687752674155D0079ED4D /* imconfig.h */,
 				03E6876B2674155B0079ED4D /* imgui_demo.cpp */,
 				03E687672674155B0079ED4D /* imgui_draw.cpp */,
@@ -3129,6 +3138,7 @@
 				03722DE4202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03FA5F8A257AB98B008CC0AB /* U4DDebugger.mm in Sources */,
 				0399D65A25B72712004C1E11 /* U4DShaderEntityPipeline.mm in Sources */,
+				03E687B326771D410079ED4D /* ImGuiFileDialog.cpp in Sources */,
 				03E687862674155E0079ED4D /* imgui.cpp in Sources */,
 				03722B552029F0F50080D069 /* U4DOBB.mm in Sources */,
 				033469B825C20BD8001F0702 /* U4DGBufferPass.mm in Sources */,
@@ -3549,6 +3559,7 @@
 				03722DE6202BF7CD0080D069 /* U4DPadAxis.mm in Sources */,
 				03FA5F8B257AB98B008CC0AB /* U4DDebugger.mm in Sources */,
 				0399D65B25B72712004C1E11 /* U4DShaderEntityPipeline.mm in Sources */,
+				03E687B426771D410079ED4D /* ImGuiFileDialog.cpp in Sources */,
 				03E687872674155E0079ED4D /* imgui.cpp in Sources */,
 				03722C8F2029F0F80080D069 /* U4DOBB.mm in Sources */,
 				033469B925C20BD8001F0702 /* U4DGBufferPass.mm in Sources */,
@@ -3840,6 +3851,7 @@
 				03E6EDE01943D816007AD131 /* U4DPhysicsEngine.mm in Sources */,
 				0341AC18204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
 				03E6877F2674155E0079ED4D /* imgui_widgets.cpp in Sources */,
+				03E687B226771D410079ED4D /* ImGuiFileDialog.cpp in Sources */,
 				0341AC06204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				037D2BE72445EFE300AB3FEF /* U4DFlock.mm in Sources */,
 				03F2DAF11F191A2600F77B78 /* imageShader.metal in Sources */,
