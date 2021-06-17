@@ -54,6 +54,10 @@ namespace U4DEngine {
         
         virtual std::string getName()=0;
         
+        virtual std::string getVertexShaderName()=0;
+        
+        virtual std::string getFragmentShaderName()=0;
+        
     };
 
 }

@@ -27,9 +27,19 @@ namespace U4DEngine {
     protected:
         
         /**
-         @brief Name of the pass
+         @brief Name of the pipeline
          */
         std::string name;
+        
+        /**
+         @brief Vertex Shader name
+         */
+        std::string vertexShaderName;
+        
+        /**
+         @brief Fragment Shader name
+         */
+        std::string fragmentShaderName;
         
         /**
          * @brief Pointer representing a Metal Device
@@ -45,8 +55,6 @@ namespace U4DEngine {
          * @brief Pointer for the rendering pipeline descriptor
          */
         MTLRenderPipelineDescriptor *mtlRenderPassPipelineDescriptor;
-        
-        
         
         
         /**
@@ -116,7 +124,9 @@ namespace U4DEngine {
         
         std::string getName();
         
+        std::string getVertexShaderName();
         
+        std::string getFragmentShaderName();
         
     };
 
