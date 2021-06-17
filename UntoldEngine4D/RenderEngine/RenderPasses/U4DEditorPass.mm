@@ -18,6 +18,9 @@
 #include "U4DDirectionalLight.h"
 #include "U4DLogger.h"
 #include "U4DScriptBindManager.h"
+#include "U4DRenderEntity.h"
+#include "U4DRenderPipelineInterface.h"
+#include "U4DModelPipeline.h"
 
 #include "imgui.h"
 #include "imgui_impl_metal.h"
@@ -82,45 +85,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         }
         
-        {
-            ImGui::Begin("Shaders");
-            
-            // open Dialog Simple
-              if (ImGui::Button("Open"))
-                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
-
-              // display
-              if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
-              {
-                // action if OK
-                if (ImGuiFileDialog::Instance()->IsOk())
-                {
-                  filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                  filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-                  // action
-                  filesFound=true;
-                }else{
-                  filesFound=false;
-                }
-                
-                // close
-                ImGuiFileDialog::Instance()->Close();
-              }
-            
-            if (filesFound) {
-                
-                ImGui::Text("Shader %s", filePathName.c_str());
-                
-                if(ImGui::Button("Hot-Reload")){
-                    
-                }
-                
-            }
-            
-            
-            ImGui::End();
-            
-        }
+        
         
         {
             ImGui::Begin("Gravity Scripts");
@@ -266,11 +231,55 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                      ImGui::SliderFloat3("Position", (float*)&pos,-20.0,20.0);
                      ImGui::SliderFloat3("Orientation", (float*)&orient,-180.0,180.0);
 
-                     ImGui::Separator();
-
                      activeChild->translateTo(pos[0], pos[1], pos[2]);
                      activeChild->rotateTo(orient[0], orient[1], orient[2]);
+                     
+                     ImGui::Separator();
+                     
+                     ImGui::Text("Render Entity");
+                     U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
+                     U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+                     ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
+                     ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
+                     ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
+                     
+                     ImGui::Separator();
+                     
+                     ImGui::Text("Hot-Reload Shader");
+                     
+                     // open Dialog Simple
+                       if (ImGui::Button("Open"))
+                         ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
 
+                       // display
+                       if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
+                       {
+                         // action if OK
+                         if (ImGuiFileDialog::Instance()->IsOk())
+                         {
+                           filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                           filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+                           // action
+                           filesFound=true;
+                         }else{
+                           filesFound=false;
+                         }
+                         
+                         // close
+                         ImGuiFileDialog::Instance()->Close();
+                       }
+                     
+                     if (filesFound) {
+                         
+                         ImGui::Text("Shader %s", filePathName.c_str());
+                         
+                         if(ImGui::Button("Hot-Reload")){
+                             
+                             pipeline->hotReloadShaders(filePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
+                         }
+                         
+                     }
+                     
                  }
 
                  ImGui::End();
