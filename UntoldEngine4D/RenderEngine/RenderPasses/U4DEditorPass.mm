@@ -17,6 +17,7 @@
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
 #include "U4DLogger.h"
+#include "U4DScriptBindManager.h"
 
 #include "imgui.h"
 #include "imgui_impl_metal.h"
@@ -76,13 +77,53 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
            ImGui::TextUnformatted(logger->logBuffer.begin());
            if (ScrollToBottom)
             ImGui::SetScrollHereY(1.0f);
-           ScrollToBottom = false;
+           //ScrollToBottom = false;
            ImGui::End();
 
         }
         
         {
-            ImGui::Begin("Scripts");
+            ImGui::Begin("Shaders");
+            
+            // open Dialog Simple
+              if (ImGui::Button("Open"))
+                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
+
+              // display
+              if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
+              {
+                // action if OK
+                if (ImGuiFileDialog::Instance()->IsOk())
+                {
+                  filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
+                  filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
+                  // action
+                  filesFound=true;
+                }else{
+                  filesFound=false;
+                }
+                
+                // close
+                ImGuiFileDialog::Instance()->Close();
+              }
+            
+            if (filesFound) {
+                
+                ImGui::Text("Shader %s", filePathName.c_str());
+                
+                if(ImGui::Button("Hot-Reload")){
+                    
+                }
+                
+            }
+            
+            
+            ImGui::End();
+            
+        }
+        
+        {
+            ImGui::Begin("Gravity Scripts");
             // open Dialog Simple
               if (ImGui::Button("Open"))
                 ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
@@ -108,12 +149,27 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             if (filesFound) {
                 
                 ImGui::Text("Script %s", filePathName.c_str());
-                ImGui::Button("Run");
+                
+                //U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
+                
+                if(ImGui::Button("Init")){
+                    //bindManager->init(filePathName);
+                }
+                
+                if(ImGui::Button("Reload Script")){
+                    //bindManager->loadScript(filePathName);
+                }
+                
+                if (ImGui::Button("Run")) {
+                    //bindManager->initGravityFunction();
+                }
                 
             }
             
-            
             ImGui::End();
+            
+        }
+        
         {
             
         ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
@@ -122,7 +178,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         ImGui::Text("Profiler:\n %s",profilerData.c_str());
         ImGui::Separator();
         //ImGui::End();
-        }
+        
             
          //ImGui::Begin("World Properties");
          ImGui::Text("Camera");
@@ -212,14 +268,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
                      ImGui::Separator();
 
-//                                     ImGui::Text("Rigid Body");
-//                                     std::string isKineticsBehavior=activeChild->isKineticsBehaviorEnabled()?"true":"false";
-//                                     std::string isCollisionBehavior=activeChild->isCollisionBehaviorEnabled()?"true":"false";
-//
-//                                     ImGui::Text("Kinetics Behavior: %s",isKineticsBehavior.c_str());
-//                                     ImGui::Text("Collision Behavior: %s",isCollisionBehavior.c_str());
-//
-//
                      activeChild->translateTo(pos[0], pos[1], pos[2]);
                      activeChild->rotateTo(orient[0], orient[1], orient[2]);
 

@@ -12,6 +12,7 @@
 #include "Constants.h"
 #include "U4DNumerical.h"
 #include "U4DTrigonometry.h"
+#include "U4DLogger.h"
 #include <cmath>
 
 namespace U4DEngine {
@@ -272,14 +273,16 @@ namespace U4DEngine {
 
     void U4DVector3n::show(){
         
-        std::cout<<"("<<x<<","<<y<<","<<z<<")"<<std::endl;
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        logger->log("%f,%f,%f",x,y,z);
+        
     }
     
     void U4DVector3n::show(std::string uString){
         
-        std::cout<<uString<<std::endl;
-        std::cout<<"("<<x<<","<<y<<","<<z<<")"<<std::endl;
-        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        logger->log("%s: %f,%f,%f",uString.c_str(),x,y,z);
+                
     }
 
     float U4DVector3n::getX(){
