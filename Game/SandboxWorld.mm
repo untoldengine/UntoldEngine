@@ -12,10 +12,10 @@
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
-#include "U4DResourceLoader.h"
+
 #include "U4DDebugger.h"
 #include "U4DSkybox.h"
-
+#include "U4DModelPipeline.h"
 #include "U4DDynamicAction.h"
 
 using namespace U4DEngine;
@@ -38,82 +38,66 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     
     
-    /*---LOAD SCENE ASSETS HERE--*/
-    //Load binary file with scene data
-    U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
-    
-    //The spaceScene.u4d file contains the data for the astronaut model and ground
-    //All of the .u4d files are found in the Resource folder. Note, you will need to use the Digital Asset Converter tool to convert all game asset data into .u4d files. For more info, go to www.untoldengine.com.
-    resourceLoader->loadSceneData("spaceScene.u4d");
-
-    //Load binary file with texture data for the astronaut
-    resourceLoader->loadTextureData("spaceTextures.u4d");
-    
-    //load ui textures contains images that can be used for the UIs. Look at the joystick instance below.
-    resourceLoader->loadTextureData("uiTextures.u4d");
-    
-    //load particle data
-    //resourceLoader->loadParticleData("redBulletEmitter.u4d");
-    
-    //Load binary file with animation data
-    resourceLoader->loadAnimationData("astronautWalkAnim.u4d");
-    
-    //load font data. In this example, the font is used for the UIs.
-    resourceLoader->loadFontData("uiFont.u4d");
-    
     setEnableGrid(true);
     
-    //Create an instance of U4DGameObject type
-    myAstronaut=new U4DEngine::U4DModel();
-
-    //Load attribute (rendering information) into the game entity
-    if (myAstronaut->loadModel("astronaut")) {
-
-        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(myAstronaut);
+    U4DEngine::U4DModelPipeline *testPipeline=new U4DEngine::U4DModelPipeline("testPipeline");
         
-        kineticAction->enableKineticsBehavior();
-        
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-        
-        kineticAction->setGravity(zero);
+    testPipeline->initPipeline("vertexTestPipelineShader", "fragmentTestPipelineShader");
 
-        kineticAction->enableCollisionBehavior();
-        
-        //Line 4. Load rendering information into the GPU
-        myAstronaut->loadRenderingInformation();
-
-        //Line 5. Add astronaut to the scenegraph
-        addChild(myAstronaut);
-
-    }
-  
-    //Line 2. Create an Animation object and link it to the 3D model
-    U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
     
-    //Line 3. Load animation data into the animation object
-    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
-
-        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
-
-    }
-
-    //Line 4. Check if the animation object exist and play the animation
-    if (walkAnimation!=nullptr) {
-
-        walkAnimation->play();
-
-    }
-    
+//    //Create an instance of U4DGameObject type
+//    myAstronaut=new U4DEngine::U4DModel();
+//
+//    //Load attribute (rendering information) into the game entity
+//    if (myAstronaut->loadModel("astronaut")) {
+//
+//        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(myAstronaut);
+//
+//        kineticAction->enableKineticsBehavior();
+//
+//        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+//
+//        kineticAction->setGravity(zero);
+//
+//        kineticAction->enableCollisionBehavior();
+//
+//        //Line 4. Load rendering information into the GPU
+//        myAstronaut->loadRenderingInformation();
+//
+//        //Line 5. Add astronaut to the scenegraph
+//        addChild(myAstronaut);
+//
+//    }
+//
+//    //Line 2. Create an Animation object and link it to the 3D model
+//    U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
+//
+//    //Line 3. Load animation data into the animation object
+//    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
+//
+//        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
+//
+//    }
+//
+//    //Line 4. Check if the animation object exist and play the animation
+//    if (walkAnimation!=nullptr) {
+//
+//        walkAnimation->play();
+//
+//    }
+//
     //Create an instance of U4DGameObject type
     U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
 
     //Line 3. Load attribute (rendering information) into the game entity
     if (ground->loadModel("island")) {
 
+        ground->setPipeline("testPipeline");
+        
         U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
-        
+
         //gkinetic->enableKineticsBehavior();
-        
+
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
 
         gkinetic->setGravity(zero);
@@ -127,15 +111,15 @@ void SandboxWorld::init(){
         addChild(ground);
 
     }
-    
-    //Render a skybox
-    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-
-    //initialize the skybox
-    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-
-    //add the skybox to the scenegraph with appropriate z-depth
-    addChild(skybox);
+//
+//    //Render a skybox
+//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+//
+//    //initialize the skybox
+//    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+//
+//    //add the skybox to the scenegraph with appropriate z-depth
+//    addChild(skybox);
 
     U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
     debugger->setEnableDebugger(true,this);

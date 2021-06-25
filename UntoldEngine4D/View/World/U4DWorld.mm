@@ -11,6 +11,7 @@
 #include "U4DGameLogicInterface.h"
 #include "U4DEntityManager.h"
 #include "CommonProtocols.h"
+#include "U4DModel.h"
 #include "U4DLayer.h"
 #include "U4DEntity.h"
 #include "U4DLayerManager.h"
@@ -180,6 +181,37 @@ namespace U4DEngine {
             
         }
         
+    }
+
+    void U4DWorld::removeAllModelChildren(){
+            
+        U4DEntity *child=lastDescendant;
+        
+        while (child!=nullptr) {
+            
+            if (child==this) break;
+            
+            if (child->getEntityType()==U4DEngine::MODEL) {
+                
+                U4DModel *tempChild=dynamic_cast<U4DModel*>(child); 
+                
+                child=child->prevInPreOrderTraversal();
+                
+                removeChild(tempChild);
+                
+//                delete tempChild;
+//
+//                tempChild=nullptr;
+                
+            }else{
+                child=child->prevInPreOrderTraversal();
+            }
+            
+        }
+        
+        prevSibling=this;
+        lastDescendant=this;
+        next=nullptr;
     }
 
 }

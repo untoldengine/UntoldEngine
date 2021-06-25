@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <string>
 #include "U4DModel.h"
+#include "gravity_value.h"
 
 namespace U4DEngine {
     
@@ -22,6 +23,8 @@ private:
     std::string name;
     
     std::string filename;
+    
+    gravity_instance_t *model_instance;
     
 public:
     
@@ -38,6 +41,8 @@ public:
     void update(double dt);
     
     void destroy();
+    
+    gravity_instance_t *getModelInstance();
     
 };
 

@@ -12,6 +12,7 @@
 #include "U4DLayerManager.h"
 #include "U4DScheduler.h"
 #include "U4DCamera.h"
+#include "U4DSceneManager.h"
 
 namespace U4DEngine {
 
@@ -36,6 +37,18 @@ namespace U4DEngine {
     }
 
     void U4DSceneLoadingState::enter(U4DScene *uScene){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        
+        uScene->gameWorld->setGameController(uScene->gameController);
+        uScene->gameWorld->setGameLogic(uScene->gameLogic);
+        
+        uScene->gameController->setGameWorld(uScene->gameWorld);
+        uScene->gameController->setGameLogic(uScene->gameLogic);
+        
+        uScene->gameLogic->setGameWorld(uScene->gameWorld);
+        uScene->gameLogic->setGameController(sceneManager->getGameController()); 
+        uScene->gameLogic->setGameEntityManager(uScene->gameWorld->getEntityManager());
         
         //Load your loading scene world
         

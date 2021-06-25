@@ -198,6 +198,55 @@ namespace U4DEngine {
             uChild->prevSibling->lastDescendant->next = uChild->lastDescendant->next;
         
     }
+
+    template <typename T>
+    void U4DEntityNode<T>::removeAllChildren(){
+        
+        T *tempParent=static_cast<T*>(this);
+        T *child=lastDescendant;
+        
+        while (child!=nullptr) {
+            
+            if (child==tempParent) break;
+            
+            T *tempChild=child;
+            
+            child=child->prevInPreOrderTraversal();
+            
+            tempParent->removeChild(tempChild);
+        }
+        
+        prevSibling=static_cast<T*>(this);
+        lastDescendant=static_cast<T*>(this);
+        next=nullptr;
+    }
+
+    template <typename T>
+    void U4DEntityNode<T>::removeAndDeleteAllChildren(){
+        
+        T *tempParent=static_cast<T*>(this);
+        T *child=lastDescendant;
+        
+        while (child!=nullptr) {
+            
+            if (child==tempParent) break;
+            
+            T *tempChild=child;
+            
+            child=child->prevInPreOrderTraversal();
+            
+            tempParent->removeChild(tempChild);
+            
+            delete tempChild;
+            
+            tempChild=nullptr;
+        }
+        
+        prevSibling=static_cast<T*>(this);
+        lastDescendant=static_cast<T*>(this);
+        next=nullptr;
+        
+    }
     
     template <typename T>
     T* U4DEntityNode<T>::prevInPreOrderTraversal(){

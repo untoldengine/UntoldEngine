@@ -16,6 +16,9 @@
 #include "U4DSceneActiveState.h"
 #include "U4DSceneIdleState.h"
 #include "U4DSceneLoadingState.h"
+#include "U4DSceneEditingState.h"
+#include "U4DScenePlayState.h"
+#include "U4DLogger.h"
 #include <thread>
 
 namespace U4DEngine {
@@ -44,21 +47,12 @@ namespace U4DEngine {
             gameController=sceneManager->getGameController();
             gameLogic=uGameLogic;
             
-            gameWorld->setGameController(gameController);
-            gameWorld->setGameLogic(gameLogic);
-            
-            gameController->setGameWorld(uGameWorld);
-            gameController->setGameLogic(gameLogic);
-            
-            gameLogic->setGameWorld(gameWorld);
-            gameLogic->setGameController(sceneManager->getGameController());
-            gameLogic->setGameEntityManager(gameWorld->getEntityManager());
-            
             sceneStateManager->changeState(U4DSceneActiveState::sharedInstance());
             
         }else{
+            U4DLogger *logger=U4DLogger::sharedInstance();
             
-            std::cout<<"The Game World or the the Game Model (logic) are nullptr"<<std::endl;
+            logger->log("The Game World or the the Game Model (logic) are nullptr");
         }
         
     
@@ -75,23 +69,42 @@ namespace U4DEngine {
             gameController=sceneManager->getGameController();
             gameLogic=uGameLogic;
             
-            gameWorld->setGameController(gameController);
-            gameWorld->setGameLogic(gameLogic);
-            
-            gameController->setGameWorld(uGameWorld);
-            gameController->setGameLogic(gameLogic);
-            
-            gameLogic->setGameWorld(gameWorld);
-            gameLogic->setGameController(sceneManager->getGameController());
-            gameLogic->setGameEntityManager(gameWorld->getEntityManager());
-            
             sceneStateManager->changeState(U4DSceneLoadingState::sharedInstance());
             
         }else{
             
-            std::cout<<"The Game World, Loading World or the the Game Model (logic) are nullptr"<<std::endl;
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("The Game World, Loading World or the the Game Model (logic) are nullptr");
+            
         }
         
+        
+    }
+
+    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld, U4DGameLogicInterface *uGameEditingLogic){
+        
+        if (uGameWorld!=nullptr  && uGameLogic!=nullptr && uEditingWorld!=nullptr && uGameEditingLogic!=nullptr) {
+            
+            
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            
+            gameWorld=uGameWorld;
+            gameController=sceneManager->getGameController();
+            gameLogic=uGameLogic;
+            
+            editingWorld=uEditingWorld;
+            gameEditingLogic=uGameEditingLogic;
+            
+            sceneStateManager->changeState(U4DSceneEditingState::sharedInstance());
+            
+        }else{
+            
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            
+            logger->log("The Game World, Loading World or the the Game Model (logic) are nullptr");
+            
+        }
         
     }
 
@@ -158,9 +171,9 @@ namespace U4DEngine {
 
     void U4DScene::determineVisibility(){
         
-        if(sceneStateManager->getCurrentState()==U4DSceneActiveState::sharedInstance()){
+        if(sceneStateManager->getCurrentState()==U4DSceneActiveState::sharedInstance() || sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()|| sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
             
-            gameWorld->entityManager->determineVisibility();
+            getGameWorld()->entityManager->determineVisibility();
             
         }
         
@@ -172,6 +185,13 @@ namespace U4DEngine {
         
     }
 
+    U4DWorld* U4DScene::getGameWorld(){
+        
+        if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()|| sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){ 
+            return editingWorld;
+        }
+        return gameWorld;
+    }
 
     U4DSceneStateManager *U4DScene::getSceneStateManager(){
         

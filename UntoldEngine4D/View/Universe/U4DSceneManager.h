@@ -11,7 +11,8 @@
 
 #include <stdio.h>
 #include "U4DScene.h"
-
+#include "U4DCallback.h"
+#include "U4DTimer.h"
 
 namespace U4DEngine {
 
@@ -22,6 +23,10 @@ namespace U4DEngine {
     class U4DSceneManager {
         
     private:
+        
+        U4DCallback<U4DSceneManager> *profilerScheduler;
+        
+        U4DTimer *profilerTimer;
         
         /**
         @brief current active scene
@@ -103,6 +108,14 @@ namespace U4DEngine {
         */
         bool getRequestToChangeScene();
 
+        std::string profilerData;
+        
+        void enableSceneProfiling();
+        
+        void disableSceneProfiling();
+        
+        void captureProfilerData();
+        
     };
 
 }

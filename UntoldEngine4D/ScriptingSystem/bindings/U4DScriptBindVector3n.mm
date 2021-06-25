@@ -10,28 +10,28 @@
 #include "U4DLogger.h"
 
 namespace U4DEngine {
-
-U4DScriptBindVector3n* U4DScriptBindVector3n::instance=0;
-
-U4DScriptBindVector3n* U4DScriptBindVector3n::sharedInstance(){
-    
-    if (instance==0) {
-        instance=new U4DScriptBindVector3n();
-    }
-
-    return instance;
-}
-
-U4DScriptBindVector3n::U4DScriptBindVector3n(){
-    
-}
-
-U4DScriptBindVector3n::~U4DScriptBindVector3n(){
-    
-}
+//
+//U4DScriptBindVector3n* U4DScriptBindVector3n::instance=0;
+//
+//U4DScriptBindVector3n* U4DScriptBindVector3n::sharedInstance(){
+//
+//    if (instance==0) {
+//        instance=new U4DScriptBindVector3n();
+//    }
+//
+//    return instance;
+//}
+//
+//U4DScriptBindVector3n::U4DScriptBindVector3n(){
+//
+//}
+//
+//U4DScriptBindVector3n::~U4DScriptBindVector3n(){
+//
+//}
 // MARK: - Gravity Bridge -
 
-bool U4DScriptBindVector3n::vector3nCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool vector3nCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // self parameter is the u4dvector3n_class create in register_cpp_classes
     gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
@@ -65,11 +65,11 @@ bool U4DScriptBindVector3n::vector3nCreate(gravity_vm *vm, gravity_value_t *args
     }else{
         logger->log("The three vector components must be float types");
     }
-    
+
     RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
 }
 
-void U4DScriptBindVector3n::vector3nFree (gravity_vm *vm, gravity_object_t *obj){
+void vector3nFree(gravity_vm *vm, gravity_object_t *obj){
     
     gravity_instance_t *instance = (gravity_instance_t *)obj;
     
@@ -81,14 +81,14 @@ void U4DScriptBindVector3n::vector3nFree (gravity_vm *vm, gravity_object_t *obj)
     
 }
 
-void U4DScriptBindVector3n::registerVector3nClasses (gravity_vm *vm){
+void registerVector3nClasses(gravity_vm *vm){
     
     //create vector3n class
     
     gravity_class_t *vector3n_class = gravity_class_new_pair(vm, "U4DVector3n", NULL, 0, 0);
     gravity_class_t *vector3n_class_meta = gravity_class_get_meta(vector3n_class);
     
-    gravity_class_bind(vector3n_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(vector3nCreate));
+    gravity_class_bind(vector3n_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(vector3nCreate)); 
     
     gravity_class_bind(vector3n_class, "x", VALUE_FROM_OBJECT(computed_property_create(NULL, NEW_FUNCTION(xGet), NEW_FUNCTION(xSet))));
     gravity_class_bind(vector3n_class, "y", VALUE_FROM_OBJECT(computed_property_create(NULL, NEW_FUNCTION(yGet), NEW_FUNCTION(ySet))));
@@ -111,7 +111,7 @@ void U4DScriptBindVector3n::registerVector3nClasses (gravity_vm *vm){
     
 }
 
-bool U4DScriptBindVector3n::vector3nMagnitude (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool vector3nMagnitude(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     
     // get self object which is the instance created in rect_create function
     gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
@@ -125,7 +125,7 @@ bool U4DScriptBindVector3n::vector3nMagnitude (gravity_vm *vm, gravity_value_t *
     RETURN_VALUE(VALUE_FROM_FLOAT(d), rindex);
 }
 
-bool U4DScriptBindVector3n::vector3nNormalize (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool vector3nNormalize (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     
     // get self object which is the instance created in rect_create function
     gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
@@ -138,7 +138,7 @@ bool U4DScriptBindVector3n::vector3nNormalize (gravity_vm *vm, gravity_value_t *
     RETURN_VALUE(VALUE_FROM_OBJECT(r), rindex);
 }
 
-bool U4DScriptBindVector3n::vector3nDot(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool vector3nDot(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     
     // get the two vector arguments
     gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
@@ -155,7 +155,7 @@ bool U4DScriptBindVector3n::vector3nDot(gravity_vm *vm, gravity_value_t *args, u
     
 }
 
-bool U4DScriptBindVector3n::vector3nCross(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool vector3nCross(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     
     // get the two vector arguments
     gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
@@ -188,12 +188,12 @@ bool U4DScriptBindVector3n::vector3nCross(gravity_vm *vm, gravity_value_t *args,
     
 }
 
-bool U4DScriptBindVector3n::vector3nShow (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool vector3nShow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in rect_create function
     gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
     
-    // get xdata (which is a cpp Rectangle instance)
+    // get xdata
     U4DVector3n *r = (U4DVector3n *)instance->xdata;
     
     r->show();
@@ -201,7 +201,7 @@ bool U4DScriptBindVector3n::vector3nShow (gravity_vm *vm, gravity_value_t *args,
     RETURN_VALUE(VALUE_FROM_BOOL(true), rindex);
 }
 
-bool U4DScriptBindVector3n::xGet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool xGet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
      // get self object which is the instance created in rect_create function
      gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
 
@@ -211,7 +211,7 @@ bool U4DScriptBindVector3n::xGet (gravity_vm *vm, gravity_value_t *args, uint16_
      RETURN_VALUE(VALUE_FROM_FLOAT(r->x), rindex);
  }
 
-bool U4DScriptBindVector3n::xSet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool xSet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
      // get self object which is the instance created in rect_create function
      gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
 
@@ -232,7 +232,7 @@ bool U4DScriptBindVector3n::xSet (gravity_vm *vm, gravity_value_t *args, uint16_
      RETURN_NOVALUE();
  }
 
-bool U4DScriptBindVector3n::yGet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool yGet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
      // get self object which is the instance created in rect_create function
      gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
 
@@ -242,7 +242,7 @@ bool U4DScriptBindVector3n::yGet (gravity_vm *vm, gravity_value_t *args, uint16_
      RETURN_VALUE(VALUE_FROM_FLOAT(r->y), rindex);
  }
 
-bool U4DScriptBindVector3n::ySet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool ySet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
      // get self object which is the instance created in rect_create function
      gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
 
@@ -264,7 +264,7 @@ bool U4DScriptBindVector3n::ySet (gravity_vm *vm, gravity_value_t *args, uint16_
  }
 
 
-bool U4DScriptBindVector3n::zGet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool zGet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
      // get self object which is the instance created in rect_create function
      gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
 
@@ -274,7 +274,7 @@ bool U4DScriptBindVector3n::zGet (gravity_vm *vm, gravity_value_t *args, uint16_
      RETURN_VALUE(VALUE_FROM_FLOAT(r->z), rindex);
  }
 
-bool U4DScriptBindVector3n::zSet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool zSet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
      // get self object which is the instance created in rect_create function
      gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
 
@@ -295,7 +295,7 @@ bool U4DScriptBindVector3n::zSet (gravity_vm *vm, gravity_value_t *args, uint16_
      RETURN_NOVALUE();
  }
 
-bool U4DScriptBindVector3n::operatorVector3nAdd (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+bool operatorVector3nAdd (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
     
     // get the two vector arguments
     gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
@@ -327,7 +327,7 @@ bool U4DScriptBindVector3n::operatorVector3nAdd (gravity_vm *vm, gravity_value_t
     RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
 }
 
-bool U4DScriptBindVector3n::operatorVector3nSub (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool operatorVector3nSub (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get the two vector arguments
     gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
@@ -360,7 +360,7 @@ bool U4DScriptBindVector3n::operatorVector3nSub (gravity_vm *vm, gravity_value_t
     
 }
 
-bool U4DScriptBindVector3n::operatorVector3nMul (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool operatorVector3nMul (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     /// get the two vector arguments
     gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
@@ -392,7 +392,7 @@ bool U4DScriptBindVector3n::operatorVector3nMul (gravity_vm *vm, gravity_value_t
     RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
 }
 
-bool U4DScriptBindVector3n::operatorVector3nDiv (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool operatorVector3nDiv (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     /// get the two vector arguments
     gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;

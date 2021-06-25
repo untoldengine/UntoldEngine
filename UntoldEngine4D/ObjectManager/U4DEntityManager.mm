@@ -32,6 +32,8 @@
 
 #include "U4DKineticDictionary.h"
 #include "U4DVisibilityDictionary.h"
+#include "U4DScriptBindModel.h"
+#include "U4DScriptInstanceManager.h"
 
 namespace U4DEngine {
     
@@ -195,6 +197,8 @@ namespace U4DEngine {
         
         profilerManager->startProfiling("Update");
         
+        U4DScriptBindModel *scriptBindModel=U4DScriptBindModel::sharedInstance();
+        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
         
         child=rootEntity;
         
@@ -202,6 +206,11 @@ namespace U4DEngine {
             
             child->update(dt);
             child->updateAllUniforms();
+            
+            if(scriptInstanceManager->modelScriptInstanceExist(child->getScriptID())){
+                scriptBindModel->update(child->getScriptID(), dt);
+            }
+            
             child=child->next;
         }
 

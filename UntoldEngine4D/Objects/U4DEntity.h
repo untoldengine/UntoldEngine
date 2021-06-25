@@ -49,6 +49,10 @@ private:
      */
     ENTITYTYPE entityType;
     
+    /**
+     @brief ID for script instance
+     */
+    int scriptID;
     
     
 protected:
@@ -103,6 +107,8 @@ public:
      */
     int zDepth;
     
+    
+    
     /**
      @brief Entity Constructor. It creates the entity with the local orientation set to zero and local position set to the origin. The forwad vector is set to (0.0,0.0,-1.0). Parent and Next pointer set to null
      */
@@ -140,6 +146,17 @@ public:
      @return Returns the name of the Entity
      */
     std::string getName();
+    
+    /**
+     @brief Get Entity script ID
+     @return Returns the script ID of the Entity
+     */
+    int getScriptID();
+    
+    /**
+     @brief Sets the Entity Script ID. This is used for scripting only
+     */
+    void setScriptID(int uScriptID);
     
     /**
      @brief Method which sets the type of the Entity

@@ -170,7 +170,7 @@ public:
     
     void receiveUserInputUpdate(void *uData);
 
-    
+    void removeAllModelChildren();
 };
     
 }

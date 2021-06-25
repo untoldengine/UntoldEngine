@@ -10,6 +10,10 @@
 #include "U4DScriptBindVector3n.h"
 #include "U4DScriptBindLogger.h"
 #include "U4DScriptBindCamera.h"
+#include "U4DScriptBindModel.h"
+#include "U4DScriptBindAnimation.h"
+#include "U4DScriptBindAnimManager.h"
+#include "U4DScriptBindDynamicAction.h"
 #include "U4DLogger.h"
 
 
@@ -27,7 +31,9 @@ namespace U4DEngine {
     }
 
     U4DScriptBindManager::U4DScriptBindManager(){
-        
+     
+        //initialize script manager
+        init();
     }
 
     U4DScriptBindManager::~U4DScriptBindManager(){
@@ -53,27 +59,29 @@ namespace U4DEngine {
         
     }
 
+
     void U4DScriptBindManager::updateGravityFunction(double dt){
         
-        gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
-        if (!VALUE_ISA_CLOSURE(update_function)) {
-            printf("Unable to find update function into Gravity VM.\n");
-            
-        }else{
-            
-            // convert function to closure
-            gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
-
-            // prepare parameters
-            
-            gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
-            gravity_value_t params[] = {p1};
-            
-            // execute init closure
-            if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
-                
-            }
-        }
+        
+//        gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
+//        if (!VALUE_ISA_CLOSURE(update_function)) {
+//            printf("Unable to find update function into Gravity VM.\n");
+//
+//        }else{
+//
+//            // convert function to closure
+//            gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
+//
+//            // prepare parameters
+//
+//            gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
+//            gravity_value_t params[] = {p1};
+//
+//            // execute init closure
+//            if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
+//
+//            }
+//        }
         
     }
 
@@ -110,12 +118,12 @@ namespace U4DEngine {
         
         size_t size = 0;
         const char *source_code = file_read(uScriptPath.c_str(), &size);
-        closure = gravity_compiler_run(compiler, source_code, size, 0, false, true);
+        gravity_closure_t *closure = gravity_compiler_run(compiler, source_code, size, 0, false, true);
         
         if (!closure){
             
             // an error occurred while compiling source code and it has already been reported by the report_error callback
-            gravity_compiler_free(compiler);
+            //gravity_compiler_free(compiler);
             return false; // syntax/semantic error
         }
         
@@ -130,7 +138,7 @@ namespace U4DEngine {
         
     }
 
-    bool U4DScriptBindManager::init(std::string uScriptPath){
+    bool U4DScriptBindManager::init(){
         
         // setup delegate
         delegate = {
@@ -146,13 +154,13 @@ namespace U4DEngine {
         // register my C++ classes inside Gravity VM
         registerClasses(vm);
         
-        if (loadScript(uScriptPath)) {
+        //if (loadScript(uScriptPath)) {
             
            
             return true;
-        }
+        //}
         
-        return false;
+        //return false;
         
     }
 
@@ -163,7 +171,7 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
         if (file_exists(path)) return file_read(path, size);
         
         // this unittest is able to resolve path only next to main test folder (not in nested folders)
-        const char *newpath = file_buildpath(path, "/Users/haroldserrano/Downloads/gravitytesting/");
+        const char *newpath = file_buildpath(path, "/Users/haroldserrano/Downloads/");
         if (!newpath) return NULL;
         
         const char *buffer = file_read(newpath, size);
@@ -175,26 +183,31 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
 
     void U4DScriptBindManager::freeObjects(gravity_vm *vm, gravity_object_t *obj){
             
-        U4DScriptBindVector3n *bindVector3n=U4DScriptBindVector3n::sharedInstance();
-        bindVector3n->vector3nFree(vm, obj);
-        
-        U4DScriptBindLogger *bindLogger=U4DScriptBindLogger::sharedInstance();
-        bindLogger->loggerFree(vm, obj);
-        
-        U4DScriptBindCamera *bindCamera=U4DScriptBindCamera::sharedInstance();
-        bindCamera->cameraFree(vm, obj);
+        vector3nFree(vm, obj);
+
     }
 
     void U4DScriptBindManager::registerClasses(gravity_vm *vm){
             
-        U4DScriptBindVector3n *bindVector3n=U4DScriptBindVector3n::sharedInstance();
-        bindVector3n->registerVector3nClasses(vm);
+        registerVector3nClasses(vm);
         
-        U4DScriptBindLogger *bindLogger=U4DScriptBindLogger::sharedInstance();
-        bindLogger->registerLoggerClasses(vm);
+        registerLoggerClasses(vm);
         
-        U4DScriptBindCamera *bindCamera=U4DScriptBindCamera::sharedInstance();
-        bindCamera->registerCameraClasses(vm);
+        registerCameraClasses(vm);
+        
+        U4DScriptBindModel *scriptBindModel=U4DScriptBindModel::sharedInstance();
+        scriptBindModel->registerModelClasses(vm);
+        
+        U4DScriptBindAnimation *scriptBindAnimation=U4DScriptBindAnimation::sharedInstance();
+        scriptBindAnimation->registerAnimationClasses(vm);
+        
+        U4DScriptBindAnimManager *scriptBindAnimManager=U4DScriptBindAnimManager::sharedInstance();
+        scriptBindAnimManager->registerAnimationManagerClasses(vm);
+        
+        U4DScriptBindDynamicAction *scriptBindDynamicAction=U4DScriptBindDynamicAction::sharedInstance();
+        
+        scriptBindDynamicAction->registerDynamicActionClasses(vm);
+        
     }
 
     void U4DScriptBindManager::reportError (gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata) {
@@ -218,7 +231,8 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
         }
 
     void U4DScriptBindManager::cleanup(){
-        gravity_compiler_free(compiler);
+        
+        //gravity_compiler_free(compiler);
         gravity_vm_free(vm);
         gravity_core_free();
     }

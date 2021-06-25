@@ -9,6 +9,9 @@
 #include "U4DRenderManager.h"
 #include <simd/simd.h>
 #include "U4DSceneManager.h"
+#include "U4DSceneStateManager.h"
+#include "U4DSceneEditingState.h"
+#include "U4DScenePlayState.h"
 #include "CommonProtocols.h"
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
@@ -255,8 +258,12 @@ namespace U4DEngine {
         finalPass.executePass(uCommandBuffer, uRootEntity, &shadowPass);
         
         
+        U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+        U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+        
+        
         //Editor Pass
-        if (debugger->getEnableDebugger()) {
+        if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance() || currentScene->getSceneStateManager()->getCurrentState()==U4DScenePlayState::sharedInstance()) {
 
             U4DEditorPass editorPass("none");
             editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);

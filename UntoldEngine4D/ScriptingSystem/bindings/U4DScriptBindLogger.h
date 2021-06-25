@@ -23,21 +23,6 @@
 
 namespace U4DEngine {
 
-class U4DScriptBindLogger {
-    
-private:
-    
-    static U4DScriptBindLogger *instance;
-    
-protected:
-    
-    U4DScriptBindLogger();
-    
-    ~U4DScriptBindLogger();
-    
-public:
-    
-    static U4DScriptBindLogger *sharedInstance();
     
     static bool loggerCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
     static bool loggerLog(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -46,5 +31,4 @@ public:
     
 };
 
-}
 #endif /* U4DScriptBindLogger_hpp */

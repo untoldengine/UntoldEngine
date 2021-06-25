@@ -25,6 +25,10 @@ void U4DScriptBehavior::attachScriptToModel(std::string uScriptPath,U4DModel *uM
     
 }
 
+gravity_instance_t *U4DScriptBehavior::getModelInstance(){
+    return model_instance;
+}
+
 void U4DScriptBehavior::init(){
     
 }

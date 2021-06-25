@@ -84,6 +84,16 @@ namespace U4DEngine {
         void removeChild(T *uChild);
         
         /**
+         @brief Method which removes all children that belongs to the node
+         */
+        void removeAllChildren();
+        
+        /**
+         @brief Method which removes and deletes all children that belongs to the node
+         */
+        void removeAndDeleteAllChildren();
+        
+        /**
          @brief Method which changes the node's last descendant in the scenegraph
          
          @param uNewLastDescendant Last descendant of the node

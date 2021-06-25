@@ -10,26 +10,7 @@
 
 namespace U4DEngine {
 
-U4DScriptBindLogger* U4DScriptBindLogger::instance=0;
-
-U4DScriptBindLogger* U4DScriptBindLogger::sharedInstance(){
-    
-    if (instance==0) {
-        instance=new U4DScriptBindLogger();
-    }
-
-    return instance;
-}
-
-U4DScriptBindLogger::U4DScriptBindLogger(){
-    
-}
-
-U4DScriptBindLogger::~U4DScriptBindLogger(){
-    
-}
-
-bool U4DScriptBindLogger::loggerCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool loggerCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // self parameter is the logger_class create in register_cpp_classes
     gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
@@ -48,7 +29,7 @@ bool U4DScriptBindLogger::loggerCreate(gravity_vm *vm, gravity_value_t *args, ui
     
 }
 
-bool U4DScriptBindLogger::loggerLog(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool loggerLog(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in logger_create function
     //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
@@ -75,11 +56,11 @@ bool U4DScriptBindLogger::loggerLog(gravity_vm *vm, gravity_value_t *args, uint1
     RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
 }
 
-void U4DScriptBindLogger::loggerFree (gravity_vm *vm, gravity_object_t *obj){
+void loggerFree (gravity_vm *vm, gravity_object_t *obj){
     
 }
 
-void U4DScriptBindLogger::registerLoggerClasses (gravity_vm *vm){
+void registerLoggerClasses (gravity_vm *vm){
     
     gravity_class_t *logger_class = gravity_class_new_pair(vm, "U4DLogger", NULL, 0, 0);
     gravity_class_t *logger_class_meta = gravity_class_get_meta(logger_class);

@@ -22,22 +22,6 @@
 #include "U4DCamera.h"
 
 namespace U4DEngine {
-
-class U4DScriptBindCamera {
-    
-private:
-    
-    static U4DScriptBindCamera *instance;
-    
-protected:
-    
-    U4DScriptBindCamera();
-    
-    ~U4DScriptBindCamera();
-    
-public:
-    
-    static U4DScriptBindCamera *sharedInstance();
     
     static bool cameraCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
     static bool cameraTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -47,7 +31,6 @@ public:
     void cameraFree (gravity_vm *vm, gravity_object_t *obj);
     void registerCameraClasses (gravity_vm *vm);
     
-};
-
 }
+
 #endif /* U4DScriptBindCamera_hpp */
