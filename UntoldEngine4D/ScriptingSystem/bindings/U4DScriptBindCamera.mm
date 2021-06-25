@@ -11,26 +11,7 @@
 
 namespace U4DEngine {
 
-U4DScriptBindCamera* U4DScriptBindCamera::instance=0;
-
-U4DScriptBindCamera* U4DScriptBindCamera::sharedInstance(){
-    
-    if (instance==0) {
-        instance=new U4DScriptBindCamera();
-    }
-
-    return instance;
-}
-
-U4DScriptBindCamera::U4DScriptBindCamera(){
-    
-}
-
-U4DScriptBindCamera::~U4DScriptBindCamera(){
-    
-}
-
-bool U4DScriptBindCamera::cameraCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool cameraCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // self parameter is the rect_class create in register_cpp_classes
     gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
@@ -49,7 +30,7 @@ bool U4DScriptBindCamera::cameraCreate(gravity_vm *vm, gravity_value_t *args, ui
     
 }
 
-bool U4DScriptBindCamera::cameraTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool cameraTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in camera_create function
     //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
@@ -84,7 +65,7 @@ bool U4DScriptBindCamera::cameraTranslateTo(gravity_vm *vm, gravity_value_t *arg
     
 }
 
-bool U4DScriptBindCamera::cameraTranslateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool cameraTranslateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in camera_create function
     //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
@@ -118,7 +99,7 @@ bool U4DScriptBindCamera::cameraTranslateBy(gravity_vm *vm, gravity_value_t *arg
     RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
 }
 
-bool U4DScriptBindCamera::cameraRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool cameraRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in camera_create function
     //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
@@ -153,7 +134,7 @@ bool U4DScriptBindCamera::cameraRotateTo(gravity_vm *vm, gravity_value_t *args, 
     
 }
 
-bool U4DScriptBindCamera::cameraRotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+bool cameraRotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in camera_create function
     //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
@@ -187,11 +168,11 @@ bool U4DScriptBindCamera::cameraRotateBy(gravity_vm *vm, gravity_value_t *args, 
     RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
 }
 
-void U4DScriptBindCamera::cameraFree (gravity_vm *vm, gravity_object_t *obj){
+void cameraFree (gravity_vm *vm, gravity_object_t *obj){
     
 }
 
-void U4DScriptBindCamera::registerCameraClasses (gravity_vm *vm){
+void registerCameraClasses (gravity_vm *vm){
     
     gravity_class_t *camera_class = gravity_class_new_pair(vm, "U4DCamera", NULL, 0, 0);
     gravity_class_t *camera_class_meta = gravity_class_get_meta(camera_class);

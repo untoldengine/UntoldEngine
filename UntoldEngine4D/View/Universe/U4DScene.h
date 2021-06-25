@@ -92,6 +92,11 @@ public:
     U4DWorld *loadingWorld;
     
     /**
+     @brief pointer to the world class representing the editing world
+     */
+    U4DWorld *editingWorld;
+    
+    /**
      @brief Used to confirm if the loading and world scene are loading simultaneously
      */
     bool componentsMultithreadLoaded;
@@ -100,6 +105,11 @@ public:
      @brief pointer to the game model(logic) interface
      */
     U4DGameLogicInterface *gameLogic;
+    
+    /**
+     @brief pointer to the game editing(logic) interface
+     */
+    U4DGameLogicInterface *gameEditingLogic;
     
     /**
      @brief Pointer to the scene state manager
@@ -128,6 +138,8 @@ public:
     */
     virtual void loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameLogicInterface *uGameLogic) final;
     
+    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld, U4DGameLogicInterface *uGameEditingLogic) final;
+    
     /**
      @brief Method in charge of updating the states of each entity
      
@@ -139,12 +151,14 @@ public:
      * @brief Renders the current entity
      * @details Updates the space matrix, any rendering flags, bones and shadows properties. It encodes the pipeline, buffers and issues the draw command
      *
-     * @param uRenderEncoder Metal encoder object for the current entity
+     * @param uCommandBuffer Metal encoder object for the current entity
      */
     virtual void render(id <MTLCommandBuffer> uCommandBuffer) final;
     
     
     U4DControllerInterface *getGameController();
+    
+    U4DWorld* getGameWorld();
     
     /**
      @brief determines if the current entity is within the camera frustum

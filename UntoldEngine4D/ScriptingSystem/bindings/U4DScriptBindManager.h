@@ -27,10 +27,6 @@ namespace U4DEngine {
         
     private:
         
-        gravity_closure_t *closure;
-        gravity_compiler_t *compiler;
-        gravity_vm *vm;
-        gravity_delegate_t delegate;
         
         static U4DScriptBindManager *instance;
         
@@ -42,13 +38,19 @@ namespace U4DEngine {
         
     public:
         
+        //gravity_closure_t *closure;
+        gravity_compiler_t *compiler;
+        gravity_vm *vm;
+        gravity_delegate_t delegate;
+        
+        
         static U4DScriptBindManager *sharedInstance();
         
         static void freeObjects(gravity_vm *vm, gravity_object_t *obj);
         static void registerClasses (gravity_vm *vm);
         static void reportError(gravity_vm *vm, error_type_t error_type, const char *message, error_desc_t error_desc, void *xdata);
         bool loadScript(std::string uScriptPath);
-        bool init(std::string uScriptPath);
+        bool init();
         void cleanup();
         void initGravityFunction();
         void updateGravityFunction(double dt);

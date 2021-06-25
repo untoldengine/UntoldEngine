@@ -19,6 +19,7 @@
 #include "U4DSceneActiveState.h"
 #include "U4DSceneIdleState.h"
 #include "CommonProtocols.h"
+#include "U4DProfilerManager.h"
 
 namespace U4DEngine {
 
@@ -54,9 +55,19 @@ namespace U4DEngine {
             controllerInput->init();
         }
         
+        profilerScheduler=new U4DCallback<U4DSceneManager>;
+        
+        profilerTimer=new U4DTimer(profilerScheduler);
+        
     }
         
     U4DSceneManager::~U4DSceneManager(){
+        
+        //unsubscribe the timer
+        profilerScheduler->unScheduleTimer(profilerTimer);
+        
+        delete profilerScheduler;
+        delete profilerTimer;
         
     }
         
@@ -145,4 +156,31 @@ namespace U4DEngine {
         
     }
 
+    void U4DSceneManager::enableSceneProfiling(){
+        
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        
+        profilerManager->setEnableProfiler(true);
+
+       profilerScheduler->scheduleClassWithMethodAndDelay(this, &U4DSceneManager::captureProfilerData, profilerTimer,1.0, true);
+        
+    }
+
+    void U4DSceneManager::disableSceneProfiling(){
+        
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        
+        profilerManager->setEnableProfiler(false);
+        
+        //unsubscribe the timer
+        profilerScheduler->unScheduleTimer(profilerTimer);
+        
+    }
+
+    void U4DSceneManager::captureProfilerData(){
+        U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
+        
+        profilerData=profilerManager->getProfileLog();
+    }
+    
 }

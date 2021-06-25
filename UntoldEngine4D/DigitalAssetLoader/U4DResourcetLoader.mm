@@ -1892,4 +1892,10 @@ namespace U4DEngine {
         
     }
 
+    std::vector<MODELRAW> U4DResourceLoader::getModelContainer(){
+        
+        return modelsContainer;
+        
+    }
+
 }

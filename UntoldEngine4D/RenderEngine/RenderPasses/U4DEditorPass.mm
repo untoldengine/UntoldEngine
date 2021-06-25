@@ -21,6 +21,18 @@
 #include "U4DRenderEntity.h"
 #include "U4DRenderPipelineInterface.h"
 #include "U4DModelPipeline.h"
+#include "U4DResourceLoader.h"
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
+#include "U4DSceneStateManager.h"
+#include "U4DSceneEditingState.h"
+#include "U4DScenePlayState.h"
+
+#include "U4DWorld.h"
+#include "U4DModel.h"
+
+//this is temp header
+#include "U4DScriptBindModel.h"
 
 #include "imgui.h"
 #include "imgui_impl_metal.h"
@@ -44,15 +56,28 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     static bool ScrollToBottom=true;
     static U4DEntity *activeChild=nullptr;
-    static std::string filePathName;
-    static std::string filePath;
-    static bool filesFound=false;
+    static std::string assetSelected;
+    static std::string scriptFilePathName;
+    static std::string scriptFilePath;
+    static bool scriptFilesFound=false;
+    static bool scriptLoadedSuccessfully=false;
+    static bool lookingForScriptFile=false;
+    
+    
+    static std::string shaderFilePathName;
+    static std::string shaderFilePath;
+    static bool shaderFilesFound=false;
+    static bool lookingForShaderFile=false;
+   
     U4DDirector *director=U4DDirector::sharedInstance();
-    U4DDebugger *debugger=U4DDebugger::sharedInstance();
     U4DLogger *logger=U4DLogger::sharedInstance();
+    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+    
+    ImGuiFileDialog gravityFileDialog;
+    ImGuiFileDialog hotReloadFileDialog;
     
     float fps=director->getFPS();
-    std::string profilerData=debugger->profilerData;
+    std::string profilerData=sceneManager->profilerData;
     
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
            mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
@@ -85,51 +110,99 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         }
         
-        
+        {
+            
+            U4DScene *scene=sceneManager->getCurrentScene();
+            U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+            ImGui::Begin("Engine Mode");
+            if (ImGui::Button("Edit")) {
+                
+                //reset the active child
+                activeChild=nullptr;
+                
+                if (sceneStateManager->getCurrentState()!=U4DSceneEditingState::sharedInstance()) {
+                    
+                //change scene state to edit mode
+                scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
+                
+                }
+            
+            }
+            ImGui::SameLine();
+            if (ImGui::Button("Play") && scriptLoadedSuccessfully==true) {
+                
+                if (sceneStateManager->getCurrentState()!=U4DScenePlayState::sharedInstance()) {
+                    
+                    //reset the active child
+                    activeChild=nullptr;
+                    
+                    U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
+                    
+                    //Change the state of the scene to play mode. This will remove all children from the
+                    //scenegraph and start anew.
+                    scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
+                    
+                    //call the init gravity function-- THIS IS FOR NOW ONLY
+                    bindManager->initGravityFunction();
+                    
+                    scriptLoadedSuccessfully=false;
+                    
+                }
+                
+            }
+            
+            ImGui::End();
+        }
         
         {
             ImGui::Begin("Gravity Scripts");
             // open Dialog Simple
-              if (ImGui::Button("Open"))
-                ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-
-              // display
-              if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
-              {
-                // action if OK
-                if (ImGuiFileDialog::Instance()->IsOk())
-                {
-                  filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                  filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-                  // action
-                  filesFound=true;
-                }else{
-                  filesFound=false;
-                }
+            if (ImGui::Button("Open Script")){
+                lookingForScriptFile=true;
                 
-                // close
-                ImGuiFileDialog::Instance()->Close();
-              }
-            
-            if (filesFound) {
-                
-                ImGui::Text("Script %s", filePathName.c_str());
-                
-                //U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
-                
-                if(ImGui::Button("Init")){
-                    //bindManager->init(filePathName);
-                }
-                
-                if(ImGui::Button("Reload Script")){
-                    //bindManager->loadScript(filePathName);
-                }
-                
-                if (ImGui::Button("Run")) {
-                    //bindManager->initGravityFunction();
-                }
-                
+                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
             }
+                
+            if(lookingForScriptFile){
+                // display
+                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                {
+                  // action if OK
+                  if (gravityFileDialog.Instance()->IsOk())
+                  {
+                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+                    // action
+                    scriptFilesFound=true;
+                  }else{
+                    scriptFilesFound=false;
+                  }
+                  
+                  // close
+                  gravityFileDialog.Instance()->Close();
+                  
+                }
+              
+              if (scriptFilesFound) {
+                  
+                  ImGui::Text("Script %s", scriptFilePathName.c_str());
+                  
+                  U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
+                  
+                  if(ImGui::Button("Load Script")){
+                      
+                      if(bindManager->loadScript(scriptFilePathName)){
+                          scriptLoadedSuccessfully=true;
+                      }else{
+                          scriptLoadedSuccessfully=false;
+                      }
+                      
+                      lookingForScriptFile=false;
+                  }
+                  
+              }
+            }
+              
             
             ImGui::End();
             
@@ -173,8 +246,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          float lightorient[3]={lightOrient.x,lightOrient.y,lightOrient.z};
          float color[3] = {diffuseColor.x,diffuseColor.y,diffuseColor.z};
 
-         ImGui::SliderFloat3("Pos", (float*)&lightpos,-30.0,30.0);
-         ImGui::SliderFloat3("Orient", (float*)&lightorient,-90.0,90.0);
+         ImGui::SliderFloat3("Light Pos", (float*)&lightpos,-30.0,30.0);
+         ImGui::SliderFloat3("Light Orient", (float*)&lightorient,-90.0,90.0);
          ImGui::SliderFloat3("Color", (float*)&color,0.0,1.0);
 
          diffuseColor=U4DVector3n(color[0],color[1],color[2]);
@@ -192,8 +265,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          ImGui::Begin("Scene Property");
          if (ImGui::TreeNode("Scenegraph"))
          {
-
-             U4DEntity *child=debugger->world->next;
+             U4DScene *scene=sceneManager->getCurrentScene();
+             U4DEntity *child=scene->getGameWorld()->next;
 
              while (child!=nullptr) {
 
@@ -233,53 +306,61 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
                      activeChild->translateTo(pos[0], pos[1], pos[2]);
                      activeChild->rotateTo(orient[0], orient[1], orient[2]);
-                     
+
                      ImGui::Separator();
-                     
+
                      ImGui::Text("Render Entity");
                      U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
                      U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
                      ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
                      ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
                      ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
-                     
-                     ImGui::Separator();
-                     
-                     ImGui::Text("Hot-Reload Shader");
-                     
-                     // open Dialog Simple
-                       if (ImGui::Button("Open"))
-                         ImGuiFileDialog::Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
 
-                       // display
-                       if (ImGuiFileDialog::Instance()->Display("ChooseFileDlgKey"))
-                       {
-                         // action if OK
-                         if (ImGuiFileDialog::Instance()->IsOk())
-                         {
-                           filePathName = ImGuiFileDialog::Instance()->GetFilePathName();
-                           filePath = ImGuiFileDialog::Instance()->GetCurrentPath();
-                           // action
-                           filesFound=true;
-                         }else{
-                           filesFound=false;
-                         }
-                         
-                         // close
-                         ImGuiFileDialog::Instance()->Close();
-                       }
-                     
-                     if (filesFound) {
-                         
-                         ImGui::Text("Shader %s", filePathName.c_str());
-                         
-                         if(ImGui::Button("Hot-Reload")){
-                             
-                             pipeline->hotReloadShaders(filePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
-                         }
-                         
+                     ImGui::Separator();
+
+                     ImGui::Text("Hot-Reload Shader");
+
+                     // open Dialog Simple
+                     if (ImGui::Button("Open Shader")){
+                         lookingForShaderFile=true;
+                         hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
                      }
-                     
+                         
+                     if (lookingForShaderFile) {
+                         
+                         // display
+                         if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                         {
+                           // action if OK
+                           if (hotReloadFileDialog.Instance()->IsOk())
+                           {
+                             shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
+                             shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
+                             // action
+                             shaderFilesFound=true;
+                           }else{
+                             shaderFilesFound=false;
+                           }
+
+                           // close
+                           
+                            hotReloadFileDialog.Instance()->Close();
+                         }
+
+                       if (shaderFilesFound) {
+
+                           ImGui::Text("Shader %s", shaderFilePathName.c_str());
+                           
+                           if(ImGui::Button("Hot-Reload")){
+                               
+                               pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
+                               lookingForShaderFile=false;
+                           }
+
+                       }
+                     }
+                       
+
                  }
 
                  ImGui::End();
@@ -293,6 +374,59 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          ImGui::End();
 
         }
+        
+        
+        {
+        ImGui::Begin("Assets");
+        if (ImGui::TreeNode("Models"))
+        {
+
+            U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+            
+            for (const auto &n : resourceLoader->getModelContainer()) {
+                
+                
+                char buf[32];
+                sprintf(buf, "%s", n.name.c_str());
+                    
+                if (ImGui::Selectable(buf,n.name.compare(assetSelected)==0)) {
+                    assetSelected=n.name;
+
+                 }
+                    
+            }
+            
+            //ImGui::Begin("load");
+            
+            if(ImGui::Button("load Assset")){
+            
+                U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+                
+                U4DScene *scene=sceneManager->getCurrentScene();
+                
+                if (scene!=nullptr) {
+                    
+                    U4DWorld *world=scene->getGameWorld();
+                    
+                    U4DModel *model=new U4DModel();
+                    
+                    if (model->loadModel(assetSelected.c_str())) {
+                        model->loadRenderingInformation();
+                        world->addChild(model);
+                    }
+                }
+                
+            }
+            //ImGui::End();
+            
+            
+            ImGui::TreePop();
+
+        }
+
+        ImGui::End();
+
+       }
         
         ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
