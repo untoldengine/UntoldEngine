@@ -307,6 +307,30 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
+    bool U4DScriptBindModel::modelSetLocalSpace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in model_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        //get the instance for matrix
+        gravity_value_t localSpaceMatrixValue=GET_VALUE(1);
+        
+        if (VALUE_ISA_INSTANCE(localSpaceMatrixValue)) {
+            
+            gravity_instance_t *localSpaceMatrix=(gravity_instance_t*)localSpaceMatrixValue.p;
+            
+            U4DMatrix4n *m=(U4DMatrix4n*)localSpaceMatrix->xdata;
+            
+            U4DModel *model = (U4DModel *)instance->xdata;
+            
+            model->setLocalSpace(*m);
+            
+            RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
     bool U4DScriptBindModel::modelLoadAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         bool d=false;
@@ -332,6 +356,64 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         
         RETURN_VALUE(VALUE_FROM_BOOL(d),rindex);
         
+    }
+
+    bool U4DScriptBindModel::modelGetBoneRestPose(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+       
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        //get the string-name of bone
+        gravity_value_t boneNameValue=GET_VALUE(1);
+        
+        //get the instance for matrix
+        gravity_value_t restPoseMatrixValue=GET_VALUE(2);
+        
+        if (VALUE_ISA_STRING(boneNameValue) && VALUE_ISA_INSTANCE(restPoseMatrixValue)) {
+            gravity_string_t *boneName=(gravity_string_t *)boneNameValue.p;
+            gravity_instance_t *restPoseMatrix=(gravity_instance_t*)restPoseMatrixValue.p;
+            
+            U4DMatrix4n *m=(U4DMatrix4n*)restPoseMatrix->xdata;
+            
+            U4DModel *model = (U4DModel *)instance->xdata;
+            
+            if(model->getBoneRestPose(boneName->s, *m)){
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptBindModel::modelGetBoneAnimationPose(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        //get the string-name of bone
+        gravity_value_t boneNameValue=GET_VALUE(1);
+        
+        //get animation instance
+        gravity_value_t animationValue=GET_VALUE(2);
+        
+        //get the instance for matrix
+        gravity_value_t poseMatrixValue=GET_VALUE(3);
+        
+        if (VALUE_ISA_STRING(boneNameValue) && VALUE_ISA_INSTANCE(animationValue) && VALUE_ISA_INSTANCE(poseMatrixValue)) {
+            
+            gravity_string_t *boneName=(gravity_string_t *)boneNameValue.p;
+            gravity_instance_t *animationInstance=(gravity_instance_t*)animationValue.p;
+            gravity_instance_t *poseMatrix=(gravity_instance_t*)poseMatrixValue.p;
+            
+            U4DMatrix4n *m=(U4DMatrix4n*)poseMatrix->xdata;
+            U4DAnimation *animation=(U4DAnimation*)animationInstance->xdata;
+            U4DModel *model = (U4DModel *)instance->xdata;
+            
+            if(model->getBoneAnimationPose(boneName->s, animation, *m)){
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
     bool U4DScriptBindModel::modelSetPipeline(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
@@ -378,6 +460,10 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         gravity_class_bind(model_class, "translateBy", NEW_CLOSURE_VALUE(modelTranslateBy));
         gravity_class_bind(model_class, "rotateTo", NEW_CLOSURE_VALUE(modelRotateTo));
         gravity_class_bind(model_class, "rotateBy", NEW_CLOSURE_VALUE(modelRotateBy));
+        gravity_class_bind(model_class, "setLocalSpace", NEW_CLOSURE_VALUE(modelSetLocalSpace));
+        
+        gravity_class_bind(model_class, "getBoneRestPose", NEW_CLOSURE_VALUE(modelGetBoneRestPose));
+        gravity_class_bind(model_class, "getBoneAnimationPose", NEW_CLOSURE_VALUE(modelGetBoneAnimationPose));
         
         gravity_class_bind(model_class, "setPipeline", NEW_CLOSURE_VALUE(modelSetPipeline));
         
