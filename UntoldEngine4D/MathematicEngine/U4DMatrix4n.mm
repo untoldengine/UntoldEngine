@@ -11,7 +11,7 @@
 #include "U4DVector3n.h"
 #include "U4DQuaternion.h"
 #include "Constants.h"
-
+#include "U4DLogger.h"
 
 namespace U4DEngine {
 // 4x4 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
@@ -480,12 +480,19 @@ void U4DMatrix4n::setOrientationAndPos(const U4DQuaternion& q, const U4DVector3n
 
 #pragma mark-show
 void U4DMatrix4n::show(){
-    
+    /*
     std::cout<<"["<<matrixData[0]<<","<<matrixData[4]<<","<<matrixData[8]<<","<<matrixData[12]<<","<<std::endl;
     std::cout<<matrixData[1]<<","<<matrixData[5]<<","<<matrixData[9]<<","<<matrixData[13]<<","<<std::endl;
     std::cout<<matrixData[2]<<","<<matrixData[6]<<","<<matrixData[10]<<","<<matrixData[14]<<","<<std::endl;
     std::cout<<matrixData[3]<<","<<matrixData[7]<<","<<matrixData[11]<<","<<matrixData[15]<<"]"<<std::endl;
-
+*/
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    
+    logger->log("[%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f",
+                matrixData[0],matrixData[4],matrixData[8],matrixData[12],
+                matrixData[1],matrixData[5],matrixData[9],matrixData[13],
+                matrixData[2],matrixData[6],matrixData[10],matrixData[14],
+                matrixData[3],matrixData[7],matrixData[11],matrixData[15]);
 }
 
 }

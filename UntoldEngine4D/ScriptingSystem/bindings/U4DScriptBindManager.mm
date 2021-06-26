@@ -8,6 +8,7 @@
 
 #include "U4DScriptBindManager.h"
 #include "U4DScriptBindVector3n.h"
+#include "U4DScriptBindMatrix4n.h"
 #include "U4DScriptBindLogger.h"
 #include "U4DScriptBindCamera.h"
 #include "U4DScriptBindModel.h"
@@ -189,7 +190,8 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
 
     void U4DScriptBindManager::registerClasses(gravity_vm *vm){
             
-        registerVector3nClasses(vm);
+        U4DScriptBindVector3n *scriptBindVector3n=U4DScriptBindVector3n::sharedInstance();
+        scriptBindVector3n->registerVector3nClasses(vm);
         
         registerLoggerClasses(vm);
         
@@ -207,6 +209,10 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
         U4DScriptBindDynamicAction *scriptBindDynamicAction=U4DScriptBindDynamicAction::sharedInstance();
         
         scriptBindDynamicAction->registerDynamicActionClasses(vm);
+        
+        U4DScriptBindMatrix4n *scriptBindMatrix4n=U4DScriptBindMatrix4n::sharedInstance();
+        scriptBindMatrix4n->registerMatrix4nClasses(vm);
+        
         
     }
 
