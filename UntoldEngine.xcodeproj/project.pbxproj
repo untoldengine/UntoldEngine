@@ -859,6 +859,9 @@
 		03C04489268547FB002B3880 /* U4DScriptBindAnimManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C04487268547FB002B3880 /* U4DScriptBindAnimManager.mm */; };
 		03C0448A268547FB002B3880 /* U4DScriptBindAnimManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C04487268547FB002B3880 /* U4DScriptBindAnimManager.mm */; };
 		03C0448B268547FB002B3880 /* U4DScriptBindAnimManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C04487268547FB002B3880 /* U4DScriptBindAnimManager.mm */; };
+		03C0448E2686F39F002B3880 /* U4DScriptBindMatrix4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C0448C2686F39F002B3880 /* U4DScriptBindMatrix4n.mm */; };
+		03C0448F2686F39F002B3880 /* U4DScriptBindMatrix4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C0448C2686F39F002B3880 /* U4DScriptBindMatrix4n.mm */; };
+		03C044902686F3A0002B3880 /* U4DScriptBindMatrix4n.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C0448C2686F39F002B3880 /* U4DScriptBindMatrix4n.mm */; };
 		03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278851F80046B00AF463C /* U4DVisibilityManager.mm */; };
 		03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */; };
 		03CAE63A2051925E00391B57 /* U4DMacMouse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6382051925E00391B57 /* U4DMacMouse.mm */; };
@@ -1506,6 +1509,8 @@
 		03C04483268520C3002B3880 /* U4DScriptBindDynamicAction.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptBindDynamicAction.h; path = ScriptingSystem/bindings/U4DScriptBindDynamicAction.h; sourceTree = "<group>"; };
 		03C04487268547FB002B3880 /* U4DScriptBindAnimManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBindAnimManager.mm; path = ScriptingSystem/bindings/U4DScriptBindAnimManager.mm; sourceTree = "<group>"; };
 		03C04488268547FB002B3880 /* U4DScriptBindAnimManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptBindAnimManager.h; path = ScriptingSystem/bindings/U4DScriptBindAnimManager.h; sourceTree = "<group>"; };
+		03C0448C2686F39F002B3880 /* U4DScriptBindMatrix4n.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBindMatrix4n.mm; path = ScriptingSystem/bindings/U4DScriptBindMatrix4n.mm; sourceTree = "<group>"; };
+		03C0448D2686F39F002B3880 /* U4DScriptBindMatrix4n.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptBindMatrix4n.h; path = ScriptingSystem/bindings/U4DScriptBindMatrix4n.h; sourceTree = "<group>"; };
 		03C278851F80046B00AF463C /* U4DVisibilityManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityManager.mm; path = VisibilityManager/U4DVisibilityManager.mm; sourceTree = "<group>"; };
 		03C278861F80046B00AF463C /* U4DVisibilityManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityManager.h; path = VisibilityManager/U4DVisibilityManager.h; sourceTree = "<group>"; };
 		03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityCulling.mm; path = VisibilityManager/U4DVisibilityCulling.mm; sourceTree = "<group>"; };
@@ -2753,7 +2758,7 @@
 				03C0446C26830BE7002B3880 /* U4DScriptInstanceManager.mm */,
 				03676A90267A53820016A83A /* U4DScriptBehavior.h */,
 				03676A8F267A53820016A83A /* U4DScriptBehavior.mm */,
-				03E688EF267793470079ED4D /* Bindings */,
+				03E688EF267793470079ED4D /* bindings */,
 				03E68862267793260079ED4D /* compiler */,
 				03E68895267793270079ED4D /* optionals */,
 				03E68888267793270079ED4D /* runtime */,
@@ -2860,7 +2865,7 @@
 			path = ScriptingSystem/optionals;
 			sourceTree = "<group>";
 		};
-		03E688EF267793470079ED4D /* Bindings */ = {
+		03E688EF267793470079ED4D /* bindings */ = {
 			isa = PBXGroup;
 			children = (
 				03E688F1267794410079ED4D /* U4DScriptBindManager.h */,
@@ -2879,8 +2884,10 @@
 				03C04482268520C3002B3880 /* U4DScriptBindDynamicAction.mm */,
 				03C04488268547FB002B3880 /* U4DScriptBindAnimManager.h */,
 				03C04487268547FB002B3880 /* U4DScriptBindAnimManager.mm */,
+				03C0448D2686F39F002B3880 /* U4DScriptBindMatrix4n.h */,
+				03C0448C2686F39F002B3880 /* U4DScriptBindMatrix4n.mm */,
 			);
-			name = Bindings;
+			name = bindings;
 			sourceTree = "<group>";
 		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
@@ -3403,6 +3410,7 @@
 				03E688CB267793280079ED4D /* gravity_memory.c in Sources */,
 				03722BB02029F0F50080D069 /* particleSystemShader.metal in Sources */,
 				03722B892029F0F50080D069 /* U4DScene.mm in Sources */,
+				03C0448F2686F39F002B3880 /* U4DScriptBindMatrix4n.mm in Sources */,
 				03722BB72029F0F50080D069 /* U4DVisibleEntity.mm in Sources */,
 				03676AA7267B96EC0016A83A /* imgui.cpp in Sources */,
 				03722BEF2029F0F50080D069 /* U4DCallback.mm in Sources */,
@@ -3863,6 +3871,7 @@
 				03E688CC267793280079ED4D /* gravity_memory.c in Sources */,
 				03722CEA2029F0F80080D069 /* particleSystemShader.metal in Sources */,
 				03722CC32029F0F80080D069 /* U4DScene.mm in Sources */,
+				03C044902686F3A0002B3880 /* U4DScriptBindMatrix4n.mm in Sources */,
 				03722CF12029F0F80080D069 /* U4DVisibleEntity.mm in Sources */,
 				03722D292029F0F80080D069 /* U4DCallback.mm in Sources */,
 				03722CE32029F0F80080D069 /* U4DControllerInterface.mm in Sources */,
@@ -4390,6 +4399,7 @@
 				03E6873C2672A9950079ED4D /* U4DVisibilityDictionary.mm in Sources */,
 				03E687762674155D0079ED4D /* imgui_draw.cpp in Sources */,
 				037F25B723F0D5860053FAE0 /* U4DResourcetLoader.mm in Sources */,
+				03C0448E2686F39F002B3880 /* U4DScriptBindMatrix4n.mm in Sources */,
 				037C474217B597CB007B8283 /* U4DModel.mm in Sources */,
 				0334697625C190A1001F0702 /* U4DRenderPassInterface.mm in Sources */,
 				0397E485251B98C30020EBD9 /* checkboxUIShader.metal in Sources */,
