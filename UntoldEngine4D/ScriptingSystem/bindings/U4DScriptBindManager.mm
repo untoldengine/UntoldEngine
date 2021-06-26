@@ -183,7 +183,7 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
 
     void U4DScriptBindManager::freeObjects(gravity_vm *vm, gravity_object_t *obj){
             
-        vector3nFree(vm, obj);
+        //vector3nFree(vm, obj);
 
     }
 

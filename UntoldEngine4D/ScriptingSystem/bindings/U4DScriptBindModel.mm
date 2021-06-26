@@ -104,6 +104,40 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(d),rindex);
     }
 
+bool U4DScriptBindModel::modelAddChild(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+    
+    gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+    gravity_value_t childValue=GET_VALUE(1);
+    
+    bool d=false;
+    
+    if (VALUE_ISA_INSTANCE(childValue)) {
+        
+        gravity_instance_t *childInstance=(gravity_instance_t *)childValue.p;
+        
+        U4DModel *model = (U4DModel *)instance->xdata;
+        U4DModel *child=(U4DModel *)childInstance->xdata;
+    
+    
+        if (model!=nullptr && child!=nullptr) {
+            
+            U4DEntity *parent=child->getParent();
+            parent->removeChild(child);
+            model->addChild(child);
+            
+            d=true;
+        }
+    }else{
+    
+            U4DLogger *logger=U4DLogger::sharedInstance();
+            logger->log("Unable to add child. Please check that both instances are of U4DModel type");
+        }
+    
+    RETURN_VALUE(VALUE_FROM_BOOL(d),rindex);
+    
+}
+
 bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in player_create function
@@ -337,6 +371,8 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         
         gravity_class_bind(model_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(modelCreate));
         gravity_class_bind(model_class, "loadModel", NEW_CLOSURE_VALUE(modelLoad));
+        gravity_class_bind(model_class, "addChild", NEW_CLOSURE_VALUE(modelAddChild));
+        
         gravity_class_bind(model_class,"getAbsolutePosition",NEW_CLOSURE_VALUE(modelGetAbsolutePosition));
         gravity_class_bind(model_class, "translateTo", NEW_CLOSURE_VALUE(modelTranslateTo));
         gravity_class_bind(model_class, "translateBy", NEW_CLOSURE_VALUE(modelTranslateBy));
@@ -384,8 +420,8 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
 
         if (update_closure==nullptr) {
 
-            U4DLogger *logger=U4DLogger::sharedInstance();
-            logger->log("Unable to find update method into Gravity VM");
+//            U4DLogger *logger=U4DLogger::sharedInstance();
+//            logger->log("Unable to find update method into Gravity VM");
 
         }else{
             gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
