@@ -51,9 +51,16 @@ namespace U4DEngine {
         static bool modelRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelRotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        static bool modelSetLocalSpace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         static bool modelSetPipeline(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         static bool modelLoadAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool modelGetBoneRestPose(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool modelGetBoneAnimationPose(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         
         void modelFree (gravity_vm *vm, gravity_object_t *obj);
         void registerModelClasses (gravity_vm *vm);
