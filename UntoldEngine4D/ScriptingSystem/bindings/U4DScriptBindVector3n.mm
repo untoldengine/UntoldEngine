@@ -98,6 +98,7 @@ void U4DScriptBindVector3n::registerVector3nClasses(gravity_vm *vm){
     gravity_class_bind(vector3n_class, "normalize", NEW_CLOSURE_VALUE(vector3nNormalize));
     gravity_class_bind(vector3n_class, "dot", NEW_CLOSURE_VALUE(vector3nDot));
     gravity_class_bind(vector3n_class, "cross", NEW_CLOSURE_VALUE(vector3nCross));
+    gravity_class_bind(vector3n_class, "angle", NEW_CLOSURE_VALUE(vector3nAngle));
     
     gravity_class_bind(vector3n_class, "show", NEW_CLOSURE_VALUE(vector3nShow));
     
@@ -165,7 +166,7 @@ bool U4DScriptBindVector3n::vector3nCross(gravity_vm *vm, gravity_value_t *args,
     U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
     U4DVector3n *vector2 = (U4DVector3n *)v2->xdata;
     
-    // add the vectors
+    // cross the vectors
     U4DVector3n v = (*vector1).cross(*(vector2));
     
     // create a new vector type
@@ -185,6 +186,23 @@ bool U4DScriptBindVector3n::vector3nCross(gravity_vm *vm, gravity_value_t *args,
     gravity_instance_setxdata(result, r);
 
     RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+    
+}
+
+bool U4DScriptBindVector3n::vector3nAngle(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+    
+    // get the two vector arguments
+    gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+    gravity_instance_t *v2 = (gravity_instance_t *)GET_VALUE(1).p;
+    
+    // get xdata for both vectors
+    U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+    U4DVector3n *vector2 = (U4DVector3n *)v2->xdata;
+    
+    // get the angle
+    float angle = (*vector1).angle(*(vector2));
+
+    RETURN_VALUE(VALUE_FROM_FLOAT(angle), rindex);
     
 }
 
@@ -370,7 +388,7 @@ bool U4DScriptBindVector3n::operatorVector3nMul (gravity_vm *vm, gravity_value_t
     // get xdata for both vectors
     U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
     
-    //add the vectors
+    //multiply the vectors
     U4DVector3n v=*vector1*scalar;
     
     // create a new vector type

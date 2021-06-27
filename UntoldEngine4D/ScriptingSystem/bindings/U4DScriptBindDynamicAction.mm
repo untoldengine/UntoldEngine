@@ -122,6 +122,62 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
+    bool U4DScriptBindDynamicAction::dynamicActionGetMass(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in dynamicAction_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata
+        U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+        
+        if (dynamicAction!=nullptr) {
+            
+            float mass=dynamicAction->getMass();
+            
+            RETURN_VALUE(VALUE_FROM_FLOAT(mass), rindex);
+        }
+     
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        logger->log("The dynamic action is null");
+    
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    
+    }
+
+    bool U4DScriptBindDynamicAction::dynamicActionInitMass(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in dynamicAction_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        gravity_value_t massValue=GET_VALUE(1);
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==2 && VALUE_ISA_FLOAT(massValue)) {
+            
+            gravity_float_t mass=massValue.f;
+            
+            // get xdata
+            U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+            
+            if (dynamicAction!=nullptr) {
+                
+                dynamicAction->initMass(mass);
+                
+            }
+            
+            RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        if (nargs!=2) {
+            
+            logger->log("Mass value is missing. Also, the mass type should be a float.");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
     bool U4DScriptBindDynamicAction::dynamicActionSetVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         // get self object which is the instance created in dynamicAction_create function
@@ -157,6 +213,44 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
         
     }
+
+bool U4DScriptBindDynamicAction::dynamicActionGetVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+    
+    // get self object which is the instance created in dynamicAction_create function
+    gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+    
+    // get xdata
+    U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+    
+    if (dynamicAction!=nullptr) {
+        
+        U4DVector3n v=dynamicAction->getVelocity();
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+        
+        // lookup class "U4DVector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Player instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+        
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+    }
+ 
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    logger->log("Error: The dynamic action is null");
+
+    RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+}
 
     bool U4DScriptBindDynamicAction::dynamicActionSetGravity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
@@ -215,7 +309,12 @@ namespace U4DEngine {
         
         gravity_class_bind(dynamicAction_class, "addForce", NEW_CLOSURE_VALUE(dynamicActionAddForce));
         gravity_class_bind(dynamicAction_class, "setVelocity", NEW_CLOSURE_VALUE(dynamicActionSetVelocity));
+        gravity_class_bind(dynamicAction_class, "getVelocity", NEW_CLOSURE_VALUE(dynamicActionGetVelocity));
         gravity_class_bind(dynamicAction_class, "setGravity", NEW_CLOSURE_VALUE(dynamicActionSetGravity));
+        
+        gravity_class_bind(dynamicAction_class, "getMass", NEW_CLOSURE_VALUE(dynamicActionGetMass));
+        
+        gravity_class_bind(dynamicAction_class, "initMass", NEW_CLOSURE_VALUE(dynamicActionInitMass));
 
         
         // register model class inside VM

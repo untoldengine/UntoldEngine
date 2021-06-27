@@ -47,6 +47,7 @@ bool U4DScriptBindMatrix4n::matrix4nCreate(gravity_vm *vm, gravity_value_t *args
         gravity_instance_setxdata(instance, r);
         
         RETURN_VALUE(VALUE_FROM_OBJECT(instance),rindex);
+        
     }else if(nargs==17){
         
         RETURN_VALUE(VALUE_FROM_OBJECT(instance),rindex);
@@ -54,7 +55,7 @@ bool U4DScriptBindMatrix4n::matrix4nCreate(gravity_vm *vm, gravity_value_t *args
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     
-    logger->log("Unable to create a U4DMatrix4n class.");
+    logger->log("Unable to create a U4DMatrix4n object.");
     
     RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     
@@ -76,6 +77,13 @@ bool U4DScriptBindMatrix4n::matrix4nShow(gravity_vm *vm, gravity_value_t *args, 
 
 void U4DScriptBindMatrix4n::matrix4nFree(gravity_vm *vm, gravity_object_t *obj){
     
+    gravity_instance_t *instance = (gravity_instance_t *)obj;
+    
+    // get xdata (which is a U4DMatrix4n instance)
+    U4DMatrix4n *r = (U4DMatrix4n *)instance->xdata;
+    
+    // explicitly free memory
+    delete r;
 }
 
 void U4DScriptBindMatrix4n::registerMatrix4nClasses(gravity_vm *vm){

@@ -49,8 +49,9 @@ namespace U4DEngine {
         
         U4DModel *model = new U4DModel();
         
-        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
-        scriptInstanceManager->loadModelScriptInstance(model, instance);
+//        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
+//        scriptInstanceManager->loadModelScriptInstance(model, instance);
+        
         
         // set cpp instance and xdata of the gravity instance
         gravity_instance_setxdata(instance, model);
@@ -96,6 +97,10 @@ namespace U4DEngine {
                 model->loadRenderingInformation();
                 
                 world->addChild(model);
+                
+                U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
+                scriptInstanceManager->loadModelScriptInstance(model, instance);
+                
                 
                 d=true;
             }
@@ -244,7 +249,25 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
         
         // check for optional parameters here (if you need to process a more complex constructor)
-        if (nargs==4) {
+        if(nargs==2){
+            
+            gravity_value_t quaternionValue=GET_VALUE(1);
+            
+            if (VALUE_ISA_INSTANCE(quaternionValue)) {
+                
+                gravity_instance_t *quaterionInstance=(gravity_instance_t*)quaternionValue.p;
+                
+                U4DQuaternion *q=(U4DQuaternion*)quaterionInstance->xdata;
+                
+                U4DModel *model = (U4DModel *)instance->xdata;
+                
+                model->rotateTo(*q);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+            
+        }else if(nargs==4) {
         
             if (VALUE_ISA_FLOAT(GET_VALUE(1)) &&  VALUE_ISA_FLOAT(GET_VALUE(2)) && VALUE_ISA_FLOAT(GET_VALUE(3))) {
                 
@@ -328,6 +351,123 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         }
         
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptBindModel::modelSetForwardVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in model_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        //get the instance for matrix
+        gravity_value_t forwardVectorValue=GET_VALUE(1);
+        
+        if (VALUE_ISA_INSTANCE(forwardVectorValue)) {
+            
+            gravity_instance_t *forwardVectorInstance=(gravity_instance_t*)forwardVectorValue.p;
+            
+            U4DVector3n *forwardVector=(U4DVector3n*)forwardVectorInstance->xdata;
+            
+            U4DModel *model = (U4DModel *)instance->xdata;
+            
+            model->setEntityForwardVector(*forwardVector);
+            
+            RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptBindModel::modelGetForwardVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in model_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata
+        U4DModel *model = (U4DModel *)instance->xdata;
+        
+        U4DVector3n v=model->getEntityForwardVector();
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+        
+        
+        // lookup class "U4DVector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Player instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+        
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+    }
+
+    bool U4DScriptBindModel::modelGetViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in model_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata
+        U4DModel *model = (U4DModel *)instance->xdata;
+        
+        U4DVector3n v=model->getViewInDirection();
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+        
+        
+        // lookup class "U4DVector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Player instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+        
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+    }
+
+    bool U4DScriptBindModel::modelGetAbsMatrixOrientation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in model_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata
+        U4DModel *model = (U4DModel *)instance->xdata;
+        
+        U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
+        
+        //float m0,float m3,float m6,float m1,float m4,float m7,float m2,float m5,float m8
+        // create a new vector type
+        U4DMatrix3n *r = new U4DMatrix3n(m.matrixData[0],m.matrixData[3],m.matrixData[6],
+                                         m.matrixData[1],m.matrixData[4],m.matrixData[7],
+                                         m.matrixData[2],m.matrixData[5],m.matrixData[8]);
+
+
+        // lookup class "U4DMatrix3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DMatrix3n", strlen("U4DMatrix3n")));
+
+        // create a Player instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
         
     }
 
@@ -461,6 +601,12 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         gravity_class_bind(model_class, "rotateTo", NEW_CLOSURE_VALUE(modelRotateTo));
         gravity_class_bind(model_class, "rotateBy", NEW_CLOSURE_VALUE(modelRotateBy));
         gravity_class_bind(model_class, "setLocalSpace", NEW_CLOSURE_VALUE(modelSetLocalSpace));
+        
+        gravity_class_bind(model_class, "setEntityForwardVector", NEW_CLOSURE_VALUE(modelSetForwardVector));
+        gravity_class_bind(model_class, "getEntityForwardVector", NEW_CLOSURE_VALUE(modelGetForwardVector));
+        gravity_class_bind(model_class, "getViewInDirection", NEW_CLOSURE_VALUE(modelGetViewInDirection));
+        gravity_class_bind(model_class, "getAbsoluteMatrixOrientation", NEW_CLOSURE_VALUE(modelGetAbsMatrixOrientation));
+        
         
         gravity_class_bind(model_class, "getBoneRestPose", NEW_CLOSURE_VALUE(modelGetBoneRestPose));
         gravity_class_bind(model_class, "getBoneAnimationPose", NEW_CLOSURE_VALUE(modelGetBoneAnimationPose));

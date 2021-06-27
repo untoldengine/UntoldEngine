@@ -8,13 +8,17 @@
 
 #include "U4DScriptBindManager.h"
 #include "U4DScriptBindVector3n.h"
+#include "U4DScriptBindMatrix3n.h"
 #include "U4DScriptBindMatrix4n.h"
+#include "U4DScriptBindQuaternion.h"
 #include "U4DScriptBindLogger.h"
 #include "U4DScriptBindCamera.h"
 #include "U4DScriptBindModel.h"
 #include "U4DScriptBindAnimation.h"
 #include "U4DScriptBindAnimManager.h"
 #include "U4DScriptBindDynamicAction.h"
+
+
 #include "U4DLogger.h"
 
 
@@ -124,7 +128,7 @@ namespace U4DEngine {
         if (!closure){
             
             // an error occurred while compiling source code and it has already been reported by the report_error callback
-            //gravity_compiler_free(compiler);
+            gravity_compiler_free(compiler);
             return false; // syntax/semantic error
         }
         
@@ -183,7 +187,7 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
     }
 
     void U4DScriptBindManager::freeObjects(gravity_vm *vm, gravity_object_t *obj){
-            
+        
         //vector3nFree(vm, obj);
 
     }
@@ -213,6 +217,12 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
         U4DScriptBindMatrix4n *scriptBindMatrix4n=U4DScriptBindMatrix4n::sharedInstance();
         scriptBindMatrix4n->registerMatrix4nClasses(vm);
         
+        U4DScriptBindMatrix3n *scriptBindMatrix3n=U4DScriptBindMatrix3n::sharedInstance();
+        scriptBindMatrix3n->registerMatrix3nClasses(vm);
+        
+        U4DScriptBindQuaternion *scriptBindQuaternion=U4DScriptBindQuaternion::sharedInstance();
+        
+        scriptBindQuaternion->registerQuaternionClasses(vm);
         
     }
 
