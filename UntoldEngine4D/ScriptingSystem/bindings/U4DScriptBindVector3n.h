@@ -50,6 +50,7 @@ public:
         
     static bool vector3nDot(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
     static bool vector3nCross(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+    static bool vector3nAngle(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
     static bool vector3nShow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
     static bool xGet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);

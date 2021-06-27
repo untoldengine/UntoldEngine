@@ -12,6 +12,7 @@
 #include "Constants.h"
 #include "U4DTrigonometry.h"
 #include <cmath>
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -383,8 +384,10 @@ void U4DQuaternion::show(){
     float y=v.y;
     float z=v.z;
     
-     std::cout<<"("<<s<<","<<x<<","<<y<<","<<z<<")"<<std::endl;
+     //std::cout<<"("<<s<<","<<x<<","<<y<<","<<z<<")"<<std::endl;
     
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    logger->log("%f,%f,%f,%f",s,x,y,z);
     
 }
 
