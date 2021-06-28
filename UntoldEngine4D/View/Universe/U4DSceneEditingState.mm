@@ -53,12 +53,11 @@ namespace U4DEngine {
         uScene->gameEditingLogic->setGameController(sceneManager->getGameController());
         uScene->gameEditingLogic->setGameEntityManager(uScene->editingWorld->getEntityManager());
         
-        //Load your loading scene world
-        uScene->editingWorld->removeAllModelChildren();
         
-        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
         
-        scriptInstanceManager->removeAllScriptInstances();
+//        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
+//
+//        scriptInstanceManager->removeAllScriptInstances();
         
         uScene->editingWorld->init();
         
@@ -69,17 +68,22 @@ namespace U4DEngine {
         
     void U4DSceneEditingState::execute(U4DScene *uScene, double dt){
         
-        safeToChangeState=false;
+        if(!uScene->getPauseScene()){
+            
+            safeToChangeState=false;
+            
+            //update the game controller
+            uScene->gameController->update(dt);
+            
+            //update the game model
+            uScene->gameEditingLogic->update(dt);
+            
+            //if main scene world finished loading, then change scene
+            //update the entity manager
+            uScene->editingWorld->entityManager->update(dt); //need to add dt to view
+            
+        }
         
-        //update the game controller
-        uScene->gameController->update(dt);
-        
-        //update the game model
-        uScene->gameEditingLogic->update(dt);
-        
-        //if main scene world finished loading, then change scene
-        //update the entity manager
-        uScene->editingWorld->entityManager->update(dt); //need to add dt to view
         
     }
 
@@ -92,7 +96,9 @@ namespace U4DEngine {
             
     
     void U4DSceneEditingState::exit(U4DScene *uScene){
-        
+     
+        //Load your loading scene world
+        uScene->editingWorld->removeAllModelChildren();
     }
 
     bool U4DSceneEditingState::isSafeToChangeState(U4DScene *uScene){
