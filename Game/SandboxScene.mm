@@ -38,7 +38,7 @@ void SandboxScene::init(){
     sandboxEditWorld=new SandboxEditWorld();
     sandboxEditLogic=new SandboxEditLogic();
     
-    loadComponents(sandboxWorld, sandboxLogic,sandboxEditWorld, sandboxEditLogic);
+    
     
     /*---LOAD SCENE ASSETS HERE--*/
     //Load binary file with scene data
@@ -68,4 +68,5 @@ void SandboxScene::init(){
         
     testPipeline->initPipeline("vertexTestPipelineShader", "fragmentTestPipelineShader");
     
+    loadComponents(sandboxWorld, sandboxLogic,sandboxEditWorld, sandboxEditLogic);
 }

@@ -199,9 +199,9 @@ namespace U4DEngine {
                 
                 removeChild(tempChild);
                 
-//                delete tempChild;
-//
-//                tempChild=nullptr;
+                delete tempChild;
+
+                tempChild=nullptr;
                 
             }else{
                 child=child->prevInPreOrderTraversal();

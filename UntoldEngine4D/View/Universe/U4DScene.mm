@@ -17,14 +17,13 @@
 #include "U4DSceneIdleState.h"
 #include "U4DSceneLoadingState.h"
 #include "U4DSceneEditingState.h"
-#include "U4DScenePlayState.h"
 #include "U4DLogger.h"
 #include <thread>
 
 namespace U4DEngine {
     
     //constructor
-    U4DScene::U4DScene():sceneStateManager(nullptr),accumulator(0.0),globalTime(0.0),componentsMultithreadLoaded(false),anchorMouse(false){
+    U4DScene::U4DScene():sceneStateManager(nullptr),accumulator(0.0),globalTime(0.0),componentsMultithreadLoaded(false),anchorMouse(false),pauseScene(true){
 
         sceneStateManager=new U4DSceneStateManager(this);
         
@@ -171,7 +170,7 @@ namespace U4DEngine {
 
     void U4DScene::determineVisibility(){
         
-        if(sceneStateManager->getCurrentState()==U4DSceneActiveState::sharedInstance() || sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()|| sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
+        if(sceneStateManager->getCurrentState()==U4DSceneActiveState::sharedInstance() || sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
             
             getGameWorld()->entityManager->determineVisibility();
             
@@ -187,7 +186,7 @@ namespace U4DEngine {
 
     U4DWorld* U4DScene::getGameWorld(){
         
-        if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()|| sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){ 
+        if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
             return editingWorld;
         }
         return gameWorld;
@@ -213,6 +212,14 @@ namespace U4DEngine {
     bool U4DScene::getAnchorMouse(){ 
         
         return anchorMouse;
+    }
+
+    void U4DScene::setPauseScene(bool uValue){
+        pauseScene=uValue;
+    }
+
+    bool U4DScene::getPauseScene(){
+        return pauseScene;
     }
 
 }

@@ -17,6 +17,9 @@
 #include "U4DModelPipeline.h"
 #include "U4DDynamicAction.h"
 
+#include "Player.h"
+#include "Field.h"
+
 using namespace U4DEngine;
 
 SandboxEditWorld::SandboxEditWorld(){
@@ -39,21 +42,40 @@ void SandboxEditWorld::init(){
     
     setEnableGrid(true);
     
-//    //Create an instance of U4DGameObject type
-//    U4DEngine::U4DModel *player=new U4DEngine::U4DModel();
-//
+    //Create an instance of U4DGameObject type
+    Player *player=new Player();
+    
+    if(player->init("player0")){
+        
+        addChild(player);
+    }
+    
+    Field *field=new Field();
+    
+    if(field->init("field")){
+        
+        addChild(field);
+        
+    }
+
 //    //Line 3. Load attribute (rendering information) into the game entity
 //    if (player->loadModel("player0")) {
 //
 //        player->setPipeline("testPipeline");
 //
+////        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(player);
+////
+////        kineticAction->enableKineticsBehavior();
+////
+////        kineticAction->enableCollisionBehavior();
+//
 //        //Line 4. Load rendering information into the GPU
 //        player->loadRenderingInformation();
-//
 //
 //        //Line 5. Add astronaut to the scenegraph
 //        addChild(player);
 //
+//        //player->translateBy(0.0, 10.0, 0.0);
 //
 //    }
     
@@ -61,19 +83,19 @@ void SandboxEditWorld::init(){
 //    U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
 //
 //    //Line 3. Load attribute (rendering information) into the game entity
-//    if (ground->loadModel("island")) {
+//    if (ground->loadModel("field")) {
 //
-//        ground->setPipeline("testPipeline");
+//        //ground->setPipeline("testPipeline");
 //
-//        U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
-//
-//        //gkinetic->enableKineticsBehavior();
-//
-//        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-//
-//        gkinetic->setGravity(zero);
-//
-//        gkinetic->enableCollisionBehavior();
+////        U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
+////
+////        //gkinetic->enableKineticsBehavior();
+////
+////        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+////
+////        gkinetic->setGravity(zero);
+////
+////        gkinetic->enableCollisionBehavior();
 //
 //        //Line 4. Load rendering information into the GPU
 //        ground->loadRenderingInformation();
@@ -82,6 +104,7 @@ void SandboxEditWorld::init(){
 //        addChild(ground);
 //
 //    }
+    
 }
 
 

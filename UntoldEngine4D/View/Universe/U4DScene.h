@@ -49,6 +49,8 @@ private:
      */
     bool anchorMouse;
     
+    bool pauseScene;
+    
 public:
     
     /**
@@ -192,6 +194,10 @@ public:
      @brief get if mouse should be anhored to the center of the screen
      */
     bool getAnchorMouse();
+    
+    void setPauseScene(bool uValue);
+    
+    bool getPauseScene();
     
 };
 

@@ -118,7 +118,7 @@ namespace U4DEngine {
             
             //sort the entities
             //renderManager->sortEntity(child);
-        
+            child->updateAllUniforms();
             child=child->next;
         
         }
@@ -205,7 +205,7 @@ namespace U4DEngine {
         while (child!=NULL) {
             
             child->update(dt);
-            child->updateAllUniforms();
+            //child->updateAllUniforms();
             
             if(scriptInstanceManager->modelScriptInstanceExist(child->getScriptID())){
                 scriptBindModel->update(child->getScriptID(), dt);
