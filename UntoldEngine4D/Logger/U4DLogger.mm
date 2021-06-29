@@ -28,35 +28,40 @@ namespace U4DEngine {
         return instance;
     }
     
+
     void U4DLogger::log(const char* uLog, ...){
         
-        if (debugMode==true) {
-
-//START ORIGINAL LOGGER
-//            char buffer[1024];
-//            va_list args;
-//            va_start (args, uLog);
-//            vsprintf (buffer,uLog, args);
-//
-//            logBuffer.push_back(buffer);
-//            std::cout<<buffer<<std::endl;
-//
-//            va_end (args);
-//END ORIGINAL LOGGER
-            
-            int old_size = logBuffer.size();
-            va_list args;
-            va_start(args, uLog);
-            logBuffer.appendfv(uLog, args);
-            va_end(args);
-            logBuffer.append("\n");
-            for (int new_size = logBuffer.size(); old_size < new_size; old_size++)
-                if (logBuffer[old_size] == '\n')
-                    LineOffsets.push_back(old_size + 1);
         
+        if (debugMode==true) {
+            
+#if TARGET_OS_IOS
+        //START ORIGINAL LOGGER
+        char buffer[1024];
+        va_list args;
+        va_start (args, uLog);
+        vsprintf (buffer,uLog, args);
+        std::cout<<buffer<<std::endl;
+
+        va_end (args);
+        //END ORIGINAL LOGGER
+            
+#elif TARGET_OS_MAC && !TARGET_OS_IPHONE
+            
+        int old_size = logBuffer.size();
+        va_list args;
+        va_start(args, uLog);
+        logBuffer.appendfv(uLog, args);
+        va_end(args);
+        logBuffer.append("\n");
+        for (int new_size = logBuffer.size(); old_size < new_size; old_size++)
+            if (logBuffer[old_size] == '\n')
+                LineOffsets.push_back(old_size + 1);
+
+#endif
+             
         }
     }
-    
+
     void U4DLogger::setDebugMode(bool uValue){
         debugMode=uValue;
     }

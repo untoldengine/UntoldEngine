@@ -110,7 +110,6 @@ void SandboxEditWorld::init(){
 
 void SandboxEditWorld::update(double dt){
     
-    
 }
 
 //Sets the configuration for the engine: Perspective view, shadows, light

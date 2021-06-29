@@ -36,7 +36,11 @@
 #include "U4DOffscreenPass.h"
 #include "U4DGBufferPass.h"
 #include "U4DCompositionPass.h"
+
+#import <TargetConditionals.h> 
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "U4DEditorPass.h"
+#endif
 
 namespace U4DEngine {
 
@@ -262,14 +266,17 @@ namespace U4DEngine {
         
         
         //Editor Pass
-        if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+            
+            if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
 
-            U4DEditorPass editorPass("none");
-            editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
+                U4DEditorPass editorPass("none");
+                editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
 
-        }
+            }
+            
+#endif
         
-
     }
 
     U4DRenderPipelineInterface* U4DRenderManager::searchPipeline(std::string uPipelineName){
