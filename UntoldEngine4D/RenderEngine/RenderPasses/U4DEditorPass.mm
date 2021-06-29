@@ -34,10 +34,12 @@
 //this is temp header
 #include "U4DScriptBindModel.h"
 
+#import <TargetConditionals.h> 
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "imgui.h"
 #include "imgui_impl_metal.h"
 #include "ImGuiFileDialog.h"
-#if TARGET_OS_OSX
+
 #include "imgui_impl_osx.h"
 
 #endif
@@ -95,9 +97,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         // Start the Dear ImGui frame
         ImGui_ImplMetal_NewFrame(mtlRenderPassDescriptor);
-         #if TARGET_OS_OSX
+         
          ImGui_ImplOSX_NewFrame(director->getMTLView());
-         #endif
+         
          ImGui::NewFrame();
         
         {

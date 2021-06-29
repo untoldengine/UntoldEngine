@@ -19,12 +19,8 @@
 #include "CommonProtocols.h"
 
 #include "imgui.h"
- #include "imgui_impl_metal.h"
-
- #if TARGET_OS_OSX
- #include "imgui_impl_osx.h"
-
- #endif
+#include "imgui_impl_metal.h"
+#include "imgui_impl_osx.h"
 
 @implementation GameViewController
 {

@@ -90,7 +90,7 @@ void SandboxWorld::init(){
     U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
 
     //Line 3. Load attribute (rendering information) into the game entity
-    if (ground->loadModel("island")) {
+    if (ground->loadModel("field")) {
 
         ground->setPipeline("testPipeline");
         
@@ -149,7 +149,7 @@ void SandboxWorld::setupConfiguration(){
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-7.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-17.0);
 
     
     //translate camera
