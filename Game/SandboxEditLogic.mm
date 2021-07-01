@@ -8,7 +8,7 @@
 
 #include "SandboxEditLogic.h"
 #include "U4DDirector.h"
-#include "U4DScriptBindManager.h"
+
 
 SandboxEditLogic::SandboxEditLogic(){
     
@@ -25,7 +25,6 @@ void SandboxEditLogic::update(double dt){
 
 void SandboxEditLogic::init(){
     
-    
 }
 
 
@@ -33,8 +32,6 @@ void SandboxEditLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
     
-    U4DEngine::U4DScriptBindManager *scriptBindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
-        
         switch (controllerInputMessage.inputElementType) {
             
             case U4DEngine::uiButton:
@@ -151,7 +148,7 @@ void SandboxEditLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    scriptBindManager->userInputGravityFunction("a");
+                    
                 }
             }
                 
@@ -187,7 +184,7 @@ void SandboxEditLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    scriptBindManager->userInputGravityFunction("w");
+                    
                 }
             }
                 break;
@@ -201,7 +198,6 @@ void SandboxEditLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    scriptBindManager->userInputGravityFunction("s");
                     
                 }
                 
