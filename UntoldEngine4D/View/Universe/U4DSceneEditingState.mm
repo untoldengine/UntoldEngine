@@ -60,6 +60,7 @@ namespace U4DEngine {
 //        scriptInstanceManager->removeAllScriptInstances();
         
         uScene->editingWorld->init();
+        uScene->gameEditingLogic->init();
         
         //enable profiler
         sceneManager->enableSceneProfiling();
