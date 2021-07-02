@@ -20,6 +20,8 @@
 #include "Player.h"
 #include "Field.h"
 
+#include "U4DEntityFactory.h"
+
 using namespace U4DEngine;
 
 SandboxEditWorld::SandboxEditWorld(){
@@ -42,21 +44,75 @@ void SandboxEditWorld::init(){
     
     setEnableGrid(true);
     
-    //Create an instance of U4DGameObject type
-    Player *player=new Player();
+    //register the classes
     
-    if(player->init("player0")){
-        
-        addChild(player);
-    }
+    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
     
-    Field *field=new Field();
     
-    if(field->init("field")){
+    entityFactory->registerClass<Player>("Player");
+    entityFactory->registerClass<Field>("Field");
+    
+    
+    
+//    std::map<std::string,std::string> sceneModelMap;
+//
+//    sceneModelMap["oppositeplayer0"]="U4DModel";
+//    sceneModelMap["player0"]="Player";
+//    sceneModelMap["field"]="Field";
+//
+//    //iterate through the map
+//
+//    std::map<std::string,std::string>::iterator it;
+//
+//    for(it=sceneModelMap.begin();it!=sceneModelMap.end();it++){
+//
+//        U4DModel *n=entityFactory->createAction(it->second);
+//
+//        if (n!=nullptr) {
+//
+//            if(it->second.compare("U4DModel")==0){
+//
+//                if (n->loadModel(it->first.c_str())) {
+//
+//                    n->loadRenderingInformation();
+//                    addChild(n);
+//
+//                }
+//
+//            }else{
+//
+//                if (n->init(it->first.c_str())) {
+//                    addChild(n);
+//                }
+//
+//            }
+//        }
+//    }
         
-        addChild(field);
         
-    }
+//    U4DModel *player=entityFactory->createAction("Player");
+//    if(player->init("player0")){
+//
+//        addChild(player);
+//    }
+
+    
+//    U4DModel *field=entityFactory->createAction("Field");
+//
+//    if(field->init("field")){
+//
+//        addChild(field);
+//
+//    }
+    
+//    U4DModel *model=entityFactory->createAction("Model");
+//    if (model->loadModel("oppositeplayer0")) {
+//
+//        model->loadRenderingInformation();
+//        addChild(model);
+//    }
+
+    
 
 //    //Line 3. Load attribute (rendering information) into the game entity
 //    if (player->loadModel("player0")) {

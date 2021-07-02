@@ -30,7 +30,7 @@ bool Player::init(const char* uModelName){
         kineticAction->enableKineticsBehavior();
 
         kineticAction->enableCollisionBehavior();
-        
+
         runningAnimation = new U4DEngine::U4DAnimation(this);
         
         if(loadAnimationToModel(runningAnimation, "running")){
