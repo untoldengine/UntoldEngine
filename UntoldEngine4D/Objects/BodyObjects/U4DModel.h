@@ -148,6 +148,8 @@ namespace U4DEngine {
          */
         virtual void update(double dt){};
         
+        virtual bool init(const char* uModelName){};
+        
         /**
          @todo document this
          */

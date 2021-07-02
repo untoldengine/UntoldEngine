@@ -26,7 +26,7 @@
 #include "U4DScene.h"
 #include "U4DSceneStateManager.h"
 #include "U4DSceneEditingState.h"
-
+#include "U4DEntityFactory.h"
 
 #include "U4DWorld.h"
 #include "U4DModel.h"
@@ -58,9 +58,11 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     static bool ScrollToBottom=true;
     static U4DEntity *activeChild=nullptr;
-    static std::string assetSelected;
+    static std::string assetSelectedName;
+    static std::string assetSelectedTypeName;
     static std::string scriptFilePathName;
     static std::string scriptFilePath;
+    static bool assetIsSelected=false;
     static bool scriptFilesFound=false;
     static bool scriptLoadedSuccessfully=false;
     static bool lookingForScriptFile=false;
@@ -111,6 +113,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
            ImGui::End();
 
         }
+        
+        
         
         {
             
@@ -389,9 +393,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         {
 
             U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
-            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
             
-            U4DScene *scene=sceneManager->getCurrentScene();
             
             for (const auto &n : resourceLoader->getModelContainer()) {
                 
@@ -399,31 +401,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 char buf[32];
                 sprintf(buf, "%s", n.name.c_str());
                     
-                if (ImGui::Selectable(buf,n.name.compare(assetSelected)==0)) {
-                    assetSelected=n.name;
-
+                if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0)) {
+                    assetSelectedName=n.name;
+                    assetIsSelected=true;
                  }
                     
             }
             
-            //ImGui::Begin("load");
-            if (scene->getPauseScene()) {
-                if(ImGui::Button("load Assset")){
-                
-                    if (scene!=nullptr) {
-                        
-                        U4DWorld *world=scene->getGameWorld();
-                        
-                        U4DModel *model=new U4DModel();
-                        
-                        if (model->loadModel(assetSelected.c_str())) {
-                            model->loadRenderingInformation();
-                            world->addChild(model);
-                        }
-                    }
-                    
-                }
-            }
+            
             
             ImGui::TreePop();
 
@@ -432,6 +417,64 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         ImGui::End();
 
        }
+        
+        {
+            if (assetIsSelected) {
+                
+                U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+                U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
+                U4DScene *scene=sceneManager->getCurrentScene();
+                
+                ImGui::Begin("Load Assets");
+                
+                if (scene->getPauseScene()) {
+                    
+                    ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
+                    
+                    ImGui::Text("Select Asset Type");
+                    
+                    std::vector<std::string> items=entityFactory->getRegisteredClasses();
+                    
+                    static int item_current_idx = (int)items.size()-1; // Here we store our selection data as an index.
+                    
+                    const char* combo_label = items.at(item_current_idx).c_str();
+                    
+                    assetSelectedTypeName=items.at(item_current_idx).c_str();
+                    
+                    static ImGuiComboFlags flags = 0;
+                    
+                    if (ImGui::BeginCombo("Classes", combo_label, flags))
+                    {
+                        for (int n = 0; n < items.size(); n++)
+                        {
+                            const bool is_selected = (item_current_idx == n);
+                            if (ImGui::Selectable(items.at(n).c_str(), is_selected)){
+                                item_current_idx = n;
+                                assetSelectedTypeName=items.at(n);
+                            }
+                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                            if (is_selected)
+                                ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
+                    
+                    if(ImGui::Button("load Assset")){
+                    
+                        if (scene!=nullptr) {
+                            
+                            entityFactory->createModelInstance(assetSelectedName, assetSelectedTypeName);
+                        }
+                        
+                    }
+                    
+                }
+                
+                ImGui::End();
+            }
+            
+            
+        }
         
         ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();
