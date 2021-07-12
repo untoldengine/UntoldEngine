@@ -185,7 +185,7 @@ void SandboxEditWorld::setupConfiguration(){
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(-5.0,3.0,-12.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,3.0,-12.0);
 
     
     //translate camera

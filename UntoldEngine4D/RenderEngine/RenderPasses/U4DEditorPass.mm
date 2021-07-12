@@ -31,6 +31,8 @@
 #include "U4DWorld.h"
 #include "U4DModel.h"
 
+#include "U4DSerializer.h"
+
 //this is temp header
 #include "U4DScriptBindModel.h"
 
@@ -62,14 +64,20 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static std::string assetSelectedTypeName;
     static std::string scriptFilePathName;
     static std::string scriptFilePath;
+    
+    
     static bool assetIsSelected=false;
     static bool scriptFilesFound=false;
     static bool scriptLoadedSuccessfully=false;
     static bool lookingForScriptFile=false;
-    
+    static bool serialiazeFlag=false;
+    static bool deserializeFlag=false;
     
     static std::string shaderFilePathName;
     static std::string shaderFilePath;
+    static std::string sceneFilePath;
+    static std::string sceneFilePathName;
+    
     static bool shaderFilesFound=false;
     static bool lookingForShaderFile=false;
    
@@ -79,6 +87,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     ImGuiFileDialog gravityFileDialog;
     ImGuiFileDialog hotReloadFileDialog;
+    ImGuiFileDialog serializeFileDialog;
     
     float fps=director->getFPS();
     std::string profilerData=sceneManager->profilerData;
@@ -114,6 +123,65 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         }
         
+        {
+            
+            ImGui::Begin("Save Entities");
+            
+            if (ImGui::Button("Save")) {
+                
+                serialiazeFlag=true;
+                serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+                
+            }
+            
+            if (ImGui::Button("Load")) {
+                
+                deserializeFlag=true;
+                serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+                
+            }
+            
+            if (serialiazeFlag || deserializeFlag) {
+                
+                if (serializeFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                   {
+                       // action if OK
+                       if (serializeFileDialog.Instance()->IsOk())
+                       {
+                       
+                       sceneFilePathName = serializeFileDialog.Instance()->GetFilePathName();
+                           logger->log("%s",sceneFilePathName.c_str());
+                           
+                           
+                           if (serialiazeFlag) {
+                               //serialize
+                               U4DSerializer *serializer=U4DSerializer::sharedInstance();
+               
+                               serializer->serialize(sceneFilePathName);
+                               
+                           }else if(deserializeFlag){
+                               //deserialize
+                               U4DSerializer *serializer=U4DSerializer::sharedInstance();
+                               
+                               serializer->deserialize(sceneFilePathName);
+                           }
+                           
+                       }else{
+                       
+                       }
+                       
+                       serialiazeFlag=false;
+                       deserializeFlag=false;
+                       
+                       // close
+                       serializeFileDialog.Instance()->Close();
+                       
+                   }
+                
+            }
+            
+            ImGui::End();
+        }
         
         
         {
