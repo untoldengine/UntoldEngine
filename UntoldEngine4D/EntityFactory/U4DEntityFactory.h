@@ -11,6 +11,7 @@
 
 #include <stdio.h>
 #include "U4DModel.h"
+#include "U4DVector3n.h"
 
 namespace U4DEngine{
 
@@ -44,6 +45,8 @@ public:
     std::vector<std::string> getRegisteredClasses();
     
     void createModelInstance(std::string uAssetName, std::string uType);
+    
+    void createModelInstance(std::string uAssetName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation);
     
 private:
     

@@ -67,7 +67,9 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
         if(uType.compare("U4DModel")==0){
 
             if (model->loadModel(uAssetName.c_str())) {
-
+                
+                //set the class type
+                model->setClassType(uType);
                 model->loadRenderingInformation();
                 world->addChild(model);
 
@@ -76,10 +78,57 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
         }else{
 
             if (model->init(uAssetName.c_str())) {
+                model->setClassType(uType);
                 world->addChild(model);
             }
 
         }
+    }else{
+        
+        logger->log("Error: Unable to create instance of type %s for asset %s",uType.c_str(),uAssetName.c_str());
+        
+    }
+    
+}
+
+void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation){
+    
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    
+    logger->log("Creating instance of type %s for asset name %s",uType.c_str(),uAssetName.c_str());
+    
+    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+
+    U4DScene *scene=sceneManager->getCurrentScene();
+    U4DWorld *world=scene->getGameWorld();
+
+    U4DModel *model=createAction(uType);
+
+    if (model!=nullptr) {
+
+        if(uType.compare("U4DModel")==0){
+
+            if (model->loadModel(uAssetName.c_str())) {
+                
+                //set the class type
+                model->setClassType(uType);
+                model->loadRenderingInformation();
+                world->addChild(model);
+
+            }
+
+        }else{
+
+            if (model->init(uAssetName.c_str())) {
+                model->setClassType(uType);
+                world->addChild(model);
+            }
+
+        }
+        
+        model->translateTo(uPosition);
+        model->rotateTo(uOrientation.x, uOrientation.y, uOrientation.z);
+        
     }else{
         
         logger->log("Error: Unable to create instance of type %s for asset %s",uType.c_str(),uAssetName.c_str());

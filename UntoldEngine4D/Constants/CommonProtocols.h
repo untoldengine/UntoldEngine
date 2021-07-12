@@ -758,6 +758,13 @@ namespace U4DEngine {
         
     }LIGHTDATA;
 
+    typedef struct{
+        std::string name;
+        std::string classType;
+        std::vector<float> position;
+        std::vector<float> orientation;
+    }ENTITYSERIALIZEDATA;
+
 }
 
 #endif
