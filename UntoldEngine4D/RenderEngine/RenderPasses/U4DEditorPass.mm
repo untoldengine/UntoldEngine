@@ -440,6 +440,24 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                          
                      }
                      
+                     ImGui::Separator();
+                     
+                     if(ImGui::Button("Remove Entity")){
+                         
+                         U4DEntity *parent=activeChild->getParent();
+                         
+                         //leaving it here until the issue #359 is fixed.
+                         //activeChild->removeAndDeleteAllChildren();
+                         
+                         parent->removeChild(activeChild);
+                         
+                         U4DModel *model=dynamic_cast<U4DModel*>(activeChild);
+                         
+                         delete model;
+                         
+                         activeChild=nullptr;
+                         
+                     }
                  }
 
                  ImGui::End();
