@@ -55,5 +55,19 @@ namespace U4DEngine {
         
         kineticBehaviorMap.erase(it);
     }
+
+    void U4DKineticDictionary::updateKineticBehaviorDictionary(std::string uOriginalName, std::string uNewName){
+        
+        auto entry=kineticBehaviorMap.find(uOriginalName);
+        
+        if (entry!=kineticBehaviorMap.end()) {
+            
+            U4DDynamicAction *dynamicAction=std::move(entry->second);
+            kineticBehaviorMap.erase(entry);
+            kineticBehaviorMap.insert({uNewName,std::move(dynamicAction)});
+            
+        }
+    }
+
 }
 

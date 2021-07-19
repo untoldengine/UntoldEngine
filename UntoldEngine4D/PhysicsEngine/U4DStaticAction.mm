@@ -35,8 +35,6 @@ namespace U4DEngine {
         //set the broad phase bounding volume to null
         broadPhaseBoundingVolume=nullptr;
         
-        //set the name to reference the model that owns the behavior
-        name=model->getName();
         
         //set all collision information to zero
         clearCollisionInformation();
@@ -62,7 +60,6 @@ namespace U4DEngine {
         return *this;
     
     }
-    
     
     #pragma mark-mass
     //set mass of object

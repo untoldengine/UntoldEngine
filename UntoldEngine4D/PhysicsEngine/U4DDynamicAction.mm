@@ -20,7 +20,7 @@ namespace U4DEngine {
         //load into dictionary
         U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
         
-        kineticDictionary->loadBehaviorDictionary(name, this);
+        kineticDictionary->loadBehaviorDictionary(model->getName(), this);
         
     };
     
@@ -29,7 +29,7 @@ namespace U4DEngine {
         
         U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
         
-        kineticDictionary->removeKineticBehavior(name);
+        kineticDictionary->removeKineticBehavior(model->getName());
         
     };
     

@@ -51,6 +51,9 @@ namespace U4DEngine {
         U4DModel * getVisibleModel(std::string uName);
         
         void removeFromVisibilityDictionary(std::string uName);
+        
+        void updateVisibilityDictionary(std::string uOriginalName, std::string uNewName);
+        
     };
 
 }

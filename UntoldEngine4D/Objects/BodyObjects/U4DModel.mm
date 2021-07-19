@@ -548,6 +548,14 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
         
         return classType;
     }
+
+    void U4DModel::setAssetReferenceName(std::string uAssetReferenceName){
+        assetReferenceName=uAssetReferenceName;
+    }
+
+    std::string U4DModel::getAssetReferenceName(){
+        return assetReferenceName;
+    }
     
 }
 

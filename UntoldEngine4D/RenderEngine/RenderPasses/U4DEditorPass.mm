@@ -32,6 +32,8 @@
 #include "U4DModel.h"
 
 #include "U4DSerializer.h"
+#include "U4DVisibilityDictionary.h"
+#include "U4DKineticDictionary.h"
 
 //this is temp header
 #include "U4DScriptBindModel.h"
@@ -458,6 +460,27 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                          activeChild=nullptr;
                          
                      }
+                     
+                     ImGui::Separator();
+                     
+                     static char modelNameBuffer[64] = "";
+                     //std::strcpy(modelNameBuffer, &activeChild->getName()[0]);
+                     ImGui::InputText("New Model Name", modelNameBuffer, 64);
+                     
+                     if(ImGui::Button("Rename Model")){
+                         
+                         U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
+                         U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
+                         std::string previousModelName=activeChild->getName();
+                         activeChild->setName(modelNameBuffer);
+                         
+                         visibilityDictionary->updateVisibilityDictionary(previousModelName, modelNameBuffer);
+                         kineticDictionary->updateKineticBehaviorDictionary(previousModelName, modelNameBuffer);
+                         
+                         //clear the char array
+                         memset(modelNameBuffer, 0, sizeof(modelNameBuffer));
+                         
+                     }
                  }
 
                  ImGui::End();
@@ -517,6 +540,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     
                     ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
                     
+//                    static char modelNameBuffer[64] = "";
+//                    ImGui::InputText("Model Name", modelNameBuffer, 64);
+//
                     ImGui::Text("Select Asset Type");
                     
                     std::vector<std::string> items=entityFactory->getRegisteredClasses();
@@ -549,7 +575,42 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     
                         if (scene!=nullptr) {
                             
-                            entityFactory->createModelInstance(assetSelectedName, assetSelectedTypeName);
+                            //search the scenegraph for current names
+                            
+                            U4DEntity *child=scene->getGameWorld()->next;
+                            
+                            int count=0;
+                            
+                            while (child!=nullptr) {
+                                
+                                //strip all characters up to the period
+                                if(child->getEntityType()==U4DEngine::MODEL){
+                                    
+                                    std::string s=child->getName();
+                                    int n=(int)s.length();
+                                    int m=(int)assetSelectedName.length();
+                                    int stringLengthDifference=std::abs(n-m);
+
+                                    if(n<=stringLengthDifference) stringLengthDifference=n;
+                                    //trunk down the name
+                                    
+                                    s.erase(s.end()-stringLengthDifference, s.end());
+
+                                    if (s.compare(assetSelectedName)==0) {
+
+                                        count++;
+
+                                    }
+                                }
+                                
+                                child=child->next;
+                                
+                            }
+                            
+                            std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
+                            
+                            entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName);
+                            
                         }
                         
                     }

@@ -7,6 +7,8 @@
 //
 
 #include "U4DEntityFactory.h"
+#include "U4DVisibilityDictionary.h"
+#include "U4DKineticDictionary.h"
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
 #include "U4DWorld.h"
@@ -49,40 +51,56 @@ std::vector<std::string> U4DEntityFactory::getRegisteredClasses(){
     return registeredClassesContainer;
 }
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uType){
+void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
+    U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
+    U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
     
     logger->log("Creating instance of type %s for asset name %s",uType.c_str(),uAssetName.c_str());
     
     U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-
     U4DScene *scene=sceneManager->getCurrentScene();
     U4DWorld *world=scene->getGameWorld();
-
     U4DModel *model=createAction(uType);
+    
+    bool modelDataLoaded=false;
 
     if (model!=nullptr) {
-
+        
         if(uType.compare("U4DModel")==0){
 
             if (model->loadModel(uAssetName.c_str())) {
                 
-                //set the class type
-                model->setClassType(uType);
                 model->loadRenderingInformation();
                 world->addChild(model);
-
+                modelDataLoaded=true;
             }
 
         }else{
 
             if (model->init(uAssetName.c_str())) {
-                model->setClassType(uType);
+                
                 world->addChild(model);
+                modelDataLoaded=true;
             }
 
         }
+        
+        if (modelDataLoaded) {
+            
+            model->setName(uModelName);
+            model->setAssetReferenceName(uAssetName);
+            
+            visibilityDictionary->updateVisibilityDictionary(uAssetName.c_str(), uModelName.c_str());
+            kineticDictionary->updateKineticBehaviorDictionary(uAssetName.c_str(), uModelName.c_str());
+            
+            //set the class type
+            model->setClassType(uType);
+            
+        }
+        
+        
     }else{
         
         logger->log("Error: Unable to create instance of type %s for asset %s",uType.c_str(),uAssetName.c_str());
@@ -91,9 +109,11 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
     
 }
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation){
+void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
+    U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
+    U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
     
     logger->log("Creating instance of type %s for asset name %s",uType.c_str(),uAssetName.c_str());
     
@@ -103,31 +123,46 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
     U4DWorld *world=scene->getGameWorld();
 
     U4DModel *model=createAction(uType);
-
+    bool modelDataLoaded=false;
+    
     if (model!=nullptr) {
 
         if(uType.compare("U4DModel")==0){
 
             if (model->loadModel(uAssetName.c_str())) {
                 
-                //set the class type
-                model->setClassType(uType);
                 model->loadRenderingInformation();
                 world->addChild(model);
+                modelDataLoaded=true;
 
             }
 
         }else{
 
             if (model->init(uAssetName.c_str())) {
-                model->setClassType(uType);
+                
                 world->addChild(model);
+                modelDataLoaded=true;
+                
             }
 
         }
         
-        model->translateTo(uPosition);
-        model->rotateTo(uOrientation.x, uOrientation.y, uOrientation.z);
+        if (modelDataLoaded) {
+            
+            model->setName(uModelName);
+            model->setAssetReferenceName(uAssetName);
+            
+            visibilityDictionary->updateVisibilityDictionary(uAssetName.c_str(), uModelName.c_str());
+            kineticDictionary->updateKineticBehaviorDictionary(uAssetName.c_str(), uModelName.c_str());
+            
+            //set the class type
+            model->setClassType(uType);
+            
+            model->translateTo(uPosition);
+            model->rotateTo(uOrientation.x, uOrientation.y, uOrientation.z);
+        }
+        
         
     }else{
         
