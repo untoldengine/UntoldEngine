@@ -77,6 +77,7 @@ namespace U4DEngine {
                 ENTITYSERIALIZEDATA entitySerializeData;
                 
                 entitySerializeData.name=model->getName();
+                entitySerializeData.assetReferenceName=model->getAssetReferenceName();
                 entitySerializeData.classType=model->getClassType();
                 
                 U4DVector3n pos=model->getAbsolutePosition();
@@ -120,6 +121,11 @@ namespace U4DEngine {
             size_t modelNameLen=n.name.size();
             file.write((char*)&modelNameLen,sizeof(modelNameLen));
             file.write((char*)&n.name[0],modelNameLen);
+            
+            //write the asset reference name of the model
+            size_t modelAssetReferenceNameLen=n.assetReferenceName.size();
+            file.write((char*)&modelAssetReferenceNameLen,sizeof(modelAssetReferenceNameLen));
+            file.write((char*)&n.assetReferenceName[0],modelAssetReferenceNameLen);
             
             //Write the class type
             size_t modelClassTypeLen=n.classType.size();
@@ -194,6 +200,12 @@ namespace U4DEngine {
             modelData.name.resize(modelNameLen);
             file.read((char*)&modelData.name[0],modelNameLen);
             
+            //Read the asset Reference name of our model
+            size_t modelAssetReferenceNameLen=0;
+            file.read((char*)&modelAssetReferenceNameLen,sizeof(modelAssetReferenceNameLen));
+            modelData.assetReferenceName.resize(modelAssetReferenceNameLen);
+            file.read((char*)&modelData.assetReferenceName[0],modelAssetReferenceNameLen);
+            
             //Read the class type of the model
             size_t modelClassTypeLen=0;
             file.read((char*)&modelClassTypeLen,sizeof(modelClassTypeLen));
@@ -223,8 +235,6 @@ namespace U4DEngine {
             
         }
         
-        unloadEntities();
-        
         return true;
     }
 
@@ -248,7 +258,7 @@ namespace U4DEngine {
             
             //Ask the factory class to create an instance of each object and load it into the world
             
-            entityFactory->createModelInstance(n.name, n.classType,pos, orient);
+            entityFactory->createModelInstance(n.assetReferenceName,n.name, n.classType,pos, orient); 
             
         }
         

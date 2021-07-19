@@ -227,12 +227,6 @@ namespace U4DEngine {
         
         protected:
         
-        /**
-         @brief Name of the entity
-         */
-        std::string name;
-            
-        
         
         public:
 
@@ -262,6 +256,7 @@ namespace U4DEngine {
          */
         U4DStaticAction& operator=(const U4DStaticAction& value);
     
+        
         /**
          @brief Method which sets the mass of the model
          

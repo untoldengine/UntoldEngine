@@ -55,4 +55,17 @@ namespace U4DEngine {
         
         visibilityMap.erase(it);
     }
+
+    void U4DVisibilityDictionary::updateVisibilityDictionary(std::string uOriginalName, std::string uNewName){
+        
+        auto entry=visibilityMap.find(uOriginalName);
+        
+        if (entry!=visibilityMap.end()) {
+            
+            U4DModel *model=std::move(entry->second);
+            visibilityMap.erase(entry);
+            visibilityMap.insert({uNewName,std::move(model)});
+        }
+    }
+
 }

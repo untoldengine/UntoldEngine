@@ -51,6 +51,8 @@ namespace U4DEngine {
         U4DDynamicAction * getKineticBehavior(std::string uName);
         
         void removeKineticBehavior(std::string uName);
+        
+        void updateKineticBehaviorDictionary(std::string uOriginalName, std::string uNewName);
     };
 
 }
