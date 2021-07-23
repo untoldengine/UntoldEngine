@@ -91,6 +91,12 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     ImGuiFileDialog hotReloadFileDialog;
     ImGuiFileDialog serializeFileDialog;
     
+    U4DVector3n childPosition;
+    U4DVector3n childOrientation;
+
+    static float entityPosition[3];
+    static float entityOrientation[3];
+    
     float fps=director->getFPS();
     std::string profilerData=sceneManager->profilerData;
     
@@ -355,7 +361,18 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
                      if (ImGui::Selectable(buf,activeChild==child)) {
                          activeChild=child;
+                         
+                         childPosition=activeChild->getAbsolutePosition();
+                         childOrientation=activeChild->getAbsoluteOrientation();
 
+                         entityPosition[0] = childPosition.x;
+                         entityPosition[1] = childPosition.y;
+                         entityPosition[2] = childPosition.z;
+                         
+                         entityOrientation[0]=childOrientation.x;
+                         entityOrientation[1]=childOrientation.y;
+                         entityOrientation[2]=childOrientation.z;
+                         
                      }
 
                  }
@@ -369,20 +386,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
                  if (activeChild!=nullptr) {
 
-                     U4DVector3n childPos=activeChild->getAbsolutePosition();
-                     U4DVector3n childOrient=activeChild->getAbsoluteOrientation();
-
-                     static float pos[3] = {childPos.x,childPos.y,childPos.z};
-                     static float orient[3]={childOrient.x,childOrient.y,childOrient.z};
-
                      ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
 
                      ImGui::Text("Transform");
-                     ImGui::SliderFloat3("Position", (float*)&pos,-20.0,20.0);
-                     ImGui::SliderFloat3("Orientation", (float*)&orient,-180.0,180.0);
+                     ImGui::SliderFloat3("Position", (float*)&entityPosition,-20.0,20.0);
+                     ImGui::SliderFloat3("Orientation", (float*)&entityOrientation,-180.0,180.0);
 
-                     activeChild->translateTo(pos[0], pos[1], pos[2]);
-                     activeChild->rotateTo(orient[0], orient[1], orient[2]);
+                     activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
+                     activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
 
                      ImGui::Separator();
 

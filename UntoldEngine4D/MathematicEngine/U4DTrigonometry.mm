@@ -35,4 +35,15 @@ namespace U4DEngine {
         return acos (x) ;
         
     }
+
+    double U4DTrigonometry::convertToPositiveAngle(float uAngle){
+        
+        uAngle=fmod(uAngle, 360.0);
+        
+        if (uAngle<0.0) {
+            uAngle+=360.0;
+        }
+        
+        return uAngle;
+    }
 }
