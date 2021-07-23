@@ -372,8 +372,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                      U4DVector3n childPos=activeChild->getAbsolutePosition();
                      U4DVector3n childOrient=activeChild->getAbsoluteOrientation();
 
-                     float pos[3] = {childPos.x,childPos.y,childPos.z};
-                     float orient[3]={childOrient.x,childOrient.y,childOrient.z};
+                     static float pos[3] = {childPos.x,childPos.y,childPos.z};
+                     static float orient[3]={childOrient.x,childOrient.y,childOrient.z};
 
                      ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
 
