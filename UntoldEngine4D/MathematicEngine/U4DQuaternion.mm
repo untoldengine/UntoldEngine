@@ -229,6 +229,10 @@ void U4DQuaternion::transformEulerAnglesToQuaternion(float x,float y, float z){
     
     U4DTrigonometry trigonometry;
     
+    x=trigonometry.convertToPositiveAngle(x);
+    y=trigonometry.convertToPositiveAngle(y);
+    z=trigonometry.convertToPositiveAngle(z);
+    
     x=trigonometry.degreesToRad(x);
     y=trigonometry.degreesToRad(y);
     z=trigonometry.degreesToRad(z);
