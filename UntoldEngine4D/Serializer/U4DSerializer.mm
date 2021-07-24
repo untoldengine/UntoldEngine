@@ -16,7 +16,8 @@
 #include "U4DScene.h"
 #include "U4DWorld.h"
 #include "U4DModel.h"
-
+#include "U4DCamera.h"
+#include "U4DDirectionalLight.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {
@@ -111,6 +112,49 @@ namespace U4DEngine {
             return false;
         }
         
+        //Write camera info
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        U4DVector3n cameraPositionVector=camera->getAbsolutePosition();
+        U4DVector3n cameraOrientationVector=camera->getAbsoluteOrientation();
+        
+        std::vector<float> cameraPosition{cameraPositionVector.x,cameraPositionVector.y,cameraPositionVector.z};
+        std::vector<float> cameraOrientation{cameraOrientationVector.x,cameraOrientationVector.y,cameraOrientationVector.z};
+        
+        //Write the camera position
+        int cameraPositionSize=(int)cameraPosition.size();
+        file.write((char*)&cameraPositionSize,sizeof(int));
+        file.write((char*)&cameraPosition[0],cameraPositionSize*sizeof(float));
+        
+        //Write the camera orientation
+        int cameraOrientationSize=(int)cameraOrientation.size();
+        file.write((char*)&cameraOrientationSize,sizeof(int));
+        file.write((char*)&cameraOrientation[0],cameraOrientationSize*sizeof(float));
+        
+        //Write dir light info
+        U4DDirectionalLight *light=U4DDirectionalLight::sharedInstance();
+        U4DVector3n lightPositionVector=light->getAbsolutePosition();
+        U4DVector3n lightOrientationVector=light->getAbsoluteOrientation();
+        U4DVector3n lightDiffuseColorVector=light->getDiffuseColor();
+        
+        std::vector<float> lightPosition{lightPositionVector.x,lightPositionVector.y,lightPositionVector.z};
+        std::vector<float> lightOrientation{lightOrientationVector.x,lightOrientationVector.y,lightOrientationVector.z};
+        std::vector<float> lightDiffuseColor{lightDiffuseColorVector.x,lightDiffuseColorVector.y,lightDiffuseColorVector.z};
+        
+        //Write dir light pos
+        int lightPositionSize=(int)lightPosition.size();
+        file.write((char*)&lightPositionSize,sizeof(int));
+        file.write((char*)&lightPosition[0],lightPositionSize*sizeof(float));
+        
+        //Write the light orientation
+        int lightOrientationSize=(int)lightOrientation.size();
+        file.write((char*)&lightOrientationSize,sizeof(int));
+        file.write((char*)&lightOrientation[0],lightOrientationSize*sizeof(float));
+        
+        //Write the light diffuse color
+        int lightDiffuseColorSize=(int)lightDiffuseColor.size();
+        file.write((char*)&lightDiffuseColorSize,sizeof(int));
+        file.write((char*)&lightDiffuseColor[0],lightDiffuseColorSize*sizeof(float));
+        
         //Write the number of models
         int numberOfModelsSize=(int)entitySerializeDataContainer.size();
         file.write((char*)&numberOfModelsSize,sizeof(int));
@@ -169,6 +213,9 @@ namespace U4DEngine {
     bool U4DSerializer::convertBinaryToEntities(std::string uFileName){
         
         U4DLogger *logger=U4DLogger::sharedInstance();
+        U4DCamera *camera=U4DCamera::sharedInstance();
+        U4DDirectionalLight *light=U4DDirectionalLight::sharedInstance();
+        
         entitySerializeDataContainer.clear();
         
         std::ifstream file(uFileName, std::ios::in | std::ios::binary );
@@ -184,6 +231,81 @@ namespace U4DEngine {
         file.seekg(0);
         
         logger->log("Scene data is being retrieved");
+        
+        //Read camera data
+        
+        std::vector<float> cameraPosition;
+        std::vector<float> cameraOrientation;
+        
+        //Read the camera position
+        int cameraPositionSize=0;
+        file.read((char*)&cameraPositionSize,sizeof(int));
+        std::vector<float> tempCameraPosition(cameraPositionSize,0);
+        
+        //copy temp data into the position vector
+        cameraPosition=tempCameraPosition;
+        file.read((char*)&cameraPosition[0], cameraPositionSize*sizeof(float));
+        
+        //Read the orientation
+        int cameraOrientationSize=0;
+        file.read((char*)&cameraOrientationSize,sizeof(int));
+        std::vector<float> tempCameraOrientation(cameraOrientationSize,0);
+        
+        //copy temp data into the orientation vector
+        cameraOrientation=tempCameraOrientation;
+        file.read((char*)&cameraOrientation[0], cameraOrientationSize*sizeof(float));
+        
+        //Read light data
+        std::vector<float> lightPosition;
+        std::vector<float> lightOrientation;
+        std::vector<float> lightDiffuseColor;
+        
+        //Read the light position
+        int lightPositionSize=0;
+        file.read((char*)&lightPositionSize,sizeof(int));
+        std::vector<float> tempLightPosition(lightPositionSize,0);
+        
+        //copy temp data into the position vector
+        lightPosition=tempLightPosition;
+        file.read((char*)&lightPosition[0], lightPositionSize*sizeof(float));
+        
+        //Read the light orientation
+        int lightOrientationSize=0;
+        file.read((char*)&lightOrientationSize,sizeof(int));
+        std::vector<float> tempLightOrientation(lightOrientationSize,0);
+        
+        //copy temp data into the orientation vector
+        lightOrientation=tempLightOrientation;
+        file.read((char*)&lightOrientation[0], lightOrientationSize*sizeof(float));
+        
+        //Read the light diffuse color
+        int lightDiffuseColorSize=0;
+        file.read((char*)&lightDiffuseColorSize,sizeof(int));
+        std::vector<float> tempLightDiffuseColor(lightDiffuseColorSize,0);
+        
+        //copy temp data into the diffuse color vector
+        lightDiffuseColor=tempLightDiffuseColor;
+        file.read((char*)&lightDiffuseColor[0], lightDiffuseColorSize*sizeof(float));
+        
+        
+        //set camera pos and orientation
+        U4DVector3n cameraPositionVector(cameraPosition.at(0    ),cameraPosition.at(1),cameraPosition.at(2));
+
+        U4DVector3n cameraOrientationVector(cameraOrientation.at(0    ),cameraOrientation.at(1),cameraOrientation.at(2));
+        
+        camera->translateTo(cameraPositionVector);
+        camera->rotateTo(cameraOrientationVector.x, cameraOrientationVector.y, cameraOrientationVector.z);
+        
+        //set light pos and orientation
+        U4DVector3n lightPositionVector(lightPosition.at(0    ),lightPosition.at(1),lightPosition.at(2));
+
+        U4DVector3n lightOrientationVector(lightOrientation.at(0    ),lightOrientation.at(1),lightOrientation.at(2));
+        
+        U4DVector3n lightDiffuseColorVector(lightDiffuseColor.at(0    ),lightDiffuseColor.at(1),lightDiffuseColor.at(2));
+        
+        light->translateTo(lightPositionVector);
+        light->rotateTo(lightOrientationVector.x, lightOrientationVector.y, lightOrientationVector.z);
+        light->setDiffuseColor(lightDiffuseColorVector);
         
         //READ NUMBER OF Models IN SCENE
         int numberOfModelsSize=0;
