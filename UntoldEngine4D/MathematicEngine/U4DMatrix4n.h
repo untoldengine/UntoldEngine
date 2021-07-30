@@ -14,6 +14,7 @@
 namespace U4DEngine {
 class U4DMatrix3n;
 class U4DVector3n;
+class U4DVector4n;
 class U4DQuaternion;
 }
 
@@ -92,6 +93,15 @@ public:
      @return Returns the transformation of the 3D vector
      */
     U4DVector3n operator*(const U4DVector3n& v) const;
+    
+    /**
+     @brief Method which transforms a 4D vector by the 4x4 matrix
+     
+     @param v 4D vector to transform
+     
+     @return Returns the transformation of the 4D vector
+     */
+    U4DVector4n operator*(const U4DVector4n& v) const;
     
     /**
      @brief Method which transforms a 3D vector by the 4x4 matrix

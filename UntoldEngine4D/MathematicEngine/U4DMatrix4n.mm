@@ -9,6 +9,7 @@
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
 #include "U4DVector3n.h"
+#include "U4DVector4n.h"
 #include "U4DQuaternion.h"
 #include "Constants.h"
 #include "U4DLogger.h"
@@ -208,6 +209,20 @@ U4DVector3n U4DMatrix4n::operator*(const U4DVector3n& v) const{
                        matrixData[1]*v.x+matrixData[5]*v.y+matrixData[9]*v.z+matrixData[13],
                        matrixData[2]*v.x+matrixData[6]*v.y+matrixData[10]*v.z+matrixData[14]);
     
+    
+}
+
+U4DVector4n U4DMatrix4n::operator*(const U4DVector4n& v) const{
+    
+    //    0    4    8    12
+    //    1    5    9    13
+    //    2    6    10    14
+    //    3    7    11    15
+    
+    return U4DVector4n(matrixData[0]*v.x+matrixData[4]*v.y+matrixData[8]*v.z+matrixData[12]*v.w,
+                       matrixData[1]*v.x+matrixData[5]*v.y+matrixData[9]*v.z+matrixData[13]*v.w,
+                       matrixData[2]*v.x+matrixData[6]*v.y+matrixData[10]*v.z+matrixData[14]*v.w,
+                       matrixData[3]*v.x+matrixData[7]*v.y+matrixData[11]*v.z+matrixData[15]*v.w);
     
 }
 

@@ -36,7 +36,7 @@ namespace U4DEngine {
         uMacMouse->dataMagnitude=0.0;
         //uMacMouse->motionAccumulator=U4DVector2n(0.0,0.0);
         
-        uMacMouse->action();
+        uMacMouse->action(U4DEngine::mouseLeftButtonReleased);
         
         if (uMacMouse->controllerInterface!=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);

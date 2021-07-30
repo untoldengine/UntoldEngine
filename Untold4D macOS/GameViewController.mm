@@ -399,11 +399,55 @@
     U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonDragged, mouseLocation);
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonDragged, mouseLocation); 
         
     }
     
     ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+}
+
+- (void)rightMouseDown:(NSEvent *)theEvent{
+    
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+
+    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+    
+    if(gameController!=nullptr){
+            
+        gameController->getUserInputData(U4DEngine::mouseRightButton, U4DEngine::mouseRightButtonPressed, mouseLocation);
+        
+    }
+    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+        
+}
+
+- (void)rightMouseUp:(NSEvent *)theEvent{
+    
+    NSPoint mouseUpPos = [theEvent locationInWindow];
+
+    U4DEngine::U4DVector2n mouseLocation(mouseUpPos.x,mouseUpPos.y);
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+    
+    if(gameController!=nullptr){
+        
+        gameController->getUserInputData(U4DEngine::mouseRightButton, U4DEngine::mouseRightButtonReleased, mouseLocation);
+        
+    }
+    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+     
 }
 
 - (void)mouseDown:(NSEvent *)theEvent {
@@ -420,7 +464,7 @@
     
     if(gameController!=nullptr){
             
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonPressed, mouseLocation);
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonPressed, mouseLocation);
         
     }
     
@@ -441,7 +485,7 @@
     
     if(gameController!=nullptr){
         
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonReleased, mouseLocation);
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonReleased, mouseLocation);
         
     }
     

@@ -674,9 +674,14 @@ namespace U4DEngine {
     typedef enum{
         
         //Mouse
-        mouseButtonPressed,
-        mouseButtonDragged,
-        mouseButtonReleased,
+        mouseLeftButtonPressed,
+        mouseLeftButtonDragged,
+        mouseLeftButtonReleased,
+        
+        mouseRightButtonPressed,
+        mouseRightButtonDragged,
+        mouseRightButtonReleased,
+        
         mouseActive,
         mouseInactive,
         mouseActiveDelta,

@@ -193,11 +193,11 @@ bool U4DJoystick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosi
         
         withinBoundary=true;
         
-        if (uInputAction==U4DEngine::ioTouchesBegan || uInputAction==U4DEngine::ioTouchesMoved || uInputAction==U4DEngine::mouseButtonDragged) {
+        if (uInputAction==U4DEngine::ioTouchesBegan || uInputAction==U4DEngine::ioTouchesMoved || uInputAction==U4DEngine::mouseLeftButtonDragged) {
             
             changeState(U4DEngine::uimoving);
             
-        }else if((uInputAction==U4DEngine::ioTouchesEnded || uInputAction==U4DEngine::mouseButtonReleased) && (getState()==U4DEngine::uimoving)){
+        }else if((uInputAction==U4DEngine::ioTouchesEnded || uInputAction==U4DEngine::mouseLeftButtonReleased) && (getState()==U4DEngine::uimoving)){
             
             changeState(U4DEngine::uireleased);
             

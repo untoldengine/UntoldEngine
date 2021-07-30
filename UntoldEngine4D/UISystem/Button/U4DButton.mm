@@ -188,17 +188,17 @@ bool U4DButton::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPositi
             
             withinBoundary=true;
             
-            if (uInputAction==U4DEngine::mouseButtonPressed || uInputAction==U4DEngine::ioTouchesBegan) {
+            if (uInputAction==U4DEngine::mouseLeftButtonPressed || uInputAction==U4DEngine::ioTouchesBegan) {
                 
                 changeState(U4DEngine::uipressed);
                 
                 
-            }else if((uInputAction==U4DEngine::mouseButtonDragged || uInputAction==U4DEngine::ioTouchesMoved) && (getState()==U4DEngine::uipressed)){
+            }else if((uInputAction==U4DEngine::mouseLeftButtonDragged || uInputAction==U4DEngine::ioTouchesMoved) && (getState()==U4DEngine::uipressed)){
                 
                 changeState(U4DEngine::uimoving);
                 
                 
-            }else if((uInputAction==U4DEngine::mouseButtonReleased || uInputAction==U4DEngine::ioTouchesEnded) && (getState()==U4DEngine::uipressed || getState()==U4DEngine::uimoving)){
+            }else if((uInputAction==U4DEngine::mouseLeftButtonReleased || uInputAction==U4DEngine::ioTouchesEnded) && (getState()==U4DEngine::uipressed || getState()==U4DEngine::uimoving)){
             
                 changeState(U4DEngine::uireleased);
                 

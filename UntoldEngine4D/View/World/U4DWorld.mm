@@ -156,7 +156,7 @@ namespace U4DEngine {
         
         U4DLayer *activeLayer=layerManager->getActiveLayer();
         
-        CONTROLLERMESSAGE &controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
         
         U4DEngine::INPUTELEMENTACTION inputAction=static_cast<U4DEngine::INPUTELEMENTACTION>(controllerInputMessage.inputElementAction);
         
