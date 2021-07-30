@@ -131,12 +131,12 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
             case U4DEngine::mouseLeftButton:
             {
                 //4. If button was pressed
-                if (controllerInputMessage.inputElementAction==U4DEngine::mouseButtonPressed) {
+                if (controllerInputMessage.inputElementAction==U4DEngine::mouseLeftButtonPressed) {
                     
                     //std::cout<<"left clicked"<<std::endl;
                         
                     //5. If button was released
-                }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseButtonReleased){
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseLeftButtonReleased){
                     
                     //std::cout<<"left released"<<std::endl;
                     

@@ -17,6 +17,10 @@
 #include "U4DMacMouseDeltaMovedState.h"
 #include "U4DMacMouseExitedState.h"
 #include "U4DMacMouseReleasedState.h"
+
+#include "U4DMacMouseRightPressedState.h"
+#include "U4DMacMouseRightReleasedState.h"
+
 #include "CommonProtocols.h"
 #include "U4DVector2n.h"
 
@@ -56,34 +60,16 @@ U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterf
         
     }
     
-    void U4DMacMouse::action(){
+    void U4DMacMouse::action(INPUTELEMENTACTION uInputAction){
         
     //notify the game model
         
         CONTROLLERMESSAGE controllerMessage;
     
         controllerMessage.inputElementType=inputElementType;
-    
-        if (getIsPressed()) {
-    
-            controllerMessage.inputElementAction=U4DEngine::mouseButtonPressed;
-    
-        }else if(getIsReleased()){
-    
-            controllerMessage.inputElementAction=U4DEngine::mouseButtonReleased;
         
-        }else if(getIsDragged()){
-            
-            controllerMessage.inputElementAction=U4DEngine::mouseButtonDragged;
-            
-        }else if(getIsMoving()) {
+        controllerMessage.inputElementAction=uInputAction;
         
-                controllerMessage.inputElementAction=U4DEngine::mouseActive;
-
-        }else{
-            controllerMessage.inputElementAction=U4DEngine::noAction;
-        }
-
         controllerMessage.inputPosition=getDataPosition();
         
         controllerMessage.previousMousePosition=getPreviousDataPosition();
@@ -98,19 +84,19 @@ U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterf
     void U4DMacMouse::changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition){
         
         
-        if (uInputAction==U4DEngine::mouseButtonPressed) {
+        if (uInputAction==U4DEngine::mouseLeftButtonPressed) {
             
             dataPosition=mapMousePosition(uPosition);
             
             stateManager->changeState(U4DMacMousePressedState::sharedInstance());
             
-        }else if (uInputAction==U4DEngine::mouseButtonDragged) {
+        }else if (uInputAction==U4DEngine::mouseLeftButtonDragged) {
             
             dataPosition=mapMousePosition(uPosition);
             
             stateManager->changeState(U4DMacMouseDraggedState::sharedInstance());
             
-        }else if(uInputAction==U4DEngine::mouseButtonReleased){
+        }else if(uInputAction==U4DEngine::mouseLeftButtonReleased){
             
             dataPosition=mapMousePosition(uPosition);
             
@@ -134,6 +120,18 @@ U4DMacMouse::U4DMacMouse(INPUTELEMENTTYPE uInputElementType, U4DControllerInterf
             dataDeltaPosition=uPosition;
 
             stateManager->changeState(U4DMacMouseDeltaMovedState::sharedInstance());
+            
+        }else if (uInputAction==U4DEngine::mouseRightButtonPressed) {
+            
+            dataPosition=mapMousePosition(uPosition);
+            
+            stateManager->changeState(U4DMacMouseRightPressedState::sharedInstance());
+            
+        }else if(uInputAction==U4DEngine::mouseRightButtonReleased){
+            
+            dataPosition=mapMousePosition(uPosition);
+            
+            stateManager->changeState(U4DMacMouseRightReleasedState::sharedInstance());
             
         }
         

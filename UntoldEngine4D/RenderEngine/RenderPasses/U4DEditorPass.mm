@@ -35,6 +35,9 @@
 #include "U4DVisibilityDictionary.h"
 #include "U4DKineticDictionary.h"
 
+#include "U4DRay.h"
+#include "U4DAABB.h"
+
 //this is temp header
 #include "U4DScriptBindModel.h"
 
@@ -120,6 +123,109 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          ImGui_ImplOSX_NewFrame(director->getMTLView());
          
          ImGui::NewFrame();
+        
+        {
+        U4DScene *scene=sceneManager->getCurrentScene();
+        CONTROLLERMESSAGE controllerMessage=scene->getGameWorld()->controllerInputMessage;
+        static bool rightMouseActive=false;
+        
+        if (controllerMessage.inputElementAction==U4DEngine::mouseRightButtonPressed) {
+            rightMouseActive=true;
+        }else if(controllerMessage.inputElementAction==U4DEngine::mouseRightButtonReleased && rightMouseActive){
+            
+            U4DDirector *director=U4DDirector::sharedInstance();
+            
+            //1. Normalize device coordinates range [-1:1,-1:1,-1:1]
+            U4DVector3n ray_nds(controllerMessage.inputPosition.x,controllerMessage.inputPosition.y,1.0);
+            
+            //2. 4D homogeneous clip coordinates range [-1:1,-1:1,-1:1,-1:1]
+            U4DVector4n ray_clip(ray_nds.x,ray_nds.y,-1.0,1.0);
+
+            //3. 4D Eye (camera) coordinates range [-x:x,-y:y,-z:z,-w:w]
+            U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+            
+            U4DVector4n ray_eye=perspectiveProjection.inverse()*ray_clip;
+            
+            ray_eye.z=1.0;
+            ray_eye.w=0.0;
+
+            //4. 4D world coordinates range[-x:x,-y:y,-z:z,-w:w]
+            U4DCamera *camera=U4DCamera::sharedInstance();
+            
+            U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
+            
+            U4DVector4n ray_wor=viewSpace*ray_eye;
+            
+            U4DPoint3n rayOrigin=camera->getAbsolutePosition().toPoint();
+            U4DVector3n rayDirection(ray_wor.x,ray_wor.y,ray_wor.z);
+            rayDirection.normalize();
+
+            U4DRay ray(rayOrigin,rayDirection);
+            
+            U4DPoint3n intPoint;
+            float intTime;
+            float closestTime=FLT_MAX;
+
+            //traverse the scenegraph
+            U4DEntity *child=scene->getGameWorld()->next;
+
+            while (child!=nullptr) {
+
+                if (child->getEntityType()==U4DEngine::MODEL) {
+
+                    U4DModel *model=dynamic_cast<U4DModel*>(child);
+                    //create the aabb for entity in the scenegraph
+                    U4DVector3n dimensions=model->getModelDimensions()/2.0;
+                    U4DPoint3n position=model->getAbsolutePosition().toPoint();
+
+                    U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
+
+                    dimensions=m*dimensions;
+                    
+                    U4DPoint3n maxPoint(position.x+dimensions.x,position.y+dimensions.y,position.z+dimensions.z);
+                    U4DPoint3n minPoint(position.x-dimensions.x,position.y-dimensions.y,position.z-dimensions.z);
+                    
+                    U4DAABB aabb(maxPoint,minPoint);
+                    
+
+                    if (ray.intersectAABB(aabb, intPoint, intTime)) {
+                        
+                        if (intTime<closestTime) {
+                            
+                            closestTime=intTime;
+                            
+                            activeChild=model;
+                            
+                        }
+
+                    }
+
+                }
+
+                child=child->next;
+
+            }
+            
+            if (activeChild!=nullptr) {
+                
+                childPosition=activeChild->getAbsolutePosition();
+                childOrientation=activeChild->getAbsoluteOrientation();
+
+                entityPosition[0] = childPosition.x;
+                entityPosition[1] = childPosition.y;
+                entityPosition[2] = childPosition.z;
+
+                entityOrientation[0]=childOrientation.x;
+                entityOrientation[1]=childOrientation.y;
+                entityOrientation[2]=childOrientation.z;
+                
+            }
+            
+            
+            rightMouseActive=false;
+        }
+            
+        }
         
         {
            ImGui::Begin("Output");
@@ -350,7 +456,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          {
              U4DScene *scene=sceneManager->getCurrentScene();
              U4DEntity *child=scene->getGameWorld()->next;
-
+             
              while (child!=nullptr) {
 
                  if (child->getEntityType()==U4DEngine::MODEL) {
@@ -381,126 +487,128 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
              }
 
-             {
-                 ImGui::Begin("Entity Properties");
-
-                 if (activeChild!=nullptr) {
-
-                     ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
-
-                     ImGui::Text("Transform");
-                     ImGui::SliderFloat3("Position", (float*)&entityPosition,-20.0,20.0);
-                     ImGui::SliderFloat3("Orientation", (float*)&entityOrientation,-180.0,180.0);
-
-                     activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
-                     activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
-
-                     ImGui::Separator();
-
-                     ImGui::Text("Render Entity");
-                     U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
-                     U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
-                     ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
-                     ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
-                     ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
-
-                     ImGui::Separator();
-                     
-                     if (scene->getPauseScene()) {
-                         
-                         ImGui::Text("Hot-Reload Shader");
-
-                         // open Dialog Simple
-                         if (ImGui::Button("Open Shader")){
-                             lookingForShaderFile=true;
-                             hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
-                         }
-                             
-                         if (lookingForShaderFile) {
-                             
-                             // display
-                             if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                             {
-                               // action if OK
-                               if (hotReloadFileDialog.Instance()->IsOk())
-                               {
-                                 shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
-                                 shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
-                                 // action
-                                 shaderFilesFound=true;
-                               }else{
-                                 shaderFilesFound=false;
-                               }
-
-                               // close
-                               
-                                hotReloadFileDialog.Instance()->Close();
-                             }
-
-                           if (shaderFilesFound) {
-
-                               ImGui::Text("Shader %s", shaderFilePathName.c_str());
-                               
-                               if(ImGui::Button("Hot-Reload")){
-                                   
-                                   pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
-                                   lookingForShaderFile=false;
-                               }
-
-                           }
-                         
-                         }
-                         
-                     }
-                     
-                     ImGui::Separator();
-                     
-                     if(ImGui::Button("Remove Entity")){
-                         
-                         U4DEntity *parent=activeChild->getParent();
-                         
-                         //leaving it here until the issue #359 is fixed.
-                         //activeChild->removeAndDeleteAllChildren();
-                         
-                         parent->removeChild(activeChild);
-                         
-                         U4DModel *model=dynamic_cast<U4DModel*>(activeChild);
-                         
-                         delete model;
-                         
-                         activeChild=nullptr;
-                         
-                     }
-                     
-                     ImGui::Separator();
-                     
-                     static char modelNameBuffer[64] = "";
-                     //std::strcpy(modelNameBuffer, &activeChild->getName()[0]);
-                     ImGui::InputText("New Model Name", modelNameBuffer, 64);
-                     
-                     if(ImGui::Button("Rename Model")){
-                         
-                         U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
-                         U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
-                         std::string previousModelName=activeChild->getName();
-                         activeChild->setName(modelNameBuffer);
-                         
-                         visibilityDictionary->updateVisibilityDictionary(previousModelName, modelNameBuffer);
-                         kineticDictionary->updateKineticBehaviorDictionary(previousModelName, modelNameBuffer);
-                         
-                         //clear the char array
-                         memset(modelNameBuffer, 0, sizeof(modelNameBuffer));
-                         
-                     }
-                 }
-
-                 ImGui::End();
-
-             }
-
              ImGui::TreePop();
 
          }
+            
+            {
+                ImGui::Begin("Entity Properties");
+
+                if (activeChild!=nullptr) {
+
+                    U4DScene *scene=sceneManager->getCurrentScene();
+                    
+                    ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
+
+                    ImGui::Text("Transform");
+                    ImGui::SliderFloat3("Position", (float*)&entityPosition,-20.0,20.0);
+                    ImGui::SliderFloat3("Orientation", (float*)&entityOrientation,-180.0,180.0);
+
+                    activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
+                    activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
+
+                    ImGui::Separator();
+
+                    ImGui::Text("Render Entity");
+                    U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
+                    U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+                    ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
+                    ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
+                    ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
+
+                    ImGui::Separator();
+                    
+                    if (scene->getPauseScene()) {
+                        
+                        ImGui::Text("Hot-Reload Shader");
+
+                        // open Dialog Simple
+                        if (ImGui::Button("Open Shader")){
+                            lookingForShaderFile=true;
+                            hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
+                        }
+                            
+                        if (lookingForShaderFile) {
+                            
+                            // display
+                            if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                            {
+                              // action if OK
+                              if (hotReloadFileDialog.Instance()->IsOk())
+                              {
+                                shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
+                                shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
+                                // action
+                                shaderFilesFound=true;
+                              }else{
+                                shaderFilesFound=false;
+                              }
+
+                              // close
+                              
+                               hotReloadFileDialog.Instance()->Close();
+                            }
+
+                          if (shaderFilesFound) {
+
+                              ImGui::Text("Shader %s", shaderFilePathName.c_str());
+                              
+                              if(ImGui::Button("Hot-Reload")){
+                                  
+                                  pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
+                                  lookingForShaderFile=false;
+                              }
+
+                          }
+                        
+                        }
+                        
+                    }
+                    
+                    ImGui::Separator();
+                    
+                    if(ImGui::Button("Remove Entity")){
+                        
+                        U4DEntity *parent=activeChild->getParent();
+                        
+                        //leaving it here until the issue #359 is fixed.
+                        //activeChild->removeAndDeleteAllChildren();
+                        
+                        parent->removeChild(activeChild);
+                        
+                        U4DModel *model=dynamic_cast<U4DModel*>(activeChild);
+                        
+                        delete model;
+                        
+                        activeChild=nullptr;
+                        
+                    }
+                    
+                    ImGui::Separator();
+                    
+                    static char modelNameBuffer[64] = "";
+                    //std::strcpy(modelNameBuffer, &activeChild->getName()[0]);
+                    ImGui::InputText("New Model Name", modelNameBuffer, 64);
+                    
+                    if(ImGui::Button("Rename Model")){
+                        
+                        U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
+                        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
+                        std::string previousModelName=activeChild->getName();
+                        activeChild->setName(modelNameBuffer);
+                        
+                        visibilityDictionary->updateVisibilityDictionary(previousModelName, modelNameBuffer);
+                        kineticDictionary->updateKineticBehaviorDictionary(previousModelName, modelNameBuffer);
+                        
+                        //clear the char array
+                        memset(modelNameBuffer, 0, sizeof(modelNameBuffer));
+                        
+                    }
+                }
+
+                ImGui::End();
+
+            }
 
          ImGui::End();
 

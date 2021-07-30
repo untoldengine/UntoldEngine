@@ -45,6 +45,7 @@ namespace U4DEngine {
         arrowKey=new U4DMacArrowKey(U4DEngine::macArrowKey,this);
         
         mouseLeftButton=new U4DMacMouse(U4DEngine::mouseLeftButton,this);
+        mouseRightButton=new U4DMacMouse(U4DEngine::mouseRightButton,this);
         macMouse=new U4DMacMouse(U4DEngine::mouse,this);
         
         registerInputEntity(keyW);
@@ -56,6 +57,7 @@ namespace U4DEngine {
         registerInputEntity(arrowKey);
         
         registerInputEntity(mouseLeftButton);
+        registerInputEntity(mouseRightButton);
         registerInputEntity(macMouse);
         
     }

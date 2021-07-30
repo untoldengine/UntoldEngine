@@ -53,7 +53,7 @@ namespace U4DEngine {
         
         void update(double dt);
         
-        void action();
+        void action(INPUTELEMENTACTION uInputAction);
         
         void changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition);
         

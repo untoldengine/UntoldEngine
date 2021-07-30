@@ -74,7 +74,7 @@ namespace U4DEngine {
         uMacMouse->dataMagnitude=uMacMouse->motionAccumulator.magnitude();
         
         
-        uMacMouse->action();
+        uMacMouse->action(U4DEngine::mouseActive);
         
         
         if (uMacMouse->controllerInterface!=NULL) {

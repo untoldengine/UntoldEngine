@@ -62,7 +62,7 @@ namespace U4DEngine {
         
         uMacMouse->previousDataDeltaPosition=uMacMouse->dataDeltaPosition;
         
-        uMacMouse->action();
+        uMacMouse->action(U4DEngine::mouseActiveDelta);
         
         if (uMacMouse->controllerInterface!=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);

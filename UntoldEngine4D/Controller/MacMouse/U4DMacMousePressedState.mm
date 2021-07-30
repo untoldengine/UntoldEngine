@@ -35,7 +35,7 @@ namespace U4DEngine {
         
         uMacMouse->previousDataPosition=uMacMouse->dataPosition;
         
-        uMacMouse->action();
+        uMacMouse->action(U4DEngine::mouseLeftButtonPressed);
         
         if (uMacMouse->controllerInterface !=NULL) {
             uMacMouse->controllerInterface->setReceivedAction(true);
