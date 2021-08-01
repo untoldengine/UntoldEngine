@@ -503,7 +503,7 @@ void U4DMatrix4n::show(){
 */
     U4DLogger *logger=U4DLogger::sharedInstance();
     
-    logger->log("[%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f",
+    logger->log("[%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f]",
                 matrixData[0],matrixData[4],matrixData[8],matrixData[12],
                 matrixData[1],matrixData[5],matrixData[9],matrixData[13],
                 matrixData[2],matrixData[6],matrixData[10],matrixData[14],

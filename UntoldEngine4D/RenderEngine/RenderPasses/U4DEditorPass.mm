@@ -46,8 +46,9 @@
 #include "imgui.h"
 #include "imgui_impl_metal.h"
 #include "ImGuiFileDialog.h"
-
+#include "ImGuizmo.h"
 #include "imgui_impl_osx.h"
+
 
 #endif
 
@@ -94,11 +95,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     ImGuiFileDialog hotReloadFileDialog;
     ImGuiFileDialog serializeFileDialog;
     
+    static ImGuizmo::OPERATION mCurrentGizmoOperation(ImGuizmo::TRANSLATE);
+    
     U4DVector3n childPosition;
     U4DVector3n childOrientation;
 
     static float entityPosition[3];
     static float entityOrientation[3];
+    
     
     float fps=director->getFPS();
     std::string profilerData=sceneManager->profilerData;
@@ -207,6 +211,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             }
             
             if (activeChild!=nullptr) {
+                
+                mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
                 
                 childPosition=activeChild->getAbsolutePosition();
                 childOrientation=activeChild->getAbsoluteOrientation();
@@ -466,6 +472,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                      sprintf(buf, "%s", child->getName().c_str());
 
                      if (ImGui::Selectable(buf,activeChild==child)) {
+                         
+                         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                         
                          activeChild=child;
                          
                          childPosition=activeChild->getAbsolutePosition();
@@ -479,6 +488,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                          entityOrientation[1]=childOrientation.y;
                          entityOrientation[2]=childOrientation.z;
                          
+                         break;
                      }
 
                  }
@@ -507,6 +517,53 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
                     activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
 
+                    //Guizmo
+                    {
+                        
+                        if (ImGui::IsKeyPressed(84)) // t is pressed=translate
+                           mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                        if (ImGui::IsKeyPressed(82)) //r is pressed= rotate
+                           mCurrentGizmoOperation = ImGuizmo::ROTATE;
+                          
+                
+                         static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+                             
+                         U4DDirector *director=U4DDirector::sharedInstance();
+                         U4DCamera *camera=U4DCamera::sharedInstance();
+                          
+                          ImGuizmo::SetRect(0.0, 0.0, director->getDisplayWidth(),director->getDisplayHeight());
+                          
+                          ImGuizmo::BeginFrame();
+                        
+                          U4DMatrix4n cameraSpace=camera->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+                          cameraSpace.invert();
+                        
+                          U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+                          
+                          U4DMatrix4n activeChildSpace=activeChild->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+                          
+                          ImGuizmo::Manipulate(cameraSpace.matrixData, perspectiveProjection.matrixData, mCurrentGizmoOperation, mCurrentGizmoMode, activeChildSpace.matrixData, NULL, NULL);
+                          
+                          
+                          float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+                          ImGuizmo::DecomposeMatrixToComponents(activeChildSpace.matrixData, matrixTranslation, matrixRotation, matrixScale);
+                          
+                        if (ImGuizmo::IsUsing()) {
+                            
+                            entityPosition[0] = matrixTranslation[0];
+                            entityPosition[1] = matrixTranslation[1];
+                            entityPosition[2] = matrixTranslation[2];
+
+                            entityOrientation[0]=matrixRotation[0];
+                            entityOrientation[1]=matrixRotation[1];
+                            entityOrientation[2]=matrixRotation[2];
+                            
+                            activeChild->rotateTo(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
+                            activeChild->translateTo(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+                        }
+                         
+                    }
+                    
                     ImGui::Separator();
 
                     ImGui::Text("Render Entity");
