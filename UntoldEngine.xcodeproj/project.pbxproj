@@ -101,6 +101,9 @@
 		0340BC6926B0938600582F08 /* U4DMacMouseRightReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0340BC6726B0938600582F08 /* U4DMacMouseRightReleasedState.mm */; };
 		0340BC6A26B0938600582F08 /* U4DMacMouseRightReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0340BC6726B0938600582F08 /* U4DMacMouseRightReleasedState.mm */; };
 		0340BC6B26B0938600582F08 /* U4DMacMouseRightReleasedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0340BC6726B0938600582F08 /* U4DMacMouseRightReleasedState.mm */; };
+		0340BC7626B4546E00582F08 /* ImGuizmo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0340BC7426B4546D00582F08 /* ImGuizmo.cpp */; };
+		0340BC7726B4546E00582F08 /* ImGuizmo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0340BC7426B4546D00582F08 /* ImGuizmo.cpp */; };
+		0340BC7826B4546E00582F08 /* ImGuizmo.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0340BC7426B4546D00582F08 /* ImGuizmo.cpp */; };
 		0341ABFE204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
 		0341ABFF204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
 		0341AC00204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */; };
@@ -1211,6 +1214,8 @@
 		0340BC6326B0934000582F08 /* U4DMacMouseRightPressedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseRightPressedState.h; path = MacMouse/U4DMacMouseRightPressedState.h; sourceTree = "<group>"; };
 		0340BC6726B0938600582F08 /* U4DMacMouseRightReleasedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseRightReleasedState.mm; path = MacMouse/U4DMacMouseRightReleasedState.mm; sourceTree = "<group>"; };
 		0340BC6826B0938600582F08 /* U4DMacMouseRightReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseRightReleasedState.h; path = MacMouse/U4DMacMouseRightReleasedState.h; sourceTree = "<group>"; };
+		0340BC7426B4546D00582F08 /* ImGuizmo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = ImGuizmo.cpp; path = Imgui/ImGuizmo.cpp; sourceTree = "<group>"; };
+		0340BC7526B4546D00582F08 /* ImGuizmo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = ImGuizmo.h; path = Imgui/ImGuizmo.h; sourceTree = "<group>"; };
 		0341ABF2204D8CA1006E14A9 /* U4DMacKeyPressedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyPressedState.mm; path = MacKeys/U4DMacKeyPressedState.mm; sourceTree = "<group>"; };
 		0341ABF3204D8CA1006E14A9 /* U4DMacKeyReleasedState.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKeyReleasedState.mm; path = MacKeys/U4DMacKeyReleasedState.mm; sourceTree = "<group>"; };
 		0341ABF4204D8CA1006E14A9 /* U4DMacKey.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacKey.mm; path = MacKeys/U4DMacKey.mm; sourceTree = "<group>"; };
@@ -2789,6 +2794,8 @@
 		03E68766267415480079ED4D /* Imgui */ = {
 			isa = PBXGroup;
 			children = (
+				0340BC7426B4546D00582F08 /* ImGuizmo.cpp */,
+				0340BC7526B4546D00582F08 /* ImGuizmo.h */,
 				03E687B026771D410079ED4D /* ImGuiFileDialog.cpp */,
 				03E687B126771D410079ED4D /* ImGuiFileDialog.h */,
 				03E687B926771DD00079ED4D /* ImGuiFileDialogConfig.h */,
@@ -3738,6 +3745,7 @@
 				03676AA6267B96E90016A83A /* imgui_widgets.cpp in Sources */,
 				03722E04202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
 				03722DEC202CA7240080D069 /* U4DPadButton.mm in Sources */,
+				0340BC7726B4546E00582F08 /* ImGuizmo.cpp in Sources */,
 				0399D67225B72712004C1E11 /* U4DWorldPipeline.mm in Sources */,
 				03722BB12029F0F50080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03CAE653205192F500391B57 /* U4DMacMouseDraggedState.mm in Sources */,
@@ -4205,6 +4213,7 @@
 				034F2A2B217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
 				03722CD92029F0F80080D069 /* U4DGravityForceGenerator.mm in Sources */,
 				03722E06202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
+				0340BC7826B4546E00582F08 /* ImGuizmo.cpp in Sources */,
 				03722DEE202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				0399D67325B72712004C1E11 /* U4DWorldPipeline.mm in Sources */,
 				03722CEB2029F0F80080D069 /* U4DSHAlgorithm.mm in Sources */,
@@ -4526,6 +4535,7 @@
 				03A96D6825186B7800E8BA19 /* buttonUIShader.metal in Sources */,
 				03676A99267B95830016A83A /* ImGuiFileDialog.cpp in Sources */,
 				038BF2502279E7E500B129A5 /* U4DFollowPath.mm in Sources */,
+				0340BC7626B4546E00582F08 /* ImGuizmo.cpp in Sources */,
 				03E688D0267793280079ED4D /* gravity_core.c in Sources */,
 				0399D66525B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
 				03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */,
