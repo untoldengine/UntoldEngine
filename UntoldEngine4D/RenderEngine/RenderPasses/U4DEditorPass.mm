@@ -333,16 +333,16 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     activeChild=nullptr;
                     
                     scene->setPauseScene(false);
-//                    U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
-//
+                    U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
+
 //                    //Change the state of the scene to play mode. This will remove all children from the
 //                    //scenegraph and start anew.
 //                    scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
 //
-//                    //call the init gravity function-- THIS IS FOR NOW ONLY
-//                    bindManager->initGravityFunction();
-//
-//                    scriptLoadedSuccessfully=false;
+                    //call the init gravity function-- THIS IS FOR NOW ONLY
+                    bindManager->initGravityFunction();
+
+                    scriptLoadedSuccessfully=false;
                     
             }
             

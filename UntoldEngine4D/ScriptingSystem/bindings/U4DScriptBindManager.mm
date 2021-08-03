@@ -59,6 +59,8 @@ namespace U4DEngine {
             // execute init closure
             if (gravity_vm_runclosure (vm, init_closure, VALUE_FROM_NULL, 0, 0)) {
                 
+                //this calls the Garbage Collector in gravity
+                gravity_gc_start(vm);
             }
         }
         
