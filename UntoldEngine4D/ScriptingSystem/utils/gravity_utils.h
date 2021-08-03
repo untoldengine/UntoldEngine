@@ -25,6 +25,7 @@ typedef uint64_t            nanotime_t;
 #ifdef __cplusplus
 extern "C" {
 #endif
+	
 // TIMER
 nanotime_t  nanotime (void);
 double      microtime (nanotime_t tstart, nanotime_t tend);
