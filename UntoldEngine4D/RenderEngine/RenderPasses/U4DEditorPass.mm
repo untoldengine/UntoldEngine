@@ -309,10 +309,11 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             U4DScene *scene=sceneManager->getCurrentScene();
             U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
             ImGui::Begin("Engine Mode");
-            if (ImGui::Button("Reset")) {
+            if (ImGui::Button("clear")) {
                 
                 //reset the active child
                 activeChild=nullptr;
+                logger->log("Scene was cleared");
                 
                 //change scene state to edit mode
                 scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
@@ -322,8 +323,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             if (ImGui::Button("Pause") && sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
                 
                 //change scene state to pause
-                    scene->setPauseScene(true);
-            
+                scene->setPauseScene(true);
+                logger->log("Game was paused");
+                
             }
             
             ImGui::SameLine();
@@ -333,16 +335,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     activeChild=nullptr;
                     
                     scene->setPauseScene(false);
-                    U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
-
+                    logger->log("Game is playing");
+                    
 //                    //Change the state of the scene to play mode. This will remove all children from the
 //                    //scenegraph and start anew.
 //                    scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
 //
                     //call the init gravity function-- THIS IS FOR NOW ONLY
-                    bindManager->initGravityFunction();
-
-                    scriptLoadedSuccessfully=false;
+                    
                     
             }
             
@@ -370,7 +370,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     // action
                     scriptFilesFound=true;
                   }else{
-                    scriptFilesFound=false;
+                    //scriptFilesFound=false;
                   }
                   
                   // close
@@ -387,12 +387,18 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                   if(ImGui::Button("Load Script")){
                       
                       if(bindManager->loadScript(scriptFilePathName)){
+                          
+                          logger->log("Script was loaded.");
+                          
+                          //call the init function in the script
+                          bindManager->initGravityFunction();
+                          
                           scriptLoadedSuccessfully=true;
                       }else{
                           scriptLoadedSuccessfully=false;
                       }
                       
-                      lookingForScriptFile=false;
+                      //lookingForScriptFile=false;
                   }
                   
               }

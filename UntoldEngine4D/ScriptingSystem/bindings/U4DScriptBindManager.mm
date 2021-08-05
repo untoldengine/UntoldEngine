@@ -59,8 +59,9 @@ namespace U4DEngine {
             // execute init closure
             if (gravity_vm_runclosure (vm, init_closure, VALUE_FROM_NULL, 0, 0)) {
                 
+                
                 //this calls the Garbage Collector in gravity
-                gravity_gc_start(vm);
+                //gravity_gc_start(vm);
             }
         }
         
@@ -70,25 +71,25 @@ namespace U4DEngine {
     void U4DScriptBindManager::updateGravityFunction(double dt){
         
         
-//        gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
-//        if (!VALUE_ISA_CLOSURE(update_function)) {
-//            printf("Unable to find update function into Gravity VM.\n");
-//
-//        }else{
-//
-//            // convert function to closure
-//            gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
-//
-//            // prepare parameters
-//
-//            gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
-//            gravity_value_t params[] = {p1};
-//
-//            // execute init closure
-//            if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
-//
-//            }
-//        }
+        gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
+        if (!VALUE_ISA_CLOSURE(update_function)) {
+            printf("Unable to find update function into Gravity VM.\n");
+
+        }else{
+
+            // convert function to closure
+            gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
+
+            // prepare parameters
+
+            gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
+            gravity_value_t params[] = {p1};
+
+            // execute init closure
+            if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
+
+            }
+        }
         
     }
 
@@ -190,8 +191,11 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
 
     void U4DScriptBindManager::freeObjects(gravity_vm *vm, gravity_object_t *obj){
         
-        //vector3nFree(vm, obj);
+        U4DScriptBindVector3n *scriptBindVector3n=U4DScriptBindVector3n::sharedInstance();
+        scriptBindVector3n->vector3nFree(vm, obj);
 
+        U4DScriptBindModel *scriptBindModel=U4DScriptBindModel::sharedInstance();
+        scriptBindModel->modelFree(vm, obj);
     }
 
     void U4DScriptBindManager::registerClasses(gravity_vm *vm){
