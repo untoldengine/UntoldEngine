@@ -64,7 +64,7 @@ namespace U4DEngine {
         
         //YOU NEED TO MODIFY THIS SO THAT IT USES THE U4DCAMERA Position
         U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
-        viewSpace.invert();
+        //viewSpace.invert();
         
         U4DMatrix4n modelWorldSpace=worldSpace*modelSpace;
         
@@ -72,15 +72,21 @@ namespace U4DEngine {
         
         U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
         
+        //Note, the perspective projection space has to be inverted to create
+        //the infinite grid
+        perspectiveProjection.invert();
+        
         U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
         
         U4DNumerical numerical;
         
-        matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
-        
+        //matrix_float4x4 mvpSpaceSIMD=numerical.convertToSIMD(mvpSpace);
+        matrix_float4x4 projectionSpaceSIMD=numerical.convertToSIMD(perspectiveProjection);
+        matrix_float4x4 viewSpaceSIMD=numerical.convertToSIMD(viewSpace);
         
         UniformSpace uniformSpace;
-        uniformSpace.modelViewProjectionSpace=mvpSpaceSIMD;
+        uniformSpace.projectionSpace=projectionSpaceSIMD;
+        uniformSpace.viewSpace=viewSpaceSIMD;
         
         memcpy(uniformSpaceBuffer.contents, (void*)&uniformSpace, sizeof(UniformSpace));
         
@@ -93,11 +99,13 @@ namespace U4DEngine {
             updateSpaceUniforms();
             
             //encode the buffers
-            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:0];
+            [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:viAttributeBuffer];
             
-            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:1];
+            [uRenderEncoder setVertexBuffer:uniformSpaceBuffer offset:0 atIndex:viSpaceBuffer];
             
-            [uRenderEncoder drawPrimitives:MTLPrimitiveTypeLine vertexStart:0 vertexCount:gridVertexCount];
+            [uRenderEncoder setFragmentBuffer:uniformSpaceBuffer offset:0 atIndex:fiSpaceBuffer];
+            
+            [uRenderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:6];
             
         }
         
