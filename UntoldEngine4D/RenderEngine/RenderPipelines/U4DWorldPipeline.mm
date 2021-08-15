@@ -55,6 +55,23 @@ namespace U4DEngine {
         mtlRenderPassPipelineDescriptor.fragmentFunction=fragmentProgram;
         mtlRenderPassPipelineDescriptor.colorAttachments[0].pixelFormat=director->getMTLView().colorPixelFormat;
         mtlRenderPassPipelineDescriptor.depthAttachmentPixelFormat=director->getMTLView().depthStencilPixelFormat;
+        
+        mtlRenderPassPipelineDescriptor.colorAttachments[0].blendingEnabled=YES;
+        
+
+        //rgb blending
+        mtlRenderPassPipelineDescriptor.colorAttachments[0].rgbBlendOperation=MTLBlendOperationAdd;
+
+        mtlRenderPassPipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor=MTLBlendFactorSourceAlpha;
+
+        mtlRenderPassPipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor=MTLBlendFactorOne;
+
+        //alpha blending
+        mtlRenderPassPipelineDescriptor.colorAttachments[0].alphaBlendOperation=MTLBlendOperationAdd;
+
+        mtlRenderPassPipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor=MTLBlendFactorSourceAlpha;
+
+        mtlRenderPassPipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor=MTLBlendFactorOneMinusSourceAlpha;
 
 
         mtlRenderPassPipelineDescriptor.vertexDescriptor=vertexDesc;
@@ -63,7 +80,7 @@ namespace U4DEngine {
 
         mtlRenderPassDepthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
 
-        mtlRenderPassDepthStencilDescriptor.depthWriteEnabled=YES;
+        mtlRenderPassDepthStencilDescriptor.depthWriteEnabled=NO;
 
         mtlRenderPassDepthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:mtlRenderPassDepthStencilDescriptor];
 

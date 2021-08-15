@@ -41,7 +41,6 @@ void SandboxEditWorld::init(){
     
     //The following code snippets loads scene data, renders the characters and skybox.
     
-    
     setEnableGrid(true);
     
     //register the classes
