@@ -94,10 +94,10 @@ namespace U4DEngine {
             
             //If no scene exist, then, go ahead and initialize the scene
             
+            currentScene=uScene;
+            
             uScene->init();
             
-            currentScene=uScene;
-        
         }
         
     }

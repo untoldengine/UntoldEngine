@@ -11,7 +11,7 @@
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
 #include "SandboxWorld.h"
-#include "U4DDebugger.h"
+
 
 SandboxLogic::SandboxLogic():showBroadPhaseVolume(false),showNarrowPhaseVolume(false){
     
@@ -192,9 +192,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
                     
-                    debugger->reloadShader("compositionpipeline", "/Users/haroldserrano/Downloads/compositionReloadShader.metal", "vertexCompShader", "fragmentCompShader");
                 }
             }
                 break;

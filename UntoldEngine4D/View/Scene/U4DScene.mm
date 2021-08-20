@@ -81,9 +81,9 @@ namespace U4DEngine {
         
     }
 
-    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld, U4DGameLogicInterface *uGameEditingLogic){
+    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld){ 
         
-        if (uGameWorld!=nullptr  && uGameLogic!=nullptr && uEditingWorld!=nullptr && uGameEditingLogic!=nullptr) {
+        if (uGameWorld!=nullptr  && uGameLogic!=nullptr && uEditingWorld!=nullptr ) {
             
             
             U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
@@ -93,7 +93,6 @@ namespace U4DEngine {
             gameLogic=uGameLogic;
             
             editingWorld=uEditingWorld;
-            gameEditingLogic=uGameEditingLogic;
             
             sceneStateManager->changeState(U4DSceneEditingState::sharedInstance());
             

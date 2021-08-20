@@ -687,6 +687,9 @@
 		038BF274229584A300B129A5 /* U4DNavigation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF272229584A300B129A5 /* U4DNavigation.mm */; };
 		038BF275229584A300B129A5 /* U4DNavigation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF272229584A300B129A5 /* U4DNavigation.mm */; };
 		038BF276229584A300B129A5 /* U4DNavigation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF272229584A300B129A5 /* U4DNavigation.mm */; };
+		0390836526CF813C001B6878 /* scenefile.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0390836426CF813B001B6878 /* scenefile.u4d */; };
+		0390836626CF813C001B6878 /* scenefile.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0390836426CF813B001B6878 /* scenefile.u4d */; };
+		0390836726CF813C001B6878 /* scenefile.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0390836426CF813B001B6878 /* scenefile.u4d */; };
 		039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */; };
 		039175041CE190C300FD2674 /* U4DBVHCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175021CE190C300FD2674 /* U4DBVHCollision.mm */; };
 		039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039175051CE1933100FD2674 /* U4DBVHModelCollision.mm */; };
@@ -852,9 +855,6 @@
 		03C044522680CF90002B3880 /* SandboxEditWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044502680CF90002B3880 /* SandboxEditWorld.mm */; };
 		03C044532680CF90002B3880 /* SandboxEditWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044502680CF90002B3880 /* SandboxEditWorld.mm */; };
 		03C044542680CF90002B3880 /* SandboxEditWorld.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044502680CF90002B3880 /* SandboxEditWorld.mm */; };
-		03C044572680CFA4002B3880 /* SandboxEditLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044552680CFA4002B3880 /* SandboxEditLogic.mm */; };
-		03C044582680CFA4002B3880 /* SandboxEditLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044552680CFA4002B3880 /* SandboxEditLogic.mm */; };
-		03C044592680CFA4002B3880 /* SandboxEditLogic.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044552680CFA4002B3880 /* SandboxEditLogic.mm */; };
 		03C0445C26813562002B3880 /* soccerScene.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03C0445A26813562002B3880 /* soccerScene.u4d */; };
 		03C0445D26813562002B3880 /* soccerScene.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03C0445A26813562002B3880 /* soccerScene.u4d */; };
 		03C0445E26813562002B3880 /* soccerScene.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03C0445A26813562002B3880 /* soccerScene.u4d */; };
@@ -1413,6 +1413,7 @@
 		038BF26A2293883C00B129A5 /* U4DNavMeshLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DNavMeshLoader.h; path = AISystem/NavMeshLoader/U4DNavMeshLoader.h; sourceTree = "<group>"; };
 		038BF272229584A300B129A5 /* U4DNavigation.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DNavigation.mm; path = AISystem/Pathfinding/U4DNavigation.mm; sourceTree = "<group>"; };
 		038BF273229584A300B129A5 /* U4DNavigation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DNavigation.h; path = AISystem/Pathfinding/U4DNavigation.h; sourceTree = "<group>"; };
+		0390836426CF813B001B6878 /* scenefile.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = scenefile.u4d; sourceTree = "<group>"; };
 		039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRestingForcesGenerator.mm; path = RestingForces/U4DRestingForcesGenerator.mm; sourceTree = "<group>"; };
 		039174FF1CD56D0000FD2674 /* U4DRestingForcesGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DRestingForcesGenerator.h; path = RestingForces/U4DRestingForcesGenerator.h; sourceTree = "<group>"; };
 		039175021CE190C300FD2674 /* U4DBVHCollision.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHCollision.mm; path = BoundaryVolumeHierarchy/BVHCollision/U4DBVHCollision.mm; sourceTree = "<group>"; };
@@ -1532,8 +1533,6 @@
 		03BA57332432E110003A69ED /* UserCommonProtocols.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = UserCommonProtocols.h; path = Game/UserCommonProtocols.h; sourceTree = SOURCE_ROOT; };
 		03C044502680CF90002B3880 /* SandboxEditWorld.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SandboxEditWorld.mm; path = Game/SandboxEditWorld.mm; sourceTree = SOURCE_ROOT; };
 		03C044512680CF90002B3880 /* SandboxEditWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SandboxEditWorld.h; path = Game/SandboxEditWorld.h; sourceTree = SOURCE_ROOT; };
-		03C044552680CFA4002B3880 /* SandboxEditLogic.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SandboxEditLogic.mm; path = Game/SandboxEditLogic.mm; sourceTree = SOURCE_ROOT; };
-		03C044562680CFA4002B3880 /* SandboxEditLogic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SandboxEditLogic.h; path = Game/SandboxEditLogic.h; sourceTree = SOURCE_ROOT; };
 		03C0445A26813562002B3880 /* soccerScene.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = soccerScene.u4d; sourceTree = "<group>"; };
 		03C0445B26813562002B3880 /* soccerTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = soccerTextures.u4d; sourceTree = "<group>"; };
 		03C0446C26830BE7002B3880 /* U4DScriptInstanceManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptInstanceManager.mm; path = ScriptingSystem/U4DScriptInstanceManager.mm; sourceTree = "<group>"; };
@@ -2314,8 +2313,6 @@
 				03019FF2252568430005CDDD /* SandboxLoading.mm */,
 				03C044512680CF90002B3880 /* SandboxEditWorld.h */,
 				03C044502680CF90002B3880 /* SandboxEditWorld.mm */,
-				03C044562680CFA4002B3880 /* SandboxEditLogic.h */,
-				03C044552680CFA4002B3880 /* SandboxEditLogic.mm */,
 				03C0449C268A6E54002B3880 /* Player.h */,
 				03C0449B268A6E54002B3880 /* Player.mm */,
 				03C044A1268A6E6F002B3880 /* Field.h */,
@@ -2337,6 +2334,7 @@
 			isa = PBXGroup;
 			children = (
 				03C044762683D733002B3880 /* rightshotAnimation.u4d */,
+				0390836426CF813B001B6878 /* scenefile.u4d */,
 				03C044772683D733002B3880 /* runningAnimation.u4d */,
 				03C0445A26813562002B3880 /* soccerScene.u4d */,
 				03C0445B26813562002B3880 /* soccerTextures.u4d */,
@@ -3387,6 +3385,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0390836626CF813C001B6878 /* scenefile.u4d in Resources */,
 				03042F8E2657737500681C6C /* astronautWalkAnim.u4d in Resources */,
 				03C044792683D733002B3880 /* rightshotAnimation.u4d in Resources */,
 				03042F66265770CD00681C6C /* spaceScene.u4d in Resources */,
@@ -3421,6 +3420,7 @@
 				03C0446126813562002B3880 /* soccerTextures.u4d in Resources */,
 				03DEBE05262A2676009C80B6 /* uiTextures.u4d in Resources */,
 				03C0447A2683D733002B3880 /* rightshotAnimation.u4d in Resources */,
+				0390836726CF813C001B6878 /* scenefile.u4d in Resources */,
 				03042F9F26577A8700681C6C /* sceneTextures.u4d in Resources */,
 				03042F872657733300681C6C /* spaceTextures.u4d in Resources */,
 				03DEBE3B262A2676009C80B6 /* uiFont.u4d in Resources */,
@@ -3444,6 +3444,7 @@
 				03DEBE39262A2676009C80B6 /* uiFont.u4d in Resources */,
 				03042F9D26577A8700681C6C /* sceneTextures.u4d in Resources */,
 				03042F8D2657737500681C6C /* astronautWalkAnim.u4d in Resources */,
+				0390836526CF813C001B6878 /* scenefile.u4d in Resources */,
 				03C0445C26813562002B3880 /* soccerScene.u4d in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -3755,7 +3756,6 @@
 				03722BE82029F0F50080D069 /* U4DRungaKuttaMethod.mm in Sources */,
 				0399D66025B72712004C1E11 /* U4DParticlesPipeline.mm in Sources */,
 				03722BD22029F0F50080D069 /* U4DIndex.mm in Sources */,
-				03C044582680CFA4002B3880 /* SandboxEditLogic.mm in Sources */,
 				03722B5B2029F0F50080D069 /* U4DRenderSkybox.mm in Sources */,
 				03E688F3267794410079ED4D /* U4DScriptBindManager.mm in Sources */,
 				03E688A1267793270079ED4D /* gravity_parser.c in Sources */,
@@ -4223,7 +4223,6 @@
 				03722CAA2029F0F80080D069 /* U4DRenderParticleSystem.mm in Sources */,
 				03722D222029F0F80080D069 /* U4DRungaKuttaMethod.mm in Sources */,
 				0399D66125B72712004C1E11 /* U4DParticlesPipeline.mm in Sources */,
-				03C044592680CFA4002B3880 /* SandboxEditLogic.mm in Sources */,
 				03722D0C2029F0F80080D069 /* U4DIndex.mm in Sources */,
 				03722C952029F0F80080D069 /* U4DRenderSkybox.mm in Sources */,
 				03E688F4267794410079ED4D /* U4DScriptBindManager.mm in Sources */,
@@ -4327,7 +4326,6 @@
 				038249221FA252AE00DFEFE3 /* U4DParticleEmitterTorus.mm in Sources */,
 				03CAE64C205192DD00391B57 /* U4DMacMousePressedState.mm in Sources */,
 				03EF2DFE1B6D5EF200F26945 /* U4DPoint3n.mm in Sources */,
-				03C044572680CFA4002B3880 /* SandboxEditLogic.mm in Sources */,
 				032B9A20247818DD00412B5B /* U4DLayerManager.mm in Sources */,
 				03E688A3267793280079ED4D /* gravity_visitor.c in Sources */,
 				03E688FF267794790079ED4D /* U4DScriptBindVector3n.mm in Sources */,
