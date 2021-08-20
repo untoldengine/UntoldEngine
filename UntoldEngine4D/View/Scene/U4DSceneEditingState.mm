@@ -45,14 +45,14 @@ namespace U4DEngine {
         U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
         
         uScene->editingWorld->setGameController(uScene->gameController);
-        uScene->editingWorld->setGameLogic(uScene->gameEditingLogic);
+        uScene->editingWorld->setGameLogic(uScene->gameLogic);
         
         uScene->gameController->setGameWorld(uScene->editingWorld);
-        uScene->gameController->setGameLogic(uScene->gameEditingLogic);
+        uScene->gameController->setGameLogic(uScene->gameLogic);
         
-        uScene->gameEditingLogic->setGameWorld(uScene->editingWorld);
-        uScene->gameEditingLogic->setGameController(sceneManager->getGameController());
-        uScene->gameEditingLogic->setGameEntityManager(uScene->editingWorld->getEntityManager());
+        uScene->gameLogic->setGameWorld(uScene->editingWorld);
+        uScene->gameLogic->setGameController(sceneManager->getGameController());
+        uScene->gameLogic->setGameEntityManager(uScene->editingWorld->getEntityManager());
         
         
         
@@ -61,7 +61,7 @@ namespace U4DEngine {
 //        scriptInstanceManager->removeAllScriptInstances();
         
         uScene->editingWorld->init();
-        uScene->gameEditingLogic->init();
+        uScene->gameLogic->init();
         
         //enable profiler
         sceneManager->enableSceneProfiling();
@@ -78,7 +78,7 @@ namespace U4DEngine {
             uScene->gameController->update(dt);
             
             //update the game model
-            uScene->gameEditingLogic->update(dt);
+            uScene->gameLogic->update(dt);
             
             U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
             bindManager->updateGravityFunction(dt);

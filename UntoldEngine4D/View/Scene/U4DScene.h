@@ -109,11 +109,6 @@ public:
     U4DGameLogicInterface *gameLogic;
     
     /**
-     @brief pointer to the game editing(logic) interface
-     */
-    U4DGameLogicInterface *gameEditingLogic;
-    
-    /**
      @brief Pointer to the scene state manager
      */
     U4DSceneStateManager *sceneStateManager;
@@ -140,7 +135,7 @@ public:
     */
     virtual void loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameLogicInterface *uGameLogic) final;
     
-    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld, U4DGameLogicInterface *uGameEditingLogic) final;
+    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld) final;
     
     /**
      @brief Method in charge of updating the states of each entity
