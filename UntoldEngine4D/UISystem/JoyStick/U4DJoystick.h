@@ -68,6 +68,11 @@ private:
      */
     bool directionReversal;
     
+    /**
+     @brief store initial touchBegin flag.
+     */
+    bool touchBeginWithinBoundaryFlag;
+    
     void initJoystickProperties(std::string uName, float xPosition,float yPosition, float uBackgroundWidth,float uBackgroundHeight);
     
 public:
@@ -75,10 +80,10 @@ public:
     /**
      * @brief Class constructor
      * @details creates the state manager and sets the texture for the joystick and translates it to the assigned position
-     * 
+     *
      * @param uName name of joystick
      * @param xPosition x-axis position
-     * @param yPosition y-axis position 
+     * @param yPosition y-axis position
      * @param uBackGroundImage background joystick texture name
      * @param uBackgroundWidth background texture width
      * @param uBackgroundHeight background texture height
@@ -96,7 +101,7 @@ public:
     /**
      * @brief Pointer to the callback object
      * @details This callback is used to inform the button which method to call upon pressed
-     * 
+     *
      */
     U4DCallbackInterface *pCallback;
     
@@ -108,7 +113,7 @@ public:
     U4DControllerInterface *controllerInterface;
     
     /**
-     * @brief joystick data position 
+     * @brief joystick data position
      */
     U4DVector2n dataPosition;
 
@@ -120,7 +125,7 @@ public:
     /**
      * @brief Updates the state of joystick
      * @details The state manager updates the state of the joystick. The states are either idle, active or released
-     * 
+     *
      * @param dt game tick
      */
     void update(double dt);
@@ -134,7 +139,7 @@ public:
     /**
      * @brief Changes the state of the joystick
      * @details The state manager changes the state of the joystick to either active or released depending on the touch
-     * 
+     *
      * @param uInputAction touch state. that is moved or released
      * @param uPosition touch position
      */
@@ -143,7 +148,7 @@ public:
     /**
      * @brief Sets the computed position of the joystick
      * @details This data is computed taking into account the current touch position, location of joystick and texture radius
-     * 
+     *
      * @param uData computed data
      */
     void setDataPosition(U4DVector2n uData);
@@ -158,14 +163,14 @@ public:
     /**
      * @brief Sets the magnitude position of the joystick
      * @details This is computed by subtracting the current position of the joystick and the position of the background texture
-     * 
+     *
      * @param uValue magnitude
      */
     void setDataMagnitude(float uValue);
 
     /**
      * @brief Gets the magnitude position of the joystick
-     * @details This is computed by subtracting the current position of the joystick and the position of the background texture 
+     * @details This is computed by subtracting the current position of the joystick and the position of the background texture
      * @return magnitude of data
      */
     float getDataMagnitude();
@@ -179,7 +184,7 @@ public:
     /**
      * @brief Initializes the callback interface
      * @details The callback is set during the controller initialization by the user. It sets which method to call if there is an action detected on the joystick
-     * 
+     *
      * @param uAction callback interface object
      */
     void setCallbackAction(U4DCallbackInterface *uAction);
