@@ -12,11 +12,12 @@
 #include "U4DControllerInterface.h"
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
+#include "U4DNumerical.h"
 
 namespace U4DEngine {
     
     
-U4DJoystick::U4DJoystick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage):U4DShaderEntity(1.0),isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0){
+U4DJoystick::U4DJoystick(std::string uName, float xPosition,float yPosition,const char* uBackGroundImage,float uBackgroundWidth,float uBackgroundHeight,const char* uJoyStickImage):U4DShaderEntity(1.0),isActive(false),controllerInterface(NULL),pCallback(NULL),directionReversal(false),dataPosition(0.0,0.0),dataMagnitude(0.0),touchBeginWithinBoundaryFlag(false){
     
     initJoystickProperties(uName, xPosition, yPosition, uBackgroundWidth, uBackgroundHeight);
     
@@ -43,7 +44,7 @@ void U4DJoystick::initJoystickProperties(std::string uName, float xPosition,floa
     
      setName(uName);
      
-     renderEntity->setPipelineForPass("joystickpipeline",U4DEngine::finalPass); 
+     renderEntity->setPipelineForPass("joystickpipeline",U4DEngine::finalPass);
     
      setShaderDimension(uBackgroundWidth, uBackgroundHeight);
 
@@ -105,6 +106,17 @@ void U4DJoystick::update(double dt){
         
         updateShaderParameterContainer(0, param);
         
+        //remap the current position from [-0.5,0.5] to [-1.0,1.0]
+        U4DEngine::U4DVector2n fromRange(-0.5,0.5);
+        
+        
+        U4DEngine::U4DVector2n toRange(-1.0,1.0);
+        
+        U4DNumerical numerical;
+        
+        dataPosition.x=numerical.remapValue(dataPosition.x, fromRange, toRange);
+        dataPosition.y=numerical.remapValue(dataPosition.y, fromRange, toRange);
+        
         dataMagnitude=dataPosition.magnitude();
                
         if (previousData.dot(dataPosition)<0.0) {
@@ -127,6 +139,7 @@ void U4DJoystick::update(double dt){
         
         dataMagnitude=0.0;
         
+        touchBeginWithinBoundaryFlag=false;
     }
     
 }
@@ -185,24 +198,58 @@ bool U4DJoystick::changeState(INPUTELEMENTACTION uInputAction, U4DVector2n uPosi
     
     float distanceMagnitude=distance.magnitude();
     
-    float distancePlusJoyStick=distanceMagnitude+joyStickRadius;
-    
-    if (distancePlusJoyStick<=(backgroundRadius*1.5)){
+    if (distanceMagnitude<(backgroundRadius-joyStickRadius)){
         
         currentPosition=uPosition;
         
         withinBoundary=true;
         
-        if (uInputAction==U4DEngine::ioTouchesBegan || uInputAction==U4DEngine::ioTouchesMoved || uInputAction==U4DEngine::mouseLeftButtonDragged) {
+        
+    }else if(distanceMagnitude>=(backgroundRadius-joyStickRadius) && distanceMagnitude<backgroundRadius) {
+        
+        currentPosition=centerPosition+distance*(backgroundRadius-joyStickRadius)/distanceMagnitude;
+        
+        withinBoundary=true;
+        
+       
+    }else if(distanceMagnitude>backgroundRadius && uInputAction==U4DEngine::ioTouchesEnded){
+        
+        withinBoundary=false;
+        
+        changeState(U4DEngine::uireleased);
+        
+    }else if(distanceMagnitude>backgroundRadius && distanceMagnitude<3.0*backgroundRadius) {
+        
+        currentPosition=centerPosition+distance*(backgroundRadius-joyStickRadius)/distanceMagnitude;
+        
+        withinBoundary=false;
+        
+    }
+    
+    if (withinBoundary) {
+        
+        if (uInputAction==U4DEngine::ioTouchesBegan) {
             
+            touchBeginWithinBoundaryFlag=true;
+            
+            
+        }else if(uInputAction==U4DEngine::ioTouchesMoved || uInputAction==U4DEngine::mouseLeftButtonDragged){
+        
             changeState(U4DEngine::uimoving);
             
-        }else if((uInputAction==U4DEngine::ioTouchesEnded || uInputAction==U4DEngine::mouseLeftButtonReleased) && (getState()==U4DEngine::uimoving)){
+        }else if((uInputAction==U4DEngine::ioTouchesEnded || uInputAction==U4DEngine::mouseLeftButtonReleased) && getState()==U4DEngine::uimoving){
             
             changeState(U4DEngine::uireleased);
             
         }
         
+    }else{
+        
+        if (touchBeginWithinBoundaryFlag) {
+            touchBeginWithinBoundaryFlag=false;
+            changeState(U4DEngine::uimoving);
+            
+        }
     }
     
     return withinBoundary;
