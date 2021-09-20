@@ -609,6 +609,9 @@
 		03722E0A202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
 		03722E0B202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
 		03722E0C202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */; };
+		0373B56826F7C975001A7FDC /* TextEditor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0373B56626F7C974001A7FDC /* TextEditor.cpp */; };
+		0373B56926F7C975001A7FDC /* TextEditor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0373B56626F7C974001A7FDC /* TextEditor.cpp */; };
+		0373B56A26F7C975001A7FDC /* TextEditor.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 0373B56626F7C974001A7FDC /* TextEditor.cpp */; };
 		03759B39175B0135002EB5D9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B38175B0135002EB5D9 /* UIKit.framework */; };
 		03759B3B175B0135002EB5D9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B3A175B0135002EB5D9 /* Foundation.framework */; };
 		03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03759B68175B0382002EB5D9 /* U4DCamera.mm */; };
@@ -1334,6 +1337,8 @@
 		03722E02202CBF860080D069 /* U4DPadButtonReleasedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonReleasedState.h; path = PadButton/U4DPadButtonReleasedState.h; sourceTree = "<group>"; };
 		03722E07202CBF9E0080D069 /* U4DPadButtonIdleState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadButtonIdleState.mm; path = PadButton/U4DPadButtonIdleState.mm; sourceTree = "<group>"; };
 		03722E08202CBF9E0080D069 /* U4DPadButtonIdleState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadButtonIdleState.h; path = PadButton/U4DPadButtonIdleState.h; sourceTree = "<group>"; };
+		0373B56626F7C974001A7FDC /* TextEditor.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = TextEditor.cpp; path = Imgui/TextEditor.cpp; sourceTree = "<group>"; };
+		0373B56726F7C974001A7FDC /* TextEditor.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = TextEditor.h; path = Imgui/TextEditor.h; sourceTree = "<group>"; };
 		03759B34175B0135002EB5D9 /* UntoldEngine.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UntoldEngine.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		03759B38175B0135002EB5D9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		03759B3A175B0135002EB5D9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -2792,6 +2797,8 @@
 		03E68766267415480079ED4D /* Imgui */ = {
 			isa = PBXGroup;
 			children = (
+				0373B56626F7C974001A7FDC /* TextEditor.cpp */,
+				0373B56726F7C974001A7FDC /* TextEditor.h */,
 				0340BC7426B4546D00582F08 /* ImGuizmo.cpp */,
 				0340BC7526B4546D00582F08 /* ImGuizmo.h */,
 				03E687B026771D410079ED4D /* ImGuiFileDialog.cpp */,
@@ -3611,6 +3618,7 @@
 				03E688CE267793280079ED4D /* gravity_vm.c in Sources */,
 				03722BA72029F0F50080D069 /* U4DGameLogicInterface.mm in Sources */,
 				037F25B823F0D5860053FAE0 /* U4DResourcetLoader.mm in Sources */,
+				0373B56926F7C975001A7FDC /* TextEditor.cpp in Sources */,
 				03E688AD267793280079ED4D /* gravity_semacheck1.c in Sources */,
 				03722B762029F0F50080D069 /* U4DMatrix3n.mm in Sources */,
 				03A7BEE525BB7A4C00F26849 /* U4DPointLight.mm in Sources */,
@@ -4078,6 +4086,7 @@
 				03E688CF267793280079ED4D /* gravity_vm.c in Sources */,
 				03722CE12029F0F80080D069 /* U4DGameLogicInterface.mm in Sources */,
 				037F25B923F0D5860053FAE0 /* U4DResourcetLoader.mm in Sources */,
+				0373B56A26F7C975001A7FDC /* TextEditor.cpp in Sources */,
 				03E688AE267793280079ED4D /* gravity_semacheck1.c in Sources */,
 				03722CB02029F0F80080D069 /* U4DMatrix3n.mm in Sources */,
 				03A7BEE625BB7A4C00F26849 /* U4DPointLight.mm in Sources */,
@@ -4267,6 +4276,7 @@
 				03E6EDDE1943D816007AD131 /* U4DIntegrator.mm in Sources */,
 				03F2DB0E1F191F9B00F77B78 /* U4DRenderGeometry.mm in Sources */,
 				03759BA9175B0383002EB5D9 /* U4DCamera.mm in Sources */,
+				0373B56826F7C975001A7FDC /* TextEditor.cpp in Sources */,
 				03494BB31F48B59E00ACE0EC /* fontShader.metal in Sources */,
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
 				03E686F1267168C60079ED4D /* U4DKineticDictionary.mm in Sources */,

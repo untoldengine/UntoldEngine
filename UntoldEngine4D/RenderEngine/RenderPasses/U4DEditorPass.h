@@ -14,11 +14,13 @@
 #include "U4DRenderEntity.h"
 #include "U4DRenderPassInterface.h"
 
+
 namespace U4DEngine{
 
 class U4DEditorPass: public U4DRenderPass{
     
 private:
+    
     
 public:
     

@@ -8,6 +8,8 @@
 
 #include "U4DRenderManager.h"
 #include <simd/simd.h>
+#include <iostream>     // std::cout
+#include <fstream>      // std::ifstream
 #include "U4DSceneManager.h"
 #include "U4DSceneStateManager.h"
 #include "U4DSceneEditingState.h"
@@ -234,6 +236,10 @@ namespace U4DEngine {
         
         U4DCompositionPipeline *compositionPipeline=new U4DCompositionPipeline("compositionpipeline");
         compositionPipeline->initPipeline("vertexCompShader","fragmentCompShader");
+        
+        
+        //configure the imgui text edit
+        imguiScriptEditor.SetShowWhitespaces(false);
         
     }
 
