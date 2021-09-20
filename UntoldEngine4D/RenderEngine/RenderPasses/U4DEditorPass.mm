@@ -86,6 +86,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     static bool shaderFilesFound=false;
     static bool lookingForShaderFile=false;
+    
+    
    
     U4DDirector *director=U4DDirector::sharedInstance();
     U4DLogger *logger=U4DLogger::sharedInstance();
@@ -350,13 +352,94 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         }
         
         {
-            ImGui::Begin("Gravity Scripts");
-            // open Dialog Simple
-            if (ImGui::Button("Open Script")){
-                lookingForScriptFile=true;
-                
-                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-            }
+            ImGui::Begin("Script Editor",nullptr, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_MenuBar);
+            
+            U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+            
+            //set the menu
+            if (ImGui::BeginMenuBar())
+                    {
+                        if (ImGui::BeginMenu("File"))
+                        {
+                            if(ImGui::MenuItem("Open")){
+                                
+                                lookingForScriptFile=true;
+                                
+                                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+                                
+                            }
+                            if (ImGui::MenuItem("Save"))
+                            {
+                                //save the script
+                                auto textToSave = renderManager->imguiScriptEditor.GetText();
+                                std::ofstream outFile;
+                                outFile.open(scriptFilePathName.c_str());
+                                
+                                /// save text....
+                                outFile<<textToSave<<std::endl;
+                                
+                                //close the file
+                                outFile.close();
+                                
+                            }
+                            if (ImGui::MenuItem("Quit", "Alt-F4")){}
+                                //break;
+                            ImGui::EndMenu();
+                        }
+                        if (ImGui::BeginMenu("Edit"))
+                        {
+//                            bool ro = renderManager->editor.IsReadOnly();
+//                            if (ImGui::MenuItem("Read-only mode", nullptr, &ro))
+//                                renderManager->editor.SetReadOnly(ro);
+//                            ImGui::Separator();
+//
+//                            if (ImGui::MenuItem("Undo", "ALT-Backspace", nullptr, !ro && renderManager->editor.CanUndo()))
+//                                renderManager->editor.Undo();
+//                            if (ImGui::MenuItem("Redo", "Ctrl-Y", nullptr, !ro && renderManager->editor.CanRedo()))
+//                                renderManager->editor.Redo();
+
+                            ImGui::Separator();
+
+//                            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, renderManager->editor.HasSelection()))
+//                                renderManager->editor.Copy();
+//                            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, !ro && renderManager->editor.HasSelection()))
+//                                renderManager->editor.Cut();
+//                            if (ImGui::MenuItem("Delete", "Del", nullptr, !ro && renderManager->editor.HasSelection()))
+//                                renderManager->editor.Delete();
+//                            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, !ro && ImGui::GetClipboardText() != nullptr))
+//                                renderManager->editor.Paste();
+
+                            ImGui::Separator();
+
+//                            if (ImGui::MenuItem("Select all", nullptr, nullptr))
+//                                renderManager->editor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(renderManager->editor.GetTotalLines(), 0));
+
+                            ImGui::EndMenu();
+                        }
+                        
+                        if (ImGui::BeginMenu("Run"))
+                        {
+                            if(ImGui::MenuItem("Build & Run", nullptr,nullptr)){
+                                
+                                U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
+                                
+                                  if(bindManager->loadScript(scriptFilePathName)){
+            
+                                      logger->log("Script was loaded.");
+            
+                                      //call the init function in the script
+                                      bindManager->initGravityFunction();
+            
+                                      scriptLoadedSuccessfully=true;
+                                  }else{
+                                      scriptLoadedSuccessfully=false;
+                                  }
+                            }
+                            ImGui::EndMenu();
+                        }
+
+                        ImGui::EndMenuBar();
+                    }
                 
             if(lookingForScriptFile){
                 // display
@@ -365,10 +448,22 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                   // action if OK
                   if (gravityFileDialog.Instance()->IsOk())
                   {
+                    
                     scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
                     scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-                    // action
-                    scriptFilesFound=true;
+                      
+                      const char* fileToEdit = scriptFilePathName.c_str();
+                      
+                      std::ifstream t(fileToEdit);
+                      if (t.good())
+                      {
+                          std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+                          renderManager->imguiScriptEditor.SetText(str);
+                          scriptFilesFound=true;
+                          
+                      }
+                      
+                      
                   }else{
                     //scriptFilesFound=false;
                   }
@@ -377,33 +472,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                   gravityFileDialog.Instance()->Close();
                   
                 }
-              
-              if (scriptFilesFound) {
-                  
-                  ImGui::Text("Script %s", scriptFilePathName.c_str());
-                  
-                  U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
-                  
-                  if(ImGui::Button("Load Script")){
-                      
-                      if(bindManager->loadScript(scriptFilePathName)){
-                          
-                          logger->log("Script was loaded.");
-                          
-                          //call the init function in the script
-                          bindManager->initGravityFunction();
-                          
-                          scriptLoadedSuccessfully=true;
-                      }else{
-                          scriptLoadedSuccessfully=false;
-                      }
-                      
-                      //lookingForScriptFile=false;
-                  }
-                  
-              }
+                
             }
               
+            if(scriptFilesFound){
+                ImGui::Text("Current File: %s",gravityFileDialog.Instance()->GetCurrentFileName().c_str());
+                ImGui::Separator();
+                renderManager->imguiScriptEditor.Render("Script Editor");
+            }
             
             ImGui::End();
             
@@ -676,7 +752,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          ImGui::End();
 
         }
-        
+                
         
         {
         ImGui::Begin("Assets");
