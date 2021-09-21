@@ -73,6 +73,15 @@ public:
     void operator+=(const U4DVector2n& v);
     
     /**
+     @brief Method to compare two vectors
+     
+     @param a 2D vector to compare
+     
+     @return true if comparison is valid
+     */
+    
+    bool operator==(const U4DVector2n& a);
+    /**
      @brief Method that adds two 2D vectors
      
      @param v 2D vector to add
