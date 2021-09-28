@@ -48,17 +48,16 @@ typedef struct gravity_vm                gravity_vm;
 
 #if GRAVITY_MEMORY_DEBUG
 void    memdebug_init (void);
-void   *memdebug_calloc (gravity_vm *vm, size_t num, size_t size);
-void   *memdebug_malloc (gravity_vm *vm, size_t size);
-void   *memdebug_malloc0 (gravity_vm *vm, size_t size);
-void   *memdebug_realloc (gravity_vm *vm, void *ptr, size_t new_size);
-
+void    *memdebug_malloc (gravity_vm *vm, size_t size);
+void    *memdebug_malloc0 (gravity_vm *vm, size_t size);
+void    *memdebug_calloc (gravity_vm *vm, size_t num, size_t size);
+void    *memdebug_realloc (gravity_vm *vm, void *ptr, size_t new_size);
 void    memdebug_free (void *ptr);
 size_t  memdebug_leaks (void);
-bool    memdebug_remove (void *ptr);
+size_t  memdebug_status (void);
 void    memdebug_setcheck (bool flag);
 void    memdebug_stat (void);
-size_t  memdebug_status (void);
+bool    memdebug_remove (void *ptr);
 #else
 void    *gravity_calloc (gravity_vm *vm, size_t count, size_t size);
 void    *gravity_realloc (gravity_vm *vm, void *ptr, size_t new_size);

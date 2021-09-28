@@ -143,6 +143,40 @@ bool U4DScriptBindModel::modelAddChild(gravity_vm *vm, gravity_value_t *args, ui
     
 }
 
+bool U4DScriptBindModel::modelGetEntity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+    
+    // self parameter is the model create in register_cpp_classes
+    gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+    gravity_value_t nameValue=GET_VALUE(1);
+    
+    // create Gravity instance and set its class to c
+    gravity_instance_t *instance = gravity_instance_new(vm, c);
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *scene=sceneManager->getCurrentScene();
+    
+    if (scene!=nullptr && VALUE_ISA_STRING(nameValue)) {
+        
+        U4DEngine::U4DWorld *world=scene->getGameWorld();
+        
+        gravity_string_t *name=(gravity_string_t *)nameValue.p;
+        
+        U4DModel *model=dynamic_cast<U4DModel*>(world->searchChild(name->s));
+        
+        if (model!=nullptr) {
+            // set cpp instance and xdata of the gravity instance
+            gravity_instance_setxdata(instance, model);
+        
+            // return instance
+            RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+        }
+    }
+
+    RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    
+}
+
 bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
     
     // get self object which is the instance created in player_create function
@@ -591,7 +625,7 @@ bool U4DScriptBindModel::modelGetAbsolutePosition(gravity_vm *vm, gravity_value_
         gravity_class_t *model_class = gravity_class_new_pair(vm, "U4DModel", NULL, 0, 0);
         gravity_class_t *model_class_meta = gravity_class_get_meta(model_class);
         
-        gravity_class_bind(model_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(modelCreate));
+        gravity_class_bind(model_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(modelGetEntity));
         gravity_class_bind(model_class, "loadModel", NEW_CLOSURE_VALUE(modelLoad));
         gravity_class_bind(model_class, "addChild", NEW_CLOSURE_VALUE(modelAddChild));
         
