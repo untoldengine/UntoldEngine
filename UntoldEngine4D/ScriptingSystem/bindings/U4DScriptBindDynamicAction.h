@@ -55,6 +55,10 @@ namespace U4DEngine {
         
         static bool dynamicActionSetGravity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        static bool dynamicActionSetFilterCategory(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool dynamicActionSetFilterMask(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         void dynamicActionFree (gravity_vm *vm, gravity_object_t *obj);
         void registerDynamicActionClasses (gravity_vm *vm);
     };

@@ -287,6 +287,83 @@ bool U4DScriptBindDynamicAction::dynamicActionGetVelocity(gravity_vm *vm, gravit
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
+    bool U4DScriptBindDynamicAction::dynamicActionSetFilterCategory(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        // get self object which is the instance created in dynamicAction_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==2) {
+            
+            // get xdata
+            U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+            gravity_value_t value = GET_VALUE(1);
+            
+            if (dynamicAction!=nullptr && VALUE_ISA_INT(value)) {
+                
+                int collisionCategory=(int)value.n;
+                
+                dynamicAction->setCollisionFilterCategory(collisionCategory);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }else{
+                
+                logger->log("Error: Unable to set the collision mask. Make sure the parameter is an int.");
+                RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+            }
+                
+        }
+        
+        
+        if (nargs!=2) {
+            
+            logger->log("Unable to set the collision filter. Make sure the parameter is an int.");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptBindDynamicAction::dynamicActionSetFilterMask(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        // get self object which is the instance created in dynamicAction_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==2) {
+            
+            // get xdata
+            U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+            gravity_value_t value = GET_VALUE(1);
+            
+            if (dynamicAction!=nullptr && VALUE_ISA_INT(value)) {
+                
+                int collisionMask=(int)value.n;
+                
+                dynamicAction->setCollisionFilterMask(collisionMask);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }else{
+                
+                logger->log("Error: Unable to set the collision mask. Make sure the parameter is an int.");
+                RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+            }
+                
+        }
+        
+        
+        if (nargs!=2) {
+            
+            logger->log("Error: Unable to set the collision mask. Make sure the parameter is an int.");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
     void U4DScriptBindDynamicAction::dynamicActionFree (gravity_vm *vm, gravity_object_t *obj){
         
         gravity_instance_t *instance = (gravity_instance_t *)obj;
@@ -316,6 +393,9 @@ bool U4DScriptBindDynamicAction::dynamicActionGetVelocity(gravity_vm *vm, gravit
         
         gravity_class_bind(dynamicAction_class, "initMass", NEW_CLOSURE_VALUE(dynamicActionInitMass));
 
+        gravity_class_bind(dynamicAction_class, "setCollisionFilterCategory", NEW_CLOSURE_VALUE(dynamicActionSetFilterCategory));
+
+        gravity_class_bind(dynamicAction_class, "setCollisionFilterMask", NEW_CLOSURE_VALUE(dynamicActionSetFilterMask));
         
         // register model class inside VM
         gravity_vm_setvalue(vm, "U4DDynamicAction", VALUE_FROM_OBJECT(dynamicAction_class));
