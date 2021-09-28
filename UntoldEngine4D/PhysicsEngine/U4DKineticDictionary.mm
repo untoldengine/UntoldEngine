@@ -31,9 +31,26 @@ namespace U4DEngine {
         return instance;
     }
 
-    void U4DKineticDictionary::loadBehaviorDictionary(std::string uName, U4DDynamicAction *uDynamicModel){
+    void U4DKineticDictionary::loadBehaviorDictionary(std::string uName, U4DDynamicAction *uDynamicAction){
         
-        kineticBehaviorMap.insert(std::make_pair(uName,uDynamicModel));
+        auto entry=kineticBehaviorMap.find(uName);
+        
+        //Make sure we are not adding more than one dynamic action to the model
+        if (entry!=kineticBehaviorMap.end()) {
+            
+            
+            U4DDynamicAction *previousDynamicAction=std::move(entry->second);
+            
+            delete previousDynamicAction;
+            
+            kineticBehaviorMap.insert({uName,std::move(uDynamicAction)});
+            
+        }else{
+    
+            kineticBehaviorMap.insert(std::make_pair(uName,uDynamicAction));
+            
+            
+        }
         
     }
 
