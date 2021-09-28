@@ -679,7 +679,10 @@ namespace U4DEngine {
          */
         void clearBroadPhaseCollisionList();
         
-        
+        /**
+         * @brief Clear model buffers for collision
+         */
+        void clearModelCollisionData();
         
         };
     

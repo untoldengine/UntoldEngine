@@ -46,7 +46,7 @@ namespace U4DEngine {
          */
         static U4DKineticDictionary* sharedInstance();
         
-        void loadBehaviorDictionary(std::string uName, U4DDynamicAction *uDynamicModel);
+        void loadBehaviorDictionary(std::string uName, U4DDynamicAction *uDynamicAction);
         
         U4DDynamicAction * getKineticBehavior(std::string uName);
         

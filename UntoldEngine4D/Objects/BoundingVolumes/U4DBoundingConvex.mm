@@ -16,7 +16,11 @@ namespace U4DEngine {
     }
     
     U4DBoundingConvex::~U4DBoundingConvex(){
-    
+        
+        bodyCoordinates.convexHullVerticesContainer.clear();
+        bodyCoordinates.convexHullEdgesContainer.clear();
+        bodyCoordinates.convexHullFacesContainer.clear();
+        
     }
     
     U4DBoundingConvex::U4DBoundingConvex(const U4DBoundingConvex& value){

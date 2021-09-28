@@ -43,11 +43,21 @@ namespace U4DEngine {
     
     U4DStaticAction::~U4DStaticAction(){
     
+        //remove parent from the bounding volute
+        U4DEntity *parent=convexHullBoundingVolume->getParent();
+        
+        parent->removeChild(convexHullBoundingVolume);
+        parent->removeChild(broadPhaseBoundingVolume);
+        
+        //clear the convex hull data stored in the model buffers.
+        clearModelCollisionData();
+        
         delete convexHullBoundingVolume;
         
         delete broadPhaseBoundingVolume;
         
-        
+        convexHullBoundingVolume=nullptr;
+        broadPhaseBoundingVolume=nullptr;
         
     }
     
@@ -604,6 +614,16 @@ namespace U4DEngine {
         
         broadPhaseCollisionList.clear();
     
+    }
+
+    void U4DStaticAction::clearModelCollisionData(){
+        
+        model->bodyCoordinates.convexHullVerticesContainer.clear();
+        model->bodyCoordinates.convexHullEdgesContainer.clear();
+        model->bodyCoordinates.convexHullFacesContainer.clear();
+//        model->bodyCoordinates.addConvexHullVerticesToContainer.clear();
+//        model->bodyCoordinates.addConvexHullEdgesDataToContainer.clear();
+//        model->bodyCoordinates.addConvexHullFacesDataToContainer.clear();
     }
     
     
