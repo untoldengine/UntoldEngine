@@ -1209,7 +1209,7 @@ namespace U4DEngine {
         
         for(int n=0;n<convexHullContainer.size();n++){
 
-            if (convexHullContainer.at(n).name.compare(uModel->getName())==0) {
+            if (convexHullContainer.at(n).name.compare(uModel->getAssetReferenceName())==0) {
          
                 convexHull.isValid=false;
                 
