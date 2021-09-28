@@ -102,6 +102,10 @@ private:
      */
     float screenScaleFactor;
     
+    bool scriptCompiledSuccessfully;
+    
+    bool scriptRunTimeError;
+    
 protected:
     
     /**
@@ -395,6 +399,14 @@ public:
      @brief getFPS();
      */
     float getFPS();
+    
+    void setScriptCompiledSuccessfully(bool uValue);
+    
+    bool getScriptCompiledSuccessfully();
+    
+    void setScriptRunTimeError(bool uValue);
+    
+    bool getScriptRunTimeError();
     
 };
 

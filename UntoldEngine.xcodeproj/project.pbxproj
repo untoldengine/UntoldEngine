@@ -181,6 +181,12 @@
 		035FEC9725D983EA005669D7 /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 035FEC9625D983EA005669D7 /* OffscreenRender.metal */; };
 		035FEC9825D983EA005669D7 /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 035FEC9625D983EA005669D7 /* OffscreenRender.metal */; };
 		035FEC9925D983EA005669D7 /* OffscreenRender.metal in Sources */ = {isa = PBXBuildFile; fileRef = 035FEC9625D983EA005669D7 /* OffscreenRender.metal */; };
+		0361A09E27037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */; };
+		0361A09F27037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */; };
+		0361A0A027037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */; };
+		0361A0A127037A6B00DDD2F6 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */; };
+		0361A0A227037A6B00DDD2F6 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */; };
+		0361A0A327037A6B00DDD2F6 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */; };
 		03676A87267900260016A83A /* U4DScriptBindLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03676A85267900260016A83A /* U4DScriptBindLogger.mm */; };
 		03676A88267900260016A83A /* U4DScriptBindLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03676A85267900260016A83A /* U4DScriptBindLogger.mm */; };
 		03676A89267900260016A83A /* U4DScriptBindLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03676A85267900260016A83A /* U4DScriptBindLogger.mm */; };
@@ -1273,6 +1279,8 @@
 		03584D99195206DD00C974A2 /* U4DTransformation.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformation.mm; sourceTree = "<group>"; };
 		03584D9A195206DD00C974A2 /* U4DTransformation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformation.h; sourceTree = "<group>"; };
 		035FEC9625D983EA005669D7 /* OffscreenRender.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = OffscreenRender.metal; path = MetalShaders/OffscreenRender.metal; sourceTree = "<group>"; };
+		0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
+		0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Light.ttf"; sourceTree = "<group>"; };
 		03676A85267900260016A83A /* U4DScriptBindLogger.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBindLogger.mm; path = ScriptingSystem/bindings/U4DScriptBindLogger.mm; sourceTree = "<group>"; };
 		03676A86267900260016A83A /* U4DScriptBindLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptBindLogger.h; path = ScriptingSystem/bindings/U4DScriptBindLogger.h; sourceTree = "<group>"; };
 		03676A8A267917D20016A83A /* U4DScriptBindCamera.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBindCamera.mm; path = ScriptingSystem/bindings/U4DScriptBindCamera.mm; sourceTree = "<group>"; };
@@ -2338,6 +2346,8 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */,
+				0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */,
 				03C044762683D733002B3880 /* rightshotAnimation.u4d */,
 				0390836426CF813B001B6878 /* scenefile.u4d */,
 				03C044772683D733002B3880 /* runningAnimation.u4d */,
@@ -2830,7 +2840,7 @@
 				03C0446C26830BE7002B3880 /* U4DScriptInstanceManager.mm */,
 				03676A90267A53820016A83A /* U4DScriptBehavior.h */,
 				03676A8F267A53820016A83A /* U4DScriptBehavior.mm */,
-				03E688EF267793470079ED4D /* bindings */,
+				03E688EF267793470079ED4D /* Bindings */,
 				03E68862267793260079ED4D /* compiler */,
 				03E68895267793270079ED4D /* optionals */,
 				03E68888267793270079ED4D /* runtime */,
@@ -2937,7 +2947,7 @@
 			path = ScriptingSystem/optionals;
 			sourceTree = "<group>";
 		};
-		03E688EF267793470079ED4D /* bindings */ = {
+		03E688EF267793470079ED4D /* Bindings */ = {
 			isa = PBXGroup;
 			children = (
 				03E688F1267794410079ED4D /* U4DScriptBindManager.h */,
@@ -2963,7 +2973,7 @@
 				03C04497268849D9002B3880 /* U4DScriptBindQuaternion.h */,
 				03C04496268849D9002B3880 /* U4DScriptBindQuaternion.mm */,
 			);
-			name = bindings;
+			name = Bindings;
 			sourceTree = "<group>";
 		};
 		03E6ED591943D6FE007AD131 /* Controller */ = {
@@ -3399,6 +3409,7 @@
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
 				03042F862657733300681C6C /* spaceTextures.u4d in Resources */,
 				03DEBE04262A2676009C80B6 /* uiTextures.u4d in Resources */,
+				0361A09F27037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */,
 				03DEBE3A262A2676009C80B6 /* uiFont.u4d in Resources */,
 				03C0446026813562002B3880 /* soccerTextures.u4d in Resources */,
 				03E688E3267793280079ED4D /* README.md in Resources */,
@@ -3406,6 +3417,7 @@
 				03C0445D26813562002B3880 /* soccerScene.u4d in Resources */,
 				03042F9E26577A8700681C6C /* sceneTextures.u4d in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
+				0361A0A227037A6B00DDD2F6 /* Lato-Light.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -3421,6 +3433,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				0361A0A327037A6B00DDD2F6 /* Lato-Light.ttf in Resources */,
 				03C0447D2683D733002B3880 /* runningAnimation.u4d in Resources */,
 				03042F67265770CD00681C6C /* spaceScene.u4d in Resources */,
 				03042F8F2657737500681C6C /* astronautWalkAnim.u4d in Resources */,
@@ -3432,6 +3445,7 @@
 				03042F872657733300681C6C /* spaceTextures.u4d in Resources */,
 				03DEBE3B262A2676009C80B6 /* uiFont.u4d in Resources */,
 				03E688E4267793280079ED4D /* README.md in Resources */,
+				0361A0A027037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
 				03C0445E26813562002B3880 /* soccerScene.u4d in Resources */,
 			);
@@ -3451,8 +3465,10 @@
 				03DEBE39262A2676009C80B6 /* uiFont.u4d in Resources */,
 				03042F9D26577A8700681C6C /* sceneTextures.u4d in Resources */,
 				03042F8D2657737500681C6C /* astronautWalkAnim.u4d in Resources */,
+				0361A09E27037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */,
 				0390836526CF813C001B6878 /* scenefile.u4d in Resources */,
 				03C0445C26813562002B3880 /* soccerScene.u4d in Resources */,
+				0361A0A127037A6B00DDD2F6 /* Lato-Light.ttf in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -42,8 +42,9 @@ namespace U4DEngine {
         
         static bool modelCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelLoad(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-        
         static bool modelAddChild(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool modelGetEntity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         static bool modelGetAbsolutePosition(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);

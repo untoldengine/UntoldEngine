@@ -71,6 +71,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static std::string scriptFilePathName;
     static std::string scriptFilePath;
     
+    static bool savingScriptFile=false;
+    static bool newScriptFile=false;
     
     static bool assetIsSelected=false;
     static bool scriptFilesFound=false;
@@ -87,7 +89,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static bool shaderFilesFound=false;
     static bool lookingForShaderFile=false;
     
-    
+    NSString *pathToGameScripts=@"/GameplayScripts/";
+    static bool scriptOkToRender=false;
    
     U4DDirector *director=U4DDirector::sharedInstance();
     U4DLogger *logger=U4DLogger::sharedInstance();
@@ -361,25 +364,41 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     {
                         if (ImGui::BeginMenu("File"))
                         {
+                            if(ImGui::MenuItem("New")){
+                                
+                                
+                                
+                                newScriptFile=true;
+                            }
+                            
                             if(ImGui::MenuItem("Open")){
                                 
                                 lookingForScriptFile=true;
                                 
-                                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+                                //create new file
+                                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES);
+                                NSString *documentsDirectory = [paths objectAtIndex:0]; // Get documents folder
+                                NSString *dataPath = [documentsDirectory stringByAppendingPathComponent:pathToGameScripts];
+                                
+                                std::string dataPathString = std::string([dataPath UTF8String]);
+                               
+                                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", dataPathString,"");
                                 
                             }
                             if (ImGui::MenuItem("Save"))
                             {
                                 //save the script
-                                auto textToSave = renderManager->imguiScriptEditor.GetText();
-                                std::ofstream outFile;
-                                outFile.open(scriptFilePathName.c_str());
                                 
-                                /// save text....
-                                outFile<<textToSave<<std::endl;
+                                savingScriptFile=true;
                                 
-                                //close the file
-                                outFile.close();
+                                //create new file
+                                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES);
+                                NSString *documentsDirectory = [paths objectAtIndex:0]; // Get documents folder
+                                NSString *dataPath = [documentsDirectory stringByAppendingPathComponent:pathToGameScripts];
+                                
+                                std::string dataPathString = std::string([dataPath UTF8String]);
+                               
+                                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", dataPathString,"");
                                 
                             }
                             if (ImGui::MenuItem("Quit", "Alt-F4")){}
@@ -445,38 +464,100 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 // display
                 if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
                 {
+                    if (gravityFileDialog.Instance()->IsOk())
+                    {
+                      
+                      scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+                      scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+                        
+                        const char* fileToEdit = scriptFilePathName.c_str();
+                        
+                        std::ifstream t(fileToEdit);
+                        if (t.good())
+                        {
+                            std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+                            renderManager->imguiScriptEditor.SetText(str);
+                            scriptOkToRender=true;
+                            
+                        }
+                        
+                        
+                    }else{
+                      //scriptOkToRender=false;
+                    }
+                    
+                    // close
+                    gravityFileDialog.Instance()->Close();
+                    lookingForScriptFile=false;
+                  
+                  }
+                
+            }
+            
+            if(savingScriptFile){
+                
+                // display
+                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                {
                   // action if OK
                   if (gravityFileDialog.Instance()->IsOk())
                   {
                     
+                      
+                    
+                    auto textToSave = renderManager->imguiScriptEditor.GetText();
+                    std::ofstream outFile;
                     scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
                     scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
                       
-                      const char* fileToEdit = scriptFilePathName.c_str();
+                      outFile.open(scriptFilePathName.c_str());
                       
-                      std::ifstream t(fileToEdit);
-                      if (t.good())
-                      {
-                          std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-                          renderManager->imguiScriptEditor.SetText(str);
-                          scriptFilesFound=true;
-                          
-                      }
+                      /// save text....
+                      outFile<<textToSave<<std::endl;
+                      
+                      //close the file
+                      outFile.close();
                       
                       
-                  }else{
-                    //scriptFilesFound=false;
                   }
                   
                   // close
                   gravityFileDialog.Instance()->Close();
-                  
+                  savingScriptFile=false;
                 }
                 
+                
+            }
+            
+            if(newScriptFile){
+                
+                //create new file
+                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES);
+                NSString *documentsDirectory = [paths objectAtIndex:0]; // Get documents folder
+                NSString *dataPath = [documentsDirectory stringByAppendingPathComponent:pathToGameScripts];
+                
+                std::string dataPathString = std::string([dataPath UTF8String]);
+                
+                scriptFilePathName=dataPathString+"/untitled.gravity";
+                
+                std::ofstream newFile(scriptFilePathName);
+                
+                const char* fileToEdit = scriptFilePathName.c_str();
+                
+                std::ifstream t(fileToEdit);
+                if (t.good())
+                {
+                    std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
+                    renderManager->imguiScriptEditor.SetText(str);
+                    scriptOkToRender=true;
+                    scriptFilePathName="untitled.gravity";
+                }
+                
+                newScriptFile=false;
             }
               
-            if(scriptFilesFound){
-                ImGui::Text("Current File: %s",gravityFileDialog.Instance()->GetCurrentFileName().c_str());
+            if(scriptOkToRender){
+                //ImGui::Text("Current File: %s",scriptFilePathName.c_str());
                 ImGui::Separator();
                 renderManager->imguiScriptEditor.Render("Script Editor");
             }

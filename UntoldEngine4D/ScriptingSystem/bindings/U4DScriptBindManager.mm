@@ -18,7 +18,7 @@
 #include "U4DScriptBindAnimManager.h"
 #include "U4DScriptBindDynamicAction.h"
 
-
+#include "U4DDirector.h"
 #include "U4DLogger.h"
 
 
@@ -47,22 +47,28 @@ namespace U4DEngine {
 
     void U4DScriptBindManager::initGravityFunction(){
         
-        gravity_value_t init_function = gravity_vm_getvalue(vm, "init", (uint32_t)strlen("init"));
-        if (!VALUE_ISA_CLOSURE(init_function)) {
-            printf("Unable to find init function into Gravity VM.\n");
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false) {
             
-        }else{
-            
-            // convert function to closure
-            gravity_closure_t *init_closure = VALUE_AS_CLOSURE(init_function);
+            gravity_value_t init_function = gravity_vm_getvalue(vm, "init", (uint32_t)strlen("init"));
+            if (!VALUE_ISA_CLOSURE(init_function)) {
+                printf("Unable to find init function into Gravity VM.\n");
+                
+            }else{
+                
+                // convert function to closure
+                gravity_closure_t *init_closure = VALUE_AS_CLOSURE(init_function);
 
-            // execute init closure
-            if (gravity_vm_runclosure (vm, init_closure, VALUE_FROM_NULL, 0, 0)) {
-                
-                
-                //this calls the Garbage Collector in gravity
-                //gravity_gc_start(vm);
+                // execute init closure
+                if (gravity_vm_runclosure (vm, init_closure, VALUE_FROM_NULL, 0, 0)) {
+                    
+                    
+                    //this calls the Garbage Collector in gravity
+                    //gravity_gc_start(vm);
+                }
             }
+            
         }
         
     }
@@ -70,47 +76,56 @@ namespace U4DEngine {
 
     void U4DScriptBindManager::updateGravityFunction(double dt){
         
+        U4DDirector *director=U4DDirector::sharedInstance();
         
-        gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
-        if (!VALUE_ISA_CLOSURE(update_function)) {
-            printf("Unable to find update function into Gravity VM.\n");
+        if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false){
+            
+            gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
+            if (!VALUE_ISA_CLOSURE(update_function)) {
+                printf("Unable to find update function into Gravity VM.\n");
 
-        }else{
+            }else{
 
-            // convert function to closure
-            gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
+                // convert function to closure
+                gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
 
-            // prepare parameters
+                // prepare parameters
 
-            gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
-            gravity_value_t params[] = {p1};
+                gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
+                gravity_value_t params[] = {p1};
 
-            // execute init closure
-            if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
+                // execute init closure
+                if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
 
+                }
             }
         }
-        
     }
 
     void U4DScriptBindManager::userInputGravityFunction(std::string uString){
-        gravity_value_t userInput_function = gravity_vm_getvalue(vm, "userInput", (uint32_t)strlen("userInput"));
-        if (!VALUE_ISA_CLOSURE(userInput_function)) {
-            printf("Unable to find user-input function into Gravity VM.\n");
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false){
             
-        }else{
-            
-            // convert function to closure
-            gravity_closure_t *userInput_closure = VALUE_AS_CLOSURE(userInput_function);
-
-            // prepare parameters
-            
-            gravity_value_t p1 = VALUE_FROM_STRING(vm, uString.c_str(), (int)uString.length());
-            gravity_value_t params[] = {p1};
-            
-            // execute user-input closure
-            if (gravity_vm_runclosure (vm, userInput_closure, VALUE_FROM_NULL, params, 1)) {
+            gravity_value_t userInput_function = gravity_vm_getvalue(vm, "userInput", (uint32_t)strlen("userInput"));
+            if (!VALUE_ISA_CLOSURE(userInput_function)) {
+                printf("Unable to find user-input function into Gravity VM.\n");
                 
+            }else{
+                
+                // convert function to closure
+                gravity_closure_t *userInput_closure = VALUE_AS_CLOSURE(userInput_function);
+
+                // prepare parameters
+                
+                gravity_value_t p1 = VALUE_FROM_STRING(vm, uString.c_str(), (int)uString.length());
+                gravity_value_t params[] = {p1};
+                
+                // execute user-input closure
+                if (gravity_vm_runclosure (vm, userInput_closure, VALUE_FROM_NULL, params, 1)) {
+                    
+                }
             }
         }
     }
@@ -118,8 +133,14 @@ namespace U4DEngine {
     bool U4DScriptBindManager::loadScript(std::string uScriptPath){
         
         U4DLogger *logger=U4DLogger::sharedInstance();
+        U4DDirector *director=U4DDirector::sharedInstance();
         
         logger->log("Loading script %s",uScriptPath.c_str());
+        
+        if(director->getScriptRunTimeError()==true){
+            //we have to initialize the script again if there was a script-runtime error
+            init();
+        }
         
         // setup compiler
         compiler = gravity_compiler_create(&delegate);
@@ -131,9 +152,16 @@ namespace U4DEngine {
         if (!closure){
             
             // an error occurred while compiling source code and it has already been reported by the report_error callback
+            
+            
+            director->setScriptCompiledSuccessfully(false);
+            
             gravity_compiler_free(compiler);
             return false; // syntax/semantic error
         }
+        
+        director->setScriptCompiledSuccessfully(true);
+        director->setScriptRunTimeError(false);
         
         gravity_vm_loadclosure(vm, closure);
         
@@ -250,7 +278,10 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
             if (error_type == GRAVITY_ERROR_RUNTIME) logger->log("RUNTIME ERROR: ");
             else logger->log("%s ERROR on %d (%d,%d): ", type, error_desc.fileid, error_desc.lineno, error_desc.colno);
             logger->log("%s\n", message);
-        }
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        director->setScriptRunTimeError(true);
+    }
 
     void U4DScriptBindManager::cleanup(){
         
