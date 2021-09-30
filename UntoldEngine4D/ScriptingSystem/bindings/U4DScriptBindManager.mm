@@ -103,7 +103,7 @@ namespace U4DEngine {
         }
     }
 
-    void U4DScriptBindManager::userInputGravityFunction(std::string uString){
+    void U4DScriptBindManager::userInputGravityFunction(void *uData){
         
         U4DDirector *director=U4DDirector::sharedInstance();
         
@@ -120,13 +120,110 @@ namespace U4DEngine {
 
                 // prepare parameters
                 
-                gravity_value_t p1 = VALUE_FROM_STRING(vm, uString.c_str(), (int)uString.length());
-                gravity_value_t params[] = {p1};
+//                gravity_value_t p1 = VALUE_FROM_STRING(vm, uString.c_str(), (int)uString.length());
+//
+                U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
+                
+                //create map- 12 is the number of elements in the CONTROLLERMESSAGE STRUCT
+                gravity_map_t *controllerInputMessageMap=gravity_map_new(vm,12);
+                
+                gravity_value_t inputElementType = VALUE_FROM_CSTRING(NULL, "inputElementType");
+                gravity_value_t inputElementAction = VALUE_FROM_CSTRING(NULL, "inputElementAction");
+                gravity_value_t joystickDirection = VALUE_FROM_CSTRING(NULL, "joystickDirection");
+                
+                gravity_value_t inputPosition = VALUE_FROM_CSTRING(NULL, "inputPosition");
+                gravity_value_t previousMousePosition = VALUE_FROM_CSTRING(NULL, "previousMousePosition");
+                gravity_value_t mouseDeltaPosition = VALUE_FROM_CSTRING(NULL, "mouseDeltaPosition");
+                
+                gravity_value_t joystickChangeDirection = VALUE_FROM_CSTRING(NULL, "joystickChangeDirection");
+                gravity_value_t mouseChangeDirection = VALUE_FROM_CSTRING(NULL, "mouseChangeDirection");
+                gravity_value_t arrowKeyDirection = VALUE_FROM_CSTRING(NULL, "arrowKeyDirection");
+                
+                gravity_value_t elementUIName = VALUE_FROM_CSTRING(NULL, "elementUIName");
+                gravity_value_t dataValue = VALUE_FROM_CSTRING(NULL, "dataValue");
+                
+                
+                //set the value to each key
+                gravity_map_insert(vm,controllerInputMessageMap,inputElementType,VALUE_FROM_INT(controllerInputMessage.inputElementType));
+                
+                gravity_map_insert(vm,controllerInputMessageMap,inputElementAction,VALUE_FROM_INT(controllerInputMessage.inputElementAction));
+                
+                //joystick
+                //prepare joystick data into a list before inserting it into a map
+                gravity_value_t joystickDirX = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.x);
+                gravity_value_t joystickDirY = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.y);
+                gravity_value_t joystickDirectionValue[] = {joystickDirX,joystickDirY};
+                
+                gravity_list_t *joystickDirectionList=gravity_list_from_array(vm, 2, joystickDirectionValue);
+                
+                gravity_map_insert(vm,controllerInputMessageMap,joystickDirection,VALUE_FROM_OBJECT(joystickDirectionList));
+                
+                //inputposition
+                gravity_value_t inputPositionX = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.x);
+                gravity_value_t inputPositionY = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.y);
+                gravity_value_t inputPositionValue[] = {inputPositionX,inputPositionY};
+                
+                gravity_list_t *inputPositionList=gravity_list_from_array(vm, 2, inputPositionValue);
+                
+                gravity_map_insert(vm,controllerInputMessageMap,inputPosition,VALUE_FROM_OBJECT(inputPositionList));
+                
+                //previousMousePosition
+                gravity_value_t previousMousePositionX = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.x);
+                gravity_value_t previousMousePositionY = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.y);
+                gravity_value_t previousMousePositionValue[] = {previousMousePositionX,previousMousePositionY};
+                
+                gravity_list_t *previousMousePositionList=gravity_list_from_array(vm, 2, previousMousePositionValue);
+                
+                gravity_map_insert(vm,controllerInputMessageMap,previousMousePosition,VALUE_FROM_OBJECT(previousMousePositionList));
+                
+                //mouseDeltaPosition
+                gravity_value_t mouseDeltaPositionX = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.x);
+                gravity_value_t mouseDeltaPositionY = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.y);
+                gravity_value_t mouseDeltaPositionValue[] = {mouseDeltaPositionX,mouseDeltaPositionY};
+                
+                gravity_list_t *mouseDeltaPositionList=gravity_list_from_array(vm, 2, mouseDeltaPositionValue);
+                
+                gravity_map_insert(vm,controllerInputMessageMap,mouseDeltaPosition,VALUE_FROM_OBJECT(mouseDeltaPositionList));
+                
+                //joystickChangeDirection
+                gravity_map_insert(vm,controllerInputMessageMap,joystickChangeDirection,VALUE_FROM_BOOL(controllerInputMessage.joystickChangeDirection));
+                
+                //mouseChangeDirection
+                gravity_map_insert(vm,controllerInputMessageMap,mouseChangeDirection,VALUE_FROM_BOOL(controllerInputMessage.mouseChangeDirection));
+                
+                //arrowKeyDirection
+                gravity_value_t arrowKeyDirectionX = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.x);
+                gravity_value_t arrowKeyDirectionY = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.y);
+                gravity_value_t arrowKeyDirectionValue[] = {arrowKeyDirectionX,arrowKeyDirectionY};
+                
+                gravity_list_t *arrowKeyDirectionList=gravity_list_from_array(vm, 2, arrowKeyDirectionValue);
+                
+                gravity_map_insert(vm,controllerInputMessageMap,arrowKeyDirection,VALUE_FROM_OBJECT(arrowKeyDirectionList));
+                
+
+                //elementUIName
+                gravity_map_insert(vm,controllerInputMessageMap,elementUIName,                VALUE_FROM_STRING(vm, controllerInputMessage.elementUIName.c_str(), (int)controllerInputMessage.elementUIName.length()));
+                
+                //dataValue
+                gravity_map_insert(vm,controllerInputMessageMap,dataValue,VALUE_FROM_FLOAT(controllerInputMessage.dataValue));
+                
+                
+                gravity_value_t controllerInputData=VALUE_FROM_OBJECT(controllerInputMessageMap);
+                gravity_value_t params[] = {controllerInputData};
                 
                 // execute user-input closure
                 if (gravity_vm_runclosure (vm, userInput_closure, VALUE_FROM_NULL, params, 1)) {
                     
                 }
+                
+                gravity_map_free(vm, controllerInputMessageMap);
+                gravity_list_free(vm, joystickDirectionList);
+                gravity_list_free(vm, inputPositionList);
+                gravity_list_free(vm, previousMousePositionList);
+                gravity_list_free(vm, mouseDeltaPositionList);
+                gravity_list_free(vm, arrowKeyDirectionList);
+                
+                
             }
         }
     }
@@ -197,7 +294,7 @@ namespace U4DEngine {
         
         //if (loadScript(uScriptPath)) {
             
-           
+         
             return true;
         //}
         
@@ -212,7 +309,7 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
         if (file_exists(path)) return file_read(path, size);
         
         // this unittest is able to resolve path only next to main test folder (not in nested folders)
-        const char *newpath = file_buildpath(path, "/Users/haroldserrano/Downloads/");
+        const char *newpath = file_buildpath(path, "/Users/haroldserrano/Downloads/GameplayScripts");
         if (!newpath) return NULL;
         
         const char *buffer = file_read(newpath, size);

@@ -252,10 +252,10 @@ void U4DScriptInstanceManager::removeAllScriptBehaviorInstances(){
 
 void U4DScriptInstanceManager::removeAllScriptInstances(){
     
-    removeAllScriptInstanceModels();
-    removeAllScriptInstanceAnimations();
-    removeAllScriptInstanceDynamicActions();
-    removeAllScriptInstanceAnimManagers();
+//    removeAllScriptInstanceModels();
+//    removeAllScriptInstanceAnimations();
+//    removeAllScriptInstanceDynamicActions();
+//    removeAllScriptInstanceAnimManagers();
     removeAllScriptBehaviorInstances();
 }
 

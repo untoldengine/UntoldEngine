@@ -54,7 +54,7 @@ namespace U4DEngine {
         void cleanup();
         void initGravityFunction();
         void updateGravityFunction(double dt);
-        void userInputGravityFunction(std::string uString);
+        void userInputGravityFunction(void *uData);
         static const char *loadFileCallback (const char *path, size_t *size, uint32_t *fileid, void *xdata, bool *is_static);
 
     };
