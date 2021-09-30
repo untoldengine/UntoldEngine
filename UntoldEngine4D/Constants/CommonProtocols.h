@@ -474,6 +474,8 @@ namespace U4DEngine {
         
         IMAGE,
         
+        SCRIPT,
+        
     }ENTITYTYPE;
 
 

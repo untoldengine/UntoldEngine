@@ -13,7 +13,7 @@
 #include "SandboxWorld.h"
 
 
-SandboxLogic::SandboxLogic():showBroadPhaseVolume(false),showNarrowPhaseVolume(false){
+SandboxLogic::SandboxLogic(){
     
 }
 
@@ -28,11 +28,6 @@ void SandboxLogic::update(double dt){
 
 void SandboxLogic::init(){
     
-    //1. Get a pointer to the LevelOneWorld object
-    SandboxWorld *pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
-    
-    //2. Search for the player object
-    pAstronaut=dynamic_cast<U4DEngine::U4DModel*>(pEarth->searchChild("astronaut"));
 }
 
 

@@ -187,6 +187,9 @@
 		0361A0A127037A6B00DDD2F6 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */; };
 		0361A0A227037A6B00DDD2F6 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */; };
 		0361A0A327037A6B00DDD2F6 /* Lato-Light.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */; };
+		0361A0A62703F32000DDD2F6 /* U4DScriptBindBehavior.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0361A0A42703F31F00DDD2F6 /* U4DScriptBindBehavior.mm */; };
+		0361A0A72703F32000DDD2F6 /* U4DScriptBindBehavior.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0361A0A42703F31F00DDD2F6 /* U4DScriptBindBehavior.mm */; };
+		0361A0A82703F32000DDD2F6 /* U4DScriptBindBehavior.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0361A0A42703F31F00DDD2F6 /* U4DScriptBindBehavior.mm */; };
 		03676A87267900260016A83A /* U4DScriptBindLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03676A85267900260016A83A /* U4DScriptBindLogger.mm */; };
 		03676A88267900260016A83A /* U4DScriptBindLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03676A85267900260016A83A /* U4DScriptBindLogger.mm */; };
 		03676A89267900260016A83A /* U4DScriptBindLogger.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03676A85267900260016A83A /* U4DScriptBindLogger.mm */; };
@@ -1281,6 +1284,8 @@
 		035FEC9625D983EA005669D7 /* OffscreenRender.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = OffscreenRender.metal; path = MetalShaders/OffscreenRender.metal; sourceTree = "<group>"; };
 		0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
 		0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Light.ttf"; sourceTree = "<group>"; };
+		0361A0A42703F31F00DDD2F6 /* U4DScriptBindBehavior.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBindBehavior.mm; path = ScriptingSystem/Bindings/U4DScriptBindBehavior.mm; sourceTree = "<group>"; };
+		0361A0A52703F31F00DDD2F6 /* U4DScriptBindBehavior.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptBindBehavior.h; path = ScriptingSystem/Bindings/U4DScriptBindBehavior.h; sourceTree = "<group>"; };
 		03676A85267900260016A83A /* U4DScriptBindLogger.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBindLogger.mm; path = ScriptingSystem/bindings/U4DScriptBindLogger.mm; sourceTree = "<group>"; };
 		03676A86267900260016A83A /* U4DScriptBindLogger.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptBindLogger.h; path = ScriptingSystem/bindings/U4DScriptBindLogger.h; sourceTree = "<group>"; };
 		03676A8A267917D20016A83A /* U4DScriptBindCamera.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBindCamera.mm; path = ScriptingSystem/bindings/U4DScriptBindCamera.mm; sourceTree = "<group>"; };
@@ -2952,6 +2957,8 @@
 			children = (
 				03E688F1267794410079ED4D /* U4DScriptBindManager.h */,
 				03E688F0267794410079ED4D /* U4DScriptBindManager.mm */,
+				0361A0A52703F31F00DDD2F6 /* U4DScriptBindBehavior.h */,
+				0361A0A42703F31F00DDD2F6 /* U4DScriptBindBehavior.mm */,
 				03E688FE267794790079ED4D /* U4DScriptBindVector3n.h */,
 				03E688FD267794790079ED4D /* U4DScriptBindVector3n.mm */,
 				03676A86267900260016A83A /* U4DScriptBindLogger.h */,
@@ -3687,6 +3694,7 @@
 				0375B9D224E578E000D19CE4 /* SandboxLogic.mm in Sources */,
 				0399D66625B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
 				03676AA3267B96DE0016A83A /* imgui_impl_metal.mm in Sources */,
+				0361A0A72703F32000DDD2F6 /* U4DScriptBindBehavior.mm in Sources */,
 				03722BBF2029F0F50080D069 /* U4DVertexData.mm in Sources */,
 				03E688BF267793280079ED4D /* gravity_optimizer.c in Sources */,
 				03722B8B2029F0F50080D069 /* shadowShader.metal in Sources */,
@@ -4155,6 +4163,7 @@
 				03722CE92029F0F80080D069 /* U4DCollisionAlgorithm.mm in Sources */,
 				03722C9B2029F0F80080D069 /* U4DParticleEmitterFactory.mm in Sources */,
 				0375B9D324E578E000D19CE4 /* SandboxLogic.mm in Sources */,
+				0361A0A82703F32000DDD2F6 /* U4DScriptBindBehavior.mm in Sources */,
 				0399D66725B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
 				03722CF92029F0F80080D069 /* U4DVertexData.mm in Sources */,
 				03E688C0267793280079ED4D /* gravity_optimizer.c in Sources */,
@@ -4397,6 +4406,7 @@
 				03A3E2ED246D8B9000FBCBAD /* U4DTouchesPressedState.mm in Sources */,
 				03676A8C267917D20016A83A /* U4DScriptBindCamera.mm in Sources */,
 				0399D65F25B72712004C1E11 /* U4DParticlesPipeline.mm in Sources */,
+				0361A0A62703F32000DDD2F6 /* U4DScriptBindBehavior.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				033469B725C20BD8001F0702 /* U4DGBufferPass.mm in Sources */,
