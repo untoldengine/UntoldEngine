@@ -100,7 +100,7 @@
             ImGui::StyleColorYellow();
             //ImGui::StyleColorsClassic();
 
-            io.Fonts->AddFontFromFileTTF("Lato-Regular.ttf",16.0);
+            io.Fonts->AddFontFromFileTTF("Lato-Regular.ttf",18.0);
             // Setup Renderer backend
             ImGui_ImplMetal_Init(mtlDevice);
         
