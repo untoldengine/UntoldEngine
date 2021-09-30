@@ -407,31 +407,27 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         }
                         if (ImGui::BeginMenu("Edit"))
                         {
-//                            bool ro = renderManager->editor.IsReadOnly();
-//                            if (ImGui::MenuItem("Read-only mode", nullptr, &ro))
-//                                renderManager->editor.SetReadOnly(ro);
-//                            ImGui::Separator();
-//
-//                            if (ImGui::MenuItem("Undo", "ALT-Backspace", nullptr, !ro && renderManager->editor.CanUndo()))
-//                                renderManager->editor.Undo();
-//                            if (ImGui::MenuItem("Redo", "Ctrl-Y", nullptr, !ro && renderManager->editor.CanRedo()))
-//                                renderManager->editor.Redo();
+                            bool ro = renderManager->imguiScriptEditor.IsReadOnly();
+
+                            if (ImGui::MenuItem("Undo", "Command-Z", nullptr, !ro && renderManager->imguiScriptEditor.CanUndo()))
+                                renderManager->imguiScriptEditor.Undo();
+                            if (ImGui::MenuItem("Redo", "Command-Y", nullptr, !ro && renderManager->imguiScriptEditor.CanRedo()))
+                                renderManager->imguiScriptEditor.Redo();
 
                             ImGui::Separator();
 
-//                            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, renderManager->editor.HasSelection()))
-//                                renderManager->editor.Copy();
-//                            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, !ro && renderManager->editor.HasSelection()))
-//                                renderManager->editor.Cut();
-//                            if (ImGui::MenuItem("Delete", "Del", nullptr, !ro && renderManager->editor.HasSelection()))
-//                                renderManager->editor.Delete();
-//                            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, !ro && ImGui::GetClipboardText() != nullptr))
-//                                renderManager->editor.Paste();
+                            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, renderManager->imguiScriptEditor.HasSelection()))
+                                renderManager->imguiScriptEditor.Copy();
+                            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, !ro && renderManager->imguiScriptEditor.HasSelection()))
+                                renderManager->imguiScriptEditor.Cut();
+
+                            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, !ro && ImGui::GetClipboardText() != nullptr))
+                                renderManager->imguiScriptEditor.Paste();
 
                             ImGui::Separator();
 
-//                            if (ImGui::MenuItem("Select all", nullptr, nullptr))
-//                                renderManager->editor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(renderManager->editor.GetTotalLines(), 0));
+                            if (ImGui::MenuItem("Select all", nullptr, nullptr))
+                                renderManager->imguiScriptEditor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(renderManager->imguiScriptEditor.GetTotalLines(), 0));
 
                             ImGui::EndMenu();
                         }
