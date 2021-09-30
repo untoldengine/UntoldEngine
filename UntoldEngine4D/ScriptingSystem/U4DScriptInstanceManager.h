@@ -18,6 +18,8 @@
 #include "U4DAnimationManager.h"
 #include "U4DDynamicAction.h"
 
+#include "U4DScriptBehavior.h"
+
 namespace U4DEngine {
 
     class U4DScriptInstanceManager {
@@ -26,9 +28,13 @@ namespace U4DEngine {
         
         std::map<int,gravity_instance_t *> scriptModelInstanceMap;
         
+        std::map<int,gravity_instance_t *> scriptBehaviorInstanceMap;
+        
         static U4DScriptInstanceManager *instance;
         
         int modelInstanceIndex;
+        
+        int scriptBehaviorInstanceIndex;
         
         std::map<U4DAnimation*,gravity_instance_t *> scriptAnimationInstanceMap;
         std::map<U4DAnimationManager*,gravity_instance_t *> scriptAnimManagerInstanceMap;
@@ -47,6 +53,11 @@ namespace U4DEngine {
         void loadModelScriptInstance(U4DModel *uModel, gravity_instance_t *uGravityInstance);
         
         gravity_instance_t *getModelScriptInstance(int uScriptID);
+        
+        void loadScriptBehaviorInstance(U4DScriptBehavior *uScriptBehavior, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getScriptBehaviorInstance(int uScriptID);
+        
         
         bool modelScriptInstanceExist(int uScriptID);
         
@@ -72,7 +83,7 @@ namespace U4DEngine {
         void removeAllScriptInstanceAnimManagers();
         
         void removeAllScriptInstances();
-        
+        void removeAllScriptBehaviorInstances();
     };
 
 }

@@ -12,6 +12,7 @@
 #include "U4DScriptBindAnimManager.h"
 #include "U4DScriptBindDynamicAction.h"
 #include "U4DScriptBindManager.h"
+#include "U4DScriptBindBehavior.h"
 
 namespace U4DEngine{
 
@@ -26,7 +27,7 @@ U4DScriptInstanceManager* U4DScriptInstanceManager::sharedInstance(){
     return instance;
 }
 
-U4DScriptInstanceManager::U4DScriptInstanceManager():modelInstanceIndex(1){
+U4DScriptInstanceManager::U4DScriptInstanceManager():modelInstanceIndex(1),scriptBehaviorInstanceIndex(1){
      
         
     }
@@ -55,6 +56,29 @@ gravity_instance_t *U4DScriptInstanceManager::getModelScriptInstance(int uScript
     }
     
     return gravityModelInstance;
+}
+
+void U4DScriptInstanceManager::loadScriptBehaviorInstance(U4DScriptBehavior *uScriptBehavior, gravity_instance_t *uGravityInstance){
+    
+    uScriptBehavior->setScriptID(scriptBehaviorInstanceIndex);
+    
+    scriptBehaviorInstanceMap.insert(std::make_pair(scriptBehaviorInstanceIndex,uGravityInstance));
+    
+    scriptBehaviorInstanceIndex++;
+    
+}
+
+gravity_instance_t *U4DScriptInstanceManager::getScriptBehaviorInstance(int uScriptID){
+    
+    std::map<int,gravity_instance_t*>::iterator it=scriptBehaviorInstanceMap.find(uScriptID);
+    gravity_instance_t* gravityScriptBehaviorInstance=nullptr;
+    
+    if (it != scriptBehaviorInstanceMap.end()) {
+        gravityScriptBehaviorInstance=scriptBehaviorInstanceMap.find(uScriptID)->second;
+    }
+    
+    return gravityScriptBehaviorInstance;
+    
 }
 
 bool U4DScriptInstanceManager::modelScriptInstanceExist(int uScriptID){
@@ -207,12 +231,32 @@ void U4DScriptInstanceManager::removeAllScriptInstanceAnimManagers(){
     scriptAnimManagerInstanceMap.clear();
 }
 
+void U4DScriptInstanceManager::removeAllScriptBehaviorInstances(){
+    
+    U4DScriptBindManager *scriptBindManager=U4DScriptBindManager::sharedInstance();
+    U4DScriptBindBehavior *scriptBindBehavior=U4DScriptBindBehavior::sharedInstance();
+    
+    std::map<int,gravity_instance_t*>::iterator it;
+    
+    for(it=scriptBehaviorInstanceMap.begin();it!=scriptBehaviorInstanceMap.end();it++){
+        
+        gravity_instance_t *gravityIntance=it->second;
+        
+        scriptBindBehavior->scriptBehaviorFree(scriptBindManager->vm, (gravity_object_t*)gravityIntance);
+        
+    }
+    
+    scriptBehaviorInstanceMap.clear();
+    
+}
+
 void U4DScriptInstanceManager::removeAllScriptInstances(){
     
     removeAllScriptInstanceModels();
     removeAllScriptInstanceAnimations();
     removeAllScriptInstanceDynamicActions();
     removeAllScriptInstanceAnimManagers();
+    removeAllScriptBehaviorInstances();
 }
 
 }

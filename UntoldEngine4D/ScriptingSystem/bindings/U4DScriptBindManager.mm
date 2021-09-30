@@ -17,7 +17,8 @@
 #include "U4DScriptBindAnimation.h"
 #include "U4DScriptBindAnimManager.h"
 #include "U4DScriptBindDynamicAction.h"
-
+#include "U4DScriptBindBehavior.h"
+#include "U4DScriptInstanceManager.h"
 #include "U4DDirector.h"
 #include "U4DLogger.h"
 
@@ -137,6 +138,10 @@ namespace U4DEngine {
         
         logger->log("Loading script %s",uScriptPath.c_str());
         
+        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
+        
+        scriptInstanceManager->removeAllScriptInstances();
+        
         if(director->getScriptRunTimeError()==true){
             //we have to initialize the script again if there was a script-runtime error
             init();
@@ -224,6 +229,10 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
 
         U4DScriptBindModel *scriptBindModel=U4DScriptBindModel::sharedInstance();
         scriptBindModel->modelFree(vm, obj);
+        
+        U4DScriptBindBehavior *scriptBindBehavior=U4DScriptBindBehavior::sharedInstance();
+        scriptBindBehavior->scriptBehaviorFree(vm, obj);
+        
     }
 
     void U4DScriptBindManager::registerClasses(gravity_vm *vm){
@@ -234,6 +243,9 @@ const char *U4DScriptBindManager::loadFileCallback (const char *path, size_t *si
         registerLoggerClasses(vm);
         
         registerCameraClasses(vm);
+        
+        U4DScriptBindBehavior *scriptBindBehavior=U4DScriptBindBehavior::sharedInstance();
+        scriptBindBehavior->registerScriptBehaviorClasses(vm);
         
         U4DScriptBindModel *scriptBindModel=U4DScriptBindModel::sharedInstance();
         scriptBindModel->registerModelClasses(vm);

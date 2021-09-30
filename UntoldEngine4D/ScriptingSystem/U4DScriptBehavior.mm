@@ -8,38 +8,40 @@
 
 #include "U4DScriptBehavior.h"
 #include "U4DLogger.h"
-
+#include "U4DScriptBindBehavior.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine{
 
-U4DScriptBehavior::U4DScriptBehavior(){
-    
-}
+    U4DScriptBehavior::U4DScriptBehavior(){
+        
+        setEntityType(U4DEngine::SCRIPT);
+        
+    }
 
-U4DScriptBehavior::~U4DScriptBehavior(){
-    
-}
+    U4DScriptBehavior::~U4DScriptBehavior(){
+        
+        U4DEntity *parent=getParent();
+        
+        parent->removeChild(this);
+        
+    }
 
-void U4DScriptBehavior::attachScriptToModel(std::string uScriptPath,U4DModel *uModel){
-    
-    
-}
+    void U4DScriptBehavior::init(){
+        
+    }
 
-gravity_instance_t *U4DScriptBehavior::getModelInstance(){
-    return model_instance;
-}
+    void U4DScriptBehavior::update(double dt){
+        
+        U4DScriptBindBehavior *scriptBindBehavior=U4DScriptBindBehavior::sharedInstance();
+        
+        scriptBindBehavior->update(getScriptID(),dt);
+        
+    }
 
-void U4DScriptBehavior::init(){
-    
-}
-
-void U4DScriptBehavior::update(double dt){
-
-}
-
-void U4DScriptBehavior::destroy(){
-    
-}
+    void U4DScriptBehavior::destroy(){
+        
+    }
 
 
 }
