@@ -240,7 +240,7 @@ namespace U4DEngine {
         
         //configure the imgui text edit
         imguiScriptEditor.SetShowWhitespaces(false);
-        
+        imguiScriptEditor.SetHandleKeyboardInputs(true);
     }
 
     void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
