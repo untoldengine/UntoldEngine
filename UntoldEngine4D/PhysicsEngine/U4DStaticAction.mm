@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DStaticAction::U4DStaticAction(U4DModel *uU4DModel):model(uU4DModel),collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
+    U4DStaticAction::U4DStaticAction(U4DModel *uU4DModel):model(uU4DModel),collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false),convexHullBoundingVolume(nullptr),broadPhaseBoundingVolume(nullptr){
         
         initMass(10.0);
         
@@ -29,13 +29,6 @@ namespace U4DEngine {
         
         massProperties.intertiaTensorComputed=false;
         
-        //set the convex hull bounding volume to null
-        convexHullBoundingVolume=nullptr;
-        
-        //set the broad phase bounding volume to null
-        broadPhaseBoundingVolume=nullptr;
-        
-        
         //set all collision information to zero
         clearCollisionInformation();
         
@@ -43,21 +36,23 @@ namespace U4DEngine {
     
     U4DStaticAction::~U4DStaticAction(){
     
-        //remove parent from the bounding volute
-        U4DEntity *parent=convexHullBoundingVolume->getParent();
-        
-        parent->removeChild(convexHullBoundingVolume);
-        parent->removeChild(broadPhaseBoundingVolume);
+        if(convexHullBoundingVolume!=nullptr){
+            //remove parent from the bounding volute
+            U4DEntity *parent=convexHullBoundingVolume->getParent();
+            
+            parent->removeChild(convexHullBoundingVolume);
+            delete convexHullBoundingVolume;
+            
+            parent->removeChild(broadPhaseBoundingVolume);
+            
+            delete broadPhaseBoundingVolume;
+            
+            convexHullBoundingVolume=nullptr;
+            broadPhaseBoundingVolume=nullptr;
+        }
         
         //clear the convex hull data stored in the model buffers.
         clearModelCollisionData();
-        
-        delete convexHullBoundingVolume;
-        
-        delete broadPhaseBoundingVolume;
-        
-        convexHullBoundingVolume=nullptr;
-        broadPhaseBoundingVolume=nullptr;
         
     }
     
