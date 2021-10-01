@@ -13,6 +13,7 @@
 #include "Constants.h"
 #include "U4DSceneManager.h"
 #include "U4DSceneStateManager.h"
+#include "U4DScene.h"
 #include "U4DSceneActiveState.h"
 #include "U4DSceneIdleState.h"
 #include "U4DSceneLoadingState.h"
@@ -133,6 +134,9 @@ namespace U4DEngine {
         //set up the time step
         U4DScheduler *scheduler=U4DScheduler::sharedInstance();
         
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        
         float frameTime=dt;
         
         //set the time step
@@ -149,8 +153,11 @@ namespace U4DEngine {
             //update state and physics engine
             getSceneStateManager()->update(timeStep);
             
-            //update the scheduler
-            scheduler->tick(timeStep);
+            if (scene!=nullptr && scene->getPauseScene()==false) {
+                //update the scheduler
+                scheduler->tick(timeStep);
+            }
+            
             
             accumulator-=timeStep;
             

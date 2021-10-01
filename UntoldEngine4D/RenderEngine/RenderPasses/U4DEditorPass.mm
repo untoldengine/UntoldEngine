@@ -258,7 +258,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
                 
             }
-            
+            ImGui::SameLine();
             if (ImGui::Button("Load")) {
                 
                 deserializeFlag=true;
