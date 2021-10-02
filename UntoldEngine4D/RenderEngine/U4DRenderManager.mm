@@ -39,7 +39,7 @@
 #include "U4DGBufferPass.h"
 #include "U4DCompositionPass.h"
 
-#import <TargetConditionals.h> 
+
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "U4DEditorPass.h"
 #endif
@@ -238,9 +238,12 @@ namespace U4DEngine {
         compositionPipeline->initPipeline("vertexCompShader","fragmentCompShader");
         
         
+        #if TARGET_OS_MAC && !TARGET_OS_IPHONE
         //configure the imgui text edit
         imguiScriptEditor.SetShowWhitespaces(false);
         imguiScriptEditor.SetHandleKeyboardInputs(true);
+        #endif
+        
     }
 
     void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
