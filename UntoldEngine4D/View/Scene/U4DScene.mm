@@ -68,7 +68,7 @@ namespace U4DEngine {
             gameWorld=uGameWorld;
             gameController=sceneManager->getGameController();
             gameLogic=uGameLogic;
-            
+            pauseScene=false;
             sceneStateManager->changeState(U4DSceneLoadingState::sharedInstance());
             
         }else{

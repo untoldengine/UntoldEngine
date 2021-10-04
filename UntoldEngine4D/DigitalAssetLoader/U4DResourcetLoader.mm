@@ -962,8 +962,11 @@ namespace U4DEngine {
                 
                 //copy the data
                 
-                //NAME
+                //MODEL NAME IN GAME
                 uModel->setName(modelsContainer.at(n).name);
+                
+                //REFERENCE NAME IN BLENDER---SETTING THE REFERENCE AND MODEL NAME TO SAME.
+                uModel->setAssetReferenceName(modelsContainer.at(n).name);
                 
                 //VERTICES
                 loadVerticesData(uModel, modelsContainer.at(n).vertices);
