@@ -247,8 +247,12 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         }
         
         {
+            ImGui::Begin("Menu");
             
-            ImGui::Begin("Save Entities");
+            U4DScene *scene=sceneManager->getCurrentScene();
+            U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+            
+            ImGui::Text("Scene Menu");
             
             if (ImGui::Button("Save")) {
                 
@@ -303,15 +307,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 
             }
             
-            ImGui::End();
-        }
-        
-        
-        {
+            ImGui::SameLine();
             
-            U4DScene *scene=sceneManager->getCurrentScene();
-            U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
-            ImGui::Begin("Engine Mode");
             if (ImGui::Button("clear")) {
                 
                 //reset the active child
@@ -340,225 +337,70 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     scene->setPauseScene(false);
                     logger->log("Game is playing");
                     
-//                    //Change the state of the scene to play mode. This will remove all children from the
-//                    //scenegraph and start anew.
-//                    scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
-//
-                    //call the init gravity function-- THIS IS FOR NOW ONLY
-                    
                     
             }
             
-            ImGui::End();
-        }
-        
-        {
-            ImGui::Begin("Script Editor",nullptr, ImGuiWindowFlags_HorizontalScrollbar | ImGuiWindowFlags_MenuBar);
             
-            U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-            
-            //set the menu
-            if (ImGui::BeginMenuBar())
-                    {
-                        if (ImGui::BeginMenu("File"))
-                        {
-                            if(ImGui::MenuItem("New")){
-                                
-                                
-                                
-                                newScriptFile=true;
-                            }
-                            
-                            if(ImGui::MenuItem("Open")){
-                                
-                                lookingForScriptFile=true;
-                                
-                                //create new file
-                                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES);
-                                NSString *documentsDirectory = [paths objectAtIndex:0]; // Get documents folder
-                                NSString *dataPath = [documentsDirectory stringByAppendingPathComponent:pathToGameScripts];
-                                
-                                std::string dataPathString = std::string([dataPath UTF8String]);
-                               
-                                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", dataPathString,"");
-                                
-                            }
-                            if (ImGui::MenuItem("Save"))
-                            {
-                                //save the script
-                                
-                                savingScriptFile=true;
-                                
-                                //create new file
-                                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES);
-                                NSString *documentsDirectory = [paths objectAtIndex:0]; // Get documents folder
-                                NSString *dataPath = [documentsDirectory stringByAppendingPathComponent:pathToGameScripts];
-                                
-                                std::string dataPathString = std::string([dataPath UTF8String]);
-                               
-                                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", dataPathString,"");
-                                
-                            }
-                            if (ImGui::MenuItem("Quit", "Alt-F4")){}
-                                //break;
-                            ImGui::EndMenu();
-                        }
-                        if (ImGui::BeginMenu("Edit"))
-                        {
-                            bool ro = renderManager->imguiScriptEditor.IsReadOnly();
-
-                            if (ImGui::MenuItem("Undo", "Command-Z", nullptr, !ro && renderManager->imguiScriptEditor.CanUndo()))
-                                renderManager->imguiScriptEditor.Undo();
-                            if (ImGui::MenuItem("Redo", "Command-Y", nullptr, !ro && renderManager->imguiScriptEditor.CanRedo()))
-                                renderManager->imguiScriptEditor.Redo();
-
-                            ImGui::Separator();
-
-                            if (ImGui::MenuItem("Copy", "Ctrl-C", nullptr, renderManager->imguiScriptEditor.HasSelection()))
-                                renderManager->imguiScriptEditor.Copy();
-                            if (ImGui::MenuItem("Cut", "Ctrl-X", nullptr, !ro && renderManager->imguiScriptEditor.HasSelection()))
-                                renderManager->imguiScriptEditor.Cut();
-
-                            if (ImGui::MenuItem("Paste", "Ctrl-V", nullptr, !ro && ImGui::GetClipboardText() != nullptr))
-                                renderManager->imguiScriptEditor.Paste();
-
-                            ImGui::Separator();
-
-                            if (ImGui::MenuItem("Select all", nullptr, nullptr))
-                                renderManager->imguiScriptEditor.SetSelection(TextEditor::Coordinates(), TextEditor::Coordinates(renderManager->imguiScriptEditor.GetTotalLines(), 0));
-
-                            ImGui::EndMenu();
-                        }
-                        
-                        if (ImGui::BeginMenu("Run"))
-                        {
-                            if(ImGui::MenuItem("Build & Run", nullptr,nullptr)){
-                                
-                                U4DEngine::U4DScriptManager *scriptManager=U4DEngine::U4DScriptManager::sharedInstance();
-                                
-                                  if(scriptManager->loadScript(scriptFilePathName)){
-            
-                                      logger->log("Script was loaded.");
-            
-                                      //call the init function in the script
-                                      scriptManager->loadGameConfigs();
-            
-                                      scriptLoadedSuccessfully=true;
-                                  }else{
-                                      scriptLoadedSuccessfully=false;
-                                  }
-                            }
-                            ImGui::EndMenu();
-                        }
-
-                        ImGui::EndMenuBar();
-                    }
+            //config scripts
+            //ImGui::Text("Config Scripts");
+            // open Dialog Simple
+            ImGui::SameLine();
+            if (ImGui::Button("Open Script")){
+                lookingForScriptFile=true;
+                
+                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+            }
                 
             if(lookingForScriptFile){
-                // display
-                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                {
-                    if (gravityFileDialog.Instance()->IsOk())
-                    {
-                      
-                      scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
-                      scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-                        
-                        const char* fileToEdit = scriptFilePathName.c_str();
-                        
-                        std::ifstream t(fileToEdit);
-                        if (t.good())
-                        {
-                            std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-                            renderManager->imguiScriptEditor.SetText(str);
-                            scriptOkToRender=true;
-                            
-                        }
-                        
-                        
-                    }else{
-                      //scriptOkToRender=false;
-                    }
-                    
-                    // close
-                    gravityFileDialog.Instance()->Close();
-                    lookingForScriptFile=false;
-                  
-                  }
-                
-            }
-            
-            if(savingScriptFile){
-                
                 // display
                 if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
                 {
                   // action if OK
                   if (gravityFileDialog.Instance()->IsOk())
                   {
-                    
-                      
-                    
-                    auto textToSave = renderManager->imguiScriptEditor.GetText();
-                    std::ofstream outFile;
                     scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
                     scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-                      
-                      outFile.open(scriptFilePathName.c_str());
-                      
-                      /// save text....
-                      outFile<<textToSave<<std::endl;
-                      
-                      //close the file
-                      outFile.close();
-                      
-                      
+                    // action
+                    scriptFilesFound=true;
+                  }else{
+                    //scriptFilesFound=false;
                   }
                   
                   // close
                   gravityFileDialog.Instance()->Close();
-                  savingScriptFile=false;
+                  
                 }
-                
-                
-            }
-            
-            if(newScriptFile){
-                
-                //create new file
-                NSArray *paths = NSSearchPathForDirectoriesInDomains(NSDownloadsDirectory, NSUserDomainMask, YES);
-                NSString *documentsDirectory = [paths objectAtIndex:0]; // Get documents folder
-                NSString *dataPath = [documentsDirectory stringByAppendingPathComponent:pathToGameScripts];
-                
-                std::string dataPathString = std::string([dataPath UTF8String]);
-                
-                scriptFilePathName=dataPathString+"/untitled.gravity";
-                
-                std::ofstream newFile(scriptFilePathName);
-                
-                const char* fileToEdit = scriptFilePathName.c_str();
-                
-                std::ifstream t(fileToEdit);
-                if (t.good())
-                {
-                    std::string str((std::istreambuf_iterator<char>(t)), std::istreambuf_iterator<char>());
-                    renderManager->imguiScriptEditor.SetText(str);
-                    scriptOkToRender=true;
-                    scriptFilePathName="untitled.gravity";
-                }
-                
-                newScriptFile=false;
-            }
               
-            if(scriptOkToRender){
-                //ImGui::Text("Current File: %s",scriptFilePathName.c_str());
-                ImGui::Separator();
-                renderManager->imguiScriptEditor.Render("Script Editor");
+              if (scriptFilesFound) {
+                  
+                  ImGui::Text("Script %s", scriptFilePathName.c_str());
+                  
+                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+                  
+                  if(ImGui::Button("Load Script")){
+                      
+                      if(scriptManager->loadScript(scriptFilePathName)){
+                          
+                          logger->log("Script was loaded.");
+                          
+                          //call the init function in the script
+                          scriptManager->loadGameConfigs();
+                          
+                          scriptLoadedSuccessfully=true;
+                      }else{
+                          scriptLoadedSuccessfully=false;
+                      }
+                      
+                      //lookingForScriptFile=false;
+                  }
+                  
+              }
             }
             
             ImGui::End();
-            
         }
+        
+        
         
         {
             
