@@ -11,7 +11,7 @@
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
 #include "SandboxWorld.h"
-#include "U4DScriptBindManager.h"
+#include "U4DGameConfigs.h"
 
 SandboxLogic::SandboxLogic(){
     
@@ -35,9 +35,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
     
-    U4DEngine::U4DScriptBindManager *scriptBindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
     
-    scriptBindManager->userInputGravityFunction(uData);
     
 //        switch (controllerInputMessage.inputElementType) {
 //

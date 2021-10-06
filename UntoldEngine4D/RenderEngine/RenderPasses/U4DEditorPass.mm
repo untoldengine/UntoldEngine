@@ -17,7 +17,7 @@
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
 #include "U4DLogger.h"
-#include "U4DScriptBindManager.h"
+#include "U4DScriptManager.h"
 #include "U4DRenderEntity.h"
 #include "U4DRenderPipelineInterface.h"
 #include "U4DModelPipeline.h"
@@ -38,8 +38,6 @@
 #include "U4DRay.h"
 #include "U4DAABB.h"
 
-//this is temp header
-#include "U4DScriptBindModel.h"
 
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -436,14 +434,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         {
                             if(ImGui::MenuItem("Build & Run", nullptr,nullptr)){
                                 
-                                U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
+                                U4DEngine::U4DScriptManager *scriptManager=U4DEngine::U4DScriptManager::sharedInstance();
                                 
-                                  if(bindManager->loadScript(scriptFilePathName)){
+                                  if(scriptManager->loadScript(scriptFilePathName)){
             
                                       logger->log("Script was loaded.");
             
                                       //call the init function in the script
-                                      bindManager->initGravityFunction();
+                                      scriptManager->loadGameConfigs();
             
                                       scriptLoadedSuccessfully=true;
                                   }else{
