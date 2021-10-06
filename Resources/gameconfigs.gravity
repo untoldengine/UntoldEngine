@@ -1,0 +1,17 @@
+func init(){
+
+var scaleValue=1
+var names = ["config0":60.0/scaleValue,
+            "config1":30.0/scaleValue,
+            "config2":25.0/scaleValue];
+
+return names
+}
+
+
+
+
+
+
+
+

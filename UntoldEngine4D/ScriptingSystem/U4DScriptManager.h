@@ -1,13 +1,13 @@
 //
-//  U4DScriptBindManager.hpp
+//  U4DScriptManager.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 6/14/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef U4DScriptBindManager_hpp
-#define U4DScriptBindManager_hpp
+#ifndef U4DScriptManager_hpp
+#define U4DScriptManager_hpp
 
 #include <stdio.h>
 #include "gravity_compiler.h"
@@ -17,24 +17,25 @@
 #include "gravity_vmmacros.h"
 #include "gravity_opcodes.h"
 #include "gravity_utils.h"
+#include "gravity_hash.h"
 #include "gravity_delegate.h"
 #include <iostream>
 #include <string.h>
 
 namespace U4DEngine {
 
-    class U4DScriptBindManager {
+    class U4DScriptManager {
         
     private:
         
         
-        static U4DScriptBindManager *instance;
+        static U4DScriptManager *instance;
         
     protected:
         
-        U4DScriptBindManager();
+        U4DScriptManager();
         
-        ~U4DScriptBindManager();
+        ~U4DScriptManager();
         
     public:
         
@@ -44,7 +45,7 @@ namespace U4DEngine {
         gravity_delegate_t delegate;
         
         
-        static U4DScriptBindManager *sharedInstance();
+        static U4DScriptManager *sharedInstance();
         
         static void freeObjects(gravity_vm *vm, gravity_object_t *obj);
         static void registerClasses (gravity_vm *vm);
@@ -52,13 +53,10 @@ namespace U4DEngine {
         bool loadScript(std::string uScriptPath);
         bool init();
         void cleanup();
-        void initGravityFunction();
-        void updateGravityFunction(double dt);
-        void userInputGravityFunction(void *uData);
-        static const char *loadFileCallback (const char *path, size_t *size, uint32_t *fileid, void *xdata, bool *is_static);
-
+        void loadGameConfigs();
+        
     };
 
 }
 
-#endif /* U4DScriptBindManager_hpp */
+#endif /* U4DScriptManager_hpp */

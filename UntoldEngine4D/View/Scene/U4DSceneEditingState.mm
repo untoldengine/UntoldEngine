@@ -8,8 +8,6 @@
 
 #include "U4DSceneEditingState.h"
 #include "U4DSceneManager.h"
-#include "U4DScriptInstanceManager.h"
-#include "U4DScriptBindManager.h"
 #include "U4DLogger.h"
 
 namespace U4DEngine {
@@ -55,11 +53,6 @@ namespace U4DEngine {
         uScene->gameLogic->setGameEntityManager(uScene->editingWorld->getEntityManager());
         
         
-        
-//        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
-//
-//        scriptInstanceManager->removeAllScriptInstances();
-        
         uScene->editingWorld->init();
         uScene->gameLogic->init();
         
@@ -79,9 +72,6 @@ namespace U4DEngine {
             
             //update the game model
             uScene->gameLogic->update(dt);
-            
-            U4DEngine::U4DScriptBindManager *bindManager=U4DEngine::U4DScriptBindManager::sharedInstance();
-            bindManager->updateGravityFunction(dt);
             
             //if main scene world finished loading, then change scene
             //update the entity manager
