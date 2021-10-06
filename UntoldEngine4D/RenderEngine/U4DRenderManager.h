@@ -17,10 +17,6 @@
 #include "U4DRenderPipelineInterface.h"
 #include "U4DEntity.h"
 
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-#include "TextEditor.h"
-#endif
-
 
 namespace U4DEngine {
 
@@ -89,9 +85,6 @@ namespace U4DEngine {
         
         void makePipelineWithShader(std::string uPipelineName, std::string uVertexShaderName, std::string uFragmentShaderName);
     
-        #if TARGET_OS_MAC && !TARGET_OS_IPHONE
-        TextEditor imguiScriptEditor;
-        #endif
         
     };
     

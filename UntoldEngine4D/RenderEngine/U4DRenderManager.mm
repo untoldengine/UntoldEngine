@@ -238,12 +238,6 @@ namespace U4DEngine {
         compositionPipeline->initPipeline("vertexCompShader","fragmentCompShader");
         
         
-        #if TARGET_OS_MAC && !TARGET_OS_IPHONE
-        //configure the imgui text edit
-        imguiScriptEditor.SetShowWhitespaces(false);
-        imguiScriptEditor.SetHandleKeyboardInputs(true);
-        #endif
-        
     }
 
     void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
