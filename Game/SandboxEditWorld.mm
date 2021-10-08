@@ -21,6 +21,7 @@
 #include "Field.h"
 
 #include "U4DEntityFactory.h"
+#include "U4DSerializer.h"
 
 using namespace U4DEngine;
 
@@ -46,12 +47,35 @@ void SandboxEditWorld::init(){
     //register the classes
     
     U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
-    
-    
+
     entityFactory->registerClass<Player>("Player");
     entityFactory->registerClass<Field>("Field");
     
+//    Player *models[3];
+//
+//    for(int i=0;i<sizeof(models)/sizeof(models[0]);i++){
+//
+//            models[i]=new Player();
+//
+//            if (models[i]->init("player0")) {
+//
+//                addChild(models[i]);
+//
+//            }
+//        }
+//
+//    Field *field=new Field();
+//    if (field->init("field")) {
+//        addChild(field);
+//
+//    }
     
+    
+    //deserialize
+    U4DEngine::U4DSerializer *serializer=U4DSerializer::sharedInstance();
+
+    serializer->deserialize("scenefile.u4d");
+
     
 //    std::map<std::string,std::string> sceneModelMap;
 //

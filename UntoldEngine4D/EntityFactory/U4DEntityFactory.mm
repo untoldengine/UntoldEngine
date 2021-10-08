@@ -51,7 +51,9 @@ std::vector<std::string> U4DEntityFactory::getRegisteredClasses(){
     return registeredClassesContainer;
 }
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType){
+
+
+bool U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uType){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
@@ -89,11 +91,10 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
         
         if (modelDataLoaded) {
             
-            model->setName(uModelName);
-            model->setAssetReferenceName(uAssetName);
+            std::string modelName=model->getName();
             
-            visibilityDictionary->updateVisibilityDictionary(uAssetName.c_str(), uModelName.c_str());
-            kineticDictionary->updateKineticBehaviorDictionary(uAssetName.c_str(), uModelName.c_str());
+            visibilityDictionary->updateVisibilityDictionary(uAssetName.c_str(), modelName.c_str());
+            kineticDictionary->updateKineticBehaviorDictionary(uAssetName.c_str(), modelName.c_str());
             
             //set the class type
             model->setClassType(uType);
@@ -103,13 +104,15 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
         
     }else{
         
-        logger->log("Error: Unable to create instance of type %s for asset %s",uType.c_str(),uAssetName.c_str());
+        logger->log("Error: Unable to create instance of type %s for asset %s. Make sure to register the class to the factory",uType.c_str(),uAssetName.c_str());
         
+        return false;
     }
     
+    return true;
 }
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation){
+bool U4DEntityFactory::createModelInstanceFromDeserialization(std::string uAssetName, std::string uModelName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation){ 
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
@@ -166,9 +169,11 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
         
     }else{
         
-        logger->log("Error: Unable to create instance of type %s for asset %s",uType.c_str(),uAssetName.c_str());
-        
+        logger->log("Error: Unable to create instance of type %s for asset %s. Make sure to register the class to the factory",uType.c_str(),uAssetName.c_str());
+        return false;
     }
+    
+    return true;
 }
 
 }

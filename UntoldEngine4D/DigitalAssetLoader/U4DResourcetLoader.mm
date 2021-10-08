@@ -23,6 +23,9 @@
 #include "U4DLogger.h"
 #include "U4DText.h"
 #include "U4DPointLight.h"
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
+#include "U4DWorld.h"
 
 namespace U4DEngine {
 
@@ -955,6 +958,9 @@ namespace U4DEngine {
 
         //find the model in the container
         U4DLogger *logger=U4DLogger::sharedInstance();
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        U4DWorld *world=scene->getGameWorld();
         
         for(int n=0;n<modelsContainer.size();n++){
 
@@ -963,7 +969,9 @@ namespace U4DEngine {
                 //copy the data
                 
                 //MODEL NAME IN GAME
-                uModel->setName(modelsContainer.at(n).name);
+                std::string modelName=world->searchScenegraphForNextName(modelsContainer.at(n).name);
+                
+                uModel->setName(modelName);
                 
                 //REFERENCE NAME IN BLENDER---SETTING THE REFERENCE AND MODEL NAME TO SAME.
                 uModel->setAssetReferenceName(modelsContainer.at(n).name);

@@ -1,33 +1,27 @@
 //
-//  Player.hpp
+//  Foot.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 6/28/21.
+//  Created by Harold Serrano on 10/8/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef Player_hpp
-#define Player_hpp
+#ifndef Foot_hpp
+#define Foot_hpp
 
 #include <stdio.h>
 #include "U4DModel.h"
 #include "U4DDynamicAction.h"
-#include "U4DAnimation.h"
-#include "Foot.h"
 
-class Player:public U4DEngine::U4DModel {
+class Foot:public U4DEngine::U4DModel {
     
 private:
-    
     U4DEngine::U4DDynamicAction *kineticAction;
-    U4DEngine::U4DAnimation *runningAnimation;
-    Foot *foot;
-    
 public:
     
-    Player();
+    Foot();
     
-    ~Player();
+    ~Foot();
     
     //init method. It loads all the rendering information among other things.
     bool init(const char* uModelName);
@@ -36,4 +30,4 @@ public:
     
 };
 
-#endif /* Player_hpp */
+#endif /* Foot_hpp */

@@ -184,4 +184,43 @@ namespace U4DEngine {
         next=nullptr;
     }
 
+std::string U4DWorld::searchScenegraphForNextName(std::string uAssetName){ 
+    
+    //search the scenegraph for current names
+    
+    U4DEntity *child=this->next;
+    
+    int count=0;
+    
+    while (child!=nullptr) {
+        
+        //strip all characters up to the period
+        if(child->getEntityType()==U4DEngine::MODEL){
+            
+            std::string s=child->getName();
+            int n=(int)s.length();
+            int m=(int)uAssetName.length();
+            int stringLengthDifference=std::abs(n-m);
+
+            if(n<=stringLengthDifference) stringLengthDifference=n;
+            //trunk down the name
+            
+            s.erase(s.end()-stringLengthDifference, s.end());
+
+            if (s.compare(uAssetName)==0) {
+
+                count++;
+
+            }
+        }
+        
+        child=child->next;
+        
+    }
+    
+    std::string modelName=uAssetName+"."+std::to_string(count);
+    
+    return modelName;
+}
+
 }

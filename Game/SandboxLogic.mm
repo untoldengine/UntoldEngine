@@ -10,10 +10,10 @@
 #include "U4DDirector.h"
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
-#include "SandboxWorld.h"
+#include "SandboxEditWorld.h"
 #include "U4DGameConfigs.h"
 
-SandboxLogic::SandboxLogic(){
+SandboxLogic::SandboxLogic():pPlayer(nullptr){
     
 }
 
@@ -27,7 +27,16 @@ void SandboxLogic::update(double dt){
 }
 
 void SandboxLogic::init(){
+    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+    //1. Get a pointer to the LevelOneWorld object
+    SandboxEditWorld* pEarth=dynamic_cast<SandboxEditWorld*>(getGameWorld());
+
+    //2. Search for the player object
+    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("player0.0"));
     
+    if(pPlayer!=nullptr){
+        logger->log("player with name %s found",pPlayer->getName().c_str());
+    }
 }
 
 
