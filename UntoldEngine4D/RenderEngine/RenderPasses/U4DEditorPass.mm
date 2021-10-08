@@ -750,41 +750,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     
                         if (scene!=nullptr) {
                             
-                            //search the scenegraph for current names
                             
-                            U4DEntity *child=scene->getGameWorld()->next;
-                            
-                            int count=0;
-                            
-                            while (child!=nullptr) {
-                                
-                                //strip all characters up to the period
-                                if(child->getEntityType()==U4DEngine::MODEL){
-                                    
-                                    std::string s=child->getName();
-                                    int n=(int)s.length();
-                                    int m=(int)assetSelectedName.length();
-                                    int stringLengthDifference=std::abs(n-m);
-
-                                    if(n<=stringLengthDifference) stringLengthDifference=n;
-                                    //trunk down the name
-                                    
-                                    s.erase(s.end()-stringLengthDifference, s.end());
-
-                                    if (s.compare(assetSelectedName)==0) {
-
-                                        count++;
-
-                                    }
-                                }
-                                
-                                child=child->next;
-                                
-                            }
-                            
-                            std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
-                            
-                            entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName);
+                            entityFactory->createModelInstance(assetSelectedName, assetSelectedTypeName);
                             
                         }
                         

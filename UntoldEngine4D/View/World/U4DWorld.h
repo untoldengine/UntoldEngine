@@ -176,6 +176,9 @@ public:
     void receiveUserInputUpdate(void *uData);
 
     void removeAllModelChildren();
+    
+    std::string searchScenegraphForNextName(std::string uAssetName);
+    
 };
     
 }

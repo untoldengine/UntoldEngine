@@ -380,7 +380,7 @@ namespace U4DEngine {
             
             //Ask the factory class to create an instance of each object and load it into the world
             
-            entityFactory->createModelInstance(n.assetReferenceName,n.name, n.classType,pos, orient); 
+            entityFactory->createModelInstanceFromDeserialization(n.assetReferenceName,n.name, n.classType,pos, orient); 
             
         }
         

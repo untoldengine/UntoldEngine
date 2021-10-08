@@ -9,6 +9,9 @@
 /* Begin PBXBuildFile section */
 		03002C861B977FE600665CC9 /* U4DManifoldGeneration.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C841B977FE600665CC9 /* U4DManifoldGeneration.mm */; };
 		03002C891B97804B00665CC9 /* U4DCollisionDetection.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */; };
+		03008CFD271082F000A53C34 /* Foot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03008CFB271082F000A53C34 /* Foot.mm */; };
+		03008CFE271082F000A53C34 /* Foot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03008CFB271082F000A53C34 /* Foot.mm */; };
+		03008CFF271082F000A53C34 /* Foot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03008CFB271082F000A53C34 /* Foot.mm */; };
 		03019FF4252568430005CDDD /* SandboxLoading.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03019FF2252568430005CDDD /* SandboxLoading.mm */; };
 		03019FF5252568440005CDDD /* SandboxLoading.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03019FF2252568430005CDDD /* SandboxLoading.mm */; };
 		03019FF6252568440005CDDD /* SandboxLoading.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03019FF2252568430005CDDD /* SandboxLoading.mm */; };
@@ -1105,6 +1108,8 @@
 		03002C851B977FE600665CC9 /* U4DManifoldGeneration.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DManifoldGeneration.h; path = ManifoldGeneration/U4DManifoldGeneration.h; sourceTree = "<group>"; };
 		03002C871B97804B00665CC9 /* U4DCollisionDetection.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCollisionDetection.mm; sourceTree = "<group>"; };
 		03002C881B97804B00665CC9 /* U4DCollisionDetection.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCollisionDetection.h; sourceTree = "<group>"; };
+		03008CFB271082F000A53C34 /* Foot.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = Foot.mm; path = Game/Foot.mm; sourceTree = SOURCE_ROOT; };
+		03008CFC271082F000A53C34 /* Foot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Foot.h; path = Game/Foot.h; sourceTree = SOURCE_ROOT; };
 		03019FF2252568430005CDDD /* SandboxLoading.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SandboxLoading.mm; path = Game/SandboxLoading.mm; sourceTree = SOURCE_ROOT; };
 		03019FF3252568430005CDDD /* SandboxLoading.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SandboxLoading.h; path = Game/SandboxLoading.h; sourceTree = SOURCE_ROOT; };
 		030205501B6E9CD7005A72E8 /* U4DSegment.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSegment.mm; sourceTree = "<group>"; };
@@ -2274,6 +2279,8 @@
 				03C0449B268A6E54002B3880 /* Player.mm */,
 				03C044A1268A6E6F002B3880 /* Field.h */,
 				03C044A0268A6E6F002B3880 /* Field.mm */,
+				03008CFC271082F000A53C34 /* Foot.h */,
+				03008CFB271082F000A53C34 /* Foot.mm */,
 			);
 			name = SandboxScene;
 			sourceTree = "<group>";
@@ -3679,6 +3686,7 @@
 				0399D67225B72712004C1E11 /* U4DWorldPipeline.mm in Sources */,
 				03722BB12029F0F50080D069 /* U4DSHAlgorithm.mm in Sources */,
 				03CAE653205192F500391B57 /* U4DMacMouseDraggedState.mm in Sources */,
+				03008CFE271082F000A53C34 /* Foot.mm in Sources */,
 				03722BBC2029F0F50080D069 /* U4DParticle.mm in Sources */,
 				039436CE230A39FF006D859A /* U4DMacMouseMovedState.mm in Sources */,
 				03722B702029F0F50080D069 /* U4DRenderParticleSystem.mm in Sources */,
@@ -4135,6 +4143,7 @@
 				03722DEE202CA7240080D069 /* U4DPadButton.mm in Sources */,
 				0399D67325B72712004C1E11 /* U4DWorldPipeline.mm in Sources */,
 				03722CEB2029F0F80080D069 /* U4DSHAlgorithm.mm in Sources */,
+				03008CFF271082F000A53C34 /* Foot.mm in Sources */,
 				03CAE655205192F500391B57 /* U4DMacMouseDraggedState.mm in Sources */,
 				03722CF62029F0F80080D069 /* U4DParticle.mm in Sources */,
 				039436CF230A39FF006D859A /* U4DMacMouseMovedState.mm in Sources */,
@@ -4357,6 +4366,7 @@
 				037D2BE72445EFE300AB3FEF /* U4DFlock.mm in Sources */,
 				03F2DAF11F191A2600F77B78 /* imageShader.metal in Sources */,
 				03FA611E258116A1008CC0AB /* U4DProfilerManager.mm in Sources */,
+				03008CFD271082F000A53C34 /* Foot.mm in Sources */,
 				03E688BB267793280079ED4D /* gravity_compiler.c in Sources */,
 				03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */,
 				03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */,

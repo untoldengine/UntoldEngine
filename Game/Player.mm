@@ -7,7 +7,7 @@
 //
 
 #include "Player.h"
-
+#include "Foot.h"
 
 Player::Player(){
     
@@ -16,6 +16,7 @@ Player::Player(){
 Player::~Player(){
     delete kineticAction;
     delete runningAnimation;
+    
 }
 
 //init method. It loads all the rendering information among other things.
@@ -34,6 +35,14 @@ bool Player::init(const char* uModelName){
         runningAnimation = new U4DEngine::U4DAnimation(this);
         
         if(loadAnimationToModel(runningAnimation, "running")){
+            
+        }
+        
+        //attach foot
+        foot=new Foot();
+        if(foot->init("rightfoot")){
+            
+            addChild(foot);
             
         }
         
