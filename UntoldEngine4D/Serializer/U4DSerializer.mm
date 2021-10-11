@@ -56,7 +56,7 @@ namespace U4DEngine {
     }
 
     void U4DSerializer::prepareEntities(){
-        
+        U4DLogger *logger=U4DLogger::sharedInstance();
 //        1. Read all the entities present in the scenegraph
         
         entitySerializeDataContainer.clear();
@@ -65,11 +65,40 @@ namespace U4DEngine {
         
         U4DScene *scene=sceneManager->getCurrentScene();
         
+        //Before we serialize the entities. We need to traverse in reverse pre-order traversal.
+        //One way to do this, I think, is to invert the generic tree. I found a quick and easy hack to accomplish the inversion. Simply traverse the tree and store the entities into another temp tree. Then when you traverse the temp tree again, the entities will come out in a reverse pre-order traversal. trust me. it works.
+        
         U4DWorld *world=scene->getGameWorld();
+        U4DEntity *tempWorld=new U4DEntity();
         
         U4DEntity *child=world->next;
         
+        //first pre-order traversal
         while (child!=nullptr) {
+            
+            if (child->getEntityType()==U4DEngine::MODEL) {
+                
+                U4DEntity *tempChild=new U4DEntity();
+                tempChild->setName(child->getName());
+                
+                if (child->getParent()==world) {
+                    tempWorld->addChild(tempChild);
+                }else{
+                    U4DEntity *parentTemp=tempWorld->searchChild(child->getParent()->getName().c_str());
+                    parentTemp->addChild(tempChild);
+                }
+            }
+            
+            child=child->next;
+        }
+        
+        //reverse pre-order traversal.
+        U4DEntity *tempChild=tempWorld->next;
+        
+        while (tempChild!=nullptr) {
+            
+            //get the name
+            U4DEntity *child=world->searchChild(tempChild->getName());
             
             if (child->getEntityType()==U4DEngine::MODEL) {
                 
@@ -96,9 +125,12 @@ namespace U4DEngine {
                 
             }
             
-            child=child->next;
+            tempChild=tempChild->next;
         }
         
+        //remove all temp children and temp world
+        tempWorld->removeAndDeleteAllChildren();
+        delete tempWorld;
     }
 
     bool U4DSerializer::convertEntitiesToBinary(std::string uFileName){
@@ -375,12 +407,18 @@ namespace U4DEngine {
         //Iterate through the container
         for(const auto &n:entitySerializeDataContainer){
             
-            U4DVector3n pos(n.position.at(0),n.position.at(1),n.position.at(2));
-            U4DVector3n orient(n.orientation.at(0),n.orientation.at(1),n.orientation.at(2));
+            //if entity does not exist yet in the scenegraph, then go ahead and create the entity.
+            if(world->searchChild(n.name)==nullptr){
+                
+                U4DVector3n pos(n.position.at(0),n.position.at(1),n.position.at(2));
+                U4DVector3n orient(n.orientation.at(0),n.orientation.at(1),n.orientation.at(2));
+                
+                //Ask the factory class to create an instance of each object and load it into the world
+                
+                entityFactory->createModelInstanceFromDeserialization(n.assetReferenceName,n.name, n.classType,pos, orient);
+                
+            }
             
-            //Ask the factory class to create an instance of each object and load it into the world
-            
-            entityFactory->createModelInstanceFromDeserialization(n.assetReferenceName,n.name, n.classType,pos, orient); 
             
         }
         
