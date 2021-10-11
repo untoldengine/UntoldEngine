@@ -16,6 +16,7 @@
 #include "U4DEntity.h"
 #include "U4DLayerManager.h"
 #include "U4DRenderWorld.h"
+#include <regex>
 
 namespace U4DEngine {
     
@@ -186,11 +187,16 @@ namespace U4DEngine {
 
 std::string U4DWorld::searchScenegraphForNextName(std::string uAssetName){ 
     
-    //search the scenegraph for current names
+    //search the scenegraph for current names.
+    //The following re will match "player.12" or "ball.1 for example
+    std::string reString="("+uAssetName+")(\\.)(\\d{1,})";
+    std::regex re(reString);
+    std::smatch match;
     
     U4DEntity *child=this->next;
     
     int count=0;
+    int highestEntityIndex=INT_MIN;
     
     while (child!=nullptr) {
         
@@ -198,25 +204,26 @@ std::string U4DWorld::searchScenegraphForNextName(std::string uAssetName){
         if(child->getEntityType()==U4DEngine::MODEL){
             
             std::string s=child->getName();
-            int n=(int)s.length();
-            int m=(int)uAssetName.length();
-            int stringLengthDifference=std::abs(n-m);
-
-            if(n<=stringLengthDifference) stringLengthDifference=n;
-            //trunk down the name
             
-            s.erase(s.end()-stringLengthDifference, s.end());
-
-            if (s.compare(uAssetName)==0) {
-
+            if (std::regex_match(s,match,re)) {
+                
+                int entityIndex=std::stoi(match.str(3));
+                
+                if (entityIndex>highestEntityIndex) {
+                    highestEntityIndex=entityIndex;
+                }
+                
                 count++;
-
+                
             }
         }
         
         child=child->next;
         
     }
+    
+    //we are increasing the count by one. So, if the entity has an index of 12, such as player.12, the next one in line will be player.13. This will work regardless of how many player entities there are in the scenegraph
+    if(highestEntityIndex>=count) count=highestEntityIndex+1;
     
     std::string modelName=uAssetName+"."+std::to_string(count);
     
