@@ -174,11 +174,12 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             float closestTime=FLT_MAX;
 
             //traverse the scenegraph
-            U4DEntity *child=scene->getGameWorld()->next;
+            U4DWorld *world=scene->getGameWorld();
+            U4DEntity *child=world->next;
 
             while (child!=nullptr) {
 
-                if (child->getEntityType()==U4DEngine::MODEL) {
+                if (child->getEntityType()==U4DEngine::MODEL && child->parent==world) {
 
                     U4DModel *model=dynamic_cast<U4DModel*>(child);
                     //create the aabb for entity in the scenegraph
@@ -460,17 +461,18 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          if (ImGui::TreeNode("Scenegraph"))
          {
              U4DScene *scene=sceneManager->getCurrentScene();
-             U4DEntity *child=scene->getGameWorld()->next;
+             U4DWorld *world=scene->getGameWorld();
+             U4DEntity *child=world->next;
              
              while (child!=nullptr) {
 
-                 if (child->getEntityType()==U4DEngine::MODEL) {
+                 if (child->getEntityType()==U4DEngine::MODEL ) {
 
                      char buf[32];
 
                      sprintf(buf, "%s", child->getName().c_str());
 
-                     if (ImGui::Selectable(buf,activeChild==child)) {
+                     if (ImGui::Selectable(buf,activeChild==child) && child->parent==world) {
                          
                          mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
                          
