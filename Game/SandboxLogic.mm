@@ -10,7 +10,7 @@
 #include "U4DDirector.h"
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
-#include "SandboxEditWorld.h"
+#include "SandboxWorld.h"
 #include "U4DGameConfigs.h"
 
 SandboxLogic::SandboxLogic():pPlayer(nullptr){
@@ -29,7 +29,7 @@ void SandboxLogic::update(double dt){
 void SandboxLogic::init(){
     U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
     //1. Get a pointer to the LevelOneWorld object
-    SandboxEditWorld* pEarth=dynamic_cast<SandboxEditWorld*>(getGameWorld());
+    SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
 
     //2. Search for the player object
     pPlayer=dynamic_cast<Player*>(pEarth->searchChild("player0.0"));
@@ -39,6 +39,13 @@ void SandboxLogic::init(){
     }
 }
 
+
+void SandboxLogic::deInit(){
+    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+    
+    logger->log("de initializing everything");
+    
+}
 
 void SandboxLogic::receiveUserInputUpdate(void *uData){
     

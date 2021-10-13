@@ -26,6 +26,7 @@
 #include "U4DScene.h"
 #include "U4DSceneStateManager.h"
 #include "U4DSceneEditingState.h"
+#include "U4DScenePlayState.h"
 #include "U4DEntityFactory.h"
 
 #include "U4DWorld.h"
@@ -86,13 +87,17 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     static bool shaderFilesFound=false;
     static bool lookingForShaderFile=false;
-    
-    NSString *pathToGameScripts=@"/GameplayScripts/";
-    static bool scriptOkToRender=false;
    
     U4DDirector *director=U4DDirector::sharedInstance();
     U4DLogger *logger=U4DLogger::sharedInstance();
+    
     U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+    U4DScene *scene=sceneManager->getCurrentScene();
+    U4DWorld *world=scene->getGameWorld();
+    U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+    
+    U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
+    U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
     
     ImGuiFileDialog gravityFileDialog;
     ImGuiFileDialog hotReloadFileDialog;
@@ -132,112 +137,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          ImGui::NewFrame();
         
         {
-        U4DScene *scene=sceneManager->getCurrentScene();
-        CONTROLLERMESSAGE controllerMessage=scene->getGameWorld()->controllerInputMessage;
-        static bool rightMouseActive=false;
-        
-        if (controllerMessage.inputElementAction==U4DEngine::mouseRightButtonPressed) {
-            rightMouseActive=true;
-        }else if(controllerMessage.inputElementAction==U4DEngine::mouseRightButtonReleased && rightMouseActive){
-            
-            U4DDirector *director=U4DDirector::sharedInstance();
-            
-            //1. Normalize device coordinates range [-1:1,-1:1,-1:1]
-            U4DVector3n ray_nds(controllerMessage.inputPosition.x,controllerMessage.inputPosition.y,1.0);
-            
-            //2. 4D homogeneous clip coordinates range [-1:1,-1:1,-1:1,-1:1]
-            U4DVector4n ray_clip(ray_nds.x,ray_nds.y,-1.0,1.0);
-
-            //3. 4D Eye (camera) coordinates range [-x:x,-y:y,-z:z,-w:w]
-            U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
-            
-            U4DVector4n ray_eye=perspectiveProjection.inverse()*ray_clip;
-            
-            ray_eye.z=1.0;
-            ray_eye.w=0.0;
-
-            //4. 4D world coordinates range[-x:x,-y:y,-z:z,-w:w]
-            U4DCamera *camera=U4DCamera::sharedInstance();
-            
-            U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
-            
-            U4DVector4n ray_wor=viewSpace*ray_eye;
-            
-            U4DPoint3n rayOrigin=camera->getAbsolutePosition().toPoint();
-            U4DVector3n rayDirection(ray_wor.x,ray_wor.y,ray_wor.z);
-            rayDirection.normalize();
-
-            U4DRay ray(rayOrigin,rayDirection);
-            
-            U4DPoint3n intPoint;
-            float intTime;
-            float closestTime=FLT_MAX;
-
-            //traverse the scenegraph
-            U4DWorld *world=scene->getGameWorld();
-            U4DEntity *child=world->next;
-
-            while (child!=nullptr) {
-
-                if (child->getEntityType()==U4DEngine::MODEL && child->parent==world) {
-
-                    U4DModel *model=dynamic_cast<U4DModel*>(child);
-                    //create the aabb for entity in the scenegraph
-                    U4DVector3n dimensions=model->getModelDimensions()/2.0;
-                    U4DPoint3n position=model->getAbsolutePosition().toPoint();
-
-                    U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
-
-                    dimensions=m*dimensions;
-                    
-                    U4DPoint3n maxPoint(position.x+dimensions.x,position.y+dimensions.y,position.z+dimensions.z);
-                    U4DPoint3n minPoint(position.x-dimensions.x,position.y-dimensions.y,position.z-dimensions.z);
-                    
-                    U4DAABB aabb(maxPoint,minPoint);
-                    
-
-                    if (ray.intersectAABB(aabb, intPoint, intTime)) {
-                        
-                        if (intTime<closestTime) {
-                            
-                            closestTime=intTime;
-                            
-                            activeChild=model;
-                            
-                        }
-
-                    }
-
-                }
-
-                child=child->next;
-
-            }
-            
-            if (activeChild!=nullptr) {
-                
-                mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-                
-                childPosition=activeChild->getAbsolutePosition();
-                childOrientation=activeChild->getAbsoluteOrientation();
-
-                entityPosition[0] = childPosition.x;
-                entityPosition[1] = childPosition.y;
-                entityPosition[2] = childPosition.z;
-
-                entityOrientation[0]=childOrientation.x;
-                entityOrientation[1]=childOrientation.y;
-                entityOrientation[2]=childOrientation.z;
-                
-            }
-            
-            
-            rightMouseActive=false;
-        }
-            
-        }
-        
-        {
            ImGui::Begin("Output");
            ImGui::TextUnformatted(logger->logBuffer.begin());
            if (ScrollToBottom)
@@ -246,162 +145,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
            ImGui::End();
 
         }
-        
-        {
-            ImGui::Begin("Menu");
-            
-            U4DScene *scene=sceneManager->getCurrentScene();
-            U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
-            
-            ImGui::Text("Scene Menu");
-            
-            if (ImGui::Button("Save")) {
-                
-                serialiazeFlag=true;
-                serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
-                
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Load")) {
-                
-                deserializeFlag=true;
-                serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
-                
-            }
-            
-            if (serialiazeFlag || deserializeFlag) {
-                
-                if (serializeFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                   {
-                       // action if OK
-                       if (serializeFileDialog.Instance()->IsOk())
-                       {
-                       
-                       sceneFilePathName = serializeFileDialog.Instance()->GetFilePathName();
-                           logger->log("%s",sceneFilePathName.c_str());
-                           
-                           
-                           if (serialiazeFlag) {
-                               //serialize
-                               U4DSerializer *serializer=U4DSerializer::sharedInstance();
-               
-                               serializer->serialize(sceneFilePathName);
-                               
-                           }else if(deserializeFlag){
-                               //deserialize
-                               U4DSerializer *serializer=U4DSerializer::sharedInstance();
-                               
-                               serializer->deserialize(sceneFilePathName);
-                           }
-                           
-                       }else{
-                       
-                       }
-                       
-                       serialiazeFlag=false;
-                       deserializeFlag=false;
-                       
-                       // close
-                       serializeFileDialog.Instance()->Close();
-                       
-                   }
-                
-            }
-            
-            ImGui::SameLine();
-            
-            if (ImGui::Button("clear")) {
-                
-                //reset the active child
-                activeChild=nullptr;
-                logger->log("Scene was cleared");
-                
-                //change scene state to edit mode
-                scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
-            
-            }
-            ImGui::SameLine();
-            if (ImGui::Button("Pause") && sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
-                
-                //change scene state to pause
-                scene->setPauseScene(true);
-                logger->log("Game was paused");
-                
-            }
-            
-            ImGui::SameLine();
-            if (ImGui::Button("Play")&& sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
-                
-                    //reset the active child
-                    activeChild=nullptr;
-                    
-                    scene->setPauseScene(false);
-                    logger->log("Game is playing");
-                    
-                    
-            }
-            
-            
-            //config scripts
-            //ImGui::Text("Config Scripts");
-            // open Dialog Simple
-            ImGui::SameLine();
-            if (ImGui::Button("Open Script")){
-                lookingForScriptFile=true;
-                
-                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-            }
-                
-            if(lookingForScriptFile){
-                // display
-                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                {
-                  // action if OK
-                  if (gravityFileDialog.Instance()->IsOk())
-                  {
-                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
-                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-                    // action
-                    scriptFilesFound=true;
-                  }else{
-                    //scriptFilesFound=false;
-                  }
-                  
-                  // close
-                  gravityFileDialog.Instance()->Close();
-                  
-                }
-              
-              if (scriptFilesFound) {
-                  
-                  ImGui::Text("Script %s", scriptFilePathName.c_str());
-                  
-                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-                  
-                  if(ImGui::Button("Load Script")){
-                      
-                      if(scriptManager->loadScript(scriptFilePathName)){
-                          
-                          logger->log("Script was loaded.");
-                          
-                          //call the init function in the script
-                          scriptManager->loadGameConfigs();
-                          
-                          scriptLoadedSuccessfully=true;
-                      }else{
-                          scriptLoadedSuccessfully=false;
-                      }
-                      
-                      //lookingForScriptFile=false;
-                  }
-                  
-              }
-            }
-            
-            ImGui::End();
-        }
-        
-        
         
         {
             
@@ -454,318 +197,602 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          ImGui::End();
             
         }
-
+    
         {
             
-         ImGui::Begin("Scene Property");
-         if (ImGui::TreeNode("Scenegraph"))
-         {
-             U4DScene *scene=sceneManager->getCurrentScene();
-             U4DWorld *world=scene->getGameWorld();
-             U4DEntity *child=world->next;
-             
-             while (child!=nullptr) {
+            
+        ImGui::Begin("Control");
+            
+        ImGui::SameLine();
+        
+        if (ImGui::Button("Edit") && sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()) {
+            
+            //reset the active child
+            activeChild=nullptr;
+            logger->log("Editing the Scene");
+            
+            //change scene state to edit mode
+            scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
+        
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Play")) {
+            
+            //reset the active child
+            activeChild=nullptr;
+                
+            if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
+                //change scene state to edit mode
+                scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
+            }else if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
+                scene->setPauseScene(false);
+                logger->log("Game was resumed");
+            }
+            
+                
+                
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Pause") && sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()) {
+            
+            //change scene state to pause
+            scene->setPauseScene(true);
+            logger->log("Game was paused");
+            
+        }
+        
+        ImGui::SameLine();
+        if (ImGui::Button("Reset") && sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
+            
+            //reset the active child
+            activeChild=nullptr;
+            logger->log("Reseting the Scene");
+            
+            scene->sceneNeedsRelaunch=true;
+            
+            //change scene state to edit mode
+            scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
+        
+        }
+        
+        ImGui::SameLine();
+        
+            //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
+//            //config scripts
+//            //ImGui::Text("Config Scripts");
+//            // open Dialog Simple
+//            ImGui::SameLine();
+//            if (ImGui::Button("Open Script")){
+//                lookingForScriptFile=true;
+//
+//                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+//            }
+//
+//            if(lookingForScriptFile){
+//                // display
+//                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+//                {
+//                  // action if OK
+//                  if (gravityFileDialog.Instance()->IsOk())
+//                  {
+//                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+//                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+//                    // action
+//                    scriptFilesFound=true;
+//                  }else{
+//                    //scriptFilesFound=false;
+//                  }
+//
+//                  // close
+//                  gravityFileDialog.Instance()->Close();
+//
+//                }
+//
+//              if (scriptFilesFound) {
+//
+//                  ImGui::Text("Script %s", scriptFilePathName.c_str());
+//
+//                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+//
+//                  if(ImGui::Button("Load Script")){
+//
+//                      if(scriptManager->loadScript(scriptFilePathName)){
+//
+//                          logger->log("Script was loaded.");
+//
+//                          //call the init function in the script
+//                          scriptManager->loadGameConfigs();
+//
+//                          scriptLoadedSuccessfully=true;
+//                      }else{
+//                          scriptLoadedSuccessfully=false;
+//                      }
+//
+//                      //lookingForScriptFile=false;
+//                  }
+//
+//              }
+//            }
+        //END SCRIPT FINE_TUNE
+            
+        ImGui::End();
+    }
+        
+        if (sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
+            
+            {
+            
+            CONTROLLERMESSAGE controllerMessage=scene->getGameWorld()->controllerInputMessage;
+            static bool rightMouseActive=false;
+            
+            if (controllerMessage.inputElementAction==U4DEngine::mouseRightButtonPressed) {
+                rightMouseActive=true;
+            }else if(controllerMessage.inputElementAction==U4DEngine::mouseRightButtonReleased && rightMouseActive){
+                
+                U4DDirector *director=U4DDirector::sharedInstance();
+                
+                //1. Normalize device coordinates range [-1:1,-1:1,-1:1]
+                U4DVector3n ray_nds(controllerMessage.inputPosition.x,controllerMessage.inputPosition.y,1.0);
+                
+                //2. 4D homogeneous clip coordinates range [-1:1,-1:1,-1:1,-1:1]
+                U4DVector4n ray_clip(ray_nds.x,ray_nds.y,-1.0,1.0);
 
-                 if (child->getEntityType()==U4DEngine::MODEL ) {
+                //3. 4D Eye (camera) coordinates range [-x:x,-y:y,-z:z,-w:w]
+                U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+                
+                U4DVector4n ray_eye=perspectiveProjection.inverse()*ray_clip;
+                
+                ray_eye.z=1.0;
+                ray_eye.w=0.0;
 
-                     char buf[32];
+                //4. 4D world coordinates range[-x:x,-y:y,-z:z,-w:w]
+                U4DCamera *camera=U4DCamera::sharedInstance();
+                
+                U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
+                
+                U4DVector4n ray_wor=viewSpace*ray_eye;
+                
+                U4DPoint3n rayOrigin=camera->getAbsolutePosition().toPoint();
+                U4DVector3n rayDirection(ray_wor.x,ray_wor.y,ray_wor.z);
+                rayDirection.normalize();
 
-                     sprintf(buf, "%s", child->getName().c_str());
+                U4DRay ray(rayOrigin,rayDirection);
+                
+                U4DPoint3n intPoint;
+                float intTime;
+                float closestTime=FLT_MAX;
 
-                     if (ImGui::Selectable(buf,activeChild==child) && child->parent==world) {
-                         
-                         mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-                         
-                         activeChild=child;
-                         
-                         childPosition=activeChild->getAbsolutePosition();
-                         childOrientation=activeChild->getAbsoluteOrientation();
+                //traverse the scenegraph
+               
+                U4DEntity *child=world->next;
 
-                         entityPosition[0] = childPosition.x;
-                         entityPosition[1] = childPosition.y;
-                         entityPosition[2] = childPosition.z;
-                         
-                         entityOrientation[0]=childOrientation.x;
-                         entityOrientation[1]=childOrientation.y;
-                         entityOrientation[2]=childOrientation.z;
-                         
-                         break;
+                while (child!=nullptr) {
+
+                    if (child->getEntityType()==U4DEngine::MODEL && child->parent==world) {
+
+                        U4DModel *model=dynamic_cast<U4DModel*>(child);
+                        //create the aabb for entity in the scenegraph
+                        U4DVector3n dimensions=model->getModelDimensions()/2.0;
+                        U4DPoint3n position=model->getAbsolutePosition().toPoint();
+
+                        U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
+
+                        dimensions=m*dimensions;
+                        
+                        U4DPoint3n maxPoint(position.x+dimensions.x,position.y+dimensions.y,position.z+dimensions.z);
+                        U4DPoint3n minPoint(position.x-dimensions.x,position.y-dimensions.y,position.z-dimensions.z);
+                        
+                        U4DAABB aabb(maxPoint,minPoint);
+                        
+
+                        if (ray.intersectAABB(aabb, intPoint, intTime)) {
+                            
+                            if (intTime<closestTime) {
+                                
+                                closestTime=intTime;
+                                
+                                activeChild=model;
+                                
+                            }
+
+                        }
+
+                    }
+
+                    child=child->next;
+
+                }
+                
+                if (activeChild!=nullptr) {
+                    
+                    mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                    
+                    childPosition=activeChild->getAbsolutePosition();
+                    childOrientation=activeChild->getAbsoluteOrientation();
+
+                    entityPosition[0] = childPosition.x;
+                    entityPosition[1] = childPosition.y;
+                    entityPosition[2] = childPosition.z;
+
+                    entityOrientation[0]=childOrientation.x;
+                    entityOrientation[1]=childOrientation.y;
+                    entityOrientation[2]=childOrientation.z;
+                    
+                }
+                
+                
+                rightMouseActive=false;
+            }
+                
+            }
+            
+            
+            
+            {
+                ImGui::Begin("Menu");
+                
+                if (ImGui::Button("Save")) {
+                    
+                    serialiazeFlag=true;
+                    serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+                    
+                }
+                ImGui::SameLine();
+                if (ImGui::Button("Open")) {
+                    
+                    deserializeFlag=true;
+                    serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+                    
+                }
+                
+                if (serialiazeFlag || deserializeFlag) {
+                    
+                    if (serializeFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                       {
+                           // action if OK
+                           if (serializeFileDialog.Instance()->IsOk())
+                           {
+                           
+                           sceneFilePathName = serializeFileDialog.Instance()->GetFilePathName();
+                               logger->log("%s",sceneFilePathName.c_str());
+                               
+                               
+                               if (serialiazeFlag) {
+                                   //serialize
+                                   U4DSerializer *serializer=U4DSerializer::sharedInstance();
+                   
+                                   serializer->serialize(sceneFilePathName);
+                                   
+                               }else if(deserializeFlag){
+                                   //deserialize
+                                   U4DSerializer *serializer=U4DSerializer::sharedInstance();
+                                   
+                                   serializer->deserialize(sceneFilePathName);
+                               }
+                               
+                           }else{
+                           
+                           }
+                           
+                           serialiazeFlag=false;
+                           deserializeFlag=false;
+                           
+                           // close
+                           serializeFileDialog.Instance()->Close();
+                           
+                       }
+                    
+                }
+                ImGui::End();
+            }
+                
+            
+            
+
+            {
+                
+             ImGui::Begin("Scene Property");
+             if (ImGui::TreeNode("Scenegraph"))
+             {
+                 
+                 U4DEntity *child=world->next;
+                 
+                 while (child!=nullptr) {
+
+                     if (child->getEntityType()==U4DEngine::MODEL ) {
+
+                         char buf[32];
+
+                         sprintf(buf, "%s", child->getName().c_str());
+
+                         if (ImGui::Selectable(buf,activeChild==child) && child->parent==world) {
+                             
+                             mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                             
+                             activeChild=child;
+                             
+                             childPosition=activeChild->getAbsolutePosition();
+                             childOrientation=activeChild->getAbsoluteOrientation();
+
+                             entityPosition[0] = childPosition.x;
+                             entityPosition[1] = childPosition.y;
+                             entityPosition[2] = childPosition.z;
+                             
+                             entityOrientation[0]=childOrientation.x;
+                             entityOrientation[1]=childOrientation.y;
+                             entityOrientation[2]=childOrientation.z;
+                             
+                             break;
+                         }
+
                      }
+
+                     child=child->next;
 
                  }
 
-                 child=child->next;
+                 ImGui::TreePop();
 
              }
+                
+                {
+                    ImGui::Begin("Entity Properties");
 
-             ImGui::TreePop();
+                    if (activeChild!=nullptr) {
 
-         }
+                        ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
+
+                        ImGui::Text("Transform");
+                        ImGui::SliderFloat3("Position", (float*)&entityPosition,-20.0,20.0);
+                        ImGui::SliderFloat3("Orientation", (float*)&entityOrientation,-180.0,180.0);
+
+                        activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
+                        activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
+
+                        //Guizmo
+                        {
+                            
+                            if (ImGui::IsKeyPressed(84)) // t is pressed=translate
+                               mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
+                            if (ImGui::IsKeyPressed(82)) //r is pressed= rotate
+                               mCurrentGizmoOperation = ImGuizmo::ROTATE;
+                              
+                    
+                             static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
+                                 
+                             U4DDirector *director=U4DDirector::sharedInstance();
+                             U4DCamera *camera=U4DCamera::sharedInstance();
+                              
+                              ImGuizmo::SetRect(0.0, 0.0, director->getDisplayWidth(),director->getDisplayHeight());
+                              
+                              ImGuizmo::BeginFrame();
+                            
+                              U4DMatrix4n cameraSpace=camera->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+                              cameraSpace.invert();
+                            
+                              U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+                              
+                              U4DMatrix4n activeChildSpace=activeChild->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
+                              
+                              ImGuizmo::Manipulate(cameraSpace.matrixData, perspectiveProjection.matrixData, mCurrentGizmoOperation, mCurrentGizmoMode, activeChildSpace.matrixData, NULL, NULL);
+                              
+                              
+                              float matrixTranslation[3], matrixRotation[3], matrixScale[3];
+                              ImGuizmo::DecomposeMatrixToComponents(activeChildSpace.matrixData, matrixTranslation, matrixRotation, matrixScale);
+                              
+                            if (ImGuizmo::IsUsing()) {
+                                
+                                entityPosition[0] = matrixTranslation[0];
+                                entityPosition[1] = matrixTranslation[1];
+                                entityPosition[2] = matrixTranslation[2];
+
+                                entityOrientation[0]=matrixRotation[0];
+                                entityOrientation[1]=matrixRotation[1];
+                                entityOrientation[2]=matrixRotation[2];
+                                
+                                activeChild->rotateTo(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
+                                activeChild->translateTo(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+                            }
+                             
+                        }
+                        
+                        ImGui::Separator();
+
+                        ImGui::Text("Render Entity");
+                        U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
+                        U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+                        ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
+                        ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
+                        ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
+
+                        ImGui::Separator();
+                        
+                        if (scene->getPauseScene()) {
+                            
+                            ImGui::Text("Hot-Reload Shader");
+
+                            // open Dialog Simple
+                            if (ImGui::Button("Open Shader")){
+                                lookingForShaderFile=true;
+                                hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
+                            }
+                                
+                            if (lookingForShaderFile) {
+                                
+                                // display
+                                if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                                {
+                                  // action if OK
+                                  if (hotReloadFileDialog.Instance()->IsOk())
+                                  {
+                                    shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
+                                    shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
+                                    // action
+                                    shaderFilesFound=true;
+                                  }else{
+                                    shaderFilesFound=false;
+                                  }
+
+                                  // close
+                                  
+                                   hotReloadFileDialog.Instance()->Close();
+                                }
+
+                              if (shaderFilesFound) {
+
+                                  ImGui::Text("Shader %s", shaderFilePathName.c_str());
+                                  
+                                  if(ImGui::Button("Hot-Reload")){
+                                      
+                                      pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
+                                      lookingForShaderFile=false;
+                                  }
+
+                              }
+                            
+                            }
+                            
+                        }
+                        
+                        ImGui::Separator();
+                        
+                        if(ImGui::Button("Remove Entity")){
+                            
+                            U4DEntity *parent=activeChild->getParent();
+                            
+                            //leaving it here until the issue #359 is fixed.
+                            //activeChild->removeAndDeleteAllChildren();
+                            
+                            parent->removeChild(activeChild);
+                            
+                            U4DModel *model=dynamic_cast<U4DModel*>(activeChild);
+                            
+                            delete model;
+                            
+                            activeChild=nullptr;
+                            
+                        }
+                        
+                        ImGui::Separator();
+                        
+                        static char modelNameBuffer[64] = "";
+                        //std::strcpy(modelNameBuffer, &activeChild->getName()[0]);
+                        ImGui::InputText("New Model Name", modelNameBuffer, 64);
+                        
+                        if(ImGui::Button("Rename Model")){
+                            
+                            U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
+                            U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
+                            std::string previousModelName=activeChild->getName();
+                            activeChild->setName(modelNameBuffer);
+                            
+                            visibilityDictionary->updateVisibilityDictionary(previousModelName, modelNameBuffer);
+                            kineticDictionary->updateKineticBehaviorDictionary(previousModelName, modelNameBuffer);
+                            
+                            //clear the char array
+                            memset(modelNameBuffer, 0, sizeof(modelNameBuffer));
+                            
+                        }
+                    }
+
+                    ImGui::End();
+
+                }
+
+             ImGui::End();
+
+            }
+                    
             
             {
-                ImGui::Begin("Entity Properties");
-
-                if (activeChild!=nullptr) {
-
-                    U4DScene *scene=sceneManager->getCurrentScene();
-                    
-                    ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
-
-                    ImGui::Text("Transform");
-                    ImGui::SliderFloat3("Position", (float*)&entityPosition,-20.0,20.0);
-                    ImGui::SliderFloat3("Orientation", (float*)&entityOrientation,-180.0,180.0);
-
-                    activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
-                    activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
-
-                    //Guizmo
-                    {
-                        
-                        if (ImGui::IsKeyPressed(84)) // t is pressed=translate
-                           mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
-                        if (ImGui::IsKeyPressed(82)) //r is pressed= rotate
-                           mCurrentGizmoOperation = ImGuizmo::ROTATE;
-                          
+            ImGui::Begin("Assets");
+            if (ImGui::TreeNode("Models"))
+            {
                 
-                         static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
-                             
-                         U4DDirector *director=U4DDirector::sharedInstance();
-                         U4DCamera *camera=U4DCamera::sharedInstance();
-                          
-                          ImGuizmo::SetRect(0.0, 0.0, director->getDisplayWidth(),director->getDisplayHeight());
-                          
-                          ImGuizmo::BeginFrame();
-                        
-                          U4DMatrix4n cameraSpace=camera->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
-                          cameraSpace.invert();
-                        
-                          U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
-                          
-                          U4DMatrix4n activeChildSpace=activeChild->getAbsoluteSpace().transformDualQuaternionToMatrix4n();
-                          
-                          ImGuizmo::Manipulate(cameraSpace.matrixData, perspectiveProjection.matrixData, mCurrentGizmoOperation, mCurrentGizmoMode, activeChildSpace.matrixData, NULL, NULL);
-                          
-                          
-                          float matrixTranslation[3], matrixRotation[3], matrixScale[3];
-                          ImGuizmo::DecomposeMatrixToComponents(activeChildSpace.matrixData, matrixTranslation, matrixRotation, matrixScale);
-                          
-                        if (ImGuizmo::IsUsing()) {
-                            
-                            entityPosition[0] = matrixTranslation[0];
-                            entityPosition[1] = matrixTranslation[1];
-                            entityPosition[2] = matrixTranslation[2];
-
-                            entityOrientation[0]=matrixRotation[0];
-                            entityOrientation[1]=matrixRotation[1];
-                            entityOrientation[2]=matrixRotation[2];
-                            
-                            activeChild->rotateTo(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
-                            activeChild->translateTo(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
-                        }
-                         
-                    }
+                for (const auto &n : resourceLoader->getModelContainer()) {
                     
-                    ImGui::Separator();
+                    
+                    char buf[32];
+                    sprintf(buf, "%s", n.name.c_str());
+                        
+                    if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0)) {
+                        assetSelectedName=n.name;
+                        assetIsSelected=true;
+                     }
+                        
+                }
+                
+                
+                
+                ImGui::TreePop();
 
-                    ImGui::Text("Render Entity");
-                    U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
-                    U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
-                    ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
-                    ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
-                    ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
+            }
 
-                    ImGui::Separator();
+            ImGui::End();
+
+           }
+            
+            {
+                if (assetIsSelected) {
+                    
+                    ImGui::Begin("Load Assets");
                     
                     if (scene->getPauseScene()) {
                         
-                        ImGui::Text("Hot-Reload Shader");
-
-                        // open Dialog Simple
-                        if (ImGui::Button("Open Shader")){
-                            lookingForShaderFile=true;
-                            hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
-                        }
-                            
-                        if (lookingForShaderFile) {
-                            
-                            // display
-                            if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                            {
-                              // action if OK
-                              if (hotReloadFileDialog.Instance()->IsOk())
-                              {
-                                shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
-                                shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
-                                // action
-                                shaderFilesFound=true;
-                              }else{
-                                shaderFilesFound=false;
-                              }
-
-                              // close
-                              
-                               hotReloadFileDialog.Instance()->Close();
-                            }
-
-                          if (shaderFilesFound) {
-
-                              ImGui::Text("Shader %s", shaderFilePathName.c_str());
-                              
-                              if(ImGui::Button("Hot-Reload")){
-                                  
-                                  pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
-                                  lookingForShaderFile=false;
-                              }
-
-                          }
+                        ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
                         
-                        }
+                        ImGui::Text("Select Asset Type");
                         
-                    }
-                    
-                    ImGui::Separator();
-                    
-                    if(ImGui::Button("Remove Entity")){
+                        std::vector<std::string> items=entityFactory->getRegisteredClasses();
                         
-                        U4DEntity *parent=activeChild->getParent();
+                        static int item_current_idx = (int)items.size()-1; // Here we store our selection data as an index.
                         
-                        //leaving it here until the issue #359 is fixed.
-                        //activeChild->removeAndDeleteAllChildren();
+                        const char* combo_label = items.at(item_current_idx).c_str();
                         
-                        parent->removeChild(activeChild);
+                        assetSelectedTypeName=items.at(item_current_idx).c_str();
                         
-                        U4DModel *model=dynamic_cast<U4DModel*>(activeChild);
+                        static ImGuiComboFlags flags = 0;
                         
-                        delete model;
-                        
-                        activeChild=nullptr;
-                        
-                    }
-                    
-                    ImGui::Separator();
-                    
-                    static char modelNameBuffer[64] = "";
-                    //std::strcpy(modelNameBuffer, &activeChild->getName()[0]);
-                    ImGui::InputText("New Model Name", modelNameBuffer, 64);
-                    
-                    if(ImGui::Button("Rename Model")){
-                        
-                        U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
-                        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
-                        std::string previousModelName=activeChild->getName();
-                        activeChild->setName(modelNameBuffer);
-                        
-                        visibilityDictionary->updateVisibilityDictionary(previousModelName, modelNameBuffer);
-                        kineticDictionary->updateKineticBehaviorDictionary(previousModelName, modelNameBuffer);
-                        
-                        //clear the char array
-                        memset(modelNameBuffer, 0, sizeof(modelNameBuffer));
-                        
-                    }
-                }
-
-                ImGui::End();
-
-            }
-
-         ImGui::End();
-
-        }
-                
-        
-        {
-        ImGui::Begin("Assets");
-        if (ImGui::TreeNode("Models"))
-        {
-
-            U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
-            
-            
-            for (const auto &n : resourceLoader->getModelContainer()) {
-                
-                
-                char buf[32];
-                sprintf(buf, "%s", n.name.c_str());
-                    
-                if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0)) {
-                    assetSelectedName=n.name;
-                    assetIsSelected=true;
-                 }
-                    
-            }
-            
-            
-            
-            ImGui::TreePop();
-
-        }
-
-        ImGui::End();
-
-       }
-        
-        {
-            if (assetIsSelected) {
-                
-                U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-                U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
-                U4DScene *scene=sceneManager->getCurrentScene();
-                
-                ImGui::Begin("Load Assets");
-                
-                if (scene->getPauseScene()) {
-                    
-                    ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
-                    
-//                    static char modelNameBuffer[64] = "";
-//                    ImGui::InputText("Model Name", modelNameBuffer, 64);
-//
-                    ImGui::Text("Select Asset Type");
-                    
-                    std::vector<std::string> items=entityFactory->getRegisteredClasses();
-                    
-                    static int item_current_idx = (int)items.size()-1; // Here we store our selection data as an index.
-                    
-                    const char* combo_label = items.at(item_current_idx).c_str();
-                    
-                    assetSelectedTypeName=items.at(item_current_idx).c_str();
-                    
-                    static ImGuiComboFlags flags = 0;
-                    
-                    if (ImGui::BeginCombo("Classes", combo_label, flags))
-                    {
-                        for (int n = 0; n < items.size(); n++)
+                        if (ImGui::BeginCombo("Classes", combo_label, flags))
                         {
-                            const bool is_selected = (item_current_idx == n);
-                            if (ImGui::Selectable(items.at(n).c_str(), is_selected)){
-                                item_current_idx = n;
-                                assetSelectedTypeName=items.at(n);
+                            for (int n = 0; n < items.size(); n++)
+                            {
+                                const bool is_selected = (item_current_idx == n);
+                                if (ImGui::Selectable(items.at(n).c_str(), is_selected)){
+                                    item_current_idx = n;
+                                    assetSelectedTypeName=items.at(n);
+                                }
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
                             }
-                            // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                            if (is_selected)
-                                ImGui::SetItemDefaultFocus();
+                            ImGui::EndCombo();
                         }
-                        ImGui::EndCombo();
-                    }
-                    
-                    if(ImGui::Button("load Assset")){
-                    
-                        if (scene!=nullptr) {
-                            
-                            
-                            entityFactory->createModelInstance(assetSelectedName, assetSelectedTypeName);
+                        
+                        if(ImGui::Button("load Assset")){
+                        
+                            if (scene!=nullptr) {
+                                
+                                
+                                entityFactory->createModelInstance(assetSelectedName, assetSelectedTypeName);
+                                
+                            }
                             
                         }
                         
                     }
                     
+                    ImGui::End();
                 }
                 
-                ImGui::End();
+                
             }
             
-            
         }
+        
+        
         
         ImGui::Render();
         ImDrawData* draw_data = ImGui::GetDrawData();

@@ -20,7 +20,6 @@ SandboxScene::~SandboxScene(){
     delete sandboxLogic;
     delete loadingScene;
     
-    delete sandboxEditWorld;
 }
 
 void SandboxScene::init(){
@@ -33,8 +32,6 @@ void SandboxScene::init(){
     
     //create model component
     sandboxLogic=new SandboxLogic();
-    
-    sandboxEditWorld=new SandboxEditWorld();
     
     /*---LOAD SCENE ASSETS HERE--*/
     //Load binary file with scene data
@@ -64,5 +61,5 @@ void SandboxScene::init(){
         
     testPipeline->initPipeline("vertexTestPipelineShader", "fragmentTestPipelineShader");
     
-    loadComponents(sandboxWorld, sandboxLogic,sandboxEditWorld);
+    loadComponents(sandboxWorld, sandboxLogic,true);
 }

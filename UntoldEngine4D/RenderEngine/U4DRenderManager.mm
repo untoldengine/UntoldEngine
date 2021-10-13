@@ -13,6 +13,7 @@
 #include "U4DSceneManager.h"
 #include "U4DSceneStateManager.h"
 #include "U4DSceneEditingState.h"
+#include "U4DSceneActiveState.h"
 #include "CommonProtocols.h"
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
@@ -271,7 +272,7 @@ namespace U4DEngine {
         //Editor Pass
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
             
-            if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
+            if (currentScene->getSceneStateManager()->getCurrentState()!=U4DSceneActiveState::sharedInstance()) {
 
                 U4DEditorPass editorPass("none");
                 editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);

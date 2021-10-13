@@ -17,6 +17,10 @@
 #include "U4DSkybox.h"
 #include "U4DModelPipeline.h"
 
+#include "Player.h"
+#include "Field.h"
+
+#include "U4DEntityFactory.h"
 #include "U4DSerializer.h"
 
 using namespace U4DEngine;
@@ -37,6 +41,14 @@ void SandboxWorld::init(){
     /*----END DO NOT REMOVE.-----*/
     
     //The following code snippets loads scene data, renders the characters and skybox.
+    setEnableGrid(true);
+    
+    //register the classes
+    
+    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
+
+    entityFactory->registerClass<Player>("Player");
+    entityFactory->registerClass<Field>("Field");
     
     //deserialize
     U4DSerializer *serializer=U4DSerializer::sharedInstance();
@@ -55,6 +67,112 @@ void SandboxWorld::init(){
 //    addChild(skybox);
 
     
+    //    std::map<std::string,std::string> sceneModelMap;
+    //
+    //    sceneModelMap["oppositeplayer0"]="U4DModel";
+    //    sceneModelMap["player0"]="Player";
+    //    sceneModelMap["field"]="Field";
+    //
+    //    //iterate through the map
+    //
+    //    std::map<std::string,std::string>::iterator it;
+    //
+    //    for(it=sceneModelMap.begin();it!=sceneModelMap.end();it++){
+    //
+    //        U4DModel *n=entityFactory->createAction(it->second);
+    //
+    //        if (n!=nullptr) {
+    //
+    //            if(it->second.compare("U4DModel")==0){
+    //
+    //                if (n->loadModel(it->first.c_str())) {
+    //
+    //                    n->loadRenderingInformation();
+    //                    addChild(n);
+    //
+    //                }
+    //
+    //            }else{
+    //
+    //                if (n->init(it->first.c_str())) {
+    //                    addChild(n);
+    //                }
+    //
+    //            }
+    //        }
+    //    }
+            
+            
+    //    U4DModel *player=entityFactory->createAction("Player");
+    //    if(player->init("player0")){
+    //
+    //        addChild(player);
+    //    }
+
+        
+    //    U4DModel *field=entityFactory->createAction("Field");
+    //
+    //    if(field->init("field")){
+    //
+    //        addChild(field);
+    //
+    //    }
+        
+    //    U4DModel *model=entityFactory->createAction("Model");
+    //    if (model->loadModel("oppositeplayer0")) {
+    //
+    //        model->loadRenderingInformation();
+    //        addChild(model);
+    //    }
+
+        
+
+    //    //Line 3. Load attribute (rendering information) into the game entity
+    //    if (player->loadModel("player0")) {
+    //
+    //        player->setPipeline("testPipeline");
+    //
+    ////        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(player);
+    ////
+    ////        kineticAction->enableKineticsBehavior();
+    ////
+    ////        kineticAction->enableCollisionBehavior();
+    //
+    //        //Line 4. Load rendering information into the GPU
+    //        player->loadRenderingInformation();
+    //
+    //        //Line 5. Add astronaut to the scenegraph
+    //        addChild(player);
+    //
+    //        //player->translateBy(0.0, 10.0, 0.0);
+    //
+    //    }
+        
+    //    //Create an instance of U4DGameObject type
+    //    U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
+    //
+    //    //Line 3. Load attribute (rendering information) into the game entity
+    //    if (ground->loadModel("field")) {
+    //
+    //        //ground->setPipeline("testPipeline");
+    //
+    ////        U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
+    ////
+    ////        //gkinetic->enableKineticsBehavior();
+    ////
+    ////        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+    ////
+    ////        gkinetic->setGravity(zero);
+    ////
+    ////        gkinetic->enableCollisionBehavior();
+    //
+    //        //Line 4. Load rendering information into the GPU
+    //        ground->loadRenderingInformation();
+    //
+    //        //Line 5. Add astronaut to the scenegraph
+    //        addChild(ground);
+    //
+    //    }
 }
 
 
