@@ -29,6 +29,8 @@ public:
     
     void init();
     
+    void deInit();
+    
     void receiveUserInputUpdate(void *uData);
     
 };

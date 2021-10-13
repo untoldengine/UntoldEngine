@@ -16,7 +16,6 @@
 #include "SandboxWorld.h"
 #include "SandboxLogic.h"
 #include "SandboxLoading.h"
-#include "SandboxEditWorld.h"
 
 class SandboxScene:public U4DEngine::U4DScene {
 
@@ -25,9 +24,6 @@ private:
     SandboxWorld *sandboxWorld;
     SandboxLogic *sandboxLogic;
     SandboxLoading *loadingScene;
-    
-    SandboxEditWorld *sandboxEditWorld;
-    
     
 public:
 

@@ -24,7 +24,7 @@
 namespace U4DEngine {
     
     //constructor
-    U4DScene::U4DScene():sceneStateManager(nullptr),accumulator(0.0),globalTime(0.0),componentsMultithreadLoaded(false),anchorMouse(false),pauseScene(true){
+    U4DScene::U4DScene():sceneStateManager(nullptr),accumulator(0.0),globalTime(0.0),componentsMultithreadLoaded(false),anchorMouse(false),pauseScene(true),sceneNeedsRelaunch(true),gamePlayNeedsRelaunch(false){
 
         sceneStateManager=new U4DSceneStateManager(this);
         
@@ -37,7 +37,7 @@ namespace U4DEngine {
         
     };
 
-    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic){
+    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, bool uEditScene){
         
         if (uGameWorld!=nullptr  && uGameLogic!=nullptr) {
             
@@ -47,7 +47,21 @@ namespace U4DEngine {
             gameController=sceneManager->getGameController();
             gameLogic=uGameLogic;
             
-            sceneStateManager->changeState(U4DSceneActiveState::sharedInstance());
+            gameWorld->setGameController(gameController);
+            gameWorld->setGameLogic(gameLogic);
+            
+            gameController->setGameWorld(gameWorld);
+            gameController->setGameLogic(gameLogic);
+            
+            gameLogic->setGameWorld(gameWorld);
+            gameLogic->setGameController(sceneManager->getGameController());
+            gameLogic->setGameEntityManager(gameWorld->getEntityManager());
+            
+            if (uEditScene==true) {
+                sceneStateManager->changeState(U4DSceneEditingState::sharedInstance());
+            }else{
+                sceneStateManager->changeState(U4DSceneActiveState::sharedInstance());
+            }
             
         }else{
             U4DLogger *logger=U4DLogger::sharedInstance();
@@ -69,6 +83,17 @@ namespace U4DEngine {
             gameController=sceneManager->getGameController();
             gameLogic=uGameLogic;
             pauseScene=false;
+            
+            gameWorld->setGameController(gameController);
+            gameWorld->setGameLogic(gameLogic);
+            
+            gameController->setGameWorld(gameWorld);
+            gameController->setGameLogic(gameLogic);
+            
+            gameLogic->setGameWorld(gameWorld);
+            gameLogic->setGameController(sceneManager->getGameController());
+            gameLogic->setGameEntityManager(gameWorld->getEntityManager());
+            
             sceneStateManager->changeState(U4DSceneLoadingState::sharedInstance());
             
         }else{
@@ -79,31 +104,6 @@ namespace U4DEngine {
             
         }
         
-        
-    }
-
-    void U4DScene::loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld){ 
-        
-        if (uGameWorld!=nullptr  && uGameLogic!=nullptr && uEditingWorld!=nullptr ) {
-            
-            
-            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-            
-            gameWorld=uGameWorld;
-            gameController=sceneManager->getGameController();
-            gameLogic=uGameLogic;
-            
-            editingWorld=uEditingWorld;
-            
-            sceneStateManager->changeState(U4DSceneEditingState::sharedInstance());
-            
-        }else{
-            
-            U4DLogger *logger=U4DLogger::sharedInstance();
-            
-            logger->log("The Game World, Loading World or the the Game Model (logic) are nullptr");
-            
-        }
         
     }
 
@@ -192,9 +192,6 @@ namespace U4DEngine {
 
     U4DWorld* U4DScene::getGameWorld(){
         
-        if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
-            return editingWorld;
-        }
         return gameWorld;
     }
 

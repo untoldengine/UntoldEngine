@@ -94,11 +94,6 @@ public:
     U4DWorld *loadingWorld;
     
     /**
-     @brief pointer to the world class representing the editing world
-     */
-    U4DWorld *editingWorld;
-    
-    /**
      @brief Used to confirm if the loading and world scene are loading simultaneously
      */
     bool componentsMultithreadLoaded;
@@ -124,7 +119,7 @@ public:
      @param uGameWorld pointer to the world object
      @param uGameLogic pointer to the game logic interface
      */
-    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic) final;
+    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, bool uEditScene) final;
     
     /**
     @brief sets the pointer for the world, controller and logic classes and the loading world
@@ -134,8 +129,6 @@ public:
     @param uGameLogic pointer to the game logic interface
     */
     virtual void loadComponents(U4DWorld *uGameWorld, U4DWorld *uLoadingWorld, U4DGameLogicInterface *uGameLogic) final;
-    
-    virtual void loadComponents(U4DWorld *uGameWorld, U4DGameLogicInterface *uGameLogic, U4DWorld *uEditingWorld) final;
     
     /**
      @brief Method in charge of updating the states of each entity
@@ -193,6 +186,10 @@ public:
     void setPauseScene(bool uValue);
     
     bool getPauseScene();
+    
+    bool sceneNeedsRelaunch;
+    
+    bool gamePlayNeedsRelaunch;
     
 };
 

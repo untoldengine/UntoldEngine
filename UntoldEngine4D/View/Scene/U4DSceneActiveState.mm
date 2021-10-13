@@ -42,16 +42,6 @@ namespace U4DEngine {
         //disable scene profiler
         sceneManager->disableSceneProfiling();
         
-        uScene->gameWorld->setGameController(uScene->gameController);
-        uScene->gameWorld->setGameLogic(uScene->gameLogic);
-        
-        uScene->gameController->setGameWorld(uScene->gameWorld);
-        uScene->gameController->setGameLogic(uScene->gameLogic);
-        
-        uScene->gameLogic->setGameWorld(uScene->gameWorld);
-        uScene->gameLogic->setGameController(sceneManager->getGameController());
-        uScene->gameLogic->setGameEntityManager(uScene->gameWorld->getEntityManager());
-        
         safeToChangeState=false;
         
         //if the scene did not have a loading transition and multi-thread was not used to load
