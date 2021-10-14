@@ -51,7 +51,7 @@ namespace U4DEngine {
         /**
          @brief Destructor of class
          */
-        ~U4DText();
+        virtual ~U4DText();
         
         
         /**
