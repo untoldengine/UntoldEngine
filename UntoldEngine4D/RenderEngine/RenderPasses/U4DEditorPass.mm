@@ -202,19 +202,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             
             
         ImGui::Begin("Control");
-            
-        ImGui::SameLine();
-        
-        if (ImGui::Button("Edit") && sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()) {
-            
-            //reset the active child
-            activeChild=nullptr;
-            logger->log("Editing the Scene");
-            
-            //change scene state to edit mode
-            scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
-        
-        }
         
         ImGui::SameLine();
         if (ImGui::Button("Play")) {
@@ -241,20 +228,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             scene->setPauseScene(true);
             logger->log("Game was paused");
             
-        }
-        
-        ImGui::SameLine();
-        if (ImGui::Button("Reset") && sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
-            
-            //reset the active child
-            activeChild=nullptr;
-            logger->log("Reseting the Scene");
-            
-            scene->sceneNeedsRelaunch=true;
-            
-            //change scene state to edit mode
-            scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
-        
         }
         
         ImGui::SameLine();
@@ -320,7 +293,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         ImGui::End();
     }
         
-        if (sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
+        if (scene->getPauseScene()==true) {
             
             {
             

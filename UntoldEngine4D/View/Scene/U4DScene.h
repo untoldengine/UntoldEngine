@@ -187,9 +187,6 @@ public:
     
     bool getPauseScene();
     
-    bool sceneNeedsRelaunch;
-    
-    bool gamePlayNeedsRelaunch;
     
 };
 
