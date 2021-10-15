@@ -35,25 +35,20 @@ namespace U4DEngine {
     void U4DSceneEditingState::enter(U4DScene *uScene){
 
         uScene->setPauseScene(true);
+            
+        U4DLogger *logger=U4DLogger::sharedInstance();
         
-        if(uScene->sceneNeedsRelaunch){
-            
-            U4DLogger *logger=U4DLogger::sharedInstance();
-            
-            logger->log("Entering Edit Mode");
-            
-            safeToChangeState=false;
-            
-            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-            
-            uScene->gameWorld->init();
-            
-            //enable profiler
-            sceneManager->enableSceneProfiling();
-            
-            uScene->sceneNeedsRelaunch=false;
-            
-        }
+        logger->log("Entering Edit Mode");
+        
+        safeToChangeState=false;
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        
+        uScene->gameWorld->init();
+        uScene->gameLogic->init();
+        
+        //enable profiler
+        sceneManager->enableSceneProfiling();
         
     }
         
@@ -72,11 +67,6 @@ namespace U4DEngine {
             
     
     void U4DSceneEditingState::exit(U4DScene *uScene){
-     
-        //Load your loading scene world
-        if(uScene->sceneNeedsRelaunch){
-            uScene->gameWorld->removeAllModelChildren();
-        }
         
     }
 

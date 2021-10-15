@@ -32,9 +32,6 @@ namespace U4DEngine {
 
     void U4DScenePlayState::enter(U4DScene *uScene){
         
-        //if scene is pause, then initialize the gameplay
-        uScene->setPauseScene(true);
-        uScene->gameLogic->init();
         uScene->setPauseScene(false);
     }
         
@@ -69,7 +66,6 @@ namespace U4DEngine {
     void U4DScenePlayState::exit(U4DScene *uScene){
         
         uScene->setPauseScene(true);
-        uScene->gameLogic->deInit(); 
     
     }
 

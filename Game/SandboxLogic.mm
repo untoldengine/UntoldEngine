@@ -39,14 +39,6 @@ void SandboxLogic::init(){
     }
 }
 
-
-void SandboxLogic::deInit(){
-    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
-    
-    logger->log("de initializing everything");
-    
-}
-
 void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;

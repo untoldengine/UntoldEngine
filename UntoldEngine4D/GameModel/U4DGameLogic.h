@@ -36,8 +36,6 @@ public:
     
     virtual void init(){};
     
-    virtual void deInit(){};
-    
     void setGameEntityManager(U4DEntityManager *uGameEntityManager);
     
     void setGameWorld(U4DWorld *uGameWorld);
