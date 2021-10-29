@@ -12,6 +12,10 @@
 #include "UserCommonProtocols.h"
 #include "SandboxWorld.h"
 #include "U4DGameConfigs.h"
+#include "U4DScriptManager.h"
+
+#include "U4DAnimManagerDict.h"
+#include "U4DAnimationManager.h"
 
 SandboxLogic::SandboxLogic():pPlayer(nullptr){
     
@@ -27,15 +31,20 @@ void SandboxLogic::update(double dt){
 }
 
 void SandboxLogic::init(){
+    
     U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
     //1. Get a pointer to the LevelOneWorld object
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
 
     //2. Search for the player object
-    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("player0.0"));
-    
+    pPlayer=dynamic_cast<U4DEngine::U4DModel*>(pEarth->searchChild("player0.0"));
+
+
     if(pPlayer!=nullptr){
         logger->log("player with name %s found",pPlayer->getName().c_str());
+
+
+
     }
 }
 
@@ -43,7 +52,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
     
-    
+    U4DEngine::U4DScriptManager *scriptManager=U4DEngine::U4DScriptManager::sharedInstance();
+
+    scriptManager->userInputClosure(uData);
     
 //        switch (controllerInputMessage.inputElementType) {
 //
@@ -180,7 +191,6 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 //                }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
 //
 //
-//
 //                }
 //
 //            }
@@ -196,7 +206,6 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 //
 //                    //5. If button was released
 //                }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
-//
 //
 //                }
 //            }
@@ -325,5 +334,5 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 //            default:
 //                break;
 //        }
-    
+//    
 } 

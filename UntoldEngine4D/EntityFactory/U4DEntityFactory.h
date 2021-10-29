@@ -44,9 +44,9 @@ public:
     
     std::vector<std::string> getRegisteredClasses();
     
-    bool createModelInstance(std::string uAssetName, std::string uType);
+    bool createModelInstance(std::string uAssetName, std::string uPipeline);
     
-    bool createModelInstanceFromDeserialization(std::string uAssetName, std::string uModelName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation); 
+    bool createModelInstanceFromDeserialization(std::string uAssetName, std::string uModelName, std::string uPipeline, U4DVector3n uPosition, U4DVector3n uOrientation); 
     
 private:
     

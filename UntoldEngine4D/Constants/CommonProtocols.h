@@ -768,7 +768,7 @@ namespace U4DEngine {
     typedef struct{
         std::string name;
         std::string assetReferenceName;
-        std::string classType;
+        std::string pipelineName;
         std::vector<float> position;
         std::vector<float> orientation;
     }ENTITYSERIALIZEDATA;

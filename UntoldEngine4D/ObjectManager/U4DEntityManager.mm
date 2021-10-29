@@ -29,9 +29,7 @@
 #include "U4DProfilerManager.h"
 #include "U4DRenderManager.h"
 #include "U4DModel.h"
-
-#include "U4DKineticDictionary.h"
-#include "U4DVisibilityDictionary.h"
+#include "U4DScriptManager.h"
 
 namespace U4DEngine {
     
@@ -132,42 +130,36 @@ namespace U4DEngine {
     //update
     void U4DEntityManager::update(float dt){
         
-        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
-        std::vector<std::string> kineticBehaviorsContainer;
-        
-        //set the root entity
-        U4DEntity* child=rootEntity;
-        while (child!=NULL) {
-
-            if (child->getEntityType()==U4DEngine::MODEL) {
-                kineticBehaviorsContainer.push_back(child->getName());
-            }
-
-            child=child->next;
-        }
-        
         //BROAD PHASE COLLISION STARTS
         
         U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
         
         profilerManager->startProfiling("Collision");
         
-        for(auto n:kineticBehaviorsContainer){
-            
-            U4DDynamicAction *kineticBehavior=kineticDictionary->getKineticBehavior(n);
-            
-            if (kineticBehavior!=nullptr) {
+        //set the root entity
+        U4DEntity* child=rootEntity;
+        while (child!=NULL) {
+
+            if (child->getEntityType()==U4DEngine::MODEL) {
                 
-                if(kineticBehavior->isCollisionBehaviorEnabled()==true){
+                U4DDynamicAction *kineticBehavior=reinterpret_cast<U4DDynamicAction*>(child->pDynamicAction);
+                
+                if (kineticBehavior!=nullptr) {
+                    
+                    if(kineticBehavior->isCollisionBehaviorEnabled()==true){
 
-                    //add child to collision bhv manager tree
-                    loadIntoCollisionEngine(kineticBehavior);
+                        //add child to collision bhv manager tree
+                        loadIntoCollisionEngine(kineticBehavior);
 
+                    }
                 }
+                
             }
+
+            child=child->next;
         }
         
-
+        
         //Only compute collision if there are more than 1 models with collision behaviors
         if (collisionEngine->getNumberOfModelsInContainer()>1) {
             
@@ -210,38 +202,57 @@ namespace U4DEngine {
         //update the physics
         profilerManager->startProfiling("Physics");
         
-        for(auto n:kineticBehaviorsContainer){
-            
-            U4DDynamicAction *kineticBehavior=kineticDictionary->getKineticBehavior(n);
-            
-            if (kineticBehavior!=nullptr) {
+        //set the root entity
+        child=rootEntity;
+        while (child!=NULL) {
+
+            if (child->getEntityType()==U4DEngine::MODEL) {
                 
-                if(kineticBehavior->isKineticsBehaviorEnabled()==true){
+                U4DDynamicAction *kineticBehavior=reinterpret_cast<U4DDynamicAction*>(child->pDynamicAction);
+                
+                if (kineticBehavior!=nullptr) {
+                    
+                    if(kineticBehavior->isKineticsBehaviorEnabled()==true){
 
-                    //add child to collision bhv manager tree
-                    loadIntoPhysicsEngine(kineticBehavior, dt);
+                        //add child to collision bhv manager tree
+                        loadIntoPhysicsEngine(kineticBehavior, dt);
 
+                    }
                 }
+                
             }
-            
+
+            child=child->next;
         }
         
+        
         profilerManager->stopProfiling();
+        
+        //update the script
+        U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+        scriptManager->updateClosure(dt);
         
         //update the camera
         U4DCamera *camera=U4DCamera::sharedInstance();
         camera->update(dt);
         
         //clean everything up
-        for(auto n:kineticBehaviorsContainer){
-            
-            U4DDynamicAction *kineticBehavior=kineticDictionary->getKineticBehavior(n);
-            
-            if (kineticBehavior!=nullptr) {
+        child=rootEntity;
+        while (child!=NULL) {
+
+            if (child->getEntityType()==U4DEngine::MODEL) {
                 
-                kineticBehavior->cleanUp();
+                U4DDynamicAction *kineticBehavior=reinterpret_cast<U4DDynamicAction*>(child->pDynamicAction);
+                
+                if (kineticBehavior!=nullptr) {
+                    
+                    kineticBehavior->cleanUp();
+                    
+                }
+                
             }
-            
+
+            child=child->next;
         }
         
         
@@ -261,7 +272,6 @@ namespace U4DEngine {
             
             //4. clear container
             visibilityManager->clearContainers();
-            U4DVisibilityDictionary *visibleDict=U4DVisibilityDictionary::sharedInstance();
             
             //set the root entity
             U4DEntity* child=rootEntity;
@@ -270,8 +280,7 @@ namespace U4DEngine {
 
             while (child!=NULL) {
 
-                
-                U4DModel *model=visibleDict->getVisibleModel(child->getName());
+                U4DModel *model=reinterpret_cast<U4DModel*>(child->pModel);
                 
                 if (model!=nullptr) {
                     

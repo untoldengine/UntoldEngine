@@ -23,6 +23,8 @@
 #include "U4DEntityFactory.h"
 #include "U4DSerializer.h"
 
+#include "U4DAnimationManager.h"
+
 using namespace U4DEngine;
 
 SandboxWorld::SandboxWorld(){
@@ -43,17 +45,45 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     setEnableGrid(true);
     
+//    U4DEngine::U4DModel *player=new U4DEngine::U4DModel();
+//
+//    //Line 3. Load attribute (rendering information) into the game entity
+//    if (player->loadModel("player0")) {
+//
+//
+////        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(player);
+////
+////        kineticAction->enableKineticsBehavior();
+////
+////        kineticAction->enableCollisionBehavior();
+//
+//        U4DEngine::U4DAnimationManager *animManager=new U4DEngine::U4DAnimationManager(player);
+//
+//        std::list<std::string> animationList={"running","shooting"};
+//        animManager->loadAnimationToDictionary(animationList);
+//
+//        //Line 4. Load rendering information into the GPU
+//        player->loadRenderingInformation();
+//
+//        //Line 5. Add astronaut to the scenegraph
+//        addChild(player);
+//
+//        //player->translateBy(0.0, 10.0, 0.0);
+//        animManager->setAnimationToPlay("running");
+//        animManager->playAnimation();
+//    }
+    
     //register the classes
     
-    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
-
-    entityFactory->registerClass<Player>("Player");
-    entityFactory->registerClass<Field>("Field");
-    
-    //deserialize
-    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-    
-    serializer->deserialize("scenefile.u4d");
+//    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
+//
+//    entityFactory->registerClass<Player>("Player");
+//    entityFactory->registerClass<Field>("Field");
+//
+//    //deserialize
+//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+//
+//    serializer->deserialize("scenefile.u4d");
 
     
 //

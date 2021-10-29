@@ -10,6 +10,9 @@
 #define U4DAnimationManager_hpp
 
 #include <stdio.h>
+#include <map>
+#include <list>
+#include "U4DModel.h"
 
 namespace U4DEngine {
     
@@ -27,6 +30,16 @@ namespace U4DEngine {
     class U4DAnimationManager {
         
     private:
+        
+        /**
+         @todo document this
+         */
+        U4DModel *model;
+        
+        /**
+         @brief Map containing all animations
+         */
+        std::map<std::string,U4DAnimation*> animationsMap;
         
         /**
          * @brief pointer to the current playing animation
@@ -73,7 +86,7 @@ namespace U4DEngine {
          * @brief Class constructor
          * @details initializes the current, next and previous animations to null. It also creates the U4DBlendAnimation object
          */
-        U4DAnimationManager();
+        U4DAnimationManager(U4DModel *uU4DModel);
         
         /**
          * @brief Class destructor
@@ -85,6 +98,11 @@ namespace U4DEngine {
          @brief sets which animation to play next
          */
         void setAnimationToPlay(U4DAnimation* uAnimation);
+        
+        /**
+         @brief sets which animation to play next
+         */
+        void setAnimationToPlay(std::string uAnimationName);
         
         /**
          @brief pauses current animation
@@ -198,6 +216,14 @@ namespace U4DEngine {
          @return interpolation time when to blend the animations
          */
         int getBlendedStartInterpolationTime();
+        
+        void loadAnimationToDictionary(std::list<std::string> uAnimationList);
+        
+        U4DAnimation * getAnimationFromDictionary(std::string uAnimationName);
+        
+        void removeAnimationFromDictionary(std::string uAnimationName);
+        
+        void removeAllAnimationsFromDictionary();
         
     };
     

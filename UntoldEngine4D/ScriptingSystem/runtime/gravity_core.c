@@ -440,17 +440,17 @@ inline gravity_value_t convert_value2string (gravity_vm *vm, gravity_value_t v) 
 
     // sanity check (and break recursion)
     if ((!closure) || ((closure->f->tag == EXEC_TYPE_INTERNAL) && (closure->f->internal == convert_object_string)) || gravity_vm_getclosure(vm) == closure) {
-		if (VALUE_ISA_INSTANCE(v)) {
-			gravity_instance_t *instance = VALUE_AS_INSTANCE(v);
-			if (vm && instance->xdata) {
-				gravity_delegate_t *delegate = gravity_vm_delegate(vm);
-				if (delegate->bridge_string) {
-					uint32_t len = 0;
-					const char *s = delegate->bridge_string(vm, instance->xdata, &len);
-					if (s) return VALUE_FROM_STRING(vm, s, len);
-				}
-			} else {
-				char buffer[512];
+        if (VALUE_ISA_INSTANCE(v)) {
+            gravity_instance_t *instance = VALUE_AS_INSTANCE(v);
+            if (vm && instance->xdata) {
+                gravity_delegate_t *delegate = gravity_vm_delegate(vm);
+                if (delegate->bridge_string) {
+                    uint32_t len = 0;
+                    const char *s = delegate->bridge_string(vm, instance->xdata, &len);
+                    if (s) return VALUE_FROM_STRING(vm, s, len);
+                }
+            } else {
+                char buffer[512];
                 const char *identifier = (instance->objclass->identifier);
                 if (!identifier) identifier = "anonymous class";
                 snprintf(buffer, sizeof(buffer), "instance of %s (%p)", identifier, instance);
@@ -936,8 +936,8 @@ static bool object_clone (gravity_vm *vm, gravity_value_t *args, uint16_t nargs,
 //static bool object_methods (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
 //    #pragma unused(vm, nargs)
 //    gravity_class_t *c = gravity_value_getclass(GET_VALUE(0));
-//    
-//    
+//
+//
 //}
 
 // MARK: - List Class -
@@ -1692,9 +1692,7 @@ static bool class_exec (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, u
         c->superlook = NULL;
         c->superclass = super;
         
-    }
-    
-    if(c->superclass){
+        // force superclass initialization
         STATICVALUE_FROM_STRING(key, GRAVITY_INTERNAL_EXEC_NAME, strlen(GRAVITY_INTERNAL_EXEC_NAME));
         gravity_closure_t *super_closure = gravity_class_lookup_closure(gravity_class_get_meta(c->superclass), key);
         if (super_closure) RETURN_CLOSURE(VALUE_FROM_OBJECT(super_closure), rindex);
@@ -2716,11 +2714,11 @@ static bool string_split (gravity_vm *vm, gravity_value_t *args, uint16_t nargs,
     while (1) {
         char *p = string_strnstr(original, sep, (size_t)slen);
         if (p == NULL) {
-			marray_push(gravity_value_t, list->array, VALUE_FROM_STRING(vm, original, slen));
+            marray_push(gravity_value_t, list->array, VALUE_FROM_STRING(vm, original, slen));
             break;
         }
         uint32_t vlen = (uint32_t)(p-original);
-		marray_push(gravity_value_t, list->array, VALUE_FROM_STRING(vm, original, vlen));
+        marray_push(gravity_value_t, list->array, VALUE_FROM_STRING(vm, original, vlen));
 
         // update pointer and slen
         original = p + seplen;
@@ -2860,7 +2858,7 @@ static bool string_raw (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, u
     uint32_t n = utf8_charbytes(string->s, 0);
     for (uint32_t i=0; i<n; ++i) {
         // if (n > 1) {printf("%u (%d)\n", (uint8_t)string->s[i], (uint32_t)pow(10, n-(i+1)));}
-		ascii += (uint32_t)((uint8_t)string->s[i] * pow(10, n - (i + 1)));
+        ascii += (uint32_t)((uint8_t)string->s[i] * pow(10, n - (i + 1)));
     }
     
     RETURN_VALUE(VALUE_FROM_INT(ascii), rindex);

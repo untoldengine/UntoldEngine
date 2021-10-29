@@ -50,6 +50,11 @@ namespace U4DEngine {
          */
         T *lastDescendant;
         
+        void *pModel;
+        
+        void *pDynamicAction;
+        
+        void *pAnimationManager;
         
         /**
          @brief Constructor for the class

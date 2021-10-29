@@ -62,4 +62,9 @@ void SandboxScene::init(){
     testPipeline->initPipeline("vertexTestPipelineShader", "fragmentTestPipelineShader");
     
     loadComponents(sandboxWorld, sandboxLogic,true);
+    
+    //anchor mouse
+//    setAnchorMouse(true);
+//
+//    [NSCursor hide];
 }

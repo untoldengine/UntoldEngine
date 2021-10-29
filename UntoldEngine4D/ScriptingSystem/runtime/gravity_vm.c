@@ -630,6 +630,7 @@ static bool gravity_vm_exec (gravity_vm *vm) {
                             // check for special setter trick
                             if (VALUE_ISA_CLOSURE(STACK_GET(r1))) {
                                 closure = VALUE_AS_CLOSURE(STACK_GET(r1));
+                                if (closure->f->tag == EXEC_TYPE_INTERNAL) r1copy = STACK_GET(rwin+1);
                                 SETVALUE(r1, r1copy);
                                 reset_r1 = true;
                                 goto execute_store_function;
@@ -1553,9 +1554,9 @@ gravity_vm *gravity_vm_newmini (void) {
 void gravity_vm_free (gravity_vm *vm) {
     if (!vm) return;
 
-    if (vm->context) gravity_cache_free();
     gravity_vm_cleanup(vm);
     if (vm->context) gravity_hash_free(vm->context);
+    if (vm->context) gravity_cache_free();
     marray_destroy(vm->gctemp);
     marray_destroy(vm->graylist);
     mem_free(vm);
@@ -2354,15 +2355,27 @@ static void gravity_gc_cleanup (gravity_vm *vm) {
             if (!prev) vm->gchead = next;
             else prev->gc.next = next;
 
+            if (OBJECT_ISA_INSTANCE(obj)) gravity_instance_deinit(vm, (gravity_instance_t *)obj);
             gravity_object_free(vm, obj);
             --vm->gccount;
             obj = next;
         }
         return;
     }
-
+    
     // no filter so free all GC objects
+    // step 1:
+    // execute all deinit methods (if any)
     gravity_object_t *obj = vm->gchead;
+    while (obj) {
+        gravity_object_t *next = obj->gc.next;
+        if (OBJECT_ISA_INSTANCE(obj)) gravity_instance_deinit(vm, (gravity_instance_t *)obj);
+        obj = next;
+    }
+    
+    // step2:
+    // free all memory
+    obj = vm->gchead;
     while (obj) {
         gravity_object_t *next = obj->gc.next;
         gravity_object_free(vm, obj);
