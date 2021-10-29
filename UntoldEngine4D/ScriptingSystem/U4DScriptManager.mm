@@ -1623,7 +1623,8 @@ namespace U4DEngine {
         
         if(director->getScriptRunTimeError()==true){
             //we have to initialize the script again if there was a script-runtime error. But first we need to free all user input objects created such as lists and maps
-            freeUserInputObjects();
+            //IT SEEMS THAT SINCE I'M TRANSFERRING OWNERSHIP TO GRAVITY, THAT I SHOULDN'T HAVE TO DO THIS. LEAVING IT HERE JUST IN CASE I'M WRONG.
+            //freeUserInputObjects();
             
             init();
         }
@@ -1701,23 +1702,20 @@ namespace U4DEngine {
         //create map- 11 is the number of elements in the CONTROLLERMESSAGE STRUCT
         controllerInputMessageMap=gravity_map_new(vm,11);
         
-        
-        //transfer ownership to gravity
+        /*IT SEEMS I DON'T HAVE TO DO THIS ANYMORE. LEAVING IT HERE IN CASE I'M WRONG
+        //transfer ownership to gravity-
         
         // transfer newly allocated object to the VM
-        /*
-        for(auto n:userInputElementArray){
-            gravity_vm_transfer(vm, (gravity_object_t*) VALUE_AS_STRING(n));
-        }
         
         gravity_vm_transfer(vm, (gravity_object_t*) joystickDirectionList);
         gravity_vm_transfer(vm, (gravity_object_t*) inputPositionList);
         gravity_vm_transfer(vm, (gravity_object_t*) previousMousePositionList);
         gravity_vm_transfer(vm, (gravity_object_t*) mouseDeltaPositionList);
         gravity_vm_transfer(vm, (gravity_object_t*) mouseDeltaPositionList);
-        
+
         gravity_vm_transfer(vm, (gravity_object_t*) controllerInputMessageMap);
         */
+        
         //if (loadScript(uScriptPath)) {
             
          
