@@ -17,7 +17,7 @@ class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     
-    Player *pPlayer;
+    U4DEngine::U4DModel *pPlayer;
     
 public:
     

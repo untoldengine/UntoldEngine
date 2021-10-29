@@ -102,13 +102,16 @@ namespace U4DEngine {
             
             if (child->getEntityType()==U4DEngine::MODEL) {
                 
-                U4DModel *model=dynamic_cast<U4DModel*>(child);
+                U4DModel *model=reinterpret_cast<U4DModel*>(child);
                 
                 ENTITYSERIALIZEDATA entitySerializeData;
                 
                 entitySerializeData.name=model->getName();
                 entitySerializeData.assetReferenceName=model->getAssetReferenceName();
-                entitySerializeData.classType=model->getClassType();
+                
+                U4DRenderEntity *renderEntity=model->getRenderEntity();
+                U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+                entitySerializeData.pipelineName=pipeline->getName();
                 
                 U4DVector3n pos=model->getAbsolutePosition();
                 entitySerializeData.position.push_back(pos.x);
@@ -203,10 +206,10 @@ namespace U4DEngine {
             file.write((char*)&modelAssetReferenceNameLen,sizeof(modelAssetReferenceNameLen));
             file.write((char*)&n.assetReferenceName[0],modelAssetReferenceNameLen);
             
-            //Write the class type
-            size_t modelClassTypeLen=n.classType.size();
-            file.write((char*)&modelClassTypeLen,sizeof(modelClassTypeLen));
-            file.write((char*)&n.classType[0],modelClassTypeLen);
+            //Write the pipeline
+            size_t modelPipelineNameLen=n.pipelineName.size();
+            file.write((char*)&modelPipelineNameLen,sizeof(modelPipelineNameLen));
+            file.write((char*)&n.pipelineName[0],modelPipelineNameLen);
             
             //Write the position
             int positionSize=(int)n.position.size();
@@ -360,11 +363,11 @@ namespace U4DEngine {
             modelData.assetReferenceName.resize(modelAssetReferenceNameLen);
             file.read((char*)&modelData.assetReferenceName[0],modelAssetReferenceNameLen);
             
-            //Read the class type of the model
-            size_t modelClassTypeLen=0;
-            file.read((char*)&modelClassTypeLen,sizeof(modelClassTypeLen));
-            modelData.classType.resize(modelClassTypeLen);
-            file.read((char*)&modelData.classType[0],modelClassTypeLen);
+            //Read the model pipeline name
+            size_t modelPipelineNameLen=0;
+            file.read((char*)&modelPipelineNameLen,sizeof(modelPipelineNameLen));
+            modelData.pipelineName.resize(modelPipelineNameLen);
+            file.read((char*)&modelData.pipelineName[0],modelPipelineNameLen);
             
             //Read the position
             int positionSize=0;
@@ -415,7 +418,7 @@ namespace U4DEngine {
                 
                 //Ask the factory class to create an instance of each object and load it into the world
                 
-                entityFactory->createModelInstanceFromDeserialization(n.assetReferenceName,n.name, n.classType,pos, orient);
+                entityFactory->createModelInstanceFromDeserialization(n.assetReferenceName,n.name, n.pipelineName,pos, orient);
                 
             }
             

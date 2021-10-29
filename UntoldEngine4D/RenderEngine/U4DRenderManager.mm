@@ -300,6 +300,20 @@ namespace U4DEngine {
         
         return pipeline;
     }
+
+    std::vector<std::string> U4DRenderManager::getRenderingPipelineList(){
+        
+        std::vector<std::string> pipelineList;
+        
+        for(const auto &n:renderingPipelineContainer){
+                
+            pipelineList.push_back(n->getName());
+            
+        }
+        
+        return pipelineList;
+        
+    }
  
     void U4DRenderManager::addRenderPipeline(U4DRenderPipelineInterface* uRenderPipeline){
         renderingPipelineContainer.push_back(uRenderPipeline);

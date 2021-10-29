@@ -37,6 +37,8 @@ namespace U4DEngine {
 
     void U4DSceneActiveState::enter(U4DScene *uScene){
         
+        uScene->setPauseScene(false);
+        
         U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
         
         //disable scene profiler

@@ -33,8 +33,6 @@
 #include "U4DModel.h"
 
 #include "U4DSerializer.h"
-#include "U4DVisibilityDictionary.h"
-#include "U4DKineticDictionary.h"
 
 #include "U4DRay.h"
 #include "U4DAABB.h"
@@ -66,7 +64,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static bool ScrollToBottom=true;
     static U4DEntity *activeChild=nullptr;
     static std::string assetSelectedName;
-    static std::string assetSelectedTypeName;
+    static std::string assetSelectedPipelineName;
     static std::string scriptFilePathName;
     static std::string scriptFilePath;
     
@@ -233,61 +231,61 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         ImGui::SameLine();
         
             //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
-//            //config scripts
-//            //ImGui::Text("Config Scripts");
-//            // open Dialog Simple
-//            ImGui::SameLine();
-//            if (ImGui::Button("Open Script")){
-//                lookingForScriptFile=true;
-//
-//                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-//            }
-//
-//            if(lookingForScriptFile){
-//                // display
-//                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
-//                {
-//                  // action if OK
-//                  if (gravityFileDialog.Instance()->IsOk())
-//                  {
-//                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
-//                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-//                    // action
-//                    scriptFilesFound=true;
-//                  }else{
-//                    //scriptFilesFound=false;
-//                  }
-//
-//                  // close
-//                  gravityFileDialog.Instance()->Close();
-//
-//                }
-//
-//              if (scriptFilesFound) {
-//
-//                  ImGui::Text("Script %s", scriptFilePathName.c_str());
-//
-//                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-//
-//                  if(ImGui::Button("Load Script")){
-//
-//                      if(scriptManager->loadScript(scriptFilePathName)){
-//
-//                          logger->log("Script was loaded.");
-//
-//                          //call the init function in the script
-//                          scriptManager->loadGameConfigs();
-//
-//                          scriptLoadedSuccessfully=true;
-//                      }else{
-//                          scriptLoadedSuccessfully=false;
-//                      }
-//
-//                      //lookingForScriptFile=false;
-//                  }
-//
-//              }
-//            }
+            //config scripts
+            //ImGui::Text("Config Scripts");
+            // open Dialog Simple
+            ImGui::SameLine();
+            if (ImGui::Button("Open Script")){
+                lookingForScriptFile=true;
+
+                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+            }
+
+            if(lookingForScriptFile){
+                // display
+                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                {
+                  // action if OK
+                  if (gravityFileDialog.Instance()->IsOk())
+                  {
+                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+                    // action
+                    scriptFilesFound=true;
+                  }else{
+                    //scriptFilesFound=false;
+                  }
+
+                  // close
+                  gravityFileDialog.Instance()->Close();
+
+                }
+
+              if (scriptFilesFound) {
+
+                  ImGui::Text("Script %s", scriptFilePathName.c_str());
+
+                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+
+                  if(ImGui::Button("Load Script")){
+
+                      if(scriptManager->loadScript(scriptFilePathName)){
+
+                          logger->log("Script was loaded.");
+
+                          //call the init function in the script
+                          scriptManager->initClosure();
+
+                          scriptLoadedSuccessfully=true;
+                      }else{
+                          scriptLoadedSuccessfully=false;
+                      }
+
+                      //lookingForScriptFile=false;
+                  }
+
+              }
+            }
         //END SCRIPT FINE_TUNE
             
         ImGui::End();
@@ -656,13 +654,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         
                         if(ImGui::Button("Rename Model")){
                             
-                            U4DVisibilityDictionary *visibilityDictionary=U4DVisibilityDictionary::sharedInstance();
-                            U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
                             std::string previousModelName=activeChild->getName();
                             activeChild->setName(modelNameBuffer);
-                            
-                            visibilityDictionary->updateVisibilityDictionary(previousModelName, modelNameBuffer);
-                            kineticDictionary->updateKineticBehaviorDictionary(previousModelName, modelNameBuffer);
                             
                             //clear the char array
                             memset(modelNameBuffer, 0, sizeof(modelNameBuffer));
@@ -716,26 +709,28 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         
                         ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
                         
-                        ImGui::Text("Select Asset Type");
+                        ImGui::Text("Select Asset Pipeline");
                         
-                        std::vector<std::string> items=entityFactory->getRegisteredClasses();
+                        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
                         
-                        static int item_current_idx = (int)items.size()-1; // Here we store our selection data as an index.
+                        std::vector<std::string> items=renderManager->getRenderingPipelineList();
+                        
+                        static int item_current_idx = 0; // Here we store our selection data as an index.
                         
                         const char* combo_label = items.at(item_current_idx).c_str();
                         
-                        assetSelectedTypeName=items.at(item_current_idx).c_str();
+                        assetSelectedPipelineName=items.at(item_current_idx).c_str();
                         
                         static ImGuiComboFlags flags = 0;
                         
-                        if (ImGui::BeginCombo("Classes", combo_label, flags))
+                        if (ImGui::BeginCombo("Pipelines", combo_label, flags))
                         {
                             for (int n = 0; n < items.size(); n++)
                             {
                                 const bool is_selected = (item_current_idx == n);
                                 if (ImGui::Selectable(items.at(n).c_str(), is_selected)){
                                     item_current_idx = n;
-                                    assetSelectedTypeName=items.at(n);
+                                    assetSelectedPipelineName=items.at(n);
                                 }
                                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                                 if (is_selected)
@@ -748,8 +743,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         
                             if (scene!=nullptr) {
                                 
-                                
-                                entityFactory->createModelInstance(assetSelectedName, assetSelectedTypeName);
+                                entityFactory->createModelInstance(assetSelectedName,assetSelectedPipelineName);
                                 
                             }
                             

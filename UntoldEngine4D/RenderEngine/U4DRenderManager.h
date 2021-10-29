@@ -85,7 +85,7 @@ namespace U4DEngine {
         
         void makePipelineWithShader(std::string uPipelineName, std::string uVertexShaderName, std::string uFragmentShaderName);
     
-        
+        std::vector<std::string> getRenderingPipelineList();
     };
     
 }

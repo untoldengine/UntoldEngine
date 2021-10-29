@@ -15,6 +15,12 @@
 		03008D022715D34D00A53C34 /* U4DScenePlayState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03008D002715D34D00A53C34 /* U4DScenePlayState.mm */; };
 		03008D032715D34D00A53C34 /* U4DScenePlayState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03008D002715D34D00A53C34 /* U4DScenePlayState.mm */; };
 		03008D042715D34E00A53C34 /* U4DScenePlayState.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03008D002715D34D00A53C34 /* U4DScenePlayState.mm */; };
+		03009B62271AA57B00A53C34 /* U4DScriptBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03009B60271AA57A00A53C34 /* U4DScriptBridge.mm */; };
+		03009B63271AA57B00A53C34 /* U4DScriptBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03009B60271AA57A00A53C34 /* U4DScriptBridge.mm */; };
+		03009B64271AA57C00A53C34 /* U4DScriptBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03009B60271AA57A00A53C34 /* U4DScriptBridge.mm */; };
+		03009B6727211EE600A53C34 /* U4DAnimManagerDict.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03009B6527211EE500A53C34 /* U4DAnimManagerDict.mm */; };
+		03009B6827211EE600A53C34 /* U4DAnimManagerDict.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03009B6527211EE500A53C34 /* U4DAnimManagerDict.mm */; };
+		03009B6927211EE700A53C34 /* U4DAnimManagerDict.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03009B6527211EE500A53C34 /* U4DAnimManagerDict.mm */; };
 		03019FF4252568430005CDDD /* SandboxLoading.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03019FF2252568430005CDDD /* SandboxLoading.mm */; };
 		03019FF5252568440005CDDD /* SandboxLoading.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03019FF2252568430005CDDD /* SandboxLoading.mm */; };
 		03019FF6252568440005CDDD /* SandboxLoading.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03019FF2252568430005CDDD /* SandboxLoading.mm */; };
@@ -1112,6 +1118,10 @@
 		03008CFC271082F000A53C34 /* Foot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Foot.h; path = Game/Foot.h; sourceTree = SOURCE_ROOT; };
 		03008D002715D34D00A53C34 /* U4DScenePlayState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScenePlayState.mm; path = Scene/U4DScenePlayState.mm; sourceTree = "<group>"; };
 		03008D012715D34D00A53C34 /* U4DScenePlayState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScenePlayState.h; path = Scene/U4DScenePlayState.h; sourceTree = "<group>"; };
+		03009B60271AA57A00A53C34 /* U4DScriptBridge.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBridge.mm; path = ScriptingSystem/U4DScriptBridge.mm; sourceTree = "<group>"; };
+		03009B61271AA57A00A53C34 /* U4DScriptBridge.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptBridge.h; path = ScriptingSystem/U4DScriptBridge.h; sourceTree = "<group>"; };
+		03009B6527211EE500A53C34 /* U4DAnimManagerDict.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DAnimManagerDict.mm; sourceTree = "<group>"; };
+		03009B6627211EE600A53C34 /* U4DAnimManagerDict.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DAnimManagerDict.h; sourceTree = "<group>"; };
 		03019FF2252568430005CDDD /* SandboxLoading.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SandboxLoading.mm; path = Game/SandboxLoading.mm; sourceTree = SOURCE_ROOT; };
 		03019FF3252568430005CDDD /* SandboxLoading.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SandboxLoading.h; path = Game/SandboxLoading.h; sourceTree = SOURCE_ROOT; };
 		030205501B6E9CD7005A72E8 /* U4DSegment.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DSegment.mm; sourceTree = "<group>"; };
@@ -2790,6 +2800,8 @@
 				036AE9C4270D7BA600F9685B /* U4DGameConfigs.mm */,
 				036AE9BF270D79D900F9685B /* U4DScriptManager.h */,
 				036AE9C0270D79D900F9685B /* U4DScriptManager.mm */,
+				03009B61271AA57A00A53C34 /* U4DScriptBridge.h */,
+				03009B60271AA57A00A53C34 /* U4DScriptBridge.mm */,
 				03E68862267793260079ED4D /* compiler */,
 				03E68895267793270079ED4D /* optionals */,
 				03E68888267793270079ED4D /* runtime */,
@@ -3097,6 +3109,8 @@
 				03CF11F41E56313400E47C67 /* U4DAnimationManager.mm */,
 				032BD8A01E567FC300C158A1 /* U4DBlendAnimation.h */,
 				032BD89F1E567FC300C158A1 /* U4DBlendAnimation.mm */,
+				03009B6627211EE600A53C34 /* U4DAnimManagerDict.h */,
+				03009B6527211EE500A53C34 /* U4DAnimManagerDict.mm */,
 			);
 			path = Animation;
 			sourceTree = "<group>";
@@ -3573,6 +3587,7 @@
 				03722BC42029F0F50080D069 /* U4DPhysicsEngine.mm in Sources */,
 				03722B7F2029F0F50080D069 /* U4DVector3n.mm in Sources */,
 				03722B7E2029F0F50080D069 /* U4DQuaternion.mm in Sources */,
+				03009B6827211EE600A53C34 /* U4DAnimManagerDict.mm in Sources */,
 				03E688E9267793280079ED4D /* gravity_opt_math.c in Sources */,
 				03722B672029F0F50080D069 /* U4DRenderGeometry.mm in Sources */,
 				03722B582029F0F50080D069 /* U4DSphere.mm in Sources */,
@@ -3677,6 +3692,7 @@
 				03C044A3268A6E6F002B3880 /* Field.mm in Sources */,
 				03E688B6267793280079ED4D /* gravity_symboltable.c in Sources */,
 				034F2A2A217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
+				03009B63271AA57B00A53C34 /* U4DScriptBridge.mm in Sources */,
 				03722B9F2029F0F50080D069 /* U4DGravityForceGenerator.mm in Sources */,
 				03676AA6267B96E90016A83A /* imgui_widgets.cpp in Sources */,
 				03722E04202CBF860080D069 /* U4DPadButtonReleasedState.mm in Sources */,
@@ -4030,6 +4046,7 @@
 				03D5E520224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
 				03A3E2DA2465A4AF00FBCBAD /* U4DInputElement.mm in Sources */,
 				03722CFE2029F0F80080D069 /* U4DPhysicsEngine.mm in Sources */,
+				03009B6927211EE700A53C34 /* U4DAnimManagerDict.mm in Sources */,
 				03722CB92029F0F80080D069 /* U4DVector3n.mm in Sources */,
 				03E687812674155E0079ED4D /* imgui_widgets.cpp in Sources */,
 				03722CB82029F0F80080D069 /* U4DQuaternion.mm in Sources */,
@@ -4134,6 +4151,7 @@
 				03C044A4268A6E6F002B3880 /* Field.mm in Sources */,
 				0323DBB0202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B392029F0220080D069 /* AppDelegate.mm in Sources */,
+				03009B64271AA57C00A53C34 /* U4DScriptBridge.mm in Sources */,
 				03E688B7267793280079ED4D /* gravity_symboltable.c in Sources */,
 				034F2A2B217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
 				03722CD92029F0F80080D069 /* U4DGravityForceGenerator.mm in Sources */,
@@ -4425,6 +4443,7 @@
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				0392390E269EA9B8009FE4B9 /* U4DSceneLoadingState.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
+				03009B6727211EE600A53C34 /* U4DAnimManagerDict.mm in Sources */,
 				0334699925C190FF001F0702 /* U4DFinalPass.mm in Sources */,
 				03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */,
 				03E688B2267793280079ED4D /* gravity_ast.c in Sources */,
@@ -4448,6 +4467,7 @@
 				036AED64231C131600211205 /* U4DMacMouseDeltaMovedState.mm in Sources */,
 				03A96D6825186B7800E8BA19 /* buttonUIShader.metal in Sources */,
 				03676A99267B95830016A83A /* ImGuiFileDialog.cpp in Sources */,
+				03009B62271AA57B00A53C34 /* U4DScriptBridge.mm in Sources */,
 				038BF2502279E7E500B129A5 /* U4DFollowPath.mm in Sources */,
 				0340BC7626B4546E00582F08 /* ImGuizmo.cpp in Sources */,
 				03E688D0267793280079ED4D /* gravity_core.c in Sources */,
