@@ -55,7 +55,550 @@ namespace U4DEngine {
 
         
     }
+    
+    //Vector3n
+    bool U4DScriptManager::vector3nNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // self parameter is the u4dvector3n_class create in register_cpp_classes
+        gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+        // check for optional parameters here (if you need to process a more complex constructor)
+        
+        if (nargs==4) {
+        
+            if (VALUE_ISA_FLOAT(GET_VALUE(1)) &&  VALUE_ISA_FLOAT(GET_VALUE(2)) && VALUE_ISA_FLOAT(GET_VALUE(3))) {
+                gravity_float_t v1 = GET_VALUE(1).f;
+                gravity_float_t v2 = GET_VALUE(2).f;
+                gravity_float_t v3 = GET_VALUE(3).f;
+                
+                // create Gravity instance and set its class to c
+                gravity_instance_t *instance = gravity_instance_new(vm, c);
+                
+                // allocate a cpp instance of the vector class on the heap
+                U4DVector3n *r = new U4DVector3n(v1,v2,v3);
+                
+                // set cpp instance and xdata of the gravity instance
+                gravity_instance_setxdata(instance, r);
+                
+                // return instance
+                RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+            }
+        
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        if (nargs!=4) {
+            logger->log("A U4DVector3n requires three components.");
+        }else{
+            logger->log("The three vector components must be float types");
+        }
 
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptManager::vector3nMagnitude(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+        
+        // get self object which is the instance created in rect_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata (which is a cpp vector3n instance)
+        U4DVector3n *r = (U4DVector3n *)instance->xdata;
+        
+        // invoke the Area method
+        double d = r->magnitude();
+        
+        RETURN_VALUE(VALUE_FROM_FLOAT(d), rindex);
+    }
+
+    bool U4DScriptManager::vector3nNormalize (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+        
+        // get self object which is the instance created in rect_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata (which is a cpp vector instance)
+        U4DVector3n *r = (U4DVector3n *)instance->xdata;
+        
+        r->normalize();
+        
+        RETURN_VALUE(VALUE_FROM_OBJECT(r), rindex);
+    }
+
+    bool U4DScriptManager::vector3nDot(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+        
+        // get the two vector arguments
+        gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+        gravity_instance_t *v2 = (gravity_instance_t *)GET_VALUE(1).p;
+        
+        // get xdata for both vectors
+        U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+        U4DVector3n *vector2 = (U4DVector3n *)v2->xdata;
+        
+        // dot product
+        float d=(*vector1).dot(*(vector2));
+        
+        RETURN_VALUE(VALUE_FROM_FLOAT(d), rindex);
+        
+    }
+
+    bool U4DScriptManager::vector3nCross(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+        
+        // get the two vector arguments
+        gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+        gravity_instance_t *v2 = (gravity_instance_t *)GET_VALUE(1).p;
+        
+        // get xdata for both vectors
+        U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+        U4DVector3n *vector2 = (U4DVector3n *)v2->xdata;
+        
+        // cross the vectors
+        U4DVector3n v = (*vector1).cross(*(vector2));
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+
+        // lookup class "Vector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Vector3n instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+        
+    }
+
+    bool U4DScriptManager::vector3nAngle(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get the two vector arguments
+        gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+        gravity_instance_t *v2 = (gravity_instance_t *)GET_VALUE(1).p;
+        
+        // get xdata for both vectors
+        U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+        U4DVector3n *vector2 = (U4DVector3n *)v2->xdata;
+        
+        // get the angle
+        float angle = (*vector1).angle(*(vector2));
+
+        RETURN_VALUE(VALUE_FROM_FLOAT(angle), rindex);
+        
+    }
+
+    bool U4DScriptManager::vector3nShow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in rect_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata
+        U4DVector3n *r = (U4DVector3n *)instance->xdata;
+        
+        r->show();
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(true), rindex);
+    }
+
+    bool U4DScriptManager::xGet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+         // get self object which is the instance created in rect_create function
+         gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+         // get xdata (which is a cpp Rectangle instance)
+        U4DVector3n *r = (U4DVector3n *)instance->xdata;
+
+         RETURN_VALUE(VALUE_FROM_FLOAT(r->x), rindex);
+     }
+
+    bool U4DScriptManager::xSet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+         // get self object which is the instance created in rect_create function
+         gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+         // get xdata (which is a cpp Rectangle instance)
+         U4DVector3n *r = (U4DVector3n *)instance->xdata;
+
+         // read user value
+         gravity_value_t value = GET_VALUE(1);
+
+         // decode value
+         double d = 0.0f;
+         if (VALUE_ISA_FLOAT(value)) d = VALUE_AS_FLOAT(value);
+         else if (VALUE_ISA_INT(value)) d = double(VALUE_AS_INT(value));
+         // more cases here, for example VALUE_ISA_STRING
+
+         r->x = d;
+
+         RETURN_NOVALUE();
+     }
+
+    bool U4DScriptManager::yGet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+         // get self object which is the instance created in rect_create function
+         gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+         // get xdata (which is a cpp Rectangle instance)
+        U4DVector3n *r = (U4DVector3n *)instance->xdata;
+
+         RETURN_VALUE(VALUE_FROM_FLOAT(r->y), rindex);
+     }
+
+    bool U4DScriptManager::ySet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+         // get self object which is the instance created in rect_create function
+         gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+         // get xdata (which is a cpp Rectangle instance)
+         U4DVector3n *r = (U4DVector3n *)instance->xdata;
+
+         // read user value
+         gravity_value_t value = GET_VALUE(1);
+
+         // decode value
+         double d = 0.0f;
+         if (VALUE_ISA_FLOAT(value)) d = VALUE_AS_FLOAT(value);
+         else if (VALUE_ISA_INT(value)) d = double(VALUE_AS_INT(value));
+         // more cases here, for example VALUE_ISA_STRING
+
+         r->y = d;
+
+         RETURN_NOVALUE();
+     }
+
+
+    bool U4DScriptManager::zGet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+         // get self object which is the instance created in rect_create function
+         gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+         // get xdata (which is a cpp Rectangle instance)
+        U4DVector3n *r = (U4DVector3n *)instance->xdata;
+
+         RETURN_VALUE(VALUE_FROM_FLOAT(r->z), rindex);
+     }
+
+    bool U4DScriptManager::zSet (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+         // get self object which is the instance created in rect_create function
+         gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+         // get xdata (which is a cpp Rectangle instance)
+         U4DVector3n *r = (U4DVector3n *)instance->xdata;
+
+         // read user value
+         gravity_value_t value = GET_VALUE(1);
+
+         // decode value
+         double d = 0.0f;
+         if (VALUE_ISA_FLOAT(value)) d = VALUE_AS_FLOAT(value);
+         else if (VALUE_ISA_INT(value)) d = double(VALUE_AS_INT(value));
+         // more cases here, for example VALUE_ISA_STRING
+
+         r->z = d;
+
+         RETURN_NOVALUE();
+     }
+
+    bool U4DScriptManager::vector3nAdd (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex) {
+        
+        // get the two vector arguments
+        gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+        gravity_instance_t *v2 = (gravity_instance_t *)GET_VALUE(1).p;
+        
+        // get xdata for both vectors
+        U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+        U4DVector3n *vector2 = (U4DVector3n *)v2->xdata;
+        
+        // add the vectors
+        U4DVector3n v = *vector1 + *vector2;
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+
+        // lookup class "Vector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Vector3n instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+    }
+
+    bool U4DScriptManager::vector3nSub (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get the two vector arguments
+        gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+        gravity_instance_t *v2 = (gravity_instance_t *)GET_VALUE(1).p;
+        
+        // get xdata for both vectors
+        U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+        U4DVector3n *vector2 = (U4DVector3n *)v2->xdata;
+        
+        // subtract the vectors
+        U4DVector3n v = *vector1 - *vector2;
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+
+        // lookup class "Vector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Vector3n instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+        
+    }
+
+    bool U4DScriptManager::vector3nMul (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        /// get the two vector arguments
+        gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        gravity_float_t scalar = GET_VALUE(1).f;
+        
+        // get xdata for both vectors
+        U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+        
+        //multiply the vectors
+        U4DVector3n v=*vector1*scalar;
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+
+        // lookup class "Vector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Vector3n instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+    }
+
+    bool U4DScriptManager::vector3nDiv (gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        /// get the two vector arguments
+        gravity_instance_t *v1 = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        gravity_float_t scalar = GET_VALUE(1).f;
+        
+        // get xdata for both vectors
+        U4DVector3n *vector1 = (U4DVector3n *)v1->xdata;
+        
+        //add the vectors
+        U4DVector3n v=*vector1/scalar;
+        
+        // create a new vector type
+        U4DVector3n *r = new U4DVector3n(v.x, v.y, v.z);
+
+        // lookup class "Vector3n" already registered inside the VM
+        // a faster way would be to save a global variable of type gravity_class_t *
+        // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+        // error not handled here but it should be checked
+        gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+        // create a Vector3n instance
+        gravity_instance_t *result = gravity_instance_new(vm, c);
+
+        //setting the vector data to result
+        gravity_instance_setxdata(result, r);
+
+        RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+    }
+
+    void U4DScriptManager::vector3nFree(gravity_vm *vm, gravity_object_t *obj){
+        
+        gravity_instance_t *instance = (gravity_instance_t *)obj;
+        
+        // get xdata (which is a vector3n instance)
+        U4DVector3n *r = (U4DVector3n *)instance->xdata;
+        
+        // explicitly free memory
+        delete r;
+        
+    }
+
+    //Matrix3n
+
+    bool U4DScriptManager::matrix3nNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        //self parameter is U4DMatrix3n class
+        gravity_class_t *c=(gravity_class_t*)GET_VALUE(0).p;
+        
+        if(nargs==1){
+            
+            //create a gravity instance
+            gravity_instance_t *instance=gravity_instance_new(vm, c);
+            
+            //allocate the U4DMatrix3n class-identity matrix
+            U4DMatrix3n *r=new U4DMatrix3n();
+            
+            //set the cpp instance and xdata
+            gravity_instance_setxdata(instance, r);
+            
+            RETURN_VALUE(VALUE_FROM_OBJECT(instance),rindex);
+            
+        }else if(nargs==10){
+            
+            RETURN_VALUE(VALUE_FROM_OBJECT(instance),rindex);
+            
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        logger->log("Unable to create a U4DMatrix3n object.");
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::matrix3nShow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in matrix4n_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // get xdata
+        U4DMatrix3n *r = (U4DMatrix3n *)instance->xdata;
+        
+        r->show();
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(true), rindex);
+        
+    }
+
+    bool U4DScriptManager::matrix3nTransformVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in matrix_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if(nargs==2){
+            
+            gravity_value_t vectorValue=GET_VALUE(1);
+            
+            if (VALUE_ISA_INSTANCE(vectorValue)) {
+                
+                gravity_instance_t *vectorInstance=(gravity_instance_t*)vectorValue.p;
+                
+                U4DVector3n *v=(U4DVector3n*)vectorInstance->xdata;
+                
+                U4DMatrix3n *m = (U4DMatrix3n *)instance->xdata;
+                
+                U4DVector3n vTransformed=m->transform(*v);
+                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(vTransformed.x, vTransformed.y, vTransformed.z);
+                
+                
+                // lookup class "U4DVector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Player instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+                
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+                
+            }
+            
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        logger->log("Unable to transform the vector. Make sure the vector is of type U4DVector3n.");
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    void U4DScriptManager::matrix3nFree(gravity_vm *vm, gravity_object_t *obj){
+        
+        gravity_instance_t *instance = (gravity_instance_t *)obj;
+        
+        // get xdata (which is a U4DMatrix3n instance)
+        U4DMatrix3n *r = (U4DMatrix3n *)instance->xdata;
+        
+        // explicitly free memory
+        delete r;
+    }
+
+    //logger
+    bool U4DScriptManager::loggerNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // self parameter is the logger_class create in register_cpp_classes
+        gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+        
+        // create Gravity instance and set its class to c
+        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        
+        // allocate a cpp instance of the logger class on the heap
+        U4DLogger *logger = U4DLogger::sharedInstance();
+        
+        // set cpp instance and xdata of the gravity instance
+        gravity_instance_setxdata(instance, logger);
+        
+        // return instance
+        RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+        
+    }
+
+    bool U4DScriptManager::loggerLog(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in logger_create function
+        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        //Here it would be nice to go through the variable argument list. However, I don't know if Gravity supports it yet.
+        //So for now, I'll just go through each argument and check the type
+        U4DLogger *logger = U4DLogger::sharedInstance();
+        
+        gravity_value_t value=GET_VALUE(1);
+        
+        if (VALUE_ISA_INT(value)) {
+            gravity_int_t v=value.n;
+            logger->log("%d",v);
+            
+        }else if(VALUE_ISA_FLOAT(value)){
+            gravity_float_t v=value.f;
+            logger->log("%f",v);
+            
+        }else if(VALUE_ISA_STRING(value)){
+            gravity_string_t *v=(gravity_string_t *)value.p;
+            logger->log(v->s);
+        }
+            
+        RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+    }
+
+    void U4DScriptManager::loggerFree (gravity_vm *vm, gravity_object_t *obj){
+        
+    }
+    
+    //MARK: -Model Class-
     bool U4DScriptManager::loadModel(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
@@ -123,44 +666,6 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
-    bool U4DScriptManager::log(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-        
-        U4DLogger *logger = U4DLogger::sharedInstance();
-
-        gravity_value_t value=GET_VALUE(1);
-
-        if (VALUE_ISA_INT(value)) {
-         gravity_int_t v=value.n;
-         logger->log("%d",v);
-
-        }else if(VALUE_ISA_FLOAT(value)){
-         gravity_float_t v=value.f;
-         logger->log("%f",v);
-
-        }else if(VALUE_ISA_STRING(value)){
-         gravity_string_t *v=(gravity_string_t *)value.p;
-         logger->log(v->s);
-        }else if(VALUE_ISA_LIST(value)){
-            
-            gravity_list_t *list = VALUE_AS_LIST(value);
-            
-            //size of array
-            int32_t count = (int32_t)marray_size(list->array);
-            if(count==3){
-                
-                gravity_float_t x=(marray_get(list->array,0)).f;
-                gravity_float_t y=(marray_get(list->array,1)).f;
-                gravity_float_t z=(marray_get(list->array,2)).f;
-                
-                logger->log("%f,%f,%f",x,y,z);
-                
-            }
-        }
-
-        RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-        
-    }
-
     bool U4DScriptManager::translateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
      
         // get self object which is the instance created in create function
@@ -173,31 +678,19 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *positionValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (positionValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                U4DVector3n *position = (U4DVector3n *)positionValue->xdata;
+                    
+                scriptBridge->translateTo(name, *position);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n position(x,y,z);
-                    
-                    scriptBridge->translateTo(name, position);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }
-                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                 
             }
             
         }
@@ -217,30 +710,19 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *positionValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (positionValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                U4DVector3n *position = (U4DVector3n *)positionValue->xdata;
+                    
+                scriptBridge->translateBy(name, *position);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n position(x,y,z);
-                    
-                    scriptBridge->translateBy(name, position);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                }
-                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                 
             }
             
         }
@@ -262,31 +744,19 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *rotateValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (rotateValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                U4DVector3n *orientation = (U4DVector3n *)rotateValue->xdata;
+                    
+                scriptBridge->rotateTo(name, *orientation);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n orientation(x,y,z);
-                    
-                    scriptBridge->rotateTo(name, orientation);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }
-                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                 
             }
             
         }
@@ -306,30 +776,18 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *rotateValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (rotateValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                U4DVector3n *orientation = (U4DVector3n *)rotateValue->xdata;
+                    
+                scriptBridge->rotateBy(name, *orientation);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n orientation(x,y,z);
-                    
-                    scriptBridge->rotateBy(name, orientation);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
                 
             }
             
@@ -337,34 +795,21 @@ namespace U4DEngine {
             
             gravity_value_t entity=GET_VALUE(1);
             gravity_value_t angle=GET_VALUE(2);
-            gravity_value_t axis=GET_VALUE(3);
+            gravity_instance_t *axisValue = (gravity_instance_t *)GET_VALUE(3).p;
             
-            
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_FLOAT(angle) && VALUE_ISA_LIST(axis)) {
+            if (VALUE_ISA_STRING(entity) && VALUE_ISA_FLOAT(angle) && (axisValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
                 gravity_float_t angleValue=angle.f;
                 
-                gravity_list_t *list = VALUE_AS_LIST(axis);
+                U4DVector3n *axis = (U4DVector3n *)axisValue->xdata;
+                    
+                scriptBridge->rotateBy(name,angleValue, *axis);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n axisVector(x,y,z);
-                    
-                    scriptBridge->rotateBy(name,angleValue, axisVector);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }
-                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                 
             }
             
         }
@@ -390,19 +835,36 @@ namespace U4DEngine {
                 
                 //convert the vector to a list
                 
-                //create a new list
-                gravity_list_t *l=gravity_list_new(NULL, 3);
+//                //create a new list
+//                gravity_list_t *l=gravity_list_new(NULL, 3);
+//
+//                //load the vector components into the list
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.x));
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.y));
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.z));
+//
+//                // transfer newly allocated object to the VM
+//                gravity_vm_transfer(vm, (gravity_object_t*) l);
+//
+//                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
                 
-                //load the vector components into the list
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.x));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.y));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.z));
-                
-                // transfer newly allocated object to the VM
-                gravity_vm_transfer(vm, (gravity_object_t*) l);
-                
-                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
-                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(absolutePosition.x, absolutePosition.y, absolutePosition.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
             }
             
         }
@@ -428,17 +890,35 @@ namespace U4DEngine {
                 //convert the vector to a list
                 
                 //create a new list
-                gravity_list_t *l=gravity_list_new(NULL, 3);
+//                gravity_list_t *l=gravity_list_new(NULL, 3);
+//
+//                //load the vector components into the list
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.x));
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.y));
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.z));
+//
+//                // transfer newly allocated object to the VM
+//                gravity_vm_transfer(vm, (gravity_object_t*) l);
+//
+//                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
                 
-                //load the vector components into the list
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.x));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.y));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.z));
-                
-                // transfer newly allocated object to the VM
-                gravity_vm_transfer(vm, (gravity_object_t*) l);
-                
-                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(absoluteOrientation.x, absoluteOrientation.y, absoluteOrientation.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
                 
             }
             
@@ -464,18 +944,36 @@ namespace U4DEngine {
                 
                 //convert the vector to a list
                 
-                //create a new list
-                gravity_list_t *l=gravity_list_new(NULL, 3);
+//                //create a new list
+//                gravity_list_t *l=gravity_list_new(NULL, 3);
+//
+//                //load the vector components into the list
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.x));
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.y));
+//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.z));
+//
+//                // transfer newly allocated object to the VM
+//                gravity_vm_transfer(vm, (gravity_object_t*) l);
+//
+//                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
                 
-                //load the vector components into the list
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.x));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.y));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.z));
-                
-                // transfer newly allocated object to the VM
-                gravity_vm_transfer(vm, (gravity_object_t*) l);
-                
-                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(viewDirection.x, viewDirection.y, viewDirection.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
                 
             }
             
@@ -491,38 +989,21 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t targetPos=GET_VALUE(2);
+            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(targetPos)) {
+            if (VALUE_ISA_STRING(entity) && (viewDirectionValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                //unpack the list into a vector
-                gravity_list_t *list = VALUE_AS_LIST(targetPos);
+                U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
+                    
+                //move in direction
+                scriptBridge->setViewInDirection(name, *viewDirection);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
                 
-                if(count==3){
+                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
                     
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n direction(x,y,z);
-                    
-                    //move in direction
-                    scriptBridge->setViewInDirection(name, direction);
-                    
-                    
-                    RETURN_VALUE(VALUE_FROM_TRUE, rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of vector must be size 3");
-                }
-                
             }
             
         }
@@ -537,37 +1018,21 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t viewDirection=GET_VALUE(2);
+            gravity_instance_t *viewDirection = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(viewDirection)) {
+            if (VALUE_ISA_STRING(entity) && (viewDirection!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                //unpack the list into a vector
-                gravity_list_t *list = VALUE_AS_LIST(viewDirection);
+                U4DVector3n *direction = (U4DVector3n *)viewDirection->xdata;
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
+                //move in direction
+                scriptBridge->setEntityForwardVector(name, *direction);
                 
-                if(count==3){
+                
+                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
                     
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n direction(x,y,z);
-                    
-                    //move in direction
-                    scriptBridge->setEntityForwardVector(name, direction);
-                    
-                    
-                    RETURN_VALUE(VALUE_FROM_TRUE, rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of vector must be size 3");
-                }
                 
             }
             
@@ -633,36 +1098,23 @@ namespace U4DEngine {
         if (nargs==4) {
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(2).p;
             gravity_value_t dtValue=GET_VALUE(3);
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue) && VALUE_ISA_FLOAT(dtValue)) {
+            if (VALUE_ISA_STRING(entity) && (velocityValue!=nullptr) && VALUE_ISA_FLOAT(dtValue)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
                 gravity_float_t dt=dtValue.f;
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+                    
+                scriptBridge->applyVelocity(name, *velocity,dt);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                if(count==3){
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
                     
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n velocity(x,y,z);
-                    
-                    scriptBridge->applyVelocity(name, velocity,dt);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of list must be size 3");
-                }
+                
             }
             
         }
@@ -677,33 +1129,19 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *gravityValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (gravityValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                U4DVector3n *gravity = (U4DVector3n *)gravityValue->xdata;
+                    
+                scriptBridge->setGravity(name, *gravity);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                if(count==3){
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
                     
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n gravity(x,y,z);
-                    
-                    scriptBridge->setGravity(name, gravity);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of vector must be size 3");
-                }
                 
             }
             
@@ -1070,50 +1508,36 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t targetPos=GET_VALUE(2);
+            gravity_instance_t *targetPos = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(targetPos)) {
+            if (VALUE_ISA_STRING(entity) && (targetPos!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                //unpack the list into a vector
-                gravity_list_t *list = VALUE_AS_LIST(targetPos);
+                U4DVector3n *targetPosition = (U4DVector3n *)targetPos->xdata;
+                    
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
+                //compute the final velocity
+                U4DVector3n finalVelocity=scriptBridge->seek(name, *targetPosition);
                 
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n targetPosition(x,y,z);
-                    
-                    //compute the final velocity
-                    U4DVector3n finalVelocity=scriptBridge->seek(name, targetPosition);
-                    
-                    //convert the vector to a list
-                    
-                    //create a new list
-                    gravity_list_t *l=gravity_list_new(NULL, 3);
-                    
-                    //load the vector components into the list
-                    marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.x));
-                    marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.y));
-                    marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.z));
-                    
-                    // transfer newly allocated object to the VM
-                    gravity_vm_transfer(vm, (gravity_object_t*) l);
-                    
-                    //return a list object
-                    RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of vector must be size 3");
-                }
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(finalVelocity.x, finalVelocity.y, finalVelocity.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
                 
             }
             
@@ -1130,51 +1554,37 @@ namespace U4DEngine {
         if(nargs==3){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t targetPos=GET_VALUE(2);
+            gravity_instance_t *targetPos = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(targetPos)) {
+            if (VALUE_ISA_STRING(entity) && (targetPos!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
-                //unpack the list into a vector
-                gravity_list_t *list = VALUE_AS_LIST(targetPos);
+                U4DVector3n *targetPosition = (U4DVector3n *)targetPos->xdata;
+                    
+                //compute the final velocity
+                U4DVector3n finalVelocity=scriptBridge->arrive(name, *targetPosition);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
-                
-                if(count==3){
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(finalVelocity.x, finalVelocity.y, finalVelocity.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
                     
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n targetPosition(x,y,z);
-                    
-                    //compute the final velocity
-                    U4DVector3n finalVelocity=scriptBridge->arrive(name, targetPosition);
-                    
-                    //convert the vector to a list
-                    
-                    //create a new list
-                    gravity_list_t *l=gravity_list_new(NULL, 3);
-                    
-                    //load the vector components into the list
-                    marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.x));
-                    marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.y));
-                    marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.z));
-                    
-                    // transfer newly allocated object to the VM
-                    gravity_vm_transfer(vm, (gravity_object_t*) l);
-                    
-                    //return a list object
-                    RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of vector must be size 3");
-                }
-                
+               
             }
             
         }
@@ -1203,21 +1613,23 @@ namespace U4DEngine {
                 //compute the final velocity
                 U4DVector3n finalVelocity=scriptBridge->pursuit(name, evaderName);
                 
-                //convert the vector to a list
-                
-                //create a new list
-                gravity_list_t *l=gravity_list_new(NULL, 3);
-                
-                //load the vector components into the list
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.x));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.y));
-                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(finalVelocity.z));
-                
-                // transfer newly allocated object to the VM
-                gravity_vm_transfer(vm, (gravity_object_t*) l);
-                
-                //return a list object
-                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(finalVelocity.x, finalVelocity.y, finalVelocity.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
                 
             }
             
@@ -1745,8 +2157,8 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
 
     void U4DScriptManager::freeObjects(gravity_vm *vm, gravity_object_t *obj){
         
-        
-        
+        vector3nFree(vm,obj);
+        //matrix3nFree(vm,obj);
     }
 
     void U4DScriptManager::registerClasses(gravity_vm *vm){
@@ -1758,7 +2170,6 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         gravity_class_bind(scriptBridgeClass, "loadModel", NEW_CLOSURE_VALUE(loadModel));
         gravity_class_bind(scriptBridgeClass, "addChild", NEW_CLOSURE_VALUE(addChild));
         gravity_class_bind(scriptBridgeClass, "removeChild", NEW_CLOSURE_VALUE(removeChild));
-        gravity_class_bind(scriptBridgeClass, "log", NEW_CLOSURE_VALUE(log));
         gravity_class_bind(scriptBridgeClass, "translateTo", NEW_CLOSURE_VALUE(translateTo));
         gravity_class_bind(scriptBridgeClass, "translateBy", NEW_CLOSURE_VALUE(translateBy));
         gravity_class_bind(scriptBridgeClass, "rotateTo", NEW_CLOSURE_VALUE(rotateTo));
@@ -1797,6 +2208,56 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         
         // register logger class inside VM
         gravity_vm_setvalue(vm, "untold", VALUE_FROM_OBJECT(scriptBridgeClass));
+        
+        //create vector3n class
+            
+        gravity_class_t *vector3n_class = gravity_class_new_pair(vm, "U4DVector3n", NULL, 0, 0);
+        gravity_class_t *vector3n_class_meta = gravity_class_get_meta(vector3n_class);
+        
+        gravity_class_bind(vector3n_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(vector3nNew));
+        
+        gravity_class_bind(vector3n_class, "x", VALUE_FROM_OBJECT(computed_property_create(NULL, NEW_FUNCTION(xGet), NEW_FUNCTION(xSet))));
+        gravity_class_bind(vector3n_class, "y", VALUE_FROM_OBJECT(computed_property_create(NULL, NEW_FUNCTION(yGet), NEW_FUNCTION(ySet))));
+        gravity_class_bind(vector3n_class, "z", VALUE_FROM_OBJECT(computed_property_create(NULL, NEW_FUNCTION(zGet), NEW_FUNCTION(zSet))));
+        
+        gravity_class_bind(vector3n_class, "magnitude", NEW_CLOSURE_VALUE(vector3nMagnitude));
+        gravity_class_bind(vector3n_class, "normalize", NEW_CLOSURE_VALUE(vector3nNormalize));
+        gravity_class_bind(vector3n_class, "dot", NEW_CLOSURE_VALUE(vector3nDot));
+        gravity_class_bind(vector3n_class, "cross", NEW_CLOSURE_VALUE(vector3nCross));
+        gravity_class_bind(vector3n_class, "angle", NEW_CLOSURE_VALUE(vector3nAngle));
+        
+        gravity_class_bind(vector3n_class, "show", NEW_CLOSURE_VALUE(vector3nShow));
+        
+        gravity_class_bind(vector3n_class, GRAVITY_OPERATOR_ADD_NAME, NEW_CLOSURE_VALUE(vector3nAdd));
+        gravity_class_bind(vector3n_class, GRAVITY_OPERATOR_SUB_NAME, NEW_CLOSURE_VALUE(vector3nSub));
+        gravity_class_bind(vector3n_class, GRAVITY_OPERATOR_MUL_NAME, NEW_CLOSURE_VALUE(vector3nMul));
+        gravity_class_bind(vector3n_class, GRAVITY_OPERATOR_DIV_NAME, NEW_CLOSURE_VALUE(vector3nDiv));
+        
+        // register vector3n class inside VM
+        gravity_vm_setvalue(vm, "U4DVector3n", VALUE_FROM_OBJECT(vector3n_class));
+        
+        //create U4DMatrix3n class
+           
+       gravity_class_t *matrix3n_class = gravity_class_new_pair(vm, "U4DMatrix3n", NULL, 0, 0);
+       gravity_class_t *matrix3n_class_meta = gravity_class_get_meta(matrix3n_class);
+       
+       gravity_class_bind(matrix3n_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(matrix3nNew));
+       gravity_class_bind(matrix3n_class, "show", NEW_CLOSURE_VALUE(matrix3nShow));
+       
+       gravity_class_bind(matrix3n_class, GRAVITY_OPERATOR_MUL_NAME, NEW_CLOSURE_VALUE(matrix3nTransformVector));
+       
+       // register U4DMatrix3n class inside VM
+       gravity_vm_setvalue(vm, "U4DMatrix3n", VALUE_FROM_OBJECT(matrix3n_class));
+        
+        //logger
+        gravity_class_t *logger_class = gravity_class_new_pair(vm, "U4DLogger", NULL, 0, 0);
+        gravity_class_t *logger_class_meta = gravity_class_get_meta(logger_class);
+        
+        gravity_class_bind(logger_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(loggerNew));
+        gravity_class_bind(logger_class, "log", NEW_CLOSURE_VALUE(loggerLog));
+        
+        // register logger class inside VM
+        gravity_vm_setvalue(vm, "U4DLogger", VALUE_FROM_OBJECT(logger_class));
         
     }
 

@@ -14,7 +14,6 @@
 #include "U4DGameConfigs.h"
 #include "U4DScriptManager.h"
 
-#include "U4DAnimManagerDict.h"
 #include "U4DAnimationManager.h"
 
 SandboxLogic::SandboxLogic():pPlayer(nullptr){

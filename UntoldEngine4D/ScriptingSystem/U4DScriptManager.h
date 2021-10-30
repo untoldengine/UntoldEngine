@@ -71,6 +71,42 @@ namespace U4DEngine {
         
         static U4DScriptManager *sharedInstance();
         
+        //vector3n
+        static bool vector3nNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool vector3nAdd(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool vector3nSub(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool vector3nMul(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool vector3nDiv(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+            
+        static bool vector3nMagnitude(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool vector3nNormalize(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+            
+        static bool vector3nDot(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool vector3nCross(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool vector3nAngle(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+            
+        static bool vector3nShow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool xGet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool xSet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool yGet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool ySet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool zGet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool zSet(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static void vector3nFree(gravity_vm *vm, gravity_object_t *obj);
+        
+        //matrix
+        static bool matrix3nNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool matrix3nShow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool matrix3nTransformVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static void matrix3nFree(gravity_vm *vm, gravity_object_t *obj);
+        
+        //logger
+        static bool loggerNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool loggerLog(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static void loggerFree (gravity_vm *vm, gravity_object_t *obj);
+        
         //bridge
         static bool bridgeInstance(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool loadModel(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -78,8 +114,7 @@ namespace U4DEngine {
         
         static bool removeChild(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
-        static bool log(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-        
+
         //transformation
         static bool translateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool translateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
