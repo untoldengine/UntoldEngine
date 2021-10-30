@@ -230,6 +230,7 @@ namespace U4DEngine {
         
         //update the script
         U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+        scriptManager->preUpdateClosure(dt);
         scriptManager->updateClosure(dt);
         
         //update the camera
