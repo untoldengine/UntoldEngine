@@ -167,7 +167,9 @@ namespace U4DEngine {
         static bool setCameraAsFirstPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool setCameraAsBasicFollow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        void awakeClosure();
         void initClosure();
+        void preUpdateClosure(double dt);
         void updateClosure(double dt);
         void userInputClosure(void *uData);
         void deInitClosure();

@@ -1770,6 +1770,36 @@ namespace U4DEngine {
         
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
+    
+    void U4DScriptManager::awakeClosure(){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false) {
+            
+            gravity_value_t awake_function = gravity_vm_getvalue(vm, "awake", (uint32_t)strlen("awake"));
+            if (!VALUE_ISA_CLOSURE(awake_function)) {
+                printf("Unable to find awake function into Gravity VM.\n");
+                
+            }else{
+                
+                // convert function to closure
+                gravity_closure_t *awake_closure = VALUE_AS_CLOSURE(awake_function);
+
+                // execute init closure
+                if (gravity_vm_runclosure (vm, awake_closure, VALUE_FROM_NULL, 0, 0)) {
+                    
+                    // retrieve returned result
+                    gravity_value_t result = gravity_vm_result(vm);
+                    
+                    
+                    
+                }
+            }
+            
+        }
+        
+    }
 
     void U4DScriptManager::initClosure(){
     
@@ -1832,33 +1862,62 @@ namespace U4DEngine {
         
     }
 
+    void U4DScriptManager::preUpdateClosure(double dt){
+        
+        U4DDirector *director=U4DDirector::sharedInstance();
+
+        if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false){
+
+            gravity_value_t pre_update_function = gravity_vm_getvalue(vm, "preUpdate", (uint32_t)strlen("preUpdate"));
+            if (!VALUE_ISA_CLOSURE(pre_update_function)) {
+                printf("Unable to find update function into Gravity VM.\n");
+
+            }else{
+
+                // convert function to closure
+                gravity_closure_t *pre_update_closure = VALUE_AS_CLOSURE(pre_update_function);
+
+                // prepare parameters
+
+                gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
+                gravity_value_t params[] = {p1};
+
+                // execute init closure
+                if (gravity_vm_runclosure (vm, pre_update_closure, VALUE_FROM_NULL, params, 1)) {
+                    
+                }
+            }
+        }
+        
+    }
+
     void U4DScriptManager::updateClosure(double dt){ 
 
-             U4DDirector *director=U4DDirector::sharedInstance();
+         U4DDirector *director=U4DDirector::sharedInstance();
 
-             if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false){
+         if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false){
 
-                 gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
-                 if (!VALUE_ISA_CLOSURE(update_function)) {
-                     printf("Unable to find update function into Gravity VM.\n");
+             gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
+             if (!VALUE_ISA_CLOSURE(update_function)) {
+                 printf("Unable to find update function into Gravity VM.\n");
 
-                 }else{
+             }else{
 
-                     // convert function to closure
-                     gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
+                 // convert function to closure
+                 gravity_closure_t *update_closure = VALUE_AS_CLOSURE(update_function);
 
-                     // prepare parameters
+                 // prepare parameters
 
-                     gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
-                     gravity_value_t params[] = {p1};
+                 gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
+                 gravity_value_t params[] = {p1};
 
-                     // execute init closure
-                     if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
-                         
-                     }
+                 // execute init closure
+                 if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_NULL, params, 1)) {
+                     
                  }
              }
          }
+     }
 
     void U4DScriptManager::userInputClosure(void *uData){
         
@@ -2145,7 +2204,7 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
          if (file_exists(path)) return file_read(path, size);
 
          // this unittest is able to resolve path only next to main test folder (not in nested folders)
-         const char *newpath = file_buildpath(path, "/Users/haroldserrano/Downloads/UntoldEngineScripts/");
+         const char *newpath = file_buildpath(path, "/Users/haroldserrano/Desktop/UntoldEngineStudio/ScriptingSystem/ScriptingSystem");
          if (!newpath) return NULL;
 
          const char *buffer = file_read(newpath, size);
@@ -2168,8 +2227,8 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
 
         gravity_class_bind(scriptBridgeClassMeta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(bridgeInstance));
         gravity_class_bind(scriptBridgeClass, "loadModel", NEW_CLOSURE_VALUE(loadModel));
-        gravity_class_bind(scriptBridgeClass, "addChild", NEW_CLOSURE_VALUE(addChild));
-        gravity_class_bind(scriptBridgeClass, "removeChild", NEW_CLOSURE_VALUE(removeChild));
+        gravity_class_bind(scriptBridgeClass, "addChildModel", NEW_CLOSURE_VALUE(addChild));
+        gravity_class_bind(scriptBridgeClass, "removeChildModel", NEW_CLOSURE_VALUE(removeChild));
         gravity_class_bind(scriptBridgeClass, "translateTo", NEW_CLOSURE_VALUE(translateTo));
         gravity_class_bind(scriptBridgeClass, "translateBy", NEW_CLOSURE_VALUE(translateBy));
         gravity_class_bind(scriptBridgeClass, "rotateTo", NEW_CLOSURE_VALUE(rotateTo));
