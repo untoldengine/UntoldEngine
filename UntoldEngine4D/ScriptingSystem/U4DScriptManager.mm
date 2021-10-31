@@ -1770,7 +1770,47 @@ namespace U4DEngine {
         
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
+
+    bool U4DScriptManager::pauseScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        scriptBridge->pauseScene();
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+        
+    }
+
+    bool U4DScriptManager::playScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        scriptBridge->playScene();
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+        
+    }
     
+
+    bool U4DScriptManager::anchorMouse(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if (nargs==2) {
+            gravity_value_t value=GET_VALUE(1);
+            
+            if (VALUE_ISA_BOOL(value)) {
+                
+                bool shouldAnchor=VALUE_AS_BOOL(value);
+                scriptBridge->anchorMouse(shouldAnchor);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
     void U4DScriptManager::awakeClosure(){
         
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -2264,6 +2304,10 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         gravity_class_bind(scriptBridgeClass, "setCameraAsThirdPerson", NEW_CLOSURE_VALUE(setCameraAsThirdPerson));
         gravity_class_bind(scriptBridgeClass, "setCameraAsFirstPerson", NEW_CLOSURE_VALUE(setCameraAsFirstPerson));
         gravity_class_bind(scriptBridgeClass, "setCameraAsBasicFollow", NEW_CLOSURE_VALUE(setCameraAsBasicFollow));
+        
+        gravity_class_bind(scriptBridgeClass, "pauseScene", NEW_CLOSURE_VALUE(pauseScene));
+        gravity_class_bind(scriptBridgeClass, "playScene", NEW_CLOSURE_VALUE(playScene));
+        gravity_class_bind(scriptBridgeClass, "anchorMouse", NEW_CLOSURE_VALUE(anchorMouse));
         
         // register logger class inside VM
         gravity_vm_setvalue(vm, "untold", VALUE_FROM_OBJECT(scriptBridgeClass));

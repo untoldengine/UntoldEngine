@@ -638,6 +638,8 @@ namespace U4DEngine {
         macKeyW,
         macKeyS,
         macKeyF,
+        macKeyP,
+        macKeyU,
         macKey1,
         macKey2,
         macKey3,

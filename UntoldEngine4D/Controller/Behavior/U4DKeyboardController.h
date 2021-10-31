@@ -32,6 +32,8 @@ namespace U4DEngine {
         U4DMacKey *keyA;
         U4DMacKey *keyD;
         U4DMacKey *keyS;
+        U4DMacKey *keyP;
+        U4DMacKey *keyU;
         U4DMacArrowKey *arrowKey;
         U4DMacKey *macKeyShift;
         U4DMacKey *macKeySpace;

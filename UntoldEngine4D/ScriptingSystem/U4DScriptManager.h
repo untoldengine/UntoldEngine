@@ -167,6 +167,11 @@ namespace U4DEngine {
         static bool setCameraAsFirstPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool setCameraAsBasicFollow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        //control
+        static bool anchorMouse(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool pauseScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool playScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         void awakeClosure();
         void initClosure();
         void preUpdateClosure(double dt);
