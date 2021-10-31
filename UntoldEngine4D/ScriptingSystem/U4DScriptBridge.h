@@ -111,6 +111,11 @@ namespace U4DEngine {
         
         U4DVector3n pursuit(std::string uPursuerName,std::string uEvaderName);
         
+        void pauseScene();
+        
+        void playScene();
+        
+        void anchorMouse(bool uValue);
         
     };
 

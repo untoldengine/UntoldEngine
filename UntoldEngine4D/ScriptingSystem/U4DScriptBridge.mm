@@ -9,6 +9,9 @@
 #include "U4DScriptBridge.h"
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
+#include "U4DSceneStateManager.h"
+#include "U4DSceneEditingState.h"
+#include "U4DScenePlayState.h"
 #include "U4DWorld.h"
 #include "U4DVector3n.h"
 #include "U4DModel.h"
@@ -713,6 +716,49 @@ U4DVector3n U4DScriptBridge::pursuit(std::string uPursuerName,std::string uEvade
             camera->setCameraBehavior(cameraBasicFollow);
         }
         
+    }
+
+    void U4DScriptBridge::pauseScene(){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        
+        U4DScene *scene=sceneManager->getCurrentScene();
+        
+        if(scene!=nullptr){
+            scene->setPauseScene(true);
+        }
+    }
+
+    void U4DScriptBridge::playScene(){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        
+        if(scene!=nullptr){
+            
+            U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+            
+            if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
+                //change scene state to edit mode
+                scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
+            }else if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){ 
+                scene->setPauseScene(false);
+                logger->log("Game was resumed");
+            }
+            
+        }
+    }
+
+    void U4DScriptBridge::anchorMouse(bool uValue){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        
+        if(scene!=nullptr){
+            scene->setAnchorMouse(uValue);
+            
+        }
     }
 
 }
