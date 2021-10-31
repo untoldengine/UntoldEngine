@@ -10,6 +10,7 @@
 #include <list>
 #include "U4DDirector.h"
 #include "U4DLogger.h"
+#include "U4DCamera.h"
 #include "U4DGameConfigs.h"
 #include "U4DScriptBridge.h"
 
@@ -1641,42 +1642,189 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_FALSE, rindex);
     }
  
+    //camera
+    bool U4DScriptManager::cameraNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // self parameter is the rect_class create in register_cpp_classes
+        gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+        
+        // create Gravity instance and set its class to c
+        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        
+        // allocate a cpp instance of the camera class on the heap
+        U4DCamera *camera = U4DCamera::sharedInstance();
+        
+        // set cpp instance and xdata of the gravity instance
+        gravity_instance_setxdata(instance, camera);
+        
+        // return instance
+        RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+        
+    }
+
+    bool U4DScriptManager::cameraTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in camera_create function
+        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==4) {
+        
+            if (VALUE_ISA_FLOAT(GET_VALUE(1)) &&  VALUE_ISA_FLOAT(GET_VALUE(2)) && VALUE_ISA_FLOAT(GET_VALUE(3))) {
+                
+                gravity_float_t v1 = GET_VALUE(1).f;
+                gravity_float_t v2 = GET_VALUE(2).f;
+                gravity_float_t v3 = GET_VALUE(3).f;
+                
+                U4DCamera *camera = U4DCamera::sharedInstance();
+                
+                camera->translateTo(v1, v2, v3);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+            
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        if (nargs!=4) {
+            logger->log("A translation requires three components.");
+        }else{
+            logger->log("The three components must be float types");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::cameraTranslateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in camera_create function
+        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==4) {
+        
+            if (VALUE_ISA_FLOAT(GET_VALUE(1)) &&  VALUE_ISA_FLOAT(GET_VALUE(2)) && VALUE_ISA_FLOAT(GET_VALUE(3))) {
+                
+                gravity_float_t v1 = GET_VALUE(1).f;
+                gravity_float_t v2 = GET_VALUE(2).f;
+                gravity_float_t v3 = GET_VALUE(3).f;
+                
+                U4DCamera *camera = U4DCamera::sharedInstance();
+                
+                camera->translateBy(v1, v2, v3);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+            
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        if (nargs!=4) {
+            logger->log("A translation requires three components.");
+        }else{
+            logger->log("The three components must be float types");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptManager::cameraRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in camera_create function
+        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==4) {
+        
+            if (VALUE_ISA_FLOAT(GET_VALUE(1)) &&  VALUE_ISA_FLOAT(GET_VALUE(2)) && VALUE_ISA_FLOAT(GET_VALUE(3))) {
+                
+                gravity_float_t v1 = GET_VALUE(1).f;
+                gravity_float_t v2 = GET_VALUE(2).f;
+                gravity_float_t v3 = GET_VALUE(3).f;
+                
+                U4DCamera *camera = U4DCamera::sharedInstance();
+                
+                camera->rotateTo(v1, v2, v3);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+            
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        if (nargs!=4) {
+            logger->log("A rotation requires three components.");
+        }else{
+            logger->log("The three components must be float types");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::cameraRotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // get self object which is the instance created in camera_create function
+        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==4) {
+        
+            if (VALUE_ISA_FLOAT(GET_VALUE(1)) &&  VALUE_ISA_FLOAT(GET_VALUE(2)) && VALUE_ISA_FLOAT(GET_VALUE(3))) {
+                
+                gravity_float_t v1 = GET_VALUE(1).f;
+                gravity_float_t v2 = GET_VALUE(2).f;
+                gravity_float_t v3 = GET_VALUE(3).f;
+                
+                U4DCamera *camera = U4DCamera::sharedInstance();
+                
+                camera->rotateBy(v1, v2, v3);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+            
+        }
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        if (nargs!=4) {
+            logger->log("A rotation requires three components.");
+        }else{
+            logger->log("The three components must be float types");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    void U4DScriptManager::cameraFree (gravity_vm *vm, gravity_object_t *obj){
+        
+    }
+
     bool U4DScriptManager::setCameraAsThirdPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-        
+                
         if (nargs==3) {
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *offsetValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (offsetValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
+                U4DVector3n *offset = (U4DVector3n *)offsetValue->xdata;
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                scriptBridge->setCameraAsThirdPerson(name, *offset);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
                 
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n uOffset(x,y,z);
-                    
-                    scriptBridge->setCameraAsThirdPerson(name, uOffset);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of list must be size 3");
-                }
             }
             
         }
@@ -1688,39 +1836,24 @@ namespace U4DEngine {
     bool U4DScriptManager::setCameraAsFirstPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-        
+                
         if (nargs==3) {
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *offsetValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (offsetValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
+                U4DVector3n *offset = (U4DVector3n *)offsetValue->xdata;
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                scriptBridge->setCameraAsFirstPerson(name, *offset);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
                 
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n uOffset(x,y,z);
-                    
-                    scriptBridge->setCameraAsFirstPerson(name, uOffset);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of list must be size 3");
-                }
             }
             
         }
@@ -1731,39 +1864,24 @@ namespace U4DEngine {
     bool U4DScriptManager::setCameraAsBasicFollow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-        
+                
         if (nargs==3) {
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t listValue=GET_VALUE(2);
+            gravity_instance_t *offsetValue = (gravity_instance_t *)GET_VALUE(2).p;
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_LIST(listValue)) {
+            if (VALUE_ISA_STRING(entity) && (offsetValue!=nullptr)) {
                 
                 gravity_string_t *v=(gravity_string_t *)entity.p;
                 std::string name(v->s);
                 
+                U4DVector3n *offset = (U4DVector3n *)offsetValue->xdata;
                 
-                gravity_list_t *list = VALUE_AS_LIST(listValue);
+                scriptBridge->setCameraAsBasicFollow(name, *offset);
                 
-                //size of array
-                int32_t count = (int32_t)marray_size(list->array);
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
                 
-                if(count==3){
-                    
-                    gravity_float_t x=(marray_get(list->array,0)).f;
-                    gravity_float_t y=(marray_get(list->array,1)).f;
-                    gravity_float_t z=(marray_get(list->array,2)).f;
-                    
-                    U4DVector3n uOffset(x,y,z);
-                    
-                    scriptBridge->setCameraAsBasicFollow(name, uOffset);
-                    
-                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                }else{
-                    U4DLogger *logger = U4DLogger::sharedInstance();
-                    logger->log("Size of list must be size 3");
-                }
             }
             
         }
@@ -2361,6 +2479,20 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         
         // register logger class inside VM
         gravity_vm_setvalue(vm, "U4DLogger", VALUE_FROM_OBJECT(logger_class));
+        
+        //camera
+        gravity_class_t *camera_class = gravity_class_new_pair(vm, "U4DCamera", NULL, 0, 0);
+            gravity_class_t *camera_class_meta = gravity_class_get_meta(camera_class);
+            
+        gravity_class_bind(camera_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(cameraNew));
+        
+        gravity_class_bind(camera_class, "translateTo", NEW_CLOSURE_VALUE(cameraTranslateTo));
+        gravity_class_bind(camera_class, "translateBy", NEW_CLOSURE_VALUE(cameraTranslateBy));
+        gravity_class_bind(camera_class, "rotateTo", NEW_CLOSURE_VALUE(cameraRotateTo));
+        gravity_class_bind(camera_class, "rotateBy", NEW_CLOSURE_VALUE(cameraRotateBy));
+        
+        // register logger class inside VM
+        gravity_vm_setvalue(vm, "U4DCamera", VALUE_FROM_OBJECT(camera_class));
         
     }
 
