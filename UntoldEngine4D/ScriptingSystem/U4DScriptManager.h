@@ -163,6 +163,13 @@ namespace U4DEngine {
         static bool pursuit(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         //camera
+        static bool cameraNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool cameraTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool cameraTranslateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool cameraRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool cameraRotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static void cameraFree (gravity_vm *vm, gravity_object_t *obj);
+        
         static bool setCameraAsThirdPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool setCameraAsFirstPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool setCameraAsBasicFollow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
