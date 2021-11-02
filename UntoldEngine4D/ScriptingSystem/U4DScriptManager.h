@@ -147,6 +147,14 @@ namespace U4DEngine {
         
         static bool getCollisionListTags(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        static bool initMass(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool initAsPlatform(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool resumeCollisionBehavior(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool pauseCollisionBehavior(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         //animation
         static bool initAnimations(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool deinitAnimations(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);

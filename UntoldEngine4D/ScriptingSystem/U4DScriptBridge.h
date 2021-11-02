@@ -70,6 +70,14 @@ namespace U4DEngine {
         
         void applyVelocity(std::string uEntityName, U4DVector3n uVelocity, float dt);
         
+        void initMass(std::string uEntityName, float uMass);
+        
+        void initAsPlatform(std::string uEntityName, bool uValue);
+        
+        void resumeCollisionBehavior(std::string uEntityName);
+        
+        void pauseCollisionBehavior(std::string uEntityName);
+        
         //collision filters, masks, etc
         void setCollisionFilterCategory(std::string uEntityName, int uCategory);
         

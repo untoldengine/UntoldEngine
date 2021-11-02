@@ -431,6 +431,52 @@ std::list<std::string> U4DScriptBridge::getCollisionListTags(std::string uEntity
     return collisionListTags;
 }
 
+void U4DScriptBridge::initMass(std::string uEntityName, float uMass){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->initMass(uMass);
+    }
+}
+
+void U4DScriptBridge::initAsPlatform(std::string uEntityName, bool uValue){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->initAsPlatform(uValue);
+    }
+}
+
+void U4DScriptBridge::resumeCollisionBehavior(std::string uEntityName){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->resumeCollisionBehavior();
+    }
+}
+
+void U4DScriptBridge::pauseCollisionBehavior(std::string uEntityName){
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->pauseCollisionBehavior();
+    }
+}
 
 void U4DScriptBridge::initAnimations(std::string uEntityName, std::list<std::string> uAnimationList){
     

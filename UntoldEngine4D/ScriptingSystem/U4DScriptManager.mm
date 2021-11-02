@@ -1317,6 +1317,109 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_FALSE, rindex);
     }
 
+    bool U4DScriptManager::initMass(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_value_t massValue=GET_VALUE(2);
+            
+            if (VALUE_ISA_STRING(entity) && VALUE_ISA_FLOAT(massValue)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                gravity_float_t mass=massValue.f;
+                
+                scriptBridge->initMass(name, mass);
+                
+                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
+            }
+            
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+        
+    }
+
+bool U4DScriptManager::initAsPlatform(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+    
+    U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+    
+    if(nargs==3){
+        
+        gravity_value_t entity=GET_VALUE(1);
+        gravity_value_t value=GET_VALUE(2);
+        
+        if (VALUE_ISA_STRING(entity) && VALUE_ISA_BOOL(value)) {
+            
+            gravity_string_t *v=(gravity_string_t *)entity.p;
+            std::string name(v->s);
+            
+            bool isPlatform=VALUE_AS_BOOL(value);
+            
+            scriptBridge->initAsPlatform(name, isPlatform);
+            
+            RETURN_VALUE(VALUE_FROM_TRUE, rindex);
+        }
+        
+    }
+    
+    RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+    
+}
+
+    bool U4DScriptManager::resumeCollisionBehavior(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==2){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(entity)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                scriptBridge->resumeCollisionBehavior(name);
+                
+                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
+            }
+            
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+    }
+
+    bool U4DScriptManager::pauseCollisionBehavior(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==2){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(entity)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                scriptBridge->pauseCollisionBehavior(name);
+                
+                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
+            }
+        
+        }
+        
+        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+        
+    }
+
     bool U4DScriptManager::initAnimations(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
@@ -2407,6 +2510,11 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         gravity_class_bind(scriptBridgeClass, "setIsCollisionSensor", NEW_CLOSURE_VALUE(setIsCollisionSensor));
         gravity_class_bind(scriptBridgeClass, "getModelHasCollided", NEW_CLOSURE_VALUE(getModelHasCollided));
         gravity_class_bind(scriptBridgeClass, "getCollisionListTags", NEW_CLOSURE_VALUE(getCollisionListTags));
+        gravity_class_bind(scriptBridgeClass, "initMass", NEW_CLOSURE_VALUE(initMass));
+        gravity_class_bind(scriptBridgeClass, "pauseCollisionBehavior", NEW_CLOSURE_VALUE(pauseCollisionBehavior));
+        gravity_class_bind(scriptBridgeClass, "resumeCollisionBehavior", NEW_CLOSURE_VALUE(resumeCollisionBehavior));
+        gravity_class_bind(scriptBridgeClass, "initAsPlatform", NEW_CLOSURE_VALUE(initAsPlatform));
+        
         
         gravity_class_bind(scriptBridgeClass, "initAnimations", NEW_CLOSURE_VALUE(initAnimations));
         gravity_class_bind(scriptBridgeClass, "deinitAnimations", NEW_CLOSURE_VALUE(deinitAnimations));
