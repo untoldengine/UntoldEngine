@@ -1539,6 +1539,92 @@ bool U4DScriptManager::initAsPlatform(gravity_vm *vm, gravity_value_t *args, uin
         
     }
 
+    bool U4DScriptManager::getAnimationIsPlaying(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if (nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_value_t animation=GET_VALUE(2);
+            
+            if (VALUE_ISA_STRING(entity) && VALUE_ISA_STRING(animation)){
+                
+                gravity_string_t *e=(gravity_string_t *)entity.p;
+                std::string name(e->s);
+                
+                gravity_string_t *a=(gravity_string_t *)animation.p;
+                std::string animationName(a->s);
+                
+                bool isPlaying=scriptBridge->getAnimationIsPlaying(name, animationName);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(isPlaying),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::getCurrentKeyframe(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if (nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_value_t animation=GET_VALUE(2);
+            
+            if (VALUE_ISA_STRING(entity) && VALUE_ISA_STRING(animation)){
+                
+                gravity_string_t *e=(gravity_string_t *)entity.p;
+                std::string name(e->s);
+                
+                gravity_string_t *a=(gravity_string_t *)animation.p;
+                std::string animationName(a->s);
+                
+                int currentKeyframe=scriptBridge->getCurrentKeyframe(name, animationName);
+                
+                RETURN_VALUE(VALUE_FROM_INT(currentKeyframe),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    
+
+    bool U4DScriptManager::setPlayContinuousLoop(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if (nargs==4){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_value_t animation=GET_VALUE(2);
+            gravity_value_t value=GET_VALUE(3);
+            
+            if (VALUE_ISA_STRING(entity) && VALUE_ISA_STRING(animation) && VALUE_ISA_BOOL(value)){
+                
+                gravity_string_t *e=(gravity_string_t *)entity.p;
+                std::string name(e->s);
+                
+                gravity_string_t *a=(gravity_string_t *)animation.p;
+                std::string animationName(a->s);
+                
+                bool playContinuously=VALUE_AS_BOOL(value);
+                
+                scriptBridge->setPlayContinuousLoop(name, animationName,playContinuously);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
     bool U4DScriptManager::setEntityToArmatureBoneSpace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
@@ -2522,6 +2608,9 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         gravity_class_bind(scriptBridgeClass, "stopAnimation", NEW_CLOSURE_VALUE(stopAnimation));
         gravity_class_bind(scriptBridgeClass, "setEntityToArmatureBoneSpace", NEW_CLOSURE_VALUE(setEntityToArmatureBoneSpace));
         gravity_class_bind(scriptBridgeClass, "setEntityToAnimationBoneSpace", NEW_CLOSURE_VALUE(setEntityToAnimationBoneSpace));
+        gravity_class_bind(scriptBridgeClass, "setPlayContinuousLoop", NEW_CLOSURE_VALUE(setPlayContinuousLoop));
+        gravity_class_bind(scriptBridgeClass, "getAnimationIsPlaying", NEW_CLOSURE_VALUE(getAnimationIsPlaying));
+        gravity_class_bind(scriptBridgeClass, "getCurrentKeyframe", NEW_CLOSURE_VALUE(getCurrentKeyframe));
         
         gravity_class_bind(scriptBridgeClass, "seek", NEW_CLOSURE_VALUE(seek));
         gravity_class_bind(scriptBridgeClass, "arrive", NEW_CLOSURE_VALUE(arrive));

@@ -561,6 +561,82 @@ void U4DScriptBridge::stopAnimation(std::string uEntityName, std::string uAnimat
     }
 }
 
+bool U4DScriptBridge::getAnimationIsPlaying(std::string uEntityName, std::string uAnimationName){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if (entity!=nullptr ) {
+        
+        //test if a animation manager already exist for the model
+        U4DAnimationManager *animationManager=reinterpret_cast<U4DAnimationManager*>(entity->pAnimationManager);
+        
+        if (animationManager!=nullptr) {
+            
+            //retrieve animation
+            U4DAnimation *animation=animationManager->getAnimationFromDictionary(uAnimationName);
+            
+            if (animation!=nullptr) {
+                return animation->getAnimationIsPlaying();
+            }
+            
+        }
+    
+    }
+    
+    return false;
+    
+}
+
+int U4DScriptBridge::getCurrentKeyframe(std::string uEntityName, std::string uAnimationName){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    int currentKeyFrame=0;
+    
+    if (entity!=nullptr ) {
+        
+        //test if a animation manager already exist for the model
+        U4DAnimationManager *animationManager=reinterpret_cast<U4DAnimationManager*>(entity->pAnimationManager);
+        
+        if (animationManager!=nullptr) {
+            
+            //retrieve animation
+            U4DAnimation *animation=animationManager->getAnimationFromDictionary(uAnimationName);
+            
+            if (animation!=nullptr) {
+                currentKeyFrame=animation->getCurrentKeyframe();
+            }
+            
+        }
+    
+    }
+    
+    return currentKeyFrame;
+}
+
+void U4DScriptBridge::setPlayContinuousLoop(std::string uEntityName, std::string uAnimationName, bool uValue){ 
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if (entity!=nullptr ) {
+        
+        //test if a animation manager already exist for the model
+        U4DAnimationManager *animationManager=reinterpret_cast<U4DAnimationManager*>(entity->pAnimationManager);
+        
+        if (animationManager!=nullptr) {
+            
+            //retrieve animation
+            U4DAnimation *animation=animationManager->getAnimationFromDictionary(uAnimationName);
+            
+            if (animation!=nullptr) {
+                animation->setPlayContinuousLoop(uValue);
+            }
+            
+        }
+        
+        
+    }
+}
+
 void U4DScriptBridge::setEntityToArmatureBoneSpace(std::string uEntityName,std::string uActorName,std::string uBoneName){
     
     U4DEntity *entity=world->searchChild(uEntityName);
