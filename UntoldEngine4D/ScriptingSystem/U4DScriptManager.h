@@ -160,6 +160,9 @@ namespace U4DEngine {
         static bool deinitAnimations(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool playAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool stopAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool setPlayContinuousLoop(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool getAnimationIsPlaying(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool getCurrentKeyframe(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         static bool setEntityToArmatureBoneSpace(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         

@@ -104,6 +104,12 @@ namespace U4DEngine {
         
         void setEntityToAnimationBoneSpace(std::string uEntityName,std::string uActorName,std::string uAnimationName,std::string uBoneName);
         
+        void setPlayContinuousLoop(std::string uEntityName, std::string uAnimationName, bool uValue);
+        
+        bool getAnimationIsPlaying(std::string uEntityName, std::string uAnimationName);
+        
+        int getCurrentKeyframe(std::string uEntityName, std::string uAnimationName);
+        
         //camera perspective
         void setCameraAsThirdPerson(std::string uEntityName, U4DVector3n uOffset);
         
