@@ -61,6 +61,10 @@ void SandboxScene::init(){
         
     testPipeline->initPipeline("vertexTestPipelineShader", "fragmentTestPipelineShader");
     
+    U4DEngine::U4DModelPipeline *nonvisiblePipeline=new U4DEngine::U4DModelPipeline("nonvisible");
+        
+    nonvisiblePipeline->initPipeline("vertexNonVisibleShader", "fragmentNonVisibleShader");
+
     loadComponents(sandboxWorld, sandboxLogic,true);
     
     //anchor mouse

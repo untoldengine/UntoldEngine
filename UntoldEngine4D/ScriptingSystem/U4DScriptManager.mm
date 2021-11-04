@@ -604,21 +604,47 @@ namespace U4DEngine {
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
         
-        gravity_value_t assetName=GET_VALUE(1);
-        
-        if (VALUE_ISA_STRING(assetName)) {
+        if(nargs==2){
             
-            gravity_string_t *v=(gravity_string_t *)assetName.p;
-            std::string name(v->s);
+            gravity_value_t assetName=GET_VALUE(1);
             
-            std::string entityName=scriptBridge->loadModel(name);
+            if (VALUE_ISA_STRING(assetName)) {
+                
+                gravity_string_t *v=(gravity_string_t *)assetName.p;
+                std::string name(v->s);
+                
+                std::string entityName=scriptBridge->loadModel(name);
+                
+                gravity_value_t gravityEntityName = VALUE_FROM_CSTRING(NULL, entityName.c_str());
+                gravity_string_t *n=(gravity_string_t *)gravityEntityName.p;
+                
+                RETURN_VALUE(VALUE_FROM_STRING(vm, n->s, n->len),rindex);
+                
+            }
             
-            gravity_value_t gravityEntityName = VALUE_FROM_CSTRING(NULL, entityName.c_str());
-            gravity_string_t *n=(gravity_string_t *)gravityEntityName.p;
+        }else if(nargs==3){
             
-            RETURN_VALUE(VALUE_FROM_STRING(vm, n->s, n->len),rindex);
+            gravity_value_t assetName=GET_VALUE(1);
+            gravity_value_t pipelineName=GET_VALUE(2);
             
+            if (VALUE_ISA_STRING(assetName) && VALUE_ISA_STRING(pipelineName)) {
+                
+                gravity_string_t *v=(gravity_string_t *)assetName.p;
+                std::string name(v->s);
+                
+                gravity_string_t *pipe=(gravity_string_t *)pipelineName.p;
+                std::string pipeline(pipe->s);
+                
+                std::string entityName=scriptBridge->loadModel(name,pipeline);
+                
+                gravity_value_t gravityEntityName = VALUE_FROM_CSTRING(NULL, entityName.c_str());
+                gravity_string_t *n=(gravity_string_t *)gravityEntityName.p;
+                
+                RETURN_VALUE(VALUE_FROM_STRING(vm, n->s, n->len),rindex);
+                
+            }
         }
+        
         
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
