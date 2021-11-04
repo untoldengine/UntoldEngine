@@ -70,6 +70,25 @@ std::string U4DScriptBridge::loadModel(std::string uAssetName){
     
 }
 
+std::string U4DScriptBridge::loadModel(std::string uAssetName, std::string uPipelineName){
+    
+    U4DModel *model= new U4DModel();
+
+    if (model->loadModel(uAssetName.c_str())) {
+        
+        model->setPipeline(uPipelineName);
+        
+        model->loadRenderingInformation();
+        
+        world->addChild(model);
+        
+        return model->getName();
+    }
+    
+    return "ERROR";
+    
+}
+
 void U4DScriptBridge::addChild(std::string uEntityName,std::string uParentName){
     
     U4DEntity *entity=world->searchChild(uEntityName);

@@ -36,6 +36,8 @@ namespace U4DEngine {
         
         std::string loadModel(std::string uAssetName);
         
+        std::string loadModel(std::string uAssetName, std::string uPipelineName);
+        
         void addChild(std::string uEntityName,std::string uParentName);
         
         void removeChild(std::string uEntityName);
