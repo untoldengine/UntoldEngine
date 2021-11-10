@@ -699,6 +699,9 @@
 		038BF274229584A300B129A5 /* U4DNavigation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF272229584A300B129A5 /* U4DNavigation.mm */; };
 		038BF275229584A300B129A5 /* U4DNavigation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF272229584A300B129A5 /* U4DNavigation.mm */; };
 		038BF276229584A300B129A5 /* U4DNavigation.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF272229584A300B129A5 /* U4DNavigation.mm */; };
+		03907FD2273B023F0092A0D2 /* idleAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03907FD1273B023E0092A0D2 /* idleAnimation.u4d */; };
+		03907FD3273B023F0092A0D2 /* idleAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03907FD1273B023E0092A0D2 /* idleAnimation.u4d */; };
+		03907FD4273B023F0092A0D2 /* idleAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03907FD1273B023E0092A0D2 /* idleAnimation.u4d */; };
 		0390836526CF813C001B6878 /* scenefile.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0390836426CF813B001B6878 /* scenefile.u4d */; };
 		0390836626CF813C001B6878 /* scenefile.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0390836426CF813B001B6878 /* scenefile.u4d */; };
 		0390836726CF813C001B6878 /* scenefile.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 0390836426CF813B001B6878 /* scenefile.u4d */; };
@@ -1394,6 +1397,7 @@
 		038BF26A2293883C00B129A5 /* U4DNavMeshLoader.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DNavMeshLoader.h; path = AISystem/NavMeshLoader/U4DNavMeshLoader.h; sourceTree = "<group>"; };
 		038BF272229584A300B129A5 /* U4DNavigation.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DNavigation.mm; path = AISystem/Pathfinding/U4DNavigation.mm; sourceTree = "<group>"; };
 		038BF273229584A300B129A5 /* U4DNavigation.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DNavigation.h; path = AISystem/Pathfinding/U4DNavigation.h; sourceTree = "<group>"; };
+		03907FD1273B023E0092A0D2 /* idleAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = idleAnimation.u4d; sourceTree = "<group>"; };
 		0390836426CF813B001B6878 /* scenefile.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = scenefile.u4d; sourceTree = "<group>"; };
 		039174FE1CD56D0000FD2674 /* U4DRestingForcesGenerator.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DRestingForcesGenerator.mm; path = RestingForces/U4DRestingForcesGenerator.mm; sourceTree = "<group>"; };
 		039174FF1CD56D0000FD2674 /* U4DRestingForcesGenerator.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DRestingForcesGenerator.h; path = RestingForces/U4DRestingForcesGenerator.h; sourceTree = "<group>"; };
@@ -2290,6 +2294,7 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				03907FD1273B023E0092A0D2 /* idleAnimation.u4d */,
 				036AE9C9270D847E00F9685B /* gameconfigs.gravity */,
 				0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */,
 				0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */,
@@ -3317,6 +3322,7 @@
 			files = (
 				0390836626CF813C001B6878 /* scenefile.u4d in Resources */,
 				03042F8E2657737500681C6C /* astronautWalkAnim.u4d in Resources */,
+				03907FD3273B023F0092A0D2 /* idleAnimation.u4d in Resources */,
 				03C044792683D733002B3880 /* rightshotAnimation.u4d in Resources */,
 				03042F66265770CD00681C6C /* spaceScene.u4d in Resources */,
 				03722B182029F0220080D069 /* Main.storyboard in Resources */,
@@ -3361,6 +3367,7 @@
 				03DEBE3B262A2676009C80B6 /* uiFont.u4d in Resources */,
 				03E688E4267793280079ED4D /* README.md in Resources */,
 				0361A0A027037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */,
+				03907FD4273B023F0092A0D2 /* idleAnimation.u4d in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
 				03C0445E26813562002B3880 /* soccerScene.u4d in Resources */,
 			);
@@ -3380,6 +3387,7 @@
 				03DEBE39262A2676009C80B6 /* uiFont.u4d in Resources */,
 				03042F9D26577A8700681C6C /* sceneTextures.u4d in Resources */,
 				036AE9CA270D847F00F9685B /* gameconfigs.gravity in Resources */,
+				03907FD2273B023F0092A0D2 /* idleAnimation.u4d in Resources */,
 				03042F8D2657737500681C6C /* astronautWalkAnim.u4d in Resources */,
 				0361A09E27037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */,
 				0390836526CF813C001B6878 /* scenefile.u4d in Resources */,

@@ -334,22 +334,22 @@ void U4DScriptBridge::deinitPhysics(std::string uEntityName){
     
 }
 
-void U4DScriptBridge::applyVelocity(std::string uEntityName, U4DVector3n uVelocity, float dt){
-    
-    U4DEntity *entity=world->searchChild(uEntityName);
-    
-    if (entity!=nullptr) {
-        
-        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
-        
-        if(kineticAction!=nullptr){
-                
-            kineticAction->applyVelocity(uVelocity, dt);
-        }
-        
-        
-    }
-}
+//void U4DScriptBridge::applyVelocity(std::string uEntityName, U4DVector3n uVelocity, float dt){
+//
+//    U4DEntity *entity=world->searchChild(uEntityName);
+//
+//    if (entity!=nullptr) {
+//
+//        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+//
+//        if(kineticAction!=nullptr){
+//
+//            kineticAction->applyVelocity(uVelocity, dt);
+//        }
+//
+//
+//    }
+//}
 
 void U4DScriptBridge::setGravity(std::string uEntityName, U4DVector3n uGravity){
     
@@ -497,6 +497,115 @@ void U4DScriptBridge::pauseCollisionBehavior(std::string uEntityName){
     }
 }
 
+U4DVector3n U4DScriptBridge::getModelDimensions(std::string uEntityName){
+    U4DEntity *entity=world->searchChild(uEntityName);
+    U4DVector3n dimensions;
+    
+    if(entity!=nullptr){
+        
+        U4DModel *model=reinterpret_cast<U4DModel*>(entity->pModel);
+        dimensions=model->getModelDimensions();
+        
+    }
+    
+    return dimensions;
+}
+
+U4DVector3n U4DScriptBridge::getVelocity(std::string uEntityName){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    U4DVector3n velocity;
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        velocity=kineticAction->getVelocity();
+        
+    }
+    
+    return velocity;
+    
+}
+
+void U4DScriptBridge::setAwake(std::string uEntityName, bool uValue){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        kineticAction->setAwake(uValue);
+        
+    }
+    
+}
+
+float U4DScriptBridge::getMass(std::string uEntityName){
+    
+    float mass=0.0;
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        mass=kineticAction->getMass();
+    }
+    
+    return mass;
+    
+}
+
+void U4DScriptBridge::addForce(std::string uEntityName,U4DVector3n uForce){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->addForce(uForce);
+    }
+}
+
+void U4DScriptBridge::addMoment(std::string uEntityName,U4DVector3n uMoment){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->addMoment(uMoment);
+    }
+}
+
+void U4DScriptBridge::setVelocity(std::string uEntityName, U4DVector3n uVelocity){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->setVelocity(uVelocity);
+    }
+    
+}
+
+void U4DScriptBridge::setAngularVelocity(std::string uEntityName, U4DVector3n uVelocity){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    if(entity!=nullptr){
+        
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        kineticAction->setAngularVelocity(uVelocity);
+    }
+}
+
 void U4DScriptBridge::initAnimations(std::string uEntityName, std::list<std::string> uAnimationList){
     
     U4DEntity *entity=world->searchChild(uEntityName);
@@ -561,7 +670,7 @@ void U4DScriptBridge::playAnimation(std::string uEntityName, std::string uAnimat
     }
 }
 
-void U4DScriptBridge::stopAnimation(std::string uEntityName, std::string uAnimationName){
+void U4DScriptBridge::stopAnimation(std::string uEntityName){
     
     U4DEntity *entity=world->searchChild(uEntityName);
     
@@ -759,6 +868,32 @@ U4DVector3n U4DScriptBridge::arrive(std::string uEntityName,U4DVector3n uTargetP
     return finalVelocity;
 }
 
+U4DVector3n U4DScriptBridge::arrive(std::string uEntityName,U4DVector3n uTargetPosition, float uMaxSpeed, float uTargetRadius, float uSlowRadius){
+    
+    U4DEntity *entity=world->searchChild(uEntityName);
+    
+    U4DArrive arriveBehavior;
+    U4DVector3n finalVelocity;
+    
+    if (entity!=nullptr) {
+        
+        //get the dynamic action for the model
+        U4DDynamicAction *kineticAction=reinterpret_cast<U4DDynamicAction*>(entity->pDynamicAction);
+        
+        if (kineticAction!=nullptr) {
+            
+            arriveBehavior.setMaxSpeed(uMaxSpeed);
+            arriveBehavior.setTargetRadius(uTargetRadius);
+            arriveBehavior.setSlowRadius(uSlowRadius);
+            finalVelocity=arriveBehavior.getSteering(kineticAction, uTargetPosition);
+            
+        }
+        
+    }
+    
+    return finalVelocity;
+}
+
 U4DVector3n U4DScriptBridge::pursuit(std::string uPursuerName,std::string uEvaderName){
     
     U4DEntity *pursuerEntity=world->searchChild(uPursuerName);
@@ -786,6 +921,34 @@ U4DVector3n U4DScriptBridge::pursuit(std::string uPursuerName,std::string uEvade
     return finalVelocity;
     
 }
+
+    U4DVector3n U4DScriptBridge::pursuit(std::string uPursuerName,std::string uEvaderName, float uMaxSpeed){
+        
+        U4DEntity *pursuerEntity=world->searchChild(uPursuerName);
+        U4DEntity *evaderEntity=world->searchChild(uEvaderName);
+
+        U4DPursuit pursuitBehavior;
+        U4DVector3n finalVelocity;
+        
+        if (pursuerEntity!=nullptr && evaderEntity!=nullptr) {
+            
+            //get the dynamic action for the model
+            U4DDynamicAction *pursuerKineticAction=reinterpret_cast<U4DDynamicAction*>(pursuerEntity->pDynamicAction);
+            
+            U4DDynamicAction *evaderKineticAction=reinterpret_cast<U4DDynamicAction*>(evaderEntity->pDynamicAction);
+            
+            
+            if (pursuerKineticAction!=nullptr && evaderKineticAction) {
+                
+                pursuitBehavior.setMaxSpeed(uMaxSpeed);
+                finalVelocity=pursuitBehavior.getSteering(pursuerKineticAction,evaderKineticAction);
+                
+            }
+            
+        }
+        
+        return finalVelocity;
+    }
 
     void U4DScriptBridge::setCameraAsThirdPerson(std::string uEntityName, U4DVector3n uOffset){
         
@@ -857,6 +1020,31 @@ U4DVector3n U4DScriptBridge::pursuit(std::string uPursuerName,std::string uEvade
             camera->setCameraBehavior(cameraBasicFollow);
         }
         
+    }
+
+    void U4DScriptBridge::setCameraAsBasicFollowWithBoxTracking(std::string uEntityName, U4DVector3n uOffset, U4DVector3n uMinPoint,U4DVector3n uMaxPoint){
+        
+        U4DEntity *entity=world->searchChild(uEntityName);
+        
+        if (entity!=nullptr ) {
+            
+            U4DModel *model=reinterpret_cast<U4DModel*>(entity->pModel);
+            
+            //Instantiate the camera
+            U4DCamera *camera=U4DCamera::sharedInstance();
+
+            //Instantiate the camera interface and the type of camera you desire
+            U4DCameraInterface *cameraBasicFollow=U4DCameraBasicFollow::sharedInstance();
+
+            //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
+            U4DPoint3n minPoint=uMinPoint.toPoint();
+            U4DPoint3n maxPoint=uMaxPoint.toPoint();
+            
+            cameraBasicFollow->setParametersWithBoxTracking(model,uOffset.x,uOffset.y,uOffset.z,minPoint,maxPoint);
+
+            //set the camera behavior
+            camera->setCameraBehavior(cameraBasicFollow);
+        }
     }
 
     void U4DScriptBridge::pauseScene(){

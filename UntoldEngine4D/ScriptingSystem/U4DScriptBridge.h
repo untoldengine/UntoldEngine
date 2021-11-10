@@ -63,6 +63,8 @@ namespace U4DEngine {
         
         void setEntityForwardVector(std::string uEntityName, U4DVector3n uViewDirection);
         
+        U4DVector3n getModelDimensions(std::string uEntityName);
+        
         //Physics
         void initPhysics(std::string uEntityName);
         
@@ -70,7 +72,7 @@ namespace U4DEngine {
         
         void setGravity(std::string uEntityName, U4DVector3n uGravity);
         
-        void applyVelocity(std::string uEntityName, U4DVector3n uVelocity, float dt);
+        //void applyVelocity(std::string uEntityName, U4DVector3n uVelocity, float dt);
         
         void initMass(std::string uEntityName, float uMass);
         
@@ -79,6 +81,20 @@ namespace U4DEngine {
         void resumeCollisionBehavior(std::string uEntityName);
         
         void pauseCollisionBehavior(std::string uEntityName);
+        
+        float getMass(std::string uEntityName);
+        
+        void addForce(std::string uEntityName,U4DVector3n uForce);
+        
+        void addMoment(std::string uEntityName,U4DVector3n uMoment);
+        
+        void setVelocity(std::string uEntityName, U4DVector3n uVelocity);
+        
+        void setAngularVelocity(std::string uEntityName, U4DVector3n uVelocity);
+        
+        U4DVector3n getVelocity(std::string uEntityName);
+        
+        void setAwake(std::string uEntityName, bool uValue);
         
         //collision filters, masks, etc
         void setCollisionFilterCategory(std::string uEntityName, int uCategory);
@@ -100,7 +116,7 @@ namespace U4DEngine {
         
         void playAnimation(std::string uEntityName, std::string uAnimationName);
         
-        void stopAnimation(std::string uEntityName, std::string uAnimationName);
+        void stopAnimation(std::string uEntityName);
         
         void setEntityToArmatureBoneSpace(std::string uEntityName,std::string uActorName,std::string uBoneName);
         
@@ -119,13 +135,19 @@ namespace U4DEngine {
         
         void setCameraAsBasicFollow(std::string uEntityName, U4DVector3n uOffset);
         
+        void setCameraAsBasicFollowWithBoxTracking(std::string uEntityName, U4DVector3n uOffset, U4DVector3n uMinPoint,U4DVector3n uMaxPoint);
+        
         //AI Steering
         
         U4DVector3n seek(std::string uEntityName,U4DVector3n uTargetPosition);
         
         U4DVector3n arrive(std::string uEntityName,U4DVector3n uTargetPosition);
         
+        U4DVector3n arrive(std::string uEntityName,U4DVector3n uTargetPosition, float uMaxSpeed, float uTargetRadius, float uSlowRadius);
+        
         U4DVector3n pursuit(std::string uPursuerName,std::string uEvaderName);
+        
+        U4DVector3n pursuit(std::string uPursuerName,std::string uEvaderName, float uMaxSpeed);
         
         void pauseScene();
         

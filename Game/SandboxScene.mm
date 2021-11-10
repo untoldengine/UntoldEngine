@@ -53,6 +53,7 @@ void SandboxScene::init(){
     //Load binary file with animation data
     resourceLoader->loadAnimationData("rightshotAnimation.u4d");
     resourceLoader->loadAnimationData("runningAnimation.u4d");
+    resourceLoader->loadAnimationData("idleAnimation.u4d");
     
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");

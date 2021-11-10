@@ -360,7 +360,7 @@ public:
     /**
      @todo document this
      */
-    void applyVelocity(U4DVector3n uVelocity, float dt);
+    //void applyVelocity(U4DVector3n uVelocity, float dt);
     
     /**
      @brief clear collision information, resets time of impact, resets equilibrium, clears collision list
