@@ -860,20 +860,7 @@ namespace U4DEngine {
                 
                 U4DVector3n absolutePosition=scriptBridge->getAbsolutePosition(name);
                 
-                //convert the vector to a list
                 
-//                //create a new list
-//                gravity_list_t *l=gravity_list_new(NULL, 3);
-//
-//                //load the vector components into the list
-//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.x));
-//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.y));
-//                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absolutePosition.z));
-//
-//                // transfer newly allocated object to the VM
-//                gravity_vm_transfer(vm, (gravity_object_t*) l);
-//
-//                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
                 
                 // create a new vector type
                 U4DVector3n *r = new U4DVector3n(absolutePosition.x, absolutePosition.y, absolutePosition.z);
@@ -1118,36 +1105,36 @@ namespace U4DEngine {
     }
         
 
-    bool U4DScriptManager::applyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-        
-        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-        
-        if (nargs==4) {
-            
-            gravity_value_t entity=GET_VALUE(1);
-            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(2).p;
-            gravity_value_t dtValue=GET_VALUE(3);
-            
-            if (VALUE_ISA_STRING(entity) && (velocityValue!=nullptr) && VALUE_ISA_FLOAT(dtValue)) {
-                
-                gravity_string_t *v=(gravity_string_t *)entity.p;
-                std::string name(v->s);
-                
-                gravity_float_t dt=dtValue.f;
-                
-                U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
-                    
-                scriptBridge->applyVelocity(name, *velocity,dt);
-                
-                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
-                
-            }
-            
-        }
-        
-        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-    }
+//    bool U4DScriptManager::applyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+//
+//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+//
+//        if (nargs==4) {
+//
+//            gravity_value_t entity=GET_VALUE(1);
+//            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(2).p;
+//            gravity_value_t dtValue=GET_VALUE(3);
+//
+//            if (VALUE_ISA_STRING(entity) && (velocityValue!=nullptr) && VALUE_ISA_FLOAT(dtValue)) {
+//
+//                gravity_string_t *v=(gravity_string_t *)entity.p;
+//                std::string name(v->s);
+//
+//                gravity_float_t dt=dtValue.f;
+//
+//                U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+//
+//                scriptBridge->applyVelocity(name, *velocity,dt);
+//
+//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+//
+//
+//            }
+//
+//        }
+//
+//        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+//    }
     
     bool U4DScriptManager::setGravity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
@@ -1446,6 +1433,251 @@ bool U4DScriptManager::initAsPlatform(gravity_vm *vm, gravity_value_t *args, uin
         
     }
 
+    bool U4DScriptManager::getMass(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==2){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(entity)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                float mass=scriptBridge->getMass(name);
+                
+                RETURN_VALUE(VALUE_FROM_FLOAT(mass),rindex);
+                
+            }
+        
+        }
+        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+        
+    }
+
+    bool U4DScriptManager::addForce(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_instance_t *forceValue = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            if (VALUE_ISA_STRING(entity) && (forceValue!=nullptr)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n *force = (U4DVector3n *)forceValue->xdata;
+                    
+                scriptBridge->addForce(name, *force);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                
+            }
+            
+        }
+
+         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::addMoment(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_instance_t *momentValue = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            if (VALUE_ISA_STRING(entity) && (momentValue!=nullptr)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n *moment = (U4DVector3n *)momentValue->xdata;
+                    
+                scriptBridge->addMoment(name, *moment);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                
+            }
+            
+        }
+
+         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::setVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            if (VALUE_ISA_STRING(entity) && (velocityValue!=nullptr)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+                    
+                scriptBridge->setVelocity(name, *velocity);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                
+            }
+            
+        }
+
+         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::setAngularVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            if (VALUE_ISA_STRING(entity) && (velocityValue!=nullptr)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+                    
+                scriptBridge->setAngularVelocity(name, *velocity);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                
+            }
+            
+        }
+
+         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptManager::getModelDimensions(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==2){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(entity)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n modelDimensions=scriptBridge->getModelDimensions(name);
+                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(modelDimensions.x, modelDimensions.y, modelDimensions.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+        
+    }
+
+    bool U4DScriptManager::setAwake(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==3){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_value_t value=GET_VALUE(2);
+            
+            if (VALUE_ISA_STRING(entity) && VALUE_ISA_BOOL(value)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                bool awakeValue=VALUE_AS_BOOL(value);
+                
+                scriptBridge->setAwake(name, awakeValue);
+                
+                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+        
+    }
+
+    bool U4DScriptManager::getVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
+        
+        if(nargs==2){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(entity)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n velocity=scriptBridge->getVelocity(name);
+                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(velocity.x, velocity.y, velocity.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
+    }
+
     bool U4DScriptManager::initAnimations(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
@@ -1542,20 +1774,20 @@ bool U4DScriptManager::initAsPlatform(gravity_vm *vm, gravity_value_t *args, uin
         
         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
         
-        if (nargs==3){
+        if (nargs==2){
             
             gravity_value_t entity=GET_VALUE(1);
-            gravity_value_t animation=GET_VALUE(2);
+            //gravity_value_t animation=GET_VALUE(2);
             
-            if (VALUE_ISA_STRING(entity) && VALUE_ISA_STRING(animation)){
+            if (VALUE_ISA_STRING(entity)){
                 
                 gravity_string_t *e=(gravity_string_t *)entity.p;
                 std::string name(e->s);
                 
-                gravity_string_t *a=(gravity_string_t *)animation.p;
-                std::string animationName(a->s);
+//                gravity_string_t *a=(gravity_string_t *)animation.p;
+//                std::string animationName(a->s);
                 
-                scriptBridge->stopAnimation(name, animationName);
+                scriptBridge->stopAnimation(name);
                 
                 RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
             }
@@ -1803,6 +2035,48 @@ bool U4DScriptManager::initAsPlatform(gravity_vm *vm, gravity_value_t *args, uin
                
             }
             
+        }else if(nargs==6){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_instance_t *targetPos = (gravity_instance_t *)GET_VALUE(2).p;
+            gravity_value_t maxSpeedValue=GET_VALUE(3);
+            gravity_value_t targetRadiusValue=GET_VALUE(4);
+            gravity_value_t slowRadiusValue=GET_VALUE(5);
+            
+            if (VALUE_ISA_STRING(entity) && (targetPos!=nullptr) && VALUE_ISA_FLOAT(maxSpeedValue) && VALUE_ISA_FLOAT(targetRadiusValue) && VALUE_ISA_FLOAT(slowRadiusValue)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n *targetPosition = (U4DVector3n *)targetPos->xdata;
+                
+                gravity_float_t maxSpeed=maxSpeedValue.f;
+                gravity_float_t targetRadius=targetRadiusValue.f;
+                gravity_float_t slowRadius=slowRadiusValue.f;
+                
+                //compute the final velocity
+                U4DVector3n finalVelocity=scriptBridge->arrive(name, *targetPosition,maxSpeed,targetRadius,slowRadius); 
+                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(finalVelocity.x, finalVelocity.y, finalVelocity.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+                    
+               
+            }
         }
         
         RETURN_VALUE(VALUE_FROM_FALSE, rindex);
@@ -1849,9 +2123,44 @@ bool U4DScriptManager::initAsPlatform(gravity_vm *vm, gravity_value_t *args, uin
                 
             }
             
-        }else{
-            U4DLogger *logger = U4DLogger::sharedInstance();
-            logger->log("The names for the pursuer and evader must be in string format");
+        }else if(nargs==4){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_value_t evaderEntity=GET_VALUE(2);
+            gravity_value_t maxSpeedValue=GET_VALUE(3);
+            
+            if (VALUE_ISA_STRING(entity) && VALUE_ISA_STRING(evaderEntity) && VALUE_ISA_FLOAT(maxSpeedValue)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                gravity_string_t *n=(gravity_string_t *)evaderEntity.p;
+                std::string evaderName(n->s);
+                
+                gravity_float_t maxSpeed=maxSpeedValue.f;
+                
+                //compute the final velocity
+                U4DVector3n finalVelocity=scriptBridge->pursuit(name, evaderName,maxSpeed);
+                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(finalVelocity.x, finalVelocity.y, finalVelocity.z);
+
+                // lookup class "Vector3n" already registered inside the VM
+                // a faster way would be to save a global variable of type gravity_class_t *
+                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+                
+            }
         }
         
         RETURN_VALUE(VALUE_FROM_FALSE, rindex);
@@ -2099,6 +2408,28 @@ bool U4DScriptManager::initAsPlatform(gravity_vm *vm, gravity_value_t *args, uin
                 
             }
             
+        }else if(nargs==5){
+            
+            gravity_value_t entity=GET_VALUE(1);
+            gravity_instance_t *offsetValue = (gravity_instance_t *)GET_VALUE(2).p;
+            gravity_instance_t *minPointValue = (gravity_instance_t *)GET_VALUE(3).p;
+            gravity_instance_t *maxPointValue = (gravity_instance_t *)GET_VALUE(4).p;
+            
+            if (VALUE_ISA_STRING(entity) && (offsetValue!=nullptr) && minPointValue!=nullptr && maxPointValue!=nullptr) {
+                
+                gravity_string_t *v=(gravity_string_t *)entity.p;
+                std::string name(v->s);
+                
+                U4DVector3n *offset = (U4DVector3n *)offsetValue->xdata;
+                U4DVector3n *minPoint=(U4DVector3n *)minPointValue->xdata;
+                U4DVector3n *maxPoint=(U4DVector3n *)maxPointValue->xdata;
+                
+                scriptBridge->setCameraAsBasicFollowWithBoxTracking(name, *offset,*minPoint,*maxPoint);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                
+            }
         }
         
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
@@ -2614,7 +2945,7 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         
         gravity_class_bind(scriptBridgeClass, "initPhysics", NEW_CLOSURE_VALUE(initPhysics));
         gravity_class_bind(scriptBridgeClass, "deinitPhysics", NEW_CLOSURE_VALUE(deinitPhysics));
-        gravity_class_bind(scriptBridgeClass, "applyVelocity", NEW_CLOSURE_VALUE(applyVelocity));
+        //gravity_class_bind(scriptBridgeClass, "applyVelocity", NEW_CLOSURE_VALUE(applyVelocity));
         gravity_class_bind(scriptBridgeClass, "setGravity", NEW_CLOSURE_VALUE(setGravity));
         gravity_class_bind(scriptBridgeClass, "setCollisionFilterCategory", NEW_CLOSURE_VALUE(setCollisionFilterCategory));
         gravity_class_bind(scriptBridgeClass, "setCollisionFilterMask", NEW_CLOSURE_VALUE(setCollisionFilterMask));
@@ -2627,6 +2958,15 @@ const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, 
         gravity_class_bind(scriptBridgeClass, "resumeCollisionBehavior", NEW_CLOSURE_VALUE(resumeCollisionBehavior));
         gravity_class_bind(scriptBridgeClass, "initAsPlatform", NEW_CLOSURE_VALUE(initAsPlatform));
         
+        
+        gravity_class_bind(scriptBridgeClass, "getMass", NEW_CLOSURE_VALUE(getMass));
+        gravity_class_bind(scriptBridgeClass, "addForce", NEW_CLOSURE_VALUE(addForce));
+        gravity_class_bind(scriptBridgeClass, "addMoment", NEW_CLOSURE_VALUE(addMoment));
+        gravity_class_bind(scriptBridgeClass, "setVelocity", NEW_CLOSURE_VALUE(setVelocity));
+        gravity_class_bind(scriptBridgeClass, "setAngularVelocity", NEW_CLOSURE_VALUE(setAngularVelocity));
+        gravity_class_bind(scriptBridgeClass, "getVelocity", NEW_CLOSURE_VALUE(getVelocity));
+        gravity_class_bind(scriptBridgeClass, "setAwake", NEW_CLOSURE_VALUE(setAwake));
+        gravity_class_bind(scriptBridgeClass, "getModelDimensions", NEW_CLOSURE_VALUE(getModelDimensions));
         
         gravity_class_bind(scriptBridgeClass, "initAnimations", NEW_CLOSURE_VALUE(initAnimations));
         gravity_class_bind(scriptBridgeClass, "deinitAnimations", NEW_CLOSURE_VALUE(deinitAnimations));

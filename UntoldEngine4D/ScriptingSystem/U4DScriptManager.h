@@ -133,6 +133,10 @@ namespace U4DEngine {
         static bool deinitPhysics(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool applyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        static bool getModelDimensions(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool setAwake(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool getVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         static bool setGravity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         static bool setCollisionFilterCategory(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -154,6 +158,16 @@ namespace U4DEngine {
         static bool resumeCollisionBehavior(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         static bool pauseCollisionBehavior(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool getMass(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool addForce(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool addMoment(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool setVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool setAngularVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         //animation
         static bool initAnimations(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);

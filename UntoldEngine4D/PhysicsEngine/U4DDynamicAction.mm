@@ -258,23 +258,23 @@ namespace U4DEngine {
     }
     
 
-    void U4DDynamicAction::applyVelocity(U4DVector3n uVelocity, float dt){
-        
-        //force=m*(vf-vi)/dt
-        //get mass
-        float mass=getMass();
-        
-        //calculate force
-        U4DEngine::U4DVector3n force=(uVelocity*mass)/dt;
-        
-        //apply force to the character
-        addForce(force);
-        
-        //set inital velocity to zero
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-        setVelocity(zero);
-        
-    }
+//    void U4DDynamicAction::applyVelocity(U4DVector3n uVelocity, float dt){
+//
+//        //force=m*(vf-vi)/dt
+//        //get mass
+//        float mass=getMass();
+//
+//        //calculate force
+//        U4DEngine::U4DVector3n force=(uVelocity*mass)/dt;
+//
+//        //apply force to the character
+//        addForce(force);
+//
+//        //set inital velocity to zero
+//        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+//        setVelocity(zero);
+//
+//    }
     
     
     void U4DDynamicAction::cleanUp(){
