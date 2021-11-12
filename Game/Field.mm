@@ -22,9 +22,9 @@ bool Field::init(const char* uModelName){
     
     if (loadModel(uModelName)) {
         
-        kineticAction=new U4DEngine::U4DDynamicAction(this);
-
-        kineticAction->enableCollisionBehavior();
+//        kineticAction=new U4DEngine::U4DDynamicAction(this);
+//
+//        kineticAction->enableCollisionBehavior();
         
         loadRenderingInformation();
         

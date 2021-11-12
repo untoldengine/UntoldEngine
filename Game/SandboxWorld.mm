@@ -12,18 +12,17 @@
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
-
+#include "U4DCameraInterface.h"
+#include "U4DCameraBasicFollow.h"
 #include "U4DDebugger.h"
 #include "U4DSkybox.h"
 #include "U4DModelPipeline.h"
 
 #include "Player.h"
 #include "Field.h"
-
-#include "U4DEntityFactory.h"
-#include "U4DSerializer.h"
-
-#include "U4DAnimationManager.h"
+#include "Ball.h"
+#include "PlayerStateIdle.h"
+#include "U4DGameConfigs.h"
 
 using namespace U4DEngine;
 
@@ -45,164 +44,123 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     setEnableGrid(true);
     
-//    U4DEngine::U4DModel *player=new U4DEngine::U4DModel();
-//
-//    //Line 3. Load attribute (rendering information) into the game entity
-//    if (player->loadModel("player0")) {
-//
-//
-////        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(player);
-////
-////        kineticAction->enableKineticsBehavior();
-////
-////        kineticAction->enableCollisionBehavior();
-//
-//        U4DEngine::U4DAnimationManager *animManager=new U4DEngine::U4DAnimationManager(player);
-//
-//        std::list<std::string> animationList={"running","shooting"};
-//        animManager->loadAnimationToDictionary(animationList);
-//
-//        //Line 4. Load rendering information into the GPU
-//        player->loadRenderingInformation();
-//
-//        //Line 5. Add astronaut to the scenegraph
-//        addChild(player);
-//
-//        //player->translateBy(0.0, 10.0, 0.0);
-//        animManager->setAnimationToPlay("running");
-//        animManager->playAnimation();
-//    }
+    //load the config values
+    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
     
-    //register the classes
+    gameConfigs->initConfigsMapKeys("dribblingBallSpeed","biasMoveMotion","arriveMaxSpeed","arriveStopRadius","arriveSlowRadius","dribblingDirectionSlerpValue",nullptr);
     
-//    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
-//
-//    entityFactory->registerClass<Player>("Player");
-//    entityFactory->registerClass<Field>("Field");
-//
-//    //deserialize
-//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-//
-//    serializer->deserialize("scenefile.u4d");
+    gameConfigs->loadConfigsMapValues("gameConfigs.gravity");
+    
+    Player *player=new Player();
+    if (player->init("player0")) {
+        addChild(player);
+        
+        //render the right foot
+        Foot *rightFoot=new Foot();
 
-    
-//
-//    //Render a skybox
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    //initialize the skybox
-//    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-//
-//    //add the skybox to the scenegraph with appropriate z-depth
-//    addChild(skybox);
+        std::string footName="rightfoot";
+        footName+=std::to_string(0);
 
+        if(rightFoot->init(footName.c_str())){
+
+            player->setFoot(rightFoot);
+
+        }
+        
+        player->changeState(PlayerStateIdle::sharedInstance());
+    }
     
-    //    std::map<std::string,std::string> sceneModelMap;
-    //
-    //    sceneModelMap["oppositeplayer0"]="U4DModel";
-    //    sceneModelMap["player0"]="Player";
-    //    sceneModelMap["field"]="Field";
-    //
-    //    //iterate through the map
-    //
-    //    std::map<std::string,std::string>::iterator it;
-    //
-    //    for(it=sceneModelMap.begin();it!=sceneModelMap.end();it++){
-    //
-    //        U4DModel *n=entityFactory->createAction(it->second);
-    //
-    //        if (n!=nullptr) {
-    //
-    //            if(it->second.compare("U4DModel")==0){
-    //
-    //                if (n->loadModel(it->first.c_str())) {
-    //
-    //                    n->loadRenderingInformation();
-    //                    addChild(n);
-    //
-    //                }
-    //
-    //            }else{
-    //
-    //                if (n->init(it->first.c_str())) {
-    //                    addChild(n);
-    //                }
-    //
-    //            }
-    //        }
-    //    }
+    
+    
+    Player *oppositePlayers[5];
+
+    for(int i=0;i<5;i++){
+        std::string name="oppositeplayer";
+        name+=std::to_string(i);
+
+        oppositePlayers[i]=new Player();
+
+        if(oppositePlayers[i]->init(name.c_str())){
+            addChild(oppositePlayers[i]);
             
-            
-    //    U4DModel *player=entityFactory->createAction("Player");
-    //    if(player->init("player0")){
-    //
-    //        addChild(player);
-    //    }
+            //render the right foot
+            Foot *rightFoot=new Foot();
 
-        
-    //    U4DModel *field=entityFactory->createAction("Field");
-    //
-    //    if(field->init("field")){
-    //
-    //        addChild(field);
-    //
-    //    }
-        
-    //    U4DModel *model=entityFactory->createAction("Model");
-    //    if (model->loadModel("oppositeplayer0")) {
-    //
-    //        model->loadRenderingInformation();
-    //        addChild(model);
-    //    }
+            std::string footName="rightfoot";
+            footName+=std::to_string(i+1);
 
-        
+            if(rightFoot->init(footName.c_str())){
 
-    //    //Line 3. Load attribute (rendering information) into the game entity
-    //    if (player->loadModel("player0")) {
-    //
-    //        player->setPipeline("testPipeline");
-    //
-    ////        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(player);
-    ////
-    ////        kineticAction->enableKineticsBehavior();
-    ////
-    ////        kineticAction->enableCollisionBehavior();
-    //
-    //        //Line 4. Load rendering information into the GPU
-    //        player->loadRenderingInformation();
-    //
-    //        //Line 5. Add astronaut to the scenegraph
-    //        addChild(player);
-    //
-    //        //player->translateBy(0.0, 10.0, 0.0);
-    //
-    //    }
-        
-    //    //Create an instance of U4DGameObject type
-    //    U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
-    //
-    //    //Line 3. Load attribute (rendering information) into the game entity
-    //    if (ground->loadModel("field")) {
-    //
-    //        //ground->setPipeline("testPipeline");
-    //
-    ////        U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
-    ////
-    ////        //gkinetic->enableKineticsBehavior();
-    ////
-    ////        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-    ////
-    ////        gkinetic->setGravity(zero);
-    ////
-    ////        gkinetic->enableCollisionBehavior();
-    //
-    //        //Line 4. Load rendering information into the GPU
-    //        ground->loadRenderingInformation();
-    //
-    //        //Line 5. Add astronaut to the scenegraph
-    //        addChild(ground);
-    //
-    //    }
+                oppositePlayers[i]->setFoot(rightFoot);
+
+            }
+        }
+
+        oppositePlayers[i]->changeState(PlayerStateIdle::sharedInstance());
+    }
+    
+    Field *field=new Field();
+    if(field->init("field")){
+        addChild(field);
+    }
+    
+    Ball *ball=Ball::sharedInstance();
+    if (ball->init("ball")) {
+        addChild(ball);
+    }
+    
+    U4DEngine::U4DModel *fieldGoals[2];
+
+    for(int i=0;i<sizeof(fieldGoals)/sizeof(fieldGoals[0]);i++){
+
+        std::string name="fieldgoal";
+
+        name+=std::to_string(i);
+
+        fieldGoals[i]=new U4DEngine::U4DModel();
+
+        if(fieldGoals[i]->loadModel(name.c_str())){
+
+
+            fieldGoals[i]->loadRenderingInformation();
+
+            addChild(fieldGoals[i]);
+        }
+
+    }
+    
+    U4DEngine::U4DModel *bleachers[4];
+
+    for(int i=0;i<sizeof(bleachers)/sizeof(bleachers[0]);i++){
+
+        std::string name="bleacher";
+
+        name+=std::to_string(i);
+
+        bleachers[i]=new U4DEngine::U4DModel();
+
+        if(bleachers[i]->loadModel(name.c_str())){
+
+
+            bleachers[i]->loadRenderingInformation();
+
+            addChild(bleachers[i]);
+        }
+
+    }
+    
+    
+    //Instantiate the camera
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+
+    //Instantiate the camera interface and the type of camera you desire
+    U4DEngine::U4DCameraInterface *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
+    
+    cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,20.0,-25.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
+    
+    //set the camera behavior
+    camera->setCameraBehavior(cameraBasicFollow);
+    
 }
 
 

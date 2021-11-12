@@ -10,14 +10,21 @@
 #define Foot_hpp
 
 #include <stdio.h>
-#include "U4DModel.h"
+
+
 #include "U4DDynamicAction.h"
 
 class Foot:public U4DEngine::U4DModel {
     
 private:
-    U4DEngine::U4DDynamicAction *kineticAction;
+    
+    float kickMagnitude;
+    
+    U4DEngine::U4DVector3n kickDirection;
+    
 public:
+    
+    U4DEngine::U4DDynamicAction *kineticAction;
     
     Foot();
     
@@ -27,6 +34,8 @@ public:
     bool init(const char* uModelName);
     
     void update(double dt);
+    
+    void setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection);
     
 };
 

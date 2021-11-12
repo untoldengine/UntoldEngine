@@ -17,7 +17,8 @@ class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     
-    U4DEngine::U4DModel *pPlayer;
+    Player *pPlayer;
+    
     
 public:
     
@@ -30,6 +31,8 @@ public:
     void init();
     
     void receiveUserInputUpdate(void *uData);
+    
+    
     
 };
 #endif /* DebugLogic_hpp */

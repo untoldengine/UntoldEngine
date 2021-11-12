@@ -12,24 +12,15 @@
 
 namespace U4DEngine {
     
-    U4DAnimationManager::U4DAnimationManager(U4DModel *uU4DModel):model(uU4DModel),currentAnimation(NULL),previousAnimation(NULL),nextAnimation(NULL), blendedStartKeyframe(0),blendedStartInterpolationTime(0.0){
+    U4DAnimationManager::U4DAnimationManager():currentAnimation(NULL),previousAnimation(NULL),nextAnimation(NULL), blendedStartKeyframe(0),blendedStartInterpolationTime(0.0){
         
         blendedAnimation=new U4DBlendAnimation(this);
         
-        model->pAnimationManager=this;
     }
     
     U4DAnimationManager::~U4DAnimationManager(){
         
         delete blendedAnimation;
-        
-        //stop current animation if any
-        removeCurrentPlayingAnimation();
-        
-        //erase the animation map and delete all animations
-        removeAllAnimationsFromDictionary();
-        
-        model->pAnimationManager=nullptr;
         
     }
     
@@ -37,11 +28,6 @@ namespace U4DEngine {
     void U4DAnimationManager::setAnimationToPlay(U4DAnimation* uAnimation){
         
         nextAnimation=uAnimation;
-    }
-
-    void U4DAnimationManager::setAnimationToPlay(std::string uAnimationName){
-        U4DAnimation *animation=getAnimationFromDictionary(uAnimationName);
-        nextAnimation=animation;
     }
     
 
@@ -245,81 +231,5 @@ namespace U4DEngine {
         
         return blendedStartInterpolationTime;
     }
-
-    void U4DAnimationManager::loadAnimationToDictionary(std::list<std::string> uAnimationList){
-
-        //get the list
-        for (auto animationName:uAnimationList){
-            
-            auto entry=animationsMap.find(animationName);
-            
-            U4DAnimation *uAnimation=new U4DAnimation(model);
-            
-            if(model->loadAnimationToModel(uAnimation, animationName.c_str())){
-                
-                //Make sure we are not adding more than one animation to the model
-                if (entry!=animationsMap.end()) {
-                    
-                    U4DAnimation *previousAnimation=std::move(entry->second);
-                    
-                    delete previousAnimation;
-                    
-                    animationsMap.insert({animationName,std::move(uAnimation)});
-                    
-                }else{
-            
-                    animationsMap.insert(std::make_pair(animationName,uAnimation));
-                    
-                }
-                
-            }
-        }
-        
-    }
-
-    U4DAnimation *U4DAnimationManager::getAnimationFromDictionary(std::string uAnimationName){
-
-        std::map<std::string,U4DAnimation*>::iterator it=animationsMap.find(uAnimationName);
-        U4DAnimation *animation=nullptr;
-        
-        if (it != animationsMap.end()) {
-            animation=animationsMap.find(uAnimationName)->second;
-        }
-        
-        return animation;
-    }
-
-    void U4DAnimationManager::removeAnimationFromDictionary(std::string uAnimationName){
-
-        std::map<std::string,U4DAnimation*>::iterator it=animationsMap.find(uAnimationName);
-        U4DAnimation *animation=nullptr;
-        
-        if (it != animationsMap.end()) {
-            animation=animationsMap.find(uAnimationName)->second;
-            
-            animationsMap.erase(it);
-            
-            delete animation;
-        }
-        
-        
-    }
-
-    void U4DAnimationManager::removeAllAnimationsFromDictionary(){
-        
-        //get all the keys from the map
-        std::vector<std::string> keys;
-          for (auto const& n : animationsMap) {
-            keys.push_back(n.first);
-          }
-        
-        //remove from map and delete animation
-        for(auto const &n:keys){
-            removeAnimationFromDictionary(n);
-            
-        }
-        
-    }
     
-
 }

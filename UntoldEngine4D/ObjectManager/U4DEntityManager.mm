@@ -228,11 +228,6 @@ namespace U4DEngine {
         
         profilerManager->stopProfiling();
         
-        //update the script
-        U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-        scriptManager->preUpdateClosure(dt);
-        scriptManager->updateClosure(dt);
-        
         //update the camera
         U4DCamera *camera=U4DCamera::sharedInstance();
         camera->update(dt);

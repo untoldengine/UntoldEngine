@@ -27,12 +27,11 @@
 #include "U4DSceneStateManager.h"
 #include "U4DSceneEditingState.h"
 #include "U4DScenePlayState.h"
-#include "U4DEntityFactory.h"
+
 
 #include "U4DWorld.h"
 #include "U4DModel.h"
 
-#include "U4DSerializer.h"
 
 #include "U4DRay.h"
 #include "U4DAABB.h"
@@ -94,7 +93,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     U4DWorld *world=scene->getGameWorld();
     U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
     
-    U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
     U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
     
     ImGuiFileDialog gravityFileDialog;
@@ -274,8 +272,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                           logger->log("Script was loaded.");
 
                           //call the init function in the script
-                          scriptManager->awakeClosure();
-                          scriptManager->initClosure();
+                          scriptManager->loadGameConfigs();
 
                           scriptLoadedSuccessfully=true;
                       }else{
@@ -400,69 +397,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 
             }
             
-            
-            
-            {
-                ImGui::Begin("Menu");
-                
-                if (ImGui::Button("Save")) {
-                    
-                    serialiazeFlag=true;
-                    serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
-                    
-                }
-                ImGui::SameLine();
-                if (ImGui::Button("Open")) {
-                    
-                    deserializeFlag=true;
-                    serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
-                    
-                }
-                
-                if (serialiazeFlag || deserializeFlag) {
-                    
-                    if (serializeFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                       {
-                           // action if OK
-                           if (serializeFileDialog.Instance()->IsOk())
-                           {
-                           
-                           sceneFilePathName = serializeFileDialog.Instance()->GetFilePathName();
-                               logger->log("%s",sceneFilePathName.c_str());
-                               
-                               
-                               if (serialiazeFlag) {
-                                   //serialize
-                                   U4DSerializer *serializer=U4DSerializer::sharedInstance();
-                   
-                                   serializer->serialize(sceneFilePathName);
-                                   
-                               }else if(deserializeFlag){
-                                   //deserialize
-                                   U4DSerializer *serializer=U4DSerializer::sharedInstance();
-                                   
-                                   serializer->deserialize(sceneFilePathName);
-                               }
-                               
-                           }else{
-                           
-                           }
-                           
-                           serialiazeFlag=false;
-                           deserializeFlag=false;
-                           
-                           // close
-                           serializeFileDialog.Instance()->Close();
-                           
-                       }
-                    
-                }
-                ImGui::End();
-            }
-                
-            
-            
-
             {
                 
              ImGui::Begin("Scene Property");
@@ -671,93 +605,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
              ImGui::End();
 
             }
-                    
-            
-            {
-            ImGui::Begin("Assets");
-            if (ImGui::TreeNode("Models"))
-            {
-                
-                for (const auto &n : resourceLoader->getModelContainer()) {
-                    
-                    
-                    char buf[32];
-                    sprintf(buf, "%s", n.name.c_str());
-                        
-                    if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0)) {
-                        assetSelectedName=n.name;
-                        assetIsSelected=true;
-                     }
-                        
-                }
-                
-                
-                
-                ImGui::TreePop();
-
-            }
-
-            ImGui::End();
-
-           }
-            
-            {
-                if (assetIsSelected) {
-                    
-                    ImGui::Begin("Load Assets");
-                    
-                    if (scene->getPauseScene()) {
-                        
-                        ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
-                        
-                        ImGui::Text("Select Asset Pipeline");
-                        
-                        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-                        
-                        std::vector<std::string> items=renderManager->getRenderingPipelineList();
-                        
-                        static int item_current_idx = 0; // Here we store our selection data as an index.
-                        
-                        const char* combo_label = items.at(item_current_idx).c_str();
-                        
-                        assetSelectedPipelineName=items.at(item_current_idx).c_str();
-                        
-                        static ImGuiComboFlags flags = 0;
-                        
-                        if (ImGui::BeginCombo("Pipelines", combo_label, flags))
-                        {
-                            for (int n = 0; n < items.size(); n++)
-                            {
-                                const bool is_selected = (item_current_idx == n);
-                                if (ImGui::Selectable(items.at(n).c_str(), is_selected)){
-                                    item_current_idx = n;
-                                    assetSelectedPipelineName=items.at(n);
-                                }
-                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                                if (is_selected)
-                                    ImGui::SetItemDefaultFocus();
-                            }
-                            ImGui::EndCombo();
-                        }
-                        
-                        if(ImGui::Button("load Assset")){
-                        
-                            if (scene!=nullptr) {
-                                
-                                entityFactory->createModelInstance(assetSelectedName,assetSelectedPipelineName);
-                                
-                            }
-                            
-                        }
-                        
-                    }
-                    
-                    ImGui::End();
-                }
-                
-                
-            }
-            
+                  
         }
         
         
