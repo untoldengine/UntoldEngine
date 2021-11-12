@@ -23,6 +23,13 @@ typedef struct{
     
 }JoystickMessageData;
 
+enum{
+    stopped,
+    rolling,
+    kicked,
+    decelerating,
+    
+}BALLSTATE;
 
 enum MouseMovementDirection{
     forwardDir,
@@ -31,6 +38,23 @@ enum MouseMovementDirection{
     leftDir,
     noDir,
 };
+
+enum PlayerState{
+    chasing,
+    idle,
+    dribbling,
+    shooting,
+};
+
+typedef enum{
+    
+    kPlayer=0x0002,
+    kBall=0x0004,
+    kFoot=0x0008,
+    kOppositePlayer=0x000A,
+    kGoalSensor=0x0020,
+    
+}GameEntityCollision;
 
 
 #endif /* UserCommonProtocols_h */

@@ -25,6 +25,11 @@ namespace U4DEngine {
         delete keyD;
         delete keyS;
         
+        delete keyJ;
+        delete keyK;
+        delete keyL;
+        delete keyI;
+        
         delete keyP;
         delete keyU;
         
@@ -44,6 +49,11 @@ namespace U4DEngine {
         keyD=new U4DMacKey(U4DEngine::macKeyD,this);
         keyS=new U4DMacKey(U4DEngine::macKeyS, this);
         
+        keyJ=new U4DMacKey(U4DEngine::macKeyJ, this);
+        keyK=new U4DMacKey(U4DEngine::macKeyK, this);
+        keyL=new U4DMacKey(U4DEngine::macKeyL, this);
+        keyI=new U4DMacKey(U4DEngine::macKeyI, this);
+        
         //these two keys are being used as hot-keys to stop/play the game test through the editor
         keyP=new U4DMacKey(U4DEngine::macKeyP, this);
         keyU=new U4DMacKey(U4DEngine::macKeyU, this);
@@ -62,6 +72,11 @@ namespace U4DEngine {
         registerInputEntity(keyS);
         registerInputEntity(keyP);
         registerInputEntity(keyU);
+        
+        registerInputEntity(keyJ);
+        registerInputEntity(keyK);
+        registerInputEntity(keyL);
+        registerInputEntity(keyI);
         
         registerInputEntity(macKeyShift);
         registerInputEntity(macKeySpace);
@@ -105,6 +120,22 @@ namespace U4DEngine {
         
         if(uCharacter=='u' || uCharacter=='U'){
             changeState(U4DEngine::macKeyU, uInputAction, pos);
+        }
+        
+        if(uCharacter=='j' || uCharacter=='J'){
+            changeState(U4DEngine::macKeyJ, uInputAction, pos);
+        }
+        
+        if(uCharacter=='k' || uCharacter=='K'){
+            changeState(U4DEngine::macKeyK, uInputAction, pos);
+        }
+        
+        if(uCharacter=='l' || uCharacter=='L'){
+            changeState(U4DEngine::macKeyL, uInputAction, pos);
+        }
+        
+        if(uCharacter=='i' || uCharacter=='I'){
+            changeState(U4DEngine::macKeyI, uInputAction, pos);
         }
     
         if(uCharacter=='1'){

@@ -8,6 +8,7 @@
 
 #include "U4DMacKeyPressedState.h"
 #include "U4DControllerInterface.h"
+#include "U4DMacKeyActiveState.h"
 
 namespace U4DEngine {
     

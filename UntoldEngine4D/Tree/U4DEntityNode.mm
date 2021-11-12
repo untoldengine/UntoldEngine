@@ -15,7 +15,7 @@
 namespace U4DEngine {
     
     template <typename T>
-    U4DEntityNode<T>::U4DEntityNode():parent(nullptr),next(nullptr),pModel(nullptr),pDynamicAction(nullptr),pAnimationManager(nullptr){
+    U4DEntityNode<T>::U4DEntityNode():parent(nullptr),next(nullptr),pModel(nullptr),pDynamicAction(nullptr){
         
         prevSibling=static_cast<T*>(this);
         lastDescendant=static_cast<T*>(this);

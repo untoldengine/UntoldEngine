@@ -185,49 +185,4 @@ namespace U4DEngine {
         next=nullptr;
     }
 
-std::string U4DWorld::searchScenegraphForNextName(std::string uAssetName){ 
-    
-    //search the scenegraph for current names.
-    //The following re will match "player.12" or "ball.1 for example
-    std::string reString="("+uAssetName+")(\\.)(\\d{1,})";
-    std::regex re(reString);
-    std::smatch match;
-    
-    U4DEntity *child=this->next;
-    
-    int count=0;
-    int highestEntityIndex=INT_MIN;
-    
-    while (child!=nullptr) {
-        
-        //strip all characters up to the period
-        if(child->getEntityType()==U4DEngine::MODEL){
-            
-            std::string s=child->getName();
-            
-            if (std::regex_match(s,match,re)) {
-                
-                int entityIndex=std::stoi(match.str(3));
-                
-                if (entityIndex>highestEntityIndex) {
-                    highestEntityIndex=entityIndex;
-                }
-                
-                count++;
-                
-            }
-        }
-        
-        child=child->next;
-        
-    }
-    
-    //we are increasing the count by one. So, if the entity has an index of 12, such as player.12, the next one in line will be player.13. This will work regardless of how many player entities there are in the scenegraph
-    if(highestEntityIndex>=count) count=highestEntityIndex+1;
-    
-    std::string modelName=uAssetName+"."+std::to_string(count);
-    
-    return modelName;
-}
-
 }

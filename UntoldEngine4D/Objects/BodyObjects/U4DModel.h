@@ -83,16 +83,6 @@ namespace U4DEngine {
          */
         U4DMeshOctreeManager *meshOctreeManager;
         
-        /**
-         @brief Variable that stores the class type
-         */
-        std::string classType;
-        
-        
-        /**
-         @brief Reference name to Blender Asset
-         */
-        std::string assetReferenceName;
         
     protected:
         
@@ -413,14 +403,6 @@ namespace U4DEngine {
          @brief gets a pointer to the mesh manager in charge of building an octree
          */
         U4DMeshOctreeManager *getMeshOctreeManager();
-        
-        void setClassType(std::string uClassType);
-        
-        std::string getClassType();
-        
-        void setAssetReferenceName(std::string uAssetReferenceName);
-        
-        std::string getAssetReferenceName();
         
     };
     

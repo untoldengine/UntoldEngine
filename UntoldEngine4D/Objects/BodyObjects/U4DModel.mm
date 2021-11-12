@@ -27,7 +27,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),hasNormalMap(false),enableNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(10,U4DVector4n(0.0,0.0,0.0,0.0)),classType("U4DModel"){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),hasNormalMap(false),enableNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(10,U4DVector4n(0.0,0.0,0.0,0.0)){
         
         renderEntity=new U4DRender3DModel(this);
         
@@ -531,25 +531,6 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
         
         return meshOctreeManager;
         
-    }
-
-    void U4DModel::setClassType(std::string uClassType){
-         
-        classType=uClassType;
-        
-    }
-
-    std::string U4DModel::getClassType(){
-        
-        return classType;
-    }
-
-    void U4DModel::setAssetReferenceName(std::string uAssetReferenceName){
-        assetReferenceName=uAssetReferenceName;
-    }
-
-    std::string U4DModel::getAssetReferenceName(){
-        return assetReferenceName;
     }
     
 }

@@ -177,8 +177,6 @@ public:
 
     void removeAllModelChildren();
     
-    std::string searchScenegraphForNextName(std::string uAssetName);
-    
 };
     
 }

@@ -640,6 +640,10 @@ namespace U4DEngine {
         macKeyF,
         macKeyP,
         macKeyU,
+        macKeyJ,
+        macKeyK,
+        macKeyL,
+        macKeyI,
         macKey1,
         macKey2,
         macKey3,
@@ -700,6 +704,7 @@ namespace U4DEngine {
         //Keyboard
         macKeyPressed,
         macKeyReleased,
+        macKeyActive,
         macArrowKeyActive,
         macArrowKeyReleased,
         

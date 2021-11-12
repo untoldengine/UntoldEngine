@@ -95,7 +95,7 @@
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenScaleFactorChanged:) name:NSWindowDidChangeBackingPropertiesNotification object:nil];
     
     //If using the keyboard, then set it to false. If using a controller then set it to true
-    director->setGamePadControllerPresent(true);
+    director->setGamePadControllerPresent(false);
 
     NSEventMask eventMask = NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged | NSEventTypeScrollWheel;
      [NSEvent addLocalMonitorForEventsMatchingMask:eventMask handler:^NSEvent * _Nullable(NSEvent *event)
@@ -235,7 +235,6 @@
 
 - (void)keyDown:(NSEvent *)theEvent
 {
-   
     unichar character = [[theEvent characters] characterAtIndex:0];
     
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
