@@ -180,7 +180,7 @@ void SandboxWorld::setupConfiguration(){
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space
-    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-30.0f, 30.0f, -30.0f, 30.0f, -30.0f, 30.0f);
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
     //Get camera object and translate it to position

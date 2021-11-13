@@ -20,6 +20,12 @@
 #include "PlayerStateDribbling.h"
 #include "PlayerStateShooting.h"
 
+#include "U4DSceneManager.h"
+#include "U4DScene.h"
+#include "U4DSceneStateManager.h"
+#include "U4DSceneEditingState.h"
+#include "U4DScenePlayState.h"
+
 SandboxLogic::SandboxLogic():pPlayer(nullptr){
     
 }
@@ -158,8 +164,24 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseLeftButtonReleased){
 
-                    //std::cout<<"left released"<<std::endl;
+                    pPlayer->setEnableShooting(true);
+                }
+            }
 
+                break;
+                
+            case U4DEngine::mouseRightButton:
+            {
+                //4. If button was pressed
+                if (controllerInputMessage.inputElementAction==U4DEngine::mouseRightButtonPressed) {
+
+                    //std::cout<<"left clicked"<<std::endl;
+
+                    //5. If button was released
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseRightButtonReleased){
+
+                    std::cout<<"right released"<<std::endl;
+                    
                 }
             }
 
@@ -303,8 +325,8 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
             }
                 break;
                 
-                
-            case U4DEngine::macKeyJ:
+            //both keys P and U are used to set the scene into a Play or Pause status, respectively. They are only used for testing
+            case U4DEngine::macKeyP:
             {
                 
                 //4. If button was pressed
@@ -315,12 +337,69 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
   
-                    pPlayer->setEnableShooting(true);
+                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                    
+                    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+                    U4DEngine::U4DScene *scene=sceneManager->getCurrentScene();
+                    U4DEngine::U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+                    
+                    if(sceneStateManager->getCurrentState()==U4DEngine::U4DSceneEditingState::sharedInstance()){
+                        //change scene state to edit mode
+                        scene->getSceneStateManager()->changeState(U4DEngine::U4DScenePlayState::sharedInstance());
+                        
+                    }else if(sceneStateManager->getCurrentState()==U4DEngine::U4DScenePlayState::sharedInstance()){
+                        
+                        scene->setPauseScene(false);
+                    
+                    }
+                    
+                    scene->setAnchorMouse(true);
+                
+                    [NSCursor hide];
+                    
+                    logger->log("Game was resumed");
                     
                 }
 
             }
                 break;
+                
+            case U4DEngine::macKeyU:
+            {
+                
+                //4. If button was pressed
+                if (controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
+
+                    
+                    
+                    //5. If button was released
+                }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
+  
+                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                    
+                    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+                    U4DEngine::U4DScene *scene=sceneManager->getCurrentScene();
+                    
+                    U4DEngine::U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+                    
+                    if (sceneStateManager->getCurrentState()==U4DEngine::U4DScenePlayState::sharedInstance()) {
+                        
+                        //change scene state to pause
+                        scene->setPauseScene(true);
+                        
+                        logger->log("Game was paused");
+                        
+                        scene->setAnchorMouse(false);
+                    
+                        [NSCursor unhide];
+                        
+                    }
+                    
+                }
+
+            }
+                break;
+
 
             case U4DEngine::macShiftKey:
             {
@@ -408,13 +487,28 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
             case U4DEngine::mouse:
             {
 
-                if(controllerInputMessage.inputElementAction==U4DEngine::mouseActive){
+                if(controllerInputMessage.inputElementAction==U4DEngine::mouseActiveDelta){
 
-                    //SNIPPET TO USE FOR MOUSE ABSOLUTE POSITION
+                    //SNIPPET TO USE FOR MOUSE DELTA POSITION
+                                      
+                    //Get the delta movement of the mouse
+                    U4DEngine::U4DVector2n delta=controllerInputMessage.mouseDeltaPosition;
+                    //the y delta should be flipped
+                    delta.y*=-1.0;
 
-                    U4DEngine::U4DVector3n mousedirection(controllerInputMessage.inputPosition.x,0.0,controllerInputMessage.inputPosition.y);
+                    //The following snippet will determine which way to rotate the model depending on the motion of the mouse
 
-                    //std::cout<<"Mouse moving"<<std::endl;
+                    delta.normalize();
+
+                    U4DEngine::U4DVector3n axis;
+
+                    U4DEngine::U4DVector3n mousedirection(delta.x,0.0,delta.y);
+
+                    if(pPlayer->getCurrentState()!=PlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(PlayerStateDribbling::sharedInstance());
+                    }
+                    
+                    pPlayer->setDribblingDirection(mousedirection);
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseInactive){
 
