@@ -68,7 +68,7 @@ void PlayerStateDribbling::execute(Player *uPlayer, double dt){
 
     if(!(finalVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
         uPlayer->applyVelocity(finalVelocity, dt);
-        uPlayer->setMoveDirection(finalVelocity);
+        uPlayer->setViewDirection(finalVelocity);
 
     }else{
 
