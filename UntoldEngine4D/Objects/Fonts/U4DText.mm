@@ -14,7 +14,9 @@
 namespace U4DEngine {
     
     U4DText::U4DText(std::string uFontName):currentTextContainerSize(0){
-            
+        
+        renderEntity=new U4DRenderFont(this);
+        
         renderEntity->setPipelineForPass("imagepipeline",U4DEngine::finalPass);
         
         U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
