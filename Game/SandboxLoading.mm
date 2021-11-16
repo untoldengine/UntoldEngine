@@ -33,9 +33,6 @@ void SandboxLoading::init(){
     //Load binary file with texture data
     resourceLoader->loadTextureData("sceneTextures.u4d");
     
-    //Add image
-    loadingBackgroundImage=new U4DEngine::U4DImage();
-    
     //set the image to use and the desire width and height
     
     U4DDirector *director=U4DDirector::sharedInstance();
@@ -44,7 +41,8 @@ void SandboxLoading::init(){
     float width=director->getDisplayWidth();
     float height=director->getDisplayHeight();
     
-    loadingBackgroundImage->setImage("loadingscreen.png",width,height);
+    //Add image
+    loadingBackgroundImage=new U4DEngine::U4DImage("loadingscreen.png",width,height);
     
     addChild(loadingBackgroundImage);
 

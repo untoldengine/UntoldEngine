@@ -121,11 +121,11 @@ namespace U4DEngine {
                
                currentScene=nullptr;
                
-               //init the new scene
-               sceneToChange->init();
-               
                //set the current scene to the new scene
                currentScene=sceneToChange;
+               
+               //init the new scene
+               sceneToChange->init();
                
            }
 
