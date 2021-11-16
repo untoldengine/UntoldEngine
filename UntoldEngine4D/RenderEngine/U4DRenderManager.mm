@@ -14,6 +14,7 @@
 #include "U4DSceneStateManager.h"
 #include "U4DSceneEditingState.h"
 #include "U4DSceneActiveState.h"
+#include "U4DScenePlayState.h"
 #include "CommonProtocols.h"
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
@@ -264,20 +265,19 @@ namespace U4DEngine {
         U4DFinalPass finalPass("modelpipeline");
         finalPass.executePass(uCommandBuffer, uRootEntity, &shadowPass);
         
-        
-        U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-        U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-        
-        
+    
         //Editor Pass
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
             
-            if (currentScene->getSceneStateManager()->getCurrentState()!=U4DSceneActiveState::sharedInstance()) {
+        U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+        U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+        
+        if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance() || currentScene->getSceneStateManager()->getCurrentState()== U4DScenePlayState::sharedInstance()) {
 
-                U4DEditorPass editorPass("none");
-                editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
+            U4DEditorPass editorPass("none");
+            editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
 
-            }
+        }
             
 #endif
         
