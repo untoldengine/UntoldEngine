@@ -1,35 +1,37 @@
 //
-//  PlayerStateIdle.cpp
+//  U4DPlayerStateIdle.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 11/11/21.
+//  Created by Harold Serrano on 11/17/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#include "PlayerStateIdle.h"
+#include "U4DPlayerStateIdle.h"
 #include "U4DGameConfigs.h"
 
-PlayerStateIdle* PlayerStateIdle::instance=0;
+namespace U4DEngine {
 
-PlayerStateIdle::PlayerStateIdle(){
+U4DPlayerStateIdle* U4DPlayerStateIdle::instance=0;
+
+U4DPlayerStateIdle::U4DPlayerStateIdle(){
     name="idle";
 }
 
-PlayerStateIdle::~PlayerStateIdle(){
+U4DPlayerStateIdle::~U4DPlayerStateIdle(){
     
 }
 
-PlayerStateIdle* PlayerStateIdle::sharedInstance(){
+U4DPlayerStateIdle* U4DPlayerStateIdle::sharedInstance(){
     
     if (instance==0) {
-        instance=new PlayerStateIdle();
+        instance=new U4DPlayerStateIdle();
     }
     
     return instance;
     
 }
 
-void PlayerStateIdle::enter(Player *uPlayer){
+void U4DPlayerStateIdle::enter(U4DPlayer *uPlayer){ 
     
     //play the idle animation
     U4DEngine::U4DAnimation *currentAnimation=uPlayer->idleAnimation;
@@ -46,19 +48,19 @@ void PlayerStateIdle::enter(Player *uPlayer){
     
 }
 
-void PlayerStateIdle::execute(Player *uPlayer, double dt){
+void U4DPlayerStateIdle::execute(U4DPlayer *uPlayer, double dt){
     
     uPlayer->updateFootSpaceWithAnimation(uPlayer->idleAnimation);
     
 }
 
-void PlayerStateIdle::exit(Player *uPlayer){
+void U4DPlayerStateIdle::exit(U4DPlayer *uPlayer){
     
 }
 
-bool PlayerStateIdle::isSafeToChangeState(Player *uPlayer){
+bool U4DPlayerStateIdle::isSafeToChangeState(U4DPlayer *uPlayer){
     
     return true;
 }
-
+}
 

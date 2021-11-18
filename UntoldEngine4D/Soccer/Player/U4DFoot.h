@@ -1,42 +1,43 @@
 //
-//  Foot.hpp
+//  U4DFoot.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 10/8/21.
+//  Created by Harold Serrano on 11/16/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef Foot_hpp
-#define Foot_hpp
+#ifndef U4DFoot_hpp
+#define U4DFoot_hpp
 
 #include <stdio.h>
-
-
 #include "U4DDynamicAction.h"
 
-class Foot:public U4DEngine::U4DModel {
+namespace U4DEngine {
+
+class U4DFoot:public U4DModel {
     
 private:
     
     float kickMagnitude;
     
-    U4DEngine::U4DVector3n kickDirection;
+    U4DVector3n kickDirection;
     
 public:
     
-    U4DEngine::U4DDynamicAction *kineticAction;
+    U4DDynamicAction *kineticAction;
     
-    Foot();
+    U4DFoot();
     
-    ~Foot();
+    ~U4DFoot();
     
     //init method. It loads all the rendering information among other things.
     bool init(const char* uModelName);
     
     void update(double dt);
     
-    void setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection);
+    void setKickBallParameters(float uKickMagnitude, U4DVector3n &uKickDirection);
     
 };
 
-#endif /* Foot_hpp */
+}
+#endif /* U4DFoot_hpp */
