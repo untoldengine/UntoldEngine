@@ -18,10 +18,11 @@
 #include "U4DSkybox.h"
 #include "U4DModelPipeline.h"
 
-#include "Player.h"
+#include "U4DPlayer.h"
+#include "U4DFoot.h"
 #include "Field.h"
-#include "Ball.h"
-#include "PlayerStateIdle.h"
+#include "U4DBall.h"
+#include "U4DPlayerStateIdle.h"
 #include "U4DGameConfigs.h"
 
 using namespace U4DEngine;
@@ -51,12 +52,12 @@ void SandboxWorld::init(){
     
     gameConfigs->loadConfigsMapValues("gameConfigs.gravity");
     
-    Player *player=new Player();
+    U4DEngine::U4DPlayer *player=new U4DEngine::U4DPlayer();
     if (player->init("player0")) {
         addChild(player);
         
         //render the right foot
-        Foot *rightFoot=new Foot();
+        U4DEngine::U4DFoot *rightFoot=new U4DEngine::U4DFoot();
 
         std::string footName="rightfoot";
         footName+=std::to_string(0);
@@ -67,24 +68,24 @@ void SandboxWorld::init(){
 
         }
         
-        player->changeState(PlayerStateIdle::sharedInstance());
+        player->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
     }
     
     
     
-    Player *oppositePlayers[5];
+    U4DEngine::U4DPlayer *oppositePlayers[5];
 
     for(int i=0;i<5;i++){
         std::string name="oppositeplayer";
         name+=std::to_string(i);
 
-        oppositePlayers[i]=new Player();
+        oppositePlayers[i]=new U4DEngine::U4DPlayer();
 
         if(oppositePlayers[i]->init(name.c_str())){
             addChild(oppositePlayers[i]);
             
             //render the right foot
-            Foot *rightFoot=new Foot();
+            U4DEngine::U4DFoot *rightFoot=new U4DEngine::U4DFoot();
 
             std::string footName="rightfoot";
             footName+=std::to_string(i+1);
@@ -96,7 +97,7 @@ void SandboxWorld::init(){
             }
         }
 
-        oppositePlayers[i]->changeState(PlayerStateIdle::sharedInstance());
+        oppositePlayers[i]->changeState(U4DPlayerStateIdle::sharedInstance());
     }
     
     Field *field=new Field();
@@ -104,8 +105,8 @@ void SandboxWorld::init(){
         addChild(field);
     }
     
-    Ball *ball=Ball::sharedInstance();
-    if (ball->init("ball")) {
+    U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
+    if (ball->init("ball")) { 
         addChild(ball);
     }
     

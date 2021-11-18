@@ -1,37 +1,40 @@
 //
-//  PlayerStateDribbling.cpp
+//  U4DPlayerStateDribbling.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 11/11/21.
+//  Created by Harold Serrano on 11/17/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#include "PlayerStateDribbling.h"
+#include "U4DPlayerStateDribbling.h"
 #include "U4DGameConfigs.h"
-#include "Ball.h"
-#include "PlayerStateShooting.h"
+#include "U4DBall.h"
+#include "U4DFoot.h"
+#include "U4DPlayerStateShooting.h"
 
-PlayerStateDribbling* PlayerStateDribbling::instance=0;
+namespace U4DEngine {
 
-PlayerStateDribbling::PlayerStateDribbling(){
+U4DPlayerStateDribbling* U4DPlayerStateDribbling::instance=0;
+
+U4DPlayerStateDribbling::U4DPlayerStateDribbling(){
     name="dribbling";
 }
 
-PlayerStateDribbling::~PlayerStateDribbling(){
+U4DPlayerStateDribbling::~U4DPlayerStateDribbling(){
     
 }
 
-PlayerStateDribbling* PlayerStateDribbling::sharedInstance(){
+U4DPlayerStateDribbling* U4DPlayerStateDribbling::sharedInstance(){
     
     if (instance==0) {
-        instance=new PlayerStateDribbling();
+        instance=new U4DPlayerStateDribbling();
     }
     
     return instance;
     
 }
 
-void PlayerStateDribbling::enter(Player *uPlayer){
+void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
     
     //play the idle animation
     U4DEngine::U4DAnimation *currentAnimation=uPlayer->runningAnimation;
@@ -48,14 +51,14 @@ void PlayerStateDribbling::enter(Player *uPlayer){
     
 }
 
-void PlayerStateDribbling::execute(Player *uPlayer, double dt){
+void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
     
     uPlayer->updateFootSpaceWithAnimation(uPlayer->runningAnimation);
     
     U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
 
     
-    Ball *ball=Ball::sharedInstance();
+    U4DBall *ball=U4DBall::sharedInstance();
 
     U4DEngine::U4DVector3n ballPos=ball->getAbsolutePosition();
 
@@ -74,7 +77,7 @@ void PlayerStateDribbling::execute(Player *uPlayer, double dt){
 
         if(uPlayer->shootBall==true){
 
-            uPlayer->changeState(PlayerStateShooting::sharedInstance());
+            uPlayer->changeState(U4DPlayerStateShooting::sharedInstance());
 
         }
 
@@ -82,17 +85,18 @@ void PlayerStateDribbling::execute(Player *uPlayer, double dt){
 
     uPlayer->foot->kineticAction->resumeCollisionBehavior();
 
-    uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"), uPlayer->dribblingDirection); 
+    uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"), uPlayer->dribblingDirection);
     
 }
 
-void PlayerStateDribbling::exit(Player *uPlayer){
+void U4DPlayerStateDribbling::exit(U4DPlayer *uPlayer){
     
 }
 
-bool PlayerStateDribbling::isSafeToChangeState(Player *uPlayer){
+bool U4DPlayerStateDribbling::isSafeToChangeState(U4DPlayer *uPlayer){
     
     return true;
 }
 
+}
 

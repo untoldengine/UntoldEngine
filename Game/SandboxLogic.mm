@@ -16,9 +16,9 @@
 
 #include "U4DAnimationManager.h"
 
-#include "PlayerStateIdle.h"
-#include "PlayerStateDribbling.h"
-#include "PlayerStateShooting.h"
+#include "U4DPlayerStateIdle.h"
+#include "U4DPlayerStateDribbling.h"
+#include "U4DPlayerStateShooting.h"
 
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
@@ -46,7 +46,7 @@ void SandboxLogic::init(){
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
 
     //2. Search for the player object
-    pPlayer=dynamic_cast<Player*>(pEarth->searchChild("player0"));
+    pPlayer=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0"));
 
 
     if(pPlayer!=nullptr){
@@ -194,8 +194,8 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                 //4. If button was pressed
                 if (controllerInputMessage.inputElementAction==U4DEngine::macArrowKeyActive) {
 
-                    if(pPlayer->getCurrentState()!=PlayerStateDribbling::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance() && pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
                     }
                     
                     U4DEngine::U4DVector2n arrowkeyDirection=controllerInputMessage.arrowKeyDirection;
@@ -206,8 +206,8 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macArrowKeyActive){
                     
-                    if(pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateIdle::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
                     }
                 }
             }
@@ -225,13 +225,13 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if(pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateIdle::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
                     }
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
                  
-                    if(pPlayer->getCurrentState()!=PlayerStateDribbling::sharedInstance() && pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance() && pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
                     }
 
                     U4DEngine::U4DVector3n dribblingDirection(-1.0,0.0,0.0);
@@ -252,13 +252,13 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //8. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
 
-                    if(pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateIdle::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
                     }
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
-                    if(pPlayer->getCurrentState()!=PlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
                     }
                     
                     U4DEngine::U4DVector3n dribblingDirection(1.0,0.0,0.0);
@@ -280,14 +280,14 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if(pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateIdle::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
                     }
                 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
                     
-                    if(pPlayer->getCurrentState()!=PlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
                     }
                     
                     U4DEngine::U4DVector3n dribblingDirection(0.0,0.0,1.0);
@@ -307,14 +307,14 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
 
-                    if(pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateIdle::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
                     }
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
                     
-                    if(pPlayer->getCurrentState()!=PlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
                     }
                     
                     U4DEngine::U4DVector3n dribblingDirection(0.0,0.0,-1.0);
@@ -504,8 +504,8 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                     U4DEngine::U4DVector3n mousedirection(delta.x,0.0,delta.y);
 
-                    if(pPlayer->getCurrentState()!=PlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=PlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(PlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
                     }
                     
                     pPlayer->setDribblingDirection(mousedirection);

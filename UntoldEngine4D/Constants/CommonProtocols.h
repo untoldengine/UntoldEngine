@@ -780,6 +780,26 @@ namespace U4DEngine {
         std::vector<float> orientation;
     }ENTITYSERIALIZEDATA;
 
+    enum{
+        idle,
+        stopped,
+        rolling,
+        kicked,
+        decelerating,
+        
+    }BALLSTATE;
+
+    typedef enum{
+        
+        kPlayer=0x0002,
+        kBall=0x0004,
+        kFoot=0x0008,
+        kOppositePlayer=0x000A,
+        kGoalSensor=0x0020,
+        
+    }GameEntityCollision;
+
+
 }
 
 #endif

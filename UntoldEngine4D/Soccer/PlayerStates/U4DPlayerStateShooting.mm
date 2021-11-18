@@ -1,36 +1,39 @@
 //
-//  PlayerStateShooting.cpp
+//  U4DPlayerStateShooting.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 11/11/21.
+//  Created by Harold Serrano on 11/17/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#include "PlayerStateShooting.h"
-#include "PlayerStateIdle.h"
+#include "U4DPlayerStateShooting.h"
+#include "U4DPlayerStateIdle.h"
 #include "U4DGameConfigs.h"
+#include "U4DFoot.h"
 
-PlayerStateShooting* PlayerStateShooting::instance=0;
+namespace U4DEngine {
 
-PlayerStateShooting::PlayerStateShooting(){
+U4DPlayerStateShooting* U4DPlayerStateShooting::instance=0;
+
+U4DPlayerStateShooting::U4DPlayerStateShooting(){
     name="shooting";
 }
 
-PlayerStateShooting::~PlayerStateShooting(){
+U4DPlayerStateShooting::~U4DPlayerStateShooting(){
     
 }
 
-PlayerStateShooting* PlayerStateShooting::sharedInstance(){
+U4DPlayerStateShooting* U4DPlayerStateShooting::sharedInstance(){
     
     if (instance==0) {
-        instance=new PlayerStateShooting();
+        instance=new U4DPlayerStateShooting();
     }
     
     return instance;
     
 }
 
-void PlayerStateShooting::enter(Player *uPlayer){
+void U4DPlayerStateShooting::enter(U4DPlayer *uPlayer){
     
     //play the idle animation
     U4DEngine::U4DAnimation *currentAnimation=uPlayer->shootingAnimation;
@@ -41,7 +44,7 @@ void PlayerStateShooting::enter(Player *uPlayer){
     
 }
 
-void PlayerStateShooting::execute(Player *uPlayer, double dt){
+void U4DPlayerStateShooting::execute(U4DPlayer *uPlayer, double dt){
     
     uPlayer->updateFootSpaceWithAnimation(uPlayer->shootingAnimation);
     
@@ -57,17 +60,19 @@ void PlayerStateShooting::execute(Player *uPlayer, double dt){
 
     //if animation has stopped, the switch to idle
     if (uPlayer->shootingAnimation->getAnimationIsPlaying()==false) {
-        uPlayer->changeState(PlayerStateIdle::sharedInstance());
+        uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
     }
 }
 
-void PlayerStateShooting::exit(Player *uPlayer){
+void U4DPlayerStateShooting::exit(U4DPlayer *uPlayer){
     
 }
 
-bool PlayerStateShooting::isSafeToChangeState(Player *uPlayer){
+bool U4DPlayerStateShooting::isSafeToChangeState(U4DPlayer *uPlayer){
     
     return true;
+}
+
 }
 
 

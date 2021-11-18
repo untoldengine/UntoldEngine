@@ -11,13 +11,13 @@
 
 #include <stdio.h>
 #include "U4DGameLogic.h"
-#include "Player.h"
+#include "U4DPlayer.h"
 
 class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     
-    Player *pPlayer;
+    U4DEngine::U4DPlayer *pPlayer;
     
     
 public:

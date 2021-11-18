@@ -1,25 +1,27 @@
 //
-//  Ball.hpp
+//  U4DBall.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 11/10/21.
+//  Created by Harold Serrano on 11/17/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef Ball_hpp
-#define Ball_hpp
+#ifndef U4DBall_hpp
+#define U4DBall_hpp
 
 #include <stdio.h>
 #include "U4DModel.h"
 #include "U4DDynamicAction.h"
-#include "UserCommonProtocols.h"
+#include "CommonProtocols.h"
 
 
-class Ball:public U4DEngine::U4DModel {
+namespace U4DEngine {
+
+class U4DBall:public U4DModel {
     
 private:
     
-    static Ball* instance;
+    static U4DBall* instance;
     
     //state of the character
     int state;
@@ -29,25 +31,25 @@ private:
     
     float kickMagnitude;
     
-    U4DEngine::U4DVector3n kickDirection;
+    U4DVector3n kickDirection;
     
-    U4DEngine::U4DVector3n motionAccumulator;
+    U4DVector3n motionAccumulator;
    
 protected:
     
     //constructor
-    Ball();
+    U4DBall();
     //destructor
     
-    ~Ball();
+    ~U4DBall();
     
 public:
     
-    U4DEngine::U4DDynamicAction *kineticAction;
+    U4DDynamicAction *kineticAction;
     
-    U4DEngine::U4DVector3n homePosition;
+    U4DVector3n homePosition;
     
-    static Ball* sharedInstance();
+    static U4DBall* sharedInstance();
     
     //init method. It loads all the rendering information among other things.
     bool init(const char* uModelName);
@@ -56,7 +58,7 @@ public:
     
     void applyForce(float uFinalVelocity, double dt);
     
-    void applyVelocity(U4DEngine::U4DVector3n &uFinalVelocity, double dt);
+    void applyVelocity(U4DVector3n &uFinalVelocity, double dt);
     
     void applyRoll(float uFinalVelocity,double dt);
     
@@ -70,13 +72,14 @@ public:
     
     void changeState(int uState);
     
-    void setKickBallParameters(float uKickMagnitude,U4DEngine::U4DVector3n &uKickDirection);
+    void setKickBallParameters(float uKickMagnitude,U4DVector3n &uKickDirection);
 
-    U4DEngine::U4DVector3n predictPosition(double dt, float uTimeScale);
+    U4DVector3n predictPosition(double dt, float uTimeScale);
     
-    float timeToCoverDistance(U4DEngine::U4DVector3n &uFinalPosition);
+    float timeToCoverDistance(U4DVector3n &uFinalPosition);
 
     bool aiScored;
 };
+}
 
-#endif /* Ball_hpp */
+#endif /* U4DBall_hpp */
