@@ -559,6 +559,8 @@ class U4DResourceLoader {
         void loadNormalMap(U4DModel *uModel,std::string uNormalMapName);
         
         bool loadTextureDataToEntity(U4DRenderEntity *uRenderEntity, const char* uTextureName);
+    
+        std::vector<MODELRAW> getModelContainer();
         
         /**
          @brief Clears the data in the containers

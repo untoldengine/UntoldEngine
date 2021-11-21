@@ -17,7 +17,7 @@
 
 namespace U4DEngine {
     
-    U4DStaticAction::U4DStaticAction(U4DModel *uU4DModel):model(uU4DModel),collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false){
+    U4DStaticAction::U4DStaticAction(U4DModel *uU4DModel):model(uU4DModel),collisionEnabled(false),coefficientOfRestitution(1.0),isPlatform(false), isCollisionSensor(false),convexHullBoundingVolume(nullptr),broadPhaseBoundingVolume(nullptr){
         
         initMass(10.0);
         
@@ -29,15 +29,6 @@ namespace U4DEngine {
         
         massProperties.intertiaTensorComputed=false;
         
-        //set the convex hull bounding volume to null
-        convexHullBoundingVolume=nullptr;
-        
-        //set the broad phase bounding volume to null
-        broadPhaseBoundingVolume=nullptr;
-        
-        //set the name to reference the model that owns the behavior
-        name=model->getName();
-        
         //set all collision information to zero
         clearCollisionInformation();
         
@@ -45,11 +36,23 @@ namespace U4DEngine {
     
     U4DStaticAction::~U4DStaticAction(){
     
-        delete convexHullBoundingVolume;
+        if(convexHullBoundingVolume!=nullptr){
+            //remove parent from the bounding volute
+            U4DEntity *parent=convexHullBoundingVolume->getParent();
+            
+            parent->removeChild(convexHullBoundingVolume);
+            delete convexHullBoundingVolume;
+            
+            parent->removeChild(broadPhaseBoundingVolume);
+            
+            delete broadPhaseBoundingVolume;
+            
+            convexHullBoundingVolume=nullptr;
+            broadPhaseBoundingVolume=nullptr;
+        }
         
-        delete broadPhaseBoundingVolume;
-        
-        
+        //clear the convex hull data stored in the model buffers.
+        clearModelCollisionData();
         
     }
     
@@ -62,7 +65,6 @@ namespace U4DEngine {
         return *this;
     
     }
-    
     
     #pragma mark-mass
     //set mass of object
@@ -607,6 +609,16 @@ namespace U4DEngine {
         
         broadPhaseCollisionList.clear();
     
+    }
+
+    void U4DStaticAction::clearModelCollisionData(){
+        
+        model->bodyCoordinates.convexHullVerticesContainer.clear();
+        model->bodyCoordinates.convexHullEdgesContainer.clear();
+        model->bodyCoordinates.convexHullFacesContainer.clear();
+//        model->bodyCoordinates.addConvexHullVerticesToContainer.clear();
+//        model->bodyCoordinates.addConvexHullEdgesDataToContainer.clear();
+//        model->bodyCoordinates.addConvexHullFacesDataToContainer.clear();
     }
     
     

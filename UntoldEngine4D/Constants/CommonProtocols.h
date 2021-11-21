@@ -474,6 +474,8 @@ namespace U4DEngine {
         
         IMAGE,
         
+        SCRIPT,
+        
     }ENTITYTYPE;
 
 
@@ -636,6 +638,12 @@ namespace U4DEngine {
         macKeyW,
         macKeyS,
         macKeyF,
+        macKeyP,
+        macKeyU,
+        macKeyJ,
+        macKeyK,
+        macKeyL,
+        macKeyI,
         macKey1,
         macKey2,
         macKey3,
@@ -674,9 +682,14 @@ namespace U4DEngine {
     typedef enum{
         
         //Mouse
-        mouseButtonPressed,
-        mouseButtonDragged,
-        mouseButtonReleased,
+        mouseLeftButtonPressed,
+        mouseLeftButtonDragged,
+        mouseLeftButtonReleased,
+        
+        mouseRightButtonPressed,
+        mouseRightButtonDragged,
+        mouseRightButtonReleased,
+        
         mouseActive,
         mouseInactive,
         mouseActiveDelta,
@@ -691,6 +704,7 @@ namespace U4DEngine {
         //Keyboard
         macKeyPressed,
         macKeyReleased,
+        macKeyActive,
         macArrowKeyActive,
         macArrowKeyReleased,
         
@@ -757,6 +771,34 @@ namespace U4DEngine {
         
         
     }LIGHTDATA;
+
+    typedef struct{
+        std::string name;
+        std::string assetReferenceName;
+        std::string pipelineName;
+        std::vector<float> position;
+        std::vector<float> orientation;
+    }ENTITYSERIALIZEDATA;
+
+    enum{
+        idle,
+        stopped,
+        rolling,
+        kicked,
+        decelerating,
+        
+    }BALLSTATE;
+
+    typedef enum{
+        
+        kPlayer=0x0002,
+        kBall=0x0004,
+        kFoot=0x0008,
+        kOppositePlayer=0x000A,
+        kGoalSensor=0x0020,
+        
+    }GameEntityCollision;
+
 
 }
 

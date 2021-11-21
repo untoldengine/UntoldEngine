@@ -12,11 +12,18 @@
 #include "U4DDirector.h"
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
-#include "U4DResourceLoader.h"
+#include "U4DCameraInterface.h"
+#include "U4DCameraBasicFollow.h"
 #include "U4DDebugger.h"
 #include "U4DSkybox.h"
+#include "U4DModelPipeline.h"
 
-#include "U4DDynamicAction.h"
+#include "U4DPlayer.h"
+#include "U4DFoot.h"
+#include "Field.h"
+#include "U4DBall.h"
+#include "U4DPlayerStateIdle.h"
+#include "U4DGameConfigs.h"
 
 using namespace U4DEngine;
 
@@ -30,118 +37,135 @@ SandboxWorld::~SandboxWorld(){
 
 void SandboxWorld::init(){
     
-    //Print version
-    std::cout<<"Current Version: "<<U4DEngine::untoldengineversion<<std::endl;
-    
     /*----DO NOT REMOVE. THIS IS REQUIRED-----*/
     //Configures the perspective view, shadows, lights and camera.
     setupConfiguration();
     /*----END DO NOT REMOVE.-----*/
     
     //The following code snippets loads scene data, renders the characters and skybox.
-    
-    
-    /*---LOAD SCENE ASSETS HERE--*/
-    //Load binary file with scene data
-    U4DEngine::U4DResourceLoader *resourceLoader=U4DEngine::U4DResourceLoader::sharedInstance();
-    
-    //The spaceScene.u4d file contains the data for the astronaut model and ground
-    //All of the .u4d files are found in the Resource folder. Note, you will need to use the Digital Asset Converter tool to convert all game asset data into .u4d files. For more info, go to www.untoldengine.com.
-    resourceLoader->loadSceneData("spaceScene.u4d");
-
-    //Load binary file with texture data for the astronaut
-    resourceLoader->loadTextureData("spaceTextures.u4d");
-    
-    //load ui textures contains images that can be used for the UIs. Look at the joystick instance below.
-    resourceLoader->loadTextureData("uiTextures.u4d");
-    
-    //load particle data
-    //resourceLoader->loadParticleData("redBulletEmitter.u4d");
-    
-    //Load binary file with animation data
-    resourceLoader->loadAnimationData("astronautWalkAnim.u4d");
-    
-    //load font data. In this example, the font is used for the UIs.
-    resourceLoader->loadFontData("uiFont.u4d");
-    
     setEnableGrid(true);
     
-    //Create an instance of U4DGameObject type
-    myAstronaut=new U4DEngine::U4DModel();
-
-    //Load attribute (rendering information) into the game entity
-    if (myAstronaut->loadModel("astronaut")) {
-
-        U4DEngine::U4DDynamicAction *kineticAction=new U4DDynamicAction(myAstronaut);
-        
-        kineticAction->enableKineticsBehavior();
-        
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-        
-        kineticAction->setGravity(zero);
-
-        kineticAction->enableCollisionBehavior();
-        
-        //Line 4. Load rendering information into the GPU
-        myAstronaut->loadRenderingInformation();
-
-        //Line 5. Add astronaut to the scenegraph
-        addChild(myAstronaut);
-
-    }
-  
-    //Line 2. Create an Animation object and link it to the 3D model
-    U4DEngine::U4DAnimation *walkAnimation=new U4DEngine::U4DAnimation(myAstronaut);
+    //load the config values
+    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
     
-    //Line 3. Load animation data into the animation object
-    if(myAstronaut->loadAnimationToModel(walkAnimation, "walking")){
+    gameConfigs->initConfigsMapKeys("dribblingBallSpeed","biasMoveMotion","arriveMaxSpeed","arriveStopRadius","arriveSlowRadius","dribblingDirectionSlerpValue",nullptr);
+    
+    gameConfigs->loadConfigsMapValues("gameConfigs.gravity");
+    
+    U4DEngine::U4DPlayer *player=new U4DEngine::U4DPlayer();
+    if (player->init("player0")) {
+        addChild(player);
+        
+        //render the right foot
+        U4DEngine::U4DFoot *rightFoot=new U4DEngine::U4DFoot();
 
-        //If animation data was successfully loaded, you can set other parameters here. For now, we won't do this.
+        std::string footName="rightfoot";
+        footName+=std::to_string(0);
 
-    }
+        if(rightFoot->init(footName.c_str())){
 
-    //Line 4. Check if the animation object exist and play the animation
-    if (walkAnimation!=nullptr) {
+            player->setFoot(rightFoot);
 
-        walkAnimation->play();
-
+        }
+        
+        player->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
     }
     
-    //Create an instance of U4DGameObject type
-    U4DEngine::U4DModel *ground=new U4DEngine::U4DModel();
+    
+    
+    U4DEngine::U4DPlayer *oppositePlayers[5];
 
-    //Line 3. Load attribute (rendering information) into the game entity
-    if (ground->loadModel("island")) {
+    for(int i=0;i<5;i++){
+        std::string name="oppositeplayer";
+        name+=std::to_string(i);
 
-        U4DEngine::U4DDynamicAction *gkinetic=new U4DDynamicAction(ground);
-        
-        //gkinetic->enableKineticsBehavior();
-        
-        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+        oppositePlayers[i]=new U4DEngine::U4DPlayer();
 
-        gkinetic->setGravity(zero);
+        if(oppositePlayers[i]->init(name.c_str())){
+            addChild(oppositePlayers[i]);
+            
+            //render the right foot
+            U4DEngine::U4DFoot *rightFoot=new U4DEngine::U4DFoot();
 
-        gkinetic->enableCollisionBehavior();
+            std::string footName="rightfoot";
+            footName+=std::to_string(i+1);
 
-        //Line 4. Load rendering information into the GPU
-        ground->loadRenderingInformation();
+            if(rightFoot->init(footName.c_str())){
 
-        //Line 5. Add astronaut to the scenegraph
-        addChild(ground);
+                oppositePlayers[i]->setFoot(rightFoot);
+
+            }
+        }
+
+        oppositePlayers[i]->changeState(U4DPlayerStateIdle::sharedInstance());
+    }
+    
+    Field *field=new Field();
+    if(field->init("field")){
+        addChild(field);
+    }
+    
+    U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
+    if (ball->init("ball")) { 
+        addChild(ball);
+    }
+    
+    U4DEngine::U4DModel *fieldGoals[2];
+
+    for(int i=0;i<sizeof(fieldGoals)/sizeof(fieldGoals[0]);i++){
+
+        std::string name="fieldgoal";
+
+        name+=std::to_string(i);
+
+        fieldGoals[i]=new U4DEngine::U4DModel();
+
+        if(fieldGoals[i]->loadModel(name.c_str())){
+
+
+            fieldGoals[i]->loadRenderingInformation();
+
+            addChild(fieldGoals[i]);
+        }
 
     }
     
-    //Render a skybox
-    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
+    U4DEngine::U4DModel *bleachers[4];
 
-    //initialize the skybox
-    skybox->initSkyBox(60.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
+    for(int i=0;i<sizeof(bleachers)/sizeof(bleachers[0]);i++){
 
-    //add the skybox to the scenegraph with appropriate z-depth
-    addChild(skybox);
+        std::string name="bleacher";
 
-    U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
-    debugger->setEnableDebugger(true,this);
+        name+=std::to_string(i);
+
+        bleachers[i]=new U4DEngine::U4DModel();
+
+        if(bleachers[i]->loadModel(name.c_str())){
+
+
+            bleachers[i]->loadRenderingInformation();
+
+            addChild(bleachers[i]);
+        }
+
+    }
+    
+    U4DEngine::U4DText *instructions=new U4DEngine::U4DText("uiFont");
+    instructions->setText("Press P to play. Press U to pause\n Mouse to dribble. Left click shoot");
+    instructions->translateTo(-0.2,-0.3, 0.0);
+
+    addChild(instructions,-20);
+    
+    //Instantiate the camera
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+
+    //Instantiate the camera interface and the type of camera you desire
+    U4DEngine::U4DCameraInterface *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
+    
+    cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,20.0,-25.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
+    
+    //set the camera behavior
+    camera->setCameraBehavior(cameraBasicFollow);
     
 }
 
@@ -162,13 +186,13 @@ void SandboxWorld::setupConfiguration(){
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space
-    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-30.0f, 30.0f, -30.0f, 30.0f, -30.0f, 30.0f);
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-7.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-17.0);
 
     
     //translate camera

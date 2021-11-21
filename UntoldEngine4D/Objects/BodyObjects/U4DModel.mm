@@ -22,7 +22,6 @@
 #include "U4DBoundingAABB.h"
 #include "U4DResourceLoader.h"
 #include "U4DEntityManager.h"
-#include "U4DVisibilityDictionary.h"
 
 #pragma mark-set up the body vertices
 
@@ -46,6 +45,8 @@ namespace U4DEngine {
         //set the mesh octree manager to null
         meshOctreeManager=nullptr;
         
+        pModel=this;
+        
     };
     
     U4DModel::~U4DModel(){
@@ -54,10 +55,8 @@ namespace U4DEngine {
         delete cullingPhaseBoundingVolume;
         delete armatureManager;
         delete meshOctreeManager;
-        
-        U4DVisibilityDictionary *visibilityDict=U4DVisibilityDictionary::sharedInstance();
-        visibilityDict->removeFromVisibilityDictionary(getName());
-        
+               
+        pModel=nullptr;
     };
     
     U4DModel::U4DModel(const U4DModel& value){
@@ -87,11 +86,7 @@ bool U4DModel::loadModel(const char* uModelName){
         
        //init the culling bounding volume
        initCullingBoundingVolume();
-        
-       U4DVisibilityDictionary *visibilityDict=U4DVisibilityDictionary::sharedInstance();
-        
-       visibilityDict->loadIntoVisibilityDictionary(getName(), this);
-       
+             
        return true;
         
     }

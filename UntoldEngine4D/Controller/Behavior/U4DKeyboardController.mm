@@ -25,6 +25,14 @@ namespace U4DEngine {
         delete keyD;
         delete keyS;
         
+        delete keyJ;
+        delete keyK;
+        delete keyL;
+        delete keyI;
+        
+        delete keyP;
+        delete keyU;
+        
         delete macKeyShift;
         delete macKeySpace;
         delete arrowKey;
@@ -40,22 +48,42 @@ namespace U4DEngine {
         keyA=new U4DMacKey(U4DEngine::macKeyA,this);
         keyD=new U4DMacKey(U4DEngine::macKeyD,this);
         keyS=new U4DMacKey(U4DEngine::macKeyS, this);
+        
+        keyJ=new U4DMacKey(U4DEngine::macKeyJ, this);
+        keyK=new U4DMacKey(U4DEngine::macKeyK, this);
+        keyL=new U4DMacKey(U4DEngine::macKeyL, this);
+        keyI=new U4DMacKey(U4DEngine::macKeyI, this);
+        
+        //these two keys are being used as hot-keys to stop/play the game test through the editor
+        keyP=new U4DMacKey(U4DEngine::macKeyP, this);
+        keyU=new U4DMacKey(U4DEngine::macKeyU, this);
+        
         macKeyShift=new U4DMacKey(U4DEngine::macShiftKey,this);
         macKeySpace=new U4DMacKey(U4DEngine::macSpaceKey,this);
         arrowKey=new U4DMacArrowKey(U4DEngine::macArrowKey,this);
         
         mouseLeftButton=new U4DMacMouse(U4DEngine::mouseLeftButton,this);
+        mouseRightButton=new U4DMacMouse(U4DEngine::mouseRightButton,this);
         macMouse=new U4DMacMouse(U4DEngine::mouse,this);
         
         registerInputEntity(keyW);
         registerInputEntity(keyA);
         registerInputEntity(keyD);
         registerInputEntity(keyS);
+        registerInputEntity(keyP);
+        registerInputEntity(keyU);
+        
+        registerInputEntity(keyJ);
+        registerInputEntity(keyK);
+        registerInputEntity(keyL);
+        registerInputEntity(keyI);
+        
         registerInputEntity(macKeyShift);
         registerInputEntity(macKeySpace);
         registerInputEntity(arrowKey);
         
         registerInputEntity(mouseLeftButton);
+        registerInputEntity(mouseRightButton);
         registerInputEntity(macMouse);
         
     }
@@ -84,6 +112,30 @@ namespace U4DEngine {
     
         if(uCharacter=='s' || uCharacter=='S'){
             changeState(U4DEngine::macKeyS, uInputAction, pos);
+        }
+        
+        if(uCharacter=='p' || uCharacter=='P'){
+            changeState(U4DEngine::macKeyP, uInputAction, pos);
+        }
+        
+        if(uCharacter=='u' || uCharacter=='U'){
+            changeState(U4DEngine::macKeyU, uInputAction, pos);
+        }
+        
+        if(uCharacter=='j' || uCharacter=='J'){
+            changeState(U4DEngine::macKeyJ, uInputAction, pos);
+        }
+        
+        if(uCharacter=='k' || uCharacter=='K'){
+            changeState(U4DEngine::macKeyK, uInputAction, pos);
+        }
+        
+        if(uCharacter=='l' || uCharacter=='L'){
+            changeState(U4DEngine::macKeyL, uInputAction, pos);
+        }
+        
+        if(uCharacter=='i' || uCharacter=='I'){
+            changeState(U4DEngine::macKeyI, uInputAction, pos);
         }
     
         if(uCharacter=='1'){

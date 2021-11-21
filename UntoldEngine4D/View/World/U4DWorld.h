@@ -65,6 +65,11 @@ public:
     U4DVertexData bodyCoordinates;
     
     /**
+     @brief document this
+     */
+    CONTROLLERMESSAGE controllerInputMessage;
+    
+    /**
      @brief class constructor
      */
     U4DWorld();
@@ -170,6 +175,7 @@ public:
     
     void receiveUserInputUpdate(void *uData);
 
+    void removeAllModelChildren();
     
 };
     

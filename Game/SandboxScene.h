@@ -17,7 +17,6 @@
 #include "SandboxLogic.h"
 #include "SandboxLoading.h"
 
-
 class SandboxScene:public U4DEngine::U4DScene {
 
 private:

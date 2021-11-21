@@ -16,10 +16,6 @@ namespace U4DEngine {
     
     U4DImage::U4DImage(){
         
-        setEntityType(U4DEngine::IMAGE);
-        renderEntity=new U4DRenderImage(this);
-        
-        renderEntity->setPipelineForPass("imagepipeline", U4DEngine::finalPass);
         
     };
 
@@ -32,6 +28,10 @@ namespace U4DEngine {
     U4DImage::U4DImage(const char* uTextureImage,float uWidth,float uHeight){
         
         renderEntity=new U4DRenderImage(this);
+        
+        setEntityType(U4DEngine::IMAGE);
+        
+        renderEntity->setPipelineForPass("imagepipeline", U4DEngine::finalPass);
        
         setImage(uTextureImage, uWidth, uHeight);
         

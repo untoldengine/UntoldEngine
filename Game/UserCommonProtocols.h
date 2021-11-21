@@ -24,6 +24,7 @@ typedef struct{
 }JoystickMessageData;
 
 
+
 enum MouseMovementDirection{
     forwardDir,
     backwardDir,
@@ -31,6 +32,7 @@ enum MouseMovementDirection{
     leftDir,
     noDir,
 };
+
 
 
 #endif /* UserCommonProtocols_h */

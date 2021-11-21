@@ -43,9 +43,9 @@ namespace U4DEngine {
         
         bool getIsReleased();
         
+        bool getIsActive();
+        
         void changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition);
-        
-        
         
     };
     

@@ -36,6 +36,7 @@ typedef enum FragmentBufferIndices{
     fiShaderEntityPropertyBuffer=7,
     fiGeometryBuffer=8,
     fiPointLightsPropertiesBuffer=9,
+    fiSpaceBuffer=10
     
 }FragmentBufferIndices;
 
@@ -64,6 +65,7 @@ typedef struct{
     matrix_float4x4 modelSpace;
     matrix_float4x4 modelViewProjectionSpace;
     matrix_float4x4 modelViewSpace;
+    matrix_float4x4 projectionSpace;
     matrix_float4x4 viewSpace;
     matrix_float3x3 normalSpace;
 } UniformSpace;

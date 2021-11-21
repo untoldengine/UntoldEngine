@@ -149,8 +149,8 @@ namespace U4DEngine {
 namespace U4DEngine {
 
     /**
-     @ingroup gameobjects
-     @brief The U4DStaticAction class represents a 3D static model entity
+     @ingroup physicsengine
+     @brief The U4DStaticAction class represents actions such as collision detections applied to a 3D model entity
      */
     class U4DStaticAction{
         
@@ -227,12 +227,6 @@ namespace U4DEngine {
         
         protected:
         
-        /**
-         @brief Name of the entity
-         */
-        std::string name;
-            
-        
         
         public:
 
@@ -262,6 +256,7 @@ namespace U4DEngine {
          */
         U4DStaticAction& operator=(const U4DStaticAction& value);
     
+        
         /**
          @brief Method which sets the mass of the model
          
@@ -684,7 +679,10 @@ namespace U4DEngine {
          */
         void clearBroadPhaseCollisionList();
         
-        
+        /**
+         * @brief Clear model buffers for collision
+         */
+        void clearModelCollisionData();
         
         };
     

@@ -11,10 +11,12 @@
 #include "U4DGameLogicInterface.h"
 #include "U4DEntityManager.h"
 #include "CommonProtocols.h"
+#include "U4DModel.h"
 #include "U4DLayer.h"
 #include "U4DEntity.h"
 #include "U4DLayerManager.h"
 #include "U4DRenderWorld.h"
+#include <regex>
 
 namespace U4DEngine {
     
@@ -96,51 +98,21 @@ namespace U4DEngine {
     
     void U4DWorld::buildGrid(){
         
-        int gridsize=8;
-        
         //grid box
-        U4DVector3n backLeftCorner(-gridsize,0,-gridsize);
-        U4DVector3n backRightCorner(gridsize,0,-gridsize);
-        U4DVector3n frontLeftCorner(-gridsize,0,gridsize);
-        U4DVector3n frontRightCorner(gridsize,0,gridsize);
+        U4DVector3n gridPoint0(1.0,1.0,0.0);
+        U4DVector3n gridPoint1(-1.0,-1.0,0.0);
+        U4DVector3n gridPoint2(-1.0,1.0,0.0);
+        U4DVector3n gridPoint3(-1.0,-1.0,0.0);
+        U4DVector3n gridPoint4(1.0,1.0,0.0);
+        U4DVector3n gridPoint5(1.0,-1.0,0.0);
         
-        bodyCoordinates.addVerticesDataToContainer(backLeftCorner);
-        bodyCoordinates.addVerticesDataToContainer(backRightCorner);
+        bodyCoordinates.addVerticesDataToContainer(gridPoint0);
+        bodyCoordinates.addVerticesDataToContainer(gridPoint1);
+        bodyCoordinates.addVerticesDataToContainer(gridPoint2);
         
-        bodyCoordinates.addVerticesDataToContainer(backLeftCorner);
-        bodyCoordinates.addVerticesDataToContainer(frontLeftCorner);
-        
-        bodyCoordinates.addVerticesDataToContainer(backRightCorner);
-        bodyCoordinates.addVerticesDataToContainer(frontRightCorner);
-        
-        bodyCoordinates.addVerticesDataToContainer(frontLeftCorner);
-        bodyCoordinates.addVerticesDataToContainer(frontRightCorner);
-        
-        //grid lines
-        for (int x=-gridsize; x<=gridsize; x++) {
-            
-            U4DVector3n startBackPoint(x,0,-gridsize);
-            U4DVector3n endFrontPoint(x,0,gridsize);
-            
-            bodyCoordinates.addVerticesDataToContainer(startBackPoint);
-            bodyCoordinates.addVerticesDataToContainer(endFrontPoint);
-            
-            U4DVector3n startLeftPoint(-gridsize,0,x);
-            U4DVector3n endRightPoint(gridsize,0,x);
-            
-            bodyCoordinates.addVerticesDataToContainer(startLeftPoint);
-            bodyCoordinates.addVerticesDataToContainer(endRightPoint);
-            
-        }
-        
-        //grid vertical line
-        
-        U4DVector3n startVerticalPoint(0,-2,0);
-        U4DVector3n endVerticalPoint(0,2,0);
-        
-        bodyCoordinates.addVerticesDataToContainer(startVerticalPoint);
-        bodyCoordinates.addVerticesDataToContainer(endVerticalPoint);
-        
+        bodyCoordinates.addVerticesDataToContainer(gridPoint3);
+        bodyCoordinates.addVerticesDataToContainer(gridPoint4);
+        bodyCoordinates.addVerticesDataToContainer(gridPoint5);
         
     }
     
@@ -155,7 +127,7 @@ namespace U4DEngine {
         
         U4DLayer *activeLayer=layerManager->getActiveLayer();
         
-        CONTROLLERMESSAGE &controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
         
         U4DEngine::INPUTELEMENTACTION inputAction=static_cast<U4DEngine::INPUTELEMENTACTION>(controllerInputMessage.inputElementAction);
         
@@ -180,6 +152,37 @@ namespace U4DEngine {
             
         }
         
+    }
+
+    void U4DWorld::removeAllModelChildren(){
+            
+        U4DEntity *child=lastDescendant;
+        
+        while (child!=nullptr) {
+            
+            if (child==this) break;
+            
+            if (child->getEntityType()==U4DEngine::MODEL) {
+                
+                U4DModel *tempChild=dynamic_cast<U4DModel*>(child); 
+                
+                child=child->prevInPreOrderTraversal();
+                
+                removeChild(tempChild);
+                
+                delete tempChild;
+
+                tempChild=nullptr;
+                
+            }else{
+                child=child->prevInPreOrderTraversal();
+            }
+            
+        }
+        
+        prevSibling=this;
+        lastDescendant=this;
+        next=nullptr;
     }
 
 }

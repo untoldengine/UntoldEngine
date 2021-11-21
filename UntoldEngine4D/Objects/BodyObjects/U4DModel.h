@@ -83,6 +83,7 @@ namespace U4DEngine {
          */
         U4DMeshOctreeManager *meshOctreeManager;
         
+        
     protected:
         
     public:
@@ -147,6 +148,8 @@ namespace U4DEngine {
          @param dt Time-step value
          */
         virtual void update(double dt){};
+        
+        virtual bool init(const char* uModelName){};
         
         /**
          @todo document this

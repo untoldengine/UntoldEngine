@@ -24,7 +24,7 @@ namespace U4DEngine {
 
     U4DDebugger* U4DDebugger::instance=0;
 
-U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nullptr),profilerLabel(nullptr),enableShaderReload(false){
+U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),enableShaderReload(false){
         
         scheduler=new U4DCallback<U4DDebugger>;
         
@@ -79,64 +79,6 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
             U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
             
             profilerManager->setEnableProfiler(true);
-            
-            //create layer manager
-            U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
-
-            //set this view (U4DWorld subclass) to the layer Manager
-            layerManager->setWorld(world);
-
-            //create Layers
-            U4DLayer* engineProfilerLayer=new U4DLayer("engineProfilerLayer");
-
-            consoleLabel=new U4DText("uiFont");
-            consoleLabel->setText("Console");
-            consoleLabel->translateTo(-0.7,0.7,0.0);
-
-            profilerLabel=new U4DText("uiFont");
-            profilerLabel->setText("Profiler");
-            profilerLabel->translateTo(-0.7,0.6,0.0);
-
-//            checkboxShowProfiler=new U4DEngine::U4DCheckbox("checkboxProfiler",0.5,0.6,20.0,20.0,"Run Profiler","uiFont");
-//
-//            checkboxShowNarrowPhaseVolume=new U4DEngine::U4DCheckbox("checkboxNarrowPhase",0.5,0.5,20.0,20.0,"Draw Narrow Phase Volume","uiFont");
-//
-//            checkboxShowBroadPhaseVolume=new U4DEngine::U4DCheckbox("checkboxBroadPhase",0.5,0.4,20.0,20.0,"Draw Broad Phase Volume","uiFont");
-//
-//            U4DSlider *slider=new U4DSlider("slider",0.0,0.8,80.0,20.0,"slider","uiFont");
-
-            engineProfilerLayer->addChild(consoleLabel);
-            engineProfilerLayer->addChild(profilerLabel);
-//            engineProfilerLayer->addChild(checkboxShowProfiler);
-//            engineProfilerLayer->addChild(checkboxShowNarrowPhaseVolume);
-//            engineProfilerLayer->addChild(checkboxShowBroadPhaseVolume);
-//            engineProfilerLayer->addChild(slider);
-
-            layerManager->addLayerToContainer(engineProfilerLayer);
-
-            //push layer
-            layerManager->pushLayer("engineProfilerLayer");
-
-//            //create a callback for checkbox profiler
-//            U4DCallback<U4DDebugger>* checkboxShowProfilerCallback=new U4DCallback<U4DDebugger>;
-//
-//            checkboxShowProfilerCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowProfiler);
-//
-//            checkboxShowProfiler->setCallbackAction(checkboxShowProfilerCallback);
-//
-//            //create a callback for checkbox show broad phase
-//            U4DCallback<U4DDebugger>* checkboxShowBroadPhaseCallback=new U4DCallback<U4DDebugger>;
-//
-//            checkboxShowBroadPhaseCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowBroadPhaseVolume);
-//
-//            checkboxShowBroadPhaseVolume->setCallbackAction(checkboxShowBroadPhaseCallback);
-//
-//            //create a callback for checkbox show narrow phase
-//           U4DCallback<U4DDebugger>* checkboxShowNarrowPhaseCallback=new U4DCallback<U4DDebugger>;
-//
-//           checkboxShowNarrowPhaseCallback->scheduleClassWithMethod(this, &U4DDebugger::actionCheckboxShowNarrowPhaseVolume);
-//
-//           checkboxShowNarrowPhaseVolume->setCallbackAction(checkboxShowNarrowPhaseCallback);
 
            scheduler->scheduleClassWithMethodAndDelay(this, &U4DDebugger::runDebugger, timer,1.0, true);
             
@@ -147,14 +89,9 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
     
     void U4DDebugger::runDebugger(){
         
-        U4DDirector *director=U4DDirector::sharedInstance();
         U4DProfilerManager *profilerManager=U4DProfilerManager::sharedInstance();
         
-        float fps=director->getFPS();
         profilerData=profilerManager->getProfileLog();
-        consoleLabel->log("Console:\n FPS Avg: %f",fps);
-
-        profilerLabel->log("Profiler:\n %s",profilerData.c_str());
         
         if (enableShaderReload==true) {
             
@@ -186,88 +123,6 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),consoleLabel(nu
         shaderFilePath=uFilepath;
         vertexShaderName=uVertexShader;
         fragmentShaderName=uFragmentShader;
-        
-    }
-
-    void U4DDebugger::actionCheckboxShowProfiler(){
-        
-        U4DEngine::U4DProfilerManager *profilerManager=U4DEngine::U4DProfilerManager::sharedInstance();
-        
-        if (checkboxShowProfiler->getIsPressed()) {
-            
-            
-            profilerManager->setEnableProfiler(true);
-            
-                        
-        }else if(checkboxShowProfiler->getIsReleased()){
-        
-            profilerManager->setEnableProfiler(false);
-            
-        }
-        
-    }
-
-    void U4DDebugger::actionCheckboxShowBroadPhaseVolume(){
-        
-//        U4DEntity *child=world->next;
-//
-//        if (checkboxShowBroadPhaseVolume->getIsPressed()) {
-//
-//           while (child!=nullptr) {
-//
-//               if(child->isCollisionBehaviorEnabled()==true){
-//                   U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
-//                   model->setBroadPhaseBoundingVolumeVisibility(true);
-//               }
-//
-//               child=child->next;
-//           }
-//
-//       }else if(checkboxShowBroadPhaseVolume->getIsReleased()){
-//
-//           while (child!=nullptr) {
-//
-//               if(child->isCollisionBehaviorEnabled()==true){
-//                   U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
-//                   model->setBroadPhaseBoundingVolumeVisibility(false);
-//               }
-//
-//               child=child->next;
-//           }
-//
-//       }
-        
-    }
-
-    void U4DDebugger::actionCheckboxShowNarrowPhaseVolume(){
-        
-//        U4DEntity *child=world->next;
-//
-//         if (checkboxShowNarrowPhaseVolume->getIsPressed()) {
-//
-//            while (child!=nullptr) {
-//
-//                if(child->isCollisionBehaviorEnabled()==true){
-//                    U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
-//                    model->setNarrowPhaseBoundingVolumeVisibility(true);
-//                }
-//
-//                child=child->next;
-//            }
-//
-//        }else if(checkboxShowNarrowPhaseVolume->getIsReleased()){
-//
-//            while (child!=nullptr) {
-//
-//                if(child->isCollisionBehaviorEnabled()==true){
-//                    U4DStaticAction *model=dynamic_cast<U4DStaticAction*>(child);
-//                    model->setNarrowPhaseBoundingVolumeVisibility(false);
-//                }
-//
-//                child=child->next;
-//            }
-//
-//        }
         
     }
 

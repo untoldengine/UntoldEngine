@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(2.0),fps(0.0),fpsAccumulator(0.0){
+U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(2.0),fps(0.0),fpsAccumulator(0.0),scriptCompiledSuccessfully(false),scriptRunTimeError(false){
     }
     
     U4DDirector::~U4DDirector(){
@@ -334,6 +334,22 @@ U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0)
         
     float U4DDirector::getFPS(){
         return fps;
+    }
+
+    void U4DDirector::setScriptCompiledSuccessfully(bool uValue){
+        scriptCompiledSuccessfully=uValue;
+    }
+
+    bool U4DDirector::getScriptCompiledSuccessfully(){
+        return scriptCompiledSuccessfully;
+    }
+
+    void U4DDirector::setScriptRunTimeError(bool uValue){
+        scriptRunTimeError=uValue;
+    }
+
+    bool U4DDirector::getScriptRunTimeError(){
+        return scriptRunTimeError;
     }
 
 }

@@ -1,0 +1,13 @@
+func init(){
+
+var scaleValue=1.17
+
+var names = ["dribblingBallSpeed":32.0/scaleValue,
+            "biasMoveMotion":0.05,
+            "arriveMaxSpeed":40.0/scaleValue, //60
+            "arriveStopRadius":0.50/scaleValue,
+            "arriveSlowRadius":0.95/scaleValue,
+            "dribblingDirectionSlerpValue":0.01];
+
+return names
+}

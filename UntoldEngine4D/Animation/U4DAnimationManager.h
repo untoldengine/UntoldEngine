@@ -62,7 +62,7 @@ namespace U4DEngine {
         int blendedStartKeyframe;
         
         /**
-         * @brief Interpolation time when to blending should start  
+         * @brief Interpolation time when to blending should start
          * @details you can set the interpolation time to start the animation transition
          */
         float blendedStartInterpolationTime;
@@ -92,7 +92,7 @@ namespace U4DEngine {
         void pauseCurrentPlayingAnimation();
         
         /**
-         @brief plays the animation 
+         @brief plays the animation
          */
         void playAnimation();
         
@@ -150,7 +150,7 @@ namespace U4DEngine {
         
         /**
          * @brief set the next animation to play continuously
-         * 
+         *
          * @param uValue true if the animation should play continuously
          */
         void setPlayNextAnimationContinuously(bool uValue);
@@ -164,7 +164,7 @@ namespace U4DEngine {
         /**
          * @brief Set if the the animations should be blended
          * @details The engine allows for two animation to be transitioned smoothly between each other
-         * 
+         *
          * @param uValue true if the animation should be transitioned smoothly
          */
         void setPlayBlendedAnimation(bool uValue);

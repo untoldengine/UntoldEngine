@@ -10,6 +10,7 @@
 #include "U4DControllerInterface.h"
 #include "U4DMacKeyPressedState.h"
 #include "U4DMacKeyReleasedState.h"
+#include "U4DMacKeyActiveState.h"
 #include "U4DMacKeyIdleState.h"
 #include "CommonProtocols.h"
 #include "U4DMacKeyStateManager.h"
@@ -56,6 +57,8 @@ namespace U4DEngine {
     
             controllerMessage.inputElementAction=U4DEngine::macKeyReleased;
     
+        }else if(getIsActive()){
+            controllerMessage.inputElementAction=U4DEngine::macKeyActive;
         }
     
         controllerInterface->sendUserInputUpdate(&controllerMessage);
@@ -64,11 +67,16 @@ namespace U4DEngine {
     
     void U4DMacKey::changeState(INPUTELEMENTACTION &uInputAction, U4DVector2n &uPosition){
         
-        if(uInputAction==U4DEngine::macKeyPressed){
+        if(uInputAction==U4DEngine::macKeyPressed && (stateManager->getCurrentState()!=U4DMacKeyPressedState::sharedInstance() && stateManager->getCurrentState()!=U4DMacKeyActiveState::sharedInstance())){
             
             stateManager->changeState(U4DMacKeyPressedState::sharedInstance());
             
+        }else if(stateManager->getCurrentState()==U4DMacKeyPressedState::sharedInstance() && uInputAction==U4DEngine::macKeyPressed){
+            
+            stateManager->changeState(U4DMacKeyActiveState::sharedInstance());
+            
         }else if (uInputAction==U4DEngine::macKeyReleased){
+            
             
             stateManager->changeState(U4DMacKeyReleasedState::sharedInstance());
             
@@ -88,5 +96,10 @@ namespace U4DEngine {
         return (stateManager->getCurrentState()==U4DMacKeyReleasedState::sharedInstance());
         
     }
+
+    bool U4DMacKey::getIsActive(){
+        return (stateManager->getCurrentState()==U4DMacKeyActiveState::sharedInstance());
+    }
+
     
 }

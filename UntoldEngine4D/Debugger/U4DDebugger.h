@@ -30,18 +30,6 @@ namespace U4DEngine {
         
         U4DTimer *timer;
         
-        
-        
-        U4DText *consoleLabel;
-                
-        U4DText *profilerLabel;
-        
-        U4DCheckbox *checkboxShowNarrowPhaseVolume;
-        
-        U4DCheckbox *checkboxShowBroadPhaseVolume;
-        
-        U4DCheckbox *checkboxShowProfiler;
-        
         static U4DDebugger* instance;
         
         bool enableDebugger;
@@ -74,14 +62,6 @@ namespace U4DEngine {
         void setEnableDebugger(bool uValue, U4DWorld *uWorld);
         
         bool getEnableDebugger();
-        
-        void actionCheckboxShowBVH();
-        
-        void actionCheckboxShowBroadPhaseVolume();
-        
-        void actionCheckboxShowNarrowPhaseVolume();
-        
-        void actionCheckboxShowProfiler();
         
         void reloadShader(std::string uPipelineToReload, std::string uFilepath, std::string uVertexShader, std::string uFragmentShader);
         

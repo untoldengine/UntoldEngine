@@ -18,6 +18,10 @@
 #include "SandboxScene.h"
 #include "CommonProtocols.h"
 
+#include "imgui.h"
+#include "imgui_impl_metal.h"
+#include "imgui_impl_osx.h"
+
 @implementation GameViewController
 {
     MTKView *metalView;
@@ -93,6 +97,14 @@
     //If using the keyboard, then set it to false. If using a controller then set it to true
     director->setGamePadControllerPresent(false);
 
+    NSEventMask eventMask = NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged | NSEventTypeScrollWheel;
+     [NSEvent addLocalMonitorForEventsMatchingMask:eventMask handler:^NSEvent * _Nullable(NSEvent *event)
+     {
+         ImGui_ImplOSX_HandleEvent(event, self.view);
+         return event;
+     }];
+
+     ImGui_ImplOSX_Init();
 
 }
 
@@ -223,7 +235,6 @@
 
 - (void)keyDown:(NSEvent *)theEvent
 {
-   
     unichar character = [[theEvent characters] characterAtIndex:0];
     
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
@@ -366,7 +377,7 @@
 
     }
     
-    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {
@@ -387,11 +398,55 @@
     U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
     
     if(gameController!=nullptr){
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonDragged, mouseLocation);
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonDragged, mouseLocation); 
         
     }
     
-   
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+}
+
+- (void)rightMouseDown:(NSEvent *)theEvent{
+    
+    NSPoint mouseDownPos = [theEvent locationInWindow];
+
+    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+    
+    if(gameController!=nullptr){
+            
+        gameController->getUserInputData(U4DEngine::mouseRightButton, U4DEngine::mouseRightButtonPressed, mouseLocation);
+        
+    }
+    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+        
+}
+
+- (void)rightMouseUp:(NSEvent *)theEvent{
+    
+    NSPoint mouseUpPos = [theEvent locationInWindow];
+
+    U4DEngine::U4DVector2n mouseLocation(mouseUpPos.x,mouseUpPos.y);
+    
+    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+    
+    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
+    
+    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
+    
+    if(gameController!=nullptr){
+        
+        gameController->getUserInputData(U4DEngine::mouseRightButton, U4DEngine::mouseRightButtonReleased, mouseLocation);
+        
+    }
+    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+     
 }
 
 - (void)mouseDown:(NSEvent *)theEvent {
@@ -408,11 +463,11 @@
     
     if(gameController!=nullptr){
             
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonPressed, mouseLocation);
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonPressed, mouseLocation);
         
     }
     
-    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
@@ -429,11 +484,11 @@
     
     if(gameController!=nullptr){
         
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseButtonReleased, mouseLocation);
+        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonReleased, mouseLocation);
         
     }
     
-    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (BOOL)acceptsFirstResponder

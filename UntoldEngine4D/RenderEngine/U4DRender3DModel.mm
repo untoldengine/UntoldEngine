@@ -420,7 +420,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):uniformMaterialBuffer(ni
     
     void U4DRender3DModel::render(id <MTLRenderCommandEncoder> uRenderEncoder){
         
-        if (eligibleToRender==true && isWithinFrustum==true) {
+        if (eligibleToRender==true) {
             
             //encode the buffers
             [uRenderEncoder setVertexBuffer:attributeBuffer offset:0 atIndex:viAttributeBuffer];

@@ -25,9 +25,7 @@ class SandboxWorld:public U4DEngine::U4DWorld {
     
 private:
     
-    
-    U4DEngine::U4DModel *myAstronaut;
-    
+
     
 public:
     

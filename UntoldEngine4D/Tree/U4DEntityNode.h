@@ -15,7 +15,7 @@
 namespace U4DEngine {
 
     /**
-     @ingroup physicsengine
+     @ingroup gameobjects
      @brief The U4DEntityNode class represents a node in a Generic tree.
      */
     template <typename T>
@@ -50,6 +50,11 @@ namespace U4DEngine {
          */
         T *lastDescendant;
         
+        void *pModel;
+        
+        void *pDynamicAction;
+        
+        void *pAnimationManager;
         
         /**
          @brief Constructor for the class
@@ -82,6 +87,16 @@ namespace U4DEngine {
          @param uChild Child node to remove from the scenegraph
          */
         void removeChild(T *uChild);
+        
+        /**
+         @brief Method which removes all children that belongs to the node
+         */
+        void removeAllChildren();
+        
+        /**
+         @brief Method which removes and deletes all children that belongs to the node
+         */
+        void removeAndDeleteAllChildren();
         
         /**
          @brief Method which changes the node's last descendant in the scenegraph

@@ -10,26 +10,20 @@
 #include "Constants.h"
 #include <cmath>
 #include "U4DDirector.h"
-#include "U4DKineticDictionary.h"
 #include "U4DEntityManager.h"
 
 namespace U4DEngine {
 
     U4DDynamicAction::U4DDynamicAction(U4DModel *uU4DModel):U4DStaticAction(uU4DModel),kineticsEnabled(false),angularVelocity(0,0,0),velocity(0,0,0),acceleration(0,0,0),force(0,0,0),moment(0,0,0),isAwake(false),timeOfImpact(1.0),modelKineticEnergy(0.0),equilibrium(false),gravity(0.0,-10.0,0.0),dragCoefficient(0.9,0.9){
         
-        //load into dictionary
-        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
-        
-        kineticDictionary->loadBehaviorDictionary(name, this);
+        model->pDynamicAction=this;
         
     };
     
 
     U4DDynamicAction::~U4DDynamicAction(){
         
-        U4DKineticDictionary *kineticDictionary=U4DKineticDictionary::sharedInstance();
-        
-        kineticDictionary->removeKineticBehavior(name);
+        model->pDynamicAction=nullptr;
         
     };
     
@@ -263,6 +257,24 @@ namespace U4DEngine {
         
     }
     
+
+//    void U4DDynamicAction::applyVelocity(U4DVector3n uVelocity, float dt){
+//
+//        //force=m*(vf-vi)/dt
+//        //get mass
+//        float mass=getMass();
+//
+//        //calculate force
+//        U4DEngine::U4DVector3n force=(uVelocity*mass)/dt;
+//
+//        //apply force to the character
+//        addForce(force);
+//
+//        //set inital velocity to zero
+//        U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+//        setVelocity(zero);
+//
+//    }
     
     
     void U4DDynamicAction::cleanUp(){

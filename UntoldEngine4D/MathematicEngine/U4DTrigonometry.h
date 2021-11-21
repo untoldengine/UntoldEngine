@@ -56,6 +56,11 @@ namespace U4DEngine {
          @todo document this
          */
         double safeAcos(double x);
+        
+        /*
+         @todo document this
+         */
+        double convertToPositiveAngle(float uAngle);
     };
 }
 

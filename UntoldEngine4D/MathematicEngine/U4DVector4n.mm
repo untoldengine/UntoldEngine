@@ -7,6 +7,7 @@
 //
 
 #include "U4DVector4n.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     
@@ -95,7 +96,9 @@ namespace U4DEngine {
     
     void U4DVector4n::show(){
         
-        std::cout<<"("<<x<<","<<y<<","<<z<<","<<w<<")"<<std::endl;
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        logger->log("%f,%f,%f,%f",x,y,z,w);
+        //std::cout<<"("<<x<<","<<y<<","<<z<<","<<w<<")"<<std::endl;
     }
 
 }

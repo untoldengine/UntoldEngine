@@ -14,6 +14,14 @@
 #include "Constants.h"
 #include "U4DRenderManager.h"
 
+#import <TargetConditionals.h>
+
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+#include "imgui.h"
+#include "imgui_impl_metal.h"
+#include "imgui_impl_osx.h"
+#endif
+
 /// Main class performing the rendering
 @implementation U4DRenderer
 {
@@ -81,6 +89,22 @@
         U4DEngine::U4DRenderManager *renderManager=U4DEngine::U4DRenderManager::sharedInstance();
         renderManager->initRenderPipelines();
         
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+            IMGUI_CHECKVERSION();
+            ImGui::CreateContext();
+            ImGuiIO& io = ImGui::GetIO(); (void)io;
+            //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
+            //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+            
+            // Setup Dear ImGui style
+            ImGui::StyleColorYellow();
+            //ImGui::StyleColorsClassic();
+
+            io.Fonts->AddFontFromFileTTF("Lato-Regular.ttf",18.0);
+            // Setup Renderer backend
+            ImGui_ImplMetal_Init(mtlDevice);
+        
+#endif
         
     }
     
@@ -156,10 +180,10 @@
     U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
     U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
     
-    currentScene->determineVisibility();
+    
     
     if (currentScene!=nullptr) {
-        
+        currentScene->determineVisibility();
         view.clearColor = MTLClearColorMake(0.0,0.0,0.0,1.0);
         view.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
         
@@ -192,12 +216,12 @@
         }
            
         //This method is the latest method provided by Metal, but it seems buggy. Sometimes, it creates micro-stuttering. Leaving it here for now. Don't forget to remove this warning
-        if (@available(macOS 10.15.4, *)) {
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
             [commandBuffer presentDrawable:view.currentDrawable afterMinimumDuration:1.0/view.preferredFramesPerSecond];
-        } else {
+#elif TARGET_OS_IOS
             // Fallback on earlier versions
             [commandBuffer presentDrawable:view.currentDrawable];
-        }
+#endif
         
         // Finalize rendering here & push the command buffer to the GPU
         [commandBuffer commit];

@@ -9,9 +9,10 @@
 #include "U4DMatrix4n.h"
 #include "U4DMatrix3n.h"
 #include "U4DVector3n.h"
+#include "U4DVector4n.h"
 #include "U4DQuaternion.h"
 #include "Constants.h"
-
+#include "U4DLogger.h"
 
 namespace U4DEngine {
 // 4x4 matrix - column major. X vector is 0, 1, 2, etc. (openGL prefer way)
@@ -208,6 +209,20 @@ U4DVector3n U4DMatrix4n::operator*(const U4DVector3n& v) const{
                        matrixData[1]*v.x+matrixData[5]*v.y+matrixData[9]*v.z+matrixData[13],
                        matrixData[2]*v.x+matrixData[6]*v.y+matrixData[10]*v.z+matrixData[14]);
     
+    
+}
+
+U4DVector4n U4DMatrix4n::operator*(const U4DVector4n& v) const{
+    
+    //    0    4    8    12
+    //    1    5    9    13
+    //    2    6    10    14
+    //    3    7    11    15
+    
+    return U4DVector4n(matrixData[0]*v.x+matrixData[4]*v.y+matrixData[8]*v.z+matrixData[12]*v.w,
+                       matrixData[1]*v.x+matrixData[5]*v.y+matrixData[9]*v.z+matrixData[13]*v.w,
+                       matrixData[2]*v.x+matrixData[6]*v.y+matrixData[10]*v.z+matrixData[14]*v.w,
+                       matrixData[3]*v.x+matrixData[7]*v.y+matrixData[11]*v.z+matrixData[15]*v.w);
     
 }
 
@@ -480,12 +495,19 @@ void U4DMatrix4n::setOrientationAndPos(const U4DQuaternion& q, const U4DVector3n
 
 #pragma mark-show
 void U4DMatrix4n::show(){
-    
+    /*
     std::cout<<"["<<matrixData[0]<<","<<matrixData[4]<<","<<matrixData[8]<<","<<matrixData[12]<<","<<std::endl;
     std::cout<<matrixData[1]<<","<<matrixData[5]<<","<<matrixData[9]<<","<<matrixData[13]<<","<<std::endl;
     std::cout<<matrixData[2]<<","<<matrixData[6]<<","<<matrixData[10]<<","<<matrixData[14]<<","<<std::endl;
     std::cout<<matrixData[3]<<","<<matrixData[7]<<","<<matrixData[11]<<","<<matrixData[15]<<"]"<<std::endl;
-
+*/
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    
+    logger->log("[%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f,\n%f,%f,%f,%f]",
+                matrixData[0],matrixData[4],matrixData[8],matrixData[12],
+                matrixData[1],matrixData[5],matrixData[9],matrixData[13],
+                matrixData[2],matrixData[6],matrixData[10],matrixData[14],
+                matrixData[3],matrixData[7],matrixData[11],matrixData[15]);
 }
 
 }

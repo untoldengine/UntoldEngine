@@ -15,16 +15,12 @@
 namespace U4DEngine {
     
     U4DSprite::U4DSprite(U4DSpriteLoader *uSpriteLoader):spriteAtlasImage(nullptr),spriteOffset(0.0,0.0){
-        
-            renderEntity=new U4DRenderSprite(this);
             
             spriteLoader=uSpriteLoader;
                 
     }
         
     U4DSprite::~U4DSprite(){
-
-        delete renderEntity;
         
     }
 

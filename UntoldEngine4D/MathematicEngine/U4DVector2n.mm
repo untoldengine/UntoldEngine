@@ -7,6 +7,7 @@
 //
 
 #include "U4DVector2n.h"
+#include "U4DNumerical.h"
 #include <cmath>
 
 namespace U4DEngine {
@@ -23,6 +24,18 @@ namespace U4DEngine {
         x=a.x;
         y=a.y;
         return *this;
+    }
+
+    bool U4DVector2n::operator==(const U4DVector2n& a){
+        
+        U4DNumerical comparison;
+        
+        if (comparison.areEqual(x, a.x, U4DEngine::zeroEpsilon) && comparison.areEqual(y, a.y, U4DEngine::zeroEpsilon)) {
+            return true;
+        }else{
+            return false;
+        }
+        
     }
     
     //add

@@ -10,12 +10,13 @@
 #define RenderManager_hpp
 
 #import <MetalKit/MetalKit.h>
-
+#import <TargetConditionals.h>
 #include <stdio.h>
 #include <vector>
 #include <simd/simd.h>
 #include "U4DRenderPipelineInterface.h"
 #include "U4DEntity.h"
+
 
 namespace U4DEngine {
 
@@ -54,6 +55,8 @@ namespace U4DEngine {
         
     public:
         
+        
+        
         static U4DRenderManager* sharedInstance();
         
         /**
@@ -81,6 +84,8 @@ namespace U4DEngine {
         void addRenderPipeline(U4DRenderPipelineInterface* uRenderPipeline);
         
         void makePipelineWithShader(std::string uPipelineName, std::string uVertexShaderName, std::string uFragmentShaderName);
+    
+        std::vector<std::string> getRenderingPipelineList();
     };
     
 }

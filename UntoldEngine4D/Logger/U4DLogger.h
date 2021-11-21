@@ -12,6 +12,13 @@
 #include <stdio.h>
 #include <iostream>
 #include <string>
+#include <vector>
+
+#import <TargetConditionals.h>
+
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+#include "imgui.h"
+#endif
 
 namespace U4DEngine {
     
@@ -40,7 +47,10 @@ namespace U4DEngine {
         ~U4DLogger();
         
     public:
-        
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+        ImGuiTextBuffer logBuffer; 
+        ImVector<int>       LineOffsets; // Index to lines offset. We maintain this with AddLog() calls.
+#endif
         /**
          @brief Instance for the U4DLogger Singleton
          */

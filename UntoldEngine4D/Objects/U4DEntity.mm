@@ -15,11 +15,12 @@
 
 namespace U4DEngine {
     
-    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),entityForwardVector(0,0,-1),zDepth(100){
+    U4DEntity::U4DEntity():localOrientation(0,0,0),localPosition(0,0,0),entityForwardVector(0,0,-1),zDepth(100),scriptID(0){
         
         
         transformation=new U4DTransformation(this);
-    
+        
+        
     }
 
 
@@ -61,6 +62,14 @@ namespace U4DEngine {
 
     ENTITYTYPE U4DEntity::getEntityType(){
         return entityType;
+    }
+
+    int U4DEntity::getScriptID(){
+        return scriptID;
+    }
+
+    void U4DEntity::setScriptID(int uScriptID){
+        scriptID=uScriptID;
     }
 
     void U4DEntity::setLocalSpace(U4DDualQuaternion &uLocalSpace){

@@ -11,16 +11,14 @@
 
 #include <stdio.h>
 #include "U4DGameLogic.h"
-#include "U4DModel.h"
+#include "U4DPlayer.h"
 
 class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     
-    U4DEngine::U4DModel *pAstronaut;
+    U4DEngine::U4DPlayer *pPlayer;
     
-    bool showBroadPhaseVolume;
-    bool showNarrowPhaseVolume;
     
 public:
     
@@ -33,6 +31,8 @@ public:
     void init();
     
     void receiveUserInputUpdate(void *uData);
+    
+    
     
 };
 #endif /* DebugLogic_hpp */

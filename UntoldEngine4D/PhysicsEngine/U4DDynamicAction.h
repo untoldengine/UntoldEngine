@@ -27,8 +27,8 @@ namespace U4DEngine {
 namespace U4DEngine {
 
 /**
- @ingroup gameobjects
- @brief The U4DDynamicAction class represents a 3D dynamic model entity
+ @ingroup physicsengine
+ @brief The U4DDynamicAction class represents a actions such as kinetics and collisions applied to a 3D model entity
  */
 
 class U4DDynamicAction:public U4DStaticAction{
@@ -357,8 +357,10 @@ public:
     void loadIntoPhysicsEngine(U4DEntityManager *uEntityManager, float dt);
     
     
-    
-    
+    /**
+     @todo document this
+     */
+    //void applyVelocity(U4DVector3n uVelocity, float dt);
     
     /**
      @brief clear collision information, resets time of impact, resets equilibrium, clears collision list

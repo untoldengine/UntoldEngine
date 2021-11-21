@@ -36,6 +36,9 @@ namespace U4DEngine {
         initVertexDesc();
         initPassDesc();
         
+        vertexShaderName=uVertexShader;
+        fragmentShaderName=uFragmentShader;
+        
         initLibrary(uVertexShader,uFragmentShader);
         initAdditionalInfo();
         
@@ -51,6 +54,18 @@ namespace U4DEngine {
     std::string U4DRenderPipeline::getName(){
         
         return name;
+        
+    }
+
+    std::string U4DRenderPipeline::getVertexShaderName(){
+
+        return vertexShaderName;
+        
+    }
+
+    std::string U4DRenderPipeline::getFragmentShaderName(){
+        
+        return fragmentShaderName;
         
     }
 

@@ -8,7 +8,13 @@
 
 #include "U4DRenderManager.h"
 #include <simd/simd.h>
+#include <iostream>     // std::cout
+#include <fstream>      // std::ifstream
 #include "U4DSceneManager.h"
+#include "U4DSceneStateManager.h"
+#include "U4DSceneEditingState.h"
+#include "U4DSceneActiveState.h"
+#include "U4DScenePlayState.h"
 #include "CommonProtocols.h"
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
@@ -34,7 +40,11 @@
 #include "U4DOffscreenPass.h"
 #include "U4DGBufferPass.h"
 #include "U4DCompositionPass.h"
+
+
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "U4DEditorPass.h"
+#endif
 
 namespace U4DEngine {
 
@@ -170,6 +180,10 @@ namespace U4DEngine {
 
     void U4DRenderManager::initRenderPipelines(){
         
+        //Print version
+        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+        logger->log("Current Version %s",U4DEngine::untoldengineversion.c_str());
+        
         U4DDirector *director=U4DDirector::sharedInstance();
         
         id<MTLDevice> mtlDevice=director->getMTLDevice();
@@ -225,6 +239,7 @@ namespace U4DEngine {
         U4DCompositionPipeline *compositionPipeline=new U4DCompositionPipeline("compositionpipeline");
         compositionPipeline->initPipeline("vertexCompShader","fragmentCompShader");
         
+        
     }
 
     void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
@@ -250,16 +265,22 @@ namespace U4DEngine {
         U4DFinalPass finalPass("modelpipeline");
         finalPass.executePass(uCommandBuffer, uRootEntity, &shadowPass);
         
-        
+    
         //Editor Pass
-//        if (debugger->getEnableDebugger()) {
-//
-//            U4DEditorPass editorPass("none");
-//            editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
-//
-//        }
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+            
+        U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
+        U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
         
+        if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance() || currentScene->getSceneStateManager()->getCurrentState()== U4DScenePlayState::sharedInstance()) {
 
+            U4DEditorPass editorPass("none");
+            editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);
+
+        }
+            
+#endif
+        
     }
 
     U4DRenderPipelineInterface* U4DRenderManager::searchPipeline(std::string uPipelineName){
@@ -278,6 +299,20 @@ namespace U4DEngine {
         }
         
         return pipeline;
+    }
+
+    std::vector<std::string> U4DRenderManager::getRenderingPipelineList(){
+        
+        std::vector<std::string> pipelineList;
+        
+        for(const auto &n:renderingPipelineContainer){
+                
+            pipelineList.push_back(n->getName());
+            
+        }
+        
+        return pipelineList;
+        
     }
  
     void U4DRenderManager::addRenderPipeline(U4DRenderPipelineInterface* uRenderPipeline){
