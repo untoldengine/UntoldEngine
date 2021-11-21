@@ -150,6 +150,11 @@ void SandboxWorld::init(){
 
     }
     
+    U4DEngine::U4DText *instructions=new U4DEngine::U4DText("uiFont");
+    instructions->setText("Press P to play. Press U to pause\n Mouse to dribble. Left click shoot");
+    instructions->translateTo(-0.2,-0.3, 0.0);
+
+    addChild(instructions,-20);
     
     //Instantiate the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
