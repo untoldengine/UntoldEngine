@@ -224,10 +224,10 @@ namespace U4DEngine {
         U4DShaderEntityPipeline* sliderPipeline=new U4DShaderEntityPipeline("sliderpipeline");
         sliderPipeline->initPipeline("vertexUISliderShader", "fragmentUISliderShader");
         
-        U4DShaderEntityPipeline* buttonPipeline=new U4DShaderEntityPipeline("buttonpipeline");
+        U4DImagePipeline* buttonPipeline=new U4DImagePipeline("buttonpipeline");
         buttonPipeline->initPipeline("vertexUIButtonShader", "fragmentUIButtonShader");
         
-        U4DShaderEntityPipeline* joystickPipeline=new U4DShaderEntityPipeline("joystickpipeline");
+        U4DImagePipeline* joystickPipeline=new U4DImagePipeline("joystickpipeline");
         joystickPipeline->initPipeline("vertexUIJoystickShader", "fragmentUIJoystickShader");
         
         U4DWorldPipeline *worldPipeline=new U4DWorldPipeline("worldpipeline");
