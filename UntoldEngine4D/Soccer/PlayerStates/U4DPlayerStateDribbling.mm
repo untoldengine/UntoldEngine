@@ -68,7 +68,7 @@ void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
     
 
     U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, ballPos);
-
+    
     if(!(finalVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
         uPlayer->applyVelocity(finalVelocity, dt);
         uPlayer->setViewDirection(finalVelocity);

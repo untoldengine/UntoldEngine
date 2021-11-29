@@ -66,7 +66,20 @@ void SandboxScene::init(){
         
     nonvisiblePipeline->initPipeline("vertexNonVisibleShader", "fragmentNonVisibleShader");
 
-    loadComponents(sandboxWorld, sandboxLogic,true);
+    //get instance of director
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    //get device type
+    if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
+
+        loadComponents(sandboxWorld, sandboxLogic,true);
+        
+    }else if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
+        
+        loadComponents(sandboxWorld,loadingScene, sandboxLogic);
+        
+    }
+    
     
     //anchor mouse
 //    setAnchorMouse(true);
