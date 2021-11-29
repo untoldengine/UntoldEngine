@@ -17,6 +17,8 @@
 #include "U4DDebugger.h"
 #include "U4DSkybox.h"
 #include "U4DModelPipeline.h"
+#include "U4DLayerManager.h"
+#include "U4DLayer.h"
 
 #include "U4DPlayer.h"
 #include "U4DFoot.h"
@@ -50,7 +52,7 @@ void SandboxWorld::init(){
     
     gameConfigs->initConfigsMapKeys("dribblingBallSpeed","biasMoveMotion","arriveMaxSpeed","arriveStopRadius","arriveSlowRadius","dribblingDirectionSlerpValue",nullptr);
     
-    gameConfigs->loadConfigsMapValues("gameConfigs.gravity");
+    gameConfigs->loadConfigsMapValues("gameconfigs.gravity");
     
     U4DEngine::U4DPlayer *player=new U4DEngine::U4DPlayer();
     if (player->init("player0")) {
@@ -150,11 +152,6 @@ void SandboxWorld::init(){
 
     }
     
-    U4DEngine::U4DText *instructions=new U4DEngine::U4DText("uiFont");
-    instructions->setText("Press P to play. Press U to pause\n Mouse to dribble. Left click shoot");
-    instructions->translateTo(-0.2,-0.3, 0.0);
-
-    addChild(instructions,-20);
     
     //Instantiate the camera
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
@@ -162,7 +159,48 @@ void SandboxWorld::init(){
     //Instantiate the camera interface and the type of camera you desire
     U4DEngine::U4DCameraInterface *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
     
-    cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,20.0,-25.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+    
+    //get device type
+    if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
+
+        //create layer manager
+        U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+
+        //set this view (U4DWorld subclass) to the layer Manager
+        layerManager->setWorld(this);
+        
+        //create Layers
+        U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
+
+        //Create buttons to add to the layer
+        U4DEngine::U4DButton *buttonA=new U4DEngine::U4DButton("buttonA",0.7,-0.5,100.0,100.0,"ButtonA.png");
+        U4DEngine::U4DJoystick *joystick=new U4DEngine::U4DJoystick("joystick",-0.7,-0.5,"joyStickBackground.png",150.0,150.0,"joyStickDriver.png");
+       
+        //add the buttons to the layer
+        mainMenuLayer->addChild(joystick);
+        mainMenuLayer->addChild(buttonA);
+
+        layerManager->addLayerToContainer(mainMenuLayer);
+        
+        //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
+        //cameraBasicFollow->setParameters(ball,0.0,30.0,-35.0);
+        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,15.0,-17.0,U4DEngine::U4DPoint3n(-1.0,-1.0,-1.0),U4DEngine::U4DPoint3n(1.0,1.0,1.0));
+        
+        //push layer
+        layerManager->pushLayer("menuLayer");
+        
+    }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
+        
+        U4DEngine::U4DText *instructions=new U4DEngine::U4DText("uiFont");
+        instructions->setText("Press P to play. Press U to pause\n Mouse to dribble. Left click shoot");
+        instructions->translateTo(-0.2,-0.3, 0.0);
+
+        addChild(instructions,-20);
+        
+        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,20.0,-25.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
+        
+    }
     
     //set the camera behavior
     camera->setCameraBehavior(cameraBasicFollow);

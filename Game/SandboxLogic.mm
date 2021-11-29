@@ -7,6 +7,7 @@
 //
 
 #include "SandboxLogic.h"
+#import <TargetConditionals.h>
 #include "U4DDirector.h"
 #include "CommonProtocols.h"
 #include "UserCommonProtocols.h"
@@ -85,7 +86,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     if (controllerInputMessage.elementUIName.compare("buttonA")==0) {
 
                         //std::cout<<"Button A released"<<std::endl;
-
+                        pPlayer->setEnableShooting(true);
 
                     }
 
@@ -100,7 +101,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                     if (controllerInputMessage.elementUIName.compare("sliderA")==0) {
 
-
+                        
 
                     }else if(controllerInputMessage.elementUIName.compare("sliderB")==0){
 
@@ -119,7 +120,16 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                 if (controllerInputMessage.elementUIName.compare("joystick")==0) {
 
+                    //Get the direction of the joystick
+                    U4DEngine::U4DVector2n digitalJoystickDirection=controllerInputMessage.joystickDirection;
+                    
+                    U4DEngine::U4DVector3n joystickDirection3d(digitalJoystickDirection.x,0.0,digitalJoystickDirection.y);
 
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+                    }
+                    
+                    pPlayer->setDribblingDirection(joystickDirection3d);
 
                 }
 
@@ -128,7 +138,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.elementUIName.compare("joystick")==0) {
 
                     //std::cout<<"joystick released"<<std::endl;
-
+                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+                    }
 
                 }
 
@@ -324,7 +336,8 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
             }
                 break;
-                
+
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
             //both keys P and U are used to set the scene into a Play or Pause status, respectively. They are only used for testing
             case U4DEngine::macKeyP:
             {
@@ -399,7 +412,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
             }
                 break;
-
+#endif
 
             case U4DEngine::macShiftKey:
             {

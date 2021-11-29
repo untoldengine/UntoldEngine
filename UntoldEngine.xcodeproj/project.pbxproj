@@ -3319,7 +3319,7 @@
 				TargetAttributes = {
 					03722B0D2029F0210080D069 = {
 						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = W9GCJ3HCHT;
+						DevelopmentTeam = PXXZLXYJ26;
 						ProvisioningStyle = Automatic;
 					};
 					03722B222029F0220080D069 = {
@@ -4570,7 +4570,7 @@
 				CODE_SIGN_IDENTITY = "iPhone Developer";
 				CODE_SIGN_STYLE = Automatic;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
+				DEVELOPMENT_TEAM = PXXZLXYJ26;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					U4DEditorPass.mm,
 					U4DEditorPass.h,
@@ -4614,7 +4614,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
+				DEVELOPMENT_TEAM = PXXZLXYJ26;
 				ENABLE_NS_ASSERTIONS = NO;
 				EXCLUDED_SOURCE_FILE_NAMES = (
 					U4DEditorPass.mm,

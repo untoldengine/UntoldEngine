@@ -53,7 +53,7 @@ fragment float4 fragmentUIJoystickShader(VertexOutput vertexOut [[stage_in]], co
         
         //st+=float2(-uniformShaderEntityProperty.shaderParameter[0].x,uniformShaderEntityProperty.shaderParameter[0].y);
         
-        float4 js=texture2.sample(sam2,st/0.5-float2(uniformShaderEntityProperty.shaderParameter[0].x,-uniformShaderEntityProperty.shaderParameter[0].y)+float2(0.5));
+        float4 js=texture2.sample(sam2,st/0.8-float2(uniformShaderEntityProperty.shaderParameter[0].x,-uniformShaderEntityProperty.shaderParameter[0].y)+float2(0.5));
         
         finalColor=max(finalColor, js);
         
