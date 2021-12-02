@@ -386,7 +386,7 @@
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {
- 
+    
     NSPoint mouseDownPos = [theEvent locationInWindow];
 
     U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
@@ -491,6 +491,10 @@
     ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
+- (void)scrollWheel:(NSEvent *)theEvent{
+    
+    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+}
 - (BOOL)acceptsFirstResponder
 {
     return YES;
