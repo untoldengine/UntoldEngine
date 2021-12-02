@@ -1349,6 +1349,7 @@
 		0375B9CB24E578D300D19CE4 /* SandboxWorld.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SandboxWorld.h; path = Game/SandboxWorld.h; sourceTree = SOURCE_ROOT; };
 		0375B9CF24E578E000D19CE4 /* SandboxLogic.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = SandboxLogic.mm; path = Game/SandboxLogic.mm; sourceTree = SOURCE_ROOT; };
 		0375B9D024E578E000D19CE4 /* SandboxLogic.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = SandboxLogic.h; path = Game/SandboxLogic.h; sourceTree = SOURCE_ROOT; };
+		0376618627558F240098E008 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
 		037C473A17B597CB007B8283 /* U4DModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DModel.h; sourceTree = "<group>"; };
 		037C473B17B597CB007B8283 /* U4DModel.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DModel.mm; sourceTree = "<group>"; };
 		037D2BE02445EA7900AB3FEF /* U4DCohesion.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DCohesion.mm; path = AISystem/Steering/U4DCohesion.mm; sourceTree = "<group>"; };
@@ -2102,6 +2103,7 @@
 		03759B37175B0135002EB5D9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				0376618627558F240098E008 /* ARKit.framework */,
 				03722DD7202B3BEB0080D069 /* GameController.framework */,
 				03722D852029F2250080D069 /* Foundation.framework */,
 				03722D832029F21A0080D069 /* Metal.framework */,
@@ -4560,7 +4562,7 @@
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
@@ -4603,7 +4605,7 @@
 				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
 				CLANG_WARN_COMMA = YES;
 				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
 				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
 				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
 				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;

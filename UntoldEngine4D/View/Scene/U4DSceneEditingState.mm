@@ -14,7 +14,7 @@ namespace U4DEngine {
 
     U4DSceneEditingState* U4DSceneEditingState::instance=0;
 
-    U4DSceneEditingState::U4DSceneEditingState(){
+    U4DSceneEditingState::U4DSceneEditingState():didWorldAndLogicInit(false){
 
     }
 
@@ -42,13 +42,18 @@ namespace U4DEngine {
         
         safeToChangeState=false;
         
-        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-        
-        uScene->gameWorld->init();
-        uScene->gameLogic->init();
-        
-        //enable profiler
-        sceneManager->enableSceneProfiling();
+        if(didWorldAndLogicInit==false){
+            
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            
+            uScene->gameWorld->init();
+            uScene->gameLogic->init();
+            
+            //enable profiler
+            sceneManager->enableSceneProfiling();
+            
+            didWorldAndLogicInit=true;
+        }
         
     }
         

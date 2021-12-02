@@ -192,7 +192,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseRightButtonReleased){
 
-                    std::cout<<"right released"<<std::endl;
+                    
                     
                 }
             }
