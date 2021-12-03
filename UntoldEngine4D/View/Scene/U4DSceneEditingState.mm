@@ -14,7 +14,7 @@ namespace U4DEngine {
 
     U4DSceneEditingState* U4DSceneEditingState::instance=0;
 
-    U4DSceneEditingState::U4DSceneEditingState():didWorldAndLogicInit(false){
+    U4DSceneEditingState::U4DSceneEditingState():didWorldInit(false){
 
     }
 
@@ -42,7 +42,7 @@ namespace U4DEngine {
         
         safeToChangeState=false;
         
-        if(didWorldAndLogicInit==false){
+        if(didWorldInit==false){
             
             U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
             
@@ -52,7 +52,7 @@ namespace U4DEngine {
             //enable profiler
             sceneManager->enableSceneProfiling();
             
-            didWorldAndLogicInit=true;
+            didWorldInit=true;
         }
         
     }

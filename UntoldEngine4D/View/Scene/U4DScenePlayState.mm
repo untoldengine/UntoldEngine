@@ -12,7 +12,7 @@ namespace U4DEngine {
 
     U4DScenePlayState* U4DScenePlayState::instance=0;
 
-    U4DScenePlayState::U4DScenePlayState(){
+    U4DScenePlayState::U4DScenePlayState():didGameLogicInit(false){
 
     }
 
@@ -34,7 +34,11 @@ namespace U4DEngine {
         
         uScene->setPauseScene(false);
         
-        uScene->gameLogic->init();
+        if(didGameLogicInit==false){
+            uScene->gameLogic->init();
+            didGameLogicInit=true;
+        }
+        
         
     }
         
@@ -69,7 +73,7 @@ namespace U4DEngine {
     void U4DScenePlayState::exit(U4DScene *uScene){
         
         uScene->setPauseScene(true);
-        uScene->gameLogic->deinit(); 
+        
     }
 
     bool U4DScenePlayState::isSafeToChangeState(U4DScene *uScene){

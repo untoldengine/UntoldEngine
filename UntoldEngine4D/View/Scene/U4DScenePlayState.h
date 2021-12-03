@@ -24,6 +24,8 @@ namespace U4DEngine {
         
         bool safeToChangeState;
         
+        bool didGameLogicInit;
+        
         U4DScenePlayState();
         
         ~U4DScenePlayState();
