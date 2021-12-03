@@ -42,8 +42,8 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):uniformMaterialBuffer(ni
         uniformModelShaderParametersBuffer=nil;
         
         for(int i=0;i<4;i++){
-            
-            [textureObject[i] setPurgeableState:MTLPurgeableStateEmpty];
+            //It seems that setting the Purgeable state to empty, causes metal to ignore buffer dependencies. Had to comment this section out since it is causing the engine to crash whenever I'm deleting an entity.
+            //[textureObject[i] setPurgeableState:MTLPurgeableStateEmpty];
             [textureObject[i] release];
             
             [samplerStateObject[i] release];
