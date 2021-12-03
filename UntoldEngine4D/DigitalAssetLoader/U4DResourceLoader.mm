@@ -967,8 +967,14 @@ namespace U4DEngine {
             if (modelsContainer.at(n).name.compare(uMeshName)==0) {
                 
                 //copy the data
-                uModel->setName(modelsContainer.at(n).name);
-                
+                //MODEL NAME IN GAME
+                 std::string modelName=world->searchScenegraphForNextName(modelsContainer.at(n).name); 
+
+                 uModel->setName(modelName);
+
+                 //REFERENCE NAME IN BLENDER---SETTING THE REFERENCE AND MODEL NAME TO SAME.
+                 uModel->setAssetReferenceName(modelsContainer.at(n).name);
+
                 
                 //VERTICES
                 loadVerticesData(uModel, modelsContainer.at(n).vertices);
@@ -1214,7 +1220,7 @@ namespace U4DEngine {
         
         for(int n=0;n<convexHullContainer.size();n++){
 
-            if (convexHullContainer.at(n).name.compare(uModel->getName())==0) {
+            if (convexHullContainer.at(n).name.compare(uModel->getAssetReferenceName())==0) {
          
                 convexHull.isValid=false;
                 

@@ -47,7 +47,7 @@ namespace U4DEngine {
             U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
             
             uScene->gameWorld->init();
-            uScene->gameLogic->init();
+            //uScene->gameLogic->init();
             
             //enable profiler
             sceneManager->enableSceneProfiling();

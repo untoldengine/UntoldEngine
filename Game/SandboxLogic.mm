@@ -47,7 +47,7 @@ void SandboxLogic::init(){
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
 
     //2. Search for the player object
-    pPlayer=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0"));
+    pPlayer=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
 
 
     if(pPlayer!=nullptr){

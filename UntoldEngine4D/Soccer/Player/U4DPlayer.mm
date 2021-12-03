@@ -68,7 +68,14 @@ namespace U4DEngine{
             
             loadRenderingInformation();
             
+            foot=new U4DFoot();
             
+            if(foot->init("rightfoot")){
+                addChild(foot);
+                setFootPoseSpace();
+            }
+            
+            changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
             
             return true;
         
@@ -94,11 +101,8 @@ namespace U4DEngine{
         return stateManager->getCurrentState();
     }
 
-    void U4DPlayer::setFoot(U4DFoot *uFoot){
+    void U4DPlayer::setFootPoseSpace(){
         
-        foot=uFoot;
-
-        addChild(foot);
         
         //declare matrix for the gun space
         U4DEngine::U4DMatrix4n m;
