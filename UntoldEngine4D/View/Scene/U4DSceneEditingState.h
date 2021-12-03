@@ -24,7 +24,7 @@ namespace U4DEngine {
         
         bool safeToChangeState;
         
-        bool didWorldAndLogicInit;
+        bool didWorldInit;
         
         static U4DSceneEditingState* instance;
         

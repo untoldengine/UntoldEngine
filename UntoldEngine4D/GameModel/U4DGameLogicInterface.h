@@ -33,7 +33,6 @@ public:
     virtual void update(double dt)=0;
     virtual void init()=0;
     
-    virtual void deinit()=0;
         
     virtual void setGameEntityManager(U4DEntityManager *uGameEntityManager)=0;
     
