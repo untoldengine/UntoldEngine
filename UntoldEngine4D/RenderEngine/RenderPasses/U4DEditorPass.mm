@@ -27,12 +27,12 @@
 #include "U4DSceneStateManager.h"
 #include "U4DSceneEditingState.h"
 #include "U4DScenePlayState.h"
-
+#include "U4DEntityFactory.h"
 
 #include "U4DWorld.h"
 #include "U4DModel.h"
 
-
+#include "U4DSerializer.h"
 #include "U4DRay.h"
 #include "U4DAABB.h"
 
@@ -63,6 +63,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static bool ScrollToBottom=true;
     static U4DEntity *activeChild=nullptr;
     static std::string assetSelectedName;
+    static std::string assetSelectedTypeName;
     static std::string assetSelectedPipelineName;
     static std::string scriptFilePathName;
     static std::string scriptFilePath;
@@ -94,6 +95,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     U4DWorld *world=scene->getGameWorld();
     U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
     
+    U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
     U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
     
     ImGuiFileDialog gravityFileDialog;
@@ -520,6 +522,131 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             }
             
             {
+                ImGui::Begin("Assets");
+            if (ImGui::TreeNode("Models"))
+            {
+
+                U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+                
+                
+                for (const auto &n : resourceLoader->getModelContainer()) {
+                    
+                    
+                    char buf[32];
+                    sprintf(buf, "%s", n.name.c_str());
+                        
+                    if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0)) {
+                        assetSelectedName=n.name;
+                        assetIsSelected=true;
+                     }
+                        
+                }
+                
+                
+                
+                ImGui::TreePop();
+
+            }
+
+            ImGui::End();
+
+           }
+            
+            {
+                if (assetIsSelected) {
+                    
+                    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+                    U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
+                    U4DScene *scene=sceneManager->getCurrentScene();
+                    
+                    ImGui::Begin("Load Assets");
+                    
+                    if (scene->getPauseScene()) {
+                        
+                        ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
+                        
+    //                    static char modelNameBuffer[64] = "";
+    //                    ImGui::InputText("Model Name", modelNameBuffer, 64);
+    //
+                        ImGui::Text("Select Asset Type");
+                        
+                        std::vector<std::string> items=entityFactory->getRegisteredClasses();
+                        
+                        static int item_current_idx = (int)items.size()-1; // Here we store our selection data as an index.
+                        
+                        const char* combo_label = items.at(item_current_idx).c_str();
+                        
+                        assetSelectedTypeName=items.at(item_current_idx).c_str();
+                        
+                        static ImGuiComboFlags flags = 0;
+                        
+                        if (ImGui::BeginCombo("Classes", combo_label, flags))
+                        {
+                            for (int n = 0; n < items.size(); n++)
+                            {
+                                const bool is_selected = (item_current_idx == n);
+                                if (ImGui::Selectable(items.at(n).c_str(), is_selected)){
+                                    item_current_idx = n;
+                                    assetSelectedTypeName=items.at(n);
+                                }
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        
+                        if(ImGui::Button("load Assset")){
+                        
+                            if (scene!=nullptr) {
+                                
+                                //search the scenegraph for current names
+                                
+                                U4DEntity *child=scene->getGameWorld()->next;
+                                
+                                int count=0;
+                                
+                                while (child!=nullptr) {
+                                    
+                                    //strip all characters up to the period
+                                    if(child->getEntityType()==U4DEngine::MODEL){
+                                        
+                                        std::string s=child->getName();
+                                        int n=(int)s.length();
+                                        int m=(int)assetSelectedName.length();
+                                        int stringLengthDifference=std::abs(n-m);
+
+                                        if(n<=stringLengthDifference) stringLengthDifference=n;
+                                        //trunk down the name
+                                        
+                                        s.erase(s.end()-stringLengthDifference, s.end());
+
+                                        if (s.compare(assetSelectedName)==0) {
+
+                                            count++;
+
+                                        }
+                                    }
+                                    
+                                    child=child->next;
+                                    
+                                }
+                                
+                                std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
+                                
+                                entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName);
+                                
+                            }
+                            
+                        }
+                        
+                    }
+                    
+                    ImGui::End();
+                }
+            }
+            
+            {
                 
              ImGui::Begin("Scene Property");
              if (ImGui::TreeNode("Scenegraph"))
@@ -564,6 +691,65 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                  ImGui::TreePop();
 
              }
+                
+                
+            {
+                 ImGui::Begin("Menu");
+
+                 if (ImGui::Button("Save")) {
+
+                     serialiazeFlag=true;
+                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+
+                 }
+                 ImGui::SameLine();
+                 if (ImGui::Button("Open")) {
+
+                     deserializeFlag=true;
+                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+
+                 }
+
+                 if (serialiazeFlag || deserializeFlag) {
+
+                     if (serializeFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                        {
+                            // action if OK
+                            if (serializeFileDialog.Instance()->IsOk())
+                            {
+
+                            sceneFilePathName = serializeFileDialog.Instance()->GetFilePathName();
+                                logger->log("%s",sceneFilePathName.c_str());
+
+
+                                if (serialiazeFlag) {
+                                    //serialize
+                                    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+
+                                    serializer->serialize(sceneFilePathName);
+
+                                }else if(deserializeFlag){
+                                    //deserialize
+                                    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+
+                                    serializer->deserialize(sceneFilePathName);
+                                }
+
+                            }else{
+
+                            }
+
+                            serialiazeFlag=false;
+                            deserializeFlag=false;
+
+                            // close
+                            serializeFileDialog.Instance()->Close();
+
+                        }
+
+                     }
+                     ImGui::End();
+                 }
                 
                 {
                     ImGui::Begin("Entity Properties");

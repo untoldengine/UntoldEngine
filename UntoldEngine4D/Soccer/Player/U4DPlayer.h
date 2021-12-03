@@ -73,7 +73,7 @@ public:
     
     void setMoveDirection(U4DVector3n &uMoveDirection);
     
-    void setFoot(U4DFoot *uFoot);
+    void setFootPoseSpace();
     
     void updateFootSpaceWithAnimation(U4DAnimation *uAnimation);
     

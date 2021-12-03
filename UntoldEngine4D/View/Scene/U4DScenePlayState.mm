@@ -33,6 +33,9 @@ namespace U4DEngine {
     void U4DScenePlayState::enter(U4DScene *uScene){
         
         uScene->setPauseScene(false);
+        
+        uScene->gameLogic->init();
+        
     }
         
     void U4DScenePlayState::execute(U4DScene *uScene, double dt){
@@ -66,7 +69,7 @@ namespace U4DEngine {
     void U4DScenePlayState::exit(U4DScene *uScene){
         
         uScene->setPauseScene(true);
-    
+        uScene->gameLogic->deinit(); 
     }
 
     bool U4DScenePlayState::isSafeToChangeState(U4DScene *uScene){

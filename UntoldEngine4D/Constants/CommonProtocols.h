@@ -776,6 +776,7 @@ namespace U4DEngine {
         std::string name;
         std::string assetReferenceName;
         std::string pipelineName;
+        std::string classType;
         std::vector<float> position;
         std::vector<float> orientation;
     }ENTITYSERIALIZEDATA;
