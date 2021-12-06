@@ -47,6 +47,9 @@ void SandboxScene::init(){
     //load ui textures contains images that can be used for the UIs. Look at the joystick instance below.
     resourceLoader->loadTextureData("uiTextures.u4d");
     
+    //load skybox textures
+    resourceLoader->loadTextureData("skyboxTextures.u4d");
+    
     //load particle data
     //resourceLoader->loadParticleData("redBulletEmitter.u4d");
     
