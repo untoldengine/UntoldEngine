@@ -27,10 +27,6 @@ class U4DSkybox:public U4DVisibleEntity{
     
 private:
    
-    /**
-     @brief pointer to the rendering manager
-     */
-    //U4DRenderEntity *renderEntity;
 
 public:
 

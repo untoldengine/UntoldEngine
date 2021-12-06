@@ -46,6 +46,9 @@
 		031163F32758A3CC004DCC01 /* U4DSerializer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031163F12758A3CC004DCC01 /* U4DSerializer.mm */; };
 		031163F42758A3CC004DCC01 /* U4DSerializer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031163F12758A3CC004DCC01 /* U4DSerializer.mm */; };
 		031163F52758A3CC004DCC01 /* U4DSerializer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031163F12758A3CC004DCC01 /* U4DSerializer.mm */; };
+		031163F7275D462A004DCC01 /* skyboxTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 031163F6275D4629004DCC01 /* skyboxTextures.u4d */; };
+		031163F8275D462A004DCC01 /* skyboxTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 031163F6275D4629004DCC01 /* skyboxTextures.u4d */; };
+		031163F9275D462A004DCC01 /* skyboxTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 031163F6275D4629004DCC01 /* skyboxTextures.u4d */; };
 		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; };
 		0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
 		0323DB9C202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
@@ -1165,6 +1168,7 @@
 		031163EC2758A38C004DCC01 /* U4DEntityFactory.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DEntityFactory.h; path = EntityFactory/U4DEntityFactory.h; sourceTree = "<group>"; };
 		031163F12758A3CC004DCC01 /* U4DSerializer.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSerializer.mm; path = Serializer/U4DSerializer.mm; sourceTree = "<group>"; };
 		031163F22758A3CC004DCC01 /* U4DSerializer.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DSerializer.h; path = Serializer/U4DSerializer.h; sourceTree = "<group>"; };
+		031163F6275D4629004DCC01 /* skyboxTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = skyboxTextures.u4d; sourceTree = "<group>"; };
 		031413EC2589D03B005BF4A4 /* Untold4D.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Untold4D.entitlements; sourceTree = "<group>"; };
 		0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHManager.mm; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.mm; sourceTree = "<group>"; };
 		0314B0BB1C6FE8F600EB8C34 /* U4DBVHManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHManager.h; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.h; sourceTree = "<group>"; };
@@ -2343,6 +2347,7 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				031163F6275D4629004DCC01 /* skyboxTextures.u4d */,
 				03907FD1273B023E0092A0D2 /* idleAnimation.u4d */,
 				036AE9C9270D847E00F9685B /* gameconfigs.gravity */,
 				0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */,
@@ -3411,6 +3416,7 @@
 				03C0447C2683D733002B3880 /* runningAnimation.u4d in Resources */,
 				03C0445D26813562002B3880 /* soccerScene.u4d in Resources */,
 				03042F9E26577A8700681C6C /* sceneTextures.u4d in Resources */,
+				031163F8275D462A004DCC01 /* skyboxTextures.u4d in Resources */,
 				036AE9CB270D847F00F9685B /* gameconfigs.gravity in Resources */,
 				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
 				0361A0A227037A6B00DDD2F6 /* Lato-Light.ttf in Resources */,
@@ -3442,6 +3448,7 @@
 				036AE9CC270D847F00F9685B /* gameconfigs.gravity in Resources */,
 				03DEBE3B262A2676009C80B6 /* uiFont.u4d in Resources */,
 				03E688E4267793280079ED4D /* README.md in Resources */,
+				031163F9275D462A004DCC01 /* skyboxTextures.u4d in Resources */,
 				0361A0A027037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */,
 				03907FD4273B023F0092A0D2 /* idleAnimation.u4d in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
@@ -3461,6 +3468,7 @@
 				03E688E2267793280079ED4D /* README.md in Resources */,
 				03C0447B2683D733002B3880 /* runningAnimation.u4d in Resources */,
 				03DEBE39262A2676009C80B6 /* uiFont.u4d in Resources */,
+				031163F7275D462A004DCC01 /* skyboxTextures.u4d in Resources */,
 				03042F9D26577A8700681C6C /* sceneTextures.u4d in Resources */,
 				036AE9CA270D847F00F9685B /* gameconfigs.gravity in Resources */,
 				03907FD2273B023F0092A0D2 /* idleAnimation.u4d in Resources */,

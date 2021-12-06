@@ -15,6 +15,8 @@ namespace U4DEngine {
     
     U4DSkybox::U4DSkybox(){
         
+        renderEntity=new U4DRenderSkybox(this);
+        
         renderEntity->setPipelineForPass("skyboxpipeline",U4DEngine::finalPass);
         
     }

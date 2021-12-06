@@ -151,6 +151,12 @@ namespace U4DEngine {
         
         //YOU NEED TO MODIFY THIS SO THAT IT USES THE U4DCAMERA Position
         U4DEngine::U4DMatrix4n viewSpace=camera->getLocalSpace().transformDualQuaternionToMatrix4n();
+        
+        //To make the illusion that the skybox is infinite, set the translation of the camera to zero.
+        viewSpace.matrixData[12]=0.0;
+        viewSpace.matrixData[13]=0.0;
+        viewSpace.matrixData[14]=0.0;
+        
         viewSpace.invert();
         
         U4DMatrix4n modelWorldSpace=worldSpace*modelSpace;
