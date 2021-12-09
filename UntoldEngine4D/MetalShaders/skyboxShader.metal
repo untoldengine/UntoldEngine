@@ -30,7 +30,7 @@ vertex VertexOutput vertexSkyboxShader(VertexInput vert [[stage_in]], constant U
     
     float4 position=uniformSpace.modelViewProjectionSpace*float4(vert.position);
     
-    vertexOut.position=position;
+    vertexOut.position=position.xyww;
     
     vertexOut.uvCoords=float3(vert.position);
     

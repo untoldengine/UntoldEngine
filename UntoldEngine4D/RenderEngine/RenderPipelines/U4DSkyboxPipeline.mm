@@ -62,9 +62,9 @@ namespace U4DEngine{
 
         mtlRenderPassDepthStencilDescriptor=[[MTLDepthStencilDescriptor alloc] init];
 
-        mtlRenderPassDepthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLess;
+        mtlRenderPassDepthStencilDescriptor.depthCompareFunction=MTLCompareFunctionLessEqual;
 
-        mtlRenderPassDepthStencilDescriptor.depthWriteEnabled=NO;
+        mtlRenderPassDepthStencilDescriptor.depthWriteEnabled=YES;
 
         mtlRenderPassDepthStencilState=[mtlDevice newDepthStencilStateWithDescriptor:mtlRenderPassDepthStencilDescriptor];
 
