@@ -245,61 +245,64 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             
         }
         
-        ImGui::SameLine();
+            ImGui::End();
+        }
         
+        {
+            ImGui::Begin("Game Configs");
+            
             //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
-//            ImGui::SameLine();
-//            if (ImGui::Button("Open Script")){
-//                lookingForScriptFile=true;
-//
-//                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-//            }
-//
-//            if(lookingForScriptFile){
-//                // display
-//                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
-//                {
-//                  // action if OK
-//                  if (gravityFileDialog.Instance()->IsOk())
-//                  {
-//                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
-//                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-//                    // action
-//                    scriptFilesFound=true;
-//                  }else{
-//                    //scriptFilesFound=false;
-//                  }
-//
-//                  // close
-//                  gravityFileDialog.Instance()->Close();
-//
-//                }
-//
-//              if (scriptFilesFound) {
-//
-//                  ImGui::Text("Script %s", scriptFilePathName.c_str());
-//
-//                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-//
-//                  if(ImGui::Button("Load Script")){
-//
-//                      if(scriptManager->loadScript(scriptFilePathName)){
-//
-//                          logger->log("Script was loaded.");
-//
-//                          //call the init function in the script
-//                          scriptManager->loadGameConfigs();
-//
-//                          scriptLoadedSuccessfully=true;
-//                      }else{
-//                          scriptLoadedSuccessfully=false;
-//                      }
-//
-//                      //lookingForScriptFile=false;
-//                  }
-//
-//              }
-//            }
+            if (ImGui::Button("Script")){
+                lookingForScriptFile=true;
+
+                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+            }
+
+            if(lookingForScriptFile){
+                // display
+                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                {
+                  // action if OK
+                  if (gravityFileDialog.Instance()->IsOk())
+                  {
+                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+                    // action
+                    scriptFilesFound=true;
+                  }else{
+                    //scriptFilesFound=false;
+                  }
+
+                  // close
+                  gravityFileDialog.Instance()->Close();
+
+                }
+
+              if (scriptFilesFound) {
+
+                  ImGui::Text("Script %s", scriptFilePathName.c_str());
+
+                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+
+                  if(ImGui::Button("Load Script")){
+
+                      if(scriptManager->loadScript(scriptFilePathName)){
+
+                          logger->log("Script was loaded.");
+
+                          //call the init function in the script
+                          scriptManager->loadGameConfigs();
+
+                          scriptLoadedSuccessfully=true;
+                      }else{
+                          scriptLoadedSuccessfully=false;
+                      }
+
+                      //lookingForScriptFile=false;
+                  }
+
+              }
+            }
         //END SCRIPT FINE_TUNE
             
         ImGui::End();
