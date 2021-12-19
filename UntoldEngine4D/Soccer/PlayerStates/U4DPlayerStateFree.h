@@ -1,32 +1,32 @@
 //
-//  U4DPlayerStateShooting.hpp
+//  U4DPlayerStateFree.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 11/17/21.
+//  Created by Harold Serrano on 12/18/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef U4DPlayerStateShooting_hpp
-#define U4DPlayerStateShooting_hpp
+#ifndef U4DPlayerStateFree_hpp
+#define U4DPlayerStateFree_hpp
 
 #include <stdio.h>
 #include "U4DPlayerStateInterface.h"
 
 namespace U4DEngine {
 
-    class U4DPlayerStateShooting:public U4DPlayerStateInterface {
+    class U4DPlayerStateFree:public U4DPlayerStateInterface {
 
     private:
 
-        U4DPlayerStateShooting();
+        U4DPlayerStateFree();
         
-        ~U4DPlayerStateShooting();
+        ~U4DPlayerStateFree();
         
     public:
         
-        static U4DPlayerStateShooting* instance;
+        static U4DPlayerStateFree* instance;
         
-        static U4DPlayerStateShooting* sharedInstance();
+        static U4DPlayerStateFree* sharedInstance();
         
         void enter(U4DPlayer *uPlayer);
         
@@ -41,5 +41,4 @@ namespace U4DEngine {
     };
 
 }
-
-#endif /* U4DPlayerStateShooting_hpp */
+#endif /* U4DPlayerStateFree_hpp */

@@ -31,7 +31,7 @@ private:
     
     float kickMagnitude;
     
-    U4DVector3n kickDirection;
+    
     
     U4DVector3n motionAccumulator;
    
@@ -44,6 +44,8 @@ protected:
     ~U4DBall();
     
 public:
+    
+    U4DVector3n kickDirection;
     
     U4DDynamicAction *kineticAction;
     

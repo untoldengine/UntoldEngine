@@ -45,7 +45,7 @@ public:
     
     void safeChangeState(U4DPlayerStateInterface *uState);
     
-    //bool handleMessage(Message &uMsg);
+    bool handleMessage(Message &uMsg);
     
     U4DPlayerStateInterface *getCurrentState();
     

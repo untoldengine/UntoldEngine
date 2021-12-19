@@ -20,6 +20,9 @@
 #include "U4DPlayerStateIdle.h"
 #include "U4DPlayerStateDribbling.h"
 #include "U4DPlayerStateShooting.h"
+#include "U4DPlayerStatePass.h"
+#include "U4DPlayerStateIntercept.h"
+#include "U4DPlayerStateFree.h"
 
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
@@ -27,7 +30,10 @@
 #include "U4DSceneEditingState.h"
 #include "U4DScenePlayState.h"
 
-SandboxLogic::SandboxLogic():pPlayer(nullptr){
+#include "U4DTeam.h"
+#include "U4DBall.h"
+
+SandboxLogic::SandboxLogic():pPlayer(nullptr),team(nullptr){
     
 }
 
@@ -36,6 +42,7 @@ SandboxLogic::~SandboxLogic(){
 }
 
 void SandboxLogic::update(double dt){
+    
     
     
 }
@@ -56,6 +63,29 @@ void SandboxLogic::init(){
 
 
     }
+    
+    U4DEngine::U4DPlayer *p1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
+    
+    U4DEngine::U4DPlayer *p2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
+    
+    U4DEngine::U4DPlayer *p3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
+    
+    U4DEngine::U4DPlayer *p4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
+    
+    
+    team=new U4DEngine::U4DTeam();
+    
+    team->addPlayer(pPlayer);
+    team->addPlayer(p1);
+    team->addPlayer(p2);
+    team->addPlayer(p3);
+    team->addPlayer(p4);
+    
+    //set controlling player
+    
+    team->setControllingPlayer(pPlayer);
+    
+    
 }
 
 
@@ -64,6 +94,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
     
+    if(team!=nullptr){
+        pPlayer=team->getControllingPlayer();
+    }
     
     if (pPlayer!=nullptr) {
       
@@ -176,7 +209,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseLeftButtonReleased){
 
-                    pPlayer->setEnableShooting(true);
+//                    pPlayer->setEnableShooting(true);
+//                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+//                    logger->log("shooting");
                 }
             }
 
@@ -192,8 +227,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseRightButtonReleased){
 
-                    
-                    
+//                    pPlayer->setEnablePassing(true);
+//                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+//                    logger->log("passing");
                 }
             }
 
@@ -237,17 +273,23 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
-                    }
+                    pPlayer->setEnablePassing(true);
+                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                    logger->log("passing");
+                    
+                    
+                    
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+//                    }
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
                  
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance() && pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
-                    }
-
-                    U4DEngine::U4DVector3n dribblingDirection(-1.0,0.0,0.0);
-                    pPlayer->setDribblingDirection(dribblingDirection);
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance() && pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+//                    }
+//
+//                    U4DEngine::U4DVector3n dribblingDirection(-1.0,0.0,0.0);
+//                    pPlayer->setDribblingDirection(dribblingDirection);
                 }
             }
 
@@ -264,18 +306,21 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //8. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
 
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
-                    }
+                    pPlayer->setEnableShooting(true);
+                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                    logger->log("shooting");
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+//                    }
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
-                    }
-                    
-                    U4DEngine::U4DVector3n dribblingDirection(1.0,0.0,0.0);
-                    
-                    pPlayer->setDribblingDirection(dribblingDirection);
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+//                    }
+//
+//                    U4DEngine::U4DVector3n dribblingDirection(1.0,0.0,0.0);
+//
+//                    pPlayer->setDribblingDirection(dribblingDirection);
                 }
 
             }
@@ -292,19 +337,19 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
-                    }
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+//                    }
                 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
                     
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
-                    }
-                    
-                    U4DEngine::U4DVector3n dribblingDirection(0.0,0.0,1.0);
-                    
-                    pPlayer->setDribblingDirection(dribblingDirection);
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+//                    }
+//
+//                    U4DEngine::U4DVector3n dribblingDirection(0.0,0.0,1.0);
+//
+//                    pPlayer->setDribblingDirection(dribblingDirection);
                 }
             }
                 break;
@@ -319,19 +364,22 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
 
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
-                    }
-
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+//                    }
+                    pPlayer->setEnableHalt(true);
+                    
+                    
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
                     
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
-                    }
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+//                    }
+//
+//                    U4DEngine::U4DVector3n dribblingDirection(0.0,0.0,-1.0);
+//
+//                    pPlayer->setDribblingDirection(dribblingDirection);
                     
-                    U4DEngine::U4DVector3n dribblingDirection(0.0,0.0,-1.0);
-                    
-                    pPlayer->setDribblingDirection(dribblingDirection);
                 }
 
             }
@@ -517,15 +565,22 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                     U4DEngine::U4DVector3n mousedirection(delta.x,0.0,delta.y);
 
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()==U4DEngine::U4DPlayerStateFree::sharedInstance()){
+                        pPlayer->setEnableFreeToRun(true);
+                    }else if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateIntercept::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStatePass::sharedInstance()){
+
+                        //pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+                        pPlayer->setEnableDribbling(true);
                     }
+                    
+                    
                     
                     pPlayer->setDribblingDirection(mousedirection);
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::mouseInactive){
 
                     //std::cout<<"Mouse stopped"<<std::endl;
+                    
                 }
 
             }

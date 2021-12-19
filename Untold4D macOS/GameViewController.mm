@@ -125,6 +125,13 @@
     
     sceneManager->changeScene(sandboxScene);
     
+    BOOL success = [metalView becomeFirstResponder];
+    if (success) {
+        NSLog(@"engine became the first responder");
+    } else {
+        NSLog(@"Could not become first responder");
+    }
+    
 }
 
 - (void)screenScaleFactorChanged:(NSNotification *)notification {
@@ -496,6 +503,11 @@
     ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 - (BOOL)acceptsFirstResponder
+{
+    return YES;
+}
+
+- (BOOL)canBecomeFirstResponder
 {
     return YES;
 }
