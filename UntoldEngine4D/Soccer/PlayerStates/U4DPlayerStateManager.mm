@@ -84,15 +84,15 @@ namespace U4DEngine {
         
     }
 
-    //bool U4DPlayerStateManager::handleMessage(Message &uMsg){
-    //
-    //    if(currentState!=nullptr){
-    //        return currentState->handleMessage(player, uMsg);
-    //    }else{
-    //        return false;
-    //    }
-    //
-    //}
+    bool U4DPlayerStateManager::handleMessage(Message &uMsg){
+    
+        if(currentState!=nullptr){
+            return currentState->handleMessage(player, uMsg);
+        }else{
+            return false;
+        }
+    
+    }
 
     U4DPlayerStateInterface *U4DPlayerStateManager::getCurrentState(){
         

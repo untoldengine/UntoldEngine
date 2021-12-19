@@ -57,6 +57,9 @@ void SandboxScene::init(){
     resourceLoader->loadAnimationData("rightshotAnimation.u4d");
     resourceLoader->loadAnimationData("runningAnimation.u4d");
     resourceLoader->loadAnimationData("idleAnimation.u4d");
+    resourceLoader->loadAnimationData("rightpassAnimation.u4d");
+    resourceLoader->loadAnimationData("rightsolehaltAnimation.u4d");
+    resourceLoader->loadAnimationData("joggingAnimation.u4d");
     
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");
@@ -68,6 +71,10 @@ void SandboxScene::init(){
     U4DEngine::U4DModelPipeline *nonvisiblePipeline=new U4DEngine::U4DModelPipeline("nonvisible");
         
     nonvisiblePipeline->initPipeline("vertexNonVisibleShader", "fragmentNonVisibleShader");
+    
+    U4DEngine::U4DModelPipeline *fieldPipeline=new U4DEngine::U4DModelPipeline("fieldPipeline");
+        
+    fieldPipeline->initPipeline("vertexFieldShader", "fragmentFieldShader");
 
     //get instance of director
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();

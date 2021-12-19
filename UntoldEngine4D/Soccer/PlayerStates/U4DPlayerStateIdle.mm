@@ -8,6 +8,9 @@
 
 #include "U4DPlayerStateIdle.h"
 #include "U4DGameConfigs.h"
+#include "U4DPlayerStateDribbling.h"
+#include "U4DPlayerStateIntercept.h"
+#include "U4DPlayerStateFree.h"
 
 namespace U4DEngine {
 
@@ -52,6 +55,11 @@ void U4DPlayerStateIdle::execute(U4DPlayer *uPlayer, double dt){
     
     uPlayer->updateFootSpaceWithAnimation(uPlayer->idleAnimation);
     
+    if (uPlayer->dribbleBall==true) {
+        uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
+    }else if(uPlayer->freeToRun==true){
+        uPlayer->changeState(U4DPlayerStateFree::sharedInstance());
+    }
 }
 
 void U4DPlayerStateIdle::exit(U4DPlayer *uPlayer){
@@ -62,5 +70,31 @@ bool U4DPlayerStateIdle::isSafeToChangeState(U4DPlayer *uPlayer){
     
     return true;
 }
+
+bool U4DPlayerStateIdle::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
+    
+    switch (uMsg.msg) {
+        
+        case msgChaseBall:
+        {
+            uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
+        }
+            
+        break;
+        
+        case msgInterceptBall:
+        {
+            uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
+        }
+        break;
+            
+        default:
+            break;
+    }
+    
+    return false;
+    
+}
+
 }
 

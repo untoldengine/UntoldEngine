@@ -21,7 +21,7 @@
 
 namespace U4DEngine{
 
-    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false){
+    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr){
         
     }
 
@@ -60,10 +60,28 @@ namespace U4DEngine{
                 shootingAnimation->setPlayContinuousLoop(false);
             }
             
+            passingAnimation=new U4DEngine::U4DAnimation(this);
+            
+            if(loadAnimationToModel(passingAnimation, "rightpass")){
+                passingAnimation->setPlayContinuousLoop(false);
+            }
+            
             idleAnimation = new U4DEngine::U4DAnimation(this);
 
             if(loadAnimationToModel(idleAnimation, "idle")){
 
+            }
+            
+            haltAnimation = new U4DEngine::U4DAnimation(this);
+
+            if(loadAnimationToModel(haltAnimation, "rightsolehalt")){
+                haltAnimation->setPlayContinuousLoop(false);
+            }
+            
+            jogAnimation = new U4DEngine::U4DAnimation(this);
+
+            if(loadAnimationToModel(jogAnimation, "jogging")){
+                
             }
             
             loadRenderingInformation();
@@ -116,8 +134,24 @@ namespace U4DEngine{
         }
     }
 
+    void U4DPlayer::setEnableDribbling(bool uValue){
+        dribbleBall=uValue;
+    }
+
     void U4DPlayer::setEnableShooting(bool uValue){
         shootBall=uValue;
+    }
+
+    void U4DPlayer::setEnablePassing(bool uValue){
+        passBall=uValue;
+    }
+
+    void U4DPlayer::setEnableHalt(bool uValue){
+        haltBall=uValue;
+    }
+
+    void U4DPlayer::setEnableFreeToRun(bool uValue){
+        freeToRun=uValue;
     }
 
     void U4DPlayer::updateFootSpaceWithAnimation(U4DAnimation *uAnimation){
@@ -164,6 +198,8 @@ namespace U4DEngine{
 
     void U4DPlayer::applyVelocity(U4DVector3n &uFinalVelocity, double dt){
         
+        U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
+        
         //force=m*(vf-vi)/dt
         
         //get mass
@@ -174,7 +210,7 @@ namespace U4DEngine{
         //significant. The bias parameter controls how much significance is given to previous values.
         //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
         //A bias of 1 ignores the new value altogether.
-        float biasMotionAccumulator=0.85;
+        float biasMotionAccumulator=gameConfigs->getParameterForKey("playerBiasMotionAccum");
         
         forceMotionAccumulator=forceMotionAccumulator*biasMotionAccumulator+uFinalVelocity*(1.0-biasMotionAccumulator);
         
@@ -188,14 +224,17 @@ namespace U4DEngine{
         U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
         kineticAction->setVelocity(zero);
         
+        setDribblingDirection(uFinalVelocity);
     }
 
     void U4DPlayer::setViewDirection(U4DVector3n &uViewDirection){
         
+        U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
+        
         //declare an up vector
         U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
         
-        float biasMotionAccumulator=0.95;
+        float biasMotionAccumulator=gameConfigs->getParameterForKey("playerBiasMotionAccum");
         
         motionAccumulator=motionAccumulator*biasMotionAccumulator+uViewDirection*(1.0-biasMotionAccumulator);
         
@@ -240,7 +279,7 @@ namespace U4DEngine{
         //significant. The bias parameter controls how much significance is given to previous values.
         //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
         //A bias of 1 ignores the new value altogether.
-        float biasMotionAccumulator=gameConfigs->getParameterForKey("biasMoveMotion");
+        float biasMotionAccumulator=gameConfigs->getParameterForKey("playerBiasMotionAccum");
         
         motionAccumulator=motionAccumulator*biasMotionAccumulator+uMoveDirection*(1.0-biasMotionAccumulator);
         
@@ -297,6 +336,19 @@ namespace U4DEngine{
 
             dribblingDirection=dribblingDirection*t+dribblingDirectionAccumulator*(1.0-t);
         
+    }
+
+
+    void U4DPlayer::addToTeam(U4DTeam *uTeam){
+        team=uTeam;
+    }
+
+    U4DTeam *U4DPlayer::getTeam(){
+        return team;
+    }
+
+    void U4DPlayer::handleMessage(Message &uMsg){
+        stateManager->handleMessage(uMsg);
     }
 
 }

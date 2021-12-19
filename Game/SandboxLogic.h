@@ -12,13 +12,14 @@
 #include <stdio.h>
 #include "U4DGameLogic.h"
 #include "U4DPlayer.h"
+#include "U4DTeam.h"
 
 class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     
     U4DEngine::U4DPlayer *pPlayer;
-    
+    U4DEngine::U4DTeam *team;
     
 public:
     

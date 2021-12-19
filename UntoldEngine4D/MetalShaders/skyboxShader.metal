@@ -41,6 +41,9 @@ fragment float4 fragmentSkyboxShader(VertexOutput vertexOut [[stage_in]], textur
     
     float3 texCoords = float3(vertexOut.uvCoords.x, vertexOut.uvCoords.y, -vertexOut.uvCoords.z);
     
+    if(texCoords.y<=0.0){
+        discard_fragment(); 
+    }
     return skyboxTexture.sample(skyboxSampler, texCoords);
     
     

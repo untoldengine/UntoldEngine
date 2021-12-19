@@ -11,7 +11,7 @@
 
 #include <stdio.h>
 #include "U4DPlayer.h"
-#include "UserCommonProtocols.h"
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
 
@@ -31,7 +31,7 @@ public:
     
     virtual void exit(U4DPlayer *uPlayer)=0;
     
-    //virtual bool handleMessage(Player *uPlayer, Message &uMsg)=0;
+    virtual bool handleMessage(U4DPlayer *uPlayer, Message &uMsg)=0;
     
     virtual bool isSafeToChangeState(U4DPlayer *uPlayer)=0;
     

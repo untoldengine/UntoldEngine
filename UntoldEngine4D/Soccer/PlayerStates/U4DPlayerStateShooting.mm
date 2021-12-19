@@ -52,15 +52,17 @@ void U4DPlayerStateShooting::execute(U4DPlayer *uPlayer, double dt){
 
     uPlayer->foot->kineticAction->resumeCollisionBehavior();
     
-    if (uPlayer->shootingAnimation->getAnimationIsPlaying()==true && uPlayer->foot->kineticAction->getModelHasCollided()) {
+    if (uPlayer->foot->kineticAction->getModelHasCollided()) {
 
-        uPlayer->foot->setKickBallParameters(80.0,uPlayer->dribblingDirection);
-
+        U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
+        uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("shootingBallSpeed"),uPlayer->dribblingDirection);
+        uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
+        
     }
 
     //if animation has stopped, the switch to idle
     if (uPlayer->shootingAnimation->getAnimationIsPlaying()==false) {
-        uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
+        //uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
     }
 }
 
@@ -71,6 +73,20 @@ void U4DPlayerStateShooting::exit(U4DPlayer *uPlayer){
 bool U4DPlayerStateShooting::isSafeToChangeState(U4DPlayer *uPlayer){
     
     return true;
+}
+
+bool U4DPlayerStateShooting::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
+    
+    switch (uMsg.msg) {
+        
+        
+            
+        default:
+            break;
+    }
+    
+    return false;
+    
 }
 
 }

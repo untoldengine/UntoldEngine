@@ -19,8 +19,14 @@
 #include "U4DVector3n.h"
 #include "U4DVector4n.h"
 
+
+
+
 namespace U4DEngine {
     
+class U4DPlayer;
+class U4DTeam;
+
     /**
      @brief The SPRITEDATA structure holds sprites information
      */
@@ -800,6 +806,34 @@ namespace U4DEngine {
         
     }GameEntityCollision;
 
+    enum{
+        
+        msgChaseBall,
+        msgInterceptBall,
+        msgSupport,
+        msgMark,
+        msgFormation,
+        msgIdle,
+        msgWander,
+        msgGoHome,
+        msgNavigate,
+        msgFree,
+        msgLostBall,
+        msgVictory,
+        msgReceivePass,
+        
+    }PlayerMessage;
+
+typedef struct{
+    
+    U4DPlayer *senderPlayer;
+    U4DPlayer *receiverPlayer;
+    U4DTeam *receiverTeam;
+    U4DTeam *team;
+    int msg;
+    void *extraInfo;
+    
+}Message;
 
 }
 

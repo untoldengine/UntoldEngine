@@ -11,6 +11,9 @@
 #include "U4DBall.h"
 #include "U4DFoot.h"
 #include "U4DPlayerStateShooting.h"
+#include "U4DPlayerStatePass.h"
+#include "U4DPlayerStateHalt.h"
+#include "U4DTeam.h"
 
 namespace U4DEngine {
 
@@ -49,6 +52,11 @@ void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
     uPlayer->arriveBehavior.setTargetRadius(gameConfigs->getParameterForKey("arriveStopRadius"));
     uPlayer->arriveBehavior.setSlowRadius(gameConfigs->getParameterForKey("arriveSlowRadius"));
     
+    //set player as controlling player
+    U4DTeam *team=uPlayer->getTeam();
+    team->setControllingPlayer(uPlayer);
+    
+    uPlayer->setEnableDribbling(false);
 }
 
 void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
@@ -57,17 +65,13 @@ void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
     
     U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
 
-    
     U4DBall *ball=U4DBall::sharedInstance();
-
-    U4DEngine::U4DVector3n ballPos=ball->getAbsolutePosition();
-
-    ballPos.y=uPlayer->getAbsolutePosition().y;
-
-
     
+    U4DEngine::U4DVector3n ballPosition=ball->getAbsolutePosition();
+    ballPosition.y=uPlayer->getAbsolutePosition().y;
 
-    U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, ballPos);
+
+    U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, ballPosition);
     
     if(!(finalVelocity==U4DEngine::U4DVector3n(0.0,0.0,0.0))){
         uPlayer->applyVelocity(finalVelocity, dt);
@@ -79,10 +83,17 @@ void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
 
             uPlayer->changeState(U4DPlayerStateShooting::sharedInstance());
 
+        }else if(uPlayer->passBall==true){
+            uPlayer->changeState(U4DPlayerStatePass::sharedInstance());
+        }else if(uPlayer->haltBall==true){
+            ball->changeState(stopped);
+            uPlayer->changeState(U4DPlayerStateHalt::sharedInstance());
+            
         }
 
     }
 
+    
     uPlayer->foot->kineticAction->resumeCollisionBehavior();
 
     uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"), uPlayer->dribblingDirection);
@@ -96,6 +107,20 @@ void U4DPlayerStateDribbling::exit(U4DPlayer *uPlayer){
 bool U4DPlayerStateDribbling::isSafeToChangeState(U4DPlayer *uPlayer){
     
     return true;
+}
+
+bool U4DPlayerStateDribbling::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
+    
+    switch (uMsg.msg) {
+        
+        
+            
+        default:
+            break;
+    }
+    
+    return false;
+    
 }
 
 }

@@ -1,32 +1,32 @@
 //
-//  U4DPlayerStateShooting.hpp
+//  U4DPlayerStateJog.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 11/17/21.
+//  Created by Harold Serrano on 12/16/21.
 //  Copyright © 2021 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef U4DPlayerStateShooting_hpp
-#define U4DPlayerStateShooting_hpp
+#ifndef U4DPlayerStateJog_hpp
+#define U4DPlayerStateJog_hpp
 
 #include <stdio.h>
 #include "U4DPlayerStateInterface.h"
 
 namespace U4DEngine {
 
-    class U4DPlayerStateShooting:public U4DPlayerStateInterface {
+    class U4DPlayerStateJog:public U4DPlayerStateInterface {
 
     private:
 
-        U4DPlayerStateShooting();
+        U4DPlayerStateJog();
         
-        ~U4DPlayerStateShooting();
+        ~U4DPlayerStateJog();
         
     public:
         
-        static U4DPlayerStateShooting* instance;
+        static U4DPlayerStateJog* instance;
         
-        static U4DPlayerStateShooting* sharedInstance();
+        static U4DPlayerStateJog* sharedInstance();
         
         void enter(U4DPlayer *uPlayer);
         
@@ -42,4 +42,4 @@ namespace U4DEngine {
 
 }
 
-#endif /* U4DPlayerStateShooting_hpp */
+#endif /* U4DPlayerStateJog_hpp */

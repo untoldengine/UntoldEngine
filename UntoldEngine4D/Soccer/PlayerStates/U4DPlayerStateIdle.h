@@ -36,7 +36,7 @@ namespace U4DEngine {
         
         bool isSafeToChangeState(U4DPlayer *uPlayer);
         
-        //bool handleMessage(U4DPlayer *uPlayer, Message &uMsg);
+        bool handleMessage(U4DPlayer *uPlayer, Message &uMsg);
         
     };
 

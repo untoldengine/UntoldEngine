@@ -13,12 +13,14 @@
 #include "U4DModel.h"
 #include "U4DDynamicAction.h"
 #include "U4DAnimationManager.h"
-
+#include "CommonProtocols.h"
 #include "U4DArrive.h"
+#include "U4DPursuit.h"
 
 namespace U4DEngine{
 
 class U4DFoot;
+class U4DTeam;
 class U4DPlayerStateInterface;
 class U4DPlayerStateManager;
 
@@ -38,16 +40,27 @@ private:
     
     U4DVector3n dribblingDirectionAccumulator;
     
+    U4DTeam *team;
+    
 public:
     
     bool shootBall;
+    bool passBall;
+    bool haltBall;
+    bool dribbleBall;
+    bool freeToRun;
+    
     U4DAnimation *runningAnimation;
     U4DAnimation *idleAnimation;
     U4DAnimation *shootingAnimation;
+    U4DAnimation *passingAnimation;
+    U4DAnimation *haltAnimation;
+    U4DAnimation *jogAnimation;
     U4DAnimationManager *animationManager;
     
     U4DDynamicAction *kineticAction;
     U4DArrive arriveBehavior;
+    U4DPursuit pursuitBehavior;
     U4DVector3n dribblingDirection;
     
     U4DFoot *foot;
@@ -77,9 +90,24 @@ public:
     
     void updateFootSpaceWithAnimation(U4DAnimation *uAnimation);
     
+    void setEnableDribbling(bool uValue);
+    
     void setEnableShooting(bool uValue);
     
+    void setEnablePassing(bool uValue);
+    
+    void setEnableHalt(bool uValue);
+    
+    void setEnableFreeToRun(bool uValue);
+    
     U4DPlayerStateInterface *getCurrentState();
+    
+    //add to team
+    void addToTeam(U4DTeam *uTeam);
+
+    U4DTeam *getTeam();
+    
+    void handleMessage(Message &uMsg);
     
 };
 
