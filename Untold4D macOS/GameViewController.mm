@@ -125,7 +125,7 @@
     
     sceneManager->changeScene(sandboxScene);
     
-    BOOL success = [metalView becomeFirstResponder];
+    BOOL success = [self acceptsFirstResponder];
     if (success) {
         NSLog(@"engine became the first responder");
     } else {
