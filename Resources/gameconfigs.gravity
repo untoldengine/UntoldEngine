@@ -7,7 +7,7 @@ var names = ["dribblingBallSpeed":30.0/scaleValue,
             "arriveMaxSpeed":40.0/scaleValue, //60
             "arriveStopRadius":0.52/scaleValue,
             "arriveSlowRadius":0.55/scaleValue,
-            "dribblingDirectionSlerpValue":0.01,
+            "dribblingDirectionSlerpValue":0.95,
             "shootingBallSpeed":80.0,
             "passBallSpeed":60.0,
             "passInterceptionParam":20.0,

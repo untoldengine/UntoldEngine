@@ -48,7 +48,7 @@ void SandboxWorld::init(){
     /*----END DO NOT REMOVE.-----*/
     
     //The following code snippets loads scene data, renders the characters and skybox.
-    //setEnableGrid(true);
+    setEnableGrid(true);
     
     //load the config values
     U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
