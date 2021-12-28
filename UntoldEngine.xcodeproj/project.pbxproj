@@ -50,6 +50,39 @@
 		031163F8275D462A004DCC01 /* skyboxTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 031163F6275D4629004DCC01 /* skyboxTextures.u4d */; };
 		031163F9275D462A004DCC01 /* skyboxTextures.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 031163F6275D4629004DCC01 /* skyboxTextures.u4d */; };
 		0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */; };
+		031F3F2B2778C09B00F5E482 /* compress.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F172778C09A00F5E482 /* compress.c */; };
+		031F3F2C2778C09B00F5E482 /* compress.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F172778C09A00F5E482 /* compress.c */; };
+		031F3F2D2778C09B00F5E482 /* compress.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F172778C09A00F5E482 /* compress.c */; };
+		031F3F2E2778C09B00F5E482 /* packet.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F182778C09A00F5E482 /* packet.c */; };
+		031F3F2F2778C09B00F5E482 /* packet.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F182778C09A00F5E482 /* packet.c */; };
+		031F3F302778C09B00F5E482 /* packet.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F182778C09A00F5E482 /* packet.c */; };
+		031F3F312778C09B00F5E482 /* host.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F192778C09A00F5E482 /* host.c */; };
+		031F3F322778C09B00F5E482 /* host.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F192778C09A00F5E482 /* host.c */; };
+		031F3F332778C09B00F5E482 /* host.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F192778C09A00F5E482 /* host.c */; };
+		031F3F342778C09B00F5E482 /* unix.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1A2778C09A00F5E482 /* unix.c */; };
+		031F3F352778C09B00F5E482 /* unix.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1A2778C09A00F5E482 /* unix.c */; };
+		031F3F362778C09B00F5E482 /* unix.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1A2778C09A00F5E482 /* unix.c */; };
+		031F3F372778C09B00F5E482 /* protocol.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1B2778C09A00F5E482 /* protocol.c */; };
+		031F3F382778C09B00F5E482 /* protocol.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1B2778C09A00F5E482 /* protocol.c */; };
+		031F3F392778C09B00F5E482 /* protocol.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1B2778C09A00F5E482 /* protocol.c */; };
+		031F3F3A2778C09B00F5E482 /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1C2778C09A00F5E482 /* list.c */; };
+		031F3F3B2778C09B00F5E482 /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1C2778C09A00F5E482 /* list.c */; };
+		031F3F3C2778C09B00F5E482 /* list.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1C2778C09A00F5E482 /* list.c */; };
+		031F3F3D2778C09B00F5E482 /* callbacks.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1D2778C09B00F5E482 /* callbacks.c */; };
+		031F3F3E2778C09B00F5E482 /* callbacks.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1D2778C09B00F5E482 /* callbacks.c */; };
+		031F3F3F2778C09B00F5E482 /* callbacks.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1D2778C09B00F5E482 /* callbacks.c */; };
+		031F3F402778C09B00F5E482 /* peer.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1E2778C09B00F5E482 /* peer.c */; };
+		031F3F412778C09B00F5E482 /* peer.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1E2778C09B00F5E482 /* peer.c */; };
+		031F3F422778C09B00F5E482 /* peer.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F1E2778C09B00F5E482 /* peer.c */; };
+		031F3F432778C09B00F5E482 /* win32.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F2A2778C09B00F5E482 /* win32.c */; };
+		031F3F442778C09B00F5E482 /* win32.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F2A2778C09B00F5E482 /* win32.c */; };
+		031F3F452778C09B00F5E482 /* win32.c in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F2A2778C09B00F5E482 /* win32.c */; };
+		031F3F482779FE2E00F5E482 /* U4DOutMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F462779FE2E00F5E482 /* U4DOutMemoryStream.mm */; };
+		031F3F492779FE2E00F5E482 /* U4DOutMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F462779FE2E00F5E482 /* U4DOutMemoryStream.mm */; };
+		031F3F4A2779FE2E00F5E482 /* U4DOutMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F462779FE2E00F5E482 /* U4DOutMemoryStream.mm */; };
+		031F3F4D2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */; };
+		031F3F4E2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */; };
+		031F3F4F2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */; };
 		0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
 		0323DB9C202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
 		0323DB9D202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
@@ -1158,6 +1191,9 @@
 		03FA6123258116B7008CC0AB /* U4DProfilerNode.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */; };
 		03FA6124258116B7008CC0AB /* U4DProfilerNode.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */; };
 		03FA6125258116B7008CC0AB /* U4DProfilerNode.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */; };
+		03FFE91C27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */; };
+		03FFE91D27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */; };
+		03FFE91E27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1208,6 +1244,28 @@
 		031413EC2589D03B005BF4A4 /* Untold4D.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Untold4D.entitlements; sourceTree = "<group>"; };
 		0314B0BA1C6FE8F600EB8C34 /* U4DBVHManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBVHManager.mm; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.mm; sourceTree = "<group>"; };
 		0314B0BB1C6FE8F600EB8C34 /* U4DBVHManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBVHManager.h; path = BoundaryVolumeHierarchy/BVHManager/U4DBVHManager.h; sourceTree = "<group>"; };
+		031F3F172778C09A00F5E482 /* compress.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = compress.c; path = Enet/compress.c; sourceTree = "<group>"; };
+		031F3F182778C09A00F5E482 /* packet.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = packet.c; path = Enet/packet.c; sourceTree = "<group>"; };
+		031F3F192778C09A00F5E482 /* host.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = host.c; path = Enet/host.c; sourceTree = "<group>"; };
+		031F3F1A2778C09A00F5E482 /* unix.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = unix.c; path = Enet/unix.c; sourceTree = "<group>"; };
+		031F3F1B2778C09A00F5E482 /* protocol.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = protocol.c; path = Enet/protocol.c; sourceTree = "<group>"; };
+		031F3F1C2778C09A00F5E482 /* list.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = list.c; path = Enet/list.c; sourceTree = "<group>"; };
+		031F3F1D2778C09B00F5E482 /* callbacks.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = callbacks.c; path = Enet/callbacks.c; sourceTree = "<group>"; };
+		031F3F1E2778C09B00F5E482 /* peer.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = peer.c; path = Enet/peer.c; sourceTree = "<group>"; };
+		031F3F212778C09B00F5E482 /* time.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = time.h; sourceTree = "<group>"; };
+		031F3F222778C09B00F5E482 /* protocol.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = protocol.h; sourceTree = "<group>"; };
+		031F3F232778C09B00F5E482 /* types.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = types.h; sourceTree = "<group>"; };
+		031F3F242778C09B00F5E482 /* enet.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = enet.h; sourceTree = "<group>"; };
+		031F3F252778C09B00F5E482 /* callbacks.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = callbacks.h; sourceTree = "<group>"; };
+		031F3F262778C09B00F5E482 /* win32.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = win32.h; sourceTree = "<group>"; };
+		031F3F272778C09B00F5E482 /* list.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = list.h; sourceTree = "<group>"; };
+		031F3F282778C09B00F5E482 /* utility.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = utility.h; sourceTree = "<group>"; };
+		031F3F292778C09B00F5E482 /* unix.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = unix.h; sourceTree = "<group>"; };
+		031F3F2A2778C09B00F5E482 /* win32.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = win32.c; path = Enet/win32.c; sourceTree = "<group>"; };
+		031F3F462779FE2E00F5E482 /* U4DOutMemoryStream.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DOutMemoryStream.mm; path = NetworkSystem/U4DOutMemoryStream.mm; sourceTree = "<group>"; };
+		031F3F472779FE2E00F5E482 /* U4DOutMemoryStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DOutMemoryStream.h; path = NetworkSystem/U4DOutMemoryStream.h; sourceTree = "<group>"; };
+		031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DInMemoryStream.mm; path = NetworkSystem/U4DInMemoryStream.mm; sourceTree = "<group>"; };
+		031F3F4C2779FE4A00F5E482 /* U4DInMemoryStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DInMemoryStream.h; path = NetworkSystem/U4DInMemoryStream.h; sourceTree = "<group>"; };
 		0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystick.mm; path = PadJoystick/U4DPadJoystick.mm; sourceTree = "<group>"; };
 		0323DB9A202F5FB10007F087 /* U4DPadJoystick.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystick.h; path = PadJoystick/U4DPadJoystick.h; sourceTree = "<group>"; };
 		0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystickStateInterface.mm; path = PadJoystick/U4DPadJoystickStateInterface.mm; sourceTree = "<group>"; };
@@ -1253,6 +1311,9 @@
 		033469B625C20BD8001F0702 /* U4DGBufferPass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DGBufferPass.h; path = RenderEngine/RenderPasses/U4DGBufferPass.h; sourceTree = "<group>"; };
 		033469BE25C20C01001F0702 /* U4DCompositionPass.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DCompositionPass.mm; path = RenderEngine/RenderPasses/U4DCompositionPass.mm; sourceTree = "<group>"; };
 		033469BF25C20C01001F0702 /* U4DCompositionPass.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DCompositionPass.h; path = RenderEngine/RenderPasses/U4DCompositionPass.h; sourceTree = "<group>"; };
+		03370CAB27761785008171BA /* libenetlib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenetlib.a; path = UntoldEngine4D/NetworkSystem/libenetlib.a; sourceTree = "<group>"; };
+		03370CE02777BCB5008171BA /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/maclib/libenet.a; sourceTree = "<group>"; };
+		03370D142777BDE4008171BA /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/ioslib/libenet.a; sourceTree = "<group>"; };
 		0340BC6226B0934000582F08 /* U4DMacMouseRightPressedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseRightPressedState.mm; path = MacMouse/U4DMacMouseRightPressedState.mm; sourceTree = "<group>"; };
 		0340BC6326B0934000582F08 /* U4DMacMouseRightPressedState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMacMouseRightPressedState.h; path = MacMouse/U4DMacMouseRightPressedState.h; sourceTree = "<group>"; };
 		0340BC6726B0938600582F08 /* U4DMacMouseRightReleasedState.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMacMouseRightReleasedState.mm; path = MacMouse/U4DMacMouseRightReleasedState.mm; sourceTree = "<group>"; };
@@ -1824,6 +1885,9 @@
 		03FA611D258116A1008CC0AB /* U4DProfilerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DProfilerManager.h; path = Profiler/U4DProfilerManager.h; sourceTree = "<group>"; };
 		03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DProfilerNode.mm; path = Profiler/U4DProfilerNode.mm; sourceTree = "<group>"; };
 		03FA6122258116B7008CC0AB /* U4DProfilerNode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DProfilerNode.h; path = Profiler/U4DProfilerNode.h; sourceTree = "<group>"; };
+		03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DNetworkManager.mm; path = NetworkSystem/U4DNetworkManager.mm; sourceTree = "<group>"; };
+		03FFE91B27744E0A006DD5A2 /* U4DNetworkManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DNetworkManager.h; path = NetworkSystem/U4DNetworkManager.h; sourceTree = "<group>"; };
+		03FFE91F27745096006DD5A2 /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/libenet.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -1939,6 +2003,48 @@
 				03E686DB267140410079ED4D /* U4DBVHNode.mm */,
 			);
 			name = BVHManager;
+			sourceTree = "<group>";
+		};
+		031F3F162778C08A00F5E482 /* Enet */ = {
+			isa = PBXGroup;
+			children = (
+				031F3F1D2778C09B00F5E482 /* callbacks.c */,
+				031F3F172778C09A00F5E482 /* compress.c */,
+				031F3F192778C09A00F5E482 /* host.c */,
+				031F3F1F2778C09B00F5E482 /* include */,
+				031F3F1C2778C09A00F5E482 /* list.c */,
+				031F3F182778C09A00F5E482 /* packet.c */,
+				031F3F1E2778C09B00F5E482 /* peer.c */,
+				031F3F1B2778C09A00F5E482 /* protocol.c */,
+				031F3F1A2778C09A00F5E482 /* unix.c */,
+				031F3F2A2778C09B00F5E482 /* win32.c */,
+			);
+			name = Enet;
+			sourceTree = "<group>";
+		};
+		031F3F1F2778C09B00F5E482 /* include */ = {
+			isa = PBXGroup;
+			children = (
+				031F3F202778C09B00F5E482 /* enet */,
+			);
+			name = include;
+			path = Enet/include;
+			sourceTree = "<group>";
+		};
+		031F3F202778C09B00F5E482 /* enet */ = {
+			isa = PBXGroup;
+			children = (
+				031F3F212778C09B00F5E482 /* time.h */,
+				031F3F222778C09B00F5E482 /* protocol.h */,
+				031F3F232778C09B00F5E482 /* types.h */,
+				031F3F242778C09B00F5E482 /* enet.h */,
+				031F3F252778C09B00F5E482 /* callbacks.h */,
+				031F3F262778C09B00F5E482 /* win32.h */,
+				031F3F272778C09B00F5E482 /* list.h */,
+				031F3F282778C09B00F5E482 /* utility.h */,
+				031F3F292778C09B00F5E482 /* unix.h */,
+			);
+			path = enet;
 			sourceTree = "<group>";
 		};
 		0327B19B1B0BBC1D0087BACC /* BoundingVolumes */ = {
@@ -2191,6 +2297,10 @@
 		03759B37175B0135002EB5D9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				03370CE02777BCB5008171BA /* libenet.a */,
+				03370D142777BDE4008171BA /* libenet.a */,
+				03370CAB27761785008171BA /* libenetlib.a */,
+				03FFE91F27745096006DD5A2 /* libenet.a */,
 				0376618627558F240098E008 /* ARKit.framework */,
 				03722DD7202B3BEB0080D069 /* GameController.framework */,
 				03722D852029F2250080D069 /* Foundation.framework */,
@@ -2209,6 +2319,8 @@
 		03759B42175B0135002EB5D9 /* UntoldEngine4D */ = {
 			isa = PBXGroup;
 			children = (
+				031F3F162778C08A00F5E482 /* Enet */,
+				03FFE91927744DEF006DD5A2 /* NetworkSystem */,
 				031163F02758A3B9004DCC01 /* Serializer */,
 				031163EA2758A367004DCC01 /* EntityFactory */,
 				0391258627447B4800A14682 /* Soccer */,
@@ -3374,6 +3486,19 @@
 			name = Profiler;
 			sourceTree = "<group>";
 		};
+		03FFE91927744DEF006DD5A2 /* NetworkSystem */ = {
+			isa = PBXGroup;
+			children = (
+				03FFE91B27744E0A006DD5A2 /* U4DNetworkManager.h */,
+				03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */,
+				031F3F472779FE2E00F5E482 /* U4DOutMemoryStream.h */,
+				031F3F462779FE2E00F5E482 /* U4DOutMemoryStream.mm */,
+				031F3F4C2779FE4A00F5E482 /* U4DInMemoryStream.h */,
+				031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */,
+			);
+			name = NetworkSystem;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -3623,6 +3748,7 @@
 				03E688CB267793280079ED4D /* gravity_memory.c in Sources */,
 				03722BB02029F0F50080D069 /* particleSystemShader.metal in Sources */,
 				03722BB72029F0F50080D069 /* U4DVisibleEntity.mm in Sources */,
+				031F3F2C2778C09B00F5E482 /* compress.c in Sources */,
 				03676AA7267B96EC0016A83A /* imgui.cpp in Sources */,
 				039125B027453FD600A14682 /* U4DPlayerStateShooting.mm in Sources */,
 				03722BEF2029F0F50080D069 /* U4DCallback.mm in Sources */,
@@ -3632,6 +3758,7 @@
 				0334698825C190CD001F0702 /* U4DRenderPass.mm in Sources */,
 				03722B9E2029F0F50080D069 /* U4DBVHModelCollision.mm in Sources */,
 				03722B832029F0F50080D069 /* U4DParticleEmitterTorus.mm in Sources */,
+				031F3F352778C09B00F5E482 /* unix.c in Sources */,
 				03923918269EA9B8009FE4B9 /* U4DSceneStateManager.mm in Sources */,
 				03A7BEA325B9B0FD00F26849 /* U4DGBufferPipeline.mm in Sources */,
 				03722B152029F0220080D069 /* GameViewController.mm in Sources */,
@@ -3651,6 +3778,7 @@
 				031163EE2758A38C004DCC01 /* U4DEntityFactory.mm in Sources */,
 				03A3E2E9246D8B1700FBCBAD /* U4DTouchesStateManager.mm in Sources */,
 				039125A127453F9C00A14682 /* U4DPlayerStateManager.mm in Sources */,
+				031F3F442778C09B00F5E482 /* win32.c in Sources */,
 				0399D65725B72712004C1E11 /* U4DShadowRenderPipeline.mm in Sources */,
 				03722BCF2029F0F50080D069 /* U4DParticleData.mm in Sources */,
 				03722BD42029F0F50080D069 /* U4DBoneData.mm in Sources */,
@@ -3662,6 +3790,7 @@
 				0323DBA2202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				032B9A21247818DD00412B5B /* U4DLayerManager.mm in Sources */,
 				03FA611F258116A1008CC0AB /* U4DProfilerManager.mm in Sources */,
+				031F3F322778C09B00F5E482 /* host.c in Sources */,
 				03A7BEC825BB02BC00F26849 /* U4DCompositionPipeline.mm in Sources */,
 				037C0AAC276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */,
 				0341AC0F204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
@@ -3719,6 +3848,7 @@
 				03F02A882443EC1D007B073D /* U4DSeparation.mm in Sources */,
 				03722BBD2029F0F50080D069 /* U4DTransformation.mm in Sources */,
 				037C0A71276C01AE005F64ED /* U4DPlayerStateJog.mm in Sources */,
+				031F3F3E2778C09B00F5E482 /* callbacks.c in Sources */,
 				03722B5D2029F0F50080D069 /* lightShader.metal in Sources */,
 				0323DBB4202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03A3E34724757ADC00FBCBAD /* U4DLayer.mm in Sources */,
@@ -3732,6 +3862,7 @@
 				03722B6C2029F0F50080D069 /* U4DDualQuaternion.mm in Sources */,
 				03722B8E2029F0F50080D069 /* U4DWorld.mm in Sources */,
 				03722BEA2029F0F50080D069 /* U4DVisibilityManager.mm in Sources */,
+				031F3F3B2778C09B00F5E482 /* list.c in Sources */,
 				0334699125C190ED001F0702 /* U4DShadowPass.mm in Sources */,
 				038BF24C22793B2B00B129A5 /* U4DWander.mm in Sources */,
 				03722B652029F0F50080D069 /* U4DTimer.mm in Sources */,
@@ -3802,8 +3933,10 @@
 				03722B612029F0F50080D069 /* U4DParticleEmitterFactory.mm in Sources */,
 				0375B9D224E578E000D19CE4 /* SandboxLogic.mm in Sources */,
 				0399D66625B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
+				031F3F4E2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */,
 				03676AA3267B96DE0016A83A /* imgui_impl_metal.mm in Sources */,
 				03722BBF2029F0F50080D069 /* U4DVertexData.mm in Sources */,
+				031F3F2F2778C09B00F5E482 /* packet.c in Sources */,
 				03E688BF267793280079ED4D /* gravity_optimizer.c in Sources */,
 				03722B8B2029F0F50080D069 /* shadowShader.metal in Sources */,
 				03722BED2029F0F50080D069 /* U4DSpriteAnimation.mm in Sources */,
@@ -3811,6 +3944,7 @@
 				039125A627453FAE00A14682 /* U4DPlayerStateIdle.mm in Sources */,
 				03E688E6267793280079ED4D /* gravity_opt_json.c in Sources */,
 				03722DDC202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
+				031F3F412778C09B00F5E482 /* peer.c in Sources */,
 				03722B882029F0F50080D069 /* U4DText.mm in Sources */,
 				03E688DA267793280079ED4D /* gravity_json.c in Sources */,
 				03E688D7267793280079ED4D /* gravity_debug.c in Sources */,
@@ -3829,6 +3963,7 @@
 				03722B682029F0F50080D069 /* U4DCamera.mm in Sources */,
 				0399D65D25B72712004C1E11 /* U4DGeometryPipeline.mm in Sources */,
 				03722B932029F0F50080D069 /* U4DRenderWorld.mm in Sources */,
+				031F3F492779FE2E00F5E482 /* U4DOutMemoryStream.mm in Sources */,
 				0341AC0B204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */,
 				03A3E2F8246D8BCA00FBCBAD /* U4DTouchesMovedState.mm in Sources */,
 				0399D67525B72712004C1E11 /* U4DRenderPipeline.mm in Sources */,
@@ -3844,6 +3979,8 @@
 				0392391B269EA9B8009FE4B9 /* U4DSceneManager.mm in Sources */,
 				03722B6E2029F0F50080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
+				031F3F382778C09B00F5E482 /* protocol.c in Sources */,
+				03FFE91D27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */,
 				03722B5A2029F0F50080D069 /* U4DBoneIndices.mm in Sources */,
 				0397E4782519B1460020EBD9 /* joystickUIShader.metal in Sources */,
 				03722BB52029F0F50080D069 /* U4DEntity.mm in Sources */,
@@ -4094,6 +4231,7 @@
 				03E688CC267793280079ED4D /* gravity_memory.c in Sources */,
 				03722CEA2029F0F80080D069 /* particleSystemShader.metal in Sources */,
 				03722CF12029F0F80080D069 /* U4DVisibleEntity.mm in Sources */,
+				031F3F2D2778C09B00F5E482 /* compress.c in Sources */,
 				03722D292029F0F80080D069 /* U4DCallback.mm in Sources */,
 				039125B127453FD600A14682 /* U4DPlayerStateShooting.mm in Sources */,
 				03722CE32029F0F80080D069 /* U4DControllerInterface.mm in Sources */,
@@ -4103,6 +4241,7 @@
 				03722CD82029F0F80080D069 /* U4DBVHModelCollision.mm in Sources */,
 				03722CBD2029F0F80080D069 /* U4DParticleEmitterTorus.mm in Sources */,
 				03A7BEA425B9B0FD00F26849 /* U4DGBufferPipeline.mm in Sources */,
+				031F3F362778C09B00F5E482 /* unix.c in Sources */,
 				03923919269EA9B8009FE4B9 /* U4DSceneStateManager.mm in Sources */,
 				03722B3C2029F0220080D069 /* GameViewController.mm in Sources */,
 				03722D282029F0F80080D069 /* U4DDragForceGenerator.mm in Sources */,
@@ -4122,6 +4261,7 @@
 				031163EF2758A38C004DCC01 /* U4DEntityFactory.mm in Sources */,
 				03722D092029F0F80080D069 /* U4DParticleData.mm in Sources */,
 				039125A227453F9C00A14682 /* U4DPlayerStateManager.mm in Sources */,
+				031F3F452778C09B00F5E482 /* win32.c in Sources */,
 				03722D0E2029F0F80080D069 /* U4DBoneData.mm in Sources */,
 				033469C225C20C01001F0702 /* U4DCompositionPass.mm in Sources */,
 				03722CB72029F0F80080D069 /* tinyxml2.mm in Sources */,
@@ -4133,6 +4273,7 @@
 				03E6877E2674155E0079ED4D /* imgui_impl_metal.mm in Sources */,
 				03FA6120258116A1008CC0AB /* U4DProfilerManager.mm in Sources */,
 				03A7BEC925BB02BC00F26849 /* U4DCompositionPipeline.mm in Sources */,
+				031F3F332778C09B00F5E482 /* host.c in Sources */,
 				0341AC11204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
 				037C0AAD276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */,
 				03722C912029F0F80080D069 /* U4DTrigonometry.mm in Sources */,
@@ -4190,6 +4331,7 @@
 				0323DBB6202F60360007F087 /* U4DPadJoystickActiveState.mm in Sources */,
 				03A3E34824757ADC00FBCBAD /* U4DLayer.mm in Sources */,
 				037C0A72276C01AE005F64ED /* U4DPlayerStateJog.mm in Sources */,
+				031F3F3F2778C09B00F5E482 /* callbacks.c in Sources */,
 				03A3E2FE246D90DA00FBCBAD /* U4DTouchesIdleState.mm in Sources */,
 				03E687842674155E0079ED4D /* imgui_tables.cpp in Sources */,
 				03953613259A1D760027F263 /* U4DRenderGraph.mm in Sources */,
@@ -4203,6 +4345,7 @@
 				03722D242029F0F80080D069 /* U4DVisibilityManager.mm in Sources */,
 				0334699225C190ED001F0702 /* U4DShadowPass.mm in Sources */,
 				038BF24D22793B2B00B129A5 /* U4DWander.mm in Sources */,
+				031F3F3C2778C09B00F5E482 /* list.c in Sources */,
 				03722C9F2029F0F80080D069 /* U4DTimer.mm in Sources */,
 				03722D152029F0F80080D069 /* U4DRenderImage.mm in Sources */,
 				03722CAC2029F0F80080D069 /* nonVisibleShader.metal in Sources */,
@@ -4273,8 +4416,10 @@
 				03722CE62029F0F80080D069 /* U4DBlendAnimation.mm in Sources */,
 				03722CE92029F0F80080D069 /* U4DCollisionAlgorithm.mm in Sources */,
 				03722C9B2029F0F80080D069 /* U4DParticleEmitterFactory.mm in Sources */,
+				031F3F4F2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */,
 				0375B9D324E578E000D19CE4 /* SandboxLogic.mm in Sources */,
 				0399D66725B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
+				031F3F302778C09B00F5E482 /* packet.c in Sources */,
 				03722CF92029F0F80080D069 /* U4DVertexData.mm in Sources */,
 				03E688C0267793280079ED4D /* gravity_optimizer.c in Sources */,
 				03722CC52029F0F80080D069 /* shadowShader.metal in Sources */,
@@ -4282,6 +4427,7 @@
 				039125A727453FAE00A14682 /* U4DPlayerStateIdle.mm in Sources */,
 				03722D032029F0F80080D069 /* U4DArmatureData.mm in Sources */,
 				03E688E7267793280079ED4D /* gravity_opt_json.c in Sources */,
+				031F3F422778C09B00F5E482 /* peer.c in Sources */,
 				03722DDE202B90AA0080D069 /* U4DGamepadController.mm in Sources */,
 				03722CC22029F0F80080D069 /* U4DText.mm in Sources */,
 				03E688DB267793280079ED4D /* gravity_json.c in Sources */,
@@ -4300,6 +4446,7 @@
 				0341AC27204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
 				03722CD52029F0F80080D069 /* U4DBVHManager.mm in Sources */,
 				03722CA22029F0F80080D069 /* U4DCamera.mm in Sources */,
+				031F3F4A2779FE2E00F5E482 /* U4DOutMemoryStream.mm in Sources */,
 				0399D65E25B72712004C1E11 /* U4DGeometryPipeline.mm in Sources */,
 				03722CCD2029F0F80080D069 /* U4DRenderWorld.mm in Sources */,
 				0341AC0D204D8CA2006E14A9 /* U4DMacKeyStateInterface.mm in Sources */,
@@ -4315,6 +4462,8 @@
 				0392391C269EA9B8009FE4B9 /* U4DSceneManager.mm in Sources */,
 				03E688B4267793280079ED4D /* gravity_ast.c in Sources */,
 				03CAE6492051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
+				031F3F392778C09B00F5E482 /* protocol.c in Sources */,
+				03FFE91E27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */,
 				03722CA82029F0F80080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722C942029F0F80080D069 /* U4DBoneIndices.mm in Sources */,
@@ -4441,6 +4590,7 @@
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				037C0AB4276E34E8005F64ED /* U4DPlayerStateFree.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
+				03FFE91C27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */,
 				0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
@@ -4495,6 +4645,7 @@
 				039175001CD56D0000FD2674 /* U4DRestingForcesGenerator.mm in Sources */,
 				03E688A6267793280079ED4D /* gravity_token.c in Sources */,
 				03A7BEA225B9B0FD00F26849 /* U4DGBufferPipeline.mm in Sources */,
+				031F3F482779FE2E00F5E482 /* U4DOutMemoryStream.mm in Sources */,
 				03A3E34624757ADC00FBCBAD /* U4DLayer.mm in Sources */,
 				03F2DB141F191F9B00F77B78 /* U4DRenderWorld.mm in Sources */,
 				0395360C259A1D630027F263 /* U4DRenderEntity.mm in Sources */,
@@ -4560,13 +4711,17 @@
 				03E688AF267793280079ED4D /* gravity_codegen.c in Sources */,
 				038BF241227939F600B129A5 /* U4DArrive.mm in Sources */,
 				0327B1A81B0BBC370087BACC /* U4DBoundingAABB.mm in Sources */,
+				031F3F342778C09B00F5E482 /* unix.c in Sources */,
 				03A7BEC725BB02BC00F26849 /* U4DCompositionPipeline.mm in Sources */,
 				038248F91FA1730700DFEFE3 /* U4DParticleSystem.mm in Sources */,
 				0399D66B25B72712004C1E11 /* U4DRenderPassInterface.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				0399D66825B72712004C1E11 /* U4DSkyboxPipeline.mm in Sources */,
+				031F3F3D2778C09B00F5E482 /* callbacks.c in Sources */,
+				031F3F402778C09B00F5E482 /* peer.c in Sources */,
 				031163F32758A3CC004DCC01 /* U4DSerializer.mm in Sources */,
 				03A9F70E1AE08C6F00E81A00 /* U4DSpriteLoader.mm in Sources */,
+				031F3F312778C09B00F5E482 /* host.c in Sources */,
 				03ADFEF91775F71C002DDD03 /* U4DVisibleEntity.mm in Sources */,
 				038BF2252278896100B129A5 /* U4DSteering.mm in Sources */,
 				0341AC24204D8D2D006E14A9 /* U4DMacArrowKeyStateManager.mm in Sources */,
@@ -4604,14 +4759,17 @@
 				03CAE6402051927700391B57 /* U4DMacMouseStateInterface.mm in Sources */,
 				039125AA27453FC400A14682 /* U4DPlayerStateDribbling.mm in Sources */,
 				03A7BED725BB0BA300F26849 /* compositionShader.metal in Sources */,
+				031F3F4D2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */,
 				03CAE652205192F500391B57 /* U4DMacMouseDraggedState.mm in Sources */,
 				03E688C7267793280079ED4D /* gravity_value.c in Sources */,
 				03953611259A1D760027F263 /* U4DRenderGraph.mm in Sources */,
+				031F3F3A2778C09B00F5E482 /* list.c in Sources */,
 				0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
 				03C044A2268A6E6F002B3880 /* Field.mm in Sources */,
 				037C0AAF276E32A4005F64ED /* FieldShader.metal in Sources */,
 				034F2A29217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
+				031F3F432778C09B00F5E482 /* win32.c in Sources */,
 				03F2DB111F191F9B00F77B78 /* U4DRenderManager.mm in Sources */,
 				0391259127447BAD00A14682 /* U4DFoot.mm in Sources */,
 				037C0AAB276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */,
@@ -4661,6 +4819,7 @@
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
 				0334699925C190FF001F0702 /* U4DFinalPass.mm in Sources */,
 				03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */,
+				031F3F2B2778C09B00F5E482 /* compress.c in Sources */,
 				03E688B2267793280079ED4D /* gravity_ast.c in Sources */,
 				03D0397D2769BBBC003D893F /* U4DPlayerStatePass.mm in Sources */,
 				038249251FA252AE00DFEFE3 /* U4DParticleEmitter.mm in Sources */,
@@ -4674,6 +4833,7 @@
 				03FA5F89257AB98A008CC0AB /* U4DDebugger.mm in Sources */,
 				039DB55C223F08C200E323D4 /* U4DRay.mm in Sources */,
 				03E6EDDA1943D816007AD131 /* U4DDragForceGenerator.mm in Sources */,
+				031F3F2E2778C09B00F5E482 /* packet.c in Sources */,
 				0397E4732518F3520020EBD9 /* sliderUIShader.metal in Sources */,
 				0341AC36204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03A3E2E3246D8AFA00FBCBAD /* U4DTouchesStateInterface.mm in Sources */,
@@ -4687,6 +4847,7 @@
 				038BF2502279E7E500B129A5 /* U4DFollowPath.mm in Sources */,
 				0340BC7626B4546E00582F08 /* ImGuizmo.cpp in Sources */,
 				03E688D0267793280079ED4D /* gravity_core.c in Sources */,
+				031F3F372778C09B00F5E482 /* protocol.c in Sources */,
 				0399D66525B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
 				03E6ED691943D6FE007AD131 /* U4DTouchesController.mm in Sources */,
 			);
@@ -4765,6 +4926,11 @@
 				INFOPLIST_FILE = "Untold4D iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/ioslib",
+				);
 				MTL_ENABLE_DEBUG_INFO = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -4810,6 +4976,11 @@
 				INFOPLIST_FILE = "Untold4D iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/ioslib",
+				);
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -4927,6 +5098,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/maclib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
@@ -4969,6 +5145,11 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LIBRARY_SEARCH_PATHS = (
+					"$(inherited)",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
+					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/maclib",
+				);
 				MACOSX_DEPLOYMENT_TARGET = 11.1;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;

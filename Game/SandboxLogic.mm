@@ -33,6 +33,8 @@
 #include "U4DTeam.h"
 #include "U4DBall.h"
 
+#include "U4DNetworkManager.h"
+
 SandboxLogic::SandboxLogic():pPlayer(nullptr),team(nullptr){
     
 }
@@ -43,7 +45,10 @@ SandboxLogic::~SandboxLogic(){
 
 void SandboxLogic::update(double dt){
     
+    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
+    networkManager->receiveMsg();
     
+    networkManager->sendPacket(pPlayer);
     
 }
 
@@ -86,6 +91,11 @@ void SandboxLogic::init(){
     team->setControllingPlayer(pPlayer);
     
     
+    //connect to server
+    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
+    
+    networkManager->connect("127.0.0.1",7777);
+    
 }
 
 
@@ -118,8 +128,9 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                     if (controllerInputMessage.elementUIName.compare("buttonA")==0) {
 
-                        //std::cout<<"Button A released"<<std::endl;
-                        pPlayer->setEnableShooting(true);
+                        pPlayer->setEnablePassing(true);
+                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                        logger->log("passing");
 
                     }
 
@@ -158,10 +169,14 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     
                     U4DEngine::U4DVector3n joystickDirection3d(digitalJoystickDirection.x,0.0,digitalJoystickDirection.y);
 
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+                    if(pPlayer->getCurrentState()==U4DEngine::U4DPlayerStateFree::sharedInstance()){
+                        pPlayer->setEnableFreeToRun(true);
+                    }else if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateIntercept::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStatePass::sharedInstance()){
+
+                        //pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+                        pPlayer->setEnableDribbling(true);
                     }
-                    
+                
                     pPlayer->setDribblingDirection(joystickDirection3d);
 
                 }
@@ -171,9 +186,11 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                 if (controllerInputMessage.elementUIName.compare("joystick")==0) {
 
                     //std::cout<<"joystick released"<<std::endl;
-                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
-                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
-                    }
+//                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
+//                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+//                    }
+                    
+                    pPlayer->setEnableHalt(true);
 
                 }
 
@@ -276,7 +293,6 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     pPlayer->setEnablePassing(true);
                     U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
                     logger->log("passing");
-                    
                     
                     
 //                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
