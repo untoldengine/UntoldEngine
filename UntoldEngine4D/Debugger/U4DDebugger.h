@@ -30,6 +30,12 @@ namespace U4DEngine {
         
         U4DTimer *timer;
         
+        U4DText *consoleLabel;
+
+        U4DText *profilerLabel;
+        
+        U4DText *serverConnectionLabel;
+        
         static U4DDebugger* instance;
         
         bool enableDebugger;
@@ -51,7 +57,7 @@ namespace U4DEngine {
         
     public:
         U4DWorld *world;
-        std::string profilerData;
+        
         
         static U4DDebugger* sharedInstance();
         

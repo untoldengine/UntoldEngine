@@ -26,6 +26,8 @@ private:
     ENetAddress address;
     ENetPeer *peer; //peer here is the server we are connecting to
     
+    bool isConnected;
+    
 protected:
     
     U4DNetworkManager();
@@ -45,6 +47,8 @@ public:
     void sendPacket(U4DPlayer *uPlayer);
     
     void receivePacket(ENetEvent uEvent);
+    
+    bool isConnectedToServer();
     
 };
 

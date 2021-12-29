@@ -16,7 +16,7 @@ namespace U4DEngine {
 
     U4DNetworkManager* U4DNetworkManager::instance=0;
 
-    U4DNetworkManager::U4DNetworkManager(){
+    U4DNetworkManager::U4DNetworkManager():isConnected(false){
             
             
             
@@ -72,6 +72,8 @@ namespace U4DEngine {
                 
                 U4DLogger *logger=U4DLogger::sharedInstance();
                 logger->log("Connection to %s:%u succedded",uIPAdress,uPort);
+                isConnected=true;
+                
                 return true;
                 
             }else{
@@ -141,6 +143,10 @@ namespace U4DEngine {
         ENetPacket *packet=enet_packet_create(outStream.getBufferPtr(), outStream.getLength(), ENET_PACKET_FLAG_RELIABLE);
         enet_peer_send(peer,0,packet);
         
+    }
+
+    bool U4DNetworkManager::isConnectedToServer(){
+        return isConnected;
     }
 
 }

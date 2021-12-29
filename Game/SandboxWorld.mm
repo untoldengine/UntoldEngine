@@ -29,6 +29,7 @@
 
 #include "U4DEntityFactory.h"
 #include "U4DSerializer.h"
+#include "U4DDebugger.h"
 
 using namespace U4DEngine;
 
@@ -178,6 +179,9 @@ void SandboxWorld::init(){
     //get device type
     if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
 
+        U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
+        debugger->setEnableDebugger(true, this);
+        
         //create layer manager
         U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
 
@@ -199,10 +203,16 @@ void SandboxWorld::init(){
 
         //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
         //cameraBasicFollow->setParameters(ball,0.0,30.0,-35.0);
-        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,15.0,-25.0,U4DEngine::U4DPoint3n(-1.0,-1.0,-1.0),U4DEngine::U4DPoint3n(1.0,1.0,1.0));
+//        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,15.0,-25.0,U4DEngine::U4DPoint3n(-1.0,-1.0,-1.0),U4DEngine::U4DPoint3n(1.0,1.0,1.0));
 
         //push layer
         layerManager->pushLayer("menuLayer");
+        
+        U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+
+        camera->translateTo(0.0,35.0,-42.0);
+        
+        
 
     }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
 
@@ -212,9 +222,11 @@ void SandboxWorld::init(){
 
         addChild(instructions,-20);
 
-        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,20.0,-25.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
+//        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,20.0,-25.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
 
     }
+    
+    
 
     //set the camera behavior
    // camera->setCameraBehavior(cameraBasicFollow);
@@ -254,7 +266,7 @@ void SandboxWorld::setupConfiguration(){
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(0.0,20.0,-60.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-10.0);
 
     
     //translate camera
