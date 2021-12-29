@@ -45,10 +45,10 @@ SandboxLogic::~SandboxLogic(){
 
 void SandboxLogic::update(double dt){
     
-    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
-    networkManager->receiveMsg();
-    
-    networkManager->sendPacket(pPlayer);
+//    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
+//    networkManager->receiveMsg();
+//
+//    networkManager->sendPacket(pPlayer);
     
 }
 
@@ -92,9 +92,9 @@ void SandboxLogic::init(){
     
     
     //connect to server
-    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
-    
-    networkManager->connect("127.0.0.1",7777);
+//    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
+//
+//    networkManager->connect("127.0.0.1",7777);
     
 }
 
