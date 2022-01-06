@@ -185,6 +185,8 @@ namespace U4DEngine {
         T* getRootParent();
         
         T* searchChild(std::string uName);
+        
+        T* seachChild(int uChildId);
     };
     
 }

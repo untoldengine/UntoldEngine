@@ -54,6 +54,11 @@ private:
      */
     int scriptID;
     
+    /**
+     @brief Entity Id
+     */
+    int entityId;
+    
     
 protected:
     
@@ -153,6 +158,14 @@ public:
      */
     int getScriptID();
     
+    
+    /**
+     @brief Get entity id
+     @return Returns the entity id
+     */
+    int getEntityId();
+    
+
     /**
      @brief Sets the Entity Script ID. This is used for scripting only
      */

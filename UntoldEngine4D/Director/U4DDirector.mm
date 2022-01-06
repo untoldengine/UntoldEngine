@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(2.0),fps(0.0),fpsAccumulator(0.0),scriptCompiledSuccessfully(false),scriptRunTimeError(false){
+U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(2.0),fps(0.0),fpsAccumulator(0.0),scriptCompiledSuccessfully(false),scriptRunTimeError(false),newEntityId(0){
     }
     
     U4DDirector::~U4DDirector(){
@@ -49,6 +49,13 @@ U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0)
         return instance;
     }
     
+    int U4DDirector::getNewEntityId(){
+        
+        //increase coutn
+        newEntityId++;
+        
+        return newEntityId;
+    }
 
     void U4DDirector::setDisplayWidthHeight(float uWidth,float uHeight){
         

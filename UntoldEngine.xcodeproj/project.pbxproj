@@ -83,6 +83,9 @@
 		031F3F4D2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */; };
 		031F3F4E2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */; };
 		031F3F4F2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */; };
+		031F3F83277C9A8100F5E482 /* U4DLinkingContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F81277C9A8100F5E482 /* U4DLinkingContext.mm */; };
+		031F3F84277C9A8100F5E482 /* U4DLinkingContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F81277C9A8100F5E482 /* U4DLinkingContext.mm */; };
+		031F3F85277C9A8100F5E482 /* U4DLinkingContext.mm in Sources */ = {isa = PBXBuildFile; fileRef = 031F3F81277C9A8100F5E482 /* U4DLinkingContext.mm */; };
 		0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
 		0323DB9C202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
 		0323DB9D202F5FB10007F087 /* U4DPadJoystick.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */; };
@@ -1191,9 +1194,9 @@
 		03FA6123258116B7008CC0AB /* U4DProfilerNode.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */; };
 		03FA6124258116B7008CC0AB /* U4DProfilerNode.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */; };
 		03FA6125258116B7008CC0AB /* U4DProfilerNode.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */; };
-		03FFE91C27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */; };
-		03FFE91D27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */; };
-		03FFE91E27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */; };
+		03FFE91C27744E0A006DD5A2 /* U4DClientManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DClientManager.mm */; };
+		03FFE91D27744E0A006DD5A2 /* U4DClientManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DClientManager.mm */; };
+		03FFE91E27744E0A006DD5A2 /* U4DClientManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03FFE91A27744E0A006DD5A2 /* U4DClientManager.mm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -1266,6 +1269,8 @@
 		031F3F472779FE2E00F5E482 /* U4DOutMemoryStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DOutMemoryStream.h; path = NetworkSystem/U4DOutMemoryStream.h; sourceTree = "<group>"; };
 		031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DInMemoryStream.mm; path = NetworkSystem/U4DInMemoryStream.mm; sourceTree = "<group>"; };
 		031F3F4C2779FE4A00F5E482 /* U4DInMemoryStream.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DInMemoryStream.h; path = NetworkSystem/U4DInMemoryStream.h; sourceTree = "<group>"; };
+		031F3F81277C9A8100F5E482 /* U4DLinkingContext.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DLinkingContext.mm; path = NetworkSystem/U4DLinkingContext.mm; sourceTree = "<group>"; };
+		031F3F82277C9A8100F5E482 /* U4DLinkingContext.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DLinkingContext.h; path = NetworkSystem/U4DLinkingContext.h; sourceTree = "<group>"; };
 		0323DB99202F5FB10007F087 /* U4DPadJoystick.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystick.mm; path = PadJoystick/U4DPadJoystick.mm; sourceTree = "<group>"; };
 		0323DB9A202F5FB10007F087 /* U4DPadJoystick.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPadJoystick.h; path = PadJoystick/U4DPadJoystick.h; sourceTree = "<group>"; };
 		0323DB9F202F5FD30007F087 /* U4DPadJoystickStateInterface.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPadJoystickStateInterface.mm; path = PadJoystick/U4DPadJoystickStateInterface.mm; sourceTree = "<group>"; };
@@ -1885,8 +1890,8 @@
 		03FA611D258116A1008CC0AB /* U4DProfilerManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DProfilerManager.h; path = Profiler/U4DProfilerManager.h; sourceTree = "<group>"; };
 		03FA6121258116B7008CC0AB /* U4DProfilerNode.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DProfilerNode.mm; path = Profiler/U4DProfilerNode.mm; sourceTree = "<group>"; };
 		03FA6122258116B7008CC0AB /* U4DProfilerNode.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DProfilerNode.h; path = Profiler/U4DProfilerNode.h; sourceTree = "<group>"; };
-		03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DNetworkManager.mm; path = NetworkSystem/U4DNetworkManager.mm; sourceTree = "<group>"; };
-		03FFE91B27744E0A006DD5A2 /* U4DNetworkManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DNetworkManager.h; path = NetworkSystem/U4DNetworkManager.h; sourceTree = "<group>"; };
+		03FFE91A27744E0A006DD5A2 /* U4DClientManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DClientManager.mm; path = NetworkSystem/U4DClientManager.mm; sourceTree = "<group>"; };
+		03FFE91B27744E0A006DD5A2 /* U4DClientManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DClientManager.h; path = NetworkSystem/U4DClientManager.h; sourceTree = "<group>"; };
 		03FFE91F27745096006DD5A2 /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/libenet.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -3489,12 +3494,14 @@
 		03FFE91927744DEF006DD5A2 /* NetworkSystem */ = {
 			isa = PBXGroup;
 			children = (
-				03FFE91B27744E0A006DD5A2 /* U4DNetworkManager.h */,
-				03FFE91A27744E0A006DD5A2 /* U4DNetworkManager.mm */,
+				03FFE91B27744E0A006DD5A2 /* U4DClientManager.h */,
+				03FFE91A27744E0A006DD5A2 /* U4DClientManager.mm */,
 				031F3F472779FE2E00F5E482 /* U4DOutMemoryStream.h */,
 				031F3F462779FE2E00F5E482 /* U4DOutMemoryStream.mm */,
 				031F3F4C2779FE4A00F5E482 /* U4DInMemoryStream.h */,
 				031F3F4B2779FE4A00F5E482 /* U4DInMemoryStream.mm */,
+				031F3F82277C9A8100F5E482 /* U4DLinkingContext.h */,
+				031F3F81277C9A8100F5E482 /* U4DLinkingContext.mm */,
 			);
 			name = NetworkSystem;
 			sourceTree = "<group>";
@@ -3883,6 +3890,7 @@
 				037F25B823F0D5860053FAE0 /* U4DResourceLoader.mm in Sources */,
 				03E688AD267793280079ED4D /* gravity_semacheck1.c in Sources */,
 				03722B762029F0F50080D069 /* U4DMatrix3n.mm in Sources */,
+				031F3F84277C9A8100F5E482 /* U4DLinkingContext.mm in Sources */,
 				03A7BEE525BB7A4C00F26849 /* U4DPointLight.mm in Sources */,
 				03722BDA2029F0F50080D069 /* geometryShader.metal in Sources */,
 				03722BC52029F0F50080D069 /* imageShader.metal in Sources */,
@@ -3980,7 +3988,7 @@
 				03722B6E2029F0F50080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC37204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				031F3F382778C09B00F5E482 /* protocol.c in Sources */,
-				03FFE91D27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */,
+				03FFE91D27744E0A006DD5A2 /* U4DClientManager.mm in Sources */,
 				03722B5A2029F0F50080D069 /* U4DBoneIndices.mm in Sources */,
 				0397E4782519B1460020EBD9 /* joystickUIShader.metal in Sources */,
 				03722BB52029F0F50080D069 /* U4DEntity.mm in Sources */,
@@ -4366,6 +4374,7 @@
 				037F25B923F0D5860053FAE0 /* U4DResourceLoader.mm in Sources */,
 				03E688AE267793280079ED4D /* gravity_semacheck1.c in Sources */,
 				03722CB02029F0F80080D069 /* U4DMatrix3n.mm in Sources */,
+				031F3F85277C9A8100F5E482 /* U4DLinkingContext.mm in Sources */,
 				03A7BEE625BB7A4C00F26849 /* U4DPointLight.mm in Sources */,
 				03722D142029F0F80080D069 /* geometryShader.metal in Sources */,
 				03722CFF2029F0F80080D069 /* imageShader.metal in Sources */,
@@ -4463,7 +4472,7 @@
 				03E688B4267793280079ED4D /* gravity_ast.c in Sources */,
 				03CAE6492051929A00391B57 /* U4DMacMouseStateManager.mm in Sources */,
 				031F3F392778C09B00F5E482 /* protocol.c in Sources */,
-				03FFE91E27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */,
+				03FFE91E27744E0A006DD5A2 /* U4DClientManager.mm in Sources */,
 				03722CA82029F0F80080D069 /* U4DCollisionResponse.mm in Sources */,
 				0341AC39204D8D8D006E14A9 /* U4DMacArrowKeyIdleState.mm in Sources */,
 				03722C942029F0F80080D069 /* U4DBoneIndices.mm in Sources */,
@@ -4590,7 +4599,7 @@
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				037C0AB4276E34E8005F64ED /* U4DPlayerStateFree.mm in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
-				03FFE91C27744E0A006DD5A2 /* U4DNetworkManager.mm in Sources */,
+				03FFE91C27744E0A006DD5A2 /* U4DClientManager.mm in Sources */,
 				0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
 				03494BBF1F4E0C0600ACE0EC /* spriteShader.metal in Sources */,
@@ -4694,6 +4703,7 @@
 				038BF25B228C577500B129A5 /* U4DNavMesh.mm in Sources */,
 				03494BBA1F4D55EF00ACE0EC /* U4DSprite.mm in Sources */,
 				034F2A32217E1F0000D35CCE /* U4DCameraBasicFollow.mm in Sources */,
+				031F3F83277C9A8100F5E482 /* U4DLinkingContext.mm in Sources */,
 				032BD8A11E567FC300C158A1 /* U4DBlendAnimation.mm in Sources */,
 				03E6ED821943D78C007AD131 /* U4DImage.mm in Sources */,
 				03722E09202CBF9E0080D069 /* U4DPadButtonIdleState.mm in Sources */,

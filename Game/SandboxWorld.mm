@@ -63,6 +63,17 @@ void SandboxWorld::init(){
     entityFactory->registerClass<U4DPlayer>("U4DPlayer");
     entityFactory->registerClass<Field>("Field");
  
+//    entityFactory->createModelInstance("player0", "player0.0", "U4DPlayer");
+//    entityFactory->createModelInstance("field", "field0", "Field");
+    
+
+//    U4DModel *field=entityFactory->createAction("Field");
+//
+//     if(field->init("field")){
+//
+//         addChild(field);
+//
+//     }
     
     //deserialize
     U4DSerializer *serializer=U4DSerializer::sharedInstance();
@@ -266,7 +277,7 @@ void SandboxWorld::setupConfiguration(){
     //Get camera object and translate it to position
     U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
-    U4DEngine::U4DVector3n cameraPosition(0.0,5.0,-10.0);
+    U4DEngine::U4DVector3n cameraPosition(0.0,35.0,-42.0);
 
     
     //translate camera

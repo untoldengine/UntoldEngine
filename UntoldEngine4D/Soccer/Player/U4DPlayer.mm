@@ -119,6 +119,10 @@ namespace U4DEngine{
         return stateManager->getCurrentState();
     }
 
+    std::string U4DPlayer::getCurrentStateName(){
+        return stateManager->getCurrentStateName();
+    }
+
     void U4DPlayer::setFootPoseSpace(){
         
         

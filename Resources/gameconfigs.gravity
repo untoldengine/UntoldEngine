@@ -14,7 +14,7 @@ var names = ["dribblingBallSpeed":30.0/scaleValue,
             "arriveJogMaxSpeed":25.0/scaleValue, //60.0
             "arriveJogStopRadius":0.52/scaleValue,
             "arriveJogSlowRadius":0.55/scaleValue,
-            "haltRadius":(0.52*2.0)/scaleValue, //0.52 refers to the arriveStopRadius
+            "haltRadius":0.52/scaleValue, //0.52 refers to the arriveStopRadius
             "pursuitMaxSpeed":40.0/scaleValue,
             "interceptMinRadius":1.0,
             "freeMaxSpeed":25.0/scaleValue,

@@ -19,7 +19,7 @@ namespace U4DEngine {
 U4DPlayerStateFree* U4DPlayerStateFree::instance=0;
 
 U4DPlayerStateFree::U4DPlayerStateFree(){
-    name="idle";
+    name="free";
 }
 
 U4DPlayerStateFree::~U4DPlayerStateFree(){

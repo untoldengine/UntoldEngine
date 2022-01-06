@@ -38,7 +38,7 @@ namespace U4DEngine {
     class U4DModel:public U4DVisibleEntity{
         
     private:
-       
+        
         /**
          @brief Variable which contains information if the 3D model has material color
          */
@@ -86,7 +86,7 @@ namespace U4DEngine {
         /**
         @brief Variable that stores the class type
         */
-         std::string classType;
+        std::string classType;
 
 
         /**
@@ -421,6 +421,7 @@ namespace U4DEngine {
         void setAssetReferenceName(std::string uAssetReferenceName);
 
         std::string getAssetReferenceName();
+        
         
     };
     

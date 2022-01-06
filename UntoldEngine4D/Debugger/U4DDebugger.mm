@@ -17,7 +17,7 @@
 #include "U4DRenderManager.h"
 #include "U4DRenderPipelineInterface.h"
 #include "U4DLogger.h"
-#include "U4DNetworkManager.h"
+#include "U4DClientManager.h"
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
 
@@ -131,8 +131,8 @@ U4DDebugger::U4DDebugger():enableDebugger(false),uiLoaded(false),enableShaderRel
         
         //profilerLabel->log("Profiler:\n %s",profilerData.c_str());
         
-        U4DNetworkManager *networkManager=U4DNetworkManager::sharedInstance();
-        bool isConnected=networkManager->isConnectedToServer();
+        U4DClientManager *clientManager=U4DClientManager::sharedInstance();
+        bool isConnected=clientManager->isConnectedToServer();
         serverConnectionLabel->log("Connected: %s",isConnected?"true":"false");
         
         if (enableShaderReload==true) {
