@@ -66,6 +66,8 @@ void U4DPlayerStateHalt::execute(U4DPlayer *uPlayer, double dt){
     if(uPlayer->foot->kineticAction->getModelHasCollided()){
         
         uPlayer->foot->setKickBallParameters(0.0,uPlayer->dribblingDirection);
+        uPlayer->applyForce(0.0, dt);
+        uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
         
     }else if (currentAnimation->getAnimationIsPlaying()==false) {
         
@@ -85,10 +87,7 @@ void U4DPlayerStateHalt::execute(U4DPlayer *uPlayer, double dt){
     }
     
     
-    //remove all velocities from the character
-    U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-
-    uPlayer->applyVelocity(zero, dt);
+    
 }
 
 void U4DPlayerStateHalt::exit(U4DPlayer *uPlayer){

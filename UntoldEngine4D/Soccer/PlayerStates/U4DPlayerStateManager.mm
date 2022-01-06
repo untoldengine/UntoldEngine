@@ -105,4 +105,8 @@ namespace U4DEngine {
         return previousState;
         
     }
+
+    std::string U4DPlayerStateManager::getCurrentStateName(){
+        return currentState->name;
+    }
 }

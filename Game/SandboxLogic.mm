@@ -33,7 +33,7 @@
 #include "U4DTeam.h"
 #include "U4DBall.h"
 
-#include "U4DNetworkManager.h"
+#include "U4DClientManager.h"
 
 SandboxLogic::SandboxLogic():pPlayer(nullptr),team(nullptr){
     
@@ -45,10 +45,8 @@ SandboxLogic::~SandboxLogic(){
 
 void SandboxLogic::update(double dt){
     
-//    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
-//    networkManager->receiveMsg();
-//
-//    networkManager->sendPacket(pPlayer);
+   
+
     
 }
 
@@ -70,16 +68,16 @@ void SandboxLogic::init(){
     }
     
     U4DEngine::U4DPlayer *p1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
-    
+
     U4DEngine::U4DPlayer *p2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
-    
+
     U4DEngine::U4DPlayer *p3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
-    
+
     U4DEngine::U4DPlayer *p4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
-    
-    
+
+
     team=new U4DEngine::U4DTeam();
-    
+
     team->addPlayer(pPlayer);
     team->addPlayer(p1);
     team->addPlayer(p2);
@@ -90,11 +88,9 @@ void SandboxLogic::init(){
     
     team->setControllingPlayer(pPlayer);
     
+    //pPlayer->setEnableFreeToRun(true);
     
-    //connect to server
-//    U4DEngine::U4DNetworkManager *networkManager=U4DEngine::U4DNetworkManager::sharedInstance();
-//
-//    networkManager->connect("127.0.0.1",7777);
+    
     
 }
 
@@ -383,7 +379,12 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 //                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
 //                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
 //                    }
-                    pPlayer->setEnableHalt(true);
+                    if(pPlayer->getCurrentState()==U4DEngine::U4DPlayerStateFree::sharedInstance()){
+                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+                    }else{
+                        pPlayer->setEnableHalt(true);
+                    }
+                    
                     
                     
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyActive){
@@ -582,11 +583,14 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     U4DEngine::U4DVector3n mousedirection(delta.x,0.0,delta.y);
 
                     if(pPlayer->getCurrentState()==U4DEngine::U4DPlayerStateFree::sharedInstance()){
+                        
                         pPlayer->setEnableFreeToRun(true);
+                    
                     }else if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateIntercept::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStatePass::sharedInstance()){
 
                         //pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
                         pPlayer->setEnableDribbling(true);
+                    
                     }
                     
                     

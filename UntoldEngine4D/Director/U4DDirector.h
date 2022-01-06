@@ -106,6 +106,8 @@ private:
     
     bool scriptRunTimeError;
     
+    int newEntityId;
+    
 protected:
     
     /**
@@ -407,6 +409,8 @@ public:
     void setScriptRunTimeError(bool uValue);
     
     bool getScriptRunTimeError();
+    
+    int getNewEntityId();
     
 };
 

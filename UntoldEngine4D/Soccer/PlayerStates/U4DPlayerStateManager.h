@@ -51,6 +51,8 @@ public:
     
     U4DPlayerStateInterface *getPreviousState();
     
+    std::string getCurrentStateName();
+    
 };
 }
 

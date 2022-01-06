@@ -78,6 +78,8 @@ namespace U4DEngine {
         renderEntity->render(uRenderEncoder);
     }
 
+    
+
 bool U4DModel::loadModel(const char* uModelName){
     
     U4DEngine::U4DResourceLoader *loader=U4DEngine::U4DResourceLoader::sharedInstance();

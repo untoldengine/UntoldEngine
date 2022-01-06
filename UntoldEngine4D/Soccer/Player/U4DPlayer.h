@@ -42,6 +42,8 @@ private:
     
     U4DTeam *team;
     
+    
+    
 public:
     
     bool shootBall;
@@ -101,6 +103,8 @@ public:
     void setEnableFreeToRun(bool uValue);
     
     U4DPlayerStateInterface *getCurrentState();
+    
+    std::string getCurrentStateName();
     
     //add to team
     void addToTeam(U4DTeam *uTeam);

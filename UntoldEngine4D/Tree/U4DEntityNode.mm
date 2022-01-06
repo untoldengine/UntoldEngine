@@ -393,6 +393,40 @@ T* U4DEntityNode<T>::searchChild(std::string uName){
     return childWithName;
     
 }
+    
+template <typename T>
+T* U4DEntityNode<T>::seachChild(int uChildId){
+    
+    T* child=static_cast<T*>(this);
+    T* childWithId=nullptr;
+    
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    
+    while (child!=NULL) {
+        
+        if (child->getEntityId()!=uChildId) {
+            
+            child=child->next;
+            
+        }else if (child->getEntityId()==uChildId){
+            
+            childWithId=child;
+            
+            break;
+            
+        }
+        
+    }
+    
+    if (childWithId==nullptr) {
+        
+        logger->log("Error: Child with Id %d was not found.", uChildId);
+        
+    }
+    
+    return childWithId;
+    
+}
 
 }
 

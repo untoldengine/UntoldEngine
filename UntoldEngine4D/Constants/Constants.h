@@ -162,6 +162,7 @@ namespace U4DEngine {
 
     const std::string untoldengineversion="beta v0.0.16";
 
+    const int maxClientStringNameSize=20;
 }
 
 #endif

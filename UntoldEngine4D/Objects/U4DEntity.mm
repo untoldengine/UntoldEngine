@@ -12,6 +12,7 @@
 #include "U4DMatrix3n.h"
 #include "U4DTransformation.h"
 #include "U4DLogger.h"
+#include "U4DDirector.h"
 
 namespace U4DEngine {
     
@@ -20,6 +21,10 @@ namespace U4DEngine {
         
         transformation=new U4DTransformation(this);
         
+        //get id
+        U4DDirector *director=U4DDirector::sharedInstance();
+        
+        entityId=director->getNewEntityId();
         
     }
 
@@ -66,6 +71,10 @@ namespace U4DEngine {
 
     int U4DEntity::getScriptID(){
         return scriptID;
+    }
+
+    int U4DEntity::getEntityId(){
+        return entityId;
     }
 
     void U4DEntity::setScriptID(int uScriptID){

@@ -788,6 +788,24 @@ class U4DTeam;
     }ENTITYSERIALIZEDATA;
 
     enum{
+        ptConnect,
+        ptJoinAttempt,
+        ptJoined,
+        ptReplicationData,
+        ptDisconnet,
+        ptMax
+    }NETWORKPACKETTYPE;
+
+    enum{
+        clientConnect,
+        clientJoinAttempt,
+        clientJoin,
+        clientReplicatingData,
+        clientDisconnect,
+        clientConnectFailed
+    }CLIENTSTATE;
+    
+    enum{
         idle,
         stopped,
         rolling,
