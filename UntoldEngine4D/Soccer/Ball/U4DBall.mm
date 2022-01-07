@@ -78,6 +78,8 @@ namespace U4DEngine {
             
             homePosition=getAbsolutePosition();
             
+            setClassType("U4DBall");
+            
             //send info to the GPU
             loadRenderingInformation();
             

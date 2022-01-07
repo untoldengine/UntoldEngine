@@ -132,12 +132,12 @@ void SandboxWorld::init(){
 //    if(field->init("field")){
 //        addChild(field);
 //    }
-//
+
     U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
     if (ball->init("ball")) {
         addChild(ball);
     }
-//
+
 //    U4DEngine::U4DModel *fieldGoals[2];
 //
 //    for(int i=0;i<sizeof(fieldGoals)/sizeof(fieldGoals[0]);i++){
@@ -192,7 +192,7 @@ void SandboxWorld::init(){
 
         U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
         debugger->setEnableDebugger(true, this);
-        
+
         //create layer manager
         U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
 
@@ -214,16 +214,16 @@ void SandboxWorld::init(){
 
         //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
         //cameraBasicFollow->setParameters(ball,0.0,30.0,-35.0);
-//        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,15.0,-25.0,U4DEngine::U4DPoint3n(-1.0,-1.0,-1.0),U4DEngine::U4DPoint3n(1.0,1.0,1.0));
+        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,25.0,-35.0,U4DEngine::U4DPoint3n(-1.0,-1.0,-1.0),U4DEngine::U4DPoint3n(1.0,1.0,1.0));
 
         //push layer
         layerManager->pushLayer("menuLayer");
-        
+
         U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
 
         camera->translateTo(0.0,35.0,-42.0);
-        
-        
+
+
 
     }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
 
@@ -233,14 +233,14 @@ void SandboxWorld::init(){
 
         addChild(instructions,-20);
 
-//        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,20.0,-25.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
+        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,25.0,-45.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
 
     }
-    
-    
+
+
 
     //set the camera behavior
-   // camera->setCameraBehavior(cameraBasicFollow);
+    camera->setCameraBehavior(cameraBasicFollow);
     
     
 //    //initialize the skybox
