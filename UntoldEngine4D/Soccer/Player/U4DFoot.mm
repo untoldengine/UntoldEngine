@@ -47,6 +47,9 @@ namespace U4DEngine {
             //set a tag
             kineticAction->setCollidingTag("foot");
             
+            //set class type
+            setClassType("U4DFoot");
+            
             //send info to the GPU
             loadRenderingInformation();
             
