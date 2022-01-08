@@ -21,7 +21,7 @@
 
 namespace U4DEngine{
 
-    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr){
+    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr),playerIndex(0){
         
     }
 
@@ -353,6 +353,16 @@ namespace U4DEngine{
 
     void U4DPlayer::handleMessage(Message &uMsg){
         stateManager->handleMessage(uMsg);
+    }
+
+    void U4DPlayer::setPlayerIndex(int uIndex){
+        playerIndex=uIndex;
+    }
+
+    int U4DPlayer::getPlayerIndex(){
+        
+        return playerIndex;
+        
     }
 
 }

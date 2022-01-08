@@ -11,6 +11,7 @@
 #include "U4DPlayerStateDribbling.h"
 #include "U4DPlayerStateIntercept.h"
 #include "U4DPlayerStateFree.h"
+#include "U4DPlayerStateFlock.h"
 
 namespace U4DEngine {
 
@@ -48,7 +49,7 @@ void U4DPlayerStateIdle::enter(U4DPlayer *uPlayer){
     
     uPlayer->kineticAction->setVelocity(zero);
     uPlayer->kineticAction->setAngularVelocity(zero);
-    
+    uPlayer->kineticAction->clearForce();
 }
 
 void U4DPlayerStateIdle::execute(U4DPlayer *uPlayer, double dt){
@@ -87,6 +88,13 @@ bool U4DPlayerStateIdle::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
             uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
         }
         break;
+            
+        case msgSupport:
+        {
+            uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
+            
+        }
+            break;
             
         default:
             break;

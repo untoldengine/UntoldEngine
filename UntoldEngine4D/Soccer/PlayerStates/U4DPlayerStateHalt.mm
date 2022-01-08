@@ -12,6 +12,8 @@
 #include "U4DGameConfigs.h"
 #include "U4DBall.h"
 #include "U4DFoot.h"
+#include "U4DMessageDispatcher.h"
+#include "U4DTeam.h"
 
 namespace U4DEngine {
 
@@ -46,6 +48,14 @@ void U4DPlayerStateHalt::enter(U4DPlayer *uPlayer){
     
     uPlayer->foot->kineticAction->resumeCollisionBehavior();
     
+    U4DTeam *team=uPlayer->getTeam();
+    
+    std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
+    U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
+    
+    for(auto n: teammates){
+        messageDispatcher->sendMessage(0.0, uPlayer, n, msgIdle);
+    }
 }
 
 void U4DPlayerStateHalt::execute(U4DPlayer *uPlayer, double dt){

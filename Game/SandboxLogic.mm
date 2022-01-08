@@ -14,6 +14,7 @@
 #include "SandboxWorld.h"
 #include "U4DGameConfigs.h"
 #include "U4DScriptManager.h"
+#include "U4DCamera.h"
 
 #include "U4DAnimationManager.h"
 
@@ -23,6 +24,7 @@
 #include "U4DPlayerStatePass.h"
 #include "U4DPlayerStateIntercept.h"
 #include "U4DPlayerStateFree.h"
+#include "U4DPlayerStateFlock.h"
 
 #include "U4DSceneManager.h"
 #include "U4DScene.h"
@@ -34,6 +36,11 @@
 #include "U4DBall.h"
 
 #include "U4DClientManager.h"
+#include "U4DLayerManager.h"
+#include "U4DLayer.h"
+#include "U4DDebugger.h"
+#include "U4DCameraInterface.h"
+#include "U4DCameraBasicFollow.h"
 
 SandboxLogic::SandboxLogic():pPlayer(nullptr),team(nullptr){
     
@@ -53,9 +60,79 @@ void SandboxLogic::update(double dt){
 void SandboxLogic::init(){
     
     U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+    
     //1. Get a pointer to the LevelOneWorld object
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
 
+    
+    
+    
+    U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
+    if (ball->init("ball")) {
+        pEarth->addChild(ball);
+    }
+    
+    //Instantiate the camera
+    U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+
+    //Instantiate the camera interface and the type of camera you desire
+    U4DEngine::U4DCameraInterface *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
+
+    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+
+    //get device type
+    if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
+
+        U4DEngine::U4DDebugger *debugger=U4DEngine::U4DDebugger::sharedInstance();
+        debugger->setEnableDebugger(true, pEarth);
+
+        //create layer manager
+        U4DEngine::U4DLayerManager *layerManager=U4DEngine::U4DLayerManager::sharedInstance();
+
+        //set this view (U4DWorld subclass) to the layer Manager
+        layerManager->setWorld(pEarth);
+
+        //create Layers
+        U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
+
+        //Create buttons to add to the layer
+        U4DEngine::U4DButton *buttonA=new U4DEngine::U4DButton("buttonA",0.7,-0.5,100.0,100.0,"ButtonA.png");
+        U4DEngine::U4DJoystick *joystick=new U4DEngine::U4DJoystick("joystick",-0.7,-0.5,"joyStickBackground.png",150.0,150.0,"joyStickDriver.png");
+
+        //add the buttons to the layer
+        mainMenuLayer->addChild(joystick);
+        mainMenuLayer->addChild(buttonA);
+
+        layerManager->addLayerToContainer(mainMenuLayer);
+
+        //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
+        //cameraBasicFollow->setParameters(ball,0.0,30.0,-35.0);
+        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,25.0,-35.0,U4DEngine::U4DPoint3n(-1.0,-1.0,-1.0),U4DEngine::U4DPoint3n(1.0,1.0,1.0));
+
+        //push layer
+        layerManager->pushLayer("menuLayer");
+
+        U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+
+        camera->translateTo(0.0,35.0,-42.0);
+
+
+
+    }else if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
+
+        U4DEngine::U4DText *instructions=new U4DEngine::U4DText("uiFont");
+        instructions->setText("Press P to play. Press U to pause\n Mouse to dribble. Left click shoot");
+        instructions->translateTo(-0.2,-0.3, 0.0);
+
+        pEarth->addChild(instructions,-20);
+
+        cameraBasicFollow->setParametersWithBoxTracking(ball,0.0,25.0,-45.0,U4DEngine::U4DPoint3n(-3.0,-3.0,-3.0),U4DEngine::U4DPoint3n(3.0,3.0,3.0));
+
+    }
+
+    //set the camera behavior
+    camera->setCameraBehavior(cameraBasicFollow);
+    
     //2. Search for the player object
     pPlayer=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
 
@@ -71,26 +148,19 @@ void SandboxLogic::init(){
 
     U4DEngine::U4DPlayer *p2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
 
-    U4DEngine::U4DPlayer *p3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
-
-    U4DEngine::U4DPlayer *p4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
-
 
     team=new U4DEngine::U4DTeam();
 
     team->addPlayer(pPlayer);
     team->addPlayer(p1);
     team->addPlayer(p2);
-    team->addPlayer(p3);
-    team->addPlayer(p4);
     
     //set controlling player
     
     team->setControllingPlayer(pPlayer);
-    
+    team->updateFormation();
+    team->initAnalyzerSchedulers();
     //pPlayer->setEnableFreeToRun(true);
-    
-    
     
 }
 
