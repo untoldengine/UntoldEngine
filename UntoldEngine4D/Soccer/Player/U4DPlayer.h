@@ -16,6 +16,9 @@
 #include "CommonProtocols.h"
 #include "U4DArrive.h"
 #include "U4DPursuit.h"
+#include "U4DAvoidance.h"
+#include "U4DFlock.h"
+#include "U4DWander.h"
 
 namespace U4DEngine{
 
@@ -27,6 +30,8 @@ class U4DPlayerStateManager;
 class U4DPlayer:public U4DModel {
     
 private:
+    
+    int playerIndex;
     
     U4DPlayerStateManager *stateManager;
     
@@ -52,6 +57,8 @@ public:
     bool dribbleBall;
     bool freeToRun;
     
+    U4DVector3n previousPosition;
+    
     U4DAnimation *runningAnimation;
     U4DAnimation *idleAnimation;
     U4DAnimation *shootingAnimation;
@@ -61,8 +68,17 @@ public:
     U4DAnimationManager *animationManager;
     
     U4DDynamicAction *kineticAction;
+    
     U4DArrive arriveBehavior;
+    
     U4DPursuit pursuitBehavior;
+    
+    U4DEngine::U4DAvoidance avoidanceBehavior;
+    
+    U4DEngine::U4DFlock flockBehavior;
+    
+    U4DEngine::U4DWander wanderBehavior;
+    
     U4DVector3n dribblingDirection;
     
     U4DFoot *foot;
@@ -112,6 +128,10 @@ public:
     U4DTeam *getTeam();
     
     void handleMessage(Message &uMsg);
+    
+    void setPlayerIndex(int uIndex);
+
+    int getPlayerIndex();
     
 };
 

@@ -19,7 +19,11 @@ var names = ["dribblingBallSpeed":30.0/scaleValue,
             "interceptMinRadius":1.0,
             "freeMaxSpeed":25.0/scaleValue,
             "freeStopRadius":0.52/scaleValue,
-            "freeSlowRadius":0.55/scaleValue] 
+            "freeSlowRadius":0.55/scaleValue,
+            "neighborPlayerSeparationDistance":14.0,
+            "neighborPlayerAlignmentDistance":30.0,
+            "neighborPlayerCohesionDistance":30.0,
+            "avoidanceMaxSpeed":35.0/scaleValue];
 
 return names
 }

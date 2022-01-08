@@ -11,6 +11,9 @@
 
 #include <stdio.h>
 #include "U4DPlayer.h"
+#include "U4DFormationManager.h"
+#include "U4DCallback.h"
+#include "U4DTimer.h"
 
 namespace U4DEngine {
 
@@ -23,7 +26,14 @@ namespace U4DEngine {
         
         U4DPlayer* controllingPlayer;
         
+        int playerIndex;
+        
+        U4DEngine::U4DCallback<U4DTeam> *formationScheduler;
+        U4DEngine::U4DTimer *formationTimer;
+        
     public:
+        
+        U4DFormationManager formationManager;
         
         U4DTeam();
         
@@ -38,6 +48,10 @@ namespace U4DEngine {
         void setControllingPlayer(U4DPlayer *uPlayer);
         
         U4DPlayer *getControllingPlayer();
+        
+        void updateFormation();
+        
+        void initAnalyzerSchedulers();
         
     };
 

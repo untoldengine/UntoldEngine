@@ -13,6 +13,8 @@
 #include "U4DPlayerStateShooting.h"
 #include "U4DPlayerStatePass.h"
 #include "U4DPlayerStateHalt.h"
+#include "U4DPlayerStateFlock.h"
+#include "U4DMessageDispatcher.h"
 #include "U4DTeam.h"
 
 namespace U4DEngine {
@@ -57,6 +59,13 @@ void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
     team->setControllingPlayer(uPlayer);
     
     uPlayer->setEnableDribbling(false);
+    
+    std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
+    U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
+    
+    for(auto n: teammates){
+        messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
+    }
 }
 
 void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
@@ -98,6 +107,7 @@ void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
 
     uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"), uPlayer->dribblingDirection);
     
+    uPlayer->previousPosition=uPlayer->getAbsolutePosition();
 }
 
 void U4DPlayerStateDribbling::exit(U4DPlayer *uPlayer){
