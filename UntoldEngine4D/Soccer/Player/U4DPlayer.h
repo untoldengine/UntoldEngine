@@ -81,6 +81,8 @@ public:
     
     U4DVector3n dribblingDirection;
     
+    U4DEngine::U4DVector3n naiveNavDirection;
+    
     U4DFoot *foot;
     
     U4DPlayer();
