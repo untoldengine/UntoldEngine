@@ -11,8 +11,10 @@
 #include "U4DPlayerStateDribbling.h"
 #include "U4DPlayerStateIntercept.h"
 #include "U4DPlayerStateJog.h"
+#include "U4DPlayerStateSlidingTackle.h"
 #include "U4DTeam.h"
 #include "U4DBall.h"
+#include "U4DFoot.h"
 
 namespace U4DEngine {
 
@@ -49,7 +51,7 @@ void U4DPlayerStateFree::enter(U4DPlayer *uPlayer){
     
     U4DTeam *team=uPlayer->getTeam();
     
-    team->setControllingPlayer(uPlayer);
+    team->setActivePlayer(uPlayer);
     
     //set speed
     uPlayer->arriveBehavior.setMaxSpeed(gameConfigs->getParameterForKey("freeMaxSpeed"));
@@ -75,7 +77,7 @@ void U4DPlayerStateFree::execute(U4DPlayer *uPlayer, double dt){
     U4DEngine::U4DVector3n ballPosition=ball->getAbsolutePosition();
     ballPosition.y=uPlayer->getAbsolutePosition().y;
     
-    float distanceToBall=(ballPosition-uPlayer->getAbsolutePosition()).magnitude();
+    //float distanceToBall=(ballPosition-uPlayer->getAbsolutePosition()).magnitude();
     
 //    if (distanceToBall<gameConfigs->getParameterForKey("freeStopRadius")) {
 //
@@ -85,8 +87,8 @@ void U4DPlayerStateFree::execute(U4DPlayer *uPlayer, double dt){
     //compute the final velocity
     U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, ballPosition);
     
-    //finalVelocity=freeVelocity*gameConfigs->getParameterForKey("freeMaxSpeed")*0.2+finalVelocity*0.8;
-    finalVelocity=freeVelocity*gameConfigs->getParameterForKey("freeMaxSpeed");
+    finalVelocity=freeVelocity*gameConfigs->getParameterForKey("freeMaxSpeed")*0.4+finalVelocity*0.6;
+    //finalVelocity=freeVelocity*gameConfigs->getParameterForKey("freeMaxSpeed");
     
     //set the final y-component to zero
     finalVelocity.y=0.0;
@@ -96,6 +98,17 @@ void U4DPlayerStateFree::execute(U4DPlayer *uPlayer, double dt){
         uPlayer->applyVelocity(finalVelocity, dt);
         uPlayer->setViewDirection(finalVelocity);
 
+    }
+    
+    if (uPlayer->slidingTackle==true) {
+        uPlayer->slidingVelocity=finalVelocity*5.0;
+        uPlayer->changeState(U4DPlayerStateSlidingTackle::sharedInstance());
+    }
+    
+    uPlayer->foot->kineticAction->resumeCollisionBehavior();
+    if (uPlayer->foot->kineticAction->getModelHasCollided()) {
+
+        uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
     }
     
 }

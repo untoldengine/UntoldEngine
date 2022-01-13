@@ -9,9 +9,15 @@
 #include "U4DPlayerStateIntercept.h"
 #include "U4DGameConfigs.h"
 #include "U4DPlayerStateDribbling.h"
+#include "U4DPlayerStateAiDribbling.h"
+#include "U4DPlayerStateFlock.h"
 #include "U4DBall.h"
 #include "U4DFoot.h"
 #include "U4DTeam.h"
+
+#include "U4DTeamStateIdle.h"
+#include "U4DPlayerStateIdle.h"
+#include "U4DPlayerStateMark.h"
 
 namespace U4DEngine {
 
@@ -84,8 +90,17 @@ void U4DPlayerStateIntercept::execute(U4DPlayer *uPlayer, double dt){
 
     if (distanceToBall<gameConfigs->getParameterForKey("interceptMinRadius")) {
 
-        uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
-
+        U4DTeam *team=uPlayer->getTeam();
+        
+        if(team->aiTeam){
+            uPlayer->changeState(U4DPlayerStateAiDribbling::sharedInstance());
+            
+        }else{
+            uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
+            
+        }
+        
+        
     }
 }
 
@@ -106,9 +121,19 @@ bool U4DPlayerStateIntercept::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
         {
             uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
         }
+        break;
+        
+        case msgSupport:
+        {
+            uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
+        }
+        break;
             
-            
-            break;
+//        case msgMark:
+//        {
+//            uPlayer->changeState(U4DPlayerStateMark::sharedInstance());
+//        }
+//            break;
             
         default:
             break;

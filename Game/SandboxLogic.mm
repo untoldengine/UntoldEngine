@@ -42,7 +42,12 @@
 #include "U4DCameraInterface.h"
 #include "U4DCameraBasicFollow.h"
 
-SandboxLogic::SandboxLogic():pPlayer(nullptr),team(nullptr){
+#include "U4DTeamStateAttacking.h"
+#include "U4DTeamStateDefending.h"
+
+
+
+SandboxLogic::SandboxLogic():pPlayer(nullptr),teamA(nullptr),teamB(nullptr){
     
 }
 
@@ -52,7 +57,10 @@ SandboxLogic::~SandboxLogic(){
 
 void SandboxLogic::update(double dt){
     
-   
+    if(teamA!=nullptr && teamB!=nullptr){
+        teamA->update(dt);
+        teamB->update(dt);
+    }
 
     
 }
@@ -149,18 +157,40 @@ void SandboxLogic::init(){
     U4DEngine::U4DPlayer *p2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
 
 
-    team=new U4DEngine::U4DTeam();
-
-    team->addPlayer(pPlayer);
-    team->addPlayer(p1);
-    team->addPlayer(p2);
+    U4DEngine::U4DPlayer *eP0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.0"));
+    U4DEngine::U4DPlayer *eP1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.1"));
+    U4DEngine::U4DPlayer *eP2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
     
+    teamA=new U4DEngine::U4DTeam();
+    teamB=new U4DEngine::U4DTeam();
+
+    teamA->addPlayer(pPlayer);
+    teamA->addPlayer(p1);
+    teamA->addPlayer(p2);
+    
+    teamB->addPlayer(eP0);
+    teamB->addPlayer(eP1);
+    teamB->addPlayer(eP2);
+    teamB->aiTeam=true;
     //set controlling player
     
-    team->setControllingPlayer(pPlayer);
-    team->updateFormation();
-    team->initAnalyzerSchedulers();
+    teamA->setActivePlayer(pPlayer);
+    teamB->setActivePlayer(eP0);
+    
     //pPlayer->setEnableFreeToRun(true);
+    
+    
+    teamA->updateFormation();
+    teamA->initAnalyzerSchedulers();
+    
+    teamB->updateFormation();
+    teamB->initAnalyzerSchedulers();
+    
+    teamA->setOppositeTeam(teamB);
+    teamB->setOppositeTeam(teamA);
+    
+    teamA->changeState(U4DEngine::U4DTeamStateAttacking::sharedInstance());
+    teamB->changeState(U4DEngine::U4DTeamStateDefending::sharedInstance());
     
 }
 
@@ -170,8 +200,8 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
     
-    if(team!=nullptr){
-        pPlayer=team->getControllingPlayer();
+    if(teamA!=nullptr){
+        pPlayer=teamA->getActivePlayer();
     }
     
     if (pPlayer!=nullptr) {
@@ -197,7 +227,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                         pPlayer->setEnablePassing(true);
                         U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
                         logger->log("passing");
-
+                        
                     }
 
                 }
@@ -356,9 +386,18 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //5. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
                     
-                    pPlayer->setEnablePassing(true);
-                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
-                    logger->log("passing");
+                    if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateAttacking::sharedInstance()){
+                        
+                        pPlayer->setEnablePassing(true);
+                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                        logger->log("passing");
+                        
+                    }else if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateDefending::sharedInstance()){
+                        
+                        pPlayer->setEnableSlidingTackle(true);
+                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                        logger->log("slide tackling");
+                    }
                     
                     
 //                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){

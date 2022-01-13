@@ -60,6 +60,8 @@ void SandboxScene::init(){
     resourceLoader->loadAnimationData("rightpassAnimation.u4d");
     resourceLoader->loadAnimationData("rightsolehaltAnimation.u4d");
     resourceLoader->loadAnimationData("joggingAnimation.u4d");
+    resourceLoader->loadAnimationData("slidingtackleAnimation.u4d");
+    resourceLoader->loadAnimationData("rightstandtackleAnimation.u4d");
     
     //load font data. In this example, the font is used for the UIs.
     resourceLoader->loadFontData("uiFont.u4d");

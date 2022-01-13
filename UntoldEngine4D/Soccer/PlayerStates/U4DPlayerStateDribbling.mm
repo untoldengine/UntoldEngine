@@ -15,6 +15,8 @@
 #include "U4DPlayerStateHalt.h"
 #include "U4DPlayerStateFlock.h"
 #include "U4DMessageDispatcher.h"
+#include "U4DTeamStateAttacking.h"
+#include "U4DTeamStateDefending.h"
 #include "U4DTeam.h"
 
 namespace U4DEngine {
@@ -56,9 +58,14 @@ void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
     
     //set player as controlling player
     U4DTeam *team=uPlayer->getTeam();
-    team->setControllingPlayer(uPlayer);
+    team->setActivePlayer(uPlayer);
     
     uPlayer->setEnableDribbling(false);
+    
+    U4DTeam *oppositeTeam=team->getOppositeTeam();
+    
+    team->changeState(U4DTeamStateAttacking::sharedInstance());
+    oppositeTeam->changeState(U4DTeamStateDefending::sharedInstance());
     
     std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
     U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();

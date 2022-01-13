@@ -30,7 +30,7 @@ U4DPathAnalyzer::U4DPathAnalyzer(){
         //set parameters here
         navigationSystem->setPathRadius(gameConfigs->getParameterForKey("navPathRadius"));
         navigationSystem->setPredictTime(gameConfigs->getParameterForKey("navPredictTime"));
-        navigationSystem->setNavigationSpeed(gameConfigs->getParameterForKey("dribbleBallSpeed"));
+        navigationSystem->setNavigationSpeed(gameConfigs->getParameterForKey("dribblingBallSpeed"));
         navigationSystem->setSlowRadius(gameConfigs->getParameterForKey("arriveSlowRadius"));
         navigationSystem->setTargetRadius(gameConfigs->getParameterForKey("arriveStopRadius"));
         
@@ -40,7 +40,7 @@ U4DPathAnalyzer::U4DPathAnalyzer(){
 }
 
 U4DPathAnalyzer::~U4DPathAnalyzer(){
-    
+    delete navigationSystem;
 }
 
 U4DPathAnalyzer* U4DPathAnalyzer::sharedInstance(){

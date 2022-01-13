@@ -12,6 +12,7 @@
 #include "U4DPlayerStateIntercept.h"
 #include "U4DPlayerStateFree.h"
 #include "U4DPlayerStateFlock.h"
+#include "U4DPlayerStateMark.h"
 
 namespace U4DEngine {
 
@@ -58,6 +59,7 @@ void U4DPlayerStateIdle::execute(U4DPlayer *uPlayer, double dt){
     
     if (uPlayer->dribbleBall==true) {
         uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
+        
     }else if(uPlayer->freeToRun==true){
         uPlayer->changeState(U4DPlayerStateFree::sharedInstance());
     }
@@ -93,6 +95,12 @@ bool U4DPlayerStateIdle::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
         {
             uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
             
+        }
+            break;
+            
+        case msgMark:
+        {
+            uPlayer->changeState(U4DPlayerStateMark::sharedInstance());
         }
             break;
             
