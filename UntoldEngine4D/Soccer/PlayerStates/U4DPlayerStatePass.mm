@@ -95,7 +95,7 @@ void U4DPlayerStatePass::exit(U4DPlayer *uPlayer){
             
         //set player as controlling player
         U4DTeam *team=uPlayer->getTeam();
-        team->setControllingPlayer(nullptr);
+        team->setActivePlayer(teammate);
     }
     
     

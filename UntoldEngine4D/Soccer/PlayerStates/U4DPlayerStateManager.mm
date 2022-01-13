@@ -62,7 +62,7 @@ namespace U4DEngine {
         
         changeStateRequest=false;
         
-        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+        U4DLogger *logger=U4DLogger::sharedInstance();
         logger->log("U4DPlayer %s Current State %s",player->getName().c_str(),currentState->name.c_str());
         
     }

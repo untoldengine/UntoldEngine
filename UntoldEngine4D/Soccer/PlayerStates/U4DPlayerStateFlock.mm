@@ -13,6 +13,7 @@
 #include "U4DPlayerStateFree.h"
 #include "U4DPlayerStateIdle.h"
 #include "U4DPlayerStateWander.h"
+#include "U4DPlayerStateMark.h"
 #include "U4DTeam.h"
 
 namespace U4DEngine {
@@ -143,6 +144,12 @@ bool U4DPlayerStateFlock::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
         {
             uPlayer->changeState(U4DPlayerStateWander::sharedInstance());
         }
+            
+        case msgMark:
+        {
+            uPlayer->changeState(U4DPlayerStateMark::sharedInstance());
+        }
+            break;
         
         break;
             

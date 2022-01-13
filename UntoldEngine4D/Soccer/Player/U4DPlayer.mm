@@ -21,14 +21,26 @@
 
 namespace U4DEngine{
 
-    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr),playerIndex(0){
+    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr),playerIndex(0),standTackleOpponent(false),slidingTackle(false){
         
     }
 
     U4DPlayer::~U4DPlayer(){
+        
+        delete stateManager;
+        delete animationManager;
         delete kineticAction;
         delete runningAnimation;
         
+        delete idleAnimation;
+        delete shootingAnimation;
+        delete passingAnimation;
+        delete haltAnimation;
+        delete jogAnimation;
+        delete standTackleAnimation;
+        delete slidingTackleAnimation;
+        
+        delete foot;
     }
 
     //init method. It loads all the rendering information among other things.
@@ -84,6 +96,25 @@ namespace U4DEngine{
                 
             }
             
+            slidingTackleAnimation=new U4DEngine::U4DAnimation(this);
+            
+            //load the stand tackle animation data
+            if(loadAnimationToModel(slidingTackleAnimation,"slidingtackle")){
+
+                slidingTackleAnimation->setPlayContinuousLoop(false);
+
+            }
+            
+            standTackleAnimation=new U4DEngine::U4DAnimation(this);
+            
+            //load the stand tackle animation data
+//            if(loadAnimationToModel(standTackleAnimation,"standtackle")){
+//
+//                standTackleAnimation->setPlayContinuousLoop(false);
+//
+//            }
+
+                    
             loadRenderingInformation();
             
             foot=new U4DFoot();
@@ -362,6 +393,23 @@ namespace U4DEngine{
     int U4DPlayer::getPlayerIndex(){
         
         return playerIndex;
+        
+    }
+
+    void U4DPlayer::setEnableStandTackle(bool uValue){
+        standTackleOpponent=uValue;
+    }
+
+    void U4DPlayer::setEnableSlidingTackle(bool uValue){
+        slidingTackle=uValue;
+    }
+
+    void U4DPlayer::resetAllFlags(){
+        dribbleBall=false;
+        passBall=false;
+        shootBall=false;
+        haltBall=false;
+        freeToRun=false;
         
     }
 

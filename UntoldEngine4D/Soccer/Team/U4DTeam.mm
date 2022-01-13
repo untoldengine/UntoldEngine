@@ -8,10 +8,13 @@
 
 #include "U4DTeam.h"
 #include "U4DMessageDispatcher.h"
+#include "U4DTeamStateInterface.h"
+#include "U4DTeamStateManager.h"
+#include "U4DTeamStateIdle.h"
 
 namespace U4DEngine{
 
-    U4DTeam::U4DTeam():controllingPlayer(nullptr),playerIndex(0){
+    U4DTeam::U4DTeam():activePlayer(nullptr),playerIndex(0),enableDefenseAnalyzer(false),aiTeam(false){
         
         //Create the callback. Notice that you need to provide the name of the class
         formationScheduler=new U4DEngine::U4DCallback<U4DTeam>;
@@ -19,10 +22,42 @@ namespace U4DEngine{
         //create the timer
         formationTimer=new U4DEngine::U4DTimer(formationScheduler);
         
+        //Create the callback. Notice that you need to provide the name of the class
+        defenseScheduler=new U4DEngine::U4DCallback<U4DTeam>;
+        
+        //create the timer
+        defenseTimer=new U4DEngine::U4DTimer(defenseScheduler);
+        
+        //Create the callback. Notice that you need to provide the name of the class
+        analyzerFieldScheduler=new U4DEngine::U4DCallback<U4DTeam>;
+        
+        //create the timer
+        analyzerFieldTimer=new U4DEngine::U4DTimer(analyzerFieldScheduler);
+        
+        //set state manager
+        stateManager=new U4DTeamStateManager(this);
+        
+        changeState(U4DTeamStateIdle::sharedInstance());
+        
+        
     }
 
     U4DTeam::~U4DTeam(){
         
+        defenseScheduler->unScheduleTimer(defenseTimer);
+        formationScheduler->unScheduleTimer(formationTimer);
+        analyzerFieldScheduler->unScheduleTimer(formationTimer);
+        
+        delete defenseScheduler;
+        delete defenseTimer;
+        
+        delete formationScheduler;
+        delete formationTimer;
+        
+        delete analyzerFieldScheduler;
+        delete analyzerFieldTimer;
+        
+        delete stateManager;
     }
 
     void U4DTeam::initAnalyzerSchedulers(){
@@ -33,6 +68,32 @@ namespace U4DEngine{
         //formationTimer->setPause(true);
         
         
+        defenseScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::startAnalyzingDefense, defenseTimer, 0.05,true);
+        
+        analyzerFieldScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::analyzeField, analyzerFieldTimer, 1.0,true);
+        
+        defenseTimer->setPause(true);
+        
+        analyzerFieldTimer->setPause(true);
+        
+    }
+
+    void U4DTeam::update(double dt){
+        stateManager->update(dt);
+    }
+
+
+    U4DTeamStateInterface *U4DTeam::getCurrentState(){
+        return stateManager->getCurrentState();
+    }
+
+
+    U4DTeamStateInterface *U4DTeam::getPreviousState(){
+        return stateManager->getPreviousState();
+    }
+
+    void U4DTeam::changeState(U4DTeamStateInterface *uState){
+        stateManager->safeChangeState(uState);
     }
 
     void U4DTeam::addPlayer(U4DPlayer *uPlayer){
@@ -73,14 +134,14 @@ namespace U4DEngine{
         
     }
 
-    void U4DTeam::setControllingPlayer(U4DPlayer *uPlayer){
+    void U4DTeam::setActivePlayer(U4DPlayer *uPlayer){
         
-        controllingPlayer=uPlayer;
+        activePlayer=uPlayer;
         
     }
 
-    U4DPlayer *U4DTeam::getControllingPlayer(){
-        return controllingPlayer;
+    U4DPlayer *U4DTeam::getActivePlayer(){
+        return activePlayer;
     }
 
     void U4DTeam::updateFormation(){
@@ -89,7 +150,7 @@ namespace U4DEngine{
         
         if (formation==false) {
             
-            formationManager.computeFormationPosition(controllingPlayer->getAbsolutePosition());
+            formationManager.computeFormationPosition(activePlayer->getAbsolutePosition());
         
 //            for(auto &n:getPlayers()){
 //
@@ -118,5 +179,33 @@ namespace U4DEngine{
             formation=false;
         }
     }
+
+void U4DTeam::startAnalyzingDefense(){
+    enableDefenseAnalyzer=true;
+}
+
+void U4DTeam::analyzeField(){
+    
+    U4DFieldAnalyzer *fieldAnalyzer=U4DFieldAnalyzer::sharedInstance();
+
+    fieldAnalyzer->analyzeField(this,oppositeTeam);
+
+    //get nav path
+    U4DPathAnalyzer *pathAnalyzer=U4DPathAnalyzer::sharedInstance();
+
+    //Get player at index zero for now
+    pathAnalyzer->computeNavigation(activePlayer);
+    
+}
+
+void U4DTeam::setOppositeTeam(U4DTeam *uTeam){
+    
+    oppositeTeam=uTeam;
+    
+}
+
+U4DTeam *U4DTeam::getOppositeTeam(){
+    return oppositeTeam;
+}
 
 }

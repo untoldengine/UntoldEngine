@@ -56,6 +56,8 @@ public:
     bool haltBall;
     bool dribbleBall;
     bool freeToRun;
+    bool standTackleOpponent;
+    bool slidingTackle;
     
     U4DVector3n previousPosition;
     
@@ -65,6 +67,9 @@ public:
     U4DAnimation *passingAnimation;
     U4DAnimation *haltAnimation;
     U4DAnimation *jogAnimation;
+    U4DAnimation *standTackleAnimation;
+    U4DAnimation *slidingTackleAnimation;
+    
     U4DAnimationManager *animationManager;
     
     U4DDynamicAction *kineticAction;
@@ -73,15 +78,17 @@ public:
     
     U4DPursuit pursuitBehavior;
     
-    U4DEngine::U4DAvoidance avoidanceBehavior;
+    U4DAvoidance avoidanceBehavior;
     
-    U4DEngine::U4DFlock flockBehavior;
+    U4DFlock flockBehavior;
     
-    U4DEngine::U4DWander wanderBehavior;
+    U4DWander wanderBehavior;
     
     U4DVector3n dribblingDirection;
     
-    U4DEngine::U4DVector3n naiveNavDirection;
+    U4DVector3n naiveNavDirection;
+    
+    U4DVector3n slidingVelocity;
     
     U4DFoot *foot;
     
@@ -120,6 +127,10 @@ public:
     
     void setEnableFreeToRun(bool uValue);
     
+    void setEnableStandTackle(bool uValue);
+    
+    void setEnableSlidingTackle(bool uValue);
+    
     U4DPlayerStateInterface *getCurrentState();
     
     std::string getCurrentStateName();
@@ -135,6 +146,7 @@ public:
 
     int getPlayerIndex();
     
+    void resetAllFlags();
 };
 
 }
