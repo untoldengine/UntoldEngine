@@ -45,9 +45,9 @@
 #include "U4DTeamStateAttacking.h"
 #include "U4DTeamStateDefending.h"
 
+#include "U4DGameConfigs.h"
 
-
-SandboxLogic::SandboxLogic():pPlayer(nullptr),teamA(nullptr),teamB(nullptr){
+SandboxLogic::SandboxLogic():pPlayer(nullptr),teamA(nullptr),teamB(nullptr),pGround(nullptr){
     
 }
 
@@ -62,6 +62,63 @@ void SandboxLogic::update(double dt){
         teamB->update(dt);
     }
 
+    if (pGround!=nullptr) {
+        //Update player position
+        U4DEngine::U4DVector3n pos=pPlayer->getAbsolutePosition();
+        
+        U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
+        
+        float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
+        float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfLength");
+        
+        pos.x/=fieldHalfWidth;
+        pos.z/=fieldHalfLength;
+        
+        U4DEngine::U4DVector4n param0(pos.z,pos.x,0.0,0.0);
+        pGround->updateShaderParameterContainer(0, param0);
+        
+        //comput the yaw of the hero soldier
+        U4DEngine::U4DVector3n v0=pPlayer->getEntityForwardVector();
+        U4DEngine::U4DMatrix3n m=pPlayer->getAbsoluteMatrixOrientation();
+        
+        U4DEngine::U4DVector3n xDir(1.0,0.0,0.0);
+        U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+
+        U4DEngine::U4DVector3n v1=m*v0;
+
+        float yaw=v0.angle(v1);
+
+        v1.normalize();
+
+        if (xDir.dot(v1)>U4DEngine::zeroEpsilon) {
+
+            yaw=360.0-yaw;
+        }
+
+        //send the yaw information to the navigation shader
+        U4DEngine::U4DVector4n paramAngle(yaw,0.0,0.0,0.0);
+        pGround->updateShaderParameterContainer(1, paramAngle);
+        
+        if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateDefending::sharedInstance()){
+            
+            U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
+            
+            U4DEngine::U4DVector3n ballPosition=ball->getAbsolutePosition();
+            
+            ballPosition.x/=fieldHalfWidth;
+            ballPosition.z/=fieldHalfLength;
+            //send the ball information to the navigation shader
+            U4DEngine::U4DVector4n paramBallIndicator(ballPosition.z,ballPosition.x,1.0,0.0);
+            pGround->updateShaderParameterContainer(2, paramBallIndicator);
+            
+        }else{
+            
+            //tell the shader not to draw the ball indicator
+            U4DEngine::U4DVector4n paramBallIndicator(0.0,0.0,0.0,0.0);
+            pGround->updateShaderParameterContainer(2, paramBallIndicator);
+        
+        }
+    }
     
 }
 
@@ -72,9 +129,6 @@ void SandboxLogic::init(){
     //1. Get a pointer to the LevelOneWorld object
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
 
-    
-    
-    
     U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
     if (ball->init("ball")) {
         pEarth->addChild(ball);
@@ -151,6 +205,8 @@ void SandboxLogic::init(){
 
 
     }
+    
+    pGround=dynamic_cast<Field*>(pEarth->searchChild("field0"));
     
     U4DEngine::U4DPlayer *p1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
 

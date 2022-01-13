@@ -22,7 +22,7 @@ bool Field::init(const char* uModelName){
     
     if (loadModel(uModelName)) {
         
-        //setPipeline("fieldPipeline");
+        setPipeline("fieldPipeline");
         
 //        kineticAction=new U4DEngine::U4DDynamicAction(this);
 //
