@@ -223,12 +223,12 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
     float3 color=float3(0.0);
 
     //divide the field into spaces
-    float2 influenceST=st;
-    
-    float2 pathfinderST=st;
-    
+//    float2 influenceST=st;
+//
+//    float2 pathfinderST=st;
+//
     float2 chaseBallVisualizer=st;
-    
+
     float2 charactersST=st;
     
     float m=0.0;
@@ -247,32 +247,32 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
     //[4].w=clock digit
     
     //using the mouse/keyboard
-    if(uniformModelShaderProperty.shaderParameter[3].z==1){
-        
-        float2 p1=float2(-uniformModelShaderProperty.shaderParameter[0].x,uniformModelShaderProperty.shaderParameter[0].y);
-
-            float2 mousePosition=float2(-uniformModelShaderProperty.shaderParameter[3].y,uniformModelShaderProperty.shaderParameter[3].x);
-            
-            float2 p3=p1+mousePosition;
-            
-            //draw the mouse position ring
-            float c=sdfRing(st,p3,0.03);
-            c=sharpen(c,0.006,uniformGlobalData.resolution);
-
-            color+=float3(c);
-            
-            //draw starting position of line to mouse ring
-            float2 b=p1+(p3-p1)*0.1;
-        
-            //draw line to mouse ring
-            float l=sdfLine(st,b,p3);
-
-            l=sharpen(l,0.005,uniformGlobalData.resolution);
-
-            color+=float3(l);
-        
-        
-    }else{
+//    if(uniformModelShaderProperty.shaderParameter[3].z==1){
+//
+//        float2 p1=float2(-uniformModelShaderProperty.shaderParameter[0].x,uniformModelShaderProperty.shaderParameter[0].y);
+//
+//            float2 mousePosition=float2(-uniformModelShaderProperty.shaderParameter[3].y,uniformModelShaderProperty.shaderParameter[3].x);
+//
+//            float2 p3=p1+mousePosition;
+//
+//            //draw the mouse position ring
+//            float c=sdfRing(st,p3,0.03);
+//            c=sharpen(c,0.006,uniformGlobalData.resolution);
+//
+//            color+=float3(c);
+//
+//            //draw starting position of line to mouse ring
+//            float2 b=p1+(p3-p1)*0.1;
+//
+//            //draw line to mouse ring
+//            float l=sdfLine(st,b,p3);
+//
+//            l=sharpen(l,0.005,uniformGlobalData.resolution);
+//
+//            color+=float3(l);
+//
+//
+//    }else{
         
         float2 p1=float2(uniformModelShaderProperty.shaderParameter[0].x,-uniformModelShaderProperty.shaderParameter[0].y);
 
@@ -312,212 +312,24 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
 
             color=max(color,float3(t));
         
-    }
+    //}
     
     //start render ball indicator
     if(uniformModelShaderProperty.shaderParameter[2].z==1.0){
-        color*=float3(1.0,0.0,0.0)*20.0;
         
         float2 b1=float2(uniformModelShaderProperty.shaderParameter[2].x,-uniformModelShaderProperty.shaderParameter[2].y);
 
         chaseBallVisualizer=chaseBallVisualizer+b1;
-        
+
         chaseBallVisualizer*=2.0;
-        
+
         float b=sdfRing(chaseBallVisualizer,float2(0.0,0.0),0.09);
         b=sharpen(b,0.008,uniformGlobalData.resolution);
 
-        color=max(color,float3(b));
-        
+        color=max(color,float3(1.0,0.0,0.0)*b);
+
     }
     //end render ball indicator
-    
-    //voronoi diagrams
-//    int sizep=(int)uniformModelShaderProperty.shaderParameter[0].x;
-//
-//    for(int i=1;i<=sizep;){
-//        float2 p1=float2(uniformModelShaderProperty.shaderParameter[i].x,uniformModelShaderProperty.shaderParameter[i].y);
-//
-//        float2 p2=float2(uniformModelShaderProperty.shaderParameter[i].z,uniformModelShaderProperty.shaderParameter[i].w);
-//
-//        float l=sdfLine(st,p1,p2);
-//        l=sharpen_Shape(l,0.01,uniformGlobalData.resolution);
-//
-//        color=max(color,float3(l)*float3(1.0,0.0,0.0)*20.0);
-//        i=i+1;
-//    }
-    //end voronoi diagram
-   // color*=float3(1.0);
-    
-    
-//    //start the field analyzer
-//    influenceST*=4.5;
-//    influenceST+=float2(0.0,1.0); //need to shift the space to map the cells properly with the shader
-//    float2 fid=fract(influenceST);
-//
-//    float2 iid=floor(influenceST);
-
-//    float2 visualInfluence=float2(0.0);
-//
-//    //number 85 comes from the number of cells computed by the field analyzer
-//    for(int i=4;i<=85;i++){
-//
-//        float2 cellPosition=float2(uniformModelShaderProperty.shaderParameter[i].x,uniformModelShaderProperty.shaderParameter[i].y);
-//        float cellInfluence=uniformModelShaderProperty.shaderParameter[i].z;
-//        float cellIsTeam=uniformModelShaderProperty.shaderParameter[i].w;
-//
-//        cellInfluence=abs(cellInfluence);
-//
-//        if(iid.x==cellPosition.x && iid.y==cellPosition.y){
-//
-//            visualInfluence+=float2(cellInfluence*(1.0-cellIsTeam),cellInfluence*cellIsTeam);
-//
-//        }
-//
-//    }
-//
-//    color=max(color,float3(visualInfluence.x,visualInfluence.y,0.0));
-
-    //end field analyzer
-    
-    //start path finder
-//    float3 pathColor=float3(0.0);
-//
-//    int navPathSize=(int)uniformModelShaderProperty.shaderParameter[4].x+4;
-//
-//    for(int i=5;i<navPathSize;i++){
-//
-//        float2 pointA=float2(uniformModelShaderProperty.shaderParameter[i].x,uniformModelShaderProperty.shaderParameter[i].y);
-//        float2 pointB=float2(uniformModelShaderProperty.shaderParameter[i].z,uniformModelShaderProperty.shaderParameter[i].w);
-//
-//        float c=sdfRing(pathfinderST,pointA,0.02);
-//        c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
-//
-//        pathColor+=float3(c);
-//
-//        c=sdfRing(pathfinderST,pointB,0.02);
-//        c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
-//
-//        pathColor+=float3(c);
-//
-//        float l=sdfLine(pathfinderST,pointA,pointB);
-//
-//        l=sharpen(l,0.01*0.8,uniformGlobalData.resolution);
-//
-//        pathColor+=float3(l);
-//
-//    }
-//
-//    color=max(color,pathColor);
-
-    //end path finder
-    
-    //draw the lines separating the spaces
-    
-//    charactersST*=3.0;
-//
-//    charactersST=rotate2d(90.0*M_PI/180.0)*charactersST;
-//
-//    float2 fid=fract(charactersST);
-//
-//    float2 iid=floor(charactersST);
-//
-//    if(fid.x<0.01 || fid.x>0.99 || fid.y<0.01 || fid.y>0.99){
-//
-//        //color+=float3(1.0,0.0,0.0);
-//
-//    }
-//
-//    if(iid.x==2 && iid.y==2){
-//        //render a
-////        float lA=letterA(fid*2.0-float2(0.5,0.5));
-////
-////        lA=sharpen(lA,0.06,uniformGlobalData.resolution);
-////
-////        color=max(color,lA);
-////
-////        //render i
-////        float li=letteri(fid*2.0-float2(1.0,0.5));
-////        li=sharpen(li,0.06,uniformGlobalData.resolution);
-////
-////        color=max(color,li);
-//
-//        float flagBox1=sdfBox(fid*2.0-float2(0.7,1.1), float2(1.0,0.5));
-//        flagBox1=sharpen(flagBox1, 0.06, uniformGlobalData.resolution);
-//        float3 flagColor1=float3(flagBox1)*float3(139.0/255.0,203.0/255.0,233.0/255.0);
-//        color=max(color,flagColor1);
-//
-//        float flagBox2=sdfBox(fid*2.0-float2(0.7,0.2), float2(1.0,0.5));
-//        flagBox2=sharpen(flagBox2, 0.06, uniformGlobalData.resolution);
-//        float3 flagColor2=float3(flagBox2)*float3(249.0/255.0);
-//        color=max(color,flagColor2);
-//    }
-//
-//    if(iid.x==-3 && iid.y==2){
-////        //render Y
-////        float lY=letterY(fid*2.0-float2(0.5,0.5));
-////
-////        lY=sharpen(lY,0.06,uniformGlobalData.resolution);
-////
-////        color=max(color,lY);
-////
-////        //render o
-////        float lo=lettero(fid*3.0-float2(1.5,0.5));
-////        lo=sharpen(lo,0.06,uniformGlobalData.resolution);
-////
-////        color=max(color,lo);
-////
-////        //render u
-////        float lu=letteru(fid*3.0-float2(2.0,0.5));
-////        lu=sharpen(lu,0.06,uniformGlobalData.resolution);
-////
-////        color=max(color,lu);
-//
-//
-//
-//        float flagBox1=sdfBox(fid*2.0-float2(1.3,1.1), float2(1.0,0.5));
-//        flagBox1=sharpen(flagBox1, 0.06, uniformGlobalData.resolution);
-//        float3 flagColor1=float3(flagBox1)*float3(235.0/255.0,12.0/255.0,12.0/255.0);
-//        color=max(color,flagColor1);
-//
-//        float flagBox2=sdfBox(fid*2.0-float2(1.3,0.0), float2(1.0,0.5));
-//        flagBox2=sharpen(flagBox2, 0.06, uniformGlobalData.resolution);
-//        float3 flagColor2=float3(flagBox2)*float3(33.0/255.0,33.0/255.0,239.0/255.0);
-//        color=max(color,flagColor2);
-//
-//    }
-//
-//    //score for team 0
-//    if(iid.x==-2 && iid.y==2){
-//        //render score
-//        color=getNumberSDF(fid*2.0,float2(1.5,0.5),color,(int)uniformModelShaderProperty.shaderParameter[4].x,uniformGlobalData.resolution);
-//
-//    }
-//
-//    //score for team 1
-//    if(iid.x==1 && iid.y==2){
-//
-//        //render score
-//        color=getNumberSDF(fid*2.0,float2(0.5,0.5),color,(int)uniformModelShaderProperty.shaderParameter[4].y,uniformGlobalData.resolution);
-//
-//    }
-//
-//    float2 clockST=charactersST+float2(0.5,0.0);
-//
-//    float2 fidClock=fract(clockST);
-//
-//    float2 iidClock=floor(clockST);
-//
-//    if(fidClock.x<0.05 || fidClock.x>0.95 || fidClock.y<0.05 || fidClock.y>0.95){
-//
-//        //color+=float3(0.0,0.0,1.0);
-//
-//    }
-//
-//    if(iidClock.x==0 && iidClock.y==2.0){
-//        //color+=float3(0.0,0.0,1.0);
-//        color=clock(fidClock*6.0-float2(0.5,0.0),color,(int)uniformModelShaderProperty.shaderParameter[4].z,(int)uniformModelShaderProperty.shaderParameter[4].w,uniformGlobalData.resolution);
-//    }
     
     
     return max(float4(color,1.0),finalColor);

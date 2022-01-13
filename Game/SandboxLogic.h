@@ -13,6 +13,7 @@
 #include "U4DGameLogic.h"
 #include "U4DPlayer.h"
 #include "U4DTeam.h"
+#include "Field.h"
 
 class SandboxLogic:public U4DEngine::U4DGameLogic{
     
@@ -23,6 +24,7 @@ private:
     U4DEngine::U4DTeam *aiTeam;
     U4DEngine::U4DTeam *teamB;
     
+    Field *pGround;
     
 public:
     
