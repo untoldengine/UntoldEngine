@@ -305,6 +305,15 @@
 		03676ACE267F0BD30016A83A /* TestPipeline.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03676ACD267F0BD30016A83A /* TestPipeline.metal */; };
 		03676ACF267F0BD30016A83A /* TestPipeline.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03676ACD267F0BD30016A83A /* TestPipeline.metal */; };
 		03676AD0267F0BD40016A83A /* TestPipeline.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03676ACD267F0BD30016A83A /* TestPipeline.metal */; };
+		036956192791EEC600150047 /* U4DMatchRef.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956172791EEC600150047 /* U4DMatchRef.mm */; };
+		0369561A2791EEC600150047 /* U4DMatchRef.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956172791EEC600150047 /* U4DMatchRef.mm */; };
+		0369561B2791EEC600150047 /* U4DMatchRef.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956172791EEC600150047 /* U4DMatchRef.mm */; };
+		0369561E2791EFE700150047 /* U4DField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369561C2791EFE700150047 /* U4DField.mm */; };
+		0369561F2791EFE700150047 /* U4DField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369561C2791EFE700150047 /* U4DField.mm */; };
+		036956202791EFE700150047 /* U4DField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369561C2791EFE700150047 /* U4DField.mm */; };
+		03695623279236B900150047 /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03695622279236B900150047 /* FieldShader.metal */; };
+		03695624279236B900150047 /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03695622279236B900150047 /* FieldShader.metal */; };
+		03695625279236B900150047 /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03695622279236B900150047 /* FieldShader.metal */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036AE9C1270D79D900F9685B /* U4DScriptManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036AE9C0270D79D900F9685B /* U4DScriptManager.mm */; };
 		036AE9C2270D79D900F9685B /* U4DScriptManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036AE9C0270D79D900F9685B /* U4DScriptManager.mm */; };
@@ -744,9 +753,6 @@
 		037C0AAB276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AA9276D0C4A005F64ED /* U4DPlayerStateIntercept.mm */; };
 		037C0AAC276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AA9276D0C4A005F64ED /* U4DPlayerStateIntercept.mm */; };
 		037C0AAD276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AA9276D0C4A005F64ED /* U4DPlayerStateIntercept.mm */; };
-		037C0AAF276E32A4005F64ED /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AAE276E32A4005F64ED /* FieldShader.metal */; };
-		037C0AB0276E32A5005F64ED /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AAE276E32A4005F64ED /* FieldShader.metal */; };
-		037C0AB1276E32A5005F64ED /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AAE276E32A4005F64ED /* FieldShader.metal */; };
 		037C0AB4276E34E8005F64ED /* U4DPlayerStateFree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AB2276E34E8005F64ED /* U4DPlayerStateFree.mm */; };
 		037C0AB5276E34E8005F64ED /* U4DPlayerStateFree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AB2276E34E8005F64ED /* U4DPlayerStateFree.mm */; };
 		037C0AB6276E34E8005F64ED /* U4DPlayerStateFree.mm in Sources */ = {isa = PBXBuildFile; fileRef = 037C0AB2276E34E8005F64ED /* U4DPlayerStateFree.mm */; };
@@ -1017,9 +1023,6 @@
 		03C0447B2683D733002B3880 /* runningAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03C044772683D733002B3880 /* runningAnimation.u4d */; };
 		03C0447C2683D733002B3880 /* runningAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03C044772683D733002B3880 /* runningAnimation.u4d */; };
 		03C0447D2683D733002B3880 /* runningAnimation.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03C044772683D733002B3880 /* runningAnimation.u4d */; };
-		03C044A2268A6E6F002B3880 /* Field.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044A0268A6E6F002B3880 /* Field.mm */; };
-		03C044A3268A6E6F002B3880 /* Field.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044A0268A6E6F002B3880 /* Field.mm */; };
-		03C044A4268A6E6F002B3880 /* Field.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C044A0268A6E6F002B3880 /* Field.mm */; };
 		03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278851F80046B00AF463C /* U4DVisibilityManager.mm */; };
 		03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */; };
 		03CAE63A2051925E00391B57 /* U4DMacMouse.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03CAE6382051925E00391B57 /* U4DMacMouse.mm */; };
@@ -1464,6 +1467,11 @@
 		0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
 		0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Light.ttf"; sourceTree = "<group>"; };
 		03676ACD267F0BD30016A83A /* TestPipeline.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = TestPipeline.metal; path = Game/TestPipeline.metal; sourceTree = SOURCE_ROOT; };
+		036956172791EEC600150047 /* U4DMatchRef.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMatchRef.mm; path = Soccer/Referee/U4DMatchRef.mm; sourceTree = "<group>"; };
+		036956182791EEC600150047 /* U4DMatchRef.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMatchRef.h; path = Soccer/Referee/U4DMatchRef.h; sourceTree = "<group>"; };
+		0369561C2791EFE700150047 /* U4DField.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DField.mm; path = Soccer/Field/U4DField.mm; sourceTree = "<group>"; };
+		0369561D2791EFE700150047 /* U4DField.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DField.h; path = Soccer/Field/U4DField.h; sourceTree = "<group>"; };
+		03695622279236B900150047 /* FieldShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = FieldShader.metal; path = MetalShaders/FieldShader.metal; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AE9BF270D79D900F9685B /* U4DScriptManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DScriptManager.h; path = ScriptingSystem/U4DScriptManager.h; sourceTree = "<group>"; };
@@ -1556,7 +1564,6 @@
 		037C0A73276C0A91005F64ED /* joggingAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = joggingAnimation.u4d; sourceTree = "<group>"; };
 		037C0AA9276D0C4A005F64ED /* U4DPlayerStateIntercept.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPlayerStateIntercept.mm; path = Soccer/PlayerStates/U4DPlayerStateIntercept.mm; sourceTree = "<group>"; };
 		037C0AAA276D0C4A005F64ED /* U4DPlayerStateIntercept.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPlayerStateIntercept.h; path = Soccer/PlayerStates/U4DPlayerStateIntercept.h; sourceTree = "<group>"; };
-		037C0AAE276E32A4005F64ED /* FieldShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = FieldShader.metal; path = Game/FieldShader.metal; sourceTree = SOURCE_ROOT; };
 		037C0AB2276E34E8005F64ED /* U4DPlayerStateFree.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DPlayerStateFree.mm; path = Soccer/PlayerStates/U4DPlayerStateFree.mm; sourceTree = "<group>"; };
 		037C0AB3276E34E8005F64ED /* U4DPlayerStateFree.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DPlayerStateFree.h; path = Soccer/PlayerStates/U4DPlayerStateFree.h; sourceTree = "<group>"; };
 		037C473A17B597CB007B8283 /* U4DModel.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DModel.h; sourceTree = "<group>"; };
@@ -1756,8 +1763,6 @@
 		03C0445B26813562002B3880 /* soccerTextures.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = soccerTextures.u4d; sourceTree = "<group>"; };
 		03C044762683D733002B3880 /* rightshotAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = rightshotAnimation.u4d; sourceTree = "<group>"; };
 		03C044772683D733002B3880 /* runningAnimation.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = runningAnimation.u4d; sourceTree = "<group>"; };
-		03C044A0268A6E6F002B3880 /* Field.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = Field.mm; path = Game/Field.mm; sourceTree = SOURCE_ROOT; };
-		03C044A1268A6E6F002B3880 /* Field.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = Field.h; path = Game/Field.h; sourceTree = SOURCE_ROOT; };
 		03C278851F80046B00AF463C /* U4DVisibilityManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityManager.mm; path = VisibilityManager/U4DVisibilityManager.mm; sourceTree = "<group>"; };
 		03C278861F80046B00AF463C /* U4DVisibilityManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVisibilityManager.h; path = VisibilityManager/U4DVisibilityManager.h; sourceTree = "<group>"; };
 		03C278881F8415F700AF463C /* U4DVisibilityCulling.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVisibilityCulling.mm; path = VisibilityManager/U4DVisibilityCulling.mm; sourceTree = "<group>"; };
@@ -2260,6 +2265,24 @@
 			path = TransformationManager;
 			sourceTree = "<group>";
 		};
+		036956162791EEA200150047 /* Referee */ = {
+			isa = PBXGroup;
+			children = (
+				036956182791EEC600150047 /* U4DMatchRef.h */,
+				036956172791EEC600150047 /* U4DMatchRef.mm */,
+			);
+			name = Referee;
+			sourceTree = "<group>";
+		};
+		036956212791EFF200150047 /* Field */ = {
+			isa = PBXGroup;
+			children = (
+				0369561D2791EFE700150047 /* U4DField.h */,
+				0369561C2791EFE700150047 /* U4DField.mm */,
+			);
+			name = Field;
+			sourceTree = "<group>";
+		};
 		036C2449176790DA00ADC1A6 /* GameModel */ = {
 			isa = PBXGroup;
 			children = (
@@ -2602,7 +2625,6 @@
 		0375B9C424E578A200D19CE4 /* SandboxScene */ = {
 			isa = PBXGroup;
 			children = (
-				037C0AAE276E32A4005F64ED /* FieldShader.metal */,
 				0375B9C624E578BF00D19CE4 /* SandboxScene.h */,
 				0375B9C524E578BF00D19CE4 /* SandboxScene.mm */,
 				0375B9CB24E578D300D19CE4 /* SandboxWorld.h */,
@@ -2611,8 +2633,6 @@
 				0375B9CF24E578E000D19CE4 /* SandboxLogic.mm */,
 				03019FF3252568430005CDDD /* SandboxLoading.h */,
 				03019FF2252568430005CDDD /* SandboxLoading.mm */,
-				03C044A1268A6E6F002B3880 /* Field.h */,
-				03C044A0268A6E6F002B3880 /* Field.mm */,
 			);
 			name = SandboxScene;
 			sourceTree = "<group>";
@@ -2743,6 +2763,8 @@
 		0391258627447B4800A14682 /* Soccer */ = {
 			isa = PBXGroup;
 			children = (
+				036956212791EFF200150047 /* Field */,
+				036956162791EEA200150047 /* Referee */,
 				03386B69278AA8A000A73E6D /* TeamStates */,
 				031F3FC82788A60E00F5E482 /* Formation */,
 				03D0398C276A7682003D893F /* MessageDispatcher */,
@@ -3573,6 +3595,7 @@
 		03F2DAC31F19161F00F77B78 /* MetalShaders */ = {
 			isa = PBXGroup;
 			children = (
+				03695622279236B900150047 /* FieldShader.metal */,
 				03F2DAE61F19199700F77B78 /* U4DShaderProtocols.h */,
 				03F2DAE71F1919D400F77B78 /* shadowShader.metal */,
 				035FEC9625D983EA005669D7 /* OffscreenRender.metal */,
@@ -4010,6 +4033,7 @@
 				03722B8F2029F0F50080D069 /* U4DBoundingVolume.mm in Sources */,
 				03722B972029F0F50080D069 /* multiImageShader.metal in Sources */,
 				03722B6C2029F0F50080D069 /* U4DDualQuaternion.mm in Sources */,
+				0369561A2791EEC600150047 /* U4DMatchRef.mm in Sources */,
 				03722B8E2029F0F50080D069 /* U4DWorld.mm in Sources */,
 				03722BEA2029F0F50080D069 /* U4DVisibilityManager.mm in Sources */,
 				031F3F3B2778C09B00F5E482 /* list.c in Sources */,
@@ -4068,7 +4092,6 @@
 				03722B782029F0F50080D069 /* U4DMatrix4n.mm in Sources */,
 				0399D66925B72712004C1E11 /* U4DSkyboxPipeline.mm in Sources */,
 				0341ABFF204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
-				037C0AB0276E32A5005F64ED /* FieldShader.metal in Sources */,
 				038BF23D22792CAC00B129A5 /* U4DFlee.mm in Sources */,
 				0334699A25C190FF001F0702 /* U4DFinalPass.mm in Sources */,
 				03E688D4267793280079ED4D /* gravity_utils.c in Sources */,
@@ -4088,6 +4111,7 @@
 				0375B9D224E578E000D19CE4 /* SandboxLogic.mm in Sources */,
 				0399D66625B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
 				031F3F4E2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */,
+				03695624279236B900150047 /* FieldShader.metal in Sources */,
 				03676AA3267B96DE0016A83A /* imgui_impl_metal.mm in Sources */,
 				03722BBF2029F0F50080D069 /* U4DVertexData.mm in Sources */,
 				03386B9D278CD0C900A73E6D /* U4DPlayerStateAiDribbling.mm in Sources */,
@@ -4095,6 +4119,7 @@
 				03E688BF267793280079ED4D /* gravity_optimizer.c in Sources */,
 				03722B8B2029F0F50080D069 /* shadowShader.metal in Sources */,
 				03722BED2029F0F50080D069 /* U4DSpriteAnimation.mm in Sources */,
+				0369561F2791EFE700150047 /* U4DField.mm in Sources */,
 				03722BC92029F0F50080D069 /* U4DArmatureData.mm in Sources */,
 				039125A627453FAE00A14682 /* U4DPlayerStateIdle.mm in Sources */,
 				03E688E6267793280079ED4D /* gravity_opt_json.c in Sources */,
@@ -4177,7 +4202,6 @@
 				03722B642029F0F50080D069 /* U4DPlane.mm in Sources */,
 				0323DBAE202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B122029F0220080D069 /* AppDelegate.mm in Sources */,
-				03C044A3268A6E6F002B3880 /* Field.mm in Sources */,
 				03E688B6267793280079ED4D /* gravity_symboltable.c in Sources */,
 				034F2A2A217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
 				03722B9F2029F0F50080D069 /* U4DGravityForceGenerator.mm in Sources */,
@@ -4508,6 +4532,7 @@
 				03722CA62029F0F80080D069 /* U4DDualQuaternion.mm in Sources */,
 				03722CC82029F0F80080D069 /* U4DWorld.mm in Sources */,
 				03722D242029F0F80080D069 /* U4DVisibilityManager.mm in Sources */,
+				0369561B2791EEC600150047 /* U4DMatchRef.mm in Sources */,
 				0334699225C190ED001F0702 /* U4DShadowPass.mm in Sources */,
 				038BF24D22793B2B00B129A5 /* U4DWander.mm in Sources */,
 				031F3F3C2778C09B00F5E482 /* list.c in Sources */,
@@ -4566,7 +4591,6 @@
 				03722D1E2029F0F80080D069 /* U4DVector2n.mm in Sources */,
 				03CAE65B2051931000391B57 /* U4DMacMouseReleasedState.mm in Sources */,
 				03722CED2029F0F80080D069 /* U4DBoundingAABB.mm in Sources */,
-				037C0AB1276E32A5005F64ED /* FieldShader.metal in Sources */,
 				03722CB22029F0F80080D069 /* U4DMatrix4n.mm in Sources */,
 				0399D66A25B72712004C1E11 /* U4DSkyboxPipeline.mm in Sources */,
 				0341AC01204D8CA2006E14A9 /* U4DMacKeyPressedState.mm in Sources */,
@@ -4586,6 +4610,7 @@
 				03722CE92029F0F80080D069 /* U4DCollisionAlgorithm.mm in Sources */,
 				03722C9B2029F0F80080D069 /* U4DParticleEmitterFactory.mm in Sources */,
 				031F3F4F2779FE4A00F5E482 /* U4DInMemoryStream.mm in Sources */,
+				03695625279236B900150047 /* FieldShader.metal in Sources */,
 				0375B9D324E578E000D19CE4 /* SandboxLogic.mm in Sources */,
 				0399D66725B72712004C1E11 /* U4DImagePipeline.mm in Sources */,
 				03386B9E278CD0C900A73E6D /* U4DPlayerStateAiDribbling.mm in Sources */,
@@ -4593,6 +4618,7 @@
 				03722CF92029F0F80080D069 /* U4DVertexData.mm in Sources */,
 				03E688C0267793280079ED4D /* gravity_optimizer.c in Sources */,
 				03722CC52029F0F80080D069 /* shadowShader.metal in Sources */,
+				036956202791EFE700150047 /* U4DField.mm in Sources */,
 				03722D272029F0F80080D069 /* U4DSpriteAnimation.mm in Sources */,
 				039125A727453FAE00A14682 /* U4DPlayerStateIdle.mm in Sources */,
 				03722D032029F0F80080D069 /* U4DArmatureData.mm in Sources */,
@@ -4675,7 +4701,6 @@
 				03722CA42029F0F80080D069 /* U4DBodyForceGenerator.mm in Sources */,
 				03722CDF2029F0F80080D069 /* U4DCallbackInterface.mm in Sources */,
 				03722C9E2029F0F80080D069 /* U4DPlane.mm in Sources */,
-				03C044A4268A6E6F002B3880 /* Field.mm in Sources */,
 				0323DBB0202F60150007F087 /* U4DPadJoystickIdleState.mm in Sources */,
 				03722B392029F0220080D069 /* AppDelegate.mm in Sources */,
 				03E688B7267793280079ED4D /* gravity_symboltable.c in Sources */,
@@ -4744,6 +4769,7 @@
 				03E6EDDC1943D816007AD131 /* U4DBodyForceGenerator.mm in Sources */,
 				039125A527453FAE00A14682 /* U4DPlayerStateIdle.mm in Sources */,
 				03F02A872443EC1D007B073D /* U4DSeparation.mm in Sources */,
+				03695623279236B900150047 /* FieldShader.metal in Sources */,
 				03E6ED701943D710007AD131 /* U4DScheduler.mm in Sources */,
 				03E688BE267793280079ED4D /* gravity_optimizer.c in Sources */,
 				0341AC30204D8D76006E14A9 /* U4DMacArrowKeyReleasedState.mm in Sources */,
@@ -4850,6 +4876,7 @@
 				03A3E2ED246D8B9000FBCBAD /* U4DTouchesPressedState.mm in Sources */,
 				0399D65F25B72712004C1E11 /* U4DParticlesPipeline.mm in Sources */,
 				0314B0BC1C6FE8F600EB8C34 /* U4DBVHManager.mm in Sources */,
+				0369561E2791EFE700150047 /* U4DField.mm in Sources */,
 				036AE9C1270D79D900F9685B /* U4DScriptManager.mm in Sources */,
 				039175071CE1933100FD2674 /* U4DBVHModelCollision.mm in Sources */,
 				033469B725C20BD8001F0702 /* U4DGBufferPass.mm in Sources */,
@@ -4952,8 +4979,6 @@
 				031F3F3A2778C09B00F5E482 /* list.c in Sources */,
 				0323DB9B202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03068D5F19B96B5400ABDC55 /* U4DArmatureData.mm in Sources */,
-				03C044A2268A6E6F002B3880 /* Field.mm in Sources */,
-				037C0AAF276E32A4005F64ED /* FieldShader.metal in Sources */,
 				03386B85278B83AE00A73E6D /* U4DPlayerStateMark.mm in Sources */,
 				034F2A29217E1F0000D35CCE /* U4DCameraInterface.mm in Sources */,
 				031F3F432778C09B00F5E482 /* win32.c in Sources */,
@@ -5019,6 +5044,7 @@
 				03E686CB267118B40079ED4D /* U4DEntityNode.mm in Sources */,
 				03A3E2D32463C68F00FBCBAD /* U4DGameController.mm in Sources */,
 				03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */,
+				036956192791EEC600150047 /* U4DMatchRef.mm in Sources */,
 				0397E481251B979C0020EBD9 /* U4DCheckbox.mm in Sources */,
 				03FA5F89257AB98A008CC0AB /* U4DDebugger.mm in Sources */,
 				039DB55C223F08C200E323D4 /* U4DRay.mm in Sources */,

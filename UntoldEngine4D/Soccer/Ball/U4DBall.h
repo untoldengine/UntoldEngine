@@ -29,10 +29,6 @@ private:
     //previous state of the character
     int previousState;
     
-    float kickMagnitude;
-    
-    
-    
     U4DVector3n motionAccumulator;
    
 protected:
@@ -44,6 +40,8 @@ protected:
     ~U4DBall();
     
 public:
+    
+    float kickMagnitude;
     
     U4DVector3n kickDirection;
     
