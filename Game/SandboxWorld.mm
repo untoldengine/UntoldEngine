@@ -19,7 +19,7 @@
 
 #include "U4DPlayer.h"
 #include "U4DFoot.h"
-#include "Field.h"
+#include "U4DField.h"
 #include "U4DBall.h"
 #include "U4DPlayerStateIdle.h"
 #include "U4DGameConfigs.h"
@@ -58,7 +58,7 @@ void SandboxWorld::init(){
     U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
  
     entityFactory->registerClass<U4DPlayer>("U4DPlayer");
-    entityFactory->registerClass<Field>("Field");
+    entityFactory->registerClass<U4DField>("U4DField");
  
 //    entityFactory->createModelInstance("player0", "player0.0", "U4DPlayer");
 //    entityFactory->createModelInstance("field", "field0", "Field");
