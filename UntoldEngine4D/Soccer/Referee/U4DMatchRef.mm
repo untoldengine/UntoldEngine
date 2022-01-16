@@ -10,6 +10,7 @@
 #include "U4DAABB.h"
 #include "U4DBall.h"
 #include "U4DGameConfigs.h"
+#include "Constants.h"
 
 namespace U4DEngine {
 
@@ -26,7 +27,7 @@ namespace U4DEngine {
         return instance;
     }
 
-    U4DMatchRef::U4DMatchRef(){
+    U4DMatchRef::U4DMatchRef():goalScored(false),ballOutOfBound(false){
         
    
     }
@@ -36,30 +37,42 @@ namespace U4DEngine {
         
     }
 
-    void U4DMatchRef::setField(U4DField *uField){
+
+    void U4DMatchRef::update(double dt){
+        
+        U4DVector3n ballReflectVelocity;
+        bool goal=(goalPost0->isBallInsideGoalBox() || goalPost1->isBallInsideGoalBox());
+        bool ballKickedOutofBound=checkIfBallOutOfBounds();
+        
+        if(goal){
+            goalScored=true;
+            ballOutOfBound=true;
+        }else{
+            goalScored=false;
+        }
+
+        if (ballKickedOutofBound && goalScored==false && ballOutOfBound==false) {
+
+            computeReflectedVelocityForBall(dt);
+            
+        }
+        
+        if(!ballKickedOutofBound && !goal){
+            ballOutOfBound=false;
+        }
+        
+     
+    }
+
+    void U4DMatchRef::initMatch(U4DTeam *uTeamA, U4DTeam *uTeamB, U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField){
         
         field=uField;
         
         fieldAABB=field->getFieldAABB();
         
-    }
-
-    void U4DMatchRef::update(double dt){
+        goalPost0=uGoalPost0;
+        goalPost1=uGoalPost1;
         
-        U4DVector3n ballReflectVelocity;
-        
-        if (checkIfBallOutOfBounds()) {
-            
-            computeReflectedVelocityForBall(dt);
-            
-        }
-        
-    }
-
-    void U4DMatchRef::startMatch(U4DTeam *uTeamA, U4DTeam *uTeamB){
-        
-        
-        //outOfBoundsScheduler->scheduleClassWithMethodAndDelay(this, &U4DMatchRef::checkIfOutOfBounds, outOfBoundsTimer, 0.5,true);
     }
 
     bool U4DMatchRef::checkIfBallOutOfBounds(){
@@ -69,10 +82,10 @@ namespace U4DEngine {
         U4DPoint3n ballPos=ball->getAbsolutePosition().toPoint();
         U4DVector3n rayDirection=ball->getViewInDirection();
             
-        U4DPoint3n posY=ballPos+rayDirection.toPoint();
+        U4DPoint3n ballInterpolatedPos=ballPos+rayDirection.toPoint();
             
         //test if point is within the box
-        if (!fieldAABB.isPointInsideAABB(posY)) {
+        if (!fieldAABB.isPointInsideAABB(ballInterpolatedPos)) {
             ball->kineticAction->clearForce();
             
             return true;
@@ -89,10 +102,10 @@ namespace U4DEngine {
         U4DPoint3n ballPos=ball->getAbsolutePosition().toPoint();
         U4DVector3n rayDirection=ball->getViewInDirection();
             
-        U4DPoint3n posY=ballPos+rayDirection.toPoint();
+        U4DPoint3n ballInterpolatedPos=ballPos+rayDirection.toPoint();
         
         U4DPoint3n closestPoint;
-        fieldAABB.closestPointOnAABBToPoint(posY, closestPoint);
+        fieldAABB.closestPointOnAABBToPoint(ballInterpolatedPos, closestPoint);
         ballPos.y=0.0;
         closestPoint.y=0.0;
         U4DEngine::U4DVector3n n=(ballPos+closestPoint).toVector();

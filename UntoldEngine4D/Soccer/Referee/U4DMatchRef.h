@@ -13,6 +13,7 @@
 #include "U4DTeam.h"
 #include "U4DAABB.h"
 #include "U4DField.h"
+#include "U4DGoalPost.h"
 
 namespace U4DEngine {
 
@@ -27,6 +28,12 @@ private:
     U4DField *field;
     U4DAABB fieldAABB;
     
+    U4DGoalPost *goalPost0;
+    U4DGoalPost *goalPost1;
+    
+    bool goalScored;
+    bool ballOutOfBound;
+    
 protected:
     
     U4DMatchRef();
@@ -39,9 +46,7 @@ public:
     
     void update(double dt);
     
-    void setField(U4DField *uField);
-    
-    void startMatch(U4DTeam *uTeamA, U4DTeam *uTeamB);
+    void initMatch(U4DTeam *uTeamA, U4DTeam *uTeamB, U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField);
     
     bool checkIfBallOutOfBounds();
     
