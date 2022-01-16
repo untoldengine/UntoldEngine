@@ -25,6 +25,7 @@ private:
     U4DEngine::U4DTeam *teamB;
     
     U4DEngine::U4DField *pGround;
+
     
 public:
     

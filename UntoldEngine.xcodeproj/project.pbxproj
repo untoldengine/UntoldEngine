@@ -314,6 +314,9 @@
 		03695623279236B900150047 /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03695622279236B900150047 /* FieldShader.metal */; };
 		03695624279236B900150047 /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03695622279236B900150047 /* FieldShader.metal */; };
 		03695625279236B900150047 /* FieldShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03695622279236B900150047 /* FieldShader.metal */; };
+		036956292792948800150047 /* U4DGoalPost.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956272792948800150047 /* U4DGoalPost.mm */; };
+		0369562A2792948800150047 /* U4DGoalPost.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956272792948800150047 /* U4DGoalPost.mm */; };
+		0369562B2792948800150047 /* U4DGoalPost.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956272792948800150047 /* U4DGoalPost.mm */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036AE9C1270D79D900F9685B /* U4DScriptManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036AE9C0270D79D900F9685B /* U4DScriptManager.mm */; };
 		036AE9C2270D79D900F9685B /* U4DScriptManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036AE9C0270D79D900F9685B /* U4DScriptManager.mm */; };
@@ -1472,6 +1475,8 @@
 		0369561C2791EFE700150047 /* U4DField.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DField.mm; path = Soccer/Field/U4DField.mm; sourceTree = "<group>"; };
 		0369561D2791EFE700150047 /* U4DField.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DField.h; path = Soccer/Field/U4DField.h; sourceTree = "<group>"; };
 		03695622279236B900150047 /* FieldShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = FieldShader.metal; path = MetalShaders/FieldShader.metal; sourceTree = "<group>"; };
+		036956272792948800150047 /* U4DGoalPost.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DGoalPost.mm; path = Soccer/GoalPost/U4DGoalPost.mm; sourceTree = "<group>"; };
+		036956282792948800150047 /* U4DGoalPost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DGoalPost.h; path = Soccer/GoalPost/U4DGoalPost.h; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AE9BF270D79D900F9685B /* U4DScriptManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DScriptManager.h; path = ScriptingSystem/U4DScriptManager.h; sourceTree = "<group>"; };
@@ -2283,6 +2288,15 @@
 			name = Field;
 			sourceTree = "<group>";
 		};
+		036956262792947500150047 /* GoalPost */ = {
+			isa = PBXGroup;
+			children = (
+				036956282792948800150047 /* U4DGoalPost.h */,
+				036956272792948800150047 /* U4DGoalPost.mm */,
+			);
+			name = GoalPost;
+			sourceTree = "<group>";
+		};
 		036C2449176790DA00ADC1A6 /* GameModel */ = {
 			isa = PBXGroup;
 			children = (
@@ -2763,6 +2777,7 @@
 		0391258627447B4800A14682 /* Soccer */ = {
 			isa = PBXGroup;
 			children = (
+				036956262792947500150047 /* GoalPost */,
 				036956212791EFF200150047 /* Field */,
 				036956162791EEA200150047 /* Referee */,
 				03386B69278AA8A000A73E6D /* TeamStates */,
@@ -3963,6 +3978,7 @@
 				03FA611F258116A1008CC0AB /* U4DProfilerManager.mm in Sources */,
 				031F3F322778C09B00F5E482 /* host.c in Sources */,
 				03A7BEC825BB02BC00F26849 /* U4DCompositionPipeline.mm in Sources */,
+				0369562A2792948800150047 /* U4DGoalPost.mm in Sources */,
 				037C0AAC276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */,
 				0341AC0F204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
 				03722B572029F0F50080D069 /* U4DTrigonometry.mm in Sources */,
@@ -4462,6 +4478,7 @@
 				03A7BEC925BB02BC00F26849 /* U4DCompositionPipeline.mm in Sources */,
 				031F3F332778C09B00F5E482 /* host.c in Sources */,
 				0341AC11204D8CA2006E14A9 /* U4DMacKeyStateManager.mm in Sources */,
+				0369562B2792948800150047 /* U4DGoalPost.mm in Sources */,
 				037C0AAD276D0C4A005F64ED /* U4DPlayerStateIntercept.mm in Sources */,
 				03722C912029F0F80080D069 /* U4DTrigonometry.mm in Sources */,
 				03722D122029F0F80080D069 /* U4DTetrahedron.mm in Sources */,
@@ -4884,6 +4901,7 @@
 				0399D65625B72712004C1E11 /* U4DShadowRenderPipeline.mm in Sources */,
 				03E6EDDB1943D816007AD131 /* U4DGravityForceGenerator.mm in Sources */,
 				03068D5919B8F58500ABDC55 /* U4DTextureData.mm in Sources */,
+				036956292792948800150047 /* U4DGoalPost.mm in Sources */,
 				03E6EDF51943D8C7007AD131 /* U4DCallbackInterface.mm in Sources */,
 				03E688B8267793280079ED4D /* gravity_semacheck2.c in Sources */,
 				03E688E8267793280079ED4D /* gravity_opt_math.c in Sources */,

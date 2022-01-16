@@ -73,6 +73,7 @@ void SandboxLogic::update(double dt){
     U4DEngine::U4DMatchRef *matchRef=U4DEngine::U4DMatchRef::sharedInstance();
     matchRef->update(dt);
     
+    
 }
 
 void SandboxLogic::init(){
@@ -160,7 +161,8 @@ void SandboxLogic::init(){
     }
     
     pGround=dynamic_cast<U4DEngine::U4DField*>(pEarth->searchChild("field0"));
-    
+    U4DEngine::U4DGoalPost* pGoalPost0=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.0"));
+    U4DEngine::U4DGoalPost* pGoalPost1=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.1"));
     U4DEngine::U4DPlayer *p1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
 
     U4DEngine::U4DPlayer *p2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
@@ -202,7 +204,7 @@ void SandboxLogic::init(){
     teamB->changeState(U4DEngine::U4DTeamStateDefending::sharedInstance());
     
     U4DEngine::U4DMatchRef *matchRef=U4DEngine::U4DMatchRef::sharedInstance();
-    matchRef->setField(pGround);
+    matchRef->initMatch(teamA, teamB, pGoalPost0, pGoalPost1, pGround);
 }
 
 
