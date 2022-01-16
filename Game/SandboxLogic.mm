@@ -112,8 +112,8 @@ void SandboxLogic::init(){
         U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
 
         //Create buttons to add to the layer
-        U4DEngine::U4DButton *buttonA=new U4DEngine::U4DButton("buttonA",0.6,-0.5,100.0,100.0,"ButtonA.png");
-        U4DEngine::U4DButton *buttonB=new U4DEngine::U4DButton("buttonA",0.75,-0.5,100.0,100.0,"ButtonA.png");
+        U4DEngine::U4DButton *buttonA=new U4DEngine::U4DButton("buttonA",0.5,-0.5,100.0,100.0,"ButtonA.png");
+        U4DEngine::U4DButton *buttonB=new U4DEngine::U4DButton("buttonB",0.80,-0.5,100.0,100.0,"ButtonB.png");
         U4DEngine::U4DJoystick *joystick=new U4DEngine::U4DJoystick("joystick",-0.7,-0.5,"joyStickBackground.png",150.0,150.0,"joyStickDriver.png");
 
         //add the buttons to the layer
