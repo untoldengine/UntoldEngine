@@ -112,12 +112,14 @@ void SandboxLogic::init(){
         U4DEngine::U4DLayer* mainMenuLayer=new U4DEngine::U4DLayer("menuLayer");
 
         //Create buttons to add to the layer
-        U4DEngine::U4DButton *buttonA=new U4DEngine::U4DButton("buttonA",0.7,-0.5,100.0,100.0,"ButtonA.png");
+        U4DEngine::U4DButton *buttonA=new U4DEngine::U4DButton("buttonA",0.6,-0.5,100.0,100.0,"ButtonA.png");
+        U4DEngine::U4DButton *buttonB=new U4DEngine::U4DButton("buttonA",0.75,-0.5,100.0,100.0,"ButtonA.png");
         U4DEngine::U4DJoystick *joystick=new U4DEngine::U4DJoystick("joystick",-0.7,-0.5,"joyStickBackground.png",150.0,150.0,"joyStickDriver.png");
 
         //add the buttons to the layer
         mainMenuLayer->addChild(joystick);
         mainMenuLayer->addChild(buttonA);
+        mainMenuLayer->addChild(buttonB);
 
         layerManager->addLayerToContainer(mainMenuLayer);
 
@@ -237,9 +239,27 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                     if (controllerInputMessage.elementUIName.compare("buttonA")==0) {
 
-                        pPlayer->setEnablePassing(true);
-                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
-                        logger->log("passing");
+                        if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateAttacking::sharedInstance()){
+                            
+                            pPlayer->setEnablePassing(true);
+                            U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                            logger->log("passing");
+                            
+                        }else if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateDefending::sharedInstance()){
+                            
+                            pPlayer->setEnableSlidingTackle(true);
+                            U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                            logger->log("slide tackling");
+                        }
+                        
+                    }else if(controllerInputMessage.elementUIName.compare("buttonB")==0){
+                        
+                        if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateAttacking::sharedInstance()){
+                            pPlayer->setEnableShooting(true);
+                            U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                            logger->log("shooting");
+                        }
+                        
                         
                     }
 
@@ -440,9 +460,12 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                     //8. If button was released
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased){
 
-                    pPlayer->setEnableShooting(true);
-                    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
-                    logger->log("shooting");
+                    if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateAttacking::sharedInstance()){
+                        pPlayer->setEnableShooting(true);
+                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                        logger->log("shooting");
+                    }
+                    
 //                    if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()){
 //                        pPlayer->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
 //                    }
