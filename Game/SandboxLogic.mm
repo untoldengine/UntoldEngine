@@ -46,7 +46,7 @@
 #include "U4DTeamStateDefending.h"
 
 #include "U4DGameConfigs.h"
-#include "U4DMatchRef.h"
+#include "U4DMatchManager.h"
 
 SandboxLogic::SandboxLogic():pPlayer(nullptr),teamA(nullptr),teamB(nullptr),pGround(nullptr){
     
@@ -58,20 +58,39 @@ SandboxLogic::~SandboxLogic(){
 
 void SandboxLogic::update(double dt){
     
-    if(teamA!=nullptr && teamB!=nullptr){
-        teamA->update(dt);
-        teamB->update(dt);
-    }
-
-    
     if (pGround!=nullptr) {
         
-        pGround->shadeField(pPlayer);
+        //pGround->shadeField(pPlayer);
         
     }
     
-    U4DEngine::U4DMatchRef *matchRef=U4DEngine::U4DMatchRef::sharedInstance();
-    matchRef->update(dt);
+    U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
+    matchManager->update(dt);
+    
+    
+//    if(matchManager->goalScored){
+//        std::cout<<"Goalllll"<<std::endl;
+//
+//
+//
+//        //team celebration
+//
+//        //go back to home position
+//
+//        //update score board
+//
+//    }
+    
+//    if(matchManager->ballOutOfBound){
+//        std::cout<<"ball out of bound"<<std::endl;
+//
+//        matchManager->computeReflectedVelocityForBall(dt);
+//        //U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
+//        //ball->changeState(U4DEngine::decelerating);
+//
+//        //go to throw-in position
+//
+//    }
     
     
 }
@@ -190,23 +209,10 @@ void SandboxLogic::init(){
     teamA->setActivePlayer(pPlayer);
     teamB->setActivePlayer(eP0);
     
-    //pPlayer->setEnableFreeToRun(true);
-    
-    
-    teamA->updateFormation();
-    teamA->initAnalyzerSchedulers();
-    
-    teamB->updateFormation();
-    teamB->initAnalyzerSchedulers();
-    
-    teamA->setOppositeTeam(teamB);
-    teamB->setOppositeTeam(teamA);
-    
-    teamA->changeState(U4DEngine::U4DTeamStateAttacking::sharedInstance());
-    teamB->changeState(U4DEngine::U4DTeamStateDefending::sharedInstance());
-    
-    U4DEngine::U4DMatchRef *matchRef=U4DEngine::U4DMatchRef::sharedInstance();
-    matchRef->initMatch(teamA, teamB, pGoalPost0, pGoalPost1, pGround);
+    U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
+    matchManager->initMatch(teamA, teamB, pGoalPost0, pGoalPost1, pGround);
+    matchManager->changeState(U4DEngine::playing); 
+
 }
 
 

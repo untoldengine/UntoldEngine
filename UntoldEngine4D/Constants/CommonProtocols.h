@@ -814,6 +814,15 @@ class U4DTeam;
         
     }BALLSTATE;
 
+    enum{
+        playing,
+        goalScored,
+        throwIn,
+        outOfBound,
+        restarting,
+        
+    }GAMESTATE;
+
     typedef enum{
         
         kPlayer=0x0002,
