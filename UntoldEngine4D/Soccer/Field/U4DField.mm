@@ -48,56 +48,56 @@ namespace U4DEngine{
         float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
         float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfLength");
         
-            //Update player position
-            U4DVector3n pos=uPlayer->getAbsolutePosition();
-            
-            pos.x/=fieldHalfWidth;
-            pos.z/=fieldHalfLength;
-            
-            U4DVector4n param0(pos.z,pos.x,0.0,0.0);
-            updateShaderParameterContainer(0, param0);
-            
-            //comput the yaw of the hero soldier
-            U4DVector3n v0=uPlayer->getEntityForwardVector();
-            U4DMatrix3n m=uPlayer->getAbsoluteMatrixOrientation();
-            
-            U4DEngine::U4DVector3n xDir(1.0,0.0,0.0);
-            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-
-            U4DEngine::U4DVector3n v1=m*v0;
-
-            float yaw=v0.angle(v1);
-
-            v1.normalize();
-
-            if (xDir.dot(v1)>U4DEngine::zeroEpsilon) {
-
-                yaw=360.0-yaw;
-            }
-
-            //send the yaw information to the navigation shader
-            U4DVector4n paramAngle(yaw,0.0,0.0,0.0);
-            updateShaderParameterContainer(1, paramAngle);
+        //Update player position
+        U4DVector3n pos=uPlayer->getAbsolutePosition();
         
-            if(uPlayer->getTeam()->getCurrentState()==U4DTeamStateDefending::sharedInstance()){
-                
-                U4DBall *ball=U4DBall::sharedInstance();
-                
-                U4DVector3n ballPosition=ball->getAbsolutePosition();
-                
-                ballPosition.x/=fieldHalfWidth;
-                ballPosition.z/=fieldHalfLength;
-                //send the ball information to the navigation shader
-                U4DVector4n paramBallIndicator(ballPosition.z,ballPosition.x,1.0,0.0);
-                updateShaderParameterContainer(2, paramBallIndicator);
-                
-            }else{
-                
-                //tell the shader not to draw the ball indicator
-                U4DVector4n paramBallIndicator(0.0,0.0,0.0,0.0);
-                updateShaderParameterContainer(2, paramBallIndicator);
+        pos.x/=fieldHalfWidth;
+        pos.z/=fieldHalfLength;
+        
+        U4DVector4n param0(pos.z,pos.x,0.0,0.0);
+        updateShaderParameterContainer(0, param0);
+        
+        //comput the yaw of the hero soldier
+        U4DVector3n v0=uPlayer->getEntityForwardVector();
+        U4DMatrix3n m=uPlayer->getAbsoluteMatrixOrientation();
+        
+        U4DEngine::U4DVector3n xDir(1.0,0.0,0.0);
+        U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+
+        U4DEngine::U4DVector3n v1=m*v0;
+
+        float yaw=v0.angle(v1);
+
+        v1.normalize();
+
+        if (xDir.dot(v1)>U4DEngine::zeroEpsilon) {
+
+            yaw=360.0-yaw;
+        }
+
+        //send the yaw information to the navigation shader
+        U4DVector4n paramAngle(yaw,0.0,0.0,0.0);
+        updateShaderParameterContainer(1, paramAngle);
+    
+        if(uPlayer->getTeam()->getCurrentState()==U4DTeamStateDefending::sharedInstance()){
             
-            }
+            U4DBall *ball=U4DBall::sharedInstance();
+            
+            U4DVector3n ballPosition=ball->getAbsolutePosition();
+            
+            ballPosition.x/=fieldHalfWidth;
+            ballPosition.z/=fieldHalfLength;
+            //send the ball information to the navigation shader
+            U4DVector4n paramBallIndicator(ballPosition.z,ballPosition.x,1.0,0.0);
+            updateShaderParameterContainer(2, paramBallIndicator);
+            
+        }else{
+            
+            //tell the shader not to draw the ball indicator
+            U4DVector4n paramBallIndicator(0.0,0.0,0.0,0.0);
+            updateShaderParameterContainer(2, paramBallIndicator);
+        
+        }
         
     }
 

@@ -305,9 +305,6 @@
 		03676ACE267F0BD30016A83A /* TestPipeline.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03676ACD267F0BD30016A83A /* TestPipeline.metal */; };
 		03676ACF267F0BD30016A83A /* TestPipeline.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03676ACD267F0BD30016A83A /* TestPipeline.metal */; };
 		03676AD0267F0BD40016A83A /* TestPipeline.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03676ACD267F0BD30016A83A /* TestPipeline.metal */; };
-		036956192791EEC600150047 /* U4DMatchRef.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956172791EEC600150047 /* U4DMatchRef.mm */; };
-		0369561A2791EEC600150047 /* U4DMatchRef.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956172791EEC600150047 /* U4DMatchRef.mm */; };
-		0369561B2791EEC600150047 /* U4DMatchRef.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956172791EEC600150047 /* U4DMatchRef.mm */; };
 		0369561E2791EFE700150047 /* U4DField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369561C2791EFE700150047 /* U4DField.mm */; };
 		0369561F2791EFE700150047 /* U4DField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369561C2791EFE700150047 /* U4DField.mm */; };
 		036956202791EFE700150047 /* U4DField.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369561C2791EFE700150047 /* U4DField.mm */; };
@@ -317,6 +314,9 @@
 		036956292792948800150047 /* U4DGoalPost.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956272792948800150047 /* U4DGoalPost.mm */; };
 		0369562A2792948800150047 /* U4DGoalPost.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956272792948800150047 /* U4DGoalPost.mm */; };
 		0369562B2792948800150047 /* U4DGoalPost.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036956272792948800150047 /* U4DGoalPost.mm */; };
+		0369562E2795CE4F00150047 /* U4DMatchManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369562C2795CE4F00150047 /* U4DMatchManager.mm */; };
+		0369562F2795CE4F00150047 /* U4DMatchManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369562C2795CE4F00150047 /* U4DMatchManager.mm */; };
+		036956302795CE4F00150047 /* U4DMatchManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0369562C2795CE4F00150047 /* U4DMatchManager.mm */; };
 		036ABB391B26267D0028E269 /* U4DOBB.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036ABB371B26267D0028E269 /* U4DOBB.mm */; };
 		036AE9C1270D79D900F9685B /* U4DScriptManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036AE9C0270D79D900F9685B /* U4DScriptManager.mm */; };
 		036AE9C2270D79D900F9685B /* U4DScriptManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 036AE9C0270D79D900F9685B /* U4DScriptManager.mm */; };
@@ -1470,13 +1470,13 @@
 		0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Regular.ttf"; sourceTree = "<group>"; };
 		0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Lato-Light.ttf"; sourceTree = "<group>"; };
 		03676ACD267F0BD30016A83A /* TestPipeline.metal */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.metal; name = TestPipeline.metal; path = Game/TestPipeline.metal; sourceTree = SOURCE_ROOT; };
-		036956172791EEC600150047 /* U4DMatchRef.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMatchRef.mm; path = Soccer/Referee/U4DMatchRef.mm; sourceTree = "<group>"; };
-		036956182791EEC600150047 /* U4DMatchRef.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DMatchRef.h; path = Soccer/Referee/U4DMatchRef.h; sourceTree = "<group>"; };
 		0369561C2791EFE700150047 /* U4DField.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DField.mm; path = Soccer/Field/U4DField.mm; sourceTree = "<group>"; };
 		0369561D2791EFE700150047 /* U4DField.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DField.h; path = Soccer/Field/U4DField.h; sourceTree = "<group>"; };
 		03695622279236B900150047 /* FieldShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = FieldShader.metal; path = MetalShaders/FieldShader.metal; sourceTree = "<group>"; };
 		036956272792948800150047 /* U4DGoalPost.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DGoalPost.mm; path = Soccer/GoalPost/U4DGoalPost.mm; sourceTree = "<group>"; };
 		036956282792948800150047 /* U4DGoalPost.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DGoalPost.h; path = Soccer/GoalPost/U4DGoalPost.h; sourceTree = "<group>"; };
+		0369562C2795CE4F00150047 /* U4DMatchManager.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DMatchManager.mm; path = Soccer/MatchManager/U4DMatchManager.mm; sourceTree = "<group>"; };
+		0369562D2795CE4F00150047 /* U4DMatchManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DMatchManager.h; path = Soccer/MatchManager/U4DMatchManager.h; sourceTree = "<group>"; };
 		036ABB371B26267D0028E269 /* U4DOBB.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DOBB.mm; sourceTree = "<group>"; };
 		036ABB381B26267D0028E269 /* U4DOBB.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DOBB.h; sourceTree = "<group>"; };
 		036AE9BF270D79D900F9685B /* U4DScriptManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DScriptManager.h; path = ScriptingSystem/U4DScriptManager.h; sourceTree = "<group>"; };
@@ -2270,13 +2270,13 @@
 			path = TransformationManager;
 			sourceTree = "<group>";
 		};
-		036956162791EEA200150047 /* Referee */ = {
+		036956162791EEA200150047 /* MatchManager */ = {
 			isa = PBXGroup;
 			children = (
-				036956182791EEC600150047 /* U4DMatchRef.h */,
-				036956172791EEC600150047 /* U4DMatchRef.mm */,
+				0369562D2795CE4F00150047 /* U4DMatchManager.h */,
+				0369562C2795CE4F00150047 /* U4DMatchManager.mm */,
 			);
-			name = Referee;
+			name = MatchManager;
 			sourceTree = "<group>";
 		};
 		036956212791EFF200150047 /* Field */ = {
@@ -2779,7 +2779,7 @@
 			children = (
 				036956262792947500150047 /* GoalPost */,
 				036956212791EFF200150047 /* Field */,
-				036956162791EEA200150047 /* Referee */,
+				036956162791EEA200150047 /* MatchManager */,
 				03386B69278AA8A000A73E6D /* TeamStates */,
 				031F3FC82788A60E00F5E482 /* Formation */,
 				03D0398C276A7682003D893F /* MessageDispatcher */,
@@ -4015,6 +4015,7 @@
 				034F2A30217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				0399D66F25B72712004C1E11 /* U4DModelPipeline.mm in Sources */,
 				03722B662029F0F50080D069 /* U4DIntegrator.mm in Sources */,
+				0369562F2795CE4F00150047 /* U4DMatchManager.mm in Sources */,
 				03E688AA267793280079ED4D /* gravity_lexer.c in Sources */,
 				03722BA82029F0F50080D069 /* U4DGameLogic.mm in Sources */,
 				036AED65231C131600211205 /* U4DMacMouseDeltaMovedState.mm in Sources */,
@@ -4049,7 +4050,6 @@
 				03722B8F2029F0F50080D069 /* U4DBoundingVolume.mm in Sources */,
 				03722B972029F0F50080D069 /* multiImageShader.metal in Sources */,
 				03722B6C2029F0F50080D069 /* U4DDualQuaternion.mm in Sources */,
-				0369561A2791EEC600150047 /* U4DMatchRef.mm in Sources */,
 				03722B8E2029F0F50080D069 /* U4DWorld.mm in Sources */,
 				03722BEA2029F0F50080D069 /* U4DVisibilityManager.mm in Sources */,
 				031F3F3B2778C09B00F5E482 /* list.c in Sources */,
@@ -4515,6 +4515,7 @@
 				0399D67025B72712004C1E11 /* U4DModelPipeline.mm in Sources */,
 				03722CA02029F0F80080D069 /* U4DIntegrator.mm in Sources */,
 				03E688AB267793280079ED4D /* gravity_lexer.c in Sources */,
+				036956302795CE4F00150047 /* U4DMatchManager.mm in Sources */,
 				03722CE22029F0F80080D069 /* U4DGameLogic.mm in Sources */,
 				036AED66231C131600211205 /* U4DMacMouseDeltaMovedState.mm in Sources */,
 				03722DF4202CBF380080D069 /* U4DPadButtonStateInterface.mm in Sources */,
@@ -4549,7 +4550,6 @@
 				03722CA62029F0F80080D069 /* U4DDualQuaternion.mm in Sources */,
 				03722CC82029F0F80080D069 /* U4DWorld.mm in Sources */,
 				03722D242029F0F80080D069 /* U4DVisibilityManager.mm in Sources */,
-				0369561B2791EEC600150047 /* U4DMatchRef.mm in Sources */,
 				0334699225C190ED001F0702 /* U4DShadowPass.mm in Sources */,
 				038BF24D22793B2B00B129A5 /* U4DWander.mm in Sources */,
 				031F3F3C2778C09B00F5E482 /* list.c in Sources */,
@@ -5052,6 +5052,7 @@
 				0334699925C190FF001F0702 /* U4DFinalPass.mm in Sources */,
 				03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */,
 				031F3F2B2778C09B00F5E482 /* compress.c in Sources */,
+				0369562E2795CE4F00150047 /* U4DMatchManager.mm in Sources */,
 				03E688B2267793280079ED4D /* gravity_ast.c in Sources */,
 				03D0397D2769BBBC003D893F /* U4DPlayerStatePass.mm in Sources */,
 				038249251FA252AE00DFEFE3 /* U4DParticleEmitter.mm in Sources */,
@@ -5062,7 +5063,6 @@
 				03E686CB267118B40079ED4D /* U4DEntityNode.mm in Sources */,
 				03A3E2D32463C68F00FBCBAD /* U4DGameController.mm in Sources */,
 				03494BC61F4E838500ACE0EC /* U4DSpriteAnimation.mm in Sources */,
-				036956192791EEC600150047 /* U4DMatchRef.mm in Sources */,
 				0397E481251B979C0020EBD9 /* U4DCheckbox.mm in Sources */,
 				03FA5F89257AB98A008CC0AB /* U4DDebugger.mm in Sources */,
 				039DB55C223F08C200E323D4 /* U4DRay.mm in Sources */,

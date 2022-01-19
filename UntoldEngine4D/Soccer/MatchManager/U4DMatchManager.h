@@ -1,13 +1,13 @@
 //
-//  U4DMatchRef.hpp
+//  U4DMatchManager.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 1/14/22.
 //  Copyright © 2022 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef U4DMatchRef_hpp
-#define U4DMatchRef_hpp
+#ifndef U4DMatchManager_hpp
+#define U4DMatchManager_hpp
 
 #include <stdio.h>
 #include "U4DTeam.h"
@@ -17,11 +17,11 @@
 
 namespace U4DEngine {
 
-class U4DMatchRef {
+class U4DMatchManager {
 
 private:
     
-    static U4DMatchRef *instance;
+    static U4DMatchManager *instance;
     
     float fieldHalfWidth;
     float fieldHalfLength;
@@ -31,18 +31,23 @@ private:
     U4DGoalPost *goalPost0;
     U4DGoalPost *goalPost1;
     
-    bool goalScored;
-    bool ballOutOfBound;
+    U4DTeam *teamA;
+    U4DTeam *teamB;
+    
+    int state;
     
 protected:
     
-    U4DMatchRef();
+    U4DMatchManager();
     
-    ~U4DMatchRef();
+    ~U4DMatchManager();
     
 public:
     
-    static U4DMatchRef *sharedInstance();
+    //bool goalScored;
+    bool ballOutOfBound;
+    
+    static U4DMatchManager *sharedInstance();
     
     void update(double dt);
     
@@ -51,9 +56,15 @@ public:
     bool checkIfBallOutOfBounds();
     
     void computeReflectedVelocityForBall(double dt);
+    
+    void setState(int uState);
+    
+    int getState();
+    
+    void changeState(int uState);
 };
 
 }
 
 
-#endif /* U4DMatchRef_hpp */
+#endif /* U4DMatchManager_hpp */
