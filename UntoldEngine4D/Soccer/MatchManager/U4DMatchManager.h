@@ -31,9 +31,6 @@ private:
     U4DGoalPost *goalPost0;
     U4DGoalPost *goalPost1;
     
-    U4DTeam *teamA;
-    U4DTeam *teamB;
-    
     int state;
     
 protected:
@@ -44,6 +41,9 @@ protected:
     
 public:
     
+    U4DTeam *teamA;
+    U4DTeam *teamB;
+    
     //bool goalScored;
     bool ballOutOfBound;
     
@@ -51,7 +51,7 @@ public:
     
     void update(double dt);
     
-    void initMatch(U4DTeam *uTeamA, U4DTeam *uTeamB, U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField);
+    void initMatch(U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField);
     
     bool checkIfBallOutOfBounds();
     

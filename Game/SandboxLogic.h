@@ -20,9 +20,8 @@ class SandboxLogic:public U4DEngine::U4DGameLogic{
 private:
     
     U4DEngine::U4DPlayer *pPlayer;
-    U4DEngine::U4DTeam *teamA;
-    U4DEngine::U4DTeam *aiTeam;
-    U4DEngine::U4DTeam *teamB;
+    
+    
     
     U4DEngine::U4DField *pGround;
 

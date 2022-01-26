@@ -43,9 +43,11 @@ namespace U4DEngine {
         
     public:
         
+        std::string name;
+        
         U4DFormationManager formationManager;
         
-        U4DTeam();
+        U4DTeam(std::string uName);
         
         ~U4DTeam();
         
@@ -67,6 +69,8 @@ namespace U4DEngine {
         
         void addPlayer(U4DPlayer *uPlayer);
         
+        void removePlayer(U4DPlayer *uPlayer);
+        
         std::vector<U4DPlayer *> getPlayers();
         
         std::vector<U4DPlayer *>getTeammatesForPlayer(U4DPlayer *uPlayer);
@@ -86,6 +90,10 @@ namespace U4DEngine {
         void setOppositeTeam(U4DTeam *uTeam);
     
         U4DTeam *getOppositeTeam();
+        
+        std::string getName();
+        
+        void loadPlayersFormations();
         
     };
 

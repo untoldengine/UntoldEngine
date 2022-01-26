@@ -48,7 +48,7 @@
 #include "U4DGameConfigs.h"
 #include "U4DMatchManager.h"
 
-SandboxLogic::SandboxLogic():pPlayer(nullptr),teamA(nullptr),teamB(nullptr),pGround(nullptr){
+SandboxLogic::SandboxLogic():pPlayer(nullptr),pGround(nullptr){
     
 }
 
@@ -66,6 +66,10 @@ void SandboxLogic::update(double dt){
     
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
     matchManager->update(dt);
+    
+    if(pPlayer!=nullptr){
+        pPlayer=matchManager->teamA->getActivePlayer();
+    }
     
     
 //    if(matchManager->goalScored){
@@ -184,33 +188,21 @@ void SandboxLogic::init(){
     pGround=dynamic_cast<U4DEngine::U4DField*>(pEarth->searchChild("field0"));
     U4DEngine::U4DGoalPost* pGoalPost0=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.0"));
     U4DEngine::U4DGoalPost* pGoalPost1=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.1"));
-    U4DEngine::U4DPlayer *p1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
-
-    U4DEngine::U4DPlayer *p2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
-
-
+    
     U4DEngine::U4DPlayer *eP0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.0"));
-    U4DEngine::U4DPlayer *eP1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.1"));
-    U4DEngine::U4DPlayer *eP2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
     
-    teamA=new U4DEngine::U4DTeam();
-    teamB=new U4DEngine::U4DTeam();
-
-    teamA->addPlayer(pPlayer);
-    teamA->addPlayer(p1);
-    teamA->addPlayer(p2);
     
-    teamB->addPlayer(eP0);
-    teamB->addPlayer(eP1);
-    teamB->addPlayer(eP2);
-    teamB->aiTeam=true;
-    //set controlling player
     
-    teamA->setActivePlayer(pPlayer);
-    teamB->setActivePlayer(eP0);
     
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
-    matchManager->initMatch(teamA, teamB, pGoalPost0, pGoalPost1, pGround);
+    
+    matchManager->teamB->aiTeam=true;
+    //set controlling player
+    
+    matchManager->teamA->setActivePlayer(pPlayer);
+    matchManager->teamB->setActivePlayer(eP0);
+    
+    matchManager->initMatch(pGoalPost0, pGoalPost1, pGround);
     matchManager->changeState(U4DEngine::playing); 
 
 }
@@ -220,9 +212,10 @@ void SandboxLogic::init(){
 void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
+    U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
     
-    if(teamA!=nullptr){
-        pPlayer=teamA->getActivePlayer();
+    if(matchManager->teamA!=nullptr){
+        pPlayer=matchManager->teamA->getActivePlayer();
     }
     
     if (pPlayer!=nullptr) {

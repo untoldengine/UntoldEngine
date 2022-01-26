@@ -18,6 +18,7 @@
 #include "U4DPlayerStateIdle.h"
 #include "U4DPlayerStateDribbling.h"
 #include "U4DPlayerStateShooting.h"
+#include "U4DTeam.h"
 
 namespace U4DEngine{
 
@@ -27,6 +28,7 @@ namespace U4DEngine{
 
     U4DPlayer::~U4DPlayer(){
         
+        team->removePlayer(this);
         delete stateManager;
         delete animationManager;
         delete kineticAction;

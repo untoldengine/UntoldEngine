@@ -14,7 +14,7 @@
 
 namespace U4DEngine{
 
-    U4DTeam::U4DTeam():activePlayer(nullptr),playerIndex(0),enableDefenseAnalyzer(false),aiTeam(false){
+    U4DTeam::U4DTeam(std::string uName):name(uName),activePlayer(nullptr),playerIndex(0),enableDefenseAnalyzer(false),aiTeam(false){
         
         //Create the callback. Notice that you need to provide the name of the class
         formationScheduler=new U4DEngine::U4DCallback<U4DTeam>;
@@ -62,9 +62,9 @@ namespace U4DEngine{
 
     void U4DTeam::initAnalyzerSchedulers(){
         
-        
-        formationScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::updateFormation, formationTimer, 1.0,true);
         formationManager.computeHomePosition();
+        formationScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::updateFormation, formationTimer, 1.0,true);
+        
         //formationTimer->setPause(true);
         
         
@@ -103,12 +103,11 @@ namespace U4DEngine{
         
         uPlayer->setPlayerIndex(playerIndex++);
         
-        U4DVector3n playerSpot=uPlayer->getAbsolutePosition();
-        playerSpot.y=0.0;
+    }
 
+    void U4DTeam::removePlayer(U4DPlayer *uPlayer){
         
-        formationManager.spots.push_back(playerSpot);
-        
+        players.erase(std::remove_if(players.begin(),players.end(),[&](U4DPlayer *playerToRemove){return playerToRemove==uPlayer;}),players.end());
         
     }
 
@@ -142,6 +141,20 @@ namespace U4DEngine{
 
     U4DPlayer *U4DTeam::getActivePlayer(){
         return activePlayer;
+    }
+
+    void U4DTeam::loadPlayersFormations(){
+            
+        for(const auto n:players){
+            
+            U4DVector3n playerSpot=n->getAbsolutePosition();
+            playerSpot.y=0.0;
+
+            
+            formationManager.spots.push_back(playerSpot);
+        
+        }
+    
     }
 
     void U4DTeam::updateFormation(){
@@ -206,6 +219,10 @@ void U4DTeam::setOppositeTeam(U4DTeam *uTeam){
 
 U4DTeam *U4DTeam::getOppositeTeam(){
     return oppositeTeam;
+}
+
+std::string U4DTeam::getName(){
+    return name;
 }
 
 }

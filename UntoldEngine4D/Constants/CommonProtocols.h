@@ -783,6 +783,7 @@ class U4DTeam;
         std::string assetReferenceName;
         std::string pipelineName;
         std::string classType;
+        std::string team;
         std::vector<float> position;
         std::vector<float> orientation;
     }ENTITYSERIALIZEDATA;
