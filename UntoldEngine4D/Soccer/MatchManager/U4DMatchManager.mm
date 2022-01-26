@@ -18,11 +18,11 @@
 
 namespace U4DEngine {
 
-    U4DMatchManager* U4DMatchManager::instance=nullptr;
+    U4DMatchManager* U4DMatchManager::instance=0;
 
     U4DMatchManager* U4DMatchManager::sharedInstance(){
         
-        if (instance==nullptr) {
+        if (instance==0) {
             
             instance=new U4DMatchManager();
             
@@ -32,8 +32,8 @@ namespace U4DEngine {
     }
 
     U4DMatchManager::U4DMatchManager():ballOutOfBound(false){
-        
-   
+        teamA=new U4DTeam("TeamA");
+        teamB=new U4DTeam("TeamB");
     }
 
     U4DMatchManager::~U4DMatchManager(){
@@ -123,7 +123,7 @@ namespace U4DEngine {
      
     }
 
-    void U4DMatchManager::initMatch(U4DTeam *uTeamA, U4DTeam *uTeamB, U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField){
+    void U4DMatchManager::initMatch(U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField){
         
         field=uField;
         
@@ -132,13 +132,10 @@ namespace U4DEngine {
         goalPost0=uGoalPost0;
         goalPost1=uGoalPost1;
         
-        teamA=uTeamA;
-        teamB=uTeamB;
+        teamA->loadPlayersFormations();
+        teamB->loadPlayersFormations();
         
-        teamA->updateFormation();
         teamA->initAnalyzerSchedulers();
-        
-        teamB->updateFormation();
         teamB->initAnalyzerSchedulers();
         
         teamA->setOppositeTeam(teamB);

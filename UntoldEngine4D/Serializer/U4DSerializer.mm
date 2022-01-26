@@ -19,6 +19,8 @@
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
 #include "U4DLogger.h"
+#include "U4DPlayer.h"
+#include "U4DTeam.h"
 
 namespace U4DEngine {
 
@@ -80,6 +82,12 @@ namespace U4DEngine {
                 entitySerializeData.name=model->getName();
                 entitySerializeData.assetReferenceName=model->getAssetReferenceName();
                 entitySerializeData.classType=model->getClassType();
+                
+                if(model->getClassType().compare("U4DPlayer")==0){
+                    U4DPlayer *player=reinterpret_cast<U4DPlayer*>(model);
+                    entitySerializeData.team=player->getTeam()->name;
+                }
+                
                 
                 U4DVector3n pos=model->getAbsolutePosition();
                 entitySerializeData.position.push_back(pos.x);
@@ -175,6 +183,16 @@ namespace U4DEngine {
             size_t modelClassTypeLen=n.classType.size();
             file.write((char*)&modelClassTypeLen,sizeof(modelClassTypeLen));
             file.write((char*)&n.classType[0],modelClassTypeLen);
+            
+            //If class type U4DPlayer, then save team
+            if(n.classType.compare("U4DPlayer")==0){
+                
+                size_t modelClassTeamLen=n.team.size();
+                file.write((char*)&modelClassTeamLen,sizeof(modelClassTeamLen));
+                file.write((char*)&n.team[0],modelClassTeamLen);
+                
+            }
+            
             
             //Write the position
             int positionSize=(int)n.position.size();
@@ -334,6 +352,16 @@ namespace U4DEngine {
             modelData.classType.resize(modelClassTypeLen);
             file.read((char*)&modelData.classType[0],modelClassTypeLen);
             
+            //if class type is U4DPlayer, then read the team
+            if(modelData.classType.compare("U4DPlayer")==0){
+                
+                size_t modelClassTeamLen=0;
+                file.read((char*)&modelClassTeamLen,sizeof(modelClassTeamLen));
+                modelData.team.resize(modelClassTeamLen);
+                file.read((char*)&modelData.team[0],modelClassTeamLen);
+                
+            }
+            
             //Read the position
             int positionSize=0;
             file.read((char*)&positionSize,sizeof(int));
@@ -380,7 +408,7 @@ namespace U4DEngine {
             
             //Ask the factory class to create an instance of each object and load it into the world
             
-            entityFactory->createModelInstance(n.assetReferenceName,n.name, n.classType,pos, orient);
+            entityFactory->createModelInstance(n.assetReferenceName,n.name, n.classType, n.team, pos, orient);
             
         }
         
