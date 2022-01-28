@@ -45,12 +45,12 @@ private:
     
     U4DVector3n dribblingDirectionAccumulator;
     
-    U4DTeam *team;
+    
     
     
     
 public:
-    
+    U4DTeam *team;
     bool shootBall;
     bool passBall;
     bool haltBall;

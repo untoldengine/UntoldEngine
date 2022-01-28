@@ -62,6 +62,7 @@ void SandboxWorld::init(){
     entityFactory->registerClass<U4DField>("U4DField");
     entityFactory->registerClass<U4DGoalPost>("U4DGoalPost");
  
+    
 //    entityFactory->createModelInstance("player0", "player0.0", "U4DPlayer");
 //    entityFactory->createModelInstance("field", "field0", "Field");
     

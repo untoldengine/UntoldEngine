@@ -41,6 +41,8 @@ namespace U4DEngine {
         
         U4DTeam* oppositeTeam;
         
+        bool teamInFormation;
+        
     public:
         
         std::string name;

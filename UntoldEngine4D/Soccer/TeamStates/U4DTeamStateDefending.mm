@@ -41,10 +41,10 @@ void U4DTeamStateDefending::enter(U4DTeam *uTeam){
     
     if(uTeam->aiTeam){
         uTeam->defenseTimer->setPause(false);
-        //uTeam->formationTimer->setPause(false);
+        uTeam->formationTimer->setPause(false);
         
         for(auto &n:uTeam->getPlayers()){
-            //uTeam->formationTimer->setPause(false);
+            
             n->setEnableDribbling(false);
             n->setEnableFreeToRun(false);
             n->setEnableHalt(false);
