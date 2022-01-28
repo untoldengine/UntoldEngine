@@ -41,9 +41,8 @@ void U4DTeamStateAttacking::enter(U4DTeam *uTeam){
     if(uTeam->aiTeam==true){
         
         //start the field timer analyzer
-        //uTeam->analyzerFieldTimer->setPause(false);
-        //uTeam->formationTimer->setPause(false);
-        uTeam->defenseTimer->setPause(true);
+        uTeam->analyzerFieldTimer->setPause(false);
+        uTeam->formationTimer->setPause(false);
         
         for(auto &n:uTeam->getPlayers()){
             n->resetAllFlags();
@@ -53,7 +52,7 @@ void U4DTeamStateAttacking::enter(U4DTeam *uTeam){
         //for now, let's just set the player's state as free
         
         for(auto &n:uTeam->getPlayers()){
-            //uTeam->formationTimer->setPause(false);
+            
             n->setEnableDribbling(false);
             n->setEnableFreeToRun(false);
             n->setEnableHalt(false);

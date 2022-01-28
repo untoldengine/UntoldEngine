@@ -14,7 +14,7 @@
 
 namespace U4DEngine{
 
-    U4DTeam::U4DTeam(std::string uName):name(uName),activePlayer(nullptr),playerIndex(0),enableDefenseAnalyzer(false),aiTeam(false){
+    U4DTeam::U4DTeam(std::string uName):name(uName),activePlayer(nullptr),playerIndex(0),enableDefenseAnalyzer(false),aiTeam(false),teamInFormation(false){
         
         //Create the callback. Notice that you need to provide the name of the class
         formationScheduler=new U4DEngine::U4DCallback<U4DTeam>;
@@ -63,6 +63,7 @@ namespace U4DEngine{
     void U4DTeam::initAnalyzerSchedulers(){
         
         formationManager.computeHomePosition();
+        
         formationScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::updateFormation, formationTimer, 1.0,true);
         
         //formationTimer->setPause(true);
@@ -159,37 +160,23 @@ namespace U4DEngine{
 
     void U4DTeam::updateFormation(){
         
-        static bool formation=false;
-        
-        if (formation==false) {
+        if (!teamInFormation) {
             
             formationManager.computeFormationPosition(activePlayer->getAbsolutePosition());
-        
-//            for(auto &n:getPlayers()){
-//
-//                //send message to player
-//                U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
-//
-//                if(n!=controllingPlayer){
-//                    messageDispatcher->sendMessage(0.0, this, n, msgFormation);
-//                }
-//
-//
-//            }
             
-            formation=true;
+            teamInFormation=true;
         }else{
             
-            for(auto &n:getPlayers()){
+            //for(auto &n:getPlayers()){
 
                 //send message to player
 //                U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
 //
 //                messageDispatcher->sendMessage(0.0, this, n, msgWander);
 
-            }
+            //}
             
-            formation=false;
+            teamInFormation=false;
         }
     }
 
@@ -203,11 +190,11 @@ void U4DTeam::analyzeField(){
 
     fieldAnalyzer->analyzeField(this,oppositeTeam);
 
-    //get nav path
-    U4DPathAnalyzer *pathAnalyzer=U4DPathAnalyzer::sharedInstance();
-
-    //Get player at index zero for now
-    pathAnalyzer->computeNavigation(activePlayer);
+//    //get nav path
+//    U4DPathAnalyzer *pathAnalyzer=U4DPathAnalyzer::sharedInstance();
+//
+//    //Get player at index zero for now
+//    pathAnalyzer->computeNavigation(activePlayer);
     
 }
 

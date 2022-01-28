@@ -83,8 +83,8 @@ void U4DPathAnalyzer::computeNavigation(U4DPlayer *uPlayer){
     }
     
     //get the closest point to the goal post and steer towards it
-    U4DEngine::U4DPoint3n minPoint(-4.7,0.5,-40.0);
-    U4DEngine::U4DPoint3n maxPoint(4.7,5.0,-39.0);
+    U4DEngine::U4DPoint3n minPoint(-38.0,-1.3,-4.8);
+    U4DEngine::U4DPoint3n maxPoint(-36.0,3.2,4.5);
     
     U4DEngine::U4DAABB aabb(minPoint,maxPoint);
     
