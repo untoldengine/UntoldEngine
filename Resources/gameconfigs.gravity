@@ -34,8 +34,8 @@ var names = ["dribblingBallSpeed":30.0/scaleValue,
             "slidingTackleVelocity":32.0/scaleValue,
             "fieldHalfWidth":40.0,
             "fieldHalfLength":22.5,
-            "cellAnalyzerWidth":5.6,
-            "cellAnalyzerHeight":10.0,
+            "cellAnalyzerWidth":10.0,
+            "cellAnalyzerHeight":5.6,
             "navPathRadius":0.9,
             "navPredictTime":0.8];
 

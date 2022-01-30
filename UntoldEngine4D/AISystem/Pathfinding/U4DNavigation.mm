@@ -143,6 +143,11 @@ namespace U4DEngine {
         
         std::vector<U4DSegment> totalPath=path;
         
+        //return if the path size is zero
+        if(path.size()<1){
+            return totalPath;
+        }
+        
         //get last segment in the path
         int pathSize=(int)path.size();
         
