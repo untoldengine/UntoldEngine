@@ -15,6 +15,7 @@
 
 #include "U4DTeamStateAttacking.h"
 #include "U4DTeamStateDefending.h"
+#include "U4DTeamStateIdle.h"
 
 namespace U4DEngine {
 

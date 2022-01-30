@@ -111,229 +111,311 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
     
     
     float4 totalLights;
-    
-    //Compute the material information per fragment
-    
-    Material material;
-    
-    material.diffuseMaterialColor=float3(uniformModelMaterial.diffuseMaterialColor[vertexOut.materialIndex].xyz);
-    
-    material.ambientMaterialColor=float3(0.1,0.1,0.1)*material.diffuseMaterialColor;
-    
-    material.specularMaterialColor=float3(uniformModelMaterial.specularMaterialColor[vertexOut.materialIndex].xyz);
-    
-    material.specularReflectionPower=float(uniformModelMaterial.specularMaterialHardness[vertexOut.materialIndex]);
-    
-    //set the light color
-    Light lightColor;
-    lightColor.ambientColor=float3(0.1,0.1,0.1);
-    lightColor.diffuseColor=uniformLightProperties.diffuseColor;
-    lightColor.specularColor=uniformLightProperties.specularColor;
-    lightColor.energy=uniformLightProperties.energy;
-    
-    //compute Normal Map
-    if(uniformModelRenderFlags.enableNormalMap){
         
-        //sample the normal maptexture color
-        float4 sampledNormalMapColor=normalMaptexture.sample(normalMapSam,vertexOut.uvCoords.xy);
-        sampledNormalMapColor = normalize(sampledNormalMapColor * 2.0 - 1.0);
+        //Compute the material information per fragment
         
-        lightColor.position=vertexOut.lightPositionInTangentSpace;
+        Material material;
         
-        totalLights=computeLightColor(vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
+        material.diffuseMaterialColor=float3(uniformModelMaterial.diffuseMaterialColor[vertexOut.materialIndex].xyz);
         
-    }else{
-    
-        lightColor.position=vertexOut.lightPosition;
-        totalLights=computeLightColor(vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material, lightColor);
+        material.ambientMaterialColor=float3(0.1,0.1,0.1)*material.diffuseMaterialColor;
         
-    }
-    
-    
-    float4 finalColor;
-
-
-    //set color fragment to the mix value of the shading and sampled color
+        material.specularMaterialColor=float3(uniformModelMaterial.specularMaterialColor[vertexOut.materialIndex].xyz);
         
-    //enable textures
-    if(uniformModelRenderFlags.hasTexture){
+        material.specularReflectionPower=float(uniformModelMaterial.specularMaterialHardness[vertexOut.materialIndex]);
         
-        //sample the texture color
-        float4 sampledTexture0Color=texture.sample(sam,vertexOut.uvCoords.xy);
+        //set the light color
+        Light lightColor;
+        lightColor.ambientColor=float3(0.1,0.1,0.1);
+        lightColor.diffuseColor=uniformLightProperties.diffuseColor;
+        lightColor.specularColor=uniformLightProperties.specularColor;
+        lightColor.energy=uniformLightProperties.energy;
         
-        //discard the fragment if the alpha value less than 0.15
-        if(sampledTexture0Color.a<0.15){
+        //compute Normal Map
+        if(uniformModelRenderFlags.enableNormalMap){
             
-            discard_fragment();
+            //sample the normal maptexture color
+            float4 sampledNormalMapColor=normalMaptexture.sample(normalMapSam,vertexOut.uvCoords.xy);
+            sampledNormalMapColor = normalize(sampledNormalMapColor * 2.0 - 1.0);
+            
+            lightColor.position=vertexOut.lightPositionInTangentSpace;
+            
+            totalLights=computeLightColor(vertexOut.verticesInTangentSpace, sampledNormalMapColor.xyz, material, lightColor);
+            
+        }else{
+        
+            lightColor.position=vertexOut.lightPosition;
+            totalLights=computeLightColor(vertexOut.verticesInMVSpace, vertexOut.normalVectorInMVSpace,material, lightColor);
             
         }
-        //finalColor=float4(mix(sampledTexture0Color,totalLights,0.3));
-        finalColor=sampledTexture0Color*mix(totalLights,float4(1.0),0.7); //Let's try this combination for the final color. You can play with this.
         
-    }else{
         
-        finalColor=totalLights;
-    }
-    
-    
-    //compute shadow
-    
-    //if(uniformModelRenderFlags.enableShadows){
-        
-        constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
-        
-        // Compute the direction of the light ray betweent the light position and the vertices of the surface
-        //float3 lightRayDirection=normalize(vertexOut.lightPosition.xyz-vertexOut.verticesInMVSpace.xyz);
-        
-        float biasShadow=uniformModelShadowProperties.biasDepth;
-        //float biasShadow = max(0.01*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.01);
-        //float biasShadow=0.01*tan(acos(dot(vertexOut.normalVectorInMVSpace, -lightRayDirection)));
-        //biasShadow=clamp(biasShadow,0.005,0.01);
-        
-        float3 proj=vertexOut.shadowCoords.xyz/vertexOut.shadowCoords.w;
-        
-        proj.xy=proj.xy*0.5+0.5;
-        
-        //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
-        //left corner
-        proj.y=1.0-proj.y;
-        
-        float visibility=1.0;
-        
-        //use normal shadow
-//        float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy);
-//        if(shadowMap.x-biasShadow>=proj.z){
-//            visibility=0.8;
-//        }
+        float4 finalColor;
 
-        //Use PCF
-        for(int i=0;i<16;i++){
 
-            if(float4(shadowTexture.sample(shadowSampler, proj.xy+poissonDisk[i]/700.0)).x-biasShadow>=proj.z){
-                visibility-=0.0125;
+        //set color fragment to the mix value of the shading and sampled color
+            
+        //enable textures
+        if(uniformModelRenderFlags.hasTexture){
+            
+            //sample the texture color
+            float4 sampledTexture0Color=texture.sample(sam,vertexOut.uvCoords.xy);
+            
+            //discard the fragment if the alpha value less than 0.15
+            if(sampledTexture0Color.a<0.15){
+                
+                discard_fragment();
+                
             }
+            //finalColor=float4(mix(sampledTexture0Color,totalLights,0.3));
+            finalColor=sampledTexture0Color*mix(totalLights,float4(1.0),0.7); //Let's try this combination for the final color. You can play with this.
+            
+        }else{
+            
+            finalColor=totalLights;
         }
         
-        finalColor*=visibility;
         
-    //}
-    
-    //add lines
-    float2 st=-1.0+2.0*vertexOut.uvCoords.xy;
-    
-    float3 color=float3(0.0);
-
-    //divide the field into spaces
-//    float2 influenceST=st;
-//
-//    float2 pathfinderST=st;
-//
-    float2 chaseBallVisualizer=st;
-
-    float2 charactersST=st;
-    
-    float m=0.0;
-    //[0]= player position
-    //[1].x= player yaw
-    //[1].y= out of bound
-    //[1].z= goal
-    //[2].x=Ball Position
-    //[2].z=Ball position
-    //[3].x=mouse position
-    //[3].y=mouse position
-    //[3].z=show mouse position
-    //[4].x=team 0 score
-    //[4].y=team 1 score
-    //[4].z=clock tenth
-    //[4].w=clock digit
-    
-    //using the mouse/keyboard
-//    if(uniformModelShaderProperty.shaderParameter[3].z==1){
-//
-//        float2 p1=float2(-uniformModelShaderProperty.shaderParameter[0].x,uniformModelShaderProperty.shaderParameter[0].y);
-//
-//            float2 mousePosition=float2(-uniformModelShaderProperty.shaderParameter[3].y,uniformModelShaderProperty.shaderParameter[3].x);
-//
-//            float2 p3=p1+mousePosition;
-//
-//            //draw the mouse position ring
-//            float c=sdfRing(st,p3,0.03);
-//            c=sharpen(c,0.006,uniformGlobalData.resolution);
-//
-//            color+=float3(c);
-//
-//            //draw starting position of line to mouse ring
-//            float2 b=p1+(p3-p1)*0.1;
-//
-//            //draw line to mouse ring
-//            float l=sdfLine(st,b,p3);
-//
-//            l=sharpen(l,0.005,uniformGlobalData.resolution);
-//
-//            color+=float3(l);
-//
-//
-//    }else{
+        //compute shadow
         
-        float2 p1=float2(uniformModelShaderProperty.shaderParameter[0].x,-uniformModelShaderProperty.shaderParameter[0].y);
-
-        st=st+p1;
-        st=rotate2d((-uniformModelShaderProperty.shaderParameter[1].x+90.0)*M_PI/180.0)*st;
-        
-        st*=2.0;
-        
-        float c=sdfRing(st,float2(0.0,0.0),0.09);
-        c=sharpen(c,0.008,uniformGlobalData.resolution);
-
-        color=float3(c);
-        
-        
-        for(int i=0;i<4;i++){
-           
-            float2 lST=st;
+        //if(uniformModelRenderFlags.enableShadows){
             
-            lST=rotate2d(90.0*i*M_PI/180.0)*lST;
+            constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
             
-            float l=sdfLine(lST,float2(0.0,0.0),float2(0.0,0.6));
+            // Compute the direction of the light ray betweent the light position and the vertices of the surface
+            //float3 lightRayDirection=normalize(vertexOut.lightPosition.xyz-vertexOut.verticesInMVSpace.xyz);
             
-            l=sharpen(l,0.002,uniformGlobalData.resolution);
+            float biasShadow=uniformModelShadowProperties.biasDepth;
+            //float biasShadow = max(0.01*(1.0 - dot(vertexOut.normalVectorInMVSpace, lightRayDirection)), 0.01);
+            //float biasShadow=0.01*tan(acos(dot(vertexOut.normalVectorInMVSpace, -lightRayDirection)));
+            //biasShadow=clamp(biasShadow,0.005,0.01);
             
-            m+=l;
-           
-           }
+            float3 proj=vertexOut.shadowCoords.xyz/vertexOut.shadowCoords.w;
             
-            color=min(color,1.0-m);
+            proj.xy=proj.xy*0.5+0.5;
             
-            float2 tST=-st;
+            //flip the texture. Metal's texture coordinate system has its origin in the top left corner, unlike opengl where the origin is the bottom
+            //left corner
+            proj.y=1.0-proj.y;
+            
+            float visibility=1.0;
+            
+            //use normal shadow
+    //        float4 shadowMap = shadowTexture.sample(shadowSampler, proj.xy);
+    //        if(shadowMap.x-biasShadow>=proj.z){
+    //            visibility=0.8;
+    //        }
 
-            tST.y-=0.15;
+            //Use PCF
+            for(int i=0;i<16;i++){
 
-            float t=sdfTriangle(tST*24.0);
-            t=sharpen(t,0.06,uniformGlobalData.resolution);
-
-            color=max(color,float3(t));
+                if(float4(shadowTexture.sample(shadowSampler, proj.xy+poissonDisk[i]/700.0)).x-biasShadow>=proj.z){
+                    visibility-=0.0125;
+                }
+            }
+            
+            finalColor*=visibility;
+            
+        //}
         
-    //}
-    
-    //start render ball indicator
-    if(uniformModelShaderProperty.shaderParameter[2].z==1.0){
+        //add lines
+        float2 st=-1.0+2.0*vertexOut.uvCoords.xy;
         
-        float2 b1=float2(uniformModelShaderProperty.shaderParameter[2].x,-uniformModelShaderProperty.shaderParameter[2].y);
+        float3 color=float3(0.0);
 
-        chaseBallVisualizer=chaseBallVisualizer+b1;
+        //divide the field into spaces
+        float2 influenceST=st;
+    //
+        float2 pathfinderST=st;
 
-        chaseBallVisualizer*=2.0;
+        float2 chaseBallVisualizer=st;
 
-        float b=sdfRing(chaseBallVisualizer,float2(0.0,0.0),0.09);
-        b=sharpen(b,0.008,uniformGlobalData.resolution);
+        
+        
+        float m=0.0;
+        //[0]= player position
+        //[1].x= player yaw
+        //[1].y= out of bound
+        //[1].z= goal
+        //[2].x=Ball Position
+        //[2].z=Ball position
+        //[3].x=mouse position
+        //[3].y=mouse position
+        //[3].z=show mouse position
+        //[4].x=team 0 score
+        //[4].y=team 1 score
+        //[4].z=clock tenth
+        //[4].w=clock digit
+        
+        //using the mouse/keyboard
+    //    if(uniformModelShaderProperty.shaderParameter[3].z==1){
+    //
+    //        float2 p1=float2(-uniformModelShaderProperty.shaderParameter[0].x,uniformModelShaderProperty.shaderParameter[0].y);
+    //
+    //            float2 mousePosition=float2(-uniformModelShaderProperty.shaderParameter[3].y,uniformModelShaderProperty.shaderParameter[3].x);
+    //
+    //            float2 p3=p1+mousePosition;
+    //
+    //            //draw the mouse position ring
+    //            float c=sdfRing(st,p3,0.03);
+    //            c=sharpen(c,0.006,uniformGlobalData.resolution);
+    //
+    //            color+=float3(c);
+    //
+    //            //draw starting position of line to mouse ring
+    //            float2 b=p1+(p3-p1)*0.1;
+    //
+    //            //draw line to mouse ring
+    //            float l=sdfLine(st,b,p3);
+    //
+    //            l=sharpen(l,0.005,uniformGlobalData.resolution);
+    //
+    //            color+=float3(l);
+    //
+    //
+    //    }else{
+            
+            float2 p1=float2(uniformModelShaderProperty.shaderParameter[0].x,-uniformModelShaderProperty.shaderParameter[0].y);
 
-        color=max(color,float3(1.0,0.0,0.0)*b);
+            st=st+p1;
+            st=rotate2d((-uniformModelShaderProperty.shaderParameter[1].x+90.0)*M_PI/180.0)*st;
+            
+            st*=2.0;
+            
+            float c=sdfRing(st,float2(0.0,0.0),0.09);
+            c=sharpen(c,0.008,uniformGlobalData.resolution);
 
-    }
-    //end render ball indicator
+            color=float3(c);
+            
+            
+            for(int i=0;i<4;i++){
+               
+                float2 lST=st;
+                
+                lST=rotate2d(90.0*i*M_PI/180.0)*lST;
+                
+                float l=sdfLine(lST,float2(0.0,0.0),float2(0.0,0.6));
+                
+                l=sharpen(l,0.002,uniformGlobalData.resolution);
+                
+                m+=l;
+               
+               }
+                
+                color=min(color,1.0-m);
+                
+                float2 tST=-st;
+
+                tST.y-=0.15;
+
+                float t=sdfTriangle(tST*24.0);
+                t=sharpen(t,0.06,uniformGlobalData.resolution);
+
+                color=max(color,float3(t));
+            
+        //}
+        
+        //start render ball indicator
+        if(uniformModelShaderProperty.shaderParameter[2].z==1.0){
+            
+            float2 b1=float2(uniformModelShaderProperty.shaderParameter[2].x,-uniformModelShaderProperty.shaderParameter[2].y);
+
+            chaseBallVisualizer=chaseBallVisualizer+b1;
+
+            chaseBallVisualizer*=2.0;
+
+            float b=sdfRing(chaseBallVisualizer,float2(0.0,0.0),0.09);
+            b=sharpen(b,0.008,uniformGlobalData.resolution);
+
+            color=max(color,float3(1.0,0.0,0.0)*b);
+
+        }
+        //end render ball indicator
+        
+        //Start Visual Debugging of Analyzers
     
-    
-    return max(float4(color,1.0),finalColor);
+        //start path finder
+        float3 pathColor=float3(0.0);
+
+        int analyzersIndex=0;
+        
+        int navPathSize=(int)uniformModelShaderProperty.shaderParameter[analyzersIndex].x;
+
+        analyzersIndex++;
+        
+        for(int i=0;i<navPathSize;i++){
+
+            float2 pointA=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].x,uniformModelShaderProperty.shaderParameter[analyzersIndex].y);
+            float2 pointB=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].z,uniformModelShaderProperty.shaderParameter[analyzersIndex].w);
+
+            float c=sdfRing(pathfinderST,pointA,0.02);
+            c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
+
+            pathColor+=float3(c);
+
+            c=sdfRing(pathfinderST,pointB,0.02);
+            c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
+
+            pathColor+=float3(c);
+
+            float l=sdfLine(pathfinderST,pointA,pointB);
+
+            l=sharpen(l,0.01*0.8,uniformGlobalData.resolution);
+
+            pathColor+=float3(l);
+
+            analyzersIndex++;
+        }
+
+        color=max(color,pathColor);
+
+        //end path finder
+        
+        //    //start the field analyzer
+        influenceST.x*=4.0;
+        influenceST.y*=4.0;
+        //influenceST+=float2(0.5); //need to shift the space to map the cells properly with the shader
+        float2 fid=fract(influenceST);
+
+        float2 iid=floor(influenceST);
+
+        float2 visualInfluence=float2(0.0);
+        
+        int navInfluenceSize=(int)uniformModelShaderProperty.shaderParameter[analyzersIndex].x;
+        
+        analyzersIndex++;
+
+        //number 85 comes from the number of cells computed by the field analyzer
+        for(int i=0;i<navInfluenceSize;i++){
+
+            float2 cellPosition=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].y,uniformModelShaderProperty.shaderParameter[analyzersIndex].x);
+            float cellInfluence=uniformModelShaderProperty.shaderParameter[analyzersIndex].z;
+            float cellIsTeam=uniformModelShaderProperty.shaderParameter[analyzersIndex].w;
+
+            cellInfluence=abs(cellInfluence);
+
+            if(iid.x==cellPosition.x && iid.y==cellPosition.y){
+
+                visualInfluence+=float2(cellInfluence,cellInfluence*cellIsTeam);
+
+            }
+
+            analyzersIndex++;
+            
+        }
+
+        color=max(color,float3(visualInfluence.x,visualInfluence.y,0.0));
+
+        //end field analyzer
+
+        if(fid.x<0.05 || fid.x>0.95 || fid.y<0.05 || fid.y>0.95){
+
+            color+=float3(0.0,0.0,1.0);
+
+        }
+        
+    //END Visual Debugging of Analyzers
+        return max(float4(color,1.0),finalColor);
     
 }
 

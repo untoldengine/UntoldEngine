@@ -42,7 +42,6 @@ void U4DTeamStateAttacking::enter(U4DTeam *uTeam){
         
         //start the field timer analyzer
         uTeam->analyzerFieldTimer->setPause(false);
-        uTeam->formationTimer->setPause(false);
         
         for(auto &n:uTeam->getPlayers()){
             n->resetAllFlags();
@@ -72,9 +71,9 @@ void U4DTeamStateAttacking::execute(U4DTeam *uTeam, double dt){
 void U4DTeamStateAttacking::exit(U4DTeam *uTeam){
     
     if(uTeam->aiTeam==true){
-        //wont' be calling the path analyzer for now.
-        //uTeam->analyzerFieldTimer->setPause(true);
-        uTeam->formationTimer->setPause(true);
+        
+        uTeam->analyzerFieldTimer->setPause(true);
+        
     }
     
 }

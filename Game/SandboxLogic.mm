@@ -71,6 +71,64 @@ void SandboxLogic::update(double dt){
         pPlayer=matchManager->teamA->getActivePlayer();
     }
     
+    //Start Visual Debugging of Analyzers
+    //start path analyzer rendering
+    U4DEngine::U4DPathAnalyzer *pathAnalyzer=U4DEngine::U4DPathAnalyzer::sharedInstance();
+
+    //send size of path
+    U4DEngine::U4DVector4n navParam0(pathAnalyzer->getNavigationPath().size(),0.0,0.0,0.0);
+pGround->updateShaderParameterContainer(4, navParam0);
+
+
+    int fieldShaderIndex=0;
+    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
+
+    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
+    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfLength");
+    float pathLength=pathAnalyzer->getNavigationPath().size();
+
+    U4DEngine::U4DVector4n pPathAnalyzerLength(pathLength,0.0,0.0,0.0);
+
+    pGround->updateShaderParameterContainer(fieldShaderIndex, pPathAnalyzerLength);
+
+    fieldShaderIndex++;
+    
+    //This print the computed path, but the path does not contain the target position
+    for(auto &n:pathAnalyzer->getNavigationPath()){
+
+        U4DEngine::U4DVector4n navParam(n.pointA.z/fieldHalfLength,n.pointA.x/fieldHalfWidth,n.pointB.z/fieldHalfLength,n.pointB.x/fieldHalfWidth);
+
+
+        pGround->updateShaderParameterContainer(fieldShaderIndex, navParam);
+        
+        fieldShaderIndex++;
+        
+    }
+    
+    
+    //end path analyzer rendering
+    
+    //start field analyzer
+    U4DEngine::U4DFieldAnalyzer *fieldAnalyzer=U4DEngine::U4DFieldAnalyzer::sharedInstance();
+    U4DEngine::U4DVector4n pFieldAnalyzerLength(fieldAnalyzer->getCellContainer().size(),0.0,0.0,0.0);
+    
+    pGround->updateShaderParameterContainer(fieldShaderIndex, pFieldAnalyzerLength);
+    
+    fieldShaderIndex++;
+    
+    for(int i=0;i<fieldAnalyzer->getCellContainer().size();i++){
+
+        U4DEngine::Cell cell=fieldAnalyzer->getCellContainer().at(i);
+
+        U4DEngine::U4DVector4n cellProperty(cell.x,cell.y,cell.influence,cell.isTeam);
+
+        pGround->updateShaderParameterContainer(fieldShaderIndex, cellProperty);
+
+        fieldShaderIndex++;
+    }
+    
+    //end field analyzer
+    //END Visual Debugging of Analyzers
     
 //    if(matchManager->goalScored){
 //        std::cout<<"Goalllll"<<std::endl;

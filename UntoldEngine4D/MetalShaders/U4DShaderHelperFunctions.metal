@@ -59,6 +59,13 @@ float4 computePointLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace
     
 }
 
+float2 hash(float2 u)
+{
+    const float2 k = float2( 0.3183099, 0.3678794 );
+    u = u*k + k.yx;
+    return -1.0 + 2.0*fract( 16.0 * k*fract( u.x*u.y*(u.x+u.y)) );
+}
+
 float random(float u){
     
     return fract(sin(u));
@@ -102,12 +109,7 @@ float noise(float2 st)
                    dot( hash( i + float2(1.0,1.0) ), f - float2(1.0,1.0) ), u.x), u.y);
 }
 
-float2 hash(float2 u)  
-{
-    const float2 k = float2( 0.3183099, 0.3678794 );
-    u = u*k + k.yx;
-    return -1.0 + 2.0*fract( 16.0 * k*fract( u.x*u.y*(u.x+u.y)) );
-}
+
 
 float mod(float x, float y){
 

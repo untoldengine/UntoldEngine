@@ -69,7 +69,7 @@ namespace U4DEngine{
         //formationTimer->setPause(true);
         
         
-        defenseScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::startAnalyzingDefense, defenseTimer, 0.05,true);
+        defenseScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::startAnalyzingDefense, defenseTimer, 0.5,true);
         
         analyzerFieldScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::analyzeField, analyzerFieldTimer, 1.0,true);
         
@@ -190,11 +190,11 @@ void U4DTeam::analyzeField(){
 
     fieldAnalyzer->analyzeField(this,oppositeTeam);
 
-//    //get nav path
-//    U4DPathAnalyzer *pathAnalyzer=U4DPathAnalyzer::sharedInstance();
-//
-//    //Get player at index zero for now
-//    pathAnalyzer->computeNavigation(activePlayer);
+    //get nav path
+    U4DPathAnalyzer *pathAnalyzer=U4DPathAnalyzer::sharedInstance();
+
+    //Get player at index zero for now
+    pathAnalyzer->computeNavigation(activePlayer);
     
 }
 

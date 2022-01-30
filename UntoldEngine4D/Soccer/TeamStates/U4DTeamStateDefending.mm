@@ -41,7 +41,7 @@ void U4DTeamStateDefending::enter(U4DTeam *uTeam){
     
     if(uTeam->aiTeam){
         uTeam->defenseTimer->setPause(false);
-        uTeam->formationTimer->setPause(false);
+        
         
         for(auto &n:uTeam->getPlayers()){
             
@@ -89,7 +89,6 @@ void U4DTeamStateDefending::exit(U4DTeam *uTeam){
     
     if(uTeam->aiTeam){
         uTeam->defenseTimer->setPause(true);
-        uTeam->formationTimer->setPause(true);
     }
     
 }
