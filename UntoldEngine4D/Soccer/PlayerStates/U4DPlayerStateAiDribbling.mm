@@ -82,19 +82,6 @@ void U4DPlayerStateAiDribbling::enter(U4DPlayer *uPlayer){
 //
 //    uPlayer->avoidanceBehavior.setTimeParameter(gameConfigs->getParameterForKey("markAvoidanceTimeParameter"));
     
-    //get the closest point to the goal post and steer towards it
-    U4DEngine::U4DPoint3n minPoint(-38.0,-1.3,-4.8);
-    U4DEngine::U4DPoint3n maxPoint(-36.0,3.2,4.5);
-    
-    U4DEngine::U4DAABB aabb(minPoint,maxPoint);
-    
-    U4DEngine::U4DPoint3n pos=uPlayer->getAbsolutePosition().toPoint();
-    
-    U4DEngine::U4DPoint3n closestPoint;
-    
-    aabb.closestPointOnAABBToPoint(pos, closestPoint);
-    
-    uPlayer->naiveNavDirection=closestPoint.toVector();
     
     team->setActivePlayer(uPlayer);
     
@@ -105,6 +92,7 @@ void U4DPlayerStateAiDribbling::enter(U4DPlayer *uPlayer){
     for(auto n: teammates){
         messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
     }
+    
 }
 
 void U4DPlayerStateAiDribbling::execute(U4DPlayer *uPlayer, double dt){
@@ -123,9 +111,9 @@ void U4DPlayerStateAiDribbling::execute(U4DPlayer *uPlayer, double dt){
     U4DEngine::U4DVector3n steerToBallVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, ballPosition);
     
     //compute the final velocity
-    U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, uPlayer->naiveNavDirection);
+    U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, uPlayer->navDribbling);
     
-    finalVelocity=steerToBallVelocity*0.5+finalVelocity*0.5;
+    finalVelocity=steerToBallVelocity*0.8+finalVelocity*0.2;
     
 //    U4DEngine::U4DVector3n avoidanceBehavior=uPlayer->avoidanceBehavior.getSteering(uPlayer->kineticAction);
 //
@@ -148,10 +136,13 @@ void U4DPlayerStateAiDribbling::execute(U4DPlayer *uPlayer, double dt){
     //if the player is facing the opposite way, then make the kick
     //go the opposite way to force the player to turn around
     U4DEngine::U4DVector3n viewDir=uPlayer->getViewInDirection();
-    float d=viewDir.dot(uPlayer->naiveNavDirection);
+    float d=viewDir.dot(uPlayer->navDribbling);
     
     if (d<-0.75) {
-        finalVelocity*=-1.0;
+        
+        //Ideally, in this scenario, I should have another state which makes the player do a kick-back move. However, for now, I'm just rotating the final velocity for the ball
+        U4DVector3n upAxis(0.0,1.0,0.0);
+        finalVelocity=finalVelocity.rotateVectorAboutAngleAndAxis(90.0, upAxis);
     }
     
     //if (uPlayer->foot->kineticAction->getModelHasCollided()) {

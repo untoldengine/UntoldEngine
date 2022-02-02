@@ -94,7 +94,7 @@ void U4DPathAnalyzer::computeNavigation(U4DPlayer *uPlayer){
     
     aabb.closestPointOnAABBToPoint(pos, closestPoint);
     
-    uPlayer->naiveNavDirection=closestPoint.toVector();
+    uPlayer->navDribbling=closestPoint.toVector();
     U4DEngine::U4DVector3n targetPosition=closestPoint.toVector();
 
     navigationSystem->computePath(uPlayer->kineticAction, targetPosition);

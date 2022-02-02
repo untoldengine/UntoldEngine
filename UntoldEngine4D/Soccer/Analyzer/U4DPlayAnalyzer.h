@@ -35,6 +35,9 @@ class U4DTeam;
         U4DPlayer *closestTeammateToIntersectBall(U4DPlayer *uPlayer);
         
         U4DPlayer *closestTeammateToIntersectBall(U4DTeam *uTeam);
+        
+        void analyzeActionToMake();
+        
     };
 
 }

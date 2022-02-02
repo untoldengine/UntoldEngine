@@ -86,7 +86,7 @@ public:
     
     U4DVector3n dribblingDirection;
     
-    U4DVector3n naiveNavDirection;
+    U4DVector3n navDribbling;
     
     U4DVector3n slidingVelocity;
     
