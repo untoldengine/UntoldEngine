@@ -102,4 +102,12 @@ U4DPlayer *U4DPlayAnalyzer::closestTeammateToIntersectBall(U4DPlayer *uPlayer){
     
 }
 
+    void U4DPlayAnalyzer::analyzeActionToMake(){
+        
+        //pass, dribble or shoot?
+        
+        
+        
+    }
+
 }
