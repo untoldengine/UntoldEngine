@@ -183,6 +183,14 @@ namespace U4DEngine {
         }
     }
 
+    U4DGoalPost *U4DMatchManager::getTeamAGoalPost(){
+        return goalPost0;
+    }
+
+    U4DGoalPost *U4DMatchManager::getTeamBGoalPost(){
+        return goalPost1;
+    }
+
     bool U4DMatchManager::checkIfBallOutOfBounds(){
         
         U4DBall *ball=U4DBall::sharedInstance();

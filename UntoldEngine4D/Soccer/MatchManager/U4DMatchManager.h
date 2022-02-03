@@ -62,6 +62,11 @@ public:
     int getState();
     
     void changeState(int uState);
+    
+    U4DGoalPost *getTeamAGoalPost();
+    
+    U4DGoalPost *getTeamBGoalPost();
+    
 };
 
 }
