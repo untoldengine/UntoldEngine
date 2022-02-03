@@ -33,13 +33,23 @@ namespace U4DEngine {
     }
 
     U4DMatchManager::U4DMatchManager():ballOutOfBound(false){
+        
         teamA=new U4DTeam("TeamA");
         teamB=new U4DTeam("TeamB");
+        
+        //Create the callback. Notice that you need to provide the name of the class
+        timeUpScheduler=new U4DEngine::U4DCallback<U4DMatchManager>;
+
+        //create the timer
+        timeUpTimer=new U4DEngine::U4DTimer(timeUpScheduler);
+        
     }
 
     U4DMatchManager::~U4DMatchManager(){
         
+        world->removeChild(gameClock);
         
+        delete gameClock;
     }
 
 
@@ -124,7 +134,49 @@ namespace U4DEngine {
      
     }
 
-    void U4DMatchManager::initMatch(U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField){
+    void U4DMatchManager::initMatchTimer(int uInitTime, int uEndTime, int uFrequency, U4DVector2n uPosition, std::string uFontName){
+        
+        gameClock=new U4DEngine::U4DText(uFontName.c_str());
+        
+        clockTime=uInitTime;
+        endClockTime=uEndTime;
+        
+        std::string clockTimeString="89:";
+        clockTimeString+=std::to_string(uInitTime);
+
+        gameClock->setText(clockTimeString.c_str());
+        
+        gameClock->translateTo(uPosition);
+        
+        world->addChild(gameClock,-20);
+        
+        timeUpScheduler->scheduleClassWithMethodAndDelay(this, &U4DMatchManager::timesUp, timeUpTimer,uFrequency, true);
+        
+    }
+
+    void U4DMatchManager::timesUp(){
+        
+        clockTime++;
+
+        std::string clockTimeString="00:";
+        
+        if(clockTime<10){
+            clockTimeString+="0"+std::to_string(clockTime);
+        }else{
+            clockTimeString+=std::to_string(clockTime);
+        }
+        
+        gameClock->setText(clockTimeString.c_str());
+        
+        if(clockTime>=endClockTime){
+            state=gameTimeReached;
+        }
+        
+    }
+
+    void U4DMatchManager::initMatch(U4DWorld *uWorld, U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField){
+        
+        world=uWorld;
         
         field=uField;
         

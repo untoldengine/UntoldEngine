@@ -335,84 +335,84 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
         //Start Visual Debugging of Analyzers
     
         //start path finder
-        float3 pathColor=float3(0.0);
-
-        int analyzersIndex=0;
-        
-        int navPathSize=(int)uniformModelShaderProperty.shaderParameter[analyzersIndex].x;
-
-        analyzersIndex++;
-        
-        for(int i=0;i<navPathSize;i++){
-
-            float2 pointA=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].x,uniformModelShaderProperty.shaderParameter[analyzersIndex].y);
-            float2 pointB=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].z,uniformModelShaderProperty.shaderParameter[analyzersIndex].w);
-
-            float c=sdfRing(pathfinderST,pointA,0.02);
-            c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
-
-            pathColor+=float3(c);
-
-            c=sdfRing(pathfinderST,pointB,0.02);
-            c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
-
-            pathColor+=float3(c);
-
-            float l=sdfLine(pathfinderST,pointA,pointB);
-
-            l=sharpen(l,0.01*0.8,uniformGlobalData.resolution);
-
-            pathColor+=float3(l);
-
-            analyzersIndex++;
-        }
-
-        color=max(color,pathColor);
-
-        //end path finder
-        
-        //    //start the field analyzer
-        influenceST.x*=4.0;
-        influenceST.y*=4.0;
-        //influenceST+=float2(0.5); //need to shift the space to map the cells properly with the shader
-        float2 fid=fract(influenceST);
-
-        float2 iid=floor(influenceST);
-
-        float2 visualInfluence=float2(0.0);
-        
-        int navInfluenceSize=(int)uniformModelShaderProperty.shaderParameter[analyzersIndex].x;
-        
-        analyzersIndex++;
-
-        //number 85 comes from the number of cells computed by the field analyzer
-        for(int i=0;i<navInfluenceSize;i++){
-
-            float2 cellPosition=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].y,uniformModelShaderProperty.shaderParameter[analyzersIndex].x);
-            float cellInfluence=uniformModelShaderProperty.shaderParameter[analyzersIndex].z;
-            float cellIsTeam=uniformModelShaderProperty.shaderParameter[analyzersIndex].w;
-
-            cellInfluence=abs(cellInfluence);
-
-            if(iid.x==cellPosition.x && iid.y==cellPosition.y){
-
-                visualInfluence+=float2(cellInfluence,cellInfluence*cellIsTeam);
-
-            }
-
-            analyzersIndex++;
-            
-        }
-
-        color=max(color,float3(visualInfluence.x,visualInfluence.y,0.0));
-
-        //end field analyzer
-
-        if(fid.x<0.05 || fid.x>0.95 || fid.y<0.05 || fid.y>0.95){
-
-            color+=float3(0.0,0.0,1.0);
-
-        }
+//        float3 pathColor=float3(0.0);
+//
+//        int analyzersIndex=0;
+//
+//        int navPathSize=(int)uniformModelShaderProperty.shaderParameter[analyzersIndex].x;
+//
+//        analyzersIndex++;
+//
+//        for(int i=0;i<navPathSize;i++){
+//
+//            float2 pointA=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].x,uniformModelShaderProperty.shaderParameter[analyzersIndex].y);
+//            float2 pointB=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].z,uniformModelShaderProperty.shaderParameter[analyzersIndex].w);
+//
+//            float c=sdfRing(pathfinderST,pointA,0.02);
+//            c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
+//
+//            pathColor+=float3(c);
+//
+//            c=sdfRing(pathfinderST,pointB,0.02);
+//            c=sharpen(c,0.01*0.8,uniformGlobalData.resolution);
+//
+//            pathColor+=float3(c);
+//
+//            float l=sdfLine(pathfinderST,pointA,pointB);
+//
+//            l=sharpen(l,0.01*0.8,uniformGlobalData.resolution);
+//
+//            pathColor+=float3(l);
+//
+//            analyzersIndex++;
+//        }
+//
+//        color=max(color,pathColor);
+//
+//        //end path finder
+//
+//        //    //start the field analyzer
+//        influenceST.x*=4.0;
+//        influenceST.y*=4.0;
+//        //influenceST+=float2(0.5); //need to shift the space to map the cells properly with the shader
+//        float2 fid=fract(influenceST);
+//
+//        float2 iid=floor(influenceST);
+//
+//        float2 visualInfluence=float2(0.0);
+//
+//        int navInfluenceSize=(int)uniformModelShaderProperty.shaderParameter[analyzersIndex].x;
+//
+//        analyzersIndex++;
+//
+//        //number 85 comes from the number of cells computed by the field analyzer
+//        for(int i=0;i<navInfluenceSize;i++){
+//
+//            float2 cellPosition=float2(-uniformModelShaderProperty.shaderParameter[analyzersIndex].y,uniformModelShaderProperty.shaderParameter[analyzersIndex].x);
+//            float cellInfluence=uniformModelShaderProperty.shaderParameter[analyzersIndex].z;
+//            float cellIsTeam=uniformModelShaderProperty.shaderParameter[analyzersIndex].w;
+//
+//            cellInfluence=abs(cellInfluence);
+//
+//            if(iid.x==cellPosition.x && iid.y==cellPosition.y){
+//
+//                visualInfluence+=float2(cellInfluence,cellInfluence*cellIsTeam);
+//
+//            }
+//
+//            analyzersIndex++;
+//
+//        }
+//
+//        color=max(color,float3(visualInfluence.x,visualInfluence.y,0.0));
+//
+//        //end field analyzer
+//
+//        if(fid.x<0.05 || fid.x>0.95 || fid.y<0.05 || fid.y>0.95){
+//
+//            color+=float3(0.0,0.0,1.0);
+//
+//        }
         
     //END Visual Debugging of Analyzers
         return max(float4(color,1.0),finalColor);
