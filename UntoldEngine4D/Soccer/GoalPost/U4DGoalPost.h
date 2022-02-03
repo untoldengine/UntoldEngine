@@ -20,11 +20,11 @@ class U4DGoalPost:public U4DModel {
 
 private:
     
-    U4DAABB goalBoxAABB;
-    
     bool goalBoxComputed;
     
 public:
+    
+    U4DAABB goalBoxAABB;
     
     U4DGoalPost();
     
