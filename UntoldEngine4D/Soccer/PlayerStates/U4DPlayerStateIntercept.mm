@@ -11,6 +11,7 @@
 #include "U4DPlayerStateDribbling.h"
 #include "U4DPlayerStateAiDribbling.h"
 #include "U4DPlayerStateFlock.h"
+#include "U4DPlayerStateGoHome.h"
 #include "U4DBall.h"
 #include "U4DFoot.h"
 #include "U4DTeam.h"
@@ -128,12 +129,13 @@ bool U4DPlayerStateIntercept::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
             uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
         }
         break;
-            
-//        case msgMark:
-//        {
-//            uPlayer->changeState(U4DPlayerStateMark::sharedInstance());
-//        }
-//            break;
+
+        case msgGoHome:
+        {
+            uPlayer->changeState(U4DPlayerStateGoHome::sharedInstance());
+        }
+        
+        break;
             
         default:
             break;

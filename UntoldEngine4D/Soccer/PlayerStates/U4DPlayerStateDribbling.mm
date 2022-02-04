@@ -13,6 +13,7 @@
 #include "U4DPlayerStateShooting.h"
 #include "U4DPlayerStatePass.h"
 #include "U4DPlayerStateHalt.h"
+#include "U4DPlayerStateGoHome.h"
 #include "U4DPlayerStateFlock.h"
 #include "U4DMessageDispatcher.h"
 #include "U4DTeamStateAttacking.h"
@@ -50,7 +51,7 @@ void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
         uPlayer->animationManager->setAnimationToPlay(currentAnimation);
     }
     
-    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
+    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
     
     uPlayer->arriveBehavior.setMaxSpeed(gameConfigs->getParameterForKey("arriveMaxSpeed"));
     uPlayer->arriveBehavior.setTargetRadius(gameConfigs->getParameterForKey("arriveStopRadius"));
@@ -130,7 +131,12 @@ bool U4DPlayerStateDribbling::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
-        
+        case msgGoHome:
+        {
+            uPlayer->changeState(U4DPlayerStateGoHome::sharedInstance());
+        }
+            
+        break;
             
         default:
             break;

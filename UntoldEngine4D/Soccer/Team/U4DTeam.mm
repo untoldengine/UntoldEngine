@@ -62,11 +62,9 @@ namespace U4DEngine{
 
     void U4DTeam::initAnalyzerSchedulers(){
         
-        formationManager.computeHomePosition();
-        
         formationScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::updateFormation, formationTimer, 1.0,true);
         
-        //formationTimer->setPause(true);
+        formationTimer->setPause(true);
         
         
         defenseScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::startAnalyzingDefense, defenseTimer, 0.5,true);
@@ -150,7 +148,8 @@ namespace U4DEngine{
             
             U4DVector3n playerSpot=n->getAbsolutePosition();
             playerSpot.y=0.0;
-
+            
+            n->homePosition=playerSpot;
             
             formationManager.spots.push_back(playerSpot);
         

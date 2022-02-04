@@ -21,6 +21,7 @@
 #include "U4DMessageDispatcher.h"
 #include "U4DTeamStateAttacking.h"
 #include "U4DTeamStateDefending.h"
+#include "U4DPlayerStateGoHome.h"
 
 
 namespace U4DEngine {
@@ -171,6 +172,13 @@ bool U4DPlayerStateAiDribbling::handleMessage(U4DPlayer *uPlayer, Message &uMsg)
             uPlayer->changeState(U4DPlayerStateMark::sharedInstance());
         }
             break;
+            
+        case msgGoHome:
+        {
+            uPlayer->changeState(U4DPlayerStateGoHome::sharedInstance());
+        }
+            
+        break;
             
         default:
             break;

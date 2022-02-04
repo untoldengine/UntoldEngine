@@ -8,6 +8,7 @@
 
 #include "U4DPlayerStateShooting.h"
 #include "U4DPlayerStateIdle.h"
+#include "U4DPlayerStateGoHome.h"
 #include "U4DGameConfigs.h"
 #include "U4DFoot.h"
 
@@ -79,7 +80,12 @@ bool U4DPlayerStateShooting::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         
+        case msgGoHome:
+        {
+            uPlayer->changeState(U4DPlayerStateGoHome::sharedInstance());
+        }
         
+        break;
             
         default:
             break;
