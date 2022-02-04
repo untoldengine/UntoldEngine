@@ -261,10 +261,9 @@ void SandboxLogic::init(){
     matchManager->teamA->setActivePlayer(pPlayer);
     matchManager->teamB->setActivePlayer(eP0);
     
-    matchManager->initMatch(pEarth, pGoalPost0, pGoalPost1, pGround);
-    matchManager->changeState(U4DEngine::playing);
+    matchManager->initMatchElements(pGoalPost0, pGoalPost1, pGround);
     
-    matchManager->initMatchTimer(0,60, 1, U4DEngine::U4DVector2n(0.0,0.0), "uiFont");
+    matchManager->initMatchTimer(60, 1);
 
 }
 
@@ -279,7 +278,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
         pPlayer=matchManager->teamA->getActivePlayer();
     }
     
-    if (pPlayer!=nullptr) {
+    if (pPlayer!=nullptr && matchManager->getState()==U4DEngine::playing) {
       
         switch (controllerInputMessage.inputElementType) {
 
@@ -707,6 +706,18 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
 
+                    if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateAttacking::sharedInstance()){
+                        
+                        pPlayer->setEnablePassing(true);
+                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                        logger->log("passing");
+                        
+                    }else if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateDefending::sharedInstance()){
+                        
+                        pPlayer->setEnableSlidingTackle(true);
+                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                        logger->log("slide tackling");
+                    }
                 }
 
                 break;
@@ -719,6 +730,12 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
 
                 }else if(controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
 
+                    if(pPlayer->getTeam()->getCurrentState()==U4DEngine::U4DTeamStateAttacking::sharedInstance()){
+                        pPlayer->setEnableShooting(true);
+                        U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
+                        logger->log("shooting");
+                    }
+                    
                 }
 
                 break;
@@ -755,13 +772,21 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
                    //Get joystick direction
                    U4DEngine::U4DVector3n joystickDirection(controllerInputMessage.joystickDirection.x,0.0,controllerInputMessage.joystickDirection.y);
 
+                    if(pPlayer->getCurrentState()==U4DEngine::U4DPlayerStateFree::sharedInstance()){
+                        pPlayer->setEnableFreeToRun(true);
+                    }else if(pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateDribbling::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateShooting::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStateIntercept::sharedInstance()&& pPlayer->getCurrentState()!=U4DEngine::U4DPlayerStatePass::sharedInstance()){
 
+                        //pPlayer->changeState(U4DEngine::U4DPlayerStateDribbling::sharedInstance());
+                        pPlayer->setEnableDribbling(true);
+                    }
+                
+                    pPlayer->setDribblingDirection(joystickDirection);
 
 
                }else if (controllerInputMessage.inputElementAction==U4DEngine::padThumbstickReleased){
 
 
-
+                   pPlayer->setEnableHalt(true);
 
                }
 

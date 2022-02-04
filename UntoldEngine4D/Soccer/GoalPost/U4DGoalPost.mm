@@ -41,6 +41,7 @@ namespace U4DEngine{
     
     bool U4DGoalPost::isBallInsideGoalBox(){
         
+        //if the goal post box hasn't been computed, then get its aabb
         if(!goalBoxComputed){
             
             U4DVector3n goalBoxDimensions=getModelDimensions()*0.5;
@@ -64,9 +65,12 @@ namespace U4DEngine{
         
         if (goalBoxAABB.isPointInsideAABB(ballInterpolatedPos)) {
             
+            ball->insideGoalPost(this);
+            //ball is inside the goal post
             return true;
         }
         
+        //ball is outside the goal post
         return false;
     
     }

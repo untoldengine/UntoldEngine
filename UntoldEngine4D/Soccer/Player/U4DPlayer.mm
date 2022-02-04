@@ -22,7 +22,7 @@
 
 namespace U4DEngine{
 
-    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr),playerIndex(0),standTackleOpponent(false),slidingTackle(false){
+    U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr),playerIndex(0),standTackleOpponent(false),slidingTackle(false),atHome(false){
         
     }
 

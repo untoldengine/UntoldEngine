@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include "U4DModel.h"
 #include "U4DDynamicAction.h"
+#include "U4DGoalPost.h"
 #include "CommonProtocols.h"
 
 
@@ -28,6 +29,8 @@ private:
     
     //previous state of the character
     int previousState;
+    
+    U4DGoalPost *goalPostBallIsIn;
     
 protected:
     
@@ -79,6 +82,11 @@ public:
     float timeToCoverDistance(U4DVector3n &uFinalPosition);
 
     bool aiScored;
+    
+    void insideGoalPost(U4DGoalPost *uGoalPost);
+    
+    U4DGoalPost *getBallInsideGoalPost();
+    
 };
 }
 

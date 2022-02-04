@@ -341,4 +341,12 @@ namespace U4DEngine {
         
     }
 
+    void U4DBall::insideGoalPost(U4DGoalPost *uGoalPost){
+        goalPostBallIsIn=uGoalPost;
+    }
+
+    U4DGoalPost *U4DBall::getBallInsideGoalPost(){
+        return goalPostBallIsIn;
+    }
+
 }

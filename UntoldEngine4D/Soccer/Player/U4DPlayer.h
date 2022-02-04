@@ -90,7 +90,11 @@ public:
     
     U4DVector3n slidingVelocity;
     
+    U4DVector3n homePosition;
+    
     U4DFoot *foot;
+    
+    bool atHome;
     
     U4DPlayer();
     

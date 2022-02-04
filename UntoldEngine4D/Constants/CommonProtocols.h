@@ -820,10 +820,12 @@ class U4DTeam;
         goalScored,
         throwIn,
         outOfBound,
-        restarting,
+        restartGame,
         gameTimeReached,
+        sendTeamsHome,
+        teamsGettingReady,
         
-    }GAMESTATE;
+    }MATCHMANAGERSTATE;
 
     typedef enum{
         
@@ -852,6 +854,17 @@ class U4DTeam;
         msgReceivePass,
         
     }PlayerMessage;
+
+    enum{
+
+        msgTeamStart,
+        msgTeamDefend,
+        msgTeamAttack,
+        msgTeamGoHome,
+        msgTeamIdle,
+        msgTeamVictory,
+        
+    }TeamMessage;
 
 typedef struct{
     

@@ -16,6 +16,10 @@
 #include "U4DTeamStateAttacking.h"
 #include "U4DTeamStateDefending.h"
 #include "U4DTeamStateIdle.h"
+#include "U4DTeamStateGoHome.h"
+#include "U4DTeamStateReady.h"
+#include "U4DMessageDispatcher.h"
+#include <iterator>
 
 namespace U4DEngine {
 
@@ -32,24 +36,37 @@ namespace U4DEngine {
         return instance;
     }
 
-    U4DMatchManager::U4DMatchManager():ballOutOfBound(false){
+    U4DMatchManager::U4DMatchManager():ballOutOfBound(false),state(-1),teamAScore(0),teamBScore(0),elapsedClockTime(0){
         
         teamA=new U4DTeam("TeamA");
         teamB=new U4DTeam("TeamB");
         
         //Create the callback. Notice that you need to provide the name of the class
-        timeUpScheduler=new U4DEngine::U4DCallback<U4DMatchManager>;
+        endGameScheduler=new U4DEngine::U4DCallback<U4DMatchManager>;
 
         //create the timer
-        timeUpTimer=new U4DEngine::U4DTimer(timeUpScheduler);
+        endGameTimer=new U4DEngine::U4DTimer(endGameScheduler);
+        
+        //Create the callback. Notice that you need to provide the name of the class
+        startGameScheduler=new U4DEngine::U4DCallback<U4DMatchManager>;
+
+        //create the timer
+        startGameTimer=new U4DEngine::U4DTimer(startGameScheduler);
+        
         
     }
 
     U4DMatchManager::~U4DMatchManager(){
         
-        world->removeChild(gameClock);
         
-        delete gameClock;
+        startGameScheduler->unScheduleTimer(startGameTimer);
+        delete startGameScheduler;
+        delete startGameTimer;
+        
+        endGameScheduler->unScheduleTimer(endGameTimer);
+        delete endGameScheduler;
+        delete endGameTimer;
+        
     }
 
 
@@ -65,8 +82,7 @@ namespace U4DEngine {
         
         if(state==playing){
             
-            if((goalPost0->isBallInsideGoalBox() || goalPost1->isBallInsideGoalBox())){
-                //goalScored=true;
+            if((teamAGoalPost->isBallInsideGoalBox() || teamBGoalPost->isBallInsideGoalBox())){
                 
                 U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
                 ball->changeState(U4DEngine::decelerating);
@@ -80,17 +96,36 @@ namespace U4DEngine {
             
         }else if(state==goalScored){
             
-            //This is only a temp soln.
-            if(!checkIfBallOutOfBounds()){
-                changeState(playing);
+            //find out who score
+            U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
+            
+            
+            if(ball->getBallInsideGoalPost()==teamAGoalPost){
+                //team B scored. Update score
+                
+                teamAScore++;
+                
+                
+                
+            }else if(ball->getBallInsideGoalPost()==teamBGoalPost){
+                //team A scored. Update score
+                
+                teamBScore++;
             }
+            
+            
+            //update the score
+            
+            ball->insideGoalPost(nullptr);
+            
+            changeState(sendTeamsHome);
             
         }else if(state==outOfBound){
 
             computeReflectedVelocityForBall(dt);
             
             changeState(throwIn);
-        
+            //changeState(sendTeamsHome);
         }else if(state==throwIn){
             
             //This is only a temp soln.
@@ -98,6 +133,29 @@ namespace U4DEngine {
                 changeState(playing);
             }
             
+        }else if(state==sendTeamsHome){
+            
+            //nofity teams to change their states to 'going home'
+            teamA->changeState(U4DTeamStateGoHome::sharedInstance());
+            teamB->changeState(U4DTeamStateGoHome::sharedInstance());
+            U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
+            
+            ball->translateTo(ball->homePosition);
+            ball->changeState(stopped);
+            
+            changeState(teamsGettingReady);
+            
+        }else if(state==teamsGettingReady){
+            
+            if(teamA->getCurrentState()==U4DTeamStateReady::sharedInstance() && teamB->getCurrentState()==U4DTeamStateReady::sharedInstance()){
+                
+                U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
+                
+                messageDispatcher->sendMessage(0.0, teamA, msgTeamStart);
+                messageDispatcher->sendMessage(0.0, teamB, msgTeamStart);
+                
+                changeState(playing);
+            }
         }
         
         
@@ -134,56 +192,32 @@ namespace U4DEngine {
      
     }
 
-    void U4DMatchManager::initMatchTimer(int uInitTime, int uEndTime, int uFrequency, U4DVector2n uPosition, std::string uFontName){
+    void U4DMatchManager::initMatchTimer(int uEndTime, int uFrequency){
         
-        gameClock=new U4DEngine::U4DText(uFontName.c_str());
-        
-        clockTime=uInitTime;
         endClockTime=uEndTime;
         
-        std::string clockTimeString="89:";
-        clockTimeString+=std::to_string(uInitTime);
-
-        gameClock->setText(clockTimeString.c_str());
-        
-        gameClock->translateTo(uPosition);
-        
-        world->addChild(gameClock,-20);
-        
-        timeUpScheduler->scheduleClassWithMethodAndDelay(this, &U4DMatchManager::timesUp, timeUpTimer,uFrequency, true);
+        endGameScheduler->scheduleClassWithMethodAndDelay(this, &U4DMatchManager::timesUp, endGameTimer,uFrequency, true);
         
     }
 
     void U4DMatchManager::timesUp(){
         
-        clockTime++;
+        elapsedClockTime++;
 
-        std::string clockTimeString="00:";
-        
-        if(clockTime<10){
-            clockTimeString+="0"+std::to_string(clockTime);
-        }else{
-            clockTimeString+=std::to_string(clockTime);
-        }
-        
-        gameClock->setText(clockTimeString.c_str());
-        
-        if(clockTime>=endClockTime){
+        if(elapsedClockTime>=endClockTime){
             state=gameTimeReached;
         }
         
     }
 
-    void U4DMatchManager::initMatch(U4DWorld *uWorld, U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField){
-        
-        world=uWorld;
+    void U4DMatchManager::initMatchElements(U4DGoalPost *uTeamAGoalPost, U4DGoalPost *uTeamBGoalPost, U4DField *uField){
         
         field=uField;
         
         fieldAABB=field->getFieldAABB();
         
-        goalPost0=uGoalPost0;
-        goalPost1=uGoalPost1;
+        teamAGoalPost=uTeamAGoalPost;
+        teamBGoalPost=uTeamBGoalPost;
         
         teamA->loadPlayersFormations();
         teamB->loadPlayersFormations();
@@ -194,8 +228,24 @@ namespace U4DEngine {
         teamA->setOppositeTeam(teamB);
         teamB->setOppositeTeam(teamA);
         
-        teamA->changeState(U4DEngine::U4DTeamStateAttacking::sharedInstance());
-        teamB->changeState(U4DEngine::U4DTeamStateDefending::sharedInstance());
+        teamA->changeState(U4DEngine::U4DTeamStateReady::sharedInstance());
+        teamB->changeState(U4DEngine::U4DTeamStateReady::sharedInstance());
+        
+        //init a timer of 3 seconds
+        startGameScheduler->scheduleClassWithMethodAndDelay(this, &U4DMatchManager::startGame, startGameTimer,1.0, false);
+        
+
+    }
+
+    void U4DMatchManager::startGame(){
+        
+        U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
+        
+        messageDispatcher->sendMessage(0.0, teamA, msgTeamStart);
+        messageDispatcher->sendMessage(0.0, teamB, msgTeamStart);
+        
+        changeState(playing);
+        
         
     }
 
@@ -229,19 +279,28 @@ namespace U4DEngine {
                 
                 break;
                 
-            case restarting:
+            case restartGame:
                 
                 break;
         }
     }
 
     U4DGoalPost *U4DMatchManager::getTeamAGoalPost(){
-        return goalPost0;
+        return teamAGoalPost;
     }
 
     U4DGoalPost *U4DMatchManager::getTeamBGoalPost(){
-        return goalPost1;
+        return teamBGoalPost;
     }
+
+    int U4DMatchManager::getElapsedGameTime(){
+        return elapsedClockTime;
+    }
+
+    std::vector<int> U4DMatchManager::getCurrentScore(){
+        std::vector<int> currentScore{teamAScore,teamBScore};
+    }
+
 
     bool U4DMatchManager::checkIfBallOutOfBounds(){
         

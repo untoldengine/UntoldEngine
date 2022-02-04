@@ -13,6 +13,7 @@
 #include "U4DPlayerStateStandTackle.h" 
 #include "U4DPlayerStateSlidingTackle.h"
 #include "U4DPlayerStateFlock.h"
+#include "U4DPlayerStateGoHome.h"
 #include "U4DMessageDispatcher.h"
 #include "U4DBall.h"
 #include "U4DPlane.h"
@@ -178,6 +179,12 @@ bool U4DPlayerStateMark::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
         }
             break;
             
+        case msgGoHome:
+        {
+            uPlayer->changeState(U4DPlayerStateGoHome::sharedInstance());
+        }
+        
+        break;
             
         default:
             break;

@@ -18,6 +18,7 @@
 #include "U4DWorld.h"
 #include "U4DCallback.h"
 #include "U4DTimer.h"
+#include <map>
 
 namespace U4DEngine {
 
@@ -27,27 +28,29 @@ private:
     
     static U4DMatchManager *instance;
     
-    float fieldHalfWidth;
-    float fieldHalfLength;
+    int teamAScore;
+    int teamBScore;
+    
     U4DField *field;
     U4DAABB fieldAABB;
     
-    U4DGoalPost *goalPost0;
-    U4DGoalPost *goalPost1;
+    U4DGoalPost *teamAGoalPost;
+    U4DGoalPost *teamBGoalPost;
     
     int state;
     
-    U4DText *gameClock;
-    
-    int clockTime;
+    int elapsedClockTime;
     int endClockTime;
     
-    U4DWorld *world;
-    
-    U4DCallback<U4DMatchManager> *timeUpScheduler;
+    U4DCallback<U4DMatchManager> *endGameScheduler;
 
     //declare the timer
-    U4DTimer *timeUpTimer;
+    U4DTimer *endGameTimer;
+    
+    U4DCallback<U4DMatchManager> *startGameScheduler;
+
+    //declare the timer
+    U4DTimer *startGameTimer;
     
 protected:
     
@@ -67,7 +70,7 @@ public:
     
     void update(double dt);
     
-    void initMatch(U4DWorld *uWorld, U4DGoalPost *uGoalPost0, U4DGoalPost *uGoalPost1, U4DField *uField);
+    void initMatchElements(U4DGoalPost *uTeamAGoalPost, U4DGoalPost *uTeamBGoalPost, U4DField *uField);
     
     bool checkIfBallOutOfBounds();
     
@@ -83,9 +86,15 @@ public:
     
     U4DGoalPost *getTeamBGoalPost();
     
-    void initMatchTimer(int uInitTime, int uEndTime, int uFrequency, U4DVector2n uPosition, std::string uFontName);
+    void initMatchTimer(int uEndTime, int uFrequency);
     
     void timesUp();
+    
+    void startGame();
+    
+    int getElapsedGameTime();
+    
+    std::vector<int> getCurrentScore();
     
 };
 
