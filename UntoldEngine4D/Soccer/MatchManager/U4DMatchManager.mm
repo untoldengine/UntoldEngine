@@ -122,10 +122,10 @@ namespace U4DEngine {
             
         }else if(state==outOfBound){
 
-            computeReflectedVelocityForBall(dt);
+            //computeReflectedVelocityForBall(dt);
             
-            changeState(throwIn);
-            //changeState(sendTeamsHome);
+            //changeState(throwIn);
+            changeState(sendTeamsHome);
         }else if(state==throwIn){
             
             //This is only a temp soln.
