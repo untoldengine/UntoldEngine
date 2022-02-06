@@ -88,7 +88,7 @@ void U4DPlayerStateIntercept::execute(U4DPlayer *uPlayer, double dt){
     }
     
     float distanceToBall=(ballPosition-uPlayer->getAbsolutePosition()).magnitude();
-
+   
     if (distanceToBall<gameConfigs->getParameterForKey("interceptMinRadius")) {
 
         U4DTeam *team=uPlayer->getTeam();
@@ -126,7 +126,7 @@ bool U4DPlayerStateIntercept::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
         
         case msgSupport:
         {
-            uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
+            //uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
         }
         break;
 

@@ -152,6 +152,10 @@ namespace U4DEngine{
         return stateManager->getCurrentState();
     }
 
+    U4DPlayerStateInterface *U4DPlayer::getPreviousState(){
+        return stateManager->getPreviousState();
+    }
+
     std::string U4DPlayer::getCurrentStateName(){
         return stateManager->getCurrentStateName();
     }
