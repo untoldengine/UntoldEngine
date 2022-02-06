@@ -202,11 +202,11 @@ namespace U4DEngine {
 
     void U4DMatchManager::timesUp(){
         
-        elapsedClockTime++;
-
-        if(elapsedClockTime>=endClockTime){
-            state=gameTimeReached;
-        }
+//        elapsedClockTime++;
+//
+//        if(elapsedClockTime>=endClockTime){
+//            state=gameTimeReached;
+//        }
         
     }
 
@@ -299,6 +299,8 @@ namespace U4DEngine {
 
     std::vector<int> U4DMatchManager::getCurrentScore(){
         std::vector<int> currentScore{teamAScore,teamBScore};
+        
+        return currentScore;
     }
 
 

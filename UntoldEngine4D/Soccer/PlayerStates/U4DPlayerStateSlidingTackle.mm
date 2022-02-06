@@ -12,6 +12,8 @@
 #include "U4DPlayerStateIntercept.h"
 #include "U4DPlayerStateFree.h"
 #include "U4DPlayerStateFlock.h"
+#include "U4DPlayerStateGoHome.h"
+#include "U4DPlayerStateMark.h"
 #include "U4DTeam.h"
 #include "U4DFoot.h"
 
@@ -85,7 +87,7 @@ void U4DPlayerStateSlidingTackle::execute(U4DPlayer *uPlayer, double dt){
     if (currentAnimation->getAnimationIsPlaying()==false) {
 
         if (team->aiTeam) {
-            uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
+            uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
         }else{
             uPlayer->changeState(U4DPlayerStateFree::sharedInstance());
         }
@@ -108,9 +110,16 @@ bool U4DPlayerStateSlidingTackle::handleMessage(U4DPlayer *uPlayer, Message &uMs
         
         case msgSupport:
         {
-            uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
+            //uPlayer->changeState(U4DPlayerStateFlock::sharedInstance());
         }
             break;
+            
+        case msgGoHome:
+        {
+            uPlayer->changeState(U4DPlayerStateGoHome::sharedInstance());
+        }
+            
+        break;
             
         default:
             break;

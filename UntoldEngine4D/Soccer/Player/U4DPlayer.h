@@ -137,6 +137,8 @@ public:
     
     U4DPlayerStateInterface *getCurrentState();
     
+    U4DPlayerStateInterface *getPreviousState();
+    
     std::string getCurrentStateName();
     
     //add to team

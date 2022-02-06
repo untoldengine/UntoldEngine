@@ -59,7 +59,7 @@ void U4DTeamStateDefending::enter(U4DTeam *uTeam){
             n->changeState(U4DPlayerStateIdle::sharedInstance());
         }
         
-        //uTeam->getActivePlayer()->setEnableFreeToRun(true);
+        uTeam->getActivePlayer()->setEnableFreeToRun(true);
         
     }
     

@@ -123,41 +123,42 @@ void U4DPlayerStateMark::execute(U4DPlayer *uPlayer, double dt){
          
      }
      
+      U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
       uPlayer->foot->kineticAction->resumeCollisionBehavior();
       if (uPlayer->foot->kineticAction->getModelHasCollided()) {
-
+          
           uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
       }
   
-//      U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
-//
-//      if((ball->getAbsolutePosition()-uPlayer->getAbsolutePosition()).magnitude()<gameConfigs->getParameterForKey("interceptMinRadius")){
-//
-//          //create a plane with ball position and direction
-//          U4DEngine::U4DPoint3n ballPosition=ball->getAbsolutePosition().toPoint();
-//          U4DEngine::U4DVector3n ballNormalVector=ball->getViewInDirection();
-//          ballNormalVector.normalize();
-//
-//          U4DEngine::U4DPlane ballPlane(ballNormalVector,ballPosition);
-//
-//          //create a ray with players position and direction
-//          U4DEngine::U4DPoint3n playerPosition=uPlayer->getAbsolutePosition().toPoint();
-//          U4DEngine::U4DVector3n playerDirection=uPlayer->dribblingDirection;
-//          playerDirection.normalize();
-//
-//          U4DEngine::U4DPoint3n intersectionPoint;
-//          float intersectionTime;
-//
-//          U4DEngine::U4DRay playerRay(playerPosition,playerDirection);
-//
-//          if (playerRay.intersectPlane(ballPlane, intersectionPoint, intersectionTime)) {
-//
-//              if (intersectionTime<0.5) {
-//                  uPlayer->slidingVelocity=finalVelocity*gameConfigs->getParameterForKey("slidingTackleVelocity");
-//                  uPlayer->changeState(U4DPlayerStateSlidingTackle::sharedInstance());
-//              }
-//          }
-//     }
+      
+
+      if((ball->getAbsolutePosition()-uPlayer->getAbsolutePosition()).magnitude()<gameConfigs->getParameterForKey("slidingTackleMinDistance")){
+
+          //create a plane with ball position and direction
+          U4DEngine::U4DPoint3n ballPosition=ball->getAbsolutePosition().toPoint();
+          U4DEngine::U4DVector3n ballNormalVector=ball->getViewInDirection();
+          ballNormalVector.normalize();
+
+          U4DEngine::U4DPlane ballPlane(ballNormalVector,ballPosition);
+
+          //create a ray with players position and direction
+          U4DEngine::U4DPoint3n playerPosition=uPlayer->getAbsolutePosition().toPoint();
+          U4DEngine::U4DVector3n playerDirection=uPlayer->dribblingDirection;
+          playerDirection.normalize();
+
+          U4DEngine::U4DPoint3n intersectionPoint;
+          float intersectionTime;
+
+          U4DEngine::U4DRay playerRay(playerPosition,playerDirection);
+
+          if (playerRay.intersectPlane(ballPlane, intersectionPoint, intersectionTime)) {
+
+              if (intersectionTime<1.0) {
+                  uPlayer->slidingVelocity=finalVelocity*gameConfigs->getParameterForKey("slidingTackleVelocity");
+                  uPlayer->changeState(U4DPlayerStateSlidingTackle::sharedInstance());
+              }
+          }
+     }
 }
 
 void U4DPlayerStateMark::exit(U4DPlayer *uPlayer){

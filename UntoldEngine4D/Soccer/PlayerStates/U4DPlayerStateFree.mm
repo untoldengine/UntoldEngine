@@ -12,6 +12,7 @@
 #include "U4DPlayerStateIntercept.h"
 #include "U4DPlayerStateJog.h"
 #include "U4DPlayerStateSlidingTackle.h"
+#include "U4DPlayerStateGoHome.h"
 #include "U4DTeam.h"
 #include "U4DBall.h"
 #include "U4DFoot.h"
@@ -87,7 +88,7 @@ void U4DPlayerStateFree::execute(U4DPlayer *uPlayer, double dt){
     //compute the final velocity
     U4DEngine::U4DVector3n finalVelocity=uPlayer->arriveBehavior.getSteering(uPlayer->kineticAction, ballPosition);
     
-    finalVelocity=freeVelocity*gameConfigs->getParameterForKey("freeMaxSpeed")*0.4+finalVelocity*0.6;
+    finalVelocity=freeVelocity*gameConfigs->getParameterForKey("freeMaxSpeed")*0.7+finalVelocity*0.3;
     //finalVelocity=freeVelocity*gameConfigs->getParameterForKey("freeMaxSpeed");
     
     //set the final y-component to zero
@@ -137,6 +138,13 @@ bool U4DPlayerStateFree::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
         {
             uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
         }
+        break;
+            
+        case msgGoHome:
+        {
+            uPlayer->changeState(U4DPlayerStateGoHome::sharedInstance());
+        }
+            
         break;
             
         default:
