@@ -50,7 +50,7 @@ std::vector<std::string> U4DEntityFactory::getRegisteredClasses(){
     return registeredClassesContainer;
 }
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, const char* uExtraInfo, ...){
+void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     
@@ -92,34 +92,6 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
             
             //set the class type
             model->setClassType(uType);
-            
-            //if the class type is of U4DPlayer, then check if a team was selected
-            
-            if(uType.compare("U4DPlayer")==0){
-            
-                U4DMatchManager *matchManager=U4DMatchManager::sharedInstance();
-                
-                va_list args;
-                va_start (args, uExtraInfo);
-                
-                while (uExtraInfo) {
-                    
-                    if(std::strcmp(uExtraInfo,"TeamA")==0){
-                        
-                        matchManager->teamA->addPlayer(reinterpret_cast<U4DPlayer*>(model));
-                        
-                    }else if(std::strcmp(uExtraInfo,"TeamB")==0){
-                        
-                        matchManager->teamB->addPlayer(reinterpret_cast<U4DPlayer*>(model));
-                       
-                    }
-                    
-                    uExtraInfo=va_arg(args, const char *);
-                }
-
-                va_end (args);
-                
-            }
             
         }
         
@@ -134,7 +106,7 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
 
 
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, std::string uTeam, U4DVector3n uPosition, U4DVector3n uOrientation){
+void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     
@@ -178,22 +150,6 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
             
             //set the class type
             model->setClassType(uType);
-            
-            if(uType.compare("U4DPlayer")==0){
-                
-                U4DMatchManager *matchManager=U4DMatchManager::sharedInstance();
-                    
-                if(uTeam.compare("TeamA")==0){
-                    
-                    matchManager->teamA->addPlayer(reinterpret_cast<U4DPlayer*>(model));
-                    
-                }else if(uTeam.compare("TeamB")==0){
-                    
-                    matchManager->teamB->addPlayer(reinterpret_cast<U4DPlayer*>(model));
-                   
-                }
-                    
-            }
             
             model->translateTo(uPosition);
             model->rotateTo(uOrientation.x, uOrientation.y, uOrientation.z);

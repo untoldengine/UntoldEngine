@@ -17,12 +17,7 @@
 #include "U4DModelPipeline.h"
 
 
-#include "U4DPlayer.h"
-#include "U4DFoot.h"
-#include "U4DField.h"
-#include "U4DGoalPost.h"
-#include "U4DBall.h"
-#include "U4DPlayerStateIdle.h"
+
 #include "U4DGameConfigs.h"
 
 #include "U4DEntityFactory.h"
@@ -49,19 +44,8 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     setEnableGrid(true);
     
-    //load the config values
-    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
     
-    gameConfigs->initConfigsMapKeys("dribblingBallSpeed","playerBiasMotionAccum","arriveMaxSpeed","arriveStopRadius","arriveSlowRadius","dribblingDirectionSlerpValue","shootingBallSpeed","passBallSpeed","passInterceptionParam","arriveJogMaxSpeed","arriveJogStopRadius","arriveJogSlowRadius","haltRadius","pursuitMaxSpeed","interceptMinRadius","freeMaxSpeed","freeStopRadius","freeSlowRadius","neighborPlayerSeparationDistance","neighborPlayerAlignmentDistance","neighborPlayerCohesionDistance","avoidanceMaxSpeed","fieldHalfWidth","fieldHalfLength","cellAnalyzerWidth","cellAnalyzerHeight","navPathRadius","navPredictTime","markArrivingMaxSpeed","markArriveStopRadius","markArriveSlowRadius","markAvoidanceMaxSpeed","markAvoidanceTimeParameter","markPursuitMaxSpeed","slidingTackleKick","slidingTackleVelocity","slidingTackleMinDistance",nullptr);
-    
-    gameConfigs->loadConfigsMapValues("gameconfigs.gravity");
-    
-    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
- 
-    entityFactory->registerClass<U4DPlayer>("U4DPlayer");
-    entityFactory->registerClass<U4DField>("U4DField");
-    entityFactory->registerClass<U4DGoalPost>("U4DGoalPost");
- 
+ //entityFactory->registerClass<U4DPlayer>("U4DPlayer");
     
 //    entityFactory->createModelInstance("player0", "player0.0", "U4DPlayer");
 //    entityFactory->createModelInstance("field", "field0", "Field");
@@ -77,8 +61,8 @@ void SandboxWorld::init(){
     
     //deserialize
     U4DSerializer *serializer=U4DSerializer::sharedInstance();
-
     serializer->deserialize("scenefile.u4d");
+
     
 //    U4DEngine::U4DPlayer *player=new U4DEngine::U4DPlayer();
 //    if (player->init("player0")) {
@@ -179,7 +163,7 @@ void SandboxWorld::init(){
     
     
     
-//    //initialize the skybox
+    //initialize the skybox
 //    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
 //
 //    skybox->initSkyBox(100.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
@@ -187,7 +171,7 @@ void SandboxWorld::init(){
 //    //add the skybox to the scenegraph with a z-depth of -1
 //
 //    addChild(skybox,-1);
-//
+
 }
 
 
