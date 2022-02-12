@@ -395,7 +395,7 @@ T* U4DEntityNode<T>::searchChild(std::string uName){
 }
     
 template <typename T>
-T* U4DEntityNode<T>::seachChild(int uChildId){
+T* U4DEntityNode<T>::searchChild(int uChildId){
     
     T* child=static_cast<T*>(this);
     T* childWithId=nullptr;

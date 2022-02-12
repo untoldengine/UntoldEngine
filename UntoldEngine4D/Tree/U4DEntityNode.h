@@ -186,7 +186,7 @@ namespace U4DEngine {
         
         T* searchChild(std::string uName);
         
-        T* seachChild(int uChildId);
+        T* searchChild(int uChildId);
     };
     
 }

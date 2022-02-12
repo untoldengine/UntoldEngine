@@ -44,123 +44,16 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     setEnableGrid(true);
     
-    
- //entityFactory->registerClass<U4DPlayer>("U4DPlayer");
-    
-//    entityFactory->createModelInstance("player0", "player0.0", "U4DPlayer");
-//    entityFactory->createModelInstance("field", "field0", "Field");
-    
-
-//    U4DModel *field=entityFactory->createAction("Field");
+//    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
 //
-//     if(field->init("field")){
-//
-//         addChild(field);
-//
-//     }
+//    entityFactory->createModelInstance("field", "field0", "U4DModel");
+//    entityFactory->createModelInstance("player0", "player.0", "U4DModel");
     
     //deserialize
-    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-    serializer->deserialize("scenefile.u4d");
+//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+//    serializer->deserialize("scenefile.u4d");
 
-    
-//    U4DEngine::U4DPlayer *player=new U4DEngine::U4DPlayer();
-//    if (player->init("player0")) {
-//        addChild(player);
-//
-//        //render the right foot
-//        U4DEngine::U4DFoot *rightFoot=new U4DEngine::U4DFoot();
-//
-//        std::string footName="rightfoot";
-//        footName+=std::to_string(0);
-//
-//        if(rightFoot->init(footName.c_str())){
-//
-//            player->setFoot(rightFoot);
-//
-//        }
-//
-//        player->changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
-//    }
-//
-//
-//
-//    U4DEngine::U4DPlayer *oppositePlayers[5];
-//
-//    for(int i=0;i<5;i++){
-//        std::string name="oppositeplayer";
-//        name+=std::to_string(i);
-//
-//        oppositePlayers[i]=new U4DEngine::U4DPlayer();
-//
-//        if(oppositePlayers[i]->init(name.c_str())){
-//            addChild(oppositePlayers[i]);
-//
-//            //render the right foot
-//            U4DEngine::U4DFoot *rightFoot=new U4DEngine::U4DFoot();
-//
-//            std::string footName="rightfoot";
-//            footName+=std::to_string(i+1);
-//
-//            if(rightFoot->init(footName.c_str())){
-//
-//                oppositePlayers[i]->setFoot(rightFoot);
-//
-//            }
-//        }
-//
-//        oppositePlayers[i]->changeState(U4DPlayerStateIdle::sharedInstance());
-//    }
-//
-//    Field *field=new Field();
-//    if(field->init("field")){
-//        addChild(field);
-//    }
 
-    
-
-//    U4DEngine::U4DModel *fieldGoals[2];
-//
-//    for(int i=0;i<sizeof(fieldGoals)/sizeof(fieldGoals[0]);i++){
-//
-//        std::string name="fieldgoal";
-//
-//        name+=std::to_string(i);
-//
-//        fieldGoals[i]=new U4DEngine::U4DModel();
-//
-//        if(fieldGoals[i]->loadModel(name.c_str())){
-//
-//
-//            fieldGoals[i]->loadRenderingInformation();
-//
-//            addChild(fieldGoals[i]);
-//        }
-//
-//    }
-//
-//    U4DEngine::U4DModel *bleachers[4];
-//
-//    for(int i=0;i<sizeof(bleachers)/sizeof(bleachers[0]);i++){
-//
-//        std::string name="bleacher";
-//
-//        name+=std::to_string(i);
-//
-//        bleachers[i]=new U4DEngine::U4DModel();
-//
-//        if(bleachers[i]->loadModel(name.c_str())){
-//
-//
-//            bleachers[i]->loadRenderingInformation();
-//
-//            addChild(bleachers[i]);
-//        }
-//
-//    }
-//
-//
-    
     
     
     //initialize the skybox
