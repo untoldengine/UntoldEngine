@@ -11,7 +11,6 @@
 
 #include <stdio.h>
 #include "CommonProtocols.h"
-#include "U4DPlayer.h"
 #include "../Enet/include/enet/enet.h"
 #include "U4DOutMemoryStream.h"
 #include "U4DInMemoryStream.h"

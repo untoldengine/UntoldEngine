@@ -88,7 +88,6 @@ namespace U4DEngine {
         */
         std::string classType;
 
-
         /**
         @brief Reference name to Blender Asset
         */
@@ -421,6 +420,7 @@ namespace U4DEngine {
         void setAssetReferenceName(std::string uAssetReferenceName);
 
         std::string getAssetReferenceName();
+        
         
         
     };

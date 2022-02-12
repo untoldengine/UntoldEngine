@@ -82,7 +82,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static std::string shaderFilePath;
     static std::string sceneFilePath;
     static std::string sceneFilePathName;
-    static std::string extraInfo;
     static bool shaderFilesFound=false;
     static bool lookingForShaderFile=false;
     
@@ -291,8 +290,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                           logger->log("Script was loaded.");
 
                           //call the init function in the script
-                          scriptManager->loadGameConfigs();
-
+                          //scriptManager->loadGameConfigs();
+                          scriptManager->initClosure();
+                          
                           scriptLoadedSuccessfully=true;
                       }else{
                           scriptLoadedSuccessfully=false;
@@ -606,35 +606,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         
                         
                         
-                        if(assetSelectedTypeName.compare("U4DPlayer")==0){
-                            
-                            
-                            
-                            std::vector<std::string> teamsItems{"TeamB", "TeamA",""};
-                            
-                            static int teamItemCurrentIndex = (int)teamsItems.size()-1; // Here we store our selection data as an index.
-                            
-                            const char* teamComboLabel = teamsItems.at(teamItemCurrentIndex).c_str();
-                            
-                            extraInfo=teamsItems.at(teamItemCurrentIndex).c_str();
-                            
-                            if (ImGui::BeginCombo("Team", teamComboLabel, flags))
-                            {
-                                for (int n = 0; n < teamsItems.size(); n++)
-                                {
-                                    const bool teamIsSelected = (teamItemCurrentIndex == n);
-                                    if (ImGui::Selectable(teamsItems.at(n).c_str(), teamIsSelected)){
-                                        teamItemCurrentIndex = n;
-                                        extraInfo=teamsItems.at(n);
-                                        
-                                    }
-                                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                                    if (teamIsSelected)
-                                        ImGui::SetItemDefaultFocus();
-                                }
-                                ImGui::EndCombo();
-                            }
-                        }
+                        
                         
                         if(ImGui::Button("load Assset")){
                         
@@ -674,10 +646,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 
                                 std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
                                 
-                                entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName,extraInfo.c_str());
+                                entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName);
                                 
-                                //clearing the extra info
-                                extraInfo="";
                             }
                             
                         }
