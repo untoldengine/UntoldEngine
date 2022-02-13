@@ -643,6 +643,104 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
+    bool U4DScriptManager::modelApplyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==4){
+            
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            gravity_instance_t *dynamicActionInstance = (gravity_instance_t *)GET_VALUE(1).p;
+            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(2).p;
+            gravity_value_t dtValue=GET_VALUE(3);
+            
+            // get xdata
+            U4DModel *model = (U4DModel *)instance->xdata;
+            U4DDynamicAction *dynamicAction=(U4DDynamicAction *)dynamicActionInstance->xdata;
+            U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+           
+            if(model!=nullptr && dynamicAction!=nullptr && velocity!=nullptr && VALUE_ISA_FLOAT(dtValue)){
+                
+                gravity_float_t dt=dtValue.f;
+                
+                //get mass
+                float mass=dynamicAction->getMass();
+                
+                //smooth out the motion of the camera by using a Recency Weighted Average.
+                //The RWA keeps an average of the last few values, with more recent values being more
+                //significant. The bias parameter controls how much significance is given to previous values.
+                //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+                //A bias of 1 ignores the new value altogether.
+                //float biasMotionAccumulator=0.8;
+                
+                //calculate force
+                U4DEngine::U4DVector3n force=((*velocity)*mass)/dt;
+                
+                //apply force
+                dynamicAction->addForce(force);
+                
+                //set initial velocity to zero
+                U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+                dynamicAction->setVelocity(zero);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+            
+        }
+        
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+
+    bool U4DScriptManager::modelSetMoveDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        
+        if(nargs==2){
+            
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            
+            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(1).p;
+            
+            
+            // get xdata
+            U4DModel *model = (U4DModel *)instance->xdata;
+            
+            U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
+        
+            if(model!=nullptr && viewDirection!=nullptr){
+                
+                //declare an up vector
+                U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+                
+                U4DVector3n viewDir=model->getEntityForwardVector();
+                
+                U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
+                
+                //transform the upvector
+                upVector=m*upVector;
+                
+                U4DEngine::U4DVector3n posDir=viewDir.cross(upVector);
+                
+                float angle=(*viewDirection).angle(viewDir);
+                
+                if((*viewDirection).dot(posDir)>0.0){
+                    
+                    angle*=-1.0;
+                    
+                }
+                
+                U4DQuaternion q(angle,upVector);
+                
+                model->rotateTo(q);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+        
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
     void U4DScriptManager::modelFree(gravity_vm *vm, gravity_object_t *obj){
         
         gravity_instance_t *instance = (gravity_instance_t *)obj;
@@ -2478,6 +2576,9 @@ namespace U4DEngine {
         gravity_class_bind(model_class, "getViewInDirection", NEW_CLOSURE_VALUE(modelGetViewInDirection));
         gravity_class_bind(model_class, "setViewInDirection", NEW_CLOSURE_VALUE(modelSetViewInDirection));
         gravity_class_bind(model_class, "setEntityForwardVector", NEW_CLOSURE_VALUE(modelSetEntityForwardVector));
+        gravity_class_bind(model_class, "applyVelocity", NEW_CLOSURE_VALUE(modelApplyVelocity));
+        gravity_class_bind(model_class, "setMoveDirection", NEW_CLOSURE_VALUE(modelSetMoveDirection));
+        
         
         gravity_class_bind(model_class, "setPipeline", NEW_CLOSURE_VALUE(modelSetPipeline));
         gravity_class_bind(model_class, "loadAnimationToModel", NEW_CLOSURE_VALUE(modelLoadAnimation));

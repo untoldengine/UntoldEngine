@@ -118,7 +118,6 @@ namespace U4DEngine {
         
         //U4DModel
         static bool modelCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-        
         static bool modelTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelTranslateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -129,6 +128,11 @@ namespace U4DEngine {
         static bool modelGetViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelSetViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelSetEntityForwardVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool modelApplyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool modelSetMoveDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        
         static bool modelLoadAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         void modelFree (gravity_vm *vm, gravity_object_t *obj);
