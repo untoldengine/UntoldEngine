@@ -15,7 +15,6 @@
 #include "U4DScene.h"
 #include "U4DWorld.h"
 #include "U4DModel.h"
-#include "U4DScriptBridge.h"
 #include "U4DScriptInstanceManager.h"
 
 namespace U4DEngine {
@@ -181,24 +180,127 @@ namespace U4DEngine {
         
     }
 
-    bool U4DScriptManager::bridgeInstance(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+    bool U4DScriptManager::worldCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
-         // self parameter is the scriptBrige_class create in register_cpp_classes
-         gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
-
-         // create Gravity instance and set its class to c
-         gravity_instance_t *instance = gravity_instance_new(vm, c);
-
-         // allocate a cpp instance of the logger class on the heap
-         U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-
-         // set cpp instance and xdata of the gravity instance
-         gravity_instance_setxdata(instance, scriptBridge);
-
-         // return instance
-         RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
-
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        U4DWorld *world=scene->getGameWorld();
         
+        // self parameter is the logger_class create in register_cpp_classes
+        gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+        
+        // create Gravity instance and set its class to c
+        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        
+        // set cpp instance and xdata of the gravity instance
+        gravity_instance_setxdata(instance, world);
+        
+        // return instance
+        RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+        
+    }
+    
+
+    bool U4DScriptManager::loadModel(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        U4DWorld *world=scene->getGameWorld();
+        U4DModel *model=nullptr;
+        
+        if(nargs==2){
+            
+            gravity_value_t assetName=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(assetName)) {
+                
+                gravity_string_t *v=(gravity_string_t *)assetName.p;
+                std::string name(v->s);
+                
+                //create a new model
+                model=new U4DModel();
+                
+                if (model->loadModel(name.c_str())) {
+                    
+                    model->loadRenderingInformation();
+                    
+                    world->addChild(model);
+                 
+                }
+                
+            }
+            
+        }else if(nargs==3){
+            
+            gravity_value_t assetName=GET_VALUE(1);
+            gravity_value_t pipelineName=GET_VALUE(2);
+
+            if (VALUE_ISA_STRING(assetName) && VALUE_ISA_STRING(pipelineName)) {
+
+                gravity_string_t *v=(gravity_string_t *)assetName.p;
+                std::string name(v->s);
+
+                gravity_string_t *pipe=(gravity_string_t *)pipelineName.p;
+                std::string pipeline(pipe->s);
+
+                //create a new model
+                model=new U4DModel();
+                
+                if (model->loadModel(name.c_str())) {
+                    
+                    model->setPipeline(pipeline.c_str());
+                    
+                    model->loadRenderingInformation();
+                    
+                    world->addChild(model);
+                    
+                }
+
+            }
+        }
+        
+        if(model!=nullptr){
+            std::string entityName=model->getName();
+            
+            gravity_value_t gravityEntityName = VALUE_FROM_CSTRING(NULL, entityName.c_str());
+            gravity_string_t *n=(gravity_string_t *)gravityEntityName.p;
+            
+            RETURN_VALUE(VALUE_FROM_STRING(vm, n->s, n->len),rindex);
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptManager::removeModel(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        U4DWorld *world=scene->getGameWorld();
+        
+        if(nargs==2){
+            
+            gravity_value_t modelName=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(modelName)) {
+                
+                gravity_string_t *v=(gravity_string_t *)modelName.p;
+                std::string name(v->s);
+                
+                U4DEntity *model=world->searchChild(name);
+                
+                if(model!=nullptr){
+                    
+                    U4DEntity *parent=model->getParent();
+                    parent->removeChild(model);
+                    
+                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                }
+     
+            }
+                        
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
     //logger
@@ -2562,6 +2664,17 @@ namespace U4DEngine {
 
     void U4DScriptManager::registerClasses(gravity_vm *vm){
             
+        //untold
+        gravity_class_t *worldClass = gravity_class_new_pair(vm, "U4DWorld", NULL, 0, 0);
+        gravity_class_t *worldClassMeta = gravity_class_get_meta(worldClass);
+        
+        gravity_class_bind(worldClassMeta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(worldCreate));
+        gravity_class_bind(worldClass, "loadModel", NEW_CLOSURE_VALUE(loadModel));
+        gravity_class_bind(worldClass, "removeModel", NEW_CLOSURE_VALUE(removeModel));
+        
+        // register logger class inside VM
+        gravity_vm_setvalue(vm, "U4DWorld", VALUE_FROM_OBJECT(worldClass));
+        
         //model
         gravity_class_t *model_class = gravity_class_new_pair(vm, "U4DModel", NULL, 0, 0);
         gravity_class_t *model_class_meta = gravity_class_get_meta(model_class);
