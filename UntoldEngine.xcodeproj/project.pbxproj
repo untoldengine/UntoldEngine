@@ -20,9 +20,6 @@
 		030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205561B6E9D98005A72E8 /* U4DTetrahedron.mm */; };
 		0302055B1B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030205591B6EB31B005A72E8 /* U4DCollisionAlgorithm.mm */; };
 		030205611B6EB47B005A72E8 /* U4DGJKAlgorithm.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0302055F1B6EB47B005A72E8 /* U4DGJKAlgorithm.mm */; };
-		030341F127B5BA2A004ADF0A /* U4DScriptBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030341F027B5BA2A004ADF0A /* U4DScriptBridge.mm */; };
-		030341F227B5BA2B004ADF0A /* U4DScriptBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030341F027B5BA2A004ADF0A /* U4DScriptBridge.mm */; };
-		030341F327B5BA2B004ADF0A /* U4DScriptBridge.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030341F027B5BA2A004ADF0A /* U4DScriptBridge.mm */; };
 		030341F627B64008004ADF0A /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030341F427B64008004ADF0A /* U4DScriptInstanceManager.mm */; };
 		030341F727B64008004ADF0A /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030341F427B64008004ADF0A /* U4DScriptInstanceManager.mm */; };
 		030341F827B64008004ADF0A /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 030341F427B64008004ADF0A /* U4DScriptInstanceManager.mm */; };
@@ -1182,8 +1179,6 @@
 		0302055A1B6EB31B005A72E8 /* U4DCollisionAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DCollisionAlgorithm.h; path = UntoldEngine4D/PhysicsEngine/CollisionEngine/CollisionAlgorithm/U4DCollisionAlgorithm.h; sourceTree = SOURCE_ROOT; };
 		0302055F1B6EB47B005A72E8 /* U4DGJKAlgorithm.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DGJKAlgorithm.mm; path = UntoldEngine4D/PhysicsEngine/CollisionEngine/CollisionAlgorithm/GJKAlgorithm/U4DGJKAlgorithm.mm; sourceTree = SOURCE_ROOT; };
 		030205601B6EB47B005A72E8 /* U4DGJKAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DGJKAlgorithm.h; path = UntoldEngine4D/PhysicsEngine/CollisionEngine/CollisionAlgorithm/GJKAlgorithm/U4DGJKAlgorithm.h; sourceTree = SOURCE_ROOT; };
-		030341EF27B5BA2A004ADF0A /* U4DScriptBridge.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DScriptBridge.h; path = ScriptingSystem/U4DScriptBridge.h; sourceTree = "<group>"; };
-		030341F027B5BA2A004ADF0A /* U4DScriptBridge.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptBridge.mm; path = ScriptingSystem/U4DScriptBridge.mm; sourceTree = "<group>"; };
 		030341F427B64008004ADF0A /* U4DScriptInstanceManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptInstanceManager.mm; path = ScriptingSystem/U4DScriptInstanceManager.mm; sourceTree = "<group>"; };
 		030341F527B64008004ADF0A /* U4DScriptInstanceManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptInstanceManager.h; path = ScriptingSystem/U4DScriptInstanceManager.h; sourceTree = "<group>"; };
 		03042F64265770CD00681C6C /* spaceScene.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = spaceScene.u4d; sourceTree = "<group>"; };
@@ -2935,8 +2930,6 @@
 			children = (
 				030341F527B64008004ADF0A /* U4DScriptInstanceManager.h */,
 				030341F427B64008004ADF0A /* U4DScriptInstanceManager.mm */,
-				030341EF27B5BA2A004ADF0A /* U4DScriptBridge.h */,
-				030341F027B5BA2A004ADF0A /* U4DScriptBridge.mm */,
 				036AE9C5270D7BA600F9685B /* U4DGameConfigs.h */,
 				036AE9C4270D7BA600F9685B /* U4DGameConfigs.mm */,
 				036AE9BF270D79D900F9685B /* U4DScriptManager.h */,
@@ -3857,7 +3850,6 @@
 				03722B622029F0F50080D069 /* U4DBoundingOBB.mm in Sources */,
 				03722BC12029F0F50080D069 /* U4DTransformationManagerInterface.mm in Sources */,
 				03907FF6273EB2CC0092A0D2 /* U4DMacKeyActiveState.mm in Sources */,
-				030341F227B5BA2B004ADF0A /* U4DScriptBridge.mm in Sources */,
 				03722B5E2029F0F50080D069 /* U4DDirector.mm in Sources */,
 				0397E4742518F3520020EBD9 /* sliderUIShader.metal in Sources */,
 				03722B692029F0F50080D069 /* fontShader.metal in Sources */,
@@ -4326,7 +4318,6 @@
 				039DB55E223F08C200E323D4 /* U4DRay.mm in Sources */,
 				0323DB9E202F5FB10007F087 /* U4DPadJoystick.mm in Sources */,
 				03907FF7273EB2CC0092A0D2 /* U4DMacKeyActiveState.mm in Sources */,
-				030341F327B5BA2B004ADF0A /* U4DScriptBridge.mm in Sources */,
 				03722C9C2029F0F80080D069 /* U4DBoundingOBB.mm in Sources */,
 				03722CFB2029F0F80080D069 /* U4DTransformationManagerInterface.mm in Sources */,
 				03722C982029F0F80080D069 /* U4DDirector.mm in Sources */,
@@ -4622,7 +4613,6 @@
 				03E688CD267793280079ED4D /* gravity_vm.c in Sources */,
 				03F02A8C24453A6E007B073D /* U4DAlign.mm in Sources */,
 				03E6EDA31943D79F007AD131 /* U4DSkybox.mm in Sources */,
-				030341F127B5BA2A004ADF0A /* U4DScriptBridge.mm in Sources */,
 				038BF260228C5C5000B129A5 /* U4DPathfinderAStar.mm in Sources */,
 				030205581B6E9D98005A72E8 /* U4DTetrahedron.mm in Sources */,
 				03F2DAF01F191A2600F77B78 /* geometryShader.metal in Sources */,

@@ -20,6 +20,7 @@
 #include "gravity_hash.h"
 #include "gravity_delegate.h"
 #include <iostream>
+#include <list>
 #include <string.h>
 
 namespace U4DEngine {
@@ -91,7 +92,10 @@ namespace U4DEngine {
         void freeUserInputObjects();
         
         //bridge
-        static bool bridgeInstance(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static bool worldCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool loadModel(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool removeModel(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         //vector3n
         static bool vector3nNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -118,6 +122,7 @@ namespace U4DEngine {
         
         //U4DModel
         static bool modelCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool modelDestroy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelTranslateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelTranslateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -135,7 +140,7 @@ namespace U4DEngine {
         
         static bool modelLoadAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
-        void modelFree (gravity_vm *vm, gravity_object_t *obj);
+        void modelFree(gravity_vm *vm, gravity_object_t *obj);
         
         
         
