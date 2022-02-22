@@ -244,8 +244,6 @@ namespace U4DEngine {
 
     void U4DRenderManager::render(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity){
         
-        U4DDebugger *debugger=U4DDebugger::sharedInstance();
-        
         updateDirLightDataUniforms();
         updatePointLightDataUniforms();
         updateGlobalDataUniforms();

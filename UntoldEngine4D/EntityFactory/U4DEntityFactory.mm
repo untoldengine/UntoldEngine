@@ -50,7 +50,7 @@ std::vector<std::string> U4DEntityFactory::getRegisteredClasses(){
     return registeredClassesContainer;
 }
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType){
+void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, std::string uPipeline){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     
@@ -70,9 +70,11 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
 
             if (model->loadModel(uAssetName.c_str())) {
                 
+                model->setPipeline(uPipeline);
                 model->loadRenderingInformation();
                 world->addChild(model);
                 modelDataLoaded=true;
+            
             }
 
         }else{
@@ -106,7 +108,7 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
 
 
 
-void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, U4DVector3n uPosition, U4DVector3n uOrientation){
+void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string uModelName, std::string uType, std::string uPipeline, U4DVector3n uPosition, U4DVector3n uOrientation){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
     
@@ -126,6 +128,7 @@ void U4DEntityFactory::createModelInstance(std::string uAssetName, std::string u
 
             if (model->loadModel(uAssetName.c_str())) {
                 
+                model->setPipeline(uPipeline);
                 model->loadRenderingInformation();
                 world->addChild(model);
                 modelDataLoaded=true;

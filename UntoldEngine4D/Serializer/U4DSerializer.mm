@@ -80,6 +80,7 @@ namespace U4DEngine {
                 entitySerializeData.name=model->getName();
                 entitySerializeData.assetReferenceName=model->getAssetReferenceName();
                 entitySerializeData.classType=model->getClassType();
+                entitySerializeData.pipelineName=model->renderEntity->getPipeline(U4DEngine::finalPass)->getName();
                 
                 U4DVector3n pos=model->getAbsolutePosition();
                 entitySerializeData.position.push_back(pos.x);
@@ -176,6 +177,10 @@ namespace U4DEngine {
             file.write((char*)&modelClassTypeLen,sizeof(modelClassTypeLen));
             file.write((char*)&n.classType[0],modelClassTypeLen);
             
+            //Write the model pipeline
+            size_t modelPipelineLen=n.pipelineName.size();
+            file.write((char*)&modelPipelineLen,sizeof(modelPipelineLen));
+            file.write((char*)&n.pipelineName[0],modelPipelineLen);
             
             //Write the position
             int positionSize=(int)n.position.size();
@@ -335,6 +340,12 @@ namespace U4DEngine {
             modelData.classType.resize(modelClassTypeLen);
             file.read((char*)&modelData.classType[0],modelClassTypeLen);
             
+            //Read the pipeline of the model
+            size_t modelPipelineLen=0;
+            file.read((char*)&modelPipelineLen,sizeof(modelPipelineLen));
+            modelData.pipelineName.resize(modelPipelineLen);
+            file.read((char*)&modelData.pipelineName[0],modelPipelineLen);
+            
             
             //Read the position
             int positionSize=0;
@@ -382,7 +393,7 @@ namespace U4DEngine {
             
             //Ask the factory class to create an instance of each object and load it into the world
             
-            entityFactory->createModelInstance(n.assetReferenceName,n.name, n.classType, pos, orient);
+            entityFactory->createModelInstance(n.assetReferenceName,n.name, n.classType,n.pipelineName, pos, orient);
             
         }
         
