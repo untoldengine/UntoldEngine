@@ -576,24 +576,24 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     //
                         ImGui::Text("Select Asset Type");
                         
-                        std::vector<std::string> items=entityFactory->getRegisteredClasses();
+                        std::vector<std::string> registeredClassesItems=entityFactory->getRegisteredClasses();
                         
-                        static int item_current_idx = (int)items.size()-1; // Here we store our selection data as an index.
+                        static int registeredClassesCurrentIndex = (int)registeredClassesItems.size()-1; // Here we store our selection data as an index.
                         
-                        const char* combo_label = items.at(item_current_idx).c_str();
+                        const char* classesComboLabel = registeredClassesItems.at(registeredClassesCurrentIndex).c_str();
                         
-                        assetSelectedTypeName=items.at(item_current_idx).c_str();
+                        assetSelectedTypeName=registeredClassesItems.at(registeredClassesCurrentIndex).c_str();
                         
-                        static ImGuiComboFlags flags = 0;
+                        static ImGuiComboFlags classesComboFlags = 0;
                         
-                        if (ImGui::BeginCombo("Classes", combo_label, flags))
+                        if (ImGui::BeginCombo("Classes", classesComboLabel, classesComboFlags))
                         {
-                            for (int n = 0; n < items.size(); n++)
+                            for (int n = 0; n < registeredClassesItems.size(); n++)
                             {
-                                const bool is_selected = (item_current_idx == n);
-                                if (ImGui::Selectable(items.at(n).c_str(), is_selected)){
-                                    item_current_idx = n;
-                                    assetSelectedTypeName=items.at(n);
+                                const bool is_selected = (registeredClassesCurrentIndex == n);
+                                if (ImGui::Selectable(registeredClassesItems.at(n).c_str(), is_selected)){
+                                    registeredClassesCurrentIndex = n;
+                                    assetSelectedTypeName=registeredClassesItems.at(n);
                                 }
                                 // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
                                 if (is_selected)
@@ -605,8 +605,39 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         ImGui::Separator();
                         
                         
+                        //add combo for pipelines
                         
+                        ImGui::Text("Select Asset Pipeline");
                         
+                        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+                        
+                        std::vector<std::string> registeredPipelineItems=renderManager->getRenderingPipelineList();
+                        
+                        static int registeredPipelineCurrentIndex = 0; // Here we store our selection data as an index.
+                        
+                        const char* pipelineComboLabel = registeredPipelineItems.at(registeredPipelineCurrentIndex).c_str();
+                        
+                        assetSelectedPipelineName=registeredPipelineItems.at(registeredPipelineCurrentIndex).c_str();
+                        
+                        static ImGuiComboFlags pipelineComboFlags = 0;
+                        
+                        if (ImGui::BeginCombo("Pipeline", pipelineComboLabel, pipelineComboFlags))
+                        {
+                            for (int n = 0; n < registeredPipelineItems.size(); n++)
+                            {
+                                const bool is_selected = (registeredPipelineCurrentIndex == n);
+                                if (ImGui::Selectable(registeredPipelineItems.at(n).c_str(), is_selected)){
+                                    registeredPipelineCurrentIndex = n;
+                                    assetSelectedPipelineName=registeredPipelineItems.at(n);
+                                }
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        
+                        ImGui::Separator();
                         
                         if(ImGui::Button("load Assset")){
                         
@@ -646,7 +677,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 
                                 std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
                                 
-                                entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName);
+                                entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName,assetSelectedPipelineName);
                                 
                             }
                             
