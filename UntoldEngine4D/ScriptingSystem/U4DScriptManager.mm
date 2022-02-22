@@ -15,6 +15,10 @@
 #include "U4DScene.h"
 #include "U4DWorld.h"
 #include "U4DModel.h"
+#include "U4DSteering.h"
+#include "U4DSeek.h"
+#include "U4DArrive.h"
+#include "U4DPursuit.h"
 #include "U4DScriptInstanceManager.h"
 
 namespace U4DEngine {
@@ -34,6 +38,8 @@ namespace U4DEngine {
      
         //initialize script manager
         init();
+        
+        
     }
 
     U4DScriptManager::~U4DScriptManager(){
@@ -231,33 +237,59 @@ namespace U4DEngine {
             }
             
         }else if(nargs==3){
-            
             gravity_value_t assetName=GET_VALUE(1);
-            gravity_value_t pipelineName=GET_VALUE(2);
+            gravity_instance_t *positionValue = (gravity_instance_t *)GET_VALUE(2).p;
 
-            if (VALUE_ISA_STRING(assetName) && VALUE_ISA_STRING(pipelineName)) {
+            if (VALUE_ISA_STRING(assetName)) {
 
-                gravity_string_t *v=(gravity_string_t *)assetName.p;
-                std::string name(v->s);
+            gravity_string_t *v=(gravity_string_t *)assetName.p;
+            std::string name(v->s);
 
-                gravity_string_t *pipe=(gravity_string_t *)pipelineName.p;
-                std::string pipeline(pipe->s);
+            U4DVector3n *position = (U4DVector3n *)positionValue->xdata;
 
                 //create a new model
                 model=new U4DModel();
                 
                 if (model->loadModel(name.c_str())) {
                     
-                    model->setPipeline(pipeline.c_str());
-                    
                     model->loadRenderingInformation();
                     
                     world->addChild(model);
-                    
+                    model->translateTo(*position);
                 }
-
+                
             }
+            
         }
+        
+        //else if(nargs==3){
+//
+//            gravity_value_t assetName=GET_VALUE(1);
+//            gravity_value_t pipelineName=GET_VALUE(2);
+//
+//            if (VALUE_ISA_STRING(assetName) && VALUE_ISA_STRING(pipelineName)) {
+//
+//                gravity_string_t *v=(gravity_string_t *)assetName.p;
+//                std::string name(v->s);
+//
+//                gravity_string_t *pipe=(gravity_string_t *)pipelineName.p;
+//                std::string pipeline(pipe->s);
+//
+//                //create a new model
+//                model=new U4DModel();
+//
+//                if (model->loadModel(name.c_str())) {
+//
+//                    model->setPipeline(pipeline.c_str());
+//
+//                    model->loadRenderingInformation();
+//
+//                    world->addChild(model);
+//
+//                }
+//
+//            }
+//        }
         
         if(model!=nullptr){
             std::string entityName=model->getName();
@@ -657,27 +689,48 @@ namespace U4DEngine {
     bool U4DScriptManager::modelSetViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         if(nargs==2){
-            
+
             gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
-            
+
+            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(1).p;
+
+
             // get xdata
             U4DModel *model = (U4DModel *)instance->xdata;
-            
-            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(1).p;
-            
-            if (model!=nullptr && viewDirectionValue!=nullptr) {
-                
-                U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
-                    
-                //set view direction
-                model->viewInDirection(*viewDirection);
-                
+
+            U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
+
+            if(model!=nullptr && viewDirection!=nullptr){
+
+                //declare an up vector
+                U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+
+                U4DVector3n viewDir=model->getEntityForwardVector();
+
+                U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
+
+                //transform the upvector
+                upVector=m*upVector;
+
+                U4DEngine::U4DVector3n posDir=viewDir.cross(upVector);
+
+                float angle=(*viewDirection).angle(viewDir);
+
+                if((*viewDirection).dot(posDir)>0.0){
+
+                    angle*=-1.0;
+
+                }
+
+                U4DQuaternion q(angle,upVector);
+
+                model->rotateTo(q);
+
                 RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                    
             }
-            
+
         }
-        
+
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
@@ -745,103 +798,88 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
-    bool U4DScriptManager::modelApplyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-        
-        if(nargs==4){
-            
+    bool U4DScriptManager::modelGetDimensions(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+     
+        if(nargs==1){
+                    
             gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
-            gravity_instance_t *dynamicActionInstance = (gravity_instance_t *)GET_VALUE(1).p;
-            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(2).p;
-            gravity_value_t dtValue=GET_VALUE(3);
-            
-            // get xdata
-            U4DModel *model = (U4DModel *)instance->xdata;
-            U4DDynamicAction *dynamicAction=(U4DDynamicAction *)dynamicActionInstance->xdata;
-            U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
-           
-            if(model!=nullptr && dynamicAction!=nullptr && velocity!=nullptr && VALUE_ISA_FLOAT(dtValue)){
-                
-                gravity_float_t dt=dtValue.f;
-                
-                //get mass
-                float mass=dynamicAction->getMass();
-                
-                //smooth out the motion of the camera by using a Recency Weighted Average.
-                //The RWA keeps an average of the last few values, with more recent values being more
-                //significant. The bias parameter controls how much significance is given to previous values.
-                //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
-                //A bias of 1 ignores the new value altogether.
-                //float biasMotionAccumulator=0.8;
-                
-                //calculate force
-                U4DEngine::U4DVector3n force=((*velocity)*mass)/dt;
-                
-                //apply force
-                dynamicAction->addForce(force);
-                
-                //set initial velocity to zero
-                U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
-                dynamicAction->setVelocity(zero);
-                
-                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-            }
-            
-        }
-        
-        
-        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-        
-    }
-
-
-    bool U4DScriptManager::modelSetMoveDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-        
-        
-        if(nargs==2){
-            
-            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
-            
-            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(1).p;
-            
             
             // get xdata
             U4DModel *model = (U4DModel *)instance->xdata;
             
-            U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
-        
-            if(model!=nullptr && viewDirection!=nullptr){
+            if(model!=nullptr){
                 
-                //declare an up vector
-                U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n dimensions=model->getModelDimensions();
                 
-                U4DVector3n viewDir=model->getEntityForwardVector();
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(dimensions.x, dimensions.y, dimensions.z);
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
                 
-                U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
-                
-                //transform the upvector
-                upVector=m*upVector;
-                
-                U4DEngine::U4DVector3n posDir=viewDir.cross(upVector);
-                
-                float angle=(*viewDirection).angle(viewDir);
-                
-                if((*viewDirection).dot(posDir)>0.0){
-                    
-                    angle*=-1.0;
-                    
-                }
-                
-                U4DQuaternion q(angle,upVector);
-                
-                model->rotateTo(q);
-                
-                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
             }
-        
+            
         }
         
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
+
+//    bool U4DScriptManager::modelSetMoveDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+//
+//
+//        if(nargs==2){
+//
+//            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+//
+//            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(1).p;
+//
+//
+//            // get xdata
+//            U4DModel *model = (U4DModel *)instance->xdata;
+//
+//            U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
+//
+//            if(model!=nullptr && viewDirection!=nullptr){
+//
+//                //declare an up vector
+//                U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+//
+//                U4DVector3n viewDir=model->getEntityForwardVector();
+//
+//                U4DMatrix3n m=model->getAbsoluteMatrixOrientation();
+//
+//                //transform the upvector
+//                upVector=m*upVector;
+//
+//                U4DEngine::U4DVector3n posDir=viewDir.cross(upVector);
+//
+//                float angle=(*viewDirection).angle(viewDir);
+//
+//                if((*viewDirection).dot(posDir)>0.0){
+//
+//                    angle*=-1.0;
+//
+//                }
+//
+//                U4DQuaternion q(angle,upVector);
+//
+//                model->rotateTo(q);
+//
+//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+//            }
+//
+//        }
+//
+//        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+//    }
 
     void U4DScriptManager::modelFree(gravity_vm *vm, gravity_object_t *obj){
         
@@ -1122,10 +1160,9 @@ namespace U4DEngine {
                 
                 dynamicAction->addForce(*force);
                 
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
             }
             
-            RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-                
         }
         
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -1172,20 +1209,222 @@ namespace U4DEngine {
     }
 
 
-    bool U4DScriptManager::dynamicActionApplyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-        
-//        // get self object which is the instance created in dynamicAction_create function
-//        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+//    bool U4DScriptManager::dynamicActionApplyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
 //
-//        // check for optional parameters here (if you need to process a more complex constructor)
-//        if (nargs==2) {
+//        if(nargs==3){
 //
+//            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+//            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(1).p;
+//            gravity_value_t dtValue=GET_VALUE(2);
 //
+//            // get xdata
+//
+//            U4DDynamicAction *dynamicAction=(U4DDynamicAction *)instance->xdata;
+//            U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+//
+//            if(dynamicAction!=nullptr && velocity!=nullptr && VALUE_ISA_FLOAT(dtValue)){
+//
+//                gravity_float_t dt=dtValue.f;
+//
+//                //get mass
+//                float mass=dynamicAction->getMass();
+//
+//                //smooth out the motion of the camera by using a Recency Weighted Average.
+//                //The RWA keeps an average of the last few values, with more recent values being more
+//                //significant. The bias parameter controls how much significance is given to previous values.
+//                //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+//                //A bias of 1 ignores the new value altogether.
+//                //float biasMotionAccumulator=0.8;
+//
+//                //calculate force
+//                U4DEngine::U4DVector3n force=((*velocity)*mass)/dt;
+//
+//                //apply force
+//                dynamicAction->addForce(force);
+//
+//                //set initial velocity to zero
+//                U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+//                dynamicAction->setVelocity(zero);
+//
+//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+//            }
 //
 //        }
 //
-        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-    }
+//
+//        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+//    }
+//
+//bool U4DScriptManager::dynamicActionDecelerate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+//
+//    if(nargs==2){
+//
+//        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+//        gravity_value_t dtValue=GET_VALUE(2);
+//
+//        // get xdata
+//
+//        U4DDynamicAction *dynamicAction=(U4DDynamicAction *)instance->xdata;
+//        //U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+//
+//        if(dynamicAction!=nullptr && VALUE_ISA_FLOAT(dtValue)){
+//
+//            dynamicAction->setAwake(true);
+//            U4DVector3n velocity=dynamicAction->getVelocity();
+//            gravity_float_t dt=dtValue.f;
+//
+//            //get mass
+//            float mass=dynamicAction->getMass();
+//
+//            //smooth out the motion of the camera by using a Recency Weighted Average.
+//            //The RWA keeps an average of the last few values, with more recent values being more
+//            //significant. The bias parameter controls how much significance is given to previous values.
+//            //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+//            //A bias of 1 ignores the new value altogether.
+//            //float biasMotionAccumulator=0.8;
+//
+//            //calculate force
+//            U4DEngine::U4DVector3n force=((velocity)*mass)/dt;
+//
+//            force*=0.25;
+//
+//            //apply force
+//            dynamicAction->addForce(force);
+//
+//            //set initial velocity to zero
+//            U4DEngine::U4DVector3n zero(0.0,0.0,0.0);
+//            dynamicAction->setVelocity(zero);
+//
+//            RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+//        }
+//
+//    }
+//
+//
+//    RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+//}
+//
+//    bool U4DScriptManager::dynamicActionApplyRollVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+//
+//        if(nargs==3){
+//
+//            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+//            gravity_instance_t *velocityValue = (gravity_instance_t *)GET_VALUE(1).p;
+//            gravity_value_t dtValue=GET_VALUE(2);
+//
+//            // get xdata
+//
+//            U4DDynamicAction *dynamicAction=(U4DDynamicAction *)instance->xdata;
+//            U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+//
+//            if(dynamicAction!=nullptr && velocity!=nullptr && VALUE_ISA_FLOAT(dtValue)){
+//
+//                gravity_float_t dt=dtValue.f;
+//
+//                //get mass
+//                float mass=dynamicAction->getMass();
+//
+//                //smooth out the motion of the camera by using a Recency Weighted Average.
+//                //The RWA keeps an average of the last few values, with more recent values being more
+//                //significant. The bias parameter controls how much significance is given to previous values.
+//                //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+//                //A bias of 1 ignores the new value altogether.
+//                //float biasMotionAccumulator=0.8;
+//
+//               // motionAccumulator=motionAccumulator*biasMotionAccumulator+(*velocity)*(1.0-biasMotionAccumulator);
+//
+//                //calculate force
+//                U4DEngine::U4DVector3n force=((*velocity)*mass)/dt;
+//
+//                //apply force
+//                dynamicAction->addForce(force);
+//
+//                //apply moment to ball
+//                U4DVector3n upAxis(0.0,1.0/2.0,0.0);
+//
+//                force*=0.25;
+//
+//                U4DVector3n moment=upAxis.cross(force);
+//
+//                dynamicAction->addMoment(moment);
+//
+//                //set initial velocity to zero
+//                U4DVector3n zero(0.0,0.0,0.0);
+//                dynamicAction->setVelocity(zero);
+//                dynamicAction->setAngularVelocity(zero);
+//
+//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+//            }
+//
+//        }
+//
+//
+//        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+//
+//    }
+//
+//    bool U4DScriptManager::dynamicActionApplyRollDecelerate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+//
+//        if(nargs==2){
+//
+//            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+//            gravity_value_t dtValue=GET_VALUE(1);
+//
+//            // get xdata
+//
+//            U4DDynamicAction *dynamicAction=(U4DDynamicAction *)instance->xdata;
+//            //U4DVector3n *velocity = (U4DVector3n *)velocityValue->xdata;
+//
+//            if(dynamicAction!=nullptr && VALUE_ISA_FLOAT(dtValue)){
+//
+//                dynamicAction->setAwake(true);
+//
+//                U4DVector3n velocity=dynamicAction->getVelocity();
+//
+//                gravity_float_t dt=dtValue.f;
+//
+//                //get mass
+//                float mass=dynamicAction->getMass();
+//
+//                //smooth out the motion of the camera by using a Recency Weighted Average.
+//                //The RWA keeps an average of the last few values, with more recent values being more
+//                //significant. The bias parameter controls how much significance is given to previous values.
+//                //A bias of zero makes the RWA equal to the new value each time is updated. That is, no average at all.
+//                //A bias of 1 ignores the new value altogether.
+//                //float biasMotionAccumulator=0.8;
+//
+//                //motionAccumulator=motionAccumulator*biasMotionAccumulator+velocity*(1.0-biasMotionAccumulator);
+//
+//                //calculate force
+//                U4DEngine::U4DVector3n force=(velocity*mass)/dt;
+//
+//                //apply force
+//                dynamicAction->addForce(force);
+//
+//                //apply moment to ball
+//                U4DVector3n upAxis(0.0,1.0/2.0,0.0);
+//
+//                force*=0.25;
+//
+//                U4DVector3n moment=upAxis.cross(force);
+//
+//                dynamicAction->addMoment(moment);
+//
+//                //set initial velocity to zero
+//                U4DVector3n zero(0.0,0.0,0.0);
+//                dynamicAction->setVelocity(zero);
+//                dynamicAction->setAngularVelocity(zero);
+//
+//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+//            }
+//
+//        }
+//
+//
+//        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+//
+//    }
+
 
     bool U4DScriptManager::dynamicActionSetAwake(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
@@ -1314,14 +1553,14 @@ namespace U4DEngine {
             gravity_instance_t *v = (gravity_instance_t *)GET_VALUE(1).p;
             
             // get xdata for both vectors
-            U4DVector3n *force = (U4DVector3n *)v->xdata;
+            U4DVector3n *moment = (U4DVector3n *)v->xdata;
         
             // get xdata
             U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
             
             if (dynamicAction!=nullptr) {
                 
-                dynamicAction->addForce(*force);
+                dynamicAction->addMoment(*moment);
                 RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
             }
             
@@ -1566,6 +1805,39 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
+    bool U4DScriptManager::dynamicActionSetDragCoefficient(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        // get self object which is the instance created in dynamicAction_create function
+        gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==2) {
+            
+            gravity_instance_t *v = (gravity_instance_t *)GET_VALUE(1).p;
+            
+            // get xdata for both vectors
+            U4DVector3n *coeffValue = (U4DVector3n *)v->xdata;
+            U4DVector2n dragCoeff(coeffValue->x,coeffValue->y);
+            
+            // get xdata
+            U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+            
+            if (dynamicAction!=nullptr) {
+                
+                dynamicAction->setDragCoefficient(dragCoeff);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+                
+        }else{
+            
+            logger->log("A velocity requires a vector component.");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
     bool U4DScriptManager::dynamicActionSetAngularVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         U4DLogger *logger=U4DLogger::sharedInstance();
@@ -1599,6 +1871,48 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
+
+    bool U4DScriptManager::dynamicActionInitInertiaTensorType(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        // check for optional parameters here (if you need to process a more complex constructor)
+        if (nargs==2) {
+            
+            // get self object which is the instance created in dynamicAction_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            
+            gravity_value_t inertiaTensorValue=GET_VALUE(1);
+        
+            // get xdata
+            U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+            
+            if (dynamicAction!=nullptr && VALUE_ISA_INT(inertiaTensorValue)) {
+                
+                //int inertiaValue=inertiaTensorValue.n;
+                
+                dynamicAction->initInertiaTensorType(U4DEngine::sphericalInertia);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+            
+            
+                
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+        
+        /*
+         if (VALUE_ISA_FLOAT(massValue)) {
+             
+             gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+             // get xdata
+             U4DDynamicAction *dynamicAction = (U4DDynamicAction *)instance->xdata;
+             
+             if(dynamicAction!=nullptr){
+                 
+                 gravity_float_t mass=massValue.f;
+         */
+    }
 
     bool U4DScriptManager::dynamicActionSetGravity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
@@ -1808,6 +2122,89 @@ namespace U4DEngine {
 
     void U4DScriptManager::cameraFree (gravity_vm *vm, gravity_object_t *obj){
         
+    }
+
+    //AI Steering
+    bool U4DScriptManager::aiSeekNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        
+        gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+        
+        // create Gravity instance and set its class to c
+        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        
+        
+        U4DSeek *aiSeek = new U4DSeek();
+        
+        if(aiSeek!=nullptr){
+            // set cpp instance and xdata of the gravity instance
+            gravity_instance_setxdata(instance, aiSeek);
+            
+            // return instance
+            RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+        
+    bool U4DScriptManager::aiSeekGetSteering(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==3){
+            
+            // get self object which is the instance created in dynamicAction_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DSeek *seek = (U4DSeek *)instance->xdata;
+            
+            //get the dynamic action instance
+            gravity_instance_t *d = (gravity_instance_t *)GET_VALUE(1).p;
+            
+            U4DDynamicAction *dynamicAction=(U4DDynamicAction*)d->xdata;
+            
+            //get the target position
+            gravity_instance_t *p = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            // get xdata for both vectors
+            U4DVector3n *targetPosition = (U4DVector3n *)p->xdata;
+            
+            if(seek!=nullptr && dynamicAction!=nullptr && targetPosition!=nullptr){
+                
+                U4DVector3n velocity=(*seek).getSteering(dynamicAction, *targetPosition);
+                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(velocity.x, velocity.y, velocity.z);
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+                
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+   
+    void U4DScriptManager::aiSeekFree(gravity_vm *vm, gravity_object_t *obj){
+        
+        gravity_instance_t *instance = (gravity_instance_t *)obj;
+        
+        // get xdata (which is a model instance)
+        U4DSeek *r = (U4DSeek *)instance->xdata;
+        
+        if(r!=nullptr){
+            // explicitly free memory
+            delete r;
+        }
     }
 
     //Vector3n
@@ -2193,368 +2590,6 @@ namespace U4DEngine {
         
     }
 
-    //transformation
-//    bool U4DScriptManager::translateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        // get self object which is the instance created in create function
-//        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
-//
-//        //Here it would be nice to go through the variable argument list. However, I don't know if Gravity supports it yet.
-//             //So for now, I'll just go through each argument and check the type
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==3){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//            gravity_instance_t *positionValue = (gravity_instance_t *)GET_VALUE(2).p;
-//
-//            if (VALUE_ISA_STRING(entity) && (positionValue!=nullptr)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n *position = (U4DVector3n *)positionValue->xdata;
-//
-//                scriptBridge->translateTo(name, *position);
-//
-//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-//
-//            }
-//
-//        }
-//
-//         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-//    }
-//
-//    bool U4DScriptManager::translateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        // get self object which is the instance created in create function
-//        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
-//
-//        //Here it would be nice to go through the variable argument list. However, I don't know if Gravity supports it yet.
-//             //So for now, I'll just go through each argument and check the type
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==3){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//            gravity_instance_t *positionValue = (gravity_instance_t *)GET_VALUE(2).p;
-//
-//            if (VALUE_ISA_STRING(entity) && (positionValue!=nullptr)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n *position = (U4DVector3n *)positionValue->xdata;
-//
-//                scriptBridge->translateBy(name, *position);
-//
-//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-//
-//            }
-//
-//        }
-//
-//         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-//
-//    }
-//
-//    //rotate
-//    bool U4DScriptManager::rotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        // get self object which is the instance created in create function
-//        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
-//
-//        //Here it would be nice to go through the variable argument list. However, I don't know if Gravity supports it yet.
-//             //So for now, I'll just go through each argument and check the type
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==3){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//            gravity_instance_t *rotateValue = (gravity_instance_t *)GET_VALUE(2).p;
-//
-//            if (VALUE_ISA_STRING(entity) && (rotateValue!=nullptr)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n *orientation = (U4DVector3n *)rotateValue->xdata;
-//
-//                scriptBridge->rotateTo(name, *orientation);
-//
-//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-//
-//            }
-//
-//        }
-//
-//         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-//    }
-//
-//    bool U4DScriptManager::rotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        // get self object which is the instance created in create function
-//        //gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
-//
-//        //Here it would be nice to go through the variable argument list. However, I don't know if Gravity supports it yet.
-//             //So for now, I'll just go through each argument and check the type
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==3){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//            gravity_instance_t *rotateValue = (gravity_instance_t *)GET_VALUE(2).p;
-//
-//            if (VALUE_ISA_STRING(entity) && (rotateValue!=nullptr)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n *orientation = (U4DVector3n *)rotateValue->xdata;
-//
-//                scriptBridge->rotateBy(name, *orientation);
-//
-//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-//
-//            }
-//
-//        }else if (nargs==4) {
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//            gravity_value_t angle=GET_VALUE(2);
-//            gravity_instance_t *axisValue = (gravity_instance_t *)GET_VALUE(3).p;
-//
-//            if (VALUE_ISA_STRING(entity) && VALUE_ISA_FLOAT(angle) && (axisValue!=nullptr)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                gravity_float_t angleValue=angle.f;
-//
-//                U4DVector3n *axis = (U4DVector3n *)axisValue->xdata;
-//
-//                scriptBridge->rotateBy(name,angleValue, *axis);
-//
-//                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
-//
-//            }
-//
-//        }
-//
-//         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-//
-//    }
-//
-//    bool U4DScriptManager::getAbsolutePosition(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==2){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//
-//            if (VALUE_ISA_STRING(entity)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n absolutePosition=scriptBridge->getAbsolutePosition(name);
-//
-//
-//
-//                // create a new vector type
-//                U4DVector3n *r = new U4DVector3n(absolutePosition.x, absolutePosition.y, absolutePosition.z);
-//
-//                // lookup class "Vector3n" already registered inside the VM
-//                // a faster way would be to save a global variable of type gravity_class_t *
-//                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
-//
-//                // error not handled here but it should be checked
-//                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
-//
-//                // create a Vector3n instance
-//                gravity_instance_t *result = gravity_instance_new(vm, c);
-//
-//                //setting the vector data to result
-//                gravity_instance_setxdata(result, r);
-//
-//                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
-//            }
-//
-//        }
-//
-//        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
-//    }
-//
-//    bool U4DScriptManager::getAbsoluteOrientation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==2){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//
-//            if (VALUE_ISA_STRING(entity)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n absoluteOrientation=scriptBridge->getAbsoluteOrientation(name);
-//
-//                //convert the vector to a list
-//
-//                //create a new list
-////                gravity_list_t *l=gravity_list_new(NULL, 3);
-////
-////                //load the vector components into the list
-////                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.x));
-////                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.y));
-////                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(absoluteOrientation.z));
-////
-////                // transfer newly allocated object to the VM
-////                gravity_vm_transfer(vm, (gravity_object_t*) l);
-////
-////                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
-//
-//                // create a new vector type
-//                U4DVector3n *r = new U4DVector3n(absoluteOrientation.x, absoluteOrientation.y, absoluteOrientation.z);
-//
-//                // lookup class "Vector3n" already registered inside the VM
-//                // a faster way would be to save a global variable of type gravity_class_t *
-//                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
-//
-//                // error not handled here but it should be checked
-//                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
-//
-//                // create a Vector3n instance
-//                gravity_instance_t *result = gravity_instance_new(vm, c);
-//
-//                //setting the vector data to result
-//                gravity_instance_setxdata(result, r);
-//
-//                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
-//
-//            }
-//
-//        }
-//
-//        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
-//    }
-//
-//    bool U4DScriptManager::getViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==2){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//
-//            if (VALUE_ISA_STRING(entity)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n viewDirection=scriptBridge->getViewInDirection(name);
-//
-//                //convert the vector to a list
-//
-////                //create a new list
-////                gravity_list_t *l=gravity_list_new(NULL, 3);
-////
-////                //load the vector components into the list
-////                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.x));
-////                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.y));
-////                marray_push(gravity_value_t, l->array, VALUE_FROM_FLOAT(viewDirection.z));
-////
-////                // transfer newly allocated object to the VM
-////                gravity_vm_transfer(vm, (gravity_object_t*) l);
-////
-////                RETURN_VALUE(VALUE_FROM_OBJECT(l), rindex);
-//
-//                // create a new vector type
-//                U4DVector3n *r = new U4DVector3n(viewDirection.x, viewDirection.y, viewDirection.z);
-//
-//                // lookup class "Vector3n" already registered inside the VM
-//                // a faster way would be to save a global variable of type gravity_class_t *
-//                // set with the result of gravity_class_new_pair (like I did in gravity_core.c -> gravity_core_init)
-//
-//                // error not handled here but it should be checked
-//                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
-//
-//                // create a Vector3n instance
-//                gravity_instance_t *result = gravity_instance_new(vm, c);
-//
-//                //setting the vector data to result
-//                gravity_instance_setxdata(result, r);
-//
-//                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
-//
-//            }
-//
-//        }
-//
-//        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
-//    }
-//
-//    bool U4DScriptManager::setViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==3){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(2).p;
-//
-//            if (VALUE_ISA_STRING(entity) && (viewDirectionValue!=nullptr)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
-//
-//                //move in direction
-//                scriptBridge->setViewInDirection(name, *viewDirection);
-//
-//
-//                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
-//
-//            }
-//
-//        }
-//
-//        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
-//    }
-//
-//    bool U4DScriptManager::setEntityForwardVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-//
-//        U4DScriptBridge *scriptBridge = U4DScriptBridge::sharedInstance();
-//
-//        if(nargs==3){
-//
-//            gravity_value_t entity=GET_VALUE(1);
-//            gravity_instance_t *viewDirection = (gravity_instance_t *)GET_VALUE(2).p;
-//
-//            if (VALUE_ISA_STRING(entity) && (viewDirection!=nullptr)) {
-//
-//                gravity_string_t *v=(gravity_string_t *)entity.p;
-//                std::string name(v->s);
-//
-//                U4DVector3n *direction = (U4DVector3n *)viewDirection->xdata;
-//
-//                //move in direction
-//                scriptBridge->setEntityForwardVector(name, *direction);
-//
-//
-//                RETURN_VALUE(VALUE_FROM_TRUE, rindex);
-//
-//
-//            }
-//
-//        }
-//
-//        RETURN_VALUE(VALUE_FROM_FALSE, rindex);
-//    }
 
     bool U4DScriptManager::loadScript(std::string uScriptPath){
         
@@ -2689,8 +2724,8 @@ namespace U4DEngine {
         gravity_class_bind(model_class, "getViewInDirection", NEW_CLOSURE_VALUE(modelGetViewInDirection));
         gravity_class_bind(model_class, "setViewInDirection", NEW_CLOSURE_VALUE(modelSetViewInDirection));
         gravity_class_bind(model_class, "setEntityForwardVector", NEW_CLOSURE_VALUE(modelSetEntityForwardVector));
-        gravity_class_bind(model_class, "applyVelocity", NEW_CLOSURE_VALUE(modelApplyVelocity));
-        gravity_class_bind(model_class, "setMoveDirection", NEW_CLOSURE_VALUE(modelSetMoveDirection));
+        
+        gravity_class_bind(model_class, "getModelDimensions", NEW_CLOSURE_VALUE(modelGetDimensions));
         
         
         gravity_class_bind(model_class, "setPipeline", NEW_CLOSURE_VALUE(modelSetPipeline));
@@ -2738,9 +2773,8 @@ namespace U4DEngine {
         gravity_class_bind(dynamicAction_class, "addForce", NEW_CLOSURE_VALUE(dynamicActionAddForce));
         gravity_class_bind(dynamicAction_class, "setVelocity", NEW_CLOSURE_VALUE(dynamicActionSetVelocity));
         gravity_class_bind(dynamicAction_class, "setGravity", NEW_CLOSURE_VALUE(dynamicActionSetGravity));
+                
         
-        
-        gravity_class_bind(dynamicAction_class, "applyVelocity", NEW_CLOSURE_VALUE(dynamicActionApplyVelocity));
         gravity_class_bind(dynamicAction_class, "setAwake", NEW_CLOSURE_VALUE(dynamicActionSetAwake));
         gravity_class_bind(dynamicAction_class, "getVelocity", NEW_CLOSURE_VALUE(dynamicActionGetVelocity));
         gravity_class_bind(dynamicAction_class, "setCollisionFilterCategory", NEW_CLOSURE_VALUE(dynamicActionSetCollisionFilterCategory));
@@ -2760,32 +2794,25 @@ namespace U4DEngine {
         gravity_class_bind(dynamicAction_class, "resumeCollisionBehavior", NEW_CLOSURE_VALUE(dynamicActionResumeCollisionBehavior));
         gravity_class_bind(dynamicAction_class, "pauseCollisionBehavior", NEW_CLOSURE_VALUE(dynamicActionPauseCollisionBehavior));
         
+
         gravity_class_bind(dynamicAction_class, "setAngularVelocity", NEW_CLOSURE_VALUE(dynamicActionSetAngularVelocity));
+        gravity_class_bind(dynamicAction_class, "setDragCoefficient", NEW_CLOSURE_VALUE(dynamicActionSetDragCoefficient));
+        gravity_class_bind(dynamicAction_class, "initInertiaTensorType", NEW_CLOSURE_VALUE(dynamicActionInitInertiaTensorType));
         
-        // register model class inside VM
+        
+        // register dynamic action  class inside VM
         gravity_vm_setvalue(vm, "U4DDynamicAction", VALUE_FROM_OBJECT(dynamicAction_class));
-                
         
-        //bridge
-//        gravity_class_t *scriptBridgeClass = gravity_class_new_pair(vm, "untold", NULL, 0, 0);
-//        gravity_class_t *scriptBridgeClassMeta = gravity_class_get_meta(scriptBridgeClass);
-//
-//        // register logger class inside VM
-//        gravity_vm_setvalue(vm, "untold", VALUE_FROM_OBJECT(scriptBridgeClass));
-//
-//        gravity_class_bind(scriptBridgeClassMeta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(bridgeInstance));
-//        gravity_class_bind(scriptBridgeClass, "loadModel", NEW_CLOSURE_VALUE(loadModel));
-//        gravity_class_bind(scriptBridgeClass, "addChildModel", NEW_CLOSURE_VALUE(addChild));
-//        gravity_class_bind(scriptBridgeClass, "removeChildModel", NEW_CLOSURE_VALUE(removeChild));
-//        gravity_class_bind(scriptBridgeClass, "translateTo", NEW_CLOSURE_VALUE(translateTo));
-//        gravity_class_bind(scriptBridgeClass, "translateBy", NEW_CLOSURE_VALUE(translateBy));
-//        gravity_class_bind(scriptBridgeClass, "rotateTo", NEW_CLOSURE_VALUE(rotateTo));
-//        gravity_class_bind(scriptBridgeClass, "rotateBy", NEW_CLOSURE_VALUE(rotateBy));
-//        gravity_class_bind(scriptBridgeClass, "getAbsolutePosition", NEW_CLOSURE_VALUE(getAbsolutePosition));
-//        gravity_class_bind(scriptBridgeClass, "getAbsoluteOrientation", NEW_CLOSURE_VALUE(getAbsoluteOrientation));
-//        gravity_class_bind(scriptBridgeClass, "getViewInDirection", NEW_CLOSURE_VALUE(getViewInDirection));
-//        gravity_class_bind(scriptBridgeClass, "setViewInDirection", NEW_CLOSURE_VALUE(setViewInDirection));
-//        gravity_class_bind(scriptBridgeClass, "setEntityForwardVector", NEW_CLOSURE_VALUE(setEntityForwardVector));
+        //AI Seek
+        gravity_class_t *aiSeek_class = gravity_class_new_pair(vm, "U4DSeek", NULL, 0, 0);
+        gravity_class_t *aiSeek_class_meta = gravity_class_get_meta(aiSeek_class);
+        
+        gravity_class_bind(aiSeek_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(aiSeekNew));
+        
+        gravity_class_bind(aiSeek_class, "getSteering", NEW_CLOSURE_VALUE(aiSeekGetSteering));
+        
+        //register seek class inside the vm
+        gravity_vm_setvalue(vm, "U4DSeek", VALUE_FROM_OBJECT(aiSeek_class));
         
         //logger
         gravity_class_t *logger_class = gravity_class_new_pair(vm, "U4DLogger", NULL, 0, 0);

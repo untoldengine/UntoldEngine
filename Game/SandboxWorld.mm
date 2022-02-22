@@ -50,8 +50,8 @@ void SandboxWorld::init(){
 //    entityFactory->createModelInstance("player0", "player.0", "U4DModel");
     
     //deserialize
-//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-//    serializer->deserialize("scenefile.u4d");
+    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+    serializer->deserialize("scenefile.u4d");
 
 
     

@@ -22,6 +22,7 @@
 #include <iostream>
 #include <list>
 #include <string.h>
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
 
@@ -54,6 +55,8 @@ namespace U4DEngine {
         
         gravity_value_t userInputElementArray[11];
         
+        
+        
     protected:
         
         U4DScriptManager();
@@ -66,7 +69,6 @@ namespace U4DEngine {
         gravity_compiler_t *compiler;
         gravity_vm *vm;
         gravity_delegate_t delegate;
-        
         
         static U4DScriptManager *sharedInstance();
         
@@ -134,8 +136,7 @@ namespace U4DEngine {
         static bool modelSetViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool modelSetEntityForwardVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
-        static bool modelApplyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-        static bool modelSetMoveDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool modelGetDimensions(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         
         static bool modelLoadAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -166,7 +167,6 @@ namespace U4DEngine {
         static bool dynamicActionSetVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool dynamicActionSetGravity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
-        static bool dynamicActionApplyVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool dynamicActionSetAwake(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool dynamicActionGetVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool dynamicActionSetCollisionFilterCategory(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -186,6 +186,8 @@ namespace U4DEngine {
         static bool dynamicActionPauseCollisionBehavior(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         static bool dynamicActionSetAngularVelocity(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool dynamicActionSetDragCoefficient(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool dynamicActionInitInertiaTensorType(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
         void dynamicActionFree (gravity_vm *vm, gravity_object_t *obj);
         
@@ -202,18 +204,10 @@ namespace U4DEngine {
         static bool cameraRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool cameraRotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
-        //transformation
-//        static bool translateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//        static bool translateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//        static bool rotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//        static bool rotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//        static bool getAbsolutePosition(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//        static bool getAbsoluteOrientation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//
-//        static bool getViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//
-//        static bool setViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
-//        static bool setEntityForwardVector(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        //AI Steering
+        static bool aiSeekNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool aiSeekGetSteering(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static void aiSeekFree (gravity_vm *vm, gravity_object_t *obj);
         
     };
 
