@@ -124,6 +124,40 @@ gravity_instance_t *U4DScriptInstanceManager::getDynamicActionScriptInstance(U4D
     
 }
 
+void U4DScriptInstanceManager::loadAISeekScriptInstance(U4DSeek *uAISeek, gravity_instance_t *uGravityInstance){
+    scriptAISeekInstanceMap.insert(std::make_pair(uAISeek,uGravityInstance));
+}
+
+gravity_instance_t *U4DScriptInstanceManager::getAISeekScriptInstance(U4DSeek *uAISeek){
+    
+    std::map<U4DSeek*,gravity_instance_t*>::iterator it=scriptAISeekInstanceMap.find(uAISeek);
+    
+    gravity_instance_t* gravityAISeekInstance=nullptr;
+    
+    if (it != scriptAISeekInstanceMap.end()) {
+        gravityAISeekInstance=scriptAISeekInstanceMap.find(uAISeek)->second;
+    }
+    
+    return gravityAISeekInstance;
+}
+
+void U4DScriptInstanceManager::loadAIArriveScriptInstance(U4DArrive *uAIArrive, gravity_instance_t *uGravityInstance){
+    scriptAIArriveInstanceMap.insert(std::make_pair(uAIArrive,uGravityInstance));
+}
+
+gravity_instance_t *U4DScriptInstanceManager::getAIArriveScriptInstance(U4DArrive *uAIArrive){
+    
+        std::map<U4DArrive*,gravity_instance_t*>::iterator it=scriptAIArriveInstanceMap.find(uAIArrive);
+        
+        gravity_instance_t* gravityAIArriveInstance=nullptr;
+        
+        if (it != scriptAIArriveInstanceMap.end()) {
+            gravityAIArriveInstance=scriptAIArriveInstanceMap.find(uAIArrive)->second;
+        }
+        
+        return gravityAIArriveInstance;
+}
+
 void U4DScriptInstanceManager::removeAllScriptInstanceAnimations(){
     
     U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
@@ -201,12 +235,49 @@ void U4DScriptInstanceManager::removeAllScriptInstanceAnimManagers(){
     scriptAnimManagerInstanceMap.clear();
 }
 
+void U4DScriptInstanceManager::removeAllScriptInstanceAISeek(){
+    
+    U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+    
+    std::map<U4DSeek*,gravity_instance_t*>::iterator it;
+    
+    for(it=scriptAISeekInstanceMap.begin();it!=scriptAISeekInstanceMap.end();it++){
+        
+        gravity_instance_t *gravityIntance=it->second;
+        
+        scriptManager->aiSeekFree(scriptManager->vm, (gravity_object_t*)gravityIntance);
+        
+    }
+    
+    scriptAISeekInstanceMap.clear();
+    
+}
+
+void U4DScriptInstanceManager::removeAllScriptInstanceAIArrive(){
+    
+    U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+    
+    std::map<U4DArrive*,gravity_instance_t*>::iterator it;
+    
+    for(it=scriptAIArriveInstanceMap.begin();it!=scriptAIArriveInstanceMap.end();it++){
+        
+        gravity_instance_t *gravityIntance=it->second;
+        
+        scriptManager->aiArriveFree(scriptManager->vm, (gravity_object_t*)gravityIntance);
+        
+    }
+    
+    scriptAIArriveInstanceMap.clear();
+}
+
 void U4DScriptInstanceManager::removeAllScriptInstances(){
     
     //removeAllScriptInstanceModels();
     removeAllScriptInstanceAnimations();
     removeAllScriptInstanceDynamicActions();
     removeAllScriptInstanceAnimManagers();
+    removeAllScriptInstanceAISeek();
+    removeAllScriptInstanceAIArrive();
 }
 
 }

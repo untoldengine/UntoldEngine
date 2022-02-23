@@ -2193,7 +2193,31 @@ namespace U4DEngine {
         
     }
 
-   
+    bool U4DScriptManager::aiSeekSetMaxSpeed(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==2){
+            
+            // get self object which is the instance created in dynamicAction_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DSeek *seek = (U4DSeek *)instance->xdata;
+            
+            gravity_value_t speedValue=GET_VALUE(1);
+            
+            if(seek!=nullptr && VALUE_ISA_FLOAT(speedValue)){
+                
+                gravity_float_t speed=speedValue.f;
+
+                seek->setMaxSpeed(speed);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
     void U4DScriptManager::aiSeekFree(gravity_vm *vm, gravity_object_t *obj){
         
         gravity_instance_t *instance = (gravity_instance_t *)obj;
@@ -2205,6 +2229,109 @@ namespace U4DEngine {
             // explicitly free memory
             delete r;
         }
+    }
+
+    bool U4DScriptManager::aiArriveNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+        
+        // create Gravity instance and set its class to c
+        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        
+        
+        U4DArrive *aiArrive = new U4DArrive();
+        
+        if(aiArrive!=nullptr){
+            // set cpp instance and xdata of the gravity instance
+            gravity_instance_setxdata(instance, aiArrive);
+            
+            // return instance
+            RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+    bool U4DScriptManager::aiArriveGetSteering(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==3){
+            
+            // get self object which is the instance created in dynamicAction_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DArrive *arrive = (U4DArrive *)instance->xdata;
+            
+            //get the dynamic action instance
+            gravity_instance_t *d = (gravity_instance_t *)GET_VALUE(1).p;
+            
+            U4DDynamicAction *dynamicAction=(U4DDynamicAction*)d->xdata;
+            
+            //get the target position
+            gravity_instance_t *p = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            // get xdata for both vectors
+            U4DVector3n *targetPosition = (U4DVector3n *)p->xdata;
+            
+            if(arrive!=nullptr && dynamicAction!=nullptr && targetPosition!=nullptr){
+                
+                U4DVector3n velocity=(*arrive).getSteering(dynamicAction, *targetPosition);
+                
+                // create a new vector type
+                U4DVector3n *r = new U4DVector3n(velocity.x, velocity.y, velocity.z);
+
+                // error not handled here but it should be checked
+                gravity_class_t *c = VALUE_AS_CLASS(gravity_vm_getvalue(vm, "U4DVector3n", strlen("U4DVector3n")));
+
+                // create a Vector3n instance
+                gravity_instance_t *result = gravity_instance_new(vm, c);
+
+                //setting the vector data to result
+                gravity_instance_setxdata(result, r);
+
+                RETURN_VALUE(VALUE_FROM_OBJECT(result), rindex);
+                
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+    bool U4DScriptManager::aiArriveSetMaxSpeed(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==2){
+            
+            // get self object which is the instance created in dynamicAction_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DArrive *arrive = (U4DArrive *)instance->xdata;
+            
+            gravity_value_t speedValue=GET_VALUE(1);
+            
+            if(arrive!=nullptr && VALUE_ISA_FLOAT(speedValue)){
+                
+                gravity_float_t speed=speedValue.f;
+
+                arrive->setMaxSpeed(speed);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+    void U4DScriptManager::aiArriveFree (gravity_vm *vm, gravity_object_t *obj){
+        
+        gravity_instance_t *instance = (gravity_instance_t *)obj;
+        
+        // get xdata (which is a model instance)
+        U4DArrive *r = (U4DArrive *)instance->xdata;
+        
+        if(r!=nullptr){
+            // explicitly free memory
+            delete r;
+        }
+        
     }
 
     //Vector3n
@@ -2810,9 +2937,22 @@ namespace U4DEngine {
         gravity_class_bind(aiSeek_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(aiSeekNew));
         
         gravity_class_bind(aiSeek_class, "getSteering", NEW_CLOSURE_VALUE(aiSeekGetSteering));
+        gravity_class_bind(aiSeek_class, "setMaxSpeed", NEW_CLOSURE_VALUE(aiSeekSetMaxSpeed));
         
         //register seek class inside the vm
         gravity_vm_setvalue(vm, "U4DSeek", VALUE_FROM_OBJECT(aiSeek_class));
+        
+        //AI Arrive
+        gravity_class_t *aiArrive_class = gravity_class_new_pair(vm, "U4DArrive", NULL, 0, 0);
+        gravity_class_t *aiArrive_class_meta = gravity_class_get_meta(aiArrive_class);
+        
+        gravity_class_bind(aiArrive_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(aiArriveNew));
+        
+        gravity_class_bind(aiArrive_class, "getSteering", NEW_CLOSURE_VALUE(aiArriveGetSteering));
+        gravity_class_bind(aiArrive_class, "setMaxSpeed", NEW_CLOSURE_VALUE(aiArriveSetMaxSpeed));
+        
+        //register seek class inside the vm
+        gravity_vm_setvalue(vm, "U4DArrive", VALUE_FROM_OBJECT(aiArrive_class));
         
         //logger
         gravity_class_t *logger_class = gravity_class_new_pair(vm, "U4DLogger", NULL, 0, 0);
