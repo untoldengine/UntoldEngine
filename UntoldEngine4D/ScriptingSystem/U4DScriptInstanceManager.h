@@ -17,6 +17,8 @@
 #include "U4DAnimation.h"
 #include "U4DAnimationManager.h"
 #include "U4DDynamicAction.h"
+#include "U4DSeek.h"
+#include "U4DArrive.h"
 
 namespace U4DEngine {
 
@@ -33,6 +35,8 @@ namespace U4DEngine {
         std::map<U4DAnimation*,gravity_instance_t *> scriptAnimationInstanceMap;
         std::map<U4DDynamicAction*,gravity_instance_t *> scriptDynamicActionInstanceMap;
         std::map<U4DAnimationManager*,gravity_instance_t *> scriptAnimManagerInstanceMap;
+        std::map<U4DSeek*,gravity_instance_t *> scriptAISeekInstanceMap;
+        std::map<U4DArrive*,gravity_instance_t *> scriptAIArriveInstanceMap;
         
     protected:
         
@@ -62,12 +66,23 @@ namespace U4DEngine {
                 
         gravity_instance_t *getAnimManagerScriptInstance(U4DAnimationManager *uAnimationManager);
         
+        void loadAISeekScriptInstance(U4DSeek *uAISeek, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getAISeekScriptInstance(U4DSeek *uAISeek);
+        
+        void loadAIArriveScriptInstance(U4DArrive *uAIArrive, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getAIArriveScriptInstance(U4DArrive *uAIArrive);
+        
+        
         void removeModelScriptInstance(int uScriptID);
         
         void removeAllScriptInstanceModels();
         void removeAllScriptInstanceAnimations();
         void removeAllScriptInstanceDynamicActions();
         void removeAllScriptInstanceAnimManagers();
+        void removeAllScriptInstanceAISeek();
+        void removeAllScriptInstanceAIArrive();
         
         void removeAllScriptInstances();
         
