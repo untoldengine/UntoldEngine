@@ -196,6 +196,10 @@ namespace U4DEngine {
         static bool cameraRotateTo(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool cameraRotateBy(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        static bool setCameraAsThirdPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool setCameraAsFirstPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool setCameraAsBasicFollow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         //AI Steering
         static bool aiSeekNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool aiSeekGetSteering(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
@@ -206,6 +210,11 @@ namespace U4DEngine {
         static bool aiArriveGetSteering(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool aiArriveSetMaxSpeed(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static void aiArriveFree (gravity_vm *vm, gravity_object_t *obj);
+        
+        //control
+        static bool anchorMouse(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool pauseScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool playScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
     };
 
