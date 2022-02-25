@@ -20,6 +20,10 @@
 #include "U4DArrive.h"
 #include "U4DPursuit.h"
 #include "U4DScriptInstanceManager.h"
+#include "U4DCameraInterface.h"
+#include "U4DCameraFirstPerson.h"
+#include "U4DCameraThirdPerson.h"
+#include "U4DCameraBasicFollow.h"
 
 namespace U4DEngine {
 
@@ -333,6 +337,40 @@ namespace U4DEngine {
         }
         
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptManager::anchorMouse(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if (nargs==2) {
+            
+            gravity_value_t value=GET_VALUE(1);
+            
+            if (VALUE_ISA_BOOL(value)) {
+                
+                bool shouldAnchor=VALUE_AS_BOOL(value);
+                
+                U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+                U4DScene *scene=sceneManager->getCurrentScene();
+                
+                if(scene!=nullptr){
+                    scene->setAnchorMouse(shouldAnchor);
+                    
+                }
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::pauseScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+    }
+
+    bool U4DScriptManager::playScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
     }
 
     //logger
@@ -2120,6 +2158,143 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
+    bool U4DScriptManager::setCameraAsThirdPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if (nargs==3) {
+            
+            U4DCamera *camera = U4DCamera::sharedInstance();
+            gravity_value_t entityName=GET_VALUE(1);
+            gravity_instance_t *offsetValue = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            U4DScene *scene=sceneManager->getCurrentScene();
+            U4DWorld *world=scene->getGameWorld();
+            
+            if (VALUE_ISA_STRING(entityName) && (offsetValue!=nullptr)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entityName.p;
+                std::string name(v->s);
+                
+                U4DVector3n *offset = (U4DVector3n *)offsetValue->xdata;
+                
+                U4DEntity *entity=world->searchChild(name);
+                
+                if(entity!=nullptr){
+                    
+                    U4DModel *model=reinterpret_cast<U4DModel*>(entity->pModel);
+                    
+                    //Instantiate the camera interface and the type of camera you desire
+                    U4DCameraInterface *cameraThirdPerson=U4DCameraThirdPerson::sharedInstance();
+                    
+                    //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
+                    cameraThirdPerson->setParameters(model,offset->x,offset->y,offset->z);
+                    
+                    //Line 3. set the camera behavior
+                    camera->setCameraBehavior(cameraThirdPerson);
+                    
+                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                }
+                
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptManager::setCameraAsFirstPerson(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if (nargs==3) {
+            
+            U4DCamera *camera = U4DCamera::sharedInstance();
+            gravity_value_t entityName=GET_VALUE(1);
+            gravity_instance_t *offsetValue = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            U4DScene *scene=sceneManager->getCurrentScene();
+            U4DWorld *world=scene->getGameWorld();
+            
+            if (VALUE_ISA_STRING(entityName) && (offsetValue!=nullptr)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entityName.p;
+                std::string name(v->s);
+                
+                U4DVector3n *offset = (U4DVector3n *)offsetValue->xdata;
+                
+                U4DEntity *entity=world->searchChild(name);
+                
+                if(entity!=nullptr){
+                    
+                    U4DModel *model=reinterpret_cast<U4DModel*>(entity->pModel);
+                    
+                    //Instantiate the camera interface and the type of camera you desire
+                    U4DCameraInterface *cameraFirstPerson=U4DCameraFirstPerson::sharedInstance();
+                    
+                    //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
+                    
+                    cameraFirstPerson->setParameters(model,offset->x,offset->y,offset->z);
+                    
+                    //set the camera behavior
+                    
+                    camera->setCameraBehavior(cameraFirstPerson);
+                    
+                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                }
+                
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
+    bool U4DScriptManager::setCameraAsBasicFollow(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if (nargs==3) {
+            
+            U4DCamera *camera = U4DCamera::sharedInstance();
+            gravity_value_t entityName=GET_VALUE(1);
+            gravity_instance_t *offsetValue = (gravity_instance_t *)GET_VALUE(2).p;
+            
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            U4DScene *scene=sceneManager->getCurrentScene();
+            U4DWorld *world=scene->getGameWorld();
+            
+            if (VALUE_ISA_STRING(entityName) && (offsetValue!=nullptr)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entityName.p;
+                std::string name(v->s);
+                
+                U4DVector3n *offset = (U4DVector3n *)offsetValue->xdata;
+                
+                U4DEntity *entity=world->searchChild(name);
+                
+                if(entity!=nullptr){
+                    
+                    U4DModel *model=reinterpret_cast<U4DModel*>(entity->pModel);
+                    
+                    //Instantiate the camera interface and the type of camera you desire
+                    U4DCameraInterface *cameraBasicFollow=U4DCameraBasicFollow::sharedInstance();
+
+                    //Set the parameters for the camera. Such as which model the camera will target, and the offset positions
+                    cameraBasicFollow->setParameters(model,offset->x,offset->y,offset->z);
+
+                    //set the camera behavior
+                    camera->setCameraBehavior(cameraBasicFollow);
+                    
+                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                }
+                
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+    }
+
     void U4DScriptManager::cameraFree (gravity_vm *vm, gravity_object_t *obj){
         
     }
@@ -2809,6 +2984,7 @@ namespace U4DEngine {
         gravity_class_bind(worldClassMeta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(worldCreate));
         gravity_class_bind(worldClass, "loadModel", NEW_CLOSURE_VALUE(loadModel));
         gravity_class_bind(worldClass, "removeModel", NEW_CLOSURE_VALUE(removeModel));
+        gravity_class_bind(worldClass, "anchorMouse", NEW_CLOSURE_VALUE(anchorMouse));
         
         // register logger class inside VM
         gravity_vm_setvalue(vm, "U4DWorld", VALUE_FROM_OBJECT(worldClass));
@@ -2950,6 +3126,9 @@ namespace U4DEngine {
         gravity_class_bind(camera_class, "translateBy", NEW_CLOSURE_VALUE(cameraTranslateBy));
         gravity_class_bind(camera_class, "rotateTo", NEW_CLOSURE_VALUE(cameraRotateTo));
         gravity_class_bind(camera_class, "rotateBy", NEW_CLOSURE_VALUE(cameraRotateBy));
+        gravity_class_bind(camera_class, "setCameraAsThirdPerson", NEW_CLOSURE_VALUE(setCameraAsThirdPerson));
+        gravity_class_bind(camera_class, "setCameraAsFirstPerson", NEW_CLOSURE_VALUE(setCameraAsFirstPerson));
+        gravity_class_bind(camera_class, "setCameraAsBasicFollow", NEW_CLOSURE_VALUE(setCameraAsBasicFollow));
         
         // register logger class inside VM
         gravity_vm_setvalue(vm, "U4DCamera", VALUE_FROM_OBJECT(camera_class));
@@ -3041,6 +3220,7 @@ namespace U4DEngine {
                  gravity_value_t previousMousePositionY = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.y);
                 
                 //mouseDeltaPosition
+                
                  gravity_value_t mouseDeltaPositionX = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.x);
                  gravity_value_t mouseDeltaPositionY = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.y);
                 
