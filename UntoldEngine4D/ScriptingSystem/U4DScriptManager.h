@@ -46,15 +46,7 @@ namespace U4DEngine {
     
         static U4DScriptManager *instance;
         
-        gravity_list_t *joystickDirectionList;
-        gravity_list_t *inputPositionList;
-        gravity_list_t *previousMousePositionList;
-        gravity_list_t *mouseDeltaPositionList;
-        gravity_list_t *arrowKeyDirectionList;
-        gravity_map_t *controllerInputMessageMap;
-        
-        gravity_value_t userInputElementArray[11];
-        
+        gravity_list_t *userInputList;
         
         
     protected:

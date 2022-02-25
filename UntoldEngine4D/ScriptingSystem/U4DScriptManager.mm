@@ -196,7 +196,7 @@ namespace U4DEngine {
         gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
         
         // create Gravity instance and set its class to c
-        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
         
         // set cpp instance and xdata of the gravity instance
         gravity_instance_setxdata(instance, world);
@@ -342,7 +342,7 @@ namespace U4DEngine {
         gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
         
         // create Gravity instance and set its class to c
-        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
         
         // allocate a cpp instance of the logger class on the heap
         U4DLogger *logger = U4DLogger::sharedInstance();
@@ -411,7 +411,7 @@ namespace U4DEngine {
                 
                 if(model!=nullptr){
                     // create Gravity instance and set its class to c
-                    gravity_instance_t *instance = gravity_instance_new(vm, c);
+                    gravity_instance_t *instance = gravity_instance_new(nullptr, c);
                     
                     //store the model instance and gravity instance
                     U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
@@ -904,7 +904,7 @@ namespace U4DEngine {
             gravity_instance_t *modelInstance = (gravity_instance_t *)GET_VALUE(1).p;
             
             // create Gravity instance and set its class to c
-            gravity_instance_t *instance = gravity_instance_new(vm, c);
+            gravity_instance_t *instance = gravity_instance_new(nullptr, c);
             
             U4DModel *model=(U4DModel *)modelInstance->xdata;
             U4DAnimation *animation = new U4DAnimation(model);
@@ -979,7 +979,7 @@ namespace U4DEngine {
         gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
         
         // create Gravity instance and set its class to c
-        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
         
         U4DAnimationManager *animationManager = new U4DAnimationManager();
         
@@ -1081,7 +1081,7 @@ namespace U4DEngine {
         gravity_instance_t *modelInstance = (gravity_instance_t *)GET_VALUE(1).p;
         
         // create Gravity instance and set its class to c
-        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
         
         U4DModel *model=(U4DModel *)modelInstance->xdata;
         
@@ -1969,7 +1969,7 @@ namespace U4DEngine {
         gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
         
         // create Gravity instance and set its class to c
-        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
         
         // allocate a cpp instance of the camera class on the heap
         U4DCamera *camera = U4DCamera::sharedInstance();
@@ -2131,7 +2131,7 @@ namespace U4DEngine {
         gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
         
         // create Gravity instance and set its class to c
-        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
         
         
         U4DSeek *aiSeek = new U4DSeek();
@@ -2236,7 +2236,7 @@ namespace U4DEngine {
         gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
         
         // create Gravity instance and set its class to c
-        gravity_instance_t *instance = gravity_instance_new(vm, c);
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
         
         
         U4DArrive *aiArrive = new U4DArrive();
@@ -2783,31 +2783,7 @@ namespace U4DEngine {
         // register my C++ classes inside Gravity VM
         registerClasses(vm);
         
-        //set up strings used for userInput transaction
-        userInputElementArray[inputElementType]=VALUE_FROM_CSTRING(vm, "inputElementType");
-        userInputElementArray[inputElementAction]=VALUE_FROM_CSTRING(vm, "inputElementAction");
-        userInputElementArray[joystickDirection]=VALUE_FROM_CSTRING(vm, "joystickDirection");
-        
-        userInputElementArray[inputPosition]=VALUE_FROM_CSTRING(vm, "inputPosition");
-        userInputElementArray[previousMousePosition]=VALUE_FROM_CSTRING(vm, "previousMousePosition");
-        userInputElementArray[mouseDeltaPosition]=VALUE_FROM_CSTRING(vm, "mouseDeltaPosition");
-        
-        userInputElementArray[joystickChangeDirection]=VALUE_FROM_CSTRING(vm, "joystickChangeDirection");
-        userInputElementArray[mouseChangeDirection]=VALUE_FROM_CSTRING(vm, "mouseChangeDirection");
-        userInputElementArray[arrowKeyDirection]=VALUE_FROM_CSTRING(vm, "arrowKeyDirection");
-        userInputElementArray[elementUIName]=VALUE_FROM_CSTRING(vm, "elementUIName");
-        userInputElementArray[dataValue]=VALUE_FROM_CSTRING(vm, "dataValue");
-        
-        
-        joystickDirectionList=gravity_list_new(vm, 2);
-        inputPositionList=gravity_list_new(vm, 2);
-        previousMousePositionList=gravity_list_new(vm, 2);
-        mouseDeltaPositionList=gravity_list_new(vm, 2);
-        arrowKeyDirectionList=gravity_list_new(vm, 2);
-        
-        //create map- 11 is the number of elements in the CONTROLLERMESSAGE STRUCT
-        controllerInputMessageMap=gravity_map_new(vm,11);
-        
+        userInputList=gravity_list_new(nullptr, 14);
         //if (loadScript(uScriptPath)) {
             
          
@@ -3037,6 +3013,7 @@ namespace U4DEngine {
         if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false){
                     
             gravity_value_t userInput_function = gravity_vm_getvalue(vm, "userInput", (uint32_t)strlen("userInput"));
+            
             if (!VALUE_ISA_CLOSURE(userInput_function)) {
                 printf("Unable to find user-input function into Gravity VM.\n");
                 
@@ -3045,93 +3022,87 @@ namespace U4DEngine {
                 // convert function to closure
                 gravity_closure_t *userInput_closure = VALUE_AS_CLOSURE(userInput_function);
                 
-             U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
+                U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
 
-             
-             //set the value to each key in the map
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[inputElementType],VALUE_FROM_INT(controllerInputMessage.inputElementType));
-
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[inputElementAction],VALUE_FROM_INT(controllerInputMessage.inputElementAction));
-
-             //joystick
-             //prepare joystick data into a list before inserting it into a map
-             gravity_value_t joystickDirX = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.x);
-             gravity_value_t joystickDirY = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.y);
-             
-            marray_push(gravity_value_t, joystickDirectionList->array, joystickDirX);
-            marray_push(gravity_value_t, joystickDirectionList->array, joystickDirY);
-             
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[joystickDirection],VALUE_FROM_OBJECT(joystickDirectionList));
+                gravity_value_t inputElementType=VALUE_FROM_INT(controllerInputMessage.inputElementType);
+                gravity_value_t inputElementAction=VALUE_FROM_INT(controllerInputMessage.inputElementAction);
                 
-             //inputposition
-             gravity_value_t inputPositionX = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.x);
-             gravity_value_t inputPositionY = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.y);
+                 //joystick
+                 //prepare joystick data into a list before inserting it into a map
+                 gravity_value_t joystickDirX = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.x);
+                 gravity_value_t joystickDirY = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.y);
              
-            marray_push(gravity_value_t, inputPositionList->array, inputPositionX);
-            marray_push(gravity_value_t, inputPositionList->array, inputPositionY);
+                 //inputposition
+                 gravity_value_t inputPositionX = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.x);
+                 gravity_value_t inputPositionY = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.y);
+
+                //previousMousePosition
+                 gravity_value_t previousMousePositionX = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.x);
+                 gravity_value_t previousMousePositionY = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.y);
                 
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[inputPosition],VALUE_FROM_OBJECT(inputPositionList));
+                //mouseDeltaPosition
+                 gravity_value_t mouseDeltaPositionX = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.x);
+                 gravity_value_t mouseDeltaPositionY = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.y);
+                
 
-             //previousMousePosition
-             gravity_value_t previousMousePositionX = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.x);
-             gravity_value_t previousMousePositionY = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.y);
-             
-            marray_push(gravity_value_t, previousMousePositionList->array, previousMousePositionX);
-            marray_push(gravity_value_t, previousMousePositionList->array, previousMousePositionY);
+                gravity_value_t joystickChangeDirection=VALUE_FROM_BOOL(controllerInputMessage.joystickChangeDirection);
 
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[previousMousePosition],VALUE_FROM_OBJECT(previousMousePositionList));
+                //mouseChangeDirection
+                gravity_value_t mouseChangeDirection=VALUE_FROM_BOOL(controllerInputMessage.mouseChangeDirection);
+                
+                //arrowKeyDirection
+                 gravity_value_t arrowKeyDirectionX = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.x);
+                 gravity_value_t arrowKeyDirectionY = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.y);
 
-             //mouseDeltaPosition
-             gravity_value_t mouseDeltaPositionX = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.x);
-             gravity_value_t mouseDeltaPositionY = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.y);
-             
-            marray_push(gravity_value_t, mouseDeltaPositionList->array, mouseDeltaPositionX);
-            marray_push(gravity_value_t, mouseDeltaPositionList->array, mouseDeltaPositionY);
+                
+                marray_push(gravity_value_t, userInputList->array, inputElementType);
+                marray_push(gravity_value_t, userInputList->array, inputElementAction);
+                
+                marray_push(gravity_value_t, userInputList->array, joystickDirX);
+                marray_push(gravity_value_t, userInputList->array, joystickDirY);
+                
+                marray_push(gravity_value_t, userInputList->array, inputPositionX);
+                marray_push(gravity_value_t, userInputList->array, inputPositionY);
+                
+                marray_push(gravity_value_t, userInputList->array, previousMousePositionX);
+                marray_push(gravity_value_t, userInputList->array, previousMousePositionY);
+                
+                marray_push(gravity_value_t, userInputList->array, mouseDeltaPositionX);
+                marray_push(gravity_value_t, userInputList->array, mouseDeltaPositionY);
+                
+                marray_push(gravity_value_t, userInputList->array, joystickChangeDirection);
+                marray_push(gravity_value_t, userInputList->array, mouseChangeDirection);
+                
+                marray_push(gravity_value_t, userInputList->array, arrowKeyDirectionX);
+                marray_push(gravity_value_t, userInputList->array, arrowKeyDirectionY);
+                
 
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[mouseDeltaPosition],VALUE_FROM_OBJECT(mouseDeltaPositionList));
+//            marray_push(gravity_value_t, arrowKeyDirectionList->array, arrowKeyDirectionX);
+//            marray_push(gravity_value_t, arrowKeyDirectionList->array, arrowKeyDirectionY);
 
-             //joystickChangeDirection
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[joystickChangeDirection],VALUE_FROM_BOOL(controllerInputMessage.joystickChangeDirection));
+//             //elementUIName
+//             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[elementUIName],VALUE_FROM_STRING(vm, controllerInputMessage.elementUIName.c_str(), (int)controllerInputMessage.elementUIName.length()));
+//
+//             //dataValue
+//             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[dataValue],VALUE_FROM_FLOAT(controllerInputMessage.dataValue));
 
-             //mouseChangeDirection
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[mouseChangeDirection],VALUE_FROM_BOOL(controllerInputMessage.mouseChangeDirection));
-
-             //arrowKeyDirection
-             gravity_value_t arrowKeyDirectionX = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.x);
-             gravity_value_t arrowKeyDirectionY = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.y);
-             
-            marray_push(gravity_value_t, arrowKeyDirectionList->array, arrowKeyDirectionX);
-            marray_push(gravity_value_t, arrowKeyDirectionList->array, arrowKeyDirectionY);
-
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[arrowKeyDirection],VALUE_FROM_OBJECT(arrowKeyDirectionList));
-
-
-             //elementUIName
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[elementUIName],VALUE_FROM_STRING(vm, controllerInputMessage.elementUIName.c_str(), (int)controllerInputMessage.elementUIName.length()));
-
-             //dataValue
-             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[dataValue],VALUE_FROM_FLOAT(controllerInputMessage.dataValue));
-
-
-             gravity_value_t controllerInputData=VALUE_FROM_OBJECT(controllerInputMessageMap);
+            
+             gravity_value_t controllerInputData=VALUE_FROM_OBJECT(userInputList);
              gravity_value_t params[] = {controllerInputData};
 
              // execute user-input closure
-             if (gravity_vm_runclosure (vm, userInput_closure, VALUE_FROM_NULL, params, 1)) {}
-
+             if (gravity_vm_runclosure (vm, userInput_closure, VALUE_FROM_NULL, params, 1)) {
+                 
+                 
+             }
+                
+                removeItemsInList(userInputList);
+                
+                
             }
-        
-        }
-        
-        removeItemsInList(joystickDirectionList);
-        removeItemsInList(inputPositionList);
-        removeItemsInList(previousMousePositionList);
-        removeItemsInList(mouseDeltaPositionList);
-        removeItemsInList(arrowKeyDirectionList);
-
-        //remove keys and values from map
-        for(auto n:userInputElementArray){
-            gravity_hash_remove(controllerInputMessageMap->hash, n);
+                
+            
+            
         }
         
         
@@ -3150,21 +3121,21 @@ namespace U4DEngine {
 
     void U4DScriptManager::freeUserInputObjects(){
         
-        //free up all strings that were mem allocated
-        for(auto n:userInputElementArray){
-            gravity_string_free(vm, VALUE_AS_STRING(n));
-        }
-        
-        //free up all lists that were mem allocated
-        
-        gravity_list_free(vm,joystickDirectionList);
-        gravity_list_free(vm,inputPositionList);
-        gravity_list_free(vm,previousMousePositionList);
-        gravity_list_free(vm,mouseDeltaPositionList);
-        gravity_list_free(vm,arrowKeyDirectionList);
-        
-        //free up map that was mem allocated
-        gravity_map_free(vm, controllerInputMessageMap);
+//        //free up all strings that were mem allocated
+//        for(auto n:userInputElementArray){
+//            gravity_string_free(vm, VALUE_AS_STRING(n));
+//        }
+//
+//        //free up all lists that were mem allocated
+//
+//        gravity_list_free(vm,joystickDirectionList);
+//        gravity_list_free(vm,inputPositionList);
+//        gravity_list_free(vm,previousMousePositionList);
+//        gravity_list_free(vm,mouseDeltaPositionList);
+//        gravity_list_free(vm,arrowKeyDirectionList);
+//
+//        //free up map that was mem allocated
+//        gravity_map_free(vm, controllerInputMessageMap);
         
     }
 
