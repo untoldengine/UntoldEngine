@@ -12,6 +12,9 @@
 #include "U4DCamera.h"
 #include "U4DGameConfigs.h"
 #include "U4DSceneManager.h"
+#include "U4DSceneEditingState.h"
+#include "U4DScenePlayState.h"
+#include "U4DSceneStateManager.h"
 #include "U4DScene.h"
 #include "U4DWorld.h"
 #include "U4DModel.h"
@@ -367,10 +370,48 @@ namespace U4DEngine {
 
     bool U4DScriptManager::pauseScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        
+        if(scene!=nullptr){
+            
+            scene->setPauseScene(true);
+            
+            logger->log("Game was paused");
+            
+            RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
     }
 
     bool U4DScriptManager::playScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        
+        if(scene!=nullptr){
+            
+            U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+            
+            if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
+                //change scene state to edit mode
+                scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
+                
+            }else if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
+                
+                scene->setPauseScene(false);
+                
+                logger->log("Game was resumed");
+            
+            }
+            RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
     }
 
     //logger
@@ -2985,6 +3026,8 @@ namespace U4DEngine {
         gravity_class_bind(worldClass, "loadModel", NEW_CLOSURE_VALUE(loadModel));
         gravity_class_bind(worldClass, "removeModel", NEW_CLOSURE_VALUE(removeModel));
         gravity_class_bind(worldClass, "anchorMouse", NEW_CLOSURE_VALUE(anchorMouse));
+        gravity_class_bind(worldClass, "pauseScene", NEW_CLOSURE_VALUE(pauseScene));
+        gravity_class_bind(worldClass, "playScene", NEW_CLOSURE_VALUE(playScene));
         
         // register logger class inside VM
         gravity_vm_setvalue(vm, "U4DWorld", VALUE_FROM_OBJECT(worldClass));
