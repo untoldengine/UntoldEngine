@@ -765,6 +765,77 @@ namespace U4DEngine {
         
     }
 
+    bool U4DScriptManager::modelSetViewInDirectionDelta(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==2){
+
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+
+            gravity_instance_t *viewDirectionValue = (gravity_instance_t *)GET_VALUE(1).p;
+
+
+            // get xdata
+            U4DModel *model = (U4DModel *)instance->xdata;
+
+            U4DVector3n *viewDirection = (U4DVector3n *)viewDirectionValue->xdata;
+
+            if(model!=nullptr && viewDirection!=nullptr){
+
+                U4DVector2n delta(viewDirection->x,viewDirection->y);
+                
+                delta.y*=-1.0;
+                
+                float deltaMagnitude=delta.magnitude();
+                delta.normalize();
+                
+                U4DVector3n axis;
+                U4DVector3n mouseDirection(delta.x,delta.y,0.0);
+                
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n xVector(1.0,0.0,0.0);
+                
+                float upDot,xDot;
+                
+                upDot=mouseDirection.dot(upVector);
+                xDot=mouseDirection.dot(xVector);
+                
+                U4DVector3n v=model->getViewInDirection();
+                v.normalize();
+                
+                if(mouseDirection.magnitude()>0){
+                    
+                    if(std::abs(upDot)>=std::abs(xDot)){
+                        
+                        
+                    }else{
+                        
+                        if(xDot>0.0){
+                            axis=upVector;
+                        }else{
+                            axis=upVector*-1.0;
+                        }
+                    }
+                    
+                    float angle=0.03*deltaMagnitude;
+                    U4DQuaternion newOrientantion(angle,axis);
+                    
+                    U4DQuaternion modelOrientation=model->getAbsoluteSpaceOrientation();
+                    
+                    U4DQuaternion p=modelOrientation.slerp(newOrientantion, 1.0);
+                    
+                    model->rotateBy(p);
+                }
+
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+
+        }
+
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+
     bool U4DScriptManager::modelSetViewInDirection(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
         if(nargs==2){
@@ -3045,6 +3116,8 @@ namespace U4DEngine {
         gravity_class_bind(model_class, "getAbsoluteOrientation", NEW_CLOSURE_VALUE(modelGetAbsoluteOrientation));
         gravity_class_bind(model_class, "getViewInDirection", NEW_CLOSURE_VALUE(modelGetViewInDirection));
         gravity_class_bind(model_class, "setViewInDirection", NEW_CLOSURE_VALUE(modelSetViewInDirection));
+        gravity_class_bind(model_class, "setViewInDirectionDelta", NEW_CLOSURE_VALUE(modelSetViewInDirectionDelta));
+        
         gravity_class_bind(model_class, "setEntityForwardVector", NEW_CLOSURE_VALUE(modelSetEntityForwardVector));
         
         gravity_class_bind(model_class, "getModelDimensions", NEW_CLOSURE_VALUE(modelGetDimensions));
