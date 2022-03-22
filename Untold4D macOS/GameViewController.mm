@@ -105,12 +105,29 @@
      }];
 
      ImGui_ImplOSX_Init();
+    
+    
+}
 
+- (void)viewWillAppear{
+    
+    [super viewWillAppear];
+    [self.view.window makeFirstResponder:metalView];
+    [self.view.window center];
+    //[self.view.window setInitialFirstResponder:metalView];
+//    [[[NSApplication sharedApplication] mainWindow] center];
+//    //make the game view controller the first responder so it can receive keyboard inputs
+//    [[[NSApplication sharedApplication] mainWindow] makeFirstResponder:metalView];
+//
+//    [[[NSApplication sharedApplication] mainWindow] setInitialFirstResponder:metalView];
+    
 }
 
 - (void)viewDidAppear {
     
     [super viewDidAppear];
+    
+   
     
     //get screen backing scale
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
@@ -125,13 +142,14 @@
     
     sceneManager->changeScene(sandboxScene);
     
-    BOOL success = [self acceptsFirstResponder];
-    if (success) {
-        NSLog(@"engine became the first responder");
-    } else {
-        NSLog(@"Could not become first responder");
-    }
     
+//    BOOL success = [self acceptsFirstResponder];
+//    if (success) {
+//        NSLog(@"engine became the first responder");
+//    } else {
+//        NSLog(@"Could not become first responder");
+//    }
+
 }
 
 - (void)screenScaleFactorChanged:(NSNotification *)notification {

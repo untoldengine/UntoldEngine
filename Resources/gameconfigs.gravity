@@ -1,44 +1,60 @@
 func init(){
 
-var scaleValue=1.17
 
-var names = ["dribblingBallSpeed":30.0/scaleValue,
-            "playerBiasMotionAccum":0.95,
-            "arriveMaxSpeed":40.0/scaleValue, //60
-            "arriveStopRadius":0.52/scaleValue,
-            "arriveSlowRadius":0.55/scaleValue,
-            "dribblingDirectionSlerpValue":0.95,
-            "shootingBallSpeed":80.0,
-            "passBallSpeed":60.0,
-            "passInterceptionParam":20.0,
-            "arriveJogMaxSpeed":25.0/scaleValue, //60.0
-            "arriveJogStopRadius":0.52/scaleValue,
-            "arriveJogSlowRadius":0.55/scaleValue,
-            "haltRadius":0.52/scaleValue, //0.52 refers to the arriveStopRadius
-            "pursuitMaxSpeed":40.0/scaleValue,
-            "interceptMinRadius":5.0,
-            "freeMaxSpeed":25.0/scaleValue,
-            "freeStopRadius":0.52/scaleValue,
-            "freeSlowRadius":0.55/scaleValue,
-            "neighborPlayerSeparationDistance":14.0,
-            "neighborPlayerAlignmentDistance":30.0,
-            "neighborPlayerCohesionDistance":30.0,
-            "avoidanceMaxSpeed":35.0/scaleValue,
-            "markArrivingMaxSpeed":22.0/scaleValue,
-            "markArriveStopRadius":2.5/scaleValue,
-            "markArriveSlowRadius":3.5/scaleValue,
-            "markAvoidanceMaxSpeed":40.0/scaleValue,
-            "markAvoidanceTimeParameter":50.0/scaleValue,
-            "markPursuitMaxSpeed":30.0/scaleValue,
-            "slidingTackleKick":60.0,
-            "slidingTackleVelocity":32.0/scaleValue,
-            "slidingTackleMinDistance":3.0,
-            "fieldHalfWidth":40.0,
-            "fieldHalfLength":22.5,
-            "cellAnalyzerWidth":10.0,
-            "cellAnalyzerHeight":5.6,
-            "navPathRadius":0.9,
-            "navPredictTime":0.8];
+  
+  return 1;
 
-return names
+}
+
+func update(dt){
+
+
+  return 1
+}
+
+func gameConfigs(){
+
+  var scaleValue=1.17
+
+  var names = ["dribblingBallSpeed":27.0,
+              "playerBiasMotionAccum":0.0,
+              "arriveMaxSpeed":38.0, //60
+              "arriveStopRadius":0.5,
+              "arriveSlowRadius":1.0,
+              "dribblingDirectionSlerpValue":0.0,
+              "shootingBallSpeed":80.0,
+              "passBallSpeed":60.0,
+              "passInterceptionParam":20.0,
+              "arriveJogMaxSpeed":25.0/scaleValue, //60.0
+              "arriveJogStopRadius":0.52/scaleValue,
+              "arriveJogSlowRadius":0.55/scaleValue,
+              "haltRadius":0.52/scaleValue, //0.52 refers to the arriveStopRadius
+              "pursuitMaxSpeed":35.0,
+              "interceptMinRadius":5.0,
+              "freeMaxSpeed":25.0/scaleValue,
+              "freeStopRadius":0.52/scaleValue,
+              "freeSlowRadius":0.55/scaleValue,
+              "neighborPlayerSeparationDistance":14.0,
+              "neighborPlayerAlignmentDistance":30.0,
+              "neighborPlayerCohesionDistance":30.0,
+              "avoidanceMaxSpeed":35.0/scaleValue,
+              "markArrivingMaxSpeed":22.0/scaleValue,
+              "markArriveStopRadius":2.5/scaleValue,
+              "markArriveSlowRadius":3.5/scaleValue,
+              "markAvoidanceMaxSpeed":40.0/scaleValue,
+              "markAvoidanceTimeParameter":50.0/scaleValue,
+              "markPursuitMaxSpeed":50.0,
+              "slidingTackleKick":60.0,
+              "slidingTackleVelocity":1.5,
+              "slidingTackleMinDistance":6.0,
+              "fieldHalfWidth":22.5,//40.0
+              "fieldHalfLength":40.0,//22.5
+              "cellAnalyzerWidth":5.6,//10.0
+              "cellAnalyzerHeight":10.0,//5.6
+              "navPathRadius":0.9,
+              "navPredictTime":0.8,
+              "distanceToFoot":1.5,
+              "goingHomeVelocity":80.0];
+
+  return names
 }

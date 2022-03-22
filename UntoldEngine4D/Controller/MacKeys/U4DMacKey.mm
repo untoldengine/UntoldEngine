@@ -57,7 +57,9 @@ namespace U4DEngine {
     
             controllerMessage.inputElementAction=U4DEngine::macKeyReleased;
     
-        }else if(getIsActive()){
+        }
+        
+        if(getIsActive()){
             controllerMessage.inputElementAction=U4DEngine::macKeyActive;
         }
     
@@ -71,14 +73,15 @@ namespace U4DEngine {
             
             stateManager->changeState(U4DMacKeyPressedState::sharedInstance());
             
-        }else if(stateManager->getCurrentState()==U4DMacKeyPressedState::sharedInstance() && uInputAction==U4DEngine::macKeyPressed){
-            
-            stateManager->changeState(U4DMacKeyActiveState::sharedInstance());
-            
         }else if (uInputAction==U4DEngine::macKeyReleased){
             
-            
             stateManager->changeState(U4DMacKeyReleasedState::sharedInstance());
+            
+        }
+        
+        if(stateManager->getCurrentState()==U4DMacKeyPressedState::sharedInstance() && uInputAction==U4DEngine::macKeyPressed){
+            
+            stateManager->changeState(U4DMacKeyActiveState::sharedInstance());
             
         }
         

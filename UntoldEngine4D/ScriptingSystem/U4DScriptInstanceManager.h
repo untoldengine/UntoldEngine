@@ -19,6 +19,7 @@
 #include "U4DDynamicAction.h"
 #include "U4DSeek.h"
 #include "U4DArrive.h"
+#include "U4DTeam.h"
 
 namespace U4DEngine {
 
@@ -37,6 +38,8 @@ namespace U4DEngine {
         std::map<U4DAnimationManager*,gravity_instance_t *> scriptAnimManagerInstanceMap;
         std::map<U4DSeek*,gravity_instance_t *> scriptAISeekInstanceMap;
         std::map<U4DArrive*,gravity_instance_t *> scriptAIArriveInstanceMap;
+        
+        std::map<U4DTeam*,gravity_instance_t *> scriptTeamInstanceMap;
         
     protected:
         
@@ -75,6 +78,12 @@ namespace U4DEngine {
         gravity_instance_t *getAIArriveScriptInstance(U4DArrive *uAIArrive);
         
         
+        void loadTeamScriptInstance(U4DTeam *uTeam, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getTeamScriptInstance(U4DTeam *uTeam);
+        
+        U4DTeam *getControllingTeam();
+        
         void removeModelScriptInstance(int uScriptID);
         
         void removeAllScriptInstanceModels();
@@ -83,6 +92,7 @@ namespace U4DEngine {
         void removeAllScriptInstanceAnimManagers();
         void removeAllScriptInstanceAISeek();
         void removeAllScriptInstanceAIArrive();
+        void removeAllScriptInstanceTeam();
         
         void removeAllScriptInstances();
         

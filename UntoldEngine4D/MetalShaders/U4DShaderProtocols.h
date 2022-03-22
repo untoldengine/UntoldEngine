@@ -180,7 +180,7 @@ typedef struct{
 
 typedef struct{
     
-    vector_float4 shaderParameter[10];
+    vector_float4 shaderParameter[100];
     
 }UniformModelShaderProperty;
 

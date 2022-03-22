@@ -812,6 +812,8 @@ class U4DTeam;
         rolling,
         kicked,
         decelerating,
+        jumping,
+        falling,
         
     }BALLSTATE;
 
@@ -834,6 +836,7 @@ class U4DTeam;
         kFoot=0x0008,
         kOppositePlayer=0x000A,
         kGoalSensor=0x0020,
+        kPlatform=0x0040,
         
     }GameEntityCollision;
 

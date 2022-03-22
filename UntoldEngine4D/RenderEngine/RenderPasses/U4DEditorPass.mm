@@ -292,7 +292,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                           //call the init function in the script
                           //scriptManager->loadGameConfigs();
                           scriptManager->initClosure();
-                          
+                          scriptManager->loadGameConfigs();
                           scriptLoadedSuccessfully=true;
                       }else{
                           scriptLoadedSuccessfully=false;

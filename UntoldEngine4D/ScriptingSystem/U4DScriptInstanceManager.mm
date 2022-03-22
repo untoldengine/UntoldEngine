@@ -158,6 +158,45 @@ gravity_instance_t *U4DScriptInstanceManager::getAIArriveScriptInstance(U4DArriv
         return gravityAIArriveInstance;
 }
 
+void U4DScriptInstanceManager::loadTeamScriptInstance(U4DTeam *uTeam, gravity_instance_t *uGravityInstance){
+    
+    scriptTeamInstanceMap.insert(std::make_pair(uTeam,uGravityInstance));
+    
+}
+
+gravity_instance_t *U4DScriptInstanceManager::getTeamScriptInstance(U4DTeam *uTeam){
+    
+    std::map<U4DTeam*,gravity_instance_t*>::iterator it=scriptTeamInstanceMap.find(uTeam);
+    
+    gravity_instance_t* gravityTeamInstance=nullptr;
+    
+    if (it != scriptTeamInstanceMap.end()) {
+        gravityTeamInstance=scriptTeamInstanceMap.find(uTeam)->second;
+    }
+    
+    return gravityTeamInstance;
+    
+}
+
+U4DTeam *U4DScriptInstanceManager::getControllingTeam(){
+    
+    //traverse the map and get the team with setAI as false
+    std::map<U4DTeam*,gravity_instance_t*>::iterator it;
+    
+    for(it=scriptTeamInstanceMap.begin(); it!=scriptTeamInstanceMap.end();it++ ){
+    
+        U4DTeam *team=it->first;
+        
+        if(team->aiTeam==false){
+            
+            return team;
+        }
+        
+    }
+    
+    return nullptr;
+}
+
 void U4DScriptInstanceManager::removeAllScriptInstanceAnimations(){
     
     U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
@@ -270,6 +309,23 @@ void U4DScriptInstanceManager::removeAllScriptInstanceAIArrive(){
     scriptAIArriveInstanceMap.clear();
 }
 
+void U4DScriptInstanceManager::removeAllScriptInstanceTeam(){
+    
+    U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+    
+    std::map<U4DTeam*,gravity_instance_t*>::iterator it;
+    
+    for(it=scriptTeamInstanceMap.begin();it!=scriptTeamInstanceMap.end();it++){
+        
+        gravity_instance_t *gravityIntance=it->second;
+        
+        scriptManager->teamFree(scriptManager->vm, (gravity_object_t*)gravityIntance);
+        
+    }
+    
+    scriptTeamInstanceMap.clear();
+}
+
 void U4DScriptInstanceManager::removeAllScriptInstances(){
     
     //removeAllScriptInstanceModels();
@@ -278,6 +334,7 @@ void U4DScriptInstanceManager::removeAllScriptInstances(){
     removeAllScriptInstanceAnimManagers();
     removeAllScriptInstanceAISeek();
     removeAllScriptInstanceAIArrive();
+    removeAllScriptInstanceTeam();
 }
 
 }
