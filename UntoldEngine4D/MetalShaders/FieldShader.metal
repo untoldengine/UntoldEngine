@@ -279,31 +279,31 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
 
             st=st+p1;
             st=rotate2d((-uniformModelShaderProperty.shaderParameter[1].x+90.0)*M_PI/180.0)*st;
-            
+
             st*=2.0;
-            
+
             float c=sdfRing(st,float2(0.0,0.0),0.09);
             c=sharpen(c,0.008,uniformGlobalData.resolution);
 
             color=float3(c);
-            
-            
+
+
             for(int i=0;i<4;i++){
-               
+
                 float2 lST=st;
-                
+
                 lST=rotate2d(90.0*i*M_PI/180.0)*lST;
-                
+
                 float l=sdfLine(lST,float2(0.0,0.0),float2(0.0,0.6));
-                
+
                 l=sharpen(l,0.002,uniformGlobalData.resolution);
-                
+
                 m+=l;
-               
+
                }
-                
+
                 color=min(color,1.0-m);
-                
+
                 float2 tST=-st;
 
                 tST.y-=0.15;
@@ -312,12 +312,12 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
                 t=sharpen(t,0.06,uniformGlobalData.resolution);
 
                 color=max(color,float3(t));
-            
+
         //}
-        
+
         //start render ball indicator
         if(uniformModelShaderProperty.shaderParameter[2].z==1.0){
-            
+
             float2 b1=float2(uniformModelShaderProperty.shaderParameter[2].x,-uniformModelShaderProperty.shaderParameter[2].y);
 
             chaseBallVisualizer=chaseBallVisualizer+b1;
@@ -368,10 +368,10 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
 //        }
 //
 //        color=max(color,pathColor);
-//
-//        //end path finder
-//
-//        //    //start the field analyzer
+
+        //end path finder
+
+        //    //start the field analyzer
 //        influenceST.x*=4.0;
 //        influenceST.y*=4.0;
 //        //influenceST+=float2(0.5); //need to shift the space to map the cells properly with the shader
@@ -405,7 +405,7 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
 //        }
 //
 //        color=max(color,float3(visualInfluence.x,visualInfluence.y,0.0));
-//
+
 //        //end field analyzer
 //
 //        if(fid.x<0.05 || fid.x>0.95 || fid.y<0.05 || fid.y>0.95){

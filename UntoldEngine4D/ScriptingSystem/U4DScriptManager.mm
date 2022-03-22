@@ -28,6 +28,9 @@
 #include "U4DCameraThirdPerson.h"
 #include "U4DCameraBasicFollow.h"
 
+#include "U4DTeam.h"
+#include "U4DPlayer.h"
+
 namespace U4DEngine {
 
     U4DScriptManager* U4DScriptManager::instance=0;
@@ -91,7 +94,7 @@ namespace U4DEngine {
 
              gravity_value_t update_function = gravity_vm_getvalue(vm, "update", (uint32_t)strlen("update"));
              if (!VALUE_ISA_CLOSURE(update_function)) {
-                 printf("Unable to find update function into Gravity VM.\n");
+                 //printf("Unable to find update function into Gravity VM.\n");
 
              }else{
 
@@ -144,17 +147,17 @@ namespace U4DEngine {
         
         if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false) {
             
-            gravity_value_t init_function = gravity_vm_getvalue(vm, "init", (uint32_t)strlen("init"));
-            if (!VALUE_ISA_CLOSURE(init_function)) {
-                printf("Unable to find init function into Gravity VM.\n");
+            gravity_value_t gameConfigs_function = gravity_vm_getvalue(vm, "gameConfigs", (uint32_t)strlen("gameConfigs"));
+            if (!VALUE_ISA_CLOSURE(gameConfigs_function)) {
+                printf("Unable to find gameConfigs function into Gravity VM.\n");
                 
             }else{
                 
                 // convert function to closure
-                gravity_closure_t *init_closure = VALUE_AS_CLOSURE(init_function);
+                gravity_closure_t *gameConfigs_closure = VALUE_AS_CLOSURE(gameConfigs_function);
 
                 // execute init closure
-                if (gravity_vm_runclosure (vm, init_closure, VALUE_FROM_NULL, 0, 0)) {
+                if (gravity_vm_runclosure (vm, gameConfigs_closure, VALUE_FROM_NULL, 0, 0)) {
                     
                     // retrieve returned result
                     gravity_value_t result = gravity_vm_result(vm);
@@ -495,6 +498,10 @@ namespace U4DEngine {
                     //store the model instance and gravity instance
                     U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
                     scriptInstanceManager->loadModelScriptInstance(model, instance);
+                    
+                    //Enabling the mesh manager mainly to do ray-casting intersection used while detecting if an entity
+                    //is colliding.
+                    model->enableMeshManager(1);
                     
                     // set cpp instance and xdata of the gravity instance
                     gravity_instance_setxdata(instance, model);
@@ -1031,6 +1038,37 @@ namespace U4DEngine {
 //        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
 //    }
 
+    bool U4DScriptManager::modelEnableMeshManager(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==2){
+            
+            gravity_value_t meshInterval=GET_VALUE(1);
+            
+            if (VALUE_ISA_INT(meshInterval)) {
+                
+                gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+                
+                // get xdata
+                U4DModel *model = (U4DModel *)instance->xdata;
+                
+                if(model!=nullptr){
+                    
+                    gravity_int_t interval=meshInterval.n;
+                    
+                    model->enableMeshManager((int)interval);
+                    
+                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                    
+                }
+                
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
     void U4DScriptManager::modelFree(gravity_vm *vm, gravity_object_t *obj){
         
         gravity_instance_t *instance = (gravity_instance_t *)obj;
@@ -1105,6 +1143,76 @@ namespace U4DEngine {
         }
         
         RETURN_VALUE(VALUE_FROM_BOOL(d),rindex);
+        
+    }
+
+    bool U4DScriptManager::getAnimationIsPlaying(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if (nargs==1){
+            
+            // get self object which is the instance created in animation_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DAnimation *animation = (U4DAnimation *)instance->xdata;
+            
+            if (animation!=nullptr){
+                
+                bool isPlaying=animation->getAnimationIsPlaying();
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(isPlaying),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::getCurrentKeyframe(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if (nargs==1){
+            
+            // get self object which is the instance created in animation_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DAnimation *animation = (U4DAnimation *)instance->xdata;
+            
+            if (animation!=nullptr){
+                
+                int currentKeyframe=animation->getCurrentKeyframe();
+                
+                RETURN_VALUE(VALUE_FROM_INT(currentKeyframe),rindex);
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+
+
+    bool U4DScriptManager::setPlayContinuousLoop(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if (nargs==2){
+            
+            // get self object which is the instance created in animation_create function
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DAnimation *animation = (U4DAnimation *)instance->xdata;
+            
+            gravity_value_t value=GET_VALUE(1);
+            
+            if (animation!=nullptr && VALUE_ISA_BOOL(value)){
+                
+                bool playContinuously=VALUE_AS_BOOL(value);
+                
+                animation->setPlayContinuousLoop(playContinuously);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                
+            }
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
         
     }
 
@@ -1208,6 +1316,8 @@ namespace U4DEngine {
         RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
         
     }
+
+    
 
     void U4DScriptManager::animationManagerFree(gravity_vm *vm, gravity_object_t *obj){
         
@@ -1679,7 +1789,7 @@ namespace U4DEngine {
                     
                     gravity_int_t collisionMask=mask.n;
                     
-                    dynamicAction->setCollisionFilterCategory((int)collisionMask);
+                    dynamicAction->setCollisionFilterMask((int)collisionMask);
                     
                     RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
                     
@@ -2621,6 +2731,169 @@ namespace U4DEngine {
         
     }
 
+    
+
+    //Team
+    bool U4DScriptManager::teamNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+        
+        // create Gravity instance and set its class to c
+        gravity_instance_t *instance = gravity_instance_new(nullptr, c);
+        
+        gravity_value_t teamName=GET_VALUE(1);
+        
+        if (VALUE_ISA_STRING(teamName)) {
+            
+            gravity_string_t *v=(gravity_string_t *)teamName.p;
+            std::string name(v->s);
+            
+            U4DTeam *team = new U4DTeam(name);
+            
+            if(team!=nullptr){
+                // set cpp instance and xdata of the gravity instance
+                gravity_instance_setxdata(instance, team);
+                
+                //store the team instance and gravity instance
+                U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
+                scriptInstanceManager->loadTeamScriptInstance(team, instance);
+                
+                // return instance
+                RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::teamAddPlayer(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        U4DWorld *world=scene->getGameWorld();
+        
+        if(nargs==2){
+            
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            gravity_value_t playerName=GET_VALUE(1);
+            
+            // get xdata
+            U4DTeam *team = (U4DTeam *)instance->xdata;
+            
+            if (VALUE_ISA_STRING(playerName) && team!=nullptr) {
+                
+                gravity_string_t *v=(gravity_string_t *)playerName.p;
+                std::string name(v->s);
+                
+                U4DPlayer *player=dynamic_cast<U4DPlayer*>(world->searchChild(name));
+                
+                if(player!=nullptr){
+                    team->addPlayer(player);
+                    
+                    RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+                }
+                
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::teamSetOppositeTeam(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        if(nargs==2){
+            
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            gravity_instance_t *oppositeTeamInstance=(gravity_instance_t *)GET_VALUE(1).p;
+            
+            // get xdata
+            U4DTeam *team = (U4DTeam *)instance->xdata;
+            U4DTeam *oppositeTeam=(U4DTeam *)oppositeTeamInstance->xdata;
+            
+            if (oppositeTeam!=nullptr && team!=nullptr) {
+                
+                team->setOppositeTeam(oppositeTeam);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+    bool U4DScriptManager::teamSetActivePlayer(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        U4DWorld *world=scene->getGameWorld();
+        
+        if(nargs==2){
+            
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            gravity_value_t playerName=GET_VALUE(1);
+            
+            // get xdata
+            U4DTeam *team = (U4DTeam *)instance->xdata;
+            
+            if (VALUE_ISA_STRING(playerName) && team!=nullptr) {
+                
+                gravity_string_t *v=(gravity_string_t *)playerName.p;
+                std::string name(v->s);
+                
+                U4DPlayer *player=dynamic_cast<U4DPlayer*>(world->searchChild(name));
+                
+                team->setActivePlayer(player);
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+            
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    bool U4DScriptManager::teamSetAITeam(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        gravity_value_t value=GET_VALUE(1);
+        
+        if (nargs==2 && VALUE_ISA_BOOL(value)) {
+            gravity_instance_t *instance = (gravity_instance_t *)GET_VALUE(0).p;
+            // get xdata
+            U4DTeam *team = (U4DTeam *)instance->xdata;
+            
+            if (team!=nullptr) {
+                bool aiValue=VALUE_AS_BOOL(value);
+                team->aiTeam=aiValue;
+                
+                RETURN_VALUE(VALUE_FROM_BOOL(true),rindex);
+            }
+            
+        }
+
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
+
+    void U4DScriptManager::teamFree (gravity_vm *vm, gravity_object_t *obj){
+        
+        gravity_instance_t *instance = (gravity_instance_t *)obj;
+        
+        // get xdata (which is a team instance)
+        U4DTeam *r = (U4DTeam *)instance->xdata;
+        
+        if(r!=nullptr){
+            // explicitly free memory
+            delete r;
+        }
+        
+    }
+
     //Vector3n
     bool U4DScriptManager::vector3nNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
         
@@ -2785,7 +3058,7 @@ namespace U4DEngine {
          U4DVector3n *r = (U4DVector3n *)instance->xdata;
 
          // read user value
-         gravity_value_t value = GET_VALUE(1);
+         gravity_value_t value = GET_VALUE(2);
 
          // decode value
          double d = 0.0f;
@@ -2816,16 +3089,19 @@ namespace U4DEngine {
          U4DVector3n *r = (U4DVector3n *)instance->xdata;
 
          // read user value
-         gravity_value_t value = GET_VALUE(1);
+         gravity_value_t value = GET_VALUE(2);
 
          // decode value
-         double d = 0.0f;
-         if (VALUE_ISA_FLOAT(value)) d = VALUE_AS_FLOAT(value);
-         else if (VALUE_ISA_INT(value)) d = double(VALUE_AS_INT(value));
+         float d = 0.0f;
+        if (VALUE_ISA_FLOAT(value)){
+            d = VALUE_AS_FLOAT(value);
+        }else if (VALUE_ISA_INT(value)){
+            d = double(VALUE_AS_INT(value));
+        }
          // more cases here, for example VALUE_ISA_STRING
-
+ 
          r->y = d;
-
+        
          RETURN_NOVALUE();
      }
 
@@ -2848,7 +3124,7 @@ namespace U4DEngine {
          U4DVector3n *r = (U4DVector3n *)instance->xdata;
 
          // read user value
-         gravity_value_t value = GET_VALUE(1);
+         gravity_value_t value = GET_VALUE(2);
 
          // decode value
          double d = 0.0f;
@@ -3125,7 +3401,7 @@ namespace U4DEngine {
         
         gravity_class_bind(model_class, "setPipeline", NEW_CLOSURE_VALUE(modelSetPipeline));
         gravity_class_bind(model_class, "loadAnimationToModel", NEW_CLOSURE_VALUE(modelLoadAnimation));
-        
+        gravity_class_bind(model_class, "enableMeshManager", NEW_CLOSURE_VALUE(modelEnableMeshManager));
         
         // register model class inside VM
         gravity_vm_setvalue(vm, "U4DModel", VALUE_FROM_OBJECT(model_class));
@@ -3137,6 +3413,10 @@ namespace U4DEngine {
         gravity_class_bind(animation_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(animationCreate));
         gravity_class_bind(animation_class, "play", NEW_CLOSURE_VALUE(animationPlay));
         gravity_class_bind(animation_class, "stop", NEW_CLOSURE_VALUE(animationStop));
+        
+        gravity_class_bind(animation_class, "getAnimationIsPlaying", NEW_CLOSURE_VALUE(getAnimationIsPlaying));
+        gravity_class_bind(animation_class, "getCurrentKeyframe", NEW_CLOSURE_VALUE(getCurrentKeyframe));
+        gravity_class_bind(animation_class, "setPlayContinuousLoop", NEW_CLOSURE_VALUE(setPlayContinuousLoop));
         
         // register model class inside VM
         gravity_vm_setvalue(vm, "U4DAnimation", VALUE_FROM_OBJECT(animation_class));
@@ -3221,6 +3501,23 @@ namespace U4DEngine {
         
         //register seek class inside the vm
         gravity_vm_setvalue(vm, "U4DArrive", VALUE_FROM_OBJECT(aiArrive_class));
+        
+        
+        //Team
+        gravity_class_t *team_class = gravity_class_new_pair(vm, "U4DTeam", NULL, 0, 0);
+        gravity_class_t *team_class_meta = gravity_class_get_meta(team_class);
+        
+        gravity_class_bind(team_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(teamNew));
+        
+        gravity_class_bind(team_class, "addPlayer", NEW_CLOSURE_VALUE(teamAddPlayer));
+        gravity_class_bind(team_class, "setOppositeTeam", NEW_CLOSURE_VALUE(teamSetOppositeTeam));
+        gravity_class_bind(team_class, "setActivePlayer", NEW_CLOSURE_VALUE(teamSetActivePlayer));
+        gravity_class_bind(team_class, "setAsAITeam", NEW_CLOSURE_VALUE(teamSetAITeam));
+        
+        
+        
+        //register team class inside the vm
+        gravity_vm_setvalue(vm, "U4DTeam", VALUE_FROM_OBJECT(team_class));
         
         //logger
         gravity_class_t *logger_class = gravity_class_new_pair(vm, "U4DLogger", NULL, 0, 0);

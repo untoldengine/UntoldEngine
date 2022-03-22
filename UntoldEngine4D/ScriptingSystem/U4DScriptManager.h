@@ -134,6 +134,8 @@ namespace U4DEngine {
         
         static bool modelLoadAnimation(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
+        static bool modelEnableMeshManager(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
         void modelFree(gravity_vm *vm, gravity_object_t *obj);
         
         
@@ -142,6 +144,9 @@ namespace U4DEngine {
         static bool animationCreate(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool animationPlay(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool animationStop(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool setPlayContinuousLoop(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool getAnimationIsPlaying(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool getCurrentKeyframe(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         void animationFree (gravity_vm *vm, gravity_object_t *obj);
         
         
@@ -216,6 +221,16 @@ namespace U4DEngine {
         static bool anchorMouse(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool pauseScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         static bool playScene(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        
+        //U4DTeam
+        static bool teamNew(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool teamAddPlayer(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool teamSetOppositeTeam(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool teamSetActivePlayer(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        static bool teamSetAITeam(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
+        
+        static void teamFree (gravity_vm *vm, gravity_object_t *obj);
         
     };
 
