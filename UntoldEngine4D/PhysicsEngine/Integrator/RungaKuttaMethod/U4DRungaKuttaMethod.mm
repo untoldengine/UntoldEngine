@@ -89,13 +89,13 @@ namespace U4DEngine {
         
         U4DVector3n k1,k2,k3,k4;
         
-        k1=(uLinearAcceleration)*dt;
-        k2=(uLinearAcceleration+k1*0.5)*dt;
-        k3=(uLinearAcceleration+k2*0.5)*dt;
-        k4=(uLinearAcceleration+k3)*dt;
+        k1=(uLinearAcceleration);
+        k2=(uLinearAcceleration+k1*0.5);
+        k3=(uLinearAcceleration+k2*0.5);
+        k4=(uLinearAcceleration+k3);
         
         //calculate new velocity
-        uVnew=uAction->getVelocity()+(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
+        uVnew=uAction->getVelocity()+dt*(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
 
         //calculate new position
         uSnew=uAction->model->getLocalPosition()+uVnew*dt;
@@ -108,14 +108,14 @@ namespace U4DEngine {
         
         //get the angular velocity
         
-        k1=uAngularAcceleration*dt;
-        k2=(uAngularAcceleration+k1*0.5)*dt;
-        k3=(uAngularAcceleration+k2*0.5)*dt;
-        k4=(uAngularAcceleration+k3)*dt;
+        k1=uAngularAcceleration;
+        k2=(uAngularAcceleration+k1*0.5);
+        k3=(uAngularAcceleration+k2*0.5);
+        k4=(uAngularAcceleration+k3);
 
         
         //calculate new angular velocity
-        uAngularVelocityNew=uAction->getAngularVelocity()+(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
+        uAngularVelocityNew=uAction->getAngularVelocity()+dt*(k1+k2*2+k3*2+k4)*(U4DEngine::rungaKuttaCorrectionCoefficient/6);
         
         
         //get the original orientation of the body
