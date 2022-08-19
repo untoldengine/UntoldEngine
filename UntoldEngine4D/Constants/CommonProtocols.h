@@ -23,9 +23,6 @@
 
 
 namespace U4DEngine {
-    
-class U4DPlayer;
-class U4DTeam;
 
     /**
      @brief The SPRITEDATA structure holds sprites information
@@ -805,29 +802,6 @@ class U4DTeam;
         clientDisconnect,
         clientConnectFailed
     }CLIENTSTATE;
-    
-    enum{
-        idle,
-        stopped,
-        rolling,
-        kicked,
-        decelerating,
-        jumping,
-        falling,
-        
-    }BALLSTATE;
-
-    enum{
-        playing,
-        goalScored,
-        throwIn,
-        outOfBound,
-        restartGame,
-        gameTimeReached,
-        sendTeamsHome,
-        teamsGettingReady,
-        
-    }MATCHMANAGERSTATE;
 
     typedef enum{
         
@@ -839,46 +813,6 @@ class U4DTeam;
         kPlatform=0x0040,
         
     }GameEntityCollision;
-
-    enum{
-        
-        msgChaseBall,
-        msgInterceptBall,
-        msgSupport,
-        msgMark,
-        msgFormation,
-        msgIdle,
-        msgWander,
-        msgGoHome,
-        msgNavigate,
-        msgFree,
-        msgLostBall,
-        msgVictory,
-        msgReceivePass,
-        
-    }PlayerMessage;
-
-    enum{
-
-        msgTeamStart,
-        msgTeamDefend,
-        msgTeamAttack,
-        msgTeamGoHome,
-        msgTeamIdle,
-        msgTeamVictory,
-        
-    }TeamMessage;
-
-typedef struct{
-    
-    U4DPlayer *senderPlayer;
-    U4DPlayer *receiverPlayer;
-    U4DTeam *receiverTeam;
-    U4DTeam *team;
-    int msg;
-    void *extraInfo;
-    
-}Message;
 
 }
 

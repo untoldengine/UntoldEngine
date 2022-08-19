@@ -12,20 +12,12 @@
 #include <stdio.h>
 #include "U4DGameLogic.h"
 #include "U4DModel.h"
-#include "U4DPlayer.h"
-#include "U4DTeam.h"
-#include "U4DField.h"
 #include "UserCommonProtocols.h"
 
 class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     
-    U4DEngine::U4DPlayer *pPlayer;
-    U4DEngine::U4DTeam *teamA;
-    U4DEngine::U4DTeam *teamB;
-    U4DEngine::U4DField *field;
-    U4DEngine::U4DVector3n dribblingDirection;
     
     float angleAccumulator;
     
