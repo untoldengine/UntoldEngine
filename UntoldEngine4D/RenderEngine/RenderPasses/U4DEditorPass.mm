@@ -322,7 +322,12 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     //pan camera - Shift Key + scroll wheel
                     if(ImGui::GetIO().KeyShift==true){
                         
-                        camera->translateBy(mouseWheelH, mouseWheelV, 0.0);
+                        U4DVector3n dir(mouseWheelH,mouseWheelV,0.0);
+                        U4DMatrix3n m=camera->getAbsoluteMatrixOrientation();
+                        
+                        dir=m*dir;
+                        
+                        camera->translateBy(dir);
                     
                     //zoom camera - Control Key + scroll wheel
                     }else if(ImGui::GetIO().KeyCtrl==true && mouseWheelH==0.0){
