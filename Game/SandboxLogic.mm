@@ -62,6 +62,36 @@ void SandboxLogic::init(){
 
 void SandboxLogic::receiveUserInputUpdate(void *uData){
        
+    if(isMouseActive(uData)){
+        
+    }
     
+    if(isMouseLeftButtonPressed(uData)){
+        
+    }else if(isMouseLeftButtonReleased(uData)){
+        
+    }
+    
+    if(isMouseRightButtonPressed(uData)){
+        
+    }else if(isMouseRightButtonReleased(uData)){
+        
+    }
+    
+    if(isKeyPressed(U4DEngine::macKeyA,uData)){
+        
+    }else if(isKeyReleased(U4DEngine::macKeyA,uData)){
+        
+    }
+    
+    if(isKeyPressed(U4DEngine::macKeyD,uData)){
+        
+    }
+    
+    if(isGamePadButtonPressed(U4DEngine::padButtonA, uData)){}
+    
+    if(isGamePadThumbstickMoved(U4DEngine::padLeftThumbstick, uData)){}
+    
+    if(isGamePadThumbstickReleased(U4DEngine::padLeftThumbstick, uData)){}
     
 }
