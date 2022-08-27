@@ -44,20 +44,24 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     setEnableGrid(true);
     
-    U4DEngine::U4DModel *model=new U4DEngine::U4DModel();
+    //deserialize
+    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+    serializer->deserialize("/Users/haroldserrano/Downloads/gamescene3.u4d");
     
+    U4DEngine::U4DModel *model=new U4DEngine::U4DModel();
+
     if (model->loadModel("player0")) {
-        
+
         model->loadRenderingInformation();
         addChild(model);
     }
-    
-    U4DEngine::U4DModel *field=new U4DEngine::U4DModel();
-    
-    if (field->loadModel("field")) {
-        field->loadRenderingInformation();
-        addChild(field);
-    }
+//
+//    U4DEngine::U4DModel *field=new U4DEngine::U4DModel();
+//
+//    if (field->loadModel("field")) {
+//        field->loadRenderingInformation();
+//        addChild(field);
+//    }
 
 }
 

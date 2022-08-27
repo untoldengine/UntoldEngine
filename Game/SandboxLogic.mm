@@ -53,7 +53,11 @@ void SandboxLogic::update(double dt){
 
 void SandboxLogic::init(){
     
-    
+    //1. Get a pointer to the LevelOneWorld object
+    SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
+
+    //2. Search for the player object
+    pPlayer=dynamic_cast<U4DEngine::U4DModel*>(pEarth->searchChild("player0.0"));
     
     
 }
@@ -80,12 +84,13 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     if(isKeyPressed(U4DEngine::macKeyA,uData)){
         
+        pPlayer->translateBy(1.0,0.0,0.0);
     }else if(isKeyReleased(U4DEngine::macKeyA,uData)){
         
     }
     
     if(isKeyPressed(U4DEngine::macKeyD,uData)){
-        
+        pPlayer->translateBy(-1.0,0.0,0.0);
     }
     
     if(isGamePadButtonPressed(U4DEngine::padButtonA, uData)){}

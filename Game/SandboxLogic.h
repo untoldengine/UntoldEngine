@@ -18,7 +18,7 @@ class SandboxLogic:public U4DEngine::U4DGameLogic{
     
 private:
     
-    
+    U4DEngine::U4DModel *pPlayer;
     float angleAccumulator;
     
     MouseMovementDirection mouseMovementDirection;
