@@ -13,6 +13,8 @@
 #include <string>
 #include <vector>
 #include "CommonProtocols.h"
+#include "U4DSceneConfig.h"
+#include "tinyxml2.h"
 
 namespace U4DEngine {
 
@@ -22,7 +24,7 @@ namespace U4DEngine {
         
         static U4DSerializer *instance;
         
-        std::vector<ENTITYSERIALIZEDATA> entitySerializeDataContainer;
+        std::string filename;
         
     protected:
         
@@ -32,19 +34,18 @@ namespace U4DEngine {
         
     public:
         
+        tinyxml2::XMLDocument xmlDoc;
+        
         static U4DSerializer *sharedInstance();
         
         bool serialize(std::string uFileName);
         
-        void prepareEntities();
-        
-        bool convertEntitiesToBinary(std::string uFileName);
-        
         bool deserialize(std::string uFileName);
         
-        bool convertBinaryToEntities(std::string uFileName);
+        void setupScene();
         
-        void unloadEntities();
+        std::string getFileName();
+        
         
     };
 

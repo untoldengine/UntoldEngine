@@ -31,6 +31,7 @@
 
 #include "U4DWorld.h"
 #include "U4DModel.h"
+#include "U4DSceneConfig.h"
 
 #include "U4DSerializer.h"
 #include "U4DRay.h"
@@ -97,6 +98,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
     U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
     
+    U4DSceneConfig *sceneConfig=U4DSceneConfig::sharedInstance();
+    
+    
     ImGuiFileDialog gravityFileDialog;
     ImGuiFileDialog hotReloadFileDialog;
     ImGuiFileDialog serializeFileDialog;
@@ -109,6 +113,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static float entityPosition[3];
     static float entityOrientation[3];
     
+    static bool enableKineticsCheckboxFlag=false;
+    static bool enableCollisionCheckboxFlag=false;
     
     float fps=director->getFPS();
     std::string profilerData=sceneManager->profilerData;
@@ -166,9 +172,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          float pos[3] = {cameraPos.x,cameraPos.y,cameraPos.z};
          float orient[3]={cameraOrient.x,cameraOrient.y,cameraOrient.z};
 
-         ImGui::SliderFloat3("Pos", (float*)&pos,-50.0,50.0);
-         ImGui::SliderFloat3("Orient", (float*)&orient,-90.0,90.0);
+        if(ImGui::InputFloat3("Pos", pos)){
+            sceneConfig->setScenePropsBehavior("camera", "Scene", "position", &pos[0],3);
+        }
 
+        if(ImGui::InputFloat3("Orient", orient)){
+            sceneConfig->setScenePropsBehavior("camera", "Scene", "orientation", &orient[0],3);
+        }
+            
          camera->translateTo(pos[0], pos[1], pos[2]);
          camera->rotateTo(orient[0], orient[1], orient[2]);
 
@@ -184,9 +195,17 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          float lightorient[3]={lightOrient.x,lightOrient.y,lightOrient.z};
          float color[3] = {diffuseColor.x,diffuseColor.y,diffuseColor.z};
 
-         ImGui::SliderFloat3("Light Pos", (float*)&lightpos,-30.0,30.0);
-         ImGui::SliderFloat3("Light Orient", (float*)&lightorient,-90.0,90.0);
-         ImGui::SliderFloat3("Color", (float*)&color,0.0,1.0);
+        if(ImGui::InputFloat3("Light Pos", lightpos)){
+            sceneConfig->setScenePropsBehavior("light", "Scene", "position", &lightpos[0],3);
+        }
+        
+        if(ImGui::InputFloat3("Light Orient", lightorient)){
+            sceneConfig->setScenePropsBehavior("light", "Scene", "orientation", &lightorient[0],3);
+        }
+        
+        if(ImGui::InputFloat3("Color", color)){
+            sceneConfig->setScenePropsBehavior("light", "Scene", "color", &color[0],3);
+        }
 
          diffuseColor=U4DVector3n(color[0],color[1],color[2]);
 
@@ -194,6 +213,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          dirLight->rotateTo(lightorient[0], lightorient[1], lightorient[2]);
          dirLight->setDiffuseColor(diffuseColor);
 
+        
          ImGui::End();
             
         }
@@ -212,34 +232,48 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             
             if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
                 
+                sceneConfig->removePropertyFromAllEntities();
                 scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
+            
             }
             
         }
             
         ImGui::SameLine();
+        //save config
+        
+            
         if (ImGui::Button("Play")) {
             
             //reset the active child
             activeChild=nullptr;
-                
-            if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
-                //change scene state to edit mode
-                scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
-            }else if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
-                scene->setPauseScene(false);
-                logger->log("Game was resumed");
-            }
+            
+            U4DSerializer *serializer=U4DSerializer::sharedInstance();
             
                 
+            if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance() && serializer->serialize(sceneFilePathName)==true){
+                //change scene state to edit mode
                 
+                scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
+                
+                sceneConfig->applyPropertyToAllEntities();
+                
+            }else if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
+                
+                scene->setPauseScene(false);
+                logger->log("Game was resumed");
+                
+            }
+        
         }
+        
         
         ImGui::SameLine();
         if (ImGui::Button("Pause") && sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()) {
             
             //change scene state to pause
             scene->setPauseScene(true);
+            
             logger->log("Game was paused");
             
         }
@@ -417,7 +451,15 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         
                     }
                     
+                    U4DVector3n cameraPos=camera->getAbsolutePosition();
+                    U4DVector3n cameraOrient=camera->getAbsoluteOrientation();
+
+                    float pos[3] = {cameraPos.x,cameraPos.y,cameraPos.z};
+                    float orient[3]={cameraOrient.x,cameraOrient.y,cameraOrient.z};
                     
+                   sceneConfig->setScenePropsBehavior("camera", "Scene", "position", &pos[0],3);
+
+                   sceneConfig->setScenePropsBehavior("camera", "Scene", "orientation", &orient[0],3);
                     
                 }
                 
@@ -499,6 +541,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 
                                 activeChild=model;
                                 
+                                //Read the behaviors set for the entity
+                                enableKineticsCheckboxFlag=sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Kinetics");
+                                enableCollisionCheckboxFlag=sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision");
                             }
 
                         }
@@ -523,6 +568,10 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     entityOrientation[0]=childOrientation.x;
                     entityOrientation[1]=childOrientation.y;
                     entityOrientation[2]=childOrientation.z;
+                    
+                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
+                    
+                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
                     
                 }
                 
@@ -643,7 +692,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         }
                         
                         ImGui::Separator();
-                        
+
                         if(ImGui::Button("load Assset")){
                         
                             if (scene!=nullptr) {
@@ -684,6 +733,33 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 
                                 entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName,assetSelectedPipelineName);
                                 
+                                sceneConfig->addNewEntity(modelNameBuffer,assetSelectedName);
+                                
+                                U4DEntity *newChild=scene->getGameWorld()->searchChild(modelNameBuffer);
+                                
+                                if(newChild!=nullptr){
+                                 
+                                    childPosition=newChild->getAbsolutePosition();
+                                    childOrientation=newChild->getAbsoluteOrientation();
+
+                                    entityPosition[0] = childPosition.x;
+                                    entityPosition[1] = childPosition.y;
+                                    entityPosition[2] = childPosition.z;
+
+                                    entityOrientation[0]=childOrientation.x;
+                                    entityOrientation[1]=childOrientation.y;
+                                    entityOrientation[2]=childOrientation.z;
+                                    
+                                    sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
+                                    
+                                    sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
+                                    
+                                }
+                                
+                                enableKineticsCheckboxFlag=false;
+                                enableCollisionCheckboxFlag=false;
+                                
+                                activeChild=nullptr;
                             }
                             
                         }
@@ -727,6 +803,10 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                              entityOrientation[1]=childOrientation.y;
                              entityOrientation[2]=childOrientation.z;
                              
+                             sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
+                             
+                             sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
+                             
                              break;
                          }
 
@@ -747,14 +827,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                  if (ImGui::Button("Save")) {
 
                      serialiazeFlag=true;
-                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".xml", ".");
 
                  }
                  ImGui::SameLine();
                  if (ImGui::Button("Open")) {
 
                      deserializeFlag=true;
-                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".xml", ".");
 
                  }
 
@@ -807,9 +887,15 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
 
                         ImGui::Text("Transform");
-                        ImGui::SliderFloat3("Position", (float*)&entityPosition,-20.0,20.0);
-                        ImGui::SliderFloat3("Orientation", (float*)&entityOrientation,-180.0,180.0);
-
+                        
+                        if(ImGui::InputFloat3("Position", entityPosition)){
+                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
+                        }
+                        
+                        if(ImGui::InputFloat3("Orientation", entityOrientation)){
+                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
+                        }
+                        
                         activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
                         activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
 
@@ -854,6 +940,10 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 entityOrientation[1]=matrixRotation[1];
                                 entityOrientation[2]=matrixRotation[2];
                                 
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
+                                
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
+                                
                                 activeChild->rotateTo(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
                                 activeChild->translateTo(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
                             }
@@ -861,62 +951,166 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                         }
                         
                         ImGui::Separator();
-
-                        ImGui::Text("Render Entity");
-                        U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
-                        U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
-                        ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
-                        ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
-                        ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
-
-                        ImGui::Separator();
                         
-                        if (scene->getPauseScene()) {
+                        {
+                            ImGui::Text("Physics Properties");
                             
-                            ImGui::Text("Hot-Reload Shader");
-
-                            // open Dialog Simple
-                            if (ImGui::Button("Open Shader")){
-                                lookingForShaderFile=true;
-                                hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
-                            }
+                            if(ImGui::Checkbox("Enable Kinetics", &enableKineticsCheckboxFlag)){
                                 
-                            if (lookingForShaderFile) {
-                                
-                                // display
-                                if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                                {
-                                  // action if OK
-                                  if (hotReloadFileDialog.Instance()->IsOk())
-                                  {
-                                    shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
-                                    shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
-                                    // action
-                                    shaderFilesFound=true;
-                                  }else{
-                                    shaderFilesFound=false;
-                                  }
-
-                                  // close
-                                  
-                                   hotReloadFileDialog.Instance()->Close();
+                                //run enableKineticsCheckboxFlag(activeChild,enableKineticsCheckboxFlag)
+                                //write xml
+                                if(enableKineticsCheckboxFlag){
+                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Kinetics",enableKineticsCheckboxFlag);
+                                    
+                                    
+                                    
+                                    
+                                }else{
+                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Kinetics",enableKineticsCheckboxFlag);
                                 }
-
-                              if (shaderFilesFound) {
-
-                                  ImGui::Text("Shader %s", shaderFilePathName.c_str());
-                                  
-                                  if(ImGui::Button("Hot-Reload")){
-                                      
-                                      pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
-                                      lookingForShaderFile=false;
-                                  }
-
-                              }
+                                
+                            }
                             
+                            ImGui::Separator();
+                            float gravityData[3];
+                            
+                            //show gravity values
+                            
+                            sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Kinetics", "gravity", &gravityData[0],3);
+                            
+                            
+                            if(ImGui::InputFloat3("Gravity", gravityData)){
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Kinetics","gravity",&gravityData[0],3);
+                            }
+                            
+                            //show mass values
+                            float mass;
+                            
+                            sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Kinetics", "mass", &mass);
+                            if(ImGui::InputFloat("mass", &mass, 0.1f, 1.0f, "%.1f")){
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Kinetics", "mass", mass);
+                            }
+                            
+                            ImGui::Separator();
+                            
+                            if(ImGui::Checkbox("Enable Collision", &enableCollisionCheckboxFlag)){
+                                
+                                if(enableCollisionCheckboxFlag){
+                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision",enableCollisionCheckboxFlag);
+                                }else{
+                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision",enableCollisionCheckboxFlag);
+                                }
                             }
                             
                         }
+
+                        ImGui::Separator();
+                        //show coeff Restitution values
+                        static float coefRestitutionData = 0.8f;
+                        
+                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "coefRestitution", &coefRestitutionData);
+                        if(ImGui::InputFloat("Bounciness", &coefRestitutionData, 0.1f, 1.0f, "%.1f")){
+                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Collision", "coefRestitution", coefRestitutionData);
+                        }
+                        
+                        //isPlatform
+                        bool isPlatform;
+                        
+                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "platform", isPlatform);
+                        
+                        if(ImGui::Checkbox("Platform", &isPlatform)){
+                            
+                            if(isPlatform){
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","platform",isPlatform);
+                                
+                            }else{
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","platform",isPlatform);
+                            }
+                            
+                        }
+                        
+                        char tag[10] ={};
+                        
+                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "tag", tag,IM_ARRAYSIZE(tag));
+                        
+                        if(ImGui::InputTextWithHint("collision tag", "input tag here", tag, IM_ARRAYSIZE(tag))){
+                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Collision", "tag", tag,IM_ARRAYSIZE(tag));
+                        }
+                        
+                        //isSensor
+                        static bool isSensor;
+                        
+                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "sensor", isSensor);
+                        
+                        if(ImGui::Checkbox("Sensor", &isSensor)){
+                            
+                            if(isSensor){
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","sensor",isSensor);
+                                
+                            }else{
+                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","sensor",isSensor);
+                            }
+                            
+                        }
+                        
+                        
+                        ImGui::Separator();
+                        
+//                        ImGui::Text("Render Entity");
+//                        U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
+//                        U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+//                        ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
+//                        ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
+//                        ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
+//
+//                        ImGui::Separator();
+//
+//                        if (scene->getPauseScene()) {
+//
+//                            ImGui::Text("Hot-Reload Shader");
+//
+//                            // open Dialog Simple
+//                            if (ImGui::Button("Open Shader")){
+//                                lookingForShaderFile=true;
+//                                hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
+//                            }
+//
+//                            if (lookingForShaderFile) {
+//
+//                                // display
+//                                if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
+//                                {
+//                                  // action if OK
+//                                  if (hotReloadFileDialog.Instance()->IsOk())
+//                                  {
+//                                    shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
+//                                    shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
+//                                    // action
+//                                    shaderFilesFound=true;
+//                                  }else{
+//                                    shaderFilesFound=false;
+//                                  }
+//
+//                                  // close
+//
+//                                   hotReloadFileDialog.Instance()->Close();
+//                                }
+//
+//                              if (shaderFilesFound) {
+//
+//                                  ImGui::Text("Shader %s", shaderFilePathName.c_str());
+//
+//                                  if(ImGui::Button("Hot-Reload")){
+//
+//                                      pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
+//                                      lookingForShaderFile=false;
+//                                  }
+//
+//                              }
+//
+//                            }
+//
+//                        }
                         
                         ImGui::Separator();
                         

@@ -45,16 +45,16 @@ void SandboxWorld::init(){
     setEnableGrid(true);
     
     //deserialize
-    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-    serializer->deserialize("/Users/haroldserrano/Downloads/gamescene3.u4d");
-    
-    U4DEngine::U4DModel *model=new U4DEngine::U4DModel();
-
-    if (model->loadModel("player0")) {
-
-        model->loadRenderingInformation();
-        addChild(model);
-    }
+//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+//    serializer->deserialize("/Users/haroldserrano/Downloads/gamescene3.u4d");
+//
+//    U4DEngine::U4DModel *model=new U4DEngine::U4DModel();
+//
+//    if (model->loadModel("player0")) {
+//
+//        model->loadRenderingInformation();
+//        addChild(model);
+//    }
 //
 //    U4DEngine::U4DModel *field=new U4DEngine::U4DModel();
 //
