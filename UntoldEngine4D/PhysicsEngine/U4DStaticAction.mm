@@ -371,6 +371,10 @@ namespace U4DEngine {
                 collisionEnabled=true;
                 
             }else{
+                
+                delete convexHullBoundingVolume;
+                convexHullBoundingVolume=nullptr;
+                
                 logger->log("Error: Computed Convex Hull for model %s is not valid",model->getName().c_str());
                 logger->log("Please visit www.untoldengine.com for a review on Model Topology to produce a valid Convex Hull");
                 

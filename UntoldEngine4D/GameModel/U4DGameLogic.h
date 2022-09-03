@@ -53,6 +53,28 @@ public:
     
     virtual void receiveUserInputUpdate(void *uData){};
     
+    bool isMouseLeftButtonPressed(void *uData);
+    bool isMouseLeftButtonReleased(void *uData);
+    
+    bool isMouseRightButtonPressed(void *uData);
+    bool isMouseRightButtonReleased(void *uData);
+    
+    bool isKeyPressed(int uKey, void *uData);
+    
+    bool isKeyReleased(int uKey, void *uData);
+    
+    bool isMouseActive(void *uData);
+    
+    bool isMouseActiveDelta(void *uData);
+    
+    bool isGamePadButtonPressed(int uKey, void *uData);
+    
+    bool isGamePadButtonReleased(int uKey, void *uData);
+    
+    bool isGamePadThumbstickMoved(int uKey, void *uData);
+    
+    bool isGamePadThumbstickReleased(int uKey, void *uData);
+    
 };
     
 }

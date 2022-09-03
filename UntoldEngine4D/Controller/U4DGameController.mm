@@ -10,7 +10,9 @@
 #include "U4DInputElement.h"
 #include "U4DWorld.h"
 #include "U4DGameLogicInterface.h"
-
+#include "U4DSceneManager.h"
+#include "U4DSceneStateManager.h"
+#include "U4DScenePlayState.h"
 
 namespace U4DEngine {
 
@@ -86,12 +88,21 @@ namespace U4DEngine {
 
     void U4DGameController::sendUserInputUpdate(void *uData){
         
+        U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+        U4DScene *scene=sceneManager->getCurrentScene();
+        U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
+        
         //need to add this check for ios devices
         if(gameWorld!=nullptr && gameLogic!=nullptr){
+            
             //Send the user input to the MVC components.
             gameWorld->receiveUserInputUpdate(uData);
             
-            gameLogic->receiveUserInputUpdate(uData);
+            //if the scene is in play scene, then accept user inputs
+            if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
+                gameLogic->receiveUserInputUpdate(uData);
+            }
+            
         }
         
     }

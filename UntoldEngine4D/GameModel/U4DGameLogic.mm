@@ -55,5 +55,175 @@ namespace U4DEngine {
         return gameEntityManager;
     
     }
+
+    bool U4DGameLogic::isMouseLeftButtonPressed(void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        //4. If button was pressed
+        if (controllerInputMessage.inputElementAction==U4DEngine::mouseLeftButtonPressed) {
+
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    bool U4DGameLogic::isMouseLeftButtonReleased(void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        //4. If button was pressed
+        if (controllerInputMessage.inputElementAction==U4DEngine::mouseLeftButtonReleased) {
+
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    bool U4DGameLogic::isMouseRightButtonPressed(void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        //4. If button was pressed
+        if (controllerInputMessage.inputElementAction==U4DEngine::mouseRightButtonPressed) {
+
+            
+            return true;
+        }
+        
+        return false;
+        
+    }
+
+    bool U4DGameLogic::isMouseRightButtonReleased(void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        //4. If button was pressed
+        if (controllerInputMessage.inputElementAction==U4DEngine::mouseRightButtonReleased) {
+
+            
+            return true;
+        }
+        
+        return false;
+        
+    }
+
+    bool U4DGameLogic::isKeyPressed(int uKey, void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if (controllerInputMessage.inputElementType==uKey && controllerInputMessage.inputElementAction==U4DEngine::macKeyPressed) {
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    bool U4DGameLogic::isKeyReleased(int uKey, void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if (controllerInputMessage.inputElementType==uKey && controllerInputMessage.inputElementAction==U4DEngine::macKeyReleased) {
+            
+            return true;
+        }
+        
+        return false;
+        
+    }
+
+    bool U4DGameLogic::isMouseActive(void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if(controllerInputMessage.inputElementAction==U4DEngine::mouseActive){
+            
+            
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    bool U4DGameLogic::isMouseActiveDelta(void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if(controllerInputMessage.inputElementAction==U4DEngine::mouseActiveDelta){
+            
+            
+            
+            return true;
+        }
+        
+        return false;
+        
+    }
+
+    bool U4DGameLogic::isGamePadButtonPressed(int uKey, void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if(controllerInputMessage.inputElementType==uKey && controllerInputMessage.inputElementAction==U4DEngine::padButtonPressed){
+            
+            
+            return true;
+            
+        }
+        
+        return false;
+    }
+
+    bool U4DGameLogic::isGamePadButtonReleased(int uKey, void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if(controllerInputMessage.inputElementType==uKey && controllerInputMessage.inputElementAction==U4DEngine::padButtonReleased){
+            
+            
+            return true;
+            
+        }
+        
+        return false;
+        
+    }
+
+    bool U4DGameLogic::isGamePadThumbstickMoved(int uKey, void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if(controllerInputMessage.inputElementType==uKey && controllerInputMessage.inputElementAction==U4DEngine::padThumbstickMoved){
+            
+            
+            return true;
+            
+        }
+        
+        return false;
+        
+    }
+
+    bool U4DGameLogic::isGamePadThumbstickReleased(int uKey, void *uData){
+     
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if(controllerInputMessage.inputElementType==uKey && controllerInputMessage.inputElementAction==U4DEngine::padThumbstickReleased){
+            
+            
+            return true;
+            
+        }
+        
+        return false;
+    }
     
 }

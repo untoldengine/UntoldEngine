@@ -30,7 +30,6 @@
 #include "U4DRenderManager.h"
 #include "U4DModel.h"
 #include "U4DScriptManager.h"
-#include "U4DScriptInstanceManager.h"
 
 namespace U4DEngine {
     
@@ -188,11 +187,6 @@ namespace U4DEngine {
         
         profilerManager->startProfiling("Update");
         
-        U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
-        
-        //updating the update closure of the scripting system
-        scriptManager->updateClosure(dt);
 
         
         child=rootEntity;
@@ -202,10 +196,6 @@ namespace U4DEngine {
             
             child->update(dt);
             //child->updateAllUniforms();
-            
-            if(scriptInstanceManager->modelScriptInstanceExist(child->getScriptID())){
-                scriptManager->update(child->getScriptID(), dt);
-            }
             
             child=child->next;
         }
