@@ -562,6 +562,8 @@ class U4DResourceLoader {
     
         std::vector<MODELRAW> getModelContainer();
         
+        std::vector<std::string> getAnimationsNamesLoaded();
+    
         /**
          @brief Clears the data in the containers
          */

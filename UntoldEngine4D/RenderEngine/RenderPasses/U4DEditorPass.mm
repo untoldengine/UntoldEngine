@@ -65,6 +65,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static U4DEntity *activeChild=nullptr;
     static std::string assetSelectedName;
     static std::string assetSelectedTypeName;
+    static std::string animationSelectedName;
     static std::string assetSelectedPipelineName;
     static std::string scriptFilePathName;
     static std::string scriptFilePath;
@@ -72,7 +73,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static bool savingScriptFile=false;
     static bool newScriptFile=false;
     
-    static bool assetIsSelected=false;
+    static bool assetModelIsSelected=false;
+    static bool assetAnimationIsSelected=false;
     static bool scriptFilesFound=false;
     static bool scriptLoadedSuccessfully=false;
     static bool lookingForScriptFile=false;
@@ -99,7 +101,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
     
     U4DSceneConfig *sceneConfig=U4DSceneConfig::sharedInstance();
-    
     
     ImGuiFileDialog gravityFileDialog;
     ImGuiFileDialog hotReloadFileDialog;
@@ -284,60 +285,153 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         {
             ImGui::Begin("Game Configs");
             
-            //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
-            if (ImGui::Button("Script")){
-                lookingForScriptFile=true;
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
+            U4DScene *scene=sceneManager->getCurrentScene();
+            
+            
+            if (scene->getPauseScene() ) {
+                
+                if(ImGui::Button("Add Model")){
+                
+                    if (scene!=nullptr && assetModelIsSelected) {
+                        
+                        //search the scenegraph for current names
+                        
+                        U4DEntity *child=scene->getGameWorld()->next;
+                        
+                        int count=0;
+                        
+                        while (child!=nullptr) {
+                            
+                            //strip all characters up to the period
+                            if(child->getEntityType()==U4DEngine::MODEL){
+                                
+                                std::string s=child->getName();
+                                int n=(int)s.length();
+                                int m=(int)assetSelectedName.length();
+                                int stringLengthDifference=std::abs(n-m);
 
-                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-            }
+                                if(n<=stringLengthDifference) stringLengthDifference=n;
+                                //trunk down the name
+                                
+                                s.erase(s.end()-stringLengthDifference, s.end());
 
-            if(lookingForScriptFile){
-                // display
-                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
-                {
-                  // action if OK
-                  if (gravityFileDialog.Instance()->IsOk())
-                  {
-                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
-                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-                    // action
-                    scriptFilesFound=true;
-                  }else{
-                    //scriptFilesFound=false;
-                  }
+                                if (s.compare(assetSelectedName)==0) {
 
-                  // close
-                  gravityFileDialog.Instance()->Close();
+                                    count++;
 
+                                }
+                            }
+                            
+                            child=child->next;
+                            
+                        }
+                        
+                        std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
+                        
+                        //entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName,assetSelectedPipelineName);
+                        
+                        entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, "U4DModel","modelpipeline");
+                        
+                        sceneConfig->addNewEntity(modelNameBuffer,assetSelectedName);
+                        
+                        U4DEntity *newChild=scene->getGameWorld()->searchChild(modelNameBuffer);
+                        
+                        if(newChild!=nullptr){
+                         
+                            childPosition=newChild->getAbsolutePosition();
+                            childOrientation=newChild->getAbsoluteOrientation();
+
+                            entityPosition[0] = childPosition.x;
+                            entityPosition[1] = childPosition.y;
+                            entityPosition[2] = childPosition.z;
+
+                            entityOrientation[0]=childOrientation.x;
+                            entityOrientation[1]=childOrientation.y;
+                            entityOrientation[2]=childOrientation.z;
+                            
+                            sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
+                            
+                            sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
+                            
+                        }
+                        
+                        enableKineticsCheckboxFlag=false;
+                        enableCollisionCheckboxFlag=false;
+                        assetModelIsSelected=false;
+                        activeChild=nullptr;
+                        
+                    }
+                    
                 }
-
-              if (scriptFilesFound) {
-
-                  ImGui::Text("Script %s", scriptFilePathName.c_str());
-
-                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-
-                  if(ImGui::Button("Load Script")){
-
-                      if(scriptManager->loadScript(scriptFilePathName)){
-
-                          logger->log("Script was loaded.");
-
-                          //call the init function in the script
-                          //scriptManager->loadGameConfigs();
-                          scriptManager->initClosure();
-                          scriptManager->loadGameConfigs();
-                          scriptLoadedSuccessfully=true;
-                      }else{
-                          scriptLoadedSuccessfully=false;
-                      }
-
-                      //lookingForScriptFile=false;
-                  }
-
-              }
+                
+                ImGui::SameLine();
+                if(ImGui::Button("Add Anim")){
+                    if(assetAnimationIsSelected==true && activeChild!=nullptr){
+                    
+                        sceneConfig->addAnimationElement(activeChild->getName().c_str(),animationSelectedName.c_str());
+                        assetAnimationIsSelected=false;
+                    }
+                }
+            
+                
+            
             }
-        //END SCRIPT FINE_TUNE
+//            //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
+//            if (ImGui::Button("Script")){
+//                lookingForScriptFile=true;
+//
+//                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+//            }
+//
+//            if(lookingForScriptFile){
+//                // display
+//                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+//                {
+//                  // action if OK
+//                  if (gravityFileDialog.Instance()->IsOk())
+//                  {
+//                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+//                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+//                    // action
+//                    scriptFilesFound=true;
+//                  }else{
+//                    //scriptFilesFound=false;
+//                  }
+//
+//                  // close
+//                  gravityFileDialog.Instance()->Close();
+//
+//                }
+//
+//              if (scriptFilesFound) {
+//
+//                  ImGui::Text("Script %s", scriptFilePathName.c_str());
+//
+//                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+//
+//                  if(ImGui::Button("Load Script")){
+//
+//                      if(scriptManager->loadScript(scriptFilePathName)){
+//
+//                          logger->log("Script was loaded.");
+//
+//                          //call the init function in the script
+//                          //scriptManager->loadGameConfigs();
+//                          scriptManager->initClosure();
+//                          scriptManager->loadGameConfigs();
+//                          scriptLoadedSuccessfully=true;
+//                      }else{
+//                          scriptLoadedSuccessfully=false;
+//                      }
+//
+//                      //lookingForScriptFile=false;
+//                  }
+//
+//              }
+//            }
+//        //END SCRIPT FINE_TUNE
             
         ImGui::End();
     }
@@ -583,6 +677,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             
             {
                 ImGui::Begin("Assets");
+                
             if (ImGui::TreeNode("Models"))
             {
 
@@ -594,10 +689,10 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     
                     char buf[32];
                     sprintf(buf, "%s", n.name.c_str());
-                        
-                    if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0)) {
+                   
+                    if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0) ) {
                         assetSelectedName=n.name;
-                        assetIsSelected=true;
+                        assetModelIsSelected=true;
                      }
                         
                 }
@@ -607,168 +702,34 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 ImGui::TreePop();
 
             }
+                
+                if (ImGui::TreeNode("Animations"))
+                {
+                        
+                        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
+                        
+                        for (const auto &n : resourceLoader->getAnimationsNamesLoaded()) {
+                            
+                            char buf[32];
+                            sprintf(buf, "%s", n.c_str());
+                                
+                            if (ImGui::Selectable(buf,n.compare(animationSelectedName)==0)) {
+                                animationSelectedName=n;
+                                assetAnimationIsSelected=true;
+                             }
 
+                    }
+                    
+                    ImGui::TreePop();
+
+                }
+                
             ImGui::End();
 
            }
             
-            {
-                if (assetIsSelected) {
-                    
-                    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-                    U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
-                    U4DScene *scene=sceneManager->getCurrentScene();
-                    
-                    ImGui::Begin("Load Assets");
-                    
-                    if (scene->getPauseScene()) {
-                        
-                        ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
-                        
-    //                    static char modelNameBuffer[64] = "";
-    //                    ImGui::InputText("Model Name", modelNameBuffer, 64);
-    //
-                        ImGui::Text("Select Asset Type");
-                        
-                        std::vector<std::string> registeredClassesItems=entityFactory->getRegisteredClasses();
-                        
-                        static int registeredClassesCurrentIndex = (int)registeredClassesItems.size()-1; // Here we store our selection data as an index.
-                        
-                        const char* classesComboLabel = registeredClassesItems.at(registeredClassesCurrentIndex).c_str();
-                        
-                        assetSelectedTypeName=registeredClassesItems.at(registeredClassesCurrentIndex).c_str();
-                        
-                        static ImGuiComboFlags classesComboFlags = 0;
-                        
-                        if (ImGui::BeginCombo("Classes", classesComboLabel, classesComboFlags))
-                        {
-                            for (int n = 0; n < registeredClassesItems.size(); n++)
-                            {
-                                const bool is_selected = (registeredClassesCurrentIndex == n);
-                                if (ImGui::Selectable(registeredClassesItems.at(n).c_str(), is_selected)){
-                                    registeredClassesCurrentIndex = n;
-                                    assetSelectedTypeName=registeredClassesItems.at(n);
-                                }
-                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                                if (is_selected)
-                                    ImGui::SetItemDefaultFocus();
-                            }
-                            ImGui::EndCombo();
-                        }
-                        
-                        ImGui::Separator();
-                        
-                        
-                        //add combo for pipelines
-                        
-                        ImGui::Text("Select Asset Pipeline");
-                        
-                        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
-                        
-                        std::vector<std::string> registeredPipelineItems=renderManager->getRenderingPipelineList();
-                        
-                        static int registeredPipelineCurrentIndex = 0; // Here we store our selection data as an index.
-                        
-                        const char* pipelineComboLabel = registeredPipelineItems.at(registeredPipelineCurrentIndex).c_str();
-                        
-                        assetSelectedPipelineName=registeredPipelineItems.at(registeredPipelineCurrentIndex).c_str();
-                        
-                        static ImGuiComboFlags pipelineComboFlags = 0;
-                        
-                        if (ImGui::BeginCombo("Pipeline", pipelineComboLabel, pipelineComboFlags))
-                        {
-                            for (int n = 0; n < registeredPipelineItems.size(); n++)
-                            {
-                                const bool is_selected = (registeredPipelineCurrentIndex == n);
-                                if (ImGui::Selectable(registeredPipelineItems.at(n).c_str(), is_selected)){
-                                    registeredPipelineCurrentIndex = n;
-                                    assetSelectedPipelineName=registeredPipelineItems.at(n);
-                                }
-                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                                if (is_selected)
-                                    ImGui::SetItemDefaultFocus();
-                            }
-                            ImGui::EndCombo();
-                        }
-                        
-                        ImGui::Separator();
+            
 
-                        if(ImGui::Button("load Assset")){
-                        
-                            if (scene!=nullptr) {
-                                
-                                //search the scenegraph for current names
-                                
-                                U4DEntity *child=scene->getGameWorld()->next;
-                                
-                                int count=0;
-                                
-                                while (child!=nullptr) {
-                                    
-                                    //strip all characters up to the period
-                                    if(child->getEntityType()==U4DEngine::MODEL){
-                                        
-                                        std::string s=child->getName();
-                                        int n=(int)s.length();
-                                        int m=(int)assetSelectedName.length();
-                                        int stringLengthDifference=std::abs(n-m);
-
-                                        if(n<=stringLengthDifference) stringLengthDifference=n;
-                                        //trunk down the name
-                                        
-                                        s.erase(s.end()-stringLengthDifference, s.end());
-
-                                        if (s.compare(assetSelectedName)==0) {
-
-                                            count++;
-
-                                        }
-                                    }
-                                    
-                                    child=child->next;
-                                    
-                                }
-                                
-                                std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
-                                
-                                entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName,assetSelectedPipelineName);
-                                
-                                sceneConfig->addNewEntity(modelNameBuffer,assetSelectedName);
-                                
-                                U4DEntity *newChild=scene->getGameWorld()->searchChild(modelNameBuffer);
-                                
-                                if(newChild!=nullptr){
-                                 
-                                    childPosition=newChild->getAbsolutePosition();
-                                    childOrientation=newChild->getAbsoluteOrientation();
-
-                                    entityPosition[0] = childPosition.x;
-                                    entityPosition[1] = childPosition.y;
-                                    entityPosition[2] = childPosition.z;
-
-                                    entityOrientation[0]=childOrientation.x;
-                                    entityOrientation[1]=childOrientation.y;
-                                    entityOrientation[2]=childOrientation.z;
-                                    
-                                    sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
-                                    
-                                    sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
-                                    
-                                }
-                                
-                                enableKineticsCheckboxFlag=false;
-                                enableCollisionCheckboxFlag=false;
-                                
-                                activeChild=nullptr;
-                            }
-                            
-                        }
-                        
-                    }
-                    
-                    ImGui::End();
-                }
-            }
             
             {
                 
@@ -1053,8 +1014,43 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                             
                         }
                         
-                        
+
                         ImGui::Separator();
+                        
+                        
+                        
+                        //read all animations
+                        std::vector<std::string> animationsAdded=sceneConfig->getAllAnimationNames(activeChild->getName().c_str());
+                        
+                        static std::string animationLinkedName;
+                        static bool animationLinkedSelected=false;
+                        
+                        //show tree
+                        
+                        if (ImGui::TreeNode("Animations"))
+                        {
+                            
+                            for (const auto &n : animationsAdded) {
+
+                                char buf[32];
+                                sprintf(buf, "%s", n.c_str());
+                                    
+                                if (ImGui::Selectable(buf,n.compare(animationLinkedName)==0)) {
+                                    animationLinkedName=n;
+                                    animationLinkedSelected=true;
+                                 }
+                                    
+                            }
+                            
+                            ImGui::TreePop();
+
+                        }
+                        
+                        if(animationLinkedSelected){
+                            if(ImGui::Button("Remove Animation")){
+                                sceneConfig->removeAnimationElement(activeChild->getName().c_str(),animationLinkedName.c_str());
+                            }
+                        }
                         
 //                        ImGui::Text("Render Entity");
 //                        U4DRenderEntity *renderEntity=activeChild->getRenderEntity();

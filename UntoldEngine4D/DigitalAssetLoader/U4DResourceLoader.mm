@@ -1903,6 +1903,17 @@ namespace U4DEngine {
         
     }
 
+    std::vector<std::string> U4DResourceLoader::getAnimationsNamesLoaded(){
+        
+        std::vector<std::string> animationNames;
+        
+        for(const auto&n:animationsContainer){
+            animationNames.push_back(n.name);
+        }
+        
+        return animationNames;
+    }
+
     std::vector<MODELRAW> U4DResourceLoader::getModelContainer(){
         
         return modelsContainer;
