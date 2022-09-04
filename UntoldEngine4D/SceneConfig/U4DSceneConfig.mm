@@ -328,15 +328,13 @@ namespace U4DEngine {
                 collision->InsertEndChild(sensor);
 
                 tinyxml2::XMLElement* tag=serializer->xmlDoc.NewElement("tag");
-                tag->SetText("");
+                tag->SetText("tag");
                 collision->InsertEndChild(tag);
                 
             }
         
         //animation
-        //collision
         tinyxml2::XMLElement* animation=serializer->xmlDoc.NewElement("Animation");
-        animation->SetAttribute("enabled", false);
         animation->SetText("\n");
         properties->InsertEndChild(animation);
         
@@ -642,6 +640,107 @@ namespace U4DEngine {
         
     }
 
+    tinyxml2::XMLElement *U4DSceneConfig::getEntitySystem(std::string uName, std::string uSystem){
+        
+        tinyxml2::XMLElement *nullSystem=nullptr;
+        
+        tinyxml2::XMLElement *entities=root->FirstChildElement("Entities");
+        
+        for (tinyxml2::XMLElement *child=entities->FirstChildElement("entity"); child!=NULL; child=child->NextSiblingElement("entity")) {
+         
+            std::string entityName=child->Attribute("name");
+            
+            if (entityName.compare(uName)==0) {
+            
+                tinyxml2::XMLElement *properties=child->FirstChildElement("Properties");
+                
+                tinyxml2::XMLElement *system=properties->FirstChildElement(uSystem.c_str());
+                    
+                if(system!=nullptr){
+                    return system;
+                    
+                }
+            }
+        
+        }
+        
+        return nullSystem;
+        
+        
+    }
+
+    bool U4DSceneConfig::addAnimationElement(std::string uName, std::string uElementName){
+        
+        U4DSerializer *serializer=U4DSerializer::sharedInstance();
+        tinyxml2::XMLElement *system=getEntitySystem(uName, "Animation");
+        
+        if(system!=nullptr){
+            
+            //check if element exist
+            for (tinyxml2::XMLElement *child=system->FirstChildElement("animation"); child!=NULL; child=child->NextSiblingElement("animation")) {
+                
+                std::string elementName=child->Attribute("name");
+                
+                if (elementName.compare(uElementName)==0) {
+                    
+                    return false;
+                }
+                
+            }
+            
+            tinyxml2::XMLElement* animation=serializer->xmlDoc.NewElement("animation");
+            animation->SetAttribute("name", uElementName.c_str());
+            animation->SetText(" ");
+            system->InsertEndChild(animation);
+            
+            return true;
+        }
+        
+        
+        return false;
+        
+    }
+
+    std::vector<std::string> U4DSceneConfig::getAllAnimationNames(std::string uName){
+        
+        std::vector<std::string> elementContainer;
+        
+        tinyxml2::XMLElement *system=getEntitySystem(uName, "Animation");
+        
+        if(system!=nullptr){
+            
+            for (tinyxml2::XMLElement *child=system->FirstChildElement("animation"); child!=NULL; child=child->NextSiblingElement("animation")) {
+                
+                elementContainer.push_back(child->Attribute("name"));
+                
+            }
+        }
+        
+        return elementContainer;
+    }
+
+    bool U4DSceneConfig::removeAnimationElement(std::string uName, std::string uElementName){
+        
+        U4DSerializer *serializer=U4DSerializer::sharedInstance();
+        tinyxml2::XMLElement *system=getEntitySystem(uName, "Animation");
+        
+        if(system!=nullptr){
+            
+            for (tinyxml2::XMLElement *child=system->FirstChildElement("animation"); child!=NULL; child=child->NextSiblingElement("animation")) {
+                
+                std::string elementName=child->Attribute("name");
+                
+                if (elementName.compare(uElementName)==0) {
+                    serializer->xmlDoc.DeleteNode(child);
+                    return true;
+                }
+                
+            }
+        }
+        
+        return false;
+        
+    }
 
     void U4DSceneConfig::stringToFloat(std::string uStringData,std::vector<float> *uFloatData){
             

@@ -69,7 +69,16 @@ namespace U4DEngine {
         
         bool getScenePropsBehavior(std::string uName, std::string uSystem, std::string uComponent, float *uData,int uSize);
         
+        
+        tinyxml2::XMLElement *getEntitySystem(std::string uName, std::string uSystem);
+        
+        bool addAnimationElement(std::string uName, std::string uElementName);
+        
+        std::vector<std::string> getAllAnimationNames(std::string uName);
+        
         int getEntitiesCount();
+        
+        bool removeAnimationElement(std::string uName, std::string uElementName);
         
         void stringToFloat(std::string uStringData,std::vector<float> *uFloatData);
         void stringToFloat(std::string uStringData,float *uFloatData, int uSize);
