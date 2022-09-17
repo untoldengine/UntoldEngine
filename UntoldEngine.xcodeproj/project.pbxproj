@@ -3473,7 +3473,7 @@
 					};
 					03722B342029F0220080D069 = {
 						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = W9GCJ3HCHT;
+						DevelopmentTeam = ULLT5J9F2U;
 						ProvisioningStyle = Automatic;
 					};
 					03759B33175B0135002EB5D9 = {
@@ -4949,7 +4949,7 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
+				DEVELOPMENT_TEAM = ULLT5J9F2U;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
@@ -4995,7 +4995,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
+				DEVELOPMENT_TEAM = ULLT5J9F2U;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
