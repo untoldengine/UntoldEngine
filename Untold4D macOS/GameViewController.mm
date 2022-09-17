@@ -21,6 +21,7 @@
 #include "imgui.h"
 #include "imgui_impl_metal.h"
 #include "imgui_impl_osx.h"
+#include "imnodes.h"
 
 @implementation GameViewController
 {
@@ -105,6 +106,10 @@
      }];
 
      ImGui_ImplOSX_Init();
+    
+    //init imgui nodes
+    ImGui::CreateContext();
+    ImNodes::CreateContext();
     
     
 }

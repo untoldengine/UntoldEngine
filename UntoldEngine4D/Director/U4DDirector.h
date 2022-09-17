@@ -106,7 +106,7 @@ private:
     
     bool scriptRunTimeError;
     
-    int newEntityId;
+    uint newEntityId;
     
 protected:
     
@@ -410,7 +410,7 @@ public:
     
     bool getScriptRunTimeError();
     
-    int getNewEntityId();
+    uint getNewEntityId();
     
 };
 

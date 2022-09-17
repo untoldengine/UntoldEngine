@@ -57,7 +57,7 @@ private:
     /**
      @brief Entity Id
      */
-    int entityId;
+    uint entityId;
     
     
 protected:
@@ -163,7 +163,7 @@ public:
      @brief Get entity id
      @return Returns the entity id
      */
-    int getEntityId();
+    uint getEntityId();
     
 
     /**

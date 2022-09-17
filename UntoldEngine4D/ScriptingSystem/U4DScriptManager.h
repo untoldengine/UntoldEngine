@@ -22,7 +22,6 @@
 #include <iostream>
 #include <list>
 #include <string.h>
-#include "U4DVector3n.h"
 
 namespace U4DEngine {
 
@@ -85,7 +84,8 @@ namespace U4DEngine {
         void removeItemsInList(gravity_list_t *l);
         void freeUserInputObjects();
         
-        
+        //model
+        static bool modelLink(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
     };
 
