@@ -49,7 +49,7 @@ U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0)
         return instance;
     }
     
-    int U4DDirector::getNewEntityId(){
+    uint U4DDirector::getNewEntityId(){
         
         //increase coutn
         newEntityId++;

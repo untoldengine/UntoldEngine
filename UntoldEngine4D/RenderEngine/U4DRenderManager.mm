@@ -41,9 +41,9 @@
 #include "U4DGBufferPass.h"
 #include "U4DCompositionPass.h"
 
-
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "U4DEditorPass.h"
+#include "U4DNodeEditor.h"
 #endif
 
 namespace U4DEngine {

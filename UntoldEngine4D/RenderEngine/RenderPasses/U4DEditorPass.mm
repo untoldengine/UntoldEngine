@@ -37,6 +37,7 @@
 #include "U4DRay.h"
 #include "U4DAABB.h"
 
+#include "U4DNodeEditor.h"
 
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -45,7 +46,7 @@
 #include "ImGuiFileDialog.h"
 #include "ImGuizmo.h"
 #include "imgui_impl_osx.h"
-
+#include "imnodes.h"
 
 #endif
 
@@ -53,6 +54,9 @@ namespace U4DEngine{
 
 U4DEditorPass::U4DEditorPass(std::string uPipelineName):U4DRenderPass(uPipelineName){
     
+    //init node editor
+    
+        
 }
 
 U4DEditorPass::~U4DEditorPass(){
@@ -116,6 +120,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     static bool enableKineticsCheckboxFlag=false;
     static bool enableCollisionCheckboxFlag=false;
+    
     
     float fps=director->getFPS();
     std::string profilerData=sceneManager->profilerData;
@@ -216,6 +221,13 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         
          ImGui::End();
+            
+        }
+        
+        {
+            //show node editor
+            U4DNodeEditor *nodeEditor=U4DNodeEditor::sharedInstance();
+            nodeEditor->showEditor();
             
         }
     
@@ -378,60 +390,60 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 
             
             }
-//            //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
-//            if (ImGui::Button("Script")){
-//                lookingForScriptFile=true;
-//
-//                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-//            }
-//
-//            if(lookingForScriptFile){
-//                // display
-//                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
-//                {
-//                  // action if OK
-//                  if (gravityFileDialog.Instance()->IsOk())
-//                  {
-//                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
-//                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-//                    // action
-//                    scriptFilesFound=true;
-//                  }else{
-//                    //scriptFilesFound=false;
-//                  }
-//
-//                  // close
-//                  gravityFileDialog.Instance()->Close();
-//
-//                }
-//
-//              if (scriptFilesFound) {
-//
-//                  ImGui::Text("Script %s", scriptFilePathName.c_str());
-//
-//                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-//
-//                  if(ImGui::Button("Load Script")){
-//
-//                      if(scriptManager->loadScript(scriptFilePathName)){
-//
-//                          logger->log("Script was loaded.");
-//
-//                          //call the init function in the script
-//                          //scriptManager->loadGameConfigs();
-//                          scriptManager->initClosure();
-//                          scriptManager->loadGameConfigs();
-//                          scriptLoadedSuccessfully=true;
-//                      }else{
-//                          scriptLoadedSuccessfully=false;
-//                      }
-//
-//                      //lookingForScriptFile=false;
-//                  }
-//
-//              }
-//            }
-//        //END SCRIPT FINE_TUNE
+            //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
+            if (ImGui::Button("Script")){
+                lookingForScriptFile=true;
+
+                gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+            }
+
+            if(lookingForScriptFile){
+                // display
+                if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                {
+                  // action if OK
+                  if (gravityFileDialog.Instance()->IsOk())
+                  {
+                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+                    // action
+                    scriptFilesFound=true;
+                  }else{
+                    //scriptFilesFound=false;
+                  }
+
+                  // close
+                  gravityFileDialog.Instance()->Close();
+
+                }
+
+              if (scriptFilesFound) {
+
+                  ImGui::Text("Script %s", scriptFilePathName.c_str());
+
+                  U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+
+                  if(ImGui::Button("Load Script")){
+
+                      if(scriptManager->loadScript(scriptFilePathName)){
+
+                          logger->log("Script was loaded.");
+
+                          //call the init function in the script
+                          //scriptManager->loadGameConfigs();
+                          scriptManager->initClosure();
+                          scriptManager->loadGameConfigs();
+                          scriptLoadedSuccessfully=true;
+                      }else{
+                          scriptLoadedSuccessfully=false;
+                      }
+
+                      //lookingForScriptFile=false;
+                  }
+
+              }
+            }
+        //END SCRIPT FINE_TUNE
             
         ImGui::End();
     }

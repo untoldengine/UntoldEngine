@@ -73,7 +73,7 @@ namespace U4DEngine {
         return scriptID;
     }
 
-    int U4DEntity::getEntityId(){
+    uint U4DEntity::getEntityId(){
         return entityId;
     }
 

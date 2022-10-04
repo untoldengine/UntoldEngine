@@ -18,14 +18,7 @@
 #include "U4DScene.h"
 #include "U4DWorld.h"
 #include "U4DModel.h"
-#include "U4DSteering.h"
-#include "U4DSeek.h"
-#include "U4DArrive.h"
-#include "U4DPursuit.h"
-#include "U4DCameraInterface.h"
-#include "U4DCameraFirstPerson.h"
-#include "U4DCameraThirdPerson.h"
-#include "U4DCameraBasicFollow.h"
+#include "U4DScriptInstanceManager.h"
 
 
 namespace U4DEngine {
@@ -273,7 +266,14 @@ namespace U4DEngine {
 
     void U4DScriptManager::registerClasses(gravity_vm *vm){
             
-        
+        //model
+                gravity_class_t *model_class = gravity_class_new_pair(vm, "U4DModel", NULL, 0, 0);
+                gravity_class_t *model_class_meta = gravity_class_get_meta(model_class);
+                
+                gravity_class_bind(model_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(modelLink));
+                
+                // register model class inside VM
+                gravity_vm_setvalue(vm, "U4DModel", VALUE_FROM_OBJECT(model_class));
         
     }
 
@@ -450,6 +450,62 @@ namespace U4DEngine {
          return buffer;
 
      }
+
+    bool U4DScriptManager::modelLink(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        if(nargs==2){
+                
+            // self parameter is the camera create in register_cpp_classes
+            gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
+            gravity_value_t entityName=GET_VALUE(1);
+            
+            if (VALUE_ISA_STRING(entityName)) {
+                
+                gravity_string_t *v=(gravity_string_t *)entityName.p;
+                std::string name(v->s);
+            
+                //get a pointer to the model if it exist
+                U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+                U4DScene *scene=sceneManager->getCurrentScene();
+                U4DWorld *world=scene->getGameWorld();
+                
+                U4DModel *model=dynamic_cast<U4DModel*>(world->searchChild(name));
+                
+                if(model!=nullptr){
+                    // create Gravity instance and set its class to c
+                    gravity_instance_t *instance = gravity_instance_new(nullptr, c);
+                    
+                    //store the model instance and gravity instance
+                    U4DScriptInstanceManager *instanceManager=U4DScriptInstanceManager::sharedInstance();
+                    
+                    if (instanceManager->modelScriptInstanceExist(model->getEntityId())==false) {
+                        
+                        instanceManager->loadModelScriptInstance(model, instance);
+                        
+                        // set cpp instance and xdata of the gravity instance
+                        gravity_instance_setxdata(instance, model);
+                        
+                        // return instance
+                        RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
+                    }
+                    
+                }else{
+                    logger->log("Error: Could not link model. The Model %s does not exist in the world",name.c_str());
+                }
+                
+            }else{
+                logger->log("Error: Could not link model. Parameter must be of type string");
+            }
+        
+        }else{
+            logger->log("Error: Could not link model. Incorrect number of parameters");
+        }
+        
+        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
+        
+    }
 
     void U4DScriptManager::cleanup(){
         
