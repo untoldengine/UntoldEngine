@@ -2,7 +2,7 @@
 //  U4DScriptInstanceManager.hpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 9/9/22.
+//  Created by Harold Serrano on 2/10/22.
 //  Copyright © 2022 Untold Engine Studios. All rights reserved.
 //
 
@@ -14,7 +14,12 @@
 #include <vector>
 #include "gravity_value.h"
 #include "U4DModel.h"
-
+#include "U4DAnimation.h"
+#include "U4DAnimationManager.h"
+#include "U4DDynamicAction.h"
+#include "U4DSeek.h"
+#include "U4DArrive.h"
+#include "U4DTeam.h"
 
 namespace U4DEngine {
 
@@ -22,14 +27,20 @@ namespace U4DEngine {
         
     private:
         
-        std::map<uint,gravity_instance_t *> scriptModelInstanceMap;
-        std::map<uint, U4DModel*> modelInstanceMap;
+        std::map<int,gravity_instance_t *> scriptModelInstanceMap;
         
         static U4DScriptInstanceManager *instance;
         
+        int modelInstanceIndex;
         
         std::map<U4DAnimation*,gravity_instance_t *> scriptAnimationInstanceMap;
-
+        std::map<U4DDynamicAction*,gravity_instance_t *> scriptDynamicActionInstanceMap;
+        std::map<U4DAnimationManager*,gravity_instance_t *> scriptAnimManagerInstanceMap;
+        std::map<U4DSeek*,gravity_instance_t *> scriptAISeekInstanceMap;
+        std::map<U4DArrive*,gravity_instance_t *> scriptAIArriveInstanceMap;
+        
+        std::map<U4DTeam*,gravity_instance_t *> scriptTeamInstanceMap;
+        
     protected:
         
         U4DScriptInstanceManager();
@@ -42,15 +53,48 @@ namespace U4DEngine {
         
         void loadModelScriptInstance(U4DModel *uModel, gravity_instance_t *uGravityInstance);
         
-        gravity_instance_t *getModelScriptInstance(uint uEntityID);
+        gravity_instance_t *getModelScriptInstance(int uScriptID);
         
-        bool modelScriptInstanceExist(uint uEntityID);
+        bool modelScriptInstanceExist(int uScriptID);
         
-        U4DModel *getModel(uint uEntityID);
+        void loadAnimationScriptInstance(U4DAnimation *uAnimation, gravity_instance_t *uGravityInstance);
+                
+        gravity_instance_t *getAnimationScriptInstance(U4DAnimation *uAnimation);
         
-        void removeModelScriptInstance(uint uEntityID);
+        void loadDynamicActionScriptInstance(U4DDynamicAction *uDynamicAction, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getDynamicActionScriptInstance(U4DDynamicAction *uDynamicAction);
+        
+        void loadAnimManagerScriptInstance(U4DAnimationManager *uAnimationManager, gravity_instance_t *uGravityInstance);
+                
+        gravity_instance_t *getAnimManagerScriptInstance(U4DAnimationManager *uAnimationManager);
+        
+        void loadAISeekScriptInstance(U4DSeek *uAISeek, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getAISeekScriptInstance(U4DSeek *uAISeek);
+        
+        void loadAIArriveScriptInstance(U4DArrive *uAIArrive, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getAIArriveScriptInstance(U4DArrive *uAIArrive);
+        
+        
+        void loadTeamScriptInstance(U4DTeam *uTeam, gravity_instance_t *uGravityInstance);
+        
+        gravity_instance_t *getTeamScriptInstance(U4DTeam *uTeam);
+        
+        U4DTeam *getControllingTeam();
+        
+        void removeModelScriptInstance(int uScriptID);
         
         void removeAllScriptInstanceModels();
+        void removeAllScriptInstanceAnimations();
+        void removeAllScriptInstanceDynamicActions();
+        void removeAllScriptInstanceAnimManagers();
+        void removeAllScriptInstanceAISeek();
+        void removeAllScriptInstanceAIArrive();
+        void removeAllScriptInstanceTeam();
+        
+        void removeAllScriptInstances();
         
     };
 
