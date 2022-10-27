@@ -46,7 +46,7 @@ func gameConfigs(){
               "markPursuitMaxSpeed":50.0,
               "slidingTackleKick":60.0,
               "slidingTackleVelocity":1.5,
-              "slidingTackleMinDistance":6.0,
+              "slidingTackleMinDistance":2.0,
               "fieldHalfWidth":22.5,//40.0
               "fieldHalfLength":40.0,//22.5
               "cellAnalyzerWidth":5.6,//10.0

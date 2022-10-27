@@ -88,21 +88,21 @@ void U4DPlayerStateSlidingTackle::execute(U4DPlayer *uPlayer, double dt){
     }
    
     //TEMP IMPLEMENTATION START
-    U4DMatchManager *matchManager=U4DMatchManager::sharedInstance();
-    
-    U4DGoalPost *goalPost=matchManager->getTeamBGoalPost();
-    
-    U4DEngine::U4DAABB aabb=goalPost->goalBoxAABB;
-    
-    U4DEngine::U4DPoint3n pos=uPlayer->getAbsolutePosition().toPoint();
-    
-    U4DEngine::U4DPoint3n closestPoint;
-    
-    aabb.closestPointOnAABBToPoint(pos, closestPoint);
-    
-    finalVelocity=closestPoint.toVector();
-    finalVelocity.y=0.0;
-    finalVelocity.normalize();
+//    U4DMatchManager *matchManager=U4DMatchManager::sharedInstance();
+//
+//    U4DGoalPost *goalPost=matchManager->getTeamBGoalPost();
+//
+//    U4DEngine::U4DAABB aabb=goalPost->goalBoxAABB;
+//
+//    U4DEngine::U4DPoint3n pos=uPlayer->getAbsolutePosition().toPoint();
+//
+//    U4DEngine::U4DPoint3n closestPoint;
+//
+//    aabb.closestPointOnAABBToPoint(pos, closestPoint);
+//
+//    finalVelocity=closestPoint.toVector();
+//    finalVelocity.y=0.0;
+//    finalVelocity.normalize();
     
     //TEMP IMPLEMENTATION ENDS
     //if (uPlayer->foot->kineticAction->getModelHasCollided()) {

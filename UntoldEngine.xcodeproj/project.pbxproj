@@ -3907,11 +3907,11 @@
 					};
 					03722B342029F0220080D069 = {
 						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = ULLT5J9F2U;
+						DevelopmentTeam = PXXZLXYJ26;
 						ProvisioningStyle = Automatic;
 					};
 					03759B33175B0135002EB5D9 = {
-						DevelopmentTeam = W9GCJ3HCHT;
+						DevelopmentTeam = PXXZLXYJ26;
 					};
 				};
 			};
@@ -5526,19 +5526,20 @@
 				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = ULLT5J9F2U;
+				DEVELOPMENT_TEAM = PXXZLXYJ26;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports-games";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
 					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/maclib",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.1;
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -5572,20 +5573,21 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = ULLT5J9F2U;
+				DEVELOPMENT_TEAM = PXXZLXYJ26;
 				ENABLE_NS_ASSERTIONS = NO;
 				GCC_C_LANGUAGE_STANDARD = gnu11;
 				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
 				GCC_WARN_ABOUT_RETURN_TYPE = YES;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports-games";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				LIBRARY_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
 					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/maclib",
 				);
-				MACOSX_DEPLOYMENT_TARGET = 11.1;
+				MACOSX_DEPLOYMENT_TARGET = 12.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -5681,7 +5683,7 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				COMPRESS_PNG_FILES = NO;
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
+				DEVELOPMENT_TEAM = PXXZLXYJ26;
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "UntoldEngine4D/UntoldEngine-Prefix.pch";
 				HEADER_SEARCH_PATHS = (

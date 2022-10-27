@@ -87,8 +87,8 @@ void SandboxScene::init(){
     //get device type
     if(director->getDeviceOSType()==U4DEngine::deviceOSMACX){
 
-        loadComponents(sandboxWorld, sandboxLogic,true);
-        //loadComponents(sandboxWorld,loadingScene, sandboxLogic);
+        //loadComponents(sandboxWorld, sandboxLogic,true);
+        loadComponents(sandboxWorld,loadingScene, sandboxLogic);
     }else if(director->getDeviceOSType()==U4DEngine::deviceOSIOS){
         
         loadComponents(sandboxWorld,loadingScene, sandboxLogic);

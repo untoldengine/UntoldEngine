@@ -160,9 +160,9 @@ void U4DPlayerStateMark::execute(U4DPlayer *uPlayer, double dt){
 
           U4DEngine::U4DRay playerRay(playerPosition,playerDirection);
 
-          if (playerRay.intersectPlane(ballPlane, intersectionPoint, intersectionTime)) {
+          if (1) {
 
-              if (intersectionTime<1.0) {
+              if (1) {
                   
                   uPlayer->slidingVelocity=finalVelocity;
                   uPlayer->changeState(U4DPlayerStateSlidingTackle::sharedInstance());
