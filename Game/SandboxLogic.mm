@@ -81,14 +81,18 @@ void SandboxLogic::init(){
     //1. Get a pointer to the LevelOneWorld object
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
-    pPlayer=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
     
+    U4DEngine::U4DPlayer* pPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
+    U4DEngine::U4DPlayer* pPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
+    U4DEngine::U4DPlayer* pPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
+    U4DEngine::U4DPlayer* pPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
+    U4DEngine::U4DPlayer* pPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
     
-    U4DEngine::U4DPlayer* pPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.0"));
-    U4DEngine::U4DPlayer* pPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.1"));
-    U4DEngine::U4DPlayer* pPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
-    U4DEngine::U4DPlayer* pPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.3"));
-    U4DEngine::U4DPlayer* pPlayer5=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.4"));
+    U4DEngine::U4DPlayer* pEPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.0"));
+    U4DEngine::U4DPlayer* pEPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.1"));
+    U4DEngine::U4DPlayer* pEPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
+    U4DEngine::U4DPlayer* pEPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.3"));
+    U4DEngine::U4DPlayer* pEPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.4"));
     
     field=dynamic_cast<U4DEngine::U4DField*>(pEarth->searchChild("field.0"));
     U4DEngine::U4DGoalPost* goalPostB=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.0"));
@@ -115,16 +119,21 @@ void SandboxLogic::init(){
     pEarth->addChild(gameClock,-20);
     pEarth->addChild(broadCastMessage,-20);
     
-    if(pPlayer!=nullptr && pPlayer1!=nullptr && pPlayer2!=nullptr){
+    {
         
-        matchManager->teamA->addPlayer(pPlayer);
+        matchManager->teamA->addPlayer(pPlayer0);
+        matchManager->teamA->addPlayer(pPlayer1);
+        matchManager->teamA->addPlayer(pPlayer2);
+        matchManager->teamA->addPlayer(pPlayer3);
+        matchManager->teamA->addPlayer(pPlayer4);
         
+        matchManager->teamB->addPlayer(pEPlayer0);
+        matchManager->teamB->addPlayer(pEPlayer1);
+        matchManager->teamB->addPlayer(pEPlayer2);
+        matchManager->teamB->addPlayer(pEPlayer3);
+        matchManager->teamB->addPlayer(pEPlayer4);
         
-        matchManager->teamB->addPlayer(pPlayer1);
-        matchManager->teamB->addPlayer(pPlayer2);
-        matchManager->teamB->addPlayer(pPlayer3);
-        matchManager->teamB->addPlayer(pPlayer4);
-        matchManager->teamB->addPlayer(pPlayer5);
+        pPlayer=pPlayer0;
         
         matchManager->teamA->setActivePlayer(pPlayer);
         matchManager->teamB->aiTeam=true;
@@ -181,6 +190,7 @@ void SandboxLogic::init(){
 void SandboxLogic::receiveUserInputUpdate(void *uData){
     
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
+    
     
     if (pPlayer!=nullptr && startGame==true && matchManager->getState()==U4DEngine::playing) {
         
