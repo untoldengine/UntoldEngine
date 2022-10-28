@@ -1011,9 +1011,6 @@
 		039B8BBF28C62D370055440B /* imnodes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BBD28C62D360055440B /* imnodes.cpp */; };
 		039B8BC028C62D370055440B /* imnodes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BBD28C62D360055440B /* imnodes.cpp */; };
 		039B8BC128C62D370055440B /* imnodes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BBD28C62D360055440B /* imnodes.cpp */; };
-		039B8C3428CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */; };
-		039B8C3528CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */; };
-		039B8C3628CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */; };
 		039DB55C223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55D223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
 		039DB55E223F08C200E323D4 /* U4DRay.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039DB55A223F08C200E323D4 /* U4DRay.mm */; };
@@ -1811,8 +1808,6 @@
 		039B8BBC28C62D360055440B /* imnodes_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imnodes_internal.h; path = Imgui/imnodes_internal.h; sourceTree = "<group>"; };
 		039B8BBD28C62D360055440B /* imnodes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imnodes.cpp; path = Imgui/imnodes.cpp; sourceTree = "<group>"; };
 		039B8BBE28C62D360055440B /* imnodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imnodes.h; path = Imgui/imnodes.h; sourceTree = "<group>"; };
-		039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptInstanceManager.mm; path = ScriptingSystem/U4DScriptInstanceManager.mm; sourceTree = "<group>"; };
-		039B8C3328CB6FF50055440B /* U4DScriptInstanceManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptInstanceManager.h; path = ScriptingSystem/U4DScriptInstanceManager.h; sourceTree = "<group>"; };
 		039DB55A223F08C200E323D4 /* U4DRay.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRay.mm; sourceTree = "<group>"; };
 		039DB55B223F08C200E323D4 /* U4DRay.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DRay.h; sourceTree = "<group>"; };
 		039DB55F224279C800E323D4 /* U4DPolygonData.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPolygonData.mm; sourceTree = "<group>"; };
@@ -3394,8 +3389,6 @@
 				036AE9C4270D7BA600F9685B /* U4DGameConfigs.mm */,
 				036AE9BF270D79D900F9685B /* U4DScriptManager.h */,
 				036AE9C0270D79D900F9685B /* U4DScriptManager.mm */,
-				039B8C3328CB6FF50055440B /* U4DScriptInstanceManager.h */,
-				039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */,
 				03E68862267793260079ED4D /* compiler */,
 				03E68895267793270079ED4D /* optionals */,
 				03E68888267793270079ED4D /* runtime */,
@@ -4405,7 +4398,6 @@
 				03722BE82029F0F50080D069 /* U4DRungaKuttaMethod.mm in Sources */,
 				0399D66025B72712004C1E11 /* U4DParticlesPipeline.mm in Sources */,
 				03722BD22029F0F50080D069 /* U4DIndex.mm in Sources */,
-				039B8C3528CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */,
 				035E26F228FE7BA000ACCC80 /* U4DBallStateIdle.mm in Sources */,
 				03722B5B2029F0F50080D069 /* U4DRenderSkybox.mm in Sources */,
 				03E688A1267793270079ED4D /* gravity_parser.c in Sources */,
@@ -4920,7 +4912,6 @@
 				03722CAA2029F0F80080D069 /* U4DRenderParticleSystem.mm in Sources */,
 				03722D222029F0F80080D069 /* U4DRungaKuttaMethod.mm in Sources */,
 				0399D66125B72712004C1E11 /* U4DParticlesPipeline.mm in Sources */,
-				039B8C3628CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */,
 				035E26F328FE7BA000ACCC80 /* U4DBallStateIdle.mm in Sources */,
 				03722D0C2029F0F80080D069 /* U4DIndex.mm in Sources */,
 				03722C952029F0F80080D069 /* U4DRenderSkybox.mm in Sources */,
@@ -5175,7 +5166,6 @@
 				0341AC18204D8CDF006E14A9 /* U4DMacArrowKey.mm in Sources */,
 				0341AC06204D8CA2006E14A9 /* U4DMacKey.mm in Sources */,
 				0392390B269EA9B8009FE4B9 /* U4DSceneEditingState.mm in Sources */,
-				039B8C3428CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */,
 				035E26CD28FE7BA000ACCC80 /* U4DPlayerStateSlidingTackle.mm in Sources */,
 				03E688B5267793280079ED4D /* gravity_symboltable.c in Sources */,
 				035E26EE28FE7BA000ACCC80 /* U4DBallStateDecelerate.mm in Sources */,
