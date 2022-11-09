@@ -10,6 +10,7 @@
 #define DebugLogic_hpp
 
 #include <stdio.h>
+#include "U4DVoronoiPlane.h"
 #include "U4DGameLogic.h"
 #include "U4DModel.h"
 #include "U4DPlayer.h"
@@ -32,6 +33,7 @@ private:
     MouseMovementDirection mouseMovementDirection;
     U4DEngine::U4DVector3n mouseDirection;
     U4DEngine::U4DVector3n playerMotionAccumulator;
+    U4DEngine::U4DVoronoiPlane *voronoiPlane;
     
     bool startGame;
     bool aKeyFlag;

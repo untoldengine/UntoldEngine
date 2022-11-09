@@ -7,6 +7,7 @@
 //
 
 #include "SandboxLogic.h"
+#include "U4DVoronoiManager.h"
 #import <TargetConditionals.h>
 #include "U4DDirector.h"
 #include "CommonProtocols.h"
@@ -43,7 +44,6 @@
 #include "U4DPlayerStateJump.h"
 #include "U4DPlayerStateHalt.h"
 
-
 #include "U4DBall.h"
 
 #include "U4DGameConfigs.h"
@@ -52,6 +52,8 @@
 
 #include "U4DField.h"
 #include "U4DGoalPost.h"
+
+
 
 SandboxLogic::SandboxLogic():pPlayer(nullptr),teamA(nullptr),dribblingDirection(0.0,0.0,-1.0),startGame(false),aKeyFlag(false),sKeyFlag(false),wKeyFlag(false),dKeyFlag(false),playerMotionAccumulator(0.0,0.0,0.0){
     
@@ -72,6 +74,13 @@ void SandboxLogic::update(double dt){
         
         //field->shadeField(pPlayer);
         
+        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
+
+        voronoi->computeFortuneAlgorithm();
+        
+        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
+        
+        voronoiPlane->shade(segments);
     }
     
 }
@@ -81,6 +90,8 @@ void SandboxLogic::init(){
     //1. Get a pointer to the LevelOneWorld object
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
+    
+    voronoiPlane=new U4DEngine::U4DVoronoiPlane();
     
     U4DEngine::U4DPlayer* pPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
     U4DEngine::U4DPlayer* pPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
@@ -93,6 +104,22 @@ void SandboxLogic::init(){
     U4DEngine::U4DPlayer* pEPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
     U4DEngine::U4DPlayer* pEPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.3"));
     U4DEngine::U4DPlayer* pEPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.4"));
+    
+    
+//    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+//
+//    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
+//    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfLength");
+//
+//    //Update player position
+//    U4DVector3n pos=pPlayer0->getAbsolutePosition();
+//
+//    pos.x/=fieldHalfWidth;
+//    pos.z/=fieldHalfLength;
+//
+//
+//
+    
     
     field=dynamic_cast<U4DEngine::U4DField*>(pEarth->searchChild("field.0"));
     U4DEngine::U4DGoalPost* goalPostB=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.0"));
@@ -176,6 +203,20 @@ void SandboxLogic::init(){
         cameraBasicFollow->setParameters(pPlayer, 0.0, 20.0, -40.0);
         
         camera->setCameraBehavior(cameraBasicFollow);
+        
+        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
+
+        voronoi->computeFortuneAlgorithm();
+        voronoi->computeAreas();
+        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
+        
+        
+        if (voronoiPlane->init("voronoiplane")) {
+
+            pEarth->addChild(voronoiPlane);
+            voronoiPlane->shade(segments);
+            
+        }
         
         startGame=true;
     }

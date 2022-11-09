@@ -870,6 +870,18 @@
 		038249261FA252AE00DFEFE3 /* U4DParticleEmitterLinear.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0382491D1FA252AE00DFEFE3 /* U4DParticleEmitterLinear.mm */; };
 		038249271FA252AE00DFEFE3 /* U4DParticleEmitterInterface.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038249201FA252AE00DFEFE3 /* U4DParticleEmitterInterface.mm */; };
 		038496DD1BC9E04F0032F445 /* U4DBoundingConvex.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */; };
+		03887BBC290D032C00A47FB7 /* U4DVoronoiManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03887BBA290D032C00A47FB7 /* U4DVoronoiManager.mm */; };
+		03887BBD290D032C00A47FB7 /* U4DVoronoiManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03887BBA290D032C00A47FB7 /* U4DVoronoiManager.mm */; };
+		03887BBE290D032C00A47FB7 /* U4DVoronoiManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03887BBA290D032C00A47FB7 /* U4DVoronoiManager.mm */; };
+		03887BCA290E47DC00A47FB7 /* voronoiplane.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03887BC9290E47DC00A47FB7 /* voronoiplane.u4d */; };
+		03887BCB290E47DC00A47FB7 /* voronoiplane.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03887BC9290E47DC00A47FB7 /* voronoiplane.u4d */; };
+		03887BCC290E47DC00A47FB7 /* voronoiplane.u4d in Resources */ = {isa = PBXBuildFile; fileRef = 03887BC9290E47DC00A47FB7 /* voronoiplane.u4d */; };
+		03887BD2290E534B00A47FB7 /* voronoiShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03887BD1290E534B00A47FB7 /* voronoiShader.metal */; };
+		03887BD3290E534B00A47FB7 /* voronoiShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03887BD1290E534B00A47FB7 /* voronoiShader.metal */; };
+		03887BD4290E534B00A47FB7 /* voronoiShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 03887BD1290E534B00A47FB7 /* voronoiShader.metal */; };
+		03887BD8290E553B00A47FB7 /* U4DVoronoiPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03887BD6290E553B00A47FB7 /* U4DVoronoiPlane.mm */; };
+		03887BD9290E553B00A47FB7 /* U4DVoronoiPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03887BD6290E553B00A47FB7 /* U4DVoronoiPlane.mm */; };
+		03887BDA290E553B00A47FB7 /* U4DVoronoiPlane.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03887BD6290E553B00A47FB7 /* U4DVoronoiPlane.mm */; };
 		038BF2252278896100B129A5 /* U4DSteering.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF2232278896100B129A5 /* U4DSteering.mm */; };
 		038BF2262278896100B129A5 /* U4DSteering.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF2232278896100B129A5 /* U4DSteering.mm */; };
 		038BF2272278896100B129A5 /* U4DSteering.mm in Sources */ = {isa = PBXBuildFile; fileRef = 038BF2232278896100B129A5 /* U4DSteering.mm */; };
@@ -1715,6 +1727,22 @@
 		038249211FA252AE00DFEFE3 /* U4DParticleEmitterSphere.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DParticleEmitterSphere.h; path = UntoldEngine4D/ParticleSystem/ParticleEmitter/U4DParticleEmitterSphere.h; sourceTree = SOURCE_ROOT; };
 		038496DB1BC9E04F0032F445 /* U4DBoundingConvex.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DBoundingConvex.mm; path = BoundingVolumes/U4DBoundingConvex.mm; sourceTree = "<group>"; };
 		038496DC1BC9E04F0032F445 /* U4DBoundingConvex.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = U4DBoundingConvex.h; path = BoundingVolumes/U4DBoundingConvex.h; sourceTree = "<group>"; };
+		03887BBA290D032C00A47FB7 /* U4DVoronoiManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVoronoiManager.mm; path = VoronoiManager/U4DVoronoiManager.mm; sourceTree = "<group>"; };
+		03887BBB290D032C00A47FB7 /* U4DVoronoiManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVoronoiManager.h; path = VoronoiManager/U4DVoronoiManager.h; sourceTree = "<group>"; };
+		03887BBF290D05CA00A47FB7 /* Vector2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Vector2.h; path = UntoldEngine4D/VoronoiManager/MyGAL/Vector2.h; sourceTree = SOURCE_ROOT; };
+		03887BC0290D05CA00A47FB7 /* Triangulation.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Triangulation.h; path = UntoldEngine4D/VoronoiManager/MyGAL/Triangulation.h; sourceTree = SOURCE_ROOT; };
+		03887BC1290D05CA00A47FB7 /* Beachline.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Beachline.h; path = UntoldEngine4D/VoronoiManager/MyGAL/Beachline.h; sourceTree = SOURCE_ROOT; };
+		03887BC2290D05CA00A47FB7 /* Box.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Box.h; path = UntoldEngine4D/VoronoiManager/MyGAL/Box.h; sourceTree = SOURCE_ROOT; };
+		03887BC3290D05CA00A47FB7 /* Arc.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Arc.h; path = UntoldEngine4D/VoronoiManager/MyGAL/Arc.h; sourceTree = SOURCE_ROOT; };
+		03887BC4290D05CA00A47FB7 /* Diagram.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Diagram.h; path = UntoldEngine4D/VoronoiManager/MyGAL/Diagram.h; sourceTree = SOURCE_ROOT; };
+		03887BC5290D05CA00A47FB7 /* FortuneAlgorithm.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = FortuneAlgorithm.h; path = UntoldEngine4D/VoronoiManager/MyGAL/FortuneAlgorithm.h; sourceTree = SOURCE_ROOT; };
+		03887BC6290D05CA00A47FB7 /* Event.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = Event.h; path = UntoldEngine4D/VoronoiManager/MyGAL/Event.h; sourceTree = SOURCE_ROOT; };
+		03887BC7290D05CA00A47FB7 /* PriorityQueue.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = PriorityQueue.h; path = UntoldEngine4D/VoronoiManager/MyGAL/PriorityQueue.h; sourceTree = SOURCE_ROOT; };
+		03887BC8290D05CA00A47FB7 /* util.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = util.h; path = UntoldEngine4D/VoronoiManager/MyGAL/util.h; sourceTree = SOURCE_ROOT; };
+		03887BC9290E47DC00A47FB7 /* voronoiplane.u4d */ = {isa = PBXFileReference; lastKnownFileType = file; path = voronoiplane.u4d; sourceTree = "<group>"; };
+		03887BD1290E534B00A47FB7 /* voronoiShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = voronoiShader.metal; path = MetalShaders/voronoiShader.metal; sourceTree = "<group>"; };
+		03887BD6290E553B00A47FB7 /* U4DVoronoiPlane.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DVoronoiPlane.mm; path = VoronoiPlane/U4DVoronoiPlane.mm; sourceTree = "<group>"; };
+		03887BD7290E553B00A47FB7 /* U4DVoronoiPlane.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DVoronoiPlane.h; path = VoronoiPlane/U4DVoronoiPlane.h; sourceTree = "<group>"; };
 		038BF2232278896100B129A5 /* U4DSteering.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSteering.mm; path = AISystem/Steering/U4DSteering.mm; sourceTree = "<group>"; };
 		038BF2242278896100B129A5 /* U4DSteering.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DSteering.h; path = AISystem/Steering/U4DSteering.h; sourceTree = "<group>"; };
 		038BF2282278898600B129A5 /* U4DSeek.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DSeek.mm; path = AISystem/Steering/U4DSeek.mm; sourceTree = "<group>"; };
@@ -2338,6 +2366,7 @@
 		035E264128FE7BA000ACCC80 /* Soccer */ = {
 			isa = PBXGroup;
 			children = (
+				03887BD5290E552200A47FB7 /* VoronoiPlane */,
 				035E264228FE7BA000ACCC80 /* PlayerStates */,
 				035E266B28FE7BA000ACCC80 /* BallStates */,
 				035E267C28FE7BA000ACCC80 /* Formation */,
@@ -2715,6 +2744,7 @@
 		03759B42175B0135002EB5D9 /* UntoldEngine4D */ = {
 			isa = PBXGroup;
 			children = (
+				03887BB9290D030B00A47FB7 /* VoronoiManager */,
 				035E273928FE816D00ACCC80 /* XMLParser */,
 				031F3F162778C08A00F5E482 /* Enet */,
 				03FFE91927744DEF006DD5A2 /* NetworkSystem */,
@@ -2922,6 +2952,7 @@
 				03907FD1273B023E0092A0D2 /* idleAnimation.u4d */,
 				036AE9C9270D847E00F9685B /* gameconfigs.gravity */,
 				0361A09D27037A6B00DDD2F6 /* Lato-Light.ttf */,
+				03887BC9290E47DC00A47FB7 /* voronoiplane.u4d */,
 				0361A09C27037A6B00DDD2F6 /* Lato-Regular.ttf */,
 				03C044762683D733002B3880 /* rightshotAnimation.u4d */,
 				0390836426CF813B001B6878 /* scenefile.u4d */,
@@ -2956,6 +2987,43 @@
 			);
 			name = ParticleEmiter;
 			path = ParticleSystem/ParticleEmitter;
+			sourceTree = "<group>";
+		};
+		03887B90290C9CF600A47FB7 /* MyGAL */ = {
+			isa = PBXGroup;
+			children = (
+				03887BC3290D05CA00A47FB7 /* Arc.h */,
+				03887BC1290D05CA00A47FB7 /* Beachline.h */,
+				03887BC2290D05CA00A47FB7 /* Box.h */,
+				03887BC4290D05CA00A47FB7 /* Diagram.h */,
+				03887BC6290D05CA00A47FB7 /* Event.h */,
+				03887BC5290D05CA00A47FB7 /* FortuneAlgorithm.h */,
+				03887BC7290D05CA00A47FB7 /* PriorityQueue.h */,
+				03887BC0290D05CA00A47FB7 /* Triangulation.h */,
+				03887BC8290D05CA00A47FB7 /* util.h */,
+				03887BBF290D05CA00A47FB7 /* Vector2.h */,
+			);
+			name = MyGAL;
+			path = UntoldEngine4D/MyGAL;
+			sourceTree = SOURCE_ROOT;
+		};
+		03887BB9290D030B00A47FB7 /* VoronoiManager */ = {
+			isa = PBXGroup;
+			children = (
+				03887B90290C9CF600A47FB7 /* MyGAL */,
+				03887BBB290D032C00A47FB7 /* U4DVoronoiManager.h */,
+				03887BBA290D032C00A47FB7 /* U4DVoronoiManager.mm */,
+			);
+			name = VoronoiManager;
+			sourceTree = "<group>";
+		};
+		03887BD5290E552200A47FB7 /* VoronoiPlane */ = {
+			isa = PBXGroup;
+			children = (
+				03887BD7290E553B00A47FB7 /* U4DVoronoiPlane.h */,
+				03887BD6290E553B00A47FB7 /* U4DVoronoiPlane.mm */,
+			);
+			name = VoronoiPlane;
 			sourceTree = "<group>";
 		};
 		038BF2212278892300B129A5 /* AISystem */ = {
@@ -3745,6 +3813,7 @@
 		03F2DAC31F19161F00F77B78 /* MetalShaders */ = {
 			isa = PBXGroup;
 			children = (
+				03887BD1290E534B00A47FB7 /* voronoiShader.metal */,
 				03695622279236B900150047 /* FieldShader.metal */,
 				03F2DAE61F19199700F77B78 /* U4DShaderProtocols.h */,
 				03F2DAE71F1919D400F77B78 /* shadowShader.metal */,
@@ -3946,6 +4015,7 @@
 				03042F862657733300681C6C /* spaceTextures.u4d in Resources */,
 				03DEBE04262A2676009C80B6 /* uiTextures.u4d in Resources */,
 				032957DD27DD2295008CAA37 /* platforms.u4d in Resources */,
+				03887BCB290E47DC00A47FB7 /* voronoiplane.u4d in Resources */,
 				0361A09F27037A6B00DDD2F6 /* Lato-Regular.ttf in Resources */,
 				03036C4027E26722004B9F90 /* dribblyFont.u4d in Resources */,
 				03036C4327E26722004B9F90 /* dribblyLargeFont.u4d in Resources */,
@@ -3985,6 +4055,7 @@
 				03036C4127E26722004B9F90 /* dribblyFont.u4d in Resources */,
 				03042F67265770CD00681C6C /* spaceScene.u4d in Resources */,
 				03386BA2278D4FD200A73E6D /* voxelfieldNavMesh.u4d in Resources */,
+				03887BCC290E47DC00A47FB7 /* voronoiplane.u4d in Resources */,
 				03042F8F2657737500681C6C /* astronautWalkAnim.u4d in Resources */,
 				03C0446126813562002B3880 /* soccerTextures.u4d in Resources */,
 				03DEBE05262A2676009C80B6 /* uiTextures.u4d in Resources */,
@@ -4021,6 +4092,7 @@
 				03DEBE03262A2676009C80B6 /* uiTextures.u4d in Resources */,
 				03C0445F26813562002B3880 /* soccerTextures.u4d in Resources */,
 				03386B94278BFACA00A73E6D /* slidingtackleAnimation.u4d in Resources */,
+				03887BCA290E47DC00A47FB7 /* voronoiplane.u4d in Resources */,
 				03C044782683D733002B3880 /* rightshotAnimation.u4d in Resources */,
 				03386BA0278D4FD200A73E6D /* voxelfieldNavMesh.u4d in Resources */,
 				03042F65265770CD00681C6C /* spaceScene.u4d in Resources */,
@@ -4216,6 +4288,7 @@
 				03E686CC267118B40079ED4D /* U4DEntityNode.mm in Sources */,
 				03E688A7267793280079ED4D /* gravity_token.c in Sources */,
 				035E26CB28FE7BA000ACCC80 /* U4DPlayerStateFalling.mm in Sources */,
+				03887BD9290E553B00A47FB7 /* U4DVoronoiPlane.mm in Sources */,
 				03A3E2D42463C68F00FBCBAD /* U4DGameController.mm in Sources */,
 				038BF275229584A300B129A5 /* U4DNavigation.mm in Sources */,
 				035E273128FE7BA000ACCC80 /* U4DPlayAnalyzer.mm in Sources */,
@@ -4251,9 +4324,11 @@
 				03D5E51F224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
 				035E26D728FE7BA000ACCC80 /* U4DPlayerStateJog.mm in Sources */,
 				03A3E2D92465A4AF00FBCBAD /* U4DInputElement.mm in Sources */,
+				03887BBD290D032C00A47FB7 /* U4DVoronoiManager.mm in Sources */,
 				03722BC42029F0F50080D069 /* U4DPhysicsEngine.mm in Sources */,
 				03722B7F2029F0F50080D069 /* U4DVector3n.mm in Sources */,
 				03722B7E2029F0F50080D069 /* U4DQuaternion.mm in Sources */,
+				03887BD3290E534B00A47FB7 /* voronoiShader.metal in Sources */,
 				03E688E9267793280079ED4D /* gravity_opt_math.c in Sources */,
 				03722B672029F0F50080D069 /* U4DRenderGeometry.mm in Sources */,
 				035E26C828FE7BA000ACCC80 /* U4DPlayerStateManager.mm in Sources */,
@@ -4730,6 +4805,7 @@
 				03E688A8267793280079ED4D /* gravity_token.c in Sources */,
 				03A3E2D52463C68F00FBCBAD /* U4DGameController.mm in Sources */,
 				035E26CC28FE7BA000ACCC80 /* U4DPlayerStateFalling.mm in Sources */,
+				03887BDA290E553B00A47FB7 /* U4DVoronoiPlane.mm in Sources */,
 				038BF276229584A300B129A5 /* U4DNavigation.mm in Sources */,
 				03A3E340247420C800FBCBAD /* U4DJoystick.mm in Sources */,
 				035E273228FE7BA000ACCC80 /* U4DPlayAnalyzer.mm in Sources */,
@@ -4765,9 +4841,11 @@
 				033469B925C20BD8001F0702 /* U4DGBufferPass.mm in Sources */,
 				035E26D828FE7BA000ACCC80 /* U4DPlayerStateJog.mm in Sources */,
 				03722CBA2029F0F80080D069 /* U4DParticleEmitterInterface.mm in Sources */,
+				03887BBE290D032C00A47FB7 /* U4DVoronoiManager.mm in Sources */,
 				03D5E520224DCE0500395D3F /* U4DMeshOctreeManager.mm in Sources */,
 				03A3E2DA2465A4AF00FBCBAD /* U4DInputElement.mm in Sources */,
 				03722CFE2029F0F80080D069 /* U4DPhysicsEngine.mm in Sources */,
+				03887BD4290E534B00A47FB7 /* voronoiShader.metal in Sources */,
 				03722CB92029F0F80080D069 /* U4DVector3n.mm in Sources */,
 				03E687812674155E0079ED4D /* imgui_widgets.cpp in Sources */,
 				035E26C928FE7BA000ACCC80 /* U4DPlayerStateManager.mm in Sources */,
@@ -4992,6 +5070,7 @@
 				03494C161F57BD4C00ACE0EC /* nonVisibleShader.metal in Sources */,
 				03F2DAF31F191A2600F77B78 /* modelShader.metal in Sources */,
 				03759BB4175B0383002EB5D9 /* U4DMatrix3n.mm in Sources */,
+				03887BD8290E553B00A47FB7 /* U4DVoronoiPlane.mm in Sources */,
 				03FFE91C27744E0A006DD5A2 /* U4DClientManager.mm in Sources */,
 				0341AC12204D8CA2006E14A9 /* U4DMacKeyIdleState.mm in Sources */,
 				0323DBA1202F5FD30007F087 /* U4DPadJoystickStateInterface.mm in Sources */,
@@ -5173,6 +5252,7 @@
 				037D2BE72445EFE300AB3FEF /* U4DFlock.mm in Sources */,
 				03F2DAF11F191A2600F77B78 /* imageShader.metal in Sources */,
 				03FA611E258116A1008CC0AB /* U4DProfilerManager.mm in Sources */,
+				03887BBC290D032C00A47FB7 /* U4DVoronoiManager.mm in Sources */,
 				03E688BB267793280079ED4D /* gravity_compiler.c in Sources */,
 				03C2788A1F8415F800AF463C /* U4DVisibilityCulling.mm in Sources */,
 				03494BBD1F4DC26A00ACE0EC /* U4DRenderSprite.mm in Sources */,
@@ -5267,6 +5347,7 @@
 				03E6EDF41943D8C7007AD131 /* U4DCallback.mm in Sources */,
 				0399D67125B72712004C1E11 /* U4DWorldPipeline.mm in Sources */,
 				036AED64231C131600211205 /* U4DMacMouseDeltaMovedState.mm in Sources */,
+				03887BD2290E534B00A47FB7 /* voronoiShader.metal in Sources */,
 				03A96D6825186B7800E8BA19 /* buttonUIShader.metal in Sources */,
 				03676A99267B95830016A83A /* ImGuiFileDialog.cpp in Sources */,
 				038BF2502279E7E500B129A5 /* U4DFollowPath.mm in Sources */,

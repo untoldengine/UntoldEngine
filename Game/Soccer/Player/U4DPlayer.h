@@ -45,6 +45,7 @@ private:
     U4DVector3n dribblingDirectionAccumulator;
     
     
+    
 public:
     
     U4DTeam *team;

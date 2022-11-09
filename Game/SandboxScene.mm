@@ -42,6 +42,8 @@ void SandboxScene::init(){
     resourceLoader->loadSceneData("soccerScene.u4d");
     
     resourceLoader->loadSceneData("platforms.u4d");
+    
+    resourceLoader->loadSceneData("voronoiplane.u4d");
 
     //Load binary file with texture data for the astronaut
     resourceLoader->loadTextureData("soccerTextures.u4d");
@@ -80,6 +82,10 @@ void SandboxScene::init(){
     U4DEngine::U4DModelPipeline *fieldPipeline=new U4DEngine::U4DModelPipeline("fieldPipeline");
         
     fieldPipeline->initPipeline("vertexFieldShader", "fragmentFieldShader");
+    
+    U4DEngine::U4DModelPipeline *voronoiPipeline=new U4DEngine::U4DModelPipeline("voronoiPipeline");
+        
+    voronoiPipeline->initPipeline("vertexVoronoiShader", "fragmentVoronoiShader");
 
     //get instance of director
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
