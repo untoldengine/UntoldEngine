@@ -37,8 +37,6 @@
 #include "U4DRay.h"
 #include "U4DAABB.h"
 
-#include "U4DNodeEditor.h"
-
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "imgui.h"
@@ -221,13 +219,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         
          ImGui::End();
-            
-        }
-        
-        {
-            //show node editor
-            U4DNodeEditor *nodeEditor=U4DNodeEditor::sharedInstance();
-            nodeEditor->showEditor();
             
         }
     
