@@ -873,9 +873,6 @@
 		039B8BBF28C62D370055440B /* imnodes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BBD28C62D360055440B /* imnodes.cpp */; };
 		039B8BC028C62D370055440B /* imnodes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BBD28C62D360055440B /* imnodes.cpp */; };
 		039B8BC128C62D370055440B /* imnodes.cpp in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BBD28C62D360055440B /* imnodes.cpp */; };
-		039B8BC528C77ED40055440B /* U4DNodeEditor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BC328C77ED40055440B /* U4DNodeEditor.mm */; };
-		039B8BC628C77ED50055440B /* U4DNodeEditor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BC328C77ED40055440B /* U4DNodeEditor.mm */; };
-		039B8BC728C77ED50055440B /* U4DNodeEditor.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8BC328C77ED40055440B /* U4DNodeEditor.mm */; };
 		039B8C3428CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */; };
 		039B8C3528CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */; };
 		039B8C3628CB6FF50055440B /* U4DScriptInstanceManager.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */; };
@@ -1583,8 +1580,6 @@
 		039B8BBC28C62D360055440B /* imnodes_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imnodes_internal.h; path = Imgui/imnodes_internal.h; sourceTree = "<group>"; };
 		039B8BBD28C62D360055440B /* imnodes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; name = imnodes.cpp; path = Imgui/imnodes.cpp; sourceTree = "<group>"; };
 		039B8BBE28C62D360055440B /* imnodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = imnodes.h; path = Imgui/imnodes.h; sourceTree = "<group>"; };
-		039B8BC328C77ED40055440B /* U4DNodeEditor.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DNodeEditor.mm; path = NodeEditor/U4DNodeEditor.mm; sourceTree = "<group>"; };
-		039B8BC428C77ED40055440B /* U4DNodeEditor.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DNodeEditor.h; path = NodeEditor/U4DNodeEditor.h; sourceTree = "<group>"; };
 		039B8C3228CB6FF50055440B /* U4DScriptInstanceManager.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DScriptInstanceManager.mm; path = ScriptingSystem/U4DScriptInstanceManager.mm; sourceTree = "<group>"; };
 		039B8C3328CB6FF50055440B /* U4DScriptInstanceManager.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScriptInstanceManager.h; path = ScriptingSystem/U4DScriptInstanceManager.h; sourceTree = "<group>"; };
 		039DB55A223F08C200E323D4 /* U4DRay.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRay.mm; sourceTree = "<group>"; };
@@ -2288,7 +2283,6 @@
 		03759B42175B0135002EB5D9 /* UntoldEngine4D */ = {
 			isa = PBXGroup;
 			children = (
-				039B8BC228C6DB700055440B /* NodeEditor */,
 				03CF90F028BA6C1F003354F4 /* SceneConfig */,
 				031F3F162778C08A00F5E482 /* Enet */,
 				03FFE91927744DEF006DD5A2 /* NetworkSystem */,
@@ -2692,15 +2686,6 @@
 				03A7BEC525BB02BC00F26849 /* U4DCompositionPipeline.mm */,
 			);
 			name = RenderPipelines;
-			sourceTree = "<group>";
-		};
-		039B8BC228C6DB700055440B /* NodeEditor */ = {
-			isa = PBXGroup;
-			children = (
-				039B8BC428C77ED40055440B /* U4DNodeEditor.h */,
-				039B8BC328C77ED40055440B /* U4DNodeEditor.mm */,
-			);
-			name = NodeEditor;
 			sourceTree = "<group>";
 		};
 		039FF2441F98EF4600B3D253 /* ParticleSystem */ = {
@@ -3667,7 +3652,6 @@
 				0323DBBA202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722BC22029F0F50080D069 /* U4DParticleEmitterLinear.mm in Sources */,
 				0341AC03204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */,
-				039B8BC628C77ED50055440B /* U4DNodeEditor.mm in Sources */,
 				03A3E2DF246D891500FBCBAD /* U4DTouches.mm in Sources */,
 				03E688B0267793280079ED4D /* gravity_codegen.c in Sources */,
 				03722B7B2029F0F50080D069 /* U4DDirectionalLight.mm in Sources */,
@@ -4138,7 +4122,6 @@
 				0323DBBC202F60510007F087 /* U4DPadJoystickReleasedState.mm in Sources */,
 				03722CFC2029F0F80080D069 /* U4DParticleEmitterLinear.mm in Sources */,
 				0341AC05204D8CA2006E14A9 /* U4DMacKeyReleasedState.mm in Sources */,
-				039B8BC728C77ED50055440B /* U4DNodeEditor.mm in Sources */,
 				03A3E2E0246D891500FBCBAD /* U4DTouches.mm in Sources */,
 				03E688B1267793280079ED4D /* gravity_codegen.c in Sources */,
 				03722CB52029F0F80080D069 /* U4DDirectionalLight.mm in Sources */,
@@ -4715,7 +4698,6 @@
 				03E6EDDF1943D816007AD131 /* U4DRungaKuttaMethod.mm in Sources */,
 				0392390E269EA9B8009FE4B9 /* U4DSceneLoadingState.mm in Sources */,
 				03DB6E82192F0260006E21D0 /* U4DVector4n.mm in Sources */,
-				039B8BC528C77ED40055440B /* U4DNodeEditor.mm in Sources */,
 				0334699925C190FF001F0702 /* U4DFinalPass.mm in Sources */,
 				03C278871F80046B00AF463C /* U4DVisibilityManager.mm in Sources */,
 				031F3F2B2778C09B00F5E482 /* compress.c in Sources */,
