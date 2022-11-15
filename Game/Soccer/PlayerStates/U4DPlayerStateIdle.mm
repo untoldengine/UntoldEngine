@@ -14,7 +14,8 @@
 #include "U4DPlayerStateFlock.h"
 #include "U4DPlayerStateMark.h"
 #include "U4DPlayerStateGoHome.h"
-#include "U4DFoot.h"
+#include "U4DPlayerStateShooting.h"
+#include "U4DPlayerStatePass.h"
 
 namespace U4DEngine {
 
@@ -54,7 +55,6 @@ void U4DPlayerStateIdle::enter(U4DPlayer *uPlayer){
     uPlayer->kineticAction->setAngularVelocity(zero);
     uPlayer->kineticAction->clearForce();
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
     
     uPlayer->resetAllFlags();
 }
@@ -65,6 +65,12 @@ void U4DPlayerStateIdle::execute(U4DPlayer *uPlayer, double dt){
     if (uPlayer->dribbleBall==true) {
         uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
         
+    }else if(uPlayer->shootBall==true){
+        
+        uPlayer->changeState(U4DPlayerStateShooting::sharedInstance());
+
+    }else if(uPlayer->passBall==true){
+        uPlayer->changeState(U4DPlayerStatePass::sharedInstance());
     }else if(uPlayer->freeToRun==true){
         uPlayer->changeState(U4DPlayerStateFree::sharedInstance());
     }

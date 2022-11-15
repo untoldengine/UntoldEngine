@@ -65,22 +65,24 @@ SandboxLogic::~SandboxLogic(){
 
 void SandboxLogic::update(double dt){
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
-    if(pPlayer!=nullptr && startGame==true && field!=nullptr){
+    if(pPlayer!=nullptr && startGame==true){
 //        teamA->update(dt);
 //        teamB->update(dt);
-        matchManager->update(dt);
-       
+//        matchManager->update(dt);
+//
         pPlayer=matchManager->teamA->getActivePlayer();
+//
+//        //field->shadeField(pPlayer);
+//
+//        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
+//
+//        voronoi->computeFortuneAlgorithm();
+//
+//        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
+//
+//        voronoiPlane->shade(segments);
         
-        //field->shadeField(pPlayer);
         
-        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
-
-        voronoi->computeFortuneAlgorithm();
-        
-        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
-        
-        voronoiPlane->shade(segments);
     }
     
 }
@@ -96,14 +98,14 @@ void SandboxLogic::init(){
     U4DEngine::U4DPlayer* pPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
     U4DEngine::U4DPlayer* pPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
     U4DEngine::U4DPlayer* pPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
-    U4DEngine::U4DPlayer* pPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
-    U4DEngine::U4DPlayer* pPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
-    
-    U4DEngine::U4DPlayer* pEPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.0"));
-    U4DEngine::U4DPlayer* pEPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.1"));
-    U4DEngine::U4DPlayer* pEPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
-    U4DEngine::U4DPlayer* pEPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.3"));
-    U4DEngine::U4DPlayer* pEPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.4"));
+//    U4DEngine::U4DPlayer* pPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
+//    U4DEngine::U4DPlayer* pPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
+//
+//    U4DEngine::U4DPlayer* pEPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.0"));
+//    U4DEngine::U4DPlayer* pEPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.1"));
+//    U4DEngine::U4DPlayer* pEPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
+//    U4DEngine::U4DPlayer* pEPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.3"));
+//    U4DEngine::U4DPlayer* pEPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.4"));
     
     
 //    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
@@ -121,51 +123,51 @@ void SandboxLogic::init(){
 //
     
     
-    field=dynamic_cast<U4DEngine::U4DField*>(pEarth->searchChild("field.0"));
-    U4DEngine::U4DGoalPost* goalPostB=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.0"));
-    U4DEngine::U4DGoalPost* goalPostA=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.1"));
-    
+//    field=dynamic_cast<U4DEngine::U4DField*>(pEarth->searchChild("field.0"));
+//    U4DEngine::U4DGoalPost* goalPostB=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.0"));
+//    U4DEngine::U4DGoalPost* goalPostA=dynamic_cast<U4DEngine::U4DGoalPost*>(pEarth->searchChild("fieldgoal.1"));
+//
     U4DEngine::U4DBall *ball=U4DEngine::U4DBall::sharedInstance();
      if (ball->init("ball")) {
          pEarth->addChild(ball);
           
      }
         
-    U4DEngine::U4DText *scoreA=new U4DEngine::U4DText("dribblyFont");
-    U4DEngine::U4DText *scoreB=new U4DEngine::U4DText("dribblyFont");
-    U4DEngine::U4DText *gameClock=new U4DEngine::U4DText("dribblyFont");
-    U4DEngine::U4DText *broadCastMessage=new U4DEngine::U4DText("uiFont");
-    
-    scoreA->translateBy(-0.3,0.8,0.0);
-    scoreB->translateBy(0.35,0.8,0.0);
-    gameClock->translateBy(-0.1,0.8,0.0);
-    broadCastMessage->translateBy(0.0, 0.7, 0.0);
-    
-    pEarth->addChild(scoreA,-20);
-    pEarth->addChild(scoreB,-20);
-    pEarth->addChild(gameClock,-20);
-    pEarth->addChild(broadCastMessage,-20);
-    
-    {
+//    U4DEngine::U4DText *scoreA=new U4DEngine::U4DText("dribblyFont");
+//    U4DEngine::U4DText *scoreB=new U4DEngine::U4DText("dribblyFont");
+//    U4DEngine::U4DText *gameClock=new U4DEngine::U4DText("dribblyFont");
+//    U4DEngine::U4DText *broadCastMessage=new U4DEngine::U4DText("uiFont");
+//
+//    scoreA->translateBy(-0.3,0.8,0.0);
+//    scoreB->translateBy(0.35,0.8,0.0);
+//    gameClock->translateBy(-0.1,0.8,0.0);
+//    broadCastMessage->translateBy(0.0, 0.7, 0.0);
+//
+//    pEarth->addChild(scoreA,-20);
+//    pEarth->addChild(scoreB,-20);
+//    pEarth->addChild(gameClock,-20);
+//    pEarth->addChild(broadCastMessage,-20);
+//
+//    {
         
         matchManager->teamA->addPlayer(pPlayer0);
         matchManager->teamA->addPlayer(pPlayer1);
         matchManager->teamA->addPlayer(pPlayer2);
-        matchManager->teamA->addPlayer(pPlayer3);
-        matchManager->teamA->addPlayer(pPlayer4);
-        
-        matchManager->teamB->addPlayer(pEPlayer0);
-        matchManager->teamB->addPlayer(pEPlayer1);
-        matchManager->teamB->addPlayer(pEPlayer2);
-        matchManager->teamB->addPlayer(pEPlayer3);
-        matchManager->teamB->addPlayer(pEPlayer4);
+//        matchManager->teamA->addPlayer(pPlayer3);
+//        matchManager->teamA->addPlayer(pPlayer4);
+//
+//        matchManager->teamB->addPlayer(pEPlayer0);
+//        matchManager->teamB->addPlayer(pEPlayer1);
+//        matchManager->teamB->addPlayer(pEPlayer2);
+//        matchManager->teamB->addPlayer(pEPlayer3);
+//        matchManager->teamB->addPlayer(pEPlayer4);
         
         pPlayer=pPlayer0;
         
         matchManager->teamA->setActivePlayer(pPlayer);
-        matchManager->teamB->aiTeam=true;
-        
-        matchManager->initMatchElements(goalPostA,goalPostB,field);
+//        matchManager->teamB->aiTeam=true;
+//
+//        matchManager->initMatchElements(goalPostA,goalPostB,field);
         
 //        teamA=new U4DEngine::U4DTeam("teamA");
 //        teamB=new U4DEngine::U4DTeam("teamB");
@@ -193,37 +195,32 @@ void SandboxLogic::init(){
 //        teamA->changeState(U4DEngine::U4DTeamStateReady::sharedInstance());
 //        teamB->changeState(U4DEngine::U4DTeamStateReady::sharedInstance());
         
-        matchManager->initTextElements(scoreA, scoreB, gameClock,broadCastMessage);
-        matchManager->initMatchTimer(60.0,1.0);
-        
-        U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
-        U4DEngine::U4DCameraBasicFollow *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
-        U4DEngine::U4DPoint3n minBox(-2.0,-2.0,-2.0);
-        U4DEngine::U4DPoint3n maxBox(2.0,2.0,2.0);
-        cameraBasicFollow->setParameters(pPlayer, 0.0, 20.0, -40.0);
-        
-        camera->setCameraBehavior(cameraBasicFollow);
-        
-        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
-
-        voronoi->computeFortuneAlgorithm();
-        voronoi->computeAreas();
-        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
-        
-        
-        if (voronoiPlane->init("voronoiplane")) {
-
-            pEarth->addChild(voronoiPlane);
-            voronoiPlane->shade(segments);
-            
-        }
+//        matchManager->initTextElements(scoreA, scoreB, gameClock,broadCastMessage);
+//        matchManager->initMatchTimer(60.0,1.0);
+//
+//        U4DEngine::U4DCamera *camera=U4DEngine::U4DCamera::sharedInstance();
+//        U4DEngine::U4DCameraBasicFollow *cameraBasicFollow=U4DEngine::U4DCameraBasicFollow::sharedInstance();
+//        U4DEngine::U4DPoint3n minBox(-2.0,-2.0,-2.0);
+//        U4DEngine::U4DPoint3n maxBox(2.0,2.0,2.0);
+//        cameraBasicFollow->setParameters(pPlayer, 0.0, 20.0, -40.0);
+//
+//        camera->setCameraBehavior(cameraBasicFollow);
+//
+//        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
+//
+//        voronoi->computeFortuneAlgorithm();
+//        voronoi->computeAreas();
+//        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
+//
+//
+//        if (voronoiPlane->init("voronoiplane")) {
+//
+//            pEarth->addChild(voronoiPlane);
+//            voronoiPlane->shade(segments);
+//
+//        }
         
         startGame=true;
-    }
-    
-    
-    
-    
 }
 
 
@@ -233,7 +230,7 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
     
     
-    if (pPlayer!=nullptr && startGame==true && matchManager->getState()==U4DEngine::playing) {
+    if (pPlayer!=nullptr && startGame==true ) {
         
         if(isKeyPressed(U4DEngine::macKeyA, uData)){
             
@@ -347,8 +344,12 @@ void SandboxLogic::receiveUserInputUpdate(void *uData){
             dribblingDirection.normalize();
         }
         
-        if(isKeyReleased(U4DEngine::macSpaceKey, uData)){
+        if(isKeyReleased(U4DEngine::macKeyJ, uData)){
             pPlayer->setEnableShooting(true);
+        }
+        
+        if(isKeyReleased(U4DEngine::macKeyK, uData)){
+            pPlayer->setEnablePassing(true);
         }
         
         pPlayer->setDribblingDirection(dribblingDirection);

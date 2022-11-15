@@ -16,7 +16,6 @@
 #include "U4DTeam.h"
 #include "U4DPathAnalyzer.h"
 #include "U4DBall.h"
-#include "U4DFoot.h"
 #include "U4DAABB.h"
 #include "U4DMessageDispatcher.h"
 #include "U4DTeamStateAttacking.h"
@@ -91,8 +90,7 @@ void U4DPlayerStateAiDribbling::enter(U4DPlayer *uPlayer){
         }
     }
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
-    uPlayer->foot->allowedToKick=true;
+    uPlayer->allowedToKick=true;
 }
 
 void U4DPlayerStateAiDribbling::execute(U4DPlayer *uPlayer, double dt){
@@ -144,13 +142,13 @@ void U4DPlayerStateAiDribbling::execute(U4DPlayer *uPlayer, double dt){
     //if (uPlayer->foot->kineticAction->getModelHasCollided()) {
         
     finalVelocity.normalize();
-    uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"),finalVelocity);
+    ball->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"),finalVelocity);
 
     //}
 }
 
 void U4DPlayerStateAiDribbling::exit(U4DPlayer *uPlayer){
-    uPlayer->foot->allowedToKick=false;
+    uPlayer->allowedToKick=false;
 }
 
 bool U4DPlayerStateAiDribbling::isSafeToChangeState(U4DPlayer *uPlayer){

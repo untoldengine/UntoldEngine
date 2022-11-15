@@ -385,9 +385,6 @@
 		035E273328FE7BA000ACCC80 /* U4DPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E26A828FE7BA000ACCC80 /* U4DPlayer.mm */; };
 		035E273428FE7BA000ACCC80 /* U4DPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E26A828FE7BA000ACCC80 /* U4DPlayer.mm */; };
 		035E273528FE7BA000ACCC80 /* U4DPlayer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E26A828FE7BA000ACCC80 /* U4DPlayer.mm */; };
-		035E273628FE7BA000ACCC80 /* U4DFoot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E26AA28FE7BA000ACCC80 /* U4DFoot.mm */; };
-		035E273728FE7BA000ACCC80 /* U4DFoot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E26AA28FE7BA000ACCC80 /* U4DFoot.mm */; };
-		035E273828FE7BA000ACCC80 /* U4DFoot.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E26AA28FE7BA000ACCC80 /* U4DFoot.mm */; };
 		035E273C28FE816E00ACCC80 /* tinyxml2.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E273A28FE816D00ACCC80 /* tinyxml2.mm */; };
 		035E273D28FE816E00ACCC80 /* tinyxml2.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E273A28FE816D00ACCC80 /* tinyxml2.mm */; };
 		035E273E28FE816E00ACCC80 /* tinyxml2.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E273A28FE816D00ACCC80 /* tinyxml2.mm */; };
@@ -1602,8 +1599,6 @@
 		035E26A628FE7BA000ACCC80 /* U4DPathAnalyzer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPathAnalyzer.h; sourceTree = "<group>"; };
 		035E26A828FE7BA000ACCC80 /* U4DPlayer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlayer.mm; sourceTree = "<group>"; };
 		035E26A928FE7BA000ACCC80 /* U4DPlayer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlayer.h; sourceTree = "<group>"; };
-		035E26AA28FE7BA000ACCC80 /* U4DFoot.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DFoot.mm; sourceTree = "<group>"; };
-		035E26AB28FE7BA000ACCC80 /* U4DFoot.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DFoot.h; sourceTree = "<group>"; };
 		035E273A28FE816D00ACCC80 /* tinyxml2.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = tinyxml2.mm; sourceTree = "<group>"; };
 		035E273B28FE816D00ACCC80 /* tinyxml2.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = tinyxml2.h; sourceTree = "<group>"; };
 		035FEC9625D983EA005669D7 /* OffscreenRender.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; name = OffscreenRender.metal; path = MetalShaders/OffscreenRender.metal; sourceTree = "<group>"; };
@@ -2556,8 +2551,6 @@
 			children = (
 				035E26A828FE7BA000ACCC80 /* U4DPlayer.mm */,
 				035E26A928FE7BA000ACCC80 /* U4DPlayer.h */,
-				035E26AA28FE7BA000ACCC80 /* U4DFoot.mm */,
-				035E26AB28FE7BA000ACCC80 /* U4DFoot.h */,
 			);
 			path = Player;
 			sourceTree = "<group>";
@@ -4243,7 +4236,6 @@
 				03676AA0267B96D40016A83A /* ImGuiFileDialog.cpp in Sources */,
 				03722B962029F0F50080D069 /* skyboxShader.metal in Sources */,
 				03008D032715D34D00A53C34 /* U4DScenePlayState.mm in Sources */,
-				035E273728FE7BA000ACCC80 /* U4DFoot.mm in Sources */,
 				035E26BC28FE7BA000ACCC80 /* U4DPlayerStateWander.mm in Sources */,
 				035E270428FE7BA000ACCC80 /* U4DGoalPost.mm in Sources */,
 				037D2BE82445EFE300AB3FEF /* U4DFlock.mm in Sources */,
@@ -4760,7 +4752,6 @@
 				037D2BE92445EFE300AB3FEF /* U4DFlock.mm in Sources */,
 				03722CC42029F0F80080D069 /* U4DBVHCollision.mm in Sources */,
 				03008D042715D34E00A53C34 /* U4DScenePlayState.mm in Sources */,
-				035E273828FE7BA000ACCC80 /* U4DFoot.mm in Sources */,
 				035E26BD28FE7BA000ACCC80 /* U4DPlayerStateWander.mm in Sources */,
 				035E270528FE7BA000ACCC80 /* U4DGoalPost.mm in Sources */,
 				03722CD42029F0F80080D069 /* U4DManifoldGeneration.mm in Sources */,
@@ -5139,7 +5130,6 @@
 				03F2DAF41F191A2600F77B78 /* multiImageShader.metal in Sources */,
 				0325D22E1C91415F00F1B9BE /* U4DBroadPhaseCollisionModelPair.mm in Sources */,
 				03D0C4CD24B4B90C001A7D5F /* U4DShaderEntity.mm in Sources */,
-				035E273628FE7BA000ACCC80 /* U4DFoot.mm in Sources */,
 				0397E4772519B1460020EBD9 /* joystickUIShader.metal in Sources */,
 				034F2A2C217E1F0000D35CCE /* U4DCameraFirstPerson.mm in Sources */,
 				03A3E31C2474209C00FBCBAD /* U4DButton.mm in Sources */,

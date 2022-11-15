@@ -11,7 +11,6 @@
 #include "U4DPlayerStateJog.h"
 #include "U4DGameConfigs.h"
 #include "U4DBall.h"
-#include "U4DFoot.h"
 #include "U4DMessageDispatcher.h"
 #include "U4DTeam.h"
 
@@ -45,18 +44,18 @@ void U4DPlayerStateHalt::enter(U4DPlayer *uPlayer){
     if (currentAnimation!=nullptr) {
         uPlayer->animationManager->setAnimationToPlay(currentAnimation);
     }
+    uPlayer->allowedToKick=true;
+    //uPlayer->foot->kineticAction->pauseCollisionBehavior();
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
-    
-    U4DTeam *team=uPlayer->getTeam();
-    if(team!=nullptr){
-        std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
-        U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
-        
-        for(auto n: teammates){
-            messageDispatcher->sendMessage(0.0, uPlayer, n, msgIdle);
-        }
-    }
+//    U4DTeam *team=uPlayer->getTeam();
+//    if(team!=nullptr){
+//        std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
+//        U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
+//
+//        for(auto n: teammates){
+//            messageDispatcher->sendMessage(0.0, uPlayer, n, msgIdle);
+//        }
+//    }
     
 }
 
@@ -73,40 +72,42 @@ void U4DPlayerStateHalt::execute(U4DPlayer *uPlayer, double dt){
     U4DEngine::U4DVector3n ballPosition=ball->getAbsolutePosition();
     ballPosition.y=uPlayer->getAbsolutePosition().y;
     
-    //float distanceToBall=(ballPosition-uPlayer->getAbsolutePosition()).magnitude();
+    float distanceToBall=(ballPosition-uPlayer->getAbsolutePosition()).magnitude();
     
-    uPlayer->foot->setKickBallParameters(0.0,uPlayer->dribblingDirection);
-    uPlayer->applyForce(0.0, dt);
-    uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
-    
-    if (currentAnimation->getAnimationIsPlaying()==false) {
-        uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
-    }
-    
-//    if(uPlayer->foot->kineticAction->getModelHasCollided()){
+//    uPlayer->foot->setKickBallParameters(0.0,uPlayer->dribblingDirection);
+//    uPlayer->applyForce(0.0, dt);
+//    uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
 //
-//        uPlayer->foot->setKickBallParameters(0.0,uPlayer->dribblingDirection);
-//        uPlayer->applyForce(0.0, dt);
+//    if (currentAnimation->getAnimationIsPlaying()==false) {
 //        uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
-//
-//    }else if (currentAnimation->getAnimationIsPlaying()==false) {
-//
-//        U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
-//
-//        if (distanceToBall>gameConfigs->getParameterForKey("haltRadius")) {
-//
-//            uPlayer->setEnableHalt(true);
-//
-//            uPlayer->changeState(U4DPlayerStateJog::sharedInstance());
-//
-//        }else{
-//
-//            uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
-//        }
+//    }
+    
+    //if(uPlayer->foot->kineticAction->getModelHasCollided()){
         
-    //}
     
-    
+        ball->setKickBallParameters(0.0,uPlayer->dribblingDirection);
+        uPlayer->applyForce(0.0, dt);
+        uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
+
+    {
+        
+        if (currentAnimation->getAnimationIsPlaying()==false) {
+
+            U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+
+            if (distanceToBall>gameConfigs->getParameterForKey("haltRadius")) {
+
+                uPlayer->setEnableHalt(true);
+
+                uPlayer->changeState(U4DPlayerStateJog::sharedInstance());
+
+            }else{
+
+                uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
+            }
+
+        }
+    }
     
 }
 

@@ -11,7 +11,6 @@
 #include "U4DPlayerStateHalt.h"
 #include "U4DPlayerStateDribbling.h"
 #include "U4DBall.h"
-#include "U4DFoot.h"
 
 namespace U4DEngine {
 
@@ -56,7 +55,7 @@ namespace U4DEngine {
         //set the distance to start slowing down
         uPlayer->arriveBehavior.setSlowRadius(gameConfigs->getParameterForKey("arriveJogSlowRadius"));
         
-        uPlayer->foot->kineticAction->pauseCollisionBehavior();
+        
     }
 
     void U4DPlayerStateJog::execute(U4DPlayer *uPlayer, double dt){

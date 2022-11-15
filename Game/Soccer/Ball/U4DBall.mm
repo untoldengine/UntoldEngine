@@ -18,6 +18,7 @@
 #include "U4DBallStateManager.h"
 #include "U4DBallStateIdle.h"
 #include "U4DBallStateFalling.h"
+#include "U4DLogger.h"
 
 namespace U4DEngine {
     

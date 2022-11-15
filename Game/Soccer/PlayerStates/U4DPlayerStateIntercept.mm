@@ -13,7 +13,6 @@
 #include "U4DPlayerStateFlock.h"
 #include "U4DPlayerStateGoHome.h"
 #include "U4DBall.h"
-#include "U4DFoot.h"
 #include "U4DTeam.h"
 
 #include "U4DTeamStateIdle.h"
@@ -57,7 +56,6 @@ void U4DPlayerStateIntercept::enter(U4DPlayer *uPlayer){
     //set max speed for pursuit
     uPlayer->pursuitBehavior.setMaxSpeed(gameConfigs->getParameterForKey("pursuitMaxSpeed"));
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
 }
 
 void U4DPlayerStateIntercept::execute(U4DPlayer *uPlayer, double dt){

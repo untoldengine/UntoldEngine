@@ -9,10 +9,10 @@
 #include "U4DPlayerStatePass.h"
 #include "U4DGameConfigs.h"
 #include "U4DPlayerStateIdle.h"
-#include "U4DFoot.h"
 #include "U4DPlayAnalyzer.h"
 #include "U4DMessageDispatcher.h"
 #include "U4DTeam.h"
+#include "U4DBall.h"
 
 namespace U4DEngine {
 
@@ -45,28 +45,24 @@ void U4DPlayerStatePass::enter(U4DPlayer *uPlayer){
         uPlayer->animationManager->setAnimationToPlay(currentAnimation);
     }
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
-    uPlayer->foot->allowedToKick=true;
+    uPlayer->allowedToKick=true;
     passedBallSuccessfull=false;
     
 }
 
 void U4DPlayerStatePass::execute(U4DPlayer *uPlayer, double dt){
     
-    //uPlayer->updateFootSpaceWithAnimation(uPlayer->passingAnimation);
+    U4DBall *ball=U4DBall::sharedInstance();
     
+    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
     
-    //if (uPlayer->foot->kineticAction->getModelHasCollided()) {
-
-        U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
-        
-        uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("passBallSpeed"),uPlayer->dribblingDirection);
-        
-        passedBallSuccessfull=true;
-        
-        //uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
-    //}
+    U4DVector3n v=uPlayer->getViewInDirection();
     
+    ball->setKickBallParameters(gameConfigs->getParameterForKey("passBallSpeed"),v);
+    
+    passedBallSuccessfull=true;
+        
+        
     if (uPlayer->passingAnimation->getAnimationIsPlaying()==false && passedBallSuccessfull==false) {
 
         std::cout<<"Missed the ball"<<std::endl;
@@ -84,7 +80,7 @@ void U4DPlayerStatePass::exit(U4DPlayer *uPlayer){
     
     uPlayer->passBall=false;
     uPlayer->dribbleBall=false;
-    uPlayer->foot->allowedToKick=false;
+    uPlayer->allowedToKick=false;
     
     //set player as controlling player
     U4DTeam *team=uPlayer->getTeam();

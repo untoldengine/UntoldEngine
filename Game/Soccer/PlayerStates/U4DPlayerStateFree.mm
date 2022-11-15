@@ -15,7 +15,7 @@
 #include "U4DPlayerStateGoHome.h"
 #include "U4DTeam.h"
 #include "U4DBall.h"
-#include "U4DFoot.h"
+
 
 namespace U4DEngine {
 
@@ -106,11 +106,11 @@ void U4DPlayerStateFree::execute(U4DPlayer *uPlayer, double dt){
         uPlayer->changeState(U4DPlayerStateSlidingTackle::sharedInstance());
     }
     
-    uPlayer->foot->kineticAction->resumeCollisionBehavior();
-    if (uPlayer->foot->kineticAction->getModelHasCollided()) {
-
-        uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
-    }
+    
+//    if (uPlayer->foot->kineticAction->getModelHasCollided()) {
+//
+//        uPlayer->changeState(U4DPlayerStateIntercept::sharedInstance());
+//    }
     
 }
 

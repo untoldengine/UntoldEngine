@@ -62,7 +62,7 @@ void SandboxWorld::init(){
     
     //deserialize
     U4DSerializer *serializer=U4DSerializer::sharedInstance();
-    serializer->deserialize("scenefile.u4d");
+    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
 
 
     

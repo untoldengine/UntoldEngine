@@ -8,7 +8,7 @@
 
 #include "U4DPlayerStateManager.h"
 #include "U4DPlayer.h"
-#include "U4DFoot.h"
+
 #include "U4DLogger.h"
 
 namespace U4DEngine {
@@ -43,7 +43,6 @@ namespace U4DEngine {
             
             //pause collision with foot
             
-            player->foot->kineticAction->pauseCollisionBehavior();
             
             //keep a record of previous state
             previousState=currentState;

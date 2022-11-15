@@ -9,7 +9,6 @@
 #include "U4DPlayerStateDribbling.h"
 #include "U4DGameConfigs.h"
 #include "U4DBall.h"
-#include "U4DFoot.h"
 #include "U4DPlayerStateShooting.h"
 #include "U4DPlayerStatePass.h"
 #include "U4DPlayerStateHalt.h"
@@ -60,27 +59,26 @@ void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
     
     uPlayer->setEnableDribbling(false);
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
-    uPlayer->foot->allowedToKick=true;
+    uPlayer->allowedToKick=true;
     
     //set player as controlling player
-    U4DTeam *team=uPlayer->getTeam();
+//    U4DTeam *team=uPlayer->getTeam();
     
-    if(team!=nullptr){
-        team->setActivePlayer(uPlayer);
-        
-        U4DTeam *oppositeTeam=team->getOppositeTeam();
-        
-        team->changeState(U4DTeamStateAttacking::sharedInstance());
-        oppositeTeam->changeState(U4DTeamStateDefending::sharedInstance());
-        
-        std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
-        U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
-        
-        for(auto n: teammates){
-            messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
-        }
-    }
+//    if(team!=nullptr){
+//        team->setActivePlayer(uPlayer);
+//
+//        U4DTeam *oppositeTeam=team->getOppositeTeam();
+//
+//        team->changeState(U4DTeamStateAttacking::sharedInstance());
+//        oppositeTeam->changeState(U4DTeamStateDefending::sharedInstance());
+//
+//        std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
+//        U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
+//
+//        for(auto n: teammates){
+//            messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
+//        }
+//    }
     
 }
 
@@ -119,14 +117,14 @@ void U4DPlayerStateDribbling::execute(U4DPlayer *uPlayer, double dt){
         
     }
     
-    uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"), uPlayer->dribblingDirection);
+    ball->setKickBallParameters(gameConfigs->getParameterForKey("dribblingBallSpeed"), uPlayer->dribblingDirection);
     
     uPlayer->previousPosition=uPlayer->getAbsolutePosition();
     
 }
 
 void U4DPlayerStateDribbling::exit(U4DPlayer *uPlayer){
-    uPlayer->foot->allowedToKick=false;
+    uPlayer->allowedToKick=false;
 }
 
 bool U4DPlayerStateDribbling::isSafeToChangeState(U4DPlayer *uPlayer){

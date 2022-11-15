@@ -42,8 +42,8 @@ void U4DBallStateIdle::enter(U4DBall *uBall){
 }
 
 void U4DBallStateIdle::execute(U4DBall *uBall, double dt){
-    
-    
+    U4DVector3n zero(0.0,0.0,0.0);
+    uBall->applyVelocity(zero,dt);
 }
 
 void U4DBallStateIdle::exit(U4DBall *uBall){

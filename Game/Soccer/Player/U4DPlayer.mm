@@ -7,7 +7,7 @@
 //
 
 #include "U4DPlayer.h"
-#include "U4DFoot.h"
+
 #include "CommonProtocols.h"
 #include "U4DBall.h"
 #include "U4DGameConfigs.h"
@@ -20,7 +20,7 @@
 #include "U4DPlayerStateShooting.h"
 #include "U4DPlayerStateFalling.h"
 #include "U4DTeam.h"
-
+#include "U4DBallStateKicked.h"
 namespace U4DEngine{
 
     U4DPlayer::U4DPlayer():dribblingDirection(0.0,0.0,-1.0),dribblingDirectionAccumulator(0.0, 0.0, 0.0),shootBall(false),passBall(false),haltBall(false),dribbleBall(false),freeToRun(false),team(nullptr),playerIndex(0),standTackleOpponent(false),slidingTackle(false),atHome(false){
@@ -132,12 +132,6 @@ namespace U4DEngine{
                     
             loadRenderingInformation();
             
-            foot=new U4DFoot();
-            
-            if(foot->init("rightfoot")){
-                addChild(foot);
-                setFootPoseSpace();
-            }
             
             changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
             
@@ -149,6 +143,28 @@ namespace U4DEngine{
     }
 
     void U4DPlayer::update(double dt){
+        
+        if(allowedToKick){
+            
+            U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+            
+            //if (kineticAction->getModelHasCollided()) {
+            
+            U4DBall *ball=U4DBall::sharedInstance();
+            U4DVector3n ballPosition=ball->getAbsolutePosition();
+            U4DVector3n playerPosition=getAbsolutePosition();
+            ballPosition.y=playerPosition.y;
+            
+            if((playerPosition-ballPosition).magnitude()<gameConfigs->getParameterForKey("distanceToFoot")){
+                
+                ball->changeState(U4DBallStateKicked::sharedInstance());
+
+                
+            }
+
+            
+            //}
+        }
         
         stateManager->update(dt);
 
@@ -176,16 +192,16 @@ namespace U4DEngine{
     void U4DPlayer::setFootPoseSpace(){
         
         
-        //declare matrix for the gun space
-        U4DEngine::U4DMatrix4n m;
-        //original toe.R
-        //2. Get the bone rest pose space
-        if(getBoneRestPose("RightFoot",m)){
-
-            //3. Apply space to gun
-            foot->setLocalSpace(m);
-            
-        }
+//        //declare matrix for the gun space
+//        U4DEngine::U4DMatrix4n m;
+//        //original toe.R
+//        //2. Get the bone rest pose space
+//        if(getBoneRestPose("RightFoot",m)){
+//
+//            //3. Apply space to gun
+//            foot->setLocalSpace(m);
+//
+//        }
     }
 
     void U4DPlayer::setEnableDribbling(bool uValue){
@@ -210,20 +226,19 @@ namespace U4DEngine{
 
     void U4DPlayer::updateFootSpaceWithAnimation(U4DAnimation *uAnimation){
         
-        if (foot!=nullptr) {
-            
-            //declare matrix for the gun space
-            U4DEngine::U4DMatrix4n m;
-            //original is toe.R
-            //2. Get the bone animation "runningAnimation" pose space
-            if(getBoneAnimationPose("RightFoot",uAnimation,m)){
-     
-                //3. Apply space to gun
-                foot->setLocalSpace(m);
-                
-            }
-            
-        }
+//        if (foot!=nullptr) {
+//            
+//            //declare matrix for the gun space
+//            U4DEngine::U4DMatrix4n m;
+//            //original is toe.R
+//            //2. Get the bone animation "runningAnimation" pose space
+//            if(getBoneAnimationPose("RightFoot",uAnimation,m)){
+//                //3. Apply space to gun
+//                foot->setLocalSpace(m);
+//                
+//            }
+//            
+//        }
         
     }
 

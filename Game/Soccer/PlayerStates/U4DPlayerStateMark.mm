@@ -18,7 +18,6 @@
 #include "U4DBall.h"
 #include "U4DPlane.h"
 #include "U4DRay.h"
-#include "U4DFoot.h"
 #include "U4DTeam.h"
 
 namespace U4DEngine {
@@ -91,7 +90,7 @@ void U4DPlayerStateMark::enter(U4DPlayer *uPlayer){
         }
     }
     
-    uPlayer->foot->allowedToKick=true;
+    uPlayer->allowedToKick=true;
     
 }
 
@@ -172,7 +171,7 @@ void U4DPlayerStateMark::execute(U4DPlayer *uPlayer, double dt){
 }
 
 void U4DPlayerStateMark::exit(U4DPlayer *uPlayer){
-    uPlayer->foot->allowedToKick=false;
+    uPlayer->allowedToKick=false;
 }
 
 bool U4DPlayerStateMark::isSafeToChangeState(U4DPlayer *uPlayer){

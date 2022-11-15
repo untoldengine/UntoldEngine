@@ -56,7 +56,7 @@ public:
     bool freeToRun;
     bool standTackleOpponent;
     bool slidingTackle;
-    
+    bool allowedToKick;
     U4DVector3n previousPosition;
     
     U4DAnimation *runningAnimation;

@@ -10,7 +10,7 @@
 #include "U4DPlayerStateIdle.h"
 #include "U4DPlayerStateGoHome.h"
 #include "U4DGameConfigs.h"
-#include "U4DFoot.h"
+#include "U4DBall.h"
 
 namespace U4DEngine {
 
@@ -43,19 +43,20 @@ void U4DPlayerStateShooting::enter(U4DPlayer *uPlayer){
         uPlayer->animationManager->setAnimationToPlay(currentAnimation);
     }
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
-    uPlayer->foot->allowedToKick=true;
+    uPlayer->allowedToKick=true;
 }
 
 void U4DPlayerStateShooting::execute(U4DPlayer *uPlayer, double dt){
     
-    //if (uPlayer->foot->kineticAction->getModelHasCollided()) {
-
-        U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
-        uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("shootingBallSpeed"),uPlayer->dribblingDirection);
+    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
+    
+    U4DBall *ball=U4DBall::sharedInstance();
+    
+    U4DVector3n v=uPlayer->getViewInDirection();
+    
+    ball->setKickBallParameters(gameConfigs->getParameterForKey("shootingBallSpeed"),v);
         
-    //}
-
+    
     //if animation has stopped, the switch to idle
     if (uPlayer->shootingAnimation->getAnimationIsPlaying()==false) {
         uPlayer->changeState(uPlayer->getPreviousState());
@@ -67,7 +68,7 @@ void U4DPlayerStateShooting::exit(U4DPlayer *uPlayer){
     uPlayer->dribbleBall=false;
     uPlayer->haltBall=false;
     
-    uPlayer->foot->allowedToKick=false;
+    uPlayer->allowedToKick=false;
 }
 
 bool U4DPlayerStateShooting::isSafeToChangeState(U4DPlayer *uPlayer){

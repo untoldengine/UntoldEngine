@@ -16,7 +16,6 @@
 #include "U4DPlayerStateMark.h"
 #include "U4DPlayerStateGoHome.h"
 #include "U4DTeam.h"
-#include "U4DFoot.h"
 
 namespace U4DEngine {
 
@@ -68,7 +67,6 @@ void U4DPlayerStateFlock::enter(U4DPlayer *uPlayer){
     //set the distance to start slowing down
     uPlayer->arriveBehavior.setSlowRadius(gameConfigs->getParameterForKey("arriveSlowRadius"));
     
-    uPlayer->foot->kineticAction->pauseCollisionBehavior();
     
    // uPlayer->kineticAction->resumeCollisionBehavior();
 }

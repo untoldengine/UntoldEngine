@@ -16,7 +16,6 @@
 #include "U4DPlayerStateMark.h"
 #include "U4DPlayerStateIdle.h"
 #include "U4DTeam.h"
-#include "U4DFoot.h"
 #include "U4DBall.h"
 #include "U4DMatchManager.h"
 
@@ -56,7 +55,7 @@ void U4DPlayerStateSlidingTackle::enter(U4DPlayer *uPlayer){
     //set max speed for pursuit
     uPlayer->pursuitBehavior.setMaxSpeed(gameConfigs->getParameterForKey("pursuitMaxSpeed"));
     
-    uPlayer->foot->allowedToKick=true;
+    uPlayer->allowedToKick=true;
 }
 
 void U4DPlayerStateSlidingTackle::execute(U4DPlayer *uPlayer, double dt){
@@ -108,7 +107,7 @@ void U4DPlayerStateSlidingTackle::execute(U4DPlayer *uPlayer, double dt){
     //if (uPlayer->foot->kineticAction->getModelHasCollided()) {
         //finalVelocity.normalize();
     
-        uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("slidingTackleKick"),finalVelocity);
+        ball->setKickBallParameters(gameConfigs->getParameterForKey("slidingTackleKick"),finalVelocity);
         //NOTE: READ THIS changing thes tate from intercept to idle just for this game version. HERE WE MAY WANT TO EARN THE GAME, SINCE THE OPPOSITE PLAYER TOUCH THE BALL
         //uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
 
@@ -130,7 +129,7 @@ void U4DPlayerStateSlidingTackle::execute(U4DPlayer *uPlayer, double dt){
 
 void U4DPlayerStateSlidingTackle::exit(U4DPlayer *uPlayer){
     uPlayer->slidingTackle=false;
-    uPlayer->foot->allowedToKick=false;
+    uPlayer->allowedToKick=false;
 }
 
 bool U4DPlayerStateSlidingTackle::isSafeToChangeState(U4DPlayer *uPlayer){

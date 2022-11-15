@@ -12,7 +12,7 @@
 #include "U4DPlayerStateIntercept.h"
 #include "U4DPlayerStateFree.h"
 #include "U4DPlayerStateFlock.h"
-#include "U4DFoot.h"
+#include "U4DBall.h"
 
 namespace U4DEngine {
 
@@ -57,15 +57,15 @@ void U4DPlayerStateStandTackle::execute(U4DPlayer *uPlayer, double dt){
     
     U4DAnimation *currentAnimation=uPlayer->standTackleAnimation;
     uPlayer->updateFootSpaceWithAnimation(currentAnimation);
-    
+    U4DBall *ball=U4DBall::sharedInstance();
     U4DEngine::U4DVector3n dir=uPlayer->getViewInDirection();
     
     if (currentAnimation->getAnimationIsPlaying()==true && currentAnimation->getCurrentKeyframe()>0) {
         
         U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
         
-        uPlayer->foot->kineticAction->resumeCollisionBehavior();
-        uPlayer->foot->setKickBallParameters(gameConfigs->getParameterForKey("slidingTackleKick"),dir);
+    
+        ball->setKickBallParameters(gameConfigs->getParameterForKey("slidingTackleKick"),dir);
     }
     
     if (currentAnimation->getAnimationIsPlaying()==false) {
