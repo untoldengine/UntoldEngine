@@ -61,15 +61,10 @@ void SandboxWorld::init(){
     //entityFactory->createModelInstance("player0", "player.0", "U4DModel");
     
     //deserialize
-//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-//    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
+    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
 
-    U4DEngine::U4DPlaneMesh *mesh=new U4DEngine::U4DPlaneMesh();
-    mesh->computePlane();
-    
-    addChild(mesh);
-    
-    
+
     //initialize the skybox
 //    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
 //

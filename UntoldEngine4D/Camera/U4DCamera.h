@@ -111,6 +111,7 @@ namespace U4DEngine {
          */
         void setCameraBehavior(U4DCameraInterface *uCameraBehavior);
         
+        float getLargestDistanceFromSceneOrigin();
     };
     
 }
