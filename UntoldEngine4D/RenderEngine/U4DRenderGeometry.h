@@ -17,7 +17,7 @@
 #include "U4DVector2n.h"
 #include "U4DIndex.h"
 
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 
 namespace U4DEngine {
     
@@ -42,7 +42,7 @@ namespace U4DEngine {
         /**
          * @brief The bounding volume entity the class will manage
          */
-        U4DBoundingVolume *u4dObject;
+        U4DMesh *u4dObject;
         
         /**
          * @brief pointer to the buffer that holds the geometry properties, as as line color
@@ -65,7 +65,7 @@ namespace U4DEngine {
          * @brief Constructor for class
          * @details Sets the bounding volume the class will manate
          */
-        U4DRenderGeometry(U4DBoundingVolume *uU4DGeometricObject);
+        U4DRenderGeometry(U4DMesh *uU4DGeometricObject);
         
         /**
          * @brief Destructor for the class
@@ -102,13 +102,13 @@ namespace U4DEngine {
         
         /**
          * @brief Updates the geometry rendering data
-         * @details This method is called by the geometry U4DBoundingVolume class whenever the data changes
+         * @details This method is called by the geometry U4DMesh class whenever the data changes
          */
         void updateRenderingInformation();
         
         /**
          * @brief Modifies geometry rendering data if required
-         * @details This method is called by the U4DBoundingVolume class. If the attribute container size changes, it loads a new set of attributes.
+         * @details This method is called by the U4DMesh class. If the attribute container size changes, it loads a new set of attributes.
          */
         void modifyRenderingInformation();
         

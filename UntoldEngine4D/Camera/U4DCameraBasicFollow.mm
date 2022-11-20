@@ -10,7 +10,7 @@
 
 #include "U4DModel.h"
 #include "U4DCamera.h"
-#include "U4DBoundingAABB.h"
+#include "U4DAABBMesh.h"
 
 namespace U4DEngine {
     
@@ -103,7 +103,7 @@ namespace U4DEngine {
             
             trackBox=true;
 
-            cameraBoundingBox=new U4DBoundingAABB();
+            cameraBoundingBox=new U4DAABBMesh();
 
             cameraBoundingBox->computeBoundingVolume(uMinPoint, uMaxPoint);
             cameraBoundingBox->setVisibility(true);
@@ -128,7 +128,7 @@ namespace U4DEngine {
         
     }
 
-    U4DBoundingAABB *U4DCameraBasicFollow::getBoundingBox(){
+    U4DAABBMesh *U4DCameraBasicFollow::getBoundingBox(){
         return cameraBoundingBox;
     }
 

@@ -118,7 +118,7 @@ void U4DVoronoiManager::computeFortuneAlgorithm(){
     diagram.intersect(mygal::Box<double>{0.0,0.0,1.0,1.0});
     
     triangulation = diagram.computeTriangulation();
-    getNeighbors(6);
+    
 }
 
 std::vector<U4DSegment> U4DVoronoiManager::getVoronoiSegments(){

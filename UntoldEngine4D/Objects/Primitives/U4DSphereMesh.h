@@ -1,16 +1,16 @@
 //
-//  U4DBoundingSphere.h
+//  U4DSphereMesh.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/13/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef __UntoldEngine__U4DBoundingSphere__
-#define __UntoldEngine__U4DBoundingSphere__
+#ifndef __UntoldEngine__U4DSphereMesh__
+#define __UntoldEngine__U4DSphereMesh__
 
 #include <iostream>
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 #include "U4DSphere.h"
 
 
@@ -18,9 +18,9 @@ namespace U4DEngine {
 
     /**
      @ingroup gameobjects
-     @brief The U4DBoundingSphere class represents a spherical bounding volumen entity
+     @brief The U4DSphereMesh class represents a spherical bounding volumen entity
      */
-    class U4DBoundingSphere:public U4DBoundingVolume{
+    class U4DSphereMesh:public U4DMesh{
       
     private:
        
@@ -39,22 +39,22 @@ namespace U4DEngine {
         /**
          @brief Constructor for the class
          */
-        U4DBoundingSphere();
+        U4DSphereMesh();
         
         /**
          @brief Destructor for the class
          */
-        ~U4DBoundingSphere();
+        ~U4DSphereMesh();
        
         /**
          @brief Constructor for the class
          */
-        U4DBoundingSphere(const U4DBoundingSphere& value);
+        U4DSphereMesh(const U4DSphereMesh& value);
         
         /**
          @brief Constructor for the class
          */
-        U4DBoundingSphere& operator=(const U4DBoundingSphere& value);
+        U4DSphereMesh& operator=(const U4DSphereMesh& value);
 
         /**
          @brief Method which computes a spherical bounding volume
@@ -104,4 +104,4 @@ namespace U4DEngine {
 
 }
 
-#endif /* defined(__UntoldEngine__U4DBoundingSphere__) */
+#endif /* defined(__UntoldEngine__U4DSphereMesh__) */

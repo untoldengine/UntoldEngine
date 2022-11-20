@@ -62,23 +62,23 @@ void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
     uPlayer->allowedToKick=true;
     
     //set player as controlling player
-//    U4DTeam *team=uPlayer->getTeam();
+    U4DTeam *team=uPlayer->getTeam();
     
-//    if(team!=nullptr){
-//        team->setActivePlayer(uPlayer);
-//
-//        U4DTeam *oppositeTeam=team->getOppositeTeam();
-//
-//        team->changeState(U4DTeamStateAttacking::sharedInstance());
-//        oppositeTeam->changeState(U4DTeamStateDefending::sharedInstance());
-//
-//        std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
-//        U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
-//
-//        for(auto n: teammates){
-//            messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
-//        }
-//    }
+    if(team!=nullptr){
+        team->setActivePlayer(uPlayer);
+
+        //U4DTeam *oppositeTeam=team->getOppositeTeam();
+
+        team->changeState(U4DTeamStateAttacking::sharedInstance());
+        //oppositeTeam->changeState(U4DTeamStateDefending::sharedInstance());
+
+        std::vector<U4DPlayer*> teammates=team->getTeammatesForPlayer(uPlayer);
+        U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
+
+        for(auto n: teammates){
+            messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
+        }
+    }
     
 }
 

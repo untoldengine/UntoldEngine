@@ -7,10 +7,10 @@
 //
 
 #include "U4DStaticAction.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingConvex.h"
-#include "U4DBoundingSphere.h"
-#include "U4DBoundingAABB.h"
+#include "U4DMesh.h"
+#include "U4DConvexHullMesh.h"
+#include "U4DSphereMesh.h"
+#include "U4DAABBMesh.h"
 #include "U4DResourceLoader.h"
 #include "U4DLogger.h"
 #include <algorithm>
@@ -280,7 +280,7 @@ namespace U4DEngine {
             computeInertiaTensor();
             
             //create the bounding convex volume
-            convexHullBoundingVolume=new U4DBoundingConvex();
+            convexHullBoundingVolume=new U4DConvexHullMesh();
             
             U4DLogger *logger=U4DLogger::sharedInstance();
             
@@ -297,7 +297,7 @@ namespace U4DEngine {
                 
                 logger->log("Success: Convex Hull was properly computed. Collision Detection is enabled for model: %s.",model->getName().c_str());
                 
-                //set the convex hull for the bounding volume. Note the convex hull is maintained by the U4DBoundingConvex class
+                //set the convex hull for the bounding volume. Note the convex hull is maintained by the U4DConvexHullMesh class
                 convexHullBoundingVolume->setConvexHullVertices(convexHull);
                 
                 //decompose the convex hull into vertices. Note this data is also contained in the bounding volume.
@@ -340,7 +340,7 @@ namespace U4DEngine {
                 if (getIsPlatform()) {
                     
                     //create a AABB bounding volume
-                    broadPhaseBoundingVolume=new U4DBoundingAABB();
+                    broadPhaseBoundingVolume=new U4DAABBMesh();
                     
                     //add padding to the AABB bounding volume
                     U4DPoint3n aabbMinPoints=minPoints*U4DEngine::aabbBoundingVolumePadding;
@@ -352,7 +352,7 @@ namespace U4DEngine {
                 }else{
                     
                     //create sphere bounding volume
-                    broadPhaseBoundingVolume=new U4DBoundingSphere();
+                    broadPhaseBoundingVolume=new U4DSphereMesh();
                     
                     //set the radius for the sphere bounding volume
                     float radius=maxPoints.distanceBetweenPoints(minPoints)*U4DEngine::sphereBoundingVolumePadding;
@@ -418,7 +418,7 @@ namespace U4DEngine {
         return convexHullBoundingVolume->getVisibility();
     }
     
-    U4DBoundingVolume* U4DStaticAction::getNarrowPhaseBoundingVolume(){
+    U4DMesh* U4DStaticAction::getNarrowPhaseBoundingVolume(){
         
         return convexHullBoundingVolume;
     }
@@ -426,7 +426,7 @@ namespace U4DEngine {
     
     //Broad Phase Bounding Volume
     
-    U4DBoundingVolume* U4DStaticAction::getBroadPhaseBoundingVolume(){
+    U4DMesh* U4DStaticAction::getBroadPhaseBoundingVolume(){
         
         return broadPhaseBoundingVolume;
         

@@ -1,27 +1,27 @@
 //
-//  U4DBoundingSphere.cpp
+//  U4DSphereMesh.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/13/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DBoundingSphere.h"
+#include "U4DSphereMesh.h"
 #include "U4DMatrix4n.h"
 
 namespace U4DEngine {
     
-    U4DBoundingSphere::U4DBoundingSphere(){
+    U4DSphereMesh::U4DSphereMesh(){
     
     }
     
     
-    U4DBoundingSphere::~U4DBoundingSphere(){
+    U4DSphereMesh::~U4DSphereMesh(){
     
     }
     
     
-    U4DBoundingSphere::U4DBoundingSphere(const U4DBoundingSphere& value){
+    U4DSphereMesh::U4DSphereMesh(const U4DSphereMesh& value){
         
         radius=value.radius;
         sphere=value.sphere;
@@ -29,7 +29,7 @@ namespace U4DEngine {
     };
     
     
-    U4DBoundingSphere& U4DBoundingSphere::operator=(const U4DBoundingSphere& value){
+    U4DSphereMesh& U4DSphereMesh::operator=(const U4DSphereMesh& value){
         
         radius=value.radius;
         sphere=value.sphere;
@@ -37,7 +37,7 @@ namespace U4DEngine {
         
     };
     
-    void U4DBoundingSphere::computeBoundingVolume(float uRadius,int uRings, int uSectors){
+    void U4DSphereMesh::computeBoundingVolume(float uRadius,int uRings, int uSectors){
 
         radius=uRadius;
         
@@ -91,17 +91,17 @@ namespace U4DEngine {
         
     }
     
-    void U4DBoundingSphere::setRadius(float uRadius){
+    void U4DSphereMesh::setRadius(float uRadius){
         
         radius=uRadius;
     }
     
-    float U4DBoundingSphere::getRadius(){
+    float U4DSphereMesh::getRadius(){
         
         return radius;
     }
     
-    U4DPoint3n U4DBoundingSphere::getMaxBoundaryPoint(){
+    U4DPoint3n U4DSphereMesh::getMaxBoundaryPoint(){
         
         U4DPoint3n position=getAbsolutePosition().toPoint();
         
@@ -109,7 +109,7 @@ namespace U4DEngine {
     
     }
     
-    U4DPoint3n U4DBoundingSphere::getMinBoundaryPoint(){
+    U4DPoint3n U4DSphereMesh::getMinBoundaryPoint(){
     
         U4DPoint3n position=getAbsolutePosition().toPoint();
         
@@ -117,7 +117,7 @@ namespace U4DEngine {
         
     }
     
-    U4DSphere& U4DBoundingSphere::getSphere(){
+    U4DSphere& U4DSphereMesh::getSphere(){
         
         //update the sphere information with bounding sphere
         U4DPoint3n updateCenter=getAbsolutePosition().toPoint();

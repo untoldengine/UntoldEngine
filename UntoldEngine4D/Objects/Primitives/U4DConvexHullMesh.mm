@@ -1,21 +1,21 @@
 //
-//  U4DBoundingConvex.cpp
+//  U4DConvexHullMesh.cpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 10/10/15.
 //  Copyright © 2015 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DBoundingConvex.h"
+#include "U4DConvexHullMesh.h"
 #include <float.h>
 
 namespace U4DEngine {
     
-    U4DBoundingConvex::U4DBoundingConvex(){
+    U4DConvexHullMesh::U4DConvexHullMesh(){
     
     }
     
-    U4DBoundingConvex::~U4DBoundingConvex(){
+    U4DConvexHullMesh::~U4DConvexHullMesh(){
         
         bodyCoordinates.convexHullVerticesContainer.clear();
         bodyCoordinates.convexHullEdgesContainer.clear();
@@ -23,18 +23,18 @@ namespace U4DEngine {
         
     }
     
-    U4DBoundingConvex::U4DBoundingConvex(const U4DBoundingConvex& value){
+    U4DConvexHullMesh::U4DConvexHullMesh(const U4DConvexHullMesh& value){
     
     }
     
-    U4DBoundingConvex& U4DBoundingConvex::operator=(const U4DBoundingConvex& value){
+    U4DConvexHullMesh& U4DConvexHullMesh::operator=(const U4DConvexHullMesh& value){
         
         return *this;
     
     }
     
     
-    void U4DBoundingConvex::setConvexHullVertices(CONVEXHULL &uConvexHull){
+    void U4DConvexHullMesh::setConvexHullVertices(CONVEXHULL &uConvexHull){
         
         
         //decompose the convex hull into vertices
@@ -74,12 +74,12 @@ namespace U4DEngine {
         
     }
 
-    std::vector<U4DVector3n> U4DBoundingConvex::getConvexHullVertices(){
+    std::vector<U4DVector3n> U4DConvexHullMesh::getConvexHullVertices(){
         
         return bodyCoordinates.getConvexHullVerticesFromContainer();
     }
     
-    U4DPoint3n U4DBoundingConvex::getSupportPointInDirection(U4DVector3n& uDirection){
+    U4DPoint3n U4DConvexHullMesh::getSupportPointInDirection(U4DVector3n& uDirection){
         
         int index=0;
         float dotProduct=-FLT_MAX;

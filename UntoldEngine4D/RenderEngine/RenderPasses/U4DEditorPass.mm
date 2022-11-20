@@ -705,7 +705,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                  
                  while (child!=nullptr) {
 
-                     if (child->getEntityType()==U4DEngine::MODEL ) {
+                     if (child->getEntityType()==U4DEngine::MODEL || child->getEntityType()==U4DEngine::PRIMITIVE) {
 
                          char buf[32];
 

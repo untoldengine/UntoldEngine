@@ -10,7 +10,7 @@
 #include "U4DSegment.h"
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 #include "U4DDynamicAction.h"
 #include "U4DVector3n.h"
 #include "U4DStaticAction.h"
@@ -36,8 +36,8 @@ namespace U4DEngine {
         
         vPrevious.minkowskiPoint=U4DPoint3n(FLT_MAX,FLT_MAX,FLT_MAX);
         
-        U4DBoundingVolume *boundingVolume1=uAction1->getNarrowPhaseBoundingVolume();
-        U4DBoundingVolume *boundingVolume2=uAction2->getNarrowPhaseBoundingVolume();
+        U4DMesh *boundingVolume1=uAction1->getNarrowPhaseBoundingVolume();
+        U4DMesh *boundingVolume2=uAction2->getNarrowPhaseBoundingVolume();
         
         U4DVector3n dir(1,1,1);
         
@@ -122,8 +122,8 @@ namespace U4DEngine {
 
         vPrevious.minkowskiPoint=U4DPoint3n(FLT_MAX,FLT_MAX,FLT_MAX);
 
-        U4DBoundingVolume *boundingVolume1;
-        U4DBoundingVolume *boundingVolume2;
+        U4DMesh *boundingVolume1;
+        U4DMesh *boundingVolume2;
 
         //Determine the proper CSO translation vector and Support volumes for GJK
         relativeCSOTranslation=uAction1->model->getAbsolutePosition()-uAction2->model->getAbsolutePosition();

@@ -482,6 +482,8 @@ class U4DTeam;
         
         SCRIPT,
         
+        PRIMITIVE,
+        
     }ENTITYTYPE;
 
 

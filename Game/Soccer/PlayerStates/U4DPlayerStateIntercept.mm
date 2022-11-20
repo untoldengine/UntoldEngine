@@ -99,8 +99,8 @@ void U4DPlayerStateIntercept::execute(U4DPlayer *uPlayer, double dt){
             uPlayer->changeState(U4DPlayerStateAiDribbling::sharedInstance());
             //uPlayer->changeState(U4DPlayerStateShooting::sharedInstance());
         }else{
-            uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
-            
+            //uPlayer->changeState(U4DPlayerStateDribbling::sharedInstance());
+            uPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
         }
         
         

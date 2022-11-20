@@ -68,7 +68,7 @@ void SandboxLogic::update(double dt){
     if(pPlayer!=nullptr && startGame==true){
 //        teamA->update(dt);
 //        teamB->update(dt);
-//        matchManager->update(dt);
+        //matchManager->update(dt);
 //
         pPlayer=matchManager->teamA->getActivePlayer();
 //
@@ -77,6 +77,12 @@ void SandboxLogic::update(double dt){
 //        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
 //
 //        voronoi->computeFortuneAlgorithm();
+//
+//        std::vector<U4DEngine::U4DPlayer*> players=voronoi->getNeighbors(pPlayer->playerIndex);
+//
+//        for(const auto &n:players){
+//            std::cout<<n->getName().c_str()<<std::endl;
+//        }
 //
 //        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
 //
@@ -93,7 +99,7 @@ void SandboxLogic::init(){
     SandboxWorld* pEarth=dynamic_cast<SandboxWorld*>(getGameWorld());
     U4DEngine::U4DMatchManager *matchManager=U4DEngine::U4DMatchManager::sharedInstance();
     
-    voronoiPlane=new U4DEngine::U4DVoronoiPlane();
+    //voronoiPlane=new U4DEngine::U4DVoronoiPlane();
     
     U4DEngine::U4DPlayer* pPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
     U4DEngine::U4DPlayer* pPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
@@ -167,8 +173,8 @@ void SandboxLogic::init(){
         matchManager->teamA->setActivePlayer(pPlayer);
 //        matchManager->teamB->aiTeam=true;
 //
-//        matchManager->initMatchElements(goalPostA,goalPostB,field);
-        
+        //matchManager->initMatchElements(goalPostA,goalPostB,field);
+        //matchManager->initMatchElements(nullptr,nullptr,nullptr);
 //        teamA=new U4DEngine::U4DTeam("teamA");
 //        teamB=new U4DEngine::U4DTeam("teamB");
 //
