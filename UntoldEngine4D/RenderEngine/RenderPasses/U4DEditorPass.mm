@@ -309,6 +309,54 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     }
         
         if (sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
+
+            //view front- Press key 1
+            U4DCamera *camera=U4DCamera::sharedInstance();
+            
+            if(ImGui::GetIO().KeyCtrl==true && ImGui::IsKeyReleased(49)){
+                
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(0.0,0.0,camera->getLargestDistanceFromSceneOrigin());
+                camera->rotateTo(180.0,upVector);
+                camera->translateTo(pos);
+                
+            }else if (ImGui::IsKeyReleased(49)){
+                
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(0.0,0.0,-camera->getLargestDistanceFromSceneOrigin());
+                camera->rotateTo(0.0,upVector);
+                camera->translateTo(pos);
+            }
+            
+            //view right- Press key 3
+            if(ImGui::GetIO().KeyCtrl==true && ImGui::IsKeyReleased(51)){
+                
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(camera->getLargestDistanceFromSceneOrigin(),0.0,0.0);
+                camera->rotateTo(-90.0,upVector);
+                camera->translateTo(pos);
+                
+            }else if (ImGui::IsKeyReleased(51)){
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(-camera->getLargestDistanceFromSceneOrigin(),0.0,0.0);
+                camera->rotateTo(90.0,upVector);
+                camera->translateTo(pos);
+            }
+            
+            //view top-Press key 7
+            if(ImGui::GetIO().KeyCtrl==true && ImGui::IsKeyReleased(55)){
+                
+                U4DVector3n upVector(1.0,0.0,0.0);
+                U4DVector3n pos(0.0,-camera->getLargestDistanceFromSceneOrigin(),0.0);
+                camera->rotateTo(-90.0,upVector);
+                camera->translateTo(pos);
+                
+            }else if (ImGui::IsKeyReleased(55)){
+                U4DVector3n upVector(1.0,0.0,0.0);
+                U4DVector3n pos(0.0,camera->getLargestDistanceFromSceneOrigin(),0.0);
+                camera->rotateTo(90.0,upVector);
+                camera->translateTo(pos);
+            }
             
             //panning, zooming and rotation of editor camera
             {
