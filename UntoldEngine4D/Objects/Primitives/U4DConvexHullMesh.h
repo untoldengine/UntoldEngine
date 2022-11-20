@@ -1,16 +1,16 @@
 //
-//  U4DBoundingConvex.hpp
+//  U4DConvexHullMesh.hpp
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 10/10/15.
 //  Copyright © 2015 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef U4DBoundingConvex_hpp
-#define U4DBoundingConvex_hpp
+#ifndef U4DConvexHullMesh_hpp
+#define U4DConvexHullMesh_hpp
 
 #include <stdio.h>
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 #include "U4DPoint3n.h"
 #include "CommonProtocols.h"
 
@@ -23,9 +23,9 @@ namespace U4DEngine {
     
     /**
      @ingroup gameobjects
-     @brief The U4DBoundingConvex represents the convex-hull bounding volumen entity
+     @brief The U4DConvexHullMesh represents the convex-hull bounding volumen entity
      */
-    class U4DBoundingConvex:public U4DBoundingVolume{
+    class U4DConvexHullMesh:public U4DMesh{
         
     private:
         
@@ -34,22 +34,22 @@ namespace U4DEngine {
         /**
          @brief Constructor of class
          */
-        U4DBoundingConvex();
+        U4DConvexHullMesh();
         
         /**
          @brief Destructor of class
          */
-        ~U4DBoundingConvex();
+        ~U4DConvexHullMesh();
         
         /**
          @brief Copy constructor
          */
-        U4DBoundingConvex(const U4DBoundingConvex& value);
+        U4DConvexHullMesh(const U4DConvexHullMesh& value);
         
         /**
          @brief Copy constructor
          */
-        U4DBoundingConvex& operator=(const U4DBoundingConvex& value);
+        U4DConvexHullMesh& operator=(const U4DConvexHullMesh& value);
 
         /**
          @brief Method which sets the convex-hull vertices into a container
@@ -78,4 +78,4 @@ namespace U4DEngine {
     
 }
 
-#endif /* U4DBoundingConvex_h */
+#endif /* U4DConvexHullMesh_h */

@@ -43,7 +43,6 @@ namespace U4DEngine{
         delete standTackleAnimation;
         delete slidingTackleAnimation;
         
-        delete foot;
     }
 
     //init method. It loads all the rendering information among other things.
@@ -227,7 +226,7 @@ namespace U4DEngine{
     void U4DPlayer::updateFootSpaceWithAnimation(U4DAnimation *uAnimation){
         
 //        if (foot!=nullptr) {
-//            
+//
 //            //declare matrix for the gun space
 //            U4DEngine::U4DMatrix4n m;
 //            //original is toe.R
@@ -235,9 +234,9 @@ namespace U4DEngine{
 //            if(getBoneAnimationPose("RightFoot",uAnimation,m)){
 //                //3. Apply space to gun
 //                foot->setLocalSpace(m);
-//                
+//
 //            }
-//            
+//
 //        }
         
     }

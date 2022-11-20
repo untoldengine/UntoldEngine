@@ -65,7 +65,7 @@ namespace U4DEngine {
          
          @return Returns the supporting point as a SIMPLEXDATA object
          */
-        SIMPLEXDATA calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection);
+        SIMPLEXDATA calculateSupportPointInDirection(U4DMesh *uBoundingVolume1, U4DMesh* uBoundingVolume2, U4DVector3n& uDirection);
         
         /**
          @brief Method which determines the closest 3D point on a simplex to a 3D point

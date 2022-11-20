@@ -1,13 +1,13 @@
 //
-//  U4DBoundingVolume.h
+//  U4DMesh.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/10/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef __UntoldEngine__U4DBoundingVolume__
-#define __UntoldEngine__U4DBoundingVolume__
+#ifndef __UntoldEngine__U4DMesh__
+#define __UntoldEngine__U4DMesh__
 
 #include <iostream>
 #include <vector>
@@ -31,9 +31,9 @@ namespace U4DEngine {
 
     /**
      @ingroup gameobjects
-     @brief The U4DBoundingVolume class represents bounding volume entities
+     @brief The U4DMesh class represents bounding volume entities
      */
-    class U4DBoundingVolume:public U4DVisibleEntity{
+    class U4DMesh:public U4DVisibleEntity{
       
     private:
         
@@ -47,22 +47,22 @@ namespace U4DEngine {
         /**
          @brief Constructor of class
          */
-        U4DBoundingVolume();
+        U4DMesh();
         
         /**
          @brief Destructor of class
          */
-        ~U4DBoundingVolume();
+        ~U4DMesh();
         
         /**
          @brief Copy constructor
          */
-        U4DBoundingVolume(const U4DBoundingVolume& value);
+        U4DMesh(const U4DMesh& value);
 
         /**
          @brief Copy constructor
          */
-        U4DBoundingVolume& operator=(const U4DBoundingVolume& value);
+        U4DMesh& operator=(const U4DMesh& value);
 
         /**
          @brief Object which contains attribute data such as vertices
@@ -194,8 +194,10 @@ namespace U4DEngine {
          */
         bool getVisibility();
         
+        virtual void computePlane(){};
+        
     };
     
 }
 
-#endif /* defined(__UntoldEngine__U4DBoundingVolume__) */
+#endif /* defined(__UntoldEngine__U4DMesh__) */

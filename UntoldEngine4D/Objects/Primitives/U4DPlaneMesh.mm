@@ -1,59 +1,28 @@
 //
-//  U4DBoundingAABB.cpp
+//  U4DPlaneMesh.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 7/15/13.
-//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
+//  Created by Harold Serrano on 11/19/22.
+//  Copyright © 2022 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DBoundingAABB.h"
+#include "U4DPlaneMesh.h"
 
 namespace U4DEngine {
-    
-    U4DBoundingAABB::U4DBoundingAABB(){
-    
+
+    U4DPlaneMesh::U4DPlaneMesh():minPoint(-1.0,0.0,-1.0),maxPoint(1.0,0.0,1.0){
+        setVisibility(true);
     }
-    
-    
-    U4DBoundingAABB::~U4DBoundingAABB(){
-    
-    }
-    
-    
-    U4DBoundingAABB::U4DBoundingAABB(const U4DBoundingAABB& value){
-        aabb=value.aabb;
-    }
-    
-    
-    U4DBoundingAABB& U4DBoundingAABB::operator=(const U4DBoundingAABB& value){
-        aabb=value.aabb;
-        return *this;
-    }
-    
-    U4DPoint3n U4DBoundingAABB::getMaxBoundaryPoint(){
-        
-        U4DPoint3n position=getAbsolutePosition().toPoint();
-        
-        return U4DPoint3n(position.x+aabb.maxPoint.x,position.y+aabb.maxPoint.y,position.z+aabb.maxPoint.z);
+
+    U4DPlaneMesh::~U4DPlaneMesh(){
         
     }
-    
-    U4DPoint3n U4DBoundingAABB::getMinBoundaryPoint(){
+
+    void U4DPlaneMesh::computePlane(){
         
-        U4DPoint3n position=getAbsolutePosition().toPoint();
-        
-        return U4DPoint3n(position.x+aabb.minPoint.x,position.y+aabb.minPoint.y,position.z+aabb.minPoint.z);
-        
-    }
-    
-    void U4DBoundingAABB::computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){
-        
-        aabb.minPoint=uMin;
-        aabb.maxPoint=uMax;
-        
-        float width=(std::abs(uMax.x-uMin.x))/2.0;
-        float height=(std::abs(uMax.y-uMin.y))/2.0;
-        float depth=(std::abs(uMax.z-uMin.z))/2.0;
+        float width=(std::abs(maxPoint.x-minPoint.x))/2.0;
+        float height=0.0;
+        float depth=(std::abs(maxPoint.z-minPoint.z))/2.0;
         
         U4DVector3n v1(width,height,depth);
         U4DVector3n v2(width,height,-depth);
@@ -96,19 +65,6 @@ namespace U4DEngine {
         bodyCoordinates.addIndexDataToContainer(i8);
         
         loadRenderingInformation();
-
     }
 
-    void U4DBoundingAABB::updateBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){
-        
-        bodyCoordinates.verticesContainer.clear();
-        bodyCoordinates.indexContainer.clear();
-        
-        computeBoundingVolume(uMin, uMax);
-        
-        updateRenderingInformation();
-        
-    }
-    
 }
-

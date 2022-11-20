@@ -23,7 +23,7 @@
 #include "U4DField.h"
 #include "U4DGoalPost.h"
 
-
+#include "U4DPlaneMesh.h"
 
 using namespace U4DEngine;
 
@@ -61,10 +61,13 @@ void SandboxWorld::init(){
     //entityFactory->createModelInstance("player0", "player.0", "U4DModel");
     
     //deserialize
-    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
+//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+//    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
 
-
+    U4DEngine::U4DPlaneMesh *mesh=new U4DEngine::U4DPlaneMesh();
+    mesh->computePlane();
+    
+    addChild(mesh);
     
     
     //initialize the skybox
@@ -95,7 +98,7 @@ void SandboxWorld::setupConfiguration(){
     director->setPerspectiveSpace(perspectiveSpace);
     
     //Compute the orthographic shadow space
-    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -200.0f, 200.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
     //Get camera object and translate it to position

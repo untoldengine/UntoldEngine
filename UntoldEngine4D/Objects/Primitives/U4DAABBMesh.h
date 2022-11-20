@@ -1,17 +1,17 @@
 //
-//  U4DBoundingAABB.h
+//  U4DAABBMesh.h
 //  UntoldEngine
 //
 //  Created by Harold Serrano on 7/15/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef __UntoldEngine__U4DBoundingAABB__
-#define __UntoldEngine__U4DBoundingAABB__
+#ifndef __UntoldEngine__U4DAABBMesh__
+#define __UntoldEngine__U4DAABBMesh__
 
 #include <iostream>
 #include <cmath>
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 #include "U4DAABB.h"
 
 
@@ -19,9 +19,9 @@ namespace U4DEngine {
     
     /**
      @ingroup gameobjects
-     @brief The U4DBoundingAABB represents an AABB bounding volumen entity
+     @brief The U4DAABBMesh represents an AABB bounding volumen entity
      */
-    class U4DBoundingAABB:public U4DBoundingVolume{
+    class U4DAABBMesh:public U4DMesh{
       
     private:
         
@@ -35,22 +35,22 @@ namespace U4DEngine {
         /**
          @brief Constructor of the class
          */
-        U4DBoundingAABB();
+        U4DAABBMesh();
         
         /**
          @brief Destructor of the class
          */
-        ~U4DBoundingAABB();
+        ~U4DAABBMesh();
        
         /**
          @brief Copy constructor
          */
-        U4DBoundingAABB(const U4DBoundingAABB& value);
+        U4DAABBMesh(const U4DAABBMesh& value);
         
         /**
          @brief Copy constructor
          */
-        U4DBoundingAABB& operator=(const U4DBoundingAABB& value);
+        U4DAABBMesh& operator=(const U4DAABBMesh& value);
 
         /**
          @brief Method which returns the maximum boundary point
@@ -85,4 +85,4 @@ namespace U4DEngine {
     
 }
 
-#endif /* defined(__UntoldEngine__U4DBoundingAABB__) */
+#endif /* defined(__UntoldEngine__U4DAABBMesh__) */

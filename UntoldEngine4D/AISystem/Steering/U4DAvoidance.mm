@@ -8,8 +8,8 @@
 
 #include "U4DAvoidance.h"
 #include "U4DDynamicAction.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingSphere.h"
+#include "U4DMesh.h"
+#include "U4DSphereMesh.h"
 #include "U4DSphere.h"
 #include "U4DAABB.h"
 #include "U4DPlane.h"
@@ -53,7 +53,7 @@ namespace U4DEngine {
         float intersectionTime=0.0;
         
         //get sphere bounding the entity
-        U4DBoundingVolume *boundingSphere=uPursuer->getBroadPhaseBoundingVolume();
+        U4DMesh *boundingSphere=uPursuer->getBroadPhaseBoundingVolume();
         U4DSphere sphere=boundingSphere->getSphere();
         
         //intersection plane
@@ -65,7 +65,7 @@ namespace U4DEngine {
             intersectionWithPlaneOccurred=false;
             
             //get bounding volume from the collision list
-            U4DBoundingVolume *boundingVolume=n->getBroadPhaseBoundingVolume();
+            U4DMesh *boundingVolume=n->getBroadPhaseBoundingVolume();
             
             //check if the entity was initialized as a platform, i.e. using aabb boundary volume
             if (n->getIsPlatform()) {

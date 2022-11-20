@@ -1,49 +1,61 @@
 //
-//  U4DCubeObject.cpp
+//  U4DAABBMesh.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 7/13/13.
+//  Created by Harold Serrano on 7/15/13.
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DBoundingOBB.h"
-#include "U4DPlane.h"
-#include <cmath>
+#include "U4DAABBMesh.h"
 
 namespace U4DEngine {
     
-    U4DBoundingOBB::U4DBoundingOBB(){
+    U4DAABBMesh::U4DAABBMesh(){
     
     }
     
-    U4DBoundingOBB::~U4DBoundingOBB(){
+    
+    U4DAABBMesh::~U4DAABBMesh(){
     
     }
     
-    U4DBoundingOBB::U4DBoundingOBB(const U4DBoundingOBB& value){
-        halfwidth=value.halfwidth;
-        obb=value.obb;
+    
+    U4DAABBMesh::U4DAABBMesh(const U4DAABBMesh& value){
+        aabb=value.aabb;
     }
     
-    U4DBoundingOBB& U4DBoundingOBB::operator=(const U4DBoundingOBB& value){
-        
-        halfwidth=value.halfwidth;
-        obb=value.obb;
-        
+    
+    U4DAABBMesh& U4DAABBMesh::operator=(const U4DAABBMesh& value){
+        aabb=value.aabb;
         return *this;
-    };
+    }
     
-    void U4DBoundingOBB::computeBoundingVolume(U4DVector3n& uHalfwidth){
+    U4DPoint3n U4DAABBMesh::getMaxBoundaryPoint(){
         
-        halfwidth=uHalfwidth;
-        obb.setHalfwidth(halfwidth);
+        U4DPoint3n position=getAbsolutePosition().toPoint();
         
-        //make a cube
-        float width=halfwidth.x*2.0;
-        float height=halfwidth.y*2.0;
-        float depth=halfwidth.z*2.0;
+        return U4DPoint3n(position.x+aabb.maxPoint.x,position.y+aabb.maxPoint.y,position.z+aabb.maxPoint.z);
         
-        U4DVector3n v1(width,height,depth); 
+    }
+    
+    U4DPoint3n U4DAABBMesh::getMinBoundaryPoint(){
+        
+        U4DPoint3n position=getAbsolutePosition().toPoint();
+        
+        return U4DPoint3n(position.x+aabb.minPoint.x,position.y+aabb.minPoint.y,position.z+aabb.minPoint.z);
+        
+    }
+    
+    void U4DAABBMesh::computeBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){
+        
+        aabb.minPoint=uMin;
+        aabb.maxPoint=uMax;
+        
+        float width=(std::abs(uMax.x-uMin.x))/2.0;
+        float height=(std::abs(uMax.y-uMin.y))/2.0;
+        float depth=(std::abs(uMax.z-uMin.z))/2.0;
+        
+        U4DVector3n v1(width,height,depth);
         U4DVector3n v2(width,height,-depth);
         U4DVector3n v3(-width,height,-depth);
         U4DVector3n v4(-width,height,depth);
@@ -83,9 +95,20 @@ namespace U4DEngine {
         bodyCoordinates.addIndexDataToContainer(i7);
         bodyCoordinates.addIndexDataToContainer(i8);
         
-
         loadRenderingInformation();
-        
+
     }
 
+    void U4DAABBMesh::updateBoundingVolume(U4DPoint3n& uMin,U4DPoint3n& uMax){
+        
+        bodyCoordinates.verticesContainer.clear();
+        bodyCoordinates.indexContainer.clear();
+        
+        computeBoundingVolume(uMin, uMax);
+        
+        updateRenderingInformation();
+        
+    }
+    
 }
+

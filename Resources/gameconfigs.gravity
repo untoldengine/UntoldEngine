@@ -30,7 +30,7 @@ func gameConfigs(){
               "arriveJogSlowRadius":0.55/scaleValue,
               "haltRadius":0.52/scaleValue, //0.52 refers to the arriveStopRadius
               "pursuitMaxSpeed":35.0,
-              "interceptMinRadius":5.0,
+              "interceptMinRadius":0.5, //5.0
               "freeMaxSpeed":25.0/scaleValue,
               "freeStopRadius":0.52/scaleValue,
               "freeSlowRadius":0.55/scaleValue,

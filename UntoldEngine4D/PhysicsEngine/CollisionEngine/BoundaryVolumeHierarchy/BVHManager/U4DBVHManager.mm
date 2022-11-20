@@ -9,8 +9,8 @@
 #include "U4DBVHManager.h"
 #include "U4DVector3n.h"
 #include "U4DDynamicAction.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingSphere.h"
+#include "U4DMesh.h"
+#include "U4DSphereMesh.h"
 #include "U4DBVHModelCollision.h"
 #include "U4DNumerical.h"
 #include <cmath>
@@ -133,7 +133,7 @@ namespace U4DEngine{
         
         for (auto n:uNode->getModelsContainer()) {
         
-            U4DBoundingVolume *sphere=n->getBroadPhaseBoundingVolume();
+            U4DMesh *sphere=n->getBroadPhaseBoundingVolume();
             
             U4DPoint3n minPoints=sphere->getMinBoundaryPoint();
             U4DPoint3n maxPoints=sphere->getMaxBoundaryPoint();

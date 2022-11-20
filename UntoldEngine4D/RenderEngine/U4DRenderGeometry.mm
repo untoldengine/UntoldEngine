@@ -14,7 +14,7 @@
 
 namespace U4DEngine {
     
-    U4DRenderGeometry::U4DRenderGeometry(U4DBoundingVolume *uU4DGeometricObject):uniformGeometryBuffer(nil){
+    U4DRenderGeometry::U4DRenderGeometry(U4DMesh *uU4DGeometricObject):uniformGeometryBuffer(nil){
         
         u4dObject=uU4DGeometricObject;
         

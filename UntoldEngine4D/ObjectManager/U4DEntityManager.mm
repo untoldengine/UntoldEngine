@@ -16,7 +16,7 @@
 #include "U4DPhysicsEngine.h"
 #include "U4DRungaKuttaMethod.h"
 #include "U4DWorld.h"
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 #include "U4DGJKAlgorithm.h"
 #include "U4DSHAlgorithm.h"
 #include "U4DCollisionResponse.h"

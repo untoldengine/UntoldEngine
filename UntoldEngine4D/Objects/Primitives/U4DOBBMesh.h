@@ -6,11 +6,11 @@
 //  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
 //
 
-#ifndef __UntoldEngine__U4DBoundingOBB__
-#define __UntoldEngine__U4DBoundingOBB__
+#ifndef __UntoldEngine__U4DOBBMesh__
+#define __UntoldEngine__U4DOBBMesh__
 
 #include <iostream>
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 #include "U4DOBB.h"
 
 
@@ -18,9 +18,9 @@ namespace U4DEngine {
 
     /**
      @ingroup gameobjects
-     @brief The U4DBoundingOBB represents an OBB bounding volumen entity
+     @brief The U4DOBBMesh represents an OBB bounding volumen entity
      */
-    class U4DBoundingOBB:public U4DBoundingVolume{
+    class U4DOBBMesh:public U4DMesh{
         
     private:
        
@@ -39,22 +39,22 @@ namespace U4DEngine {
         /**
          @brief Constructor of the class
          */
-        U4DBoundingOBB();
+        U4DOBBMesh();
         
         /**
          @brief Destructor of the class
          */
-        ~U4DBoundingOBB();
+        ~U4DOBBMesh();
         
         /**
          @brief Copy constructor
          */
-        U4DBoundingOBB(const U4DBoundingOBB& value);
+        U4DOBBMesh(const U4DOBBMesh& value);
         
         /**
          @brief Copy constructor
          */
-        U4DBoundingOBB& operator=(const U4DBoundingOBB& value);
+        U4DOBBMesh& operator=(const U4DOBBMesh& value);
 
         /**
          @brief Method which computes a AABB bounding volume

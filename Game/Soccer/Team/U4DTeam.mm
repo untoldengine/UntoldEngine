@@ -66,16 +66,16 @@ namespace U4DEngine{
         
         formationScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::updateFormation, formationTimer, 1.0,true);
         
-        formationTimer->setPause(true);
+        //formationTimer->setPause(true);
         
         
-        defenseScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::startAnalyzingDefense, defenseTimer, 0.5,true);
-        
-        analyzerFieldScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::analyzeField, analyzerFieldTimer, 1.0,true);
-        
-        defenseTimer->setPause(true);
-        
-        analyzerFieldTimer->setPause(true);
+//        defenseScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::startAnalyzingDefense, defenseTimer, 0.5,true);
+//
+//        analyzerFieldScheduler->scheduleClassWithMethodAndDelay(this, &U4DTeam::analyzeField, analyzerFieldTimer, 1.0,true);
+//
+//        defenseTimer->setPause(true);
+//
+//        analyzerFieldTimer->setPause(true);
         
     }
 
@@ -145,7 +145,9 @@ namespace U4DEngine{
     }
 
     void U4DTeam::loadPlayersFormations(){
-            
+        //start off with 1-1-1
+        // 1-1
+        //1-1-1
         for(const auto n:players){
             
             U4DVector3n playerSpot=n->getAbsolutePosition();

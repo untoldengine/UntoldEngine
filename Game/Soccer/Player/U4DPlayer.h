@@ -22,7 +22,6 @@
 
 namespace U4DEngine{
 
-class U4DFoot;
 class U4DTeam;
 class U4DPlayerStateInterface;
 class U4DPlayerStateManager;
@@ -31,7 +30,7 @@ class U4DPlayer:public U4DModel {
     
 private:
     
-    int playerIndex;
+    
     
     U4DPlayerStateManager *stateManager;
     
@@ -48,6 +47,7 @@ private:
     
 public:
     
+    int playerIndex;
     U4DTeam *team;
     bool shootBall;
     bool passBall;
@@ -89,8 +89,6 @@ public:
     U4DVector3n slidingVelocity;
     
     U4DVector3n homePosition;
-    
-    U4DFoot *foot;
     
     bool atHome;
     
