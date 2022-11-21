@@ -92,6 +92,9 @@ void SandboxWorld::setupConfiguration(){
     U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.001f, 400.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
+    U4DEngine::U4DMatrix4n orthographicSpace=director->computeOrthographicSpace(-100.0,100.0,-100.0,100.0,-100.0,100.0);
+    director->setOrthographicSpace(orthographicSpace);
+    
     //Compute the orthographic shadow space
     U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -200.0f, 200.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);

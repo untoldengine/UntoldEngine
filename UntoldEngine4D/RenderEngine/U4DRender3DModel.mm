@@ -357,7 +357,7 @@ U4DRender3DModel::U4DRender3DModel(U4DModel *uU4DModel):uniformMaterialBuffer(ni
         
         U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
         
-        U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+        U4DMatrix4n perspectiveProjection=director->getProjectionSpace();
         
         U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
         

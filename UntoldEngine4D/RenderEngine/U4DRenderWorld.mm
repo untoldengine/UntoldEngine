@@ -70,7 +70,7 @@ namespace U4DEngine {
         
         U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
         
-        U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+        U4DMatrix4n perspectiveProjection=director->getProjectionSpace();
         
         //Note, the perspective projection space has to be inverted to create
         //the infinite grid

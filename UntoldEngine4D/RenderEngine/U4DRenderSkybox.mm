@@ -163,7 +163,7 @@ namespace U4DEngine {
         
         U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
         
-        U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+        U4DMatrix4n perspectiveProjection=director->getProjectionSpace();
         
         U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
         
