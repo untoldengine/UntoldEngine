@@ -358,6 +358,13 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 camera->translateTo(pos);
             }
             
+            if(ImGui::IsKeyReleased(53)){
+                bool projectionSpace=director->getPerspectiveProjectionEnabled();
+                projectionSpace=!projectionSpace;
+                
+                director->setPerspectiveProjectionEnabled(projectionSpace);
+                
+            }
             //panning, zooming and rotation of editor camera
             {
                 U4DCamera *camera=U4DCamera::sharedInstance();
@@ -381,86 +388,102 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     //zoom camera - Control Key + scroll wheel
                     }else if(ImGui::GetIO().KeyCtrl==true && mouseWheelH==0.0){
                         
-                        U4DVector3n upVector(0.0,1.0,0.0);
-                        U4DVector3n zDir(0.0,0.0,1.0);
-                        
-                        U4DMatrix3n m=camera->getAbsoluteMatrixOrientation();
-                        
-                        zDir=m*zDir;
-                        
-                        U4DVector3n cameraView=camera->getViewInDirection();
-                        cameraView.normalize();
-                        
-                        U4DVector3n xDir=cameraView.cross(upVector);
-                        
-                        float angle=zDir.angle(cameraView);
-                        
-                        if (zDir.dot(xDir)<0.0) {
-                            angle*=-1.0;
+                        if (director->getPerspectiveProjectionEnabled()==false) {
+                            float orthographicScale=director->getOrthographicScale();
+                            
+                            orthographicScale+=mouseWheelV;
+                            
+                            director->setOrthographicScale(orthographicScale);
+                            
+                        }else{
+                            
+                            U4DVector3n upVector(0.0,1.0,0.0);
+                            U4DVector3n zDir(0.0,0.0,1.0);
+                            
+                            U4DMatrix3n m=camera->getAbsoluteMatrixOrientation();
+                            
+                            zDir=m*zDir;
+                            
+                            U4DVector3n cameraView=camera->getViewInDirection();
+                            cameraView.normalize();
+                            
+                            U4DVector3n xDir=cameraView.cross(upVector);
+                            
+                            float angle=zDir.angle(cameraView);
+                            
+                            if (zDir.dot(xDir)<0.0) {
+                                angle*=-1.0;
+                            }
+                            
+                            U4DVector3n n=zDir.rotateVectorAboutAngleAndAxis(angle, upVector);
+                            
+                            if (mouseWheelV<0.0) {
+                                n=n*-1.0;
+                            }
+                            
+                            camera->translateBy(n);
+                            
                         }
                         
-                        U4DVector3n n=zDir.rotateVectorAboutAngleAndAxis(angle, upVector);
-                        
-                        if (mouseWheelV<0.0) {
-                            n=n*-1.0;
-                        }
-                        
-                        camera->translateBy(n);
                         
                     //rotate camera
                     }else{
                         
-                        //rotate camera
-                        //Get the delta movement of the mouse
-                        U4DEngine::U4DVector2n delta(mouseWheelH,mouseWheelV);
-                        
-                        //the y delta should be flipped
-                        delta.y*=-1.0;
-                        
-                        //The following snippet will determine which way to rotate the model depending on the motion of the mouse
-                        float deltaMagnitude=delta.magnitude();
-                        
-                        delta.normalize();
-                        
-                        U4DEngine::U4DVector3n axis;
-                        U4DEngine::U4DVector3n mouseDirection(delta.x,delta.y,0.0);
-                        U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-                        U4DEngine::U4DVector3n xVector(1.0,0.0,0.0);
-                        
-                        //get the dot product
-                        float upDot, xDot;
-                        upDot=mouseDirection.dot(upVector);
-                        xDot=mouseDirection.dot(xVector);
-                        
-                        U4DEngine::U4DVector3n v=camera->getViewInDirection();
-                        v.normalize();
-                        
-                        if(mouseDirection.magnitude()>0){
-                            //if direction is closest to upvector
-                            if(std::abs(upDot)>=std::abs(xDot)){
-                                //rotate about x axis
-                                if(upDot>0.0){
-                                    axis=v.cross(upVector);
+                        if (director->getPerspectiveProjectionEnabled()) {
+                            
+                            //rotate camera
+                            //Get the delta movement of the mouse
+                            U4DEngine::U4DVector2n delta(mouseWheelH,mouseWheelV);
+                            
+                            //the y delta should be flipped
+                            delta.y*=-1.0;
+                            
+                            //The following snippet will determine which way to rotate the model depending on the motion of the mouse
+                            float deltaMagnitude=delta.magnitude();
+                            
+                            delta.normalize();
+                            
+                            U4DEngine::U4DVector3n axis;
+                            U4DEngine::U4DVector3n mouseDirection(delta.x,delta.y,0.0);
+                            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+                            U4DEngine::U4DVector3n xVector(1.0,0.0,0.0);
+                            
+                            //get the dot product
+                            float upDot, xDot;
+                            upDot=mouseDirection.dot(upVector);
+                            xDot=mouseDirection.dot(xVector);
+                            
+                            U4DEngine::U4DVector3n v=camera->getViewInDirection();
+                            v.normalize();
+                            
+                            if(mouseDirection.magnitude()>0){
+                                //if direction is closest to upvector
+                                if(std::abs(upDot)>=std::abs(xDot)){
+                                    //rotate about x axis
+                                    if(upDot>0.0){
+                                        axis=v.cross(upVector);
 
-                                }else{
-                                    axis=v.cross(upVector)*-1.0;
+                                    }else{
+                                        axis=v.cross(upVector)*-1.0;
 
-                                }
-                            }else{
-                                //rotate about y axis
-                                if(xDot>0.0){
-                                    axis=upVector;
+                                    }
                                 }else{
-                                    axis=upVector*-1.0;
+                                    //rotate about y axis
+                                    if(xDot>0.0){
+                                        axis=upVector;
+                                    }else{
+                                        axis=upVector*-1.0;
+                                    }
                                 }
+                                
+                                //Once we know the angle and axis of rotation, we can rotate the camera using interpolation as shown below
+                                
+                                float angle=deltaMagnitude;
+
+                                camera->rotateBy(angle,axis);
+                            
                             }
                             
-                            //Once we know the angle and axis of rotation, we can rotate the camera using interpolation as shown below
-                            
-                            float angle=deltaMagnitude;
-
-                            camera->rotateBy(angle,axis);
-                        
                         }
                         
                         
