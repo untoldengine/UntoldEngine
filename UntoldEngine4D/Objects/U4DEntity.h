@@ -470,6 +470,7 @@ public:
     
     virtual U4DRenderEntity *getRenderEntity(){return NULL;};
     
+    
 };
 
 }

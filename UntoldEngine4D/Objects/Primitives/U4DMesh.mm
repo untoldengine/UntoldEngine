@@ -19,7 +19,7 @@ namespace U4DEngine {
     
     U4DMesh::U4DMesh():visibility(false){
         
-        setEntityType(PRIMITIVE);
+        setEntityType(U4DEngine::PRIMITIVE);
         
         renderEntity=new U4DRenderGeometry(this);
         

@@ -10,15 +10,16 @@
 
 namespace U4DEngine {
 
-    U4DPlaneMesh::U4DPlaneMesh():minPoint(-1.0,0.0,-1.0),maxPoint(1.0,0.0,1.0){
+    U4DPlaneMesh::U4DPlaneMesh():minPoint(-1.0,0.0,-1.0),maxPoint(1.0,0.0,1.0),xScale(1.0),yScale(1.0),zScale(1.0){
         setVisibility(true);
+        setName("plane");
     }
 
     U4DPlaneMesh::~U4DPlaneMesh(){
         
     }
 
-    void U4DPlaneMesh::computePlane(){
+    void U4DPlaneMesh::setMeshData(){
         
         float width=(std::abs(maxPoint.x-minPoint.x))/2.0;
         float height=0.0;
@@ -63,8 +64,31 @@ namespace U4DEngine {
         bodyCoordinates.addIndexDataToContainer(i6);
         bodyCoordinates.addIndexDataToContainer(i7);
         bodyCoordinates.addIndexDataToContainer(i8);
+    }
+
+    void U4DPlaneMesh::computePlane(){
+        
+        setMeshData();
         
         loadRenderingInformation();
+    }
+
+    void U4DPlaneMesh::updateComputePlane(float uScaleX, float uScaleY, float uScaleZ){
+        
+        
+        U4DMatrix3n m(uScaleX,0.0,0.0,
+                      0.0,uScaleY,0.0,
+                      0.0,0.0,uScaleZ);
+        
+        U4DPoint3n preScaleMinPoints(-1.0,0.0,-1.0);
+        U4DPoint3n preScaleMaxPoints(1.0,0.0,1.0);
+        
+        minPoint=(m*preScaleMinPoints.toVector()).toPoint();
+        maxPoint=(m*preScaleMaxPoints.toVector()).toPoint();
+        
+        setMeshData();
+        
+        updateRenderingInformation();
     }
 
 }
