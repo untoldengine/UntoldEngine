@@ -193,7 +193,7 @@ namespace U4DEngine {
         attributeAlignedContainer.clear();
         
         u4dObject->bodyCoordinates.verticesContainer.clear();
-        
+        u4dObject->bodyCoordinates.indexContainer.clear();
     }
     
     

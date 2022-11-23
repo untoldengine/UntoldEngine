@@ -64,7 +64,11 @@ void SandboxWorld::init(){
     U4DSerializer *serializer=U4DSerializer::sharedInstance();
     serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
 
-
+    U4DEngine::U4DPlaneMesh *plane=new U4DEngine::U4DPlaneMesh();
+    plane->computePlane();
+    plane->setName(searchScenegraphForNextName("plane"));
+    addChild(plane);
+    
     //initialize the skybox
 //    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
 //
@@ -92,7 +96,7 @@ void SandboxWorld::setupConfiguration(){
     U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.001f, 400.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
-    U4DEngine::U4DMatrix4n orthographicSpace=director->computeOrthographicSpace(-100.0,100.0,-100.0,100.0,-100.0,100.0);
+    U4DEngine::U4DMatrix4n orthographicSpace=director->computeOrthographicSpace(-100.0,100.0,-100.0/director->getAspect(),100.0/director->getAspect(),-100.0,100.0);
     director->setOrthographicSpace(orthographicSpace);
     
     //Compute the orthographic shadow space

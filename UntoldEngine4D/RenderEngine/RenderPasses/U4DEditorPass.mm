@@ -28,7 +28,7 @@
 #include "U4DSceneEditingState.h"
 #include "U4DScenePlayState.h"
 #include "U4DEntityFactory.h"
-
+#include "U4DPlaneMesh.h"
 #include "U4DWorld.h"
 #include "U4DModel.h"
 
@@ -84,6 +84,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static std::string sceneFilePathName;
     static bool shaderFilesFound=false;
     static bool lookingForShaderFile=false;
+    
+    static bool scalePlane=false;
     
     
     U4DDirector *director=U4DDirector::sharedInstance();
@@ -312,6 +314,20 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
             //view front- Press key 1
             U4DCamera *camera=U4DCamera::sharedInstance();
+
+            if(ImGui::IsKeyReleased(83) && activeChild!=nullptr){
+                scalePlane=true;
+            }
+            
+            if(scalePlane==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
+                
+                U4DPlaneMesh *planeMesh=dynamic_cast<U4DPlaneMesh*>(activeChild);
+                planeMesh->updateComputePlane(ImGui::GetMouseDragDelta().x, 0.0, ImGui::GetMouseDragDelta().y);
+                
+            }else if(ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                scalePlane=false;
+            }
+            
             
             if(ImGui::GetIO().KeyCtrl==true && ImGui::IsKeyReleased(49)){
                 
@@ -874,7 +890,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 {
                     ImGui::Begin("Entity Properties");
 
-                    if (activeChild!=nullptr) {
+                    if (activeChild!=nullptr && activeChild->getEntityType()==U4DEngine::MODEL) {
 
                         ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
 
@@ -892,7 +908,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
                             if (ImGui::IsKeyPressed(82)) //r is pressed= rotate
                                mCurrentGizmoOperation = ImGuizmo::ROTATE;
-                              
                     
                              static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
                                  
@@ -915,6 +930,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                               
                               float matrixTranslation[3], matrixRotation[3], matrixScale[3];
                               ImGuizmo::DecomposeMatrixToComponents(activeChildSpace.matrixData, matrixTranslation, matrixRotation, matrixScale);
+                            
                               
                             if (ImGuizmo::IsUsing()) {
                                 
@@ -928,6 +944,13 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 
                                 activeChild->rotateTo(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
                                 activeChild->translateTo(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+                                
+//                                if(activeChild->getEntityType()==U4DEngine::PRIMITIVE){
+//
+//                                    U4DPlaneMesh *planeMesh=dynamic_cast<U4DPlaneMesh*>(activeChild);
+//                                    planeMesh->updateComputePlane(matrixScale[0], matrixScale[1], matrixScale[2]);
+//
+//                                }
                             }
                              
                         }

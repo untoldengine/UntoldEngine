@@ -196,6 +196,7 @@ namespace U4DEngine {
         
         virtual void computePlane(){};
         
+        virtual void updateComputePlane(float uScaleX, float uScaleY, float uScaleZ){};
     };
     
 }
