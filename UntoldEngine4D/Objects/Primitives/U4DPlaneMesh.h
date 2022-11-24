@@ -19,9 +19,7 @@ namespace U4DEngine {
     
     private:
         
-        U4DPoint3n minPoint;
         
-        U4DPoint3n maxPoint;
         
         float xScale;
         float yScale;
@@ -29,6 +27,10 @@ namespace U4DEngine {
     
     public:
             
+        U4DPoint3n minPoint;
+        
+        U4DPoint3n maxPoint;
+        
         U4DPlaneMesh();
         
         ~U4DPlaneMesh();

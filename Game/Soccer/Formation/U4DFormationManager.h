@@ -42,6 +42,9 @@ namespace U4DEngine {
         
         void computeHomePosition();
         
+        
+        void divideFieldIntoZones(float uHalfWidth, float uHalfHeight);
+        
     };
 
 }

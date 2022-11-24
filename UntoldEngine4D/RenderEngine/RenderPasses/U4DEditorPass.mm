@@ -36,6 +36,7 @@
 #include "U4DRay.h"
 #include "U4DAABB.h"
 
+#include "U4DFormationManager.h"
 
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -136,7 +137,24 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          
          ImGui::NewFrame();
         
-        
+        {
+            ImGui::Begin("Divide zones");
+            
+            if(ImGui::Button("Divide")){
+                
+                U4DFormationManager formationManager;
+                
+                U4DPlaneMesh *planeMesh=dynamic_cast<U4DPlaneMesh*>(activeChild);
+                
+                float width=planeMesh->maxPoint.x;
+                float height=planeMesh->maxPoint.z;
+                
+                formationManager.divideFieldIntoZones(width, height);
+                
+            }
+            
+            ImGui::End();
+        }
         
         {
            ImGui::Begin("Output");
