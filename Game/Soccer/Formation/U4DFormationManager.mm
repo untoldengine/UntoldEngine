@@ -7,7 +7,7 @@
 //
 
 #include "U4DFormationManager.h"
-
+#include "U4DVector2n.h"
 
 namespace U4DEngine {
 
@@ -59,6 +59,35 @@ namespace U4DEngine {
         }
         
         return position;
+        
+    }
+
+
+    void U4DFormationManager::divideFieldIntoZones(float uHalfWidth, float uHalfHeight){
+        
+        U4DVector2n f0(0.0,0.0);
+        U4DVector2n f1(uHalfWidth/6.0, 3.0*uHalfHeight/4.0);
+        U4DVector2n f2(2.0*uHalfWidth/6.0, 1.5*uHalfHeight/4.0);
+        U4DVector2n f3(3.0*uHalfWidth/6.0, 3.0*uHalfHeight/4.0);
+        U4DVector2n f4(5.0*uHalfWidth/6.0, 3.0*uHalfHeight/4.0);
+        
+        //reflect about y-axis
+        U4DVector2n f5(-f1.x,f1.y);
+        U4DVector2n f6(-f2.x,f2.y);
+        U4DVector2n f7(-f3.x,f3.y);
+        U4DVector2n f8(-f4.x,f4.y);
+        
+        //reflect about x-axis
+        U4DVector2n f9(f1.x,-f1.y);
+        U4DVector2n f10(f2.x,-f2.y);
+        U4DVector2n f11(f3.x,-f3.y);
+        U4DVector2n f12(f4.x,-f4.y);
+        
+        //reflect about origin
+        U4DVector2n f13=f1*-1.0;
+        U4DVector2n f14=f2*-1.0;
+        U4DVector2n f15=f3*-1.0;
+        U4DVector2n f16=f4*-1.0;
         
     }
 
