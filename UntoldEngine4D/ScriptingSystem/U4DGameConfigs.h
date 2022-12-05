@@ -37,6 +37,8 @@ namespace U4DEngine {
         
         float getParameterForKey(std::string uName);
         
+        void setParameterForKey(std::string uName, float uValue);
+        
         void loadConfigsMapValues(std::string uFileName);
         
         void clearConfigsMap();

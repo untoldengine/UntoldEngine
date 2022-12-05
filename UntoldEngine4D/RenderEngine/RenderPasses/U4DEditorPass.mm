@@ -8,35 +8,9 @@
 
 #include "U4DEditorPass.h"
 #include "U4DDirector.h"
-#include "U4DRenderManager.h"
-#include "U4DRenderPipelineInterface.h"
-#include "U4DShaderProtocols.h"
-#include "U4DEntity.h"
-#include "U4DProfilerManager.h"
-#include "U4DDebugger.h"
-#include "U4DCamera.h"
-#include "U4DDirectionalLight.h"
-#include "U4DLogger.h"
-#include "U4DScriptManager.h"
-#include "U4DRenderEntity.h"
-#include "U4DRenderPipelineInterface.h"
-#include "U4DModelPipeline.h"
-#include "U4DResourceLoader.h"
-#include "U4DSceneManager.h"
-#include "U4DScene.h"
-#include "U4DSceneStateManager.h"
-#include "U4DSceneEditingState.h"
-#include "U4DScenePlayState.h"
-#include "U4DEntityFactory.h"
-#include "U4DPlaneMesh.h"
-#include "U4DWorld.h"
-#include "U4DModel.h"
-
-#include "U4DSerializer.h"
-#include "U4DRay.h"
-#include "U4DAABB.h"
-
-#include "U4DFormationManager.h"
+#include "U4DEditor.h"
+#include "U4DDefaultEditor.h"
+#include "U4DZoneEditor.h"
 
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -61,6 +35,10 @@ U4DEditorPass::~U4DEditorPass(){
 
 void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity, U4DRenderPassInterface *uPreviousRenderPass){
     
+    U4DDirector *director=U4DDirector::sharedInstance();
+    U4DEditor *editor=U4DEditor::sharedInstance();
+    
+    /*
     static bool ScrollToBottom=true;
     static U4DEntity *activeChild=nullptr;
     static std::string assetSelectedName;
@@ -89,7 +67,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static bool scalePlane=false;
     
     
-    U4DDirector *director=U4DDirector::sharedInstance();
+    
     U4DLogger *logger=U4DLogger::sharedInstance();
     
     U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
@@ -115,6 +93,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     float fps=director->getFPS();
     std::string profilerData=sceneManager->profilerData;
+    */
+    
+    static bool showDefaultEditor=true;
     
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
            mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
@@ -133,10 +114,25 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         // Start the Dear ImGui frame
         ImGui_ImplMetal_NewFrame(mtlRenderPassDescriptor);
          
-         ImGui_ImplOSX_NewFrame(director->getMTLView());
+        ImGui_ImplOSX_NewFrame(director->getMTLView());
          
-         ImGui::NewFrame();
+        ImGui::NewFrame();
         
+        if(ImGui::IsKeyReleased(90)){ //z key
+            showDefaultEditor=!showDefaultEditor;
+        }
+        
+        if(showDefaultEditor){
+            editor->changeState(U4DDefaultEditor::sharedInstance());
+            
+        }else{
+            editor->changeState(U4DZoneEditor::sharedInstance());
+        }
+        
+        editor->showEditor();
+        
+        /*
+        //zone division
         {
             ImGui::Begin("Divide zones");
             
@@ -156,6 +152,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             ImGui::End();
         }
         
+        //output log
         {
            ImGui::Begin("Output");
            ImGui::TextUnformatted(logger->logBuffer.begin());
@@ -166,6 +163,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         }
         
+        //properties
         {
             
         ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
@@ -218,8 +216,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             
         }
     
+        //control
         {
-            
             
         ImGui::Begin("Control");
         
@@ -1076,7 +1074,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             }
                   
         }
-        
+        */
         
         
         ImGui::Render();

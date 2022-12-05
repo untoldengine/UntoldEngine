@@ -44,6 +44,8 @@ namespace U4DEngine {
          */
         U4DMesh *u4dObject;
         
+    protected:
+        
         /**
          * @brief pointer to the buffer that holds the geometry properties, as as line color
          */

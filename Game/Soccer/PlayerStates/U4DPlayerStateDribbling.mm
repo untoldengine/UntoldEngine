@@ -76,7 +76,7 @@ void U4DPlayerStateDribbling::enter(U4DPlayer *uPlayer){
         U4DMessageDispatcher *messageDispatcher=U4DMessageDispatcher::sharedInstance();
 
         for(auto n: teammates){
-            messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
+            //messageDispatcher->sendMessage(0.0, uPlayer, n, msgSupport);
         }
     }
     

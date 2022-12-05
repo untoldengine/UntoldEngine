@@ -54,7 +54,6 @@
 #include "U4DGoalPost.h"
 
 
-
 SandboxLogic::SandboxLogic():pPlayer(nullptr),teamA(nullptr),dribblingDirection(0.0,0.0,-1.0),startGame(false),aKeyFlag(false),sKeyFlag(false),wKeyFlag(false),dKeyFlag(false),playerMotionAccumulator(0.0,0.0,0.0){
     
 }
@@ -74,12 +73,15 @@ void SandboxLogic::update(double dt){
 //
 //        //field->shadeField(pPlayer);
 //
-//        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
-//
-//        voronoi->computeFortuneAlgorithm();
-//
+        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
+
+        voronoi->computeFortuneAlgorithm();
+        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
+    
+        mesh->updateComputePolygon(segments);
+        
 //        std::vector<U4DEngine::U4DPlayer*> players=voronoi->getNeighbors(pPlayer->playerIndex);
-//
+
 //        for(const auto &n:players){
 //            std::cout<<n->getName().c_str()<<std::endl;
 //        }
@@ -104,9 +106,9 @@ void SandboxLogic::init(){
     U4DEngine::U4DPlayer* pPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.0"));
     U4DEngine::U4DPlayer* pPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.1"));
     U4DEngine::U4DPlayer* pPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.2"));
-//    U4DEngine::U4DPlayer* pPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
-//    U4DEngine::U4DPlayer* pPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
-//
+    U4DEngine::U4DPlayer* pPlayer3=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.3"));
+    U4DEngine::U4DPlayer* pPlayer4=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("player0.4"));
+
 //    U4DEngine::U4DPlayer* pEPlayer0=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.0"));
 //    U4DEngine::U4DPlayer* pEPlayer1=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.1"));
 //    U4DEngine::U4DPlayer* pEPlayer2=dynamic_cast<U4DEngine::U4DPlayer*>(pEarth->searchChild("oppositeplayer0.2"));
@@ -159,8 +161,8 @@ void SandboxLogic::init(){
         matchManager->teamA->addPlayer(pPlayer0);
         matchManager->teamA->addPlayer(pPlayer1);
         matchManager->teamA->addPlayer(pPlayer2);
-//        matchManager->teamA->addPlayer(pPlayer3);
-//        matchManager->teamA->addPlayer(pPlayer4);
+        matchManager->teamA->addPlayer(pPlayer3);
+        matchManager->teamA->addPlayer(pPlayer4);
 //
 //        matchManager->teamB->addPlayer(pEPlayer0);
 //        matchManager->teamB->addPlayer(pEPlayer1);
@@ -212,11 +214,15 @@ void SandboxLogic::init(){
 //
 //        camera->setCameraBehavior(cameraBasicFollow);
 //
-//        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
-//
-//        voronoi->computeFortuneAlgorithm();
-//        voronoi->computeAreas();
-//        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
+        U4DEngine::U4DVoronoiManager *voronoi=U4DEngine::U4DVoronoiManager::sharedInstance();
+
+        voronoi->computeFortuneAlgorithm();
+        voronoi->computeAreas();
+        std::vector<U4DEngine::U4DSegment> segments=voronoi->getVoronoiSegments();
+    
+        mesh=new U4DEngine::U4DPolygonMesh();
+        mesh->computePolygon(segments);
+        pEarth->addChild(mesh);
 //
 //
 //        if (voronoiPlane->init("voronoiplane")) {
