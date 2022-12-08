@@ -44,8 +44,8 @@ void U4DVoronoiManager::computeFortuneAlgorithm(){
     U4DMatchManager *matchManager=U4DMatchManager::sharedInstance();
     U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
 
-    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
-    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfLength");
+    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfLength");
+    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfWidth");
     
     U4DVector2n rangeFrom=U4DVector2n(-1.0,1.0);
     U4DVector2n rangeTo=U4DVector2n(0.0,1.0);
@@ -130,8 +130,8 @@ std::vector<U4DSegment> U4DVoronoiManager::getVoronoiSegments(){
     
     U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
 
-    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
-    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfLength");
+    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfLength");
+    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfWidth");
     
     std::vector<U4DSegment> segments;
     auto halfEdgesDiagramList=diagram.getHalfEdges();

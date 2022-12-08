@@ -45,7 +45,7 @@ U4DEditor* U4DEditor::sharedInstance(){
     return instance;
 }
 
-U4DEditor::U4DEditor():activeChild(nullptr),scalePlane(false){
+U4DEditor::U4DEditor():activeChild(nullptr),scalePlane(false),zonesCreated(0){
     stateManager=new U4DEditorStateManager(this);
     
     stateManager->changeState(U4DDefaultEditor::sharedInstance());
@@ -703,6 +703,75 @@ void U4DEditor::showScenegraph(){
    }
 }
 
+void U4DEditor::showAttribMenu(){
+    U4DLogger *logger=U4DLogger::sharedInstance();
+    
+    {
+         ImGui::Begin("Attibutes Menu");
+        
+        if (ImGui::Button("Save Attrib")) {
+
+            serialiazeAttributeFlag=true;
+            serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+
+        }
+        ImGui::SameLine();
+       
+        if (ImGui::Button("Open Attr")) {
+
+            deserializeAttributeFlag=true;
+            serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
+
+        }
+        
+        if (serialiazeAttributeFlag || deserializeAttributeFlag) {
+
+            if (serializeFileDialog.Instance()->Display("ChooseFileDlgKey"))
+               {
+                   // action if OK
+                   if (serializeFileDialog.Instance()->IsOk())
+                   {
+
+                   sceneFilePathName = serializeFileDialog.Instance()->GetFilePathName();
+                       logger->log("%s",sceneFilePathName.c_str());
+
+
+                       if (serialiazeAttributeFlag) {
+                           //serialize
+                           U4DSerializer *serializer=U4DSerializer::sharedInstance();
+
+                           serializer->serializeAttributes(sceneFilePathName);
+
+                       }else if(deserializeAttributeFlag){
+                           //deserialize
+                           U4DSerializer *serializer=U4DSerializer::sharedInstance();
+
+                           serializer->deserializeAttributes(sceneFilePathName);
+                       }
+
+                   }else{
+
+                   }
+
+                   serialiazeAttributeFlag=false;
+                   deserializeAttributeFlag=false;
+
+                   // close
+                   serializeFileDialog.Instance()->Close();
+
+               }
+
+            }
+        
+        ImGui::Checkbox("Show Attributes", &showAttributesFlag);
+        
+        if(showAttributesFlag){
+            showAttributes();
+        }
+             ImGui::End();
+     }
+}
+
 void U4DEditor::showMenu(){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
@@ -717,6 +786,7 @@ void U4DEditor::showMenu(){
 
          }
          ImGui::SameLine();
+        
          if (ImGui::Button("Open")) {
 
              deserializeFlag=true;
@@ -762,6 +832,7 @@ void U4DEditor::showMenu(){
                 }
 
              }
+        
              ImGui::End();
          }
 }
@@ -948,51 +1019,54 @@ void U4DEditor::divideZones(){
     
     U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
     U4DScene *scene=sceneManager->getCurrentScene();
+    U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
     U4DWorld *world=scene->getGameWorld();
     U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+    
+    float hWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
+    float hLength=gameConfigs->getParameterForKey("fieldHalfLength");
     
     //zone division
     {
         ImGui::Begin("Divide zones");
+        ImGui::Text("Field Attributes");
         
-        if(ImGui::Button("Generate")){
-            
-            fieldPlane=new U4DEngine::U4DPlaneMesh();
-            fieldPlane->computePlane();
-            fieldPlane->setName(world->searchScenegraphForNextName("plane"));
-            world->addChild(fieldPlane);
-        }
+//        if(ImGui::Button("Generate") && fieldPlane==nullptr){
+//
+//            fieldPlane=new U4DEngine::U4DPlaneMesh();
+//            U4DPoint3n center(0.0,0.0,0.0);
+//            fieldPlane->computePlane(hWidth,0.0,hLength,center);
+//            fieldPlane->setName(world->searchScenegraphForNextName("plane"));
+//            world->addChild(fieldPlane);
+//        }
         
+        ImGui::PushItemWidth(50.0f);
+        ImGui::InputFloat("Field Width", &hWidth,0.0,0.0,"%.1f");
+        ImGui::InputFloat("Field Length", &hLength,0.0,0.0,"%.1f");
+                
         if(ImGui::Button("Divide Zones") && fieldPlane!=nullptr){
             
             U4DFormationManager formationManager;
             
             float width=fieldPlane->maxPoint.x;
-            float height=fieldPlane->maxPoint.z;
+            float length=fieldPlane->maxPoint.z;
 
-            gameConfigs->setParameterForKey("fieldHalfWidth", height);
-            gameConfigs->setParameterForKey("fieldHalfLength", width);
+            gameConfigs->setParameterForKey("fieldHalfWidth", width);
+            gameConfigs->setParameterForKey("fieldHalfLength", length);
             
-            std::vector<U4DVector4n> zones=formationManager.divideFieldIntoZones(width, height);
+            std::vector<U4DVector4n> zones=formationManager.divideFieldIntoZones(width, length);
             for(const auto &n:zones){
                 
                 U4DPoint3n c(0.0,0.0,0.0);
                 U4DPlaneMesh *p=new U4DPlaneMesh();
                 p->computePlane(n.z,0.0,n.w,c);
                 
-                p->setName(world->searchScenegraphForNextName("smallplane"));
+                p->setName(world->searchScenegraphForNextName("zone"));
                 world->addChild(p);
-                U4DVector3n c0(n.x,2.0,n.y);
+                U4DVector3n c0(n.x,0.0,n.y);
                 p->translateTo(c0);
+                zonesCreated++;
             }
-            
-            //create a shader entity
-//            U4DShaderEntity *shaderEntity=new U4DShaderEntity(10);
-//            shaderEntity->setShaderDimension(width*director->getDisplayWidth(),height*director->getDisplayHeight());
-//            shaderEntity->setPipelineForPass("zonePipeline", U4DEngine::finalPass);
-//            shaderEntity->loadRenderingInformation();
-//            world->addChild(shaderEntity,100);
-            
             
         }
         
@@ -1000,13 +1074,26 @@ void U4DEditor::divideZones(){
     }
     
     //S-key
-    if(ImGui::IsKeyReleased(83) && fieldPlane!=nullptr){
+    if(ImGui::IsKeyReleased(83) && fieldPlane!=nullptr && sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
         scalePlane=true;
+        for(int i=0;i<zonesCreated;i++){
+            std::string zoneName="zone.";
+            zoneName+=std::to_string(i);
+            U4DEntity *zone=world->searchChild(zoneName);
+            
+            world->removeChild(zone);
+            delete zone;
+        }
+        
+        zonesCreated=0;
     }
     
     if(scalePlane==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
         
         fieldPlane->updateComputePlane(ImGui::GetMouseDragDelta().x, 0.0, ImGui::GetMouseDragDelta().y);
+        
+        gameConfigs->setParameterForKey("fieldHalfWidth", ImGui::GetMouseDragDelta().x);
+        gameConfigs->setParameterForKey("fieldHalfLength", ImGui::GetMouseDragDelta().y);
         
     }else if(ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
         scalePlane=false;
@@ -1079,6 +1166,86 @@ void U4DEditor::showGameConfigsScript(){
         
     ImGui::End();
 }
+    
+}
+
+void U4DEditor::showAttributes(){
+    
+    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+    
+    {
+        ImGui::Begin("Attributes");
+        ImGui::Text("Game Attributes");
+        std::map<std::string,float>::iterator it;
+        ImGui::PushItemWidth(50.0f);
+        for(auto &n:gameConfigs->configsMap){
+            float *p=&n.second;
+            ImGui::InputFloat(n.first.c_str(), p);
+            gameConfigs->setParameterForKey(n.first, *p);
+        }
+        ImGui::End();
+    }
+}
+
+void U4DEditor::removeFieldZones(){
+    
+    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+    U4DScene *scene=sceneManager->getCurrentScene();
+    U4DWorld *world=scene->getGameWorld();
+    
+    if(fieldPlane!=nullptr){
+        
+        world->removeChild(fieldPlane);
+        delete fieldPlane;
+        fieldPlane=nullptr;
+        
+        for(int i=0;i<zonesCreated;i++){
+            std::string zoneName="zone.";
+            zoneName+=std::to_string(i);
+            U4DEntity *zone=world->searchChild(zoneName);
+            
+            world->removeChild(zone);
+            delete zone;
+        }
+        
+        zonesCreated=0;
+        
+    }
+    
+    
+}
+
+void U4DEditor::showFieldPlane(){
+    
+    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+    U4DScene *scene=sceneManager->getCurrentScene();
+    U4DWorld *world=scene->getGameWorld();
+    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+    
+    float hWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
+    float hLength=gameConfigs->getParameterForKey("fieldHalfLength");
+    
+    fieldPlane=new U4DEngine::U4DPlaneMesh();
+    U4DPoint3n center(0.0,0.0,0.0);
+    fieldPlane->computePlane(hWidth,0.0,hLength,center);
+    fieldPlane->setName(world->searchScenegraphForNextName("plane"));
+    world->addChild(fieldPlane);
+    
+    U4DFormationManager formationManager;
+    
+    std::vector<U4DVector4n> zones=formationManager.divideFieldIntoZones(hWidth, hLength);
+    for(const auto &n:zones){
+        
+        U4DPoint3n c(0.0,0.0,0.0);
+        U4DPlaneMesh *p=new U4DPlaneMesh();
+        p->computePlane(n.z,0.0,n.w,c);
+        
+        p->setName(world->searchScenegraphForNextName("zone"));
+        world->addChild(p);
+        U4DVector3n c0(n.x,0.0,n.y);
+        p->translateTo(c0);
+        zonesCreated++;
+    }
     
 }
 

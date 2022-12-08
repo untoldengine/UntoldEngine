@@ -71,8 +71,9 @@ void U4DDefaultEditor::execute(U4DEditor *uEditor){
     uEditor->showScenegraph();
     if(uEditor->activeChild!=nullptr)
         uEditor->showEntityProperty();
-    uEditor->showGameConfigsScript();
-    
+    //uEditor->showGameConfigsScript();
+    //uEditor->showAttributes();
+    uEditor->showAttribMenu();
 }
 
 void U4DDefaultEditor::exit(U4DEditor *uEditor){

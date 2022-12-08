@@ -17,7 +17,7 @@ namespace U4DEngine {
     }
 
     U4DPlaneMesh::~U4DPlaneMesh(){
-        
+       
     }
 
     void U4DPlaneMesh::setMeshData(){

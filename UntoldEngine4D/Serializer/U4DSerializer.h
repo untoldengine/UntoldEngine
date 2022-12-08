@@ -23,6 +23,7 @@ namespace U4DEngine {
         static U4DSerializer *instance;
         
         std::vector<ENTITYSERIALIZEDATA> entitySerializeDataContainer;
+        std::vector<PLAYERATTRIBUTES> attributeSerializeDataContainer;
         
     protected:
         
@@ -45,6 +46,18 @@ namespace U4DEngine {
         bool convertBinaryToEntities(std::string uFileName);
         
         void unloadEntities();
+        
+        bool serializeAttributes(std::string uFileName);
+        
+        void prepareAttributes();
+        
+        bool convertAttributesToBinary(std::string uFileName);
+        
+        bool deserializeAttributes(std::string uFileName);
+        
+        bool convertBinaryToAttributes(std::string uFileName);
+        
+        void unloadAttributes();
         
     };
 

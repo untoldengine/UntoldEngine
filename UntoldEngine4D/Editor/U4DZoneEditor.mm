@@ -44,6 +44,8 @@ void U4DZoneEditor::enter(U4DEditor *uEditor){
     camera->translateTo(pos);
     
     director->setPerspectiveProjectionEnabled(false);
+    
+    uEditor->showFieldPlane();
 }
 
 void U4DZoneEditor::execute(U4DEditor *uEditor){
@@ -66,12 +68,13 @@ void U4DZoneEditor::execute(U4DEditor *uEditor){
     }
     
     uEditor->divideZones();
-    
+    uEditor->showControls();
     uEditor->showOutputLog();
 }
 
 void U4DZoneEditor::exit(U4DEditor *uEditor){
     
+    uEditor->removeFieldZones();
 }
 
 }

@@ -790,6 +790,11 @@ class U4DTeam;
         std::vector<float> orientation;
     }ENTITYSERIALIZEDATA;
 
+    typedef struct {
+        std::string name;
+        float value=0.0;
+    }PLAYERATTRIBUTES;
+
     enum{
         ptConnect,
         ptJoinAttempt,

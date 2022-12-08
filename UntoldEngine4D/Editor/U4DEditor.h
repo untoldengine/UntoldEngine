@@ -50,6 +50,8 @@ private:
     
     bool serialiazeFlag=false;
     bool deserializeFlag=false;
+    bool serialiazeAttributeFlag=false;
+    bool deserializeAttributeFlag=false;
     ImGuiFileDialog serializeFileDialog;
     std::string sceneFilePath;
     std::string sceneFilePathName;
@@ -63,7 +65,8 @@ private:
     std::string scriptFilePath;
     bool scriptFilesFound=false;
     bool scriptLoadedSuccessfully=false;
-    
+    bool showAttributesFlag=false;
+    int zonesCreated;
 protected:
     U4DEditor();
     ~U4DEditor();
@@ -86,11 +89,17 @@ public:
     void showAssets();
     void showScenegraph();
     void showMenu();
+    void showAttribMenu();
     void showEntityProperty();
     void createFieldPlane();
+    void showFieldPlane();
     void divideZones();
     void destroyFieldPlane();
     void showGameConfigsScript();
+    void showAttributes();
+    
+    void removeFieldZones();
+    
 };
 
 }

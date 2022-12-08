@@ -47,8 +47,8 @@ func gameConfigs(){
               "slidingTackleKick":60.0,
               "slidingTackleVelocity":1.5,
               "slidingTackleMinDistance":2.0,
-              "fieldHalfWidth":22.5,//40.0
-              "fieldHalfLength":40.0,//22.5
+              "fieldHalfWidth":40.0,//40.0
+              "fieldHalfLength":22.5,//22.5
               "cellAnalyzerWidth":5.6,//10.0
               "cellAnalyzerHeight":10.0,//5.6
               "navPathRadius":0.9,
