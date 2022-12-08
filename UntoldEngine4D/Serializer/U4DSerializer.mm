@@ -9,6 +9,8 @@
 #include "U4DSerializer.h"
 #include <fstream> //for file i/o
 #include <iomanip>
+#include <map>
+#include <string.h>
 #include <cstdlib>
 #include <sstream>
 #include "U4DSceneManager.h"
@@ -19,6 +21,7 @@
 #include "U4DCamera.h"
 #include "U4DDirectionalLight.h"
 #include "U4DLogger.h"
+#include "U4DGameConfigs.h"
 
 namespace U4DEngine {
 
@@ -395,6 +398,139 @@ namespace U4DEngine {
             
             entityFactory->createModelInstance(n.assetReferenceName,n.name, n.classType,n.pipelineName, pos, orient);
             
+        }
+        
+    }
+
+    bool U4DSerializer::serializeAttributes(std::string uFileName){
+        
+        prepareAttributes();
+        
+        if(convertAttributesToBinary(uFileName)){
+            return true;
+        }
+        
+        return false;
+    }
+
+    void U4DSerializer::prepareAttributes(){
+        
+        // 1. Read attributes present in GameConfig
+                
+        attributeSerializeDataContainer.clear();
+        
+        U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+        
+        std::map<std::string,float>::iterator it;
+        
+        //iterate over the map
+        for (it=gameConfigs->configsMap.begin();it!=gameConfigs->configsMap.end();it++) {
+            //Access key from first element
+            std::string paramKeyName=it->first;
+            float value=it->second;
+            
+            PLAYERATTRIBUTES playerAttribute;
+            
+            playerAttribute.name=paramKeyName;
+            playerAttribute.value=value;
+            
+            attributeSerializeDataContainer.push_back(playerAttribute);
+        }
+        
+    }
+
+    bool U4DSerializer::convertAttributesToBinary(std::string uFileName){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        
+        std::ofstream file(uFileName,std::ios::out | std::ios::binary);
+        
+        if (!file) {
+            logger->log("File %s does not exist",uFileName.c_str());
+            return false;
+        }
+        
+        for(const auto &n: attributeSerializeDataContainer){
+            
+            //write the key
+            size_t keyLen=n.name.size();
+            file.write((char*)&keyLen,sizeof(keyLen));
+            file.write((char*)&n.name[0],keyLen);
+            
+            //Write the value
+            int valueSize=(int)n.value;
+            file.write((char*)&valueSize,sizeof(float));
+            file.write((char*)&n.value,sizeof(float));
+            
+        }
+        
+        file.close();
+        
+        logger->log("Attribute data was saved");
+        
+        return true;
+        
+    }
+
+    bool U4DSerializer::deserializeAttributes(std::string uFileName){
+        
+        if(convertBinaryToAttributes(uFileName)){
+            unloadAttributes();
+            
+            return true;
+        }
+        
+        return false;
+    }
+
+    bool U4DSerializer::convertBinaryToAttributes(std::string uFileName){
+        
+        U4DLogger *logger=U4DLogger::sharedInstance();
+        U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+        attributeSerializeDataContainer.clear();
+        
+        std::ifstream file(uFileName, std::ios::in | std::ios::binary );
+        
+        if(!file){
+            
+            logger->log("File %s does not exist",uFileName.c_str());
+            
+            return false;
+            
+        }
+        
+        file.seekg(0);
+        
+        logger->log("Scene data is being retrieved");
+        
+        for(int i=0;i<gameConfigs->configsMap.size();i++){
+            
+            PLAYERATTRIBUTES playerAttribute;
+            
+            size_t keyNamelen=0;
+            file.read((char*)&keyNamelen,sizeof(keyNamelen));
+            playerAttribute.name.resize(keyNamelen);
+            file.read((char*)&playerAttribute.name[0],keyNamelen);
+            
+            float value=0;
+            file.read((char*)&value,sizeof(float));
+            file.read((char*)&playerAttribute.value, sizeof(value));
+            
+            attributeSerializeDataContainer.push_back(playerAttribute);
+        }
+        
+        
+        return true;
+    }
+
+    void U4DSerializer::unloadAttributes(){
+        
+        U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+        
+        for(const auto &n:attributeSerializeDataContainer){
+        
+            //for each key, load up the value
+            gameConfigs->setParameterForKey(n.name, n.value);
         }
         
     }

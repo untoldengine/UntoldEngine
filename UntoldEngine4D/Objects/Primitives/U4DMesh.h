@@ -18,7 +18,7 @@
 #include "U4DVertexData.h"
 #include "U4DVisibleEntity.h"
 #include "U4DPoint3n.h"
-
+#include "U4DSegment.h"
 #include "U4DRenderEntity.h"
 
 namespace U4DEngine {
@@ -197,6 +197,10 @@ namespace U4DEngine {
         virtual void computePlane(){};
         
         virtual void updateComputePlane(float uScaleX, float uScaleY, float uScaleZ){};
+        
+        virtual void computePolygon(std::vector<U4DSegment> uSegments){};
+        
+        virtual void updateComputePolygon(std::vector<U4DSegment> uSegments){};
     };
     
 }

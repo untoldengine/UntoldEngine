@@ -16,7 +16,6 @@
 
 namespace U4DEngine {
     
-    
     U4DMesh::U4DMesh():visibility(false){
         
         setEntityType(U4DEngine::PRIMITIVE);

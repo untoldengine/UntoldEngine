@@ -44,8 +44,8 @@ void U4DVoronoiManager::computeFortuneAlgorithm(){
     U4DMatchManager *matchManager=U4DMatchManager::sharedInstance();
     U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
 
-    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
-    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfLength");
+    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfLength");
+    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfWidth");
     
     U4DVector2n rangeFrom=U4DVector2n(-1.0,1.0);
     U4DVector2n rangeTo=U4DVector2n(0.0,1.0);
@@ -123,6 +123,16 @@ void U4DVoronoiManager::computeFortuneAlgorithm(){
 
 std::vector<U4DSegment> U4DVoronoiManager::getVoronoiSegments(){
     
+    U4DVector2n rangeTo=U4DVector2n(-1.0,1.0);
+    U4DVector2n rangeFrom=U4DVector2n(0.0,1.0);
+    
+    U4DNumerical numerical;
+    
+    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+
+    float fieldHalfWidth=gameConfigs->getParameterForKey("fieldHalfLength");
+    float fieldHalfLength=gameConfigs->getParameterForKey("fieldHalfWidth");
+    
     std::vector<U4DSegment> segments;
     auto halfEdgesDiagramList=diagram.getHalfEdges();
     
@@ -131,8 +141,14 @@ std::vector<U4DSegment> U4DVoronoiManager::getVoronoiSegments(){
         auto originVertex=n.origin;
         auto destinationVertex=n.destination;
         
-        U4DPoint3n pointA(originVertex->point.x,originVertex->point.y,0.0);
-        U4DPoint3n pointB(destinationVertex->point.x,destinationVertex->point.y,0.0);
+        float ax=numerical.remapValue(originVertex->point.x,rangeFrom,rangeTo);
+        float ay=numerical.remapValue(originVertex->point.y,rangeFrom,rangeTo);
+        
+        float bx=numerical.remapValue(destinationVertex->point.x,rangeFrom,rangeTo);
+        float by=numerical.remapValue(destinationVertex->point.y,rangeFrom,rangeTo);
+        
+        U4DPoint3n pointA(ax*fieldHalfLength,ay*fieldHalfWidth,0.0);
+        U4DPoint3n pointB(bx*fieldHalfLength,by*fieldHalfWidth,0.0);
         
         U4DSegment segment(pointA,pointB);
         segments.push_back(segment);

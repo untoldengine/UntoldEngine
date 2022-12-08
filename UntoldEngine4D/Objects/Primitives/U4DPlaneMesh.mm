@@ -7,6 +7,7 @@
 //
 
 #include "U4DPlaneMesh.h"
+#include "U4DAABB.h"
 
 namespace U4DEngine {
 
@@ -16,7 +17,7 @@ namespace U4DEngine {
     }
 
     U4DPlaneMesh::~U4DPlaneMesh(){
-        
+       
     }
 
     void U4DPlaneMesh::setMeshData(){
@@ -64,6 +65,19 @@ namespace U4DEngine {
         bodyCoordinates.addIndexDataToContainer(i6);
         bodyCoordinates.addIndexDataToContainer(i7);
         bodyCoordinates.addIndexDataToContainer(i8);
+    }
+
+    void U4DPlaneMesh::computePlane(float uX, float uY, float uZ, U4DPoint3n &uCenter){
+        
+        //compute maxPoint and minPoint
+        U4DAABB aabb(uX,uY,uZ,uCenter);
+        maxPoint=aabb.maxPoint;
+        minPoint=aabb.minPoint;
+        
+        setMeshData();
+        
+        loadRenderingInformation();
+        
     }
 
     void U4DPlaneMesh::computePlane(){

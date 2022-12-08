@@ -39,6 +39,8 @@ namespace U4DEngine {
         
         void computePlane();
         
+        void computePlane(float uX, float uY, float uZ, U4DPoint3n &uCenter);
+        
         void updateComputePlane(float uScaleX, float uScaleY, float uScaleZ);
         
     };

@@ -23,8 +23,6 @@
 #include "U4DField.h"
 #include "U4DGoalPost.h"
 
-#include "U4DPlaneMesh.h"
-
 using namespace U4DEngine;
 
 SandboxWorld::SandboxWorld(){
@@ -57,18 +55,13 @@ void SandboxWorld::init(){
 
      gameConfigs->loadConfigsMapValues("gameconfigs.gravity");
     
-//    entityFactory->createModelInstance("field", "field0", "U4DModel");
+    //    entityFactory->createModelInstance("field", "field0", "U4DModel");
     //entityFactory->createModelInstance("player0", "player.0", "U4DModel");
     
     //deserialize
-    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
+//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+//    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
 
-    U4DEngine::U4DPlaneMesh *plane=new U4DEngine::U4DPlaneMesh();
-    plane->computePlane();
-    plane->setName(searchScenegraphForNextName("plane"));
-    addChild(plane);
-    
     //initialize the skybox
 //    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
 //

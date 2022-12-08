@@ -61,6 +61,15 @@ float U4DGameConfigs::getParameterForKey(std::string uName){
     
 }
 
+void U4DGameConfigs::setParameterForKey(std::string uName, float uValue){
+
+    std::map<std::string,float>::iterator it=configsMap.find(uName);
+    
+    if (it != configsMap.end()) {
+        configsMap.find(uName)->second=uValue;
+    }
+}
+
 void U4DGameConfigs::loadConfigsMapValues(std::string uFileName){
     
     U4DEngine::U4DScriptManager *scriptManager=U4DEngine::U4DScriptManager::sharedInstance();

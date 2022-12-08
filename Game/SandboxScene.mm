@@ -9,6 +9,7 @@
 #include "SandboxScene.h"
 #include "U4DResourceLoader.h"
 #include "U4DModelPipeline.h"
+#include "U4DShaderEntityPipeline.h"
 
 SandboxScene::SandboxScene(){
     
@@ -87,6 +88,10 @@ void SandboxScene::init(){
         
     voronoiPipeline->initPipeline("vertexVoronoiShader", "fragmentVoronoiShader");
 
+    U4DEngine::U4DShaderEntityPipeline *zonePipeline=new U4DEngine::U4DShaderEntityPipeline("zonePipeline");
+    
+    zonePipeline->initPipeline("vertexZoneShader","fragmentZoneShader");
+    
     //get instance of director
     U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
 

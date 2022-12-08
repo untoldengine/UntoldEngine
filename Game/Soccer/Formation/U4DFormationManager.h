@@ -12,6 +12,7 @@
 #include <stdio.h>
 #include <vector>
 #include "U4DVector3n.h"
+#include "U4DVector4n.h"
 
 namespace U4DEngine {
 
@@ -43,7 +44,7 @@ namespace U4DEngine {
         void computeHomePosition();
         
         
-        void divideFieldIntoZones(float uHalfWidth, float uHalfHeight);
+        std::vector<U4DVector4n> divideFieldIntoZones(float uHalfWidth, float uHalfHeight);
         
     };
 
