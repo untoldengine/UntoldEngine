@@ -23,11 +23,11 @@ namespace U4DEngine {
 
     void U4DPlayerStateManager::update(double dt){
         
-        if (changeStateRequest==false) {
+        if (changeStateRequest==false && currentState!=nullptr) {
             
             currentState->execute(player, dt);
         
-        }else if(isSafeToChangeState()){
+        }else if(isSafeToChangeState() && currentState!=nullptr){
             
             changeState(nextState);
         }

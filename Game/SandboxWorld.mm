@@ -51,7 +51,7 @@ void SandboxWorld::init(){
 
     U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
 
-     gameConfigs->initConfigsMapKeys("dribblingBallSpeed","playerBiasMotionAccum","arriveMaxSpeed","arriveStopRadius","arriveSlowRadius","dribblingDirectionSlerpValue","shootingBallSpeed","passBallSpeed","passInterceptionParam","arriveJogMaxSpeed","arriveJogStopRadius","arriveJogSlowRadius","haltRadius","pursuitMaxSpeed","interceptMinRadius","freeMaxSpeed","freeStopRadius","freeSlowRadius","neighborPlayerSeparationDistance","neighborPlayerAlignmentDistance","neighborPlayerCohesionDistance","avoidanceMaxSpeed","fieldHalfWidth","fieldHalfLength","cellAnalyzerWidth","cellAnalyzerHeight","navPathRadius","navPredictTime","markArrivingMaxSpeed","markArriveStopRadius","markArriveSlowRadius","markAvoidanceMaxSpeed","markAvoidanceTimeParameter","markPursuitMaxSpeed","slidingTackleKick","slidingTackleVelocity","slidingTackleMinDistance","distanceToFoot","goingHomeVelocity",nullptr);
+     gameConfigs->initConfigsMapKeys("dribblingBallSpeed","playerBiasMotionAccum","arriveMaxSpeed","arriveStopRadius","arriveSlowRadius","dribblingDirectionSlerpValue","shootingBallSpeed","passBallSpeed","passInterceptionParam","arriveJogMaxSpeed","arriveJogStopRadius","arriveJogSlowRadius","haltRadius","pursuitMaxSpeed","interceptMinRadius","freeMaxSpeed","freeStopRadius","freeSlowRadius","neighborPlayerSeparationDistance","neighborPlayerAlignmentDistance","neighborPlayerCohesionDistance","avoidanceMaxSpeed","fieldHalfWidth","fieldHalfLength","cellAnalyzerWidth","cellAnalyzerHeight","navPathRadius","navPredictTime","markArrivingMaxSpeed","markArriveStopRadius","markArriveSlowRadius","markAvoidanceMaxSpeed","markAvoidanceTimeParameter","markPursuitMaxSpeed","slidingTackleKick","slidingTackleVelocity","slidingTackleMinDistance","distanceToFoot","goingHomeVelocity","running",nullptr);
 
      gameConfigs->loadConfigsMapValues("gameconfigs.gravity");
     
@@ -59,8 +59,8 @@ void SandboxWorld::init(){
     //entityFactory->createModelInstance("player0", "player.0", "U4DModel");
     
     //deserialize
-//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-//    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
+    U4DSerializer *serializer=U4DSerializer::sharedInstance();
+    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");    
 
     //initialize the skybox
 //    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();

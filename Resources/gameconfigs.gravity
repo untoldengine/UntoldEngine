@@ -54,7 +54,8 @@ func gameConfigs(){
               "navPathRadius":0.9,
               "navPredictTime":0.8,
               "distanceToFoot":1.5,
-              "goingHomeVelocity":80.0];
+              "goingHomeVelocity":80.0,
+              "running":27.0];
 
   return names
 }

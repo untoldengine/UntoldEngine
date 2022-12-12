@@ -31,6 +31,8 @@ namespace U4DEngine {
         
         std::map<std::string,float> configsMap;
         
+        std::map<std::string, std::string> stateAnimationMap;
+        
         static U4DGameConfigs* sharedInstance();
         
         void initConfigsMapKeys(const char* uConfigName,...);
@@ -40,6 +42,10 @@ namespace U4DEngine {
         void setParameterForKey(std::string uName, float uValue);
         
         void loadConfigsMapValues(std::string uFileName);
+        
+        void setStateAnimation(std::string uStateKey, std::string uAnimationKey);
+        
+        std::string getStateAnimation(std::string uStateKey);
         
         void clearConfigsMap();
         
