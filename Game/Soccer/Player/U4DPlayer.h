@@ -19,6 +19,7 @@
 #include "U4DAvoidance.h"
 #include "U4DFlock.h"
 #include "U4DWander.h"
+#include <map>
 
 namespace U4DEngine{
 
@@ -43,7 +44,7 @@ private:
     
     U4DVector3n dribblingDirectionAccumulator;
     
-    
+    std::map<std::string, U4DAnimation*> animationMap;
     
 public:
     
@@ -149,6 +150,13 @@ public:
     int getPlayerIndex();
     
     void resetAllFlags();
+    
+    U4DAnimation *getAnimationForState(std::string uStateName);
+    
+    void setKeyforAnimation(std::string uAnimationName, U4DAnimation* uAnimation);
+    
+    U4DAnimation *getAnimationForKey(std::string uAnimationName);
+    
 };
 
 }

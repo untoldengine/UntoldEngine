@@ -40,7 +40,7 @@ namespace U4DEngine{
         delete passingAnimation;
         delete haltAnimation;
         delete jogAnimation;
-        delete standTackleAnimation;
+        //delete standTackleAnimation;
         delete slidingTackleAnimation;
         
     }
@@ -77,37 +77,40 @@ namespace U4DEngine{
             runningAnimation = new U4DEngine::U4DAnimation(this);
 
             if(loadAnimationToModel(runningAnimation, "running")){
-
+                setKeyforAnimation("running", runningAnimation);
             }
             
             shootingAnimation = new U4DEngine::U4DAnimation(this);
 
             if(loadAnimationToModel(shootingAnimation, "shooting")){
                 shootingAnimation->setPlayContinuousLoop(false);
+                setKeyforAnimation("shooting", shootingAnimation);
             }
             
             passingAnimation=new U4DEngine::U4DAnimation(this);
             
             if(loadAnimationToModel(passingAnimation, "rightpass")){
                 passingAnimation->setPlayContinuousLoop(false);
+                setKeyforAnimation("rightpass", passingAnimation);
             }
             
             idleAnimation = new U4DEngine::U4DAnimation(this);
 
             if(loadAnimationToModel(idleAnimation, "idle")){
-
+                setKeyforAnimation("idle", idleAnimation);
             }
             
             haltAnimation = new U4DEngine::U4DAnimation(this);
 
             if(loadAnimationToModel(haltAnimation, "rightsolehalt")){
                 haltAnimation->setPlayContinuousLoop(false);
+                setKeyforAnimation("rightsolehalt", haltAnimation);
             }
             
             jogAnimation = new U4DEngine::U4DAnimation(this);
 
             if(loadAnimationToModel(jogAnimation, "jogging")){
-                
+                setKeyforAnimation("jogging", jogAnimation);
             }
             
             slidingTackleAnimation=new U4DEngine::U4DAnimation(this);
@@ -116,11 +119,12 @@ namespace U4DEngine{
             if(loadAnimationToModel(slidingTackleAnimation,"slidingtackle")){
 
                 slidingTackleAnimation->setPlayContinuousLoop(false);
-
+                setKeyforAnimation("slidingtackle", slidingTackleAnimation);
             }
             
-            standTackleAnimation=new U4DEngine::U4DAnimation(this);
             
+            
+            //standTackleAnimation=new U4DEngine::U4DAnimation(this);
             //load the stand tackle animation data
 //            if(loadAnimationToModel(standTackleAnimation,"standtackle")){
 //
@@ -132,7 +136,7 @@ namespace U4DEngine{
             loadRenderingInformation();
             
             
-            changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
+            //changeState(U4DEngine::U4DPlayerStateIdle::sharedInstance());
             
             return true;
         
@@ -446,6 +450,41 @@ namespace U4DEngine{
         haltBall=false;
         freeToRun=false;
         
+    }
+
+    U4DAnimation *U4DPlayer::getAnimationForState(std::string uStateName){
+        
+        U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
+        
+        std::string animationName=gameConfigs->getStateAnimation(uStateName);
+        
+        return getAnimationForKey(animationName);
+        
+    }
+
+    void U4DPlayer::setKeyforAnimation(std::string uAnimationName, U4DAnimation* uAnimation){
+            
+        //get iterator
+        std::map<std::string,U4DAnimation*>::iterator it=animationMap.find(uAnimationName);
+        
+        if (it != animationMap.end()) {
+            animationMap.find(uAnimationName)->second=uAnimation;
+        }else{
+            animationMap.insert(std::make_pair(uAnimationName, uAnimation));
+        }
+    }
+
+    U4DAnimation *U4DPlayer::getAnimationForKey(std::string uAnimationName){
+        
+        std::map<std::string,U4DAnimation*>::iterator it=animationMap.find(uAnimationName);
+        
+        U4DAnimation *animation=nullptr;
+        
+        if(it!=animationMap.end()){
+            animation=animationMap.find(uAnimationName)->second;
+        }
+        
+        return animation;
     }
 
 }

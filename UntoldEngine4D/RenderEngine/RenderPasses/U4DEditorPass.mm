@@ -11,6 +11,7 @@
 #include "U4DEditor.h"
 #include "U4DDefaultEditor.h"
 #include "U4DZoneEditor.h"
+#include "U4DStatesEditor.h"
 
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -95,7 +96,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     std::string profilerData=sceneManager->profilerData;
     */
     
-    static bool showDefaultEditor=true;
+    static int state=0;
     
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
            mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
@@ -119,14 +120,22 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         ImGui::NewFrame();
         
         if(ImGui::IsKeyReleased(90)){ //z key
-            showDefaultEditor=!showDefaultEditor;
+            state=1;
+        }else if(ImGui::IsKeyReleased(88)){ //x key
+            state=2;
+        }else if(ImGui::IsKeyReleased(68)){ //d key
+            state=0;
         }
         
-        if(showDefaultEditor){
+        if(state==0){
             editor->changeState(U4DDefaultEditor::sharedInstance());
             
-        }else{
+        }else if(state==1){
             editor->changeState(U4DZoneEditor::sharedInstance());
+            
+        }else if(state==2){
+            
+            editor->changeState(U4DStatesEditor::sharedInstance());
         }
         
         editor->showEditor();

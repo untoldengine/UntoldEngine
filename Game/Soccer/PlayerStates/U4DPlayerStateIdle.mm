@@ -42,7 +42,7 @@ U4DPlayerStateIdle* U4DPlayerStateIdle::sharedInstance(){
 void U4DPlayerStateIdle::enter(U4DPlayer *uPlayer){ 
     
     //play the idle animation
-    U4DEngine::U4DAnimation *currentAnimation=uPlayer->idleAnimation;
+    U4DAnimation *currentAnimation=uPlayer->getAnimationForState(name);
     
     if (currentAnimation!=nullptr) {
         uPlayer->animationManager->setAnimationToPlay(currentAnimation);

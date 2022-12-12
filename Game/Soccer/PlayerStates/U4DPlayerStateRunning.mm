@@ -1,12 +1,12 @@
 //
-//  U4DPlayerStateWalk.cpp
+//  U4DPlayerStateRunning.cpp
 //  UntoldEngine
 //
-//  Created by Harold Serrano on 3/1/22.
+//  Created by Harold Serrano on 12/11/22.
 //  Copyright © 2022 Untold Engine Studios. All rights reserved.
 //
 
-#include "U4DPlayerStateWalk.h"
+#include "U4DPlayerStateRunning.h"
 #include "U4DGameConfigs.h"
 #include "U4DPlayerStateDribbling.h"
 #include "U4DPlayerStateIntercept.h"
@@ -20,27 +20,27 @@
 
 namespace U4DEngine {
 
-U4DPlayerStateWalk* U4DPlayerStateWalk::instance=0;
+U4DPlayerStateRunning* U4DPlayerStateRunning::instance=0;
 
-U4DPlayerStateWalk::U4DPlayerStateWalk(){
-    name="walking";
+U4DPlayerStateRunning::U4DPlayerStateRunning(){
+    name="running";
 }
 
-U4DPlayerStateWalk::~U4DPlayerStateWalk(){
+U4DPlayerStateRunning::~U4DPlayerStateRunning(){
     
 }
 
-U4DPlayerStateWalk* U4DPlayerStateWalk::sharedInstance(){
+U4DPlayerStateRunning* U4DPlayerStateRunning::sharedInstance(){
     
     if (instance==0) {
-        instance=new U4DPlayerStateWalk();
+        instance=new U4DPlayerStateRunning();
     }
     
     return instance;
     
 }
 
-void U4DPlayerStateWalk::enter(U4DPlayer *uPlayer){
+void U4DPlayerStateRunning::enter(U4DPlayer *uPlayer){
     
     //play the idle animation
     //U4DEngine::U4DAnimation *currentAnimation=uPlayer->runningAnimation;
@@ -53,7 +53,7 @@ void U4DPlayerStateWalk::enter(U4DPlayer *uPlayer){
     
 }
 
-void U4DPlayerStateWalk::execute(U4DPlayer *uPlayer, double dt){
+void U4DPlayerStateRunning::execute(U4DPlayer *uPlayer, double dt){
     
 //    uPlayer->updateFootSpaceWithAnimation(uPlayer->runningAnimation);
 //
@@ -77,17 +77,17 @@ void U4DPlayerStateWalk::execute(U4DPlayer *uPlayer, double dt){
 //    }
 }
 
-void U4DPlayerStateWalk::exit(U4DPlayer *uPlayer){
+void U4DPlayerStateRunning::exit(U4DPlayer *uPlayer){
     
     
 }
 
-bool U4DPlayerStateWalk::isSafeToChangeState(U4DPlayer *uPlayer){
+bool U4DPlayerStateRunning::isSafeToChangeState(U4DPlayer *uPlayer){
     
     return true;
 }
 
-bool U4DPlayerStateWalk::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
+bool U4DPlayerStateRunning::handleMessage(U4DPlayer *uPlayer, Message &uMsg){
     
     switch (uMsg.msg) {
         

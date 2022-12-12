@@ -437,6 +437,21 @@ namespace U4DEngine {
             attributeSerializeDataContainer.push_back(playerAttribute);
         }
         
+        std::map<std::string,std::string>::iterator sit;
+        
+        for(sit=gameConfigs->stateAnimationMap.begin();sit!=gameConfigs->stateAnimationMap.end();sit++){
+            
+            std::string paramKeyName=sit->first;
+            std::string animationName=sit->second;
+            
+            PLAYERSTATEATTRIBUTE playerStateAttribute;
+            
+            playerStateAttribute.state=paramKeyName;
+            playerStateAttribute.animationName=animationName;
+            
+            stateSerializeDataContainer.push_back(playerStateAttribute);
+        }
+        
     }
 
     bool U4DSerializer::convertAttributesToBinary(std::string uFileName){
@@ -461,6 +476,20 @@ namespace U4DEngine {
             int valueSize=(int)n.value;
             file.write((char*)&valueSize,sizeof(float));
             file.write((char*)&n.value,sizeof(float));
+            
+        }
+        
+        for(const auto &n: stateSerializeDataContainer){
+            
+            //write the key
+            size_t keyLen=n.state.size();
+            file.write((char*)&keyLen,sizeof(keyLen));
+            file.write((char*)&n.state[0],keyLen);
+            
+            //write the value
+            size_t valueLen=n.animationName.size();
+            file.write((char*)&valueLen, sizeof(valueLen));
+            file.write((char*)&n.animationName[0],valueLen);
             
         }
         
@@ -519,6 +548,21 @@ namespace U4DEngine {
             attributeSerializeDataContainer.push_back(playerAttribute);
         }
         
+        for(int i=0;i<gameConfigs->stateAnimationMap.size();i++){
+        
+            PLAYERSTATEATTRIBUTE playerStateAttribute;
+            
+            size_t keyNameLen=0;
+            file.read((char*)&keyNameLen,sizeof(keyNameLen));
+            playerStateAttribute.state.resize(keyNameLen);
+            file.read((char*)&playerStateAttribute.state[0],keyNameLen);
+            
+            size_t valueNameLen=0;
+            file.read((char*)&valueNameLen,sizeof(valueNameLen));
+            playerStateAttribute.animationName.resize(valueNameLen);
+            file.read((char*)&playerStateAttribute.animationName[0],valueNameLen);
+            
+        }
         
         return true;
     }
@@ -531,6 +575,11 @@ namespace U4DEngine {
         
             //for each key, load up the value
             gameConfigs->setParameterForKey(n.name, n.value);
+        }
+        
+        for(const auto&n:stateSerializeDataContainer){
+            //for each key, load up the value
+            gameConfigs->setStateAnimation(n.state, n.animationName);
         }
         
     }

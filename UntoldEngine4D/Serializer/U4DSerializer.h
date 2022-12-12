@@ -24,6 +24,7 @@ namespace U4DEngine {
         
         std::vector<ENTITYSERIALIZEDATA> entitySerializeDataContainer;
         std::vector<PLAYERATTRIBUTES> attributeSerializeDataContainer;
+        std::vector<PLAYERSTATEATTRIBUTE> stateSerializeDataContainer;
         
     protected:
         
@@ -47,6 +48,7 @@ namespace U4DEngine {
         
         void unloadEntities();
         
+        //Attributes serialization
         bool serializeAttributes(std::string uFileName);
         
         void prepareAttributes();

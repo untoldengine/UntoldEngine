@@ -10,11 +10,12 @@
 #define U4DEditor_hpp
 
 #include <stdio.h>
+#include <map>
 #include "U4DEditorStateManager.h"
 #include "U4DEntity.h"
 #include "U4DVector3n.h"
 #include "U4DPlaneMesh.h"
-
+#include "U4DPlayer.h"
 #import <TargetConditionals.h>
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "imgui.h"
@@ -31,7 +32,7 @@ private:
     static U4DEditor *instance;
     U4DEditorStateManager *stateManager;
     
-    
+    U4DPlayer *previewPlayer;
     ImGuizmo::OPERATION mCurrentGizmoOperation;
     
     U4DVector3n childPosition;
@@ -67,6 +68,11 @@ private:
     bool scriptLoadedSuccessfully=false;
     bool showAttributesFlag=false;
     int zonesCreated;
+    std::string stateSelectedTypeName;
+    std::string animationSelectedTypeName;
+    
+    std::map<std::string,U4DPlayerStateInterface*> playerStatesMap;
+    
 protected:
     U4DEditor();
     ~U4DEditor();
@@ -100,6 +106,17 @@ public:
     
     void removeFieldZones();
     
+    void showStatesProperties();
+    
+    void loadPreviewPlayer();
+    void previewPlayerState();
+    void unloadPreviewPlayer();
+    void removeEverything();
+    void restoreEverything();
+    
+    void setKeyForState(std::string uKey,U4DPlayerStateInterface* uState);
+    U4DPlayerStateInterface *getStateFromKey(std::string uKey);
+    std::vector<std::string> getRegisteredStates();
 };
 
 }
