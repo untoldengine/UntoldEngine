@@ -16,6 +16,7 @@
 #include "U4DVector3n.h"
 #include "U4DPlaneMesh.h"
 #include "U4DPlayer.h"
+#include "U4DCircleMesh.h"
 #import <TargetConditionals.h>
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "imgui.h"
@@ -33,6 +34,8 @@ private:
     U4DEditorStateManager *stateManager;
     
     U4DPlayer *previewPlayer;
+    U4DCircleMesh *circleMinorMesh;
+    U4DCircleMesh *circleMajorMesh;
     ImGuizmo::OPERATION mCurrentGizmoOperation;
     
     U4DVector3n childPosition;
@@ -59,6 +62,8 @@ private:
     
     U4DPlaneMesh *fieldPlane;
     bool scalePlane;
+    bool scaleMinorCircle;
+    bool scaleMajorCircle;
     
     bool lookingForScriptFile=false;
     ImGuiFileDialog gravityFileDialog;

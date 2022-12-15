@@ -273,6 +273,9 @@
 		035C8D6A294624D6006C5B32 /* U4DPlayerStateRunning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035C8D68294624D6006C5B32 /* U4DPlayerStateRunning.mm */; };
 		035C8D6B294624D6006C5B32 /* U4DPlayerStateRunning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035C8D68294624D6006C5B32 /* U4DPlayerStateRunning.mm */; };
 		035C8D6C294624D6006C5B32 /* U4DPlayerStateRunning.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035C8D68294624D6006C5B32 /* U4DPlayerStateRunning.mm */; };
+		035C8D6F29478438006C5B32 /* U4DCircleMesh.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035C8D6D29478438006C5B32 /* U4DCircleMesh.mm */; };
+		035C8D7029478438006C5B32 /* U4DCircleMesh.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035C8D6D29478438006C5B32 /* U4DCircleMesh.mm */; };
+		035C8D7129478438006C5B32 /* U4DCircleMesh.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035C8D6D29478438006C5B32 /* U4DCircleMesh.mm */; };
 		035E26AC28FE7BA000ACCC80 /* U4DPlayerStateShooting.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E264528FE7BA000ACCC80 /* U4DPlayerStateShooting.mm */; };
 		035E26AD28FE7BA000ACCC80 /* U4DPlayerStateShooting.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E264528FE7BA000ACCC80 /* U4DPlayerStateShooting.mm */; };
 		035E26AE28FE7BA000ACCC80 /* U4DPlayerStateShooting.mm in Sources */ = {isa = PBXBuildFile; fileRef = 035E264528FE7BA000ACCC80 /* U4DPlayerStateShooting.mm */; };
@@ -1555,6 +1558,8 @@
 		035C8D642944CB69006C5B32 /* U4DScenePreviewState.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DScenePreviewState.h; path = Scene/U4DScenePreviewState.h; sourceTree = "<group>"; };
 		035C8D68294624D6006C5B32 /* U4DPlayerStateRunning.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlayerStateRunning.mm; sourceTree = "<group>"; };
 		035C8D69294624D6006C5B32 /* U4DPlayerStateRunning.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = U4DPlayerStateRunning.h; sourceTree = "<group>"; };
+		035C8D6D29478438006C5B32 /* U4DCircleMesh.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; name = U4DCircleMesh.mm; path = Primitives/U4DCircleMesh.mm; sourceTree = "<group>"; };
+		035C8D6E29478438006C5B32 /* U4DCircleMesh.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; name = U4DCircleMesh.h; path = Primitives/U4DCircleMesh.h; sourceTree = "<group>"; };
 		035E264328FE7BA000ACCC80 /* U4DPlayerStateManager.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlayerStateManager.h; sourceTree = "<group>"; };
 		035E264428FE7BA000ACCC80 /* U4DPlayerStateFree.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DPlayerStateFree.h; sourceTree = "<group>"; };
 		035E264528FE7BA000ACCC80 /* U4DPlayerStateShooting.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DPlayerStateShooting.mm; sourceTree = "<group>"; };
@@ -2358,6 +2363,8 @@
 				03887C2C292A0A2C00A47FB7 /* U4DSphereMesh.mm */,
 				03181F4D2939D0100095972A /* U4DPolygonMesh.h */,
 				03181F4C2939D0100095972A /* U4DPolygonMesh.mm */,
+				035C8D6E29478438006C5B32 /* U4DCircleMesh.h */,
+				035C8D6D29478438006C5B32 /* U4DCircleMesh.mm */,
 			);
 			name = Primitives;
 			sourceTree = "<group>";
@@ -4333,6 +4340,7 @@
 				03A3E2E4246D8AFA00FBCBAD /* U4DTouchesStateInterface.mm in Sources */,
 				035E271C28FE7BA000ACCC80 /* U4DTeamStateDefending.mm in Sources */,
 				03FA6124258116B7008CC0AB /* U4DProfilerNode.mm in Sources */,
+				035C8D7029478438006C5B32 /* U4DCircleMesh.mm in Sources */,
 				039DB562224279C800E323D4 /* U4DPolygonData.mm in Sources */,
 				034F2A30217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				0399D66F25B72712004C1E11 /* U4DModelPipeline.mm in Sources */,
@@ -4858,6 +4866,7 @@
 				03FA6125258116B7008CC0AB /* U4DProfilerNode.mm in Sources */,
 				035E271D28FE7BA000ACCC80 /* U4DTeamStateDefending.mm in Sources */,
 				039DB563224279C800E323D4 /* U4DPolygonData.mm in Sources */,
+				035C8D7129478438006C5B32 /* U4DCircleMesh.mm in Sources */,
 				034F2A31217E1F0000D35CCE /* U4DCameraThirdPerson.mm in Sources */,
 				0399D67025B72712004C1E11 /* U4DModelPipeline.mm in Sources */,
 				03722CA02029F0F80080D069 /* U4DIntegrator.mm in Sources */,
@@ -5325,6 +5334,7 @@
 				0399D66B25B72712004C1E11 /* U4DRenderPassInterface.mm in Sources */,
 				03ADFEF31775F3F5002DDD03 /* U4DEntity.mm in Sources */,
 				0399D66825B72712004C1E11 /* U4DSkyboxPipeline.mm in Sources */,
+				035C8D6F29478438006C5B32 /* U4DCircleMesh.mm in Sources */,
 				031F3F3D2778C09B00F5E482 /* callbacks.c in Sources */,
 				035E271E28FE7BA000ACCC80 /* U4DTeamStateIdle.mm in Sources */,
 				031F3F402778C09B00F5E482 /* peer.c in Sources */,
