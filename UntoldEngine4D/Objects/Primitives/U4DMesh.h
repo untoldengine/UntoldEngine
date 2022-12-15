@@ -201,6 +201,11 @@ namespace U4DEngine {
         virtual void computePolygon(std::vector<U4DSegment> uSegments){};
         
         virtual void updateComputePolygon(std::vector<U4DSegment> uSegments){};
+        
+        virtual void setCircle(float uRadius){};
+        
+        virtual void updateCircle(float uRadius){};
+        
     };
     
 }

@@ -50,7 +50,7 @@ U4DEditor* U4DEditor::sharedInstance(){
     return instance;
 }
 
-U4DEditor::U4DEditor():activeChild(nullptr),scalePlane(false),zonesCreated(0){
+U4DEditor::U4DEditor():activeChild(nullptr),scalePlane(false),zonesCreated(0),circleMinorMesh(nullptr),scaleMajorCircle(nullptr){
     stateManager=new U4DEditorStateManager(this);
     
     stateManager->changeState(U4DDefaultEditor::sharedInstance());
@@ -1260,6 +1260,8 @@ void U4DEditor::showFieldPlane(){
 
 void U4DEditor::showStatesProperties(){
     
+    static bool doCleanUp=false;
+    
     U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
     U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
     
@@ -1336,6 +1338,11 @@ void U4DEditor::showStatesProperties(){
         
         ImGui::Text("Behavior");
         if(stateSelectedTypeName.compare("running")==0){
+            
+            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+            U4DScene *scene=sceneManager->getCurrentScene();
+            U4DWorld *world=scene->getGameWorld();
+            
             float arriveSpeed=gameConfigs->getParameterForKey("arriveMaxSpeed");
             ImGui::InputFloat("Arrive Speed", &arriveSpeed);
             gameConfigs->setParameterForKey("arriveMaxSpeed", arriveSpeed);
@@ -1347,7 +1354,58 @@ void U4DEditor::showStatesProperties(){
             float slowRadius=gameConfigs->getParameterForKey("arriveSlowRadius");
             ImGui::InputFloat("Slow Radius", &slowRadius);
             gameConfigs->setParameterForKey("arriveSlowRadius", slowRadius);
+            
+            
+            //H key
+            if(ImGui::IsKeyReleased(72)){
+                scaleMinorCircle=true;
+                
+                if(circleMinorMesh==nullptr){
+                    circleMinorMesh=new U4DCircleMesh();
+                    float r=gameConfigs->getParameterForKey("arriveStopRadius");
+                    circleMinorMesh->setCircle(r);
+                    U4DVector4n l(1.0,0.0,0.0,0.0);
+                    circleMinorMesh->setLineColor(l);
+                    world->addChild(circleMinorMesh);
+                }
+                
+            }
+            
+            if(scaleMinorCircle==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
+                
+                float r=std::abs(ImGui::GetMouseDragDelta().x)*0.1;
+                circleMinorMesh->updateCircle(r);
+                gameConfigs->setParameterForKey("arriveStopRadius", r);
+                
+            }else if(scaleMinorCircle==true && ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                scaleMinorCircle=false;
+            }
+            
+            //J key
+            if(ImGui::IsKeyReleased(74)){
+                scaleMajorCircle=true;
+                
+                if(circleMajorMesh==nullptr){
+                    circleMajorMesh=new U4DCircleMesh();
+                    float r=gameConfigs->getParameterForKey("arriveSlowRadius");
+                    circleMajorMesh->setCircle(r);
+                    U4DVector4n l(0.0,0.0,1.0,0.0);
+                    circleMajorMesh->setLineColor(l);
+                    world->addChild(circleMajorMesh);
+                }
+            }
+            
+            if(scaleMajorCircle==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
+                
+                float r=std::abs(ImGui::GetMouseDragDelta().x)*0.1;
+                circleMajorMesh->updateCircle(r);
+                gameConfigs->setParameterForKey("arriveSlowRadius", r);
+                
+            }else if(scaleMajorCircle==true && ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                scaleMajorCircle=false;
+            }
         }
+        
         
         ImGui::Separator();
         if(ImGui::Button("Link")){
@@ -1369,6 +1427,11 @@ void U4DEditor::showStatesProperties(){
             previewPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
         }
         ImGui::End();
+        
+        if(doCleanUp){
+            
+            doCleanUp=false;
+        }
         
     }
 }
