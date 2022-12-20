@@ -14,9 +14,6 @@
 #include "U4DEditorStateManager.h"
 #include "U4DEntity.h"
 #include "U4DVector3n.h"
-#include "U4DPlaneMesh.h"
-#include "U4DPlayer.h"
-#include "U4DCircleMesh.h"
 #import <TargetConditionals.h>
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
 #include "imgui.h"
@@ -33,9 +30,6 @@ private:
     static U4DEditor *instance;
     U4DEditorStateManager *stateManager;
     
-    U4DPlayer *previewPlayer;
-    U4DCircleMesh *circleMinorMesh;
-    U4DCircleMesh *circleMajorMesh;
     ImGuizmo::OPERATION mCurrentGizmoOperation;
     
     U4DVector3n childPosition;
@@ -60,10 +54,6 @@ private:
     std::string sceneFilePath;
     std::string sceneFilePathName;
     
-    U4DPlaneMesh *fieldPlane;
-    bool scalePlane;
-    bool scaleMinorCircle;
-    bool scaleMajorCircle;
     
     bool lookingForScriptFile=false;
     ImGuiFileDialog gravityFileDialog;
@@ -76,7 +66,6 @@ private:
     std::string stateSelectedTypeName;
     std::string animationSelectedTypeName;
     
-    std::map<std::string,U4DPlayerStateInterface*> playerStatesMap;
     
 protected:
     U4DEditor();
@@ -100,28 +89,10 @@ public:
     void showAssets();
     void showScenegraph();
     void showMenu();
-    void showAttribMenu();
     void showEntityProperty();
-    void createFieldPlane();
-    void showFieldPlane();
-    void divideZones();
-    void destroyFieldPlane();
-    void showGameConfigsScript();
-    void showAttributes();
-    
-    void removeFieldZones();
-    
-    void showStatesProperties();
-    
-    void loadPreviewPlayer();
-    void previewPlayerState();
-    void unloadPreviewPlayer();
     void removeEverything();
     void restoreEverything();
     
-    void setKeyForState(std::string uKey,U4DPlayerStateInterface* uState);
-    U4DPlayerStateInterface *getStateFromKey(std::string uKey);
-    std::vector<std::string> getRegisteredStates();
 };
 
 }

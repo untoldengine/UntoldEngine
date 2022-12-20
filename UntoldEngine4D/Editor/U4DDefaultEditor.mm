@@ -73,7 +73,7 @@ void U4DDefaultEditor::execute(U4DEditor *uEditor){
         uEditor->showEntityProperty();
     //uEditor->showGameConfigsScript();
     //uEditor->showAttributes();
-    uEditor->showAttribMenu();
+    
 }
 
 void U4DDefaultEditor::exit(U4DEditor *uEditor){

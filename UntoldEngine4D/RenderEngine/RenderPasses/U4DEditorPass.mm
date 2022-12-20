@@ -10,8 +10,6 @@
 #include "U4DDirector.h"
 #include "U4DEditor.h"
 #include "U4DDefaultEditor.h"
-#include "U4DZoneEditor.h"
-#include "U4DStatesEditor.h"
 
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -127,17 +125,8 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             state=0;
         }
         
-        if(state==0){
-            editor->changeState(U4DDefaultEditor::sharedInstance());
-            
-        }else if(state==1){
-            editor->changeState(U4DZoneEditor::sharedInstance());
-            
-        }else if(state==2){
-            
-            editor->changeState(U4DStatesEditor::sharedInstance());
-        }
-        
+        editor->changeState(U4DDefaultEditor::sharedInstance());
+         
         editor->showEditor();
         
         /*

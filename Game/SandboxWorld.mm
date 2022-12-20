@@ -19,9 +19,8 @@
 
 #include "U4DEntityFactory.h"
 #include "U4DSerializer.h"
-#include "U4DPlayer.h"
-#include "U4DField.h"
-#include "U4DGoalPost.h"
+
+#include "U4DAABBMesh.h"
 
 using namespace U4DEngine;
 
@@ -43,33 +42,14 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     setEnableGrid(true);
     
-    //registering a class
-    U4DEngine::U4DEntityFactory *entityFactory=U4DEngine::U4DEntityFactory::sharedInstance();
-    entityFactory->registerClass<U4DPlayer>("U4DPlayer");
-    entityFactory->registerClass<U4DField>("U4DField");
-    entityFactory->registerClass<U4DGoalPost>("U4DGoalPost");
-
-    U4DEngine::U4DGameConfigs *gameConfigs=U4DEngine::U4DGameConfigs::sharedInstance();
-
-     gameConfigs->initConfigsMapKeys("dribblingBallSpeed","playerBiasMotionAccum","arriveMaxSpeed","arriveStopRadius","arriveSlowRadius","dribblingDirectionSlerpValue","shootingBallSpeed","passBallSpeed","passInterceptionParam","arriveJogMaxSpeed","arriveJogStopRadius","arriveJogSlowRadius","haltRadius","pursuitMaxSpeed","interceptMinRadius","freeMaxSpeed","freeStopRadius","freeSlowRadius","neighborPlayerSeparationDistance","neighborPlayerAlignmentDistance","neighborPlayerCohesionDistance","avoidanceMaxSpeed","fieldHalfWidth","fieldHalfLength","cellAnalyzerWidth","cellAnalyzerHeight","navPathRadius","navPredictTime","markArrivingMaxSpeed","markArriveStopRadius","markArriveSlowRadius","markAvoidanceMaxSpeed","markAvoidanceTimeParameter","markPursuitMaxSpeed","slidingTackleKick","slidingTackleVelocity","slidingTackleMinDistance","distanceToFoot","goingHomeVelocity","running",nullptr);
-
-     gameConfigs->loadConfigsMapValues("gameconfigs.gravity");
+    U4DAABBMesh *mesh=new U4DAABBMesh();
+    U4DPoint3n minP(-2.0,-2.0,-2.0);
+    U4DPoint3n maxP(2.0,2.0,2.0);
     
-    //    entityFactory->createModelInstance("field", "field0", "U4DModel");
-    //entityFactory->createModelInstance("player0", "player.0", "U4DModel");
+    mesh->computeBoundingVolume(minP,maxP);
+    mesh->setVisibility(true);
+    addChild(mesh);
     
-    //deserialize
-//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-//    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
-    
-    //initialize the skybox
-//    U4DEngine::U4DSkybox *skybox=new U4DEngine::U4DSkybox();
-//
-//    skybox->initSkyBox(100.0,"LeftImage.png","RightImage.png","TopImage.png","BottomImage.png","FrontImage.png", "BackImage.png");
-//
-//    //add the skybox to the scenegraph with a z-depth of -1
-//
-//    addChild(skybox,-1);
 
 }
 

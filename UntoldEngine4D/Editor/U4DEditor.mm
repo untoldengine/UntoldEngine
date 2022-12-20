@@ -26,13 +26,10 @@
 #include "U4DAABB.h"
 
 #include "U4DDefaultEditor.h"
-#include "U4DFormationManager.h"
 #include "U4DShaderEntity.h"
 #include "U4DScriptManager.h"
 #include "U4DGameConfigs.h"
 
-#include "U4DPlayerStateIdle.h"
-#include "U4DPlayerStateRunning.h"
 
 #include "U4DScenePreviewState.h"
 
@@ -50,14 +47,11 @@ U4DEditor* U4DEditor::sharedInstance(){
     return instance;
 }
 
-U4DEditor::U4DEditor():activeChild(nullptr),scalePlane(false),zonesCreated(0),circleMinorMesh(nullptr),scaleMajorCircle(nullptr){
+U4DEditor::U4DEditor():activeChild(nullptr){
     stateManager=new U4DEditorStateManager(this);
     
     stateManager->changeState(U4DDefaultEditor::sharedInstance());
-    //register states
-    setKeyForState("running", U4DPlayerStateRunning::sharedInstance());
-    setKeyForState("idle", U4DPlayerStateIdle::sharedInstance());
-    
+
 }
 
 U4DEditor::~U4DEditor(){
@@ -712,75 +706,6 @@ void U4DEditor::showScenegraph(){
     }
 }
 
-void U4DEditor::showAttribMenu(){
-    U4DLogger *logger=U4DLogger::sharedInstance();
-    
-    {
-        ImGui::Begin("Attibutes Menu");
-        
-        if (ImGui::Button("Save Attrib")) {
-            
-            serialiazeAttributeFlag=true;
-            serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
-            
-        }
-        ImGui::SameLine();
-        
-        if (ImGui::Button("Open Attr")) {
-            
-            deserializeAttributeFlag=true;
-            serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
-            
-        }
-        
-        if (serialiazeAttributeFlag || deserializeAttributeFlag) {
-            
-            if (serializeFileDialog.Instance()->Display("ChooseFileDlgKey"))
-            {
-                // action if OK
-                if (serializeFileDialog.Instance()->IsOk())
-                {
-                    
-                    sceneFilePathName = serializeFileDialog.Instance()->GetFilePathName();
-                    logger->log("%s",sceneFilePathName.c_str());
-                    
-                    
-                    if (serialiazeAttributeFlag) {
-                        //serialize
-                        U4DSerializer *serializer=U4DSerializer::sharedInstance();
-                        
-                        serializer->serializeAttributes(sceneFilePathName);
-                        
-                    }else if(deserializeAttributeFlag){
-                        //deserialize
-                        U4DSerializer *serializer=U4DSerializer::sharedInstance();
-                        
-                        serializer->deserializeAttributes(sceneFilePathName);
-                    }
-                    
-                }else{
-                    
-                }
-                
-                serialiazeAttributeFlag=false;
-                deserializeAttributeFlag=false;
-                
-                // close
-                serializeFileDialog.Instance()->Close();
-                
-            }
-            
-        }
-        
-        ImGui::Checkbox("Show Attributes", &showAttributesFlag);
-        
-        if(showAttributesFlag){
-            showAttributes();
-        }
-        ImGui::End();
-    }
-}
-
 void U4DEditor::showMenu(){
     
     U4DLogger *logger=U4DLogger::sharedInstance();
@@ -1016,425 +941,73 @@ void U4DEditor::showEntityProperty(){
     
 }
 
-void U4DEditor::createFieldPlane(){
-    
-}
 
-void U4DEditor::destroyFieldPlane(){
-    
-}
-
-void U4DEditor::divideZones(){
-    
-    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-    U4DScene *scene=sceneManager->getCurrentScene();
-    U4DSceneStateManager *sceneStateManager=scene->getSceneStateManager();
-    U4DWorld *world=scene->getGameWorld();
-    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
-    
-    float hWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
-    float hLength=gameConfigs->getParameterForKey("fieldHalfLength");
-    
-    //zone division
-    {
-        ImGui::Begin("Divide zones");
-        ImGui::Text("Field Attributes");
-        
-        //        if(ImGui::Button("Generate") && fieldPlane==nullptr){
-        //
-        //            fieldPlane=new U4DEngine::U4DPlaneMesh();
-        //            U4DPoint3n center(0.0,0.0,0.0);
-        //            fieldPlane->computePlane(hWidth,0.0,hLength,center);
-        //            fieldPlane->setName(world->searchScenegraphForNextName("plane"));
-        //            world->addChild(fieldPlane);
-        //        }
-        
-        ImGui::PushItemWidth(50.0f);
-        ImGui::InputFloat("Field Width", &hWidth,0.0,0.0,"%.1f");
-        ImGui::InputFloat("Field Length", &hLength,0.0,0.0,"%.1f");
-        
-        if(ImGui::Button("Divide Zones") && fieldPlane!=nullptr){
-            
-            U4DFormationManager formationManager;
-            
-            float width=fieldPlane->maxPoint.x;
-            float length=fieldPlane->maxPoint.z;
-            
-            gameConfigs->setParameterForKey("fieldHalfWidth", width);
-            gameConfigs->setParameterForKey("fieldHalfLength", length);
-            
-            std::vector<U4DVector4n> zones=formationManager.divideFieldIntoZones(width, length);
-            for(const auto &n:zones){
-                
-                U4DPoint3n c(0.0,0.0,0.0);
-                U4DPlaneMesh *p=new U4DPlaneMesh();
-                p->computePlane(n.z,0.0,n.w,c);
-                
-                p->setName(world->searchScenegraphForNextName("zone"));
-                world->addChild(p);
-                U4DVector3n c0(n.x,0.0,n.y);
-                p->translateTo(c0);
-                zonesCreated++;
-            }
-            
-        }
-        
-        ImGui::End();
-    }
-    
-    //S-key
-    if(ImGui::IsKeyReleased(83) && fieldPlane!=nullptr && sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
-        scalePlane=true;
-        for(int i=0;i<zonesCreated;i++){
-            std::string zoneName="zone.";
-            zoneName+=std::to_string(i);
-            U4DEntity *zone=world->searchChild(zoneName);
-            
-            world->removeChild(zone);
-            delete zone;
-        }
-        
-        zonesCreated=0;
-    }
-    
-    if(scalePlane==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
-        
-        fieldPlane->updateComputePlane(ImGui::GetMouseDragDelta().x, 0.0, ImGui::GetMouseDragDelta().y);
-        
-        gameConfigs->setParameterForKey("fieldHalfWidth", ImGui::GetMouseDragDelta().x);
-        gameConfigs->setParameterForKey("fieldHalfLength", ImGui::GetMouseDragDelta().y);
-        
-    }else if(ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-        scalePlane=false;
-    }
-    
-    
-}
-
-void U4DEditor::showGameConfigsScript(){
-    
-    U4DLogger *logger=U4DLogger::sharedInstance();
-    
-    {
-        ImGui::Begin("Game Configs");
-        
-        //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
-        if (ImGui::Button("Script")){
-            lookingForScriptFile=true;
-            
-            gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
-        }
-        
-        if(lookingForScriptFile){
-            // display
-            if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
-            {
-                // action if OK
-                if (gravityFileDialog.Instance()->IsOk())
-                {
-                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
-                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
-                    // action
-                    scriptFilesFound=true;
-                }else{
-                    //scriptFilesFound=false;
-                }
-                
-                // close
-                gravityFileDialog.Instance()->Close();
-                
-            }
-            
-            if (scriptFilesFound) {
-                
-                ImGui::Text("Script %s", scriptFilePathName.c_str());
-                
-                U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
-                
-                if(ImGui::Button("Load Script")){
-                    
-                    if(scriptManager->loadScript(scriptFilePathName)){
-                        
-                        logger->log("Script was loaded.");
-                        
-                        //call the init function in the script
-                        //scriptManager->loadGameConfigs();
-                        scriptManager->initClosure();
-                        scriptManager->loadGameConfigs();
-                        scriptLoadedSuccessfully=true;
-                    }else{
-                        scriptLoadedSuccessfully=false;
-                    }
-                    
-                    //lookingForScriptFile=false;
-                }
-                
-            }
-        }
-        //END SCRIPT FINE_TUNE
-        
-        ImGui::End();
-    }
-    
-}
-
-void U4DEditor::showAttributes(){
-    
-    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
-    
-    {
-        ImGui::Begin("Attributes");
-        ImGui::Text("Game Attributes");
-        std::map<std::string,float>::iterator it;
-        ImGui::PushItemWidth(50.0f);
-        for(auto &n:gameConfigs->configsMap){
-            float *p=&n.second;
-            ImGui::InputFloat(n.first.c_str(), p);
-            gameConfigs->setParameterForKey(n.first, *p);
-        }
-        ImGui::End();
-    }
-}
-
-void U4DEditor::removeFieldZones(){
-    
-    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-    U4DScene *scene=sceneManager->getCurrentScene();
-    U4DWorld *world=scene->getGameWorld();
-    
-    if(fieldPlane!=nullptr){
-        
-        world->removeChild(fieldPlane);
-        delete fieldPlane;
-        fieldPlane=nullptr;
-        
-        for(int i=0;i<zonesCreated;i++){
-            std::string zoneName="zone.";
-            zoneName+=std::to_string(i);
-            U4DEntity *zone=world->searchChild(zoneName);
-            
-            world->removeChild(zone);
-            delete zone;
-        }
-        
-        zonesCreated=0;
-        
-    }
-    
-    
-}
-
-void U4DEditor::showFieldPlane(){
-    
-    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-    U4DScene *scene=sceneManager->getCurrentScene();
-    U4DWorld *world=scene->getGameWorld();
-    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
-    
-    float hWidth=gameConfigs->getParameterForKey("fieldHalfWidth");
-    float hLength=gameConfigs->getParameterForKey("fieldHalfLength");
-    
-    fieldPlane=new U4DEngine::U4DPlaneMesh();
-    U4DPoint3n center(0.0,0.0,0.0);
-    fieldPlane->computePlane(hWidth,0.0,hLength,center);
-    fieldPlane->setName(world->searchScenegraphForNextName("plane"));
-    world->addChild(fieldPlane);
-    
-    U4DFormationManager formationManager;
-    
-    std::vector<U4DVector4n> zones=formationManager.divideFieldIntoZones(hWidth, hLength);
-    for(const auto &n:zones){
-        
-        U4DPoint3n c(0.0,0.0,0.0);
-        U4DPlaneMesh *p=new U4DPlaneMesh();
-        p->computePlane(n.z,0.0,n.w,c);
-        
-        p->setName(world->searchScenegraphForNextName("zone"));
-        world->addChild(p);
-        U4DVector3n c0(n.x,0.0,n.y);
-        p->translateTo(c0);
-        zonesCreated++;
-    }
-    
-}
-
-void U4DEditor::showStatesProperties(){
-    
-    static bool doCleanUp=false;
-    
-    U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
-    U4DGameConfigs *gameConfigs=U4DGameConfigs::sharedInstance();
-    
-    {
-        ImGui::Begin("States Properties");
-        
-        {
-            //show states drop down
-            //std::vector<std::string> registeredClassesItems=registeredStates;
-            std::vector<std::string> registeredStates=getRegisteredStates();
-            static int registeredStateCurrentIndex = (int)registeredStates.size()-1; // Here we store our selection data as an index.
-            
-            const char* statesComboLabel = registeredStates.at(registeredStateCurrentIndex).c_str();
-            
-            stateSelectedTypeName=registeredStates.at(registeredStateCurrentIndex).c_str();
-            
-            static ImGuiComboFlags statesComboFlags = 0;
-            
-            ImGui::Text("Select State");
-            if (ImGui::BeginCombo("States", statesComboLabel, statesComboFlags))
-            {
-                for (int n = 0; n < registeredStates.size(); n++)
-                {
-                    const bool is_selected = (registeredStateCurrentIndex == n);
-                    if (ImGui::Selectable(registeredStates.at(n).c_str(), is_selected)){
-                        registeredStateCurrentIndex = n;
-                        stateSelectedTypeName=registeredStates.at(n);
-                    }
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-        }
-        
-        ImGui::Separator();
-        {
-            ImGui::Text("Link Animation");
-            std::vector<std::string> registeredAnimations=resourceLoader->getAnimationsNamesLoaded();
-            static int registeredAnimationCurrentIndex = (int)registeredAnimations.size()-1; // Here we store our selection data as an index.
-            
-            const char* animationComboLabel = registeredAnimations.at(registeredAnimationCurrentIndex).c_str();
-            
-            animationSelectedTypeName=registeredAnimations.at(registeredAnimationCurrentIndex).c_str();
-            
-            static ImGuiComboFlags animationComboFlags = 0;
-            
-            if (ImGui::BeginCombo("Animations", animationComboLabel, animationComboFlags))
-            {
-                for (int n = 0; n < registeredAnimations.size(); n++)
-                {
-                    const bool is_selected = (registeredAnimationCurrentIndex == n);
-                    if (ImGui::Selectable(registeredAnimations.at(n).c_str(), is_selected)){
-                        registeredAnimationCurrentIndex = n;
-                        animationSelectedTypeName=registeredAnimations.at(n);
-                    }
-                    // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
-                    if (is_selected)
-                        ImGui::SetItemDefaultFocus();
-                }
-                ImGui::EndCombo();
-            }
-        }
-        
-        ImGui::Separator();
-        ImGui::PushItemWidth(50.0f);
-        ImGui::Text("Properties");
-        if(stateSelectedTypeName.compare("running")==0){
-            float speed=gameConfigs->getParameterForKey("running");
-            ImGui::InputFloat("Speed", &speed);
-            gameConfigs->setParameterForKey("running", speed);
-        }
-        
-        ImGui::Text("Behavior");
-        if(stateSelectedTypeName.compare("running")==0){
-            
-            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-            U4DScene *scene=sceneManager->getCurrentScene();
-            U4DWorld *world=scene->getGameWorld();
-            
-            float arriveSpeed=gameConfigs->getParameterForKey("arriveMaxSpeed");
-            ImGui::InputFloat("Arrive Speed", &arriveSpeed);
-            gameConfigs->setParameterForKey("arriveMaxSpeed", arriveSpeed);
-            
-            float stopRadius=gameConfigs->getParameterForKey("arriveStopRadius");
-            ImGui::InputFloat("Stop Radius", &stopRadius);
-            gameConfigs->setParameterForKey("arriveStopRadius", stopRadius);
-            
-            float slowRadius=gameConfigs->getParameterForKey("arriveSlowRadius");
-            ImGui::InputFloat("Slow Radius", &slowRadius);
-            gameConfigs->setParameterForKey("arriveSlowRadius", slowRadius);
-            
-            
-            //H key
-            if(ImGui::IsKeyReleased(72)){
-                scaleMinorCircle=true;
-                
-                if(circleMinorMesh==nullptr){
-                    circleMinorMesh=new U4DCircleMesh();
-                    float r=gameConfigs->getParameterForKey("arriveStopRadius");
-                    circleMinorMesh->setCircle(r);
-                    U4DVector4n l(1.0,0.0,0.0,0.0);
-                    circleMinorMesh->setLineColor(l);
-                    world->addChild(circleMinorMesh);
-                }
-                
-            }
-            
-            if(scaleMinorCircle==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
-                
-                float r=std::abs(ImGui::GetMouseDragDelta().x)*0.1;
-                circleMinorMesh->updateCircle(r);
-                gameConfigs->setParameterForKey("arriveStopRadius", r);
-                
-            }else if(scaleMinorCircle==true && ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-                scaleMinorCircle=false;
-            }
-            
-            //J key
-            if(ImGui::IsKeyReleased(74)){
-                scaleMajorCircle=true;
-                
-                if(circleMajorMesh==nullptr){
-                    circleMajorMesh=new U4DCircleMesh();
-                    float r=gameConfigs->getParameterForKey("arriveSlowRadius");
-                    circleMajorMesh->setCircle(r);
-                    U4DVector4n l(0.0,0.0,1.0,0.0);
-                    circleMajorMesh->setLineColor(l);
-                    world->addChild(circleMajorMesh);
-                }
-            }
-            
-            if(scaleMajorCircle==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
-                
-                float r=std::abs(ImGui::GetMouseDragDelta().x)*0.1;
-                circleMajorMesh->updateCircle(r);
-                gameConfigs->setParameterForKey("arriveSlowRadius", r);
-                
-            }else if(scaleMajorCircle==true && ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
-                scaleMajorCircle=false;
-            }
-        }
-        
-        
-        ImGui::Separator();
-        if(ImGui::Button("Link")){
-            gameConfigs->setStateAnimation(stateSelectedTypeName, animationSelectedTypeName);
-            U4DLogger *logger=U4DLogger::sharedInstance();
-            logger->log("State %s was linked to Animation %s",stateSelectedTypeName.c_str(),animationSelectedTypeName.c_str());
-        }
-        
-        ImGui::SameLine();
-        
-        if(ImGui::Button("Preview")){
-            
-            previewPlayerState();
-        }
-        
-        ImGui::SameLine();
-        
-        if(ImGui::Button("Stop")){
-            previewPlayer->changeState(U4DPlayerStateIdle::sharedInstance());
-        }
-        ImGui::End();
-        
-        if(doCleanUp){
-            
-            doCleanUp=false;
-        }
-        
-    }
-}
+//void U4DEditor::showGameConfigsScript(){
+//
+//    U4DLogger *logger=U4DLogger::sharedInstance();
+//
+//    {
+//        ImGui::Begin("Game Configs");
+//
+//        //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
+//        if (ImGui::Button("Script")){
+//            lookingForScriptFile=true;
+//
+//            gravityFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".gravity", ".");
+//        }
+//
+//        if(lookingForScriptFile){
+//            // display
+//            if (gravityFileDialog.Instance()->Display("ChooseFileDlgKey"))
+//            {
+//                // action if OK
+//                if (gravityFileDialog.Instance()->IsOk())
+//                {
+//                    scriptFilePathName = gravityFileDialog.Instance()->GetFilePathName();
+//                    scriptFilePath = gravityFileDialog.Instance()->GetCurrentPath();
+//                    // action
+//                    scriptFilesFound=true;
+//                }else{
+//                    //scriptFilesFound=false;
+//                }
+//
+//                // close
+//                gravityFileDialog.Instance()->Close();
+//
+//            }
+//
+//            if (scriptFilesFound) {
+//
+//                ImGui::Text("Script %s", scriptFilePathName.c_str());
+//
+//                U4DScriptManager *scriptManager=U4DScriptManager::sharedInstance();
+//
+//                if(ImGui::Button("Load Script")){
+//
+//                    if(scriptManager->loadScript(scriptFilePathName)){
+//
+//                        logger->log("Script was loaded.");
+//
+//                        //call the init function in the script
+//                        //scriptManager->loadGameConfigs();
+//                        scriptManager->initClosure();
+//                        scriptManager->loadGameConfigs();
+//                        scriptLoadedSuccessfully=true;
+//                    }else{
+//                        scriptLoadedSuccessfully=false;
+//                    }
+//
+//                    //lookingForScriptFile=false;
+//                }
+//
+//            }
+//        }
+//        //END SCRIPT FINE_TUNE
+//
+//        ImGui::End();
+//    }
+//
+//}
 
 void U4DEditor::removeEverything(){
     U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
@@ -1451,66 +1024,6 @@ void U4DEditor::restoreEverything(){
 //    serializer->deserialize("/Users/haroldserrano/Downloads/profilinggame.u4d");
 }
 
-void U4DEditor::loadPreviewPlayer(){
-    
-    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-    U4DScene *scene=sceneManager->getCurrentScene();
-    U4DWorld *world=scene->getGameWorld();
-    
-    previewPlayer=new U4DPlayer();
-    if(previewPlayer->init("player0")){
-        world->addChild(previewPlayer);
-        
-        U4DVector3n zero(0.0,0.0,0.0);
-        previewPlayer->translateTo(zero);
-    }
-    
-}
 
-void U4DEditor::previewPlayerState(){
-
-    U4DPlayerStateInterface *state=getStateFromKey(stateSelectedTypeName);
-    
-    previewPlayer->changeState(state);
-}
-
-void U4DEditor::unloadPreviewPlayer(){
-    
-}
-
-void U4DEditor::setKeyForState(std::string uKey,U4DPlayerStateInterface* uState){
-    
-    std::map<std::string,U4DPlayerStateInterface*>::iterator it=playerStatesMap.find(uKey);
-    
-    if (it != playerStatesMap.end()) {
-        playerStatesMap.find(uKey)->second=uState;
-    }else{
-        playerStatesMap.insert(std::make_pair(uKey, uState));
-    }
-}
-
-U4DPlayerStateInterface *U4DEditor::getStateFromKey(std::string uKey){
-    
-    std::map<std::string,U4DPlayerStateInterface*>::iterator it=playerStatesMap.find(uKey);
-    
-    U4DPlayerStateInterface *state=nullptr;
-    
-    if(it!=playerStatesMap.end()){
-        state=playerStatesMap.find(uKey)->second;
-    }
-    
-    return state;
-}
-
-std::vector<std::string> U4DEditor::getRegisteredStates(){
-    
-    std::map<std::string,U4DPlayerStateInterface*>::iterator it;
-    std::vector<std::string> registeredStates;
-    for(it=playerStatesMap.begin();it!=playerStatesMap.end();it++){
-        registeredStates.push_back(it->first);
-    }
-    
-    return registeredStates;
-}
 
 }
