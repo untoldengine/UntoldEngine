@@ -8,8 +8,8 @@
 
 #include "U4DVisibilityCulling.h"
 #include "U4DPlane.h"
-#include "U4DBoundingAABB.h"
-#include "U4DBoundingVolume.h"
+#include "U4DAABBMesh.h"
+#include "U4DMesh.h"
 #include "U4DPoint3n.h"
 #include "U4DNumerical.h"
 
@@ -93,7 +93,7 @@ namespace U4DEngine {
                 
                 if (model!=nullptr) {
                     
-                    U4DBoundingVolume *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
+                    U4DMesh *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
                     
                     U4DPoint3n maxPoint=aabbBoundingVolume->getMaxBoundaryPoint();
                     U4DPoint3n minPoint=aabbBoundingVolume->getMinBoundaryPoint();
@@ -134,7 +134,7 @@ namespace U4DEngine {
                 
                 if (model!=nullptr) {
                     
-                    U4DBoundingVolume *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
+                    U4DMesh *aabbBoundingVolume=model->getCullingPhaseBoundingVolume();
                     
                     U4DPoint3n maxPoint=aabbBoundingVolume->getMaxBoundaryPoint();
                     U4DPoint3n minPoint=aabbBoundingVolume->getMinBoundaryPoint();

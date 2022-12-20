@@ -15,14 +15,12 @@
 
 #include "U4DSkybox.h"
 #include "U4DModelPipeline.h"
-
-
-
 #include "U4DGameConfigs.h"
 
 #include "U4DEntityFactory.h"
 #include "U4DSerializer.h"
 
+#include "U4DAABBMesh.h"
 
 using namespace U4DEngine;
 
@@ -44,24 +42,14 @@ void SandboxWorld::init(){
     //The following code snippets loads scene data, renders the characters and skybox.
     setEnableGrid(true);
     
-    //deserialize
-//    U4DSerializer *serializer=U4DSerializer::sharedInstance();
-//    serializer->deserialize("/Users/haroldserrano/Downloads/gamescene3.u4d");
-//
-//    U4DEngine::U4DModel *model=new U4DEngine::U4DModel();
-//
-//    if (model->loadModel("player0")) {
-//
-//        model->loadRenderingInformation();
-//        addChild(model);
-//    }
-//
-//    U4DEngine::U4DModel *field=new U4DEngine::U4DModel();
-//
-//    if (field->loadModel("field")) {
-//        field->loadRenderingInformation();
-//        addChild(field);
-//    }
+    U4DAABBMesh *mesh=new U4DAABBMesh();
+    U4DPoint3n minP(-2.0,-2.0,-2.0);
+    U4DPoint3n maxP(2.0,2.0,2.0);
+    
+    mesh->computeBoundingVolume(minP,maxP);
+    mesh->setVisibility(true);
+    addChild(mesh);
+    
 
 }
 
@@ -81,8 +69,11 @@ void SandboxWorld::setupConfiguration(){
     U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, director->getAspect(), 0.001f, 400.0f);
     director->setPerspectiveSpace(perspectiveSpace);
     
+    U4DEngine::U4DMatrix4n orthographicSpace=director->computeOrthographicSpace(-100.0,100.0,-100.0/director->getAspect(),100.0/director->getAspect(),-100.0,100.0);
+    director->setOrthographicSpace(orthographicSpace);
+    
     //Compute the orthographic shadow space
-    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -100.0f, 100.0f);
+    U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicShadowSpace(-100.0f, 100.0f, -100.0f, 100.0f, -200.0f, 200.0f);
     director->setOrthographicShadowSpace(orthographicShadowSpace);
     
     //Get camera object and translate it to position

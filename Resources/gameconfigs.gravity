@@ -25,12 +25,12 @@ func gameConfigs(){
               "shootingBallSpeed":80.0,
               "passBallSpeed":60.0,
               "passInterceptionParam":20.0,
-              "arriveJogMaxSpeed":25.0/scaleValue, //60.0
+              "arriveJogMaxSpeed":38.0/scaleValue, //60.0
               "arriveJogStopRadius":0.52/scaleValue,
               "arriveJogSlowRadius":0.55/scaleValue,
               "haltRadius":0.52/scaleValue, //0.52 refers to the arriveStopRadius
               "pursuitMaxSpeed":35.0,
-              "interceptMinRadius":5.0,
+              "interceptMinRadius":0.5, //5.0
               "freeMaxSpeed":25.0/scaleValue,
               "freeStopRadius":0.52/scaleValue,
               "freeSlowRadius":0.55/scaleValue,
@@ -46,15 +46,16 @@ func gameConfigs(){
               "markPursuitMaxSpeed":50.0,
               "slidingTackleKick":60.0,
               "slidingTackleVelocity":1.5,
-              "slidingTackleMinDistance":6.0,
-              "fieldHalfWidth":22.5,//40.0
-              "fieldHalfLength":40.0,//22.5
+              "slidingTackleMinDistance":2.0,
+              "fieldHalfWidth":40.0,//40.0
+              "fieldHalfLength":22.5,//22.5
               "cellAnalyzerWidth":5.6,//10.0
               "cellAnalyzerHeight":10.0,//5.6
               "navPathRadius":0.9,
               "navPredictTime":0.8,
               "distanceToFoot":1.5,
-              "goingHomeVelocity":80.0];
+              "goingHomeVelocity":80.0,
+              "running":27.0];
 
   return names
 }

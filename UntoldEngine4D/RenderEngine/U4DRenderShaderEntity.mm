@@ -128,7 +128,7 @@ namespace U4DEngine {
         
         U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
         
-        U4DMatrix4n orthogonalProjection=director->getOrthographicSpace();
+        U4DMatrix4n orthogonalProjection=director->getProjectionSpace();
         
         U4DMatrix4n mvpSpace=orthogonalProjection*modelWorldViewSpace;
         

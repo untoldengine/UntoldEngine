@@ -8,8 +8,8 @@
 
 #include "U4DBVHModelCollision.h"
 #include "U4DDynamicAction.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingSphere.h"
+#include "U4DMesh.h"
+#include "U4DSphereMesh.h"
 #include "U4DBroadPhaseCollisionModelPair.h"
 
 namespace U4DEngine {

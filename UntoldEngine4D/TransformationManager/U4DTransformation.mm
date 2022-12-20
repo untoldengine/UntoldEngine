@@ -328,7 +328,7 @@ namespace U4DEngine {
 //        rotationQuaternion.convertToUnitNormQuaternion();
 //        
 //        updateSpaceMatrixOrientation(rotationQuaternion);
-//        
+//           
 //        
 //    }
     

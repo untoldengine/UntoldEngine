@@ -101,7 +101,7 @@ namespace U4DEngine {
         
         void trackBoundingBox(){};
         
-        U4DBoundingAABB *getBoundingBox(){};
+        U4DAABBMesh *getBoundingBox(){};
         
         void pauseBoxTracking(){};
         

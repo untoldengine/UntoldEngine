@@ -201,7 +201,7 @@ std::string U4DWorld::searchScenegraphForNextName(std::string uAssetName){
      while (child!=nullptr) {
 
          //strip all characters up to the period
-         if(child->getEntityType()==U4DEngine::MODEL){
+         if(child->getEntityType()==U4DEngine::MODEL || child->getEntityType()==U4DEngine::PRIMITIVE){
 
              std::string s=child->getName();
 

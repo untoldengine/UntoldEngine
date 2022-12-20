@@ -126,6 +126,18 @@ namespace U4DEngine {
         return false;
     }
 
+    bool U4DGameLogic::isKeyActive(int uKey, void *uData){
+        
+        CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
+        
+        if (controllerInputMessage.inputElementType==uKey && controllerInputMessage.inputElementAction==U4DEngine::macKeyActive) {
+            
+            return true;
+        }
+        
+        return false;
+    }
+
     bool U4DGameLogic::isKeyReleased(int uKey, void *uData){
         
         CONTROLLERMESSAGE controllerInputMessage=*(CONTROLLERMESSAGE*)uData;
