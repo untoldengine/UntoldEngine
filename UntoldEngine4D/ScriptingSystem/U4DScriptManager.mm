@@ -9,17 +9,7 @@
 #include "U4DScriptManager.h"
 #include "U4DDirector.h"
 #include "U4DLogger.h"
-#include "U4DCamera.h"
 #include "U4DGameConfigs.h"
-#include "U4DSceneManager.h"
-#include "U4DSceneEditingState.h"
-#include "U4DScenePlayState.h"
-#include "U4DSceneStateManager.h"
-#include "U4DScene.h"
-#include "U4DWorld.h"
-#include "U4DModel.h"
-#include "U4DScriptInstanceManager.h"
-
 
 namespace U4DEngine {
 
@@ -104,33 +94,6 @@ namespace U4DEngine {
          }
      }
 
-    void U4DScriptManager::update(int uScriptID, double dt){
-
-//        U4DScriptInstanceManager *scriptInstanceManager=U4DScriptInstanceManager::sharedInstance();
-//        gravity_instance_t *model_instance=scriptInstanceManager->getModelScriptInstance(uScriptID);
-//
-//        gravity_value_t key = VALUE_FROM_STRING(vm, "update", (uint32_t)strlen("update"));
-//
-//        gravity_closure_t *update_closure = (gravity_closure_t *)gravity_class_lookup_closure(gravity_value_getclass(VALUE_FROM_OBJECT(model_instance)), key);
-//
-//
-//        if (update_closure==nullptr) {
-//
-////            U4DLogger *logger=U4DLogger::sharedInstance();
-////            logger->log("Unable to find update method into Gravity VM");
-//
-//        }else{
-//            gravity_value_t p1 = VALUE_FROM_FLOAT(dt);
-//            gravity_value_t params[] = {p1};
-//
-//            // execute closure
-//            if (gravity_vm_runclosure (vm, update_closure, VALUE_FROM_OBJECT(model_instance), params, 1)) {
-//
-//            }
-//        }
-
-    }
-
     void U4DScriptManager::loadGameConfigs(){
         
         U4DDirector *director=U4DDirector::sharedInstance();
@@ -186,11 +149,13 @@ namespace U4DEngine {
         
     }
 
-    
+
     bool U4DScriptManager::loadScript(std::string uScriptPath){
         
         U4DLogger *logger=U4DLogger::sharedInstance();
         U4DDirector *director=U4DDirector::sharedInstance();
+        
+        logger->log("Loading script %s",uScriptPath.c_str());
     
         if(director->getScriptRunTimeError()==true){
         //we have to initialize the script again if there was a script-runtime error. But first we need to free all user inputs objects created such as lists and maps
@@ -247,7 +212,6 @@ namespace U4DEngine {
         // register my C++ classes inside Gravity VM
         registerClasses(vm);
         
-        userInputList=gravity_list_new(nullptr, 14);
         //if (loadScript(uScriptPath)) {
             
          
@@ -266,14 +230,21 @@ namespace U4DEngine {
 
     void U4DScriptManager::registerClasses(gravity_vm *vm){
             
-        //model
-                gravity_class_t *model_class = gravity_class_new_pair(vm, "U4DModel", NULL, 0, 0);
-                gravity_class_t *model_class_meta = gravity_class_get_meta(model_class);
-                
-                gravity_class_bind(model_class_meta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(modelLink));
-                
-                // register model class inside VM
-                gravity_vm_setvalue(vm, "U4DModel", VALUE_FROM_OBJECT(model_class));
+        //untold
+//        gravity_class_t *worldClass = gravity_class_new_pair(vm, "U4DWorld", NULL, 0, 0);
+//        gravity_class_t *worldClassMeta = gravity_class_get_meta(worldClass);
+//
+//        gravity_class_bind(worldClassMeta, GRAVITY_INTERNAL_EXEC_NAME, NEW_CLOSURE_VALUE(worldCreate));
+//        gravity_class_bind(worldClass, "loadModel", NEW_CLOSURE_VALUE(loadModel));
+//        gravity_class_bind(worldClass, "removeModel", NEW_CLOSURE_VALUE(removeModel));
+//        gravity_class_bind(worldClass, "anchorMouse", NEW_CLOSURE_VALUE(anchorMouse));
+//        gravity_class_bind(worldClass, "pauseScene", NEW_CLOSURE_VALUE(pauseScene));
+//        gravity_class_bind(worldClass, "playScene", NEW_CLOSURE_VALUE(playScene));
+//
+//        // register logger class inside VM
+//        gravity_vm_setvalue(vm, "U4DWorld", VALUE_FROM_OBJECT(worldClass));
+        
+        
         
     }
 
@@ -300,140 +271,6 @@ namespace U4DEngine {
         director->setScriptRunTimeError(true);
     }
 
-    void U4DScriptManager::userInputClosure(void *uData){
-        
-        U4DDirector *director=U4DDirector::sharedInstance();
-        
-        if (director->getScriptCompiledSuccessfully()==true && director->getScriptRunTimeError()==false){
-                    
-            gravity_value_t userInput_function = gravity_vm_getvalue(vm, "userInput", (uint32_t)strlen("userInput"));
-            
-            if (!VALUE_ISA_CLOSURE(userInput_function)) {
-                printf("Unable to find user-input function into Gravity VM.\n");
-                
-            }else{
-                
-                // convert function to closure
-                gravity_closure_t *userInput_closure = VALUE_AS_CLOSURE(userInput_function);
-                
-                U4DEngine::CONTROLLERMESSAGE controllerInputMessage=*(U4DEngine::CONTROLLERMESSAGE*)uData;
-
-                gravity_value_t inputElementType=VALUE_FROM_INT(controllerInputMessage.inputElementType);
-                gravity_value_t inputElementAction=VALUE_FROM_INT(controllerInputMessage.inputElementAction);
-                
-                 //joystick
-                 //prepare joystick data into a list before inserting it into a map
-                 gravity_value_t joystickDirX = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.x);
-                 gravity_value_t joystickDirY = VALUE_FROM_FLOAT(controllerInputMessage.joystickDirection.y);
-             
-                 //inputposition
-                 gravity_value_t inputPositionX = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.x);
-                 gravity_value_t inputPositionY = VALUE_FROM_FLOAT(controllerInputMessage.inputPosition.y);
-
-                //previousMousePosition
-                 gravity_value_t previousMousePositionX = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.x);
-                 gravity_value_t previousMousePositionY = VALUE_FROM_FLOAT(controllerInputMessage.previousMousePosition.y);
-                
-                //mouseDeltaPosition
-                
-                 gravity_value_t mouseDeltaPositionX = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.x);
-                 gravity_value_t mouseDeltaPositionY = VALUE_FROM_FLOAT(controllerInputMessage.mouseDeltaPosition.y);
-                
-
-                gravity_value_t joystickChangeDirection=VALUE_FROM_BOOL(controllerInputMessage.joystickChangeDirection);
-
-                //mouseChangeDirection
-                gravity_value_t mouseChangeDirection=VALUE_FROM_BOOL(controllerInputMessage.mouseChangeDirection);
-                
-                //arrowKeyDirection
-                 gravity_value_t arrowKeyDirectionX = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.x);
-                 gravity_value_t arrowKeyDirectionY = VALUE_FROM_FLOAT(controllerInputMessage.arrowKeyDirection.y);
-
-                
-                marray_push(gravity_value_t, userInputList->array, inputElementType);
-                marray_push(gravity_value_t, userInputList->array, inputElementAction);
-                
-                marray_push(gravity_value_t, userInputList->array, joystickDirX);
-                marray_push(gravity_value_t, userInputList->array, joystickDirY);
-                
-                marray_push(gravity_value_t, userInputList->array, inputPositionX);
-                marray_push(gravity_value_t, userInputList->array, inputPositionY);
-                
-                marray_push(gravity_value_t, userInputList->array, previousMousePositionX);
-                marray_push(gravity_value_t, userInputList->array, previousMousePositionY);
-                
-                marray_push(gravity_value_t, userInputList->array, mouseDeltaPositionX);
-                marray_push(gravity_value_t, userInputList->array, mouseDeltaPositionY);
-                
-                marray_push(gravity_value_t, userInputList->array, joystickChangeDirection);
-                marray_push(gravity_value_t, userInputList->array, mouseChangeDirection);
-                
-                marray_push(gravity_value_t, userInputList->array, arrowKeyDirectionX);
-                marray_push(gravity_value_t, userInputList->array, arrowKeyDirectionY);
-                
-
-//            marray_push(gravity_value_t, arrowKeyDirectionList->array, arrowKeyDirectionX);
-//            marray_push(gravity_value_t, arrowKeyDirectionList->array, arrowKeyDirectionY);
-
-//             //elementUIName
-//             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[elementUIName],VALUE_FROM_STRING(vm, controllerInputMessage.elementUIName.c_str(), (int)controllerInputMessage.elementUIName.length()));
-//
-//             //dataValue
-//             gravity_map_insert(vm,controllerInputMessageMap,userInputElementArray[dataValue],VALUE_FROM_FLOAT(controllerInputMessage.dataValue));
-
-            
-             gravity_value_t controllerInputData=VALUE_FROM_OBJECT(userInputList);
-             gravity_value_t params[] = {controllerInputData};
-
-             // execute user-input closure
-             if (gravity_vm_runclosure (vm, userInput_closure, VALUE_FROM_NULL, params, 1)) {
-                 
-                 
-             }
-                
-                removeItemsInList(userInputList);
-                
-                
-            }
-                
-            
-            
-        }
-        
-        
-    }
-
-    void U4DScriptManager::removeItemsInList(gravity_list_t *l){
-        
-        size_t count = marray_size(l->array);
-
-        //pop all items in array
-        for(int i=0;i<count;i++){
-            marray_pop(l->array);
-        }
-        
-    }
-
-    void U4DScriptManager::freeUserInputObjects(){
-        
-//        //free up all strings that were mem allocated
-//        for(auto n:userInputElementArray){
-//            gravity_string_free(vm, VALUE_AS_STRING(n));
-//        }
-//
-//        //free up all lists that were mem allocated
-//
-//        gravity_list_free(vm,joystickDirectionList);
-//        gravity_list_free(vm,inputPositionList);
-//        gravity_list_free(vm,previousMousePositionList);
-//        gravity_list_free(vm,mouseDeltaPositionList);
-//        gravity_list_free(vm,arrowKeyDirectionList);
-//
-//        //free up map that was mem allocated
-//        gravity_map_free(vm, controllerInputMessageMap);
-        
-    }
-
     const char *U4DScriptManager::loadFileCallback (const char *path, size_t *size, uint32_t *fileid, void *xdata, bool *is_static) {
          (void) fileid, (void) xdata;
          if (is_static) *is_static = false;
@@ -450,62 +287,6 @@ namespace U4DEngine {
          return buffer;
 
      }
-
-    bool U4DScriptManager::modelLink(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex){
-        
-        U4DLogger *logger=U4DLogger::sharedInstance();
-        
-        if(nargs==2){
-                
-            // self parameter is the camera create in register_cpp_classes
-            gravity_class_t *c = (gravity_class_t *)GET_VALUE(0).p;
-            gravity_value_t entityName=GET_VALUE(1);
-            
-            if (VALUE_ISA_STRING(entityName)) {
-                
-                gravity_string_t *v=(gravity_string_t *)entityName.p;
-                std::string name(v->s);
-            
-                //get a pointer to the model if it exist
-                U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-                U4DScene *scene=sceneManager->getCurrentScene();
-                U4DWorld *world=scene->getGameWorld();
-                
-                U4DModel *model=dynamic_cast<U4DModel*>(world->searchChild(name));
-                
-                if(model!=nullptr){
-                    // create Gravity instance and set its class to c
-                    gravity_instance_t *instance = gravity_instance_new(nullptr, c);
-                    
-                    //store the model instance and gravity instance
-                    U4DScriptInstanceManager *instanceManager=U4DScriptInstanceManager::sharedInstance();
-                    
-                    if (instanceManager->modelScriptInstanceExist(model->getEntityId())==false) {
-                        
-                        instanceManager->loadModelScriptInstance(model, instance);
-                        
-                        // set cpp instance and xdata of the gravity instance
-                        gravity_instance_setxdata(instance, model);
-                        
-                        // return instance
-                        RETURN_VALUE(VALUE_FROM_OBJECT(instance), rindex);
-                    }
-                    
-                }else{
-                    logger->log("Error: Could not link model. The Model %s does not exist in the world",name.c_str());
-                }
-                
-            }else{
-                logger->log("Error: Could not link model. Parameter must be of type string");
-            }
-        
-        }else{
-            logger->log("Error: Could not link model. Incorrect number of parameters");
-        }
-        
-        RETURN_VALUE(VALUE_FROM_BOOL(false),rindex);
-        
-    }
 
     void U4DScriptManager::cleanup(){
         

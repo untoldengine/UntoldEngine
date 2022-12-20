@@ -20,7 +20,7 @@
 
 namespace U4DEngine {
     
-U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(2.0),fps(0.0),fpsAccumulator(0.0),scriptCompiledSuccessfully(false),scriptRunTimeError(false),newEntityId(0){
+U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0),polycount(3000),shadowBiasDepth(0.005),gamePadControllerPresent(false),modelsWithinFrustum(false),screenScaleFactor(2.0),fps(0.0),fpsAccumulator(0.0),scriptCompiledSuccessfully(false),scriptRunTimeError(false),newEntityId(0),isPerspectiveProjectionEnabled(true),orthographicScale(1.0){
     }
     
     U4DDirector::~U4DDirector(){
@@ -199,6 +199,20 @@ U4DDirector::U4DDirector():accumulator(0.0),displayWidth(0.0),displayHeight(0.0)
     U4DEngine::U4DMatrix4n U4DDirector::getOrthographicShadowSpace(){
         
         return orthographicShadowSpace;
+    }
+
+    U4DMatrix4n U4DDirector::getProjectionSpace(){
+        
+        if(isPerspectiveProjectionEnabled){
+            return perspectiveSpace;
+        }
+        
+        
+        U4DMatrix4n s(orthographicScale,0.0,0.0,0.0,
+                      0.0,orthographicScale,0.0,0.0,
+                      0.0,0.0,0.0,0.0,
+                      0.0,0.0,0.0,1.0);
+        return s*orthographicSpace;
     }
     
     U4DMatrix4n U4DDirector::computePerspectiveSpace(float fov, float aspect, float near, float far){

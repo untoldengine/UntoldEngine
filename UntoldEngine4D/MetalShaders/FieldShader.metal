@@ -222,13 +222,13 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
         float2 st=-1.0+2.0*vertexOut.uvCoords.xy;
         
         float3 color=float3(0.0);
-
+    
         //divide the field into spaces
-        float2 influenceST=st;
-    //
-        float2 pathfinderST=st;
-
-        float2 chaseBallVisualizer=st;
+//        float2 influenceST=st;
+//    //
+//        float2 pathfinderST=st;
+//
+//        float2 chaseBallVisualizer=st;
 
         
         
@@ -316,20 +316,20 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
         //}
 
         //start render ball indicator
-        if(uniformModelShaderProperty.shaderParameter[2].z==1.0){
-
-            float2 b1=float2(uniformModelShaderProperty.shaderParameter[2].x,-uniformModelShaderProperty.shaderParameter[2].y);
-
-            chaseBallVisualizer=chaseBallVisualizer+b1;
-
-            chaseBallVisualizer*=2.0;
-
-            float b=sdfRing(chaseBallVisualizer,float2(0.0,0.0),0.09);
-            b=sharpen(b,0.008,uniformGlobalData.resolution);
-
-            color=max(color,float3(1.0,0.0,0.0)*b);
-
-        }
+//        if(uniformModelShaderProperty.shaderParameter[2].z==1.0){
+//
+//            float2 b1=float2(uniformModelShaderProperty.shaderParameter[2].x,-uniformModelShaderProperty.shaderParameter[2].y);
+//
+//            chaseBallVisualizer=chaseBallVisualizer+b1;
+//
+//            chaseBallVisualizer*=2.0;
+//
+//            float b=sdfRing(chaseBallVisualizer,float2(0.0,0.0),0.09);
+//            b=sharpen(b,0.008,uniformGlobalData.resolution);
+//
+//            color=max(color,float3(1.0,0.0,0.0)*b);
+//
+//        }
         //end render ball indicator
         
         //Start Visual Debugging of Analyzers
@@ -415,7 +415,7 @@ fragment float4 fragmentFieldShader(VertexOutput vertexOut [[stage_in]], constan
 //        }
         
     //END Visual Debugging of Analyzers
-        return max(float4(color,1.0),finalColor);
-    
+    //return max(float4(color,1.0),finalColor);
+    return float4(color,1.0);
 }
 

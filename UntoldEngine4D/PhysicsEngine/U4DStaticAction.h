@@ -15,7 +15,7 @@
 
 namespace U4DEngine {
     
-    class U4DBoundingVolume;
+    class U4DMesh;
     
 }
 
@@ -166,12 +166,12 @@ namespace U4DEngine {
         /**
          @brief Object representing the narrow-phase bounding volume
          */
-        U4DBoundingVolume *convexHullBoundingVolume;
+        U4DMesh *convexHullBoundingVolume;
     
         /**
          @brief Object representing the broad-phase bounding volume
          */
-        U4DBoundingVolume *broadPhaseBoundingVolume;
+        U4DMesh *broadPhaseBoundingVolume;
         
         
         
@@ -477,7 +477,7 @@ namespace U4DEngine {
          
          @return Returns the narrow-phase bounding volume
          */
-        U4DBoundingVolume* getNarrowPhaseBoundingVolume();
+        U4DMesh* getNarrowPhaseBoundingVolume();
     
         /**
          @brief Method which returns if the engine should render the narrow-phase bounding volume
@@ -491,7 +491,7 @@ namespace U4DEngine {
          
          @return Returns the broad-phase bounding volume
          */
-        U4DBoundingVolume* getBroadPhaseBoundingVolume();
+        U4DMesh* getBroadPhaseBoundingVolume();
     
         /**
          @brief Method which returns if the engine should render the broad-phase bounding volume

@@ -8,8 +8,8 @@
 
 #include "U4DVisibilityManager.h"
 #include "U4DPlane.h"
-#include "U4DBoundingAABB.h"
-#include "U4DBoundingVolume.h"
+#include "U4DAABBMesh.h"
+#include "U4DMesh.h"
 #include "U4DPoint3n.h"
 #include "U4DNumerical.h"
 #include "U4DTimer.h"
@@ -138,7 +138,7 @@ namespace U4DEngine {
         
         for (const auto& n:uNode->getModelsContainer()) {
             
-            U4DBoundingVolume *aabb=n->getCullingPhaseBoundingVolume();
+            U4DMesh *aabb=n->getCullingPhaseBoundingVolume();
             
             U4DPoint3n minPoints=aabb->getMinBoundaryPoint();
             U4DPoint3n maxPoints=aabb->getMaxBoundaryPoint();

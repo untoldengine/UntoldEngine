@@ -22,31 +22,16 @@
 #include <iostream>
 #include <list>
 #include <string.h>
+#include "U4DVector3n.h"
 
 namespace U4DEngine {
-
-    enum UserInputListEnum{
-            inputElementType,
-            inputElementAction,
-            joystickDirection,
-            inputPosition,
-            previousMousePosition,
-            mouseDeltaPosition,
-            joystickChangeDirection,
-            mouseChangeDirection,
-            arrowKeyDirection,
-            elementUIName,
-            dataValue
-        };
 
     class U4DScriptManager {
         
     private:
     
         static U4DScriptManager *instance;
-        
-        gravity_list_t *userInputList;
-        
+
         
     protected:
         
@@ -73,19 +58,8 @@ namespace U4DEngine {
         
         static const char *loadFileCallback (const char *path, size_t *size, uint32_t *fileid, void *xdata, bool *is_static);
         
-        void awakeClosure();
         void initClosure();
-        void preUpdateClosure(double dt);
         void updateClosure(double dt);
-        void update(int uScriptID, double dt);
-        void userInputClosure(void *uData);
-        void deInitClosure();
-        
-        void removeItemsInList(gravity_list_t *l);
-        void freeUserInputObjects();
-        
-        //model
-        static bool modelLink(gravity_vm *vm, gravity_value_t *args, uint16_t nargs, uint32_t rindex);
         
     };
 

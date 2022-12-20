@@ -18,8 +18,8 @@
 #include "U4DMeshOctreeNode.h"
 #include "Constants.h"
 #include "U4DRender3DModel.h"
-#include "U4DBoundingVolume.h"
-#include "U4DBoundingAABB.h"
+#include "U4DMesh.h"
+#include "U4DAABBMesh.h"
 #include "U4DResourceLoader.h"
 #include "U4DEntityManager.h"
 
@@ -27,7 +27,7 @@
 
 namespace U4DEngine {
     
-    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),hasNormalMap(false),enableNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(100,U4DVector4n(0.0,0.0,0.0,0.0)),classType("U4DModel"){
+    U4DModel::U4DModel():hasMaterial(false),hasTexture(false),hasAnimation(false),hasArmature(false),hasNormalMap(false),enableNormalMap(false),cullingPhaseBoundingVolumeVisibility(false),shaderParameterContainer(60,U4DVector4n(0.0,0.0,0.0,0.0)),classType("U4DModel"){
         
         renderEntity=new U4DRender3DModel(this);
         
@@ -469,7 +469,7 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
         U4DPoint3n maxPoints(xDimension/2.0,yDimension/2.0,zDimension/2.0);
         
         //create a AABB culling bounding volume
-        cullingPhaseBoundingVolume=new U4DBoundingAABB();
+        cullingPhaseBoundingVolume=new U4DAABBMesh();
         
         //calculate the culling AABB
         cullingPhaseBoundingVolume->computeBoundingVolume(minPoints, maxPoints);
@@ -482,7 +482,7 @@ bool U4DModel::getBoneAnimationPose(std::string uBoneName, U4DAnimation *uAnimat
         cullingPhaseBoundingVolume->setLocalSpace(absoluteSpace);
     }
     
-    U4DBoundingVolume* U4DModel::getCullingPhaseBoundingVolume(){
+    U4DMesh* U4DModel::getCullingPhaseBoundingVolume(){
         
         //update the broad phase bounding volume space
         updateCullingPhaseBoundingVolumeSpace();

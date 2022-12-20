@@ -108,6 +108,10 @@ private:
     
     uint newEntityId;
     
+    bool isPerspectiveProjectionEnabled;
+    
+    float orthographicScale;
+    
 protected:
     
     /**
@@ -261,6 +265,12 @@ public:
      */
     U4DMatrix4n getOrthographicShadowSpace();
     
+    /**
+     @brief Get the Perspective or Rrthographic space
+
+     @return Perspective/Orthographic space in a 4x4 matrix
+     */
+    U4DMatrix4n getProjectionSpace();
     
     /**
      @brief Computes the perspective space of the view
@@ -411,6 +421,14 @@ public:
     bool getScriptRunTimeError();
     
     uint getNewEntityId();
+    
+    inline void setPerspectiveProjectionEnabled(bool uValue){isPerspectiveProjectionEnabled=uValue;}
+    
+    inline bool getPerspectiveProjectionEnabled(){return isPerspectiveProjectionEnabled;}
+    
+    inline void setOrthographicScale(float uValue){orthographicScale=uValue;}
+    
+    inline float getOrthographicScale(){return orthographicScale;}
     
 };
 

@@ -25,7 +25,7 @@
 namespace U4DEngine {
     
     class U4DEntityManager;
-    class U4DBoundingVolume;
+    class U4DMesh;
     class U4DMeshOctreeManager;
 }
 
@@ -74,7 +74,7 @@ namespace U4DEngine {
         /**
          @brief Object representing the visibility bounding volume for frustum culling
          */
-        U4DBoundingVolume *cullingPhaseBoundingVolume;
+        U4DMesh *cullingPhaseBoundingVolume;
         
         std::vector<U4DVector4n> shaderParameterContainer;
         
@@ -378,7 +378,7 @@ namespace U4DEngine {
          
          @return Returns the culling-phase bounding volume
          */
-        U4DBoundingVolume* getCullingPhaseBoundingVolume();
+        U4DMesh* getCullingPhaseBoundingVolume();
         
         /**
          @brief Method which returns if the engine should render the culling-phase bounding volume

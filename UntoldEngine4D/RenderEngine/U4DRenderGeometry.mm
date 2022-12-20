@@ -14,7 +14,7 @@
 
 namespace U4DEngine {
     
-    U4DRenderGeometry::U4DRenderGeometry(U4DBoundingVolume *uU4DGeometricObject):uniformGeometryBuffer(nil){
+    U4DRenderGeometry::U4DRenderGeometry(U4DMesh *uU4DGeometricObject):uniformGeometryBuffer(nil){
         
         u4dObject=uU4DGeometricObject;
         
@@ -124,7 +124,7 @@ namespace U4DEngine {
         
         U4DMatrix4n modelWorldViewSpace=viewSpace*modelWorldSpace;
         
-        U4DMatrix4n perspectiveProjection=director->getPerspectiveSpace();
+        U4DMatrix4n perspectiveProjection=director->getProjectionSpace();
         
         U4DMatrix4n mvpSpace=perspectiveProjection*modelWorldViewSpace;
         
@@ -193,7 +193,7 @@ namespace U4DEngine {
         attributeAlignedContainer.clear();
         
         u4dObject->bodyCoordinates.verticesContainer.clear();
-        
+        u4dObject->bodyCoordinates.indexContainer.clear();
     }
     
     

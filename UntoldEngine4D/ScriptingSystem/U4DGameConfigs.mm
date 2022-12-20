@@ -61,6 +61,43 @@ float U4DGameConfigs::getParameterForKey(std::string uName){
     
 }
 
+void U4DGameConfigs::setParameterForKey(std::string uName, float uValue){
+
+    std::map<std::string,float>::iterator it=configsMap.find(uName);
+    
+    if (it != configsMap.end()) {
+        configsMap.find(uName)->second=uValue;
+    }else{
+        configsMap.insert(std::make_pair(uName, uValue));
+    }
+}
+
+void U4DGameConfigs::setStateAnimation(std::string uStateKey, std::string uAnimationKey){
+    
+    std::map<std::string, std::string>::iterator it=stateAnimationMap.find(uStateKey);
+    
+    if(it!=stateAnimationMap.end()){
+        stateAnimationMap.find(uStateKey)->second=uAnimationKey;
+    }else{
+        stateAnimationMap.insert(std::make_pair(uStateKey, uAnimationKey));
+    }
+    
+}
+
+std::string U4DGameConfigs::getStateAnimation(std::string uStateKey){
+    
+    std::map<std::string,std::string>::iterator it=stateAnimationMap.find(uStateKey);
+    
+    std::string animationName;
+    
+    if(it!=stateAnimationMap.end()){
+        animationName=stateAnimationMap.find(uStateKey)->second;
+    }
+    
+    return animationName;
+    
+}
+
 void U4DGameConfigs::loadConfigsMapValues(std::string uFileName){
     
     U4DEngine::U4DScriptManager *scriptManager=U4DEngine::U4DScriptManager::sharedInstance();
@@ -79,6 +116,7 @@ void U4DGameConfigs::loadConfigsMapValues(std::string uFileName){
 void U4DGameConfigs::clearConfigsMap(){
     
     configsMap.clear();
+    stateAnimationMap.clear();
 }
 
 }

@@ -61,6 +61,8 @@ public:
     
     bool isKeyPressed(int uKey, void *uData);
     
+    bool isKeyActive(int uKey, void *uData);
+    
     bool isKeyReleased(int uKey, void *uData);
     
     bool isMouseActive(void *uData);

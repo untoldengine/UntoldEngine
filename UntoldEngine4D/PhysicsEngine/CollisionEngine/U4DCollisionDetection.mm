@@ -10,7 +10,7 @@
 #include "U4DSegment.h"
 #include "U4DTriangle.h"
 #include "U4DTetrahedron.h"
-#include "U4DBoundingVolume.h"
+#include "U4DMesh.h"
 
 namespace U4DEngine {
     
@@ -18,7 +18,7 @@ namespace U4DEngine {
         
     }
     
-    SIMPLEXDATA U4DCollisionDetection::calculateSupportPointInDirection(U4DBoundingVolume *uBoundingVolume1, U4DBoundingVolume* uBoundingVolume2, U4DVector3n& uDirection){
+    SIMPLEXDATA U4DCollisionDetection::calculateSupportPointInDirection(U4DMesh *uBoundingVolume1, U4DMesh* uBoundingVolume2, U4DVector3n& uDirection){
         
         //Calculate the supporting point Sa-b(v)=sa(v)-sb(-v)
         

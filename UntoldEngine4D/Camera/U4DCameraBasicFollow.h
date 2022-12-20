@@ -18,7 +18,7 @@
 namespace U4DEngine {
     
     class U4DModel;
-    class U4DBoundingAABB;
+    class U4DAABBMesh;
 }
 
 namespace U4DEngine {
@@ -87,7 +87,7 @@ namespace U4DEngine {
         
     public:
         
-        U4DBoundingAABB *cameraBoundingBox;
+        U4DAABBMesh *cameraBoundingBox;
         
         /**
          @brief Method which returns an instace of the U4DCameraBasicFollow singleton
@@ -117,7 +117,7 @@ namespace U4DEngine {
         
         void trackBoundingBox();
         
-        U4DBoundingAABB *getBoundingBox();
+        U4DAABBMesh *getBoundingBox();
         
         void pauseBoxTracking();
         

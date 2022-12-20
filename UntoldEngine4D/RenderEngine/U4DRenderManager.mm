@@ -15,6 +15,7 @@
 #include "U4DSceneEditingState.h"
 #include "U4DSceneActiveState.h"
 #include "U4DScenePlayState.h"
+#include "U4DScenePreviewState.h"
 #include "CommonProtocols.h"
 #include "U4DDirector.h"
 #include "U4DShaderProtocols.h"
@@ -270,7 +271,7 @@ namespace U4DEngine {
         U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
         U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
         
-        if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance() || currentScene->getSceneStateManager()->getCurrentState()== U4DScenePlayState::sharedInstance()) {
+        if (currentScene->getSceneStateManager()->getCurrentState()==U4DSceneEditingState::sharedInstance() || currentScene->getSceneStateManager()->getCurrentState()== U4DScenePlayState::sharedInstance() || currentScene->getSceneStateManager()->getCurrentState()== U4DScenePreviewState::sharedInstance()) {
 
             U4DEditorPass editorPass("none");
             editorPass.executePass(uCommandBuffer, uRootEntity, nullptr);

@@ -8,34 +8,8 @@
 
 #include "U4DEditorPass.h"
 #include "U4DDirector.h"
-#include "U4DRenderManager.h"
-#include "U4DRenderPipelineInterface.h"
-#include "U4DShaderProtocols.h"
-#include "U4DEntity.h"
-#include "U4DProfilerManager.h"
-#include "U4DDebugger.h"
-#include "U4DCamera.h"
-#include "U4DDirectionalLight.h"
-#include "U4DLogger.h"
-#include "U4DScriptManager.h"
-#include "U4DRenderEntity.h"
-#include "U4DRenderPipelineInterface.h"
-#include "U4DModelPipeline.h"
-#include "U4DResourceLoader.h"
-#include "U4DSceneManager.h"
-#include "U4DScene.h"
-#include "U4DSceneStateManager.h"
-#include "U4DSceneEditingState.h"
-#include "U4DScenePlayState.h"
-#include "U4DEntityFactory.h"
-
-#include "U4DWorld.h"
-#include "U4DModel.h"
-#include "U4DSceneConfig.h"
-
-#include "U4DSerializer.h"
-#include "U4DRay.h"
-#include "U4DAABB.h"
+#include "U4DEditor.h"
+#include "U4DDefaultEditor.h"
 
 #import <TargetConditionals.h> 
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
@@ -44,7 +18,7 @@
 #include "ImGuiFileDialog.h"
 #include "ImGuizmo.h"
 #include "imgui_impl_osx.h"
-#include "imnodes.h"
+
 
 #endif
 
@@ -52,9 +26,6 @@ namespace U4DEngine{
 
 U4DEditorPass::U4DEditorPass(std::string uPipelineName):U4DRenderPass(uPipelineName){
     
-    //init node editor
-    
-        
 }
 
 U4DEditorPass::~U4DEditorPass(){
@@ -63,11 +34,14 @@ U4DEditorPass::~U4DEditorPass(){
 
 void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity *uRootEntity, U4DRenderPassInterface *uPreviousRenderPass){
     
+    U4DDirector *director=U4DDirector::sharedInstance();
+    U4DEditor *editor=U4DEditor::sharedInstance();
+    
+    /*
     static bool ScrollToBottom=true;
     static U4DEntity *activeChild=nullptr;
     static std::string assetSelectedName;
     static std::string assetSelectedTypeName;
-    static std::string animationSelectedName;
     static std::string assetSelectedPipelineName;
     static std::string scriptFilePathName;
     static std::string scriptFilePath;
@@ -75,8 +49,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static bool savingScriptFile=false;
     static bool newScriptFile=false;
     
-    static bool assetModelIsSelected=false;
-    static bool assetAnimationIsSelected=false;
+    static bool assetIsSelected=false;
     static bool scriptFilesFound=false;
     static bool scriptLoadedSuccessfully=false;
     static bool lookingForScriptFile=false;
@@ -90,8 +63,10 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static bool shaderFilesFound=false;
     static bool lookingForShaderFile=false;
     
+    static bool scalePlane=false;
     
-    U4DDirector *director=U4DDirector::sharedInstance();
+    
+    
     U4DLogger *logger=U4DLogger::sharedInstance();
     
     U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
@@ -101,8 +76,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     
     U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
     U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
-    
-    U4DSceneConfig *sceneConfig=U4DSceneConfig::sharedInstance();
     
     ImGuiFileDialog gravityFileDialog;
     ImGuiFileDialog hotReloadFileDialog;
@@ -116,12 +89,12 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     static float entityPosition[3];
     static float entityOrientation[3];
     
-    static bool enableKineticsCheckboxFlag=false;
-    static bool enableCollisionCheckboxFlag=false;
-    
     
     float fps=director->getFPS();
     std::string profilerData=sceneManager->profilerData;
+    */
+    
+    static int state=0;
     
     MTLRenderPassDescriptor *mtlRenderPassDescriptor = director->getMTLView().currentRenderPassDescriptor;
            mtlRenderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1);
@@ -140,12 +113,44 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         // Start the Dear ImGui frame
         ImGui_ImplMetal_NewFrame(mtlRenderPassDescriptor);
          
-         ImGui_ImplOSX_NewFrame(director->getMTLView());
+        ImGui_ImplOSX_NewFrame(director->getMTLView());
          
-         ImGui::NewFrame();
+        ImGui::NewFrame();
         
+        if(ImGui::IsKeyReleased(90)){ //z key
+            state=1;
+        }else if(ImGui::IsKeyReleased(88)){ //x key
+            state=2;
+        }else if(ImGui::IsKeyReleased(68)){ //d key
+            state=0;
+        }
         
+        editor->changeState(U4DDefaultEditor::sharedInstance());
+         
+        editor->showEditor();
         
+        /*
+        //zone division
+        {
+            ImGui::Begin("Divide zones");
+            
+            if(ImGui::Button("Divide")){
+                
+                U4DFormationManager formationManager;
+                
+                U4DPlaneMesh *planeMesh=dynamic_cast<U4DPlaneMesh*>(activeChild);
+                
+                float width=planeMesh->maxPoint.x;
+                float height=planeMesh->maxPoint.z;
+                
+                formationManager.divideFieldIntoZones(width, height);
+                
+            }
+            
+            ImGui::End();
+        }
+        
+        //output log
         {
            ImGui::Begin("Output");
            ImGui::TextUnformatted(logger->logBuffer.begin());
@@ -156,6 +161,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
 
         }
         
+        //properties
         {
             
         ImGui::Begin("Properties");                          // Create a window called "Hello, world!" and append into it.
@@ -176,14 +182,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          float pos[3] = {cameraPos.x,cameraPos.y,cameraPos.z};
          float orient[3]={cameraOrient.x,cameraOrient.y,cameraOrient.z};
 
-        if(ImGui::InputFloat3("Pos", pos)){
-            sceneConfig->setScenePropsBehavior("camera", "Scene", "position", &pos[0],3);
-        }
+         ImGui::SliderFloat3("Pos", (float*)&pos,-50.0,50.0);
+         ImGui::SliderFloat3("Orient", (float*)&orient,-90.0,90.0);
 
-        if(ImGui::InputFloat3("Orient", orient)){
-            sceneConfig->setScenePropsBehavior("camera", "Scene", "orientation", &orient[0],3);
-        }
-            
          camera->translateTo(pos[0], pos[1], pos[2]);
          camera->rotateTo(orient[0], orient[1], orient[2]);
 
@@ -199,17 +200,9 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          float lightorient[3]={lightOrient.x,lightOrient.y,lightOrient.z};
          float color[3] = {diffuseColor.x,diffuseColor.y,diffuseColor.z};
 
-        if(ImGui::InputFloat3("Light Pos", lightpos)){
-            sceneConfig->setScenePropsBehavior("light", "Scene", "position", &lightpos[0],3);
-        }
-        
-        if(ImGui::InputFloat3("Light Orient", lightorient)){
-            sceneConfig->setScenePropsBehavior("light", "Scene", "orientation", &lightorient[0],3);
-        }
-        
-        if(ImGui::InputFloat3("Color", color)){
-            sceneConfig->setScenePropsBehavior("light", "Scene", "color", &color[0],3);
-        }
+         ImGui::SliderFloat3("Light Pos", (float*)&lightpos,-30.0,30.0);
+         ImGui::SliderFloat3("Light Orient", (float*)&lightorient,-90.0,90.0);
+         ImGui::SliderFloat3("Color", (float*)&color,0.0,1.0);
 
          diffuseColor=U4DVector3n(color[0],color[1],color[2]);
 
@@ -217,13 +210,12 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
          dirLight->rotateTo(lightorient[0], lightorient[1], lightorient[2]);
          dirLight->setDiffuseColor(diffuseColor);
 
-        
          ImGui::End();
             
         }
     
+        //control
         {
-            
             
         ImGui::Begin("Control");
         
@@ -236,48 +228,34 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             
             if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
                 
-                sceneConfig->removePropertyFromAllEntities();
                 scene->getSceneStateManager()->changeState(U4DSceneEditingState::sharedInstance());
-            
             }
             
         }
             
         ImGui::SameLine();
-        //save config
-        
-            
         if (ImGui::Button("Play")) {
             
             //reset the active child
             activeChild=nullptr;
-            
-            U4DSerializer *serializer=U4DSerializer::sharedInstance();
-            
                 
-            if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance() && serializer->serialize(sceneFilePathName)==true){
+            if(sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()){
                 //change scene state to edit mode
-                
                 scene->getSceneStateManager()->changeState(U4DScenePlayState::sharedInstance());
-                
-                sceneConfig->applyPropertyToAllEntities();
-                
             }else if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
-                
                 scene->setPauseScene(false);
                 logger->log("Game was resumed");
-                
             }
-        
+            
+                
+                
         }
-        
         
         ImGui::SameLine();
         if (ImGui::Button("Pause") && sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()) {
             
             //change scene state to pause
             scene->setPauseScene(true);
-            
             logger->log("Game was paused");
             
         }
@@ -288,99 +266,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
         {
             ImGui::Begin("Game Configs");
             
-            U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
-            U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
-            U4DScene *scene=sceneManager->getCurrentScene();
-            
-            
-            if (scene->getPauseScene() ) {
-                
-                if(ImGui::Button("Add Model")){
-                
-                    if (scene!=nullptr && assetModelIsSelected) {
-                        
-                        //search the scenegraph for current names
-                        
-                        U4DEntity *child=scene->getGameWorld()->next;
-                        
-                        int count=0;
-                        
-                        while (child!=nullptr) {
-                            
-                            //strip all characters up to the period
-                            if(child->getEntityType()==U4DEngine::MODEL){
-                                
-                                std::string s=child->getName();
-                                int n=(int)s.length();
-                                int m=(int)assetSelectedName.length();
-                                int stringLengthDifference=std::abs(n-m);
-
-                                if(n<=stringLengthDifference) stringLengthDifference=n;
-                                //trunk down the name
-                                
-                                s.erase(s.end()-stringLengthDifference, s.end());
-
-                                if (s.compare(assetSelectedName)==0) {
-
-                                    count++;
-
-                                }
-                            }
-                            
-                            child=child->next;
-                            
-                        }
-                        
-                        std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
-                        
-                        //entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName,assetSelectedPipelineName);
-                        
-                        entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, "U4DModel","modelpipeline");
-                        
-                        sceneConfig->addNewEntity(modelNameBuffer,assetSelectedName);
-                        
-                        U4DEntity *newChild=scene->getGameWorld()->searchChild(modelNameBuffer);
-                        
-                        if(newChild!=nullptr){
-                         
-                            childPosition=newChild->getAbsolutePosition();
-                            childOrientation=newChild->getAbsoluteOrientation();
-
-                            entityPosition[0] = childPosition.x;
-                            entityPosition[1] = childPosition.y;
-                            entityPosition[2] = childPosition.z;
-
-                            entityOrientation[0]=childOrientation.x;
-                            entityOrientation[1]=childOrientation.y;
-                            entityOrientation[2]=childOrientation.z;
-                            
-                            sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
-                            
-                            sceneConfig->setEntityBehavior(newChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
-                            
-                        }
-                        
-                        enableKineticsCheckboxFlag=false;
-                        enableCollisionCheckboxFlag=false;
-                        assetModelIsSelected=false;
-                        activeChild=nullptr;
-                        
-                    }
-                    
-                }
-                
-                ImGui::SameLine();
-                if(ImGui::Button("Add Anim")){
-                    if(assetAnimationIsSelected==true && activeChild!=nullptr){
-                    
-                        sceneConfig->addAnimationElement(activeChild->getName().c_str(),animationSelectedName.c_str());
-                        assetAnimationIsSelected=false;
-                    }
-                }
-            
-                
-            
-            }
             //COMMENT OUT FOR NOW-SCRIPT FINE_TUNE SECTION
             if (ImGui::Button("Script")){
                 lookingForScriptFile=true;
@@ -440,7 +325,76 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
     }
         
         if (sceneStateManager->getCurrentState()==U4DSceneEditingState::sharedInstance()) {
+
+            //view front- Press key 1
+            U4DCamera *camera=U4DCamera::sharedInstance();
+
+            if(ImGui::IsKeyReleased(83) && activeChild!=nullptr){
+                scalePlane=true;
+            }
             
+            if(scalePlane==true && ImGui::IsMouseDragging(ImGuiMouseButton_Left)){
+                
+                U4DPlaneMesh *planeMesh=dynamic_cast<U4DPlaneMesh*>(activeChild);
+                planeMesh->updateComputePlane(ImGui::GetMouseDragDelta().x, 0.0, ImGui::GetMouseDragDelta().y);
+                
+            }else if(ImGui::IsMouseReleased(ImGuiMouseButton_Left)){
+                scalePlane=false;
+            }
+            
+            
+            if(ImGui::GetIO().KeyCtrl==true && ImGui::IsKeyReleased(49)){
+                
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(0.0,0.0,camera->getLargestDistanceFromSceneOrigin());
+                camera->rotateTo(180.0,upVector);
+                camera->translateTo(pos);
+                
+            }else if (ImGui::IsKeyReleased(49)){
+                
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(0.0,0.0,-camera->getLargestDistanceFromSceneOrigin());
+                camera->rotateTo(0.0,upVector);
+                camera->translateTo(pos);
+            }
+            
+            //view right- Press key 3
+            if(ImGui::GetIO().KeyCtrl==true && ImGui::IsKeyReleased(51)){
+                
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(camera->getLargestDistanceFromSceneOrigin(),0.0,0.0);
+                camera->rotateTo(-90.0,upVector);
+                camera->translateTo(pos);
+                
+            }else if (ImGui::IsKeyReleased(51)){
+                U4DVector3n upVector(0.0,1.0,0.0);
+                U4DVector3n pos(-camera->getLargestDistanceFromSceneOrigin(),0.0,0.0);
+                camera->rotateTo(90.0,upVector);
+                camera->translateTo(pos);
+            }
+            
+            //view top-Press key 7
+            if(ImGui::GetIO().KeyCtrl==true && ImGui::IsKeyReleased(55)){
+                
+                U4DVector3n upVector(1.0,0.0,0.0);
+                U4DVector3n pos(0.0,-camera->getLargestDistanceFromSceneOrigin(),0.0);
+                camera->rotateTo(-90.0,upVector);
+                camera->translateTo(pos);
+                
+            }else if (ImGui::IsKeyReleased(55)){
+                U4DVector3n upVector(1.0,0.0,0.0);
+                U4DVector3n pos(0.0,camera->getLargestDistanceFromSceneOrigin(),0.0);
+                camera->rotateTo(90.0,upVector);
+                camera->translateTo(pos);
+            }
+            
+            if(ImGui::IsKeyReleased(53)){
+                bool projectionSpace=director->getPerspectiveProjectionEnabled();
+                projectionSpace=!projectionSpace;
+                
+                director->setPerspectiveProjectionEnabled(projectionSpace);
+                
+            }
             //panning, zooming and rotation of editor camera
             {
                 U4DCamera *camera=U4DCamera::sharedInstance();
@@ -453,110 +407,119 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     //pan camera - Shift Key + scroll wheel
                     if(ImGui::GetIO().KeyShift==true){
                         
+                        //camera->translateBy(mouseWheelH, mouseWheelV, 0.0);
                         U4DVector3n dir(mouseWheelH,mouseWheelV,0.0);
                         U4DMatrix3n m=camera->getAbsoluteMatrixOrientation();
                         
                         dir=m*dir;
                         
                         camera->translateBy(dir);
-                    
+                        
                     //zoom camera - Control Key + scroll wheel
                     }else if(ImGui::GetIO().KeyCtrl==true && mouseWheelH==0.0){
                         
-                        U4DVector3n upVector(0.0,1.0,0.0);
-                        U4DVector3n zDir(0.0,0.0,1.0);
-                        
-                        U4DMatrix3n m=camera->getAbsoluteMatrixOrientation();
-                        
-                        zDir=m*zDir;
-                        
-                        U4DVector3n cameraView=camera->getViewInDirection();
-                        cameraView.normalize();
-                        
-                        U4DVector3n xDir=cameraView.cross(upVector);
-                        
-                        float angle=zDir.angle(cameraView);
-                        
-                        if (zDir.dot(xDir)<0.0) {
-                            angle*=-1.0;
+                        if (director->getPerspectiveProjectionEnabled()==false) {
+                            float orthographicScale=director->getOrthographicScale();
+                            
+                            orthographicScale+=mouseWheelV;
+                            
+                            director->setOrthographicScale(orthographicScale);
+                            
+                        }else{
+                            
+                            U4DVector3n upVector(0.0,1.0,0.0);
+                            U4DVector3n zDir(0.0,0.0,1.0);
+                            
+                            U4DMatrix3n m=camera->getAbsoluteMatrixOrientation();
+                            
+                            zDir=m*zDir;
+                            
+                            U4DVector3n cameraView=camera->getViewInDirection();
+                            cameraView.normalize();
+                            
+                            U4DVector3n xDir=cameraView.cross(upVector);
+                            
+                            float angle=zDir.angle(cameraView);
+                            
+                            if (zDir.dot(xDir)<0.0) {
+                                angle*=-1.0;
+                            }
+                            
+                            U4DVector3n n=zDir.rotateVectorAboutAngleAndAxis(angle, upVector);
+                            
+                            if (mouseWheelV<0.0) {
+                                n=n*-1.0;
+                            }
+                            
+                            camera->translateBy(n);
+                            
                         }
                         
-                        U4DVector3n n=zDir.rotateVectorAboutAngleAndAxis(angle, upVector);
-                        
-                        if (mouseWheelV<0.0) {
-                            n=n*-1.0;
-                        }
-                        
-                        camera->translateBy(n);
                         
                     //rotate camera
                     }else{
                         
-                        //rotate camera
-                        //Get the delta movement of the mouse
-                        U4DEngine::U4DVector2n delta(mouseWheelH,mouseWheelV);
-                        
-                        //the y delta should be flipped
-                        delta.y*=-1.0;
-                        
-                        //The following snippet will determine which way to rotate the model depending on the motion of the mouse
-                        float deltaMagnitude=delta.magnitude();
-                        
-                        delta.normalize();
-                        
-                        U4DEngine::U4DVector3n axis;
-                        U4DEngine::U4DVector3n mouseDirection(delta.x,delta.y,0.0);
-                        U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
-                        U4DEngine::U4DVector3n xVector(1.0,0.0,0.0);
-                        
-                        //get the dot product
-                        float upDot, xDot;
-                        upDot=mouseDirection.dot(upVector);
-                        xDot=mouseDirection.dot(xVector);
-                        
-                        U4DEngine::U4DVector3n v=camera->getViewInDirection();
-                        v.normalize();
-                        
-                        if(mouseDirection.magnitude()>0){
-                            //if direction is closest to upvector
-                            if(std::abs(upDot)>=std::abs(xDot)){
-                                //rotate about x axis
-                                if(upDot>0.0){
-                                    axis=v.cross(upVector);
+                        if (director->getPerspectiveProjectionEnabled()) {
+                            
+                            //rotate camera
+                            //Get the delta movement of the mouse
+                            U4DEngine::U4DVector2n delta(mouseWheelH,mouseWheelV);
+                            
+                            //the y delta should be flipped
+                            delta.y*=-1.0;
+                            
+                            //The following snippet will determine which way to rotate the model depending on the motion of the mouse
+                            float deltaMagnitude=delta.magnitude();
+                            
+                            delta.normalize();
+                            
+                            U4DEngine::U4DVector3n axis;
+                            U4DEngine::U4DVector3n mouseDirection(delta.x,delta.y,0.0);
+                            U4DEngine::U4DVector3n upVector(0.0,1.0,0.0);
+                            U4DEngine::U4DVector3n xVector(1.0,0.0,0.0);
+                            
+                            //get the dot product
+                            float upDot, xDot;
+                            upDot=mouseDirection.dot(upVector);
+                            xDot=mouseDirection.dot(xVector);
+                            
+                            U4DEngine::U4DVector3n v=camera->getViewInDirection();
+                            v.normalize();
+                            
+                            if(mouseDirection.magnitude()>0){
+                                //if direction is closest to upvector
+                                if(std::abs(upDot)>=std::abs(xDot)){
+                                    //rotate about x axis
+                                    if(upDot>0.0){
+                                        axis=v.cross(upVector);
 
-                                }else{
-                                    axis=v.cross(upVector)*-1.0;
+                                    }else{
+                                        axis=v.cross(upVector)*-1.0;
 
-                                }
-                            }else{
-                                //rotate about y axis
-                                if(xDot>0.0){
-                                    axis=upVector;
+                                    }
                                 }else{
-                                    axis=upVector*-1.0;
+                                    //rotate about y axis
+                                    if(xDot>0.0){
+                                        axis=upVector;
+                                    }else{
+                                        axis=upVector*-1.0;
+                                    }
                                 }
+                                
+                                //Once we know the angle and axis of rotation, we can rotate the camera using interpolation as shown below
+                                
+                                float angle=deltaMagnitude;
+
+                                camera->rotateBy(angle,axis);
+                            
                             }
                             
-                            //Once we know the angle and axis of rotation, we can rotate the camera using interpolation as shown below
-                            
-                            float angle=deltaMagnitude;
-
-                            camera->rotateBy(angle,axis);
-                        
                         }
                         
                         
                     }
                     
-                    U4DVector3n cameraPos=camera->getAbsolutePosition();
-                    U4DVector3n cameraOrient=camera->getAbsoluteOrientation();
-
-                    float pos[3] = {cameraPos.x,cameraPos.y,cameraPos.z};
-                    float orient[3]={cameraOrient.x,cameraOrient.y,cameraOrient.z};
                     
-                   sceneConfig->setScenePropsBehavior("camera", "Scene", "position", &pos[0],3);
-
-                   sceneConfig->setScenePropsBehavior("camera", "Scene", "orientation", &orient[0],3);
                     
                 }
                 
@@ -638,9 +601,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 
                                 activeChild=model;
                                 
-                                //Read the behaviors set for the entity
-                                enableKineticsCheckboxFlag=sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Kinetics");
-                                enableCollisionCheckboxFlag=sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision");
                             }
 
                         }
@@ -666,10 +626,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     entityOrientation[1]=childOrientation.y;
                     entityOrientation[2]=childOrientation.z;
                     
-                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
-                    
-                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
-                    
                 }
                 
                 
@@ -680,7 +636,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             
             {
                 ImGui::Begin("Assets");
-                
             if (ImGui::TreeNode("Models"))
             {
 
@@ -692,10 +647,10 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                     
                     char buf[32];
                     sprintf(buf, "%s", n.name.c_str());
-                   
-                    if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0) ) {
+                        
+                    if (ImGui::Selectable(buf,n.name.compare(assetSelectedName)==0)) {
                         assetSelectedName=n.name;
-                        assetModelIsSelected=true;
+                        assetIsSelected=true;
                      }
                         
                 }
@@ -705,34 +660,141 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 ImGui::TreePop();
 
             }
-                
-                if (ImGui::TreeNode("Animations"))
-                {
-                        
-                        U4DResourceLoader *resourceLoader=U4DResourceLoader::sharedInstance();
-                        
-                        for (const auto &n : resourceLoader->getAnimationsNamesLoaded()) {
-                            
-                            char buf[32];
-                            sprintf(buf, "%s", n.c_str());
-                                
-                            if (ImGui::Selectable(buf,n.compare(animationSelectedName)==0)) {
-                                animationSelectedName=n;
-                                assetAnimationIsSelected=true;
-                             }
 
-                    }
-                    
-                    ImGui::TreePop();
-
-                }
-                
             ImGui::End();
 
            }
             
-            
+            {
+                if (assetIsSelected) {
+                    
+                    U4DSceneManager *sceneManager=U4DSceneManager::sharedInstance();
+                    U4DEntityFactory *entityFactory=U4DEntityFactory::sharedInstance();
+                    U4DScene *scene=sceneManager->getCurrentScene();
+                    
+                    ImGui::Begin("Load Assets");
+                    
+                    if (scene->getPauseScene()) {
+                        
+                        ImGui::Text("Asset Name: %s", assetSelectedName.c_str());
+                        
+    //                    static char modelNameBuffer[64] = "";
+    //                    ImGui::InputText("Model Name", modelNameBuffer, 64);
+    //
+                        ImGui::Text("Select Asset Type");
+                        
+                        std::vector<std::string> registeredClassesItems=entityFactory->getRegisteredClasses();
+                        
+                        static int registeredClassesCurrentIndex = (int)registeredClassesItems.size()-1; // Here we store our selection data as an index.
+                        
+                        const char* classesComboLabel = registeredClassesItems.at(registeredClassesCurrentIndex).c_str();
+                        
+                        assetSelectedTypeName=registeredClassesItems.at(registeredClassesCurrentIndex).c_str();
+                        
+                        static ImGuiComboFlags classesComboFlags = 0;
+                        
+                        if (ImGui::BeginCombo("Classes", classesComboLabel, classesComboFlags))
+                        {
+                            for (int n = 0; n < registeredClassesItems.size(); n++)
+                            {
+                                const bool is_selected = (registeredClassesCurrentIndex == n);
+                                if (ImGui::Selectable(registeredClassesItems.at(n).c_str(), is_selected)){
+                                    registeredClassesCurrentIndex = n;
+                                    assetSelectedTypeName=registeredClassesItems.at(n);
+                                }
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        
+                        ImGui::Separator();
+                        
+                        
+                        //add combo for pipelines
+                        
+                        ImGui::Text("Select Asset Pipeline");
+                        
+                        U4DRenderManager *renderManager=U4DRenderManager::sharedInstance();
+                        
+                        std::vector<std::string> registeredPipelineItems=renderManager->getRenderingPipelineList();
+                        
+                        static int registeredPipelineCurrentIndex = 0; // Here we store our selection data as an index.
+                        
+                        const char* pipelineComboLabel = registeredPipelineItems.at(registeredPipelineCurrentIndex).c_str();
+                        
+                        assetSelectedPipelineName=registeredPipelineItems.at(registeredPipelineCurrentIndex).c_str();
+                        
+                        static ImGuiComboFlags pipelineComboFlags = 0;
+                        
+                        if (ImGui::BeginCombo("Pipeline", pipelineComboLabel, pipelineComboFlags))
+                        {
+                            for (int n = 0; n < registeredPipelineItems.size(); n++)
+                            {
+                                const bool is_selected = (registeredPipelineCurrentIndex == n);
+                                if (ImGui::Selectable(registeredPipelineItems.at(n).c_str(), is_selected)){
+                                    registeredPipelineCurrentIndex = n;
+                                    assetSelectedPipelineName=registeredPipelineItems.at(n);
+                                }
+                                // Set the initial focus when opening the combo (scrolling + keyboard navigation focus)
+                                if (is_selected)
+                                    ImGui::SetItemDefaultFocus();
+                            }
+                            ImGui::EndCombo();
+                        }
+                        
+                        ImGui::Separator();
+                        
+                        if(ImGui::Button("load Assset")){
+                        
+                            if (scene!=nullptr) {
+                                
+                                //search the scenegraph for current names
+                                
+                                U4DEntity *child=scene->getGameWorld()->next;
+                                
+                                int count=0;
+                                
+                                while (child!=nullptr) {
+                                    
+                                    //strip all characters up to the period
+                                    if(child->getEntityType()==U4DEngine::MODEL){
+                                        
+                                        std::string s=child->getName();
+                                        int n=(int)s.length();
+                                        int m=(int)assetSelectedName.length();
+                                        int stringLengthDifference=std::abs(n-m);
 
+                                        if(n<=stringLengthDifference) stringLengthDifference=n;
+                                        //trunk down the name
+                                        
+                                        s.erase(s.end()-stringLengthDifference, s.end());
+
+                                        if (s.compare(assetSelectedName)==0) {
+
+                                            count++;
+
+                                        }
+                                    }
+                                    
+                                    child=child->next;
+                                    
+                                }
+                                
+                                std::string modelNameBuffer=assetSelectedName+"."+std::to_string(count);
+                                
+                                entityFactory->createModelInstance(assetSelectedName,modelNameBuffer, assetSelectedTypeName,assetSelectedPipelineName);
+                                
+                            }
+                            
+                        }
+                        
+                    }
+                    
+                    ImGui::End();
+                }
+            }
             
             {
                 
@@ -744,7 +806,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                  
                  while (child!=nullptr) {
 
-                     if (child->getEntityType()==U4DEngine::MODEL ) {
+                     if (child->getEntityType()==U4DEngine::MODEL || child->getEntityType()==U4DEngine::PRIMITIVE) {
 
                          char buf[32];
 
@@ -767,10 +829,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                              entityOrientation[1]=childOrientation.y;
                              entityOrientation[2]=childOrientation.z;
                              
-                             sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
-                             
-                             sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
-                             
                              break;
                          }
 
@@ -791,14 +849,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                  if (ImGui::Button("Save")) {
 
                      serialiazeFlag=true;
-                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".xml", ".");
+                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
 
                  }
                  ImGui::SameLine();
                  if (ImGui::Button("Open")) {
 
                      deserializeFlag=true;
-                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".xml", ".");
+                     serializeFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".u4d", ".");
 
                  }
 
@@ -846,20 +904,14 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                 {
                     ImGui::Begin("Entity Properties");
 
-                    if (activeChild!=nullptr) {
+                    if (activeChild!=nullptr && activeChild->getEntityType()==U4DEngine::MODEL) {
 
                         ImGui::Text("Entity Name: %s",activeChild->getName().c_str());
 
                         ImGui::Text("Transform");
-                        
-                        if(ImGui::InputFloat3("Position", entityPosition)){
-                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
-                        }
-                        
-                        if(ImGui::InputFloat3("Orientation", entityOrientation)){
-                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
-                        }
-                        
+                        ImGui::SliderFloat3("Position", (float*)&entityPosition,-20.0,20.0);
+                        ImGui::SliderFloat3("Orientation", (float*)&entityOrientation,-180.0,180.0);
+
                         activeChild->translateTo(entityPosition[0], entityPosition[1], entityPosition[2]);
                         activeChild->rotateTo(entityOrientation[0], entityOrientation[1], entityOrientation[2]);
 
@@ -870,7 +922,6 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                mCurrentGizmoOperation = ImGuizmo::TRANSLATE;
                             if (ImGui::IsKeyPressed(82)) //r is pressed= rotate
                                mCurrentGizmoOperation = ImGuizmo::ROTATE;
-                              
                     
                              static ImGuizmo::MODE mCurrentGizmoMode(ImGuizmo::WORLD);
                                  
@@ -893,6 +944,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                               
                               float matrixTranslation[3], matrixRotation[3], matrixScale[3];
                               ImGuizmo::DecomposeMatrixToComponents(activeChildSpace.matrixData, matrixTranslation, matrixRotation, matrixScale);
+                            
                               
                             if (ImGuizmo::IsUsing()) {
                                 
@@ -904,212 +956,76 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
                                 entityOrientation[1]=matrixRotation[1];
                                 entityOrientation[2]=matrixRotation[2];
                                 
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "position", &entityPosition[0],3);
-                                
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Space", "orientation", &entityOrientation[0],3);
-                                
                                 activeChild->rotateTo(matrixRotation[0], matrixRotation[1], matrixRotation[2]);
                                 activeChild->translateTo(matrixTranslation[0], matrixTranslation[1], matrixTranslation[2]);
+                                
+//                                if(activeChild->getEntityType()==U4DEngine::PRIMITIVE){
+//
+//                                    U4DPlaneMesh *planeMesh=dynamic_cast<U4DPlaneMesh*>(activeChild);
+//                                    planeMesh->updateComputePlane(matrixScale[0], matrixScale[1], matrixScale[2]);
+//
+//                                }
                             }
                              
                         }
                         
                         ImGui::Separator();
-                        
-                        {
-                            ImGui::Text("Physics Properties");
-                            
-                            if(ImGui::Checkbox("Enable Kinetics", &enableKineticsCheckboxFlag)){
-                                
-                                //run enableKineticsCheckboxFlag(activeChild,enableKineticsCheckboxFlag)
-                                //write xml
-                                if(enableKineticsCheckboxFlag){
-                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Kinetics",enableKineticsCheckboxFlag);
-                                    
-                                    
-                                    
-                                    
-                                }else{
-                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Kinetics",enableKineticsCheckboxFlag);
-                                }
-                                
-                            }
-                            
-                            ImGui::Separator();
-                            float gravityData[3];
-                            
-                            //show gravity values
-                            
-                            sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Kinetics", "gravity", &gravityData[0],3);
-                            
-                            
-                            if(ImGui::InputFloat3("Gravity", gravityData)){
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Kinetics","gravity",&gravityData[0],3);
-                            }
-                            
-                            //show mass values
-                            float mass;
-                            
-                            sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Kinetics", "mass", &mass);
-                            if(ImGui::InputFloat("mass", &mass, 0.1f, 1.0f, "%.1f")){
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Kinetics", "mass", mass);
-                            }
-                            
-                            ImGui::Separator();
-                            
-                            if(ImGui::Checkbox("Enable Collision", &enableCollisionCheckboxFlag)){
-                                
-                                if(enableCollisionCheckboxFlag){
-                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision",enableCollisionCheckboxFlag);
-                                }else{
-                                    sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision",enableCollisionCheckboxFlag);
-                                }
-                            }
-                            
-                        }
 
-                        ImGui::Separator();
-                        //show coeff Restitution values
-                        static float coefRestitutionData = 0.8f;
-                        
-                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "coefRestitution", &coefRestitutionData);
-                        if(ImGui::InputFloat("Bounciness", &coefRestitutionData, 0.1f, 1.0f, "%.1f")){
-                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Collision", "coefRestitution", coefRestitutionData);
-                        }
-                        
-                        //isPlatform
-                        bool isPlatform;
-                        
-                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "platform", isPlatform);
-                        
-                        if(ImGui::Checkbox("Platform", &isPlatform)){
-                            
-                            if(isPlatform){
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","platform",isPlatform);
-                                
-                            }else{
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","platform",isPlatform);
-                            }
-                            
-                        }
-                        
-                        char tag[10] ={};
-                        
-                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "tag", tag,IM_ARRAYSIZE(tag));
-                        
-                        if(ImGui::InputTextWithHint("collision tag", "input tag here", tag, IM_ARRAYSIZE(tag))){
-                            sceneConfig->setEntityBehavior(activeChild->getName().c_str(), "Collision", "tag", tag,IM_ARRAYSIZE(tag));
-                        }
-                        
-                        //isSensor
-                        static bool isSensor;
-                        
-                        sceneConfig->getEntityBehavior(activeChild->getName().c_str(), "Collision", "sensor", isSensor);
-                        
-                        if(ImGui::Checkbox("Sensor", &isSensor)){
-                            
-                            if(isSensor){
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","sensor",isSensor);
-                                
-                            }else{
-                                sceneConfig->setEntityBehavior(activeChild->getName().c_str(),"Collision","sensor",isSensor);
-                            }
-                            
-                        }
-                        
+                        ImGui::Text("Render Entity");
+                        U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
+                        U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
+                        ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
+                        ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
+                        ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
 
                         ImGui::Separator();
                         
-                        
-                        
-                        //read all animations
-                        std::vector<std::string> animationsAdded=sceneConfig->getAllAnimationNames(activeChild->getName().c_str());
-                        
-                        static std::string animationLinkedName;
-                        static bool animationLinkedSelected=false;
-                        
-                        //show tree
-                        
-                        if (ImGui::TreeNode("Animations"))
-                        {
+                        if (scene->getPauseScene()) {
                             
-                            for (const auto &n : animationsAdded) {
+                            ImGui::Text("Hot-Reload Shader");
 
-                                char buf[32];
-                                sprintf(buf, "%s", n.c_str());
-                                    
-                                if (ImGui::Selectable(buf,n.compare(animationLinkedName)==0)) {
-                                    animationLinkedName=n;
-                                    animationLinkedSelected=true;
-                                 }
-                                    
+                            // open Dialog Simple
+                            if (ImGui::Button("Open Shader")){
+                                lookingForShaderFile=true;
+                                hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
+                            }
+                                
+                            if (lookingForShaderFile) {
+                                
+                                // display
+                                if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
+                                {
+                                  // action if OK
+                                  if (hotReloadFileDialog.Instance()->IsOk())
+                                  {
+                                    shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
+                                    shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
+                                    // action
+                                    shaderFilesFound=true;
+                                  }else{
+                                    shaderFilesFound=false;
+                                  }
+
+                                  // close
+                                  
+                                   hotReloadFileDialog.Instance()->Close();
+                                }
+
+                              if (shaderFilesFound) {
+
+                                  ImGui::Text("Shader %s", shaderFilePathName.c_str());
+                                  
+                                  if(ImGui::Button("Hot-Reload")){
+                                      
+                                      pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
+                                      lookingForShaderFile=false;
+                                  }
+
+                              }
+                            
                             }
                             
-                            ImGui::TreePop();
-
                         }
-                        
-                        if(animationLinkedSelected){
-                            if(ImGui::Button("Remove Animation")){
-                                sceneConfig->removeAnimationElement(activeChild->getName().c_str(),animationLinkedName.c_str());
-                            }
-                        }
-                        
-//                        ImGui::Text("Render Entity");
-//                        U4DRenderEntity *renderEntity=activeChild->getRenderEntity();
-//                        U4DRenderPipelineInterface *pipeline=renderEntity->getPipeline(U4DEngine::finalPass);
-//                        ImGui::Text("Final-Pass Pipeline Name %s",pipeline->getName().c_str());
-//                        ImGui::Text("Vertex Name %s",pipeline->getVertexShaderName().c_str());
-//                        ImGui::Text("Fragment Name %s",pipeline->getFragmentShaderName().c_str());
-//
-//                        ImGui::Separator();
-//
-//                        if (scene->getPauseScene()) {
-//
-//                            ImGui::Text("Hot-Reload Shader");
-//
-//                            // open Dialog Simple
-//                            if (ImGui::Button("Open Shader")){
-//                                lookingForShaderFile=true;
-//                                hotReloadFileDialog.Instance()->OpenDialog("ChooseFileDlgKey", "Choose File", ".metal", ".");
-//                            }
-//
-//                            if (lookingForShaderFile) {
-//
-//                                // display
-//                                if (hotReloadFileDialog.Instance()->Display("ChooseFileDlgKey"))
-//                                {
-//                                  // action if OK
-//                                  if (hotReloadFileDialog.Instance()->IsOk())
-//                                  {
-//                                    shaderFilePathName = hotReloadFileDialog.Instance()->GetFilePathName();
-//                                    shaderFilePath = hotReloadFileDialog.Instance()->GetCurrentPath();
-//                                    // action
-//                                    shaderFilesFound=true;
-//                                  }else{
-//                                    shaderFilesFound=false;
-//                                  }
-//
-//                                  // close
-//
-//                                   hotReloadFileDialog.Instance()->Close();
-//                                }
-//
-//                              if (shaderFilesFound) {
-//
-//                                  ImGui::Text("Shader %s", shaderFilePathName.c_str());
-//
-//                                  if(ImGui::Button("Hot-Reload")){
-//
-//                                      pipeline->hotReloadShaders(shaderFilePathName.c_str(), pipeline->getVertexShaderName().c_str(), pipeline->getFragmentShaderName().c_str());
-//                                      lookingForShaderFile=false;
-//                                  }
-//
-//                              }
-//
-//                            }
-//
-//                        }
                         
                         ImGui::Separator();
                         
@@ -1156,7 +1072,7 @@ void U4DEditorPass::executePass(id <MTLCommandBuffer> uCommandBuffer, U4DEntity 
             }
                   
         }
-        
+        */
         
         
         ImGui::Render();

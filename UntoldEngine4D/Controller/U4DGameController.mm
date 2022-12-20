@@ -13,6 +13,7 @@
 #include "U4DSceneManager.h"
 #include "U4DSceneStateManager.h"
 #include "U4DScenePlayState.h"
+#include "U4DSceneActiveState.h"
 
 namespace U4DEngine {
 
@@ -99,7 +100,7 @@ namespace U4DEngine {
             gameWorld->receiveUserInputUpdate(uData);
             
             //if the scene is in play scene, then accept user inputs
-            if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance()){
+            if(sceneStateManager->getCurrentState()==U4DScenePlayState::sharedInstance() || sceneStateManager->getCurrentState()==U4DSceneActiveState::sharedInstance()){
                 gameLogic->receiveUserInputUpdate(uData);
             }
             

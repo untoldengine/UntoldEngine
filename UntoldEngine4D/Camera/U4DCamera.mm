@@ -236,6 +236,12 @@ namespace U4DEngine {
         
     }
 
+    float U4DCamera::getLargestDistanceFromSceneOrigin(){
+        
+        U4DVector3n pos=getAbsolutePosition();
+        return std::max(std::abs(pos.x),std::max(std::abs(pos.y),std::abs(pos.z)));
+    }
+
 }
 
 

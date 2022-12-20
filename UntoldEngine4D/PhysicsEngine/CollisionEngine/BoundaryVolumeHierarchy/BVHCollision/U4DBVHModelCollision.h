@@ -16,7 +16,7 @@
 namespace U4DEngine {
     
     class U4DDynamicAction;
-    class U4DBoundingVolume;
+    class U4DMesh;
 }
 
 namespace U4DEngine {
@@ -24,7 +24,7 @@ namespace U4DEngine {
     typedef struct{
         
         U4DDynamicAction *model;
-        U4DBoundingVolume *boundingVolume;
+        U4DMesh *boundingVolume;
         
     }ModelBoundingVolumePair;
 }

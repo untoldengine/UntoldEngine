@@ -217,7 +217,7 @@
            
         //This method is the latest method provided by Metal, but it seems buggy. Sometimes, it creates micro-stuttering. Leaving it here for now. Don't forget to remove this warning
 #if TARGET_OS_MAC && !TARGET_OS_IPHONE
-            [commandBuffer presentDrawable:view.currentDrawable afterMinimumDuration:1.0/view.preferredFramesPerSecond];
+            [commandBuffer presentDrawable:view.currentDrawable];
 #elif TARGET_OS_IOS
             // Fallback on earlier versions
             [commandBuffer presentDrawable:view.currentDrawable];

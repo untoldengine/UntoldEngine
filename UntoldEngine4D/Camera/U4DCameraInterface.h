@@ -15,7 +15,7 @@
 namespace U4DEngine {
 
     class U4DModel;
-    class U4DBoundingAABB;
+    class U4DAABBMesh;
 }
 
 namespace U4DEngine {
@@ -57,7 +57,7 @@ namespace U4DEngine {
 
         virtual void trackBoundingBox()=0;
         
-        virtual U4DBoundingAABB *getBoundingBox()=0;
+        virtual U4DAABBMesh *getBoundingBox()=0;
         
         virtual void pauseBoxTracking()=0;
         
