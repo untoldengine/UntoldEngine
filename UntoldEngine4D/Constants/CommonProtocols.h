@@ -800,6 +800,19 @@ class U4DTeam;
         std::string animationName;
     }PLAYERSTATEATTRIBUTE;
 
+    typedef struct{
+        std::string name;
+        U4DVector2n halfwidth;
+        U4DVector2n origin;
+        U4DVector2n positionWithinZone;
+    }PLAYERZONE;
+
+    enum{
+        running,
+        failed,
+        success,
+    }BTSTATUS;
+
     enum{
         ptConnect,
         ptJoinAttempt,

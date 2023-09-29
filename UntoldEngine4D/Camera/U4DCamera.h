@@ -1,119 +1,109 @@
 //
-//  U4DCamera.h
-//  UntoldEngine
+//  U4DCamera.hpp
+//  UntoldEnginePro
 //
-//  Created by Harold Serrano on 5/15/13.
-//  Copyright (c) 2013 Untold Engine Studios. All rights reserved.
+//  Created by Harold Serrano on 3/9/23.
 //
 
-#ifndef __UntoldEngine__U4DCamera__
-#define __UntoldEngine__U4DCamera__
+#ifndef U4DCamera_hpp
+#define U4DCamera_hpp
 
-#include <iostream>
-#include <vector>
-#include "U4DEntity.h"
-#include "U4DVector3n.h"
-#include "U4DMatrix4n.h"
-#include "U4DDualQuaternion.h"
-#include "U4DCameraInterface.h"
+#include <stdio.h>
+#include "U4DMathUtils.h"
+#include <simd/simd.h>
 
 namespace U4DEngine {
+struct U4DCamera {
     
-    class U4DMath;
-    class U4DVector3n;
-    class U4DMatrix4n;
-    class U4DModel;
-    class U4DPlane;
-}
+    void translateTo( simd::float3 uTranslation ) {
 
-namespace U4DEngine {
+        localPosition = uTranslation;
+        viewSpace.columns[3] = simd::float4 { uTranslation.x, uTranslation.y, uTranslation.z, 1.0 };
+    }
+
+    void translateBy( simd::float3 uPosition ) {
+        localPosition.x += uPosition.x * xaxis.x + uPosition.y * yaxis.x + uPosition.z * zaxis.x;
+        localPosition.y += uPosition.x * xaxis.y + uPosition.y * yaxis.y + uPosition.z * zaxis.y;
+        localPosition.z += uPosition.x * xaxis.z + uPosition.y * yaxis.z + uPosition.z * zaxis.z;
+
+        updateViewMatrix();
+    }
+
+    void updateViewMatrix() {
+
+        rotation = quaternion_normalize( rotation );
+
+        xaxis = right_direction_vector_from_quaternion( rotation );
+        yaxis = up_direction_vector_from_quaternion( rotation );
+        zaxis = forward_direction_vector_from_quaternion( rotation );
+
+        viewSpace = matrix4x4_from_quaternion( rotation );
+
+        viewSpace.columns[3] = simd_float4 { -simd::dot( xaxis, localPosition ), -simd::dot( yaxis, localPosition ), -simd::dot( zaxis, localPosition ), 1 };
+
+        localOrientation = zaxis;
+    }
+
+    void lookAt( simd::float3 eye, simd::float3 target, simd::float3 up ) {
+
+        rotation = quaternion_normalize( quaternion_conjugate( quaternion_lookAt( eye, target, up ) ) );
+        localPosition = eye;
+
+        updateViewMatrix();
+    }
+
+    void orbitAround( simd_float2 uPosition ) {
+
+        // Get the vector pointing to the target
+        simd_float3 targetV = localPosition - orbitTarget;
+        float length = simd_length( targetV );
+        simd_float3 direction = simd_normalize( targetV );
+
+        // rot about yaw first
+        quaternion_float rotationX = quaternion_from_axis_angle( simd_float3 { 0.0, 1.0, 0.0 }, uPosition.x );
+        direction = quaternion_rotate_vector( rotationX, direction );
+        simd_float3 newUpAxis = quaternion_rotate_vector( rotationX, yaxis );
+
+        direction = simd_normalize( direction );
+        newUpAxis = simd_normalize( newUpAxis );
+
+        // now compute the right axis
+        simd_float3 rightAxis = simd_cross( newUpAxis, direction );
+
+        rightAxis = simd_normalize( rightAxis );
+
+        // then rotate about the right axis
+        quaternion_float rotationY = quaternion_from_axis_angle( rightAxis, uPosition.y );
+        direction = quaternion_rotate_vector( rotationY, direction );
+        newUpAxis = quaternion_rotate_vector( rotationY, newUpAxis );
+
+        direction = simd_normalize( direction );
+        newUpAxis = simd_normalize( newUpAxis );
+
+        localPosition = orbitTarget + direction * length;
+
+        lookAt( localPosition, orbitTarget, newUpAxis );
+    }
+
     
-    /**
-     @ingroup camera
-     @brief The U4DCamera class is in charge of implementing a camera entity for the engine
-     */
-    class U4DCamera:public U4DEntity{
-      
-    private:
-        
-        /**
-         @brief Camera Perspective projection view space
-         */
-        U4DMatrix4n perspectiveView;
-        
-        /**
-         @brief Camera Orthographic projection view space
-         */
-        U4DMatrix4n orthographicView;
-        
-        /**
-         @brief Instace for the U4DCamera singleton
-         */
-        static U4DCamera* instance;
-        
-        /**
-         @brief The camera behavior such as first person camera, third person camera, etc
-         */
-        U4DCameraInterface *cameraBehavior;
-        
-    protected:
-        
-        /**
-         @brief Camera constructor
-         */
-         U4DCamera();
-        
-        /**
-         @brief Camera destructor
-         */
-        ~U4DCamera();
-        
-    public:
+    
+    //data
+    simd_float4x4 viewSpace=matrix4x4_identity();
+    quaternion_float rotation = quaternion_identity();
+    simd::float3 localOrientation = simd::float3 { 0.0, 0.0, 0.0 };
+    simd::float3 localPosition = simd::float3 { 0.0, 0.0, 0.0 };
 
-        /**
-         @brief Method which returns an instace of the U4DCamera singleton
-         
-         @return instance of the U4DCamera singleton
-         */
-        static U4DCamera* sharedInstance();
-        
-        /**
-         @brief Method which returns the current view-direction of the camera
-         
-         @return Returns a vector representing the view-direction of the camera
-         */
-        U4DVector3n getViewInDirection();
-        
-        /**
-         @brief Method which sets the view-direction of the camera
-         
-         @param uDestinationPoint Destination point where the camera should be looking at.
-         */
-        void viewInDirection(U4DVector3n& uDestinationPoint);
-        
-        /**
-         @brief Gets the frustum planes of the camera. It returns six plance
-         
-         */
-        std::vector<U4DPlane> getFrustumPlanes();
-        
-        /**
-         @brief Updates the state of the camera
-         
-         @param dt time-step value
-         */
-        void update(double dt);
-        
-        /**
-         @brief Set the behavior of the camera, such as third person, first person, etc
+    simd_float3 xaxis;
 
-         @param uCameraBehavior Camera interface pointer to the behavior type.
-         */
-        void setCameraBehavior(U4DCameraInterface *uCameraBehavior);
+    simd_float3 yaxis;
+
+    simd_float3 zaxis;
+    
+    float fov = 65.0f;
+
+    simd_float3 orbitTarget;
         
-        float getLargestDistanceFromSceneOrigin();
     };
-    
 }
 
-#endif /* defined(__UntoldEngine__U4DCamera__) */
+#endif /* U4DCamera_hpp */

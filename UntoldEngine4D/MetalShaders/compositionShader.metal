@@ -13,23 +13,16 @@
 using namespace metal;
 #include "U4DShaderHelperFunctions.h"
 
-//struct VertexInput {
-//
-//    float4    position [[ attribute(0) ]];
-//    float2    uv       [[ attribute(1) ]];
-//
-//};
-
-struct VertexOutput{
+struct VertexCompOutput{
     
     float4 position [[position]];
     float2 uvCoords;
     
 };
 
-vertex VertexOutput vertexCompShader(constant float2 *quadVertices[[buffer(0)]], constant float2 *quadTexCoords[[buffer(1)]], uint vid [[vertex_id]]){
+vertex VertexCompOutput vertexCompositeShader(constant float2 *quadVertices[[buffer(0)]], constant float2 *quadTexCoords[[buffer(1)]], uint vid [[vertex_id]]){
     
-    VertexOutput vertexOut;
+    VertexCompOutput vertexOut;
     
     vertexOut.uvCoords=quadTexCoords[vid];
     
@@ -38,61 +31,22 @@ vertex VertexOutput vertexCompShader(constant float2 *quadVertices[[buffer(0)]],
     return vertexOut;
 }
 
-fragment float4 fragmentCompShader(VertexOutput vertexOut [[stage_in]], constant UniformSpace &uniformSpace [[buffer(1)]], constant UniformDirectionalLightProperties &uniformDirLightProperties [[buffer(fiDirLightPropertiesBuffer)]], constant UniformPointLightProperties *uniformPointLightProperties [[buffer(fiPointLightsPropertiesBuffer)]], constant UniformGlobalData &uniformGlobalData [[buffer(fiGlobalDataBuffer)]],  texture2d<float> albedoTexture[[texture(0)]], texture2d<float> normalTexture[[texture(1)]], texture2d<float> positionTexture[[texture(2)]], depth2d<float> shadowTexture [[texture(fiDepthTexture)]]){
+fragment float4 fragmentCompositeShader(VertexCompOutput vertexOut [[stage_in]],
+                                        texture2d<float> voxelTexture[[texture(0)]],
+                                        texture2d<float> compTexture[[texture(1)]]){
     
-    constexpr sampler s(min_filter::linear,mag_filter::linear);
+    ushort2 texelCoords=ushort2(vertexOut.uvCoords.x*voxelTexture.get_width(),vertexOut.uvCoords.y*voxelTexture.get_height());
     
-    float4 albedoData=albedoTexture.sample(s,vertexOut.uvCoords);
-    float4 normalData=normalTexture.sample(s,vertexOut.uvCoords);
-    float4 positionData=positionTexture.sample(s,vertexOut.uvCoords);
+    float4 color=voxelTexture.read(ushort2(texelCoords));
     
-    float3 baseColor=albedoData.rgb;
+    float3 w=float3(0.2125,0.7154,0.0721);
+    float lumen=dot(w,color.rgb);
     
-    float4 lightPosition=uniformSpace.viewSpace*uniformDirLightProperties.lightPosition;
-    
-    Material material;
-    
-    material.diffuseMaterialColor=baseColor;
-    material.ambientMaterialColor=float3(1.0)*material.diffuseMaterialColor;
-    
-    //set the light color
-    Light dirLight;
-    dirLight.ambientColor=float3(0.5,0.5,0.5);
-    dirLight.diffuseColor=uniformDirLightProperties.diffuseColor;
-    dirLight.specularColor=uniformDirLightProperties.specularColor;
-    dirLight.energy=uniformDirLightProperties.energy;
-    float4 diffuseColor=computeLightColor(positionData, normalData.rgb, material, dirLight);
-    
-    float4 pointColor=float4(0.0,0.0,0.0,1.0);
-    
-    for(int i=0; i<uniformGlobalData.numberOfPointLights;i++){
-        
-        Light pointLight;
-        
-        pointLight.ambientColor=float3(1.0);
-        pointLight.diffuseColor=uniformPointLightProperties[i].diffuseColor;
-        pointLight.constantAttenuation=uniformPointLightProperties[i].constantAttenuation;
-        pointLight.linearAttenuation=uniformPointLightProperties[i].linearAttenuation;
-        pointLight.expAttenuation=uniformPointLightProperties[i].expAttenuation;
-        pointLight.energy=uniformPointLightProperties[i].energy;
-        pointLight.falloutDistance=uniformPointLightProperties[i].falloutDistance;
-        pointLight.position=uniformSpace.viewSpace*uniformPointLightProperties[i].lightPosition;
-        
-        pointColor+=computePointLightColor(positionData, normalData.rgb, material, pointLight);
-        
+    if(lumen>0.0){
+        return color;
     }
     
-    diffuseColor=max(diffuseColor,pointColor);
-    diffuseColor.a=1.0;
-    
-    float shadow=albedoData.a;
-
-    if(shadow>0){
-        
-        diffuseColor*=shadow;
-    }
-    
-    return diffuseColor;
+    return compTexture.read(ushort2(texelCoords));
     
 }
 
