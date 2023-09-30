@@ -30,103 +30,75 @@
 		03722D842029F21A0080D069 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D832029F21A0080D069 /* Metal.framework */; };
 		03722D862029F2250080D069 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D852029F2250080D069 /* Foundation.framework */; };
 		03722DD8202B3BEC0080D069 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722DD7202B3BEB0080D069 /* GameController.framework */; };
-		03759B39175B0135002EB5D9 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B38175B0135002EB5D9 /* UIKit.framework */; };
-		03759B3B175B0135002EB5D9 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B3A175B0135002EB5D9 /* Foundation.framework */; };
-		039B943D2AC782020047D1A1 /* U4DRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B93F62AC782020047D1A1 /* U4DRenderer.mm */; };
 		039B943E2AC782020047D1A1 /* U4DRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B93F62AC782020047D1A1 /* U4DRenderer.mm */; };
 		039B943F2AC782020047D1A1 /* U4DRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B93F62AC782020047D1A1 /* U4DRenderer.mm */; };
 		039B94402AC782020047D1A1 /* U4DRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B93F62AC782020047D1A1 /* U4DRenderer.mm */; };
-		039B94412AC782020047D1A1 /* compositionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FA2AC782020047D1A1 /* compositionShader.metal */; };
 		039B94422AC782020047D1A1 /* compositionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FA2AC782020047D1A1 /* compositionShader.metal */; };
 		039B94432AC782020047D1A1 /* compositionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FA2AC782020047D1A1 /* compositionShader.metal */; };
 		039B94442AC782020047D1A1 /* compositionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FA2AC782020047D1A1 /* compositionShader.metal */; };
-		039B94452AC782020047D1A1 /* shadowShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FB2AC782020047D1A1 /* shadowShader.metal */; };
 		039B94462AC782020047D1A1 /* shadowShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FB2AC782020047D1A1 /* shadowShader.metal */; };
 		039B94472AC782020047D1A1 /* shadowShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FB2AC782020047D1A1 /* shadowShader.metal */; };
 		039B94482AC782020047D1A1 /* shadowShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FB2AC782020047D1A1 /* shadowShader.metal */; };
-		039B94492AC782020047D1A1 /* voxelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FC2AC782020047D1A1 /* voxelShader.metal */; };
 		039B944A2AC782020047D1A1 /* voxelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FC2AC782020047D1A1 /* voxelShader.metal */; };
 		039B944B2AC782020047D1A1 /* voxelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FC2AC782020047D1A1 /* voxelShader.metal */; };
 		039B944C2AC782020047D1A1 /* voxelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FC2AC782020047D1A1 /* voxelShader.metal */; };
-		039B944D2AC782020047D1A1 /* gridShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FD2AC782020047D1A1 /* gridShader.metal */; };
 		039B944E2AC782020047D1A1 /* gridShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FD2AC782020047D1A1 /* gridShader.metal */; };
 		039B944F2AC782020047D1A1 /* gridShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FD2AC782020047D1A1 /* gridShader.metal */; };
 		039B94502AC782020047D1A1 /* gridShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FD2AC782020047D1A1 /* gridShader.metal */; };
-		039B94512AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */; };
 		039B94522AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */; };
 		039B94532AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */; };
 		039B94542AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */; };
-		039B94552AC782020047D1A1 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94022AC782020047D1A1 /* U4DCamera.mm */; };
 		039B94562AC782020047D1A1 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94022AC782020047D1A1 /* U4DCamera.mm */; };
 		039B94572AC782020047D1A1 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94022AC782020047D1A1 /* U4DCamera.mm */; };
 		039B94582AC782020047D1A1 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94022AC782020047D1A1 /* U4DCamera.mm */; };
-		039B94812AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */; };
 		039B94822AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */; };
 		039B94832AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */; };
 		039B94842AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */; };
-		039B94852AC782020047D1A1 /* U4DJsonReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94212AC782020047D1A1 /* U4DJsonReader.mm */; };
 		039B94862AC782020047D1A1 /* U4DJsonReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94212AC782020047D1A1 /* U4DJsonReader.mm */; };
 		039B94872AC782020047D1A1 /* U4DJsonReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94212AC782020047D1A1 /* U4DJsonReader.mm */; };
 		039B94882AC782020047D1A1 /* U4DJsonReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94212AC782020047D1A1 /* U4DJsonReader.mm */; };
-		039B94892AC782020047D1A1 /* U4DMathUtils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94242AC782020047D1A1 /* U4DMathUtils.mm */; };
 		039B948A2AC782020047D1A1 /* U4DMathUtils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94242AC782020047D1A1 /* U4DMathUtils.mm */; };
 		039B948B2AC782020047D1A1 /* U4DMathUtils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94242AC782020047D1A1 /* U4DMathUtils.mm */; };
 		039B948C2AC782020047D1A1 /* U4DMathUtils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94242AC782020047D1A1 /* U4DMathUtils.mm */; };
-		039B948D2AC782020047D1A1 /* U4DController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94292AC782020047D1A1 /* U4DController.mm */; };
 		039B948E2AC782020047D1A1 /* U4DController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94292AC782020047D1A1 /* U4DController.mm */; };
 		039B948F2AC782020047D1A1 /* U4DController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94292AC782020047D1A1 /* U4DController.mm */; };
 		039B94902AC782020047D1A1 /* U4DController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94292AC782020047D1A1 /* U4DController.mm */; };
-		039B94912AC782020047D1A1 /* U4DComponentPool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942C2AC782020047D1A1 /* U4DComponentPool.mm */; };
 		039B94922AC782020047D1A1 /* U4DComponentPool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942C2AC782020047D1A1 /* U4DComponentPool.mm */; };
 		039B94932AC782020047D1A1 /* U4DComponentPool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942C2AC782020047D1A1 /* U4DComponentPool.mm */; };
 		039B94942AC782020047D1A1 /* U4DComponentPool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942C2AC782020047D1A1 /* U4DComponentPool.mm */; };
-		039B94952AC782020047D1A1 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942F2AC782020047D1A1 /* U4DScene.mm */; };
 		039B94962AC782020047D1A1 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942F2AC782020047D1A1 /* U4DScene.mm */; };
 		039B94972AC782020047D1A1 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942F2AC782020047D1A1 /* U4DScene.mm */; };
 		039B94982AC782020047D1A1 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942F2AC782020047D1A1 /* U4DScene.mm */; };
-		039B94992AC782020047D1A1 /* U4DLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94332AC782020047D1A1 /* U4DLight.mm */; };
 		039B949A2AC782020047D1A1 /* U4DLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94332AC782020047D1A1 /* U4DLight.mm */; };
 		039B949B2AC782020047D1A1 /* U4DLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94332AC782020047D1A1 /* U4DLight.mm */; };
 		039B949C2AC782020047D1A1 /* U4DLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94332AC782020047D1A1 /* U4DLight.mm */; };
-		039B949D2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */; };
 		039B949E2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */; };
 		039B949F2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */; };
 		039B94A02AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */; };
-		039B94A12AC782020047D1A1 /* U4DRenderSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94372AC782020047D1A1 /* U4DRenderSystem.mm */; };
 		039B94A22AC782020047D1A1 /* U4DRenderSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94372AC782020047D1A1 /* U4DRenderSystem.mm */; };
 		039B94A32AC782020047D1A1 /* U4DRenderSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94372AC782020047D1A1 /* U4DRenderSystem.mm */; };
 		039B94A42AC782020047D1A1 /* U4DRenderSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94372AC782020047D1A1 /* U4DRenderSystem.mm */; };
-		039B94A52AC782020047D1A1 /* U4DTransformSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94382AC782020047D1A1 /* U4DTransformSystem.mm */; };
 		039B94A62AC782020047D1A1 /* U4DTransformSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94382AC782020047D1A1 /* U4DTransformSystem.mm */; };
 		039B94A72AC782020047D1A1 /* U4DTransformSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94382AC782020047D1A1 /* U4DTransformSystem.mm */; };
 		039B94A82AC782020047D1A1 /* U4DTransformSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94382AC782020047D1A1 /* U4DTransformSystem.mm */; };
-		039B94A92AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
 		039B94AA2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
 		039B94AB2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
 		039B94AC2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
-		039B94B22AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
 		039B94B32AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
 		039B94B42AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
 		039B94B52AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
-		039B94B62AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
 		039B94B72AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
 		039B94B82AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
 		039B94B92AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
-		039B94BA2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
 		039B94BB2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
 		039B94BC2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
 		039B94BD2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
-		039B94BE2AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
 		039B94BF2AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
 		039B94C02AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
 		039B94C12AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
-		039B94C22AC785670047D1A1 /* gameboyvoxel.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B12AC785670047D1A1 /* gameboyvoxel.json */; };
 		039B94C32AC785670047D1A1 /* gameboyvoxel.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B12AC785670047D1A1 /* gameboyvoxel.json */; };
 		039B94C42AC785670047D1A1 /* gameboyvoxel.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B12AC785670047D1A1 /* gameboyvoxel.json */; };
 		039B94C52AC785670047D1A1 /* gameboyvoxel.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B12AC785670047D1A1 /* gameboyvoxel.json */; };
-		03F2DAC01F1911CA00F77B78 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DABF1F1911CA00F77B78 /* Metal.framework */; };
-		03F2DAC21F1911D000F77B78 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DAC11F1911D000F77B78 /* MetalKit.framework */; };
-		03F2DB211F19471300F77B78 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DB201F19471300F77B78 /* QuartzCore.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -165,7 +137,6 @@
 		03722D852029F2250080D069 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UntoldEngine-Prefix.pch"; sourceTree = "<group>"; };
 		03722DD7202B3BEB0080D069 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
-		03759B34175B0135002EB5D9 /* UntoldEngine.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = UntoldEngine.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		03759B38175B0135002EB5D9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		03759B3A175B0135002EB5D9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		0376618627558F240098E008 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
@@ -220,7 +191,6 @@
 		039B942D2AC782020047D1A1 /* U4DComponentPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DComponentPool.h; sourceTree = "<group>"; };
 		039B942E2AC782020047D1A1 /* U4DScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DScene.h; sourceTree = "<group>"; };
 		039B942F2AC782020047D1A1 /* U4DScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DScene.mm; sourceTree = "<group>"; };
-		039B94302AC782020047D1A1 /* modulesdoxygen.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = modulesdoxygen.h; sourceTree = "<group>"; };
 		039B94322AC782020047D1A1 /* U4DLight.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DLight.h; sourceTree = "<group>"; };
 		039B94332AC782020047D1A1 /* U4DLight.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DLight.mm; sourceTree = "<group>"; };
 		039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DLoadingSystem.mm; sourceTree = "<group>"; };
@@ -274,36 +244,9 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		03759B31175B0135002EB5D9 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				03F2DB211F19471300F77B78 /* QuartzCore.framework in Frameworks */,
-				03F2DAC21F1911D000F77B78 /* MetalKit.framework in Frameworks */,
-				03F2DAC01F1911CA00F77B78 /* Metal.framework in Frameworks */,
-				03759B39175B0135002EB5D9 /* UIKit.framework in Frameworks */,
-				03759B3B175B0135002EB5D9 /* Foundation.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		036FB55718CE9CB8000EA639 /* Game */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			name = Game;
-			path = game;
-			sourceTree = "<group>";
-		};
-		03722B042029F0210080D069 /* Untold4D Shared */ = {
-			isa = PBXGroup;
-			children = (
-			);
-			path = "Untold4D Shared";
-			sourceTree = "<group>";
-		};
 		03722B0F2029F0210080D069 /* Untold4D iOS */ = {
 			isa = PBXGroup;
 			children = (
@@ -351,16 +294,9 @@
 		03759B29175B0135002EB5D9 = {
 			isa = PBXGroup;
 			children = (
-				039B94B02AC785670047D1A1 /* floorchunk.json */,
-				039B94B12AC785670047D1A1 /* gameboyvoxel.json */,
-				039B94AD2AC785670047D1A1 /* puppy.json */,
-				039B94AE2AC785670047D1A1 /* puppy2.json */,
-				039B94AF2AC785670047D1A1 /* puppy3.json */,
-				039B93F32AC782020047D1A1 /* UntoldEngine4D */,
 				03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */,
-				036FB55718CE9CB8000EA639 /* Game */,
+				039B93F32AC782020047D1A1 /* UntoldEngine4D */,
 				037E2066192D3DED00D375F2 /* Resources */,
-				03722B042029F0210080D069 /* Untold4D Shared */,
 				03722B0F2029F0210080D069 /* Untold4D iOS */,
 				03722B242029F0220080D069 /* Untold4D tvOS */,
 				03722B362029F0220080D069 /* Untold4D macOS */,
@@ -372,7 +308,6 @@
 		03759B35175B0135002EB5D9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				03759B34175B0135002EB5D9 /* UntoldEngine.app */,
 				03722B0E2029F0210080D069 /* Untold4D.app */,
 				03722B232029F0220080D069 /* Untold4D.app */,
 				03722B352029F0220080D069 /* Untold4D.app */,
@@ -405,6 +340,11 @@
 		037E2066192D3DED00D375F2 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				039B94B02AC785670047D1A1 /* floorchunk.json */,
+				039B94B12AC785670047D1A1 /* gameboyvoxel.json */,
+				039B94AD2AC785670047D1A1 /* puppy.json */,
+				039B94AE2AC785670047D1A1 /* puppy2.json */,
+				039B94AF2AC785670047D1A1 /* puppy3.json */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -422,7 +362,6 @@
 				039B94262AC782020047D1A1 /* Globals.h */,
 				039B94272AC782020047D1A1 /* Controller */,
 				039B942A2AC782020047D1A1 /* Components */,
-				039B94302AC782020047D1A1 /* modulesdoxygen.h */,
 				039B94312AC782020047D1A1 /* Light */,
 				039B94342AC782020047D1A1 /* Systems */,
 			);
@@ -620,23 +559,6 @@
 			productReference = 03722B352029F0220080D069 /* Untold4D.app */;
 			productType = "com.apple.product-type.application";
 		};
-		03759B33175B0135002EB5D9 /* UntoldEngine */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 03759B63175B0135002EB5D9 /* Build configuration list for PBXNativeTarget "UntoldEngine" */;
-			buildPhases = (
-				03759B30175B0135002EB5D9 /* Sources */,
-				03759B31175B0135002EB5D9 /* Frameworks */,
-				03759B32175B0135002EB5D9 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = UntoldEngine;
-			productName = UntoldEngine4D;
-			productReference = 03759B34175B0135002EB5D9 /* UntoldEngine.app */;
-			productType = "com.apple.product-type.application";
-		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -661,9 +583,6 @@
 						DevelopmentTeam = PXXZLXYJ26;
 						ProvisioningStyle = Automatic;
 					};
-					03759B33175B0135002EB5D9 = {
-						DevelopmentTeam = PXXZLXYJ26;
-					};
 				};
 			};
 			buildConfigurationList = 03759B2E175B0135002EB5D9 /* Build configuration list for PBXProject "UntoldEngine" */;
@@ -680,7 +599,6 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				03759B33175B0135002EB5D9 /* UntoldEngine */,
 				03722B0D2029F0210080D069 /* Untold4D iOS */,
 				03722B222029F0220080D069 /* Untold4D tvOS */,
 				03722B342029F0220080D069 /* Untold4D macOS */,
@@ -726,18 +644,6 @@
 				039B94C52AC785670047D1A1 /* gameboyvoxel.json in Resources */,
 				039B94C12AC785670047D1A1 /* floorchunk.json in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		03759B32175B0135002EB5D9 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				039B94B22AC785670047D1A1 /* puppy.json in Resources */,
-				039B94C22AC785670047D1A1 /* gameboyvoxel.json in Resources */,
-				039B94BA2AC785670047D1A1 /* puppy3.json in Resources */,
-				039B94BE2AC785670047D1A1 /* floorchunk.json in Resources */,
-				039B94B62AC785670047D1A1 /* puppy2.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -828,31 +734,6 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		03759B30175B0135002EB5D9 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				039B94992AC782020047D1A1 /* U4DLight.mm in Sources */,
-				039B94512AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */,
-				039B94A52AC782020047D1A1 /* U4DTransformSystem.mm in Sources */,
-				039B94852AC782020047D1A1 /* U4DJsonReader.mm in Sources */,
-				039B949D2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */,
-				039B94A92AC782020047D1A1 /* U4DComputeSystem.mm in Sources */,
-				039B943D2AC782020047D1A1 /* U4DRenderer.mm in Sources */,
-				039B94812AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */,
-				039B94A12AC782020047D1A1 /* U4DRenderSystem.mm in Sources */,
-				039B94952AC782020047D1A1 /* U4DScene.mm in Sources */,
-				039B94452AC782020047D1A1 /* shadowShader.metal in Sources */,
-				039B94912AC782020047D1A1 /* U4DComponentPool.mm in Sources */,
-				039B944D2AC782020047D1A1 /* gridShader.metal in Sources */,
-				039B94552AC782020047D1A1 /* U4DCamera.mm in Sources */,
-				039B94412AC782020047D1A1 /* compositionShader.metal in Sources */,
-				039B94892AC782020047D1A1 /* U4DMathUtils.mm in Sources */,
-				039B94492AC782020047D1A1 /* voxelShader.metal in Sources */,
-				039B948D2AC782020047D1A1 /* U4DController.mm in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
@@ -926,11 +807,7 @@
 				INFOPLIST_FILE = "Untold4D iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/ioslib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -976,11 +853,7 @@
 				INFOPLIST_FILE = "Untold4D iOS/Info.plist";
 				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/ioslib",
-				);
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -1097,14 +970,9 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = NO;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports-games";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/maclib",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 12.3;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -1145,14 +1013,9 @@
 				GCC_WARN_ABOUT_RETURN_TYPE = NO;
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
-				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.sports-games";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem",
-					"$(PROJECT_DIR)/UntoldEngine4D/NetworkSystem/maclib",
-				);
-				MACOSX_DEPLOYMENT_TARGET = 12.3;
+				LIBRARY_SEARCH_PATHS = "$(inherited)";
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
 				PRODUCT_NAME = Untold4D;
@@ -1198,6 +1061,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
 				ONLY_ACTIVE_ARCH = YES;
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -1235,64 +1099,13 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
+				MACOSX_DEPLOYMENT_TARGET = 13.3;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
 				STRIP_PNG_TEXT = NO;
 				TARGETED_DEVICE_FAMILY = "1,2";
 				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		03759B64175B0135002EB5D9 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMPRESS_PNG_FILES = NO;
-				DEVELOPMENT_TEAM = PXXZLXYJ26;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "UntoldEngine4D/UntoldEngine-Prefix.pch";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
-				);
-				INFOPLIST_FILE = "UntoldEngine4D/UntoldEngine-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					/Users/haroldserrano/Downloads/Simple,
-					OpenGL,
-					Image,
-					Library/lib,
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine;
-				PRODUCT_NAME = UntoldEngine;
-				WRAPPER_EXTENSION = app;
-			};
-			name = Debug;
-		};
-		03759B65175B0135002EB5D9 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				COMPRESS_PNG_FILES = NO;
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
-				GCC_PRECOMPILE_PREFIX_HEADER = YES;
-				GCC_PREFIX_HEADER = "UntoldEngine4D/UntoldEngine-Prefix.pch";
-				HEADER_SEARCH_PATHS = (
-					"$(inherited)",
-					/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/include,
-				);
-				INFOPLIST_FILE = "UntoldEngine4D/UntoldEngine-Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 11.2;
-				LIBRARY_SEARCH_PATHS = (
-					"$(inherited)",
-					/Users/haroldserrano/Downloads/Simple,
-					OpenGL,
-					Image,
-					Library/lib,
-				);
-				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine;
-				PRODUCT_NAME = UntoldEngine;
-				WRAPPER_EXTENSION = app;
 			};
 			name = Release;
 		};
@@ -1331,15 +1144,6 @@
 			buildConfigurations = (
 				03759B61175B0135002EB5D9 /* Debug */,
 				03759B62175B0135002EB5D9 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		03759B63175B0135002EB5D9 /* Build configuration list for PBXNativeTarget "UntoldEngine" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				03759B64175B0135002EB5D9 /* Debug */,
-				03759B65175B0135002EB5D9 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
