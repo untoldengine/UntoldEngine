@@ -26,8 +26,6 @@ U4DEngine::VoxelPool voxelPool;
 
 U4DEngine::U4DCamera camera;
 U4DEngine::U4DController controller;
-//U4DEngine::Pipelines meshShaderPipeline;
-//U4DEngine::Pipelines model3DPipeline;
 
 U4DEngine::RenderPipelines gridPipeline;
 U4DEngine::RenderPipelines shadowPipeline;
