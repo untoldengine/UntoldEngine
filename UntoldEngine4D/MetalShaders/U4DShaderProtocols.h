@@ -8,58 +8,52 @@
 
 #ifndef U4DShaderProtocols_h
 #define U4DShaderProtocols_h
-
+#ifdef __METAL_VERSION__
+#define NS_ENUM(_type, _name) enum _name : _type _name; enum _name : _type
+typedef metal::int32_t EnumBackingType;
+#else
+#import <Foundation/Foundation.h>
+typedef NSInteger EnumBackingType;
+#endif
 #include <simd/simd.h>
 
-typedef enum VertexBufferIndices{
-    
-    viAttributeBuffer= 0,
-    viSpaceBuffer = 1,
-    viModelRenderFlagBuffer=2,
-    viBoneBuffer=3,
-    viModelShaderPropertyBuffer=4,
-    viGlobalDataBuffer=5,
-    viDirLightPropertiesBuffer=6,
-    viParticlesPropertiesBuffer=7,
-    
-}VertexBufferIndices;
+typedef enum BufferIndex{
+    positionBufferIndex=0,
+    normalBufferIndex,
+    colorBufferIndex,
+    uniformSpaceBufferIndex,
+    lightOrthoViewSpaceBufferIndex,
+    lightPositionBufferIndex,
+}BufferIndex;
 
-typedef enum FragmentBufferIndices{
-    
-    fiMaterialBuffer=0,
-    fiModelRenderFlagsBuffer=1,
-    fiModelShaderPropertyBuffer=2,
-    fiGlobalDataBuffer=3,
-    fiDirLightPropertiesBuffer=4,
-    fiShadowPropertiesBuffer=5,
-    fiParticleSysPropertiesBuffer=6,
-    fiShaderEntityPropertyBuffer=7,
-    fiGeometryBuffer=8,
-    fiPointLightsPropertiesBuffer=9,
-    fiSpaceBuffer=10
-    
-}FragmentBufferIndices;
+//typedef NS_ENUM(EnumBackingType, BufferIndex)
+//{
+//    BufferIndexMeshPositions = 0,
+//    BufferIndexMeshGenerics  = 1,
+//    BufferIndexMeshNormals = 2,
+//    BufferIndexUniforms      = 3
+//
+//};
+
+//typedef NS_ENUM(EnumBackingType, VertexAttribute)
+//{
+//    VertexAttributePosition  = 0,
+//    VertexAttributeTexcoord  = 1,
+//    VertexAttributeNormals = 2,
+//};
+//
+//typedef NS_ENUM(EnumBackingType, TextureIndex)
+//{
+//    TextureIndexColor    = 0,
+//};
+
+
 
 typedef enum FragmentTextureIndices{
     
-    fiTexture0=0,
-    fiTexture1=1,
-    fiTexture2=2,
-    fiTexture3=3,
-    fiNormalTexture=4,
-    fiDepthTexture=5,
+    shadowTextureIndex=0,
     
 }FragmentTextureIndices;
-
-typedef enum FragmentSamplerIndices{
-    
-    fiSampler0=0,
-    fiSampler1=1,
-    fiSampler2=2,
-    fiSampler3=3,
-    fiNormalSampler=4,
-    
-}FragmentSamplerIndices;
 
 typedef struct{
     matrix_float4x4 modelSpace;
@@ -67,7 +61,7 @@ typedef struct{
     matrix_float4x4 modelViewSpace;
     matrix_float4x4 projectionSpace;
     matrix_float4x4 viewSpace;
-    matrix_float3x3 normalSpace;
+    matrix_float4x4 normalSpace;
 } UniformSpace;
 
 typedef struct{

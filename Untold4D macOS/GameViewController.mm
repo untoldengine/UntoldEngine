@@ -8,20 +8,11 @@
 
 #import "GameViewController.h"
 #import "U4DRenderer.h"
-#import "U4DDirector.h"
-#import "U4DCamera.h"
-#include "U4DTouches.h"
-#include "U4DLogger.h"
-#include "U4DVector2n.h"
-#include "U4DControllerInterface.h"
-#include "U4DSceneManager.h"
-#include "SandboxScene.h"
-#include "CommonProtocols.h"
+#include "U4DCamera.h"
+#include "U4DController.h"
 
-#include "imgui.h"
-#include "imgui_impl_metal.h"
-#include "imgui_impl_osx.h"
-#include "imnodes.h"
+extern U4DEngine::U4DCamera camera;
+extern U4DEngine::U4DController controller;
 
 @implementation GameViewController
 {
@@ -31,6 +22,7 @@
     
     NSTrackingArea *trackingArea;
     
+    bool shiftKey;
 }
 
 - (void)viewDidLoad
@@ -44,6 +36,7 @@
     metalView.device=MTLCreateSystemDefaultDevice();
     
     metalView.colorPixelFormat=MTLPixelFormatBGRA8Unorm;
+    metalView.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
     
     // Indicate that we would like the view to call our -[AAPLRender drawInMTKView:] 60 times per
     //   second.  This rate is not guaranteed: the view will pick a closest framerate that the
@@ -52,7 +45,7 @@
     //   further calls until the renderer has returned from that long -[AAPLRender drawInMTKView:]
     //   call.  In other words, the view will drop frames.  So we should set this to a frame rate
     //   that we think our renderer can consistently maintain.
-    metalView.preferredFramesPerSecond = 60;
+    metalView.preferredFramesPerSecond = 120;
     
     metalView.autoResizeDrawable=YES;
     
@@ -75,16 +68,16 @@
     
     metalView.delegate = renderer;
     
-    //set device OS type
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    
-    U4DEngine::DEVICEOSTYPE deviceOSType=U4DEngine::deviceOSMACX;
-    
-    director->setDeviceOSType(deviceOSType);
+//    //set device OS type
+//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
+//
+//    U4DEngine::DEVICEOSTYPE deviceOSType=U4DEngine::deviceOSMACX;
+//
+//    director->setDeviceOSType(deviceOSType);
     
     // notifications for controller (dis)connect
-    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasConnected:) name:GCControllerDidConnectNotification object:nil];
-    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasDisconnected:) name:GCControllerDidDisconnectNotification object:nil];
+//    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasConnected:) name:GCControllerDidConnectNotification object:nil];
+//    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasDisconnected:) name:GCControllerDidDisconnectNotification object:nil];
     
     //tracking area used to detect if mouse is within window
     
@@ -95,22 +88,7 @@
     //display screen backing change notification
     [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenScaleFactorChanged:) name:NSWindowDidChangeBackingPropertiesNotification object:nil];
     
-    //If using the keyboard, then set it to false. If using a controller then set it to true
-    director->setGamePadControllerPresent(false);
 
-    NSEventMask eventMask = NSEventMaskKeyDown | NSEventMaskKeyUp | NSEventMaskFlagsChanged | NSEventTypeScrollWheel;
-     [NSEvent addLocalMonitorForEventsMatchingMask:eventMask handler:^NSEvent * _Nullable(NSEvent *event)
-     {
-         ImGui_ImplOSX_HandleEvent(event, self.view);
-         return event;
-     }];
-
-     ImGui_ImplOSX_Init();
-    
-    //init imgui nodes
-    ImGui::CreateContext();
-    ImNodes::CreateContext();
-    
     
 }
 
@@ -119,13 +97,7 @@
     [super viewWillAppear];
     [self.view.window makeFirstResponder:metalView];
     [self.view.window center];
-    //[self.view.window setInitialFirstResponder:metalView];
-//    [[[NSApplication sharedApplication] mainWindow] center];
-//    //make the game view controller the first responder so it can receive keyboard inputs
-//    [[[NSApplication sharedApplication] mainWindow] makeFirstResponder:metalView];
-//
-//    [[[NSApplication sharedApplication] mainWindow] setInitialFirstResponder:metalView];
-    
+
 }
 
 - (void)viewDidAppear {
@@ -133,222 +105,60 @@
     [super viewDidAppear];
     
    
-    
-    //get screen backing scale
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    float contentScale = [[[NSApplication sharedApplication] mainWindow] backingScaleFactor];
-    director->setScreenScaleFactor(contentScale);
-    
-    //call the scene manager
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-
-    //initialize the scene for your game
-    SandboxScene *sandboxScene=new SandboxScene();
-    
-    sceneManager->changeScene(sandboxScene);
-    
-    
-//    BOOL success = [self acceptsFirstResponder];
-//    if (success) {
-//        NSLog(@"engine became the first responder");
-//    } else {
-//        NSLog(@"Could not become first responder");
-//    }
+  
 
 }
 
 - (void)screenScaleFactorChanged:(NSNotification *)notification {
     
-    float contentScale = [[[NSApplication sharedApplication] mainWindow] backingScaleFactor];
-    
-    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-    director->setScreenScaleFactor(contentScale);
+
 }
 
 - (void)controllerWasConnected:(NSNotification *)notification {
     
-    // a controller was connected
-    GCController *controller = (GCController *)notification.object;
-    
-    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
-    
-    if (controller.extendedGamepad!=nil) {
 
-        logger->log("Controller has an Extended gamepad");
-
-    }
-    
-    logger->log("Controller is connected");
-    
-    [self registerControllerInput];
     
 }
 
 - (void)controllerWasDisconnected:(NSNotification *)notification {
     
-    // a controller was disconnected
-    //GCController *controller = (GCController *)notification.object;
-    
-    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
-    
-    logger->log("Controller is disconnected");
-    
+
 }
 
 - (void)registerControllerInput {
-    // register block for input change detection
     
-    GCController *controller=[GCController controllers][0];
-
-    GCExtendedGamepad *profile=controller.extendedGamepad;
-
-    U4DEngine::U4DLogger *logger=U4DEngine::U4DLogger::sharedInstance();
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-
-    if (profile!=nil && gameController!=nullptr) {
-
-        profile.valueChangedHandler = ^(GCExtendedGamepad *gamepad, GCControllerElement *element)
-        {
-            
-            gameController->getUserInputData(gamepad, element);
-            
-
-        };
-
-    }else{
-
-        logger->log("Game Controller profile is null");
-
-    }
     
 }
 
 - (void)flagsChanged:(NSEvent *)theEvent{
     
     NSUInteger flags = [[NSApp currentEvent] modifierFlags];
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
 
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-            
-        if (flags & NSEventModifierFlagShift)
-        {
-            //shift key pressed
-            if(theEvent.keyCode==56){
-                 
-                gameController->getUserInputData(U4DEngine::macShiftKey, U4DEngine::macKeyPressed);
-                
-            }
-
-        }else{
-            //shift key released
-            if(theEvent.keyCode==56){
-                
-                gameController->getUserInputData(U4DEngine::macShiftKey, U4DEngine::macKeyReleased);
-                
-            }
+    if (flags & NSEventModifierFlagShift)
+    {
+        //shift key pressed
+        if(theEvent.keyCode==56){
+            shiftKey=true;
         }
-        
+
+    }else{
+        //shift key released
+        if(theEvent.keyCode==56){
+            shiftKey=false;
+        }
     }
-    
     
 }
 
 - (void)keyDown:(NSEvent *)theEvent
 {
-    unichar character = [[theEvent characters] characterAtIndex:0];
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-        
-        if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
 
-            U4DEngine::U4DVector2n padAxis;
-
-            if (character==NSUpArrowFunctionKey) {
-                padAxis=U4DEngine::U4DVector2n(0.0,1.0);
-
-            }else if(character==NSDownArrowFunctionKey){
-
-                padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
-
-            }else if(character==NSLeftArrowFunctionKey){
-
-                padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
-
-            }else if(character==NSRightArrowFunctionKey){
-
-                padAxis=U4DEngine::U4DVector2n(1.0,0.0);
-            }
-            
-            gameController->getUserInputData(U4DEngine::macArrowKey, U4DEngine::macArrowKeyActive, padAxis);
-            
-        }else{
-            
-            gameController->getUserInputData(character, U4DEngine::macKeyPressed);
-            
-        }
-        
-    }
-    
 }
 
 - (void)keyUp:(NSEvent *)theEvent
 {
  
-    unichar character = [[theEvent characters] characterAtIndex:0];
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-        
-        if(character==NSUpArrowFunctionKey || character==NSDownArrowFunctionKey || character==NSLeftArrowFunctionKey || character==NSRightArrowFunctionKey){
 
-            U4DEngine::U4DVector2n padAxis;
-
-            if (character==NSUpArrowFunctionKey) {
-                padAxis=U4DEngine::U4DVector2n(0.0,1.0);
-
-            }else if(character==NSDownArrowFunctionKey){
-
-                padAxis=U4DEngine::U4DVector2n(0.0,-1.0);
-
-            }else if(character==NSLeftArrowFunctionKey){
-
-                padAxis=U4DEngine::U4DVector2n(-1.0,0.0);
-
-            }else if(character==NSRightArrowFunctionKey){
-
-                padAxis=U4DEngine::U4DVector2n(1.0,0.0);
-            }
-            
-            gameController->getUserInputData(U4DEngine::macArrowKey, U4DEngine::macArrowKeyReleased, padAxis);
-            
-        }else{
-            
-            gameController->getUserInputData(character, U4DEngine::macKeyReleased);
-            
-        }
-        
-    }
     
 }
 
@@ -359,55 +169,7 @@
 - (void)mouseMoved:(NSEvent *)theEvent {
     
     
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
 
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    //get mouse location
-    NSPoint mouseMovePos = [theEvent locationInWindow];
-    
-    int xDelta;
-    int yDelta;
-
-    //get the mouse delta movement
-    CGGetLastMouseDelta(&xDelta, &yDelta);
-    
-    U4DEngine::U4DVector2n mouseLocation(mouseMovePos.x,mouseMovePos.y);
-    
-    U4DEngine::U4DVector2n mouseDeltaLocation(xDelta,yDelta);
-
-    if(gameController!=nullptr){
-        
-        //if game current scene mouse not anchored
-        if(!currentScene->getAnchorMouse()){
-            
-            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActive, mouseLocation);
-            
-        }else{
-            
-            //else if current scene mouse locked
-            
-            //The following snippets are required to anchor the mouse cursor to the center of the screen
-            
-            //get the center position of the view
-            NSPoint d=NSMakePoint(metalView.frame.origin.x+metalView.frame.size.width/2, metalView.frame.origin.y+metalView.frame.size.height/2);
-
-            NSRect sp = [[[NSApplication sharedApplication] mainWindow] convertRectToScreen:NSMakeRect(d.x, d.y, 0.0, 0.0)];
-
-            //move the cursor back to the center
-            // CGAssociateMouseAndMouseCursorPosition(false);
-            CGWarpMouseCursorPosition(CGPointMake(sp.origin.x, sp.origin.y));
-            //CGAssociateMouseAndMouseCursorPosition(true);
-            
-            gameController->getUserInputData(U4DEngine::mouse, U4DEngine::mouseActiveDelta, mouseDeltaLocation);
-            
-        }
-
-    }
-    
-    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)mouseExited:(NSEvent *)theEvent {
@@ -415,115 +177,72 @@
     
 }
 
-- (void)mouseDragged:(NSEvent *)theEvent {
-    
-    NSPoint mouseDownPos = [theEvent locationInWindow];
+- (void)rightMouseDragged:(NSEvent*)event {
 
-    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonDragged, mouseLocation); 
-        
-    }
-    
-    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+    float xDelta = [event deltaX];
+    float yDelta = [event deltaY];
+
+    simd::float2 mouseLocation { static_cast<float>( xDelta ), static_cast<float>( yDelta ) };
+
+    controller.orbitCamera( mouseLocation );
+}
+
+- (void)mouseDragged:(NSEvent *)theEvent {
+    float xDelta = [theEvent deltaX];
+    float yDelta = [theEvent deltaY];
+
+    simd::float2 delta { static_cast<float>( xDelta ), static_cast<float>( yDelta ) };
+
+    controller.flyCamera( delta );
+   
 }
 
 - (void)rightMouseDown:(NSEvent *)theEvent{
     
-    NSPoint mouseDownPos = [theEvent locationInWindow];
-
-    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-            
-        gameController->getUserInputData(U4DEngine::mouseRightButton, U4DEngine::mouseRightButtonPressed, mouseLocation);
-        
-    }
-    
-    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+    controller.setOrbitTarget( simd::length(camera.localPosition) );
         
 }
 
 - (void)rightMouseUp:(NSEvent *)theEvent{
     
-    NSPoint mouseUpPos = [theEvent locationInWindow];
 
-    U4DEngine::U4DVector2n mouseLocation(mouseUpPos.x,mouseUpPos.y);
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-        
-        gameController->getUserInputData(U4DEngine::mouseRightButton, U4DEngine::mouseRightButtonReleased, mouseLocation);
-        
-    }
-    
-    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
-     
 }
 
 - (void)mouseDown:(NSEvent *)theEvent {
     
-    NSPoint mouseDownPos = [theEvent locationInWindow];
 
-    U4DEngine::U4DVector2n mouseLocation(mouseDownPos.x,mouseDownPos.y);
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-            
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonPressed, mouseLocation);
-        
-    }
-    
-    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)mouseUp:(NSEvent *)theEvent {
     
-    NSPoint mouseUpPos = [theEvent locationInWindow];
 
-    U4DEngine::U4DVector2n mouseLocation(mouseUpPos.x,mouseUpPos.y);
-    
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    U4DEngine::U4DControllerInterface *gameController=currentScene->getGameController();
-    
-    if(gameController!=nullptr){
-        
-        gameController->getUserInputData(U4DEngine::mouseLeftButton, U4DEngine::mouseLeftButtonReleased, mouseLocation);
-        
-    }
-    
-    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
 }
 
 - (void)scrollWheel:(NSEvent *)theEvent{
     
-    ImGui_ImplOSX_HandleEvent(theEvent, self.view);
+    double wheelx=[theEvent scrollingDeltaX];
+    double wheely=[theEvent scrollingDeltaY];
+    
+    if(std::abs(wheelx)<std::abs(wheely)){
+        wheelx=0.0;
+    }else{
+        wheely=0.0;
+        wheelx*=-1.0;
+    }
+    
+    if(std::abs(wheelx) <= 1.0) wheelx=0.0;
+    if(std::abs(wheely) <= 1.0) wheely=0.0;
+    
+    simd::float2 wheelDelta{(float)wheelx,(float)wheely};
+    
+    if(wheelx != 0.0 || wheely !=0.0){
+        if(shiftKey){
+            controller.dollyTrackBoom(simd::float3{0.0,wheelDelta.y,0.0}*0.01);
+        }else{
+            controller.dollyTrackBoom(simd::float3{-wheelDelta.x,0.0,wheelDelta.y}*0.01);
+        }
+        
+    }
 }
 - (BOOL)acceptsFirstResponder
 {
