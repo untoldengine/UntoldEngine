@@ -59,7 +59,6 @@ extern U4DEngine::RendererInfo renderInfo;
         renderInfo.depthPixelFormat=mtkView.depthStencilPixelFormat;
         renderInfo.drawableSize=simd_make_float2(mtkView.drawableSize.width,mtkView.drawableSize.height);
         
-        //U4DEngine::initVoxelPipeline(scene, mtlDevice);
         U4DEngine::initBuffers();
         U4DEngine::initAttachments();
         U4DEngine::initPipelines();
@@ -116,56 +115,6 @@ extern U4DEngine::RendererInfo renderInfo;
         U4DEngine::addVoxelsToEntity(voxelEntity6,"floorchunk.json");
         U4DEngine::translateTo(voxelEntity6, simd_make_float3(-6.0, -0.4, 0.0));
         
-        /*
-        inFlightSemaphore=dispatch_semaphore_create(U4DEngine::kMaxBuffersInFlight);
-        
-        float aspect=mtkView.bounds.size.width/mtkView.bounds.size.height;
-        
-        firstUpdateCall=false;
-        
-        U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-        
-        director->setMTLDevice(mtlDevice);
-        
-        director->setAspect(aspect);
-        
-        director->setDisplayWidthHeight(mtkView.frame.size.width, mtkView.frame.size.height);
-        mtkView.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
-        mtkView.framebufferOnly=false; //this seems to be needed for the referred rendering.
-        director->setMTLView(mtkView);
-        
-        //compute perspective space
-        U4DEngine::U4DMatrix4n perspectiveSpace=director->computePerspectiveSpace(45.0f, aspect, 0.1f, 100.0f);
-        director->setPerspectiveSpace(perspectiveSpace);
-        
-        //compute orthographic space
-        U4DEngine::U4DMatrix4n orthographicSpace=director->computeOrthographicSpace(-1.0, 1.0, -1.0, 1.0, -1.0f, 1.0f);
-        director->setOrthographicSpace(orthographicSpace);
-        
-        //compute orthographic shadow space
-        U4DEngine::U4DMatrix4n orthographicShadowSpace=director->computeOrthographicSpace(-20.0, 20.0, -20.0, 20.0, -10.0, 10.0f);
-        director->setOrthographicShadowSpace(orthographicShadowSpace);
-        
-        U4DEngine::U4DRenderManager *renderManager=U4DEngine::U4DRenderManager::sharedInstance();
-        renderManager->initRenderPipelines();
-        
-#if TARGET_OS_MAC && !TARGET_OS_IPHONE
-            IMGUI_CHECKVERSION();
-            ImGui::CreateContext();
-            ImGuiIO& io = ImGui::GetIO(); (void)io;
-            //io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-            //io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
-            
-            // Setup Dear ImGui style
-            ImGui::StyleColorYellow();
-            //ImGui::StyleColorsClassic();
-
-            io.Fonts->AddFontFromFileTTF("Lato-Regular.ttf",18.0);
-            // Setup Renderer backend
-            ImGui_ImplMetal_Init(mtlDevice);
-        
-#endif
-         */
     }
     
     return self;
@@ -175,7 +124,7 @@ extern U4DEngine::RendererInfo renderInfo;
 #pragma mark - MTKViewDelegate methods
 
 - (void)update{
-/*
+
     if (!firstUpdateCall) {
         
         //init the time properties for the update
@@ -205,33 +154,23 @@ extern U4DEngine::RendererInfo renderInfo;
         
         if(timePassedSinceLastFrame>1.0){
             
-            U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-            
             float fps=frameCount/timePassedSinceLastFrame;
             
             frameCount=0.0;
             timePassedSinceLastFrame=0.0;
             
-            director->setFPS(fps);
             
         }
         
     }
     
-    U4DEngine::U4DSceneManager *sceneManager=U4DEngine::U4DSceneManager::sharedInstance();
-    U4DEngine::U4DScene *currentScene=sceneManager->getCurrentScene();
-    
-    if (currentScene!=nullptr) {
-        currentScene->update(timeSinceLastUpdate);
-    }
-    */
 }
 
 /// Called whenever the view needs to render
 - (void)drawInMTKView:(nonnull MTKView *)view
 {
 
-    //Step 8. Create a render pass descriptor
+    
     renderInfo.renderPassDescriptor=view.currentRenderPassDescriptor;
     if(renderInfo.renderPassDescriptor==nil) return;
     //set the following states for the pipeline
@@ -239,22 +178,17 @@ extern U4DEngine::RendererInfo renderInfo;
     renderInfo.renderPassDescriptor.colorAttachments[0].clearColor=MTLClearColorMake(0.0, 0.0, 0.0, 1.0);
     renderInfo.renderPassDescriptor.colorAttachments[0].storeAction=MTLStoreActionStore;
     
-    //Step 9. create a command buffer
     id<MTLCommandBuffer> mtlCommandBuffer=[renderInfo.commandQueue commandBuffer];
     
-//    //Step 10. Create a command encoder
-    
-    //U4DEngine::updateModelUniformBuffer(scene);
     
     U4DEngine::renderGridPass(mtlCommandBuffer);
     U4DEngine::shadowPass(scene, mtlCommandBuffer);
-    //U4DEngine::render3DModelPass(scene, mtlCommandBuffer);
+    
     U4DEngine::renderVoxelPass(scene, mtlCommandBuffer);
     U4DEngine::compositePass(mtlCommandBuffer);
-    //Step 11. Present the drawable
+    
     [mtlCommandBuffer presentDrawable:view.currentDrawable];
     
-    //Step 12. commit the buffer
     [mtlCommandBuffer commit];
     
     [self update];

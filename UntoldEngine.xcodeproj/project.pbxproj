@@ -152,29 +152,6 @@
 		039B94002AC782020047D1A1 /* U4DEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DEntity.h; sourceTree = "<group>"; };
 		039B94022AC782020047D1A1 /* U4DCamera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCamera.mm; sourceTree = "<group>"; };
 		039B94032AC782020047D1A1 /* U4DCamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCamera.h; sourceTree = "<group>"; };
-		039B94052AC782020047D1A1 /* ImGuizmo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImGuizmo.h; sourceTree = "<group>"; };
-		039B94062AC782020047D1A1 /* imgui.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui.h; sourceTree = "<group>"; };
-		039B94072AC782020047D1A1 /* imstb_textedit.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_textedit.h; sourceTree = "<group>"; };
-		039B94082AC782020047D1A1 /* imconfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imconfig.h; sourceTree = "<group>"; };
-		039B94092AC782020047D1A1 /* ImGuiFileDialog.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImGuiFileDialog.cpp; sourceTree = "<group>"; };
-		039B940A2AC782020047D1A1 /* ImGuiFileDialog.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImGuiFileDialog.h; sourceTree = "<group>"; };
-		039B940B2AC782020047D1A1 /* imgui_widgets.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_widgets.cpp; sourceTree = "<group>"; };
-		039B940C2AC782020047D1A1 /* imstb_truetype.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_truetype.h; sourceTree = "<group>"; };
-		039B940D2AC782020047D1A1 /* imgui_impl_osx.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_osx.h; sourceTree = "<group>"; };
-		039B940E2AC782020047D1A1 /* imnodes.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imnodes.h; sourceTree = "<group>"; };
-		039B940F2AC782020047D1A1 /* imgui_impl_metal.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_metal.mm; sourceTree = "<group>"; };
-		039B94102AC782020047D1A1 /* imgui.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui.cpp; sourceTree = "<group>"; };
-		039B94112AC782020047D1A1 /* imgui_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_internal.h; sourceTree = "<group>"; };
-		039B94122AC782020047D1A1 /* imnodes_internal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imnodes_internal.h; sourceTree = "<group>"; };
-		039B94132AC782020047D1A1 /* imgui_impl_metal.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imgui_impl_metal.h; sourceTree = "<group>"; };
-		039B94142AC782020047D1A1 /* imgui_impl_osx.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = imgui_impl_osx.mm; sourceTree = "<group>"; };
-		039B94152AC782020047D1A1 /* ImGuizmo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = ImGuizmo.cpp; sourceTree = "<group>"; };
-		039B94162AC782020047D1A1 /* imstb_rectpack.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = imstb_rectpack.h; sourceTree = "<group>"; };
-		039B94172AC782020047D1A1 /* imgui_tables.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_tables.cpp; sourceTree = "<group>"; };
-		039B94182AC782020047D1A1 /* imnodes.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imnodes.cpp; sourceTree = "<group>"; };
-		039B94192AC782020047D1A1 /* ImGuiFileDialogConfig.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ImGuiFileDialogConfig.h; sourceTree = "<group>"; };
-		039B941A2AC782020047D1A1 /* imgui_demo.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_demo.cpp; sourceTree = "<group>"; };
-		039B941B2AC782020047D1A1 /* imgui_draw.cpp */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.cpp; path = imgui_draw.cpp; sourceTree = "<group>"; };
 		039B941D2AC782020047D1A1 /* CommonProtocols.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonProtocols.h; sourceTree = "<group>"; };
 		039B941E2AC782020047D1A1 /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
 		039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DUtilsFunctions.mm; sourceTree = "<group>"; };
@@ -356,7 +333,6 @@
 				039B93F72AC782020047D1A1 /* MetalShaders */,
 				039B93FF2AC782020047D1A1 /* Entity */,
 				039B94012AC782020047D1A1 /* Camera */,
-				039B94042AC782020047D1A1 /* Imgui */,
 				039B941C2AC782020047D1A1 /* Constants */,
 				039B941F2AC782020047D1A1 /* Utils */,
 				039B94262AC782020047D1A1 /* Globals.h */,
@@ -406,36 +382,6 @@
 				039B94032AC782020047D1A1 /* U4DCamera.h */,
 			);
 			path = Camera;
-			sourceTree = "<group>";
-		};
-		039B94042AC782020047D1A1 /* Imgui */ = {
-			isa = PBXGroup;
-			children = (
-				039B94052AC782020047D1A1 /* ImGuizmo.h */,
-				039B94062AC782020047D1A1 /* imgui.h */,
-				039B94072AC782020047D1A1 /* imstb_textedit.h */,
-				039B94082AC782020047D1A1 /* imconfig.h */,
-				039B94092AC782020047D1A1 /* ImGuiFileDialog.cpp */,
-				039B940A2AC782020047D1A1 /* ImGuiFileDialog.h */,
-				039B940B2AC782020047D1A1 /* imgui_widgets.cpp */,
-				039B940C2AC782020047D1A1 /* imstb_truetype.h */,
-				039B940D2AC782020047D1A1 /* imgui_impl_osx.h */,
-				039B940E2AC782020047D1A1 /* imnodes.h */,
-				039B940F2AC782020047D1A1 /* imgui_impl_metal.mm */,
-				039B94102AC782020047D1A1 /* imgui.cpp */,
-				039B94112AC782020047D1A1 /* imgui_internal.h */,
-				039B94122AC782020047D1A1 /* imnodes_internal.h */,
-				039B94132AC782020047D1A1 /* imgui_impl_metal.h */,
-				039B94142AC782020047D1A1 /* imgui_impl_osx.mm */,
-				039B94152AC782020047D1A1 /* ImGuizmo.cpp */,
-				039B94162AC782020047D1A1 /* imstb_rectpack.h */,
-				039B94172AC782020047D1A1 /* imgui_tables.cpp */,
-				039B94182AC782020047D1A1 /* imnodes.cpp */,
-				039B94192AC782020047D1A1 /* ImGuiFileDialogConfig.h */,
-				039B941A2AC782020047D1A1 /* imgui_demo.cpp */,
-				039B941B2AC782020047D1A1 /* imgui_draw.cpp */,
-			);
-			path = Imgui;
 			sourceTree = "<group>";
 		};
 		039B941C2AC782020047D1A1 /* Constants */ = {
