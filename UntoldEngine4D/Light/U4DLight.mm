@@ -1,6 +1,6 @@
 //
 //  U4DLight.cpp
-//  UntoldEnginePro
+//  Copyright © 2017 Untold Engine Studios. All rights reserved.
 //
 //  Created by Harold Serrano on 5/7/23.
 //

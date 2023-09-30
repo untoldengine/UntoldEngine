@@ -1,6 +1,6 @@
 //
 //  U4DLoadingSystem.cpp
-//  UntoldEnginePro
+//  Copyright © 2017 Untold Engine Studios. All rights reserved.
 //
 //  Created by Harold Serrano on 4/8/23.
 //
