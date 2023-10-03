@@ -38,13 +38,6 @@ extern U4DEngine::U4DController controller;
     metalView.colorPixelFormat=MTLPixelFormatBGRA8Unorm;
     metalView.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
     
-    // Indicate that we would like the view to call our -[AAPLRender drawInMTKView:] 60 times per
-    //   second.  This rate is not guaranteed: the view will pick a closest framerate that the
-    //   display is capable of refreshing (usually 30 or 60 times per second).  Also if our renderer
-    //   spends more than 1/60th of a second in -[AAPLRender drawInMTKView:] the view will skip
-    //   further calls until the renderer has returned from that long -[AAPLRender drawInMTKView:]
-    //   call.  In other words, the view will drop frames.  So we should set this to a frame rate
-    //   that we think our renderer can consistently maintain.
     metalView.preferredFramesPerSecond = 120;
     
     metalView.autoResizeDrawable=YES;
@@ -68,28 +61,11 @@ extern U4DEngine::U4DController controller;
     
     metalView.delegate = renderer;
     
-//    //set device OS type
-//    U4DEngine::U4DDirector *director=U4DEngine::U4DDirector::sharedInstance();
-//
-//    U4DEngine::DEVICEOSTYPE deviceOSType=U4DEngine::deviceOSMACX;
-//
-//    director->setDeviceOSType(deviceOSType);
-    
-    // notifications for controller (dis)connect
-//    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasConnected:) name:GCControllerDidConnectNotification object:nil];
-//    [[NSNotificationCenter defaultCenter]addObserver:self selector:@selector(controllerWasDisconnected:) name:GCControllerDidDisconnectNotification object:nil];
-    
     //tracking area used to detect if mouse is within window
-    
     trackingArea=[[NSTrackingArea alloc] initWithRect:metalView.frame options:(NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect) owner:metalView userInfo:nil];
     
     [metalView addTrackingArea:trackingArea];
-    
-    //display screen backing change notification
-    [[NSNotificationCenter defaultCenter] addObserver:self selector:@selector(screenScaleFactorChanged:) name:NSWindowDidChangeBackingPropertiesNotification object:nil];
-    
 
-    
 }
 
 - (void)viewWillAppear{
@@ -109,26 +85,7 @@ extern U4DEngine::U4DController controller;
 
 }
 
-- (void)screenScaleFactorChanged:(NSNotification *)notification {
-    
 
-}
-
-- (void)controllerWasConnected:(NSNotification *)notification {
-    
-
-    
-}
-
-- (void)controllerWasDisconnected:(NSNotification *)notification {
-    
-
-}
-
-- (void)registerControllerInput {
-    
-    
-}
 
 - (void)flagsChanged:(NSEvent *)theEvent{
     
