@@ -6,3 +6,16 @@
 //
 
 #include "U4DUtilsFunctions.h"
+
+extern U4DEngine::callback updateCallbackFunction;
+
+namespace U4DEngine {
+
+void setUpdateCallback(callback uUpdateCallbackFunction){
+
+    updateCallbackFunction=uUpdateCallbackFunction;
+}
+
+}
+
+

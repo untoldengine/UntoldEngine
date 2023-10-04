@@ -12,8 +12,11 @@
 #include <vector>
 #include <string>
 
+#include "CommonProtocols.h"
 
 namespace U4DEngine {
-        
+
+    void setUpdateCallback(callback uUpdateCallbackFunction);
+
 }
 #endif /* U4DUtilsFunctions_hpp */
