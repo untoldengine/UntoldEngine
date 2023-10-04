@@ -13,6 +13,7 @@
 #include "U4DController.h"
 #include "U4DLight.h"
 #include "U4DComponents.h"
+#include "CommonProtocols.h"
 #include <map>
 
 int U4DEngine::s_componentCounter=0;
@@ -20,6 +21,7 @@ unsigned long nextVoxelOffset=0;
 float nearPlane=0.1f;
 float farPlane=1000.0f;
 
+U4DEngine::callback updateCallbackFunction=nullptr;
 U4DEngine::U4DScene scene;
 U4DEngine::VoxelPool voxelPool;
 

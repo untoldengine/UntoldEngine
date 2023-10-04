@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0335A4572ACC61C5004987FC /* GameScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0335A4552ACC61C4004987FC /* GameScene.mm */; };
+		0335A4582ACC61C5004987FC /* GameScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0335A4552ACC61C4004987FC /* GameScene.mm */; };
 		03722B122029F0220080D069 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B112029F0210080D069 /* AppDelegate.mm */; };
 		03722B152029F0220080D069 /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B142029F0220080D069 /* GameViewController.mm */; };
 		03722B182029F0220080D069 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03722B162029F0220080D069 /* Main.storyboard */; };
@@ -103,6 +105,8 @@
 
 /* Begin PBXFileReference section */
 		031413EC2589D03B005BF4A4 /* Untold4D.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Untold4D.entitlements; sourceTree = "<group>"; };
+		0335A4552ACC61C4004987FC /* GameScene.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GameScene.mm; sourceTree = "<group>"; };
+		0335A4562ACC61C4004987FC /* GameScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameScene.h; sourceTree = "<group>"; };
 		03370CAB27761785008171BA /* libenetlib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenetlib.a; path = UntoldEngine4D/NetworkSystem/libenetlib.a; sourceTree = "<group>"; };
 		03370CE02777BCB5008171BA /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/maclib/libenet.a; sourceTree = "<group>"; };
 		03370D142777BDE4008171BA /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/ioslib/libenet.a; sourceTree = "<group>"; };
@@ -264,6 +268,8 @@
 				03722B3D2029F0220080D069 /* Main.storyboard */,
 				03722B402029F0220080D069 /* Info.plist */,
 				03722B412029F0220080D069 /* main.m */,
+				0335A4562ACC61C4004987FC /* GameScene.h */,
+				0335A4552ACC61C4004987FC /* GameScene.mm */,
 			);
 			path = "Untold4D macOS";
 			sourceTree = "<group>";
@@ -397,11 +403,11 @@
 			isa = PBXGroup;
 			children = (
 				039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */,
+				039B94252AC782020047D1A1 /* U4DUtilsFunctions.h */,
 				039B94212AC782020047D1A1 /* U4DJsonReader.mm */,
 				039B94222AC782020047D1A1 /* U4DJsonReader.h */,
 				039B94232AC782020047D1A1 /* U4DMathUtils.h */,
 				039B94242AC782020047D1A1 /* U4DMathUtils.mm */,
-				039B94252AC782020047D1A1 /* U4DUtilsFunctions.h */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -608,6 +614,7 @@
 				039B94A22AC782020047D1A1 /* U4DRenderSystem.mm in Sources */,
 				03722B152029F0220080D069 /* GameViewController.mm in Sources */,
 				039B94562AC782020047D1A1 /* U4DCamera.mm in Sources */,
+				0335A4572ACC61C5004987FC /* GameScene.mm in Sources */,
 				039B948A2AC782020047D1A1 /* U4DMathUtils.mm in Sources */,
 				039B944A2AC782020047D1A1 /* voxelShader.metal in Sources */,
 				039B94A62AC782020047D1A1 /* U4DTransformSystem.mm in Sources */,
@@ -664,6 +671,7 @@
 				039B94A42AC782020047D1A1 /* U4DRenderSystem.mm in Sources */,
 				03722B3C2029F0220080D069 /* GameViewController.mm in Sources */,
 				039B94582AC782020047D1A1 /* U4DCamera.mm in Sources */,
+				0335A4582ACC61C5004987FC /* GameScene.mm in Sources */,
 				039B948C2AC782020047D1A1 /* U4DMathUtils.mm in Sources */,
 				039B944C2AC782020047D1A1 /* voxelShader.metal in Sources */,
 				039B94A82AC782020047D1A1 /* U4DTransformSystem.mm in Sources */,

@@ -11,6 +11,7 @@
 #include "U4DCamera.h"
 #include "U4DController.h"
 
+
 extern U4DEngine::U4DCamera camera;
 extern U4DEngine::U4DController controller;
 
@@ -33,33 +34,7 @@ extern U4DEngine::U4DController controller;
     
     metalView=(MTKView *)self.view;
     
-    metalView.device=MTLCreateSystemDefaultDevice();
-    
-    metalView.colorPixelFormat=MTLPixelFormatBGRA8Unorm;
-    metalView.depthStencilPixelFormat=MTLPixelFormatDepth32Float;
-    
-    metalView.preferredFramesPerSecond = 120;
-    
-    metalView.autoResizeDrawable=YES;
-    
-    if(!metalView.device)
-    {
-        NSLog(@"Metal is not supported on this device");
-        self.view = [[NSView alloc] initWithFrame:self.view.frame];
-        return;
-    }
-    
-    renderer = [[U4DRenderer alloc] initWithMetalKitView:metalView];
-    
-    if(!renderer)
-    {
-        NSLog(@"Renderer failed initialization");
-        return;
-    }
-    
-    [renderer mtkView:metalView drawableSizeWillChange:metalView.bounds.size];
-    
-    metalView.delegate = renderer;
+    self.gameScene.init(metalView);
     
     //tracking area used to detect if mouse is within window
     trackingArea=[[NSTrackingArea alloc] initWithRect:metalView.frame options:(NSTrackingMouseEnteredAndExited | NSTrackingMouseMoved | NSTrackingActiveInKeyWindow | NSTrackingInVisibleRect) owner:metalView userInfo:nil];
@@ -80,9 +55,6 @@ extern U4DEngine::U4DController controller;
     
     [super viewDidAppear];
     
-   
-  
-
 }
 
 
