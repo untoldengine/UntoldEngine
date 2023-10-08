@@ -18,6 +18,8 @@ struct GameScene{
   
     void init(MTKView *metalView);
     static void update();
+    void handleInput();
+    
     
     //data
     U4DRenderer *renderer;

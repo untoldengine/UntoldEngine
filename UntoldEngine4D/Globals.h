@@ -41,4 +41,8 @@ std::map<std::string, U4DEngine::Voxel> voxelAssetMap;
 
 U4DEngine::RendererInfo renderInfo;
 
+
+//Keys
+U4DEngine::KeyState keyState;
+
 #endif /* Globals_h */
