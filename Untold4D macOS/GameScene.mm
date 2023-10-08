@@ -10,6 +10,9 @@
 #include "U4DTransformSystem.h"
 #include "U4DLoadingSystem.h"
 #include "U4DUtilsFunctions.h"
+#include "CommonProtocols.h"
+
+extern U4DEngine::KeyState keyState;
 
 void GameScene::init(MTKView *metalView){
     
@@ -69,5 +72,23 @@ void GameScene::init(MTKView *metalView){
 }
 
 void GameScene::update(){
+    GameScene gameScene;
+    
+    gameScene.handleInput();
+    
+    U4DEngine::rotateBy(0, 1.0, simd_make_float3(0.0, 1.0, 0.0));
+    
+}
+
+void GameScene::handleInput(){
+    
+    if(keyState.wPressed){
+        NSLog(@"w key pressed");
+    }
+    
+    if(keyState.aPressed){
+        NSLog(@"a pressed");
+    }
+    
     
 }

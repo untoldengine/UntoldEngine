@@ -79,16 +79,17 @@ extern U4DEngine::U4DController controller;
     
 }
 
-- (void)keyDown:(NSEvent *)theEvent
-{
-
+- (void)keyDown:(NSEvent *)theEvent{
+    
+    unsigned short keyCode=[theEvent keyCode];
+    controller.keyPressed(keyCode);
 }
 
-- (void)keyUp:(NSEvent *)theEvent
-{
- 
+- (void)keyUp:(NSEvent *)theEvent{
 
-    
+    unsigned short keyCode=[theEvent keyCode];
+    controller.keyReleased(keyCode);
+
 }
 
 - (void)mouseEntered:(NSEvent *)theEvent {

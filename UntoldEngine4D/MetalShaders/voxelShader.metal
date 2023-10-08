@@ -56,7 +56,7 @@ vertex VertexOut vertexVoxelShader(Vertex in [[stage_in]],
     float4 position = float4(in.position);
     out.vPosition=position;
     out.position = uniforms.projectionSpace * uniforms.modelViewSpace * position;
-    out.normal=in.normals;
+    out.normal=normalize(uniforms.modelSpace*in.normals);
     out.color=in.color;
     out.shadowCoords=lightOrthoView*(uniforms.modelSpace*position);
     return out;

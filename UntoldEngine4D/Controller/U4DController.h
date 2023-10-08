@@ -13,9 +13,14 @@
 
 #include "U4DCamera.h"
 #include "U4DMathUtils.h"
+#include "CommonProtocols.h"
+#import <TargetConditionals.h>
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+#include <Carbon/Carbon.h>
+#endif
 
 extern U4DEngine::U4DCamera camera;
-
+extern U4DEngine::KeyState keyState;
 namespace U4DEngine {
 struct U4DController{
     
@@ -56,6 +61,78 @@ struct U4DController{
         simd_float3 direction = -1.0 * camera.localOrientation;
         camera.orbitTarget = camera.localPosition + direction * uOffset;
     }
+    
+#if TARGET_OS_MAC && !TARGET_OS_IPHONE
+    
+    void keyPressed(unsigned short keyCode) {
+        switch (keyCode) {
+            case kVK_ANSI_W:
+                keyState.wPressed = true;
+                break;
+            case kVK_ANSI_A:
+                keyState.aPressed = true;
+                break;
+            case kVK_ANSI_S:
+                keyState.sPressed = true;
+                break;
+            case kVK_ANSI_D:
+                keyState.dPressed = true;
+                break;
+            case kVK_Space:
+                keyState.spacePressed = true;
+                break;
+            case kVK_Shift:
+                keyState.shiftPressed = true;
+                break;
+            case kVK_Control:
+                keyState.ctrlPressed = true;
+                break;
+            case kVK_Option:
+                keyState.altPressed = true;
+                break;
+            
+            // Add more key cases as needed
+            default:
+                break;
+        }
+    }
+
+    
+    void keyReleased(unsigned short keyCode) {
+        switch (keyCode) {
+            case kVK_ANSI_W:
+                keyState.wPressed = false;
+                break;
+            case kVK_ANSI_A:
+                keyState.aPressed = false;
+                break;
+            case kVK_ANSI_S:
+                keyState.sPressed = false;
+                break;
+            case kVK_ANSI_D:
+                keyState.dPressed = false;
+                break;
+            case kVK_Space:
+                keyState.spacePressed = false;
+                break;
+            case kVK_Shift:
+                keyState.shiftPressed = false;
+                break;
+            case kVK_Control:
+                keyState.ctrlPressed = false;
+                break;
+            case kVK_Option:
+                keyState.altPressed = false;
+                break;
+            
+            // Add more key cases as needed
+            default:
+                break;
+        }
+    }
+
+#endif
+    
 };
 }
 #endif /* U4DController_hpp */
