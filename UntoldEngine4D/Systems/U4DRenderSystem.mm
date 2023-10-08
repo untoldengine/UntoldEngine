@@ -534,26 +534,27 @@ void renderVoxelPass(U4DScene &scene, id<MTLCommandBuffer> uCommandBuffer){
     [renderEncoder setRenderPipelineState:voxelPipeline.pipelineState];
     [renderEncoder setDepthStencilState:voxelPipeline.depthStencilState];
     
+    //set the vertex buffer object
+    [renderEncoder setVertexBuffer:voxelPool.vertexBuffer offset:0 atIndex:positionBufferIndex];
+    [renderEncoder setVertexBuffer:voxelPool.normalBuffer offset:0 atIndex:normalBufferIndex];
+    [renderEncoder setVertexBuffer:voxelPool.colorBuffer offset:0 atIndex:colorBufferIndex];
+    
+    [renderEncoder setVertexBytes:&light.orthoViewMatrix length:sizeof(light.orthoViewMatrix) atIndex:lightOrthoViewSpaceBufferIndex];
+    
+    [renderEncoder setVertexBytes:&light.position length:sizeof(light.position) atIndex:lightPositionBufferIndex];
+    
+    [renderEncoder setFragmentBytes:&light.position length:sizeof(light.position) atIndex:lightPositionBufferIndex];
+    
+    [renderEncoder setFragmentTexture:attachments.shadowDepthTexture atIndex:shadowTextureIndex];
     
     for(EntityID ent:U4DSceneView<Voxel,Transform>(scene)){
         Voxel *pVoxel=scene.Get<Voxel>(ent);
         Transform *pTransform=scene.Get<Transform>(ent);
         
-        //set the vertex buffer object
-        [renderEncoder setVertexBuffer:voxelPool.vertexBuffer offset:0 atIndex:positionBufferIndex];
-        [renderEncoder setVertexBuffer:voxelPool.normalBuffer offset:0 atIndex:normalBufferIndex];
-        [renderEncoder setVertexBuffer:voxelPool.colorBuffer offset:0 atIndex:colorBufferIndex];
+        
         [renderEncoder setVertexBuffer:pTransform->uniformSpace offset:0 atIndex:uniformSpaceBufferIndex];
         
-        [renderEncoder setVertexBytes:&light.orthoViewMatrix length:sizeof(light.orthoViewMatrix) atIndex:lightOrthoViewSpaceBufferIndex];
-        
-        [renderEncoder setVertexBytes:&light.position length:sizeof(light.position) atIndex:lightPositionBufferIndex];
-        
-        [renderEncoder setFragmentBytes:&light.position length:sizeof(light.position) atIndex:lightPositionBufferIndex];
-        
-        
         [renderEncoder setFragmentBuffer:pTransform->uniformSpace offset:0 atIndex:uniformSpaceBufferIndex];
-        [renderEncoder setFragmentTexture:attachments.shadowDepthTexture atIndex:shadowTextureIndex];
         
         [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:pVoxel->size*numOfIndicesPerBlock indexType:MTLIndexTypeUInt16 indexBuffer:voxelPool.indicesBuffer indexBufferOffset:pVoxel->offset*numOfIndicesPerBlock*sizeof(uint16)];
         
@@ -633,12 +634,13 @@ void shadowPass(U4DScene &scene, id<MTLCommandBuffer> uCommandBuffer){
     [renderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024.0, 1024.0, 0.0, 1.0 }];
     [renderEncoder setVertexBytes:&light.orthoViewMatrix length:sizeof(light.orthoViewMatrix) atIndex:lightOrthoViewSpaceBufferIndex];
     
+    //set the vertex buffer object
+    [renderEncoder setVertexBuffer:voxelPool.vertexBuffer offset:0 atIndex:positionBufferIndex];
+    
     for(EntityID ent:U4DSceneView<Voxel,Transform>(scene)){
         Voxel *pVoxel=scene.Get<Voxel>(ent);
         Transform *pTransform=scene.Get<Transform>(ent);
         
-        //set the vertex buffer object
-        [renderEncoder setVertexBuffer:voxelPool.vertexBuffer offset:0 atIndex:positionBufferIndex];
         [renderEncoder setVertexBuffer:pTransform->uniformSpace offset:0 atIndex:uniformSpaceBufferIndex];
         
         [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle indexCount:pVoxel->size*numOfIndicesPerBlock indexType:MTLIndexTypeUInt16 indexBuffer:voxelPool.indicesBuffer indexBufferOffset:pVoxel->offset*numOfIndicesPerBlock*sizeof(uint16)];
