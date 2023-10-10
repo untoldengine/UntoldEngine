@@ -56,7 +56,7 @@ vertex VertexOut vertexVoxelShader(Vertex in [[stage_in]],
     float4 position = float4(in.position);
     out.vPosition=position;
     out.position = uniforms.projectionSpace * uniforms.modelViewSpace * position;
-    out.normal=normalize(uniforms.modelSpace*in.normals);
+    out.normal=normalize(in.normals);
     out.color=in.color;
     out.shadowCoords=lightOrthoView*(uniforms.modelSpace*position);
     return out;
@@ -67,22 +67,30 @@ fragment float4 fragmentVoxelShader(VertexOut in [[stage_in]],
                                     constant UniformSpace &uniforms [[ buffer(uniformSpaceBufferIndex) ]],
                                     depth2d<float> shadowTexture[[texture(0)]]){
     
+    //ambient
+    float ambientStrength=0.2;
+    float3 lightColor=float3(1.0);
+    
+    float3 ambient=ambientStrength*lightColor;
+    
+    //diffuse
     //compute the direction of the light ray between the light position and the vertices of the surface
-    float3 lightInViewSpace=(uniforms.viewSpace*simd_float4(lightPosition.x,lightPosition.y,lightPosition.z,1.0)).xyz;
+    float3 lightSpace=(simd_float4(lightPosition.x,lightPosition.y,lightPosition.z,1.0)).xyz;
 
-    float4 verticesInMVSpace=uniforms.modelViewSpace*in.vPosition;
+    float4 verticesInWorldSpace=uniforms.modelSpace*in.vPosition;
 
-    float3 lightRayDirection=normalize(lightInViewSpace-verticesInMVSpace.xyz);
+    float3 lightRayDirection=normalize(lightSpace-verticesInWorldSpace.xyz);
 
-    float3 normalVectorInMVSpace=(uniforms.normalSpace*in.normal).xyz;
-
-    float3 color=in.color.rgb;
-
-    float cosFactor=max(0.3,dot(normalVectorInMVSpace,lightRayDirection));
-
-    color.xyz*=cosFactor;
+    float3 normalVectorInWorldSpace=normalize(uniforms.normalSpace*in.normal.xyz);
+    
+    float diffuseFactor=max(0.3,dot(normalVectorInWorldSpace,lightRayDirection));
+    
+    float3 diffuse=diffuseFactor*lightColor;
+    
+    float3 color=(ambient+diffuse)*in.color.rgb;
+    
     //for debugging uncomment this line so you can render the normals
-    //return float4((in.normal+1.0)*0.5);
+    //return float4(normalVectorInWorldSpace,1.0);
     
     //Shadows
     constexpr sampler shadowSampler(coord::normalized, filter::linear, address::clamp_to_edge);
