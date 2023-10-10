@@ -61,7 +61,7 @@ typedef struct{
     matrix_float4x4 modelViewSpace;
     matrix_float4x4 projectionSpace;
     matrix_float4x4 viewSpace;
-    matrix_float4x4 normalSpace;
+    matrix_float3x3 normalSpace;
 } UniformSpace;
 
 typedef struct{

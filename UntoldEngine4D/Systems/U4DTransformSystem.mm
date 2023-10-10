@@ -95,8 +95,9 @@ void updateVoxelSpace(){
         UniformSpace uniforms;
         simd_float4x4 viewMatrix=camera.viewSpace;
         matrix_float4x4 modelMatrix = pTransform->localSpace;
-        matrix_float4x4 inverseViewMatrix=simd_inverse(viewMatrix);
-        matrix_float4x4 normalMatrix=simd_transpose(inverseViewMatrix);
+        matrix_float3x3 upperModelMatrix=matrix3x3_upper_left(modelMatrix);
+        
+        matrix_float3x3 normalMatrix=simd_transpose(simd_inverse(upperModelMatrix));
         
         uniforms.projectionSpace = renderInfo.projectionMatrix;
         uniforms.modelViewSpace = matrix_multiply(viewMatrix, modelMatrix);
