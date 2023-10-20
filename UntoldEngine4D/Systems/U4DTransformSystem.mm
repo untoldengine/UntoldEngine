@@ -104,6 +104,7 @@ void updateVoxelSpace(){
         uniforms.viewSpace=viewMatrix;
         uniforms.normalSpace=normalMatrix;
         uniforms.modelSpace=modelMatrix;
+        uniforms.cameraPosition=camera.localPosition;
         
         memcpy(pTransform->uniformSpace.contents, (void*)&uniforms, sizeof(UniformSpace));
         

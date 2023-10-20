@@ -26,7 +26,7 @@ bool loadScene(std::string fileName);
 
 //voxel
 void loadVoxelAsset(std::string filename);
-void insertVoxelIntoGPU(unsigned int uGuid, simd_float3 color);
+void insertVoxelIntoGPU(unsigned int uGuid, simd_float3 color, simd_float3 material);
 void addVoxelsToEntity(EntityID entityId, std::string filename);
 
 }

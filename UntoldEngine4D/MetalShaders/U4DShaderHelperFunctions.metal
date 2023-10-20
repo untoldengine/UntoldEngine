@@ -59,104 +59,61 @@ float4 computePointLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace
     
 }
 
-float2 hash(float2 u)
-{
-    const float2 k = float2( 0.3183099, 0.3678794 );
-    u = u*k + k.yx;
-    return -1.0 + 2.0*fract( 16.0 * k*fract( u.x*u.y*(u.x+u.y)) );
+float3 fresnelSchlick(float cosTheta,float3 F0){
+    return F0+(1.0-F0)*pow(1.0-cosTheta, 5.0);
 }
 
-float random(float u){
+float D_GGX(float NoH,float roughness){
     
-    return fract(sin(u));
-    
+    float alpha=roughness*roughness;
+    float alpha2=alpha*alpha;
+    float NoH2=NoH*NoH;
+    float b=(NoH2*(alpha2-1.0)+1.0);
+    return alpha2*(1.0/M_PI_F)/(b*b);
 }
 
-float random(float2 st){
-    
-    return fract(sin(dot(st.xy,float2(12.9898,78.233)))*43.5453123);
+float G1_GGX_Schlick(float NoV, float roughness){
+    float alpha=roughness*roughness;
+    float k=alpha/2.0;
+    return max(NoV,0.001)/(NoV*(1.0-k)+k);
 }
 
-float valueNoise(float2 st){
-    
-    float2 i=floor(st);
-    float2 f=fract(st);
-    
-    //four corners in 2D of a tile
-    float a=random(i);
-    float b=random(i+float2(1.0,0.0));
-    float c=random(i+float2(0.0,1.0));
-    float d=random(i+float2(1.0,1.0));
-    
-    //smooth interpolation
-    float2 u=f*f*(3.0-2.0*f);
-    
-    //Mix the four corners
-    return mix(a,b,u.x)+(c-a)*u.y*(1.0-u.x)+(d-b)*u.x*u.y;
-    
+float G_smith(float NoV, float NoL,float roughness){
+    return G1_GGX_Schlick(NoL,roughness)*G1_GGX_Schlick(NoV,roughness);
 }
 
-float noise(float2 st)
-{
-    float2 i = floor(st);
-    float2 f = fract(st);
+// Cook-Torrance BRDF function
+float3 cookTorranceBRDF(float3 incomingLightDir, float3 surfaceNormal, float3 viewDir, float3 diffuseColor, float3 specularColor, float roughness, float metallic, float reflectance){
     
-    float2 u = f*f*(3.0-2.0*f);
     
-    return mix( mix( dot( hash( i + float2(0.0,0.0) ), f - float2(0.0,0.0) ),
-                    dot( hash( i + float2(1.0,0.0) ), f - float2(1.0,0.0) ), u.x),
-               mix( dot( hash( i + float2(0.0,1.0) ), f - float2(0.0,1.0) ),
-                   dot( hash( i + float2(1.0,1.0) ), f - float2(1.0,1.0) ), u.x), u.y);
-}
+    // Compute the half vector between the incoming and view directions
+    float3 halfVector = normalize(incomingLightDir + viewDir);
 
-
-
-float mod(float x, float y){
-
-    return x-y*floor(x/y);
+    //1. Calculate the geometric term (Smith's method for visibility)
+    float NoV = max(dot(surfaceNormal, viewDir), 0.001);
+    float NoL = max(dot(surfaceNormal, incomingLightDir), 0.001);
     
-}
-
-float sharpen(float d, float w, float2 resolution){
-    float e = 1. / min(resolution.y , resolution.x);
-    return 1. - smoothstep(-e, e, d - w);
-}
-
-float sdfCircle(float2 p,float r){
-
-    return length(p)-r;
+    
+    float VoH = max(dot(viewDir, halfVector), 0.001);
+    float LoH = max(dot(incomingLightDir, halfVector), 0.001);
+    float NoH = max(dot(surfaceNormal, halfVector), 0.001);
+    
+    float3 f0=float3(0.16*(reflectance*reflectance));
+    f0=mix(f0,diffuseColor,metallic);
+    
+    float3 F=fresnelSchlick(VoH,f0);
+    float D=D_GGX(NoH,roughness);
+    float G=G_smith(NoV,NoL,roughness);
+    
+    float3 spec=(F*D*G)/(4.0*max(NoV,0.001)*max(NoL,0.001));
+    
+    float3 rhoD=diffuseColor;
+    
+    rhoD*=(1.0-metallic);
+    float3 diff=rhoD*(1/M_PI_F);
+    
+    return float3(max(NoL,0.001)*(diff+spec*specularColor));
     
 }
 
-float sdfRing(float2 p, float2 c, float r){
-    return abs(r - length(p - c));
-}
 
-float sdfLine( float2 p, float2 a, float2 b){
-    float2 pa = p - a, ba = b - a;
-    float h = clamp(dot(pa,ba) / dot(ba,ba), 0., 1.);
-    return length(pa - ba * h);
-}
-
-float sdfTriangle(float2 p ){
-    
-    const float k = sqrt(3.0);
-    p.x = abs(p.x) - 1.0;
-    p.y = p.y + 1.0/k;
-    if( p.x+k*p.y>0.0 ) p = float2(p.x-k*p.y,-k*p.x-p.y)/2.0;
-    p.x -= clamp( p.x, -2.0, 0.0 );
-    return -length(p)*sign(p.y);
-}
-
-float sdfBox( float2 p, float2 b ){
-    float2 d = abs(p)-b;
-    return length(max(d,0.0)) + min(max(d.x,d.y),0.0);
-}
-
-
-float2x2 rotate2d(float uAngle){
-    
-    return float2x2(cos(uAngle),-sin(uAngle),
-                    sin(uAngle),cos(uAngle));
-    
-}

@@ -21,6 +21,7 @@ typedef enum BufferIndex{
     positionBufferIndex=0,
     normalBufferIndex,
     colorBufferIndex,
+    materialBufferIndex,
     uniformSpaceBufferIndex,
     lightOrthoViewSpaceBufferIndex,
     lightPositionBufferIndex,
@@ -62,6 +63,7 @@ typedef struct{
     matrix_float4x4 projectionSpace;
     matrix_float4x4 viewSpace;
     matrix_float3x3 normalSpace;
+    simd_float3 cameraPosition;
 } UniformSpace;
 
 typedef struct{

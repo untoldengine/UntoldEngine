@@ -50,40 +50,6 @@ constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
     float2( 0.684194,0.167302)
 };
 
-#define M_PI 3.1415926535897932384626433832795
-
-constant float3 backgroundColor=float3(0.20,0.23,0.28);
-constant float3 foregroundColor=float3(0.88,0.69,0.17);
-constant float3 panelColor=float3(0.2,0.23,0.28);
-constant float3 borderPanelColor=float3(0.96,0.964,0.98);
-
-/**
- @brief random functions for 1d
- */
-float random(float u);
-
-/**
- @brief random functions for 2d
- */
-float random(float2 st);
-
-/**
- @brief hash function
- */
-float2 hash(float2 u);
-
-/**
- @brief Value noise
- @param st 2d coordinates
- */
-float valueNoise(float2 st);
-
-/**
- @brief Gradient noise
- @param st 2d coordinates
- */
-float noise(float2 st);
-
 /**
  @brief computes the light color for the 3d object
  @param uLightPosition light position
@@ -96,47 +62,19 @@ float4 computeLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Mat
 
 float4 computePointLightColor(float4 uVerticesInMVSpace, float3 uNormalInMVSpace, Material uMaterial, Light uLight);
 
-/**
- @brief Computes the modulus
- */
-float mod(float x, float y);
+float3 fresnelSchlick(float cosTheta,float3 F0);
 
-/**
- @brief sharpens the sdf object
- */
-float sharpen(float d, float w, float2 resolution);
+float D_GGX(float NoH,float roughness);
 
-/**
- @brief sdf for a circle
- @param p space coordinate, i.e. st
- @param r circle radius
- */
-float sdfCircle(float2 p,float r);
+float G1_GGX_Schlick(float NoV, float roughness);
 
-/**
- @brief sdf for a ring
- @param p space coordinate, i.e. st
- @param c ring center
- @param r ring inner radius
-*/
-float sdfRing(float2 p, float2 c, float r);
+float G_smith(float NoV, float NoL,float roughness);
 
-/**
- @brief sdf for a line
- @param p space coordnate, i.e. st
- @param a starting point of line
- @param b ending point of line
- */
-float sdfLine( float2 p, float2 a, float2 b);
+// Cook-Torrance BRDF function
+float3 cookTorranceBRDF(float3 incomingLightDir, float3 surfaceNormal, float3 viewDir, float3 diffuseColor, float3 specularColor, float roughness, float metallic, float reflectance);
 
-/**
- @brief sdf for a triangle
- @param p space coordinate, i.e. st
- */
-float sdfTriangle(float2 p );
 
-float sdfBox( float2 p, float2 b);
 
-float2x2 rotate2d(float uAngle);
+
 
 #endif /* U4DShaderHelperFunctions_h */

@@ -61,6 +61,9 @@ void initBuffers(){
     voxelPool.colorBuffer=[renderInfo.device newBufferWithLength:sizeof(simd_float4)*numOfVerticesPerBlock*MaxNumberOfBlocks options:MTLResourceStorageModeShared];
     voxelPool.colorBuffer.label=@"color buffer";
     
+    voxelPool.materialBuffer=[renderInfo.device newBufferWithLength:sizeof(simd_float4)*numOfVerticesPerBlock*MaxNumberOfBlocks options:MTLResourceStorageModeShared];
+    voxelPool.materialBuffer.label=@"material buffer";
+    
     voxelPool.indicesBuffer=[renderInfo.device newBufferWithLength:sizeof(uint16)*numOfIndicesPerBlock*MaxNumberOfBlocks options:MTLResourceStorageModeShared];
     voxelPool.indicesBuffer.label=@"indices buffer";
     
@@ -256,6 +259,15 @@ void initPipelines(){
         vertexDescriptor.layouts[colorBufferIndex].stride=sizeof(simd_float4);
         vertexDescriptor.layouts[colorBufferIndex].stepFunction=MTLVertexStepFunctionPerVertex;
         vertexDescriptor.layouts[colorBufferIndex].stepRate=1;
+        
+        //add material
+        vertexDescriptor.attributes[materialBufferIndex].format=MTLVertexFormatFloat4;
+        vertexDescriptor.attributes[materialBufferIndex].bufferIndex=materialBufferIndex;
+        vertexDescriptor.attributes[materialBufferIndex].offset=0;
+        
+        vertexDescriptor.layouts[materialBufferIndex].stride=sizeof(simd_float4);
+        vertexDescriptor.layouts[materialBufferIndex].stepFunction=MTLVertexStepFunctionPerVertex;
+        vertexDescriptor.layouts[materialBufferIndex].stepRate=1;
         
         //Step 5. Build the rendering pipeline
         MTLRenderPipelineDescriptor *pipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
@@ -538,6 +550,7 @@ void renderVoxelPass(U4DScene &scene, id<MTLCommandBuffer> uCommandBuffer){
     [renderEncoder setVertexBuffer:voxelPool.vertexBuffer offset:0 atIndex:positionBufferIndex];
     [renderEncoder setVertexBuffer:voxelPool.normalBuffer offset:0 atIndex:normalBufferIndex];
     [renderEncoder setVertexBuffer:voxelPool.colorBuffer offset:0 atIndex:colorBufferIndex];
+    [renderEncoder setVertexBuffer:voxelPool.materialBuffer offset:0 atIndex:materialBufferIndex];
     
     [renderEncoder setVertexBytes:&light.orthoViewMatrix length:sizeof(light.orthoViewMatrix) atIndex:lightOrthoViewSpaceBufferIndex];
     
