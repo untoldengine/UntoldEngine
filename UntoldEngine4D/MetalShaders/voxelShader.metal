@@ -8,38 +8,23 @@
 #include <metal_stdlib>
 #include <simd/simd.h>
 #include "U4DShaderProtocols.h"
+#include "U4DShaderHelperFunctions.h"
 
 using namespace metal;
-
-constant float2 poissonDisk[16]={float2( 0.282571, 0.023957 ),
-    float2( 0.792657, 0.945738 ),
-    float2( 0.922361, 0.411756 ),
-    float2( 0.165838, 0.552995 ),
-    float2( 0.566027, 0.216651),
-    float2( 0.335398,0.783654),
-    float2( 0.0190741,0.318522),
-    float2( 0.647572,0.581896),
-    float2( 0.916288,0.0120243),
-    float2( 0.0278329,0.866634),
-    float2( 0.398053,0.4214),
-    float2( 0.00289926,0.051149),
-    float2( 0.517624,0.989044),
-    float2( 0.963744,0.719901),
-    float2( 0.76867,0.018128),
-    float2( 0.684194,0.167302)
-};
 
 typedef struct
 {
     float4 position [[attribute(positionBufferIndex)]];
     float4 normals [[attribute(normalBufferIndex)]];
     float4 color [[attribute(colorBufferIndex)]];
+    float4 material [[attribute(materialBufferIndex)]];
 } Vertex;
 
 typedef struct
 {
     float4 position [[position]];
     float4 color [[flat]];
+    float4 material [[flat]];
     float3 normalVectorInMVSpace;
     float4 verticesInMVSpace;
     float4 normal [[flat]];
@@ -58,6 +43,7 @@ vertex VertexOut vertexVoxelShader(Vertex in [[stage_in]],
     out.position = uniforms.projectionSpace * uniforms.modelViewSpace * position;
     out.normal=normalize(in.normals);
     out.color=in.color;
+    out.material=in.material;
     out.shadowCoords=lightOrthoView*(uniforms.modelSpace*position);
     return out;
 }
@@ -83,11 +69,11 @@ fragment float4 fragmentVoxelShader(VertexOut in [[stage_in]],
 
     float3 normalVectorInWorldSpace=normalize(uniforms.normalSpace*in.normal.xyz);
     
-    float diffuseFactor=max(0.3,dot(normalVectorInWorldSpace,lightRayDirection));
+    float3 viewVector=normalize(uniforms.cameraPosition-verticesInWorldSpace.xyz);
     
-    float3 diffuse=diffuseFactor*lightColor;
+    float3 brdf=cookTorranceBRDF(lightRayDirection, normalVectorInWorldSpace, viewVector, in.color.rgb, float3(1.0), in.material.x, in.material.y, in.material.z);
     
-    float3 color=(ambient+diffuse)*in.color.rgb;
+    float3 color=ambient*in.color.rgb+brdf*lightColor;
     
     //for debugging uncomment this line so you can render the normals
     //return float4(normalVectorInWorldSpace,1.0);

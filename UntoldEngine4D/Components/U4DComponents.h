@@ -44,6 +44,7 @@ struct Transform{
 struct VoxelData{
     unsigned int guid;
     simd_float3 color;
+    simd_float3 material;
 };
 
 /**
@@ -62,6 +63,7 @@ struct VoxelPool{
     id<MTLBuffer> vertexBuffer;
     id<MTLBuffer> normalBuffer;
     id<MTLBuffer> colorBuffer;
+    id<MTLBuffer> materialBuffer;
     id<MTLBuffer> indicesBuffer;
 };
 

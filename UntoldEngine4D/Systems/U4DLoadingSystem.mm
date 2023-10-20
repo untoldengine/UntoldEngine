@@ -240,12 +240,13 @@ void loadVoxelAsset(std::string filename){
     for(int i=0;i<voxelData.size();i++){
         unsigned int guid=voxelData[i].guid;
         simd_float3 color=voxelData[i].color;
-        insertVoxelIntoGPU(guid, color);
+        simd_float3 material=voxelData[i].material;
+        insertVoxelIntoGPU(guid, color, material);
     }
     
 }
 
-void insertVoxelIntoGPU(unsigned int uGuid, simd_float3 color){
+void insertVoxelIntoGPU(unsigned int uGuid, simd_float3 color, simd_float3 material){
 
     //determin the voxel coordinate, i.e. uGuid->(x,y,z)
     simd_uint3 voxelCoord=indexTo3DGridMap(uGuid, sizeOfChunk, sizeOfChunk, sizeOfChunk);
@@ -281,6 +282,12 @@ void insertVoxelIntoGPU(unsigned int uGuid, simd_float3 color){
     for(int i=0;i<numOfVerticesPerBlock;i++){
         newColor[i]=simd_float4{color.r,color.g,color.b,1.0};
     }
+    
+    simd_float4 newMaterial[numOfIndicesPerBlock];
+    
+    for(int i=0;i<numOfVerticesPerBlock;i++){
+        newMaterial[i]=simd_make_float4(material.r,material.g,material.b,1.0);
+    }
 
     simd_float4 *targetOriginMemtory=(simd_float4*)voxelPool.originBuffer.contents;
     memcpy(targetOriginMemtory+nextVoxelOffset, &voxelOrigin, sizeof(simd_float4));
@@ -293,6 +300,9 @@ void insertVoxelIntoGPU(unsigned int uGuid, simd_float3 color){
 
     simd_float4 *targetColorMemory=(simd_float4*)voxelPool.colorBuffer.contents;
     memcpy(targetColorMemory+nextVoxelOffset*numOfVerticesPerBlock, &newColor[0], sizeof(simd_float4)*numOfVerticesPerBlock);
+    
+    simd_float4 *targetMaterialMemory=(simd_float4*)voxelPool.materialBuffer.contents;
+    memcpy(targetMaterialMemory+nextVoxelOffset*numOfVerticesPerBlock, &newMaterial[0], sizeof(simd_float4)*numOfVerticesPerBlock);
     
     uint16* targetIndicesMemory=(uint16*)voxelPool.indicesBuffer.contents;
     memcpy(targetIndicesMemory+nextVoxelOffset*numOfIndicesPerBlock, &newIndices[0], sizeof(uint16)*numOfIndicesPerBlock);

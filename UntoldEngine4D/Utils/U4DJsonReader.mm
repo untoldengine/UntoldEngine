@@ -41,6 +41,12 @@ std::vector<VoxelData> readVoxelFile(std::string fileName) {
                 voxelData.color.x=[(NSNumber*)dataDict[@"color"][0] floatValue] ;
                 voxelData.color.y=[(NSNumber*)dataDict[@"color"][1] floatValue] ;
                 voxelData.color.z=[(NSNumber*)dataDict[@"color"][2] floatValue] ;
+                
+                voxelData.material.x=[(NSNumber*)dataDict[@"material"][0] floatValue] ;
+                voxelData.material.y=[(NSNumber*)dataDict[@"material"][1] floatValue] ;
+                voxelData.material.z=[(NSNumber*)dataDict[@"material"][2] floatValue] ;
+                
+                
                 voxelDataArray.push_back(voxelData);
             }
 

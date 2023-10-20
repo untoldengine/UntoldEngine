@@ -86,7 +86,7 @@ extern U4DEngine::RendererInfo renderInfo;
 
         light.orthoMatrix=matrix_ortho_right_hand(-width/2.0, width/2.0, -height/2.0, height/2.0, nearPlane, farPlane);
         
-        light.translateTo(simd_float3{20.0,20.0,20.0});
+        light.translateTo(simd_float3{0.0,5.0,10.0});
         
         [self mtkView:mtkView drawableSizeWillChange:mtkView.bounds.size];
         
