@@ -54,7 +54,7 @@ float computeDepth(float3 pos, float4x4 uView, float4x4 uProjection){
 
 float4 computeGrid(float3 uFragPos,float uScale){
     
-    float2 coord=uFragPos.xz*uScale/10.0;
+    float2 coord=uFragPos.xz*uScale;
     
     float2 derivative=fwidth(coord);
     float2 grid=abs(fract(coord-0.5)-0.5)/derivative;

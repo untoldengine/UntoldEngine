@@ -20,7 +20,7 @@ extern U4DEngine::VoxelPool voxelPool;
 extern unsigned long nextVoxelOffset;
 extern std::map<std::string, U4DEngine::Voxel> voxelAssetMap;
 
-float scale=0.2;
+float scale=0.1;
 
 simd_float4 V0=simd_float4{-1.0,-1.0,1.0,1.0}*scale;
 simd_float4 V1=simd_float4{1.0,-1.0,1.0,1.0}*scale;

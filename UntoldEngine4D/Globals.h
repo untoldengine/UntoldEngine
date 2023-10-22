@@ -45,4 +45,6 @@ U4DEngine::RendererInfo renderInfo;
 //Keys
 U4DEngine::KeyState keyState;
 
+
+U4DEngine::EntityID player0ready;
 #endif /* Globals_h */
