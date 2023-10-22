@@ -10,10 +10,12 @@
 #import "U4DRenderer.h"
 #include "U4DCamera.h"
 #include "U4DController.h"
+#include "U4DTransformSystem.h"
 
 
 extern U4DEngine::U4DCamera camera;
 extern U4DEngine::U4DController controller;
+extern U4DEngine::EntityID player0ready;
 
 @implementation GameViewController
 {
@@ -115,6 +117,7 @@ extern U4DEngine::U4DController controller;
     simd::float2 mouseLocation { static_cast<float>( xDelta ), static_cast<float>( yDelta ) };
 
     controller.orbitCamera( mouseLocation );
+    
 }
 
 - (void)mouseDragged:(NSEvent *)theEvent {

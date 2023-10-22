@@ -17,12 +17,11 @@ typedef unsigned long long  EntityID;
 typedef unsigned int EntityIndex;
 typedef unsigned int EntityVersion;
 
-const unsigned long MaxNumberOfBlocks = 16*16*16;
 const int numOfVerticesPerBlock=24;
 const int numOfIndicesPerBlock=36;
-const int sizeOfChunk=16;
+const int sizeOfChunk=32;
 const int sizeOfChunkHalf=sizeOfChunk/2;
-
+const unsigned long MaxNumberOfBlocks = sizeOfChunk*sizeOfChunk*sizeOfChunk;
 
 
 const int maxNumberOfModels=1000;

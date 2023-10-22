@@ -13,7 +13,7 @@
 #include "CommonProtocols.h"
 
 extern U4DEngine::KeyState keyState;
-
+extern U4DEngine::EntityID player0ready;
 void GameScene::init(MTKView *metalView){
     
     //Initialize the renderer
@@ -30,10 +30,10 @@ void GameScene::init(MTKView *metalView){
     scene.assign<U4DEngine::Voxel>(voxelEntity);
     scene.assign<U4DEngine::Transform>(voxelEntity);
 
-//    U4DEngine::EntityID voxelEntity2=scene.newEntity();
-//    scene.assign<U4DEngine::Voxel>(voxelEntity2);
-//    scene.assign<U4DEngine::Transform>(voxelEntity2);
-//    
+    player0ready=scene.newEntity();
+    scene.assign<U4DEngine::Voxel>(player0ready);
+    scene.assign<U4DEngine::Transform>(player0ready);
+//
 //    U4DEngine::EntityID voxelEntity3=scene.newEntity();
 //    scene.assign<U4DEngine::Voxel>(voxelEntity3);
 //    scene.assign<U4DEngine::Transform>(voxelEntity3);
@@ -50,12 +50,12 @@ void GameScene::init(MTKView *metalView){
 //    scene.assign<U4DEngine::Voxel>(voxelEntity6);
 //    scene.assign<U4DEngine::Transform>(voxelEntity6);
     
-    U4DEngine::addVoxelsToEntity(voxelEntity,"brdftest.json");
+    U4DEngine::addVoxelsToEntity(voxelEntity,"lake.json");
     U4DEngine::translateTo(voxelEntity, simd_make_float3(0.0, 0.0, 0.0));
     
-//    U4DEngine::addVoxelsToEntity(voxelEntity2,"puppy2.json");
-//    U4DEngine::translateTo(voxelEntity2, simd_make_float3(-5.0, 0.0, 0.0));
-//    
+    U4DEngine::addVoxelsToEntity(player0ready,"ship.json");
+    U4DEngine::translateTo(player0ready, simd_make_float3(0.0, 0.2, 0.0));
+//
 //    U4DEngine::addVoxelsToEntity(voxelEntity3,"puppy3.json");
 //    U4DEngine::translateTo(voxelEntity3, simd_make_float3(5.0, 0.0, 0.0));
 //    
@@ -83,11 +83,15 @@ void GameScene::update(){
 void GameScene::handleInput(){
     
     if(keyState.wPressed){
-        NSLog(@"w key pressed");
+        U4DEngine::translateBy(player0ready, simd_make_float3(0.01,0.0,0.0));
+    }
+    
+    if(keyState.sPressed){
+        U4DEngine::translateBy(player0ready, simd_make_float3(-0.01,0.0,0.0));
     }
     
     if(keyState.aPressed){
-        NSLog(@"a pressed");
+        
     }
     
     
