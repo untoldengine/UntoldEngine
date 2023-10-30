@@ -643,7 +643,7 @@ void shadowPass(U4DScene &scene, id<MTLCommandBuffer> uCommandBuffer){
     
     [renderEncoder setRenderPipelineState:shadowPipeline.pipelineState];
     [renderEncoder setDepthStencilState:shadowPipeline.depthStencilState];
-    [renderEncoder setDepthBias: 0.01 slopeScale: 1.0f clamp: 0.01];
+    [renderEncoder setDepthBias: 0.001 slopeScale: 0.15f clamp: 0.01];
     [renderEncoder setViewport:(MTLViewport){0.0, 0.0, 1024.0, 1024.0, 0.0, 1.0 }];
     [renderEncoder setVertexBytes:&light.orthoViewMatrix length:sizeof(light.orthoViewMatrix) atIndex:lightOrthoViewSpaceBufferIndex];
     

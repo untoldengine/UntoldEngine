@@ -54,7 +54,7 @@ fragment float4 fragmentVoxelShader(VertexOut in [[stage_in]],
                                     depth2d<float> shadowTexture[[texture(0)]]){
     
     //ambient
-    float ambientStrength=0.2;
+    float ambientStrength=0.5;
     float3 lightColor=float3(1.0);
     
     float3 ambient=ambientStrength*lightColor;
