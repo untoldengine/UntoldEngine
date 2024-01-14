@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		030BA17A2AE2589600838EA5 /* brdftest.json in Resources */ = {isa = PBXBuildFile; fileRef = 030BA1792AE2589600838EA5 /* brdftest.json */; };
+		0315F3972B52D65300300654 /* bot0552.json in Resources */ = {isa = PBXBuildFile; fileRef = 0315F3962B52D65300300654 /* bot0552.json */; };
 		031E6A742AE5BF890073DE04 /* ship.json in Resources */ = {isa = PBXBuildFile; fileRef = 031E6A732AE5BF890073DE04 /* ship.json */; };
 		031E6A762AE6085E0073DE04 /* lake.json in Resources */ = {isa = PBXBuildFile; fileRef = 031E6A752AE6085E0073DE04 /* lake.json */; };
 		0335A4572ACC61C5004987FC /* GameScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0335A4552ACC61C4004987FC /* GameScene.mm */; };
@@ -91,13 +92,10 @@
 		039B94AC2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
 		039B94B32AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
 		039B94B42AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
-		039B94B52AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
 		039B94B72AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
 		039B94B82AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
-		039B94B92AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
 		039B94BB2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
 		039B94BC2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
-		039B94BD2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
 		039B94BF2AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
 		039B94C02AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
 		039B94C12AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
@@ -109,6 +107,7 @@
 /* Begin PBXFileReference section */
 		030BA1792AE2589600838EA5 /* brdftest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = brdftest.json; sourceTree = "<group>"; };
 		031413EC2589D03B005BF4A4 /* Untold4D.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Untold4D.entitlements; sourceTree = "<group>"; };
+		0315F3962B52D65300300654 /* bot0552.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot0552.json; sourceTree = "<group>"; };
 		031E6A732AE5BF890073DE04 /* ship.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ship.json; sourceTree = "<group>"; };
 		031E6A752AE6085E0073DE04 /* lake.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = lake.json; sourceTree = "<group>"; };
 		0335A4552ACC61C4004987FC /* GameScene.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GameScene.mm; sourceTree = "<group>"; };
@@ -283,6 +282,7 @@
 		03759B29175B0135002EB5D9 = {
 			isa = PBXGroup;
 			children = (
+				0315F3962B52D65300300654 /* bot0552.json */,
 				031E6A752AE6085E0073DE04 /* lake.json */,
 				031E6A732AE5BF890073DE04 /* ship.json */,
 				030BA1792AE2589600838EA5 /* brdftest.json */,
@@ -599,12 +599,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				039B94BD2AC785670047D1A1 /* puppy3.json in Resources */,
 				031E6A742AE5BF890073DE04 /* ship.json in Resources */,
 				031E6A762AE6085E0073DE04 /* lake.json in Resources */,
+				0315F3972B52D65300300654 /* bot0552.json in Resources */,
 				030BA17A2AE2589600838EA5 /* brdftest.json in Resources */,
-				039B94B52AC785670047D1A1 /* puppy.json in Resources */,
-				039B94B92AC785670047D1A1 /* puppy2.json in Resources */,
 				039B94C52AC785670047D1A1 /* gameboyvoxel.json in Resources */,
 				039B94C12AC785670047D1A1 /* floorchunk.json in Resources */,
 				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,

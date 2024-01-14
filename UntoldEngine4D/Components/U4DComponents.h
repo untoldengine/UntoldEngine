@@ -106,7 +106,7 @@ struct Buffer{
     //composite
     id<MTLBuffer> quadVerticesBuffer;
     id<MTLBuffer> quadTexCoordsBuffer;
-
+    id<MTLBuffer> quadIndexBuffer;
 };
 
 /**
