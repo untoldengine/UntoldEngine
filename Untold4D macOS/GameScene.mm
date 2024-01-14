@@ -53,7 +53,7 @@ void GameScene::init(MTKView *metalView){
     U4DEngine::addVoxelsToEntity(voxelEntity,"lake.json");
     U4DEngine::translateTo(voxelEntity, simd_make_float3(0.0, 0.0, 0.0));
     
-    U4DEngine::addVoxelsToEntity(player0ready,"ship.json");
+    U4DEngine::addVoxelsToEntity(player0ready,"bot0552.json");
     U4DEngine::translateTo(player0ready, simd_make_float3(0.0, 0.2, 0.0));
 //
 //    U4DEngine::addVoxelsToEntity(voxelEntity3,"puppy3.json");

@@ -13,6 +13,13 @@
 using namespace metal;
 #include "U4DShaderHelperFunctions.h"
 
+struct VertexCompInput{
+    
+    float3 position [[attribute(0)]];
+    float2 uvCoords [[attribute(1)]];
+    
+};
+
 struct VertexCompOutput{
     
     float4 position [[position]];
@@ -20,13 +27,13 @@ struct VertexCompOutput{
     
 };
 
-vertex VertexCompOutput vertexCompositeShader(constant float2 *quadVertices[[buffer(0)]], constant float2 *quadTexCoords[[buffer(1)]], uint vid [[vertex_id]]){
+vertex VertexCompOutput vertexCompositeShader(VertexCompInput in [[stage_in]]){
     
     VertexCompOutput vertexOut;
     
-    vertexOut.uvCoords=quadTexCoords[vid];
+    vertexOut.uvCoords=in.uvCoords;
     
-    vertexOut.position=float4(quadVertices[vid],0.0,1.0);
+    vertexOut.position=float4(in.position,1.0);
     
     return vertexOut;
 }

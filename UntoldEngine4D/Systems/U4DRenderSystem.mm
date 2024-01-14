@@ -34,17 +34,19 @@ simd_float3 gridVertices[]={simd_float3{1.0,1.0,0.0},
     simd_float3{1.0,1.0,0.0},
     simd_float3{1.0,-1.0,0.0}};
 
-float quadVertices[12]={-1.0,1.0,1.0,
-    -1.0,-1.0,-1.0,
-    -1.0,1.0,1.0,
-    1.0,1.0,-1.0};
+static simd_float3 quadVertices[]={simd_float3{-1.0,1.0,0.0},
+                                    simd_float3{-1.0,-1.0,0.0},
+                                    simd_float3{1.0,-1.0,0.0},
+                                    simd_float3{1.0,1.0,0.0}
+};
 
-float quadTexCoords[12]={0.0,0.0,
-    1.0,1.0,
-    0.0,1.0,
-    0.0,0.0,
-    1.0,0.0,
-    1.0,1.0};
+static simd_float2 quadTexCoords[]={simd_float2{0.0,0.0},
+                                    simd_float2{0.0,1.0},
+                                    simd_float2{1.0,1.0},
+                                    simd_float2{1.0,0.0}
+};
+
+static unsigned short quadIndices[]={0,1,3,3,1,2};
 
 void initBuffers(){
     
@@ -74,9 +76,11 @@ void initBuffers(){
     
     //composite
     
-    buffer.quadVerticesBuffer=[renderInfo.device newBufferWithBytes:&quadVertices[0] length:sizeof(float)*sizeof(quadVertices)/sizeof(quadVertices[0]) options:MTLResourceStorageModeShared];
+    buffer.quadVerticesBuffer=[renderInfo.device newBufferWithBytes:&quadVertices[0] length:sizeof(simd_float3)*sizeof(quadVertices)/sizeof(quadVertices[0]) options:MTLResourceStorageModeShared];
     
-    buffer.quadTexCoordsBuffer=[renderInfo.device newBufferWithBytes:&quadTexCoords[0] length:sizeof(float)*sizeof(quadTexCoords)/sizeof(quadTexCoords[0]) options:MTLResourceStorageModeShared];
+    buffer.quadTexCoordsBuffer=[renderInfo.device newBufferWithBytes:&quadTexCoords[0] length:sizeof(simd_float2)*sizeof(quadTexCoords)/sizeof(quadTexCoords[0]) options:MTLResourceStorageModeShared];
+    
+    buffer.quadIndexBuffer=[renderInfo.device newBufferWithBytes:&quadIndices[0] length:sizeof(unsigned short)*sizeof(quadIndices)/sizeof(quadIndices[0]) options:MTLResourceStorageModeShared];
     
 }
 
@@ -319,16 +323,22 @@ void initPipelines(){
         MTLVertexDescriptor *vertexDescriptor=[[MTLVertexDescriptor alloc] init];
         
         //set position
-        vertexDescriptor.attributes[0].format=MTLVertexFormatFloat4;
+        vertexDescriptor.attributes[0].format=MTLVertexFormatFloat3;
         vertexDescriptor.attributes[0].bufferIndex=0;
         vertexDescriptor.attributes[0].offset=0;
         
         vertexDescriptor.attributes[1].format=MTLVertexFormatFloat2;
-        vertexDescriptor.attributes[1].bufferIndex=0;
-        vertexDescriptor.attributes[1].offset=4*sizeof(float);
+        vertexDescriptor.attributes[1].bufferIndex=1;
+        vertexDescriptor.attributes[1].offset=0;
         
-        vertexDescriptor.layouts[0].stride=8*sizeof(float);
+        //stride
+        vertexDescriptor.layouts[0].stride=sizeof(simd_float3);
         vertexDescriptor.layouts[0].stepFunction=MTLVertexStepFunctionPerVertex;
+        vertexDescriptor.layouts[0].stepRate=1;
+        
+        vertexDescriptor.layouts[1].stride=sizeof(simd_float2);
+        vertexDescriptor.layouts[1].stepFunction=MTLVertexStepFunctionPerVertex;
+        vertexDescriptor.layouts[1].stepRate=1;
         
         //Step 5. Build the rendering pipeline
         MTLRenderPipelineDescriptor *pipelineDescriptor=[[MTLRenderPipelineDescriptor alloc] init];
@@ -522,7 +532,11 @@ void compositePass(id<MTLCommandBuffer> uCommandBuffer){
     [renderEncoder setFragmentTexture:renderInfo.offscreenRenderPassDescriptor.colorAttachments[0].texture atIndex:0];
     [renderEncoder setFragmentTexture:renderInfo.renderPassDescriptor.colorAttachments[0].texture atIndex:1];
     
-    [renderEncoder drawPrimitives:MTLPrimitiveTypeTriangle vertexStart:0 vertexCount:sizeof(quadVertices)/sizeof(quadVertices[0])];
+    [renderEncoder drawIndexedPrimitives:MTLPrimitiveTypeTriangle
+                              indexCount:6
+                               indexType:MTLIndexTypeUInt16
+                             indexBuffer:buffer.quadIndexBuffer
+                       indexBufferOffset:0];
     
     [renderEncoder popDebugGroup];
     [renderEncoder endEncoding];
