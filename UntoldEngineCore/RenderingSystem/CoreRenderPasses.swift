@@ -122,11 +122,7 @@ struct CoreRenderPasses{
             if let transform = scene.get(component: Transform.self, for: entityId) {
                 
                 var modelMatrix = transform.localTransform
-                
-                modelMatrix.columns.3.x -= scale*Float(sizeOfChunk)
-                
-                modelMatrix.columns.3.z -= scale*Float(sizeOfChunk)
-                
+                                
                 let viewMatrix:simd_float4x4 = camera.viewSpace
                 
                 let modelViewMatrix=simd_mul(viewMatrix,modelMatrix)
@@ -266,13 +262,7 @@ struct CoreRenderPasses{
             if let transform = scene.get(component: Transform.self, for: entityId) {
                 
                 var modelMatrix = transform.localTransform
-                
-                modelMatrix.columns.3.x -= scale*Float(sizeOfChunk)
-                
-                modelMatrix.columns.3.z -= scale*Float(sizeOfChunk)
-                
-                let modelWorldMatrix=simd_mul(worldMatrix, modelMatrix)
-                
+                                
                 let viewMatrix:simd_float4x4 = camera.viewSpace
                 
                 let modelViewMatrix=simd_mul(viewMatrix,modelMatrix)

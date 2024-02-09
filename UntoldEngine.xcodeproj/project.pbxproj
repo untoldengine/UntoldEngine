@@ -32,22 +32,13 @@
 		03EAF3AE2B73D0CC00D1C5B5 /* CoreRenderPasses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3182B73CE1A00D1C5B5 /* CoreRenderPasses.swift */; };
 		03EAF3AF2B73D0CF00D1C5B5 /* CoreRenderInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3192B73CE1A00D1C5B5 /* CoreRenderInitializer.swift */; };
 		03EAF3C02B741E7400D1C5B5 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3BF2B741E7400D1C5B5 /* GameScene.swift */; };
-		03EAF3C32B741EA000D1C5B5 /* land0001.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3C12B741EA000D1C5B5 /* land0001.json */; };
-		03EAF3C42B741EA000D1C5B5 /* bot0552.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3C22B741EA000D1C5B5 /* bot0552.json */; };
-		03EAF3C72B741F3500D1C5B5 /* pointLight2.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3C52B741F3500D1C5B5 /* pointLight2.json */; };
-		03EAF3C82B741F3500D1C5B5 /* pointLight1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3C62B741F3500D1C5B5 /* pointLight1.json */; };
-		03EAF3DE2B7421C200D1C5B5 /* ship.json in Resources */ = {isa = PBXBuildFile; fileRef = 031E6A732AE5BF890073DE04 /* ship.json */; };
-		03EAF3DF2B7421C500D1C5B5 /* lake.json in Resources */ = {isa = PBXBuildFile; fileRef = 031E6A752AE6085E0073DE04 /* lake.json */; };
-		03EAF3E12B7422F000D1C5B5 /* simpletest.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3E02B7422F000D1C5B5 /* simpletest.json */; };
 		03EAF3E42B751C2E00D1C5B5 /* TransformSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */; };
 		03EAF3E82B7599FA00D1C5B5 /* UntoldEngineKernels.metallib in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3E72B7599FA00D1C5B5 /* UntoldEngineKernels.metallib */; };
+		03EAF3ED2B766F8400D1C5B5 /* floor.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3EB2B766F8400D1C5B5 /* floor.json */; };
+		03EAF3EE2B766F8400D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3EC2B766F8400D1C5B5 /* bot1.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		030BA1792AE2589600838EA5 /* brdftest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = brdftest.json; sourceTree = "<group>"; };
-		0315F3962B52D65300300654 /* bot0552.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot0552.json; sourceTree = "<group>"; };
-		031E6A732AE5BF890073DE04 /* ship.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ship.json; sourceTree = "<group>"; };
-		031E6A752AE6085E0073DE04 /* lake.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = lake.json; sourceTree = "<group>"; };
 		03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UntoldEngine-Prefix.pch"; sourceTree = "<group>"; };
 		03759B38175B0135002EB5D9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		03759B3A175B0135002EB5D9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
@@ -84,13 +75,10 @@
 		03EAF3842B73D02500D1C5B5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
 		03EAF3862B73D02500D1C5B5 /* Mac_Untold.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mac_Untold.entitlements; sourceTree = "<group>"; };
 		03EAF3BF2B741E7400D1C5B5 /* GameScene.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
-		03EAF3C12B741EA000D1C5B5 /* land0001.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = land0001.json; sourceTree = "<group>"; };
-		03EAF3C22B741EA000D1C5B5 /* bot0552.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = bot0552.json; path = ../../../Downloads/bot0552.json; sourceTree = "<group>"; };
-		03EAF3C52B741F3500D1C5B5 /* pointLight2.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pointLight2.json; sourceTree = "<group>"; };
-		03EAF3C62B741F3500D1C5B5 /* pointLight1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = pointLight1.json; sourceTree = "<group>"; };
-		03EAF3E02B7422F000D1C5B5 /* simpletest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = simpletest.json; sourceTree = "<group>"; };
 		03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransformSystem.swift; sourceTree = "<group>"; };
 		03EAF3E72B7599FA00D1C5B5 /* UntoldEngineKernels.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; path = UntoldEngineKernels.metallib; sourceTree = "<group>"; };
+		03EAF3EB2B766F8400D1C5B5 /* floor.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = floor.json; sourceTree = "<group>"; };
+		03EAF3EC2B766F8400D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -110,15 +98,8 @@
 		03759B29175B0135002EB5D9 = {
 			isa = PBXGroup;
 			children = (
-				03EAF3E02B7422F000D1C5B5 /* simpletest.json */,
-				03EAF3C62B741F3500D1C5B5 /* pointLight1.json */,
-				03EAF3C52B741F3500D1C5B5 /* pointLight2.json */,
-				0315F3962B52D65300300654 /* bot0552.json */,
-				03EAF3C22B741EA000D1C5B5 /* bot0552.json */,
-				03EAF3C12B741EA000D1C5B5 /* land0001.json */,
-				031E6A752AE6085E0073DE04 /* lake.json */,
-				031E6A732AE5BF890073DE04 /* ship.json */,
-				030BA1792AE2589600838EA5 /* brdftest.json */,
+				03EAF3EC2B766F8400D1C5B5 /* bot1.json */,
+				03EAF3EB2B766F8400D1C5B5 /* floor.json */,
 				03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */,
 				03EAF2E32B73CE1A00D1C5B5 /* UntoldEngineCore */,
 				037E2066192D3DED00D375F2 /* Resources */,
@@ -314,14 +295,9 @@
 			buildActionMask = 2147483647;
 			files = (
 				03EAF3822B73D02500D1C5B5 /* Assets.xcassets in Resources */,
-				03EAF3C72B741F3500D1C5B5 /* pointLight2.json in Resources */,
-				03EAF3E12B7422F000D1C5B5 /* simpletest.json in Resources */,
-				03EAF3C82B741F3500D1C5B5 /* pointLight1.json in Resources */,
 				03EAF3E82B7599FA00D1C5B5 /* UntoldEngineKernels.metallib in Resources */,
-				03EAF3DF2B7421C500D1C5B5 /* lake.json in Resources */,
-				03EAF3DE2B7421C200D1C5B5 /* ship.json in Resources */,
-				03EAF3C32B741EA000D1C5B5 /* land0001.json in Resources */,
-				03EAF3C42B741EA000D1C5B5 /* bot0552.json in Resources */,
+				03EAF3ED2B766F8400D1C5B5 /* floor.json in Resources */,
+				03EAF3EE2B766F8400D1C5B5 /* bot1.json in Resources */,
 				03EAF3852B73D02500D1C5B5 /* Main.storyboard in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -39,23 +39,23 @@ func loadVoxelIntoPool(_ assetId:AssetID, _ filename:String){
     assetDataArray.append(assetData)
     
     for (index, voxel) in voxelDataArray.enumerated(){
-        copyDataIntoPools(assetId, voxel.guid, voxel.color, voxel.material, Int(index))
+        copyDataIntoPools(assetId, voxel.rawOrigin, voxel.color, voxel.material, Int(index))
     }
     
 
 }
             
-func copyDataIntoPools(_ assetId:AssetID, _ uGuid:UInt, _ color:simd_float3, _ material:simd_float3, _ offset:Int){
+func copyDataIntoPools(_ assetId:AssetID, _ origin:simd_float3, _ color:simd_float3, _ material:simd_float3, _ offset:Int){
     
-    let voxelCoord=indexTo3DGridMap(index: uGuid, sizeX: UInt(sizeOfChunk), sizeY: UInt(sizeOfChunk), sizeZ: UInt(sizeOfChunk))
-    
-    
-    var voxelOrigin:simd_float3=simd_float3(Float(voxelCoord.x),Float(voxelCoord.y),Float(voxelCoord.z))*2.0*scale
-    
+//    let voxelCoord=indexTo3DGridMap(index: uGuid, sizeX: UInt(sizeOfChunk), sizeY: UInt(sizeOfChunk), sizeZ: UInt(sizeOfChunk))
+//    
+//    
+//    var voxelOrigin:simd_float3=simd_float3(Float(voxelCoord.x),Float(voxelCoord.y),Float(voxelCoord.z))*2.0*scale
+//    
     var newVertices:[simd_float3]=Array(repeating: simd_float3(0.0,0.0,0.0), count: numOfVerticesPerBlock)
 
     for (i,value) in vertices.enumerated(){
-        newVertices[i]=voxelOrigin+value
+        newVertices[i]=origin+value
         
     }
     

@@ -63,10 +63,10 @@ class GameScene{
         lightingSystem.pointLight.append(light2)
         
         //load all assets
-        loadVoxelIntoPool(0, "bot0552")
-        loadVoxelIntoPool(1, "land0001")
-        loadVoxelIntoPool(2, "pointLight1")
-        loadVoxelIntoPool(3, "pointLight2")
+        loadVoxelIntoPool(0, "floor")
+        loadVoxelIntoPool(1, "bot1")
+//        loadVoxelIntoPool(2, "pointLight1")
+//        loadVoxelIntoPool(3, "pointLight2")
         
         //set up entities
         let entity0=scene.newEntity()
@@ -78,27 +78,28 @@ class GameScene{
         var entity1=scene.newEntity()
         var transform1=scene.assign(to: entity1, component: Transform.self)
         _ = scene.assign(to: entity1, component: Render.self)
+        transform1.localTransform=matrix4x4Translation(0.0, scale*2, 0.0)
         
-        transform1.localTransform=matrix4x4Translation(-4.0, 0.0, 0.0)
-        
-        var entity2=scene.newEntity()
-        _ = scene.assign(to: entity2, component: Transform.self)
-        _ = scene.assign(to: entity2, component: Render.self)
-        
-        var entity3=scene.newEntity()
-        var pointLightTransform = scene.assign(to: entity3, component: Transform.self)
-        _ = scene.assign(to: entity3, component: Render.self)
-        
-        pointLightTransform.localTransform=matrix4x4Translation(0.0, 0.5, 1.0)
+//        transform1.localTransform=matrix4x4Translation(-4.0, 0.0, 0.0)
+//        
+//        var entity2=scene.newEntity()
+//        _ = scene.assign(to: entity2, component: Transform.self)
+//        _ = scene.assign(to: entity2, component: Render.self)
+//        
+//        var entity3=scene.newEntity()
+//        var pointLightTransform = scene.assign(to: entity3, component: Transform.self)
+//        _ = scene.assign(to: entity3, component: Render.self)
+//        
+//        pointLightTransform.localTransform=matrix4x4Translation(0.0, 0.5, 1.0)
         
         //linkEntityToAsset(entity0,0)
         entityAssetMap[entity0]=assetDataArray[0]
-        entityAssetMap[entity1]=assetDataArray[0]
-        entityAssetMap[entity2]=assetDataArray[1]
-        
-        //point lights
-        entityAssetMap[entity3]=assetDataArray[2]
+        entityAssetMap[entity1]=assetDataArray[1]
+//        entityAssetMap[entity2]=assetDataArray[1]
 //        
+        //point lights
+        //entityAssetMap[entity3]=assetDataArray[2]
+//
         //set the callback to be the update method
         renderer.gameUpdateCallback = { [weak self] in
             self?.update()
@@ -107,15 +108,15 @@ class GameScene{
         renderer.handleInputCallback = {[weak self] in
             self?.handleInput()
         }
-        //rotateTo(0, 90.0, simd_float3(0.0,1.0,0.0))
-        //translateTo(0,simd_float3(10.0,0.0,0.0))
+        //rotateTo(0, 45.0, simd_float3(0.0,1.0,0.0))
+        translateEntityBy(EntityID(1)<<32,simd_float3(2.0,0.0,0.0))
 //        rotateTo(0, 90.0, simd_float3(0.0,1.0,0.0))
         //translateTo(0,-modelOffset)
     }
     
     func update(){
         //print("updating")
-        //rotateBy(0, 1.0, simd_float3(0.0,1.0,0.0))
+        rotateBy(EntityID(1)<<32, 1.0, simd_float3(0.0,1.0,0.0))
     }
     
     func handleInput(){
@@ -123,22 +124,22 @@ class GameScene{
         
         if keyState.aPressed == true{
             //rotateBy(0, 0.1, simd_float3(0.0,1.0,0.0))
-            //translateEntityBy(0, simd_float3(-0.1,0.0,0.0))
+            translateEntityBy(EntityID(1)<<32, simd_float3(-0.1,0.0,0.0))
         }
         
         if keyState.wPressed == true{
             
-            translateEntityBy(0, simd_float3(0.0,0.0,0.1))
+            translateEntityBy(EntityID(1)<<32, simd_float3(0.0,0.0,0.1))
         }
         
         if keyState.sPressed == true{
             
-            translateEntityBy(0, simd_float3(0.0,0.0,-0.1))
+            translateEntityBy(EntityID(1)<<32, simd_float3(0.0,0.0,-0.1))
         }
         
         if keyState.dPressed == true{
             
-            translateEntityBy(0, simd_float3(0.1,0.0,0.0))
+            translateEntityBy(EntityID(1)<<32, simd_float3(0.1,0.0,0.0))
         }
         
     }

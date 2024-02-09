@@ -46,9 +46,6 @@ var compositePipeline=RenderPipeline()
 var shadowPipeline=RenderPipeline()
 
 let scale:Float=0.1
-let planeScale:Float=Float(sizeOfChunk)*scale*2
-let modelOffset:simd_float3=simd_float3(-(planeScale/2.0 - scale),scale,-(planeScale/2.0 - scale))
-
 
 //Timing properties
 var timeSinceLastUpdatePreviousTime:TimeInterval!;
@@ -180,6 +177,7 @@ struct AssetData{
 
 struct VoxelData: Codable{ //codable means it can be encoded and decoded to/from json format
     var guid:UInt
+    var rawOrigin:simd_float3=simd_float3(0.0,0.0,0.0)
     var color:simd_float3
     var material:simd_float3
 }
@@ -197,6 +195,3 @@ let kVK_ANSI_W: UInt16 = 13
 let kVK_ANSI_A: UInt16 = 0
 let kVK_ANSI_S: UInt16 = 1
 let kVK_ANSI_D: UInt16 = 2
-
-
-let worldMatrix:simd_float4x4=matrix4x4Translation(-modelOffset.x, modelOffset.y, -modelOffset.z)
