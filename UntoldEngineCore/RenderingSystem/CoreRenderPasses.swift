@@ -100,7 +100,7 @@ struct CoreRenderPasses{
         
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
         
-        renderEncoder.setDepthBias(0.001, slopeScale: 0.1, clamp: 0.01)
+        renderEncoder.setDepthBias(0.01, slopeScale: 1.0, clamp: 0.1)
         renderEncoder.setViewport(MTLViewport(originX: 0.0, originY: 0.0, width: 1024, height: 1024, znear: 0.0, zfar: 1.0))
         
         

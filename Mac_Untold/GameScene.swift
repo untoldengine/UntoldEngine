@@ -109,14 +109,14 @@ class GameScene{
             self?.handleInput()
         }
         //rotateTo(0, 45.0, simd_float3(0.0,1.0,0.0))
-        translateEntityBy(EntityID(1)<<32,simd_float3(2.0,0.0,0.0))
+        //translateEntityBy(EntityID(1)<<32,simd_float3(2.0,0.0,0.0))
 //        rotateTo(0, 90.0, simd_float3(0.0,1.0,0.0))
         //translateTo(0,-modelOffset)
     }
     
     func update(){
         //print("updating")
-        rotateBy(EntityID(1)<<32, 1.0, simd_float3(0.0,1.0,0.0))
+        //rotateBy(EntityID(1)<<32, 1.0, simd_float3(0.0,1.0,0.0))
     }
     
     func handleInput(){

@@ -33,9 +33,9 @@
 		03EAF3AF2B73D0CF00D1C5B5 /* CoreRenderInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3192B73CE1A00D1C5B5 /* CoreRenderInitializer.swift */; };
 		03EAF3C02B741E7400D1C5B5 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3BF2B741E7400D1C5B5 /* GameScene.swift */; };
 		03EAF3E42B751C2E00D1C5B5 /* TransformSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */; };
-		03EAF3E82B7599FA00D1C5B5 /* UntoldEngineKernels.metallib in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3E72B7599FA00D1C5B5 /* UntoldEngineKernels.metallib */; };
 		03EAF3ED2B766F8400D1C5B5 /* floor.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3EB2B766F8400D1C5B5 /* floor.json */; };
 		03EAF3EE2B766F8400D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3EC2B766F8400D1C5B5 /* bot1.json */; };
+		03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -76,9 +76,9 @@
 		03EAF3862B73D02500D1C5B5 /* Mac_Untold.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mac_Untold.entitlements; sourceTree = "<group>"; };
 		03EAF3BF2B741E7400D1C5B5 /* GameScene.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
 		03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransformSystem.swift; sourceTree = "<group>"; };
-		03EAF3E72B7599FA00D1C5B5 /* UntoldEngineKernels.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; path = UntoldEngineKernels.metallib; sourceTree = "<group>"; };
 		03EAF3EB2B766F8400D1C5B5 /* floor.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = floor.json; sourceTree = "<group>"; };
 		03EAF3EC2B766F8400D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
+		03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; path = UntoldEngineKernels.metallib; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -191,7 +191,7 @@
 		03EAF2F42B73CE1A00D1C5B5 /* UntoldEngineKernels */ = {
 			isa = PBXGroup;
 			children = (
-				03EAF3E72B7599FA00D1C5B5 /* UntoldEngineKernels.metallib */,
+				03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */,
 			);
 			path = UntoldEngineKernels;
 			sourceTree = "<group>";
@@ -295,10 +295,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				03EAF3822B73D02500D1C5B5 /* Assets.xcassets in Resources */,
-				03EAF3E82B7599FA00D1C5B5 /* UntoldEngineKernels.metallib in Resources */,
 				03EAF3ED2B766F8400D1C5B5 /* floor.json in Resources */,
 				03EAF3EE2B766F8400D1C5B5 /* bot1.json in Resources */,
 				03EAF3852B73D02500D1C5B5 /* Main.storyboard in Resources */,
+				03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
