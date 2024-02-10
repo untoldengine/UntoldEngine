@@ -45,8 +45,6 @@ var voxelPipeline=RenderPipeline()
 var compositePipeline=RenderPipeline()
 var shadowPipeline=RenderPipeline()
 
-let scale:Float=0.1
-
 //Timing properties
 var timeSinceLastUpdatePreviousTime:TimeInterval!;
 var timeSinceLastUpdate:TimeInterval!;
@@ -55,15 +53,15 @@ var firstUpdateCall:Bool=false;
 var frameCount:Int=0;
 var timePassedSinceLastFrame:Float=0.0;
 
-let V0:simd_float3=simd_float3(-1.0,-1.0,1.0)*scale
-let V1:simd_float3=simd_float3(1.0,-1.0,1.0)*scale
-let V2:simd_float3=simd_float3(1.0,1.0,1.0)*scale
-let V3:simd_float3=simd_float3(-1.0,1.0,1.0)*scale
+let V0:simd_float3=simd_float3(-1.0,-1.0,1.0)
+let V1:simd_float3=simd_float3(1.0,-1.0,1.0)
+let V2:simd_float3=simd_float3(1.0,1.0,1.0)
+let V3:simd_float3=simd_float3(-1.0,1.0,1.0)
 
-let V4:simd_float3=simd_float3(-1.0,-1.0,-1.0)*scale
-let V5:simd_float3=simd_float3(1.0,-1.0,-1.0)*scale
-let V6:simd_float3=simd_float3(1.0,1.0,-1.0)*scale
-let V7:simd_float3=simd_float3(-1.0,1.0,-1.0)*scale
+let V4:simd_float3=simd_float3(-1.0,-1.0,-1.0)
+let V5:simd_float3=simd_float3(1.0,-1.0,-1.0)
+let V6:simd_float3=simd_float3(1.0,1.0,-1.0)
+let V7:simd_float3=simd_float3(-1.0,1.0,-1.0)
 
 let v0:simd_float3=V0
 let v20:simd_float3=V0
@@ -150,7 +148,7 @@ let quadIndices:[UInt16]=[
     3, 1, 2  // Second Triangle
 ]
 
-var zeroVertices:[simd_float3]=Array(repeating: simd_float3(0.0,0.0,0.0), count: numOfVerticesPerBlock)
+//var zeroVertices:[simd_float3]=Array(repeating: simd_float3(0.0,0.0,0.0), count: numOfVerticesPerBlock)
 
 //Asset ID
 typealias EntityID=UInt64
@@ -180,6 +178,7 @@ struct VoxelData: Codable{ //codable means it can be encoded and decoded to/from
     var rawOrigin:simd_float3=simd_float3(0.0,0.0,0.0)
     var color:simd_float3
     var material:simd_float3
+    var scale:Float
 }
 
 var assetDataArray:[AssetData]=[]

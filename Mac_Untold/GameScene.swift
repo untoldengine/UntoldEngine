@@ -63,8 +63,8 @@ class GameScene{
         lightingSystem.pointLight.append(light2)
         
         //load all assets
-        loadVoxelIntoPool(0, "floor")
-        loadVoxelIntoPool(1, "bot1")
+        loadVoxelIntoPool(0, "newTest")
+        //loadVoxelIntoPool(1, "bot1")
 //        loadVoxelIntoPool(2, "pointLight1")
 //        loadVoxelIntoPool(3, "pointLight2")
         
@@ -75,10 +75,10 @@ class GameScene{
         
         transform.localTransform=matrix4x4Identity()
         
-        var entity1=scene.newEntity()
-        var transform1=scene.assign(to: entity1, component: Transform.self)
-        _ = scene.assign(to: entity1, component: Render.self)
-        transform1.localTransform=matrix4x4Translation(0.0, scale*2, 0.0)
+//        var entity1=scene.newEntity()
+//        var transform1=scene.assign(to: entity1, component: Transform.self)
+//        _ = scene.assign(to: entity1, component: Render.self)
+        //transform1.localTransform=matrix4x4Translation(0.0, scale*2, 0.0)
         
 //        transform1.localTransform=matrix4x4Translation(-4.0, 0.0, 0.0)
 //        
@@ -94,7 +94,7 @@ class GameScene{
         
         //linkEntityToAsset(entity0,0)
         entityAssetMap[entity0]=assetDataArray[0]
-        entityAssetMap[entity1]=assetDataArray[1]
+        //entityAssetMap[entity1]=assetDataArray[1]
 //        entityAssetMap[entity2]=assetDataArray[1]
 //        
         //point lights

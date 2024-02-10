@@ -36,6 +36,7 @@
 		03EAF3ED2B766F8400D1C5B5 /* floor.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3EB2B766F8400D1C5B5 /* floor.json */; };
 		03EAF3EE2B766F8400D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3EC2B766F8400D1C5B5 /* bot1.json */; };
 		03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */; };
+		03EAF4842B77B03600D1C5B5 /* newTest.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF4832B77B03600D1C5B5 /* newTest.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -79,6 +80,7 @@
 		03EAF3EB2B766F8400D1C5B5 /* floor.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = floor.json; sourceTree = "<group>"; };
 		03EAF3EC2B766F8400D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
 		03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; path = UntoldEngineKernels.metallib; sourceTree = "<group>"; };
+		03EAF4832B77B03600D1C5B5 /* newTest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = newTest.json; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -98,6 +100,7 @@
 		03759B29175B0135002EB5D9 = {
 			isa = PBXGroup;
 			children = (
+				03EAF4832B77B03600D1C5B5 /* newTest.json */,
 				03EAF3EC2B766F8400D1C5B5 /* bot1.json */,
 				03EAF3EB2B766F8400D1C5B5 /* floor.json */,
 				03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */,
@@ -295,6 +298,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				03EAF3822B73D02500D1C5B5 /* Assets.xcassets in Resources */,
+				03EAF4842B77B03600D1C5B5 /* newTest.json in Resources */,
 				03EAF3ED2B766F8400D1C5B5 /* floor.json in Resources */,
 				03EAF3EE2B766F8400D1C5B5 /* bot1.json in Resources */,
 				03EAF3852B73D02500D1C5B5 /* Main.storyboard in Resources */,
