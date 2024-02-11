@@ -121,7 +121,7 @@ struct CoreRenderPasses{
             
             if let transform = scene.get(component: Transform.self, for: entityId) {
                 
-                var modelMatrix = transform.localTransform
+                var modelMatrix = transform.localSpace
                                 
                 let viewMatrix:simd_float4x4 = camera.viewSpace
                 
@@ -261,7 +261,7 @@ struct CoreRenderPasses{
             
             if let transform = scene.get(component: Transform.self, for: entityId) {
                 
-                var modelMatrix = transform.localTransform
+                var modelMatrix = transform.localSpace
                                 
                 let viewMatrix:simd_float4x4 = camera.viewSpace
                 

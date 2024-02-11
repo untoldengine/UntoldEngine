@@ -10,11 +10,11 @@ import simd
 import Metal
 
 class Transform: Component {
-    var localTransform: simd_float4x4
+    var localSpace: simd_float4x4
     
     required init() {
         // Initialize default values
-        localTransform=matrix4x4Identity()
+        localSpace=matrix4x4Identity()
         
     }
 }
