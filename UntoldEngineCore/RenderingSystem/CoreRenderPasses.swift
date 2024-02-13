@@ -379,4 +379,96 @@ struct CoreRenderPasses{
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
     }
+    
+    static let debuggerExecution: (MTLCommandBuffer) -> Void = {commandBuffer in
+        
+        if(!debuggerPipeline.success){
+        handleError(.pipelineStateNulled, debuggerPipeline.name!)
+        return
+        }
+
+        let renderPassDescriptor=renderInfo.renderPassDescriptor!
+
+        //set the states for the pipeline
+        renderPassDescriptor.colorAttachments[0].loadAction=MTLLoadAction.load
+        renderPassDescriptor.colorAttachments[1].loadAction=MTLLoadAction.load
+        renderPassDescriptor.colorAttachments[2].loadAction=MTLLoadAction.load
+        
+        renderPassDescriptor.depthAttachment.loadAction=MTLLoadAction.load
+        renderPassDescriptor.depthAttachment.storeAction=MTLStoreAction.store
+        
+        //set your encoder here
+        guard let renderEncoder=commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)else{
+
+        handleError(.renderPassCreationFailed, "Debugger Pass")
+        return
+        }
+
+        renderEncoder.label = "Debugger Pass"
+
+        renderEncoder.pushDebugGroup("Debugger Pass")
+
+        renderEncoder.setRenderPipelineState(debuggerPipeline.pipelineState!)
+        renderEncoder.setDepthStencilState(debuggerPipeline.depthState)
+
+        renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+
+        let windowWidth: Float = renderInfo.viewPort.x
+        let windowHeight: Float = renderInfo.viewPort.y  
+
+        // Define viewports
+        var viewPortsArray: [MTLViewport] = [
+        MTLViewport(originX: 0, originY: 0, width: Double(windowWidth) / 2, height: Double(windowHeight) / 2, znear: 0.0, zfar: 1.0),
+        MTLViewport(originX: Double(windowWidth) / 2, originY: 0, width: Double(windowWidth) / 2, height: Double(windowHeight) / 2, znear: 0.0, zfar: 1.0),
+        MTLViewport(originX: 0, originY: Double(windowHeight) / 2, width: Double(windowWidth) / 2, height: Double(windowHeight) / 2, znear: 0.0, zfar: 1.0),
+        MTLViewport(originX: Double(windowWidth) / 2, originY: Double(windowHeight) / 2, width: Double(windowWidth) / 2, height: Double(windowHeight) / 2, znear: 0.0, zfar: 1.0)
+        ]
+
+        // Define scissor rects
+        var scissorRectsArray: [MTLScissorRect] = [
+        MTLScissorRect(x: 0, y: 0, width: Int(windowWidth) / 2, height: Int(windowHeight) / 2),
+        MTLScissorRect(x: Int(windowWidth) / 2, y: 0, width: Int(windowWidth) / 2, height: Int(windowHeight) / 2),
+        MTLScissorRect(x: 0, y: Int(windowHeight) / 2, width: Int(windowWidth) / 2, height: Int(windowHeight) / 2),
+        MTLScissorRect(x: Int(windowWidth) / 2, y: Int(windowHeight) / 2, width: Int(windowWidth) / 2, height: Int(windowHeight) / 2)
+        ]
+
+        
+        renderEncoder.setViewports(viewPortsArray)
+        renderEncoder.setScissorRects(scissorRectsArray)
+
+        renderEncoder.setVertexBuffer(coreBufferResources.quadVerticesBuffer, offset: 0, index: 0)
+        renderEncoder.setVertexBuffer(coreBufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+
+
+        for i in 0..<4{
+
+            var currentViewport:Int=i
+            
+            renderEncoder.setVertexBytes(&currentViewport, length: MemoryLayout<Int>.stride, index: 5)
+                        
+            if i==0{
+                renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture, index: 0);
+            }else if i==1{
+                renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture, index: 0);
+            }else if i==2{
+                renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture, index: 0);
+            }else if i==3{
+                renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: 1);
+            }
+           
+
+            //set the draw command
+
+            renderEncoder.drawIndexedPrimitives(type: .triangle,
+                                                indexCount: 6,
+                                                indexType: .uint16,
+                                                indexBuffer: coreBufferResources.quadIndexBuffer!,
+                                                indexBufferOffset: 0)
+
+        }
+
+        renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+        renderEncoder.popDebugGroup()
+        renderEncoder.endEncoding()
+    }
 }

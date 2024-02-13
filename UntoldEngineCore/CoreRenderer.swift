@@ -150,9 +150,15 @@ class CoreRenderer: NSObject, MTKViewDelegate {
                 
                 graph[voxelPass.id]=voxelPass
                 
-                let compositePass = RenderPass(id: "composite", dependencies: ["voxel"], execute: CoreRenderPasses.compositeExecution)
-                
-                graph[compositePass.id]=compositePass
+                if(visualDebug==false){
+                    let compositePass = RenderPass(id: "composite", dependencies: ["voxel"], execute: CoreRenderPasses.compositeExecution)
+                    
+                    graph[compositePass.id]=compositePass
+                }else{
+                    let debugPass = RenderPass(id: "debug", dependencies: ["voxel"], execute: CoreRenderPasses.debuggerExecution)
+                    
+                    graph[debugPass.id]=debugPass
+                }
                 
                 //sorted it
                 let sortedPasses = topologicalSortGraph(graph: graph)
@@ -175,12 +181,12 @@ class CoreRenderer: NSObject, MTKViewDelegate {
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
         
         
-        let aspect = Float(view.frame.size.width) / Float(view.frame.size.height)
+        let aspect = Float(size.width) / Float(size.height)
         let projectionMatrix = matrixPerspectiveRightHand(fovyRadians: degreesToRadians(degrees: 65.0), aspectRatio:aspect, nearZ: 0.1, farZ: 100.0)
         
         renderInfo.perspectiveSpace=projectionMatrix
         
-        let viewPortSize:simd_float2=simd_make_float2(Float(view.frame.size.width),Float(view.frame.size.height))
+        let viewPortSize:simd_float2=simd_make_float2(Float(size.width),Float(size.height))
         renderInfo.viewPort=viewPortSize
     }
     

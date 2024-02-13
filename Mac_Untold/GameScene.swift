@@ -65,7 +65,7 @@ class GameScene{
         
         //load all assets
         loadVoxelIntoPool(0, "room")
-        //loadVoxelIntoPool(1, "bot1")
+        loadVoxelIntoPool(1, "bot1")
 //        loadVoxelIntoPool(2, "pointLight1")
 //        loadVoxelIntoPool(3, "pointLight2")
         
@@ -74,12 +74,12 @@ class GameScene{
         var transform=scene.assign(to: entity0, component: Transform.self)
         _ = scene.assign(to: entity0, component: Render.self)
         
-        transform.localSpace=matrix4x4Identity()
+        transform.localSpace=matrix4x4Translation(0.0, 0.0, -10.0)
         
-//        var entity1=scene.newEntity()
-//        var transform1=scene.assign(to: entity1, component: Transform.self)
-//        _ = scene.assign(to: entity1, component: Render.self)
-        //transform1.localSpace=matrix4x4Translation(0.0, scale*2, 0.0)
+        var entity1=scene.newEntity()
+        var transform1=scene.assign(to: entity1, component: Transform.self)
+        _ = scene.assign(to: entity1, component: Render.self)
+        transform1.localSpace=matrix4x4Translation(-3.0, 0.0, 0.0)
         
 //        transform1.localSpace=matrix4x4Translation(-4.0, 0.0, 0.0)
 //        
@@ -95,7 +95,7 @@ class GameScene{
         
         //linkEntityToAsset(entity0,0)
         entityAssetMap[entity0]=assetDataArray[0]
-        //entityAssetMap[entity1]=assetDataArray[1]
+        entityAssetMap[entity1]=assetDataArray[1]
 //        entityAssetMap[entity2]=assetDataArray[1]
 //        
         //point lights
@@ -139,7 +139,6 @@ class GameScene{
         }
         
         if keyState.dPressed == true{
-            
             translateEntityBy(EntityID(1)<<32, simd_float3(0.1,0.0,0.0))
         }
         

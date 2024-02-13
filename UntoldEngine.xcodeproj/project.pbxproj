@@ -35,6 +35,7 @@
 		03EAF3E42B751C2E00D1C5B5 /* TransformSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */; };
 		03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */; };
 		03EAF4882B790A4600D1C5B5 /* room.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF4872B790A4600D1C5B5 /* room.json */; };
+		03EAF50D2B7AEAEF00D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -78,6 +79,7 @@
 		03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; path = UntoldEngineKernels.metallib; sourceTree = "<group>"; };
 		03EAF4852B7907B900D1C5B5 /* room.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = room.json; sourceTree = "<group>"; };
 		03EAF4872B790A4600D1C5B5 /* room.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = room.json; path = ../../../Downloads/room.json; sourceTree = "<group>"; };
+		03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -97,6 +99,7 @@
 		03759B29175B0135002EB5D9 = {
 			isa = PBXGroup;
 			children = (
+				03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */,
 				03EAF4852B7907B900D1C5B5 /* room.json */,
 				03EAF4872B790A4600D1C5B5 /* room.json */,
 				03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */,
@@ -144,6 +147,7 @@
 		03EAF2E32B73CE1A00D1C5B5 /* UntoldEngineCore */ = {
 			isa = PBXGroup;
 			children = (
+				03EAF2E72B73CE1A00D1C5B5 /* CoreRenderer.swift */,
 				03EAF3E22B748F8400D1C5B5 /* RenderingSystem */,
 				03EAF2EE2B73CE1A00D1C5B5 /* ECS */,
 				03EAF3112B73CE1A00D1C5B5 /* Systems */,
@@ -157,7 +161,6 @@
 		03EAF2E42B73CE1A00D1C5B5 /* RenderResources */ = {
 			isa = PBXGroup;
 			children = (
-				03EAF2E72B73CE1A00D1C5B5 /* CoreRenderer.swift */,
 				03EAF2E52B73CE1A00D1C5B5 /* RenderResources.swift */,
 				03EAF2E62B73CE1A00D1C5B5 /* Globals.swift */,
 			);
@@ -295,6 +298,7 @@
 			files = (
 				03EAF3822B73D02500D1C5B5 /* Assets.xcassets in Resources */,
 				03EAF3852B73D02500D1C5B5 /* Main.storyboard in Resources */,
+				03EAF50D2B7AEAEF00D1C5B5 /* bot1.json in Resources */,
 				03EAF4882B790A4600D1C5B5 /* room.json in Resources */,
 				03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */,
 			);

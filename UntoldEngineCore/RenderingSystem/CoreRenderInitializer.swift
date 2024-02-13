@@ -179,7 +179,7 @@ func initCoreTextureResources(){
     depthDescriptor.storageMode = .shared
     
     coreTextureResources.depthMap=renderInfo.device.makeTexture(descriptor: depthDescriptor)
-    coreTextureResources.depthMap?.label="Depth Texture"
+    coreTextureResources.depthMap?.label="Offscreen Depth Texture"
 }
 
 func initCoreRenderPipelines(){
@@ -365,8 +365,8 @@ func initGeneralRenderPipelines(){
         pipelineDescriptor.fragmentFunction=fragmentFunction
         pipelineDescriptor.vertexDescriptor=vertexDescriptor
         pipelineDescriptor.colorAttachments[Int(colorTarget.rawValue)].pixelFormat=renderInfo.colorPixelFormat
-        pipelineDescriptor.colorAttachments[Int(normalTarget.rawValue)].pixelFormat=renderInfo.colorPixelFormat
-        pipelineDescriptor.colorAttachments[Int(positionTarget.rawValue)].pixelFormat=renderInfo.colorPixelFormat
+        pipelineDescriptor.colorAttachments[Int(normalTarget.rawValue)].pixelFormat = .rgba16Float
+        pipelineDescriptor.colorAttachments[Int(positionTarget.rawValue)].pixelFormat = .rgba16Float
         pipelineDescriptor.depthAttachmentPixelFormat=renderInfo.depthPixelFormat
         
         let depthStateDescriptor=MTLDepthStencilDescriptor()
@@ -460,6 +460,67 @@ func initGeneralRenderPipelines(){
         
     }
     
+    // MARK: - Debug Init pipe
+    let debug={(vertexShader:String,fragmentShader:String) -> Bool in
+        
+        //create shading functions
+        let vertexFunction:MTLFunction=renderInfo.library.makeFunction(name: vertexShader)!
+        let fragmentFunction:MTLFunction=renderInfo.library.makeFunction(name: fragmentShader)!
+     
+        //set the vertex descriptor
+        let vertexDescriptor:MTLVertexDescriptor=MTLVertexDescriptor()
+        
+        vertexDescriptor.attributes[0].format=MTLVertexFormat.float3;
+        vertexDescriptor.attributes[0].bufferIndex=0;
+        vertexDescriptor.attributes[0].offset=0;
+        
+        vertexDescriptor.attributes[1].format = MTLVertexFormat.float2;
+        vertexDescriptor.attributes[1].bufferIndex = 1;
+        vertexDescriptor.attributes[1].offset = 0;
+
+        // stride
+        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+        vertexDescriptor.layouts[0].stepFunction=MTLVertexStepFunction.perVertex
+        vertexDescriptor.layouts[0].stepRate=1
+        
+        vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
+        vertexDescriptor.layouts[1].stepFunction=MTLVertexStepFunction.perVertex
+        vertexDescriptor.layouts[1].stepRate=1
+        
+        //create the pipeline descriptor
+        let pipelineDescriptor=MTLRenderPipelineDescriptor()
+        pipelineDescriptor.vertexFunction=vertexFunction
+        pipelineDescriptor.fragmentFunction=fragmentFunction
+        pipelineDescriptor.vertexDescriptor=vertexDescriptor
+        
+        pipelineDescriptor.colorAttachments[0].pixelFormat=renderInfo.colorPixelFormat
+        pipelineDescriptor.depthAttachmentPixelFormat=renderInfo.depthPixelFormat
+        //pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
+        
+        let depthStateDescriptor=MTLDepthStencilDescriptor()
+        depthStateDescriptor.depthCompareFunction=MTLCompareFunction.less
+        depthStateDescriptor.isDepthWriteEnabled=false
+        
+        debuggerPipeline.depthState=renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)!
+        
+        debuggerPipeline.name="Debugger pipeline"
+        //create a pipeline
+        
+        do{
+            debuggerPipeline.pipelineState=try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+            
+            debuggerPipeline.success=true
+            
+        }catch{
+            handleError(.pipelineStateCreationFailed, debuggerPipeline.name!)
+            return false
+        }
+        
+        
+        return true
+        
+    }
+    
     // MARK: - Post-Process Init pipe
     let postProcess={(postProcessPipeline:inout RenderPipeline,_ name:String, vertexShader:String,fragmentShader:String) -> Bool in
         
@@ -528,7 +589,7 @@ func initGeneralRenderPipelines(){
     _ = grid("vertexGridShader","fragmentGridShader")
     _ = voxel("vertexBlockShader","fragmentBlockShader")
     _ = composite("vertexCompositeShader","fragmentCompositeShader")
-    
+    _ = debug("vertexDebugShader","fragmentDebugShader")
 }
 
 

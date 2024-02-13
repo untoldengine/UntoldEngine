@@ -44,6 +44,7 @@ var gridPipeline=RenderPipeline()
 var voxelPipeline=RenderPipeline()
 var compositePipeline=RenderPipeline()
 var shadowPipeline=RenderPipeline()
+var debuggerPipeline=RenderPipeline()
 
 //Timing properties
 var timeSinceLastUpdatePreviousTime:TimeInterval!;
@@ -194,3 +195,7 @@ let kVK_ANSI_W: UInt16 = 13
 let kVK_ANSI_A: UInt16 = 0
 let kVK_ANSI_S: UInt16 = 1
 let kVK_ANSI_D: UInt16 = 2
+
+let kVK_ANSI_P: UInt16 = 35
+
+var visualDebug:Bool=false

@@ -86,7 +86,8 @@ struct Controller{
             keyState.dPressed=false
         case kVK_ANSI_S:
             keyState.sPressed=false
-            
+        case kVK_ANSI_P:
+            visualDebug = !visualDebug
         default:
             break
         }
