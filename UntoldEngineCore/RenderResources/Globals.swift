@@ -45,6 +45,7 @@ var voxelPipeline=RenderPipeline()
 var compositePipeline=RenderPipeline()
 var shadowPipeline=RenderPipeline()
 var debuggerPipeline=RenderPipeline()
+var postProcessPipeline=RenderPipeline()
 
 //Timing properties
 var timeSinceLastUpdatePreviousTime:TimeInterval!;

@@ -150,12 +150,16 @@ class CoreRenderer: NSObject, MTKViewDelegate {
                 
                 graph[voxelPass.id]=voxelPass
                 
+                let postProcess=RenderPass(id:"PostProcess",dependencies: ["voxel"],execute: CoreRenderPasses.executePostProcess(postProcessPipeline))
+                
+                graph[postProcess.id]=postProcess
+                
                 if(visualDebug==false){
-                    let compositePass = RenderPass(id: "composite", dependencies: ["voxel"], execute: CoreRenderPasses.compositeExecution)
+                    let compositePass = RenderPass(id: "composite", dependencies: ["PostProcess"], execute: CoreRenderPasses.compositeExecution)
                     
                     graph[compositePass.id]=compositePass
                 }else{
-                    let debugPass = RenderPass(id: "debug", dependencies: ["voxel"], execute: CoreRenderPasses.debuggerExecution)
+                    let debugPass = RenderPass(id: "debug", dependencies: ["PostProcess"], execute: CoreRenderPasses.debuggerExecution)
                     
                     graph[debugPass.id]=debugPass
                 }

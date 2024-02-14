@@ -344,6 +344,9 @@ struct CoreRenderPasses{
         renderPassDescriptor.colorAttachments[0].clearColor=MTLClearColorMake(1.0, 1.0, 1.0, 1.0)
         renderPassDescriptor.colorAttachments[0].storeAction=MTLStoreAction.store
         
+        //clear it so that it doesn't have any effect on the final output
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
+        
         //set your encoder here
         guard let renderEncoder=commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)else{
             
@@ -356,7 +359,6 @@ struct CoreRenderPasses{
             renderEncoder.pushDebugGroup("Composite Pass")
             
             renderEncoder.setRenderPipelineState(compositePipeline.pipelineState!)
-            renderEncoder.setDepthStencilState(compositePipeline.depthState)
             
             renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
         
@@ -389,13 +391,10 @@ struct CoreRenderPasses{
 
         let renderPassDescriptor=renderInfo.renderPassDescriptor!
 
+        
         //set the states for the pipeline
         renderPassDescriptor.colorAttachments[0].loadAction=MTLLoadAction.load
-        renderPassDescriptor.colorAttachments[1].loadAction=MTLLoadAction.load
-        renderPassDescriptor.colorAttachments[2].loadAction=MTLLoadAction.load
-        
-        renderPassDescriptor.depthAttachment.loadAction=MTLLoadAction.load
-        renderPassDescriptor.depthAttachment.storeAction=MTLStoreAction.store
+        renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
         
         //set your encoder here
         guard let renderEncoder=commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)else{
@@ -471,4 +470,53 @@ struct CoreRenderPasses{
         renderEncoder.popDebugGroup()
         renderEncoder.endEncoding()
     }
+    
+    static func executePostProcess(_ pipeline:RenderPipeline)->(MTLCommandBuffer)->Void{
+        return {commandBuffer in
+            
+            if(!pipeline.success){
+                handleError(.pipelineStateNulled, "Post Process Pipeline")
+                return
+            }
+            
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction = .load
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].loadAction = .load
+            
+            renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
+           
+            let renderPassDescriptor=renderInfo.offscreenRenderPassDescriptor!
+        
+            //set your encoder here
+            guard let renderEncoder=commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)else{
+                handleError(.renderPassCreationFailed, "Post Process \(pipeline.name!) Pass")
+                return
+            }
+            
+            renderEncoder.label = "Post-Processing Pass"
+            
+            renderEncoder.pushDebugGroup("Post-Processing")
+            
+            renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
+            
+            renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
+        
+            renderEncoder.setVertexBuffer(coreBufferResources.quadVerticesBuffer, offset: 0, index: 0)
+            renderEncoder.setVertexBuffer(coreBufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
+            
+            renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture, index: 0);
+            
+            //set the draw command
+            renderEncoder.drawIndexedPrimitives(type: .triangle,
+                                                indexCount: 6,
+                                                indexType: .uint16,
+                                                indexBuffer: coreBufferResources.quadIndexBuffer!,
+                                                indexBufferOffset: 0)
+            
+            renderEncoder.updateFence(renderInfo.fence, after: .fragment)
+            renderEncoder.popDebugGroup()
+            renderEncoder.endEncoding()
+        }
+    }
+
 }

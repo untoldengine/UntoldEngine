@@ -436,12 +436,6 @@ func initGeneralRenderPipelines(){
         pipelineDescriptor.depthAttachmentPixelFormat=renderInfo.depthPixelFormat
         //pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
         
-        let depthStateDescriptor=MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction=MTLCompareFunction.less
-        depthStateDescriptor.isDepthWriteEnabled=false
-        
-        compositePipeline.depthState=renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)!
-        
         compositePipeline.name="Composite pipeline"
         //create a pipeline
         
@@ -555,15 +549,18 @@ func initGeneralRenderPipelines(){
         pipelineDescriptor.fragmentFunction=fragmentFunction
         pipelineDescriptor.vertexDescriptor=vertexDescriptor
         
-        pipelineDescriptor.colorAttachments[0].pixelFormat=renderInfo.colorPixelFormat
+        pipelineDescriptor.colorAttachments[Int(colorTarget.rawValue)].pixelFormat=renderInfo.colorPixelFormat
+        pipelineDescriptor.colorAttachments[Int(normalTarget.rawValue)].pixelFormat = .rgba16Float
+        pipelineDescriptor.colorAttachments[Int(positionTarget.rawValue)].pixelFormat = .rgba16Float
         pipelineDescriptor.depthAttachmentPixelFormat=renderInfo.depthPixelFormat
-        pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
         
-        let depthStateDescriptor=MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction=MTLCompareFunction.less
-        depthStateDescriptor.isDepthWriteEnabled=false
+        //pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
         
-        postProcessPipeline.depthState=renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)!
+//        let depthStateDescriptor=MTLDepthStencilDescriptor()
+//        depthStateDescriptor.depthCompareFunction=MTLCompareFunction.less
+//        depthStateDescriptor.isDepthWriteEnabled=false
+//        
+//        postProcessPipeline.depthState=renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)!
         
         //create a pipeline
         postProcessPipeline.name=name
@@ -590,6 +587,7 @@ func initGeneralRenderPipelines(){
     _ = voxel("vertexBlockShader","fragmentBlockShader")
     _ = composite("vertexCompositeShader","fragmentCompositeShader")
     _ = debug("vertexDebugShader","fragmentDebugShader")
+    _ = postProcess(&postProcessPipeline,"post-process","vertexPostProcessShader","fragmentPostProcessShader");
 }
 
 
