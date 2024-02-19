@@ -54,6 +54,33 @@ import MetalKit
          mtkView.addGestureRecognizer(pinchGesture)
          mtkView.addGestureRecognizer(panGesture)
          
+         NSEvent.addLocalMonitorForEvents(matching: [.flagsChanged]) { (theEvent) -> NSEvent? in
+                 if theEvent.modifierFlags.contains(.shift) {
+                     if theEvent.keyCode == 56 { // this is Shif key pressed
+                         self.shiftKey=true
+                     }
+                 }
+                 else {
+                     if theEvent.keyCode == 56 { // this is Shif key released
+                         self.shiftKey=false
+                     }
+                 }
+             
+             if theEvent.modifierFlags.contains(.control) {
+                 if theEvent.keyCode == 59 { // this is control key pressed
+                     self.controlKey=true
+                 }
+             }
+             else {
+                 if theEvent.keyCode == 59 { // this is control key released
+                     self.controlKey=false
+                 }
+             }
+             
+                 
+             
+                 return theEvent
+             }
          
          NSEvent.addLocalMonitorForEvents(matching: .keyDown) { (event) -> NSEvent? in
                     
