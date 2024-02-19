@@ -23,7 +23,7 @@ enum ErrorHandlingSystem: Int, Error, CustomStringConvertible{
     case memoryPoolAssetNotInAllocation = 1012
     case memoryPoolWritingBeyondCapacity = 1013
     case memoryPoolReadingBeyongCapacity = 1014
-    
+    case entityMissing = 1016
     var description: String{
         
         switch self{
@@ -55,6 +55,8 @@ enum ErrorHandlingSystem: Int, Error, CustomStringConvertible{
             return "Writing beyond the buffer's capacity"
         case .memoryPoolReadingBeyongCapacity:
             return "Reading beyond the buffer's capacity"
+        case .entityMissing:
+            return "Entity is missing"
         }
     }
 }

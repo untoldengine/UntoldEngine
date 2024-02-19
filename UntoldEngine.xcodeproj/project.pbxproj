@@ -36,6 +36,7 @@
 		03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */; };
 		03EAF4882B790A4600D1C5B5 /* room.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF4872B790A4600D1C5B5 /* room.json */; };
 		03EAF50D2B7AEAEF00D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */; };
+		03EAF53C2B83E82500D1C5B5 /* RegistrationSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -80,6 +81,7 @@
 		03EAF4852B7907B900D1C5B5 /* room.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = room.json; sourceTree = "<group>"; };
 		03EAF4872B790A4600D1C5B5 /* room.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = room.json; path = ../../../Downloads/room.json; sourceTree = "<group>"; };
 		03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
+		03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationSystem.swift; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -207,6 +209,7 @@
 				03EAF3162B73CE1A00D1C5B5 /* GraphBuilder.swift */,
 				03EAF3172B73CE1A00D1C5B5 /* LightingSystem.swift */,
 				03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */,
+				03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */,
 			);
 			path = Systems;
 			sourceTree = "<group>";
@@ -333,6 +336,7 @@
 			files = (
 				03EAF3AA2B73D0C100D1C5B5 /* PostProcessRenderPasses.swift in Sources */,
 				03EAF3E42B751C2E00D1C5B5 /* TransformSystem.swift in Sources */,
+				03EAF53C2B83E82500D1C5B5 /* RegistrationSystem.swift in Sources */,
 				03EAF3AE2B73D0CC00D1C5B5 /* CoreRenderPasses.swift in Sources */,
 				03EAF3AC2B73D0C700D1C5B5 /* GraphBuilder.swift in Sources */,
 				03EAF38E2B73D04900D1C5B5 /* MathUtils.swift in Sources */,
