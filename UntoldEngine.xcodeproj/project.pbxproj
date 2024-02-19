@@ -7,291 +7,105 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		030BA17A2AE2589600838EA5 /* brdftest.json in Resources */ = {isa = PBXBuildFile; fileRef = 030BA1792AE2589600838EA5 /* brdftest.json */; };
-		0315F3972B52D65300300654 /* bot0552.json in Resources */ = {isa = PBXBuildFile; fileRef = 0315F3962B52D65300300654 /* bot0552.json */; };
-		031E6A742AE5BF890073DE04 /* ship.json in Resources */ = {isa = PBXBuildFile; fileRef = 031E6A732AE5BF890073DE04 /* ship.json */; };
-		031E6A762AE6085E0073DE04 /* lake.json in Resources */ = {isa = PBXBuildFile; fileRef = 031E6A752AE6085E0073DE04 /* lake.json */; };
-		0335A4572ACC61C5004987FC /* GameScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0335A4552ACC61C4004987FC /* GameScene.mm */; };
-		0335A4582ACC61C5004987FC /* GameScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 0335A4552ACC61C4004987FC /* GameScene.mm */; };
-		03722B122029F0220080D069 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B112029F0210080D069 /* AppDelegate.mm */; };
-		03722B152029F0220080D069 /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B142029F0220080D069 /* GameViewController.mm */; };
-		03722B182029F0220080D069 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03722B162029F0220080D069 /* Main.storyboard */; };
-		03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03722B192029F0220080D069 /* LaunchScreen.storyboard */; };
-		03722B1E2029F0220080D069 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 03722B1D2029F0220080D069 /* main.m */; };
-		03722B272029F0220080D069 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B262029F0220080D069 /* AppDelegate.mm */; };
-		03722B2A2029F0220080D069 /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B292029F0220080D069 /* GameViewController.mm */; };
-		03722B2D2029F0220080D069 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03722B2B2029F0220080D069 /* Main.storyboard */; };
-		03722B302029F0220080D069 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 03722B2F2029F0220080D069 /* main.m */; };
-		03722B392029F0220080D069 /* AppDelegate.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B382029F0220080D069 /* AppDelegate.mm */; };
-		03722B3C2029F0220080D069 /* GameViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 03722B3B2029F0220080D069 /* GameViewController.mm */; };
-		03722B3F2029F0220080D069 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03722B3D2029F0220080D069 /* Main.storyboard */; };
-		03722B422029F0220080D069 /* main.m in Sources */ = {isa = PBXBuildFile; fileRef = 03722B412029F0220080D069 /* main.m */; };
-		03722D7A2029F1E30080D069 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DB201F19471300F77B78 /* QuartzCore.framework */; };
-		03722D7B2029F1EA0080D069 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DAC11F1911D000F77B78 /* MetalKit.framework */; };
-		03722D7C2029F1F00080D069 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03F2DABF1F1911CA00F77B78 /* Metal.framework */; };
-		03722D7D2029F1F70080D069 /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B38175B0135002EB5D9 /* UIKit.framework */; };
-		03722D7E2029F1FF0080D069 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03759B3A175B0135002EB5D9 /* Foundation.framework */; };
-		03722D802029F20D0080D069 /* QuartzCore.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D7F2029F20D0080D069 /* QuartzCore.framework */; };
-		03722D822029F2150080D069 /* MetalKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D812029F2150080D069 /* MetalKit.framework */; };
-		03722D842029F21A0080D069 /* Metal.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D832029F21A0080D069 /* Metal.framework */; };
-		03722D862029F2250080D069 /* Foundation.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722D852029F2250080D069 /* Foundation.framework */; };
-		03722DD8202B3BEC0080D069 /* GameController.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 03722DD7202B3BEB0080D069 /* GameController.framework */; };
-		039B943E2AC782020047D1A1 /* U4DRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B93F62AC782020047D1A1 /* U4DRenderer.mm */; };
-		039B943F2AC782020047D1A1 /* U4DRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B93F62AC782020047D1A1 /* U4DRenderer.mm */; };
-		039B94402AC782020047D1A1 /* U4DRenderer.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B93F62AC782020047D1A1 /* U4DRenderer.mm */; };
-		039B94422AC782020047D1A1 /* compositionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FA2AC782020047D1A1 /* compositionShader.metal */; };
-		039B94432AC782020047D1A1 /* compositionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FA2AC782020047D1A1 /* compositionShader.metal */; };
-		039B94442AC782020047D1A1 /* compositionShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FA2AC782020047D1A1 /* compositionShader.metal */; };
-		039B94462AC782020047D1A1 /* shadowShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FB2AC782020047D1A1 /* shadowShader.metal */; };
-		039B94472AC782020047D1A1 /* shadowShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FB2AC782020047D1A1 /* shadowShader.metal */; };
-		039B94482AC782020047D1A1 /* shadowShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FB2AC782020047D1A1 /* shadowShader.metal */; };
-		039B944A2AC782020047D1A1 /* voxelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FC2AC782020047D1A1 /* voxelShader.metal */; };
-		039B944B2AC782020047D1A1 /* voxelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FC2AC782020047D1A1 /* voxelShader.metal */; };
-		039B944C2AC782020047D1A1 /* voxelShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FC2AC782020047D1A1 /* voxelShader.metal */; };
-		039B944E2AC782020047D1A1 /* gridShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FD2AC782020047D1A1 /* gridShader.metal */; };
-		039B944F2AC782020047D1A1 /* gridShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FD2AC782020047D1A1 /* gridShader.metal */; };
-		039B94502AC782020047D1A1 /* gridShader.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FD2AC782020047D1A1 /* gridShader.metal */; };
-		039B94522AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */; };
-		039B94532AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */; };
-		039B94542AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */ = {isa = PBXBuildFile; fileRef = 039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */; };
-		039B94562AC782020047D1A1 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94022AC782020047D1A1 /* U4DCamera.mm */; };
-		039B94572AC782020047D1A1 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94022AC782020047D1A1 /* U4DCamera.mm */; };
-		039B94582AC782020047D1A1 /* U4DCamera.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94022AC782020047D1A1 /* U4DCamera.mm */; };
-		039B94822AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */; };
-		039B94832AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */; };
-		039B94842AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */; };
-		039B94862AC782020047D1A1 /* U4DJsonReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94212AC782020047D1A1 /* U4DJsonReader.mm */; };
-		039B94872AC782020047D1A1 /* U4DJsonReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94212AC782020047D1A1 /* U4DJsonReader.mm */; };
-		039B94882AC782020047D1A1 /* U4DJsonReader.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94212AC782020047D1A1 /* U4DJsonReader.mm */; };
-		039B948A2AC782020047D1A1 /* U4DMathUtils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94242AC782020047D1A1 /* U4DMathUtils.mm */; };
-		039B948B2AC782020047D1A1 /* U4DMathUtils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94242AC782020047D1A1 /* U4DMathUtils.mm */; };
-		039B948C2AC782020047D1A1 /* U4DMathUtils.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94242AC782020047D1A1 /* U4DMathUtils.mm */; };
-		039B948E2AC782020047D1A1 /* U4DController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94292AC782020047D1A1 /* U4DController.mm */; };
-		039B948F2AC782020047D1A1 /* U4DController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94292AC782020047D1A1 /* U4DController.mm */; };
-		039B94902AC782020047D1A1 /* U4DController.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94292AC782020047D1A1 /* U4DController.mm */; };
-		039B94922AC782020047D1A1 /* U4DComponentPool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942C2AC782020047D1A1 /* U4DComponentPool.mm */; };
-		039B94932AC782020047D1A1 /* U4DComponentPool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942C2AC782020047D1A1 /* U4DComponentPool.mm */; };
-		039B94942AC782020047D1A1 /* U4DComponentPool.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942C2AC782020047D1A1 /* U4DComponentPool.mm */; };
-		039B94962AC782020047D1A1 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942F2AC782020047D1A1 /* U4DScene.mm */; };
-		039B94972AC782020047D1A1 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942F2AC782020047D1A1 /* U4DScene.mm */; };
-		039B94982AC782020047D1A1 /* U4DScene.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B942F2AC782020047D1A1 /* U4DScene.mm */; };
-		039B949A2AC782020047D1A1 /* U4DLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94332AC782020047D1A1 /* U4DLight.mm */; };
-		039B949B2AC782020047D1A1 /* U4DLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94332AC782020047D1A1 /* U4DLight.mm */; };
-		039B949C2AC782020047D1A1 /* U4DLight.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94332AC782020047D1A1 /* U4DLight.mm */; };
-		039B949E2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */; };
-		039B949F2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */; };
-		039B94A02AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */; };
-		039B94A22AC782020047D1A1 /* U4DRenderSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94372AC782020047D1A1 /* U4DRenderSystem.mm */; };
-		039B94A32AC782020047D1A1 /* U4DRenderSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94372AC782020047D1A1 /* U4DRenderSystem.mm */; };
-		039B94A42AC782020047D1A1 /* U4DRenderSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94372AC782020047D1A1 /* U4DRenderSystem.mm */; };
-		039B94A62AC782020047D1A1 /* U4DTransformSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94382AC782020047D1A1 /* U4DTransformSystem.mm */; };
-		039B94A72AC782020047D1A1 /* U4DTransformSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94382AC782020047D1A1 /* U4DTransformSystem.mm */; };
-		039B94A82AC782020047D1A1 /* U4DTransformSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B94382AC782020047D1A1 /* U4DTransformSystem.mm */; };
-		039B94AA2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
-		039B94AB2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
-		039B94AC2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */ = {isa = PBXBuildFile; fileRef = 039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */; };
-		039B94B32AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
-		039B94B42AC785670047D1A1 /* puppy.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AD2AC785670047D1A1 /* puppy.json */; };
-		039B94B72AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
-		039B94B82AC785670047D1A1 /* puppy2.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AE2AC785670047D1A1 /* puppy2.json */; };
-		039B94BB2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
-		039B94BC2AC785670047D1A1 /* puppy3.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94AF2AC785670047D1A1 /* puppy3.json */; };
-		039B94BF2AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
-		039B94C02AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
-		039B94C12AC785670047D1A1 /* floorchunk.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B02AC785670047D1A1 /* floorchunk.json */; };
-		039B94C32AC785670047D1A1 /* gameboyvoxel.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B12AC785670047D1A1 /* gameboyvoxel.json */; };
-		039B94C42AC785670047D1A1 /* gameboyvoxel.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B12AC785670047D1A1 /* gameboyvoxel.json */; };
-		039B94C52AC785670047D1A1 /* gameboyvoxel.json in Resources */ = {isa = PBXBuildFile; fileRef = 039B94B12AC785670047D1A1 /* gameboyvoxel.json */; };
+		03EAF3792B73D02500D1C5B5 /* AppDelegate.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3782B73D02500D1C5B5 /* AppDelegate.swift */; };
+		03EAF37B2B73D02500D1C5B5 /* GameViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF37A2B73D02500D1C5B5 /* GameViewController.swift */; };
+		03EAF3822B73D02500D1C5B5 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3812B73D02500D1C5B5 /* Assets.xcassets */; };
+		03EAF3852B73D02500D1C5B5 /* Main.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF3832B73D02500D1C5B5 /* Main.storyboard */; };
+		03EAF38A2B73D03B00D1C5B5 /* CoreRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2E72B73CE1A00D1C5B5 /* CoreRenderer.swift */; };
+		03EAF38B2B73D03E00D1C5B5 /* RenderResources.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2E52B73CE1A00D1C5B5 /* RenderResources.swift */; };
+		03EAF38C2B73D04100D1C5B5 /* Globals.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2E62B73CE1A00D1C5B5 /* Globals.swift */; };
+		03EAF38D2B73D04600D1C5B5 /* FuncUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2E92B73CE1A00D1C5B5 /* FuncUtils.swift */; };
+		03EAF38E2B73D04900D1C5B5 /* MathUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EA2B73CE1A00D1C5B5 /* MathUtils.swift */; };
+		03EAF38F2B73D04C00D1C5B5 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EB2B73CE1A00D1C5B5 /* Logger.swift */; };
+		03EAF3902B73D04F00D1C5B5 /* Controller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EC2B73CE1A00D1C5B5 /* Controller.swift */; };
+		03EAF3912B73D05200D1C5B5 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2ED2B73CE1A00D1C5B5 /* Camera.swift */; };
+		03EAF3922B73D05A00D1C5B5 /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EF2B73CE1A00D1C5B5 /* Scene.swift */; };
+		03EAF3932B73D05D00D1C5B5 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2F02B73CE1A00D1C5B5 /* Entity.swift */; };
+		03EAF3952B73D06300D1C5B5 /* ComponentPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2F22B73CE1A00D1C5B5 /* ComponentPool.swift */; };
+		03EAF3962B73D06600D1C5B5 /* Components.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2F32B73CE1A00D1C5B5 /* Components.swift */; };
+		03EAF3A82B73D0BC00D1C5B5 /* ErrorHandlingSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3122B73CE1A00D1C5B5 /* ErrorHandlingSystem.swift */; };
+		03EAF3A92B73D0BE00D1C5B5 /* AllocatorSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3132B73CE1A00D1C5B5 /* AllocatorSystem.swift */; };
+		03EAF3AA2B73D0C100D1C5B5 /* PostProcessRenderPasses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3142B73CE1A00D1C5B5 /* PostProcessRenderPasses.swift */; };
+		03EAF3AB2B73D0C400D1C5B5 /* MemoryPool.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3152B73CE1A00D1C5B5 /* MemoryPool.swift */; };
+		03EAF3AC2B73D0C700D1C5B5 /* GraphBuilder.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3162B73CE1A00D1C5B5 /* GraphBuilder.swift */; };
+		03EAF3AD2B73D0CA00D1C5B5 /* LightingSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3172B73CE1A00D1C5B5 /* LightingSystem.swift */; };
+		03EAF3AE2B73D0CC00D1C5B5 /* CoreRenderPasses.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3182B73CE1A00D1C5B5 /* CoreRenderPasses.swift */; };
+		03EAF3AF2B73D0CF00D1C5B5 /* CoreRenderInitializer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3192B73CE1A00D1C5B5 /* CoreRenderInitializer.swift */; };
+		03EAF3C02B741E7400D1C5B5 /* GameScene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3BF2B741E7400D1C5B5 /* GameScene.swift */; };
+		03EAF3E42B751C2E00D1C5B5 /* TransformSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */; };
+		03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */; };
+		03EAF4882B790A4600D1C5B5 /* room.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF4872B790A4600D1C5B5 /* room.json */; };
+		03EAF50D2B7AEAEF00D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
-		030BA1792AE2589600838EA5 /* brdftest.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = brdftest.json; sourceTree = "<group>"; };
-		031413EC2589D03B005BF4A4 /* Untold4D.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Untold4D.entitlements; sourceTree = "<group>"; };
-		0315F3962B52D65300300654 /* bot0552.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot0552.json; sourceTree = "<group>"; };
-		031E6A732AE5BF890073DE04 /* ship.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = ship.json; sourceTree = "<group>"; };
-		031E6A752AE6085E0073DE04 /* lake.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = lake.json; sourceTree = "<group>"; };
-		0335A4552ACC61C4004987FC /* GameScene.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GameScene.mm; sourceTree = "<group>"; };
-		0335A4562ACC61C4004987FC /* GameScene.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameScene.h; sourceTree = "<group>"; };
-		03370CAB27761785008171BA /* libenetlib.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenetlib.a; path = UntoldEngine4D/NetworkSystem/libenetlib.a; sourceTree = "<group>"; };
-		03370CE02777BCB5008171BA /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/maclib/libenet.a; sourceTree = "<group>"; };
-		03370D142777BDE4008171BA /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/ioslib/libenet.a; sourceTree = "<group>"; };
-		03722B0E2029F0210080D069 /* Untold4D.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Untold4D.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		03722B102029F0210080D069 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		03722B112029F0210080D069 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
-		03722B132029F0220080D069 /* GameViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameViewController.h; sourceTree = "<group>"; };
-		03722B142029F0220080D069 /* GameViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GameViewController.mm; sourceTree = "<group>"; };
-		03722B172029F0220080D069 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		03722B1A2029F0220080D069 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/LaunchScreen.storyboard; sourceTree = "<group>"; };
-		03722B1C2029F0220080D069 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		03722B1D2029F0220080D069 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		03722B232029F0220080D069 /* Untold4D.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Untold4D.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		03722B252029F0220080D069 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		03722B262029F0220080D069 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
-		03722B282029F0220080D069 /* GameViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameViewController.h; sourceTree = "<group>"; };
-		03722B292029F0220080D069 /* GameViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GameViewController.mm; sourceTree = "<group>"; };
-		03722B2C2029F0220080D069 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		03722B2E2029F0220080D069 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		03722B2F2029F0220080D069 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		03722B352029F0220080D069 /* Untold4D.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Untold4D.app; sourceTree = BUILT_PRODUCTS_DIR; };
-		03722B372029F0220080D069 /* AppDelegate.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
-		03722B382029F0220080D069 /* AppDelegate.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = AppDelegate.mm; sourceTree = "<group>"; };
-		03722B3A2029F0220080D069 /* GameViewController.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = GameViewController.h; sourceTree = "<group>"; };
-		03722B3B2029F0220080D069 /* GameViewController.mm */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.cpp.objcpp; path = GameViewController.mm; sourceTree = "<group>"; };
-		03722B3E2029F0220080D069 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
-		03722B402029F0220080D069 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		03722B412029F0220080D069 /* main.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
-		03722D7F2029F20D0080D069 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/QuartzCore.framework; sourceTree = DEVELOPER_DIR; };
-		03722D812029F2150080D069 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/MetalKit.framework; sourceTree = DEVELOPER_DIR; };
-		03722D832029F21A0080D069 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/Metal.framework; sourceTree = DEVELOPER_DIR; };
-		03722D852029F2250080D069 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/Foundation.framework; sourceTree = DEVELOPER_DIR; };
 		03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = "UntoldEngine-Prefix.pch"; sourceTree = "<group>"; };
-		03722DD7202B3BEB0080D069 /* GameController.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = GameController.framework; path = Platforms/MacOSX.platform/Developer/SDKs/MacOSX10.13.sdk/System/Library/Frameworks/GameController.framework; sourceTree = DEVELOPER_DIR; };
 		03759B38175B0135002EB5D9 /* UIKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = UIKit.framework; path = System/Library/Frameworks/UIKit.framework; sourceTree = SDKROOT; };
 		03759B3A175B0135002EB5D9 /* Foundation.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Foundation.framework; path = System/Library/Frameworks/Foundation.framework; sourceTree = SDKROOT; };
 		0376618627558F240098E008 /* ARKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = ARKit.framework; path = System/Library/Frameworks/ARKit.framework; sourceTree = SDKROOT; };
-		039B93F52AC782020047D1A1 /* U4DRenderer.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DRenderer.h; sourceTree = "<group>"; };
-		039B93F62AC782020047D1A1 /* U4DRenderer.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRenderer.mm; sourceTree = "<group>"; };
-		039B93F82AC782020047D1A1 /* U4DShaderProtocols.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DShaderProtocols.h; sourceTree = "<group>"; };
-		039B93F92AC782020047D1A1 /* U4DShaderHelperFunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DShaderHelperFunctions.h; sourceTree = "<group>"; };
-		039B93FA2AC782020047D1A1 /* compositionShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = compositionShader.metal; sourceTree = "<group>"; };
-		039B93FB2AC782020047D1A1 /* shadowShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = shadowShader.metal; sourceTree = "<group>"; };
-		039B93FC2AC782020047D1A1 /* voxelShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = voxelShader.metal; sourceTree = "<group>"; };
-		039B93FD2AC782020047D1A1 /* gridShader.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = gridShader.metal; sourceTree = "<group>"; };
-		039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.metal; path = U4DShaderHelperFunctions.metal; sourceTree = "<group>"; };
-		039B94002AC782020047D1A1 /* U4DEntity.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DEntity.h; sourceTree = "<group>"; };
-		039B94022AC782020047D1A1 /* U4DCamera.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DCamera.mm; sourceTree = "<group>"; };
-		039B94032AC782020047D1A1 /* U4DCamera.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DCamera.h; sourceTree = "<group>"; };
-		039B941D2AC782020047D1A1 /* CommonProtocols.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = CommonProtocols.h; sourceTree = "<group>"; };
-		039B941E2AC782020047D1A1 /* Constants.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Constants.h; sourceTree = "<group>"; };
-		039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DUtilsFunctions.mm; sourceTree = "<group>"; };
-		039B94212AC782020047D1A1 /* U4DJsonReader.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DJsonReader.mm; sourceTree = "<group>"; };
-		039B94222AC782020047D1A1 /* U4DJsonReader.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DJsonReader.h; sourceTree = "<group>"; };
-		039B94232AC782020047D1A1 /* U4DMathUtils.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DMathUtils.h; sourceTree = "<group>"; };
-		039B94242AC782020047D1A1 /* U4DMathUtils.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DMathUtils.mm; sourceTree = "<group>"; };
-		039B94252AC782020047D1A1 /* U4DUtilsFunctions.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DUtilsFunctions.h; sourceTree = "<group>"; };
-		039B94262AC782020047D1A1 /* Globals.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Globals.h; sourceTree = "<group>"; };
-		039B94282AC782020047D1A1 /* U4DController.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DController.h; sourceTree = "<group>"; };
-		039B94292AC782020047D1A1 /* U4DController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DController.mm; sourceTree = "<group>"; };
-		039B942B2AC782020047D1A1 /* U4DComponents.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DComponents.h; sourceTree = "<group>"; };
-		039B942C2AC782020047D1A1 /* U4DComponentPool.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DComponentPool.mm; sourceTree = "<group>"; };
-		039B942D2AC782020047D1A1 /* U4DComponentPool.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DComponentPool.h; sourceTree = "<group>"; };
-		039B942E2AC782020047D1A1 /* U4DScene.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DScene.h; sourceTree = "<group>"; };
-		039B942F2AC782020047D1A1 /* U4DScene.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DScene.mm; sourceTree = "<group>"; };
-		039B94322AC782020047D1A1 /* U4DLight.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DLight.h; sourceTree = "<group>"; };
-		039B94332AC782020047D1A1 /* U4DLight.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DLight.mm; sourceTree = "<group>"; };
-		039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DLoadingSystem.mm; sourceTree = "<group>"; };
-		039B94362AC782020047D1A1 /* U4DLoadingSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DLoadingSystem.h; sourceTree = "<group>"; };
-		039B94372AC782020047D1A1 /* U4DRenderSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DRenderSystem.mm; sourceTree = "<group>"; };
-		039B94382AC782020047D1A1 /* U4DTransformSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DTransformSystem.mm; sourceTree = "<group>"; };
-		039B94392AC782020047D1A1 /* U4DTransformSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DTransformSystem.h; sourceTree = "<group>"; };
-		039B943A2AC782020047D1A1 /* U4DComputeSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DComputeSystem.h; sourceTree = "<group>"; };
-		039B943B2AC782020047D1A1 /* U4DRenderSystem.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = U4DRenderSystem.h; sourceTree = "<group>"; };
-		039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = U4DComputeSystem.mm; sourceTree = "<group>"; };
 		039B94AD2AC785670047D1A1 /* puppy.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = puppy.json; sourceTree = "<group>"; };
 		039B94AE2AC785670047D1A1 /* puppy2.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = puppy2.json; sourceTree = "<group>"; };
 		039B94AF2AC785670047D1A1 /* puppy3.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = puppy3.json; sourceTree = "<group>"; };
 		039B94B02AC785670047D1A1 /* floorchunk.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = floorchunk.json; sourceTree = "<group>"; };
 		039B94B12AC785670047D1A1 /* gameboyvoxel.json */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.json; path = gameboyvoxel.json; sourceTree = "<group>"; };
+		03EAF2E52B73CE1A00D1C5B5 /* RenderResources.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = RenderResources.swift; sourceTree = "<group>"; };
+		03EAF2E62B73CE1A00D1C5B5 /* Globals.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Globals.swift; sourceTree = "<group>"; };
+		03EAF2E72B73CE1A00D1C5B5 /* CoreRenderer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreRenderer.swift; sourceTree = "<group>"; };
+		03EAF2E92B73CE1A00D1C5B5 /* FuncUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FuncUtils.swift; sourceTree = "<group>"; };
+		03EAF2EA2B73CE1A00D1C5B5 /* MathUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MathUtils.swift; sourceTree = "<group>"; };
+		03EAF2EB2B73CE1A00D1C5B5 /* Logger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
+		03EAF2EC2B73CE1A00D1C5B5 /* Controller.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Controller.swift; sourceTree = "<group>"; };
+		03EAF2ED2B73CE1A00D1C5B5 /* Camera.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
+		03EAF2EF2B73CE1A00D1C5B5 /* Scene.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
+		03EAF2F02B73CE1A00D1C5B5 /* Entity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Entity.swift; sourceTree = "<group>"; };
+		03EAF2F22B73CE1A00D1C5B5 /* ComponentPool.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ComponentPool.swift; sourceTree = "<group>"; };
+		03EAF2F32B73CE1A00D1C5B5 /* Components.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Components.swift; sourceTree = "<group>"; };
+		03EAF3122B73CE1A00D1C5B5 /* ErrorHandlingSystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = ErrorHandlingSystem.swift; sourceTree = "<group>"; };
+		03EAF3132B73CE1A00D1C5B5 /* AllocatorSystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = AllocatorSystem.swift; sourceTree = "<group>"; };
+		03EAF3142B73CE1A00D1C5B5 /* PostProcessRenderPasses.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = PostProcessRenderPasses.swift; sourceTree = "<group>"; };
+		03EAF3152B73CE1A00D1C5B5 /* MemoryPool.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MemoryPool.swift; sourceTree = "<group>"; };
+		03EAF3162B73CE1A00D1C5B5 /* GraphBuilder.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GraphBuilder.swift; sourceTree = "<group>"; };
+		03EAF3172B73CE1A00D1C5B5 /* LightingSystem.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = LightingSystem.swift; sourceTree = "<group>"; };
+		03EAF3182B73CE1A00D1C5B5 /* CoreRenderPasses.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreRenderPasses.swift; sourceTree = "<group>"; };
+		03EAF3192B73CE1A00D1C5B5 /* CoreRenderInitializer.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = CoreRenderInitializer.swift; sourceTree = "<group>"; };
+		03EAF3762B73D02400D1C5B5 /* Mac_Untold.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Mac_Untold.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		03EAF3782B73D02500D1C5B5 /* AppDelegate.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppDelegate.swift; sourceTree = "<group>"; };
+		03EAF37A2B73D02500D1C5B5 /* GameViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GameViewController.swift; sourceTree = "<group>"; };
+		03EAF3812B73D02500D1C5B5 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		03EAF3842B73D02500D1C5B5 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Main.storyboard; sourceTree = "<group>"; };
+		03EAF3862B73D02500D1C5B5 /* Mac_Untold.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Mac_Untold.entitlements; sourceTree = "<group>"; };
+		03EAF3BF2B741E7400D1C5B5 /* GameScene.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = GameScene.swift; sourceTree = "<group>"; };
+		03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransformSystem.swift; sourceTree = "<group>"; };
+		03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */ = {isa = PBXFileReference; lastKnownFileType = "archive.metal-library"; path = UntoldEngineKernels.metallib; sourceTree = "<group>"; };
+		03EAF4852B7907B900D1C5B5 /* room.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = room.json; sourceTree = "<group>"; };
+		03EAF4872B790A4600D1C5B5 /* room.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = room.json; path = ../../../Downloads/room.json; sourceTree = "<group>"; };
+		03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
-		03FFE91F27745096006DD5A2 /* libenet.a */ = {isa = PBXFileReference; lastKnownFileType = archive.ar; name = libenet.a; path = UntoldEngine4D/NetworkSystem/libenet.a; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
-		03722B0B2029F0210080D069 /* Frameworks */ = {
+		03EAF3732B73D02400D1C5B5 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				03722D7E2029F1FF0080D069 /* Foundation.framework in Frameworks */,
-				03722D7D2029F1F70080D069 /* UIKit.framework in Frameworks */,
-				03722D7C2029F1F00080D069 /* Metal.framework in Frameworks */,
-				03722D7B2029F1EA0080D069 /* MetalKit.framework in Frameworks */,
-				03722D7A2029F1E30080D069 /* QuartzCore.framework in Frameworks */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		03722B202029F0220080D069 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		03722B322029F0220080D069 /* Frameworks */ = {
-			isa = PBXFrameworksBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				03722DD8202B3BEC0080D069 /* GameController.framework in Frameworks */,
-				03722D862029F2250080D069 /* Foundation.framework in Frameworks */,
-				03722D842029F21A0080D069 /* Metal.framework in Frameworks */,
-				03722D822029F2150080D069 /* MetalKit.framework in Frameworks */,
-				03722D802029F20D0080D069 /* QuartzCore.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
-		03722B0F2029F0210080D069 /* Untold4D iOS */ = {
-			isa = PBXGroup;
-			children = (
-				03722B102029F0210080D069 /* AppDelegate.h */,
-				03722B112029F0210080D069 /* AppDelegate.mm */,
-				03722B132029F0220080D069 /* GameViewController.h */,
-				03722B142029F0220080D069 /* GameViewController.mm */,
-				03722B162029F0220080D069 /* Main.storyboard */,
-				03722B192029F0220080D069 /* LaunchScreen.storyboard */,
-				03722B1C2029F0220080D069 /* Info.plist */,
-				03722B1D2029F0220080D069 /* main.m */,
-			);
-			path = "Untold4D iOS";
-			sourceTree = "<group>";
-		};
-		03722B242029F0220080D069 /* Untold4D tvOS */ = {
-			isa = PBXGroup;
-			children = (
-				03722B252029F0220080D069 /* AppDelegate.h */,
-				03722B262029F0220080D069 /* AppDelegate.mm */,
-				03722B282029F0220080D069 /* GameViewController.h */,
-				03722B292029F0220080D069 /* GameViewController.mm */,
-				03722B2B2029F0220080D069 /* Main.storyboard */,
-				03722B2E2029F0220080D069 /* Info.plist */,
-				03722B2F2029F0220080D069 /* main.m */,
-			);
-			path = "Untold4D tvOS";
-			sourceTree = "<group>";
-		};
-		03722B362029F0220080D069 /* Untold4D macOS */ = {
-			isa = PBXGroup;
-			children = (
-				031413EC2589D03B005BF4A4 /* Untold4D.entitlements */,
-				03722B372029F0220080D069 /* AppDelegate.h */,
-				03722B382029F0220080D069 /* AppDelegate.mm */,
-				03722B3A2029F0220080D069 /* GameViewController.h */,
-				03722B3B2029F0220080D069 /* GameViewController.mm */,
-				03722B3D2029F0220080D069 /* Main.storyboard */,
-				03722B402029F0220080D069 /* Info.plist */,
-				03722B412029F0220080D069 /* main.m */,
-				0335A4562ACC61C4004987FC /* GameScene.h */,
-				0335A4552ACC61C4004987FC /* GameScene.mm */,
-			);
-			path = "Untold4D macOS";
-			sourceTree = "<group>";
-		};
 		03759B29175B0135002EB5D9 = {
 			isa = PBXGroup;
 			children = (
-				0315F3962B52D65300300654 /* bot0552.json */,
-				031E6A752AE6085E0073DE04 /* lake.json */,
-				031E6A732AE5BF890073DE04 /* ship.json */,
-				030BA1792AE2589600838EA5 /* brdftest.json */,
+				03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */,
+				03EAF4852B7907B900D1C5B5 /* room.json */,
+				03EAF4872B790A4600D1C5B5 /* room.json */,
 				03722D872029F4280080D069 /* UntoldEngine-Prefix.pch */,
-				039B93F32AC782020047D1A1 /* UntoldEngine4D */,
+				03EAF2E32B73CE1A00D1C5B5 /* UntoldEngineCore */,
 				037E2066192D3DED00D375F2 /* Resources */,
-				03722B0F2029F0210080D069 /* Untold4D iOS */,
-				03722B242029F0220080D069 /* Untold4D tvOS */,
-				03722B362029F0220080D069 /* Untold4D macOS */,
+				03EAF3772B73D02500D1C5B5 /* Mac_Untold */,
 				03759B37175B0135002EB5D9 /* Frameworks */,
 				03759B35175B0135002EB5D9 /* Products */,
 			);
@@ -300,9 +114,7 @@
 		03759B35175B0135002EB5D9 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				03722B0E2029F0210080D069 /* Untold4D.app */,
-				03722B232029F0220080D069 /* Untold4D.app */,
-				03722B352029F0220080D069 /* Untold4D.app */,
+				03EAF3762B73D02400D1C5B5 /* Mac_Untold.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -310,17 +122,8 @@
 		03759B37175B0135002EB5D9 /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
-				03370CE02777BCB5008171BA /* libenet.a */,
-				03370D142777BDE4008171BA /* libenet.a */,
-				03370CAB27761785008171BA /* libenetlib.a */,
-				03FFE91F27745096006DD5A2 /* libenet.a */,
 				0376618627558F240098E008 /* ARKit.framework */,
-				03722DD7202B3BEB0080D069 /* GameController.framework */,
-				03722D852029F2250080D069 /* Foundation.framework */,
-				03722D832029F21A0080D069 /* Metal.framework */,
-				03722D812029F2150080D069 /* MetalKit.framework */,
 				03F2DB201F19471300F77B78 /* QuartzCore.framework */,
-				03722D7F2029F20D0080D069 /* QuartzCore.framework */,
 				03F2DAC11F1911D000F77B78 /* MetalKit.framework */,
 				03F2DABF1F1911CA00F77B78 /* Metal.framework */,
 				03759B38175B0135002EB5D9 /* UIKit.framework */,
@@ -341,183 +144,115 @@
 			path = Resources;
 			sourceTree = "<group>";
 		};
-		039B93F32AC782020047D1A1 /* UntoldEngine4D */ = {
+		03EAF2E32B73CE1A00D1C5B5 /* UntoldEngineCore */ = {
 			isa = PBXGroup;
 			children = (
-				039B93F42AC782020047D1A1 /* Renderer */,
-				039B93F72AC782020047D1A1 /* MetalShaders */,
-				039B93FF2AC782020047D1A1 /* Entity */,
-				039B94012AC782020047D1A1 /* Camera */,
-				039B941C2AC782020047D1A1 /* Constants */,
-				039B941F2AC782020047D1A1 /* Utils */,
-				039B94262AC782020047D1A1 /* Globals.h */,
-				039B94272AC782020047D1A1 /* Controller */,
-				039B942A2AC782020047D1A1 /* Components */,
-				039B94312AC782020047D1A1 /* Light */,
-				039B94342AC782020047D1A1 /* Systems */,
+				03EAF2E72B73CE1A00D1C5B5 /* CoreRenderer.swift */,
+				03EAF3E22B748F8400D1C5B5 /* RenderingSystem */,
+				03EAF2EE2B73CE1A00D1C5B5 /* ECS */,
+				03EAF3112B73CE1A00D1C5B5 /* Systems */,
+				03EAF2E42B73CE1A00D1C5B5 /* RenderResources */,
+				03EAF2E82B73CE1A00D1C5B5 /* Utils */,
+				03EAF2F42B73CE1A00D1C5B5 /* UntoldEngineKernels */,
 			);
-			path = UntoldEngine4D;
+			path = UntoldEngineCore;
 			sourceTree = "<group>";
 		};
-		039B93F42AC782020047D1A1 /* Renderer */ = {
+		03EAF2E42B73CE1A00D1C5B5 /* RenderResources */ = {
 			isa = PBXGroup;
 			children = (
-				039B93F52AC782020047D1A1 /* U4DRenderer.h */,
-				039B93F62AC782020047D1A1 /* U4DRenderer.mm */,
+				03EAF2E52B73CE1A00D1C5B5 /* RenderResources.swift */,
+				03EAF2E62B73CE1A00D1C5B5 /* Globals.swift */,
 			);
-			path = Renderer;
+			path = RenderResources;
 			sourceTree = "<group>";
 		};
-		039B93F72AC782020047D1A1 /* MetalShaders */ = {
+		03EAF2E82B73CE1A00D1C5B5 /* Utils */ = {
 			isa = PBXGroup;
 			children = (
-				039B93F82AC782020047D1A1 /* U4DShaderProtocols.h */,
-				039B93F92AC782020047D1A1 /* U4DShaderHelperFunctions.h */,
-				039B93FE2AC782020047D1A1 /* U4DShaderHelperFunctions.metal */,
-				039B93FA2AC782020047D1A1 /* compositionShader.metal */,
-				039B93FB2AC782020047D1A1 /* shadowShader.metal */,
-				039B93FC2AC782020047D1A1 /* voxelShader.metal */,
-				039B93FD2AC782020047D1A1 /* gridShader.metal */,
-			);
-			path = MetalShaders;
-			sourceTree = "<group>";
-		};
-		039B93FF2AC782020047D1A1 /* Entity */ = {
-			isa = PBXGroup;
-			children = (
-				039B94002AC782020047D1A1 /* U4DEntity.h */,
-			);
-			path = Entity;
-			sourceTree = "<group>";
-		};
-		039B94012AC782020047D1A1 /* Camera */ = {
-			isa = PBXGroup;
-			children = (
-				039B94022AC782020047D1A1 /* U4DCamera.mm */,
-				039B94032AC782020047D1A1 /* U4DCamera.h */,
-			);
-			path = Camera;
-			sourceTree = "<group>";
-		};
-		039B941C2AC782020047D1A1 /* Constants */ = {
-			isa = PBXGroup;
-			children = (
-				039B941D2AC782020047D1A1 /* CommonProtocols.h */,
-				039B941E2AC782020047D1A1 /* Constants.h */,
-			);
-			path = Constants;
-			sourceTree = "<group>";
-		};
-		039B941F2AC782020047D1A1 /* Utils */ = {
-			isa = PBXGroup;
-			children = (
-				039B94202AC782020047D1A1 /* U4DUtilsFunctions.mm */,
-				039B94252AC782020047D1A1 /* U4DUtilsFunctions.h */,
-				039B94212AC782020047D1A1 /* U4DJsonReader.mm */,
-				039B94222AC782020047D1A1 /* U4DJsonReader.h */,
-				039B94232AC782020047D1A1 /* U4DMathUtils.h */,
-				039B94242AC782020047D1A1 /* U4DMathUtils.mm */,
+				03EAF2E92B73CE1A00D1C5B5 /* FuncUtils.swift */,
+				03EAF2EA2B73CE1A00D1C5B5 /* MathUtils.swift */,
+				03EAF2EB2B73CE1A00D1C5B5 /* Logger.swift */,
+				03EAF2EC2B73CE1A00D1C5B5 /* Controller.swift */,
+				03EAF2ED2B73CE1A00D1C5B5 /* Camera.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
 		};
-		039B94272AC782020047D1A1 /* Controller */ = {
+		03EAF2EE2B73CE1A00D1C5B5 /* ECS */ = {
 			isa = PBXGroup;
 			children = (
-				039B94282AC782020047D1A1 /* U4DController.h */,
-				039B94292AC782020047D1A1 /* U4DController.mm */,
+				03EAF2EF2B73CE1A00D1C5B5 /* Scene.swift */,
+				03EAF2F02B73CE1A00D1C5B5 /* Entity.swift */,
+				03EAF2F22B73CE1A00D1C5B5 /* ComponentPool.swift */,
+				03EAF2F32B73CE1A00D1C5B5 /* Components.swift */,
 			);
-			path = Controller;
+			path = ECS;
 			sourceTree = "<group>";
 		};
-		039B942A2AC782020047D1A1 /* Components */ = {
+		03EAF2F42B73CE1A00D1C5B5 /* UntoldEngineKernels */ = {
 			isa = PBXGroup;
 			children = (
-				039B942B2AC782020047D1A1 /* U4DComponents.h */,
-				039B942C2AC782020047D1A1 /* U4DComponentPool.mm */,
-				039B942D2AC782020047D1A1 /* U4DComponentPool.h */,
-				039B942E2AC782020047D1A1 /* U4DScene.h */,
-				039B942F2AC782020047D1A1 /* U4DScene.mm */,
+				03EAF47F2B76DE0200D1C5B5 /* UntoldEngineKernels.metallib */,
 			);
-			path = Components;
+			path = UntoldEngineKernels;
 			sourceTree = "<group>";
 		};
-		039B94312AC782020047D1A1 /* Light */ = {
+		03EAF3112B73CE1A00D1C5B5 /* Systems */ = {
 			isa = PBXGroup;
 			children = (
-				039B94322AC782020047D1A1 /* U4DLight.h */,
-				039B94332AC782020047D1A1 /* U4DLight.mm */,
-			);
-			path = Light;
-			sourceTree = "<group>";
-		};
-		039B94342AC782020047D1A1 /* Systems */ = {
-			isa = PBXGroup;
-			children = (
-				039B94352AC782020047D1A1 /* U4DLoadingSystem.mm */,
-				039B94362AC782020047D1A1 /* U4DLoadingSystem.h */,
-				039B94372AC782020047D1A1 /* U4DRenderSystem.mm */,
-				039B94382AC782020047D1A1 /* U4DTransformSystem.mm */,
-				039B94392AC782020047D1A1 /* U4DTransformSystem.h */,
-				039B943A2AC782020047D1A1 /* U4DComputeSystem.h */,
-				039B943B2AC782020047D1A1 /* U4DRenderSystem.h */,
-				039B943C2AC782020047D1A1 /* U4DComputeSystem.mm */,
+				03EAF3122B73CE1A00D1C5B5 /* ErrorHandlingSystem.swift */,
+				03EAF3132B73CE1A00D1C5B5 /* AllocatorSystem.swift */,
+				03EAF3152B73CE1A00D1C5B5 /* MemoryPool.swift */,
+				03EAF3162B73CE1A00D1C5B5 /* GraphBuilder.swift */,
+				03EAF3172B73CE1A00D1C5B5 /* LightingSystem.swift */,
+				03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */,
 			);
 			path = Systems;
+			sourceTree = "<group>";
+		};
+		03EAF3772B73D02500D1C5B5 /* Mac_Untold */ = {
+			isa = PBXGroup;
+			children = (
+				03EAF3782B73D02500D1C5B5 /* AppDelegate.swift */,
+				03EAF37A2B73D02500D1C5B5 /* GameViewController.swift */,
+				03EAF3BF2B741E7400D1C5B5 /* GameScene.swift */,
+				03EAF3812B73D02500D1C5B5 /* Assets.xcassets */,
+				03EAF3832B73D02500D1C5B5 /* Main.storyboard */,
+				03EAF3862B73D02500D1C5B5 /* Mac_Untold.entitlements */,
+			);
+			path = Mac_Untold;
+			sourceTree = "<group>";
+		};
+		03EAF3E22B748F8400D1C5B5 /* RenderingSystem */ = {
+			isa = PBXGroup;
+			children = (
+				03EAF3182B73CE1A00D1C5B5 /* CoreRenderPasses.swift */,
+				03EAF3192B73CE1A00D1C5B5 /* CoreRenderInitializer.swift */,
+				03EAF3142B73CE1A00D1C5B5 /* PostProcessRenderPasses.swift */,
+			);
+			path = RenderingSystem;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		03722B0D2029F0210080D069 /* Untold4D iOS */ = {
+		03EAF3752B73D02400D1C5B5 /* Mac_Untold */ = {
 			isa = PBXNativeTarget;
-			buildConfigurationList = 03722B522029F0220080D069 /* Build configuration list for PBXNativeTarget "Untold4D iOS" */;
+			buildConfigurationList = 03EAF3892B73D02500D1C5B5 /* Build configuration list for PBXNativeTarget "Mac_Untold" */;
 			buildPhases = (
-				03722B0A2029F0210080D069 /* Sources */,
-				03722B0B2029F0210080D069 /* Frameworks */,
-				03722B0C2029F0210080D069 /* Resources */,
+				03EAF3722B73D02400D1C5B5 /* Sources */,
+				03EAF3732B73D02400D1C5B5 /* Frameworks */,
+				03EAF3B92B73D2E800D1C5B5 /* ShellScript */,
+				03EAF3742B73D02400D1C5B5 /* Resources */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 			);
-			name = "Untold4D iOS";
-			productName = "Untold4D iOS";
-			productReference = 03722B0E2029F0210080D069 /* Untold4D.app */;
-			productType = "com.apple.product-type.application";
-		};
-		03722B222029F0220080D069 /* Untold4D tvOS */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 03722B532029F0220080D069 /* Build configuration list for PBXNativeTarget "Untold4D tvOS" */;
-			buildPhases = (
-				03722B1F2029F0220080D069 /* Sources */,
-				03722B202029F0220080D069 /* Frameworks */,
-				03722B212029F0220080D069 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "Untold4D tvOS";
-			productName = "Untold4D tvOS";
-			productReference = 03722B232029F0220080D069 /* Untold4D.app */;
-			productType = "com.apple.product-type.application";
-		};
-		03722B342029F0220080D069 /* Untold4D macOS */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = 03722B542029F0220080D069 /* Build configuration list for PBXNativeTarget "Untold4D macOS" */;
-			buildPhases = (
-				03722B312029F0220080D069 /* Sources */,
-				03722B322029F0220080D069 /* Frameworks */,
-				03722B332029F0220080D069 /* Resources */,
-			);
-			buildRules = (
-			);
-			dependencies = (
-			);
-			name = "Untold4D macOS";
-			productName = "Untold4D macOS";
-			productReference = 03722B352029F0220080D069 /* Untold4D.app */;
+			name = Mac_Untold;
+			productName = Mac_Untold;
+			productReference = 03EAF3762B73D02400D1C5B5 /* Mac_Untold.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -526,21 +261,12 @@
 		03759B2B175B0135002EB5D9 /* Project object */ = {
 			isa = PBXProject;
 			attributes = {
+				LastSwiftUpdateCheck = 1520;
 				LastUpgradeCheck = 0810;
 				ORGANIZATIONNAME = "Untold Engine Studios";
 				TargetAttributes = {
-					03722B0D2029F0210080D069 = {
-						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = PXXZLXYJ26;
-						ProvisioningStyle = Automatic;
-					};
-					03722B222029F0220080D069 = {
-						CreatedOnToolsVersion = 9.2;
-						DevelopmentTeam = W9GCJ3HCHT;
-						ProvisioningStyle = Automatic;
-					};
-					03722B342029F0220080D069 = {
-						CreatedOnToolsVersion = 9.2;
+					03EAF3752B73D02400D1C5B5 = {
+						CreatedOnToolsVersion = 15.2;
 						DevelopmentTeam = PXXZLXYJ26;
 						ProvisioningStyle = Automatic;
 					};
@@ -560,175 +286,85 @@
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
-				03722B0D2029F0210080D069 /* Untold4D iOS */,
-				03722B222029F0220080D069 /* Untold4D tvOS */,
-				03722B342029F0220080D069 /* Untold4D macOS */,
+				03EAF3752B73D02400D1C5B5 /* Mac_Untold */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
-		03722B0C2029F0210080D069 /* Resources */ = {
+		03EAF3742B73D02400D1C5B5 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				039B94C32AC785670047D1A1 /* gameboyvoxel.json in Resources */,
-				03722B182029F0220080D069 /* Main.storyboard in Resources */,
-				03722B1B2029F0220080D069 /* LaunchScreen.storyboard in Resources */,
-				039B94BF2AC785670047D1A1 /* floorchunk.json in Resources */,
-				039B94B32AC785670047D1A1 /* puppy.json in Resources */,
-				039B94BB2AC785670047D1A1 /* puppy3.json in Resources */,
-				039B94B72AC785670047D1A1 /* puppy2.json in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		03722B212029F0220080D069 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				039B94BC2AC785670047D1A1 /* puppy3.json in Resources */,
-				039B94B42AC785670047D1A1 /* puppy.json in Resources */,
-				039B94B82AC785670047D1A1 /* puppy2.json in Resources */,
-				039B94C42AC785670047D1A1 /* gameboyvoxel.json in Resources */,
-				039B94C02AC785670047D1A1 /* floorchunk.json in Resources */,
-				03722B2D2029F0220080D069 /* Main.storyboard in Resources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		03722B332029F0220080D069 /* Resources */ = {
-			isa = PBXResourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				031E6A742AE5BF890073DE04 /* ship.json in Resources */,
-				031E6A762AE6085E0073DE04 /* lake.json in Resources */,
-				0315F3972B52D65300300654 /* bot0552.json in Resources */,
-				030BA17A2AE2589600838EA5 /* brdftest.json in Resources */,
-				039B94C52AC785670047D1A1 /* gameboyvoxel.json in Resources */,
-				039B94C12AC785670047D1A1 /* floorchunk.json in Resources */,
-				03722B3F2029F0220080D069 /* Main.storyboard in Resources */,
+				03EAF3822B73D02500D1C5B5 /* Assets.xcassets in Resources */,
+				03EAF3852B73D02500D1C5B5 /* Main.storyboard in Resources */,
+				03EAF50D2B7AEAEF00D1C5B5 /* bot1.json in Resources */,
+				03EAF4882B790A4600D1C5B5 /* room.json in Resources */,
+				03EAF4802B76DE0200D1C5B5 /* UntoldEngineKernels.metallib in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
 
+/* Begin PBXShellScriptBuildPhase section */
+		03EAF3B92B73D2E800D1C5B5 /* ShellScript */ = {
+			isa = PBXShellScriptBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/sh;
+			shellScript = "# Type a script or drag a script file from your workspace to insert its path.\n";
+		};
+/* End PBXShellScriptBuildPhase section */
+
 /* Begin PBXSourcesBuildPhase section */
-		03722B0A2029F0210080D069 /* Sources */ = {
+		03EAF3722B73D02400D1C5B5 /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				039B94AA2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */,
-				039B94522AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */,
-				039B94922AC782020047D1A1 /* U4DComponentPool.mm in Sources */,
-				039B949A2AC782020047D1A1 /* U4DLight.mm in Sources */,
-				039B94962AC782020047D1A1 /* U4DScene.mm in Sources */,
-				039B94A22AC782020047D1A1 /* U4DRenderSystem.mm in Sources */,
-				03722B152029F0220080D069 /* GameViewController.mm in Sources */,
-				039B94562AC782020047D1A1 /* U4DCamera.mm in Sources */,
-				0335A4572ACC61C5004987FC /* GameScene.mm in Sources */,
-				039B948A2AC782020047D1A1 /* U4DMathUtils.mm in Sources */,
-				039B944A2AC782020047D1A1 /* voxelShader.metal in Sources */,
-				039B94A62AC782020047D1A1 /* U4DTransformSystem.mm in Sources */,
-				039B94422AC782020047D1A1 /* compositionShader.metal in Sources */,
-				03722B1E2029F0220080D069 /* main.m in Sources */,
-				039B94862AC782020047D1A1 /* U4DJsonReader.mm in Sources */,
-				039B948E2AC782020047D1A1 /* U4DController.mm in Sources */,
-				039B943E2AC782020047D1A1 /* U4DRenderer.mm in Sources */,
-				039B94462AC782020047D1A1 /* shadowShader.metal in Sources */,
-				039B949E2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */,
-				039B944E2AC782020047D1A1 /* gridShader.metal in Sources */,
-				039B94822AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */,
-				03722B122029F0220080D069 /* AppDelegate.mm in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		03722B1F2029F0220080D069 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				039B94AB2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */,
-				039B94532AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */,
-				039B94932AC782020047D1A1 /* U4DComponentPool.mm in Sources */,
-				039B949B2AC782020047D1A1 /* U4DLight.mm in Sources */,
-				039B94972AC782020047D1A1 /* U4DScene.mm in Sources */,
-				039B94A32AC782020047D1A1 /* U4DRenderSystem.mm in Sources */,
-				03722B2A2029F0220080D069 /* GameViewController.mm in Sources */,
-				039B94572AC782020047D1A1 /* U4DCamera.mm in Sources */,
-				039B948B2AC782020047D1A1 /* U4DMathUtils.mm in Sources */,
-				039B944B2AC782020047D1A1 /* voxelShader.metal in Sources */,
-				039B94A72AC782020047D1A1 /* U4DTransformSystem.mm in Sources */,
-				039B94432AC782020047D1A1 /* compositionShader.metal in Sources */,
-				03722B302029F0220080D069 /* main.m in Sources */,
-				039B94872AC782020047D1A1 /* U4DJsonReader.mm in Sources */,
-				039B948F2AC782020047D1A1 /* U4DController.mm in Sources */,
-				039B943F2AC782020047D1A1 /* U4DRenderer.mm in Sources */,
-				039B94472AC782020047D1A1 /* shadowShader.metal in Sources */,
-				039B949F2AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */,
-				039B944F2AC782020047D1A1 /* gridShader.metal in Sources */,
-				039B94832AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */,
-				03722B272029F0220080D069 /* AppDelegate.mm in Sources */,
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-		};
-		03722B312029F0220080D069 /* Sources */ = {
-			isa = PBXSourcesBuildPhase;
-			buildActionMask = 2147483647;
-			files = (
-				039B94AC2AC782020047D1A1 /* U4DComputeSystem.mm in Sources */,
-				039B94542AC782020047D1A1 /* U4DShaderHelperFunctions.metal in Sources */,
-				039B94942AC782020047D1A1 /* U4DComponentPool.mm in Sources */,
-				039B949C2AC782020047D1A1 /* U4DLight.mm in Sources */,
-				039B94982AC782020047D1A1 /* U4DScene.mm in Sources */,
-				039B94A42AC782020047D1A1 /* U4DRenderSystem.mm in Sources */,
-				03722B3C2029F0220080D069 /* GameViewController.mm in Sources */,
-				039B94582AC782020047D1A1 /* U4DCamera.mm in Sources */,
-				0335A4582ACC61C5004987FC /* GameScene.mm in Sources */,
-				039B948C2AC782020047D1A1 /* U4DMathUtils.mm in Sources */,
-				039B944C2AC782020047D1A1 /* voxelShader.metal in Sources */,
-				039B94A82AC782020047D1A1 /* U4DTransformSystem.mm in Sources */,
-				039B94442AC782020047D1A1 /* compositionShader.metal in Sources */,
-				03722B422029F0220080D069 /* main.m in Sources */,
-				039B94882AC782020047D1A1 /* U4DJsonReader.mm in Sources */,
-				039B94902AC782020047D1A1 /* U4DController.mm in Sources */,
-				039B94402AC782020047D1A1 /* U4DRenderer.mm in Sources */,
-				039B94482AC782020047D1A1 /* shadowShader.metal in Sources */,
-				039B94A02AC782020047D1A1 /* U4DLoadingSystem.mm in Sources */,
-				039B94502AC782020047D1A1 /* gridShader.metal in Sources */,
-				039B94842AC782020047D1A1 /* U4DUtilsFunctions.mm in Sources */,
-				03722B392029F0220080D069 /* AppDelegate.mm in Sources */,
+				03EAF3AA2B73D0C100D1C5B5 /* PostProcessRenderPasses.swift in Sources */,
+				03EAF3E42B751C2E00D1C5B5 /* TransformSystem.swift in Sources */,
+				03EAF3AE2B73D0CC00D1C5B5 /* CoreRenderPasses.swift in Sources */,
+				03EAF3AC2B73D0C700D1C5B5 /* GraphBuilder.swift in Sources */,
+				03EAF38E2B73D04900D1C5B5 /* MathUtils.swift in Sources */,
+				03EAF3A92B73D0BE00D1C5B5 /* AllocatorSystem.swift in Sources */,
+				03EAF3932B73D05D00D1C5B5 /* Entity.swift in Sources */,
+				03EAF3902B73D04F00D1C5B5 /* Controller.swift in Sources */,
+				03EAF37B2B73D02500D1C5B5 /* GameViewController.swift in Sources */,
+				03EAF3C02B741E7400D1C5B5 /* GameScene.swift in Sources */,
+				03EAF3922B73D05A00D1C5B5 /* Scene.swift in Sources */,
+				03EAF3AD2B73D0CA00D1C5B5 /* LightingSystem.swift in Sources */,
+				03EAF3792B73D02500D1C5B5 /* AppDelegate.swift in Sources */,
+				03EAF3AF2B73D0CF00D1C5B5 /* CoreRenderInitializer.swift in Sources */,
+				03EAF38F2B73D04C00D1C5B5 /* Logger.swift in Sources */,
+				03EAF38A2B73D03B00D1C5B5 /* CoreRenderer.swift in Sources */,
+				03EAF3952B73D06300D1C5B5 /* ComponentPool.swift in Sources */,
+				03EAF3912B73D05200D1C5B5 /* Camera.swift in Sources */,
+				03EAF3AB2B73D0C400D1C5B5 /* MemoryPool.swift in Sources */,
+				03EAF38C2B73D04100D1C5B5 /* Globals.swift in Sources */,
+				03EAF38B2B73D03E00D1C5B5 /* RenderResources.swift in Sources */,
+				03EAF38D2B73D04600D1C5B5 /* FuncUtils.swift in Sources */,
+				03EAF3962B73D06600D1C5B5 /* Components.swift in Sources */,
+				03EAF3A82B73D0BC00D1C5B5 /* ErrorHandlingSystem.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXVariantGroup section */
-		03722B162029F0220080D069 /* Main.storyboard */ = {
+		03EAF3832B73D02500D1C5B5 /* Main.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				03722B172029F0220080D069 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		03722B192029F0220080D069 /* LaunchScreen.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				03722B1A2029F0220080D069 /* Base */,
-			);
-			name = LaunchScreen.storyboard;
-			sourceTree = "<group>";
-		};
-		03722B2B2029F0220080D069 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				03722B2C2029F0220080D069 /* Base */,
-			);
-			name = Main.storyboard;
-			sourceTree = "<group>";
-		};
-		03722B3D2029F0220080D069 /* Main.storyboard */ = {
-			isa = PBXVariantGroup;
-			children = (
-				03722B3E2029F0220080D069 /* Base */,
+				03EAF3842B73D02500D1C5B5 /* Base */,
 			);
 			name = Main.storyboard;
 			sourceTree = "<group>";
@@ -736,258 +372,6 @@
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
-		03722B4C2029F0220080D069 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = PXXZLXYJ26;
-				EXCLUDED_SOURCE_FILE_NAMES = (
-					U4DEditorPass.mm,
-					U4DEditorPass.h,
-					"*/Imgui/*",
-				);
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				INFOPLIST_FILE = "Untold4D iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
-				PRODUCT_NAME = Untold4D;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = 1;
-			};
-			name = Debug;
-		};
-		03722B4D2029F0220080D069 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_IDENTITY = "iPhone Developer";
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = PXXZLXYJ26;
-				ENABLE_NS_ASSERTIONS = NO;
-				EXCLUDED_SOURCE_FILE_NAMES = (
-					U4DEditorPass.mm,
-					U4DEditorPass.h,
-					"*/Imgui/*",
-				);
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
-				GCC_WARN_ABOUT_RETURN_TYPE = YES;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				INFOPLIST_FILE = "Untold4D iOS/Info.plist";
-				IPHONEOS_DEPLOYMENT_TARGET = 14.5;
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
-				PRODUCT_NAME = Untold4D;
-				SDKROOT = iphoneos;
-				TARGETED_DEVICE_FAMILY = 1;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		03722B4E2029F0220080D069 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "tvOS App Icon & Top Shelf Image";
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = "tvOS LaunchImage";
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				INFOPLIST_FILE = "Untold4D tvOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MTL_ENABLE_DEBUG_INFO = YES;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bps.UntoldEngine.Untold4D;
-				PRODUCT_NAME = Untold4D;
-				SDKROOT = appletvos;
-				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 11.2;
-			};
-			name = Debug;
-		};
-		03722B4F2029F0220080D069 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = "tvOS App Icon & Top Shelf Image";
-				ASSETCATALOG_COMPILER_LAUNCHIMAGE_NAME = "tvOS LaunchImage";
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = YES;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_STYLE = Automatic;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = W9GCJ3HCHT;
-				ENABLE_NS_ASSERTIONS = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				INFOPLIST_FILE = "Untold4D tvOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/Frameworks";
-				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.bps.UntoldEngine.Untold4D;
-				PRODUCT_NAME = Untold4D;
-				SDKROOT = appletvos;
-				TARGETED_DEVICE_FAMILY = 3;
-				TVOS_DEPLOYMENT_TARGET = 11.2;
-				VALIDATE_PRODUCT = YES;
-			};
-			name = Release;
-		};
-		03722B502029F0220080D069 /* Debug */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = "Untold4D macOS/Untold4D.entitlements";
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				DEBUG_INFORMATION_FORMAT = dwarf;
-				DEVELOPMENT_TEAM = PXXZLXYJ26;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
-				GCC_WARN_ABOUT_RETURN_TYPE = NO;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
-				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
-				PRODUCT_NAME = Untold4D;
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SDKROOT = macosx;
-			};
-			name = Debug;
-		};
-		03722B512029F0220080D069 /* Release */ = {
-			isa = XCBuildConfiguration;
-			buildSettings = {
-				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
-				CLANG_ANALYZER_NONNULL = YES;
-				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
-				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
-				CLANG_ENABLE_MODULES = YES;
-				CLANG_ENABLE_OBJC_ARC = NO;
-				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
-				CLANG_WARN_COMMA = YES;
-				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
-				CLANG_WARN_DOCUMENTATION_COMMENTS = NO;
-				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
-				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
-				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
-				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
-				CLANG_WARN_STRICT_PROTOTYPES = YES;
-				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
-				CODE_SIGN_ENTITLEMENTS = "Untold4D macOS/Untold4D.entitlements";
-				CODE_SIGN_IDENTITY = "Mac Developer";
-				CODE_SIGN_STYLE = Automatic;
-				COMBINE_HIDPI_IMAGES = YES;
-				COPY_PHASE_STRIP = NO;
-				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
-				DEVELOPMENT_TEAM = PXXZLXYJ26;
-				ENABLE_NS_ASSERTIONS = NO;
-				GCC_C_LANGUAGE_STANDARD = gnu11;
-				GCC_PREFIX_HEADER = "$(SRCROOT)/UntoldEngine-Prefix.pch";
-				GCC_WARN_ABOUT_RETURN_TYPE = NO;
-				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
-				INFOPLIST_FILE = "Untold4D macOS/Info.plist";
-				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
-				LIBRARY_SEARCH_PATHS = "$(inherited)";
-				MACOSX_DEPLOYMENT_TARGET = 13.3;
-				MTL_ENABLE_DEBUG_INFO = NO;
-				PRODUCT_BUNDLE_IDENTIFIER = com.UntoldEngine.Untold4D;
-				PRODUCT_NAME = Untold4D;
-				PROVISIONING_PROFILE_SPECIFIER = "";
-				SDKROOT = macosx;
-			};
-			name = Release;
-		};
 		03759B61175B0135002EB5D9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -1026,6 +410,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MTL_IGNORE_WARNINGS = NO;
 				ONLY_ACTIVE_ARCH = YES;
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -1064,6 +449,7 @@
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				IPHONEOS_DEPLOYMENT_TARGET = 11.0;
 				MACOSX_DEPLOYMENT_TARGET = 13.3;
+				MTL_IGNORE_WARNINGS = NO;
 				OTHER_CFLAGS = "-DNS_BLOCK_ASSERTIONS=1";
 				"PROVISIONING_PROFILE[sdk=iphoneos*]" = "";
 				SDKROOT = iphoneos;
@@ -1073,41 +459,140 @@
 			};
 			name = Release;
 		};
+		03EAF3872B73D02500D1C5B5 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = Mac_Untold/Mac_Untold.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = PXXZLXYJ26;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 Untold Engine Studios. All rights reserved.";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				MTL_IGNORE_WARNINGS = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.untoldengine.Mac-Untold";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = UntoldEngineCore/Shaders/ShaderTypes.h;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+			};
+			name = Debug;
+		};
+		03EAF3882B73D02500D1C5B5 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GENERATE_SWIFT_ASSET_SYMBOL_EXTENSIONS = YES;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++20";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CODE_SIGN_ENTITLEMENTS = Mac_Untold/Mac_Untold.entitlements;
+				CODE_SIGN_STYLE = Automatic;
+				COMBINE_HIDPI_IMAGES = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = PXXZLXYJ26;
+				ENABLE_HARDENED_RUNTIME = YES;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_USER_SCRIPT_SANDBOXING = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu17;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_NSHumanReadableCopyright = "Copyright © 2024 Untold Engine Studios. All rights reserved.";
+				INFOPLIST_KEY_NSMainStoryboardFile = Main;
+				INFOPLIST_KEY_NSPrincipalClass = NSApplication;
+				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
+				MACOSX_DEPLOYMENT_TARGET = 14.2;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				MTL_IGNORE_WARNINGS = NO;
+				PRODUCT_BUNDLE_IDENTIFIER = "com.untoldengine.Mac-Untold";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = macosx;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_EMIT_LOC_STRINGS = YES;
+				SWIFT_OBJC_BRIDGING_HEADER = UntoldEngineCore/Shaders/ShaderTypes.h;
+				SWIFT_VERSION = 5.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
-		03722B522029F0220080D069 /* Build configuration list for PBXNativeTarget "Untold4D iOS" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				03722B4C2029F0220080D069 /* Debug */,
-				03722B4D2029F0220080D069 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		03722B532029F0220080D069 /* Build configuration list for PBXNativeTarget "Untold4D tvOS" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				03722B4E2029F0220080D069 /* Debug */,
-				03722B4F2029F0220080D069 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
-		03722B542029F0220080D069 /* Build configuration list for PBXNativeTarget "Untold4D macOS" */ = {
-			isa = XCConfigurationList;
-			buildConfigurations = (
-				03722B502029F0220080D069 /* Debug */,
-				03722B512029F0220080D069 /* Release */,
-			);
-			defaultConfigurationIsVisible = 0;
-			defaultConfigurationName = Release;
-		};
 		03759B2E175B0135002EB5D9 /* Build configuration list for PBXProject "UntoldEngine" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (
 				03759B61175B0135002EB5D9 /* Debug */,
 				03759B62175B0135002EB5D9 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		03EAF3892B73D02500D1C5B5 /* Build configuration list for PBXNativeTarget "Mac_Untold" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				03EAF3872B73D02500D1C5B5 /* Debug */,
+				03EAF3882B73D02500D1C5B5 /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;
