@@ -157,7 +157,12 @@ struct CoreRenderPasses{
                     return
                 }
                 
-                guard let assetData:AssetData=entityAssetMap[entityId] else {return}
+                guard let entityAssetMap:String=entityAssetmap[entityId] else{
+                    handleError(.assetDataMissing, entityId)
+                    return
+                }
+                
+                guard let assetData:AssetData=assetDataMap[entityAssetMap] else {return}
                 
                 let assetId:AssetID=assetData.assetId
                 
@@ -297,7 +302,12 @@ struct CoreRenderPasses{
                     return
                 }
                 
-                guard let assetData:AssetData=entityAssetMap[entityId] else {
+                guard let entityAssetMap:String=entityAssetmap[entityId] else{
+                    handleError(.assetDataMissing, entityId)
+                    return
+                }
+                
+                guard let assetData:AssetData=assetDataMap[entityAssetMap] else {
                     handleError(.assetDataMissing, entityId)
                     return
                 }

@@ -64,22 +64,36 @@ class GameScene{
         lightingSystem.dirLight.direction=simd_float3(0.0,1.0,1.0)
         
         //load all assets
-        loadVoxelIntoPool(0, "room")
-        loadVoxelIntoPool(1, "bot1")
-//        loadVoxelIntoPool(2, "pointLight1")
-//        loadVoxelIntoPool(3, "pointLight2")
+        loadVoxelIntoPool("room")
+        loadVoxelIntoPool("bot1")
         
         //set up entities
-        let entity0=scene.newEntity()
-        var transform=scene.assign(to: entity0, component: Transform.self)
-        _ = scene.assign(to: entity0, component: Render.self)
         
-        transform.localSpace=matrix4x4Translation(0.0, 0.0, -10.0)
+        let entity0=createEntity()
+        registerComponent(entity0,Render.self)
+        registerComponent(entity0,Transform.self)
+        registerGeometry(entity0,"room")
         
+        
+        let entity1=createEntityWithName(entityName: "block")
+        registerComponent(entity1, Render.self)
+        registerComponent(entity1, Transform.self)
+        registerGeometry(entity1, "bot1")
+        
+//        var transform=scene.assign(to: entity0, component: Transform.self)
+//        var render = scene.assign(to: entity0, component: Render.self)
+//        
+//        transform.localSpace=matrix4x4Translation(0.0, 0.0, 0.0)
+//        render.voxel="room"
+        
+        
+        /*
         var entity1=scene.newEntity()
         var transform1=scene.assign(to: entity1, component: Transform.self)
-        _ = scene.assign(to: entity1, component: Render.self)
-        transform1.localSpace=matrix4x4Translation(-3.0, 0.0, 0.0)
+        var render1 = scene.assign(to: entity1, component: Render.self)
+        transform1.localSpace=matrix4x4Translation(0.0, 0.0, 0.0)
+        render1.voxel="bot1"
+        */
         
 //        transform1.localSpace=matrix4x4Translation(-4.0, 0.0, 0.0)
 //        
@@ -94,12 +108,11 @@ class GameScene{
 //        pointLightTransform.localSpace=matrix4x4Translation(0.0, 0.5, 1.0)
         
         //linkEntityToAsset(entity0,0)
-        entityAssetMap[entity0]=assetDataArray[0]
-        entityAssetMap[entity1]=assetDataArray[1]
-//        entityAssetMap[entity2]=assetDataArray[1]
+        
+//        assetDataMap[entity2]=assetDataArray[1]
 //        
         //point lights
-        //entityAssetMap[entity3]=assetDataArray[2]
+        //assetDataMap[entity3]=assetDataArray[2]
 //
         //set the callback to be the update method
         renderer.gameUpdateCallback = { [weak self] in
@@ -122,24 +135,28 @@ class GameScene{
     
     func handleInput(){
         //print("user input")
+        guard let block=queryEntityWithName(entityName: "block") else{
+            return
+        }
         
         if keyState.aPressed == true{
             //rotateBy(0, 0.1, simd_float3(0.0,1.0,0.0))
-            translateEntityBy(EntityID(1)<<32, simd_float3(-0.1,0.0,0.0))
+            
+            translateEntityBy(block, simd_float3(-0.1,0.0,0.0))
         }
         
         if keyState.wPressed == true{
             
-            translateEntityBy(EntityID(1)<<32, simd_float3(0.0,0.0,0.1))
+            translateEntityBy(block, simd_float3(0.0,0.0,0.1))
         }
         
         if keyState.sPressed == true{
             
-            translateEntityBy(EntityID(1)<<32, simd_float3(0.0,0.0,-0.1))
+            translateEntityBy(block, simd_float3(0.0,0.0,-0.1))
         }
         
         if keyState.dPressed == true{
-            translateEntityBy(EntityID(1)<<32, simd_float3(0.1,0.0,0.0))
+            translateEntityBy(block, simd_float3(0.1,0.0,0.0))
         }
         
     }

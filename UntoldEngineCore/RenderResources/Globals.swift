@@ -166,6 +166,8 @@ let MAX_ENTITIES=10
 var scene:Scene=Scene()
 typealias AssetID=UInt64
 
+var globalAssetId:AssetID = 0
+
 struct AssetData{
     var assetId:AssetID!
     var name:String!
@@ -184,8 +186,9 @@ struct VoxelData: Codable{ //codable means it can be encoded and decoded to/from
 }
 
 var assetDataArray:[AssetData]=[]
-var entityAssetMap: [EntityID: AssetData] = [:]
-
+var assetDataMap: [String: AssetData] = [:]
+var entityAssetmap: [EntityID: String] = [:]
+var entityGlobalNameMap: [String: EntityID] = [:]
 var maxNumPointLights:Int=100
 
 

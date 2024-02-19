@@ -7,7 +7,7 @@
 
 import Foundation
 
-func loadVoxelIntoPool(_ assetId:AssetID, _ filename:String){
+func loadVoxelIntoPool(_ filename:String){
     
     guard let fileURL = Bundle.main.url(forResource: filename, withExtension: "json") else { 
         handleError(.filenameNotFound, filename)
@@ -19,29 +19,32 @@ func loadVoxelIntoPool(_ assetId:AssetID, _ filename:String){
     let blocksNeeded = Int(ceil(Double(voxelDataArray.count) / Double(memoryPoolBlockSize)))
     
     var assetData:AssetData=AssetData()
-    assetData.assetId=assetId
+    assetData.assetId=globalAssetId
     assetData.name=filename
     assetData.entityDataSize=voxelDataArray.count
     assetData.indexCount=voxelDataArray.count*numOfIndicesPerBlock
     
     //allocate memory for the entity
-    vertexMemoryPool!.allocateContinuousBlocks(assetId, blocksNeeded: blocksNeeded)
-    normalMemoryPool!.allocateContinuousBlocks(assetId, blocksNeeded: blocksNeeded)
-    indicesMemoryPool!.allocateContinuousBlocks(assetId, blocksNeeded: blocksNeeded)
-    colorMemoryPool!.allocateContinuousBlocks(assetId, blocksNeeded: blocksNeeded)
-    roughnessMemoryPool!.allocateContinuousBlocks(assetId, blocksNeeded: blocksNeeded)
-    metallicMemoryPool!.allocateContinuousBlocks(assetId, blocksNeeded: blocksNeeded)
+    vertexMemoryPool!.allocateContinuousBlocks(assetData.assetId, blocksNeeded: blocksNeeded)
+    normalMemoryPool!.allocateContinuousBlocks(assetData.assetId, blocksNeeded: blocksNeeded)
+    indicesMemoryPool!.allocateContinuousBlocks(assetData.assetId, blocksNeeded: blocksNeeded)
+    colorMemoryPool!.allocateContinuousBlocks(assetData.assetId, blocksNeeded: blocksNeeded)
+    roughnessMemoryPool!.allocateContinuousBlocks(assetData.assetId, blocksNeeded: blocksNeeded)
+    metallicMemoryPool!.allocateContinuousBlocks(assetData.assetId, blocksNeeded: blocksNeeded)
         
     //set index offset for entity
-    guard let indexOffset=indicesMemoryPool!.allocations[assetId]?.first else {return}
+    guard let indexOffset=indicesMemoryPool!.allocations[assetData.assetId]?.first else {return}
     
     assetData.indexOffset=indexOffset
     assetDataArray.append(assetData)
     
     for (index, voxel) in voxelDataArray.enumerated(){
-        copyDataIntoPools(assetId, voxel.rawOrigin, voxel.color, voxel.material, Int(index),voxel.scale)
+        copyDataIntoPools(assetData.assetId, voxel.rawOrigin, voxel.color, voxel.material, Int(index),voxel.scale)
     }
     
+    //set map between string and asset data
+    assetDataMap[filename]=assetDataArray[(Int)(assetData.assetId)]
+    globalAssetId = globalAssetId + 1
 
 }
             
