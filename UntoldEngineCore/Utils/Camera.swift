@@ -112,6 +112,42 @@ struct Camera{
         
     }
     
+    mutating func cameraLookAboutAxis( uDelta: simd_float2){
+        
+        let rotationAngleX:Float = uDelta.x*0.01
+        let rotationAngleY:Float = uDelta.y*0.01
+        
+        let rotationX:quaternion=quaternion_from_axis_angle(axis: simd_float3(0.0,1.0,0.0), radians: rotationAngleX)
+        let rotationY:quaternion=quaternion_from_axis_angle(axis: simd_float3(1.0,0.0,0.0), radians: rotationAngleY)
+        
+        let newRotation:quaternion=quaternion_multiply(q0:rotationY,q1:rotation)
+        
+        rotation=quaternion_multiply(q0:newRotation,q1:rotationX)
+        
+        updateViewMatrix()
+    }
+    
+    mutating func moveCameraAlongAxis(uDelta: simd_float3){
+        
+        translateBy(delU: uDelta.x * -1.0, delV: uDelta.y, delN: uDelta.z * -1.0)
+        
+    }
+    
+    mutating func setOrbitOffset(uTargetOffset: Float){
+        
+        let direction:simd_float3 = -1.0*localOrientation
+        
+        orbitTarget=localPosition+direction*uTargetOffset
+    }
+    
+    mutating func orbitCameraAround(uDelta:inout simd_float2){
+        
+        uDelta.x *= -0.01
+        uDelta.y *= -0.01
+         
+        orbitAround(uDelta)
+    }
+    
     //data
     var viewSpace=simd_float4x4.init(1.0)
    

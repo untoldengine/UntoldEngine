@@ -139,23 +139,23 @@ class GameScene{
             return
         }
         
-        if keyState.aPressed == true{
+        if inputSystem.keyState.aPressed == true{
             //rotateBy(0, 0.1, simd_float3(0.0,1.0,0.0))
             
             translateEntityBy(block, simd_float3(-0.1,0.0,0.0))
         }
         
-        if keyState.wPressed == true{
+        if inputSystem.keyState.wPressed == true{
             
             translateEntityBy(block, simd_float3(0.0,0.0,0.1))
         }
         
-        if keyState.sPressed == true{
+        if inputSystem.keyState.sPressed == true{
             
             translateEntityBy(block, simd_float3(0.0,0.0,-0.1))
         }
         
-        if keyState.dPressed == true{
+        if inputSystem.keyState.dPressed == true{
             translateEntityBy(block, simd_float3(0.1,0.0,0.0))
         }
         
