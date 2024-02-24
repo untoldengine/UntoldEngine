@@ -113,8 +113,11 @@ class CoreRenderer: NSObject, MTKViewDelegate {
             }
             
             //call the callback if it's set
-            
-            handleInputCallback?()
+            if gameMode == true {
+                handleInputCallback?()
+            }else{
+                handleSceneInput()
+            }
             
             gameUpdateCallback?()
         }
@@ -192,6 +195,34 @@ class CoreRenderer: NSObject, MTKViewDelegate {
         
         let viewPortSize:simd_float2=simd_make_float2(Float(size.width),Float(size.height))
         renderInfo.viewPort=viewPortSize
+    }
+    
+    
+    func handleSceneInput(){
+        //pinch gestures
+        if inputSystem.currentPinchGestureState == .changed{
+            camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
+        }
+        
+        //pan gestures
+        
+        if inputSystem.currentPanGestureState == .began{
+            
+            camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
+        }
+        
+        if inputSystem.currentPanGestureState == .changed{
+            
+            camera.orbitAround(inputSystem.panDelta*0.005)
+        }
+        
+        if inputSystem.currentPanGestureState == .ended{
+            
+        }
+        
+        if inputSystem.scrollDelta.x != 0.0 || inputSystem.scrollDelta.y != 0.0{
+            camera.moveCameraAlongAxis(uDelta: simd_float3(inputSystem.scrollDelta.x,0.0,inputSystem.scrollDelta.y))
+        }
     }
     
     

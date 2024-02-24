@@ -31,6 +31,7 @@ var camera:Camera!
 var renderInfo=RenderInfo()
 //var controller=Controller()
 var inputSystem=InputSystem()
+var movementSystem=MovementSystem()
 var lightingSystem:LightingSystem!
 
 var coreBufferResources=CoreBufferResources()

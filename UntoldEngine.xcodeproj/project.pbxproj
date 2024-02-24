@@ -37,6 +37,7 @@
 		03EAF50D2B7AEAEF00D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */; };
 		03EAF53C2B83E82500D1C5B5 /* RegistrationSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */; };
 		03EAF53E2B863C5D00D1C5B5 /* InputSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF53D2B863C5D00D1C5B5 /* InputSystem.swift */; };
+		03EAF5402B89778A00D1C5B5 /* MovementSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF53F2B89778A00D1C5B5 /* MovementSystem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -82,6 +83,7 @@
 		03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
 		03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationSystem.swift; sourceTree = "<group>"; };
 		03EAF53D2B863C5D00D1C5B5 /* InputSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSystem.swift; sourceTree = "<group>"; };
+		03EAF53F2B89778A00D1C5B5 /* MovementSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovementSystem.swift; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -210,6 +212,7 @@
 				03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */,
 				03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */,
 				03EAF53D2B863C5D00D1C5B5 /* InputSystem.swift */,
+				03EAF53F2B89778A00D1C5B5 /* MovementSystem.swift */,
 			);
 			path = Systems;
 			sourceTree = "<group>";
@@ -351,6 +354,7 @@
 				03EAF3AF2B73D0CF00D1C5B5 /* CoreRenderInitializer.swift in Sources */,
 				03EAF38F2B73D04C00D1C5B5 /* Logger.swift in Sources */,
 				03EAF38A2B73D03B00D1C5B5 /* CoreRenderer.swift in Sources */,
+				03EAF5402B89778A00D1C5B5 /* MovementSystem.swift in Sources */,
 				03EAF3952B73D06300D1C5B5 /* ComponentPool.swift in Sources */,
 				03EAF3912B73D05200D1C5B5 /* Camera.swift in Sources */,
 				03EAF3AB2B73D0C400D1C5B5 /* MemoryPool.swift in Sources */,

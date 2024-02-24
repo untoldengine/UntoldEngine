@@ -12,6 +12,7 @@ import MetalKit
 class GameScene{
     
     var renderer: CoreRenderer!
+    var mouseInitialPosition:simd_float2=simd_float2(0.0,0.0)
     
     init(_ metalView:MTKView) {
         
@@ -131,32 +132,42 @@ class GameScene{
     func update(){
         //print("updating")
         //rotateBy(EntityID(1)<<32, 1.0, simd_float3(0.0,1.0,0.0))
+        
+        guard let block=queryEntityWithName(entityName: "block") else{
+            return
+        }
+        movementSystem.update(block, 0.1)
     }
     
     func handleInput(){
         //print("user input")
+        
         guard let block=queryEntityWithName(entityName: "block") else{
             return
         }
         
+        if inputSystem.currentPanGestureState == .changed{
+            let n:simd_float2=(inputSystem.panDelta)
+            rotateBy(block, 1.0, simd_float3(0.0,1.0,0.0))
+        }
         if inputSystem.keyState.aPressed == true{
             //rotateBy(0, 0.1, simd_float3(0.0,1.0,0.0))
             
-            translateEntityBy(block, simd_float3(-0.1,0.0,0.0))
+            //translateEntityBy(block, simd_float3(-0.1,0.0,0.0))
         }
         
         if inputSystem.keyState.wPressed == true{
             
-            translateEntityBy(block, simd_float3(0.0,0.0,0.1))
+            //translateEntityBy(block, simd_float3(0.0,0.0,0.1))
         }
         
         if inputSystem.keyState.sPressed == true{
             
-            translateEntityBy(block, simd_float3(0.0,0.0,-0.1))
+            //translateEntityBy(block, simd_float3(0.0,0.0,-0.1))
         }
         
         if inputSystem.keyState.dPressed == true{
-            translateEntityBy(block, simd_float3(0.1,0.0,0.0))
+            //translateEntityBy(block, simd_float3(0.1,0.0,0.0))
         }
         
     }

@@ -7,6 +7,7 @@
 //
 
 import Foundation
+import Cocoa
 
 struct KeyState {
     var wPressed = false
@@ -23,37 +24,172 @@ struct KeyState {
     // Add more key states as needed
 }
 
+enum PanGestureState {
+        case began
+        case changed
+        //case changed(delta: simd_float2)
+        case ended
+}
+
+enum PinchGestureState {
+        case began
+        case changed
+        //case changed(delta: simd_float2)
+        case ended
+}
+
 class InputSystem{
     
     var keyState=KeyState()
+
+    // Current state of the pan gesture
+    var currentPanGestureState: PanGestureState?
+    var currentPinchGestureState: PinchGestureState?
     
     //Mouse states
     var mouseX:Float = 0.0
     var mouseY:Float = 0.0
     var mouseDeltaX:Float = 0.0
     var mouseDeltaY:Float = 0.0
+    var mouseActive:Bool = false
+    
+    var initialPanLocation:CGPoint!
+    var panDelta:simd_float2=simd_float2(0.0,0.0)
+    var scrollDelta:simd_float2=simd_float2(0.0,0.0)
+    
+    var pinchDelta:simd_float3=simd_float3(0.0,0.0,0.0)
+    var previousScale:CGFloat=1.0
     
     init(){
-        //setMouseTracking()
+        
     }
     
-    func setupMouseTracking() {
-//            let options: NSTrackingArea.Options = [.mouseMoved, .activeInKeyWindow, .mouseEnteredAndExited]
-//            let trackingArea = NSTrackingArea(rect: yourView.bounds, options: options, owner: yourView, userInfo: nil)
-//            yourView.addTrackingArea(trackingArea)
-        }
-    
     func mouseMoved(_ delta: simd_float2){
-        Logger.log(vector: simd_float3(delta.x,delta.y,0.0))
         mouseDeltaX = delta.x
         mouseDeltaY = delta.y
         
         mouseX+=mouseDeltaX
         mouseY+=mouseDeltaY
+    
+        if mouseDeltaX != 0.0 || mouseDeltaY != 0.0{
+            //mouse is active
+            mouseActive=true
+            
+        }else{
+            //
+            mouseActive=false
+            
+        }
     }
     
-    func mouseDown(_ event:Int){
-        switch event {
+    func handleMouseScroll(_ event:NSEvent){
+        var deltaX:Double=event.scrollingDeltaX
+        var deltaY:Double=event.scrollingDeltaY
+
+        if(abs(deltaX)<abs(deltaY)){
+            deltaX=0.0
+        }else{
+            deltaY=0.0
+            deltaX = -1.0*deltaX
+        }
+
+        if(abs(deltaX)<=1.0){
+            deltaX=0.0
+        }
+
+        if(abs(deltaY)<=1.0){
+            deltaY=0.0
+        }
+
+        scrollDelta=0.01*simd_float2(Float(deltaX),Float(deltaY))
+
+        if(deltaX != 0.0 || deltaY != 0.0){
+
+//            if shiftKey{
+//                delta=0.01*simd_float3(0.0,Float(deltaY),0.0)
+//                camera.moveCameraAlongAxis(uDelta: delta)
+//            }
+            
+            //camera.moveCameraAlongAxis(uDelta: delta)
+        }
+    }
+    
+    func handlePinchGesture(_  gestureRecognizer:NSMagnificationGestureRecognizer, in view:NSView){
+         let currentScale = gestureRecognizer.magnification
+
+             if gestureRecognizer.state == .began {
+                 // store the initial scale
+                 self.previousScale = currentScale
+                 currentPinchGestureState = .began
+                 
+             } else if gestureRecognizer.state == .changed {
+                 //determine the direction of the pinch
+                 let scaleDiff=currentScale-self.previousScale
+                 self.pinchDelta=3.0*simd_float3(0.0,0.0,Float(1.0)*Float(scaleDiff))
+
+                 self.previousScale=currentScale
+                 
+                 currentPinchGestureState = .changed
+                 
+             } else if gestureRecognizer.state == .ended {
+                 
+                 self.previousScale=1.0
+                 
+                 currentPinchGestureState = .ended
+                 
+             }
+    }
+    
+    func handlePanGesture(_ gestureRecognizer:NSPanGestureRecognizer, in view:NSView){
+        
+        let currentPanLocation=gestureRecognizer.translation(in: view)
+        
+        switch gestureRecognizer.state {
+        case .began:
+            //Store the initial touch location and perform any initial setup
+            self.initialPanLocation=currentPanLocation
+            self.currentPanGestureState = .began
+            
+        case .changed:
+            //Calculate the deltas from the initial touch location
+            var deltaX=currentPanLocation.x-initialPanLocation.x
+            var deltaY=currentPanLocation.y-initialPanLocation.y
+            
+            if(abs(deltaX)<abs(deltaY)){
+                deltaX=0.0
+            }else{
+                deltaY=0.0
+                deltaX = -1.0*deltaX
+            }
+
+            if(abs(deltaX)<=1.0){
+                deltaX=0.0
+            }
+
+            if(abs(deltaY)<=1.0){
+                deltaY=0.0
+            }
+            print(deltaX)
+            // Add your code for touch moved here
+            self.panDelta = simd_float2(Float(deltaX),Float(deltaY))
+            self.currentPanGestureState = .changed
+            
+            self.initialPanLocation=currentPanLocation
+            
+        case .ended:
+            
+            //reset
+            self.initialPanLocation=nil
+            self.currentPanGestureState = .ended
+            
+        default:
+            break
+        }
+    }
+    
+    func mouseDown(_ event:NSEvent){
+        
+        switch event.buttonNumber {
         case 0:
             keyState.leftMousePressed=true
         case 1:
@@ -63,8 +199,8 @@ class InputSystem{
         }
     }
     
-    func mouseUp(_ event:Int){
-        switch event {
+    func mouseUp(_ event:NSEvent){
+        switch event.buttonNumber {
         case 0:
             keyState.leftMousePressed=false
         case 1:
