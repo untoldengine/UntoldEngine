@@ -116,8 +116,8 @@ class GameScene{
         //assetDataMap[entity3]=assetDataArray[2]
 //
         //set the callback to be the update method
-        renderer.gameUpdateCallback = { [weak self] in
-            self?.update()
+        renderer.gameUpdateCallback = { [weak self] deltaTime in
+            self?.update(deltaTime)
         }
         
         renderer.handleInputCallback = {[weak self] in
@@ -129,14 +129,14 @@ class GameScene{
         //translateTo(0,-modelOffset)
     }
     
-    func update(){
+    func update(_ deltaTime:Float){
         //print("updating")
         //rotateBy(EntityID(1)<<32, 1.0, simd_float3(0.0,1.0,0.0))
         
         guard let block=queryEntityWithName(entityName: "block") else{
             return
         }
-        movementSystem.update(block, 0.1)
+        movementSystem.update(block, deltaTime)
     }
     
     func handleInput(){

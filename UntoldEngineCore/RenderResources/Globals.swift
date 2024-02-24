@@ -50,7 +50,7 @@ var postProcessPipeline=RenderPipeline()
 
 //Timing properties
 var timeSinceLastUpdatePreviousTime:TimeInterval!;
-var timeSinceLastUpdate:TimeInterval!;
+var timeSinceLastUpdate:Float!;
 var firstUpdateCall:Bool=false;
 
 var frameCount:Int=0;

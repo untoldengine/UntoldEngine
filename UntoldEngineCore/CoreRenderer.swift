@@ -13,7 +13,7 @@ import Spatial
 
 class CoreRenderer: NSObject, MTKViewDelegate {
     
-    var gameUpdateCallback: (() -> Void)?
+    var gameUpdateCallback: ((_ deltaTime:Float) -> Void)?
     var handleInputCallback: (() -> Void)?
     
     init?(_ metalView:MTKView) {
@@ -74,7 +74,7 @@ class CoreRenderer: NSObject, MTKViewDelegate {
         
     }
     
-    func update(){
+    func calculateDeltaTime(){
        
         if (!firstUpdateCall) {
             
@@ -95,7 +95,7 @@ class CoreRenderer: NSObject, MTKViewDelegate {
             // figure out the time since we last we drew
             let currentTime:TimeInterval = CACurrentMediaTime();
             
-            timeSinceLastUpdate = currentTime - timeSinceLastUpdatePreviousTime;
+            timeSinceLastUpdate = Float(currentTime - timeSinceLastUpdatePreviousTime);
             
             // keep track of the time interval between draws
             timeSinceLastUpdatePreviousTime = currentTime
@@ -112,21 +112,27 @@ class CoreRenderer: NSObject, MTKViewDelegate {
                 
             }
             
-            //call the callback if it's set
-            if gameMode == true {
-                handleInputCallback?()
-            }else{
-                handleSceneInput()
-            }
-            
-            gameUpdateCallback?()
         }
         
     }
     
     func draw(in view: MTKView) {
         
-        update()
+        //calculate delta time for frame
+        calculateDeltaTime()
+        
+        //process Input - Handle user input before updating game states
+        
+        if gameMode == true {
+            handleInputCallback?() //if game mode
+        }else{
+            handleSceneInput() //if scene mode
+        }
+        
+        //update game states and logic
+        gameUpdateCallback?(timeSinceLastUpdate)
+        
+        //render
         
         if let commandBuffer=renderInfo.commandQueue.makeCommandBuffer(){
             

@@ -10,7 +10,7 @@ import Foundation
 
 struct MovementSystem{
     
-    var movementSpeed:Float = 1.0
+    var movementSpeed:Float = 5.0
     
     func update(_ entityId:EntityID, _ deltaTime:Float){
         
