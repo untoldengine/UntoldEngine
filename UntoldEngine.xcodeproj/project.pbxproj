@@ -17,7 +17,6 @@
 		03EAF38D2B73D04600D1C5B5 /* FuncUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2E92B73CE1A00D1C5B5 /* FuncUtils.swift */; };
 		03EAF38E2B73D04900D1C5B5 /* MathUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EA2B73CE1A00D1C5B5 /* MathUtils.swift */; };
 		03EAF38F2B73D04C00D1C5B5 /* Logger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EB2B73CE1A00D1C5B5 /* Logger.swift */; };
-		03EAF3902B73D04F00D1C5B5 /* Controller.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EC2B73CE1A00D1C5B5 /* Controller.swift */; };
 		03EAF3912B73D05200D1C5B5 /* Camera.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2ED2B73CE1A00D1C5B5 /* Camera.swift */; };
 		03EAF3922B73D05A00D1C5B5 /* Scene.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2EF2B73CE1A00D1C5B5 /* Scene.swift */; };
 		03EAF3932B73D05D00D1C5B5 /* Entity.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF2F02B73CE1A00D1C5B5 /* Entity.swift */; };
@@ -37,6 +36,8 @@
 		03EAF4882B790A4600D1C5B5 /* room.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF4872B790A4600D1C5B5 /* room.json */; };
 		03EAF50D2B7AEAEF00D1C5B5 /* bot1.json in Resources */ = {isa = PBXBuildFile; fileRef = 03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */; };
 		03EAF53C2B83E82500D1C5B5 /* RegistrationSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */; };
+		03EAF53E2B863C5D00D1C5B5 /* InputSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF53D2B863C5D00D1C5B5 /* InputSystem.swift */; };
+		03EAF5402B89778A00D1C5B5 /* MovementSystem.swift in Sources */ = {isa = PBXBuildFile; fileRef = 03EAF53F2B89778A00D1C5B5 /* MovementSystem.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -55,7 +56,6 @@
 		03EAF2E92B73CE1A00D1C5B5 /* FuncUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = FuncUtils.swift; sourceTree = "<group>"; };
 		03EAF2EA2B73CE1A00D1C5B5 /* MathUtils.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = MathUtils.swift; sourceTree = "<group>"; };
 		03EAF2EB2B73CE1A00D1C5B5 /* Logger.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Logger.swift; sourceTree = "<group>"; };
-		03EAF2EC2B73CE1A00D1C5B5 /* Controller.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Controller.swift; sourceTree = "<group>"; };
 		03EAF2ED2B73CE1A00D1C5B5 /* Camera.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Camera.swift; sourceTree = "<group>"; };
 		03EAF2EF2B73CE1A00D1C5B5 /* Scene.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Scene.swift; sourceTree = "<group>"; };
 		03EAF2F02B73CE1A00D1C5B5 /* Entity.swift */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.swift; path = Entity.swift; sourceTree = "<group>"; };
@@ -82,6 +82,8 @@
 		03EAF4872B790A4600D1C5B5 /* room.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = room.json; path = ../../../Downloads/room.json; sourceTree = "<group>"; };
 		03EAF50C2B7AEAEF00D1C5B5 /* bot1.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = bot1.json; sourceTree = "<group>"; };
 		03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RegistrationSystem.swift; sourceTree = "<group>"; };
+		03EAF53D2B863C5D00D1C5B5 /* InputSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InputSystem.swift; sourceTree = "<group>"; };
+		03EAF53F2B89778A00D1C5B5 /* MovementSystem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovementSystem.swift; sourceTree = "<group>"; };
 		03F2DABF1F1911CA00F77B78 /* Metal.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Metal.framework; path = System/Library/Frameworks/Metal.framework; sourceTree = SDKROOT; };
 		03F2DAC11F1911D000F77B78 /* MetalKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = MetalKit.framework; path = System/Library/Frameworks/MetalKit.framework; sourceTree = SDKROOT; };
 		03F2DB201F19471300F77B78 /* QuartzCore.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = QuartzCore.framework; path = System/Library/Frameworks/QuartzCore.framework; sourceTree = SDKROOT; };
@@ -175,7 +177,6 @@
 				03EAF2E92B73CE1A00D1C5B5 /* FuncUtils.swift */,
 				03EAF2EA2B73CE1A00D1C5B5 /* MathUtils.swift */,
 				03EAF2EB2B73CE1A00D1C5B5 /* Logger.swift */,
-				03EAF2EC2B73CE1A00D1C5B5 /* Controller.swift */,
 				03EAF2ED2B73CE1A00D1C5B5 /* Camera.swift */,
 			);
 			path = Utils;
@@ -210,6 +211,8 @@
 				03EAF3172B73CE1A00D1C5B5 /* LightingSystem.swift */,
 				03EAF3E32B751C2E00D1C5B5 /* TransformSystem.swift */,
 				03EAF53B2B83E82500D1C5B5 /* RegistrationSystem.swift */,
+				03EAF53D2B863C5D00D1C5B5 /* InputSystem.swift */,
+				03EAF53F2B89778A00D1C5B5 /* MovementSystem.swift */,
 			);
 			path = Systems;
 			sourceTree = "<group>";
@@ -335,6 +338,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				03EAF3AA2B73D0C100D1C5B5 /* PostProcessRenderPasses.swift in Sources */,
+				03EAF53E2B863C5D00D1C5B5 /* InputSystem.swift in Sources */,
 				03EAF3E42B751C2E00D1C5B5 /* TransformSystem.swift in Sources */,
 				03EAF53C2B83E82500D1C5B5 /* RegistrationSystem.swift in Sources */,
 				03EAF3AE2B73D0CC00D1C5B5 /* CoreRenderPasses.swift in Sources */,
@@ -342,7 +346,6 @@
 				03EAF38E2B73D04900D1C5B5 /* MathUtils.swift in Sources */,
 				03EAF3A92B73D0BE00D1C5B5 /* AllocatorSystem.swift in Sources */,
 				03EAF3932B73D05D00D1C5B5 /* Entity.swift in Sources */,
-				03EAF3902B73D04F00D1C5B5 /* Controller.swift in Sources */,
 				03EAF37B2B73D02500D1C5B5 /* GameViewController.swift in Sources */,
 				03EAF3C02B741E7400D1C5B5 /* GameScene.swift in Sources */,
 				03EAF3922B73D05A00D1C5B5 /* Scene.swift in Sources */,
@@ -351,6 +354,7 @@
 				03EAF3AF2B73D0CF00D1C5B5 /* CoreRenderInitializer.swift in Sources */,
 				03EAF38F2B73D04C00D1C5B5 /* Logger.swift in Sources */,
 				03EAF38A2B73D03B00D1C5B5 /* CoreRenderer.swift in Sources */,
+				03EAF5402B89778A00D1C5B5 /* MovementSystem.swift in Sources */,
 				03EAF3952B73D06300D1C5B5 /* ComponentPool.swift in Sources */,
 				03EAF3912B73D05200D1C5B5 /* Camera.swift in Sources */,
 				03EAF3AB2B73D0C400D1C5B5 /* MemoryPool.swift in Sources */,

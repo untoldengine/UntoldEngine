@@ -13,7 +13,7 @@ import Spatial
 
 class CoreRenderer: NSObject, MTKViewDelegate {
     
-    var gameUpdateCallback: (() -> Void)?
+    var gameUpdateCallback: ((_ deltaTime:Float) -> Void)?
     var handleInputCallback: (() -> Void)?
     
     init?(_ metalView:MTKView) {
@@ -74,7 +74,7 @@ class CoreRenderer: NSObject, MTKViewDelegate {
         
     }
     
-    func update(){
+    func calculateDeltaTime(){
        
         if (!firstUpdateCall) {
             
@@ -95,7 +95,7 @@ class CoreRenderer: NSObject, MTKViewDelegate {
             // figure out the time since we last we drew
             let currentTime:TimeInterval = CACurrentMediaTime();
             
-            timeSinceLastUpdate = currentTime - timeSinceLastUpdatePreviousTime;
+            timeSinceLastUpdate = Float(currentTime - timeSinceLastUpdatePreviousTime);
             
             // keep track of the time interval between draws
             timeSinceLastUpdatePreviousTime = currentTime
@@ -112,18 +112,27 @@ class CoreRenderer: NSObject, MTKViewDelegate {
                 
             }
             
-            //call the callback if it's set
-            
-            handleInputCallback?()
-            
-            gameUpdateCallback?()
         }
         
     }
     
     func draw(in view: MTKView) {
         
-        update()
+        //calculate delta time for frame
+        calculateDeltaTime()
+        
+        //process Input - Handle user input before updating game states
+        
+        if gameMode == true {
+            handleInputCallback?() //if game mode
+        }else{
+            handleSceneInput() //if scene mode
+        }
+        
+        //update game states and logic
+        gameUpdateCallback?(timeSinceLastUpdate)
+        
+        //render
         
         if let commandBuffer=renderInfo.commandQueue.makeCommandBuffer(){
             
@@ -192,6 +201,34 @@ class CoreRenderer: NSObject, MTKViewDelegate {
         
         let viewPortSize:simd_float2=simd_make_float2(Float(size.width),Float(size.height))
         renderInfo.viewPort=viewPortSize
+    }
+    
+    
+    func handleSceneInput(){
+        //pinch gestures
+        if inputSystem.currentPinchGestureState == .changed{
+            camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
+        }
+        
+        //pan gestures
+        
+        if inputSystem.currentPanGestureState == .began{
+            
+            camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
+        }
+        
+        if inputSystem.currentPanGestureState == .changed{
+            
+            camera.orbitAround(inputSystem.panDelta*0.005)
+        }
+        
+        if inputSystem.currentPanGestureState == .ended{
+            
+        }
+        
+        if inputSystem.scrollDelta.x != 0.0 || inputSystem.scrollDelta.y != 0.0{
+            camera.moveCameraAlongAxis(uDelta: simd_float3(inputSystem.scrollDelta.x,0.0,inputSystem.scrollDelta.y))
+        }
     }
     
     

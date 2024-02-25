@@ -29,8 +29,9 @@ let memoryPoolBlockSize:Int=512
 
 var camera:Camera!
 var renderInfo=RenderInfo()
-var controller=Controller()
-
+//var controller=Controller()
+var inputSystem=InputSystem()
+var movementSystem=MovementSystem()
 var lightingSystem:LightingSystem!
 
 var coreBufferResources=CoreBufferResources()
@@ -49,7 +50,7 @@ var postProcessPipeline=RenderPipeline()
 
 //Timing properties
 var timeSinceLastUpdatePreviousTime:TimeInterval!;
-var timeSinceLastUpdate:TimeInterval!;
+var timeSinceLastUpdate:Float!;
 var firstUpdateCall:Bool=false;
 
 var frameCount:Int=0;
@@ -192,7 +193,7 @@ var entityGlobalNameMap: [String: EntityID] = [:]
 var maxNumPointLights:Int=100
 
 
-var keyState:KeyState=KeyState()
+//var keyState:KeyState=KeyState()
 
 //key codes
 let kVK_ANSI_W: UInt16 = 13
@@ -200,6 +201,9 @@ let kVK_ANSI_A: UInt16 = 0
 let kVK_ANSI_S: UInt16 = 1
 let kVK_ANSI_D: UInt16 = 2
 
+
 let kVK_ANSI_P: UInt16 = 35
+let kVK_ANSI_L: UInt16 = 37
 
 var visualDebug:Bool=false
+var gameMode:Bool=false
