@@ -169,7 +169,7 @@ class InputSystem{
             if(abs(deltaY)<=1.0){
                 deltaY=0.0
             }
-            print(deltaX)
+
             // Add your code for touch moved here
             self.panDelta = simd_float2(Float(deltaX),Float(deltaY))
             self.currentPanGestureState = .changed

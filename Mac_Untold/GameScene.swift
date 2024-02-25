@@ -76,45 +76,12 @@ class GameScene{
         registerGeometry(entity0,"room")
         
         
-        let entity1=createEntityWithName(entityName: "block")
+        let entity1=createEntityWithName(entityName: "player0")
         registerComponent(entity1, Render.self)
         registerComponent(entity1, Transform.self)
         registerGeometry(entity1, "bot1")
         
-//        var transform=scene.assign(to: entity0, component: Transform.self)
-//        var render = scene.assign(to: entity0, component: Render.self)
-//        
-//        transform.localSpace=matrix4x4Translation(0.0, 0.0, 0.0)
-//        render.voxel="room"
-        
-        
-        /*
-        var entity1=scene.newEntity()
-        var transform1=scene.assign(to: entity1, component: Transform.self)
-        var render1 = scene.assign(to: entity1, component: Render.self)
-        transform1.localSpace=matrix4x4Translation(0.0, 0.0, 0.0)
-        render1.voxel="bot1"
-        */
-        
-//        transform1.localSpace=matrix4x4Translation(-4.0, 0.0, 0.0)
-//        
-//        var entity2=scene.newEntity()
-//        _ = scene.assign(to: entity2, component: Transform.self)
-//        _ = scene.assign(to: entity2, component: Render.self)
-//        
-//        var entity3=scene.newEntity()
-//        var pointLightTransform = scene.assign(to: entity3, component: Transform.self)
-//        _ = scene.assign(to: entity3, component: Render.self)
-//        
-//        pointLightTransform.localSpace=matrix4x4Translation(0.0, 0.5, 1.0)
-        
-        //linkEntityToAsset(entity0,0)
-        
-//        assetDataMap[entity2]=assetDataArray[1]
-//        
-        //point lights
-        //assetDataMap[entity3]=assetDataArray[2]
-//
+
         //set the callback to be the update method
         renderer.gameUpdateCallback = { [weak self] deltaTime in
             self?.update(deltaTime)
@@ -123,51 +90,48 @@ class GameScene{
         renderer.handleInputCallback = {[weak self] in
             self?.handleInput()
         }
-        //rotateTo(0, 45.0, simd_float3(0.0,1.0,0.0))
-        //translateEntityBy(EntityID(1)<<32,simd_float3(2.0,0.0,0.0))
-//        rotateTo(0, 90.0, simd_float3(0.0,1.0,0.0))
-        //translateTo(0,-modelOffset)
+       
     }
     
     func update(_ deltaTime:Float){
-        //print("updating")
-        //rotateBy(EntityID(1)<<32, 1.0, simd_float3(0.0,1.0,0.0))
         
-        guard let block=queryEntityWithName(entityName: "block") else{
+        guard let player=queryEntityWithName(entityName: "player0") else{
             return
         }
-        movementSystem.update(block, deltaTime)
+        
+        movementSystem.update(player, deltaTime)
+        
+        basicFollow(player,simd_float3(0.0,3.0,5.0), deltaTime)
+        
     }
     
     func handleInput(){
-        //print("user input")
+
         
-        guard let block=queryEntityWithName(entityName: "block") else{
+        guard let player=queryEntityWithName(entityName: "player0") else{
             return
         }
         
         if inputSystem.currentPanGestureState == .changed{
             let n:simd_float2=(inputSystem.panDelta)
-            rotateBy(block, 1.0, simd_float3(0.0,1.0,0.0))
+            rotateBy(player, n.x, simd_float3(0.0,1.0,0.0))
         }
         if inputSystem.keyState.aPressed == true{
-            //rotateBy(0, 0.1, simd_float3(0.0,1.0,0.0))
             
-            //translateEntityBy(block, simd_float3(-0.1,0.0,0.0))
         }
         
         if inputSystem.keyState.wPressed == true{
             
-            //translateEntityBy(block, simd_float3(0.0,0.0,0.1))
+            
         }
         
         if inputSystem.keyState.sPressed == true{
             
-            //translateEntityBy(block, simd_float3(0.0,0.0,-0.1))
+           
         }
         
         if inputSystem.keyState.dPressed == true{
-            //translateEntityBy(block, simd_float3(0.1,0.0,0.0))
+            
         }
         
     }

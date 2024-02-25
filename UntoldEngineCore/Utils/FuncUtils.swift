@@ -140,3 +140,22 @@ func readArrayOfStructsFromFile<T: Codable>(filePath: String, directoryURL: URL)
         return nil
     }
 }
+
+func basicFollow(_ entityId:EntityID,_ offset:simd_float3, _ deltaTime:Float){
+    
+    if gameMode==false{
+        return
+    }
+    //get the transform for the entity
+    guard let t=scene.get(component: Transform.self, for: entityId) else{
+        return
+    }
+    
+    let position:simd_float3=simd_float3(t.localSpace.columns.3.x,
+                                         t.localSpace.columns.3.y,
+                                         t.localSpace.columns.3.z)
+    
+    //update camera position based on target position
+    camera.localPosition = position + offset
+    camera.updateViewMatrix()
+}
