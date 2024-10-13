@@ -54,3 +54,5 @@ xcuserdata
 UntoldEngine4D/.DS_Store
 
 .DS_Store
+
+.build/

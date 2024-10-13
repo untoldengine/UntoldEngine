@@ -13,16 +13,23 @@ I took the bold step of rewriting the Untold Engine from scratch, discarding 99%
 
 ## Running the Untold Engine
 
-## What you need?
-
 To run the the Untold Engine, you need the following tools:
 
-* Xcode IDE 
-* A free [Apple Developer Account](https://developer.apple.com)
-* An actual iOS device and a Mac with Metal (API) support. 
-	* See [supported iOS](https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/HardwareGPUInformation/HardwareGPUInformation.html)
-	* See [supported Macs](https://support.apple.com/en-us/HT205073)
+1. Clone the Repository
 
+git clone https://github.com/untoldengine/UntoldEngine
+
+cd UntoldEngine
+
+2. Build the engine using the provide Makefile
+
+make
+
+3. Run the engine 
+
+swift run UntoldEngineTestApp
+
+You should see a window
 
 ## Current Version
 

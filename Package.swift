@@ -1,23 +1,55 @@
-// swift-tools-version: 5.10
-// The swift-tools-version declares the minimum version of Swift required to build this package.
+// swift-tools-version:5.7
 
 import PackageDescription
 
 let package = Package(
     name: "UntoldEngine",
+    platforms: [
+        .macOS(.v10_15)
+    ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
+        // Create a library product for the engine
         .library(
             name: "UntoldEngine",
-            targets: ["UntoldEngine"]),
+            targets: ["UntoldEngine"]
+        ),
+        // Create an executable product for testing
+        .executable(
+            name: "UntoldEngineTestApp",
+            targets: ["UntoldEngineTestApp"]
+        )
     ],
     targets: [
-        // Targets are the basic building blocks of a package, defining a module or a test suite.
-        // Targets can depend on other targets in this package and products from dependencies.
+        // C-based target for bridging headers
         .target(
-            name: "UntoldEngine"),
-        .testTarget(
-            name: "UntoldEngineTests",
-            dependencies: ["UntoldEngine"]),
+            name: "CShaderTypes",
+            path: "Sources/CShaderTypes",
+            publicHeadersPath: "."
+        ),
+        // Define the library target with the engine code
+        .target(
+            name: "UntoldEngine",
+            dependencies: ["CShaderTypes"],
+            path: "Sources/UntoldEngine",
+            resources: [
+                // Include all Metal files in the Shaders directory
+                .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
+                .process("Shaders"),
+                .process("UntoldEngineKernels/UntoldEngineKernels.air"),
+                .process("UntoldEngineKernels/UntoldEngineKernels.metal"),
+                .process("Resources"),
+            ],
+            swiftSettings: [
+                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"])
+            ]
+        ),
+        // Define the executable target for testing, which depends on the library
+        .executableTarget(
+            name: "UntoldEngineTestApp",
+            dependencies: ["UntoldEngine"],
+            swiftSettings: [
+                .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"])
+            ]
+        ),
     ]
 )
