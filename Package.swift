@@ -31,13 +31,16 @@ let package = Package(
             name: "UntoldEngine",
             dependencies: ["CShaderTypes"],
             path: "Sources/UntoldEngine",
+            exclude: [
+            ],
             resources: [
                 // Include all Metal files in the Shaders directory
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
-                .process("Shaders"),
+                .process("Shaders"), 
+                .process("Resources/Models"),
                 .process("UntoldEngineKernels/UntoldEngineKernels.air"),
                 .process("UntoldEngineKernels/UntoldEngineKernels.metal"),
-                .process("Resources"),
+            
             ],
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"])
