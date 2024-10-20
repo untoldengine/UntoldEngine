@@ -40,6 +40,17 @@ enum PinchGestureState {
 
 public class InputSystem {
 
+   //key codes
+    let kVK_ANSI_W: UInt16 = 13
+    let kVK_ANSI_A: UInt16 = 0
+    let kVK_ANSI_S: UInt16 = 1
+    let kVK_ANSI_D: UInt16 = 2
+
+    let kVK_ANSI_R: UInt16 = 15
+    let kVK_ANSI_P: UInt16 = 35
+    let kVK_ANSI_L: UInt16 = 37
+
+ 
   public var keyState = KeyState()
 
   // Current state of the pan gesture

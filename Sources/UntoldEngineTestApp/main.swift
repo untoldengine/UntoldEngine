@@ -245,7 +245,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
     var gameViewController:GameViewController!
 
-
     func applicationDidFinishLaunching(_ notification: Notification) {
         print("Entering app did finish app")
         //create a window for your amazing game 
