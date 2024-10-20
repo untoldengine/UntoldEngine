@@ -21,6 +21,11 @@ enum LoadHDRError: Error {
   case textureCreationFailed
 }
 
+public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
+        // Use Bundle.module internally to get the resource URL
+        return Bundle.module.url(forResource: resourceName, withExtension: ext)
+}
+
 public func loadTexture(
   device: MTLDevice,
   textureName: String
@@ -55,7 +60,7 @@ public func loadImage(_ textureName: String, from directory: URL? = nil) throws 
     }
   }
 
-  guard let url = Bundle.main.url(forResource: textureName, withExtension: nil) else {
+  guard let url = Bundle.module.url(forResource: textureName, withExtension: nil) else {
     throw LoadHDRError.urlCreationFailed(textureName)
   }
 

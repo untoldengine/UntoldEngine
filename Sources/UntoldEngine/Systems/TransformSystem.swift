@@ -9,12 +9,12 @@
 import Foundation
 import simd
 
-func translateTo(_ entityId: EntityID, _ position: simd_float3) {
+public func translateTo(_ entityId: EntityID, _ position: simd_float3) {
   let t = scene.get(component: Transform.self, for: entityId)
   t?.localSpace.columns.3 = simd_float4(position, 1.0)
 }
 
-func translateEntityBy(_ entityId: EntityID, _ position: simd_float3) {
+public func translateEntityBy(_ entityId: EntityID, _ position: simd_float3) {
 
   let t = scene.get(component: Transform.self, for: entityId)
   t?.localSpace.columns.3.x += position.x
@@ -22,7 +22,7 @@ func translateEntityBy(_ entityId: EntityID, _ position: simd_float3) {
   t?.localSpace.columns.3.z += position.z
 }
 
-func rotateTo(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
+public func rotateTo(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
   let t = scene.get(component: Transform.self, for: entityId)
 
   let m: simd_float4x4 = matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis)
@@ -32,7 +32,7 @@ func rotateTo(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
   t?.localSpace.columns.2 = m.columns.2
 }
 
-func rotateBy(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
+public func rotateBy(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
   let t = scene.get(component: Transform.self, for: entityId)
 
   //new matrix
@@ -80,7 +80,7 @@ func rotateBy(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
 //
 //}
 
-func rotateTo(_ entityId: EntityID, _ rotation: simd_float4x4) {
+public func rotateTo(_ entityId: EntityID, _ rotation: simd_float4x4) {
 
   let t = scene.get(component: Transform.self, for: entityId)
 
@@ -90,7 +90,7 @@ func rotateTo(_ entityId: EntityID, _ rotation: simd_float4x4) {
 
 }
 
-func combineRotations(_ entityId: EntityID) {
+public func combineRotations(_ entityId: EntityID) {
 
   let t = scene.get(component: Transform.self, for: entityId)
 

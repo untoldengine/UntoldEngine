@@ -13,30 +13,6 @@ public func createEntity() -> EntityID {
   return scene.newEntity()
 }
 
-public func createEntityWithNameAndMesh(_ name: String, _ filename:URL)->EntityID{
-
-    let entity: EntityID = createEntityWithName(entityName: name)
-    let mesh:Mesh = loadMesh(filename)
-
-    registerComponent(entity, Render.self)
-    registerComponent(entity, Transform.self)
-
-    let r = scene.get(component: Render.self, for: entity)
-    r?.mesh = mesh
-
-    let t = scene.get(component: Transform.self, for: entity)
-
-    if let localSpace = mesh.localSpace {
-      t?.localSpace = localSpace
-    }
-
-    t?.minBox = mesh.minBox
-    t?.maxBox = mesh.maxBox
-
-    return entity
-}
-
-
 public func createEntityWithName(entityName name: String) -> EntityID {
   let entityId: EntityID = scene.newEntity()
   entityDictionary[name] = entityId

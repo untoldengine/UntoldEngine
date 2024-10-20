@@ -11,18 +11,7 @@ import MetalKit
 import ModelIO
 
 
-func loadMesh(_ filename: URL)->Mesh{
-
-    var meshes = [Mesh]()
-
-    meshes = Mesh.loadMeshes(
-    url: filename, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
-
-    return meshes[0]
-
-}
-
-public func loadScene(_ filename: URL, fileextension: String, _ appendModel: Bool) {
+public func loadScene(filename: String, withExtension: String, _ appendModel: Bool = false) {
 
   //destroy all entities before loading new ones
   if appendModel == false {
@@ -56,10 +45,15 @@ public func loadScene(_ filename: URL, fileextension: String, _ appendModel: Boo
     }
   }
 
+  guard let url:URL=getResourceURL(forResource: filename, withExtension: withExtension)else{
+    print("Unable to find file \(filename)")
+    return
+  }
+
   var meshes = [Mesh]()
 
   meshes = Mesh.loadMeshes(
-    url: filename, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+    url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
 
   for mesh in meshes {
 
@@ -70,9 +64,10 @@ public func loadScene(_ filename: URL, fileextension: String, _ appendModel: Boo
       modelName = meshName
     }
 
-    let entity = createEntityWithName(entityName: modelName + "_" + String(entityDictionary.count))
+    let entity = createEntityWithName(entityName: modelName )
 
     activeEntity = entity
+    
     registerComponent(entity, Render.self)
     registerComponent(entity, Transform.self)
 
@@ -94,7 +89,7 @@ public func loadScene(_ filename: URL, fileextension: String, _ appendModel: Boo
 
 //load material database
 func loadMaterialFile() -> Data? {
-  guard let url = Bundle.main.url(forResource: "materialdatabase", withExtension: "json") else {
+  guard let url = Bundle.module.url(forResource: "materialdatabase", withExtension: "json") else {
     print("Material Database file not found.")
     return nil
   }
@@ -128,7 +123,7 @@ func createMaterialDictionary(from materials: [MaterialMERL]) -> [String: Materi
 // Function to construct a URL for a given mesh name within a directory in the main bundle
 func constructMeshURL(directoryName: String, meshName: String) -> URL? {
   // Get the URL for the directory in the main bundle
-  guard let directoryURL = Bundle.main.url(forResource: directoryName, withExtension: nil) else {
+  guard let directoryURL = Bundle.module.url(forResource: directoryName, withExtension: nil) else {
     print("Directory not found in bundle: \(directoryName)")
     return nil
   }
@@ -142,7 +137,7 @@ func constructMeshURL(directoryName: String, meshName: String) -> URL? {
 // Function to load JSON data from the main bundle and decode it into an array of strings
 func loadModelNames(from fileName: String) -> [String]? {
   // Get the URL for the file in the main bundle
-  guard let url = Bundle.main.url(forResource: fileName, withExtension: "json") else {
+  guard let url = Bundle.module.url(forResource: fileName, withExtension: "json") else {
     print("File not found in bundle: \(fileName).json")
     return nil
   }
@@ -295,41 +290,43 @@ func loadAreaLight(
 
 func addNewPointLight() {
 
-  guard let fileURL = Bundle.main.url(forResource: "pointLight", withExtension: "usdc") else {
-    print("Error: File not found in bundle.")
-    return
-  }
+    guard let url:URL=getResourceURL(forResource: "pointLight", withExtension: "usdc")else{
+        print("Unable to find file pointLight.usdc")
+        return
+    }
 
-  let camPosition = camera.localPosition - camera.zAxis * 5.0
+    let camPosition = camera.localPosition - camera.zAxis * 5.0
 
   loadPointLight(
-    fileURL, fileextension: fileURL.pathExtension, position: camPosition,
+    url, fileextension: url.pathExtension, position: camPosition,
     color: simd_float3(1.0, 1.0, 1.0), intensity: 1.0, radius: 1.0)
 
 }
 
 func addNewAreaLight() {
 
-  guard let fileURL = Bundle.main.url(forResource: "areaLight", withExtension: "usdc") else {
-    print("Error: File not found in bundle.")
-    return
-  }
+    guard let url:URL=getResourceURL(forResource: "areaLight", withExtension: "usdc")else{
+        print("Unable to find file areaLight.usdc")
+        return
+    }
+
 
   loadAreaLight(
-    fileURL, fileextension: fileURL.pathExtension, position: simd_float3(0.0, 1.0, 0.0),
+    url, fileextension: url.pathExtension, position: simd_float3(0.0, 1.0, 0.0),
     color: simd_float3(1.0, 1.0, 1.0), intensity: 1.0, radius: 1.0)
 
 }
 
-func addNewSunLight() {
+public func addNewSunLight() {
 
-  guard let fileURL = Bundle.main.url(forResource: "dirLightMesh", withExtension: "usdc") else {
-    print("Error: File not found in bundle.")
+  guard let url:URL=getResourceURL(forResource: "sunMesh", withExtension: "usdc")else{
+    print("Unable to find file sunMesh.usdc")
     return
   }
 
-  loadDirectionalLight(
-    fileURL, fileextension: fileURL.pathExtension, direction: simd_float3(0.0, 1.0, 0.01),
+
+ loadDirectionalLight(
+    url, fileextension: url.pathExtension, direction: simd_float3(0.0, 1.0, 0.01),
     color: simd_float3(1.0, 1.0, 1.0), intensity: 1.0)
 
 }

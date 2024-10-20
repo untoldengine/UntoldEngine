@@ -45,11 +45,17 @@ class GameScene{
             self?.handleInput() 
         }
 
-
         //load up model 
+        loadScene(filename: "scifihelmetTestOnly",withExtension: "usdc",false)
 
+        addNewSunLight()
 
-    }
+        guard let entityId:EntityID = queryEntityWithName(entityName:"Sci_Fi_Helmet_2__corona")else{
+            return
+        }
+        
+        translateEntityBy(entityId,simd_float3(5.0,0.0,0.0))
+}
 
     func update(_ deltaTime:Float){
         movementSystem.update(activeEntity, 0.01)
