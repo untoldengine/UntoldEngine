@@ -38,6 +38,7 @@ let package = Package(
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
                 .process("Shaders"), 
                 .process("Resources/Models"),
+                .process("Resources/HDR"),
                 .process("UntoldEngineKernels/UntoldEngineKernels.air"),
                 .process("UntoldEngineKernels/UntoldEngineKernels.metal"),
             

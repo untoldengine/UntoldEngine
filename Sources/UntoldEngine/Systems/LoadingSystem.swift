@@ -11,9 +11,9 @@ import MetalKit
 import ModelIO
 
 
-public func loadScene(filename: String, withExtension: String, _ appendModel: Bool = false) {
+private func removeAllEntities(_ appendModel:Bool){
 
-  //destroy all entities before loading new ones
+//destroy all entities before loading new ones
   if appendModel == false {
     selectedModel = false
     activeEntity = 0
@@ -45,15 +45,14 @@ public func loadScene(filename: String, withExtension: String, _ appendModel: Bo
     }
   }
 
-  guard let url:URL=getResourceURL(forResource: filename, withExtension: withExtension)else{
-    print("Unable to find file \(filename)")
-    return
-  }
+}
+
+private func addEntitiesFromScene(filename: URL, withExtension: String){
 
   var meshes = [Mesh]()
 
   meshes = Mesh.loadMeshes(
-    url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+    url: filename, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
 
   for mesh in meshes {
 
@@ -84,6 +83,28 @@ public func loadScene(filename: String, withExtension: String, _ appendModel: Bo
     t?.maxBox = mesh.maxBox
 
   }
+
+}
+
+public func loadScene(filename: URL, withExtension: String, _ appendModel: Bool = false) {
+
+ removeAllEntities(appendModel) 
+print("file name: \(filename)")
+ addEntitiesFromScene(filename: filename,withExtension: filename.pathExtension)
+
+}
+
+
+public func loadScene(filename: String, withExtension: String, _ appendModel: Bool = false) {
+
+ removeAllEntities(appendModel) 
+
+  guard let url:URL=getResourceURL(forResource: filename, withExtension: withExtension)else{
+    print("Unable to find file \(filename)")
+    return
+  }
+
+ addEntitiesFromScene(filename: url,withExtension: url.pathExtension)
 
 }
 

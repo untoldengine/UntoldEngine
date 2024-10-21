@@ -46,7 +46,7 @@ class GameScene{
         }
 
         //load up model 
-        loadScene(filename: "scifihelmetTestOnly",withExtension: "usdc",false)
+        //loadScene(filename: "scifihelmetTestOnly",withExtension: "usdc",false)
 
         addNewSunLight()
 
@@ -80,6 +80,11 @@ class GameViewController:NSViewController{
     var initialModelPanLocation: CGPoint!
     var modelDraggedVertically:Bool = false
 
+    var loadScene_button:NSButton!
+    var positionZ_slider:NSSlider!
+
+    var visualEffectView: NSVisualEffectView!
+    var tabView: NSTabView!
 
     override func loadView(){
         //create a MTKView 
@@ -120,7 +125,7 @@ class GameViewController:NSViewController{
             self.view.window?.makeFirstResponder(self)
         }
 
-
+        setupUI()
     }
 
 
@@ -235,7 +240,143 @@ class GameViewController:NSViewController{
 
     }
 
-    
+ private func setupUI() {
+
+    // Create and configure the button
+        loadScene_button = createButton(
+            title: "Load Scene",
+            relativeX: 0.1,
+            relativeY: 0.95,
+            width: 150,
+            height: 50,
+            target: self,
+            action: #selector(loadUSD)
+        )
+
+        // Create and configure the slider
+        positionZ_slider = createSlider(
+            minValue: 0.0,
+            maxValue: 100.0,
+            initialValue: 50.0,
+            relativeX: 0.5,
+            relativeY: 0.3,
+            width: 100,
+            height: 20,
+            target: self,
+            action: #selector(sliderValueChanged)
+        )
+
+        self.view.addSubview(loadScene_button)
+        //self.view.addSubview(positionZ_slider)
+
+        /* setupVisualEffectView()
+        setupTabView() */
+}
+
+    // Button factory function
+    private func createButton(
+        title: String,
+        relativeX: CGFloat,
+        relativeY: CGFloat,
+        width: CGFloat,
+        height: CGFloat,
+        target: AnyObject,
+        action: Selector
+    ) -> NSButton {
+        let button = NSButton(title: title, target: target, action: action)
+        let x = relativeX * view.frame.width - width / 2
+        let y = relativeY * view.frame.height - height / 2
+        button.frame = NSRect(x: x, y: y, width: width, height: height)
+        button.bezelStyle = .rounded
+        return button
+    }
+
+    // Slider factory function
+    private func createSlider(
+        minValue: Double,
+        maxValue: Double,
+        initialValue: Double,
+        relativeX: CGFloat,
+        relativeY: CGFloat,
+        width: CGFloat,
+        height: CGFloat,
+        target: AnyObject,
+        action: Selector
+    ) -> NSSlider {
+        let slider = NSSlider(value: initialValue, minValue: minValue, maxValue: maxValue, target: target, action: action)
+        let x = relativeX * view.frame.width - width / 2
+        let y = relativeY * view.frame.height - height / 2
+        slider.frame = NSRect(x: x, y: y, width: width, height: height)
+        slider.isContinuous = true
+        return slider
+    }
+
+    private func setupVisualEffectView() {
+        // Create a VisualEffectView with a blur effect
+        visualEffectView = NSVisualEffectView()
+        visualEffectView.material = .sidebar  // Blur style
+        visualEffectView.blendingMode = .behindWindow
+        visualEffectView.state = .active  // Ensure it's always visible
+
+        // Set the frame and add it to the main view
+        visualEffectView.frame = NSRect(x: 0, y: 0, width: 400, height: 300)
+        self.view.addSubview(visualEffectView)
+    }
+
+    private func setupTabView() {
+        // Create an NSTabView
+        tabView = NSTabView()
+        tabView.frame = NSRect(x: 10, y: 10, width: 380, height: 280)
+
+        // Create the "Transforms" tab
+        let transformsTab = NSTabViewItem(identifier: "Transforms")
+        transformsTab.label = "Transforms"
+        transformsTab.view = createLabel(withText: "Transforms Settings", frame: NSRect(x: 10, y: 10, width: 360, height: 40))
+
+        // Create the "Lights" tab
+        let lightsTab = NSTabViewItem(identifier: "Lights")
+        lightsTab.label = "Lights"
+        lightsTab.view = createLabel(withText: "Lights Settings", frame: NSRect(x: 10, y: 10, width: 360, height: 40))
+
+        // Add the tabs to the tab view
+        tabView.addTabViewItem(transformsTab)
+        tabView.addTabViewItem(lightsTab)
+
+        // Add the tab view to the visual effect view
+        visualEffectView.addSubview(tabView)
+    }
+
+    private func createLabel(withText text: String, frame: NSRect) -> NSTextField {
+        let label = NSTextField(labelWithString: text)
+        label.frame = frame
+        label.alignment = .center
+        return label
+    }
+
+    // Handle button click
+    @objc private func loadUSD() {
+
+    let openPanel = NSOpenPanel()
+         openPanel.canChooseFiles = true
+         openPanel.canChooseDirectories = false
+         openPanel.allowsMultipleSelection = false
+
+         guard openPanel.runModal() == NSApplication.ModalResponse.OK,
+             let fileURL = openPanel.url else {
+                 return
+         }
+
+    //load all assets
+    print("Loading USD")
+    loadScene(filename:fileURL, withExtension: fileURL.pathExtension,false)
+
+
+    }
+
+    // Handle slider value change
+    @objc private func sliderValueChanged(_ sender: NSSlider) {
+        print("Slider value: \(sender.doubleValue)")
+    }   
 
 }
 
@@ -245,12 +386,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
     var gameViewController:GameViewController!
 
-    func applicationDidFinishLaunching(_ notification: Notification) {
+     func applicationDidFinishLaunching(_ notification: Notification) {
         print("Entering app did finish app")
         //create a window for your amazing game 
 
         window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 800, height: 600),
+            contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
             styleMask: [.titled, .closable, .resizable],
             backing: .buffered,
             defer: false
@@ -263,16 +404,20 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         //show the window 
         window.makeKeyAndOrderFront(nil)
         window.makeFirstResponder(gameViewController)
-        window.title = "Untold Engine"
+        window.title = "Untold Engine v2.0"
+
 
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
+
     }
 
     func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
         return true
     }
+
 }
+
 
 
 //Entry point 
