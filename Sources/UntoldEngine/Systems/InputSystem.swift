@@ -166,7 +166,6 @@ public class InputSystem {
       //Store the initial touch location and perform any initial setup
       self.initialPanLocation = currentPanLocation
       self.currentPanGestureState = .began
-      camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
 
     case .changed:
       //Calculate the deltas from the initial touch location
@@ -191,7 +190,6 @@ public class InputSystem {
       // Add your code for touch moved here
       self.panDelta = simd_float2(Float(deltaX), Float(deltaY))
       self.currentPanGestureState = .changed
-      camera.orbitAround(inputSystem.panDelta * 0.005)
       self.initialPanLocation = currentPanLocation
 
     case .ended:
@@ -264,10 +262,10 @@ public class InputSystem {
 
   public func keyPressed(_ keyCode: UInt16) {
 
-    if gameMode == false {
+    /* if gameMode == false {
       return
-    }
-
+    } */
+   print("key pressed")
     switch keyCode {
     case kVK_ANSI_A:
       keyState.aPressed = true

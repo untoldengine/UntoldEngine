@@ -61,7 +61,11 @@ class GameScene{
         movementSystem.update(activeEntity, 0.01)
     }
 
-    func handleInput(){}
+    func handleInput(){
+
+    print("handling input")
+
+        }
 
 }
 
@@ -199,7 +203,7 @@ class GameViewController:NSViewController{
 
         NSEvent.addLocalMonitorForEvents(matching: .keyDown) { (event) -> NSEvent? in
 
-             if gameMode==false {return nil}
+             //if gameMode==false {return nil}
 
              inputSystem.keyPressed(event.keyCode)
 

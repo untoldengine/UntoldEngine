@@ -267,11 +267,14 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     if inputSystem.currentPanGestureState == .began {
 
+        camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
+
     }
 
     if inputSystem.currentPanGestureState == .changed {
 
-      //            camera.orbitAround(inputSystem.panDelta*0.005)
+        camera.orbitAround(inputSystem.panDelta * 0.005)
+
     }
 
     if inputSystem.currentPanGestureState == .ended {
@@ -291,6 +294,11 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         uDelta: simd_float3(inputSystem.scrollDelta.x, 0.0, inputSystem.scrollDelta.y))
 
     }
+
+    if inputSystem.keyState.aPressed == true{
+        camera.moveCameraAlongAxis(uDelta: simd_float3(1.0,0.0,0.0))
+    }
+    
   }
 
 }
