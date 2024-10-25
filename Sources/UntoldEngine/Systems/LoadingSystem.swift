@@ -10,171 +10,49 @@ import Foundation
 import MetalKit
 import ModelIO
 
+public func loadScene(filename: URL, withExtension: String) {
 
-private func removeAllEntities(_ appendModel:Bool){
-
-//destroy all entities before loading new ones
-  if appendModel == false {
-    selectedModel = false
-    activeEntity = 0
-    var entitiesToDelete: [EntityDesc] = []
-
-    if scene.entities.count > 0 {
-
-      for entity in scene.entities {
-
-        if !entity.freed {
-          var r = scene.get(component: Render.self, for: entity.index)
-          var t = scene.get(component: Transform.self, for: entity.index)
-          r?.mesh = nil
-
-          scene.remove(component: Render.self, from: entity.index)
-          scene.remove(component: Transform.self, from: entity.index)
-
-          r = nil
-          t = nil
-
-          entitiesToDelete.append(entity)
-        }
-
-      }
-
-      for entities in entitiesToDelete {
-        scene.destroyEntity(entities.index)
-      }
-    }
-  }
-
-}
-
-private func addEntitiesFromScene(filename: URL, withExtension: String){
-
-  var meshes = [Mesh]()
+   var meshes = [Mesh]()
 
   meshes = Mesh.loadMeshes(
     url: filename, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
 
-  for mesh in meshes {
-
-    //set up entities
-    var modelName = "mesh"
-
-    if let meshName = mesh.name {
-      modelName = meshName
+    for mesh in meshes{
+       meshDictionary[mesh.name]=mesh 
     }
-
-    let entity = createEntityWithName(entityName: modelName )
-
-    activeEntity = entity
-    
-    registerComponent(entity, Render.self)
-    registerComponent(entity, Transform.self)
-
-    let r = scene.get(component: Render.self, for: entity)
-    r?.mesh = mesh
-
-    let t = scene.get(component: Transform.self, for: entity)
-
-    if let localSpace = mesh.localSpace {
-      t?.localSpace = localSpace
-    }
-
-    t?.minBox = mesh.minBox
-    t?.maxBox = mesh.maxBox
-
-  }
-
-}
-
-public func loadScene(filename: URL, withExtension: String, _ appendModel: Bool = false) {
-
- removeAllEntities(appendModel) 
-print("file name: \(filename)")
- addEntitiesFromScene(filename: filename,withExtension: filename.pathExtension)
 
 }
 
 
-public func loadScene(filename: String, withExtension: String, _ appendModel: Bool = false) {
-
- removeAllEntities(appendModel) 
+public func loadScene(filename: String, withExtension: String) {
 
   guard let url:URL=getResourceURL(forResource: filename, withExtension: withExtension)else{
     print("Unable to find file \(filename)")
     return
   }
-
- addEntitiesFromScene(filename: url,withExtension: url.pathExtension)
+    
+    loadScene(filename: url , withExtension: url.pathExtension)
 
 }
 
-//load material database
-func loadMaterialFile() -> Data? {
-  guard let url = Bundle.module.url(forResource: "materialdatabase", withExtension: "json") else {
-    print("Material Database file not found.")
-    return nil
-  }
-  do {
-    return try Data(contentsOf: url)
-  } catch {
-    print("Failed to load material database file: \(error)")
-    return nil
-  }
+
+public func addMeshToEntity(entity:EntityID, name:String){
+
+    guard let r = scene.get(component: Render.self, for:entity)else{
+        print("Entity does not have a Render Component. Please add one")  
+        return
+    }
+
+    if let meshValue = meshDictionary[name]{
+        
+        r.mesh = meshValue
+
+    }else{
+        print("asset not found in list")
+    }
+    
 }
 
-func parseMaterials(from data: Data) -> [MaterialMERL]? {
-  let decoder = JSONDecoder()
-  do {
-    let database = try decoder.decode(MaterialDatabase.self, from: data)
-    return database.materials
-  } catch {
-    print("Error parsing materials: \(error)")
-    return nil
-  }
-}
-
-func createMaterialDictionary(from materials: [MaterialMERL]) -> [String: MaterialMERL] {
-  var materialDict = [String: MaterialMERL]()
-  for material in materials {
-    materialDict[material.name] = material
-  }
-  return materialDict
-}
-
-// Function to construct a URL for a given mesh name within a directory in the main bundle
-func constructMeshURL(directoryName: String, meshName: String) -> URL? {
-  // Get the URL for the directory in the main bundle
-  guard let directoryURL = Bundle.module.url(forResource: directoryName, withExtension: nil) else {
-    print("Directory not found in bundle: \(directoryName)")
-    return nil
-  }
-
-  // Append the mesh name to the directory URL
-  let meshURL = directoryURL.appendingPathComponent(meshName)
-
-  return meshURL
-}
-
-// Function to load JSON data from the main bundle and decode it into an array of strings
-func loadModelNames(from fileName: String) -> [String]? {
-  // Get the URL for the file in the main bundle
-  guard let url = Bundle.module.url(forResource: fileName, withExtension: "json") else {
-    print("File not found in bundle: \(fileName).json")
-    return nil
-  }
-
-  do {
-    // Read the file contents
-    let data = try Data(contentsOf: url)
-
-    // Decode the JSON data
-    let modelNames = try JSONDecoder().decode([String].self, from: data)
-    return modelNames
-  } catch {
-    print("Error reading or decoding file: \(error)")
-    return nil
-  }
-}
 
 public func loadDirectionalLight(
   _ filename: URL, fileextension: String, direction: simd_float3, color: simd_float3,

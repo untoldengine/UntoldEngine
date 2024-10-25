@@ -10,8 +10,8 @@ import Foundation
 import MetalKit
 import simd
 
-var camera: Camera!
-var renderInfo = RenderInfo()
+var camera: Camera! 
+var renderInfo = RenderInfo()   
 public var inputSystem = InputSystem()
 public var movementSystem = MovementSystem()
 var lightingSystem: LightingSystem!
@@ -19,6 +19,8 @@ var shadowSystem: ShadowSystem!
 var bufferResources = BufferResources()
 
 var textureResources = TextureResources()
+
+var meshDictionary:[String:Mesh]=[:]
 
 @available(macOS 11.0, *)
 var accelStructResources = AccelStructResources()

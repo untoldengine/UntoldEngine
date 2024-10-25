@@ -21,6 +21,13 @@ enum LoadHDRError: Error {
   case textureCreationFailed
 }
 
+public func hasComponent<T>(entity: EntityDesc, componentType: T.Type)->Bool{
+    
+    let componentId=getComponentId(for: componentType)
+
+    return entity.mask.test(componentId)
+}   
+
 public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
         // Use Bundle.module internally to get the resource URL
         return Bundle.module.url(forResource: resourceName, withExtension: ext)

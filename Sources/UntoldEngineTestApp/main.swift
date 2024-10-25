@@ -8,53 +8,60 @@ class GameScene{
     var renderer:UntoldRenderer!
 
     init(_ metalView:MTKView){
-
-      //set up the renderer here 
-      guard let defaultDevice=MTLCreateSystemDefaultDevice() else {
-
+        
+        //set up the renderer here
+        guard let defaultDevice=MTLCreateSystemDefaultDevice() else {
+            
             print("Metal is not supported on this device")
-            return 
-
-      }
-
-
+            return
+            
+        }
+        
+        
         metalView.device=defaultDevice
         metalView.depthStencilPixelFormat = .depth32Float
         metalView.colorPixelFormat = .rgba16Float
-        metalView.preferredFramesPerSecond = 60 
+        metalView.preferredFramesPerSecond = 60
         metalView.framebufferOnly = false
-
-        guard let newRenderer = UntoldRenderer(metalView) else{
-                print("The Untold Engine cannot be initialized")
-                return 
-            }
-
-
-        renderer = newRenderer
-        renderer.mtkView(metalView, drawableSizeWillChange: metalView.drawableSize)
-
-        metalView.delegate = renderer 
-
-        //callbacks to be updated  
         
-        renderer.gameUpdateCallback = {[weak self] deltaTime in 
-            self?.update(deltaTime)
-        }
-
-        renderer.handleInputCallback = {[weak self] in 
-            self?.handleInput() 
-        }
-
-        //load up model 
-        //loadScene(filename: "scifihelmetTestOnly",withExtension: "usdc",false)
-
-        addNewSunLight()
-
-        guard let entityId:EntityID = queryEntityWithName(entityName:"Sci_Fi_Helmet_2__corona")else{
+        guard let newRenderer = UntoldRenderer(metalView) else{
+            print("The Untold Engine cannot be initialized")
             return
         }
         
-        translateEntityBy(entityId,simd_float3(5.0,0.0,0.0))
+        
+        renderer = newRenderer
+        renderer.mtkView(metalView, drawableSizeWillChange: metalView.drawableSize)
+        
+        metalView.delegate = renderer
+        
+        //callbacks to be updated
+        
+        renderer.gameUpdateCallback = {[weak self] deltaTime in
+            self?.update(deltaTime)
+        }
+        
+        renderer.handleInputCallback = {[weak self] in
+            self?.handleInput() 
+        }
+
+        addNewSunLight()
+        
+        //load scene 
+        loadScene(filename: "player1",withExtension: "usdc")
+
+        let entity:EntityID=createEntity()
+        registerComponent(entity, Render.self)
+        registerComponent(entity,Transform.self)
+        
+        addMeshToEntity(entity:entity,name:"soccer_player_0")   
+        
+/*         guard let entityId:EntityID = queryEntityWithName(entityName:"Sci_Fi_Helmet_2__corona")else{
+            return
+        }
+  */       
+        translateEntityBy(entity,simd_float3(5.0,0.0,0.0))
+        rotateBy(entity, -90.0,simd_float3(1.0,0.0,0.0 ))
 }
 
     func update(_ deltaTime:Float){
@@ -372,7 +379,7 @@ class GameViewController:NSViewController{
 
     //load all assets
     print("Loading USD")
-    loadScene(filename:fileURL, withExtension: fileURL.pathExtension,false)
+    loadScene(filename:fileURL, withExtension: fileURL.pathExtension)
 
 
     }
