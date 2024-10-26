@@ -10,22 +10,50 @@ import Foundation
 import MetalKit
 import simd
 
-var camera: Camera! 
-var renderInfo = RenderInfo()   
+
+//Asset ID
+public typealias EntityID = UInt64
+public typealias EntityIndex = UInt32
+public typealias EntityVersion = UInt32
+
+var componentCounter = 0
+
+let MAX_COMPONENTS = 64
+let MAX_ENTITIES = 1000
+
+var maxNumPointLights: Int = 100
+
+var scene: Scene = Scene()
+public var camera: Camera! 
 public var inputSystem = InputSystem()
 public var movementSystem = MovementSystem()
 public var lightingSystem: LightingSystem!
 var shadowSystem: ShadowSystem!
-var bufferResources = BufferResources()
 
+var renderInfo = RenderInfo()   
+
+var vertexDescriptor = VertexDescriptors()
+var bufferResources = BufferResources()
 var textureResources = TextureResources()
 
-var meshDictionary:[String:Mesh]=[:]
+var meshDictionary:[String:Mesh]=[:] //Holds all meshes loaded 
+
+//Timing properties
+var timeSinceLastUpdatePreviousTime: TimeInterval!
+var timeSinceLastUpdate: Float!
+var firstUpdateCall: Bool = false
+
+var frameCount: Int = 0
+var timePassedSinceLastFrame: Float = 0.0
+
+//Frustum info
+let far: Float = 10000
+let near: Float = 0.01
+let fov: Float = 65.0
 
 @available(macOS 11.0, *)
 var accelStructResources = AccelStructResources()
 
-var vertexDescriptor = VertexDescriptors()
 
 //pipelines
 var gridPipeline = RenderPipeline()
@@ -51,13 +79,6 @@ var environmentMesh: MTKMesh!
 
 //ibl
 var iblSuccessful: Bool = false
-//Timing properties
-var timeSinceLastUpdatePreviousTime: TimeInterval!
-var timeSinceLastUpdate: Float!
-var firstUpdateCall: Bool = false
-
-var frameCount: Int = 0
-var timePassedSinceLastFrame: Float = 0.0
 
 //let usdRotation:simd_float4x4=matrix4x4Identity()
 
@@ -96,25 +117,6 @@ enum TextureType {
   case normal
 }
 
-//Asset ID
-public typealias EntityID = UInt64
-public typealias EntityIndex = UInt32
-public typealias EntityVersion = UInt32
-
-var componentCounter = 0
-
-let MAX_COMPONENTS = 64
-let MAX_ENTITIES = 1000
-
-let far: Float = 10000
-let near: Float = 0.01
-let fov: Float = 65.0
-
-var scene: Scene = Scene()
-
-var maxNumPointLights: Int = 100
-
-//var keyState:KeyState=KeyState()
 
 //key codes
 let kVK_ANSI_W: UInt16 = 13
@@ -157,7 +159,6 @@ enum GeomShadow: Int {
   case ggx
 }
 
-public var activeEntity: EntityID = 0
 
 var NDFSelection: NDF = NDF.ggx
 
@@ -165,36 +166,7 @@ var GeomShadowSelection: GeomShadow = GeomShadow.schlickGGX
 
 var applyIBL: Bool = true
 var renderEnvironment: Bool = false
-
-struct MaterialMERL: Codable {
-  var name: String
-  var baseColor: [Float]
-  var roughness: Float
-  var specular: Float
-  var subsurface: Float
-  var metallic: Float
-  var specularTint: Float
-  var anisotropic: Float
-  var sheen: Float
-  var sheenTint: Float
-  var clearCoat: Float
-  var clearCoatGloss: Float
-  var ior: Float
-  var edgeTint: [Float]
-}
-
-struct MaterialDatabase: Codable {
-  var materials: [MaterialMERL]
-}
-
-var materialDictionary: [String: MaterialMERL] = [:]
-var entityDictionary: [String: EntityID] = [:]
-var reverseEntityDictionary: [EntityID: String] = [:]
-
 var ambientIntensity: Float = 0.44
-
-var shaderBall: String = "brdfmeshinusdspace"
-var assetNameSelected: String = " "
 
 //hightlight
 let boundingBoxVertexCount = 24

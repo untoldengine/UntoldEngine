@@ -13,31 +13,6 @@ public func createEntity() -> EntityID {
   return scene.newEntity()
 }
 
-public func createEntityWithName(entityName name: String) -> EntityID {
-  let entityId: EntityID = scene.newEntity()
-  entityDictionary[name] = entityId
-  reverseEntityDictionary[entityId] = name
-  return entityId
-}
-
-public func queryEntityWithName(entityName name: String) -> EntityID? {
-  guard let value = entityDictionary[name] else {
-    handleError(.entityMissing, name)
-    return nil
-  }
-
-  return value
-}
-
-public func queryEntityWithID(entityId entity: EntityID) -> String? {
-  guard let value = reverseEntityDictionary[entity] else {
-    handleError(.entityMissing, entity)
-    return nil
-  }
-
-  return value
-}
-
 public func registerComponent<T: Component>(_ entityId: EntityID, _ componentType: T.Type) {
   _ = scene.assign(to: entityId, component: componentType)
 }
@@ -61,10 +36,6 @@ public func destroyEntity(_ entityID: EntityID) {
     scene.remove(component: LightComponent.self, from: entityID)
 
   }
-
-  let name: String = reverseEntityDictionary[entityID]!
-  entityDictionary.removeValue(forKey: name)
-  reverseEntityDictionary.removeValue(forKey: entityID)
 
   scene.destroyEntity(entityID)
 }
