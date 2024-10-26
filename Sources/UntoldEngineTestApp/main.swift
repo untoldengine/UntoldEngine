@@ -51,31 +51,22 @@ class GameScene{
         loadScene(filename: "player1",withExtension: "usdc")
         loadScene(filename: "Plane" , withExtension: "usdc")
         loadScene(filename: "player2", withExtension: "usdc")
+        loadBulkScene(filename: "trees", withExtension: "usdc")
 
         //set entity
         player0=createEntity()
-        registerComponent(entityId:player0, componentType:Render.self)
-        registerComponent(entityId:player0,componentType:Transform.self)
-        
+       
         addMeshToEntity(entity:player0,name:"soccer_player_0")   
         
-        rotateBy(entityId: player0, angle: -90.0,axis:simd_float3(1.0,0.0,0.0 ))
 
         let player1:EntityID=createEntity()
-        registerComponent(entityId:player1,componentType:Render.self)
-        registerComponent(entityId:player1,componentType:Transform.self)
-
         addMeshToEntity(entity:player1,name:"soccer_player_1")
-        rotateBy(entityId: player1,angle: -90.0,axis:simd_float3(1.0,0.0,0.0))
+
         translateTo(entityId: player1,position: simd_float3(3.0,0.0,0.0))
 
         let floorEntity:EntityID=createEntity()
-        registerComponent(entityId:floorEntity,componentType:Render.self)
-        registerComponent(entityId:floorEntity,componentType:Transform.self)
-
         addMeshToEntity(entity:floorEntity, name: "Plane")
 
-        rotateBy(entityId: floorEntity,angle: -90.0,axis:simd_float3(1.0,0.0,0.0))
 
         //Set lights 
         let sunEntity:EntityID=createEntity()
@@ -99,9 +90,8 @@ class GameScene{
 
     func handleInput(){
 
-    print("handling input")
 
-        }
+    }
 
 }
 

@@ -38,18 +38,55 @@ public func loadScene(filename: String, withExtension: String) {
 
 public func addMeshToEntity(entity:EntityID, name:String){
 
-    guard let r = scene.get(component: Render.self, for:entity)else{
-        print("Entity does not have a Render Component. Please add one")  
-        return
-    }
-
     if let meshValue = meshDictionary[name]{
-        
+ 
+        registerComponent(entityId: entity , componentType: Render.self)
+        registerComponent(entityId: entity, componentType: Transform.self )
+
+        guard let r = scene.get(component: Render.self, for:entity)else{
+            print("Entity does not have a Render Component. Please add one")  
+            return
+        }
+
+        guard let t = scene.get(component: Transform.self, for:entity)else{
+            print("Entity does not have a Transform Component. Please add one")  
+            return
+        }
+
+       
         r.mesh = meshValue
+
+        t.localSpace=meshValue.localSpace
+        t.maxBox=meshValue.maxBox
+        t.minBox=meshValue.minBox
+
 
     }else{
         print("asset not found in list")
     }
     
+}
+
+public func loadBulkScene(filename:String, withExtension:String){
+
+    var meshes = [Mesh]()
+
+    guard let url:URL=getResourceURL(forResource: filename, withExtension: withExtension)else{
+    print("Unable to find file \(filename)")
+    return
+    }
+
+
+    meshes = Mesh.loadMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+
+    for mesh in meshes{
+       meshDictionary[mesh.name]=mesh 
+    
+       let entity:EntityID=createEntity()
+       addMeshToEntity(entity:entity , name: mesh.name )
+
+    }
+
+
 }
 
