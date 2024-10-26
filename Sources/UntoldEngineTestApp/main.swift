@@ -54,28 +54,28 @@ class GameScene{
 
         //set entity
         player0=createEntity()
-        registerComponent(player0, Render.self)
-        registerComponent(player0,Transform.self)
+        registerComponent(entityId:player0, componentType:Render.self)
+        registerComponent(entityId:player0,componentType:Transform.self)
         
         addMeshToEntity(entity:player0,name:"soccer_player_0")   
         
-        rotateBy(player0, -90.0,simd_float3(1.0,0.0,0.0 ))
+        rotateBy(entityId: player0, angle: -90.0,axis:simd_float3(1.0,0.0,0.0 ))
 
         let player1:EntityID=createEntity()
-        registerComponent(player1,Render.self)
-        registerComponent(player1,Transform.self)
+        registerComponent(entityId:player1,componentType:Render.self)
+        registerComponent(entityId:player1,componentType:Transform.self)
 
         addMeshToEntity(entity:player1,name:"soccer_player_1")
-        rotateBy(player1,-90.0,simd_float3(1.0,0.0,0.0))
-        translateTo(player1,simd_float3(3.0,0.0,0.0))
+        rotateBy(entityId: player1,angle: -90.0,axis:simd_float3(1.0,0.0,0.0))
+        translateTo(entityId: player1,position: simd_float3(3.0,0.0,0.0))
 
         let floorEntity:EntityID=createEntity()
-        registerComponent(floorEntity,Render.self)
-        registerComponent(floorEntity,Transform.self)
+        registerComponent(entityId:floorEntity,componentType:Render.self)
+        registerComponent(entityId:floorEntity,componentType:Transform.self)
 
         addMeshToEntity(entity:floorEntity, name: "Plane")
 
-        rotateBy(floorEntity,-90.0,simd_float3(1.0,0.0,0.0))
+        rotateBy(entityId: floorEntity,angle: -90.0,axis:simd_float3(1.0,0.0,0.0))
 
         //Set lights 
         let sunEntity:EntityID=createEntity()

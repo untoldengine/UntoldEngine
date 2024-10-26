@@ -43,13 +43,13 @@ public struct MovementSystem {
     if inputSystem.mouseDeltaX != 0 && inputSystem.mouseActive {
       let yaw = inputSystem.mouseDeltaX * 20.0 * deltaTime
 
-      rotateBy(entityId, yaw, up)
+      rotateBy(entityId: entityId, angle: yaw, axis: up)
     }
 
     if inputSystem.mouseDeltaY != 0 && inputSystem.mouseActive {
       let pitch = inputSystem.mouseDeltaY * 20.0 * deltaTime
 
-      rotateBy(entityId, pitch, right)
+      rotateBy(entityId: entityId, angle: pitch, axis: right)
     }
 
     //translate entity

@@ -9,12 +9,12 @@
 import Foundation
 import simd
 
-public func translateTo(_ entityId: EntityID, _ position: simd_float3) {
+public func translateTo(entityId: EntityID, position: simd_float3) {
   let t = scene.get(component: Transform.self, for: entityId)
   t?.localSpace.columns.3 = simd_float4(position, 1.0)
 }
 
-public func translateEntityBy(_ entityId: EntityID, _ position: simd_float3) {
+public func translateEntityBy(entityId: EntityID, position: simd_float3) {
 
   let t = scene.get(component: Transform.self, for: entityId)
   t?.localSpace.columns.3.x += position.x
@@ -22,7 +22,7 @@ public func translateEntityBy(_ entityId: EntityID, _ position: simd_float3) {
   t?.localSpace.columns.3.z += position.z
 }
 
-public func rotateTo(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
+public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
   let t = scene.get(component: Transform.self, for: entityId)
 
   let m: simd_float4x4 = matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis)
@@ -32,7 +32,7 @@ public func rotateTo(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) 
   t?.localSpace.columns.2 = m.columns.2
 }
 
-public func rotateBy(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) {
+public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
   let t = scene.get(component: Transform.self, for: entityId)
 
   //new matrix
@@ -80,7 +80,7 @@ public func rotateBy(_ entityId: EntityID, _ angle: Float, _ axis: simd_float3) 
 //
 //}
 
-public func rotateTo(_ entityId: EntityID, _ rotation: simd_float4x4) {
+public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
 
   let t = scene.get(component: Transform.self, for: entityId)
 
@@ -90,7 +90,7 @@ public func rotateTo(_ entityId: EntityID, _ rotation: simd_float4x4) {
 
 }
 
-public func combineRotations(_ entityId: EntityID) {
+public func combineRotations(entityId: EntityID) {
 
   let t = scene.get(component: Transform.self, for: entityId)
 
@@ -105,6 +105,6 @@ public func combineRotations(_ entityId: EntityID) {
   //combine the rotations
   let combinedRotation: simd_float4x4 = rotZMatrix * rotYMatrix * rotXMatrix
 
-  rotateTo(entityId, combinedRotation)
+  rotateTo(entityId: entityId, rotation: combinedRotation)
 
 }

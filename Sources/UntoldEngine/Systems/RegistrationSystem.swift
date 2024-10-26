@@ -13,11 +13,11 @@ public func createEntity() -> EntityID {
   return scene.newEntity()
 }
 
-public func registerComponent<T: Component>(_ entityId: EntityID, _ componentType: T.Type) {
+public func registerComponent<T: Component>(entityId: EntityID, componentType: T.Type) {
   _ = scene.assign(to: entityId, component: componentType)
 }
 
-public func destroyEntity(_ entityID: EntityID) {
+public func destroyEntity(entityID: EntityID) {
 
   selectedModel = false
 
