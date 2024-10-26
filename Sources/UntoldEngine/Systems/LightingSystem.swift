@@ -9,27 +9,54 @@
 import Foundation
 import simd
 
-struct LightingSystem {
+public struct DirectionalLight {
+ public var direction: simd_float3 = simd_float3(1.0, 1.0, 1.0)
+ public var color: simd_float3 = simd_float3(1.0,1.0,1.0)
+ public var intensity: Float = 1.0
+
+ public init(){}
+}
+
+public struct PointLight {
+  public var position: simd_float3 = simd_float3(0.0, 1.0, 0.0)
+  public var color: simd_float3 = simd_float3(1.0, 0.0, 0.0)
+  public var attenuation: simd_float4 = simd_float4(1.0, 0.7, 1.8, 0.0)  //constant, linera, quadratic -> (x, y, z, max range)
+  public var intensity: Float = 1.0
+  public var radius: Float = 1.0
+
+  public init(){}
+}
+
+public struct AreaLight {
+  var position: simd_float3 = simd_float3(0.0, 0.0, 0.0)  // Center position of the area light
+  var color: simd_float3 = simd_float3(1.0, 1.0, 1.0)  // Light color
+  var intensity: Float = 1.0  // Light intensity
+  //    var width: Float = 1.0                                   // Width of the area light
+  //    var height: Float = 1.0                                  // Height of the area light
+  //    var forward: simd_float3 = simd_float3(0.0, -1.0, 0.0)    // Normal vector of the light's surface
+  //    var right: simd_float3 = simd_float3(1.0, 0.0, 0.0)      // Right vector defining the surface orientation
+  //    var up: simd_float3 = simd_float3(0.0, 0.0, 1.0)         // Up vector defining the surface orientation
+  //var twoSided: Bool = false                               // Whether the light emits from both sides
+}
+
+
+public struct LightingSystem {
 
   var dirLight: [EntityID: DirectionalLight] = [:]
   var pointLight: [EntityID: PointLight] = [:]
   var areaLight: [EntityID: AreaLight] = [:]
   
-  var activeDirectionalLightID: EntityID?
-  var activePointLightID: EntityID?
   var activeAreaLightID: EntityID?
   
   init() {
 
   }
 
-  mutating func addDirectionalLight(entityID: EntityID, light: DirectionalLight) {
-    activeDirectionalLightID = entityID
+  public mutating func addDirectionalLight(entityID: EntityID, light: DirectionalLight) {
     dirLight[entityID] = light
   }
 
-  mutating func addPointLight(entityID: EntityID, light: PointLight) {
-    activePointLightID = entityID
+  public mutating func addPointLight(entityID: EntityID, light: PointLight) {
     pointLight[entityID] = light
   }
 
@@ -54,8 +81,6 @@ struct LightingSystem {
     entityID: EntityID, newDirection: simd_float3, newColor: simd_float3, newIntensity: Float
   ) {
 
-    guard activeDirectionalLightID == entityID else { return }
-
     if var light = dirLight[entityID] {
 
       light.direction = newDirection
@@ -70,8 +95,6 @@ struct LightingSystem {
     newRadius: Float
   ) {
 
-    guard activePointLightID == entityID else { return }
-
     if var light = pointLight[entityID] {
 
       light.position = newPosition
@@ -85,14 +108,6 @@ struct LightingSystem {
 
   mutating func removeLight(entityID: EntityID) {
 
-    if activeDirectionalLightID == entityID {
-      activeDirectionalLightID = nil
-    }
-
-    if activePointLightID == entityID {
-      activePointLightID = nil
-    }
-
     dirLight.removeValue(forKey: entityID)
     pointLight.removeValue(forKey: entityID)
     //spot light goes here too
@@ -102,11 +117,11 @@ struct LightingSystem {
     guard let l = scene.get(component: LightComponent.self, for: entityID) else { return }
 
     if case .directional(_) = l.lightType {
-      lightingSystem.activeDirectionalLightID = entityID
+//      lightingSystem.activeDirectionalLightID = entityID
     }
 
     if case .point(_) = l.lightType {
-      lightingSystem.activePointLightID = entityID
+ //     lightingSystem.activePointLightID = entityID
     }
 
     if case .area(_) = l.lightType {

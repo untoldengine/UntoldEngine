@@ -40,32 +40,6 @@ public class Render: Component {
   }
 }
 
-public struct DirectionalLight {
-  var direction: simd_float3 = simd_float3(0.0, 1.0, 0.0)
-  var color: simd_float3?
-  var intensity: Float = 1.0
-}
-
-public struct PointLight {
-  var position: simd_float3 = simd_float3(0.0, 0.0, 0.0)
-  var color: simd_float3 = simd_float3(0.0, 0.0, 0.0)
-  var attenuation: simd_float4 = simd_float4(1.0, 0.7, 1.8, 0.0)  //constant, linera, quadratic -> (x, y, z, max range)
-  var intensity: Float
-  var radius: Float
-}
-
-public struct AreaLight {
-  var position: simd_float3 = simd_float3(0.0, 0.0, 0.0)  // Center position of the area light
-  var color: simd_float3 = simd_float3(1.0, 1.0, 1.0)  // Light color
-  var intensity: Float = 1.0  // Light intensity
-  //    var width: Float = 1.0                                   // Width of the area light
-  //    var height: Float = 1.0                                  // Height of the area light
-  //    var forward: simd_float3 = simd_float3(0.0, -1.0, 0.0)    // Normal vector of the light's surface
-  //    var right: simd_float3 = simd_float3(1.0, 0.0, 0.0)      // Right vector defining the surface orientation
-  //    var up: simd_float3 = simd_float3(0.0, 0.0, 1.0)         // Up vector defining the surface orientation
-  //var twoSided: Bool = false                               // Whether the light emits from both sides
-}
-
 public class LightComponent: Component {
 
   enum LightType {

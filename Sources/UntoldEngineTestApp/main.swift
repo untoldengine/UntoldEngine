@@ -6,6 +6,7 @@ import MetalKit
 class GameScene{
 
     var renderer:UntoldRenderer!
+    var player0:EntityID!
 
     init(_ metalView:MTKView){
         
@@ -45,27 +46,55 @@ class GameScene{
             self?.handleInput() 
         }
 
-        addNewSunLight()
         
         //load scene 
         loadScene(filename: "player1",withExtension: "usdc")
+        loadScene(filename: "Plane" , withExtension: "usdc")
+        loadScene(filename: "player2", withExtension: "usdc")
 
-        let entity:EntityID=createEntity()
-        registerComponent(entity, Render.self)
-        registerComponent(entity,Transform.self)
+        //set entity
+        player0=createEntity()
+        registerComponent(player0, Render.self)
+        registerComponent(player0,Transform.self)
         
-        addMeshToEntity(entity:entity,name:"soccer_player_0")   
+        addMeshToEntity(entity:player0,name:"soccer_player_0")   
         
-/*         guard let entityId:EntityID = queryEntityWithName(entityName:"Sci_Fi_Helmet_2__corona")else{
-            return
-        }
-  */       
-        translateEntityBy(entity,simd_float3(5.0,0.0,0.0))
-        rotateBy(entity, -90.0,simd_float3(1.0,0.0,0.0 ))
+        rotateBy(player0, -90.0,simd_float3(1.0,0.0,0.0 ))
+
+        let player1:EntityID=createEntity()
+        registerComponent(player1,Render.self)
+        registerComponent(player1,Transform.self)
+
+        addMeshToEntity(entity:player1,name:"soccer_player_1")
+        rotateBy(player1,-90.0,simd_float3(1.0,0.0,0.0))
+        translateTo(player1,simd_float3(3.0,0.0,0.0))
+
+        let floorEntity:EntityID=createEntity()
+        registerComponent(floorEntity,Render.self)
+        registerComponent(floorEntity,Transform.self)
+
+        addMeshToEntity(entity:floorEntity, name: "Plane")
+
+        rotateBy(floorEntity,-90.0,simd_float3(1.0,0.0,0.0))
+
+        //Set lights 
+        let sunEntity:EntityID=createEntity()
+
+        let sun:DirectionalLight = DirectionalLight()
+
+        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
+
+        //set point light 
+        let pointEntity:EntityID=createEntity()
+
+        var point:PointLight = PointLight()
+        point.position=simd_float3(1.0,1.0,0.0)
+        lightingSystem.addPointLight(entityID: pointEntity , light: point )
+
 }
 
     func update(_ deltaTime:Float){
-        movementSystem.update(activeEntity, 0.01)
+        movementSystem.update(player0, 0.01)
     }
 
     func handleInput(){

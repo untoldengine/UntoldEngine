@@ -354,14 +354,14 @@ struct RenderPasses {
     var lightDirection = simd_float3(0.0, 1.0, 0.0)
     var lightIntensity: Float = 0.0
     var lightColor: simd_float3 = simd_float3(0.0, 0.0, 0.0)
-    if let directionalLightID = lightingSystem.activeDirectionalLightID,
+    if let directionalLightID = lightingSystem.dirLight.keys.first,
       let directionalLight: DirectionalLight = lightingSystem.getDirectionalLight(
         entityID: directionalLightID)
     {
 
       lightDirection = directionalLight.direction
       lightIntensity = directionalLight.intensity
-      lightColor = directionalLight.color!
+      lightColor = directionalLight.color
     }
 
     renderEncoder.setVertexBytes(

@@ -14,7 +14,7 @@ var camera: Camera!
 var renderInfo = RenderInfo()   
 public var inputSystem = InputSystem()
 public var movementSystem = MovementSystem()
-var lightingSystem: LightingSystem!
+public var lightingSystem: LightingSystem!
 var shadowSystem: ShadowSystem!
 var bufferResources = BufferResources()
 

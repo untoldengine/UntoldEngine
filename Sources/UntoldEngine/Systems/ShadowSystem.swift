@@ -21,7 +21,7 @@ struct ShadowSystem {
     let width: Float = 50.0
     let height: Float = 50.0
 
-    if let directionalLightID = lightingSystem.activeDirectionalLightID,
+    if let directionalLightID = lightingSystem.dirLight.keys.first,
       let directionalLight: DirectionalLight = lightingSystem.getDirectionalLight(
         entityID: directionalLightID)
     {
