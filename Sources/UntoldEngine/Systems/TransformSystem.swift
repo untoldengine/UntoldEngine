@@ -9,6 +9,20 @@
 import Foundation
 import simd
 
+public func getPosition(entityId: EntityID)->simd_float3{
+
+    guard let t = scene.get(component: Transform.self, for: entityId)else{
+
+        return simd_float3(0.0,0.0,0.0)
+    }
+
+    let x:Float=t.localSpace.columns.3.x 
+    let y:Float=t.localSpace.columns.3.y 
+    let z:Float=t.localSpace.columns.3.z 
+
+    return simd_float3(x,y,z)
+}
+
 public func translateTo(entityId: EntityID, position: simd_float3) {
   let t = scene.get(component: Transform.self, for: entityId)
   t?.localSpace.columns.3 = simd_float4(position, 1.0)

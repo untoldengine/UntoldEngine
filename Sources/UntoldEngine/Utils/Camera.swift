@@ -134,6 +134,12 @@ public struct Camera {
     orbitAround(uDelta)
   }
 
+  public func getPosition()->simd_float3{
+
+    return simd_float3(viewSpace.columns.3.x, viewSpace.columns.3.y, viewSpace.columns.3.z)
+
+  }
+
   //data
   var viewSpace = simd_float4x4.init(1.0)
   var xAxis: simd_float3 = simd_float3(0.0, 0.0, 0.0)

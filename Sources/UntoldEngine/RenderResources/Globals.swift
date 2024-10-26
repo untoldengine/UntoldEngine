@@ -23,7 +23,7 @@ let MAX_ENTITIES = 1000
 
 var maxNumPointLights: Int = 100
 
-var scene: Scene = Scene()
+public var scene: Scene = Scene()
 public var camera: Camera! 
 public var inputSystem = InputSystem()
 public var movementSystem = MovementSystem()

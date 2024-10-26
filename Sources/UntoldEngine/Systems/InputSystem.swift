@@ -265,7 +265,6 @@ public class InputSystem {
     /* if gameMode == false {
       return
     } */
-   print("key pressed")
     switch keyCode {
     case kVK_ANSI_A:
       keyState.aPressed = true
