@@ -2,11 +2,15 @@
 
 ## Introduction
 
-**The Untold Engine: An easy to use, open source, 3D game engine for iOS/macOS.**
+Welcome to Untold Engine! This project is a custom 3D game engine built with Swift and Metal, designed for high-performance rendering and ease of use. Originally, the engine was written in C++ following Object-Oriented Programming (OOP) principles. However, it was rewritten in Swift to adopt Data-Oriented Design (DOD) principles, with a focus on scalability, performance, and maintainability.
 
-Hi, my name is [Harold Serrano](http://www.haroldserrano.com), and I developed the [Untold Engine](http://www.untoldengine.com), an open source 3D game engine written in C++ and Metal Graphics (API).
+The engine now leverages the Entity Component System (ECS) architecture, which decouples data from behavior, allowing systems to operate efficiently on large datasets. This approach enables developers to build complex scenes and systems more effectively, while also making better use of modern CPU and GPU architectures.
 
-I took the bold step of rewriting the Untold Engine from scratch, discarding 99% of the previous code to make way for superior, more efficient implementations. As a result, if you were accustomed to the old version of the engine, I regret to inform you that it has been entirely replaced. The new version has seamlessly overwritten the previous features, ushering in a fresh era of enhanced performance and capabilities. Additionally, stay tuned for upcoming feature additions in the coming weeks, designed to further enhance the engine's role as a learning platform.
+Currently, the engine does not have a Physics or Animation system, but both features are actively being developed and will be included in future updates.
+
+With the power of Swift Package Manager (SPM), developers can build and run applications entirely from the terminal, without needing Xcode.
+
+Author: [Harold Serrano](http;//www.haroldserrano.com)
 
 ## Running the Untold Engine
 
@@ -31,6 +35,36 @@ make clean
 swift run UntoldEngineTestApp
 
 You should see a window
+
+## Including the Untold Engine in an Xcode Project 
+
+### Step 1. Add the engine as a Package Dependency
+
+1. Open your Xcode project 
+
+2. Go to File-> Add Packages...
+
+3. In the search field, enter the URL of the Untold Engine repository:
+
+https://github.com/untoldengine/UntoldEngine.git 
+
+4. Xcodw will fetch the package. Select the appropriate version or branc( i.e. Master)
+
+5. Choose the target where you want to add the engine, then click Add Package 
+
+### Step 2. Import the Untold Engine in your code 
+
+Once the package is added, you can import the Untold Engine in your Swift files:
+
+import UntoldEngine
+
+### Step 3. Build and Run your project 
+
+1. Select your project scheme in Xcode.
+
+2. Choose a Metal-capable device (if testing on a real device).
+
+3. Build and run your project to ensure everything works correctly.
 
 ## Current Version
 
