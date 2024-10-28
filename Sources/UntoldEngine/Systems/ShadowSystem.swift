@@ -18,8 +18,8 @@ struct ShadowSystem {
 
     //Scene's center
     let targetPoint: simd_float3 = simd_float3(0.0, 0.0, 0.0)
-    let width: Float = 50.0
-    let height: Float = 50.0
+    let width: Float = shadowMaxWidth
+    let height: Float = shadowMaxHeight
 
     if let directionalLightID = lightingSystem.dirLight.keys.first,
       let directionalLight: DirectionalLight = lightingSystem.getDirectionalLight(
