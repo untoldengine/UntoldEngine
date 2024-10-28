@@ -2,27 +2,69 @@
 
 ## Introduction
 
-**The Untold Engine: An easy to use, open source, 3D game engine for iOS/macOS.**
+Welcome to Untold Engine! This project is a custom 3D game engine built with Swift and Metal, designed for high-performance rendering and ease of use. Originally, the engine was written in C++ following Object-Oriented Programming (OOP) principles. However, it was rewritten in Swift to adopt Data-Oriented Design (DOD) principles, with a focus on scalability, performance, and maintainability.
 
-Hi, my name is [Harold Serrano](http://www.haroldserrano.com), and I developed the [Untold Engine](http://www.untoldengine.com), an open source 3D game engine written in C++ and Metal Graphics (API).
+The engine now leverages the Entity Component System (ECS) architecture, which decouples data from behavior, allowing systems to operate efficiently on large datasets. This approach enables developers to build complex scenes and systems more effectively, while also making better use of modern CPU and GPU architectures.
 
+Currently, the engine does not have a Physics or Animation system, but both features are actively being developed and will be included in future updates.
 
-From its origins as an iOS/macOS game engine, the Untold Engine has undergone a meaningful transformation. Today, it serves a new purpose - as a learning platform for rendering enthusiasts and aspiring engineers who are driven by the ambition to become the best in the field. Rather than showcasing itself as a product, it opens its doors for inquisitive minds to dissect and understand rendering techniques deeply. Dive into the inner workings of computer graphics, explore the 'whys' and 'hows,' and embark on your journey towards mastering Rendering. Our game engine is now a humble companion on your quest to unlock the secrets of this fascinating field.
+With the power of Swift Package Manager (SPM), developers can build and run applications entirely from the terminal, without needing Xcode.
 
-I took the bold step of rewriting the Untold Engine from scratch, discarding 99% of the previous code to make way for superior, more efficient implementations. As a result, if you were accustomed to the old version of the engine, I regret to inform you that it has been entirely replaced. The new version has seamlessly overwritten the previous features, ushering in a fresh era of enhanced performance and capabilities. Additionally, stay tuned for upcoming feature additions in the coming weeks, designed to further enhance the engine's role as a learning platform.
+Author: [Harold Serrano](http;//www.haroldserrano.com)
 
 ## Running the Untold Engine
 
-## What you need?
-
 To run the the Untold Engine, you need the following tools:
 
-* Xcode IDE 
-* A free [Apple Developer Account](https://developer.apple.com)
-* An actual iOS device and a Mac with Metal (API) support. 
-	* See [supported iOS](https://developer.apple.com/library/archive/documentation/DeviceInformation/Reference/iOSDeviceCompatibility/HardwareGPUInformation/HardwareGPUInformation.html)
-	* See [supported Macs](https://support.apple.com/en-us/HT205073)
+1. Clone the Repository
 
+git clone https://github.com/untoldengine/UntoldEngine
+
+cd UntoldEngine
+
+2. Build the engine using the provided Makefile
+
+make
+
+3. Alternatively, you can also run a clean on the build 
+
+make clean
+
+4. Run the engine 
+
+swift run UntoldEngineTestApp
+
+You should see a window
+
+## Including the Untold Engine in an Xcode Project 
+
+### Step 1. Add the engine as a Package Dependency
+
+1. Open your Xcode project 
+
+2. Go to File-> Add Packages...
+
+3. In the search field, enter the URL of the Untold Engine repository:
+
+https://github.com/untoldengine/UntoldEngine.git 
+
+4. Xcodw will fetch the package. Select the appropriate version or branc( i.e. Master)
+
+5. Choose the target where you want to add the engine, then click Add Package 
+
+### Step 2. Import the Untold Engine in your code 
+
+Once the package is added, you can import the Untold Engine in your Swift files:
+
+import UntoldEngine
+
+### Step 3. Build and Run your project 
+
+1. Select your project scheme in Xcode.
+
+2. Choose a Metal-capable device (if testing on a real device).
+
+3. Build and run your project to ensure everything works correctly.
 
 ## Current Version
 
