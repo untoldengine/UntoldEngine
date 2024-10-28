@@ -1,23 +1,41 @@
 import UntoldEngine
 import MetalKit
 
-
+// The GameScene class creates the Untold Engine Renderer and kicks off the game logic 
 
 class GameScene{
 
     var renderer:UntoldRenderer!
-    var player0:EntityID!
+
+    // main entity 
+    var bluecar:EntityID!
+
+    // camera follow parameters 
+    var targetPosition:simd_float3=simd_float3(0.0,0.0,0.0)
+    var offset:simd_float3=simd_float3(0.0,2.0,5.0)
+    var smoothSpeed:Float=1.0 
+
+    // opponent car parameters 
+    var redcar:EntityID!
+    var redCarVelocity:simd_float3=simd_float3(0.0,0.0,0.0)
+    var redCarTargetPosition:simd_float3=simd_float3(-1.0,0.0,-230.0)
+    var redCarMaxSpeed:Float=Float.random(in:15...25) 
+    var redCarArrivalRadius:Float=2.0
+    var redCarDeltaTime:Float=0.1
+
+    var speedChangeInterval:Float=1.0 
+    var timeSinceSpeedChanged:Float=0.0 
+
 
     init(_ metalView:MTKView){
         
-        //set up the renderer here
+        //set up the renderer
         guard let defaultDevice=MTLCreateSystemDefaultDevice() else {
             
             print("Metal is not supported on this device")
             return
             
         }
-        
         
         metalView.device=defaultDevice
         metalView.depthStencilPixelFormat = .depth32Float
@@ -36,8 +54,7 @@ class GameScene{
         
         metalView.delegate = renderer
         
-        //callbacks to be updated
-        
+        // sets the callbacks for updates and input-handling 
         renderer.gameUpdateCallback = {[weak self] deltaTime in
             self?.update(deltaTime)
         }
@@ -46,36 +63,47 @@ class GameScene{
             self?.handleInput() 
         }
 
+    // set camera to look at point 
+    camera.lookAt(
+      eye: simd_float3(0.0, 6.0, 35.0), target: simd_float3(0.0, 2.0, 0.0),
+      up: simd_float3(0.0, 1.0, 0.0))
         
-        //load scene 
-        loadScene(filename: "player1",withExtension: "usdc")
-        loadScene(filename: "Plane" , withExtension: "usdc")
-        loadScene(filename: "player2", withExtension: "usdc")
-        loadBulkScene(filename: "trees", withExtension: "usdc")
+        // You can load the assets in bulk as shown here. In this instance, racetrack contains multiple assets which do not require an entity id to be assigned.  
+        loadBulkScene(filename: "racetrack", withExtension: "usdc")
 
-        //set entity
-        player0=createEntity()
-       
-        addMeshToEntity(entityId:player0,name:"soccer_player_0")   
+        // You can also load the assets individually.   
+        loadScene(filename: "bluecar", withExtension: "usdc")
+        loadScene(filename: "redcar", withExtension: "usdc")
+
+        //set entity for the blue car 
+        bluecar=createEntity()
         
+        // links the mesh in the bluecar.usdc file to the entity "bluecar"
+        addMeshToEntity(entityId:bluecar, name:"bluecar")
 
-        let player1:EntityID=createEntity()
-        addMeshToEntity(entityId:player1,name:"soccer_player_1")
-
-        translateTo(entityId: player1,position: simd_float3(3.0,0.0,0.0))
-
-        let floorEntity:EntityID=createEntity()
-        addMeshToEntity(entityId:floorEntity, name: "Plane")
+        // translate the entity 
+        translateTo(entityId:bluecar,position:simd_float3(1.0,0.0,20.0))
 
 
-        //Set lights 
+        // let's create another entity 
+        redcar = createEntity()
+
+        // Again, link the mesh to the entity "redcar"
+        addMeshToEntity(entityId:redcar, name:"redcar")
+
+        // And translate the entity 
+        translateTo(entityId:redcar,position:simd_float3(-1.0,0.0,20.0))
+
+        // You can also set a directional light. Notice that you need to create an entity first. 
         let sunEntity:EntityID=createEntity()
 
+        // Then you create a directional light 
         let sun:DirectionalLight = DirectionalLight()
 
+        // and finally, you add the entity and the directional light to the ligthting system. 
         lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
 
-        //set point light 
+        // Same logic goes when you want to create an point light.
         let pointEntity:EntityID=createEntity()
 
         var point:PointLight = PointLight()
@@ -85,16 +113,96 @@ class GameScene{
 }
 
     func update(_ deltaTime:Float){
-        movementSystem.update(player0, 0.01)
-    }
+        movementSystem.update(entityId: bluecar, deltaTime: 0.01)
+        updateCameraFollow()
+        updateOpponentMovement(entityId: redcar,dt: 0.01)
+   }
 
     func handleInput(){
 
 
     }
 
+
+    // Implements a simple camera follow algorithm
+    func updateCameraFollow(){
+
+        // gameMode is started/stopped by pressing the "l" key in your keyboard
+        if gameMode == false {
+            return
+        }
+
+        var cameraPosition:simd_float3=camera.getPosition()
+        
+        targetPosition=getPosition(entityId: bluecar)
+
+        var desiredPosition:simd_float3=targetPosition+offset
+ 
+        cameraPosition=lerp(start:cameraPosition,end:desiredPosition,t:smoothSpeed)
+
+        camera.translateTo(cameraPosition.x,cameraPosition.y,cameraPosition.z)
+    }
+
+    func lerp(start:simd_float3,end:simd_float3,t:Float)->simd_float3{
+         return start*(1.0-t)+end*t
+    }
+
+    
+    func updateOpponentMovement(entityId:EntityID,dt:Float){
+       
+
+        if gameMode == false {
+            return
+        }
+
+        timeSinceSpeedChanged += Float(TimeInterval(dt))
+
+
+        //change speed randomly every few seconds 
+        if timeSinceSpeedChanged >= speedChangeInterval{
+
+            redCarMaxSpeed = Float.random(in: 19...45)
+            timeSinceSpeedChanged = 0.0 //reset time
+        }
+
+        var redCarPosition=getPosition(entityId: entityId)
+        
+        //close enough
+        if length(redCarTargetPosition-redCarPosition)<0.1{
+            return 
+        }
+
+        var toTarget:simd_float3=redCarTargetPosition-redCarPosition
+
+        var distance:Float=length(toTarget)
+
+        //calculate the desired speed based on how close the car is to the target
+        
+        var desiredSpeed:Float 
+
+        if(distance<redCarArrivalRadius){
+            desiredSpeed = redCarMaxSpeed*(distance/redCarArrivalRadius)
+        }else{
+            desiredSpeed = redCarMaxSpeed
+        }
+        
+        //calculate the desired velocity 
+        var desiredVelocity=normalize(toTarget)*desiredSpeed
+
+        //steering force:
+        var steering:simd_float3=desiredVelocity-redCarVelocity
+
+        //Euler integration to update position and velocity
+        redCarVelocity=redCarVelocity+steering*dt    //v=v+a*t  
+        redCarPosition=redCarPosition+redCarVelocity*dt  //x=x+v*t 
+
+        translateTo(entityId: entityId, position: redCarPosition)
+
+    }
+
 }
 
+// boiler plate class to set up the gameview controller. It initializes the Game Scene and inputs  
 class GameViewController:NSViewController{
 
     var gameScene:GameScene!
@@ -134,6 +242,7 @@ class GameViewController:NSViewController{
 
         mtkView=metalView
 
+        // starts off the game scene 
         gameScene=GameScene(mtkView)
 
         enableKeyDetection()
@@ -155,7 +264,6 @@ class GameViewController:NSViewController{
             self.view.window?.makeFirstResponder(self)
         }
 
-        setupUI()
     }
 
 
@@ -269,144 +377,6 @@ class GameViewController:NSViewController{
          }
 
     }
-
- private func setupUI() {
-
-    // Create and configure the button
-        loadScene_button = createButton(
-            title: "Load Scene",
-            relativeX: 0.1,
-            relativeY: 0.95,
-            width: 150,
-            height: 50,
-            target: self,
-            action: #selector(loadUSD)
-        )
-
-        // Create and configure the slider
-        positionZ_slider = createSlider(
-            minValue: 0.0,
-            maxValue: 100.0,
-            initialValue: 50.0,
-            relativeX: 0.5,
-            relativeY: 0.3,
-            width: 100,
-            height: 20,
-            target: self,
-            action: #selector(sliderValueChanged)
-        )
-
-        self.view.addSubview(loadScene_button)
-        //self.view.addSubview(positionZ_slider)
-
-        /* setupVisualEffectView()
-        setupTabView() */
-}
-
-    // Button factory function
-    private func createButton(
-        title: String,
-        relativeX: CGFloat,
-        relativeY: CGFloat,
-        width: CGFloat,
-        height: CGFloat,
-        target: AnyObject,
-        action: Selector
-    ) -> NSButton {
-        let button = NSButton(title: title, target: target, action: action)
-        let x = relativeX * view.frame.width - width / 2
-        let y = relativeY * view.frame.height - height / 2
-        button.frame = NSRect(x: x, y: y, width: width, height: height)
-        button.bezelStyle = .rounded
-        return button
-    }
-
-    // Slider factory function
-    private func createSlider(
-        minValue: Double,
-        maxValue: Double,
-        initialValue: Double,
-        relativeX: CGFloat,
-        relativeY: CGFloat,
-        width: CGFloat,
-        height: CGFloat,
-        target: AnyObject,
-        action: Selector
-    ) -> NSSlider {
-        let slider = NSSlider(value: initialValue, minValue: minValue, maxValue: maxValue, target: target, action: action)
-        let x = relativeX * view.frame.width - width / 2
-        let y = relativeY * view.frame.height - height / 2
-        slider.frame = NSRect(x: x, y: y, width: width, height: height)
-        slider.isContinuous = true
-        return slider
-    }
-
-    private func setupVisualEffectView() {
-        // Create a VisualEffectView with a blur effect
-        visualEffectView = NSVisualEffectView()
-        visualEffectView.material = .sidebar  // Blur style
-        visualEffectView.blendingMode = .behindWindow
-        visualEffectView.state = .active  // Ensure it's always visible
-
-        // Set the frame and add it to the main view
-        visualEffectView.frame = NSRect(x: 0, y: 0, width: 400, height: 300)
-        self.view.addSubview(visualEffectView)
-    }
-
-    private func setupTabView() {
-        // Create an NSTabView
-        tabView = NSTabView()
-        tabView.frame = NSRect(x: 10, y: 10, width: 380, height: 280)
-
-        // Create the "Transforms" tab
-        let transformsTab = NSTabViewItem(identifier: "Transforms")
-        transformsTab.label = "Transforms"
-        transformsTab.view = createLabel(withText: "Transforms Settings", frame: NSRect(x: 10, y: 10, width: 360, height: 40))
-
-        // Create the "Lights" tab
-        let lightsTab = NSTabViewItem(identifier: "Lights")
-        lightsTab.label = "Lights"
-        lightsTab.view = createLabel(withText: "Lights Settings", frame: NSRect(x: 10, y: 10, width: 360, height: 40))
-
-        // Add the tabs to the tab view
-        tabView.addTabViewItem(transformsTab)
-        tabView.addTabViewItem(lightsTab)
-
-        // Add the tab view to the visual effect view
-        visualEffectView.addSubview(tabView)
-    }
-
-    private func createLabel(withText text: String, frame: NSRect) -> NSTextField {
-        let label = NSTextField(labelWithString: text)
-        label.frame = frame
-        label.alignment = .center
-        return label
-    }
-
-    // Handle button click
-    @objc private func loadUSD() {
-
-    let openPanel = NSOpenPanel()
-         openPanel.canChooseFiles = true
-         openPanel.canChooseDirectories = false
-         openPanel.allowsMultipleSelection = false
-
-         guard openPanel.runModal() == NSApplication.ModalResponse.OK,
-             let fileURL = openPanel.url else {
-                 return
-         }
-
-    //load all assets
-    print("Loading USD")
-    loadScene(filename:fileURL, withExtension: fileURL.pathExtension)
-
-
-    }
-
-    // Handle slider value change
-    @objc private func sliderValueChanged(_ sender: NSSlider) {
-        print("Slider value: \(sender.doubleValue)")
-    }   
 
 }
 

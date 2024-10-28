@@ -12,9 +12,9 @@ import simd
 
 public struct MovementSystem {
 
-  var movementSpeed: Float = 5.0
-
-  public func update(_ entityId: EntityID, _ deltaTime: Float) {
+  var movementSpeed: Float = 25.0
+  var maxOffset:Float=1.5
+  public func update(entityId: EntityID, deltaTime: Float) {
 
     if gameMode == false {
       return
@@ -26,8 +26,8 @@ public struct MovementSystem {
 
     var forward: simd_float3 = simd_float3(
       t.localSpace.columns.2.x,
-      t.localSpace.columns.2.y,
-      t.localSpace.columns.2.z)
+      t.localSpace.columns.2.z,
+      -t.localSpace.columns.2.y)
     forward = normalize(forward)
 
     var position: simd_float3 = simd_float3(
@@ -74,7 +74,9 @@ public struct MovementSystem {
       position += right * movementSpeed * deltaTime
     }
 
-    t.localSpace.columns.3.x = position.x
+    if(abs(position.x)<maxOffset){
+        t.localSpace.columns.3.x = position.x
+    }
     t.localSpace.columns.3.y = position.y
     t.localSpace.columns.3.z = position.z
 
