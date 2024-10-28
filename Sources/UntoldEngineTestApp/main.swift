@@ -56,16 +56,16 @@ class GameScene{
         //set entity
         player0=createEntity()
        
-        addMeshToEntity(entity:player0,name:"soccer_player_0")   
+        addMeshToEntity(entityId:player0,name:"soccer_player_0")   
         
 
         let player1:EntityID=createEntity()
-        addMeshToEntity(entity:player1,name:"soccer_player_1")
+        addMeshToEntity(entityId:player1,name:"soccer_player_1")
 
         translateTo(entityId: player1,position: simd_float3(3.0,0.0,0.0))
 
         let floorEntity:EntityID=createEntity()
-        addMeshToEntity(entity:floorEntity, name: "Plane")
+        addMeshToEntity(entityId:floorEntity, name: "Plane")
 
 
         //Set lights 

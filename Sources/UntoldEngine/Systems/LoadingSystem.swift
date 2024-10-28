@@ -36,19 +36,19 @@ public func loadScene(filename: String, withExtension: String) {
 }
 
 
-public func addMeshToEntity(entity:EntityID, name:String){
+public func addMeshToEntity(entityId:EntityID, name:String){
 
     if let meshValue = meshDictionary[name]{
  
-        registerComponent(entityId: entity , componentType: Render.self)
-        registerComponent(entityId: entity, componentType: Transform.self )
+        registerComponent(entityId: entityId , componentType: Render.self)
+        registerComponent(entityId: entityId, componentType: Transform.self )
 
-        guard let r = scene.get(component: Render.self, for:entity)else{
+        guard let r = scene.get(component: Render.self, for:entityId)else{
             print("Entity does not have a Render Component. Please add one")  
             return
         }
 
-        guard let t = scene.get(component: Transform.self, for:entity)else{
+        guard let t = scene.get(component: Transform.self, for:entityId)else{
             print("Entity does not have a Transform Component. Please add one")  
             return
         }
@@ -83,7 +83,7 @@ public func loadBulkScene(filename:String, withExtension:String){
        meshDictionary[mesh.name]=mesh 
     
        let entity:EntityID=createEntity()
-       addMeshToEntity(entity:entity , name: mesh.name )
+       addMeshToEntity(entityId:entity , name: mesh.name )
 
     }
 
