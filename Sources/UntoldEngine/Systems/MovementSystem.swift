@@ -12,8 +12,8 @@ import simd
 
 public struct MovementSystem {
 
-  var movementSpeed: Float = 25.0
-  var maxOffset:Float=1.5
+  var movementSpeed: Float = 33.0
+  var maxOffset:Float=3.5
   public func update(entityId: EntityID, deltaTime: Float) {
 
     if gameMode == false {

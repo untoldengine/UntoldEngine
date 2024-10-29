@@ -3,6 +3,85 @@ import MetalKit
 
 // The GameScene class creates the Untold Engine Renderer and kicks off the game logic 
 
+class Car{
+
+    var entityId:EntityID!
+    var velocity:simd_float3=simd_float3(0.0,0.0,0.0)
+    var targetPosition:simd_float3=simd_float3(-1.0,1.0,-230.0)
+    var maxSpeed:Float=Float.random(in:15...21) 
+    var arrivalRadius:Float=2.0
+
+    var speedChangeInterval:Float=2.0 
+    var timeSinceSpeedChanged:Float=0.0 
+
+    init(name:String, position:simd_float3){
+
+        //first, you need to create an entity ID 
+        entityId = createEntity()
+
+        //next, add a mesh to the entity. name refers to the name of the model in the usdc file.
+        addMeshToEntity(entityId: entityId, name: name)
+
+        translateTo(entityId: entityId, position: position)
+
+        //target end position for the game
+        targetPosition=simd_float3(position.x,1.0,-230.0)
+    }
+
+    func update(dt:Float){
+       
+        if gameMode == false {
+            return
+        }
+
+        timeSinceSpeedChanged += Float(TimeInterval(dt))
+
+
+        //change speed randomly every few seconds 
+        if timeSinceSpeedChanged >= speedChangeInterval{
+
+            maxSpeed = Float.random(in: 19...21)
+            timeSinceSpeedChanged = 0.0 //reset time
+        }
+
+        var position=getPosition(entityId: entityId)
+        
+        //close enough
+        if length(targetPosition-position)<0.1{
+            return 
+        }
+
+        let toTarget:simd_float3=targetPosition-position
+
+        let distance:Float=length(toTarget)
+
+        //calculate the desired speed based on how close the car is to the target
+        
+        var desiredSpeed:Float 
+
+        if(distance<arrivalRadius){
+            desiredSpeed = maxSpeed*(distance/arrivalRadius)
+        }else{
+            desiredSpeed = maxSpeed 
+        }
+        
+        //calculate the desired velocity 
+        let desiredVelocity=normalize(toTarget)*desiredSpeed
+
+        //steering force:
+        let steering:simd_float3=desiredVelocity-velocity 
+
+        //Euler integration to update position and velocity
+        velocity=velocity+steering*dt    //v=v+a*t  
+        position=position+velocity*dt  //x=x+v*t 
+
+        translateTo(entityId: entityId, position: position)
+
+    }
+
+}
+
+
 class GameScene{
 
     var renderer:UntoldRenderer!
@@ -12,21 +91,12 @@ class GameScene{
 
     // camera follow parameters 
     var targetPosition:simd_float3=simd_float3(0.0,0.0,0.0)
-    var offset:simd_float3=simd_float3(0.0,2.0,5.0)
+    var offset:simd_float3=simd_float3(0.0,4.0,8.0)
     var smoothSpeed:Float=1.0 
 
     // opponent car parameters 
-    var redcar:EntityID!
-    var redCarVelocity:simd_float3=simd_float3(0.0,0.0,0.0)
-    var redCarTargetPosition:simd_float3=simd_float3(-1.0,0.0,-230.0)
-    var redCarMaxSpeed:Float=Float.random(in:15...25) 
-    var redCarArrivalRadius:Float=2.0
-    var redCarDeltaTime:Float=0.1
-
-    var speedChangeInterval:Float=1.0 
-    var timeSinceSpeedChanged:Float=0.0 
-
-
+    var cars:[Car]=[]
+    
     init(_ metalView:MTKView){
         
         //set up the renderer
@@ -36,13 +106,15 @@ class GameScene{
             return
             
         }
-        
+       
+        // parameters for the metal view 
         metalView.device=defaultDevice
         metalView.depthStencilPixelFormat = .depth32Float
         metalView.colorPixelFormat = .rgba16Float
         metalView.preferredFramesPerSecond = 60
         metalView.framebufferOnly = false
         
+        // kickoff the Untold Engine Renderer 
         guard let newRenderer = UntoldRenderer(metalView) else{
             print("The Untold Engine cannot be initialized")
             return
@@ -54,7 +126,7 @@ class GameScene{
         
         metalView.delegate = renderer
         
-        // sets the callbacks for updates and input-handling 
+        // sets the callbacks for updates and input-handling. These callbacks will be called every 1/60  
         renderer.gameUpdateCallback = {[weak self] deltaTime in
             self?.update(deltaTime)
         }
@@ -64,16 +136,19 @@ class GameScene{
         }
 
     // set camera to look at point 
-    camera.lookAt(
-      eye: simd_float3(0.0, 6.0, 35.0), target: simd_float3(0.0, 2.0, 0.0),
-      up: simd_float3(0.0, 1.0, 0.0))
-        
+        camera.lookAt(
+          eye: simd_float3(0.0, 6.0, 35.0), target: simd_float3(0.0, 2.0, 0.0),
+          up: simd_float3(0.0, 1.0, 0.0))
+            
         // You can load the assets in bulk as shown here. In this instance, racetrack contains multiple assets which do not require an entity id to be assigned.  
         loadBulkScene(filename: "racetrack", withExtension: "usdc")
 
         // You can also load the assets individually.   
         loadScene(filename: "bluecar", withExtension: "usdc")
         loadScene(filename: "redcar", withExtension: "usdc")
+        loadScene(filename: "yellowcar", withExtension: "usdc")
+        loadScene(filename: "orangecar", withExtension: "usdc")
+
 
         //set entity for the blue car 
         bluecar=createEntity()
@@ -82,17 +157,16 @@ class GameScene{
         addMeshToEntity(entityId:bluecar, name:"bluecar")
 
         // translate the entity 
-        translateTo(entityId:bluecar,position:simd_float3(1.0,0.0,20.0))
+        translateTo(entityId:bluecar,position:simd_float3(2.5,0.75,20.0))
 
+        //Create instances for each opponent car 
+        let redCar:Car=Car(name:"redcar", position: simd_float3(-2.5,0.75,20.0))
+        let yellowCar:Car=Car(name:"yellowcar", position: simd_float3(-2.5,0.75,10.0))
+        let orangeCar:Car=Car(name:"redcar", position: simd_float3(2.5,0.75,10.0))
 
-        // let's create another entity 
-        redcar = createEntity()
-
-        // Again, link the mesh to the entity "redcar"
-        addMeshToEntity(entityId:redcar, name:"redcar")
-
-        // And translate the entity 
-        translateTo(entityId:redcar,position:simd_float3(-1.0,0.0,20.0))
+        cars.append(redCar)
+        cars.append(yellowCar)
+        cars.append(orangeCar)
 
         // You can also set a directional light. Notice that you need to create an entity first. 
         let sunEntity:EntityID=createEntity()
@@ -113,14 +187,21 @@ class GameScene{
 }
 
     func update(_ deltaTime:Float){
+
+        //MovementSystem is in charge of the motion for blue car. i.e. it reacts to wasd keys 
         movementSystem.update(entityId: bluecar, deltaTime: 0.01)
+        
         updateCameraFollow()
-        updateOpponentMovement(entityId: redcar,dt: 0.01)
+
+        for car in cars{
+            car.update(dt: deltaTime)
+        }
+   
    }
 
     func handleInput(){
 
-
+        //handled by the movementSystem
     }
 
 
@@ -136,7 +217,8 @@ class GameScene{
         
         targetPosition=getPosition(entityId: bluecar)
 
-        var desiredPosition:simd_float3=targetPosition+offset
+        targetPosition.x = 0.0
+        let desiredPosition:simd_float3=targetPosition+offset
  
         cameraPosition=lerp(start:cameraPosition,end:desiredPosition,t:smoothSpeed)
 
@@ -146,60 +228,7 @@ class GameScene{
     func lerp(start:simd_float3,end:simd_float3,t:Float)->simd_float3{
          return start*(1.0-t)+end*t
     }
-
     
-    func updateOpponentMovement(entityId:EntityID,dt:Float){
-       
-
-        if gameMode == false {
-            return
-        }
-
-        timeSinceSpeedChanged += Float(TimeInterval(dt))
-
-
-        //change speed randomly every few seconds 
-        if timeSinceSpeedChanged >= speedChangeInterval{
-
-            redCarMaxSpeed = Float.random(in: 19...45)
-            timeSinceSpeedChanged = 0.0 //reset time
-        }
-
-        var redCarPosition=getPosition(entityId: entityId)
-        
-        //close enough
-        if length(redCarTargetPosition-redCarPosition)<0.1{
-            return 
-        }
-
-        var toTarget:simd_float3=redCarTargetPosition-redCarPosition
-
-        var distance:Float=length(toTarget)
-
-        //calculate the desired speed based on how close the car is to the target
-        
-        var desiredSpeed:Float 
-
-        if(distance<redCarArrivalRadius){
-            desiredSpeed = redCarMaxSpeed*(distance/redCarArrivalRadius)
-        }else{
-            desiredSpeed = redCarMaxSpeed
-        }
-        
-        //calculate the desired velocity 
-        var desiredVelocity=normalize(toTarget)*desiredSpeed
-
-        //steering force:
-        var steering:simd_float3=desiredVelocity-redCarVelocity
-
-        //Euler integration to update position and velocity
-        redCarVelocity=redCarVelocity+steering*dt    //v=v+a*t  
-        redCarPosition=redCarPosition+redCarVelocity*dt  //x=x+v*t 
-
-        translateTo(entityId: entityId, position: redCarPosition)
-
-    }
-
 }
 
 // boiler plate class to set up the gameview controller. It initializes the Game Scene and inputs  
@@ -226,7 +255,7 @@ class GameViewController:NSViewController{
 
     override func loadView(){
         //create a MTKView 
-        self.view = MTKView(frame: NSRect(x:0,y:0,width: 800,height: 600))
+        self.view = MTKView(frame: NSRect(x:0,y:0,width: 1280,height: 720))
 
     }
 
