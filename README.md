@@ -2,15 +2,15 @@
 
 ## Introduction
 
-Welcome to Untold Engine! This project is a custom 3D game engine built with Swift and Metal, designed for high-performance rendering and ease of use. Originally, the engine was written in C++ following Object-Oriented Programming (OOP) principles. However, it was rewritten in Swift to adopt Data-Oriented Design (DOD) principles, with a focus on scalability, performance, and maintainability.
+Welcome to Untold Engine! 
 
-The engine now leverages the Entity Component System (ECS) architecture, which decouples data from behavior, allowing systems to operate efficiently on large datasets. This approach enables developers to build complex scenes and systems more effectively, while also making better use of modern CPU and GPU architectures.
+The Untold Engine is a custom 3D game engine built with Swift and Metal, designed for ease of use. Originally, the engine was written in C++ following Object-Oriented Programming (OOP) principles. However, it was rewritten in Swift to adopt Data-Oriented Design (DOD) principles.
 
-Currently, the engine does not have a Physics or Animation system, but both features are actively being developed and will be included in future updates.
+The engine now leverages the Entity Component System (ECS) architecture, which decouples data from behavior. This approach enables developers to build complex scenes and systems more effectively, while also making better use of modern CPU and GPU architectures.
 
-With the power of Swift Package Manager (SPM), developers can build and run applications entirely from the terminal, without needing Xcode.
+Currently, this new version of the engine does not have a Physics or Animation system, but both features are actively being developed and will be included in future updates.
 
-Author: [Harold Serrano](http;//www.haroldserrano.com)
+Author: [Harold Serrano](http://www.haroldserrano.com)
 
 ## Running the Untold Engine
 
@@ -18,21 +18,21 @@ To run the the Untold Engine, you need the following tools:
 
 1. Clone the Repository
 
-git clone https://github.com/untoldengine/UntoldEngine
+`git clone https://github.com/untoldengine/UntoldEngine`
 
-cd UntoldEngine
+`cd UntoldEngine`
 
 2. Build the engine using the provided Makefile
 
-make
+`make`
 
 3. Alternatively, you can also run a clean on the build 
 
-make clean
+`make clean`
 
 4. Run the engine 
 
-swift run UntoldEngineTestApp
+`swift run UntoldEngineTestApp`
 
 You should see a window
 
@@ -56,7 +56,7 @@ https://github.com/untoldengine/UntoldEngine.git
 
 Once the package is added, you can import the Untold Engine in your Swift files:
 
-import UntoldEngine
+`import UntoldEngine`
 
 ### Step 3. Build and Run your project 
 
