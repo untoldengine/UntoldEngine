@@ -167,6 +167,8 @@ public class InputSystem {
       self.initialPanLocation = currentPanLocation
       self.currentPanGestureState = .began
 
+      camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
+
     case .changed:
       //Calculate the deltas from the initial touch location
       var deltaX = currentPanLocation.x - initialPanLocation.x
@@ -192,6 +194,7 @@ public class InputSystem {
       self.currentPanGestureState = .changed
       self.initialPanLocation = currentPanLocation
 
+      camera.orbitAround(inputSystem.panDelta * 0.005)
     case .ended:
 
       //reset
