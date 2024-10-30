@@ -36,7 +36,7 @@ To run the the Untold Engine, you need the following tools:
 
 You should see models being rendered.
 
-![gamesceneimage]("images/gamesceneimage.png")
+![gamesceneimage](images/gamesceneimage.png)
 
 To enter/exit "game mode" press 'l'. To move the car use the normal 'WASD' keys
 
