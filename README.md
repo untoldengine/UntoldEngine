@@ -41,60 +41,89 @@ You should see models being rendered.
 To enter/exit "game mode" press 'L'. To move the car use the normal 'WASD' keys
 
 
-## Quick tutorial
+## Creating a game entity 
 
-### Creating a game entity 
-
-Let's say you have a Blender scene as follows. First, you will export it as a "usdc" file.
+Let’s say you have a **Blender scene** with a model named `"redcar"`. Follow these steps to integrate it into your game using the engine.
 
 ![blendercar](images/blendercar.png)
 
-In the scene above, note that the model is called "redcar". I will export the scene as "redcar.usdc" and will save it 
-in the Resource folder. (Sources/UntoldEngine/Resource)
+### 1. Export the Blender Scene
 
-To load the scene in the engine, do the following:
+- Export the scene as a **`usdc` file**. (Make sure that Reference Paths is unchecked in Blender)
+- Save it with the name `"redcar.usdc"` in the **Resource folder**:  
+  `Sources/UntoldEngine/Resource/Models`.
 
+### 2. Load the Scene in the Engine
+
+Use the following function to load the scene data into the engine:  
+
+```swift
+loadScene(filename: "redcar", withExtension: "usdc")
 ```
-loadScene(filename:"redcar", withExtension:"usdc")
+
+This function loads the scene and makes the mesh available for use.
+
+### 3. Create an Entity and Attach the Mesh
+
+To use the "redcar" model, create a game entity and link the mesh to it as shown below:
+
+```swift
+// Step 1: Create an entity
+var carEntity: EntityID = createEntity()
+
+// Step 2: Attach the mesh to the entity
+addMeshToEntity(entityId: carEntity, name: "redcar")  // 'name' refers to the model name in the scene
 ```
 
-The function above, loads the scene data. To add the mesh to an entity. You need to create an entiy and then link the mesh tothe entity, as shown below:
-
-```
-// create entity 
-var carEntity:EntityID=createEntity()
-
-// add mesh to entity 
-addMeshToEntity(entityId: carEntity, name: "redcar")  // name refers to the name of the model 
-```
+With this setup, the redcar mesh is now associated with your game entity, ready for rendering and interaction.
 
 ### Translating a model 
 
 To translate a model, you need to provide the entity ID and new position to the Translation System, as shown below:
 
-`translateTo(entityId:redcar,position:simd_float3(2.5,0.75,20.0))`
 
-
-### Loading models in bulk
-
-Many times, you will have a scene with multiple models such as buildings, trees, etc. If you are not planing on manipulating these models (i.e. translating, rotating, etc), you can load them in bulk without the need to create an entity ID for each of them.
-
-`loadBulkScene(filename: "racetrack", withExtension: "usdc") //racetrack refers to the name of the file`
-
-### Creating a Sun (directional light)
-
-To add a directional light, you must first create an entity. Next, you create an instance of the directional light. Finally, you add the entity and the directional light to the lighting system, as shown below.
-
+```swift
+translateTo(entityId:redcar,position:simd_float3(2.5,0.75,20.0))
 ```
-// You can also set a directional light. Notice that you need to create an entity first. 
-let sunEntity:EntityID=createEntity()
 
-// Then you create a directional light 
-let sun:DirectionalLight = DirectionalLight()
+Take a look at TransformSystem.swift for similar operations such as rotation.
 
-// and finally, you add the entity and the directional light to the ligthting system. 
+### Loading Multiple Models at Once
+
+Often, your scene will contain several models, such as buildings, trees, or other static objects. If you **don’t need to manipulate these models individually** (e.g., translate, rotate, or scale them), you can load the entire scene at once. This approach saves time since you won’t need to create an `EntityID` for each individual model.
+
+Use the following function to load the scene:
+
+```swift
+loadBulkScene(filename: "racetrack", withExtension: "usdc") 
+```
+
+In this example, "racetrack" refers to the name of the file (e.g., racetrack.usdc). All models within the scene will be loaded and rendered together without requiring separate entity IDs for each one.
+
+
+### Creating a Sun (Directional Light)
+
+To add a **directional light** (such as the sun), follow these steps:
+
+1. **Create an entity** to represent the light.
+2. **Create a directional light instance**.
+3. **Add both the entity and the directional light** to the lighting system.
+
+Here’s how you can do it:
+
+```swift
+// Step 1: Create an entity for the directional light
+let sunEntity: EntityID = createEntity()
+
+// Step 2: Create the directional light instance
+let sun: DirectionalLight = DirectionalLight()
+
+// Step 3: Add the entity and the light to the lighting system
 lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
 ```
+
+This setup ensures the directional light is registered in the lighting system, ready to illuminate your scene.
+
 
 ## Including the Untold Engine in an Xcode Project 
 
