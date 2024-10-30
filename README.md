@@ -34,7 +34,9 @@ To run the the Untold Engine, you need the following tools:
 
 `swift run UntoldEngineTestApp`
 
-You should see a window
+You should see models being rendered.
+
+To enter "game mode" press 'l'. To move the car use the normal the 'wasd' keys
 
 ## Including the Untold Engine in an Xcode Project 
 
