@@ -36,7 +36,63 @@ To run the the Untold Engine, you need the following tools:
 
 You should see models being rendered.
 
-To enter "game mode" press 'l'. To move the car use the normal the 'wasd' keys
+To enter/exit "game mode" press 'l'. To move the car use the normal 'WASD' keys
+
+
+## Quick tutorial
+
+### Creating a game entity 
+
+Let's say you have a Blender scene as follows. First, you will export it as a "usdc" file.
+
+![blender_scene1](images/blendercar.png)
+
+In the scene above, note that the model is called "redcar". I will export the scene as "redcar.usdc" and will save it 
+in the Resource folder. (Sources/UntoldEngine/Resource)
+
+To load the scene in the engine, do the following:
+
+```
+loadScene(filename:"redcar", withExtension:"usdc")
+```
+
+The function above, loads the scene data. To add the mesh to an entity. You need to create an entiy and then link the mesh tothe entity, as shown below:
+
+```
+// create entity 
+var carEntity:EntityID=createEntity()
+
+// add mesh to entity 
+addMeshToEntity(entityId: carEntity, name: "redcar")  // name refers to the name of the model 
+```
+
+### Translating a model 
+
+To translate a model, you need to provide the entity ID and new position to the Translation System, as shown below:
+
+`translateTo(entityId:redcar,position:simd_float3(2.5,0.75,20.0))`
+
+
+### Loading models in bulk
+
+Many times, you will have a scene with multiple models such as buildings, trees, etc. If you are not planing on manipulating these models (i.e. translating, rotating, etc), you can load them in bulk without the need to create an entity ID for each of them.
+
+`loadBulkScene(filename: "racetrack", withExtension: "usdc") //racetrack refers to the name of the file`
+
+### Creating a Sun (directional light)
+
+To add a directional light, you must first create an entity. Next, you create an instance of the directional light. Finally, you add the entity and the directional light to the lighting system, as shown below.
+
+```
+// You can also set a directional light. Notice that you need to create an entity first. 
+let sunEntity:EntityID=createEntity()
+
+// Then you create a directional light 
+let sun:DirectionalLight = DirectionalLight()
+
+// and finally, you add the entity and the directional light to the ligthting system. 
+lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
+```
 
 ## Including the Untold Engine in an Xcode Project 
 
