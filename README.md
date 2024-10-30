@@ -36,6 +36,8 @@ To run the the Untold Engine, you need the following tools:
 
 You should see models being rendered.
 
+![gamesceneimage]("images/gamesceneimage.png")
+
 To enter/exit "game mode" press 'l'. To move the car use the normal 'WASD' keys
 
 
@@ -45,7 +47,7 @@ To enter/exit "game mode" press 'l'. To move the car use the normal 'WASD' keys
 
 Let's say you have a Blender scene as follows. First, you will export it as a "usdc" file.
 
-![blender_scene1](images/blendercar.png)
+![blendercar](images/blendercar.png)
 
 In the scene above, note that the model is called "redcar". I will export the scene as "redcar.usdc" and will save it 
 in the Resource folder. (Sources/UntoldEngine/Resource)
