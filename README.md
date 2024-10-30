@@ -38,7 +38,7 @@ You should see models being rendered.
 
 ![gamesceneimage](images/gamescene1.png)
 
-To enter/exit "game mode" press 'l'. To move the car use the normal 'WASD' keys
+To enter/exit "game mode" press 'L'. To move the car use the normal 'WASD' keys
 
 
 ## Quick tutorial
