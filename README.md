@@ -14,7 +14,7 @@ Author: [Harold Serrano](http://www.haroldserrano.com)
 
 ## Running the Untold Engine
 
-To run the the Untold Engine, you need the following tools:
+To run the the Untold Engine, do the following:
 
 1. Clone the Repository
 
