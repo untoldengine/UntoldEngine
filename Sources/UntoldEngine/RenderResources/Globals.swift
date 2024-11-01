@@ -26,7 +26,6 @@ var maxNumPointLights: Int = 100
 public var scene: Scene = Scene()
 public var camera: Camera! 
 public var inputSystem = InputSystem()
-public var movementSystem = MovementSystem()
 public var lightingSystem: LightingSystem!
 var shadowSystem: ShadowSystem!
 

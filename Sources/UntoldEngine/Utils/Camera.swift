@@ -140,11 +140,58 @@ public struct Camera {
 
   }
 
+  public mutating func moveCameraWithInput(input: (w:Bool, a: Bool, s: Bool, d: Bool), speed: Float, deltaTime: Float){
+
+    //calculate movement deltas based on input 
+    var delU:Float = 0.0 //movement along the right axis (xAxis)
+    var delN:Float = 0.0 //movement along the forward axis (zAxis)
+
+    if input.w{
+        delN -= speed*deltaTime //Move forward
+    }
+
+    if input.s{
+        delN += speed*deltaTime //Move backward
+    }
+
+    if input.a{
+        delU -= speed*deltaTime //Move left
+    }
+
+    if input.d{
+       delU += speed*deltaTime //Move right 
+    }
+
+    // Translate camera position by deltas 
+    translateBy(delU: delU , delV: 0, delN: delN)
+
+  }
+
+    // Function to rotate the camera based on mouse movement
+    public mutating func rotateCamera(yaw: Float, pitch: Float, sensitivity: Float) {
+        // Calculate rotation angles (scaled by sensitivity)
+        let rotationAngleX = yaw * sensitivity
+        let rotationAngleY = pitch * sensitivity
+
+        let rotationX: quaternion = getRotationQuaternion(
+          axis: simd_float3(0.0, 1.0, 0.0), radians: rotationAngleX)
+        let rotationY: quaternion = getRotationQuaternion(
+          axis: simd_float3(1.0, 0.0, 0.0), radians: rotationAngleY)
+
+        let newRotation: quaternion = quaternion_multiply(q0: rotationY, q1: rotation)
+
+        rotation = quaternion_multiply(q0: newRotation, q1: rotationX)
+
+
+        // Recompute view matrix to update the orientation vectors
+        updateViewMatrix()
+    }
+
   //data
-  var viewSpace = simd_float4x4.init(1.0)
-  var xAxis: simd_float3 = simd_float3(0.0, 0.0, 0.0)
-  var yAxis: simd_float3 = simd_float3(0.0, 0.0, 0.0)
-  var zAxis: simd_float3 = simd_float3(0.0, 0.0, 0.0)
+  public var viewSpace = simd_float4x4.init(1.0)
+  public var xAxis: simd_float3 = simd_float3(0.0, 0.0, 0.0)
+  public var yAxis: simd_float3 = simd_float3(0.0, 0.0, 0.0)
+  public var zAxis: simd_float3 = simd_float3(0.0, 0.0, 0.0)
 
   //quaternion
   var rotation: quaternion = quaternion_identity()

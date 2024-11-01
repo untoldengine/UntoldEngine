@@ -75,6 +75,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     shadowSystem = ShadowSystem()
 
     //initRayTracingCompute()
+    
+    inputSystem.setupGestureRecognizers(view: metalView)
+    inputSystem.setupEventMonitors()
 
     Logger.log(message: "Engine Starting")
 
@@ -193,16 +196,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
                     
                     graph[highlightPass.id] = highlightPass
                     
-                    //
-                    //                /*
-                    //                let postProcess=RenderPass(id:"PostProcess",dependencies: ["model"],execute: RenderPasses.executePostProcess(postProcessPipeline))
-                    //
-                    //                graph[postProcess.id]=postProcess
-                    //                */
-                    //                let lightingPass=RenderPass(id: "lighting", dependencies: ["model"], execute: RenderPasses.executeLightPass(lightingPipeline))
-                    //
-                    //                graph[lightingPass.id]=lightingPass
-                    
                     let tonemapPass = RenderPass(
                         id: "tonemap", dependencies: ["highlight"],
                         execute: RenderPasses.executeTonemapPass(tonemappingPipeline))
@@ -258,22 +251,21 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
   }
 
   func handleSceneInput() {
+
     //pinch gestures
     if inputSystem.currentPinchGestureState == .changed {
-      camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
+      //camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
     }
 
     //pan gestures
 
     if inputSystem.currentPanGestureState == .began {
-
-        camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
-
+        //camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
     }
 
     if inputSystem.currentPanGestureState == .changed {
 
-        camera.orbitAround(inputSystem.panDelta * 0.005)
+        //camera.orbitAround(inputSystem.panDelta * 0.005)
 
     }
 
@@ -281,24 +273,12 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
     }
 
-    if inputSystem.scrollDelta.x != 0.0 || inputSystem.scrollDelta.y != 0.0 {
+    camera.rotateCamera(yaw: inputSystem.mouseDeltaX*0.1, pitch: inputSystem.mouseDeltaY*0.1, sensitivity: 0.1)
 
-      if inputSystem.keyState.shiftPressed == true {
-        camera.moveCameraAlongAxis(
-          uDelta: simd_float3(inputSystem.scrollDelta.x, inputSystem.scrollDelta.y, 0.0))
+    let input=(w: inputSystem.keyState.wPressed, a: inputSystem.keyState.aPressed, s: inputSystem.keyState.sPressed, d: inputSystem.keyState.dPressed)
 
-        return
-      }
+    camera.moveCameraWithInput(input: input, speed: 5, deltaTime: 0.1 )
 
-      camera.moveCameraAlongAxis(
-        uDelta: simd_float3(inputSystem.scrollDelta.x, 0.0, inputSystem.scrollDelta.y))
-
-    }
-
-    if inputSystem.keyState.aPressed == true{
-        camera.moveCameraAlongAxis(uDelta: simd_float3(1.0,0.0,0.0))
-    }
-    
   }
 
 }

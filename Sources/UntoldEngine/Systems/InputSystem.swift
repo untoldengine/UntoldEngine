@@ -10,10 +10,10 @@ import Foundation
 import simd
 
 public struct KeyState {
-  var wPressed = false
-  var aPressed = false
-  var sPressed = false
-  var dPressed = false
+  public var wPressed = false
+  public var aPressed = false
+  public var sPressed = false
+  public var dPressed = false
   var spacePressed = false
   public var shiftPressed = false
   public var ctrlPressed = false
@@ -73,13 +73,70 @@ public class InputSystem {
 
   init() {
 
+
   }
 
-  public func handleMouseScroll(_ event: NSEvent) {
+    public func setupGestureRecognizers(view: NSView) {
 
-    if gameMode == true {
-      return
+        // Pinch gesture
+        let pinchGesture = NSMagnificationGestureRecognizer(target: self, action: #selector(handlePinch(_:)))
+        view.addGestureRecognizer(pinchGesture)
+
+        // Pan gesture
+        let panGesture = NSPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        view.addGestureRecognizer(panGesture)
+
+        // Click gesture
+        let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
+        view.addGestureRecognizer(clickGesture)
     }
+
+
+    public func setupEventMonitors() {
+        NSEvent.addLocalMonitorForEvents(matching: .flagsChanged) { [weak self] event in
+            self?.handleFlagsChanged(event)
+            return event
+        }
+
+        NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+            self?.keyPressed(event.keyCode)
+            return nil // Mark event as handled
+        }
+
+        NSEvent.addLocalMonitorForEvents(matching: .keyUp) { [weak self] event in
+            self?.keyReleased(event.keyCode)
+            return nil // Mark event as handled
+        }
+
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseDown) { [weak self] event in
+            self?.leftMouseDown(event)
+            return event
+        }
+
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseDragged) { [weak self] event in
+            self?.leftMouseDragged(simd_float2(Float(event.deltaX), Float(event.deltaY)))
+            return event
+        }
+
+        NSEvent.addLocalMonitorForEvents(matching: .leftMouseUp) { [weak self] event in
+            self?.leftMouseUp(event)
+            return event
+        }
+    }
+
+    @objc func handlePinch(_ gestureRecognizer: NSMagnificationGestureRecognizer) {
+        handlePinchGesture(gestureRecognizer, in: gestureRecognizer.view!)
+    }
+
+    @objc func handlePan(_ gestureRecognizer: NSPanGestureRecognizer) {
+        handlePanGesture(gestureRecognizer, in: gestureRecognizer.view!)
+    }
+
+    @objc func handleClick(_ gestureRecognizer: NSClickGestureRecognizer) {
+        print("Click detected at: \(gestureRecognizer.location(in: gestureRecognizer.view))")
+    }
+
+  public func handleMouseScroll(_ event: NSEvent) {
 
     var deltaX: Double = event.scrollingDeltaX
     var deltaY: Double = event.scrollingDeltaY
@@ -114,9 +171,6 @@ public class InputSystem {
 
   public func handlePinchGesture(_ gestureRecognizer: NSMagnificationGestureRecognizer, in view: NSView) {
 
-    if gameMode == true {
-      return
-    }
     let currentScale = gestureRecognizer.magnification
 
     if gestureRecognizer.state == .began {
@@ -144,20 +198,12 @@ public class InputSystem {
 
   public func handleClickGesture(_ gestureRecognizer: NSClickGestureRecognizer, in view: NSView) {
 
-    if gameMode == true {
-      return
-    }
-
     let currentPanLocation = gestureRecognizer.location(in: view)
 
   }
 
 
   public func handlePanGesture(_ gestureRecognizer: NSPanGestureRecognizer, in view: NSView) {
-
-    if gameMode == true {
-      return
-    }
 
     let currentPanLocation = gestureRecognizer.translation(in: view)
 
@@ -166,8 +212,6 @@ public class InputSystem {
       //Store the initial touch location and perform any initial setup
       self.initialPanLocation = currentPanLocation
       self.currentPanGestureState = .began
-
-      camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
 
     case .changed:
       //Calculate the deltas from the initial touch location
@@ -194,7 +238,6 @@ public class InputSystem {
       self.currentPanGestureState = .changed
       self.initialPanLocation = currentPanLocation
 
-      camera.orbitAround(inputSystem.panDelta * 0.005)
     case .ended:
 
       //reset
@@ -207,17 +250,30 @@ public class InputSystem {
 
   }
 
-  public func mouseMoved(_ delta: simd_float2) {
-
-    if gameMode == false {
-      return
-    }
+  public func leftMouseDragged(_ delta: simd_float2) {
 
     mouseDeltaX = delta.x
     mouseDeltaY = delta.y
 
+
+    if abs(mouseDeltaX) < abs(mouseDeltaY) {
+        mouseDeltaX = 0.0
+      } else {
+        mouseDeltaY = 0.0
+        // mouseDeltaX = -1.0 * mouseDeltaX
+      }
+
+      if abs(mouseDeltaX) <= 1.0 {
+        mouseDeltaX = 0.0
+      }
+
+      if abs(mouseDeltaY) <= 1.0 {
+        mouseDeltaY = 0.0
+      }
+
     mouseX += mouseDeltaX
     mouseY += mouseDeltaY
+
 
     if mouseDeltaX != 0.0 || mouseDeltaY != 0.0 {
       //mouse is active
@@ -228,14 +284,10 @@ public class InputSystem {
       mouseActive = false
 
     }
-
+    
   }
 
-  public func mouseDown(_ event: NSEvent) {
-
-    if gameMode == false {
-      return
-    }
+  public func leftMouseDown(_ event: NSEvent) {
 
     switch event.buttonNumber {
     case 0:
@@ -247,11 +299,9 @@ public class InputSystem {
     }
   }
 
-  public func mouseUp(_ event: NSEvent) {
+  public func leftMouseUp(_ event: NSEvent) {
 
-    if gameMode == false {
-      return
-    }
+    
     mouseActive = false
     switch event.buttonNumber {
     case 0:
@@ -265,9 +315,6 @@ public class InputSystem {
 
   public func keyPressed(_ keyCode: UInt16) {
 
-    /* if gameMode == false {
-      return
-    } */
     switch keyCode {
     case kVK_ANSI_A:
       keyState.aPressed = true
@@ -302,5 +349,16 @@ public class InputSystem {
       break
     }
   }
+
+    private func handleFlagsChanged(_ event: NSEvent) {
+        if event.modifierFlags.contains(.shift) {
+            keyState.shiftPressed = event.keyCode == 56
+        }
+        if event.modifierFlags.contains(.control) {
+            keyState.ctrlPressed = event.keyCode == 59
+        }
+
+    }
+
 
 }
