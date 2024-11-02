@@ -3,6 +3,8 @@
 
 Welcome to your first tutorial on using the **Untold Engine** to create a simple race car game. This guide will walk you through setting up a basic game scene, adding a controllable vehicle, and implementing a camera follow system. By the end of this tutorial, you'll have a functioning race car game with AI-driven opponent cars that simulate a competitive experience.
 
+For this tutorial, you are going to implement the game in the following file `main.swift` inside the `UntoldEngineTestApp` folder.
+
 ## 1. Create the GameScene Class
 The `GameScene` class is the foundation of your game, where you'll set up the initial game state and write the core logic. Begin by defining this class.
 

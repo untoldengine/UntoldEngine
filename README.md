@@ -124,6 +124,9 @@ lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
 
 This setup ensures the directional light is registered in the lighting system, ready to illuminate your scene.
 
+## More Tutorials
+
+For more tutorials, head over to the [docs](https://github.com/untoldengine/UntoldEngine/tree/develop/docs) folder. I have written several game demos that should help you get started with the Untold Engine.
 
 ## Including the Untold Engine in an Xcode Project 
 
