@@ -5,6 +5,8 @@ Welcome to your first tutorial on using the **Untold Engine** to create a simple
 
 For this tutorial, you are going to implement the game in the following file `main.swift` inside the `UntoldEngineTestApp` folder.
 
+![gamesceneimage](../images/gamescene1.png)
+
 ## 1. Create the GameScene Class
 The `GameScene` class is the foundation of your game, where you'll set up the initial game state and write the core logic. Begin by defining this class.
 
