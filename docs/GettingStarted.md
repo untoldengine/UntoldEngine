@@ -12,10 +12,14 @@ Click Next. Give your Game a name and make sure to Select Swift and Metal as the
 
 ## Step 2. Delete default files
 
-When you created the Xcode project, Xcode may have generated the following default files shown in red:
+When you created the Xcode project, Xcode may have generated the following default files:
 
-![filestructure](../images/XcodeGameFileStructure.png)
-
+```swift
+GameViewController.swift
+Renderer.swift
+Shaders.metal
+ShaderTypes.h
+```
 Go ahead and remove/delete these files.
 
 ## Step 3. Add the engine as a Package Dependency
