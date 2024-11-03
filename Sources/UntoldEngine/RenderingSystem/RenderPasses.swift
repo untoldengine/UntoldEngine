@@ -393,10 +393,10 @@ struct RenderPasses {
 
     var brdfParameters: BRDFSelectionUniform = BRDFSelectionUniform()
     brdfParameters.applyIBL = applyIBL
-    brdfParameters.brdfSelection = Int(Int32(BRDFSelection.rawValue))
-    brdfParameters.ndfSelection = Int(Int32(NDFSelection.rawValue))
+    brdfParameters.brdfSelection = 0
+    brdfParameters.ndfSelection = 0
     brdfParameters.ambientIntensity = ambientIntensity
-    brdfParameters.gsSelection = Int(Int32(GeomShadowSelection.rawValue))
+    brdfParameters.gsSelection = 0
 
     renderEncoder.setFragmentBytes(
       &brdfParameters, length: MemoryLayout<BRDFSelectionUniform>.stride,

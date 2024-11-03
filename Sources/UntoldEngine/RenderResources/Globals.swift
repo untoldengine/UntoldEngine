@@ -120,52 +120,11 @@ enum TextureType {
   case normal
 }
 
-
-//key codes
-let kVK_ANSI_W: UInt16 = 13
-let kVK_ANSI_A: UInt16 = 0
-let kVK_ANSI_S: UInt16 = 1
-let kVK_ANSI_D: UInt16 = 2
-
-let kVK_ANSI_R: UInt16 = 15
-let kVK_ANSI_P: UInt16 = 35
-let kVK_ANSI_L: UInt16 = 37
-
 var visualDebug: Bool = false
 public var gameMode: Bool = false
 var hotReload: Bool = false
 
 var toneMapOperator: Int = 0
-var submeshSelection: Int = 0
-
-//BRDF
-//NDF
-enum BRDF: Int {
-  case cook
-  case disney
-  case blinn
-  case phong
-}
-
-var BRDFSelection: BRDF = BRDF.cook
-
-enum NDF: Int {
-  case ggx
-  case beckmann
-  case blinnphong
-  //case ggxani
-}
-
-enum GeomShadow: Int {
-  case schlickGGX
-  case schlickBechmann
-  case ggx
-}
-
-
-var NDFSelection: NDF = NDF.ggx
-
-var GeomShadowSelection: GeomShadow = GeomShadow.schlickGGX
 
 var applyIBL: Bool = true
 var renderEnvironment: Bool = false
@@ -175,18 +134,6 @@ var ambientIntensity: Float = 0.44
 let boundingBoxVertexCount = 24
 var selectedModel: Bool = false
 
-var raytrace: Bool = false
-var processingRTX: Bool = true
-var processedRTX: Bool = false
-var rayMaxSampleSize: Int = 4
-var rayBounces: Int = 3
-var rtxShadowEnable: Bool = true
-var frameIndex: Int = 0
-
 var envRotationAngle: Float = 0
 public var hdrURL:String = "photostudio.hdr"
 public var resourceURL:URL? 
-
-
-//var uniforms:Uniforms
-
