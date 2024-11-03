@@ -274,8 +274,8 @@ func initTextureResources() {
 
 func initIBLResources() {
 
-  let width: Int = 2000
-  let height: Int = 1000
+  let width: Int = Int(renderInfo.viewPort.x)
+  let height: Int = Int(renderInfo.viewPort.y)
 
   //irradiance map
   let irradianceMapDescriptor: MTLTextureDescriptor = MTLTextureDescriptor()
