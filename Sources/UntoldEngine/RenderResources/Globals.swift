@@ -186,3 +186,7 @@ var frameIndex: Int = 0
 var envRotationAngle: Float = 0
 public var hdrURL:String = "photostudio.hdr"
 public var resourceURL:URL? 
+
+
+//var uniforms:Uniforms
+

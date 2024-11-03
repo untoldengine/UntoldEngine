@@ -10,8 +10,6 @@ import CoreGraphics
 import Foundation
 import MetalKit
 
-import CShaderTypes 
-
 enum LoadHDRError: Error {
   case urlCreationFailed(String)
   case imageSourceCreationFailed
@@ -273,128 +271,6 @@ func updateTexture(
 //    return texture
 //}
 
-func getTrianglesPrimitiveData(mesh: Mesh) -> [PrimitiveData] {
-
-  var primitiveDataArray = [PrimitiveData]()
-
-  //access the UV attribute data
-  guard
-    let uvAttribute = mesh.modelMDLMesh.vertexAttributeData(
-      forAttributeNamed: MDLVertexAttributeTextureCoordinate, as: .float2)
-  else {
-    print("Could not get the UVs")
-    fatalError("Failed to get UV attribute")
-  }
-
-  let uvData = uvAttribute.dataStart
-  let uvStride = uvAttribute.stride
-
-  guard
-    let normalAttribute = mesh.modelMDLMesh.vertexAttributeData(
-      forAttributeNamed: MDLVertexAttributeNormal, as: .float4)
-  else {
-    print("Could not get the Normals")
-    fatalError("Failed to get the Normals")
-  }
-
-  let normalData = normalAttribute.dataStart
-  let normalStride = normalAttribute.stride
-
-  //iterate over each submesh to get the triangle indices
-  for submesh in mesh.submeshes {
-
-    let indexBuffer = submesh.metalKitSubmesh.indexBuffer
-    let indexType = submesh.metalKitSubmesh.indexType
-    let indexCount = submesh.metalKitSubmesh.indexCount
-    let indexData = indexBuffer.map().bytes
-
-    for i in stride(from: 0, to: indexCount, by: 3) {
-      let indices: [Int]
-      switch indexType {
-      case .uint16:
-        indices = [
-          Int(indexData.load(fromByteOffset: i * 2, as: UInt16.self)),
-          Int(indexData.load(fromByteOffset: (i + 1) * 2, as: UInt16.self)),
-          Int(indexData.load(fromByteOffset: (i + 2) * 2, as: UInt16.self)),
-        ]
-      case .uint32:
-        indices = [
-          Int(indexData.load(fromByteOffset: i * 4, as: UInt32.self)),
-          Int(indexData.load(fromByteOffset: (i + 1) * 4, as: UInt32.self)),
-          Int(indexData.load(fromByteOffset: (i + 2) * 4, as: UInt32.self)),
-        ]
-      default:
-        fatalError("Unsupported index type")
-      }
-
-      // Get the UV coordinates for each vertex in the triangle
-      let uvs = indices.map { index -> simd_float2 in
-        let uvOffset = index * uvStride
-        return uvData.load(fromByteOffset: uvOffset, as: simd_float2.self)
-      }
-
-      //Get the normal coordinates for each vertex in the triangle
-      let normals = indices.map { index -> simd_float4 in
-        let normalOffset = index * normalStride
-        return normalData.load(fromByteOffset: normalOffset, as: simd_float4.self)
-      }
-
-      var primitiveData = PrimitiveData()
-      primitiveData.uv.0 = uvs[0]
-      primitiveData.uv.1 = uvs[1]
-      primitiveData.uv.2 = uvs[2]
-
-      primitiveData.normals.0 = normals[0]
-      primitiveData.normals.1 = normals[1]
-      primitiveData.normals.2 = normals[2]
-
-      primitiveData.baseColor = submesh.material!.baseColorValue
-      primitiveData.roughness = submesh.material!.roughnessValue
-      primitiveData.metallic = submesh.material!.metallicValue
-
-      primitiveData.specular = submesh.material!.specular
-      primitiveData.specularTint = submesh.material!.specularTint
-      primitiveData.anisotropic = submesh.material!.anisotropic
-      primitiveData.sheen = submesh.material!.sheen
-      primitiveData.sheenTint = submesh.material!.sheenTint
-      primitiveData.clearCoat = submesh.material!.clearCoat
-      primitiveData.clearCoatGloss = submesh.material!.clearCoatGloss
-      primitiveData.ior = submesh.material!.ior
-      primitiveData.edgeTint = submesh.material!.edgeTint
-      primitiveData.emit = simd_float4(0.0, 0.0, 0.0, 1.0)
-      if submesh.material!.emit {
-        primitiveData.emit = submesh.material!.baseColorValue
-      }
-      primitiveDataArray.append(primitiveData)
-    }
-  }
-
-  return primitiveDataArray
-}
-
-public func loadPrimitiveDataIntoBuffer(_ primitiveDataArray: [PrimitiveData]) -> MTLBuffer? {
-
-  //calculate the size needed for the buffer
-  let bufferSize = primitiveDataArray.count * MemoryLayout<PrimitiveData>.stride
-
-  //create a buffer on the GPU
-  guard let buffer = renderInfo.device.makeBuffer(length: bufferSize, options: .storageModeShared)
-  else {
-    print("Failed to create buffer")
-    return nil
-  }
-
-  //copy the data into the buffer
-  let bufferPointer = buffer.contents().bindMemory(
-    to: PrimitiveData.self, capacity: primitiveDataArray.count)
-
-  for (index, primitiveData) in primitiveDataArray.enumerated() {
-    bufferPointer[index] = primitiveData
-  }
-
-  return buffer
-}
-
 public func hasTextureCoordinates(mesh: MDLMesh) -> Bool {
   // Access the vertex descriptor of the mesh
   let vertexDescriptor = mesh.vertexDescriptor
@@ -413,30 +289,3 @@ public func hasTextureCoordinates(mesh: MDLMesh) -> Bool {
   return false
 }
 
-public func screenToLongitudeLatitude(_ currentPosition: simd_float2, _ view: NSView) -> simd_float2 {
-
-  // Normalize the position to the range [0, 1]
-  let u: Float = Float(currentPosition.x / Float(view.bounds.width))
-  let v: Float = Float(currentPosition.y / Float(view.bounds.height))
-
-  //convert the normalized coordinates to lat-long (latitude and longitude) coordinates
-  let longitude: Float = u * 360.0 - 180.0  //Longitude in degrees [-180,180]
-  let latitude: Float = v * 180 - 90  //Latitude in degrees [-90,90]
-
-  return simd_float2(longitude, latitude)
-}
-
-public func longitudeLatitudeToCartesian(_ longitude: Float, _ latitude: Float, _ radius: Float)
-  -> simd_float3
-{
-  // Convert latitude and longitude from degrees to radians
-  let lat = degreesToRadians(degrees: latitude)
-  let longi = degreesToRadians(degrees: longitude + 90)
-
-  // Compute the Cartesian coordinates
-  let x = radius * cos(lat) * cos(longi)
-  let y = radius * sin(lat)
-  let z = radius * cos(lat) * sin(longi)
-
-  return simd_float3(x, y, z)
-}

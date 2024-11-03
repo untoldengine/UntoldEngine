@@ -20,16 +20,10 @@ let package = Package(
         )
     ],
     targets: [
-        // C-based target for bridging headers
-        .target(
-            name: "CShaderTypes",
-            path: "Sources/CShaderTypes",
-            publicHeadersPath: "."
-        ),
         // Define the library target with the engine code
         .target(
             name: "UntoldEngine",
-            dependencies: ["CShaderTypes"],
+            dependencies: [],
             path: "Sources/UntoldEngine",
             exclude: [
             ],
@@ -38,10 +32,7 @@ let package = Package(
                 .copy("UntoldEngineKernels/UntoldEngineKernels.metallib"),
                 .process("Shaders"), 
                 .process("Resources/Models"),
-                .process("Resources/HDR"),
-                .process("UntoldEngineKernels/UntoldEngineKernels.air"),
-                .process("UntoldEngineKernels/UntoldEngineKernels.metal"),
-            
+                .process("Resources/HDR")
             ],
             swiftSettings: [
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"])

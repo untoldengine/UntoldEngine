@@ -9,7 +9,6 @@
 import Foundation
 import Metal
 import MetalKit
-import CShaderTypes
 
 struct RenderPasses {
 
@@ -67,13 +66,13 @@ struct RenderPasses {
 
     //send the uniforms
     renderEncoder.setVertexBuffer(
-      bufferResources.gridVertexBuffer, offset: 0, index: Int(gridPassPositionIndex.rawValue))
+        bufferResources.gridVertexBuffer, offset: 0, index: Int(GridPassBufferIndices.gridPassPositionIndex.rawValue))
 
     renderEncoder.setVertexBuffer(
-      bufferResources.gridUniforms, offset: 0, index: Int(gridPassUniformIndex.rawValue))
+        bufferResources.gridUniforms, offset: 0, index: Int(GridPassBufferIndices.gridPassUniformIndex.rawValue))
 
     renderEncoder.setFragmentBuffer(
-      bufferResources.gridUniforms, offset: 0, index: Int(gridPassUniformIndex.rawValue))
+        bufferResources.gridUniforms, offset: 0, index: Int(GridPassBufferIndices.gridPassUniformIndex.rawValue))
 
     //send buffer data
 
@@ -152,11 +151,11 @@ struct RenderPasses {
 
     renderEncoder.setVertexBytes(
       &environmentConstants, length: MemoryLayout<EnvironmentConstants>.stride,
-      index: Int(envPassConstantIndex.rawValue))
+      index: Int(EnvironmentPassBufferIndices.envPassConstantIndex.rawValue))
 
     renderEncoder.setVertexBytes(
       &envRotationAngle, length: MemoryLayout<Float>.stride,
-      index: Int(envPassRotationAngleIndex.rawValue))
+      index: Int(EnvironmentPassBufferIndices.envPassRotationAngleIndex.rawValue))
 
     renderEncoder.setFragmentTexture(textureResources.environmentTexture, index: 0)
 
@@ -210,7 +209,7 @@ struct RenderPasses {
     //send buffer data
     renderEncoder.setVertexBytes(
       &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
-      index: Int(shadowModelLightMatrixUniform.rawValue))
+      index: Int(ShadowBufferIndices.shadowModelLightMatrixUniform.rawValue))
 
     //need to send light ortho view matrix
 
@@ -274,11 +273,11 @@ struct RenderPasses {
         }
 
         renderEncoder.setVertexBuffer(
-          render.spaceUniform, offset: 0, index: Int(shadowModelUniform.rawValue))
+            render.spaceUniform, offset: 0, index: Int(ShadowBufferIndices.shadowModelUniform.rawValue))
 
         renderEncoder.setVertexBuffer(
-          render.mesh.metalKitMesh.vertexBuffers[Int(shadowModelPositionIndex.rawValue)].buffer,
-          offset: 0, index: Int(shadowModelPositionIndex.rawValue))
+            render.mesh.metalKitMesh.vertexBuffers[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].buffer,
+            offset: 0, index: Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue))
 
         for subMesh in render.mesh.submeshes {
 
@@ -306,20 +305,20 @@ struct RenderPasses {
       handleError(.pipelineStateNulled, modelPipeline.name!)
       return
     }
+      
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
+      .loadAction = .clear
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
+      .loadAction = .clear
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
+      .loadAction = .clear
 
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-      .loadAction = .clear
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
-      .loadAction = .clear
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
-      .loadAction = .clear
-
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
       .storeAction = .store
 
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
       .storeAction = .store
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
       .storeAction = .store
 
     renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
@@ -349,7 +348,7 @@ struct RenderPasses {
 
     renderEncoder.setVertexBytes(
       &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
-      index: Int(modelPassLightOrthoViewMatrixIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassLightOrthoViewMatrixIndex.rawValue))
 
     var lightDirection = simd_float3(0.0, 1.0, 0.0)
     var lightIntensity: Float = 0.0
@@ -366,42 +365,42 @@ struct RenderPasses {
 
     renderEncoder.setVertexBytes(
       &lightDirection, length: MemoryLayout<simd_float3>.stride,
-      index: Int(modelPassLightDirectionIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassLightDirectionIndex.rawValue))
 
     renderEncoder.setFragmentBytes(
       &lightDirection, length: MemoryLayout<simd_float3>.stride,
-      index: Int(modelPassLightDirectionIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassLightDirectionIndex.rawValue))
 
     renderEncoder.setFragmentBytes(
       &lightIntensity, length: MemoryLayout<Float>.stride,
-      index: Int(modelPassLightIntensityIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassLightIntensityIndex.rawValue))
 
     renderEncoder.setFragmentBytes(
       &lightColor, length: MemoryLayout<simd_float3>.stride,
-      index: Int(modelPassLightDirectionColorIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassLightDirectionColorIndex.rawValue))
 
     renderEncoder.setFragmentBytes(
       &envRotationAngle, length: MemoryLayout<Float>.stride,
-      index: Int(modelPassIBLRotationAngleIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassIBLRotationAngleIndex.rawValue))
 
     //ibl
     renderEncoder.setFragmentTexture(
-      textureResources.irradianceMap, index: Int(modelIBLIrradianceTextureIndex.rawValue))
+        textureResources.irradianceMap, index: Int(ModelPassBufferIndices.modelIBLIrradianceTextureIndex.rawValue))
     renderEncoder.setFragmentTexture(
-      textureResources.specularMap, index: Int(modelIBLSpecularTextureIndex.rawValue))
+        textureResources.specularMap, index: Int(ModelPassBufferIndices.modelIBLSpecularTextureIndex.rawValue))
     renderEncoder.setFragmentTexture(
-      textureResources.iblBRDFMap, index: Int(modelIBLBRDFMapTextureIndex.rawValue))
+        textureResources.iblBRDFMap, index: Int(ModelPassBufferIndices.modelIBLBRDFMapTextureIndex.rawValue))
 
     var brdfParameters: BRDFSelectionUniform = BRDFSelectionUniform()
     brdfParameters.applyIBL = applyIBL
-    brdfParameters.brdfSelection = Int32(BRDFSelection.rawValue)
-    brdfParameters.ndfSelection = Int32(NDFSelection.rawValue)
+    brdfParameters.brdfSelection = Int(Int32(BRDFSelection.rawValue))
+    brdfParameters.ndfSelection = Int(Int32(NDFSelection.rawValue))
     brdfParameters.ambientIntensity = ambientIntensity
-    brdfParameters.gsSelection = Int32(GeomShadowSelection.rawValue)
+    brdfParameters.gsSelection = Int(Int32(GeomShadowSelection.rawValue))
 
     renderEncoder.setFragmentBytes(
       &brdfParameters, length: MemoryLayout<BRDFSelectionUniform>.stride,
-      index: Int(modelPassBRDFIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassBRDFIndex.rawValue))
 
     if let pointLightBuffer = bufferResources.pointLightBuffer {
 
@@ -424,16 +423,16 @@ struct RenderPasses {
     }
 
     renderEncoder.setFragmentBuffer(
-      bufferResources.pointLightBuffer, offset: 0, index: Int(modelPassPointLightsIndex.rawValue))
+        bufferResources.pointLightBuffer, offset: 0, index: Int(ModelPassBufferIndices.modelPassPointLightsIndex.rawValue))
 
     var pointLightCount: Int = lightingSystem.pointLight.count
 
     renderEncoder.setFragmentBytes(
       &pointLightCount, length: MemoryLayout<Int>.stride,
-      index: Int(modelPassPointLightsCountIndex.rawValue))
+      index: Int(ModelPassBufferIndices.modelPassPointLightsCountIndex.rawValue))
 
     renderEncoder.setFragmentTexture(
-      textureResources.shadowMap, index: Int(shadowTextureIndex.rawValue))
+        textureResources.shadowMap, index: Int(ModelPassBufferIndices.shadowTextureIndex.rawValue))
 
     // Create a component query for entities with both Transform and Render components
     let componentQuery = ComponentQuery<TransformAndRenderChecker>(scene: scene)
@@ -487,38 +486,38 @@ struct RenderPasses {
         }
 
         renderEncoder.setVertexBuffer(
-          render.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue))
+            render.spaceUniform, offset: 0, index: Int(ModelPassBufferIndices.modelPassUniformIndex.rawValue))
 
         renderEncoder.setFragmentBuffer(
-          render.spaceUniform, offset: 0, index: Int(modelPassUniformIndex.rawValue))
+            render.spaceUniform, offset: 0, index: Int(ModelPassBufferIndices.modelPassUniformIndex.rawValue))
 
         renderEncoder.setVertexBuffer(
-          render.mesh.metalKitMesh.vertexBuffers[Int(modelPassVerticesIndex.rawValue)].buffer,
-          offset: 0, index: Int(modelPassVerticesIndex.rawValue))
+            render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)].buffer,
+            offset: 0, index: Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue))
 
         renderEncoder.setVertexBuffer(
-          render.mesh.metalKitMesh.vertexBuffers[Int(modelPassNormalIndex.rawValue)].buffer,
-          offset: 0, index: Int(modelPassNormalIndex.rawValue))
+            render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)].buffer,
+            offset: 0, index: Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue))
 
         renderEncoder.setVertexBuffer(
-          render.mesh.metalKitMesh.vertexBuffers[Int(modelPassUVIndex.rawValue)].buffer, offset: 0,
-          index: Int(modelPassUVIndex.rawValue))
+            render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)].buffer, offset: 0,
+            index: Int(ModelPassBufferIndices.modelPassUVIndex.rawValue))
 
         renderEncoder.setVertexBuffer(
-          render.mesh.metalKitMesh.vertexBuffers[Int(modelPassTangentIndex.rawValue)].buffer,
-          offset: 0, index: Int(modelPassTangentIndex.rawValue))
+            render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)].buffer,
+            offset: 0, index: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue))
 
         for subMesh in render.mesh.submeshes {
 
           //set base texture
           renderEncoder.setFragmentTexture(
-            subMesh.material?.baseColor, index: Int(modelBaseTextureIndex.rawValue))
+            subMesh.material?.baseColor, index: Int(ModelPassBufferIndices.modelBaseTextureIndex.rawValue))
 
           renderEncoder.setFragmentTexture(
-            subMesh.material?.roughness, index: Int(modelRoughnessTextureIndex.rawValue))
+            subMesh.material?.roughness, index: Int(ModelPassBufferIndices.modelRoughnessTextureIndex.rawValue))
 
           renderEncoder.setFragmentTexture(
-            subMesh.material?.metallic, index: Int(modelMetallicTextureIndex.rawValue))
+            subMesh.material?.metallic, index: Int(ModelPassBufferIndices.modelMetallicTextureIndex.rawValue))
 
           var disneyParameters: DisneyParametersUniform = DisneyParametersUniform()
           disneyParameters.specular = subMesh.material!.specular
@@ -544,15 +543,15 @@ struct RenderPasses {
 
           renderEncoder.setFragmentBytes(
             &disneyParameters, length: MemoryLayout<DisneyParametersUniform>.stride,
-            index: Int(modelDisneyParameterIndex.rawValue))
+            index: Int(ModelPassBufferIndices.modelDisneyParameterIndex.rawValue))
 
           var hasNormal: Bool = ((subMesh.material?.normal) != nil)
           renderEncoder.setFragmentBytes(
             &hasNormal, length: MemoryLayout<Bool>.stride,
-            index: Int(modelHasNormalTextureIndex.rawValue))
+            index: Int(ModelPassBufferIndices.modelHasNormalTextureIndex.rawValue))
 
           renderEncoder.setFragmentTexture(
-            subMesh.material?.normal, index: Int(modelNormalTextureIndex.rawValue))
+            subMesh.material?.normal, index: Int(ModelPassBufferIndices.modelNormalTextureIndex.rawValue))
 
           renderEncoder.drawIndexedPrimitives(
             type: subMesh.metalKitSubmesh.primitiveType,
@@ -704,7 +703,7 @@ struct RenderPasses {
 
     //clear it so that it doesn't have any effect on the final output
     renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
       .loadAction = .load
 
     //set your encoder here
@@ -728,7 +727,7 @@ struct RenderPasses {
     renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
     renderEncoder.setFragmentTexture(
-      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture,
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].texture,
       index: 0)
 
     renderEncoder.setFragmentTexture(
@@ -761,10 +760,10 @@ struct RenderPasses {
     let renderPassDescriptor = renderInfo.renderPassDescriptor!
 
     //set the states for the pipeline
-    renderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = MTLLoadAction.load
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+      renderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].loadAction = MTLLoadAction.load
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
       .loadAction = .load
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
       .loadAction = .load
 
     renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
@@ -832,15 +831,15 @@ struct RenderPasses {
 
       if i == 0 {
         renderEncoder.setFragmentTexture(
-          renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
             .texture, index: 0)
       } else if i == 1 {
         renderEncoder.setFragmentTexture(
-          renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
             .texture, index: 0)
       } else if i == 2 {
         renderEncoder.setFragmentTexture(
-          renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+            renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
             .texture, index: 0)
       } else if i == 3 {
         renderEncoder.setFragmentTexture(
@@ -896,11 +895,11 @@ struct RenderPasses {
         return
       }
 
-      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
         .loadAction = .load
-      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
         .loadAction = .load
-      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
         .loadAction = .load
 
       renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
@@ -927,7 +926,7 @@ struct RenderPasses {
       renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
       renderEncoder.setFragmentTexture(
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
           .texture, index: 0)
 
       //set the draw command
@@ -1078,11 +1077,11 @@ struct RenderPasses {
         return
       }
 
-      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
         .loadAction = .load
-      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
         .loadAction = .load
-      renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
         .loadAction = .load
 
       renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
@@ -1109,12 +1108,12 @@ struct RenderPasses {
       renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
 
       renderEncoder.setFragmentTexture(
-        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)]
-          .texture, index: Int(toneMapPassColorTextureIndex.rawValue))
+        renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)]
+            .texture, index: Int(ToneMapPassBufferIndices.toneMapPassColorTextureIndex.rawValue))
 
       renderEncoder.setFragmentBytes(
         &toneMapOperator, length: MemoryLayout<Int>.stride,
-        index: Int(toneMapPassToneMappingIndex.rawValue))
+        index: Int(ToneMapPassBufferIndices.toneMapPassToneMappingIndex.rawValue))
       //set the draw command
       renderEncoder.drawIndexedPrimitives(
         type: .triangle,

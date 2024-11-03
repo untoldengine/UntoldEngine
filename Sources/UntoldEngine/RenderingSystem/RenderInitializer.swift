@@ -9,7 +9,6 @@
 import Foundation
 import MetalKit
 import simd
-import CShaderTypes
 
 func initBufferResources() {
 
@@ -111,35 +110,35 @@ func initRenderPassDescriptors() {
   renderInfo.offscreenRenderPassDescriptor.renderTargetWidth = Int(renderInfo.viewPort.x)
   renderInfo.offscreenRenderPassDescriptor.renderTargetHeight = Int(renderInfo.viewPort.y)
 
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].texture =
     textureResources.colorMap
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].texture =
     textureResources.normalMap
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].texture =
     textureResources.positionMap
 
   renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture = textureResources.depthMap
   renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
 
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].loadAction =
     .clear  // or .load
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].clearColor =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].clearColor =
     MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].storeAction =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].storeAction =
     .store  // or .load
 
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].loadAction =
     .clear  // or .load
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].clearColor =
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].clearColor =
     MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)]
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
     .storeAction = .store
 
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
     .loadAction = .clear  // or .load
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
     .clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-  renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)]
+    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
     .storeAction = .store
 
 }
@@ -437,18 +436,18 @@ func initRenderPipelines() {
     let vertexDescriptor: MTLVertexDescriptor = MTLVertexDescriptor()
 
     //set position
-    vertexDescriptor.attributes[Int(shadowModelPositionIndex.rawValue)].format =
+      vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].format =
       MTLVertexFormat.float4
-    vertexDescriptor.attributes[Int(shadowModelPositionIndex.rawValue)].bufferIndex = Int(
-      shadowModelPositionIndex.rawValue)
-    vertexDescriptor.attributes[Int(shadowModelPositionIndex.rawValue)].offset = 0
+      vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].bufferIndex = Int(
+        ShadowBufferIndices.shadowModelPositionIndex.rawValue)
+      vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].offset = 0
 
     // stride
-    vertexDescriptor.layouts[Int(shadowModelPositionIndex.rawValue)].stride =
+      vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stride =
       MemoryLayout<simd_float4>.stride
-    vertexDescriptor.layouts[Int(shadowModelPositionIndex.rawValue)].stepFunction =
+      vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepFunction =
       MTLVertexStepFunction.perVertex
-    vertexDescriptor.layouts[Int(shadowModelPositionIndex.rawValue)].stepRate = 1
+      vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepRate = 1
 
     //create the pipeline descriptor
     let pipelineDescriptor = MTLRenderPipelineDescriptor()
@@ -557,38 +556,38 @@ func initRenderPipelines() {
     //tell the gpu how data is organized
     vertexDescriptor.model = MDLVertexDescriptor()
 
-    vertexDescriptor.model.attributes[Int(modelPassVerticesIndex.rawValue)] = MDLVertexAttribute(
+      vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexAttribute(
       name: MDLVertexAttributePosition,
       format: .float4,
       offset: 0,
-      bufferIndex: Int(modelPassVerticesIndex.rawValue))
+      bufferIndex: Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue))
 
-    vertexDescriptor.model.attributes[Int(modelPassNormalIndex.rawValue)] = MDLVertexAttribute(
+      vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexAttribute(
       name: MDLVertexAttributeNormal,
       format: .float4,
       offset: 0,
-      bufferIndex: Int(modelPassNormalIndex.rawValue))
+      bufferIndex: Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue))
 
-    vertexDescriptor.model.attributes[Int(modelPassUVIndex.rawValue)] = MDLVertexAttribute(
+      vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexAttribute(
       name: MDLVertexAttributeTextureCoordinate,
       format: .float2,
       offset: 0,
-      bufferIndex: Int(modelPassUVIndex.rawValue))
+      bufferIndex: Int(ModelPassBufferIndices.modelPassUVIndex.rawValue))
 
-    vertexDescriptor.model.attributes[Int(modelPassTangentIndex.rawValue)] = MDLVertexAttribute(
+      vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexAttribute(
       name: MDLVertexAttributeTangent, format: .float4, offset: 0,
-      bufferIndex: Int(modelPassTangentIndex.rawValue))
+      bufferIndex: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue))
 
-    vertexDescriptor.model.layouts[Int(modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
+      vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
       stride: MemoryLayout<simd_float4>.stride)
 
-    vertexDescriptor.model.layouts[Int(modelPassNormalIndex.rawValue)] = MDLVertexBufferLayout(
+      vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexBufferLayout(
       stride: MemoryLayout<simd_float4>.stride)
 
-    vertexDescriptor.model.layouts[Int(modelPassUVIndex.rawValue)] = MDLVertexBufferLayout(
+      vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexBufferLayout(
       stride: MemoryLayout<simd_float2>.stride)
 
-    vertexDescriptor.model.layouts[Int(modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
+      vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
       stride: MemoryLayout<simd_float4>.stride)
 
     let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model)
@@ -598,10 +597,10 @@ func initRenderPipelines() {
     pipelineDescriptor.vertexFunction = vertexFunction
     pipelineDescriptor.fragmentFunction = fragmentFunction
     pipelineDescriptor.vertexDescriptor = vertexDescriptor
-    pipelineDescriptor.colorAttachments[Int(colorTarget.rawValue)].pixelFormat =
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].pixelFormat =
       renderInfo.colorPixelFormat
-    pipelineDescriptor.colorAttachments[Int(normalTarget.rawValue)].pixelFormat = .rgba16Float
-    pipelineDescriptor.colorAttachments[Int(positionTarget.rawValue)].pixelFormat = .rgba16Float
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].pixelFormat = .rgba16Float
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].pixelFormat = .rgba16Float
 
     pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
 
@@ -653,10 +652,10 @@ func initRenderPipelines() {
     pipelineDescriptor.vertexFunction = vertexFunction
     pipelineDescriptor.fragmentFunction = fragmentFunction
     pipelineDescriptor.vertexDescriptor = vertexDescriptor
-    pipelineDescriptor.colorAttachments[Int(colorTarget.rawValue)].pixelFormat =
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].pixelFormat =
       renderInfo.colorPixelFormat
-    pipelineDescriptor.colorAttachments[Int(normalTarget.rawValue)].pixelFormat = .rgba16Float
-    pipelineDescriptor.colorAttachments[Int(positionTarget.rawValue)].pixelFormat = .rgba16Float
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].pixelFormat = .rgba16Float
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].pixelFormat = .rgba16Float
     pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
 
     let depthStateDescriptor = MTLDepthStencilDescriptor()
@@ -901,10 +900,10 @@ func initRenderPipelines() {
     pipelineDescriptor.fragmentFunction = fragmentFunction
     pipelineDescriptor.vertexDescriptor = vertexDescriptor
 
-    pipelineDescriptor.colorAttachments[Int(colorTarget.rawValue)].pixelFormat =
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].pixelFormat =
       renderInfo.colorPixelFormat
-    pipelineDescriptor.colorAttachments[Int(normalTarget.rawValue)].pixelFormat = .rgba16Float
-    pipelineDescriptor.colorAttachments[Int(positionTarget.rawValue)].pixelFormat = .rgba16Float
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].pixelFormat = .rgba16Float
+      pipelineDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].pixelFormat = .rgba16Float
 
     pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
 
@@ -1003,18 +1002,17 @@ func initRenderPipelines() {
     let vertexDescriptor: MTLVertexDescriptor = MTLVertexDescriptor()
 
     //set position
-    vertexDescriptor.attributes[Int(envPassPositionIndex.rawValue)].format = MTLVertexFormat.float3
-    vertexDescriptor.attributes[Int(envPassPositionIndex.rawValue)].bufferIndex = 0
-    vertexDescriptor.attributes[Int(envPassPositionIndex.rawValue)].offset = 0
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].format = MTLVertexFormat.float3
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].offset = 0
 
-    vertexDescriptor.attributes[Int(envPassNormalIndex.rawValue)].format = MTLVertexFormat.float3
-    vertexDescriptor.attributes[Int(envPassNormalIndex.rawValue)].bufferIndex = 0
-    vertexDescriptor.attributes[Int(envPassNormalIndex.rawValue)].offset =
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].format = MTLVertexFormat.float3
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].bufferIndex = 0
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].offset =
       MemoryLayout<simd_float3>.stride
 
-    vertexDescriptor.attributes[Int(envPassUVIndex.rawValue)].format = MTLVertexFormat.float2
-    vertexDescriptor.attributes[Int(envPassUVIndex.rawValue)].bufferIndex = 0
-    vertexDescriptor.attributes[Int(envPassUVIndex.rawValue)].offset =
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].format = MTLVertexFormat.float2
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].bufferIndex = 0
+      vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].offset =
       2 * MemoryLayout<simd_float3>.stride
 
     vertexDescriptor.layouts[0].stride =
