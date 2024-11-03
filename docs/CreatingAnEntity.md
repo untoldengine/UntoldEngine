@@ -1,27 +1,31 @@
 # Creating a game entity
 
-The Untold Engine uses the concept of ECS, i,e Entity-Component-System. Thus, the first thing you must do is create an entity. An entity creation is done as follows:
+The Untold Engine uses the concept of ECS, i,e Entity-Component-System.
 
 Let's say that you loaded a redcar.usdc file which contains a model called 'redcar'. The function below loads the scene and makes the mesh available for use.
 
 ```swift
+// loading scene redcar.usdc
 loadScene(filename: "redcar", withExtension: "usdc")
 ```
 
-To create an entity, create a game entity and link the mesh to it as shown below:
+To manipulate an entity, you must create an entity. An entity creation is done as follows:
 
 ```swift
 
-init(){
+class GameScene{
 
-    // Step 1. Assume redcar.usdc has a model named 'redcar'
-    loadScene(filename: "redcar", withExtension: "usdc")
-    
-    // Step 2: Create an entity
-    var carEntity: EntityID = createEntity()
+    init(){
 
-    // Step 3: Attach the mesh to the entity
-    addMeshToEntity(entityId: carEntity, name: "redcar")  // 'name' refers to the model name in the scene
+        // ... loading scene redcar.usdc...
+        
+        // Step 1: Create an entity
+        var carEntity: EntityID = createEntity()
+
+        // Step 2: Attach the mesh to the entity
+        addMeshToEntity(entityId: carEntity, name: "redcar")  // 'name' refers to the model name in the scene
+
+    }
 
 }
 
