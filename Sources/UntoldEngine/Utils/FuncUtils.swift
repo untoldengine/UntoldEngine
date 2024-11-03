@@ -27,8 +27,13 @@ public func hasComponent<T>(entity: EntityDesc, componentType: T.Type)->Bool{
 }   
 
 public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
-        // Use Bundle.module internally to get the resource URL
-        return Bundle.module.url(forResource: resourceName, withExtension: ext)
+    // First, check Bundle.module for the resource
+    if let url = Bundle.module.url(forResource: resourceName, withExtension: ext) {
+        return url
+    }
+    
+    // If not found in Bundle.module, check Bundle.main
+    return Bundle.main.url(forResource: resourceName, withExtension: ext)
 }
 
 public func loadTexture(
