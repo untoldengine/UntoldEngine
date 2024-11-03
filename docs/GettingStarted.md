@@ -35,13 +35,15 @@ https://github.com/untoldengine/UntoldEngine.git
 
 ## Step 4. Add boiler plate code to the AppDelegate
 
-Once the package is added, you can import the Untold Engine in your Swift files. Go to AppDelegate.swift and add the following:
+Once the package is added, you can import the Untold Engine in your Swift files. 
+
+Go to AppDelegate.swift and add the following:
 
 `import UntoldEngine`
 
 For the engine to be initialized properly, we need to execute several initializations functions. These functions are only called once. I created a boiler plate code which you can just copy and paste. Make sure that your AppDelegate.swift file looks as shown in the code snippet below.
 
->>> Note that aside from the boiler plate, we also created a GameScene class. This is where you will initialize your game assets and define its logic.
+Note that aside from the boiler plate, we also created a GameScene class. This is where you will initialize your game assets and define its logic.
 
 ```swift
 
