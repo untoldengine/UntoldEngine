@@ -1,11 +1,11 @@
 # Importing USDC files for your game
 
 The Untold Engine supports usdc files. To ensure that you are exporting files correctly from Blender, 
-make sure to uncheck "File Reference" as shown below.
+make sure to check "Relative Paths" as shown below.
 
-![usdcexportproperties](../images/usdcexportproperties.png)
+![usdcfileproperties](../images/usdcexportproperties.png)
 
-All usdc files should be saved into your project and loaded into the main bundle, as shown below.
+Furthermore, all usdc files should be saved into your project and loaded into the main bundle, as shown below.
 
 ![addfilestomainbundle](../images/addfilestomainbundle.png)
 
