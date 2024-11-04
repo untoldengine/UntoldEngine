@@ -18,27 +18,30 @@ To run the the Untold Engine, do the following:
 
 1. Clone the Repository
 
-`git clone https://github.com/untoldengine/UntoldEngine`
+```bash
+git clone https://github.com/untoldengine/UntoldEngine
 
-`cd UntoldEngine`
+cd UntoldEngine
+```
 
-2. Build the engine using the provided Makefile
+2. Open the Swift Package
 
-`make`
+```bash
+open Package.swift
+```
+3. Xcode should open up. In the scheme settings, make sure to select "UntoldEngineTestApp" and "myMac" as your target.
 
-3. Alternatively, you can also run a clean on the build 
+![xcodescheme](images/xcodescheme.png)
 
-`make clean`
-
-4. Run the engine 
-
-`swift run UntoldEngineTestApp`
+4. Click on Run
 
 You should see models being rendered.
 
 ![gamesceneimage](images/gamescene1.png)
 
 To enter/exit "game mode" press 'L'. To move the car use the normal 'WASD' keys
+
+If you want to get a feel for the API, head to main.swift file inside Sources->UntoldEngineTestApp
 
 ## Using the Untold Engine in your game
 
