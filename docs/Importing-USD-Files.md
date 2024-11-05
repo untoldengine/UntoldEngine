@@ -31,3 +31,4 @@ loadBulkScene(filename: "racetrack", withExtension: "usdc")
 
 In this example, "racetrack" refers to the name of the file (e.g., racetrack.usdc). All models within the scene will be loaded and rendered together without requiring separate entity IDs for each one.
 
+Next: [Creating a game entity](CreatingAnEntity.md)

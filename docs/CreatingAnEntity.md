@@ -41,3 +41,4 @@ translateTo(entityId:redcar,position:simd_float3(2.5,0.75,20.0))
 
 Take a look at TransformSystem.swift for similar operations such as rotation.
 
+Next: [Adding Light to your game](AddingLighttoyourgame.md)

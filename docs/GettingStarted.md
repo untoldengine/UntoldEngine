@@ -148,3 +148,6 @@ If everything was done correctly, you should see a window with a grid once you h
 Note: Xcode may fail stating that it can't find a ShaderyType.h file. If that is the case, simply go to your build settings, search for "bridging". Head over to 'Objective-C Bridging Header' and make sure to remove the path as shown in the image below
 
 ![bridgeheader](../images/bridgingheader.png)
+
+
+Next: [Importing USDC Files](docs/Importing-USD-Files.md)
