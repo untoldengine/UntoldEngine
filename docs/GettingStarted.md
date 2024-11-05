@@ -150,4 +150,4 @@ Note: Xcode may fail stating that it can't find a ShaderyType.h file. If that is
 ![bridgeheader](../images/bridgingheader.png)
 
 
-Next: [Importing USDC Files](docs/Importing-USD-Files.md)
+Next: [Importing USDC Files](Importing-USD-Files.md)
