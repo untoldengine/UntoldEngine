@@ -45,7 +45,10 @@ If you want to get a feel for the API, head to main.swift file inside Sources->U
 
 ## Using the Untold Engine in your game
 
-To start using the Untold Engine in your game, follow the tutorials found in this [page](docs/Introduction.md):
+- [Getting Started](docs/GettingStarted.md)
+- [Importing USDC Files](docs/Importing-USD-Files.md)
+- [Creating a game entity](docs/CreatingAnEntity.md)
+- [Adding Light to your game](docs/AddingLighttoyourgame.md)
 
 
 ## Current Version
