@@ -31,4 +31,6 @@ class GameScene{
 
 This setup ensures the directional light is registered in the lighting system, ready to illuminate your scene.
 
+Next: [Detecting User Input](DetectingUserInputs.md)
+
 Previous: [Creating a game entity](CreatingAnEntity.md)
