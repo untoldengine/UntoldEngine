@@ -49,7 +49,7 @@ If you want to get a feel for the API, head to main.swift file inside Sources->U
 - [Importing USDC Files](docs/Importing-USD-Files.md)
 - [Creating a game entity](docs/CreatingAnEntity.md)
 - [Adding Light to your game](docs/AddingLighttoyourgame.md)
-
+- [Detecting User Inputs](docs/DetectingUserInputs.md)
 
 ## Current Version
 
