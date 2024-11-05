@@ -41,4 +41,7 @@ translateTo(entityId:redcar,position:simd_float3(2.5,0.75,20.0))
 
 Take a look at TransformSystem.swift for similar operations such as rotation.
 
+Now, you may not be able to see your model at all. The reason is because you need to add light to the scene. So, let's do that.
+
 Next: [Adding Light to your game](AddingLighttoyourgame.md)
+Previous: [Importing USDC Files](Importing-USD-Files.md)
