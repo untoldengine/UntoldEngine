@@ -179,6 +179,8 @@ If everything was done correctly, you should see a window with a grid once you h
 
 ![untoldenginegrid](/images/launchgame.gif)
 
+### Adding game entities
+
 Next, let's load a usd file, create an entity, link the usd model to the entity and translate the entity
 
 ```swift
