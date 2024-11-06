@@ -43,15 +43,15 @@ To enter/exit "game mode" press 'L'. To move the car use the normal 'WASD' keys
 
 If you want to get a feel for the API, head to main.swift file inside Sources->UntoldEngineTestApp
 
-## Using the Untold Engine in your game
+## Using the Untold Engine in your game - For those that want to see something right away
 
 ### Create a macOS game in Xcode
 
 - Open up Xcode -> File -> New -> Project
 
-- Create a terminal application for macOS.
+- Choose a 'Command Line Tool' for macOS.
 
-- Click Next. Give your Game a name and make sure to Select Swift as the language.
+- Click Next. Give your game a name and make sure to Select Swift as the language.
 
 ![createterminalgame](images/createproject.gif)
 
@@ -84,8 +84,6 @@ import UntoldEngine
 ![importmodules](images/importheader.gif)
 
 To ensure the engine initializes correctly, we need to execute a set of initialization functions. These functions are called only once. I've prepared a boilerplate code that you can simply copy and paste.
-
-![appdelegatecode](images/addappdelegatecode.gif)
 
 ```swift
 // AppDelegate: Boiler plate code -- Handles everything – Renderer, Metal setup, and GameScene initialization
@@ -154,6 +152,8 @@ app.delegate = delegate
 app.run()
 ```
 
+![appdelegatecode](images/addappdelegatecode.gif)
+
 Finally, add a GameScene class to main.swift
 
 ```swift
@@ -178,6 +178,57 @@ class GameScene {
 If everything was done correctly, you should see a window with a grid once you hit "Run".
 
 ![untoldenginegrid](/images/launchgame.gif)
+
+Next, let's load a usd file, create an entity, link the usd model to the entity and translate the entity
+
+```swift
+
+class GameScene{
+
+    init(){
+
+        // Loading scene redcar.usdc
+        loadScene(filename: "redcar", withExtension: "usdc")
+        
+        // Create an entity
+        var carEntity: EntityID = createEntity()
+
+        // Attach the mesh to the entity
+        addMeshToEntity(entityId: carEntity, name: "redcar")  // 'name' refers to the model name in the scene
+        
+        // Translate the entity 
+        translateTo(entityId:redcar,position:simd_float3(2.5,0.75,0.0))
+
+    }
+
+}
+
+```
+
+And finally, let's add a Sun light.
+
+```swift
+class GameScene{
+
+    init(){
+
+        // ... other initializations ...
+        
+        // Create an entity for the directional light
+        let sunEntity: EntityID = createEntity()
+
+        // Create the directional light instance
+        let sun: DirectionalLight = DirectionalLight()
+
+        // Add the entity and the light to the lighting system
+        lightingSystem.addDirectionalLight(entityID: sunEntity, light: sun)
+
+    }
+
+}
+```
+
+Click on Run.
 
 ## Current Version
 
