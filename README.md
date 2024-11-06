@@ -187,17 +187,29 @@ class GameScene{
 
     init(){
 
-        // Loading scene redcar.usdc
-        loadScene(filename: "redcar", withExtension: "usdc")
+        // Loading usdc files
+        loadScene(filename: "blueshirtplayer", withExtension: "usdc")
+        loadScene(filename: "redshirtplayer", withExtension: "usdc")
         
-        // Create an entity
-        var carEntity: EntityID = createEntity()
-
+        loadBulkScene(filename: "house-example", withExtension: "usdc")
+        
+        // Create an entity for player 1
+        let player1: EntityID = createEntity()
+        
         // Attach the mesh to the entity
-        addMeshToEntity(entityId: carEntity, name: "redcar")  // 'name' refers to the model name in the scene
+        addMeshToEntity(entityId: player1, name: "soccerplayer1")  // 'name' refers to the model name in the scene
         
-        // Translate the entity 
-        translateTo(entityId:redcar,position:simd_float3(2.5,0.75,0.0))
+        // Translate the entity
+        translateTo(entityId:player1,position:simd_float3(-2.0,0.0,2.0))
+        
+        // Create an entity for player 2
+        let player2: EntityID = createEntity()
+        
+        // Attach the mesh to the entity
+        addMeshToEntity(entityId: player2, name: "soccerplayer2")  // 'name' refers to the model name in the scene
+        
+        // Translate the entity
+        translateTo(entityId:player2,position:simd_float3(2.0,0.0,2.0))
 
     }
 
@@ -228,7 +240,9 @@ class GameScene{
 }
 ```
 
-Click on Run.
+Click on Run and you should see the following:
+
+![players](images/players.png)
 
 ## Current Version
 
