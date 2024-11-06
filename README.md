@@ -45,11 +45,139 @@ If you want to get a feel for the API, head to main.swift file inside Sources->U
 
 ## Using the Untold Engine in your game
 
-- [Getting Started](docs/GettingStarted.md)
-- [Importing USDC Files](docs/Importing-USD-Files.md)
-- [Creating a game entity](docs/CreatingAnEntity.md)
-- [Adding Light to your game](docs/AddingLighttoyourgame.md)
-- [Detecting User Inputs](docs/DetectingUserInputs.md)
+### Create a macOS game in Xcode
+
+- Open up Xcode -> File -> New -> Project
+
+- Create a terminal application for macOS.
+
+- Click Next. Give your Game a name and make sure to Select Swift as the language.
+
+![createterminalgame](images/createproject.gif)
+
+### Add the Untold Engine as a Package Dependency
+
+- In your Xcode project go to File-> Add Packages...
+
+- In the search field, enter the URL of the Untold Engine repository:
+
+https://github.com/untoldengine/UntoldEngine.git 
+
+- Xcode will fetch the package. Select the appropriate version or branc( i.e. Master)
+
+- Choose the target where you want to add the engine, then click Add Package 
+
+![addpackage](images/addPackage.gif)
+
+### Add boiler plate code to the AppDelegate
+
+Once the package is added, you can import the Untold Engine in your Swift files. 
+
+Go to main.swift and import the following modules:
+
+```swift
+import Cocoa
+import MetalKit
+import UntoldEngine
+```
+
+![importmodules](images/importheader.gif)
+
+To ensure the engine initializes correctly, we need to execute a set of initialization functions. These functions are called only once. I've prepared a boilerplate code that you can simply copy and paste.
+
+![appdelegatecode](images/addappdelegatecode.gif)
+
+```swift
+// AppDelegate: Boiler plate code -- Handles everything – Renderer, Metal setup, and GameScene initialization
+class AppDelegate: NSObject, NSApplicationDelegate {
+    var window: NSWindow!
+    var metalView: MTKView!
+    var renderer: UntoldRenderer!
+    var gameScene: GameScene!
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        
+        print("Launching Untold Engine v0.2")
+
+        // Create and configure the window
+        window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
+            styleMask: [.titled, .closable, .resizable],
+            backing: .buffered,
+            defer: false
+        )
+        
+        metalView = MTKView(frame: window.contentView!.bounds)
+        metalView.device = MTLCreateSystemDefaultDevice()
+        metalView.depthStencilPixelFormat = .depth32Float
+        metalView.colorPixelFormat = .rgba16Float
+        metalView.preferredFramesPerSecond = 60
+        metalView.framebufferOnly = false
+
+        // Initialize the renderer and set it as the MTKView delegate
+        renderer = UntoldRenderer(metalView)
+        renderer?.mtkView(metalView, drawableSizeWillChange: metalView.drawableSize)
+        metalView.delegate = renderer
+
+        // Create the game scene
+        gameScene = GameScene()
+
+        // Connect renderer callbacks to the game scene
+        renderer.gameUpdateCallback = { [weak self] deltaTime in
+            self?.gameScene.update(deltaTime)
+        }
+        renderer.handleInputCallback = { [weak self] in
+            self?.gameScene.handleInput()
+        }
+
+        // Set up window and display it
+        window.contentView = metalView
+        window.makeKeyAndOrderFront(nil)
+        window.center()
+        window.title = "Untold Engine v0.2"
+
+        NSApp.setActivationPolicy(.regular)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
+        return true
+    }
+}
+
+// Entry point
+
+let app = NSApplication.shared
+let delegate = AppDelegate()
+app.delegate = delegate
+
+app.run()
+```
+
+Finally, add a GameScene class to main.swift
+
+```swift
+class GameScene {
+
+    init() {
+        
+    }
+    
+    func update(_ deltaTime: Float) {
+
+    }
+
+    func handleInput() {
+
+    }
+
+}
+```
+![addgamescene](images/addgamesceneclass.gif)
+
+If everything was done correctly, you should see a window with a grid once you hit "Run".
+
+![untoldenginegrid](/images/launchgame.gif)
 
 ## Current Version
 
