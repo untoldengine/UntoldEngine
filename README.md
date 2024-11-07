@@ -1,18 +1,66 @@
-# Untold Engine
+<h1 align="center">
+  <a href="https://github.com/untoldengine/UntoldEngine">
+    <!-- Please provide path to your logo here -->
+    <img src="images/untoldenginewhite.png" alt="Logo" width="100" height="100">
+  </a>
+</h1>
 
-## Introduction
+<div align="center">
+  Untold Engine
+  <br />
+  
+  <br />
+  <br />
+  <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=bug&template=01_BUG_REPORT.md&title=bug%3A+">Report a Bug</a>
+  ·
+  <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=enhancement&template=02_FEATURE_REQUEST.md&title=feat%3A+">Request a Feature</a>
+  .
+  <a href="https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+">Ask a Question</a>
+</div>
 
-Welcome to Untold Engine! 
+<div align="center">
+<br />
 
-The Untold Engine is a custom 3D game engine built with Swift and Metal, designed for ease of use. Originally, the engine was written in C++ following Object-Oriented Programming (OOP) principles. However, it was rewritten in Swift to adopt Data-Oriented Design (DOD) principles.
+[![Project license](https://img.shields.io/github/license/untoldengine/UntoldEngine.svg?style=flat-square)](LICENSE)
 
-The engine now leverages the Entity Component System (ECS) architecture, which decouples data from behavior. This approach enables developers to build complex scenes and systems more effectively, while also making better use of modern CPU and GPU architectures.
+[![Pull Requests welcome](https://img.shields.io/badge/PRs-welcome-ff69b4.svg?style=flat-square)](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aissue+is%3Aopen+label%3A%22help+wanted%22)
+[![code with love by untoldengine](https://img.shields.io/badge/%3C%2F%3E%20with%20%E2%99%A5%20by-untoldengine-ff1414.svg?style=flat-square)](https://github.com/untoldengine)
 
-Currently, this new version of the engine does not have a Physics or Animation system, but both features are actively being developed and will be included in future updates.
+</div>
+
+<details open="open">
+<summary>Table of Contents</summary>
+
+- [About](#about)
+- [Getting Started](#getting-started)
+  - [Prerequisites](#prerequisites)
+  - [Installation](#installation)
+- [Creating a quick game](#Creating-a-quick-game)
+- [Deep Dive into the engine](#Deep-dive-into-the-engine)
+- [Roadmap](#roadmap)
+- [Support](#support)
+- [Project assistance](#project-assistance)
+- [Contributing](#contributing)
+- [License](#license)
+
+
+</details>
+
+---
+
+## About
+
+The Untold Engine is a 3D game engine for macOS/iOS devices. It is written in Swift and uses Metal as its graphics library. Its main purpose is to make game development a breeze by providing a simple to use API.
 
 Author: [Harold Serrano](http://www.haroldserrano.com)
 
-## Running the Untold Engine
+## Getting Started
+
+### Prerequisites
+
+To get started, you will need an Apple computer and the latest version of Xcode installed. You can download Xcode from the App Store.
+
+### Installation
 
 To run the the Untold Engine, do the following:
 
@@ -41,9 +89,7 @@ You should see models being rendered.
 
 To enter/exit "game mode" press 'L'. To move the car use the normal 'WASD' keys
 
-If you want to get a feel for the API, head to main.swift file inside Sources->UntoldEngineTestApp
-
-## Using the Untold Engine in your game - For those that want to see something right away
+## Creating a quick game
 
 ### Create a macOS game in Xcode
 
@@ -246,16 +292,41 @@ Click on Run and you should see the following:
 
 ![players](images/players.png)
 
-## Current Version
+## Deep Dive into the engine
 
-Beta version v0.1.0. 
+The following articles can help you get a deeper understanding on how to use the Untold Engine for your game.
 
-## License
+- [Getting Started](docs/GettingStarted.md)
+- [Loading assets](docs/Importing-USD-Files.md)
+- [Creating a game entity](docs/CreatingAnEntity.md)
+- [Adding Light to your game](docs/AddingLighttoyourgame.md)
+- [Detecting User Inputs](docs/DetectingUserInputs.md)
 
-The Untold Engine is licensed under the LGPL v2.1. This means that if you develop a game using the Untold Engine, you do not need to open source your game. However, if you create a derivative of the Untold Engine, then you must apply the rules stated in the LGPL v2.1. That is, you must open source the derivative work.
+## Roadmap
 
+See the [open issues](https://github.com/untoldengine/UntoldEngine/issues) for a list of proposed features (and known issues).
 
-## Contributing to Untold Engine
+- [Top Feature Requests](https://github.com/untoldengine/UntoldEngine/issues?q=label%3Aenhancement+is%3Aopen+sort%3Areactions-%2B1-desc) (Add your votes using the 👍 reaction)
+- [Top Bugs](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aissue+is%3Aopen+label%3Abug+sort%3Areactions-%2B1-desc) (Add your votes using the 👍 reaction)
+- [Newest Bugs](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aopen+is%3Aissue+label%3Abug)
+
+## Support
+
+Reach out to the maintainer at one of the following places:
+
+- [GitHub issues](https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+)
+
+## Project assistance
+
+If you want to say **thank you** or/and support active development of Untold Engine:
+
+- Add a [GitHub Star](https://github.com/untoldengine/UntoldEngine) to the project.
+- Tweet about the Untold Engine.
+- Write interesting articles about the project on [Dev.to](https://dev.to/), [Medium](https://medium.com/) or your personal blog.
+
+Together, we can make Untold Engine **better**!
+
+## Contributing
 
 Since this project has barely been released as an open-source, I am not taking Pull-Request yet. I want to complete the documentation and write more tutorials before allowing Pull-Request.
 
@@ -265,4 +336,10 @@ Thank you.
 
 Once I feel that the documentation is ready, I will allow Pull-Request.
 
+
+## License
+
+This project is licensed under the **LGPL v2.1**.
+
+This means that if you develop a game using the Untold Engine, you do not need to open source your game. However, if you create a derivative of the Untold Engine, then you must apply the rules stated in the LGPL v2.1. That is, you must open source the derivative work.
 
