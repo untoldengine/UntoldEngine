@@ -75,7 +75,7 @@ open Package.swift
 ```
 3. Xcode should open up. In the scheme settings, make sure to select "UntoldEngineTestApp" and "myMac" as your target.
 
-![xcodescheme](images/xcodescheme.png)
+![xcodescheme](images/selectingscheme.gif)
 
 4. Click on Run
 
