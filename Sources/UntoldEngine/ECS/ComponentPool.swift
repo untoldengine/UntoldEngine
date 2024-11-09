@@ -81,4 +81,10 @@ public struct ComponentMask {
     guard index < MAX_COMPONENTS else { return false }
     return bits[index]
   }
+    
+    // Checks if this ComponentMask contains all the components in the specified `otherMask`.
+    func contains(_ otherMask: ComponentMask) -> Bool {
+        return zip(bits, otherMask.bits).allSatisfy { $0 || !$1 }
+    }
+
 }

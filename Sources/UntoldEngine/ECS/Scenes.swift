@@ -76,37 +76,6 @@ public struct Scene {
     return typedPointer.pointee
   }
 
-  /*
-    mutating public func assign<T:Component>(to index:EntityID)->T{
-        let componentId=getComponentId(for: T.self)
-        let entityIndex=getEntityIndex(index)
-
-        //Ensure the pool for this component type exists
-        if componentPool[componentId]==nil{
-            componentPool[componentId]=ComponentPool(MemoryLayout<T>.stride)
-        }
-
-        //Retrieve the specific component pool
-        guard let pool=componentPool[componentId] else{
-            fatalError("Component pool for type \(T.self) cound not be found.")
-        }
-
-        // Allocate and initialize a new component in the pool
-        guard let componentPointer = pool.get(Int(entityIndex)) else {
-            fatalError("Failed to get component pointer from pool")
-        }
-
-        // Initialize memory with the new component
-        let typedPointer = componentPointer.bindMemory(to: T.self, capacity: 1)
-        typedPointer.initialize(to: T())
-
-        // Set the bit for this component to true
-        entities[Int(entityIndex)].mask.set(componentId)
-
-        // Return the newly created component
-        return typedPointer.pointee
-    }
-    */
   public func get<T: Component>(component type: T.Type, for index: EntityID) -> T? {
     let componentId = getComponentId(for: T.self)
     let entityIndex = getEntityIndex(index)
@@ -139,39 +108,19 @@ public struct Scene {
   var freeEntities: [EntityIndex] = []
 }
 
-protocol ComponentChecker {
-  static func hasRequiredComponents(entity: EntityDesc) -> Bool
+func createComponentMask(for components: [Int]) -> ComponentMask {
+    var mask = ComponentMask()
+    for componentId in components {
+        mask.set(componentId)
+    }
+    return mask
 }
 
-struct ComponentQuery<Checker: ComponentChecker>: Sequence {
-  private let scene: Scene
-
-  init(scene: Scene) {
-    self.scene = scene
-  }
-
-  public struct Iterator: IteratorProtocol {
-    private let scene: Scene
-    private var currentIndex: Int = 0
-
-    init(scene: Scene) {
-      self.scene = scene
-    }
-
-    mutating public func next() -> EntityID? {
-      while currentIndex < scene.entities.count {
-        let entity = scene.entities[currentIndex]
-        currentIndex += 1
-
-        if Checker.hasRequiredComponents(entity: entity) {
-          return entity.index
-        }
-      }
-      return nil
-    }
-  }
-
-  public func makeIterator() -> Iterator {
-    return Iterator(scene: scene)
-  }
+func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> [EntityID] {
+    let requiredMask = createComponentMask(for: componentTypes)
+    return scene.entities.filter { entity in
+        // Use bitwise AND to check if the entity has all required components
+        entity.mask.contains(requiredMask)
+    }.map { $0.index }
 }
+

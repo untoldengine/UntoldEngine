@@ -214,11 +214,14 @@ struct RenderPasses {
     //need to send light ortho view matrix
 
     //send info for each entity that conforms to shadows
+      
     // Create a component query for entities with both Transform and Render components
-    let componentQuery = ComponentQuery<TransformAndRenderChecker>(scene: scene)
-
+    let transformId = getComponentId(for: Transform.self)
+    let renderId = getComponentId(for: Render.self)
+    let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
+        
     // Iterate over the entities found by the component query
-    for entityId in componentQuery {
+    for entityId in entities {
 
       //for lights components, we avoid them casting shadows
       let lightComponent = scene.get(component: LightComponent.self, for: entityId)
@@ -435,10 +438,13 @@ struct RenderPasses {
         textureResources.shadowMap, index: Int(ModelPassBufferIndices.shadowTextureIndex.rawValue))
 
     // Create a component query for entities with both Transform and Render components
-    let componentQuery = ComponentQuery<TransformAndRenderChecker>(scene: scene)
-
+      
+    let transformId = getComponentId(for: Transform.self)
+    let renderId = getComponentId(for: Render.self)
+    let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
+      
     // Iterate over the entities found by the component query
-    for entityId in componentQuery {
+    for entityId in entities {
 
       //update uniforms
       var modelUniforms = Uniforms()

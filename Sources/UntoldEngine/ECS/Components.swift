@@ -55,27 +55,4 @@ public class LightComponent: Component {
   }
 }
 
-public class RayTracingComponent: Component {
 
-  public required init() {
-
-  }
-}
-
-public struct TransformAndRenderChecker: ComponentChecker {
-  static func hasRequiredComponents(entity: EntityDesc) -> Bool {
-    let transformId = getComponentId(for: Transform.self)
-    let renderId = getComponentId(for: Render.self)
-    return entity.mask.test(transformId) && entity.mask.test(renderId)
-  }
-}
-
-public struct RayTracingComponentChecker: ComponentChecker {
-  static func hasRequiredComponents(entity: EntityDesc) -> Bool {
-    let transformId = getComponentId(for: Transform.self)
-    let renderId = getComponentId(for: Render.self)
-    let rayTracingId = getComponentId(for: RayTracingComponent.self)
-    return entity.mask.test(transformId) && entity.mask.test(renderId)
-      && entity.mask.test(rayTracingId)
-  }
-}
