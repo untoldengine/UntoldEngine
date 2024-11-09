@@ -38,6 +38,21 @@ public class Render: Component {
     public required init() {}
 }
 
+public class Physics: Component{
+    
+    var mass:Float
+    var velocity:simd_float3
+    var acceleration:simd_float3
+    
+    public required init() {
+        
+        mass=1.0
+        velocity=simd_float3(0.0,0.0,0.0)
+        acceleration=simd_float3(0.0,0.0,0.0)
+        
+    }
+}
+
 public class LightComponent: Component {
     enum LightType {
         case point(PointLight)
