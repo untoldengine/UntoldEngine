@@ -128,9 +128,9 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         calculateDeltaTime()
 
         // process Input - Handle user input before updating game states
-
         if gameMode == true {
             handleInputCallback?() // if game mode
+            updatePhysicsSystem(deltaTime: timeSinceLastUpdate)
         } else {
             handleSceneInput() // if scene mode
         }

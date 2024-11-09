@@ -38,18 +38,34 @@ public class Render: Component {
     public required init() {}
 }
 
-public class Physics: Component{
-    
-    var mass:Float
-    var velocity:simd_float3
-    var acceleration:simd_float3
-    
+public class Physics: Component {
+
+    var mass: Float
+    var velocity: simd_float3
+    var acceleration: simd_float3
+
     public required init() {
-        
-        mass=1.0
-        velocity=simd_float3(0.0,0.0,0.0)
-        acceleration=simd_float3(0.0,0.0,0.0)
-        
+
+        mass = 1.0
+        velocity = simd_float3(0.0, 0.0, 0.0)
+        acceleration = simd_float3(0.0, 0.0, 0.0)
+    }
+}
+
+public class Kinetic: Component {
+
+    var forces: [simd_float3] = []
+
+    var gravityScale: Float = 1.0
+
+    public required init() {}
+
+    public func addForce(_ force: simd_float3) {
+        forces.append(force)
+    }
+
+    public func clearForces() {
+        forces.removeAll()
     }
 }
 

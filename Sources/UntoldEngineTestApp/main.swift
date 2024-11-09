@@ -12,9 +12,6 @@ class GameScene {
     var offset:simd_float3=simd_float3(0.0,4.0,8.0)
     var smoothSpeed:Float=1.0 
 
-    // opponent car parameters 
-    var cars:[Car]=[]
-
     init() {
 
         // set camera to look at point 
@@ -28,30 +25,20 @@ class GameScene {
 
         // You can also load the assets individually.   
         loadScene(filename: "bluecar", withExtension: "usdc")
-        loadScene(filename: "redcar", withExtension: "usdc")
-        loadScene(filename: "yellowcar", withExtension: "usdc")
-        loadScene(filename: "orangecar", withExtension: "usdc")
-
-
+        
         //set entity for the blue car 
         bluecar=createEntity()
         
         // links the mesh in the bluecar.usdc file to the entity "bluecar"
         addMeshToEntity(entityId:bluecar, name:"bluecar")
 
-        // translate the entity 
-        translateTo(entityId:bluecar,position:simd_float3(2.5,0.75,20.0))
-
-        //Create instances for each opponent car 
-        let redCar:Car=Car(name:"redcar", position: simd_float3(-2.5,0.75,20.0))
-        let yellowCar:Car=Car(name:"yellowcar", position: simd_float3(-2.5,0.75,10.0))
-        let orangeCar:Car=Car(name:"redcar", position: simd_float3(2.5,0.75,10.0))
-
-        cars.append(redCar)
-        cars.append(yellowCar)
-        cars.append(orangeCar)
-
-        // You can also set a directional light. Notice that you need to create an entity first. 
+        registerComponent(entityId: bluecar, componentType: Physics.self)
+        registerComponent(entityId: bluecar, componentType: Kinetic.self)
+        
+        setMass(entityId: bluecar, mass: 0.5)
+        setGravityScale(entityId: bluecar, gravityScale: 1.0)
+        
+        // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity:EntityID=createEntity()
 
         // Then you create a directional light 
@@ -72,82 +59,11 @@ class GameScene {
     }
     
     func update(_ deltaTime: Float) {
-
-        moveCar(entityId:bluecar, dt: deltaTime)
-        
-        updateCameraFollow()
-
-        for car in cars{
-            car.update(dt: deltaTime)
-        }
-
-
+        applyForce(entityId: bluecar, force: simd_float3(0.0,0.0,5.0))
     }
 
     func handleInput() {
 
-    }
-
-    func moveCar(entityId: EntityID, dt: Float){
-
-        if gameMode == false {
-            return 
-        }
-
-        var speed:Float = 33.0
-        var offset:Float = 3.5
-
-        var position:simd_float3 = getPosition(entityId: entityId)
-
-        var forward:simd_float3 = getForwardVector(entityId:entityId)
-
-        let up: simd_float3 = simd_float3(0.0, 1.0, 0.0)
-
-        var right: simd_float3 = cross(forward, up)
-        
-        right = normalize(right)
-
-        if inputSystem.keyState.wPressed == true{
-            position+=forward*speed*dt 
-        }
-
-        if inputSystem.keyState.sPressed == true{
-            position-=forward*speed*dt 
-        }
-
-        if inputSystem.keyState.aPressed == true{
-            position-=right*speed*dt 
-        }
-
-        if inputSystem.keyState.dPressed == true{
-            position+=right*speed*dt 
-        }
-
-        translateTo(entityId:bluecar, position: position)
-    }
-
-    // Implements a simple camera follow algorithm which follows the bluecar 
-    func updateCameraFollow(){
-
-        // gameMode is started/stopped by pressing the "l" key in your keyboard
-        if gameMode == false {
-            return
-        }
-
-        var cameraPosition:simd_float3=camera.getPosition()
-        
-        targetPosition=getPosition(entityId: bluecar)
-
-        targetPosition.x = 0.0
-        let desiredPosition:simd_float3=targetPosition+offset
- 
-        cameraPosition=lerp(start:cameraPosition,end:desiredPosition,t:smoothSpeed)
-
-        camera.translateTo(cameraPosition.x,cameraPosition.y,cameraPosition.z)
-    }
-
-    func lerp(start:simd_float3,end:simd_float3,t:Float)->simd_float3{
-         return start*(1.0-t)+end*t
     }
 
 

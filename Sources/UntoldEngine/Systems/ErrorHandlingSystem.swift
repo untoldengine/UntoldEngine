@@ -34,6 +34,10 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case iblSpecMipMapBlitCreationFailed = 1025
     case iblMipMapCreationFailed = 1026
     case normalTextureMissing = 1027
+    case noPhysicsComponent = 1028
+    case noKineticComponent = 1029
+    case noRenderComponent = 1030
+    case noTransformComponent = 1031
 
     public var description: String {
         switch self {
@@ -89,6 +93,14 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "IBL Mip Map Generation failed"
         case .normalTextureMissing:
             return "Normal Texture is missing"
+        case .noPhysicsComponent:
+            return "Does not have a Physics component"
+        case .noKineticComponent:
+            return "Does not have a Kinetic component"
+        case .noTransformComponent:
+            return "Does not have a Transform component"
+        case .noRenderComponent:
+            return "Does not have a Render component"
         }
     }
 }
