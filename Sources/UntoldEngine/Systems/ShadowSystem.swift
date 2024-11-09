@@ -1,6 +1,6 @@
 //
 //  ShadowSystem.swift
-//  Untold Engine 
+//  Untold Engine
 //
 //  Created by Harold Serrano on 6/6/24.
 //
@@ -9,41 +9,36 @@ import Foundation
 import simd
 
 struct ShadowSystem {
+    init() {}
 
-  init() {
+    mutating func updateViewFromSunPerspective() {
+        // Scene's center
+        let targetPoint = simd_float3(0.0, 0.0, 0.0)
+        let width: Float = shadowMaxWidth
+        let height: Float = shadowMaxHeight
 
-  }
+        if let directionalLightID = lightingSystem.dirLight.keys.first,
+           let directionalLight: DirectionalLight = lightingSystem.getDirectionalLight(
+               entityID: directionalLightID)
+        {
+            let lightPosition = targetPoint + normalize(directionalLight.direction) * 100
 
-  mutating func updateViewFromSunPerspective() {
+            let viewMatrix: simd_float4x4 = matrix_look_at_right_hand(
+                lightPosition, simd_float3(0.0, 0.0, 0.0), simd_float3(0.0, 1.0, 0.0)
+            )
 
-    //Scene's center
-    let targetPoint: simd_float3 = simd_float3(0.0, 0.0, 0.0)
-    let width: Float = shadowMaxWidth
-    let height: Float = shadowMaxHeight
+            dirLightSpaceMatrix = simd_mul(
+                matrix_ortho_right_hand(
+                    -width / 2.0, width / 2.0, -height / 2.0, height / 2.0, near, farZ: far
+                ), viewMatrix
+            )
 
-    if let directionalLightID = lightingSystem.dirLight.keys.first,
-      let directionalLight: DirectionalLight = lightingSystem.getDirectionalLight(
-        entityID: directionalLightID)
-    {
-
-      let lightPosition = targetPoint + normalize(directionalLight.direction) * 100
-
-      let viewMatrix: simd_float4x4 = matrix_look_at_right_hand(
-        lightPosition, simd_float3(0.0, 0.0, 0.0), simd_float3(0.0, 1.0, 0.0))
-
-      dirLightSpaceMatrix = simd_mul(
-        matrix_ortho_right_hand(
-          -width / 2.0, width / 2.0, -height / 2.0, height / 2.0, near, farZ: far), viewMatrix)
-
-    } else {
-      dirLightSpaceMatrix = nil
+        } else {
+            dirLightSpaceMatrix = nil
+        }
     }
 
-  }
+    // data
 
-  //data
-
-  var dirLightSpaceMatrix: simd_float4x4!
-
+    var dirLightSpaceMatrix: simd_float4x4!
 }
-

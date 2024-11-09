@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  ShaderTypes.swift
+//
 //
 //  Created by Harold Serrano on 11/2/24.
 //
@@ -9,11 +9,11 @@ import Foundation
 import simd
 
 struct Uniforms {
-    var projectionMatrix: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
-    var viewMatrix: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
-    var modelViewMatrix: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
-    var normalMatrix: matrix_float3x3 = matrix_float3x3(diagonal: simd_float3(repeating: 1.0))
-    var modelMatrix: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
+    var projectionMatrix: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
+    var viewMatrix: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
+    var modelViewMatrix: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
+    var normalMatrix: matrix_float3x3 = .init(diagonal: simd_float3(repeating: 1.0))
+    var modelMatrix: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
     var cameraPosition: simd_float3? = simd_float3(repeating: 0.0)
 }
 
@@ -78,10 +78,10 @@ enum ShadowBufferIndices: Int {
 }
 
 struct EnvironmentConstants {
-    var projectionMatrix: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
-    var viewMatrix: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
-    var modelMatrix: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
-    var environmentRotation: matrix_float4x4 = matrix_float4x4(diagonal: simd_float4(repeating: 1.0))
+    var projectionMatrix: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
+    var viewMatrix: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
+    var modelMatrix: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
+    var environmentRotation: matrix_float4x4 = .init(diagonal: simd_float4(repeating: 1.0))
 }
 
 enum RenderTargets: Int {
@@ -91,9 +91,9 @@ enum RenderTargets: Int {
 }
 
 struct DisneyParametersUniform {
-    var baseColor: simd_float4 = simd_float4(repeating: 0.0)
-    var hasTexture: simd_int4 = simd_int4(repeating: 0) // x = hasBaseColor, y = hasRoughMap, z = hasMetalMap
-    var edgeTint: simd_float4 = simd_float4(repeating: 0.0)
+    var baseColor: simd_float4 = .init(repeating: 0.0)
+    var hasTexture: simd_int4 = .init(repeating: 0) // x = hasBaseColor, y = hasRoughMap, z = hasMetalMap
+    var edgeTint: simd_float4 = .init(repeating: 0.0)
     var roughness: Float = 0.0
     var specular: Float = 0.0
     var subsurface: Float = 0.0
@@ -115,5 +115,3 @@ struct BRDFSelectionUniform {
     var gsSelection: Int = 0
     var applyIBL: Bool = true
 }
-
-
