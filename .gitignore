@@ -56,3 +56,9 @@ UntoldEngine4D/.DS_Store
 .DS_Store
 
 .build/
+
+Sources/UntoldEngine/Shaders/
+
+Sources/UntoldEngine/UntoldEngineKernels/UntoldEngineKernels.air
+
+Sources/UntoldEngine/UntoldEngineKernels/UntoldEngineKernels.metal
