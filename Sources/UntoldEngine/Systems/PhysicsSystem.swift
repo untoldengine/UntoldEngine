@@ -11,7 +11,7 @@ import simd
 public func setMass(entityId: EntityID, mass: Float) {
     
     // retrieve physics component
-    guard let physics = scene.get(component: Physics.self, for: entityId) else {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         handleError(.noPhysicsComponent, entityId)
         return
     }
@@ -21,7 +21,7 @@ public func setMass(entityId: EntityID, mass: Float) {
 
 public func setGravityScale(entityId: EntityID, gravityScale: Float) {
     
-    guard let kinetic = scene.get(component: Kinetic.self, for: entityId) else {
+    guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
         return
     }
@@ -38,12 +38,12 @@ public func updatePhysicsSystem(deltaTime: Float) {
 
 public func addGravity(gravity: simd_float3) {
     
-    let kineticId = getComponentId(for: Kinetic.self)
+    let kineticId = getComponentId(for: KineticComponent.self)
     let entities = queryEntitiesWithComponentIds([kineticId], in: scene)
 
     for entity in entities {
         
-        guard let kinetic = scene.get(component: Kinetic.self, for: entity) else {
+        guard let kinetic = scene.get(component: KineticComponent.self, for: entity) else {
             handleError(.noKineticComponent, entity)
             continue
         }
@@ -55,18 +55,18 @@ public func addGravity(gravity: simd_float3) {
 
 public func accumulateForces(deltaTime: Float) {
     
-    let kineticId = getComponentId(for: Kinetic.self)
-    let physicsId = getComponentId(for: Physics.self)
+    let kineticId = getComponentId(for: KineticComponent.self)
+    let physicsId = getComponentId(for: PhysicsComponents.self)
     let entities = queryEntitiesWithComponentIds([kineticId, physicsId], in: scene)
 
     for entity in entities {
         
-        guard let physics = scene.get(component: Physics.self, for: entity) else {
+        guard let physics = scene.get(component: PhysicsComponents.self, for: entity) else {
             
             continue
         }
         
-        guard let kinetic = scene.get(component: Kinetic.self, for: entity) else {
+        guard let kinetic = scene.get(component: KineticComponent.self, for: entity) else {
             
             continue
         }
@@ -87,7 +87,7 @@ public func accumulateForces(deltaTime: Float) {
 
 public func applyForce(entityId: EntityID, force: simd_float3) {
     
-    guard let kinetic = scene.get(component: Kinetic.self, for: entityId) else {
+    guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
         return
     }
@@ -98,20 +98,20 @@ public func applyForce(entityId: EntityID, force: simd_float3) {
 public func eulerIntegration(deltaTime: Float) {
     
     // all all the forces for the entity
-    let kineticId = getComponentId(for: Kinetic.self)
-    let physicsId = getComponentId(for: Physics.self)
-    let transformId = getComponentId(for: Transform.self)
+    let kineticId = getComponentId(for: KineticComponent.self)
+    let physicsId = getComponentId(for: PhysicsComponents.self)
+    let transformId = getComponentId(for: TransformComponent.self)
     
     let entities = queryEntitiesWithComponentIds([kineticId, physicsId, transformId], in: scene)
 
     for entity in entities {
         
-        guard let physics = scene.get(component: Physics.self, for: entity) else {
+        guard let physics = scene.get(component: PhysicsComponents.self, for: entity) else {
             
             continue
         }
         
-        guard let transform = scene.get(component: Transform.self, for: entity) else {
+        guard let transform = scene.get(component: TransformComponent.self, for: entity) else {
             
             continue
         }

@@ -182,7 +182,7 @@ public func basicFollow(_ entityId: EntityID, _ offset: simd_float3, _: Float) {
         return
     }
     // get the transform for the entity
-    guard let t = scene.get(component: Transform.self, for: entityId) else {
+    guard let t = scene.get(component: TransformComponent.self, for: entityId) else {
         return
     }
 

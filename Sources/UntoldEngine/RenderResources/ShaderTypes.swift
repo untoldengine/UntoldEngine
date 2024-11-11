@@ -90,7 +90,7 @@ enum RenderTargets: Int {
     case positionTarget
 }
 
-struct DisneyParametersUniform {
+struct MaterialParametersUniform {
     var baseColor: simd_float4 = .init(repeating: 0.0)
     var hasTexture: simd_int4 = .init(repeating: 0) // x = hasBaseColor, y = hasRoughMap, z = hasMetalMap
     var edgeTint: simd_float4 = .init(repeating: 0.0)

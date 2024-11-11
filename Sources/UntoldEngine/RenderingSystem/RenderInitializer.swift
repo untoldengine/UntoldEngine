@@ -1117,9 +1117,6 @@ func initRenderPipelines() {
     _ = model("vertexModelShader", "fragmentModelShader")
     _ = geometry("vertexGeometryShader", "fragmentGeometryShader")
     _ = composite(&compositePipeline, "composite", "vertexCompositeShader", "fragmentCompositeShader")
-    _ = composite(
-        &rayCompositePipeline, "ray-composite", "vertexRayCompositeShader", "fragmentRayCompositeShader"
-    )
 
     _ = precomposite("vertexPreCompositeShader", "fragmentPreCompositeShader")
     _ = debug("vertexDebugShader", "fragmentDebugShader")
@@ -1128,7 +1125,6 @@ func initRenderPipelines() {
     )
     _ = environment("vertexEnvironmentShader", "fragmentEnvironmentShader")
     _ = iblPrefilter("vertexIBLPreFilterShader", "fragmentIBLPreFilterShader")
-    _ = postProcess(&lightingPipeline, "lightingPipeline", "vertexLightShader", "fragmentLightShader")
     _ = postProcess(
         &tonemappingPipeline, "tonemappingPipeline", "vertexTonemappingShader",
         "fragmentTonemappingShader"

@@ -9,7 +9,7 @@ import Foundation
 import simd
 
 public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float)->simd_float3 {
-    guard let transform = scene.get(component: Transform.self, for: entityId) else {
+    guard let transform = scene.get(component: TransformComponent.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
@@ -19,7 +19,7 @@ public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Floa
     // calculate the desired velocity towards the target
     let desiredVelocity = normalize(targetPosition - position) * maxSpeed
     
-    guard let physics = scene.get(component: Physics.self, for: entityId) else {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
@@ -29,7 +29,7 @@ public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Floa
 }
 
 public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float)->simd_float3 {
-    guard let transform = scene.get(component: Transform.self, for: entityId) else {
+    guard let transform = scene.get(component: TransformComponent.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
@@ -39,7 +39,7 @@ public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Floa
     // Calculate the desired velocity away from the threat
     let desiredVelocity = normalize(threatPosition - position) * maxSpeed
     
-    guard let physics = scene.get(component: Physics.self, for: entityId) else {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
@@ -49,7 +49,7 @@ public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Floa
 }
 
 public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float)->simd_float3 {
-    guard let transform = scene.get(component: Transform.self, for: entityId) else {
+    guard let transform = scene.get(component: TransformComponent.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
@@ -64,7 +64,7 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     // Calculate the desired velocity
     let desiredVelocity = normalize(toTarget) * speed
     
-    guard let physics = scene.get(component: Physics.self, for: entityId) else {
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
@@ -74,22 +74,22 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
 }
 
 public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)->simd_float3 {
-    guard let transformEntity = scene.get(component: Transform.self, for: entityId) else {
+    guard let transformEntity = scene.get(component: TransformComponent.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
     
-    guard let physicsEntity = scene.get(component: Physics.self, for: entityId) else {
+    guard let physicsEntity = scene.get(component: PhysicsComponents.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
     
-    guard let transformTargetEntity = scene.get(component: Transform.self, for: targetEntity) else {
+    guard let transformTargetEntity = scene.get(component: TransformComponent.self, for: targetEntity) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
     
-    guard let physicsTargetEntity = scene.get(component: Physics.self, for: targetEntity) else {
+    guard let physicsTargetEntity = scene.get(component: PhysicsComponents.self, for: targetEntity) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
@@ -109,22 +109,22 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
 }
 
 public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float)->simd_float3 {
-    guard let transformEntity = scene.get(component: Transform.self, for: entityId) else {
+    guard let transformEntity = scene.get(component: TransformComponent.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
     
-    guard let physicsEntity = scene.get(component: Physics.self, for: entityId) else {
+    guard let physicsEntity = scene.get(component: PhysicsComponents.self, for: entityId) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
     
-    guard let transformThreatEntity = scene.get(component: Transform.self, for: threatEntity) else {
+    guard let transformThreatEntity = scene.get(component: TransformComponent.self, for: threatEntity) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }
     
-    guard let physicsThreatEntity = scene.get(component: Physics.self, for: threatEntity) else {
+    guard let physicsThreatEntity = scene.get(component: PhysicsComponents.self, for: threatEntity) else {
         print("entity with id: \(entityId) not found")
         return simd_float3(0.0, 0.0, 0.0)
     }

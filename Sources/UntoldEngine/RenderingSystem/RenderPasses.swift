@@ -220,23 +220,17 @@ enum RenderPasses {
         // send info for each entity that conforms to shadows
 
         // Create a component query for entities with both Transform and Render components
-        let transformId = getComponentId(for: Transform.self)
-        let renderId = getComponentId(for: Render.self)
+        let transformId = getComponentId(for: TransformComponent.self)
+        let renderId = getComponentId(for: RenderComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
         // Iterate over the entities found by the component query
         for entityId in entities {
-            // for lights components, we avoid them casting shadows
-            let lightComponent = scene.get(component: LightComponent.self, for: entityId)
-
-            if lightComponent != nil {
-                continue
-            }
-
+            
             // update uniforms
             var modelUniforms = Uniforms()
 
-            if let transform = scene.get(component: Transform.self, for: entityId) {
+            if let transform = scene.get(component: TransformComponent.self, for: entityId) {
                 var modelMatrix = transform.localSpace
 
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
@@ -261,7 +255,7 @@ enum RenderPasses {
             // rendering component data should go here
 
             // create the encoder
-            if let render = scene.get(component: Render.self, for: entityId) {
+            if let render = scene.get(component: RenderComponent.self, for: entityId) {
                 if render.spaceUniform == nil {
                     render.spaceUniform = renderInfo.device.makeBuffer(
                         length: MemoryLayout<Uniforms>.stride, options: [MTLResourceOptions.storageModeShared]
@@ -452,8 +446,8 @@ enum RenderPasses {
 
         // Create a component query for entities with both Transform and Render components
 
-        let transformId = getComponentId(for: Transform.self)
-        let renderId = getComponentId(for: Render.self)
+        let transformId = getComponentId(for: TransformComponent.self)
+        let renderId = getComponentId(for: RenderComponent.self)
         let entities = queryEntitiesWithComponentIds([transformId, renderId], in: scene)
 
         // Iterate over the entities found by the component query
@@ -461,7 +455,7 @@ enum RenderPasses {
             // update uniforms
             var modelUniforms = Uniforms()
 
-            if let transform = scene.get(component: Transform.self, for: entityId) {
+            if let transform = scene.get(component: TransformComponent.self, for: entityId) {
                 var modelMatrix = transform.localSpace
 
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
@@ -486,7 +480,7 @@ enum RenderPasses {
             // rendering component data should go here
 
             // create the encoder
-            if let render = scene.get(component: Render.self, for: entityId) {
+            if let render = scene.get(component: RenderComponent.self, for: entityId) {
                 if render.spaceUniform == nil {
                     render.spaceUniform = renderInfo.device.makeBuffer(
                         length: MemoryLayout<Uniforms>.stride, options: [MTLResourceOptions.storageModeShared]
@@ -544,23 +538,23 @@ enum RenderPasses {
                         subMesh.material?.metallic, index: Int(ModelPassBufferIndices.modelMetallicTextureIndex.rawValue)
                     )
 
-                    var disneyParameters = DisneyParametersUniform()
-                    disneyParameters.specular = subMesh.material!.specular
-                    disneyParameters.specularTint = subMesh.material!.specularTint
-                    disneyParameters.subsurface = subMesh.material!.subsurface
-                    disneyParameters.anisotropic = subMesh.material!.anisotropic
-                    disneyParameters.sheen = subMesh.material!.sheen
-                    disneyParameters.sheenTint = subMesh.material!.sheenTint
-                    disneyParameters.clearCoat = subMesh.material!.clearCoat
-                    disneyParameters.clearCoatGloss = subMesh.material!.clearCoatGloss
-                    disneyParameters.baseColor = subMesh.material!.baseColorValue
-                    disneyParameters.roughness = subMesh.material!.roughnessValue
-                    disneyParameters.metallic = subMesh.material!.metallicValue
-                    disneyParameters.ior = subMesh.material!.ior
-                    disneyParameters.edgeTint = subMesh.material!.edgeTint
-                    disneyParameters.interactWithLight = subMesh.material!.interactWithLight
+                    var materialParameters = MaterialParametersUniform()
+                    materialParameters.specular = subMesh.material!.specular
+                    materialParameters.specularTint = subMesh.material!.specularTint
+                    materialParameters.subsurface = subMesh.material!.subsurface
+                    materialParameters.anisotropic = subMesh.material!.anisotropic
+                    materialParameters.sheen = subMesh.material!.sheen
+                    materialParameters.sheenTint = subMesh.material!.sheenTint
+                    materialParameters.clearCoat = subMesh.material!.clearCoat
+                    materialParameters.clearCoatGloss = subMesh.material!.clearCoatGloss
+                    materialParameters.baseColor = subMesh.material!.baseColorValue
+                    materialParameters.roughness = subMesh.material!.roughnessValue
+                    materialParameters.metallic = subMesh.material!.metallicValue
+                    materialParameters.ior = subMesh.material!.ior
+                    materialParameters.edgeTint = subMesh.material!.edgeTint
+                    materialParameters.interactWithLight = subMesh.material!.interactWithLight
 
-                    disneyParameters.hasTexture = simd_int4(
+                    materialParameters.hasTexture = simd_int4(
                         Int32(subMesh.material!.hasBaseMap),
                         Int32(subMesh.material!.hasRoughMap),
                         Int32(subMesh.material!.hasMetalMap),
@@ -568,7 +562,7 @@ enum RenderPasses {
                     )
 
                     renderEncoder.setFragmentBytes(
-                        &disneyParameters, length: MemoryLayout<DisneyParametersUniform>.stride,
+                        &materialParameters, length: MemoryLayout<MaterialParametersUniform>.stride,
                         index: Int(ModelPassBufferIndices.modelDisneyParameterIndex.rawValue)
                     )
 
@@ -903,31 +897,6 @@ enum RenderPasses {
         renderEncoder.endEncoding()
     }
 
-    static let executeBlitColorTexture: (MTLCommandBuffer) -> Void = { commandBuffer in
-
-        // create a blit encoder
-        let blitEncoder = commandBuffer.makeBlitCommandEncoder()
-        blitEncoder?.waitForFence(renderInfo.fence)
-
-        let width = renderInfo.offscreenRenderPassDescriptor.colorAttachments[0].texture!.width
-        let height = renderInfo.offscreenRenderPassDescriptor.colorAttachments[0].texture!.height
-
-        blitEncoder?.copy(
-            from: renderInfo.offscreenRenderPassDescriptor.colorAttachments[0].texture!,
-            sourceSlice: 0,
-            sourceLevel: 0,
-            sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-            sourceSize: MTLSize(width: width, height: height, depth: 1),
-            to: textureResources.rayTracingDestTextureArray!,
-            destinationSlice: 0,
-            destinationLevel: 0,
-            destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
-        )
-
-        blitEncoder?.updateFence(renderInfo.fence)
-        blitEncoder?.endEncoding()
-    }
-
     static func executePostProcess(_ pipeline: RenderPipeline) -> (MTLCommandBuffer) -> Void {
         return { commandBuffer in
 
@@ -984,129 +953,6 @@ enum RenderPasses {
             renderEncoder.popDebugGroup()
             renderEncoder.endEncoding()
         }
-    }
-
-    static func executeLightPass(_: RenderPipeline) -> (MTLCommandBuffer) -> Void {
-        return { _ in
-            /*
-             if(!pipeline.success){
-                 handleError(.pipelineStateNulled, "Lighting Pipeline")
-                 return
-             }
-
-             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].loadAction = .load
-             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].loadAction = .load
-             renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].loadAction = .load
-
-             renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .load
-
-             let renderPassDescriptor=renderInfo.offscreenRenderPassDescriptor!
-
-             //set your encoder here
-             guard let renderEncoder=commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)else{
-                 handleError(.renderPassCreationFailed, "Lighting \(pipeline.name!) Pass")
-                 return
-             }
-
-             renderEncoder.label = "Lighting Pass"
-
-             renderEncoder.pushDebugGroup("Lighting Pass")
-
-             renderEncoder.setRenderPipelineState(pipeline.pipelineState!)
-
-             renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-
-             renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
-             renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-
-             renderEncoder.setFragmentBytes(&camera.viewSpace, length: MemoryLayout<simd_float4x4>.stride, index: Int(lightPassCameraSpaceIndex.rawValue))
-
-             renderEncoder.setFragmentBytes(&lightingSystem.dirLight.direction, length: MemoryLayout<simd_float3>.stride, index: Int(lightPassLightDirectionIndex.rawValue))
-
-             renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(colorTarget.rawValue)].texture, index: Int(lightPassAlbedoTextureIndex.rawValue));
-
-             renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(normalTarget.rawValue)].texture, index: Int(lightPassNormalTextureIndex.rawValue));
-
-             renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(positionTarget.rawValue)].texture, index: Int(lightPassPositionTextureIndex.rawValue));
-
-             renderEncoder.setFragmentTexture(renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture, index: Int(lightPassDepthTextureIndex.rawValue))
-
-             renderEncoder.setFragmentBytes(&ambientIntensity, length: MemoryLayout<Float>.stride, index: Int(lightPassAmbientIntensityIndex.rawValue))
-
-             //ibl
-             renderEncoder.setFragmentTexture(textureResources.irradianceMap, index: Int(lightPassIBLIrradianceTextureIndex.rawValue))
-             renderEncoder.setFragmentTexture(textureResources.specularMap, index: Int(lightPassIBLSpecularTextureIndex.rawValue))
-             renderEncoder.setFragmentTexture(textureResources.iblBRDFMap, index: Int(lightPassIBLBRDFMapTextureIndex.rawValue))
-
-             renderEncoder.setFragmentBytes(&BRDFSelection, length: MemoryLayout<Int>.stride, index: Int(lightPassNDFSelectionIndex.rawValue))
-
-             renderEncoder.setFragmentBytes(&applyIBL, length: MemoryLayout<Bool>.stride, index: Int(lightPassApplyIBLIndex.rawValue))
-
-             //set the draw command
-             renderEncoder.drawIndexedPrimitives(type: .triangle,
-                                                 indexCount: 6,
-                                                 indexType: .uint16,
-                                                 indexBuffer: bufferResources.quadIndexBuffer!,
-                                                 indexBufferOffset: 0)
-
-             renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-             renderEncoder.popDebugGroup()
-             renderEncoder.endEncoding()
-              */
-        }
-    }
-
-    static let executeRayCompositePass: (MTLCommandBuffer) -> Void = { commandBuffer in
-
-        if !rayCompositePipeline.success {
-            handleError(.pipelineStateNulled, rayCompositePipeline.name!)
-            return
-        }
-
-        let renderPassDescriptor = renderInfo.renderPassDescriptor!
-
-        // set the states for the pipeline
-        renderPassDescriptor.colorAttachments[0].loadAction = MTLLoadAction.clear
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 1.0)
-        renderPassDescriptor.colorAttachments[0].storeAction = MTLStoreAction.store
-
-        // clear it so that it doesn't have any effect on the final output
-        // renderPassDescriptor.depthAttachment.loadAction = .clear
-        // renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
-        // renderInfo.offscreenRenderPassDescriptor.depthAttachment.loadAction = .clear
-        //        //set your encoder here
-        guard
-            let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor)
-        else {
-            handleError(.renderPassCreationFailed, "Ray Composite Pass")
-            return
-        }
-
-        renderEncoder.label = "Ray Composite Pass"
-
-        renderEncoder.pushDebugGroup("Ray Composite Pass")
-
-        renderEncoder.setRenderPipelineState(rayCompositePipeline.pipelineState!)
-
-        // renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
-
-        renderEncoder.setVertexBuffer(bufferResources.quadVerticesBuffer, offset: 0, index: 0)
-        renderEncoder.setVertexBuffer(bufferResources.quadTexCoordsBuffer, offset: 0, index: 1)
-        renderEncoder.setFragmentTexture(textureResources.rayTracingDestTexture, index: 0)
-
-        // set the draw command
-
-        renderEncoder.drawIndexedPrimitives(
-            type: .triangle,
-            indexCount: 6,
-            indexType: .uint16,
-            indexBuffer: bufferResources.quadIndexBuffer!,
-            indexBufferOffset: 0
-        )
-
-        // renderEncoder.updateFence(renderInfo.fence, after: .fragment)
-        renderEncoder.popDebugGroup()
-        renderEncoder.endEncoding()
     }
 
     static func executeTonemapPass(_ pipeline: RenderPipeline) -> (MTLCommandBuffer) -> Void {

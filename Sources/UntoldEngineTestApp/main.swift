@@ -32,8 +32,8 @@ class GameScene {
         // links the mesh in the bluecar.usdc file to the entity "bluecar"
         addMeshToEntity(entityId:bluecar, name:"bluecar")
 
-        registerComponent(entityId: bluecar, componentType: Physics.self)
-        registerComponent(entityId: bluecar, componentType: Kinetic.self)
+        registerComponent(entityId: bluecar, componentType: PhysicsComponents.self)
+        registerComponent(entityId: bluecar, componentType: KineticComponent.self)
         
         setMass(entityId: bluecar, mass: 0.5)
         setGravityScale(entityId: bluecar, gravityScale: 1.0)

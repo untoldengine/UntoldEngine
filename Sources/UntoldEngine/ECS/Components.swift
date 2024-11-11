@@ -11,7 +11,7 @@ import Metal
 import MetalKit
 import simd
 
-public class Transform: Component {
+public class TransformComponent: Component {
     var localSpace: simd_float4x4
     var xRot: Float
     var yRot: Float
@@ -31,14 +31,14 @@ public class Transform: Component {
     }
 }
 
-public class Render: Component {
+public class RenderComponent: Component {
     var spaceUniform: MTLBuffer!
     var mesh: Mesh!
 
     public required init() {}
 }
 
-public class Physics: Component {
+public class PhysicsComponents: Component {
 
     var mass: Float
     var velocity: simd_float3
@@ -52,7 +52,7 @@ public class Physics: Component {
     }
 }
 
-public class Kinetic: Component {
+public class KineticComponent: Component {
 
     var forces: [simd_float3] = []
 
