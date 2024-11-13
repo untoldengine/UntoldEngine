@@ -506,3 +506,9 @@ public func rayIntersectPlane(
 
     return (false, nil)
 }
+
+extension simd_float4x4 {
+    static var identity: simd_float4x4 {
+        return matrix_identity_float4x4
+    }
+}

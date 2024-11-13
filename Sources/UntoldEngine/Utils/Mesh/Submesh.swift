@@ -1,20 +1,11 @@
-
-/*
- See LICENSE folder for this sample’s licensing information.
-
- Abstract:
- A struct that contains data useful for drawing a submesh.
- */
-
+import Foundation
 import MetalKit
+import simd
 
 struct SubMesh {
-    // A MetalKit submesh mesh containing the primitive type, index buffer, and index count
-    //   used to draw all or part of its parent AAPLMesh object
+    
+    // MetalKit submesh containing the primitive type, index buffer, and index count
     let metalKitSubmesh: MTKSubmesh
-
-    // Material to set in the Metal Render Command Encoder
-    //  before drawing the submesh
     var material: Material?
 
     init(metalKitSubmesh: MTKSubmesh) {
@@ -27,9 +18,7 @@ struct SubMesh {
         textureLoader: MTKTextureLoader
     ) {
         self.metalKitSubmesh = metalKitSubmesh
-
-        if let mdlMaterial = modelIOSubmesh.material {
-            material = Material(mdlMaterial, textureLoader: textureLoader)
-        }
+        self.material = Material(mdlMaterial: modelIOSubmesh.material!, textureLoader: textureLoader)
     }
 }
+

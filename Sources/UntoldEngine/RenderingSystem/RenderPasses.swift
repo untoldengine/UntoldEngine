@@ -555,9 +555,9 @@ enum RenderPasses {
                     materialParameters.interactWithLight = subMesh.material!.interactWithLight
 
                     materialParameters.hasTexture = simd_int4(
-                        Int32(subMesh.material!.hasBaseMap),
-                        Int32(subMesh.material!.hasRoughMap),
-                        Int32(subMesh.material!.hasMetalMap),
+                        Int32(subMesh.material!.hasBaseMap == true ? 1:0),
+                        Int32(subMesh.material!.hasRoughMap == true ? 1:0),
+                        Int32(subMesh.material!.hasMetalMap == true ? 1:0),
                         0
                     )
 
