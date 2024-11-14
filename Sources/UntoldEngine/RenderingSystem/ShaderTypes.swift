@@ -35,6 +35,8 @@ enum ModelPassBufferIndices: Int {
     case modelPassNormalIndex
     case modelPassUVIndex
     case modelPassTangentIndex
+    case modelPassJointIdIndex
+    case modelPassJointWeightsIndex
     case modelPassBitangentIndex
     case modelPassUniformIndex
     case modelPassLightOrthoViewMatrixIndex

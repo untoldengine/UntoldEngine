@@ -15,6 +15,7 @@ struct Mesh {
     var width: Float
     var height: Float
     var depth: Float
+    var skin: Skin?
 
     init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: MTKTextureLoader, device: MTLDevice
     ) {

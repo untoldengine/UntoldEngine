@@ -8,6 +8,7 @@
 //
 
 import Foundation
+import MetalKit
 
 public func createEntity() -> EntityID {
     return scene.newEntity()
@@ -58,6 +59,74 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     }
     
     registerDefaultComponents(entityId: entityId, name: meshes.first!.name)
+    
+    // look for any skeletons in asset
+    setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
+    
+}
+
+public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String){
+ 
+    guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
+        print("Unable to find file \(filename)")
+        return
+    }
+    
+    let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
+    
+    let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor.model, bufferAllocator: bufferAllocator)
+    
+    let skeletons =
+      asset.childObjects(of: MDLSkeleton.self) as? [MDLSkeleton] ?? []
+    
+    if skeletons.first == nil{
+        
+        print("no skeleton found in asset")
+        
+        return
+        
+    }
+    
+    let skeleton:Skeleton = Skeleton(mdlSkeleton: skeletons.first)!
+    
+    // register Skeleton Component
+    registerComponent(entityId: entityId, componentType: SkeletonComponent.self)
+    
+    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
+        print("Entity does not have a Skeleton Component. Please add one if required")
+        return
+    }
+    
+    skeletonComponent.skeleton=skeleton
+    
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        print("Entity does not have a Render Component.")
+        return
+    }
+    
+    setEntitySkin(entityId: entityId, mdlMesh: renderComponent.mesh.modelMDLMesh)
+}
+
+public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh){
+    
+    guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
+        print("Entity does not have a Skeleton Component. Please add one")
+        return
+    }
+    
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        print("Entity does not have a Render Component. Please add one")
+        return
+    }
+    
+    //for index in 0..<mdlMeshes.count{
+    let animationBindComponent=mdlMesh.componentConforming(to: MDLComponent.self) as? MDLAnimationBindComponent
+
+    let skin=Skin(bindComponent: animationBindComponent, skeleton: skeletonComponent.skeleton)
+
+    renderComponent.mesh.skin = skin
+
+    //}
     
 }
 

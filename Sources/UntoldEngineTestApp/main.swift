@@ -39,8 +39,10 @@ class GameScene {
         
         //set entity for the blue car
         bluecar=createEntity()
+        
         var player = createEntity()
-        setEntityMesh(entityId: player, filename: "redshirtplayer", withExtension: "usdc")
+        
+        setEntityMesh(entityId: player, filename: "playerwitharmature", withExtension: "usdc")
         
         // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity:EntityID=createEntity()

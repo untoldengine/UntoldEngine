@@ -69,6 +69,14 @@ public class KineticComponent: Component {
     }
 }
 
+public class SkeletonComponent: Component{
+    
+    var skeleton: Skeleton!
+    
+    public required init() {}
+    
+}
+
 public class LightComponent: Component {
     enum LightType {
         case point(PointLight)
