@@ -36,21 +36,21 @@ public func addMeshToEntity(entityId: EntityID, name: String) {
         registerComponent(entityId: entityId, componentType: RenderComponent.self)
         registerComponent(entityId: entityId, componentType: TransformComponent.self)
 
-        guard let r = scene.get(component: RenderComponent.self, for: entityId) else {
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
             print("Entity does not have a Render Component. Please add one")
             return
         }
 
-        guard let t = scene.get(component: TransformComponent.self, for: entityId) else {
+        guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
             print("Entity does not have a Transform Component. Please add one")
             return
         }
 
-        r.mesh = meshValue
+        renderComponent.mesh = meshValue
 
-        t.localSpace = meshValue.localSpace
-        t.maxBox = meshValue.maxBox
-        t.minBox = meshValue.minBox
+        transformComponent.localSpace = meshValue.localSpace
+        transformComponent.maxBox = meshValue.maxBox
+        transformComponent.minBox = meshValue.minBox
 
     } else {
         print("asset not found in list")

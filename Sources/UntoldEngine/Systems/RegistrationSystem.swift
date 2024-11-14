@@ -20,17 +20,17 @@ public func registerComponent<T: Component>(entityId: EntityID, componentType: T
 public func destroyEntity(entityID: EntityID) {
     selectedModel = false
 
-    var r = scene.get(component: RenderComponent.self, for: entityID)
-    var t = scene.get(component: TransformComponent.self, for: entityID)
-    r?.mesh = nil
+    var renderComponent = scene.get(component: RenderComponent.self, for: entityID)
+    var transformComponent = scene.get(component: TransformComponent.self, for: entityID)
+    renderComponent?.mesh = nil
 
     scene.remove(component: RenderComponent.self, from: entityID)
     scene.remove(component: TransformComponent.self, from: entityID)
 
-    r = nil
-    t = nil
+    renderComponent = nil
+    transformComponent = nil
 
-    if let l = scene.get(component: LightComponent.self, for: entityID) {
+    if let lightComponent = scene.get(component: LightComponent.self, for: entityID) {
         lightingSystem.removeLight(entityID: entityID)
         scene.remove(component: LightComponent.self, from: entityID)
     }
