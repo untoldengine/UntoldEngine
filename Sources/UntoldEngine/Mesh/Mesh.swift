@@ -77,7 +77,7 @@ struct Mesh {
     ) -> [Mesh] {
         
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
-        let asset = MDLAsset(url: url, vertexDescriptor: nil, bufferAllocator: bufferAllocator)
+        let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
         let textureLoader = MTKTextureLoader(device: device)
 
         return asset.childObjects(of: MDLObject.self).flatMap {

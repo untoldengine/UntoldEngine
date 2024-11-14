@@ -30,10 +30,61 @@ public func destroyEntity(entityID: EntityID) {
     renderComponent = nil
     transformComponent = nil
 
-    if let lightComponent = scene.get(component: LightComponent.self, for: entityID) {
+    if scene.get(component: LightComponent.self, for: entityID) != nil {
         lightingSystem.removeLight(entityID: entityID)
         scene.remove(component: LightComponent.self, from: entityID)
     }
 
     scene.destroyEntity(entityID)
+}
+
+public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String){
+    
+    guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
+        print("Unable to find file \(filename)")
+        return
+    }
+    
+    var meshes = [Mesh]()
+
+    meshes = Mesh.loadMeshes(
+        url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device
+    )
+
+    meshDictionary[meshes.first!.name] = meshes.first
+    
+    if meshes.count > 1 {
+        print("several models found in file \(filename). Only the first model will be linked to entity")
+    }
+    
+    registerDefaultComponents(entityId: entityId, name: meshes.first!.name)
+    
+}
+
+// register Render and Transform components
+
+func registerDefaultComponents(entityId: EntityID, name: String) {
+    if let meshValue = meshDictionary[name] {
+        registerComponent(entityId: entityId, componentType: RenderComponent.self)
+        registerComponent(entityId: entityId, componentType: TransformComponent.self)
+
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+            print("Entity does not have a Render Component. Please add one")
+            return
+        }
+
+        guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+            print("Entity does not have a Transform Component. Please add one")
+            return
+        }
+
+        renderComponent.mesh = meshValue
+
+        transformComponent.localSpace = meshValue.localSpace
+        transformComponent.maxBox = meshValue.maxBox
+        transformComponent.minBox = meshValue.minBox
+
+    } else {
+        print("asset not found in list")
+    }
 }

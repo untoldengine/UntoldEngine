@@ -10,6 +10,16 @@ import Foundation
 import MetalKit
 import ModelIO
 
+public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
+    // First, check Bundle.module for the resource
+    if let url = Bundle.module.url(forResource: resourceName, withExtension: ext) {
+        return url
+    }
+
+    // If not found in Bundle.module, check Bundle.main
+    return Bundle.main.url(forResource: resourceName, withExtension: ext)
+}
+
 public func loadScene(filename: URL, withExtension _: String) {
     var meshes = [Mesh]()
 
@@ -31,32 +41,6 @@ public func loadScene(filename: String, withExtension: String) {
     loadScene(filename: url, withExtension: url.pathExtension)
 }
 
-public func addMeshToEntity(entityId: EntityID, name: String) {
-    if let meshValue = meshDictionary[name] {
-        registerComponent(entityId: entityId, componentType: RenderComponent.self)
-        registerComponent(entityId: entityId, componentType: TransformComponent.self)
-
-        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-            print("Entity does not have a Render Component. Please add one")
-            return
-        }
-
-        guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-            print("Entity does not have a Transform Component. Please add one")
-            return
-        }
-
-        renderComponent.mesh = meshValue
-
-        transformComponent.localSpace = meshValue.localSpace
-        transformComponent.maxBox = meshValue.maxBox
-        transformComponent.minBox = meshValue.minBox
-
-    } else {
-        print("asset not found in list")
-    }
-}
-
 public func loadBulkScene(filename: String, withExtension: String) {
     var meshes = [Mesh]()
 
@@ -71,6 +55,6 @@ public func loadBulkScene(filename: String, withExtension: String) {
         meshDictionary[mesh.name] = mesh
 
         let entity: EntityID = createEntity()
-        addMeshToEntity(entityId: entity, name: mesh.name)
+        registerDefaultComponents(entityId: entity, name: mesh.name)
     }
 }

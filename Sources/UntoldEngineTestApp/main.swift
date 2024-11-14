@@ -24,19 +24,23 @@ class GameScene {
         loadBulkScene(filename: "racetrack", withExtension: "usdc")
 
         // You can also load the assets individually.   
-        loadScene(filename: "bluecar", withExtension: "usdc")
+        //loadScene(filename: "bluecar", withExtension: "usdc")
         
-        //set entity for the blue car 
+        
+        
+//        // links the mesh in the bluecar.usdc file to the entity "bluecar"
+//        addMeshToEntity(entityId:bluecar, name:"bluecar")
+//
+//        registerComponent(entityId: bluecar, componentType: PhysicsComponents.self)
+//        registerComponent(entityId: bluecar, componentType: KineticComponent.self)
+//        
+//        setMass(entityId: bluecar, mass: 0.5)
+//        setGravityScale(entityId: bluecar, gravityScale: 1.0)
+        
+        //set entity for the blue car
         bluecar=createEntity()
-        
-        // links the mesh in the bluecar.usdc file to the entity "bluecar"
-        addMeshToEntity(entityId:bluecar, name:"bluecar")
-
-        registerComponent(entityId: bluecar, componentType: PhysicsComponents.self)
-        registerComponent(entityId: bluecar, componentType: KineticComponent.self)
-        
-        setMass(entityId: bluecar, mass: 0.5)
-        setGravityScale(entityId: bluecar, gravityScale: 1.0)
+        var player = createEntity()
+        setEntityMesh(entityId: player, filename: "redshirtplayer", withExtension: "usdc")
         
         // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity:EntityID=createEntity()
@@ -59,7 +63,7 @@ class GameScene {
     }
     
     func update(_ deltaTime: Float) {
-        applyForce(entityId: bluecar, force: simd_float3(0.0,0.0,5.0))
+        //applyForce(entityId: bluecar, force: simd_float3(0.0,0.0,5.0))
     }
 
     func handleInput() {

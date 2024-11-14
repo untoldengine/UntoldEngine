@@ -25,15 +25,7 @@ public func hasComponent<T>(entity: EntityDesc, componentType: T.Type) -> Bool {
     return entity.mask.test(componentId)
 }
 
-public func getResourceURL(forResource resourceName: String, withExtension ext: String) -> URL? {
-    // First, check Bundle.module for the resource
-    if let url = Bundle.module.url(forResource: resourceName, withExtension: ext) {
-        return url
-    }
 
-    // If not found in Bundle.module, check Bundle.main
-    return Bundle.main.url(forResource: resourceName, withExtension: ext)
-}
 
 public func loadTexture(
     device: MTLDevice,
