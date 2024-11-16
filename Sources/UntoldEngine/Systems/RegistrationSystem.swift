@@ -93,14 +93,14 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
     registerComponent(entityId: entityId, componentType: SkeletonComponent.self)
     
     guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        print("Entity does not have a Skeleton Component. Please add one if required")
+        handleError(.noSkeletonComponent,entityId)
         return
     }
     
     skeletonComponent.skeleton=skeleton
     
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        print("Entity does not have a Render Component.")
+        handleError(.noRenderComponent, entityId)
         return
     }
     
@@ -110,12 +110,12 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
 public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh){
     
     guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        print("Entity does not have a Skeleton Component. Please add one")
+        handleError(.noSkeletonComponent,entityId)
         return
     }
     
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-        print("Entity does not have a Render Component. Please add one")
+        handleError(.noRenderComponent, entityId)
         return
     }
     
@@ -171,7 +171,7 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     registerComponent(entityId: entityId, componentType: AnimationComponent.self)
         
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
-        print("Entity does not have a Animation Component. Please add one if required")
+        handleError(.noAnimationComponent, entityId)
         return
     }
     
@@ -187,12 +187,12 @@ func registerDefaultComponents(entityId: EntityID, name: String) {
         registerComponent(entityId: entityId, componentType: TransformComponent.self)
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-            print("Entity does not have a Render Component. Please add one")
+            handleError(.noRenderComponent,entityId)
             return
         }
 
         guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-            print("Entity does not have a Transform Component. Please add one")
+            handleError(.noTransformComponent,entityId)
             return
         }
 

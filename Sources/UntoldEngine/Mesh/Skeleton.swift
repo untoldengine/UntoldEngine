@@ -96,7 +96,7 @@ struct Skin {
     /// Initializes a Skin object with an animation bind component and a skeleton
     init?(animationBindComponent: MDLAnimationBindComponent?, skeleton: Skeleton?) {
         guard let animationBindComponent, let skeleton else {
-            print("Error: Missing animation bind component or skeleton.")
+            handleError(.noAnimationBind)
             return nil
         }
 
@@ -104,7 +104,7 @@ struct Skin {
         self.skinToSkeletonMap = skeleton.mapJoints(from: jointPaths)
 
         guard let buffer = Skin.createBuffer(for: jointPaths.count) else {
-            print("Error: Failed to create joint transforms buffer.")
+            handleError(.jointBufferFailed)
             return nil
         }
         self.jointTransformsBuffer = buffer
@@ -113,12 +113,12 @@ struct Skin {
     /// Updates the joint transform matrices in the buffer using the skeleton's current pose
     func updateJointMatrices(skeleton: Skeleton?) {
         guard let skeletonPose = skeleton?.currentPose else {
-            print("Error: Skeleton pose is unavailable.")
+            handleError(.noSkeletonPose)
             return
         }
 
         guard let pointer = Skin.bindBuffer(jointTransformsBuffer, jointCount: jointPaths.count) else {
-            print("Error: Failed to bind joint transforms buffer.")
+            handleError(.jointBindFailed)
             return
         }
 

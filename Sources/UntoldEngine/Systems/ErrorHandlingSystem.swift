@@ -38,6 +38,12 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case noKineticComponent = 1029
     case noRenderComponent = 1030
     case noTransformComponent = 1031
+    case noSkeletonComponent = 1032
+    case noAnimationComponent = 1033
+    case noAnimationBind = 1034
+    case jointBufferFailed = 1035
+    case noSkeletonPose = 1036
+    case jointBindFailed = 1037
 
     public var description: String {
         switch self {
@@ -101,6 +107,18 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Does not have a Transform component"
         case .noRenderComponent:
             return "Does not have a Render component"
+        case .noSkeletonComponent:
+            return "Does not have a Skeleton component"
+        case .noAnimationComponent:
+            return "Does not have a Render component"
+        case .noAnimationBind:
+            return "Missing animation bind component or skeleton."
+        case .jointBufferFailed:
+            return "Failed to create joint transforms buffer."
+        case .noSkeletonPose:
+            return "Skeleton pose is unavailable."
+        case .jointBindFailed:
+            return "Failed to bind joint transforms buffer."
         }
     }
 }
