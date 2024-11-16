@@ -58,6 +58,7 @@ enum ModelPassBufferIndices: Int {
     case modelPassBRDFIndex
     case modelPassIBLRotationAngleIndex
     case modelPassJointMatrixIndex
+    case modelPassHasArmature
 }
 
 enum EnvironmentPassBufferIndices: Int {

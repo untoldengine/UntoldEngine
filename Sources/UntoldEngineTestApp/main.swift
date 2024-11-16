@@ -4,48 +4,38 @@ import MetalKit
 // GameScene is where you would initialize your game and write the game logic. 
 class GameScene {
 
-    // entity which we will control with the WASD keys  
-    var bluecar:EntityID!
-
-    // camera follow parameters 
-    var targetPosition:simd_float3=simd_float3(0.0,0.0,0.0)
-    var offset:simd_float3=simd_float3(0.0,4.0,8.0)
-    var smoothSpeed:Float=1.0 
-
     init() {
 
         // set camera to look at point 
         camera.lookAt(
-          eye: simd_float3(0.0, 6.0, 35.0), target: simd_float3(0.0, 2.0, 0.0),
+          eye: simd_float3(0.0, 5.0, 10.0), target: simd_float3(0.0, 2.0, 0.0),
           up: simd_float3(0.0, 1.0, 0.0))
             
         // You can load the assets in bulk as shown here. 
         // In this instance, racetrack contains multiple assets which do not require an entity id to be assigned.  
-        //loadBulkScene(filename: "racetrack", withExtension: "usdc")
+        loadBulkScene(filename: "stadium", withExtension: "usdc")
 
         // You can also load the assets individually.   
         //loadScene(filename: "bluecar", withExtension: "usdc")
         
-        
-        
-//        // links the mesh in the bluecar.usdc file to the entity "bluecar"
-//        addMeshToEntity(entityId:bluecar, name:"bluecar")
-//
 //        registerComponent(entityId: bluecar, componentType: PhysicsComponents.self)
 //        registerComponent(entityId: bluecar, componentType: KineticComponent.self)
 //        
 //        setMass(entityId: bluecar, mass: 0.5)
 //        setGravityScale(entityId: bluecar, gravityScale: 1.0)
         
-        //set entity for the blue car
-        bluecar=createEntity()
+        let redPlayer = createEntity()
         
-        let player = createEntity()
+        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc")
         
-        setEntityMesh(entityId: player, filename: "playerwitharmature", withExtension: "usdc")
-        setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
-        setEntityAnimations(entityId: player, filename: "idle", withExtension: "usdc", name: "idle")
-        changeAnimation(entityId: player, name: "idle")
+        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
+        changeAnimation(entityId: redPlayer, name: "running")
+        
+        let bluePlayer = createEntity()
+        
+        setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
+        
+        
         // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity:EntityID=createEntity()
 

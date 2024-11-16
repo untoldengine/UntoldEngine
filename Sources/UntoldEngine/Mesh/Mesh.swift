@@ -27,9 +27,9 @@ struct Mesh {
             radians: -.pi / 2.0, axis: simd_float3(1.0, 0.0, 0.0)
         )
         
-//        modelIOMesh.parent?.transform?.matrix = simd_mul(
-//            blenderTransform, modelIOMesh.parent?.transform?.matrix ?? .identity
-//        )
+        modelIOMesh.parent?.transform?.matrix = simd_mul(
+            blenderTransform, modelIOMesh.parent?.transform?.matrix ?? .identity
+        )
         
         // Set local transform matrix and name
         self.localSpace = modelIOMesh.parent?.transform?.matrix ?? .identity

@@ -81,7 +81,7 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
     
     if skeletons.first == nil{
         
-        print("no skeleton found in asset")
+        print("no armature for \(entityId) found in asset")
         
         return
         
