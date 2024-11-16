@@ -135,3 +135,5 @@ var selectedModel: Bool = false
 var envRotationAngle: Float = 0
 public var hdrURL: String = "photostudio.hdr"
 public var resourceURL: URL?
+
+var currentGlobalTime:Float = 0.0

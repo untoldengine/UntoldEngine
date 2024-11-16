@@ -21,7 +21,7 @@ class GameScene {
             
         // You can load the assets in bulk as shown here. 
         // In this instance, racetrack contains multiple assets which do not require an entity id to be assigned.  
-        loadBulkScene(filename: "racetrack", withExtension: "usdc")
+        //loadBulkScene(filename: "racetrack", withExtension: "usdc")
 
         // You can also load the assets individually.   
         //loadScene(filename: "bluecar", withExtension: "usdc")
@@ -40,10 +40,12 @@ class GameScene {
         //set entity for the blue car
         bluecar=createEntity()
         
-        var player = createEntity()
+        let player = createEntity()
         
         setEntityMesh(entityId: player, filename: "playerwitharmature", withExtension: "usdc")
-        
+        setEntityAnimations(entityId: player, filename: "running", withExtension: "usdc", name: "running")
+        setEntityAnimations(entityId: player, filename: "idle", withExtension: "usdc", name: "idle")
+        changeAnimation(entityId: player, name: "idle")
         // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity:EntityID=createEntity()
 

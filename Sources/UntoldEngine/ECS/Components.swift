@@ -77,6 +77,14 @@ public class SkeletonComponent: Component{
     
 }
 
+public class AnimationComponent: Component{
+    
+    var animationClips: [String: AnimationClip] = [:]
+    var currentAnimation: AnimationClip?
+    public required init() {}
+    
+}
+
 public class LightComponent: Component {
     enum LightType {
         case point(PointLight)

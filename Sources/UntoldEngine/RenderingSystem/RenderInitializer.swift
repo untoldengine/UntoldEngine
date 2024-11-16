@@ -582,12 +582,12 @@ func initRenderPipelines() {
         )
         
         vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributeTangent, format: .uShort4, offset: 0,
+            name: MDLVertexAttributeJointIndices, format: .uShort4, offset: 0,
             bufferIndex: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
         )
         
         vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributeTangent, format: .float4, offset: 0,
+            name: MDLVertexAttributeJointWeights, format: .float4, offset: 0,
             bufferIndex: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
         )
 

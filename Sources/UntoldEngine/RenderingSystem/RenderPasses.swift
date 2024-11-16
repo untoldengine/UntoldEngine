@@ -523,6 +523,24 @@ enum RenderPasses {
                     render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)
                 )
+                
+                renderEncoder.setVertexBuffer(
+                    render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)].buffer,
+                    offset: 0, index: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
+                )
+                
+                renderEncoder.setVertexBuffer(
+                    render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)].buffer,
+                    offset: 0, index: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
+                )
+                
+                // check if it has skeleton component
+                if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId){
+                
+                    renderEncoder.setVertexBuffer(render.mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(ModelPassBufferIndices.modelPassJointMatrixIndex.rawValue))
+                }
+                
+                
 
                 for subMesh in render.mesh.submeshes {
                     // set base texture

@@ -119,14 +119,63 @@ public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh){
         return
     }
     
-    //for index in 0..<mdlMeshes.count{
     let animationBindComponent=mdlMesh.componentConforming(to: MDLComponent.self) as? MDLAnimationBindComponent
 
-    let skin=Skin(bindComponent: animationBindComponent, skeleton: skeletonComponent.skeleton)
+    let skin=Skin(animationBindComponent: animationBindComponent, skeleton: skeletonComponent.skeleton)
 
+    // update the buffer with rest pose
+    skeletonComponent.skeleton.resetPoseToRest()
+    
+    skin?.updateJointMatrices(skeleton: skeletonComponent.skeleton)
+    
     renderComponent.mesh.skin = skin
+    
+}
 
-    //}
+public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
+    
+    // Helper function to add animation clips
+    func addClips(to animationComponent: AnimationComponent) {
+        for assetAnimation in assetAnimations {
+            let animationClip = AnimationClip(animation: assetAnimation, animationName: name)
+            animationComponent.animationClips[name] = animationClip
+        }
+    }
+    
+    guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
+        print("Unable to find file \(filename)")
+        return
+    }
+
+    let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
+
+    let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor.model, bufferAllocator: bufferAllocator)
+
+    let assetAnimations = asset.animations.objects.compactMap {
+        $0 as? MDLPackedJointAnimation
+    }
+    
+    if assetAnimations.isEmpty{
+        print("Entity has no animation")
+        return
+    }
+    
+    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId){
+        
+        addClips(to: animationComponent)
+        
+        return
+    }
+    
+    // register Skeleton Component
+    registerComponent(entityId: entityId, componentType: AnimationComponent.self)
+        
+    guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
+        print("Entity does not have a Animation Component. Please add one if required")
+        return
+    }
+    
+    addClips(to: animationComponent)
     
 }
 

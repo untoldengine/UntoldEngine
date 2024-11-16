@@ -131,6 +131,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         if gameMode == true {
             handleInputCallback?() // if game mode
             updatePhysicsSystem(deltaTime: timeSinceLastUpdate)
+            updateAnimationSystem(deltaTime: timeSinceLastUpdate)
         } else {
             handleSceneInput() // if scene mode
         }
