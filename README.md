@@ -381,6 +381,8 @@ Click on Run and you should see the following:
 
 ![players](images/gamescene1.png)
 
+To enter Game Mode, press "L".
+
 ---
 
 ## Deep Dive into the engine

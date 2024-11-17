@@ -136,6 +136,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         return true
     }
 }
+```
 
 ## Step 5: Run Your Game
 
