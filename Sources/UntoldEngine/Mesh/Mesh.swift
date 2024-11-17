@@ -17,7 +17,7 @@ struct Mesh {
     var depth: Float
     var skin: Skin?
 
-    init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: MTKTextureLoader, device: MTLDevice
+    init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: MTKTextureLoader, device: MTLDevice, flip: Bool
     ) {
         
         self.modelMDLMesh = modelIOMesh
@@ -27,9 +27,11 @@ struct Mesh {
             radians: -.pi / 2.0, axis: simd_float3(1.0, 0.0, 0.0)
         )
         
-        modelIOMesh.parent?.transform?.matrix = simd_mul(
-            blenderTransform, modelIOMesh.parent?.transform?.matrix ?? .identity
-        )
+        if flip == true{
+            modelIOMesh.parent?.transform?.matrix = simd_mul(
+                blenderTransform, modelIOMesh.parent?.transform?.matrix ?? .identity
+            )
+        }
         
         // Set local transform matrix and name
         self.localSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
@@ -74,7 +76,8 @@ struct Mesh {
     static func loadMeshes(
         url: URL,
         vertexDescriptor: MDLVertexDescriptor,
-        device: MTLDevice
+        device: MTLDevice,
+        flip: Bool
     ) -> [Mesh] {
         
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
@@ -82,7 +85,7 @@ struct Mesh {
         let textureLoader = MTKTextureLoader(device: device)
 
         return asset.childObjects(of: MDLObject.self).flatMap {
-            makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device)
+            makeMeshes(object: $0, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip)
         }
     }
 
@@ -91,18 +94,19 @@ struct Mesh {
         object: MDLObject,
         vertexDescriptor: MDLVertexDescriptor,
         textureLoader: MTKTextureLoader,
-        device: MTLDevice
+        device: MTLDevice,
+        flip: Bool
     ) -> [Mesh] {
         
         var meshes = [Mesh]()
 
         if let mdlMesh = object as? MDLMesh {
-            meshes.append(Mesh(modelIOMesh: mdlMesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device))
+            meshes.append(Mesh(modelIOMesh: mdlMesh, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip))
         }
 
         if object.conforms(to: MDLObjectContainerComponent.self) {
             for child in object.children.objects {
-                meshes.append(contentsOf: makeMeshes(object: child, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device))
+                meshes.append(contentsOf: makeMeshes(object: child, vertexDescriptor: vertexDescriptor, textureLoader: textureLoader, device: device, flip: flip))
             }
         }
 

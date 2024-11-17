@@ -8,7 +8,7 @@ class GameScene {
 
         // set camera to look at point 
         camera.lookAt(
-          eye: simd_float3(0.0, 5.0, 10.0), target: simd_float3(0.0, 2.0, 0.0),
+          eye: simd_float3(0.0, 7.0, 15.0), target: simd_float3(0.0, 0.0, 0.0),
           up: simd_float3(0.0, 1.0, 0.0))
             
         // You can load the assets in bulk as shown here. 
@@ -24,17 +24,18 @@ class GameScene {
 //        setMass(entityId: bluecar, mass: 0.5)
 //        setGravityScale(entityId: bluecar, gravityScale: 1.0)
         
-        let redPlayer = createEntity()
-        
-        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc")
-        
-        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
-        changeAnimation(entityId: redPlayer, name: "running")
-        
         let bluePlayer = createEntity()
         
         setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
         
+        translateEntityBy(entityId: bluePlayer, position: simd_float3(3.0,0.0,0.0))
+        
+        let redPlayer = createEntity()
+        
+        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
+        
+        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
+        changeAnimation(entityId: redPlayer, name: "running")
         
         // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity:EntityID=createEntity()

@@ -20,11 +20,11 @@ public func getResourceURL(forResource resourceName: String, withExtension ext: 
     return Bundle.main.url(forResource: resourceName, withExtension: ext)
 }
 
-public func loadScene(filename: URL, withExtension _: String) {
+public func loadScene(filename: URL, withExtension _: String, flip: Bool = true) {
     var meshes = [Mesh]()
 
     meshes = Mesh.loadMeshes(
-        url: filename, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device
+        url: filename, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: flip
     )
 
     for mesh in meshes {
@@ -41,7 +41,7 @@ public func loadScene(filename: String, withExtension: String) {
     loadScene(filename: url, withExtension: url.pathExtension)
 }
 
-public func loadBulkScene(filename: String, withExtension: String) {
+public func loadBulkScene(filename: String, withExtension: String, flip: Bool = true ) {
     var meshes = [Mesh]()
 
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
@@ -49,7 +49,7 @@ public func loadBulkScene(filename: String, withExtension: String) {
         return
     }
 
-    meshes = Mesh.loadMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device)
+    meshes = Mesh.loadMeshes(url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: flip)
 
     for mesh in meshes {
         meshDictionary[mesh.name] = mesh

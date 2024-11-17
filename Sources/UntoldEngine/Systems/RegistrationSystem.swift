@@ -39,7 +39,7 @@ public func destroyEntity(entityID: EntityID) {
     scene.destroyEntity(entityID)
 }
 
-public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String){
+public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true){
     
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
         print("Unable to find file \(filename)")
@@ -49,7 +49,7 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     var meshes = [Mesh]()
 
     meshes = Mesh.loadMeshes(
-        url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device
+        url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: flip
     )
 
     meshDictionary[meshes.first!.name] = meshes.first
