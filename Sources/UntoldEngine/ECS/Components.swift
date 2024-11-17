@@ -56,7 +56,7 @@ public class KineticComponent: Component {
 
     var forces: [simd_float3] = []
 
-    var gravityScale: Float = 1.0
+    var gravityScale: Float = 0.0
 
     public required init() {}
 

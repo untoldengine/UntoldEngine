@@ -179,6 +179,18 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     
 }
 
+public func setEntityKinetics(entityId: EntityID){
+    
+    if let _ = scene.get(component: PhysicsComponents.self, for: entityId) {
+        registerComponent(entityId: entityId, componentType: KineticComponent.self)
+    } else {
+        // Components doesn't exist, create and register it
+        registerComponent(entityId: entityId, componentType: PhysicsComponents.self)
+        registerComponent(entityId: entityId, componentType: KineticComponent.self)
+    }
+    
+}
+
 // register Render and Transform components
 
 func registerDefaultComponents(entityId: EntityID, name: String) {

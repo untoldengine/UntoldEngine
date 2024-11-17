@@ -42,7 +42,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         do {
             let mainLibrary = try renderInfo.device.makeLibrary(URL: libraryURL)
             renderInfo.library = mainLibrary
-            print("Found metallib")
+            print("Found Untold Engine metallib")
         } catch {
             print("Failed to load metallib: \(error)")
         }
@@ -75,7 +75,7 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
         inputSystem.setupGestureRecognizers(view: metalView)
         inputSystem.setupEventMonitors()
 
-        Logger.log(message: "Engine Starting")
+        Logger.log(message: "Untold Engine Starting")
     }
 
     func calculateDeltaTime() {

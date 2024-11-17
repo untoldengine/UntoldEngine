@@ -4,6 +4,8 @@ import MetalKit
 // GameScene is where you would initialize your game and write the game logic. 
 class GameScene {
 
+    var redPlayer: EntityID
+    
     init() {
 
         // set camera to look at point 
@@ -12,30 +14,32 @@ class GameScene {
           up: simd_float3(0.0, 1.0, 0.0))
             
         // You can load the assets in bulk as shown here. 
-        // In this instance, racetrack contains multiple assets which do not require an entity id to be assigned.  
+        // In this instance, stadium contains multiple assets which do not require an entity id to be assigned.
         loadBulkScene(filename: "stadium", withExtension: "usdc")
-
-        // You can also load the assets individually.   
-        //loadScene(filename: "bluecar", withExtension: "usdc")
         
-//        registerComponent(entityId: bluecar, componentType: PhysicsComponents.self)
-//        registerComponent(entityId: bluecar, componentType: KineticComponent.self)
-//        
-//        setMass(entityId: bluecar, mass: 0.5)
-//        setGravityScale(entityId: bluecar, gravityScale: 1.0)
-        
+        // create an entity id for the blue player
         let bluePlayer = createEntity()
         
+        // this function loads the usdc file and sets the mesh model to the entity
         setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
         
+        // translate the entity
         translateEntityBy(entityId: bluePlayer, position: simd_float3(3.0,0.0,0.0))
         
-        let redPlayer = createEntity()
+        // let's create another entity Id
+        redPlayer = createEntity()
         
+        // load the usdc file and link the model to the entity
         setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
         
+        // load and link the animation to the entity. You should give a name to the animation
         setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
+        
+        // set the animation to play. You reference the animaitons by name
         changeAnimation(entityId: redPlayer, name: "running")
+        
+        // enable physics/kinetics on the entity
+        setEntityKinetics(entityId: redPlayer)
         
         // You can also set a directional light. Notice that you need to create an entity first.
         let sunEntity:EntityID=createEntity()
@@ -58,7 +62,9 @@ class GameScene {
     }
     
     func update(_ deltaTime: Float) {
-        //applyForce(entityId: bluecar, force: simd_float3(0.0,0.0,5.0))
+        // apply force towards the z direction to the player. The entity must have
+        // a kinetic component.
+        applyForce(entityId: redPlayer, force: simd_float3(0.0,0.0,2.0))
     }
 
     func handleInput() {
