@@ -22,36 +22,21 @@ Here is an example where the input system is used to detect the keys from the us
             return 
         }
 
-        var speed:Float = 33.0
-        var offset:Float = 3.5
-
-        // position of entity
-        var position:simd_float3 = getPosition(entityId: entityId)
-
-        // forward vector of entity
-        var forward:simd_float3 = getForwardVector(entityId:entityId)
-
-        let up: simd_float3 = simd_float3(0.0, 1.0, 0.0)
-
-        var right: simd_float3 = cross(forward, up)
-        
-        right = normalize(right)
-
         //check keys pressed
         if inputSystem.keyState.wPressed == true{
-            position+=forward*speed*dt 
+             
         }
 
         if inputSystem.keyState.sPressed == true{
-            position-=forward*speed*dt 
+            
         }
 
         if inputSystem.keyState.aPressed == true{
-            position-=right*speed*dt 
+            
         }
 
         if inputSystem.keyState.dPressed == true{
-            position+=right*speed*dt 
+             
         }
 
         translateTo(entityId:entityId, position: position)

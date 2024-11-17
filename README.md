@@ -31,6 +31,7 @@
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+- [Core API Functions](#Core-API-Functions)
 - [Creating a quick game](#Creating-a-quick-game)
 - [Deep Dive into the engine](#Deep-dive-into-the-engine)
 - [Roadmap](#roadmap)
@@ -46,19 +47,24 @@
 
 ## About
 
-The Untold Engine is a 3D game engine for macOS/iOS devices. It is written in Swift and uses Metal as its graphics library. Its main purpose is to make game development a breeze by providing a simple to use API.
+The Untold Engine is a 3D game engine for macOS/iOS devices, written in Swift and powered by Metal as its graphics library. Its primary goal is to simplify game development by providing an intuitive, easy-to-use API.
 
 Author: [Harold Serrano](http://www.haroldserrano.com)
+
+---
 
 ## Getting Started
 
 ### Prerequisites
 
-To get started, you will need an Apple computer and the latest version of Xcode installed. You can download Xcode from the App Store.
+To begin using the Untold Engine, you’ll need:
+
+- An Apple computer.
+- The latest version of Xcode, which you can download from the App Store.
 
 ### Installation
 
-To run the the Untold Engine, do the following:
+Follow these steps to set up and run the Untold Engine:
 
 1. Clone the Repository
 
@@ -73,7 +79,10 @@ cd UntoldEngine
 ```bash
 open Package.swift
 ```
-3. Xcode should open up. In the scheme settings, make sure to select "UntoldEngineTestApp" and "myMac" as your target.
+3. Configure the Scheme in Xcode
+
+- In Xcode, select the "UntoldEngineTestApp" scheme.
+- Set "My Mac" as the target device.
 
 ![xcodescheme](images/selectingscheme.gif)
 
@@ -83,39 +92,105 @@ You should see models being rendered.
 
 ![gamesceneimage](images/gamescene1.png)
 
-To enter/exit "game mode" press 'L'. To move the car use the normal 'WASD' keys
+### Controls:
+
+- Press L to toggle "game mode." 
+- In game mode, you should see one of the characters animating
+
+---
+
+## Core API Functions
+
+The Untold Engine API is designed to make game development straightforward and efficient. Its key strength lies in its clear and consistent naming conventions, enabling developers to focus on building their game logic without worrying about complex engine details.
+
+At its core, the API revolves around the Entity-Component-System (ECS) architecture, where you create entities and enhance them with components like meshes, physics, collisions, and animations. Let's break down the most commonly used API functions.
+
+1. createEntity()
+
+This function generates a new entity.
+Think of it as creating a "placeholder" object in your game world.
+
+```swift
+let myEntity = createEntity()
+```
+
+2. setEntityMesh()
+Attach a visual representation (a model) to your entity.
+This is where your 3D model comes to life.
+
+```swift
+setEntityMesh(entityId: myEntity, filename: "myModel", withExtension: "usdc")
+```
+
+3. setEntityKinetics()
+Enable physics for your entity, allowing it to move, fall, or be affected by forces.
+
+```swift
+setEntityKinetics(entityId: myEntity)
+```
+
+4. setEntityAnimation()
+Add animations to your entity.
+You provide an animation file and name it for easy reference.
+
+```swift
+setEntityAnimations(entityId: myEntity, filename: "walkAnimation", withExtension: "usdc", name: "walking")
+```
+
+### An Example: Creating a Player Character
+
+Here’s how the API comes together to build a fully interactive player character:
+
+```swift
+// Step 1: Create the entity
+let player = createEntity()
+
+// Step 2: Attach a mesh to represent the player visually
+setEntityMesh(entityId: player, filename: "playerModel", withExtension: "usdc")
+
+// Step 3: Enable physics for movement and gravity
+setEntityKinetics(entityId: player)
+
+// Step 4: Add collision detection for interacting with the world
+setEntityCollision(entityId: player)
+
+// Step 5: Add animations for walking and running
+setEntityAnimations(entityId: player, filename: "walkingAnimation", withExtension: "usdc", name: "walking")
+setEntityAnimations(entityId: player, filename: "runningAnimation", withExtension: "usdc", name: "running")
+
+// Step 6: Play an animation
+changeAnimation(entityId: player, name: "walking")
+```
 
 ## Creating a quick game
 
-### Create a macOS game in Xcode
+### Step 1 Create a macOS game in Xcode
 
-- Open up Xcode -> File -> New -> Project
-
-- Choose a 'Command Line Tool' for macOS.
-
-- Click Next. Give your game a name and make sure to Select Swift as the language.
+- Open Xcode: File → New → Project.
+- Select Command Line Tool under macOS.
+- Click Next, name your game, and choose Swift as the language.
 
 ![createterminalgame](images/createproject.gif)
 
-### Add the Untold Engine as a Package Dependency
+### Step 2: Add the Untold Engine as a Package Dependency
 
-- In your Xcode project go to File-> Add Packages...
+- Go to: File → Add Packages...
 
-- In the search field, enter the URL of the Untold Engine repository:
+- Enter the repository URL:
 
 https://github.com/untoldengine/UntoldEngine.git 
 
-- Xcode will fetch the package. Select the appropriate version or branc( i.e. Master)
-
-- Choose the target where you want to add the engine, then click Add Package 
+- Select the appropriate version or branch (e.g., main) and click Add Package.
 
 ![addpackage](images/addPackage.gif)
 
-### Add boiler plate code to the AppDelegate
+---
 
-Once the package is added, you can import the Untold Engine in your Swift files. 
+### Step 3: Add boiler plate code to the AppDelegate
 
-Go to main.swift and import the following modules:
+#### Main Setup
+
+1. Open main.swift and import the required modules:
 
 ```swift
 import Cocoa
@@ -125,7 +200,7 @@ import UntoldEngine
 
 ![importmodules](images/importheader.gif)
 
-To ensure the engine initializes correctly, we need to execute a set of initialization functions. These functions are called only once. I've prepared a boilerplate code that you can simply copy and paste.
+2. Add the following boilerplate code to initialize the engine:
 
 ```swift
 // AppDelegate: Boiler plate code -- Handles everything – Renderer, Metal setup, and GameScene initialization
@@ -196,7 +271,9 @@ app.run()
 
 ![appdelegatecode](images/addappdelegatecode.gif)
 
-Finally, add a GameScene class to main.swift
+#### Add the GameScene Class
+
+Add the GameScene class to main.swift:
 
 ```swift
 class GameScene {
@@ -221,9 +298,11 @@ If everything was done correctly, you should see a window with a grid once you h
 
 ![untoldenginegrid](/images/launchgame.gif)
 
+---
+
 ### Adding game entities
 
-Next, let's load a usd file, create an entity, link the usd model to the entity and translate the entity
+Here’s how to load assets, create entities, and link models:
 
 ```swift
 
@@ -231,37 +310,48 @@ class GameScene{
 
     init(){
 
-        // Loading usdc files
-        loadScene(filename: "blueshirtplayer", withExtension: "usdc")
-        loadScene(filename: "redshirtplayer", withExtension: "usdc")
-        
-        loadBulkScene(filename: "house-example", withExtension: "usdc")
-        
-        // Create an entity for player 1
-        let player1: EntityID = createEntity()
-        
-        // Attach the mesh to the entity
-        addMeshToEntity(entityId: player1, name: "soccerplayer1")  // 'name' refers to the model name in the scene
-        
-        // Translate the entity
-        translateTo(entityId:player1,position:simd_float3(-2.0,0.0,2.0))
-        
-        // Create an entity for player 2
-        let player2: EntityID = createEntity()
-        
-        // Attach the mesh to the entity
-        addMeshToEntity(entityId: player2, name: "soccerplayer2")  // 'name' refers to the model name in the scene
-        
-        // Translate the entity
-        translateTo(entityId:player2,position:simd_float3(2.0,0.0,2.0))
+        // set camera to look at point
+        camera.lookAt(
+            eye: simd_float3(0.0, 7.0, 15.0), target: simd_float3(0.0, 0.0, 0.0),
+            up: simd_float3(0.0, 1.0, 0.0)
+        )
+
+        // You can load the assets in bulk as shown here.
+        // In this instance, stadium contains multiple assets which do not require an entity id to be assigned.
+        loadBulkScene(filename: "stadium", withExtension: "usdc")
+
+        // create an entity id for the blue player
+        let bluePlayer = createEntity()
+
+        // this function loads the usdc file and sets the mesh model to the entity
+        setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
+
+        // translate the entity
+        translateEntityBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0))
+
+        // let's create another entity Id
+        let redPlayer = createEntity()
+
+        // load the usdc file and link the model to the entity
+        setEntityMesh(entityId: redPlayer, filename: "redplayer", withExtension: "usdc", flip: false)
+
+        // load and link the animation to the entity. You should give a name to the animation
+        setEntityAnimations(entityId: redPlayer, filename: "running", withExtension: "usdc", name: "running")
+
+        // set the animation to play. You reference the animaitons by name
+        changeAnimation(entityId: redPlayer, name: "running")
+
+        // enable physics/kinetics on the entity
+        setEntityKinetics(entityId: redPlayer)
 
     }
 
 }
 
 ```
+### Adding a Sunlight Entity
 
-And finally, let's add a Sun light.
+And finally, let's add a Sun light entity.
 
 ```swift
 class GameScene{
@@ -286,7 +376,9 @@ class GameScene{
 
 Click on Run and you should see the following:
 
-![players](images/players.png)
+![players](images/gamescene1.png)
+
+---
 
 ## Deep Dive into the engine
 
@@ -297,6 +389,10 @@ The following articles can help you get a deeper understanding on how to use the
 - [Creating a game entity](docs/CreatingAnEntity.md)
 - [Adding Light to your game](docs/AddingLighttoyourgame.md)
 - [Detecting User Inputs](docs/DetectingUserInputs.md)
+- [Enabling Physics](docs/physics.md)
+- [Enabling Animation](docs/animation.md)
+
+---
 
 ## Roadmap
 
@@ -306,11 +402,15 @@ See the [open issues](https://github.com/untoldengine/UntoldEngine/issues) for a
 - [Top Bugs](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aissue+is%3Aopen+label%3Abug+sort%3Areactions-%2B1-desc) (Add your votes using the 👍 reaction)
 - [Newest Bugs](https://github.com/untoldengine/UntoldEngine/issues?q=is%3Aopen+is%3Aissue+label%3Abug)
 
+---
+
 ## Support
 
 Reach out to the maintainer at one of the following places:
 
 - [GitHub issues](https://github.com/untoldengine/UntoldEngine/issues/new?assignees=&labels=question&template=04_SUPPORT_QUESTION.md&title=support%3A+)
+
+---
 
 ## Project assistance
 
@@ -322,6 +422,8 @@ If you want to say **thank you** or/and support active development of Untold Eng
 
 Together, we can make Untold Engine **better**!
 
+---
+
 ## Contributing
 
 Since this project has barely been released as an open-source, I am not taking Pull-Request yet. I want to complete the documentation and write more tutorials before allowing Pull-Request.
@@ -332,6 +434,7 @@ Thank you.
 
 Once I feel that the documentation is ready, I will allow Pull-Request.
 
+---
 
 ## License
 

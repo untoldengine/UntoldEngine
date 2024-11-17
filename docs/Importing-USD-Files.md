@@ -1,35 +1,46 @@
 # Importing USDC files for your game
 
-The Untold Engine supports usdc files. To ensure that you are exporting files correctly from Blender, 
-make sure to check "Relative Paths" as shown below.
+The Untold Engine supports .usdc files, making it easy to import 3D models and scenes into your game. This tutorial will guide you through the correct export settings in Blender, adding files to your project, and loading them into your game.
 
-![usdcfileproperties](../images/usdcexportproperties.png)
+---
 
-Furthermore, all usdc files should be saved into your project and loaded into the main bundle, as shown below.
+## Requirements
+
+If exporting the files yourself, make sure to use Blender 4.2.3 or later
+
+## How to export a file to USDC
+
+The Untold Engine requires all files to be of type usdc. To export your model or scene from Blender, click on File->Export->USD
+
+![howtoexport](../images/howtoexport.png)
+
+## Exporting models 
+
+To ensure proper export of .usdc files from Blender:
+
+1. Check the "Relative Paths" Option during export. This ensures that all referenced assets, such as textures, are correctly linked relative to the .usdc file.
+
+![usdcfileproperties](../images/modelexportblender.png)
+
+2. Save the exported .usdc files into your project and ensure they are added to the main bundle, as shown below:
 
 ![addfilestomainbundle](../images/addfilestomainbundle.png)
 
-Once a scene has been exported, you can load the scene in your game as follows:
+---
 
-```swift
-init() {
-    
-    // Load individual assets. bluecar is the name of the usdc file
-    loadScene(filename: "bluecar", withExtension: "usdc")
+## Exporting models for Animation
 
-}
+Exporting models with animations require that you also export its rig/armature. During exporting, make sure to have "Rigging" selected.
 
-```
+![modelsrigged](../images/modelsriggedexportblender.png)
 
-Often, your scene will contain several models, such as buildings, trees, or other static objects. If you **don’t need to manipulate these models individually** (e.g., translate, rotate, or scale them), you can load the entire scene at once. This approach saves time since you won’t need to create an `EntityID` for each individual model.
+---
 
-Use the following function to load the scene:
+## Exporting Animations
 
-```swift
-loadBulkScene(filename: "racetrack", withExtension: "usdc") 
-```
+Similarly, to export an animation, make sure Animation is selected.
 
-In this example, "racetrack" refers to the name of the file (e.g., racetrack.usdc). All models within the scene will be loaded and rendered together without requiring separate entity IDs for each one.
+![animation](../images/animationexportblender.png)
 
 Next: [Creating a game entity](CreatingAnEntity.md)
 Previous: [Getting Started](GettingStarted.md)
