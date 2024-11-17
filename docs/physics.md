@@ -63,3 +63,7 @@ After you Run the project in Xcode:
 2. Press L to enter Game Mode.
     - Your entity will respond to gravity, forces, and collisions.
     - If you applied a force, you’ll see your model move accordingly.
+
+
+Next: [Enabling Animation](animation.md)
+Previous: [Detecting User Inputs](DetectingUserInputs.md)

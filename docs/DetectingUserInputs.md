@@ -44,5 +44,6 @@ Here is an example where the input system is used to detect the keys from the us
 
 ```
 
+Next: [Enabling Physics](physics.md)
 Previous: [Adding Light to your game](AddingLighttoyourgame.md)
 

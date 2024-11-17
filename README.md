@@ -115,6 +115,7 @@ let myEntity = createEntity()
 ```
 
 2. setEntityMesh()
+
 Attach a visual representation (a model) to your entity.
 This is where your 3D model comes to life.
 
@@ -123,6 +124,7 @@ setEntityMesh(entityId: myEntity, filename: "myModel", withExtension: "usdc")
 ```
 
 3. setEntityKinetics()
+
 Enable physics for your entity, allowing it to move, fall, or be affected by forces.
 
 ```swift
@@ -130,6 +132,7 @@ setEntityKinetics(entityId: myEntity)
 ```
 
 4. setEntityAnimation()
+
 Add animations to your entity.
 You provide an animation file and name it for easy reference.
 
