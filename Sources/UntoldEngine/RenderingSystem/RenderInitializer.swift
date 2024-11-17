@@ -580,12 +580,12 @@ func initRenderPipelines() {
             name: MDLVertexAttributeTangent, format: .float4, offset: 0,
             bufferIndex: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)
         )
-        
+
         vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexAttribute(
             name: MDLVertexAttributeJointIndices, format: .uShort4, offset: 0,
             bufferIndex: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
         )
-        
+
         vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexAttribute(
             name: MDLVertexAttributeJointWeights, format: .float4, offset: 0,
             bufferIndex: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
@@ -602,10 +602,10 @@ func initRenderPipelines() {
 
         vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
             stride: MemoryLayout<simd_float4>.stride)
-        
+
         vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexBufferLayout(
             stride: MemoryLayout<simd_ushort4>.stride)
-        
+
         vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexBufferLayout(
             stride: MemoryLayout<simd_float4>.stride)
 

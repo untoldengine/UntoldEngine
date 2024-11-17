@@ -39,13 +39,11 @@ public class RenderComponent: Component {
 }
 
 public class PhysicsComponents: Component {
-
     var mass: Float
     var velocity: simd_float3
     var acceleration: simd_float3
 
     public required init() {
-
         mass = 1.0
         velocity = simd_float3(0.0, 0.0, 0.0)
         acceleration = simd_float3(0.0, 0.0, 0.0)
@@ -53,7 +51,6 @@ public class PhysicsComponents: Component {
 }
 
 public class KineticComponent: Component {
-
     var forces: [simd_float3] = []
 
     var gravityScale: Float = 0.0
@@ -69,20 +66,16 @@ public class KineticComponent: Component {
     }
 }
 
-public class SkeletonComponent: Component{
-    
+public class SkeletonComponent: Component {
     var skeleton: Skeleton!
-    
+
     public required init() {}
-    
 }
 
-public class AnimationComponent: Component{
-    
+public class AnimationComponent: Component {
     var animationClips: [String: AnimationClip] = [:]
     var currentAnimation: AnimationClip?
     public required init() {}
-    
 }
 
 public class LightComponent: Component {

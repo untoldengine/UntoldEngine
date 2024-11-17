@@ -41,7 +41,7 @@ public func loadScene(filename: String, withExtension: String) {
     loadScene(filename: url, withExtension: url.pathExtension)
 }
 
-public func loadBulkScene(filename: String, withExtension: String, flip: Bool = true ) {
+public func loadBulkScene(filename: String, withExtension: String, flip: Bool = true) {
     var meshes = [Mesh]()
 
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {

@@ -8,10 +8,8 @@
 import Foundation
 import MetalKit
 
-func updateRenderingSystem(in view: MTKView){
-    
+func updateRenderingSystem(in view: MTKView) {
     if let commandBuffer = renderInfo.commandQueue.makeCommandBuffer() {
-        
         if let renderPassDescriptor = view.currentRenderPassDescriptor {
             renderInfo.renderPassDescriptor = renderPassDescriptor
 
@@ -94,5 +92,4 @@ func updateRenderingSystem(in view: MTKView){
 
         commandBuffer.commit()
     }
-    
 }

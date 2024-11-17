@@ -141,7 +141,6 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         // render
         updateRenderingSystem(in: view)
-        
     }
 
     public func mtkView(_: MTKView, drawableSizeWillChange size: CGSize) {

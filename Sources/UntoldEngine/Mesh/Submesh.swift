@@ -3,7 +3,6 @@ import MetalKit
 import simd
 
 struct SubMesh {
-    
     // MetalKit submesh containing the primitive type, index buffer, and index count
     let metalKitSubmesh: MTKSubmesh
     var material: Material?
@@ -18,7 +17,6 @@ struct SubMesh {
         textureLoader: MTKTextureLoader
     ) {
         self.metalKitSubmesh = metalKitSubmesh
-        self.material = Material(mdlMaterial: modelIOSubmesh.material!, textureLoader: textureLoader)
+        material = Material(mdlMaterial: modelIOSubmesh.material!, textureLoader: textureLoader)
     }
 }
-

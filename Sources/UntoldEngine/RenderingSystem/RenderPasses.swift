@@ -226,7 +226,6 @@ enum RenderPasses {
 
         // Iterate over the entities found by the component query
         for entityId in entities {
-            
             // update uniforms
             var modelUniforms = Uniforms()
 
@@ -523,33 +522,31 @@ enum RenderPasses {
                     render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(
                     render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
                 )
-                
+
                 renderEncoder.setVertexBuffer(
                     render.mesh.metalKitMesh.vertexBuffers[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)].buffer,
                     offset: 0, index: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
                 )
-                
+
                 // check if it has skeleton component
-                var hasArmature:Bool = true
-                
-                if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId){
-                
+                var hasArmature = true
+
+                if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
                     renderEncoder.setVertexBuffer(render.mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(ModelPassBufferIndices.modelPassJointMatrixIndex.rawValue))
-                    
-                    
+
                     renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(ModelPassBufferIndices.modelPassHasArmature.rawValue))
-                    
-                }else{
+
+                } else {
                     hasArmature = false
-                    
+
                     renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(ModelPassBufferIndices.modelPassHasArmature.rawValue))
                 }
-                
+
                 for subMesh in render.mesh.submeshes {
                     // set base texture
                     renderEncoder.setFragmentTexture(
@@ -581,9 +578,9 @@ enum RenderPasses {
                     materialParameters.interactWithLight = subMesh.material!.interactWithLight
 
                     materialParameters.hasTexture = simd_int4(
-                        Int32(subMesh.material!.hasBaseMap == true ? 1:0),
-                        Int32(subMesh.material!.hasRoughMap == true ? 1:0),
-                        Int32(subMesh.material!.hasMetalMap == true ? 1:0),
+                        Int32(subMesh.material!.hasBaseMap == true ? 1 : 0),
+                        Int32(subMesh.material!.hasRoughMap == true ? 1 : 0),
+                        Int32(subMesh.material!.hasMetalMap == true ? 1 : 0),
                         0
                     )
 

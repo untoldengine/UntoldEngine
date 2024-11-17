@@ -39,13 +39,12 @@ public func destroyEntity(entityID: EntityID) {
     scene.destroyEntity(entityID)
 }
 
-public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true){
-    
+public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
         print("Unable to find file \(filename)")
         return
     }
-    
+
     var meshes = [Mesh]()
 
     meshes = Mesh.loadMeshes(
@@ -53,87 +52,80 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     )
 
     meshDictionary[meshes.first!.name] = meshes.first
-    
+
     if meshes.count > 1 {
         print("several models found in file \(filename). Only the first model will be linked to entity")
     }
-    
+
     registerDefaultComponents(entityId: entityId, name: meshes.first!.name)
-    
+
     // look for any skeletons in asset
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
-    
 }
 
-public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String){
- 
+public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String) {
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
         print("Unable to find file \(filename)")
         return
     }
-    
+
     let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
-    
+
     let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor.model, bufferAllocator: bufferAllocator)
-    
+
     let skeletons =
-      asset.childObjects(of: MDLSkeleton.self) as? [MDLSkeleton] ?? []
-    
-    if skeletons.first == nil{
-        
+        asset.childObjects(of: MDLSkeleton.self) as? [MDLSkeleton] ?? []
+
+    if skeletons.first == nil {
         print("no armature for \(entityId) found in asset")
-        
+
         return
-        
     }
-    
-    let skeleton:Skeleton = Skeleton(mdlSkeleton: skeletons.first)!
-    
+
+    let skeleton = Skeleton(mdlSkeleton: skeletons.first)!
+
     // register Skeleton Component
     registerComponent(entityId: entityId, componentType: SkeletonComponent.self)
-    
+
     guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        handleError(.noSkeletonComponent,entityId)
+        handleError(.noSkeletonComponent, entityId)
         return
     }
-    
-    skeletonComponent.skeleton=skeleton
-    
+
+    skeletonComponent.skeleton = skeleton
+
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         handleError(.noRenderComponent, entityId)
         return
     }
-    
+
     setEntitySkin(entityId: entityId, mdlMesh: renderComponent.mesh.modelMDLMesh)
 }
 
-public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh){
-    
+public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh) {
     guard let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) else {
-        handleError(.noSkeletonComponent,entityId)
+        handleError(.noSkeletonComponent, entityId)
         return
     }
-    
+
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         handleError(.noRenderComponent, entityId)
         return
     }
-    
-    let animationBindComponent=mdlMesh.componentConforming(to: MDLComponent.self) as? MDLAnimationBindComponent
 
-    let skin=Skin(animationBindComponent: animationBindComponent, skeleton: skeletonComponent.skeleton)
+    let animationBindComponent = mdlMesh.componentConforming(to: MDLComponent.self) as? MDLAnimationBindComponent
+
+    let skin = Skin(animationBindComponent: animationBindComponent, skeleton: skeletonComponent.skeleton)
 
     // update the buffer with rest pose
     skeletonComponent.skeleton.resetPoseToRest()
-    
+
     skin?.updateJointMatrices(skeleton: skeletonComponent.skeleton)
-    
+
     renderComponent.mesh.skin = skin
-    
 }
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
-    
     // Helper function to add animation clips
     func addClips(to animationComponent: AnimationComponent) {
         for assetAnimation in assetAnimations {
@@ -141,7 +133,7 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
             animationComponent.animationClips[name] = animationClip
         }
     }
-    
+
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
         print("Unable to find file \(filename)")
         return
@@ -154,33 +146,30 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     let assetAnimations = asset.animations.objects.compactMap {
         $0 as? MDLPackedJointAnimation
     }
-    
-    if assetAnimations.isEmpty{
+
+    if assetAnimations.isEmpty {
         print("Entity has no animation")
         return
     }
-    
-    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId){
-        
+
+    if let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) {
         addClips(to: animationComponent)
-        
+
         return
     }
-    
+
     // register Skeleton Component
     registerComponent(entityId: entityId, componentType: AnimationComponent.self)
-        
+
     guard let animationComponent = scene.get(component: AnimationComponent.self, for: entityId) else {
         handleError(.noAnimationComponent, entityId)
         return
     }
-    
+
     addClips(to: animationComponent)
-    
 }
 
-public func setEntityKinetics(entityId: EntityID){
-    
+public func setEntityKinetics(entityId: EntityID) {
     if let _ = scene.get(component: PhysicsComponents.self, for: entityId) {
         registerComponent(entityId: entityId, componentType: KineticComponent.self)
     } else {
@@ -188,7 +177,6 @@ public func setEntityKinetics(entityId: EntityID){
         registerComponent(entityId: entityId, componentType: PhysicsComponents.self)
         registerComponent(entityId: entityId, componentType: KineticComponent.self)
     }
-    
 }
 
 // register Render and Transform components
@@ -199,12 +187,12 @@ func registerDefaultComponents(entityId: EntityID, name: String) {
         registerComponent(entityId: entityId, componentType: TransformComponent.self)
 
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-            handleError(.noRenderComponent,entityId)
+            handleError(.noRenderComponent, entityId)
             return
         }
 
         guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-            handleError(.noTransformComponent,entityId)
+            handleError(.noTransformComponent, entityId)
             return
         }
 

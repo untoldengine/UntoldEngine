@@ -8,7 +8,6 @@
 import MetalKit
 
 class Skeleton {
-
     let parentIndices: [Int?]
     let jointPaths: [String]
     let bindTransform: [simd_float4x4]
@@ -18,15 +17,15 @@ class Skeleton {
     init?(mdlSkeleton: MDLSkeleton?) {
         guard let mdlSkeleton, !mdlSkeleton.jointPaths.isEmpty else { return nil }
 
-        self.jointPaths = mdlSkeleton.jointPaths
-        self.parentIndices = Skeleton.computeParentIndices(for: jointPaths)
-        self.bindTransform = mdlSkeleton.jointBindTransforms.float4x4Array
-        self.restTransform = mdlSkeleton.jointRestTransforms.float4x4Array
-        self.currentPose = restTransform
+        jointPaths = mdlSkeleton.jointPaths
+        parentIndices = Skeleton.computeParentIndices(for: jointPaths)
+        bindTransform = mdlSkeleton.jointBindTransforms.float4x4Array
+        restTransform = mdlSkeleton.jointRestTransforms.float4x4Array
+        currentPose = restTransform
     }
 
     static func computeParentIndices(for jointPaths: [String]) -> [Int?] {
-        return jointPaths.enumerated().map { index, jointPath in
+        return jointPaths.enumerated().map { _, jointPath in
             let parentPath = URL(fileURLWithPath: jointPath)
                 .deletingLastPathComponent()
                 .relativePath
@@ -68,7 +67,7 @@ class Skeleton {
         var worldPose = [simd_float4x4](repeating: .identity, count: jointPaths.count)
 
         // Compute world transform for each joint
-        for index in 0..<parentIndices.count {
+        for index in 0 ..< parentIndices.count {
             let localMatrix = localPose[index]
             if let parentIndex = parentIndices[index] {
                 worldPose[index] = worldPose[parentIndex] * localMatrix
@@ -79,7 +78,7 @@ class Skeleton {
 
         // Optionally apply inverse bind transforms
         if applyBindTransform {
-            for index in 0..<worldPose.count {
+            for index in 0 ..< worldPose.count {
                 worldPose[index] *= bindTransform[index].inverse
             }
         }
@@ -100,14 +99,14 @@ struct Skin {
             return nil
         }
 
-        self.jointPaths = animationBindComponent.jointPaths ?? skeleton.jointPaths
-        self.skinToSkeletonMap = skeleton.mapJoints(from: jointPaths)
+        jointPaths = animationBindComponent.jointPaths ?? skeleton.jointPaths
+        skinToSkeletonMap = skeleton.mapJoints(from: jointPaths)
 
         guard let buffer = Skin.createBuffer(for: jointPaths.count) else {
             handleError(.jointBufferFailed)
             return nil
         }
-        self.jointTransformsBuffer = buffer
+        jointTransformsBuffer = buffer
     }
 
     /// Updates the joint transform matrices in the buffer using the skeleton's current pose
@@ -143,13 +142,13 @@ struct Skin {
 
 struct Keyframe<Value> {
     var time: Float = 0 // Time of the keyframe
-    var value: Value    // Value at the keyframe
+    var value: Value // Value at the keyframe
 }
 
 struct Animation {
     var translations: [Keyframe<simd_float3>] = [] // Keyframes for translations
-    var rotations: [Keyframe<simd_quatf>] = []    // Keyframes for rotations
-    var repeatAnimation = true                   // Whether the animation should loop
+    var rotations: [Keyframe<simd_quatf>] = [] // Keyframes for rotations
+    var repeatAnimation = true // Whether the animation should loop
 
     /// Retrieves the interpolated translation value at the specified time
     func getTranslation(at time: Float) -> simd_float3? {
@@ -202,17 +201,17 @@ struct Animation {
 }
 
 class AnimationClip {
-    let name: String                          // Name of the animation clip
+    let name: String // Name of the animation clip
     var jointAnimation: [String: Animation] = [:] // Per-joint animations
-    var duration: Float = 0                  // Duration of the animation
-    var speed: Float = 1                     // Speed multiplier for playback
-    var jointPaths: [String] = []            // Paths to joints affected by this clip
+    var duration: Float = 0 // Duration of the animation
+    var speed: Float = 1 // Speed multiplier for playback
+    var jointPaths: [String] = [] // Paths to joints affected by this clip
 
     /// Initializes the AnimationClip with a joint animation and a name
     init(animation: MDLPackedJointAnimation, animationName: String) {
-        self.name = animationName
-        self.jointPaths = animation.jointPaths
-        self.duration = 0
+        name = animationName
+        jointPaths = animation.jointPaths
+        duration = 0
 
         for jointIndex in jointPaths.indices {
             let jointPath = jointPaths[jointIndex]
@@ -234,7 +233,7 @@ class AnimationClip {
     /// Processes a joint's animation and creates its Animation object
     private func processJointAnimation(
         jointIndex: Int,
-        jointPath: String,
+        jointPath _: String,
         animation: MDLPackedJointAnimation
     ) -> Animation {
         var jointAnimation = Animation()
@@ -252,7 +251,6 @@ class AnimationClip {
             jointIndex: jointIndex,
             jointCount: jointPaths.count
         )
-
 
         // Update duration
         if let lastRotationTime = animation.rotations.times.last {
@@ -275,9 +273,8 @@ class AnimationClip {
         return times.enumerated().map { index, time in
             let startIndex = index * jointCount
             let endIndex = startIndex + jointCount
-            let jointValues = Array(values[startIndex..<endIndex])
+            let jointValues = Array(values[startIndex ..< endIndex])
             return Keyframe(time: Float(time), value: jointValues[jointIndex])
         }
     }
-
 }

@@ -25,8 +25,6 @@ public func hasComponent<T>(entity: EntityDesc, componentType: T.Type) -> Bool {
     return entity.mask.test(componentId)
 }
 
-
-
 public func loadTexture(
     device: MTLDevice,
     textureName: String
@@ -192,7 +190,6 @@ public func basicFollow(_ entityId: EntityID, _ offset: simd_float3, _: Float) {
 public func getKeyFromValue(forValue value: EntityID, in dictionary: [String: EntityID]) -> String? {
     return dictionary.first { $0.value == value }?.key
 }
-
 
 public func hasTextureCoordinates(mesh: MDLMesh) -> Bool {
     // Access the vertex descriptor of the mesh

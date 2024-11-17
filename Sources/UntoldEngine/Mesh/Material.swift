@@ -93,7 +93,7 @@ struct Material {
             let textureLoaderOptions: [MTKTextureLoader.Option: Any] = [
                 .textureUsage: MTLTextureUsage.shaderRead.rawValue,
                 .textureStorageMode: MTLStorageMode.private.rawValue,
-                .SRGB: isSRGB
+                .SRGB: isSRGB,
             ]
 
             if let stringValue = property.stringValue ?? property.urlValue?.absoluteString {
@@ -102,7 +102,8 @@ struct Material {
                     outputURL = nil
                     return texture
                 } else if let textureURL = property.urlValue,
-                          let texture = try? textureLoader.newTexture(URL: textureURL, options: textureLoaderOptions) {
+                          let texture = try? textureLoader.newTexture(URL: textureURL, options: textureLoaderOptions)
+                {
                     print("Texture found: \(stringValue)")
                     outputURL = textureURL
                     return texture
@@ -129,4 +130,3 @@ struct Material {
         return nil
     }
 }
-

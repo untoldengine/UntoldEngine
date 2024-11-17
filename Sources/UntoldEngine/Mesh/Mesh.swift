@@ -4,7 +4,6 @@ import MetalKit
 import simd
 
 struct Mesh {
-    
     let metalKitMesh: MTKMesh
     var submeshes: [SubMesh] = []
     var modelMDLMesh: MDLMesh
@@ -17,25 +16,23 @@ struct Mesh {
     var depth: Float
     var skin: Skin?
 
-    init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: MTKTextureLoader, device: MTLDevice, flip: Bool
-    ) {
-        
-        self.modelMDLMesh = modelIOMesh
-        
+    init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: MTKTextureLoader, device: MTLDevice, flip: Bool) {
+        modelMDLMesh = modelIOMesh
+
         // Transform to adjust orientation
         let blenderTransform = matrix4x4Rotation(
             radians: -.pi / 2.0, axis: simd_float3(1.0, 0.0, 0.0)
         )
-        
-        if flip == true{
+
+        if flip == true {
             modelIOMesh.parent?.transform?.matrix = simd_mul(
                 blenderTransform, modelIOMesh.parent?.transform?.matrix ?? .identity
             )
         }
-        
+
         // Set local transform matrix and name
-        self.localSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
-        self.name = modelIOMesh.parent?.name ?? "Unnamed"
+        localSpace = modelIOMesh.parent?.transform?.matrix ?? .identity
+        name = modelIOMesh.parent?.name ?? "Unnamed"
 
         // Set bounding box dimensions
         let boundingBox = modelIOMesh.boundingBox
@@ -59,14 +56,14 @@ struct Mesh {
 
         // Create MetalKit mesh
         do {
-            self.metalKitMesh = try MTKMesh(mesh: modelIOMesh, device: device)
+            metalKitMesh = try MTKMesh(mesh: modelIOMesh, device: device)
             assert(metalKitMesh.submeshes.count == modelIOMesh.submeshes?.count)
         } catch {
             fatalError("Failed to create MTKMesh: \(error.localizedDescription)")
         }
 
         // Initialize submeshes
-        self.submeshes = (0..<metalKitMesh.submeshes.count).compactMap { index in
+        submeshes = (0 ..< metalKitMesh.submeshes.count).compactMap { index in
             guard let mdlSubmesh = modelIOMesh.submeshes?.object(at: index) as? MDLSubmesh else { return nil }
             return SubMesh(modelIOSubmesh: mdlSubmesh, metalKitSubmesh: metalKitMesh.submeshes[index], textureLoader: textureLoader)
         }
@@ -79,7 +76,6 @@ struct Mesh {
         device: MTLDevice,
         flip: Bool
     ) -> [Mesh] {
-        
         let bufferAllocator = MTKMeshBufferAllocator(device: device)
         let asset = MDLAsset(url: url, vertexDescriptor: vertexDescriptor, bufferAllocator: bufferAllocator)
         let textureLoader = MTKTextureLoader(device: device)
@@ -97,7 +93,6 @@ struct Mesh {
         device: MTLDevice,
         flip: Bool
     ) -> [Mesh] {
-        
         var meshes = [Mesh]()
 
         if let mdlMesh = object as? MDLMesh {
@@ -113,5 +108,3 @@ struct Mesh {
         return meshes
     }
 }
-
-
