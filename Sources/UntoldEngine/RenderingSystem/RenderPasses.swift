@@ -339,10 +339,6 @@ enum RenderPasses {
 
         renderEncoder.waitForFence(renderInfo.fence, before: .vertex)
 
-        renderEncoder.setCullMode(.back)
-
-        renderEncoder.setFrontFacing(.counterClockwise)
-
         renderEncoder.setVertexBytes(
             &shadowSystem.dirLightSpaceMatrix, length: MemoryLayout<simd_float4x4>.stride,
             index: Int(ModelPassBufferIndices.modelPassLightOrthoViewMatrixIndex.rawValue)

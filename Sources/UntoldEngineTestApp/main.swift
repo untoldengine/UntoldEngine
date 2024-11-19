@@ -62,7 +62,7 @@ class GameScene {
     func update(_: Float) {
         // apply force towards the z direction to the player. The entity must have
         // a kinetic component.
-        applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 2.0))
+        applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 0.5))
     }
 
     func handleInput() {}
