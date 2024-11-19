@@ -18,25 +18,10 @@ public func registerComponent<T: Component>(entityId: EntityID, componentType: T
     _ = scene.assign(to: entityId, component: componentType)
 }
 
-public func destroyEntity(entityID: EntityID) {
-    selectedModel = false
+public func destroyEntity(entityId: EntityID) {
 
-    var renderComponent = scene.get(component: RenderComponent.self, for: entityID)
-    var transformComponent = scene.get(component: TransformComponent.self, for: entityID)
-    renderComponent?.mesh = nil
-
-    scene.remove(component: RenderComponent.self, from: entityID)
-    scene.remove(component: TransformComponent.self, from: entityID)
-
-    renderComponent = nil
-    transformComponent = nil
-
-    if scene.get(component: LightComponent.self, for: entityID) != nil {
-        lightingSystem.removeLight(entityID: entityID)
-        scene.remove(component: LightComponent.self, from: entityID)
-    }
-
-    scene.destroyEntity(entityID)
+    scene.destroyEntity(entityId)
+    
 }
 
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
