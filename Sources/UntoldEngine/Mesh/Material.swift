@@ -97,18 +97,19 @@ struct Material {
             ]
 
             if let stringValue = property.stringValue ?? property.urlValue?.absoluteString {
-                print("Attempting to load texture: \(stringValue)")
+
                 if let texture = try? textureLoader.newTexture(name: stringValue, scaleFactor: 1.0, bundle: nil, options: textureLoaderOptions) {
                     outputURL = nil
                     return texture
                 } else if let textureURL = property.urlValue,
                           let texture = try? textureLoader.newTexture(URL: textureURL, options: textureLoaderOptions)
                 {
-                    print("Texture found: \(stringValue)")
+
                     outputURL = textureURL
                     return texture
                 }
-                print("Texture not found: \(stringValue)")
+
+                handleError(.textureMissing, stringValue)
             }
         }
         return nil

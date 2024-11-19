@@ -21,12 +21,16 @@ public func registerComponent<T: Component>(entityId: EntityID, componentType: T
 public func destroyEntity(entityId: EntityID) {
 
     scene.destroyEntity(entityId)
-    
 }
 
 public func setEntityMesh(entityId: EntityID, filename: String, withExtension: String, flip: Bool = true) {
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
-        print("Unable to find file \(filename)")
+        handleError(.filenameNotFound, filename)
+        return
+    }
+
+    if url.pathExtension == "dae" {
+        handleError(.fileTypeNotSupported, url.pathExtension)
         return
     }
 
@@ -35,6 +39,11 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
     meshes = Mesh.loadMeshes(
         url: url, vertexDescriptor: vertexDescriptor.model, device: renderInfo.device, flip: flip
     )
+
+    if meshes.isEmpty {
+        handleError(.assetDataMissing, filename)
+        return
+    }
 
     meshDictionary[meshes.first!.name] = meshes.first
 
@@ -50,7 +59,7 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
 
 public func setEntitySkeleton(entityId: EntityID, filename: String, withExtension: String) {
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
-        print("Unable to find file \(filename)")
+        handleError(.filenameNotFound, filename)
         return
     }
 
@@ -62,7 +71,7 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
         asset.childObjects(of: MDLSkeleton.self) as? [MDLSkeleton] ?? []
 
     if skeletons.first == nil {
-        print("no armature for \(entityId) found in asset")
+        // print("no armature for \(entityId) found in asset")
 
         return
     }
@@ -120,7 +129,7 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     }
 
     guard let url: URL = getResourceURL(forResource: filename, withExtension: withExtension) else {
-        print("Unable to find file \(filename)")
+        handleError(.filenameNotFound, filename)
         return
     }
 
@@ -133,7 +142,7 @@ public func setEntityAnimations(entityId: EntityID, filename: String, withExtens
     }
 
     if assetAnimations.isEmpty {
-        print("Entity has no animation")
+        handleError(.assetHasNoAnimation, filename)
         return
     }
 

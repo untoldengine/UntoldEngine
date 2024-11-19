@@ -18,6 +18,10 @@ public enum Logger {
         print("Error: \(message)")
     }
 
+    public static func logWarning(message: String) {
+        print("Warning: \(message)")
+    }
+
     public static func log(vector: simd_float3) {
         let string = String(format: "simd_float3(%f, %f, %f)", vector.x, vector.y, vector.z)
         print(string)

@@ -44,6 +44,11 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case jointBufferFailed = 1035
     case noSkeletonPose = 1036
     case jointBindFailed = 1037
+    case assetHasNoAnimation = 1038
+    case fileTypeNotSupported = 1039
+    case noentitiesinscene = 1040
+    case componentNotFound = 1041
+    case failedToGetComponentPointer = 1042
 
     public var description: String {
         switch self {
@@ -76,7 +81,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
         case .memoryPoolReadingBeyongCapacity:
             return "Reading beyond the buffer's capacity"
         case .entityMissing:
-            return "Entity is missing"
+            return "Entity is missing or does not exist"
         case .textureMissing:
             return "Texture was not found in the file"
         case .iBLCreationFailed:
@@ -119,23 +124,33 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Skeleton pose is unavailable."
         case .jointBindFailed:
             return "Failed to bind joint transforms buffer."
+        case .assetHasNoAnimation:
+            return "Asset file has no animations"
+        case .fileTypeNotSupported:
+            return "File type not supported at this moment"
+        case .noentitiesinscene:
+            return "No entities in the scene"
+        case .componentNotFound:
+            return "Component pool for type could not be found"
+        case .failedToGetComponentPointer:
+            return "Failed to get component pointer"
         }
     }
 }
 
 public func handleError(_ error: ErrorHandlingSystem) {
-    print("Error: \(error.rawValue): \(error.description)")
+    Logger.logError(message: "\(error.rawValue): \(error.description)")
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ entityId: EntityID) {
-    print("Error: \(error.rawValue): \(error.description) for \(entityId)")
+    Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ name: String) {
-    print("Error: \(error.rawValue): \(error.description) for \(name)")
+    Logger.logError(message: "\(error.rawValue): \(error.description) for \(name)")
 }
 
 // warnings
 public func handleWarning(_ error: ErrorHandlingSystem, _ name: String) {
-    print("Warning: \(error.rawValue): \(error.description) for \(name)")
+    Logger.logWarning(message: "\(error.rawValue): \(error.description) for \(name)")
 }

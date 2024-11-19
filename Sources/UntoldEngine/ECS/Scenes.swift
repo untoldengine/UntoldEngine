@@ -9,24 +9,31 @@
 import Foundation
 
 public struct EntityDesc {
-    var index: EntityID
+    var entityId: EntityID
     var mask: ComponentMask
     var freed: Bool = false
 }
 
 public struct Scene {
-    public mutating func remove<T: Component>(component _: T.Type, from index: EntityID) {
-        let entityIndex = getEntityIndex(index)
-        guard entities[Int(entityIndex)].index == index else { return }
+    public mutating func remove<T: Component>(component _: T.Type, from entityId: EntityID) {
+        let entityIndex = getEntityIndex(entityId)
+        guard entities[Int(entityIndex)].entityId == entityId else {
+            handleError(.entityMissing)
+            return
+        }
 
         let componentId = getComponentId(for: T.self)
         entities[Int(entityIndex)].mask.reset(componentId)
     }
 
-    public mutating func destroyEntity(_ index: EntityID) {
-        let entityIndex = getEntityIndex(index)
-        let newId = createEntityId(EntityIndex(UInt32.max), getEntityVersion(index) + 1)
-        entities[Int(entityIndex)].index = newId
+    public mutating func destroyEntity(_ entityId: EntityID) {
+        let entityIndex = getEntityIndex(entityId)
+        guard entities[Int(entityIndex)].entityId == entityId else {
+            handleError(.entityMissing)
+            return
+        }
+        let newId = createEntityId(EntityIndex(UInt32.max), getEntityVersion(entityId) + 1)
+        entities[Int(entityIndex)].entityId = newId
         entities[Int(entityIndex)].mask.reset()
         entities[Int(entityIndex)].freed = true
         freeEntities.append(entityIndex)
@@ -34,22 +41,27 @@ public struct Scene {
 
     public mutating func newEntity() -> EntityID {
         if let newIndex = freeEntities.popLast() {
-            let newId = createEntityId(newIndex, getEntityVersion(entities[Int(newIndex)].index))
-            entities[Int(newIndex)].index = newId
+            let newId = createEntityId(newIndex, getEntityVersion(entities[Int(newIndex)].entityId))
+            entities[Int(newIndex)].entityId = newId
             entities[Int(newIndex)].freed = false
             return newId
         } else {
             let entityIndex = EntityIndex(UInt32(entities.count))
-            let newEntity = EntityDesc(index: createEntityId(entityIndex, 0), mask: ComponentMask())
+            let newEntity = EntityDesc(entityId: createEntityId(entityIndex, 0), mask: ComponentMask())
             entities.append(newEntity)
-            return newEntity.index
+            return newEntity.entityId
         }
     }
 
     /* explicitly specify type*/
-    public mutating func assign<T: Component>(to id: EntityID, component _: T.Type) -> T {
+    public mutating func assign<T: Component>(to entityId: EntityID, component _: T.Type) -> T? {
         let componentId = getComponentId(for: T.self)
-        let entityIndex = getEntityIndex(id)
+        let entityIndex = getEntityIndex(entityId)
+
+        guard entities[Int(entityIndex)].entityId == entityId else {
+            handleError(.entityMissing)
+            return nil
+        }
 
         // Ensure the pool for this component type exists
         if componentPool[componentId] == nil {
@@ -58,12 +70,14 @@ public struct Scene {
 
         // Retrieve the specific component pool
         guard let pool = componentPool[componentId] else {
-            fatalError("Component pool for type \(T.self) could not be found.")
+            handleError(.componentNotFound)
+            return nil
         }
 
         // Allocate and initialize a new component in the pool
         guard let componentPointer = pool.get(Int(entityIndex)) else {
-            fatalError("Failed to get component pointer from pool")
+            handleError(.failedToGetComponentPointer)
+            return nil
         }
 
         let typedPointer = componentPointer.bindMemory(to: T.self, capacity: 1)
@@ -75,13 +89,20 @@ public struct Scene {
         return typedPointer.pointee
     }
 
-    public func get<T: Component>(component _: T.Type, for index: EntityID) -> T? {
+    public func get<T: Component>(component _: T.Type, for entityId: EntityID) -> T? {
         let componentId = getComponentId(for: T.self)
-        let entityIndex = getEntityIndex(index)
+        let entityIndex = getEntityIndex(entityId)
 
         if entities.count == 0 {
+            handleError(.noentitiesinscene)
             return nil
         }
+
+        guard entities[Int(entityIndex)].entityId == entityId else {
+            handleError(.entityMissing)
+            return nil
+        }
+
         // Check if the entity has this component
         guard entities[Int(entityIndex)].mask.test(componentId) else {
             return nil
@@ -120,5 +141,5 @@ func queryEntitiesWithComponentIds(_ componentTypes: [Int], in scene: Scene) -> 
     return scene.entities.filter { entity in
         // Use bitwise AND to check if the entity has all required components
         entity.mask.contains(requiredMask)
-    }.map { $0.index }
+    }.map { $0.entityId }
 }
