@@ -10,91 +10,110 @@ import Foundation
 import MetalKit
 import simd
 
+func createBuffer<T>(
+    device: MTLDevice,
+    data: [T],
+    options: MTLResourceOptions = .storageModeShared,
+    label: String
+) -> MTLBuffer? {
+    guard !data.isEmpty else {
+        Logger.logWarning(message: "Attempted to create buffer with empty data: \(label)")
+        return nil
+    }
+    let buffer = device.makeBuffer(
+        length: MemoryLayout<T>.stride * data.count,
+        options: options
+    )
+    buffer?.contents().initializeMemory(as: T.self, from: data, count: data.count)
+    buffer?.label = label
+    return buffer
+}
+
+func createEmptyBuffer(
+    device: MTLDevice,
+    length: Int,
+    options: MTLResourceOptions = .storageModeShared,
+    label: String
+) -> MTLBuffer? {
+    guard length > 0 else {
+        Logger.logWarning(message: "Attempted to create buffer with invalid length: \(label)")
+        return nil
+    }
+    let buffer = device.makeBuffer(length: length, options: options)
+    buffer?.label = label
+    return buffer
+}
+
 func initBufferResources() {
-    let grid = {
-        // assign the buffer to gridVertexBuffer
-        bufferResources.gridVertexBuffer = renderInfo.device.makeBuffer(
-            length: MemoryLayout<simd_float3>.stride * gridVertices.count,
-            options: [MTLResourceOptions.storageModeShared]
+    // Initialize Grid Buffers
+    func initGridBuffers() {
+        bufferResources.gridVertexBuffer = createBuffer(
+            device: renderInfo.device,
+            data: gridVertices,
+            label: "Grid Vertices"
         )
-
-        bufferResources.gridVertexBuffer!.contents().initializeMemory(
-            as: simd_float3.self, from: gridVertices, count: gridVertices.count
-        )
-
-        bufferResources.gridVertexBuffer?.label = "grid vertices"
-
-        bufferResources.gridUniforms = renderInfo.device.makeBuffer(
-            length: MemoryLayout<Uniforms>.stride, options: [MTLResourceOptions.storageModeShared]
-        )
-        bufferResources.gridUniforms?.label = "grid uniforms"
-    }
-
-    let composite = {
-        // set the bufferResources
-        bufferResources.quadVerticesBuffer = renderInfo.device.makeBuffer(
-            length: MemoryLayout<simd_float3>.stride * quadVertices.count,
-            options: [MTLResourceOptions.storageModeShared]
-        )!
-
-        bufferResources.quadTexCoordsBuffer = renderInfo.device.makeBuffer(
-            length: MemoryLayout<simd_float2>.stride * quadTexCoords.count,
-            options: [MTLResourceOptions.storageModeShared]
-        )!
-
-        bufferResources.quadIndexBuffer = renderInfo.device.makeBuffer(
-            length: MemoryLayout<UInt16>.stride * quadIndices.count,
-            options: [MTLResourceOptions.storageModeShared]
-        )!
-
-        bufferResources.quadVerticesBuffer?.label = "quad vertices"
-        bufferResources.quadTexCoordsBuffer?.label = "quad tex"
-        bufferResources.quadIndexBuffer?.label = "quad index"
-
-        bufferResources.quadVerticesBuffer!.contents().initializeMemory(
-            as: simd_float3.self, from: quadVertices, count: quadVertices.count
-        )
-
-        bufferResources.quadTexCoordsBuffer!.contents().initializeMemory(
-            as: simd_float2.self, from: quadTexCoords, count: quadTexCoords.count
-        )
-
-        bufferResources.quadIndexBuffer!.contents().initializeMemory(
-            as: UInt16.self, from: quadIndices, count: quadIndices.count
+        bufferResources.gridUniforms = createEmptyBuffer(
+            device: renderInfo.device,
+            length: MemoryLayout<Uniforms>.stride,
+            label: "Grid Uniforms"
         )
     }
 
-    let pointLights = {
-        bufferResources.pointLightBuffer = renderInfo.device.makeBuffer(
+    // Initialize Composite Buffers
+    func initCompositeBuffers() {
+        bufferResources.quadVerticesBuffer = createBuffer(
+            device: renderInfo.device,
+            data: quadVertices,
+            label: "Quad Vertices"
+        )
+        bufferResources.quadTexCoordsBuffer = createBuffer(
+            device: renderInfo.device,
+            data: quadTexCoords,
+            label: "Quad TexCoords"
+        )
+        bufferResources.quadIndexBuffer = createBuffer(
+            device: renderInfo.device,
+            data: quadIndices,
+            label: "Quad Indices"
+        )
+    }
+
+    // Initialize Point Light Buffer
+    func initPointLightBuffer() {
+        bufferResources.pointLightBuffer = createEmptyBuffer(
+            device: renderInfo.device,
             length: MemoryLayout<PointLight>.stride * maxNumPointLights,
-            options: [MTLResourceOptions.storageModeShared]
-        )!
-
-        bufferResources.pointLightBuffer?.label = "Point Lights"
+            label: "Point Lights"
+        )
     }
 
-    let boundingBox = {
-        bufferResources.boundingBoxBuffer = renderInfo.device.makeBuffer(
+    // Initialize Bounding Box Buffer
+    func initBoundingBoxBuffer() {
+        bufferResources.boundingBoxBuffer = createEmptyBuffer(
+            device: renderInfo.device,
             length: MemoryLayout<simd_float4>.stride * boundingBoxVertexCount,
-            options: MTLResourceOptions.storageModeShared
-        )
-        bufferResources.boundingBoxBuffer?.label = "Bounding Box Buffer"
-    }
-
-    let rtxAccumulation = {
-        let width = renderInfo.viewPort.x
-        let height = renderInfo.viewPort.y
-        let bufferLength = MemoryLayout<simd_float3>.stride * Int(width) * Int(height)
-        bufferResources.accumulationBuffer = renderInfo.device.makeBuffer(
-            length: bufferLength, options: .storageModeShared
+            label: "Bounding Box Buffer"
         )
     }
 
-    grid()
-    composite()
-    pointLights()
-    boundingBox()
-    rtxAccumulation()
+    // Initialize RTX Accumulation Buffer
+    func initRTXAccumulationBuffer() {
+        let width = Int(renderInfo.viewPort.x)
+        let height = Int(renderInfo.viewPort.y)
+        let bufferLength = MemoryLayout<simd_float3>.stride * width * height
+        bufferResources.accumulationBuffer = createEmptyBuffer(
+            device: renderInfo.device,
+            length: bufferLength,
+            label: "Accumulation Buffer"
+        )
+    }
+
+    // Initialize All Buffers
+    initGridBuffers()
+    initCompositeBuffers()
+    initPointLightBuffer()
+    initBoundingBoxBuffer()
+    initRTXAccumulationBuffer()
 }
 
 func initRenderPassDescriptors() {
