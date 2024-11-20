@@ -30,8 +30,8 @@ public struct RenderInfo {
 }
 
 public struct RenderPipeline {
-    var depthState: MTLDepthStencilState?
     var pipelineState: MTLRenderPipelineState?
+    var depthState: MTLDepthStencilState?
     var success: Bool = false
     var name: String?
 }

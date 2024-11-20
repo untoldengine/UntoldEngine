@@ -420,657 +420,463 @@ func generateHDR(_ hdrName: String, from directory: URL? = nil) {
     }
 }
 
+func createShadowVertexDescriptor() -> MTLVertexDescriptor{
+    
+    // set the vertex descriptor
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    // set position
+    vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].format =
+        MTLVertexFormat.float4
+    vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].bufferIndex = Int(
+        ShadowBufferIndices.shadowModelPositionIndex.rawValue)
+    vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].offset = 0
+
+    // stride
+    vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stride =
+        MemoryLayout<simd_float4>.stride
+    vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepFunction =
+        MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createGridVertexDescriptor() -> MTLVertexDescriptor {
+    
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    // set position
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createModelVertexDescriptor() -> MTLVertexDescriptor? {
+    // tell the gpu how data is organized
+    vertexDescriptor.model = MDLVertexDescriptor()
+
+    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexAttribute(
+        name: MDLVertexAttributePosition,
+        format: .float4,
+        offset: 0,
+        bufferIndex: Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)
+    )
+
+    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexAttribute(
+        name: MDLVertexAttributeNormal,
+        format: .float4,
+        offset: 0,
+        bufferIndex: Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)
+    )
+
+    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexAttribute(
+        name: MDLVertexAttributeTextureCoordinate,
+        format: .float2,
+        offset: 0,
+        bufferIndex: Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)
+    )
+
+    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexAttribute(
+        name: MDLVertexAttributeTangent, format: .float4, offset: 0,
+        bufferIndex: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)
+    )
+
+    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexAttribute(
+        name: MDLVertexAttributeJointIndices, format: .uShort4, offset: 0,
+        bufferIndex: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
+    )
+
+    vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexAttribute(
+        name: MDLVertexAttributeJointWeights, format: .float4, offset: 0,
+        bufferIndex: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
+    )
+
+    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
+        stride: MemoryLayout<simd_float4>.stride)
+
+    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexBufferLayout(
+        stride: MemoryLayout<simd_float4>.stride)
+
+    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexBufferLayout(
+        stride: MemoryLayout<simd_float2>.stride)
+
+    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
+        stride: MemoryLayout<simd_float4>.stride)
+
+    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexBufferLayout(
+        stride: MemoryLayout<simd_ushort4>.stride)
+
+    vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexBufferLayout(
+        stride: MemoryLayout<simd_float4>.stride)
+
+    guard let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model) else{
+        return nil
+    }
+    
+    return vertexDescriptor
+    
+}
+
+func createGeometryVertexDescriptor() -> MTLVertexDescriptor{
+    
+    // tell the gpu how data is organized
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    // set position
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float4
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float4>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createCompositeVertexDescriptor() -> MTLVertexDescriptor{
+    
+    // set the vertex descriptor
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[1].bufferIndex = 1
+    vertexDescriptor.attributes[1].offset = 0
+
+    // stride
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+
+    vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
+    vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[1].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createPreCompositeVertexDescriptor() -> MTLVertexDescriptor{
+    
+    // set the vertex descriptor
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[1].bufferIndex = 1
+    vertexDescriptor.attributes[1].offset = 0
+
+    // stride
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+
+    vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
+    vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[1].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createDebugVertexDescriptor() -> MTLVertexDescriptor{
+    
+    // set the vertex descriptor
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[1].bufferIndex = 1
+    vertexDescriptor.attributes[1].offset = 0
+
+    // stride
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+
+    vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
+    vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[1].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createPostProcessVertexDescriptor() -> MTLVertexDescriptor{
+    
+    // set the vertex descriptor
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[1].bufferIndex = 1
+    vertexDescriptor.attributes[1].offset = 0
+
+    // stride
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+
+    vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
+    vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[1].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor{
+    
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[0].bufferIndex = 0
+    vertexDescriptor.attributes[0].offset = 0
+
+    vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[1].bufferIndex = 1
+    vertexDescriptor.attributes[1].offset = 0
+
+    // stride
+    vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
+    vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[0].stepRate = 1
+
+    vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
+    vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
+    vertexDescriptor.layouts[1].stepRate = 1
+    
+    return vertexDescriptor
+}
+
+func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor{
+
+    // tell the gpu how data is organized
+    let vertexDescriptor = MTLVertexDescriptor()
+
+    // set position
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].offset = 0
+
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].format = MTLVertexFormat.float3
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].bufferIndex = 0
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].offset =
+        MemoryLayout<simd_float3>.stride
+
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].format = MTLVertexFormat.float2
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].bufferIndex = 0
+    vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].offset =
+        2 * MemoryLayout<simd_float3>.stride
+
+    vertexDescriptor.layouts[0].stride =
+        2 * MemoryLayout<simd_float3>.stride + MemoryLayout<simd_float2>.stride
+    
+    return vertexDescriptor
+}
+
+func createPipeline(
+    vertexShader: String,
+    fragmentShader: String?,
+    vertexDescriptor:MTLVertexDescriptor?,
+    colorFormats: [MTLPixelFormat],
+    depthFormat: MTLPixelFormat,
+    depthCompareFunction: MTLCompareFunction = .lessEqual,
+    depthEnabled: Bool = true,
+    blendEnabled: Bool = false,
+    name: String ) -> RenderPipeline? {
+    
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    let depthStateDescriptor = MTLDepthStencilDescriptor()
+    
+    do{
+        
+        let vertexFunction = renderInfo.library.makeFunction(name: vertexShader)!
+                pipelineDescriptor.vertexFunction = vertexFunction
+
+        if let fragmentShader = fragmentShader {
+            let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader)!
+            pipelineDescriptor.fragmentFunction = fragmentFunction
+        }
+        
+        pipelineDescriptor.vertexDescriptor = vertexDescriptor
+
+        for (index, format) in colorFormats.enumerated() {
+            let attachment = pipelineDescriptor.colorAttachments[index]
+            attachment?.pixelFormat = format
+            if blendEnabled {
+                attachment?.isBlendingEnabled = true
+                attachment?.rgbBlendOperation = .add
+                attachment?.sourceRGBBlendFactor = .sourceAlpha
+                attachment?.destinationRGBBlendFactor = .one
+                attachment?.alphaBlendOperation = .add
+                attachment?.sourceAlphaBlendFactor = .sourceAlpha
+                attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+            }
+        }
+        
+        pipelineDescriptor.depthAttachmentPixelFormat = depthFormat
+
+        depthStateDescriptor.depthCompareFunction = .lessEqual
+        depthStateDescriptor.isDepthWriteEnabled = true
+
+        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
+
+        return RenderPipeline(
+            pipelineState: pipelineState,
+            depthState: depthState,
+            success: true,
+            name: name
+        )
+        
+    }catch{
+        Logger.logError(message: "Failed to create pipeline \(name): \(error)")
+        return nil
+    }
+    
+}
+
 func initRenderPipelines() {
-    // MARK: - Shadows Init pipe
-
-    let shadow = { (vertexShader: String, _: String) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        // let fragmentFunction:MTLFunction=renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // set the vertex descriptor
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        // set position
-        vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].format =
-            MTLVertexFormat.float4
-        vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].bufferIndex = Int(
-            ShadowBufferIndices.shadowModelPositionIndex.rawValue)
-        vertexDescriptor.attributes[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].offset = 0
-
-        // stride
-        vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stride =
-            MemoryLayout<simd_float4>.stride
-        vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepFunction =
-            MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = nil
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        pipelineDescriptor.colorAttachments[0].pixelFormat = MTLPixelFormat.invalid
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-
-        let depthStateDescriptor = MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction = MTLCompareFunction.less
-        depthStateDescriptor.isDepthWriteEnabled = true
-
-        shadowPipeline.depthState = renderInfo.device.makeDepthStencilState(
-            descriptor: depthStateDescriptor)!
-
-        // create a pipeline
-
-        do {
-            shadowPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            shadowPipeline.success = true
-
-        } catch {
-            Logger.logError(message: "Could not compute the Shadow pipeline state. Error info: \(error)")
-            return false
-        }
-
-        return true
+    // Grid Pipeline
+    if let gridPipe = createPipeline(
+        vertexShader: "vertexGridShader",
+        fragmentShader: "fragmentGridShader",
+        vertexDescriptor: createGridVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: MTLCompareFunction.less,
+        depthEnabled: false,
+        blendEnabled: true,
+        name: "Grid Pipeline"
+    ) {
+        gridPipeline = gridPipe
     }
 
-    // MARK: - Grid Init pipe
-
-    let grid = { (vertexShader: String, fragmentShader: String) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // tell the gpu how data is organized
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        // set position
-        vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[0].offset = 0
-
-        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
-        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[0].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.colorAttachments[0].pixelFormat = renderInfo.colorPixelFormat
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-        // pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
-
-        // blending
-        pipelineDescriptor.colorAttachments[0].isBlendingEnabled = true
-
-        // rgb blending
-        pipelineDescriptor.colorAttachments[0].rgbBlendOperation = MTLBlendOperation.add
-        pipelineDescriptor.colorAttachments[0].sourceRGBBlendFactor = MTLBlendFactor.sourceAlpha
-        pipelineDescriptor.colorAttachments[0].destinationRGBBlendFactor = MTLBlendFactor.one
-
-        // alpha blending
-        pipelineDescriptor.colorAttachments[0].alphaBlendOperation = MTLBlendOperation.add
-        pipelineDescriptor.colorAttachments[0].sourceAlphaBlendFactor = MTLBlendFactor.sourceAlpha
-        pipelineDescriptor.colorAttachments[0].destinationAlphaBlendFactor =
-            MTLBlendFactor.oneMinusSourceAlpha
-
-        let depthStateDescriptor = MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction = MTLCompareFunction.less
-        depthStateDescriptor.isDepthWriteEnabled = false
-        gridPipeline.depthState = renderInfo.device.makeDepthStencilState(
-            descriptor: depthStateDescriptor)!
-
-        // create a pipeline
-        gridPipeline.name = "Grid Pipeline"
-
-        do {
-            gridPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            gridPipeline.success = true
-
-        } catch {
-            handleError(.pipelineStateCreationFailed, gridPipeline.name!)
-            return false
-        }
-
-        return true
+    // Shadow Pipeline
+    if let shadowPipe = createPipeline(
+        vertexShader: "vertexShadowShader",
+        fragmentShader: nil,
+        vertexDescriptor: createShadowVertexDescriptor(),
+        colorFormats: [.invalid],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: MTLCompareFunction.less,
+        name: "Shadow Pipeline"
+    ) {
+        shadowPipeline = shadowPipe
     }
 
-    // MARK: - Model Init pipe
-
-    let model = { (vertexShader: String, fragmentShader: String) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // tell the gpu how data is organized
-        vertexDescriptor.model = MDLVertexDescriptor()
-
-        vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributePosition,
-            format: .float4,
-            offset: 0,
-            bufferIndex: Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)
-        )
-
-        vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributeNormal,
-            format: .float4,
-            offset: 0,
-            bufferIndex: Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)
-        )
-
-        vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributeTextureCoordinate,
-            format: .float2,
-            offset: 0,
-            bufferIndex: Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)
-        )
-
-        vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributeTangent, format: .float4, offset: 0,
-            bufferIndex: Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)
-        )
-
-        vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributeJointIndices, format: .uShort4, offset: 0,
-            bufferIndex: Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)
-        )
-
-        vertexDescriptor.model.attributes[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexAttribute(
-            name: MDLVertexAttributeJointWeights, format: .float4, offset: 0,
-            bufferIndex: Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)
-        )
-
-        vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassVerticesIndex.rawValue)] = MDLVertexBufferLayout(
-            stride: MemoryLayout<simd_float4>.stride)
-
-        vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassNormalIndex.rawValue)] = MDLVertexBufferLayout(
-            stride: MemoryLayout<simd_float4>.stride)
-
-        vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassUVIndex.rawValue)] = MDLVertexBufferLayout(
-            stride: MemoryLayout<simd_float2>.stride)
-
-        vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassTangentIndex.rawValue)] = MDLVertexBufferLayout(
-            stride: MemoryLayout<simd_float4>.stride)
-
-        vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointIdIndex.rawValue)] = MDLVertexBufferLayout(
-            stride: MemoryLayout<simd_ushort4>.stride)
-
-        vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexBufferLayout(
-            stride: MemoryLayout<simd_float4>.stride)
-
-        let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model)
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].pixelFormat =
-            renderInfo.colorPixelFormat
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].pixelFormat = .rgba16Float
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].pixelFormat = .rgba16Float
-
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-
-        let depthStateDescriptor = MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction = MTLCompareFunction.lessEqual
-        depthStateDescriptor.isDepthWriteEnabled = true
-
-        modelPipeline.depthState = renderInfo.device.makeDepthStencilState(
-            descriptor: depthStateDescriptor)
-
-        modelPipeline.name = "Model Pipeline"
-        // create a pipeline
-
-        do {
-            modelPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            modelPipeline.success = true
-
-        } catch {
-            handleError(.pipelineStateCreationFailed, modelPipeline.name!)
-            return false
-        }
-
-        return true
+    // Model Pipeline
+    if let modelPipe = createPipeline(
+        vertexShader: "vertexModelShader",
+        fragmentShader: "fragmentModelShader",
+        vertexDescriptor: createModelVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        name: "Model Pipeline"
+    ) {
+        modelPipeline = modelPipe
     }
-
-    // MARK: - Geometry Init pipe
-
-    let geometry = { (vertexShader: String, fragmentShader: String) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // tell the gpu how data is organized
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        // set position
-        vertexDescriptor.attributes[0].format = MTLVertexFormat.float4
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[0].offset = 0
-
-        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float4>.stride
-        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[0].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].pixelFormat =
-            renderInfo.colorPixelFormat
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].pixelFormat = .rgba16Float
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].pixelFormat = .rgba16Float
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-
-        let depthStateDescriptor = MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction = MTLCompareFunction.lessEqual
-        depthStateDescriptor.isDepthWriteEnabled = true
-
-        geometryPipeline.depthState = renderInfo.device.makeDepthStencilState(
-            descriptor: depthStateDescriptor)
-
-        geometryPipeline.name = "Geometry Pipeline"
-        // create a pipeline
-
-        do {
-            geometryPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            geometryPipeline.success = true
-
-        } catch {
-            handleError(.pipelineStateCreationFailed, geometryPipeline.name!)
-            return false
-        }
-
-        return true
+    
+    // Geometry Pipeline
+    if let geometryPipe = createPipeline(
+        vertexShader: "vertexGeometryShader",
+        fragmentShader: "fragmentGeometryShader",
+        vertexDescriptor: createGeometryVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        name: "Geometry Pipeline"
+    ){
+        geometryPipeline = geometryPipe
     }
-
-    // MARK: - Mesh Shader Init pipe
-
-    let meshShader = {
-        (_: String, _: String, _: String) in
+    
+    if let compositePipe = createPipeline(
+        vertexShader: "vertexCompositeShader",
+        fragmentShader: "fragmentCompositeShader",
+        vertexDescriptor: createCompositeVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Composite Pipeline"
+    ){
+        compositePipeline = compositePipe
     }
-
-    // MARK: - Composite Init pipe
-
-    let composite = {
-        (pipeline: inout RenderPipeline, _ name: String, vertexShader: String, fragmentShader: String)
-            -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // set the vertex descriptor
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[0].offset = 0
-
-        vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
-        vertexDescriptor.attributes[1].bufferIndex = 1
-        vertexDescriptor.attributes[1].offset = 0
-
-        // stride
-        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
-        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[0].stepRate = 1
-
-        vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
-        vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[1].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        pipelineDescriptor.colorAttachments[0].pixelFormat = renderInfo.colorPixelFormat
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-        // pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
-
-        pipeline.name = name
-        // create a pipeline
-
-        do {
-            pipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            pipeline.success = true
-
-        } catch {
-            handleError(.pipelineStateCreationFailed, pipeline.name!)
-            return false
-        }
-
-        return true
+    
+    if let preCompositePipe = createPipeline(
+        vertexShader: "vertexPreCompositeShader",
+        fragmentShader: "fragmentPreCompositeShader",
+        vertexDescriptor: createPreCompositeVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Pre-Composite Pipeline"
+    ){
+        preCompositePipeline = preCompositePipe
     }
-
-    // MARK: - Pre Composite Init pipe
-
-    let precomposite = { (vertexShader: String, fragmentShader: String) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // set the vertex descriptor
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[0].offset = 0
-
-        vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
-        vertexDescriptor.attributes[1].bufferIndex = 1
-        vertexDescriptor.attributes[1].offset = 0
-
-        // stride
-        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
-        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[0].stepRate = 1
-
-        vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
-        vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[1].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        pipelineDescriptor.colorAttachments[0].pixelFormat = renderInfo.colorPixelFormat
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-        // pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
-
-        preCompositePipeline.name = "Pre Composite pipeline"
-        // create a pipeline
-
-        do {
-            preCompositePipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            preCompositePipeline.success = true
-
-        } catch {
-            handleError(.pipelineStateCreationFailed, preCompositePipeline.name!)
-            return false
-        }
-
-        return true
+    
+    if let debugPipe = createPipeline(
+        vertexShader: "vertexDebugShader",
+        fragmentShader: "fragmentDebugShader",
+        vertexDescriptor: createDebugVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .less,
+        depthEnabled: false,
+        name: "Debug Pipeline"
+    ){
+        debuggerPipeline = debugPipe
     }
-
-    // MARK: - Debug Init pipe
-
-    let debug = { (vertexShader: String, fragmentShader: String) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // set the vertex descriptor
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[0].offset = 0
-
-        vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
-        vertexDescriptor.attributes[1].bufferIndex = 1
-        vertexDescriptor.attributes[1].offset = 0
-
-        // stride
-        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
-        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[0].stepRate = 1
-
-        vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
-        vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[1].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        pipelineDescriptor.colorAttachments[0].pixelFormat = renderInfo.colorPixelFormat
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-        // pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
-
-        let depthStateDescriptor = MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction = MTLCompareFunction.less
-        depthStateDescriptor.isDepthWriteEnabled = false
-
-        debuggerPipeline.depthState = renderInfo.device.makeDepthStencilState(
-            descriptor: depthStateDescriptor)!
-
-        debuggerPipeline.name = "Debugger pipeline"
-        // create a pipeline
-
-        do {
-            debuggerPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            debuggerPipeline.success = true
-
-        } catch {
-            handleError(.pipelineStateCreationFailed, debuggerPipeline.name!)
-            return false
-        }
-
-        return true
+    
+    if let postProcessPipe = createPipeline(
+        vertexShader: "vertexPostProcessShader",
+        fragmentShader: "fragmentPostProcessShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Post-Process Pipeline"
+    ){
+        postProcessPipeline = postProcessPipe
     }
-
-    // MARK: - Post-Process Init pipe
-
-    let postProcess = {
-        (
-            postProcessPipeline: inout RenderPipeline, _ name: String, vertexShader: String,
-            fragmentShader: String
-        ) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // set the vertex descriptor
-        // set the vertex descriptor
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[0].offset = 0
-
-        vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
-        vertexDescriptor.attributes[1].bufferIndex = 1
-        vertexDescriptor.attributes[1].offset = 0
-
-        // stride
-        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
-        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[0].stepRate = 1
-
-        vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
-        vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[1].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].pixelFormat =
-            renderInfo.colorPixelFormat
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].pixelFormat = .rgba16Float
-        pipelineDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].pixelFormat = .rgba16Float
-
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-
-        // pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
-
-        //        let depthStateDescriptor=MTLDepthStencilDescriptor()
-        //        depthStateDescriptor.depthCompareFunction=MTLCompareFunction.less
-        //        depthStateDescriptor.isDepthWriteEnabled=false
-        //
-        //        postProcessPipeline.depthState=renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)!
-
-        // create a pipeline
-        postProcessPipeline.name = name
-
-        do {
-            postProcessPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-
-            postProcessPipeline.success = true
-
-        } catch {
-            handleError(.pipelineStateCreationFailed, postProcessPipeline.name!)
-            return false
-        }
-
-        return true
+    
+    if let tonePipe = createPipeline(
+        vertexShader: "vertexTonemappingShader",
+        fragmentShader: "fragmentTonemappingShader",
+        vertexDescriptor: createPostProcessVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Tone-mapping Pipeline"
+    ){
+        tonemappingPipeline = tonePipe
     }
-
-    // MARK: - IBL Pre-Filter init pipe
-
-    let iblPrefilter = { (vertexShader: String, fragmentShader: String) -> Bool in
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // set the vertex descriptor
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[0].bufferIndex = 0
-        vertexDescriptor.attributes[0].offset = 0
-
-        vertexDescriptor.attributes[1].format = MTLVertexFormat.float2
-        vertexDescriptor.attributes[1].bufferIndex = 1
-        vertexDescriptor.attributes[1].offset = 0
-
-        // stride
-        vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
-        vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[0].stepRate = 1
-
-        vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
-        vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
-        vertexDescriptor.layouts[1].stepRate = 1
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        pipelineDescriptor.colorAttachments[0].pixelFormat = renderInfo.colorPixelFormat
-        pipelineDescriptor.colorAttachments[1].pixelFormat = renderInfo.colorPixelFormat
-        pipelineDescriptor.colorAttachments[2].pixelFormat = renderInfo.colorPixelFormat
-
-        // pipelineDescriptor.depthAttachmentPixelFormat=renderInfo.depthPixelFormat
-
-        let depthStateDescriptor = MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction = MTLCompareFunction.less
-        depthStateDescriptor.isDepthWriteEnabled = false
-
-        iblPrefilterPipeline.depthState = renderInfo.device.makeDepthStencilState(
-            descriptor: depthStateDescriptor)!
-
-        // create a pipeline
-        iblPrefilterPipeline.name = "IBL Pipeline"
-
-        do {
-            iblPrefilterPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-            iblPrefilterPipeline.success = true
-        } catch {
-            handleError(.pipelineStateCreationFailed, iblPrefilterPipeline.name!)
-            return false
-        }
-
-        return true
-    }
-
-    // MARK: - Environment Init pipe
-
-    let environment = { (vertexShader: String, fragmentShader: String) -> Bool in
-
-        // tell the gpu how data is organized
-        let vertexDescriptor = MTLVertexDescriptor()
-
-        // set position
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassPositionIndex.rawValue)].offset = 0
-
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].format = MTLVertexFormat.float3
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].bufferIndex = 0
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassNormalIndex.rawValue)].offset =
-            MemoryLayout<simd_float3>.stride
-
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].format = MTLVertexFormat.float2
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].bufferIndex = 0
-        vertexDescriptor.attributes[Int(EnvironmentPassBufferIndices.envPassUVIndex.rawValue)].offset =
-            2 * MemoryLayout<simd_float3>.stride
-
-        vertexDescriptor.layouts[0].stride =
-            2 * MemoryLayout<simd_float3>.stride + MemoryLayout<simd_float2>.stride
-
-        // create shading functions
-        let vertexFunction: MTLFunction = renderInfo.library.makeFunction(name: vertexShader)!
-        let fragmentFunction: MTLFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-
-        // build the pipeline
-
-        // create the pipeline descriptor
-        let pipelineDescriptor = MTLRenderPipelineDescriptor()
-        pipelineDescriptor.vertexFunction = vertexFunction
-        pipelineDescriptor.fragmentFunction = fragmentFunction
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-        pipelineDescriptor.colorAttachments[0].pixelFormat = renderInfo.colorPixelFormat
-        pipelineDescriptor.depthAttachmentPixelFormat = renderInfo.depthPixelFormat
-        // pipelineDescriptor.stencilAttachmentPixelFormat=renderInfo.depthPixelFormat
-
-        let depthStateDescriptor = MTLDepthStencilDescriptor()
-        depthStateDescriptor.depthCompareFunction = MTLCompareFunction.lessEqual
-        depthStateDescriptor.isDepthWriteEnabled = false
-        environmentPipeline.depthState = renderInfo.device.makeDepthStencilState(
-            descriptor: depthStateDescriptor)
-
-        environmentPipeline.name = "Environment Pipeline"
-        // create a pipeline
-
-        do {
-            environmentPipeline.pipelineState = try renderInfo.device.makeRenderPipelineState(
-                descriptor: pipelineDescriptor)
-        } catch {
-            handleError(.pipelineStateCreationFailed, environmentPipeline.name!)
-            return false
-        }
-
+    
+    if let environmentPipe = createPipeline(
+        vertexShader: "vertexEnvironmentShader",
+        fragmentShader: "fragmentEnvironmentShader",
+        vertexDescriptor: createEnvironmentVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthEnabled: false,
+        name: "Environment Pipeline"
+    ){
+        environmentPipeline = environmentPipe
+        
         // create the mesh
 
         let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
@@ -1121,30 +927,23 @@ func initRenderPipelines() {
         }
 
         environmentPipeline.success = true
-
-        return true
+        
     }
-
-    // MARK: - initialize pipe lambdas
-
-    // call the closures
-    _ = grid("vertexGridShader", "fragmentGridShader")
-    _ = shadow("vertexShadowShader", "fragmentShadowShader")
-    _ = model("vertexModelShader", "fragmentModelShader")
-    _ = geometry("vertexGeometryShader", "fragmentGeometryShader")
-    _ = composite(&compositePipeline, "composite", "vertexCompositeShader", "fragmentCompositeShader")
-
-    _ = precomposite("vertexPreCompositeShader", "fragmentPreCompositeShader")
-    _ = debug("vertexDebugShader", "fragmentDebugShader")
-    _ = postProcess(
-        &postProcessPipeline, "post-process", "vertexPostProcessShader", "fragmentPostProcessShader"
-    )
-    _ = environment("vertexEnvironmentShader", "fragmentEnvironmentShader")
-    _ = iblPrefilter("vertexIBLPreFilterShader", "fragmentIBLPreFilterShader")
-    _ = postProcess(
-        &tonemappingPipeline, "tonemappingPipeline", "vertexTonemappingShader",
-        "fragmentTonemappingShader"
-    )
+    
+    if let iblPreFilterPipe = createPipeline(
+        vertexShader: "vertexIBLPreFilterShader",
+        fragmentShader: "fragmentIBLPreFilterShader",
+        vertexDescriptor: createIBLPreFilterVertexDescriptor(),
+        colorFormats: [renderInfo.colorPixelFormat, renderInfo.colorPixelFormat, renderInfo.colorPixelFormat],
+        depthFormat: renderInfo.depthPixelFormat,
+        depthCompareFunction: .less,
+        depthEnabled: false,
+        name: "IBL-Pre Filer Pipeline"
+    ){
+        iblPrefilterPipeline = iblPreFilterPipe
+    }
+    
+    
 }
 
 func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
