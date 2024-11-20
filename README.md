@@ -39,6 +39,7 @@
 - [Project assistance](#project-assistance)
 - [Contributing](#contributing)
 - [License](#license)
+- [Common Issues](#common-issues)
 
 
 </details>
@@ -446,4 +447,20 @@ Once I feel that the documentation is ready, I will allow Pull-Request.
 This project is licensed under the **LGPL v2.1**.
 
 This means that if you develop a game using the Untold Engine, you do not need to open source your game. However, if you create a derivative of the Untold Engine, then you must apply the rules stated in the LGPL v2.1. That is, you must open source the derivative work.
+
+---
+
+## Common Issues
+
+### ShaderType.h not found
+
+Xcode may fail stating that it can't find a ShaderType.h file. If that is the case, simply go to your build settings, search for "bridging". Head over to 'Objective-C Bridging Header' and make sure to remove the path as shown in the image below
+
+![bridgeheader](../images/bridgingheader.png)
+
+### Linker issues
+
+Xcode may fail stating linker issues. If that is so, make sure to add the "Untold Engine" framework to **Link Binary With Libraries** under the **Build Phases** section.
+
+![linkerissue](../images/linkerissue.png)
 
