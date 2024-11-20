@@ -60,7 +60,7 @@ applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 5.0))
 After you Run the project in Xcode:
 
 1. Your model will appear in the game window.
-2. Press L to enter Game Mode.
+2. Press **P** to enter Game Mode.
     - Your entity will respond to gravity, forces, and collisions.
     - If you applied a force, you’ll see your model move accordingly.
 

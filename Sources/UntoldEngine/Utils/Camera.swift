@@ -128,11 +128,12 @@ public struct Camera {
         return simd_float3(viewSpace.columns.3.x, viewSpace.columns.3.y, viewSpace.columns.3.z)
     }
 
-    public mutating func moveCameraWithInput(input: (w: Bool, a: Bool, s: Bool, d: Bool), speed: Float, deltaTime: Float) {
+    public mutating func moveCameraWithInput(input: (w: Bool, a: Bool, s: Bool, d: Bool, q: Bool, e: Bool), speed: Float, deltaTime: Float) {
         // calculate movement deltas based on input
         var delU: Float = 0.0 // movement along the right axis (xAxis)
         var delN: Float = 0.0 // movement along the forward axis (zAxis)
-
+        var delV: Float = 0.0 // movement along the up axis (yAxis)
+        
         if input.w {
             delN -= speed * deltaTime // Move forward
         }
@@ -148,9 +149,17 @@ public struct Camera {
         if input.d {
             delU += speed * deltaTime // Move right
         }
+        
+        if input.q {
+            delV += speed * deltaTime // Move up
+        }
+        
+        if input.e {
+            delV -= speed * deltaTime // Move down
+        }
 
         // Translate camera position by deltas
-        translateBy(delU: delU, delV: 0, delN: delN)
+        translateBy(delU: delU, delV: delV, delN: delN)
     }
 
     // Function to rotate the camera based on mouse movement

@@ -5,6 +5,7 @@
 //  Copyright © 2024 Untold Engine Studios. All rights reserved.
 //
 
+import AppKit
 import Cocoa
 import Foundation
 import simd
@@ -14,6 +15,8 @@ public struct KeyState {
     public var aPressed = false
     public var sPressed = false
     public var dPressed = false
+    public var qPressed = false
+    public var ePressed = false
     var spacePressed = false
     public var shiftPressed = false
     public var ctrlPressed = false
@@ -49,6 +52,9 @@ public class InputSystem {
     let kVK_ANSI_P: UInt16 = 35
     let kVK_ANSI_L: UInt16 = 37
 
+    let kVK_ANSI_Q: UInt16 = 12
+    let kVK_ANSI_E: UInt16 = 14
+
     public var keyState = KeyState()
 
     // Current state of the pan gesture
@@ -78,8 +84,9 @@ public class InputSystem {
 
         // Pan gesture
         let panGesture = NSPanGestureRecognizer(target: self, action: #selector(handlePan(_:)))
+        
         view.addGestureRecognizer(panGesture)
-
+        
         // Click gesture
         let clickGesture = NSClickGestureRecognizer(target: self, action: #selector(handleClick(_:)))
         view.addGestureRecognizer(clickGesture)
@@ -222,9 +229,10 @@ public class InputSystem {
             currentPanGestureState = .changed
             initialPanLocation = currentPanLocation
 
-        case .ended:
+        case .ended, .cancelled, .failed:
 
             // reset
+            panDelta = simd_float2(0, 0)
             initialPanLocation = nil
             currentPanGestureState = .ended
 
@@ -298,6 +306,10 @@ public class InputSystem {
             keyState.dPressed = true
         case kVK_ANSI_S:
             keyState.sPressed = true
+        case kVK_ANSI_Q:
+            keyState.qPressed = true
+        case kVK_ANSI_E:
+            keyState.ePressed = true
         default:
             break
         }
@@ -313,12 +325,19 @@ public class InputSystem {
             keyState.dPressed = false
         case kVK_ANSI_S:
             keyState.sPressed = false
+        case kVK_ANSI_Q:
+            keyState.qPressed = false
+        case kVK_ANSI_E:
+            keyState.ePressed = false
         case kVK_ANSI_P:
-            visualDebug = !visualDebug
-        case kVK_ANSI_R:
-            hotReload = !hotReload
-        case kVK_ANSI_L:
             gameMode = !gameMode
+        // visualDebug = !visualDebug
+        case kVK_ANSI_R:
+            break
+        // hotReload = !hotReload
+        case kVK_ANSI_L:
+            break
+        // gameMode = !gameMode
         default:
             break
         }

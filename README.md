@@ -31,6 +31,7 @@
 - [Getting Started](#getting-started)
   - [Prerequisites](#prerequisites)
   - [Installation](#installation)
+  - [Controls](#controls)
 - [Core API Functions](#Core-API-Functions)
 - [Creating a quick game](#Creating-a-quick-game)
 - [Deep Dive into the engine](#Deep-dive-into-the-engine)
@@ -93,10 +94,28 @@ You should see models being rendered.
 
 ![gamesceneimage](images/gamescene1.png)
 
-### Controls:
+### Controls
 
-- Press L to toggle "game mode." 
-- In game mode, you should see one of the characters animating
+The Untold Engine provides two distinct modes for interaction: **Edit Mode** and **Play Mode**. You can switch between these modes at any time by pressing the **P** key.
+
+#### **Edit Mode**
+In **Edit Mode**, you can navigate the scene and adjust the environment with ease using the following controls:
+
+- **Orbit**: Click and drag to rotate the view around the scene.
+- **Move**: 
+  - Use the **W**, **A**, **S**, and **D** keys to move forward, backward, left, and right.
+  - Use the **Q** and **E** keys to move vertically (up and down).
+- **Zoom**: Pinch to zoom in or out for a closer or wider view.
+
+
+
+#### **Play Mode**
+In **Play Mode**, the scene comes to life! You will experience:
+
+- Animated characters performing actions.
+- Physics simulations running dynamically.
+
+Toggle between Edit Mode and Play Mode with the **P** key to seamlessly explore or interact with the scene.
 
 ---
 
@@ -382,7 +401,7 @@ Click on Run and you should see the following:
 
 ![players](images/gamescene1.png)
 
-To enter Game Mode, press "L".
+To enter Game Mode, press **P**.
 
 ---
 

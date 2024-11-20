@@ -158,24 +158,22 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     func handleSceneInput() {
         // pinch gestures
         if inputSystem.currentPinchGestureState == .changed {
-            // camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
+             camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
         }
 
         // pan gestures
 
         if inputSystem.currentPanGestureState == .began {
-            // camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
+             camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
         }
 
         if inputSystem.currentPanGestureState == .changed {
-            // camera.orbitAround(inputSystem.panDelta * 0.005)
+             camera.orbitAround(inputSystem.panDelta * 0.005)
         }
 
         if inputSystem.currentPanGestureState == .ended {}
 
-        camera.rotateCamera(yaw: inputSystem.mouseDeltaX * 0.1, pitch: inputSystem.mouseDeltaY * 0.1, sensitivity: 0.1)
-
-        let input = (w: inputSystem.keyState.wPressed, a: inputSystem.keyState.aPressed, s: inputSystem.keyState.sPressed, d: inputSystem.keyState.dPressed)
+        let input = (w: inputSystem.keyState.wPressed, a: inputSystem.keyState.aPressed, s: inputSystem.keyState.sPressed, d: inputSystem.keyState.dPressed, q: inputSystem.keyState.qPressed, e: inputSystem.keyState.ePressed)
 
         camera.moveCameraWithInput(input: input, speed: 5, deltaTime: 0.1)
     }

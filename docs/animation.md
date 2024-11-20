@@ -47,7 +47,7 @@ changeAnimation(entityId: redPlayer, name: "running")
 After you Run the project in Xcode:
 
 - Your model should appear in the game window.
-- Press L to enter Game Mode, and you’ll see your model animating.
+- Press **P** to enter Game Mode, and you’ll see your model animating.
 
 
 Previous: [Enabling Physics](physics.md)
