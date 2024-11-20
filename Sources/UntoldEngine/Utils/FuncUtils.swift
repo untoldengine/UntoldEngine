@@ -208,3 +208,115 @@ public func hasTextureCoordinates(mesh: MDLMesh) -> Bool {
     // Return false if no texture coordinate attribute was found
     return false
 }
+
+func generateHDR(_ hdrName: String, from directory: URL? = nil) {
+    do {
+        textureResources.environmentTexture = try loadHDR(hdrName, from: directory)
+        textureResources.environmentTexture?.label = "environment texture"
+
+        // If the environment was properly loaded, then mip-map it
+
+        guard let envMipMapCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
+        else {
+            handleError(.iblMipMapCreationFailed)
+            return
+        }
+
+        guard
+            let envMipMapBlitEncoder: MTLBlitCommandEncoder =
+            envMipMapCommandBuffer.makeBlitCommandEncoder()
+        else {
+            handleError(.iblMipMapBlitCreationFailed)
+            return
+        }
+
+        envMipMapBlitEncoder.generateMipmaps(for: textureResources.environmentTexture!)
+
+        // add a completion handler here
+        envMipMapCommandBuffer.addCompletedHandler { (_ commandBuffer) in
+        }
+
+        envMipMapBlitEncoder.endEncoding()
+        envMipMapCommandBuffer.commit()
+        envMipMapCommandBuffer.waitUntilCompleted()
+
+        // execute the ibl pre-filter
+        guard
+            let iblPreFilterCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
+        else {
+            handleError(.iblPreFilterCreationFailed)
+            return
+        }
+
+        executeIBLPreFilterPass(
+            uCommandBuffer: iblPreFilterCommandBuffer, textureResources.environmentTexture!
+        )
+
+        // add a completion handler here
+        iblPreFilterCommandBuffer.addCompletedHandler { (_ commandBuffer) in
+        }
+
+        iblPreFilterCommandBuffer.commit()
+        iblPreFilterCommandBuffer.waitUntilCompleted()
+
+        // mipmap the specular texture
+
+        guard
+            let specMipMapCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
+        else {
+            handleError(.iblSpecMipMapCreationFailed)
+            return
+        }
+
+        guard
+            let specMipMapBlitEncoder: MTLBlitCommandEncoder =
+            specMipMapCommandBuffer.makeBlitCommandEncoder()
+        else {
+            handleError(.iblSpecMipMapBlitCreationFailed)
+            return
+        }
+
+        specMipMapBlitEncoder.generateMipmaps(for: textureResources.specularMap!)
+
+        // add a completion handler here
+        specMipMapCommandBuffer.addCompletedHandler { (_ commandBuffer) in
+
+            iblSuccessful = true
+            // print("IBL Pre-Filters created successfully")
+        }
+
+        specMipMapBlitEncoder.endEncoding()
+        specMipMapCommandBuffer.commit()
+        specMipMapCommandBuffer.waitUntilCompleted()
+
+    } catch {
+        handleError(.iBLCreationFailed)
+    }
+}
+
+func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
+    let vertices: [SIMD4<Float>] = [
+        // Bottom face
+        SIMD4(min.x, min.y, min.z, 1.0), SIMD4(max.x, min.y, min.z, 1.0),
+        SIMD4(max.x, min.y, min.z, 1.0), SIMD4(max.x, min.y, max.z, 1.0),
+        SIMD4(max.x, min.y, max.z, 1.0), SIMD4(min.x, min.y, max.z, 1.0),
+        SIMD4(min.x, min.y, max.z, 1.0), SIMD4(min.x, min.y, min.z, 1.0),
+
+        // Top face
+        SIMD4(min.x, max.y, min.z, 1.0), SIMD4(max.x, max.y, min.z, 1.0),
+        SIMD4(max.x, max.y, min.z, 1.0), SIMD4(max.x, max.y, max.z, 1.0),
+        SIMD4(max.x, max.y, max.z, 1.0), SIMD4(min.x, max.y, max.z, 1.0),
+        SIMD4(min.x, max.y, max.z, 1.0), SIMD4(min.x, max.y, min.z, 1.0),
+
+        // Vertical edges
+        SIMD4(min.x, min.y, min.z, 1.0), SIMD4(min.x, max.y, min.z, 1.0),
+        SIMD4(max.x, min.y, min.z, 1.0), SIMD4(max.x, max.y, min.z, 1.0),
+        SIMD4(max.x, min.y, max.z, 1.0), SIMD4(max.x, max.y, max.z, 1.0),
+        SIMD4(min.x, min.y, max.z, 1.0), SIMD4(min.x, max.y, max.z, 1.0),
+    ]
+
+    let bufferPointer = bufferResources.boundingBoxBuffer?.contents()
+    bufferPointer!.copyMemory(
+        from: vertices, byteCount: vertices.count * MemoryLayout<SIMD4<Float>>.stride
+    )
+}

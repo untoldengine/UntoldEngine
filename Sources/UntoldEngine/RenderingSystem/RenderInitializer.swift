@@ -10,6 +10,70 @@ import Foundation
 import MetalKit
 import simd
 
+// Helper creation functions
+
+func createPipeline(
+    vertexShader: String,
+    fragmentShader: String?,
+    vertexDescriptor: MTLVertexDescriptor?,
+    colorFormats: [MTLPixelFormat],
+    depthFormat: MTLPixelFormat,
+    depthCompareFunction: MTLCompareFunction = .lessEqual,
+    depthEnabled: Bool = true,
+    blendEnabled: Bool = false,
+    name: String
+) -> RenderPipeline? {
+
+    let pipelineDescriptor = MTLRenderPipelineDescriptor()
+    let depthStateDescriptor = MTLDepthStencilDescriptor()
+
+    do {
+
+        let vertexFunction = renderInfo.library.makeFunction(name: vertexShader)!
+        pipelineDescriptor.vertexFunction = vertexFunction
+
+        if let fragmentShader = fragmentShader {
+            let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader)!
+            pipelineDescriptor.fragmentFunction = fragmentFunction
+        }
+
+        pipelineDescriptor.vertexDescriptor = vertexDescriptor
+
+        for (index, format) in colorFormats.enumerated() {
+            let attachment = pipelineDescriptor.colorAttachments[index]
+            attachment?.pixelFormat = format
+            if blendEnabled {
+                attachment?.isBlendingEnabled = true
+                attachment?.rgbBlendOperation = .add
+                attachment?.sourceRGBBlendFactor = .sourceAlpha
+                attachment?.destinationRGBBlendFactor = .one
+                attachment?.alphaBlendOperation = .add
+                attachment?.sourceAlphaBlendFactor = .sourceAlpha
+                attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
+            }
+        }
+
+        pipelineDescriptor.depthAttachmentPixelFormat = depthFormat
+
+        depthStateDescriptor.depthCompareFunction = .lessEqual
+        depthStateDescriptor.isDepthWriteEnabled = true
+
+        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
+        let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
+
+        return RenderPipeline(
+            pipelineState: pipelineState,
+            depthState: depthState,
+            success: true,
+            name: name
+        )
+
+    } catch {
+        handleError(.pipelineStateCreationFailed, name)
+        return nil
+    }
+}
+
 func createBuffer<T>(
     device: MTLDevice,
     data: [T],
@@ -43,6 +107,90 @@ func createEmptyBuffer(
     buffer?.label = label
     return buffer
 }
+
+func createTexture(
+    device: MTLDevice,
+    label: String,
+    textureType: MTLTextureType = .type2D,
+    pixelFormat: MTLPixelFormat,
+    width: Int,
+    height: Int,
+    usage: MTLTextureUsage,
+    storageMode: MTLStorageMode,
+    mipMapLevels: Int = 1
+) -> MTLTexture? {
+    let descriptor = MTLTextureDescriptor()
+    descriptor.textureType = textureType
+    descriptor.pixelFormat = pixelFormat
+    descriptor.width = width
+    descriptor.height = height
+    descriptor.usage = usage
+    descriptor.storageMode = storageMode
+    descriptor.mipmapLevelCount = mipMapLevels
+
+    let texture = device.makeTexture(descriptor: descriptor)
+    texture?.label = label
+    return texture
+}
+
+func configureAttachment(
+    descriptor: MTLRenderPassAttachmentDescriptor?,
+    texture: MTLTexture?,
+    loadAction: MTLLoadAction,
+    storeAction: MTLStoreAction,
+    clearColor: MTLClearColor? = nil,
+    clearDepth: Double? = nil
+) {
+    guard let descriptor = descriptor else { return }
+    descriptor.texture = texture
+    descriptor.loadAction = loadAction
+    descriptor.storeAction = storeAction
+
+    // Handle clear color for color attachments
+    if let colorDescriptor = descriptor as? MTLRenderPassColorAttachmentDescriptor, let clearColor = clearColor {
+        colorDescriptor.clearColor = clearColor
+    }
+
+    // Handle clear depth for depth attachments
+    if let depthDescriptor = descriptor as? MTLRenderPassDepthAttachmentDescriptor, let clearDepth = clearDepth {
+        depthDescriptor.clearDepth = clearDepth
+    }
+}
+
+func createRenderPassDescriptor(
+    width: Int,
+    height: Int,
+    colorAttachments: [(MTLTexture?, MTLLoadAction, MTLStoreAction, MTLClearColor?)],
+    depthAttachment: (MTLTexture?, MTLLoadAction, MTLStoreAction, Double?)? = nil
+) -> MTLRenderPassDescriptor {
+    let descriptor = MTLRenderPassDescriptor()
+    descriptor.renderTargetWidth = width
+    descriptor.renderTargetHeight = height
+
+    for (index, attachmentConfig) in colorAttachments.enumerated() {
+        configureAttachment(
+            descriptor: descriptor.colorAttachments[index],
+            texture: attachmentConfig.0,
+            loadAction: attachmentConfig.1,
+            storeAction: attachmentConfig.2,
+            clearColor: attachmentConfig.3
+        )
+    }
+
+    if let depthConfig = depthAttachment {
+        configureAttachment(
+            descriptor: descriptor.depthAttachment,
+            texture: depthConfig.0,
+            loadAction: depthConfig.1,
+            storeAction: depthConfig.2,
+            clearDepth: depthConfig.3
+        )
+    }
+
+    return descriptor
+}
+
+// Initialization routines
 
 func initBufferResources() {
     // Initialize Grid Buffers
@@ -117,227 +265,123 @@ func initBufferResources() {
 }
 
 func initRenderPassDescriptors() {
-    // shadow render pass
-    renderInfo.shadowRenderPassDescriptor = MTLRenderPassDescriptor()
-    renderInfo.shadowRenderPassDescriptor.renderTargetWidth = 1024
-    renderInfo.shadowRenderPassDescriptor.renderTargetHeight = 1024
-    renderInfo.shadowRenderPassDescriptor.colorAttachments[0].texture = nil
-    renderInfo.shadowRenderPassDescriptor.colorAttachments[0].loadAction = .dontCare
-    renderInfo.shadowRenderPassDescriptor.colorAttachments[0].storeAction = .dontCare
-    renderInfo.shadowRenderPassDescriptor.depthAttachment.texture = textureResources.shadowMap
-    renderInfo.shadowRenderPassDescriptor.depthAttachment.clearDepth = 1.0
-    renderInfo.shadowRenderPassDescriptor.depthAttachment.loadAction = .clear
-    renderInfo.shadowRenderPassDescriptor.depthAttachment.storeAction = .store
+    // Shadow Render Pass
+    renderInfo.shadowRenderPassDescriptor = createRenderPassDescriptor(
+        width: 1024,
+        height: 1024,
+        colorAttachments: [(nil, .dontCare, .dontCare, nil)],
+        depthAttachment: (textureResources.shadowMap, .clear, .store, 1.0)
+    )
 
-    // offscreen render pass descriptor
-    renderInfo.offscreenRenderPassDescriptor = MTLRenderPassDescriptor()
-    renderInfo.offscreenRenderPassDescriptor.renderTargetWidth = Int(renderInfo.viewPort.x)
-    renderInfo.offscreenRenderPassDescriptor.renderTargetHeight = Int(renderInfo.viewPort.y)
-
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].texture =
-        textureResources.colorMap
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].texture =
-        textureResources.normalMap
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)].texture =
-        textureResources.positionMap
-
-    renderInfo.offscreenRenderPassDescriptor.depthAttachment.texture = textureResources.depthMap
-    renderInfo.offscreenRenderPassDescriptor.depthAttachment.storeAction = .store
-
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].loadAction =
-        .clear // or .load
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].clearColor =
-        MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.colorTarget.rawValue)].storeAction =
-        .store // or .load
-
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].loadAction =
-        .clear // or .load
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)].clearColor =
-        MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.normalTarget.rawValue)]
-        .storeAction = .store
-
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
-        .loadAction = .clear // or .load
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
-        .clearColor = MTLClearColorMake(0.0, 0.0, 0.0, 0.0)
-    renderInfo.offscreenRenderPassDescriptor.colorAttachments[Int(RenderTargets.positionTarget.rawValue)]
-        .storeAction = .store
+    // Offscreen Render Pass
+    renderInfo.offscreenRenderPassDescriptor = createRenderPassDescriptor(
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        colorAttachments: [
+            (textureResources.colorMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.normalMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0)),
+            (textureResources.positionMap, .clear, .store, MTLClearColorMake(0.0, 0.0, 0.0, 0.0))
+        ],
+        depthAttachment: (textureResources.depthMap, .dontCare, .store, nil)
+    )
 }
 
 func initTextureResources() {
-    // shadow texture descriptor
-
-    let shadowDescriptor = MTLTextureDescriptor()
-    shadowDescriptor.textureType = .type2D
-    shadowDescriptor.pixelFormat = .depth32Float
-    shadowDescriptor.width = 1024
-    shadowDescriptor.height = 1024
-    shadowDescriptor.usage = [.shaderRead, .renderTarget]
-    shadowDescriptor.storageMode = .private
-
-    // create texture
-    textureResources.shadowMap = renderInfo.device.makeTexture(descriptor: shadowDescriptor)
-    textureResources.shadowMap?.label = "Shadow Texture"
-
-    let colorDescriptor = MTLTextureDescriptor()
-    colorDescriptor.textureType = .type2D
-    colorDescriptor.pixelFormat = renderInfo.colorPixelFormat
-    colorDescriptor.width = Int(renderInfo.viewPort.x)
-    colorDescriptor.height = Int(renderInfo.viewPort.y)
-    colorDescriptor.usage = [.shaderRead, .renderTarget, .shaderWrite]
-    colorDescriptor.storageMode = .shared
-
-    // create texture
-    textureResources.colorMap = renderInfo.device.makeTexture(descriptor: colorDescriptor)
-    textureResources.colorMap?.label = "Color Texture"
-
-    let normalDescriptor = MTLTextureDescriptor()
-    normalDescriptor.textureType = .type2D
-    normalDescriptor.pixelFormat = .rgba16Float
-    normalDescriptor.width = Int(renderInfo.viewPort.x)
-    normalDescriptor.height = Int(renderInfo.viewPort.y)
-    normalDescriptor.usage = [.shaderRead, .renderTarget, .shaderWrite]
-    normalDescriptor.storageMode = .shared
-
-    textureResources.normalMap = renderInfo.device.makeTexture(descriptor: normalDescriptor)
-    textureResources.normalMap?.label = "Normal Texture"
-
-    let positionDescriptor = MTLTextureDescriptor()
-    positionDescriptor.textureType = .type2D
-    positionDescriptor.pixelFormat = .rgba16Float
-    positionDescriptor.width = Int(renderInfo.viewPort.x)
-    positionDescriptor.height = Int(renderInfo.viewPort.y)
-    positionDescriptor.usage = [.shaderRead, .renderTarget, .shaderWrite]
-    positionDescriptor.storageMode = .shared
-
-    textureResources.positionMap = renderInfo.device.makeTexture(descriptor: positionDescriptor)
-    textureResources.positionMap?.label = "Position Texture"
-
-    let depthDescriptor = MTLTextureDescriptor()
-    depthDescriptor.textureType = .type2D
-    depthDescriptor.pixelFormat = renderInfo.depthPixelFormat
-    depthDescriptor.width = Int(renderInfo.viewPort.x)
-    depthDescriptor.height = Int(renderInfo.viewPort.y)
-    depthDescriptor.usage = [.shaderRead, .renderTarget]
-    depthDescriptor.storageMode = .shared
-
-    textureResources.depthMap = renderInfo.device.makeTexture(descriptor: depthDescriptor)
-    textureResources.depthMap?.label = "Offscreen Depth Texture"
-
-    let rayTracingDescriptor = MTLTextureDescriptor()
-    rayTracingDescriptor.textureType = .type2D
-    rayTracingDescriptor.pixelFormat = renderInfo.colorPixelFormat
-    rayTracingDescriptor.width = Int(renderInfo.viewPort.x)
-    rayTracingDescriptor.height = Int(renderInfo.viewPort.y)
-    rayTracingDescriptor.usage = [.shaderRead, .renderTarget, .shaderWrite]
-    rayTracingDescriptor.storageMode = .shared
-
-    // create texture
-    textureResources.rayTracingDestTexture = renderInfo.device.makeTexture(
-        descriptor: rayTracingDescriptor)
-    textureResources.rayTracingDestTexture?.label = "Ray Tracing Dest Texture"
-
-    textureResources.rayTracingPreviousTexture = renderInfo.device.makeTexture(
-        descriptor: rayTracingDescriptor)
-    textureResources.rayTracingPreviousTexture?.label = "Ray Tracing Prev Texture"
-
-    let rayTracingRandomDescriptor = MTLTextureDescriptor()
-    rayTracingRandomDescriptor.textureType = .type2D
-    rayTracingRandomDescriptor.pixelFormat = .r32Uint
-    rayTracingRandomDescriptor.width = Int(renderInfo.viewPort.x)
-    rayTracingRandomDescriptor.height = Int(renderInfo.viewPort.y)
-    rayTracingRandomDescriptor.usage = [.shaderRead]
-    rayTracingRandomDescriptor.storageMode = .shared
-
-    textureResources.rayTracingRandomTexture = renderInfo.device.makeTexture(
-        descriptor: rayTracingRandomDescriptor)
-    textureResources.rayTracingRandomTexture?.label = "Ray Tracing Random Texture"
-
-    let width = Int(renderInfo.viewPort.x)
-    let height = Int(renderInfo.viewPort.y)
-    let randomValues = UnsafeMutablePointer<UInt32>.allocate(capacity: width * height)
-
-    for i in 0 ..< (width * height) {
-        randomValues[i] = UInt32.random(in: 0 ..< (1024 * 1024))
-    }
-
-    let region = MTLRegionMake2D(0, 0, width, height)
-    textureResources.rayTracingRandomTexture?.replace(
-        region: region, mipmapLevel: 0, withBytes: randomValues,
-        bytesPerRow: MemoryLayout<UInt32>.size * width
+    // Shadow Texture
+    textureResources.shadowMap = createTexture(
+        device: renderInfo.device,
+        label: "Shadow Texture",
+        pixelFormat: .depth32Float,
+        width: 1024,
+        height: 1024,
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .private
     )
 
-    randomValues.deallocate()
-
-    let rayTracingTextArrayDescriptor = MTLTextureDescriptor()
-    rayTracingTextArrayDescriptor.textureType = .type2D
-    rayTracingTextArrayDescriptor.pixelFormat = renderInfo.colorPixelFormat
-    rayTracingTextArrayDescriptor.width = Int(renderInfo.viewPort.x)
-    rayTracingTextArrayDescriptor.height = Int(renderInfo.viewPort.y)
-    rayTracingTextArrayDescriptor.usage = [.shaderRead, .renderTarget, .shaderWrite]
-    rayTracingTextArrayDescriptor.storageMode = .shared
-    // rayTracingTextArrayDescriptor.arrayLength = 10
-
-    textureResources.rayTracingDestTextureArray = renderInfo.device.makeTexture(
-        descriptor: rayTracingTextArrayDescriptor)
-    textureResources.rayTracingDestTextureArray?.label = "Ray Tracing Texture Array"
-
-    textureResources.rayTracingAccumTexture = Array(
-        repeating: textureResources.rayTracingDestTexture!, count: 2
+    // Color Texture
+    textureResources.colorMap = createTexture(
+        device: renderInfo.device,
+        label: "Color Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
     )
 
-    for i in 0 ..< 2 {
-        textureResources.rayTracingAccumTexture[i] = renderInfo.device.makeTexture(
-            descriptor: rayTracingDescriptor)!
-        textureResources.rayTracingAccumTexture[i].label = String(i)
-    }
+    // Normal Texture
+    textureResources.normalMap = createTexture(
+        device: renderInfo.device,
+        label: "Normal Texture",
+        pixelFormat: .rgba16Float,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
+    // Position Texture
+    textureResources.positionMap = createTexture(
+        device: renderInfo.device,
+        label: "Position Texture",
+        pixelFormat: .rgba16Float,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget, .shaderWrite],
+        storageMode: .shared
+    )
+
+    // Depth Texture
+    textureResources.depthMap = createTexture(
+        device: renderInfo.device,
+        label: "Offscreen Depth Texture",
+        pixelFormat: renderInfo.depthPixelFormat,
+        width: Int(renderInfo.viewPort.x),
+        height: Int(renderInfo.viewPort.y),
+        usage: [.shaderRead, .renderTarget],
+        storageMode: .shared
+    )
 }
 
 func initIBLResources() {
+
     let width = Int(renderInfo.viewPort.x)
     let height = Int(renderInfo.viewPort.y)
 
-    // irradiance map
-    let irradianceMapDescriptor = MTLTextureDescriptor()
-    irradianceMapDescriptor.textureType = .type2D
-    irradianceMapDescriptor.width = width
-    irradianceMapDescriptor.height = height
-    irradianceMapDescriptor.pixelFormat = renderInfo.colorPixelFormat
-    irradianceMapDescriptor.storageMode = .shared
-    irradianceMapDescriptor.usage = [.shaderRead, .shaderWrite, .renderTarget]
+    // Irradiance Map
+    textureResources.irradianceMap = createTexture(
+        device: renderInfo.device,
+        label: "IBL Irradiance Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: width,
+        height: height,
+        usage: [.shaderRead, .shaderWrite, .renderTarget],
+        storageMode: .shared
+    )
 
-    textureResources.irradianceMap = renderInfo.device.makeTexture(
-        descriptor: irradianceMapDescriptor)
-    textureResources.irradianceMap?.label = "IBL Irradiance Texture"
+    // Specular Map (with mip-mapping)
+    // Specular Map
+    textureResources.specularMap = createTexture(
+        device: renderInfo.device,
+        label: "IBL Specular Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: width,
+        height: height,
+        usage: [.shaderRead, .shaderWrite, .renderTarget],
+        storageMode: .shared,
+        mipMapLevels: 6
+    )
 
-    // specular map
-    let specularMapDescriptor = MTLTextureDescriptor()
-    specularMapDescriptor.textureType = .type2D
-    specularMapDescriptor.width = width
-    specularMapDescriptor.height = height
-    specularMapDescriptor.pixelFormat = renderInfo.colorPixelFormat
-    specularMapDescriptor.mipmapLevelCount = 6
-    specularMapDescriptor.storageMode = .shared
-    specularMapDescriptor.usage = [.shaderRead, .shaderWrite, .renderTarget]
-
-    textureResources.specularMap = renderInfo.device.makeTexture(descriptor: specularMapDescriptor)
-    textureResources.specularMap?.label = "IBL Specular Texture"
-
-    // texture needs to be mip-mapped
-
-    // brdf map
-    let brdfMapDescriptor = MTLTextureDescriptor()
-    brdfMapDescriptor.textureType = .type2D
-    brdfMapDescriptor.width = width
-    brdfMapDescriptor.height = height
-    brdfMapDescriptor.pixelFormat = renderInfo.colorPixelFormat
-    brdfMapDescriptor.storageMode = .shared
-    brdfMapDescriptor.usage = [.shaderRead, .shaderWrite, .renderTarget]
-
-    textureResources.iblBRDFMap = renderInfo.device.makeTexture(descriptor: brdfMapDescriptor)
-    textureResources.iblBRDFMap?.label = "IBL brdf Texture"
+    // BRDF Map
+    textureResources.iblBRDFMap = createTexture(
+        device: renderInfo.device,
+        label: "IBL BRDF Texture",
+        pixelFormat: renderInfo.colorPixelFormat,
+        width: width,
+        height: height,
+        usage: [.shaderRead, .shaderWrite, .renderTarget],
+        storageMode: .shared
+    )
 
     // create a render pass descriptor
     renderInfo.iblOffscreenRenderPassDescriptor = MTLRenderPassDescriptor()
@@ -354,93 +398,8 @@ func initIBLResources() {
     generateHDR(hdrURL, from: resourceURL)
 }
 
-func generateHDR(_ hdrName: String, from directory: URL? = nil) {
-    do {
-        textureResources.environmentTexture = try loadHDR(hdrName, from: directory)
-        textureResources.environmentTexture?.label = "environment texture"
+func createShadowVertexDescriptor() -> MTLVertexDescriptor {
 
-        // If the environment was properly loaded, then mip-map it
-
-        guard let envMipMapCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
-        else {
-            handleError(.iblMipMapCreationFailed)
-            return
-        }
-
-        guard
-            let envMipMapBlitEncoder: MTLBlitCommandEncoder =
-            envMipMapCommandBuffer.makeBlitCommandEncoder()
-        else {
-            handleError(.iblMipMapBlitCreationFailed)
-            return
-        }
-
-        envMipMapBlitEncoder.generateMipmaps(for: textureResources.environmentTexture!)
-
-        // add a completion handler here
-        envMipMapCommandBuffer.addCompletedHandler { (_ commandBuffer) in
-        }
-
-        envMipMapBlitEncoder.endEncoding()
-        envMipMapCommandBuffer.commit()
-        envMipMapCommandBuffer.waitUntilCompleted()
-
-        // execute the ibl pre-filter
-        guard
-            let iblPreFilterCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
-        else {
-            handleError(.iblPreFilterCreationFailed)
-            return
-        }
-
-        executeIBLPreFilterPass(
-            uCommandBuffer: iblPreFilterCommandBuffer, textureResources.environmentTexture!
-        )
-
-        // add a completion handler here
-        iblPreFilterCommandBuffer.addCompletedHandler { (_ commandBuffer) in
-        }
-
-        iblPreFilterCommandBuffer.commit()
-        iblPreFilterCommandBuffer.waitUntilCompleted()
-
-        // mipmap the specular texture
-
-        guard
-            let specMipMapCommandBuffer: MTLCommandBuffer = renderInfo.commandQueue.makeCommandBuffer()
-        else {
-            handleError(.iblSpecMipMapCreationFailed)
-            return
-        }
-
-        guard
-            let specMipMapBlitEncoder: MTLBlitCommandEncoder =
-            specMipMapCommandBuffer.makeBlitCommandEncoder()
-        else {
-            handleError(.iblSpecMipMapBlitCreationFailed)
-            return
-        }
-
-        specMipMapBlitEncoder.generateMipmaps(for: textureResources.specularMap!)
-
-        // add a completion handler here
-        specMipMapCommandBuffer.addCompletedHandler { (_ commandBuffer) in
-
-            iblSuccessful = true
-            // print("IBL Pre-Filters created successfully")
-        }
-
-        specMipMapBlitEncoder.endEncoding()
-        specMipMapCommandBuffer.commit()
-        specMipMapCommandBuffer.waitUntilCompleted()
-
-    } catch {
-        handleError(.iBLCreationFailed)
-    }
-}
-
-func createShadowVertexDescriptor() -> MTLVertexDescriptor{
-    
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -457,12 +416,12 @@ func createShadowVertexDescriptor() -> MTLVertexDescriptor{
     vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepFunction =
         MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[Int(ShadowBufferIndices.shadowModelPositionIndex.rawValue)].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
 func createGridVertexDescriptor() -> MTLVertexDescriptor {
-    
+
     let vertexDescriptor = MTLVertexDescriptor()
 
     // set position
@@ -473,7 +432,7 @@ func createGridVertexDescriptor() -> MTLVertexDescriptor {
     vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float3>.stride
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[0].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
@@ -535,16 +494,15 @@ func createModelVertexDescriptor() -> MTLVertexDescriptor? {
     vertexDescriptor.model.layouts[Int(ModelPassBufferIndices.modelPassJointWeightsIndex.rawValue)] = MDLVertexBufferLayout(
         stride: MemoryLayout<simd_float4>.stride)
 
-    guard let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model) else{
+    guard let vertexDescriptor = MTKMetalVertexDescriptorFromModelIO(vertexDescriptor.model) else {
         return nil
     }
-    
+
     return vertexDescriptor
-    
 }
 
-func createGeometryVertexDescriptor() -> MTLVertexDescriptor{
-    
+func createGeometryVertexDescriptor() -> MTLVertexDescriptor {
+
     // tell the gpu how data is organized
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -556,12 +514,12 @@ func createGeometryVertexDescriptor() -> MTLVertexDescriptor{
     vertexDescriptor.layouts[0].stride = MemoryLayout<simd_float4>.stride
     vertexDescriptor.layouts[0].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[0].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
-func createCompositeVertexDescriptor() -> MTLVertexDescriptor{
-    
+func createCompositeVertexDescriptor() -> MTLVertexDescriptor {
+
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -581,12 +539,12 @@ func createCompositeVertexDescriptor() -> MTLVertexDescriptor{
     vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
     vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[1].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
-func createPreCompositeVertexDescriptor() -> MTLVertexDescriptor{
-    
+func createPreCompositeVertexDescriptor() -> MTLVertexDescriptor {
+
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -606,12 +564,12 @@ func createPreCompositeVertexDescriptor() -> MTLVertexDescriptor{
     vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
     vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[1].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
-func createDebugVertexDescriptor() -> MTLVertexDescriptor{
-    
+func createDebugVertexDescriptor() -> MTLVertexDescriptor {
+
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -631,12 +589,12 @@ func createDebugVertexDescriptor() -> MTLVertexDescriptor{
     vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
     vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[1].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
-func createPostProcessVertexDescriptor() -> MTLVertexDescriptor{
-    
+func createPostProcessVertexDescriptor() -> MTLVertexDescriptor {
+
     // set the vertex descriptor
     let vertexDescriptor = MTLVertexDescriptor()
 
@@ -656,12 +614,12 @@ func createPostProcessVertexDescriptor() -> MTLVertexDescriptor{
     vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
     vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[1].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
-func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor{
-    
+func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor {
+
     let vertexDescriptor = MTLVertexDescriptor()
 
     vertexDescriptor.attributes[0].format = MTLVertexFormat.float3
@@ -680,11 +638,11 @@ func createIBLPreFilterVertexDescriptor() -> MTLVertexDescriptor{
     vertexDescriptor.layouts[1].stride = MemoryLayout<simd_float2>.stride
     vertexDescriptor.layouts[1].stepFunction = MTLVertexStepFunction.perVertex
     vertexDescriptor.layouts[1].stepRate = 1
-    
+
     return vertexDescriptor
 }
 
-func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor{
+func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor {
 
     // tell the gpu how data is organized
     let vertexDescriptor = MTLVertexDescriptor()
@@ -705,70 +663,8 @@ func createEnvironmentVertexDescriptor() -> MTLVertexDescriptor{
 
     vertexDescriptor.layouts[0].stride =
         2 * MemoryLayout<simd_float3>.stride + MemoryLayout<simd_float2>.stride
-    
+
     return vertexDescriptor
-}
-
-func createPipeline(
-    vertexShader: String,
-    fragmentShader: String?,
-    vertexDescriptor:MTLVertexDescriptor?,
-    colorFormats: [MTLPixelFormat],
-    depthFormat: MTLPixelFormat,
-    depthCompareFunction: MTLCompareFunction = .lessEqual,
-    depthEnabled: Bool = true,
-    blendEnabled: Bool = false,
-    name: String ) -> RenderPipeline? {
-    
-    let pipelineDescriptor = MTLRenderPipelineDescriptor()
-    let depthStateDescriptor = MTLDepthStencilDescriptor()
-    
-    do{
-        
-        let vertexFunction = renderInfo.library.makeFunction(name: vertexShader)!
-                pipelineDescriptor.vertexFunction = vertexFunction
-
-        if let fragmentShader = fragmentShader {
-            let fragmentFunction = renderInfo.library.makeFunction(name: fragmentShader)!
-            pipelineDescriptor.fragmentFunction = fragmentFunction
-        }
-        
-        pipelineDescriptor.vertexDescriptor = vertexDescriptor
-
-        for (index, format) in colorFormats.enumerated() {
-            let attachment = pipelineDescriptor.colorAttachments[index]
-            attachment?.pixelFormat = format
-            if blendEnabled {
-                attachment?.isBlendingEnabled = true
-                attachment?.rgbBlendOperation = .add
-                attachment?.sourceRGBBlendFactor = .sourceAlpha
-                attachment?.destinationRGBBlendFactor = .one
-                attachment?.alphaBlendOperation = .add
-                attachment?.sourceAlphaBlendFactor = .sourceAlpha
-                attachment?.destinationAlphaBlendFactor = .oneMinusSourceAlpha
-            }
-        }
-        
-        pipelineDescriptor.depthAttachmentPixelFormat = depthFormat
-
-        depthStateDescriptor.depthCompareFunction = .lessEqual
-        depthStateDescriptor.isDepthWriteEnabled = true
-
-        let pipelineState = try renderInfo.device.makeRenderPipelineState(descriptor: pipelineDescriptor)
-        let depthState = renderInfo.device.makeDepthStencilState(descriptor: depthStateDescriptor)
-
-        return RenderPipeline(
-            pipelineState: pipelineState,
-            depthState: depthState,
-            success: true,
-            name: name
-        )
-        
-    }catch{
-        Logger.logError(message: "Failed to create pipeline \(name): \(error)")
-        return nil
-    }
-    
 }
 
 func initRenderPipelines() {
@@ -811,7 +707,7 @@ func initRenderPipelines() {
     ) {
         modelPipeline = modelPipe
     }
-    
+
     // Geometry Pipeline
     if let geometryPipe = createPipeline(
         vertexShader: "vertexGeometryShader",
@@ -820,10 +716,10 @@ func initRenderPipelines() {
         colorFormats: [renderInfo.colorPixelFormat, .rgba16Float, .rgba16Float],
         depthFormat: renderInfo.depthPixelFormat,
         name: "Geometry Pipeline"
-    ){
+    ) {
         geometryPipeline = geometryPipe
     }
-    
+
     if let compositePipe = createPipeline(
         vertexShader: "vertexCompositeShader",
         fragmentShader: "fragmentCompositeShader",
@@ -832,10 +728,10 @@ func initRenderPipelines() {
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Composite Pipeline"
-    ){
+    ) {
         compositePipeline = compositePipe
     }
-    
+
     if let preCompositePipe = createPipeline(
         vertexShader: "vertexPreCompositeShader",
         fragmentShader: "fragmentPreCompositeShader",
@@ -844,10 +740,10 @@ func initRenderPipelines() {
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Pre-Composite Pipeline"
-    ){
+    ) {
         preCompositePipeline = preCompositePipe
     }
-    
+
     if let debugPipe = createPipeline(
         vertexShader: "vertexDebugShader",
         fragmentShader: "fragmentDebugShader",
@@ -857,10 +753,10 @@ func initRenderPipelines() {
         depthCompareFunction: .less,
         depthEnabled: false,
         name: "Debug Pipeline"
-    ){
+    ) {
         debuggerPipeline = debugPipe
     }
-    
+
     if let postProcessPipe = createPipeline(
         vertexShader: "vertexPostProcessShader",
         fragmentShader: "fragmentPostProcessShader",
@@ -869,10 +765,10 @@ func initRenderPipelines() {
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Post-Process Pipeline"
-    ){
+    ) {
         postProcessPipeline = postProcessPipe
     }
-    
+
     if let tonePipe = createPipeline(
         vertexShader: "vertexTonemappingShader",
         fragmentShader: "fragmentTonemappingShader",
@@ -881,10 +777,10 @@ func initRenderPipelines() {
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Tone-mapping Pipeline"
-    ){
+    ) {
         tonemappingPipeline = tonePipe
     }
-    
+
     if let environmentPipe = createPipeline(
         vertexShader: "vertexEnvironmentShader",
         fragmentShader: "fragmentEnvironmentShader",
@@ -893,9 +789,9 @@ func initRenderPipelines() {
         depthFormat: renderInfo.depthPixelFormat,
         depthEnabled: false,
         name: "Environment Pipeline"
-    ){
+    ) {
         environmentPipeline = environmentPipe
-        
+
         // create the mesh
 
         let bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
@@ -946,9 +842,8 @@ func initRenderPipelines() {
         }
 
         environmentPipeline.success = true
-        
     }
-    
+
     if let iblPreFilterPipe = createPipeline(
         vertexShader: "vertexIBLPreFilterShader",
         fragmentShader: "fragmentIBLPreFilterShader",
@@ -958,36 +853,7 @@ func initRenderPipelines() {
         depthCompareFunction: .less,
         depthEnabled: false,
         name: "IBL-Pre Filer Pipeline"
-    ){
+    ) {
         iblPrefilterPipeline = iblPreFilterPipe
     }
-    
-    
-}
-
-func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
-    let vertices: [SIMD4<Float>] = [
-        // Bottom face
-        SIMD4(min.x, min.y, min.z, 1.0), SIMD4(max.x, min.y, min.z, 1.0),
-        SIMD4(max.x, min.y, min.z, 1.0), SIMD4(max.x, min.y, max.z, 1.0),
-        SIMD4(max.x, min.y, max.z, 1.0), SIMD4(min.x, min.y, max.z, 1.0),
-        SIMD4(min.x, min.y, max.z, 1.0), SIMD4(min.x, min.y, min.z, 1.0),
-
-        // Top face
-        SIMD4(min.x, max.y, min.z, 1.0), SIMD4(max.x, max.y, min.z, 1.0),
-        SIMD4(max.x, max.y, min.z, 1.0), SIMD4(max.x, max.y, max.z, 1.0),
-        SIMD4(max.x, max.y, max.z, 1.0), SIMD4(min.x, max.y, max.z, 1.0),
-        SIMD4(min.x, max.y, max.z, 1.0), SIMD4(min.x, max.y, min.z, 1.0),
-
-        // Vertical edges
-        SIMD4(min.x, min.y, min.z, 1.0), SIMD4(min.x, max.y, min.z, 1.0),
-        SIMD4(max.x, min.y, min.z, 1.0), SIMD4(max.x, max.y, min.z, 1.0),
-        SIMD4(max.x, min.y, max.z, 1.0), SIMD4(max.x, max.y, max.z, 1.0),
-        SIMD4(min.x, min.y, max.z, 1.0), SIMD4(min.x, max.y, max.z, 1.0),
-    ]
-
-    let bufferPointer = bufferResources.boundingBoxBuffer?.contents()
-    bufferPointer!.copyMemory(
-        from: vertices, byteCount: vertices.count * MemoryLayout<SIMD4<Float>>.stride
-    )
 }
