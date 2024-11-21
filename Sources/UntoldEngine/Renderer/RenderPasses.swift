@@ -530,18 +530,18 @@ enum RenderPasses {
                 )
 
                 // check if it has skeleton component
-                var hasArmature = true
+                var hasArmature = false
 
                 if let skeletonComponent = scene.get(component: SkeletonComponent.self, for: entityId) {
-                    renderEncoder.setVertexBuffer(render.mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(ModelPassBufferIndices.modelPassJointMatrixIndex.rawValue))
-
-                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(ModelPassBufferIndices.modelPassHasArmature.rawValue))
-
-                } else {
-                    hasArmature = false
-
-                    renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(ModelPassBufferIndices.modelPassHasArmature.rawValue))
+                    
+                    hasArmature = true
+                    
                 }
+                
+                renderEncoder.setVertexBytes(&hasArmature, length: MemoryLayout<Bool>.stride, index: Int(ModelPassBufferIndices.modelPassHasArmature.rawValue))
+                
+                renderEncoder.setVertexBuffer(render.mesh.skin?.jointTransformsBuffer, offset: 0, index: Int(ModelPassBufferIndices.modelPassJointMatrixIndex.rawValue))
+
 
                 for subMesh in render.mesh.submeshes {
                     // set base texture

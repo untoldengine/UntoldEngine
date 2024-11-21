@@ -71,8 +71,16 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
         asset.childObjects(of: MDLSkeleton.self) as? [MDLSkeleton] ?? []
 
     if skeletons.first == nil {
-        // print("no armature for \(entityId) found in asset")
-
+        
+        let skin = Skin()
+        
+        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+            handleError(.noRenderComponent, entityId)
+            return
+        }
+        
+        renderComponent.mesh.skin = skin
+        
         return
     }
 

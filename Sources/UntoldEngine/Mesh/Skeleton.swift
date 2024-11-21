@@ -108,6 +108,17 @@ struct Skin {
         }
         jointTransformsBuffer = buffer
     }
+    
+    /// Initialize a skin object with zero data-for entities with no armature
+    init?(){
+        
+        guard let buffer = Skin.createBuffer(for: 1) else {
+            handleError(.jointBufferFailed)
+            return nil
+        }
+        
+        jointTransformsBuffer = buffer
+    }
 
     /// Updates the joint transform matrices in the buffer using the skeleton's current pose
     func updateJointMatrices(skeleton: Skeleton?) {
