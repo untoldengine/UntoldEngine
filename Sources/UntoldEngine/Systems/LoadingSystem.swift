@@ -54,7 +54,9 @@ public func loadBulkScene(filename: String, withExtension: String, flip: Bool = 
     for mesh in meshes {
         meshDictionary[mesh.name] = mesh
 
-        let entity: EntityID = createEntity()
-        registerDefaultComponents(entityId: entity, name: mesh.name)
+        let entityId: EntityID = createEntity()
+        registerDefaultComponents(entityId: entityId, name: mesh.name)
+        // look for any skeletons in asset
+        setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
     }
 }

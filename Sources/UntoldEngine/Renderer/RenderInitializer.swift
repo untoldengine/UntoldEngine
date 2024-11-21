@@ -849,7 +849,7 @@ func initRenderPipelines() {
         fragmentShader: "fragmentIBLPreFilterShader",
         vertexDescriptor: createIBLPreFilterVertexDescriptor(),
         colorFormats: [renderInfo.colorPixelFormat, renderInfo.colorPixelFormat, renderInfo.colorPixelFormat],
-        depthFormat: renderInfo.depthPixelFormat,
+        depthFormat: .invalid,
         depthCompareFunction: .less,
         depthEnabled: false,
         name: "IBL-Pre Filer Pipeline"
