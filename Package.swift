@@ -46,5 +46,11 @@ let package = Package(
                 .unsafeFlags(["-framework", "Metal", "-framework", "Cocoa", "-framework", "QuartzCore"])
             ]
         ),
+        // Add a test target for unit tests
+        .testTarget(
+            name: "UntoldEngineTests",
+            dependencies: ["UntoldEngine"],
+            path: "Tests/UntoldEngineTests"
+        )
     ]
 )
