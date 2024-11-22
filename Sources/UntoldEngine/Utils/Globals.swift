@@ -38,7 +38,7 @@ var meshDictionary: [String: Mesh] = [:] // Holds all meshes loaded
 
 // Timing properties
 var timeSinceLastUpdatePreviousTime: TimeInterval!
-var timeSinceLastUpdate: Float!
+public var timeSinceLastUpdate: Float!
 var firstUpdateCall: Bool = false
 
 var frameCount: Int = 0

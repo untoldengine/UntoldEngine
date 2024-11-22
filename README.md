@@ -262,7 +262,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Connect renderer callbacks to the game scene
         renderer.gameUpdateCallback = { [weak self] deltaTime in
-            self?.gameScene.update(deltaTime)
+            self?.gameScene.update(deltaTime: deltaTime)
         }
         renderer.handleInputCallback = { [weak self] in
             self?.gameScene.handleInput()
@@ -305,7 +305,7 @@ class GameScene {
         
     }
     
-    func update(_ deltaTime: Float) {
+    func update(deltaTime: Float) {
 
     }
 

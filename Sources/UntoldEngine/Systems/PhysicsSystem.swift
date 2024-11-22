@@ -18,6 +18,16 @@ public func setMass(entityId: EntityID, mass: Float) {
     physics.mass = mass
 }
 
+public func getMass(entityId: EntityID)->Float {
+    // retrieve physics component
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return 0.0
+    }
+
+    return physics.mass
+}
+
 public func setGravityScale(entityId: EntityID, gravityScale: Float) {
     guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
@@ -25,6 +35,16 @@ public func setGravityScale(entityId: EntityID, gravityScale: Float) {
     }
 
     kinetic.gravityScale = gravityScale
+}
+
+public func getVelocity(entityId: EntityID)->simd_float3 {
+
+    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return simd_float3(0.0, 0.0, 0.0)
+    }
+
+    return physics.velocity
 }
 
 public func updatePhysicsSystem(deltaTime: Float) {

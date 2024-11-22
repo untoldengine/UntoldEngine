@@ -11,6 +11,7 @@ import simd
 
 public func getPosition(entityId: EntityID) -> simd_float3 {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
@@ -24,6 +25,7 @@ public func getPosition(entityId: EntityID) -> simd_float3 {
 public func getForwardVector(entityId: EntityID) -> simd_float3 {
     // get the transform for the entity
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
@@ -40,7 +42,7 @@ public func getForwardVector(entityId: EntityID) -> simd_float3 {
 
 public func translateTo(entityId: EntityID, position: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+        handleError(.noTransformComponent, entityId)
         return
     }
 
@@ -49,7 +51,7 @@ public func translateTo(entityId: EntityID, position: simd_float3) {
 
 public func translateEntityBy(entityId: EntityID, position: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+        handleError(.noTransformComponent, entityId)
         return
     }
 
@@ -60,7 +62,7 @@ public func translateEntityBy(entityId: EntityID, position: simd_float3) {
 
 public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+        handleError(.noTransformComponent, entityId)
         return
     }
 
@@ -73,7 +75,7 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
 
 public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+        handleError(.noTransformComponent, entityId)
         return
     }
 
@@ -93,7 +95,7 @@ public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
 
 public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+        handleError(.noTransformComponent, entityId)
         return
     }
 
@@ -104,7 +106,7 @@ public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
 
 public func combineRotations(entityId: EntityID) {
     guard let t = scene.get(component: TransformComponent.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+        handleError(.noTransformComponent, entityId)
         return
     }
 

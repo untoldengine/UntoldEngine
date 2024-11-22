@@ -3,8 +3,15 @@ import UntoldEngine
 
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
-    var redPlayer: EntityID
-
+    let redPlayer: EntityID
+    
+    let path = [
+        simd_float3(0.0, 0.0, 0.0),
+        simd_float3(5.0, 0.0, 0.0),
+        simd_float3(5.0, 0.0, 5.0),
+        simd_float3(0.0, 0.0, 5.0)
+    ]
+    
     init() {
         // set camera to look at point
         camera.lookAt(
@@ -59,7 +66,7 @@ class GameScene {
         lightingSystem.addPointLight(entityID: pointEntity, light: point)
     }
 
-    func update(_: Float) {
+    func update(deltaTime: Float) {
         // apply force towards the z direction to the player. The entity must have
         // a kinetic component.
         applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 0.5))
@@ -103,7 +110,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Connect renderer callbacks to the game scene
         renderer.gameUpdateCallback = { [weak self] deltaTime in
-            self?.gameScene.update(deltaTime)
+            self?.gameScene.update(deltaTime: deltaTime)
         }
         renderer.handleInputCallback = { [weak self] in
             self?.gameScene.handleInput()

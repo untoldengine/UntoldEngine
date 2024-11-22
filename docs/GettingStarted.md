@@ -68,7 +68,7 @@ class GameScene {
         // Initialize game assets and logic here
     }
 
-    func update(_ deltaTime: Float) {
+    func update(deltaTime: Float) {
         // Game update logic
     }
 
@@ -112,7 +112,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
 
         // Connect renderer callbacks to the game scene
         renderer.gameUpdateCallback = { [weak self] deltaTime in
-            self?.gameScene.update(deltaTime)
+            self?.gameScene.update(deltaTime: deltaTime)
         }
         renderer.handleInputCallback = { [weak self] in
             self?.gameScene.handleInput()
