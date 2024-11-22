@@ -13,22 +13,49 @@ import simd
 import Spatial
 
 public class UntoldRenderer: NSObject, MTKViewDelegate {
+
+    public let metalView: MTKView
     public var gameUpdateCallback: ((_ deltaTime: Float) -> Void)?
     public var handleInputCallback: (() -> Void)?
 
-    public init?(_ metalView: MTKView) {
+    override public init() {
+
+        // Initialize the metal view
+        metalView = MTKView()
+
         super.init()
+    }
 
-        renderInfo.device = metalView.device
-        renderInfo.colorPixelFormat = metalView.colorPixelFormat
-        renderInfo.depthPixelFormat = metalView.depthStencilPixelFormat
+    public static func create() -> UntoldRenderer? {
+
+        let renderer = UntoldRenderer()
+
+        guard let device = MTLCreateSystemDefaultDevice() else {
+            assertionFailure("Metal device is not available.")
+            return nil
+        }
+        renderer.metalView.device = device
+        renderer.metalView.depthStencilPixelFormat = .depth32Float
+        renderer.metalView.colorPixelFormat = .rgba16Float
+        renderer.metalView.preferredFramesPerSecond = 60
+        renderer.metalView.framebufferOnly = false
+        renderer.metalView.delegate = renderer
+
+        // Create a command queue
+        guard let commandQueue = device.makeCommandQueue() else {
+            print("Error: Failed to create a Metal command queue.")
+            return nil
+        }
+        renderInfo.device = device
+        renderInfo.commandQueue = commandQueue
+        renderInfo.colorPixelFormat = renderer.metalView.colorPixelFormat
+        renderInfo.depthPixelFormat = renderer.metalView.depthStencilPixelFormat
         renderInfo.viewPort = simd_float2(
-            Float(metalView.drawableSize.width), Float(metalView.drawableSize.height)
+            Float(renderer.metalView.drawableSize.width), Float(renderer.metalView.drawableSize.height)
         )
-
-        // create a command queue
-        guard let queue = renderInfo.device.makeCommandQueue() else { return nil }
-        renderInfo.commandQueue = queue
+        renderInfo.fence = renderInfo.device.makeFence()
+        renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
+        renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
 
         #if os(iOS)
             let libraryURL = Bundle.module.url(forResource: "UntoldEngineKernels-ios", withExtension: "metallib")!
@@ -47,9 +74,18 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
             print("Failed to load metallib: \(error)")
         }
 
-        renderInfo.bufferAllocator = MTKMeshBufferAllocator(device: renderInfo.device)
-        renderInfo.textureLoader = MTKTextureLoader(device: renderInfo.device)
+        return renderer
+    }
 
+    public func setupCallbacks(
+        gameUpdate: @escaping (_ deltaTime: Float) -> Void,
+        handleInput: @escaping () -> Void
+    ) {
+        gameUpdateCallback = gameUpdate
+        handleInputCallback = handleInput
+    }
+
+    public func initResources() {
         initBufferResources()
 
         initTextureResources()
@@ -57,23 +93,18 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
 
         initRenderPassDescriptors()
         initIBLResources()
-        renderInfo.fence = renderInfo.device.makeFence()
 
+        lightingSystem = LightingSystem()
+        shadowSystem = ShadowSystem()
         camera = Camera()
 
-        //        camera.lookAt(eye: simd_float3(0.0,2.0,4.0), target: simd_float3(0.0,0.0,0.0), up: simd_float3(0.0,1.0,0.0))
+        inputSystem.setupGestureRecognizers(view: metalView)
+        inputSystem.setupEventMonitors()
+
         camera.lookAt(
             eye: simd_float3(0.0, 6.0, 15.0), target: simd_float3(0.0, 2.0, 0.0),
             up: simd_float3(0.0, 1.0, 0.0)
         )
-
-        lightingSystem = LightingSystem()
-        shadowSystem = ShadowSystem()
-
-        // initRayTracingCompute()
-
-        inputSystem.setupGestureRecognizers(view: metalView)
-        inputSystem.setupEventMonitors()
 
         Logger.log(message: "Untold Engine Starting")
     }
@@ -158,17 +189,17 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     func handleSceneInput() {
         // pinch gestures
         if inputSystem.currentPinchGestureState == .changed {
-             camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
+            camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
         }
 
         // pan gestures
 
         if inputSystem.currentPanGestureState == .began {
-             camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
+            camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
         }
 
         if inputSystem.currentPanGestureState == .changed {
-             camera.orbitAround(inputSystem.panDelta * 0.005)
+            camera.orbitAround(inputSystem.panDelta * 0.005)
         }
 
         if inputSystem.currentPanGestureState == .ended {}

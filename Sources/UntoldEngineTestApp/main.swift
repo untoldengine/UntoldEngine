@@ -4,14 +4,14 @@ import UntoldEngine
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
     let redPlayer: EntityID
-    
+
     let path = [
         simd_float3(0.0, 0.0, 0.0),
         simd_float3(5.0, 0.0, 0.0),
         simd_float3(5.0, 0.0, 5.0),
         simd_float3(0.0, 0.0, 5.0)
     ]
-    
+
     init() {
         // set camera to look at point
         camera.lookAt(
@@ -66,7 +66,7 @@ class GameScene {
         lightingSystem.addPointLight(entityID: pointEntity, light: point)
     }
 
-    func update(deltaTime: Float) {
+    func update(deltaTime _: Float) {
         // apply force towards the z direction to the player. The entity must have
         // a kinetic component.
         applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 0.5))
@@ -78,14 +78,13 @@ class GameScene {
 // AppDelegate: Boiler plate code -- Handles everything – Renderer, Metal setup, and GameScene initialization
 class AppDelegate: NSObject, NSApplicationDelegate {
     var window: NSWindow!
-    var metalView: MTKView!
     var renderer: UntoldRenderer!
     var gameScene: GameScene!
 
     func applicationDidFinishLaunching(_: Notification) {
         print("Launching Untold Engine v0.2")
 
-        // Create and configure the window
+        // Step 1. Create and configure the window
         window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 1280, height: 720),
             styleMask: [.titled, .closable, .resizable],
@@ -93,35 +92,30 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             defer: false
         )
 
-        metalView = MTKView(frame: window.contentView!.bounds)
-        metalView.device = MTLCreateSystemDefaultDevice()
-        metalView.depthStencilPixelFormat = .depth32Float
-        metalView.colorPixelFormat = .rgba16Float
-        metalView.preferredFramesPerSecond = 60
-        metalView.framebufferOnly = false
-
-        // Initialize the renderer and set it as the MTKView delegate
-        renderer = UntoldRenderer(metalView)
-        renderer?.mtkView(metalView, drawableSizeWillChange: metalView.drawableSize)
-        metalView.delegate = renderer
-
-        // Create the game scene
-        gameScene = GameScene()
-
-        // Connect renderer callbacks to the game scene
-        renderer.gameUpdateCallback = { [weak self] deltaTime in
-            self?.gameScene.update(deltaTime: deltaTime)
-        }
-        renderer.handleInputCallback = { [weak self] in
-            self?.gameScene.handleInput()
-        }
-
-        // Set up window and display it
-        window.contentView = metalView
-        window.makeKeyAndOrderFront(nil)
-        window.center()
         window.title = "Untold Engine v0.2"
+        window.center()
+        
 
+        // Step 2. Initialize the renderer and connect metal content
+        guard let renderer = UntoldRenderer.create() else {
+            print("Failed to initialize the renderer.")
+            return
+        }
+
+        window.contentView = renderer.metalView
+
+        self.renderer = renderer
+
+        renderer.initResources()
+
+        // Step 3. Create the game scene and connect callbacks
+        gameScene = GameScene()
+        renderer.setupCallbacks(
+            gameUpdate: { [weak self] deltaTime in self?.gameScene.update(deltaTime: deltaTime) },
+            handleInput: { [weak self] in self?.gameScene.handleInput() }
+        )
+
+        window.makeKeyAndOrderFront(nil)
         NSApp.setActivationPolicy(.regular)
         NSApp.activate(ignoringOtherApps: true)
     }
