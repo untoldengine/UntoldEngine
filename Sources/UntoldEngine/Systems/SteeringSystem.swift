@@ -25,13 +25,13 @@ public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Floa
     // calculate the desired velocity towards the target
     let desiredVelocity = normalize(targetPosition - position) * maxSpeed
 
-    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     // Compute the final velocity by subtracting the desired velocity minus the current velocity
-    return desiredVelocity - physics.velocity
+    return desiredVelocity - physicsComponent.velocity
 }
 
 public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float) -> simd_float3 {
@@ -41,13 +41,13 @@ public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Floa
     // Calculate the desired velocity away from the threat
     let desiredVelocity = normalize(threatPosition - position) * maxSpeed
 
-    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent,entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     // Compute the final velocity by subtracting the desired velocity minus the current velocity
-    return desiredVelocity - physics.velocity
+    return desiredVelocity - physicsComponent.velocity
 }
 
 public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float) -> simd_float3 {
@@ -62,24 +62,24 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     // Calculate the desired velocity
     let desiredVelocity = normalize(toTarget) * speed
 
-    guard let physics = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent,entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     // Compute the final velocity by subtracting the desired velocity minus the current velocity
-    return desiredVelocity - physics.velocity
+    return desiredVelocity - physicsComponent.velocity
 }
 
 public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float) -> simd_float3 {
 
-    guard let physicsEntity = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent,entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
-    guard let physicsTargetEntity = scene.get(component: PhysicsComponents.self, for: targetEntity) else {
-        print("entity with id: \(entityId) not found")
+    guard let physicsTargetComponent = scene.get(component: PhysicsComponents.self, for: targetEntity) else {
+        handleError(.noPhysicsComponent,targetEntity)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
@@ -88,10 +88,10 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
 
     // Estimate where the target entity will be based on its current velocity
     let toTarget = targetPosition - position
-    let relativeHeading = dot(normalize(physicsTargetEntity.velocity), normalize(physicsEntity.velocity))
+    let relativeHeading = dot(normalize(physicsTargetComponent.velocity), normalize(physicsComponent.velocity))
 
     let predictionTime = (relativeHeading > 0.95) ? (length(toTarget) / maxSpeed) : 0.5
-    let futurePosition = targetPosition + physicsTargetEntity.velocity * predictionTime
+    let futurePosition = targetPosition + physicsTargetComponent.velocity * predictionTime
 
     // Seek towards the predicted future position of target entity
     return seek(entityId: entityId, targetPosition: futurePosition, maxSpeed: maxSpeed)
@@ -99,13 +99,13 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
 
 public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -> simd_float3 {
 
-    guard let physicsEntity = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent,entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
-    guard let physicsThreatEntity = scene.get(component: PhysicsComponents.self, for: threatEntity) else {
-        print("entity with id: \(entityId) not found")
+    guard let physicsThreatComponent = scene.get(component: PhysicsComponents.self, for: threatEntity) else {
+        handleError(.noPhysicsComponent,threatEntity)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
@@ -115,22 +115,22 @@ public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -
     // Estimate where the threat will be based on its velocity
     let toThreat = threatPosition - position
     let predictionTime = length(toThreat) / maxSpeed
-    let futureThreatPosition = threatPosition + physicsThreatEntity.velocity * predictionTime
+    let futureThreatPosition = threatPosition + physicsThreatComponent.velocity * predictionTime
 
     // Flee from the predicted future position of the threat
     return flee(entityId: entityId, threatPosition: futureThreatPosition, maxSpeed: maxSpeed)
 }
 
 public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, deltaTime: Float, turnSpeed: Float) {
-    guard let transform = scene.get(component: TransformComponent.self, for: entityId) else {
-        print("entity with id: \(entityId) not found")
+    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent,entityId)
         return
     }
 
     // Get the current forward direction of the entity
-    let currentForward = normalize(simd_float3(transform.localSpace.columns.2.x,
-                                               transform.localSpace.columns.2.y,
-                                               transform.localSpace.columns.2.z))
+    let currentForward = normalize(simd_float3(transformComponent.localSpace.columns.2.x,
+                                               transformComponent.localSpace.columns.2.y,
+                                               transformComponent.localSpace.columns.2.z))
 
     // Normalize the target direction
     let normalizedTargetDirection = normalize(targetDirection)
@@ -151,9 +151,9 @@ public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, d
     let rotationMatrix = matrix4x4Rotation(radians: interpolatedAngle, axis: normalize(rotationAxis))
 
     // Apply the rotation
-    let currentTransform = transform.localSpace
+    let currentTransform = transformComponent.localSpace
     let updatedRotation = simd_mul(currentTransform, rotationMatrix)
-    transform.localSpace = updatedRotation
+    transformComponent.localSpace = updatedRotation
 }
 
 // movement helper functions
@@ -181,11 +181,11 @@ public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     let steeringAdjustment = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed)
 
     // Convert the velocity adjustment into a force for the physics system
-    if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physics.mass) / deltaTime
+    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
+        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
         applyForce(entityId: entityId, force: steeringForce)
     } else {
-        print("Physics component missing for entity: \(entityId)")
+        handleError(.noPhysicsComponent,entityId)
         return
     }
 
@@ -218,11 +218,11 @@ public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     let steeringAdjustment = arrive(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed, slowingRadius: slowingRadius)
 
     // Convert the velocity adjustment into a force for the physics system
-    if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physics.mass) / deltaTime
+    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
+        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
         applyForce(entityId: entityId, force: steeringForce)
     } else {
-        print("Physics component missing for entity: \(entityId)")
+        handleError(.noPhysicsComponent,entityId)
         return
     }
 
@@ -246,23 +246,6 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
     // Retrieve the entity's current position and compute relative position to the center
     let currentPosition = getPosition(entityId: entityId)
     let relativePosition = currentPosition - centerPosition
-    let distanceFromCenter = length(relativePosition)
-
-    // Threshold for when the entity should start orbiting
-    let orbitStartThreshold: Float = 0.1 // Small value to avoid abrupt transitions
-
-    // Handle seeking to the orbit radius
-//    if abs(distanceFromCenter - radius) > orbitStartThreshold {
-//        // Target a position at the correct radius along the +X axis
-//        let targetPosition = centerPosition + normalize(relativePosition) * radius
-//        let seekForce = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed)
-//        if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
-//            print(deltaTime)
-//            //applyForce(entityId: entityId, force: (seekForce * physics.mass) / deltaTime)
-//        }
-//
-//        return // Continue seeking until close enough to the orbit radius
-//    }
 
     // Calculate angular velocity (speed around the orbit)
     let angularVelocity = maxSpeed / radius // radians per second
@@ -317,9 +300,13 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
 
     // Seek toward the current waypoint
     let seekForce = seek(entityId: entityId, targetPosition: targetWaypoint, maxSpeed: maxSpeed)
-    if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
-        applyForce(entityId: entityId, force: (seekForce * physics.mass) / deltaTime)
+    
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId)else{
+        handleError(.noPhysicsComponent,entityId)
+        return
     }
+    
+    applyForce(entityId: entityId, force: (seekForce * physicsComponent.mass) / deltaTime)
 
     // Align the entity's orientation to its movement direction
     let velocity = getVelocity(entityId: entityId)
@@ -368,9 +355,12 @@ public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceR
     }
 
     // Apply the avoidance force to the entity
-    if let physics = scene.get(component: PhysicsComponents.self, for: entityId) {
-        applyForce(entityId: entityId, force: (avoidanceForce * physics.mass) / deltaTime)
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else{
+        handleError(.noPhysicsComponent,entityId)
+        return
     }
+    
+    applyForce(entityId: entityId, force: (avoidanceForce * physicsComponent.mass) / deltaTime)
 
     // Align the entity's orientation to its movement direction
     let velocity = getVelocity(entityId: entityId)

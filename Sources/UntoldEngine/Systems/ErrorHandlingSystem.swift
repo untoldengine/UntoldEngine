@@ -49,6 +49,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case noentitiesinscene = 1040
     case componentNotFound = 1041
     case failedToGetComponentPointer = 1042
+    case valueisNaN = 1043
 
     public var description: String {
         switch self {
@@ -134,6 +135,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Component pool for type could not be found"
         case .failedToGetComponentPointer:
             return "Failed to get component pointer"
+        case .valueisNaN:
+            return "value is NaN"
         }
     }
 }
@@ -143,11 +146,29 @@ public func handleError(_ error: ErrorHandlingSystem) {
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ entityId: EntityID) {
-    Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
+    
+    guard let name=getEntityName(entityId: entityId)else{
+        return
+    }
+    handleError(error,name)
+//    Logger.logError(message: "\(error.rawValue): \(error.description) for \(entityId)")
 }
 
 public func handleError(_ error: ErrorHandlingSystem, _ name: String) {
     Logger.logError(message: "\(error.rawValue): \(error.description) for \(name)")
+}
+
+public func handleError(_ error: ErrorHandlingSystem, _ argument:String,  _ name: String) {
+    Logger.logError(message: "\(error.rawValue): \(argument) \(error.description) for \(name)")
+}
+
+public func handleError(_ error: ErrorHandlingSystem, _ argument:String,  _ entityId: EntityID) {
+    
+    guard let name=getEntityName(entityId: entityId)else{
+        return
+    }
+    handleError(error,argument,name)
+    //Logger.logError(message: "\(error.rawValue): \(error.description) for argument \(argument) for \(entityId)")
 }
 
 // warnings

@@ -46,6 +46,11 @@ public func translateTo(entityId: EntityID, position: simd_float3) {
         return
     }
 
+    guard isValid(position)else{
+        handleError(.valueisNaN,"Position", entityId)
+        return
+    }
+    
     transformComponent.localSpace.columns.3 = simd_float4(position, 1.0)
 }
 
@@ -55,6 +60,11 @@ public func translateEntityBy(entityId: EntityID, position: simd_float3) {
         return
     }
 
+    guard isValid(position)else{
+        handleError(.valueisNaN, "Position", entityId)
+        return
+    }
+    
     transformComponent.localSpace.columns.3.x += position.x
     transformComponent.localSpace.columns.3.y += position.y
     transformComponent.localSpace.columns.3.z += position.z
@@ -66,6 +76,16 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
         return
     }
 
+    guard isValid(axis)else{
+        handleError(.valueisNaN,"Axis", entityId)
+        return
+    }
+    
+    guard isValid(angle)else{
+        handleError(.valueisNaN,"Angle",entityId)
+        return
+    }
+    
     let m: simd_float4x4 = matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis)
 
     transformComponent.localSpace.columns.0 = m.columns.0
@@ -79,6 +99,16 @@ public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
         return
     }
 
+    guard isValid(axis)else{
+        handleError(.valueisNaN,"Axis", entityId)
+        return
+    }
+    
+    guard isValid(angle)else{
+        handleError(.valueisNaN,"Angle",entityId)
+        return
+    }
+    
     // new matrix
     var m: simd_float3x3 = matrix3x3_upper_left(
         matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis))

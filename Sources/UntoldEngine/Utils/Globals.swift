@@ -35,6 +35,7 @@ var bufferResources = BufferResources()
 var textureResources = TextureResources()
 
 var meshDictionary: [String: Mesh] = [:] // Holds all meshes loaded
+var entityDictionary: [EntityID: String] = [:] //links entity Id to names
 
 // Timing properties
 var timeSinceLastUpdatePreviousTime: TimeInterval!

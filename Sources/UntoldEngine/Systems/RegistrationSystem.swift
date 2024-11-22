@@ -203,6 +203,8 @@ func registerDefaultComponents(entityId: EntityID, name: String) {
         transformComponent.localSpace = meshValue.localSpace
         transformComponent.maxBox = meshValue.maxBox
         transformComponent.minBox = meshValue.minBox
+        
+        entityDictionary[entityId] = name
 
     } else {
         print("asset not found in list")

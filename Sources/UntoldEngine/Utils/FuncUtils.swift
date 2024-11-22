@@ -320,3 +320,15 @@ func updateBoundingBoxBuffer(min: SIMD3<Float>, max: SIMD3<Float>) {
         from: vertices, byteCount: vertices.count * MemoryLayout<SIMD4<Float>>.stride
     )
 }
+
+func isValid(_ vector: SIMD3<Float>) -> Bool {
+    return !vector.x.isNaN && !vector.y.isNaN && !vector.z.isNaN
+}
+
+func isValid(_ value: Float) -> Bool {
+    return !value.isNaN
+}
+
+func getEntityName(entityId: EntityID) -> String? {
+    return entityDictionary[entityId]
+}

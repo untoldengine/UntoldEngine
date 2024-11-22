@@ -63,6 +63,11 @@ public func addGravity(gravity: simd_float3) {
             continue
         }
 
+        guard isValid(gravity) else {
+            handleError(.valueisNaN,"Gravity", entity)
+            return
+        }
+        
         // add gravity
         kinetic.addForce(gravity * kinetic.gravityScale)
     }
@@ -99,6 +104,11 @@ public func accumulateForces(deltaTime _: Float) {
 public func applyForce(entityId: EntityID, force: simd_float3) {
     guard let kinetic = scene.get(component: KineticComponent.self, for: entityId) else {
         handleError(.noKineticComponent, entityId)
+        return
+    }
+    
+    guard isValid(force) else {
+        handleError(.valueisNaN,"Force",entityId)
         return
     }
 
