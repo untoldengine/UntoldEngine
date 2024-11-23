@@ -123,22 +123,30 @@ public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -
 
 public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, deltaTime: Float, turnSpeed: Float) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-        handleError(.noTransformComponent,entityId)
+        handleError(.noTransformComponent, entityId)
         return
     }
 
-    // Get the current forward direction of the entity
+    // Get the current forward direction of the entity (model's actual forward vector in local space)
+    let modelForward = simd_float3(0, 0, 1) // Assuming the default forward vector for the model is +Z
     let currentForward = normalize(simd_float3(transformComponent.localSpace.columns.2.x,
                                                transformComponent.localSpace.columns.2.y,
                                                transformComponent.localSpace.columns.2.z))
+
+    // User-defined forward vector (e.g., from the model's metadata)
+    let userDefinedForward = transformComponent.forwardVector
+    let rotationOffset = simd_quatf(from: modelForward, to: userDefinedForward)
+
+    // Adjust the current forward vector based on the user-defined forward
+    let adjustedCurrentForward = rotationOffset.act(currentForward)
 
     // Normalize the target direction
     let normalizedTargetDirection = normalize(targetDirection)
 
     // Calculate the rotation axis and angle
-    let rotationAxis = cross(currentForward, normalizedTargetDirection)
-    let dotProduct = dot(currentForward, normalizedTargetDirection)
-    let rotationAngle = acos(simd_clamp(dotProduct, -1.0, 1.0)) // Angle between current and target direction
+    let rotationAxis = cross(adjustedCurrentForward, normalizedTargetDirection)
+    let dotProduct = dot(adjustedCurrentForward, normalizedTargetDirection)
+    let rotationAngle = acos(simd_clamp(dotProduct, -1.0, 1.0)) // Angle between adjusted current and target direction
 
     // Check if alignment is needed
     if length(rotationAxis) < 0.0001 || rotationAngle < 0.001 {
@@ -155,6 +163,7 @@ public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, d
     let updatedRotation = simd_mul(currentTransform, rotationMatrix)
     transformComponent.localSpace = updatedRotation
 }
+
 
 // movement helper functions
 

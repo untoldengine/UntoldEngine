@@ -66,7 +66,7 @@ class GameScene {
         lightingSystem.addPointLight(entityID: pointEntity, light: point)
     }
 
-    func update(deltaTime _: Float) {
+    func update(deltaTime : Float) {
         // apply force towards the z direction to the player. The entity must have
         // a kinetic component.
         applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 0.5))

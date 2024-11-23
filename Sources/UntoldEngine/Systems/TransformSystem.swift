@@ -70,6 +70,22 @@ public func translateEntityBy(entityId: EntityID, position: simd_float3) {
     transformComponent.localSpace.columns.3.z += position.z
 }
 
+public func setForwardVector(entityId: EntityID, forwardVector: simd_float3){
+    
+    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent, entityId)
+        return
+    }
+
+    guard isValid(forwardVector)else{
+        handleError(.valueisNaN,"Forward Vector", entityId)
+        return
+    }
+    
+    transformComponent.forwardVector=forwardVector
+    
+}
+
 public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
