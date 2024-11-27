@@ -14,6 +14,7 @@ struct Mesh {
     var width: Float
     var height: Float
     var depth: Float
+    var flipCoord: Bool = false
     var skin: Skin?
 
     init(modelIOMesh: MDLMesh, vertexDescriptor: MDLVertexDescriptor, textureLoader: MTKTextureLoader, device: MTLDevice, flip: Bool) {
@@ -28,6 +29,7 @@ struct Mesh {
             modelIOMesh.parent?.transform?.matrix = simd_mul(
                 blenderTransform, modelIOMesh.parent?.transform?.matrix ?? .identity
             )
+            flipCoord = true
         }
 
         // Set local transform matrix and name

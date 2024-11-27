@@ -3,8 +3,10 @@ import UntoldEngine
 
 // GameScene is where you would initialize your game and write the game logic.
 class GameScene {
+    
     let redPlayer: EntityID
-
+    let bluePlayer : EntityID
+    
     let path = [
         simd_float3(0.0, 0.0, 0.0),
         simd_float3(5.0, 0.0, 0.0),
@@ -24,7 +26,7 @@ class GameScene {
         loadBulkScene(filename: "stadium", withExtension: "usdc")
 
         // create an entity id for the blue player
-        let bluePlayer = createEntity()
+        bluePlayer = createEntity()
 
         // this function loads the usdc file and sets the mesh model to the entity
         setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
@@ -70,6 +72,9 @@ class GameScene {
         // apply force towards the z direction to the player. The entity must have
         // a kinetic component.
         applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 0.5))
+        
+        // rotate character
+        rotateBy(entityId: bluePlayer, angle: 1.0, axis: simd_float3(0.0,1.0,0.0))
     }
 
     func handleInput() {}

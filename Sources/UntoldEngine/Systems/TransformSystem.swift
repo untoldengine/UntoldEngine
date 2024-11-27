@@ -107,6 +107,12 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     transformComponent.localSpace.columns.0 = m.columns.0
     transformComponent.localSpace.columns.1 = m.columns.1
     transformComponent.localSpace.columns.2 = m.columns.2
+    
+    if transformComponent.flipCoord == true{
+        transformComponent.localSpace.columns.2 = m.columns.1
+        transformComponent.localSpace.columns.1 = m.columns.2
+    }
+    
 }
 
 public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {

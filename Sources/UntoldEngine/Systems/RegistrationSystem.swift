@@ -203,7 +203,7 @@ func registerDefaultComponents(entityId: EntityID, name: String) {
         transformComponent.localSpace = meshValue.localSpace
         transformComponent.maxBox = meshValue.maxBox
         transformComponent.minBox = meshValue.minBox
-        
+        transformComponent.flipCoord = meshValue.flipCoord
         entityDictionary[entityId] = name
 
     } else {

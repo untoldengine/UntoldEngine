@@ -22,7 +22,11 @@ To ensure proper export of .usdc files from Blender:
 
 ![usdcfileproperties](../images/modelexportblender.png)
 
-2. Save the exported .usdc files into your project and ensure they are added to the main bundle, as shown below:
+2. The Untold Engine coordinate system follows a righ-hand coordinate system. +Y is up and +Z is forward (out of the screen). Unfortunately, Blender's coordinate system is +Z up and +Y is forward. While exporting make sure to set the coordinate system that corresponds to the Untold Engine as shown below:
+
+![untoldenginecoordsystem](../images/untoldcoordsystem.png)
+
+3. Save the exported .usdc files into your project and ensure they are added to the main bundle, as shown below:
 
 ![addfilestomainbundle](../images/addfilestomainbundle.png)
 
