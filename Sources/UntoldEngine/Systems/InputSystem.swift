@@ -263,6 +263,8 @@ public class InputSystem {
         mouseX += mouseDeltaX
         mouseY += mouseDeltaY
 
+        panDelta = simd_float2(Float(mouseDeltaX), Float(mouseDeltaY))
+        
         if mouseDeltaX != 0.0 || mouseDeltaY != 0.0 {
             // mouse is active
             mouseActive = true
@@ -344,11 +346,11 @@ public class InputSystem {
     }
 
     private func handleFlagsChanged(_ event: NSEvent) {
-        if event.modifierFlags.contains(.shift) {
-            keyState.shiftPressed = event.keyCode == 56
-        }
-        if event.modifierFlags.contains(.control) {
-            keyState.ctrlPressed = event.keyCode == 59
-        }
+        // Shift key
+        keyState.shiftPressed = event.modifierFlags.contains(.shift)
+
+        // Control key
+        keyState.ctrlPressed = event.modifierFlags.contains(.control)
     }
+
 }

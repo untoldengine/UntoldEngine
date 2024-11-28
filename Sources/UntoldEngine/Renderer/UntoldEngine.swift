@@ -187,23 +187,19 @@ public class UntoldRenderer: NSObject, MTKViewDelegate {
     }
 
     func handleSceneInput() {
-        // pinch gestures
-        if inputSystem.currentPinchGestureState == .changed {
-            camera.moveCameraAlongAxis(uDelta: inputSystem.pinchDelta)
+        
+        if gameMode == true {
+            return
         }
 
-        // pan gestures
-
-        if inputSystem.currentPanGestureState == .began {
+        if inputSystem.keyState.leftMousePressed {
             camera.setOrbitOffset(uTargetOffset: length(camera.localPosition))
         }
-
-        if inputSystem.currentPanGestureState == .changed {
+        
+        if inputSystem.mouseActive{
             camera.orbitAround(inputSystem.panDelta * 0.005)
         }
-
-        if inputSystem.currentPanGestureState == .ended {}
-
+        
         let input = (w: inputSystem.keyState.wPressed, a: inputSystem.keyState.aPressed, s: inputSystem.keyState.sPressed, d: inputSystem.keyState.dPressed, q: inputSystem.keyState.qPressed, e: inputSystem.keyState.ePressed)
 
         camera.moveCameraWithInput(input: input, speed: 5, deltaTime: 0.1)
