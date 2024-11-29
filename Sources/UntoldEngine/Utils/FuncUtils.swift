@@ -332,3 +332,7 @@ func isValid(_ value: Float) -> Bool {
 func getEntityName(entityId: EntityID) -> String? {
     return entityDictionary[entityId]
 }
+
+public func lerp(start: simd_float3, end: simd_float3, t: Float) -> simd_float3 {
+    return start * (1.0 - t) + end * t
+}

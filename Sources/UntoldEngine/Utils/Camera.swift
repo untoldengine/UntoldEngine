@@ -182,6 +182,38 @@ public struct Camera {
         // Recompute view matrix to update the orientation vectors
         updateViewMatrix()
     }
+    
+    public func follow(
+        entityId: EntityID,
+        offset: simd_float3,
+        smoothSpeed: Float,
+        lockXAxis: Bool = false,
+        lockYAxis: Bool = false,
+        lockZAxis: Bool = false
+    ) {
+        // Early exit if not in game mode
+        guard gameMode else { return }
+
+        // Get the camera's current position
+        var cameraPosition: simd_float3 = getPosition()
+
+        // Get the target's current position
+        var targetPosition: simd_float3 = UntoldEngine.getPosition(entityId: entityId)
+
+        // Apply axis locking
+        if lockXAxis { targetPosition.x = 0 }
+        if lockYAxis { targetPosition.y = 0 }
+        if lockZAxis { targetPosition.z = 0 }
+
+        // Calculate the desired position by applying the offset
+        let desiredPosition: simd_float3 = targetPosition + offset
+
+        // Smoothly interpolate the camera position towards the desired position
+        cameraPosition = lerp(start: cameraPosition, end: desiredPosition, t: smoothSpeed)
+
+        // Move the camera to the new position
+        camera.translateTo(cameraPosition.x, cameraPosition.y, cameraPosition.z)
+    }
 
     // data
     public var viewSpace = simd_float4x4.init(1.0)
