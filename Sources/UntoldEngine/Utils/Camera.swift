@@ -189,7 +189,8 @@ public struct Camera {
         smoothSpeed: Float,
         lockXAxis: Bool = false,
         lockYAxis: Bool = false,
-        lockZAxis: Bool = false
+        lockZAxis: Bool = false,
+        alignWithOrientation: Bool = true
     ) {
         // Early exit if not in game mode
         guard gameMode else { return }
@@ -197,22 +198,42 @@ public struct Camera {
         // Get the camera's current position
         var cameraPosition: simd_float3 = getPosition()
 
-        // Get the target's current position
+        // Get the target's position and orientation
         var targetPosition: simd_float3 = UntoldEngine.getPosition(entityId: entityId)
+        let targetOrientation: simd_float3x3 = UntoldEngine.getOrientation(entityId: entityId) // Rotation matrix
 
-        // Apply axis locking
-        if lockXAxis { targetPosition.x = 0 }
-        if lockYAxis { targetPosition.y = 0 }
-        if lockZAxis { targetPosition.z = 0 }
+        // Apply axis locking to the target position
+        if lockXAxis { targetPosition.x = cameraPosition.x }
+        if lockYAxis { targetPosition.y = cameraPosition.y }
+        if lockZAxis { targetPosition.z = cameraPosition.z }
 
-        // Calculate the desired position by applying the offset
-        let desiredPosition: simd_float3 = targetPosition + offset
+        // Calculate the offset relative to the entity's orientation
+        var adjustedOffset = offset
+        if alignWithOrientation {
+            // Rotate the offset vector using the 3x3 rotation matrix
+            adjustedOffset = targetOrientation * offset
+        }
+
+        // Calculate the desired position by applying the adjusted offset
+        let desiredPosition: simd_float3 = targetPosition + adjustedOffset
 
         // Smoothly interpolate the camera position towards the desired position
         cameraPosition = lerp(start: cameraPosition, end: desiredPosition, t: smoothSpeed)
 
         // Move the camera to the new position
         camera.translateTo(cameraPosition.x, cameraPosition.y, cameraPosition.z)
+
+        // Align the camera's view direction using lookAt
+        if alignWithOrientation {
+            // Calculate the forward direction of the entity
+            let forward: simd_float3 = targetOrientation * simd_float3(0, 0, 1) // Forward direction in local space
+
+            // Determine the "up" vector (you might need to adjust this based on your engine's coordinate system)
+            let up: simd_float3 = targetOrientation * simd_float3(0, 1, 0) // Transform the local up vector by the orientation
+
+            // Use lookAt to orient the camera towards the target's forward direction
+            camera.lookAt(eye: cameraPosition, target: targetPosition + forward, up: up)
+        }
     }
 
     // data
