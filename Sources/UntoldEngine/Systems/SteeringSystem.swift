@@ -122,46 +122,51 @@ public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -
 }
 
 public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, deltaTime: Float, turnSpeed: Float) {
-//    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-//        handleError(.noTransformComponent, entityId)
-//        return
-//    }
-//
-//    // Get the current forward direction of the entity (model's actual forward vector in local space)
-//    let modelForward = simd_float3(0, 0, 1) // Assuming the default forward vector for the model is +Z
-//    let currentForward = normalize(simd_float3(transformComponent.localSpace.columns.2.x,
-//                                               transformComponent.localSpace.columns.2.y,
-//                                               transformComponent.localSpace.columns.2.z))
-//
-//    // User-defined forward vector (e.g., from the model's metadata)
-//    let userDefinedForward = transformComponent.forwardVector
-//    let rotationOffset = simd_quatf(from: modelForward, to: userDefinedForward)
-//
-//    // Adjust the current forward vector based on the user-defined forward
-//    let adjustedCurrentForward = rotationOffset.act(currentForward)
-//
-//    // Normalize the target direction
-//    let normalizedTargetDirection = normalize(targetDirection)
-//
-//    // Calculate the rotation axis and angle
-//    let rotationAxis = cross(adjustedCurrentForward, normalizedTargetDirection)
-//    let dotProduct = dot(adjustedCurrentForward, normalizedTargetDirection)
-//    let rotationAngle = acos(simd_clamp(dotProduct, -1.0, 1.0)) // Angle between adjusted current and target direction
-//
-//    // Check if alignment is needed
-//    if length(rotationAxis) < 0.0001 || rotationAngle < 0.001 {
-//        // Already aligned or very close, no need to rotate
-//        return
-//    }
-//
-//    // Smoothly rotate towards the target direction based on turnSpeed
-//    let interpolatedAngle = min(rotationAngle, turnSpeed * deltaTime)
-//    let rotationMatrix = matrix4x4Rotation(radians: interpolatedAngle, axis: normalize(rotationAxis))
-//
-//    // Apply the rotation
-//    let currentTransform = transformComponent.localSpace
-//    let updatedRotation = simd_mul(currentTransform, rotationMatrix)
-//    transformComponent.localSpace = updatedRotation
+
+    // Retrieve the entity's current velocity
+    let velocity = getVelocity(entityId: entityId)
+
+    // Align the entity's orientation to its movement direction
+    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
+        let forwardDirection = normalize(velocity) // Forward direction based on movement
+        let upVector = simd_float3(0, 1, 0) // Assuming Y-up coordinate system
+
+        // Calculate the right vector using cross product
+        let rightVector = normalize(cross(upVector, forwardDirection))
+        
+        // Recalculate the true up vector for orthogonality
+        let correctedUpVector = cross(forwardDirection, rightVector)
+
+        // Create the target orientation matrix
+        let targetOrientation = simd_float3x3(columns: (
+            rightVector,        // X-axis (right)
+            correctedUpVector,  // Y-axis (up)
+            forwardDirection    // Z-axis (forward)
+        ))
+
+        // Retrieve the current orientation matrix
+        var currentOrientation = getOrientation(entityId: entityId) // simd_float3x3
+
+        // Smoothly interpolate each column of the orientation matrix
+        currentOrientation.columns.0 = mix(currentOrientation.columns.0, targetOrientation.columns.0, t: turnSpeed * deltaTime)
+        currentOrientation.columns.1 = mix(currentOrientation.columns.1, targetOrientation.columns.1, t: turnSpeed * deltaTime)
+        currentOrientation.columns.2 = mix(currentOrientation.columns.2, targetOrientation.columns.2, t: turnSpeed * deltaTime)
+
+        // Re-orthogonalize the matrix to avoid numerical drift
+        let reorthogonalizedRight = normalize(currentOrientation.columns.0)
+        let reorthogonalizedForward = normalize(cross(reorthogonalizedRight, currentOrientation.columns.1))
+        let reorthogonalizedUp = cross(reorthogonalizedForward, reorthogonalizedRight)
+
+        let finalCurrentOrientation = simd_float4x4(columns: (
+            simd_float4(reorthogonalizedRight,0.0),
+            simd_float4(reorthogonalizedUp,0.0),
+            simd_float4(reorthogonalizedForward,0.0),
+            simd_float4(0.0,0.0,0.0,1.0)
+        ))
+
+        // Set the new smoothed orientation
+        rotateTo(entityId: entityId, rotation: finalCurrentOrientation)
+    }
 }
 
 
@@ -309,19 +314,23 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
 
     // Seek toward the current waypoint
     let seekForce = seek(entityId: entityId, targetPosition: targetWaypoint, maxSpeed: maxSpeed)
-    
-    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId)else{
-        handleError(.noPhysicsComponent,entityId)
+
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
         return
     }
-    
+
+    // Apply the force for movement
     applyForce(entityId: entityId, force: (seekForce * physicsComponent.mass) / deltaTime)
 
-    // Align the entity's orientation to its movement direction
+    // Retrieve the entity's current velocity
     let velocity = getVelocity(entityId: entityId)
-    if length(velocity) > 0 {
-        alignOrientation(entityId: entityId, targetDirection: normalize(velocity), deltaTime: deltaTime, turnSpeed: turnSpeed)
+
+    // Align the entity's orientation to its movement direction
+    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
+        alignOrientation(entityId: entityId, targetDirection: targetWaypoint, deltaTime: deltaTime, turnSpeed: turnSpeed)
     }
+
 }
 
 public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceRadius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
