@@ -32,7 +32,7 @@ class GameScene {
         setEntityMesh(entityId: bluePlayer, filename: "blueplayer", withExtension: "usdc")
 
         // translate the entity
-        translateEntityBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0))
+        translateBy(entityId: bluePlayer, position: simd_float3(3.0, 0.0, 0.0))
 
         // let's create another entity Id
         redPlayer = createEntity()
