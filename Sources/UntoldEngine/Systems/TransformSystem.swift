@@ -22,7 +22,17 @@ public func getPosition(entityId: EntityID) -> simd_float3 {
     return simd_float3(x, y, z)
 }
 
-public func getForwardVector(entityId: EntityID) -> simd_float3 {
+public func getOrientation(entityId: EntityID) -> simd_float3x3 {
+    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent, entityId)
+        return simd_float3x3()
+    }
+
+    return matrix3x3_upper_left(transformComponent.localSpace)
+}
+
+
+public func getForwardAxisVector(entityId: EntityID) -> simd_float3 {
     // get the transform for the entity
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
@@ -40,6 +50,42 @@ public func getForwardVector(entityId: EntityID) -> simd_float3 {
     return forward
 }
 
+public func getRightAxisVector(entityId: EntityID) -> simd_float3 {
+    // get the transform for the entity
+    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent, entityId)
+        return simd_float3(0.0, 0.0, 0.0)
+    }
+
+    var right = simd_float3(
+        transformComponent.localSpace.columns.0.x,
+        transformComponent.localSpace.columns.0.z,
+        -transformComponent.localSpace.columns.0.y
+    )
+
+    right = normalize(right)
+
+    return right
+}
+
+public func getUpAxisVector(entityId: EntityID) -> simd_float3 {
+    // get the transform for the entity
+    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent, entityId)
+        return simd_float3(0.0, 0.0, 0.0)
+    }
+
+    var up = simd_float3(
+        transformComponent.localSpace.columns.1.x,
+        transformComponent.localSpace.columns.1.z,
+        -transformComponent.localSpace.columns.1.y
+    )
+
+    up = normalize(up)
+
+    return up
+}
+
 public func translateTo(entityId: EntityID, position: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
@@ -54,7 +100,7 @@ public func translateTo(entityId: EntityID, position: simd_float3) {
     transformComponent.localSpace.columns.3 = simd_float4(position, 1.0)
 }
 
-public func translateEntityBy(entityId: EntityID, position: simd_float3) {
+public func translateBy(entityId: EntityID, position: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return
