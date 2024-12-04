@@ -20,6 +20,14 @@ func setWaypointIndex(for entityId: EntityID, index: Int) {
 
 public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float) -> simd_float3 {
 
+    if gameMode == false {
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
     let position = getPosition(entityId: entityId)
 
     // calculate the desired velocity towards the target
@@ -36,6 +44,14 @@ public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Floa
 
 public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float) -> simd_float3 {
 
+    if gameMode == false {
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
     let position = getPosition(entityId: entityId)
 
     // Calculate the desired velocity away from the threat
@@ -52,6 +68,14 @@ public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Floa
 
 public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float) -> simd_float3 {
 
+    if gameMode == false {
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
     let position = getPosition(entityId: entityId)
     let toTarget = targetPosition - position
     let distance = length(toTarget)
@@ -82,6 +106,14 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
         handleError(.noPhysicsComponent,targetEntity)
         return simd_float3(0.0, 0.0, 0.0)
     }
+    
+    if gameMode == false {
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return simd_float3(0.0,0.0,0.0)
+    }
 
     let position = getPosition(entityId: entityId)
     let targetPosition = getPosition(entityId: targetEntity)
@@ -109,6 +141,14 @@ public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -
         return simd_float3(0.0, 0.0, 0.0)
     }
 
+    if gameMode == false {
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return simd_float3(0.0,0.0,0.0)
+    }
+    
     let position = getPosition(entityId: entityId)
     let threatPosition = getPosition(entityId: threatEntity)
 
@@ -123,6 +163,14 @@ public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -
 
 public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, deltaTime: Float, turnSpeed: Float) {
 
+    if gameMode == false {
+        return
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return
+    }
+    
     // Retrieve the entity's current velocity
     let velocity = getVelocity(entityId: entityId)
 
@@ -183,6 +231,10 @@ public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     if gameMode == false {
         return
     }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return
+    }
 
     // Check for invalid deltaTime
 
@@ -221,6 +273,10 @@ public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     if gameMode == false {
         return
     }
+    
+    if !isPhysicsEnabled(entityId: entityId){
+        return
+    }
 
     // Check for invalid deltaTime
     guard deltaTime > 0 else {
@@ -249,6 +305,10 @@ public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
 public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
 
     if gameMode == false {
+        return
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
         return
     }
 
@@ -284,6 +344,10 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
 public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
 
     if gameMode == false {
+        return
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
         return
     }
 
@@ -336,6 +400,10 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
 public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceRadius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
 
     if gameMode == false {
+        return
+    }
+    
+    if !isPhysicsEnabled(entityId: entityId){
         return
     }
 

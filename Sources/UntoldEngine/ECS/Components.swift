@@ -45,6 +45,7 @@ public class PhysicsComponents: Component {
     var mass: Float
     var velocity: simd_float3
     var acceleration: simd_float3
+    var pause: Bool = false
 
     public required init() {
         mass = 1.0
