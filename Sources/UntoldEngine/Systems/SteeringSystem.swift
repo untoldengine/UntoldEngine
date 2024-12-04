@@ -341,7 +341,7 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
     alignOrientation(entityId: entityId, targetDirection: tangentialDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
-public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5) {
 
     if gameMode == false {
         return
@@ -361,7 +361,6 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
 
     // Keep track of the current waypoint index
     var waypointIndex = getWaypointIndex(for: entityId)
-    let waypointThreshold: Float = 0.1 // Threshold to determine when a waypoint is "reached"
 
     // Target the current waypoint
     let targetWaypoint = path[waypointIndex]
