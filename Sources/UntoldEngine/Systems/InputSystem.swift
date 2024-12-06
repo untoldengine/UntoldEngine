@@ -9,6 +9,7 @@ import AppKit
 import Cocoa
 import Foundation
 import simd
+import GameController
 
 public struct KeyState {
     public var wPressed = false
@@ -25,6 +26,12 @@ public struct KeyState {
     var rightMousePressed = false
     var middleMousePressed = false
     // Add more key states as needed
+}
+
+public struct GamePadState{
+    public var aPressed = false
+    public var bPressed = false
+    public var leftThumbStickActive = false
 }
 
 enum PanGestureState {
@@ -56,6 +63,7 @@ public class InputSystem {
     let kVK_ANSI_E: UInt16 = 14
 
     public var keyState = KeyState()
+    public var gamePadState = GamePadState()
 
     // Current state of the pan gesture
     var currentPanGestureState: PanGestureState?
@@ -74,8 +82,91 @@ public class InputSystem {
 
     var pinchDelta: simd_float3 = .init(0.0, 0.0, 0.0)
     var previousScale: CGFloat = 1.0
+    
+    public var currentGamepad: GCExtendedGamepad?
 
-    init() {}
+    init() {
+        setupGameController()
+    }
+    
+    private func setupGameController(){
+        
+        // Listen for controllers being connected
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(controllerDidConnect(_:)),
+            name: .GCControllerDidConnect,
+            object: nil
+        )
+
+        // Listen for controllers being disconnected
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(controllerDidDisconnect(_:)),
+            name: .GCControllerDidDisconnect,
+            object: nil
+        )
+
+        // Start discovery
+        GCController.startWirelessControllerDiscovery {
+            print("Controller discovery completed.")
+        }
+    }
+    
+    @objc private func controllerDidConnect(_ notification: Notification) {
+            guard let controller = notification.object as? GCController else { return }
+            print("Controller connected: \(controller.vendorName ?? "Unknown Controller")")
+
+            if let gamepad = controller.extendedGamepad {
+                currentGamepad = gamepad
+                configureGamepadHandlers(gamepad)
+            }else {
+                print("Connected controller does not support extendedGamepad")
+            }
+        
+        
+        }
+
+        @objc private func controllerDidDisconnect(_ notification: Notification) {
+            guard let controller = notification.object as? GCController else { return }
+            print("Controller disconnected: \(controller.vendorName ?? "Unknown Controller")")
+
+            if currentGamepad === controller.extendedGamepad {
+                currentGamepad = nil
+            }
+        }
+
+        private func configureGamepadHandlers(_ gamepad: GCExtendedGamepad) {
+            gamepad.leftThumbstick.valueChangedHandler = { _, xValue, yValue in
+               // print("Left thumbstick moved: \(xValue), \(yValue)")
+                
+            }
+
+            gamepad.rightThumbstick.valueChangedHandler = { _, xValue, yValue in
+                //print("Right thumbstick moved: \(xValue), \(yValue)")
+                
+            }
+            
+            
+//            gamepad.leftTrigger.valueChangedHandler = { _, value in
+//                print("Left trigger pressed: \(value)")
+//
+//            }
+//
+//            gamepad.rightTrigger.valueChangedHandler = { _, value in
+//                print("Right trigger pressed: \(value)")
+//
+//            }
+
+            gamepad.buttonA.pressedChangedHandler = { _, _, isPressed in
+                self.gamePadState.aPressed = isPressed
+            }
+
+            gamepad.buttonB.pressedChangedHandler = { _, _, isPressed in
+                self.gamePadState.bPressed = isPressed
+                
+            }
+        }
 
     public func setupGestureRecognizers(view: NSView) {
         // Pinch gesture
