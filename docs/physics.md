@@ -45,7 +45,7 @@ setGravityScale(entityId: redPlayer, gravityScale: 1.0)
 ---
 
 ### Step 5: Apply Forces (Optional)
-You can apply a force to the entity dynamically in the update function. This is useful for simulating motion or interactions in real time.
+You can apply a force to the entity dynamically in the Update function. This is useful for simulating motion or interactions in real time.
 
 ```swift
 applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 5.0))
@@ -54,6 +54,21 @@ applyForce(entityId: redPlayer, force: simd_float3(0.0, 0.0, 5.0))
 >>> Note: Forces are applied per frame, so ensure you only apply them when needed to avoid unintended behavior.
 
 ---
+
+### Step 6. Steering System
+Instead of applying forces manually, you can use the Steering System to apply forces indirectly. For example, if you want your entity to steer to a position, you can call the following function:
+
+```swift
+steerTo(entityId: redPlayer, targetPosition: simd_float3(0.0,0.0,5.0), maxSpeed: 2.0, deltaTime: deltaTime)
+```
+
+There are several other steer functions that you can use such as
+
+```swift
+steerAway()
+steerPursuit()
+followPath()
+```
 
 ### Running the Physics Simulation
 
