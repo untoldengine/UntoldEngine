@@ -24,7 +24,7 @@ public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Floa
         return simd_float3(0.0,0.0,0.0)
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return simd_float3(0.0,0.0,0.0)
     }
     
@@ -48,7 +48,7 @@ public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Floa
         return simd_float3(0.0,0.0,0.0)
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return simd_float3(0.0,0.0,0.0)
     }
     
@@ -72,7 +72,7 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
         return simd_float3(0.0,0.0,0.0)
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return simd_float3(0.0,0.0,0.0)
     }
     
@@ -111,7 +111,7 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
         return simd_float3(0.0,0.0,0.0)
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return simd_float3(0.0,0.0,0.0)
     }
 
@@ -145,7 +145,7 @@ public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -
         return simd_float3(0.0,0.0,0.0)
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return simd_float3(0.0,0.0,0.0)
     }
     
@@ -167,7 +167,7 @@ public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, d
         return
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return
     }
     
@@ -232,7 +232,7 @@ public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
         return
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return
     }
 
@@ -274,7 +274,7 @@ public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
         return
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return
     }
 
@@ -308,7 +308,7 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
         return
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return
     }
 
@@ -347,7 +347,7 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
         return
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return
     }
 
@@ -402,7 +402,7 @@ public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceR
         return
     }
     
-    if !isPhysicsEnabled(entityId: entityId){
+    if !isPhysicsComponentPaused(entityId: entityId){
         return
     }
 
