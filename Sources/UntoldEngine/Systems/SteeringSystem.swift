@@ -18,16 +18,18 @@ func setWaypointIndex(for entityId: EntityID, index: Int) {
     entityWaypointIndices[entityId] = index
 }
 
-public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float) -> simd_float3 {
+// Low-Level Steering Behaviors
+
+func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float) -> simd_float3 {
 
     if gameMode == false {
-        return simd_float3(0.0,0.0,0.0)
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
-        return simd_float3(0.0,0.0,0.0)
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
+
     let position = getPosition(entityId: entityId)
 
     // calculate the desired velocity towards the target
@@ -45,20 +47,20 @@ public func seek(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Floa
 public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float) -> simd_float3 {
 
     if gameMode == false {
-        return simd_float3(0.0,0.0,0.0)
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
-        return simd_float3(0.0,0.0,0.0)
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
+
     let position = getPosition(entityId: entityId)
 
     // Calculate the desired velocity away from the threat
-    let desiredVelocity = normalize(threatPosition - position) * maxSpeed
+    let desiredVelocity = normalize(position - threatPosition) * maxSpeed
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        handleError(.noPhysicsComponent,entityId)
+        handleError(.noPhysicsComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
@@ -69,13 +71,13 @@ public func flee(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Floa
 public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float) -> simd_float3 {
 
     if gameMode == false {
-        return simd_float3(0.0,0.0,0.0)
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
-        return simd_float3(0.0,0.0,0.0)
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
+
     let position = getPosition(entityId: entityId)
     let toTarget = targetPosition - position
     let distance = length(toTarget)
@@ -87,7 +89,7 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
     let desiredVelocity = normalize(toTarget) * speed
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        handleError(.noPhysicsComponent,entityId)
+        handleError(.noPhysicsComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
@@ -98,21 +100,21 @@ public func arrive(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Fl
 public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float) -> simd_float3 {
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        handleError(.noPhysicsComponent,entityId)
+        handleError(.noPhysicsComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     guard let physicsTargetComponent = scene.get(component: PhysicsComponents.self, for: targetEntity) else {
-        handleError(.noPhysicsComponent,targetEntity)
+        handleError(.noPhysicsComponent, targetEntity)
         return simd_float3(0.0, 0.0, 0.0)
     }
-    
+
     if gameMode == false {
-        return simd_float3(0.0,0.0,0.0)
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
-        return simd_float3(0.0,0.0,0.0)
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return simd_float3(0.0, 0.0, 0.0)
     }
 
     let position = getPosition(entityId: entityId)
@@ -132,23 +134,23 @@ public func pursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float)
 public func evade(entityId: EntityID, threatEntity: EntityID, maxSpeed: Float) -> simd_float3 {
 
     guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
-        handleError(.noPhysicsComponent,entityId)
+        handleError(.noPhysicsComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     guard let physicsThreatComponent = scene.get(component: PhysicsComponents.self, for: threatEntity) else {
-        handleError(.noPhysicsComponent,threatEntity)
+        handleError(.noPhysicsComponent, threatEntity)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     if gameMode == false {
-        return simd_float3(0.0,0.0,0.0)
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
-        return simd_float3(0.0,0.0,0.0)
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return simd_float3(0.0, 0.0, 0.0)
     }
-    
+
     let position = getPosition(entityId: entityId)
     let threatPosition = getPosition(entityId: threatEntity)
 
@@ -166,11 +168,11 @@ public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, d
     if gameMode == false {
         return
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
+
+    if isPhysicsComponentPaused(entityId: entityId) {
         return
     }
-    
+
     // Retrieve the entity's current velocity
     let velocity = getVelocity(entityId: entityId)
 
@@ -181,15 +183,15 @@ public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, d
 
         // Calculate the right vector using cross product
         let rightVector = normalize(cross(upVector, forwardDirection))
-        
+
         // Recalculate the true up vector for orthogonality
         let correctedUpVector = cross(forwardDirection, rightVector)
 
         // Create the target orientation matrix
         let targetOrientation = simd_float3x3(columns: (
-            rightVector,        // X-axis (right)
-            correctedUpVector,  // Y-axis (up)
-            forwardDirection    // Z-axis (forward)
+            rightVector, // X-axis (right)
+            correctedUpVector, // Y-axis (up)
+            forwardDirection // Z-axis (forward)
         ))
 
         // Retrieve the current orientation matrix
@@ -206,10 +208,10 @@ public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, d
         let reorthogonalizedUp = cross(reorthogonalizedForward, reorthogonalizedRight)
 
         let finalCurrentOrientation = simd_float4x4(columns: (
-            simd_float4(reorthogonalizedRight,0.0),
-            simd_float4(reorthogonalizedUp,0.0),
-            simd_float4(reorthogonalizedForward,0.0),
-            simd_float4(0.0,0.0,0.0,1.0)
+            simd_float4(reorthogonalizedRight, 0.0),
+            simd_float4(reorthogonalizedUp, 0.0),
+            simd_float4(reorthogonalizedForward, 0.0),
+            simd_float4(0.0, 0.0, 0.0, 1.0)
         ))
 
         // Set the new smoothed orientation
@@ -217,98 +219,13 @@ public func alignOrientation(entityId: EntityID, targetDirection: simd_float3, d
     }
 }
 
-
-// movement helper functions
-
-/// Moves an entity towards a target position at a specified speed.
-/// - Parameters:
-///   - entityId: The ID of the entity to move.
-///   - targetPosition: The position to move towards.
-///   - maxSpeed: The maximum speed of the entity.
-///   - deltaTime: The elapsed time for the current frame.
-public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
-
-    if gameMode == false {
-        return
-    }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
-        return
-    }
-
-    // Check for invalid deltaTime
-
-    guard deltaTime > 0 else {
-        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
-        return
-    }
-
-    // Use the seek behavior to calculate the steering velocity adjustment
-    let steeringAdjustment = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed)
-
-    // Convert the velocity adjustment into a force for the physics system
-    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
-        applyForce(entityId: entityId, force: steeringForce)
-    } else {
-        handleError(.noPhysicsComponent,entityId)
-        return
-    }
-
-    // Align orientation to face the target
-    let currentPosition = getPosition(entityId: entityId)
-    let targetDirection = normalize(targetPosition - currentPosition)
-    alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
-}
-
-/// Moves an entity towards a target position at a specified speed, slowing down as it approaches the target.
-/// - Parameters:
-///   - entityId: The ID of the entity to move.
-///   - targetPosition: The position to move towards.
-///   - maxSpeed: The maximum speed of the entity.
-///   - slowingRadius: The radius within which the entity slows down as it approaches the target.
-///   - deltaTime: The elapsed time for the current frame.
-public func moveTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
-
-    if gameMode == false {
-        return
-    }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
-        return
-    }
-
-    // Check for invalid deltaTime
-    guard deltaTime > 0 else {
-        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
-        return
-    }
-
-    // Use the arrive behavior to calculate the steering velocity adjustment
-    let steeringAdjustment = arrive(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed, slowingRadius: slowingRadius)
-
-    // Convert the velocity adjustment into a force for the physics system
-    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
-        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
-        applyForce(entityId: entityId, force: steeringForce)
-    } else {
-        handleError(.noPhysicsComponent,entityId)
-        return
-    }
-
-    // Align orientation to face the target
-    let currentPosition = getPosition(entityId: entityId)
-    let targetDirection = normalize(targetPosition - currentPosition)
-    alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
-}
-
 public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
 
     if gameMode == false {
         return
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
+
+    if isPhysicsComponentPaused(entityId: entityId) {
         return
     }
 
@@ -341,13 +258,201 @@ public func orbit(entityId: EntityID, centerPosition: simd_float3, radius: Float
     alignOrientation(entityId: entityId, targetDirection: tangentialDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
 }
 
+// High Level Steering Behaviors
+
+// movement helper functions
+
+/// Moves an entity towards a target position at a specified speed.
+/// - Parameters:
+///   - entityId: The ID of the entity to move.
+///   - targetPosition: The position to move towards.
+///   - maxSpeed: The maximum speed of the entity.
+///   - deltaTime: The elapsed time for the current frame.
+public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+
+    if gameMode == false {
+        return
+    }
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return
+    }
+
+    // Check for invalid deltaTime
+
+    guard deltaTime > 0 else {
+        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        return
+    }
+
+    // Use the seek behavior to calculate the steering velocity adjustment
+    let steeringAdjustment = seek(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed)
+
+    // Convert the velocity adjustment into a force for the physics system
+    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
+        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
+        applyForce(entityId: entityId, force: steeringForce)
+    } else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    // Align orientation to face the target
+    let currentPosition = getPosition(entityId: entityId)
+    let targetDirection = normalize(targetPosition - currentPosition)
+
+    let velocity = getVelocity(entityId: entityId)
+    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
+        alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
+    }
+}
+
+/// Moves an entity towards a target position at a specified speed, slowing down as it approaches the target.
+/// - Parameters:
+///   - entityId: The ID of the entity to move.
+///   - targetPosition: The position to move towards.
+///   - maxSpeed: The maximum speed of the entity.
+///   - slowingRadius: The radius within which the entity slows down as it approaches the target.
+///   - deltaTime: The elapsed time for the current frame.
+public func steerTo(entityId: EntityID, targetPosition: simd_float3, maxSpeed: Float, slowingRadius: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+
+    if gameMode == false {
+        return
+    }
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return
+    }
+
+    // Check for invalid deltaTime
+    guard deltaTime > 0 else {
+        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        return
+    }
+
+    // Use the arrive behavior to calculate the steering velocity adjustment
+    let steeringAdjustment = arrive(entityId: entityId, targetPosition: targetPosition, maxSpeed: maxSpeed, slowingRadius: slowingRadius)
+
+    // Convert the velocity adjustment into a force for the physics system
+    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
+        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
+        applyForce(entityId: entityId, force: steeringForce)
+    } else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    // Align orientation to face the target
+    let currentPosition = getPosition(entityId: entityId)
+    let targetDirection = normalize(targetPosition - currentPosition)
+
+    let velocity = getVelocity(entityId: entityId)
+    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
+        alignOrientation(entityId: entityId, targetDirection: targetDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
+    }
+}
+
+public func steerAway(entityId: EntityID, threatPosition: simd_float3, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+
+    if gameMode == false {
+        return
+    }
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return
+    }
+
+    // Check for invalid deltaTime
+    guard deltaTime > 0 else {
+        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        return
+    }
+
+    // Use the flee behavior to calculate the steering velocity adjustment
+    let steeringAdjustment = flee(entityId: entityId, threatPosition: threatPosition, maxSpeed: maxSpeed)
+
+    // Convert the velocity adjustment into a force for the physics system
+    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
+        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
+        applyForce(entityId: entityId, force: steeringForce)
+    } else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    // Align orientation to face away from the threat
+    let currentPosition = getPosition(entityId: entityId)
+    let threatDirection = normalize(threatPosition - currentPosition)
+    let fleeDirection = -threatDirection
+
+    let velocity = getVelocity(entityId: entityId)
+    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
+        alignOrientation(entityId: entityId, targetDirection: fleeDirection, deltaTime: deltaTime, turnSpeed: turnSpeed)
+    }
+}
+
+public func steerPursuit(entityId: EntityID, targetEntity: EntityID, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
+
+    if gameMode == false {
+        return
+    }
+
+    if isPhysicsComponentPaused(entityId: entityId) {
+        return
+    }
+
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    guard let physicsTargetComponent = scene.get(component: PhysicsComponents.self, for: targetEntity) else {
+        handleError(.noPhysicsComponent, targetEntity)
+        return
+    }
+
+    // Check for invalid deltaTime
+    guard deltaTime > 0 else {
+        print("Warning: deltaTime is zero or negative, skipping movement for entity \(entityId).")
+        return
+    }
+
+    // Use the pursuit behavior to calculate the steering velocity adjustment
+    let steeringAdjustment = pursuit(entityId: entityId, targetEntity: targetEntity, maxSpeed: maxSpeed)
+
+    // Convert the velocity adjustment into a force for the physics system
+    if let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) {
+        let steeringForce = (steeringAdjustment * physicsComponent.mass) / deltaTime
+        applyForce(entityId: entityId, force: steeringForce)
+    } else {
+        handleError(.noPhysicsComponent, entityId)
+        return
+    }
+
+    // Align orientation to face the predicted target position
+    let position = getPosition(entityId: entityId)
+    let targetPosition = getPosition(entityId: targetEntity)
+
+    // Estimate where the target entity will be based on its current velocity
+    let toTarget = targetPosition - position
+    let relativeHeading = dot(normalize(physicsTargetComponent.velocity), normalize(physicsComponent.velocity))
+
+    let predictionTime = (relativeHeading > 0.95) ? (length(toTarget) / maxSpeed) : 0.5
+    let futurePosition = targetPosition + physicsTargetComponent.velocity * predictionTime
+
+    let velocity = getVelocity(entityId: entityId)
+    if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
+        alignOrientation(entityId: entityId, targetDirection: futurePosition, deltaTime: deltaTime, turnSpeed: turnSpeed)
+    }
+}
+
 public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0, waypointThreshold: Float = 0.5) {
 
     if gameMode == false {
         return
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
+
+    if isPhysicsComponentPaused(entityId: entityId) {
         return
     }
 
@@ -393,7 +498,6 @@ public func followPath(entityId: EntityID, path: [simd_float3], maxSpeed: Float,
     if length(velocity) > 0.001 { // Avoid division by zero for stationary entities
         alignOrientation(entityId: entityId, targetDirection: targetWaypoint, deltaTime: deltaTime, turnSpeed: turnSpeed)
     }
-
 }
 
 public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceRadius: Float, maxSpeed: Float, deltaTime: Float, turnSpeed: Float = 1.0) {
@@ -401,8 +505,8 @@ public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceR
     if gameMode == false {
         return
     }
-    
-    if !isPhysicsComponentPaused(entityId: entityId){
+
+    if isPhysicsComponentPaused(entityId: entityId) {
         return
     }
 
@@ -440,11 +544,11 @@ public func avoidObstacles(entityId: EntityID, obstacles: [EntityID], avoidanceR
     }
 
     // Apply the avoidance force to the entity
-    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else{
-        handleError(.noPhysicsComponent,entityId)
+    guard let physicsComponent = scene.get(component: PhysicsComponents.self, for: entityId) else {
+        handleError(.noPhysicsComponent, entityId)
         return
     }
-    
+
     applyForce(entityId: entityId, force: (avoidanceForce * physicsComponent.mass) / deltaTime)
 
     // Align the entity's orientation to its movement direction
