@@ -106,9 +106,9 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
         case .normalTextureMissing:
             return "Normal Texture is missing"
         case .noPhysicsComponent:
-            return "Does not have a Physics component"
+            return "Does not have a Physics component. Call setEntityKinetics()"
         case .noKineticComponent:
-            return "Does not have a Kinetic component"
+            return "Does not have a Kinetic component. Call setEntityKinetics()"
         case .noTransformComponent:
             return "Does not have a Transform component"
         case .noRenderComponent:
@@ -116,7 +116,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
         case .noSkeletonComponent:
             return "Does not have a Skeleton component"
         case .noAnimationComponent:
-            return "Does not have a Render component"
+            return "Does not have an Animation component. Call setEntityAnimations()"
         case .noAnimationBind:
             return "Missing animation bind component or skeleton."
         case .jointBufferFailed:

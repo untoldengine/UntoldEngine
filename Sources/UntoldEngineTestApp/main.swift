@@ -69,7 +69,7 @@ class GameScene {
     }
 
     func update(deltaTime : Float) {
-        // apply force towards the z direction to the player. The entity must have
+        // Steer towards the z direction. The entity must have
         // a kinetic component.
         steerTo(entityId: redPlayer, targetPosition: simd_float3(0.0,0.0,5.0), maxSpeed: 2.0, deltaTime: deltaTime)
         
