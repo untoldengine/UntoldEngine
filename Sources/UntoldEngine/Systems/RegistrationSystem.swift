@@ -44,14 +44,10 @@ public func setEntityMesh(entityId: EntityID, filename: String, withExtension: S
         handleError(.assetDataMissing, filename)
         return
     }
+    
+    associateMeshesToEntity(entityId: entityId, meshes: meshes)
 
-    meshDictionary[meshes.first!.name] = meshes.first
-
-    if meshes.count > 1 {
-        print("several models found in file \(filename). Only the first model will be linked to entity")
-    }
-
-    registerDefaultComponents(entityId: entityId, name: meshes.first!.name)
+    registerDefaultComponents(entityId: entityId, meshes: meshes)
 
     // look for any skeletons in asset
     setEntitySkeleton(entityId: entityId, filename: filename, withExtension: withExtension)
@@ -72,14 +68,16 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
 
     if skeletons.first == nil {
         
-        let skin = Skin()
-        
         guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
             handleError(.noRenderComponent, entityId)
             return
         }
         
-        renderComponent.mesh.skin = skin
+        let skin = Skin()
+        
+        for index in renderComponent.mesh.indices{
+            renderComponent.mesh[index].skin = skin
+        }
         
         return
     }
@@ -101,7 +99,10 @@ public func setEntitySkeleton(entityId: EntityID, filename: String, withExtensio
         return
     }
 
-    setEntitySkin(entityId: entityId, mdlMesh: renderComponent.mesh.modelMDLMesh)
+    for mesh in renderComponent.mesh{
+        setEntitySkin(entityId: entityId, mdlMesh: mesh.modelMDLMesh)
+    }
+    
 }
 
 public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh) {
@@ -124,7 +125,11 @@ public func setEntitySkin(entityId: EntityID, mdlMesh: MDLMesh) {
 
     skin?.updateJointMatrices(skeleton: skeletonComponent.skeleton)
 
-    renderComponent.mesh.skin = skin
+    // Assign skin to mesh
+    for index in renderComponent.mesh.indices where renderComponent.mesh[index].modelMDLMesh == mdlMesh {
+        renderComponent.mesh[index].skin = skin
+    }
+
 }
 
 public func setEntityAnimations(entityId: EntityID, filename: String, withExtension: String, name: String) {
@@ -183,30 +188,38 @@ public func setEntityKinetics(entityId: EntityID) {
 
 // register Render and Transform components
 
-func registerDefaultComponents(entityId: EntityID, name: String) {
-    if let meshValue = meshDictionary[name] {
-        registerComponent(entityId: entityId, componentType: RenderComponent.self)
-        registerComponent(entityId: entityId, componentType: TransformComponent.self)
+func registerDefaultComponents(entityId: EntityID, meshes:[Mesh]) {
+    //if let meshValue = meshDictionary[name] {
+    registerComponent(entityId: entityId, componentType: RenderComponent.self)
+    registerComponent(entityId: entityId, componentType: TransformComponent.self)
 
-        guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
-            handleError(.noRenderComponent, entityId)
-            return
-        }
-
-        guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-            handleError(.noTransformComponent, entityId)
-            return
-        }
-
-        renderComponent.mesh = meshValue
-
-        transformComponent.localSpace = meshValue.localSpace
-        transformComponent.maxBox = meshValue.maxBox
-        transformComponent.minBox = meshValue.minBox
-        transformComponent.flipCoord = meshValue.flipCoord
-        entityDictionary[entityId] = name
-
-    } else {
-        print("asset not found in list")
+    guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
+        handleError(.noRenderComponent, entityId)
+        return
     }
+
+    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
+        handleError(.noTransformComponent, entityId)
+        return
+    }
+
+    
+    renderComponent.mesh = meshes
+    entityMeshMap[entityId] = meshes
+
+    let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
+    
+    transformComponent.localSpace = .identity
+    transformComponent.maxBox = boundingBox.max
+    transformComponent.minBox = boundingBox.min
+    transformComponent.flipCoord = meshes[0].flipCoord
+    
+}
+
+func associateMeshesToEntity(entityId: EntityID, meshes: [Mesh]){
+    entityMeshMap[entityId] = meshes
+}
+
+func getMeshesForEntity(entityId: EntityID) -> [Mesh]?{
+    return entityMeshMap[entityId]
 }

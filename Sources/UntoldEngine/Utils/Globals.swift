@@ -34,7 +34,9 @@ var vertexDescriptor = VertexDescriptors()
 var bufferResources = BufferResources()
 var textureResources = TextureResources()
 
-var meshDictionary: [String: Mesh] = [:] // Holds all meshes loaded
+var entityMeshMap: [EntityID: [Mesh]] = [:] // Holds all meshes loaded
+
+var entityNameMap: [String: EntityID] = [:]
 var entityDictionary: [EntityID: String] = [:] //links entity Id to names
 
 // Timing properties
@@ -134,7 +136,7 @@ let boundingBoxVertexCount = 24
 var selectedModel: Bool = false
 
 var envRotationAngle: Float = 0
-public var hdrURL: String = "photostudio.hdr"
+public var hdrURL: String = "HDR Light Studio Sample - 07.hdr"
 public var resourceURL: URL?
 
 var currentGlobalTime: Float = 0.0

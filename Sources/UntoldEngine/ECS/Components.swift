@@ -35,10 +35,12 @@ public class TransformComponent: Component {
 }
 
 public class RenderComponent: Component {
-    var spaceUniform: MTLBuffer!
-    var mesh: Mesh!
+    
+    var mesh: [Mesh]
 
-    public required init() {}
+    public required init() {
+        self.mesh = []
+    }
 }
 
 public class PhysicsComponents: Component {

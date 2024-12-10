@@ -34,7 +34,12 @@ public func updateAnimationSystem(deltaTime: Float) {
             animationClip: animationClip
         )
 
-        renderComponent.mesh.skin?.updateJointMatrices(skeleton: skeletonComponent.skeleton)
+        // Update the skin for each mesh in the render component
+        for index in renderComponent.mesh.indices {
+            if let skin = renderComponent.mesh[index].skin {
+                skin.updateJointMatrices(skeleton: skeletonComponent.skeleton)
+            }
+        }
     }
 }
 
