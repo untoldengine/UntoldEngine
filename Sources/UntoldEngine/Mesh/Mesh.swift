@@ -217,7 +217,6 @@ struct TextureLoader {
     func loadTexture(from property: MDLMaterialProperty?, isSRGB: Bool, outputURL: inout URL?, mapType: String, assetName: String) -> MTLTexture? {
         
         guard let url = property?.urlValue else {
-            print(property?.stringValue)
             let errorMessage: String = "\(mapType) for \(assetName)"
             handleError(.textureMissing,errorMessage)
             return nil
@@ -235,7 +234,8 @@ struct TextureLoader {
             let texture = try loader.newTexture(URL: url, options: options)
             return texture
         } catch {
-            handleError(.textureMissing,(property?.urlValue!.absoluteString)!)
+            let errorMessage: String = "\((property?.urlValue!.absoluteString)!) for \(assetName)"
+            handleError(.textureFailedLoading,errorMessage)
             return nil
         }
     }
