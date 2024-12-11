@@ -49,28 +49,6 @@ Explore TransformSystem.swift to find more operations like rotation and scaling.
 
 ---
 
-## Loading Scenes with Multiple Models
-
-If your .usdc file contains a full scene (e.g., buildings, trees, or other static objects), you might not need to manipulate individual models. In such cases, you can load the entire scene at once using loadBulkScene. This is efficient because you don’t need to create an EntityID for each object.
-
-Example: Loading a Scene
-
-```swift
-loadBulkScene(filename: "stadium", withExtension: "usdc")
-```
-
-In this example:
-
-- stadium is the name of the file (e.g., stadium.usdc).
-- All models within the scene are loaded and rendered together.
-
-### When to Use Bulk Loading
-
-- Use setEntityMesh if you need to manipulate individual models (e.g., move a car, rotate a player character).
-- Use loadBulkScene if the models are static and don’t require individual transformations.
-
----
-
 ### Common Issue: My Model Isn’t Visible!
 
 If you don’t see your model, it’s likely because the scene has no light. Lighting is essential for rendering visible objects.
