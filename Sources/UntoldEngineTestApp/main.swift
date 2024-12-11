@@ -6,6 +6,7 @@ class GameScene {
     
     let redPlayer: EntityID
     let bluePlayer : EntityID
+    let stadium: EntityID
     
     let path = [
         simd_float3(0.0, 0.0, 0.0),
@@ -22,8 +23,12 @@ class GameScene {
         )
 
         // You can load the assets in bulk as shown here.
-        // In this instance, stadium contains multiple assets which do not require an entity id to be assigned.
-        loadBulkScene(filename: "stadium", withExtension: "usdc")
+        
+        // create an entity id for the stadium
+        stadium = createEntity()
+    
+        // this function loads the usdc file and sets the mesh model to the entity
+        setEntityMesh(entityId: stadium, filename: "stadium", withExtension: "usdc")
 
         // create an entity id for the blue player
         bluePlayer = createEntity()
