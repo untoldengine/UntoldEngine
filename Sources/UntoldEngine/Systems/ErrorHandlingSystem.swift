@@ -50,6 +50,7 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
     case componentNotFound = 1041
     case failedToGetComponentPointer = 1042
     case valueisNaN = 1043
+    case textureFailedLoading = 1044
 
     public var description: String {
         switch self {
@@ -137,6 +138,8 @@ public enum ErrorHandlingSystem: Int, Error, CustomStringConvertible {
             return "Failed to get component pointer"
         case .valueisNaN:
             return "value is NaN"
+        case .textureFailedLoading:
+            return "Failed to load texture"
         }
     }
 }
