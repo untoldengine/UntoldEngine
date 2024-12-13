@@ -116,21 +116,6 @@ public func translateBy(entityId: EntityID, position: simd_float3) {
     transformComponent.localSpace.columns.3.z += position.z
 }
 
-public func setForwardVector(entityId: EntityID, forwardVector: simd_float3){
-    
-    guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
-        handleError(.noTransformComponent, entityId)
-        return
-    }
-
-    guard isValid(forwardVector)else{
-        handleError(.valueisNaN,"Forward Vector", entityId)
-        return
-    }
-    
-    transformComponent.forwardVector=forwardVector
-    
-}
 
 public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     guard let transformComponent = scene.get(component: TransformComponent.self, for: entityId) else {
@@ -202,25 +187,25 @@ public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
     transformComponent.localSpace.columns.2 = rotation.columns.2
 }
 
-public func combineRotations(entityId: EntityID) {
-    guard let t = scene.get(component: TransformComponent.self, for: entityId) else {
-        handleError(.noTransformComponent, entityId)
-        return
-    }
-
-    // Generate Rotation
-    let rotXMatrix: simd_float4x4 = matrix4x4Rotation(
-        radians: degreesToRadians(degrees: t.xRot), axis: simd_float3(1.0, 0.0, 0.0)
-    )
-    let rotYMatrix: simd_float4x4 = matrix4x4Rotation(
-        radians: degreesToRadians(degrees: t.yRot), axis: simd_float3(0.0, 1.0, 0.0)
-    )
-    let rotZMatrix: simd_float4x4 = matrix4x4Rotation(
-        radians: degreesToRadians(degrees: t.zRot), axis: simd_float3(0.0, 0.0, 1.0)
-    )
-
-    // combine the rotations
-    let combinedRotation: simd_float4x4 = rotZMatrix * rotYMatrix * rotXMatrix
-
-    rotateTo(entityId: entityId, rotation: combinedRotation)
-}
+//public func combineRotations(entityId: EntityID) {
+//    guard let t = scene.get(component: TransformComponent.self, for: entityId) else {
+//        handleError(.noTransformComponent, entityId)
+//        return
+//    }
+//
+//    // Generate Rotation
+//    let rotXMatrix: simd_float4x4 = matrix4x4Rotation(
+//        radians: degreesToRadians(degrees: t.xRot), axis: simd_float3(1.0, 0.0, 0.0)
+//    )
+//    let rotYMatrix: simd_float4x4 = matrix4x4Rotation(
+//        radians: degreesToRadians(degrees: t.yRot), axis: simd_float3(0.0, 1.0, 0.0)
+//    )
+//    let rotZMatrix: simd_float4x4 = matrix4x4Rotation(
+//        radians: degreesToRadians(degrees: t.zRot), axis: simd_float3(0.0, 0.0, 1.0)
+//    )
+//
+//    // combine the rotations
+//    let combinedRotation: simd_float4x4 = rotZMatrix * rotYMatrix * rotXMatrix
+//
+//    rotateTo(entityId: entityId, rotation: combinedRotation)
+//}

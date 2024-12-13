@@ -210,8 +210,7 @@ func registerDefaultComponents(entityId: EntityID, meshes:[Mesh]) {
     let boundingBox = Mesh.computeMeshBoundingBox(for: meshes)
     
     transformComponent.localSpace = .identity
-    transformComponent.maxBox = boundingBox.max
-    transformComponent.minBox = boundingBox.min
+    transformComponent.boundingBox = boundingBox
     transformComponent.flipCoord = meshes[0].flipCoord
     
 }
