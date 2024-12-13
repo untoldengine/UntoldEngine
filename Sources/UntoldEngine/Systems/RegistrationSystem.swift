@@ -192,6 +192,7 @@ func registerDefaultComponents(entityId: EntityID, meshes:[Mesh]) {
     //if let meshValue = meshDictionary[name] {
     registerComponent(entityId: entityId, componentType: RenderComponent.self)
     registerComponent(entityId: entityId, componentType: LocalTransformComponent.self)
+    registerComponent(entityId: entityId, componentType: WorldTransformComponent.self)
 
     guard let renderComponent = scene.get(component: RenderComponent.self, for: entityId) else {
         handleError(.noRenderComponent, entityId)
@@ -199,7 +200,12 @@ func registerDefaultComponents(entityId: EntityID, meshes:[Mesh]) {
     }
 
     guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
-        handleError(.noTransformComponent, entityId)
+        handleError(.noLocalTransformComponent, entityId)
+        return
+    }
+    
+    guard let worldTransformComponent = scene.get(component: WorldTransformComponent.self, for: entityId) else {
+        handleError(.noWorldTransformComponent, entityId)
         return
     }
 

@@ -26,7 +26,7 @@ public class LocalTransformComponent: Component {
 
 public class WorldTransformComponent: Component {
     
-    var worldSpace: simd_float4x4 = .identity
+    var space: simd_float4x4 = .identity
     
     public required init() {
        
