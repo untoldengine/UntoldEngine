@@ -9,40 +9,47 @@
 import Foundation
 import simd
 
-public func getPosition(entityId: EntityID) -> simd_float3 {
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+public func getLocalPosition(entityId: EntityID) -> simd_float3 {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
-    let x: Float = transformComponent.localSpace.columns.3.x
-    let y: Float = transformComponent.localSpace.columns.3.y
-    let z: Float = transformComponent.localSpace.columns.3.z
+    let x: Float = localTransformComponent.space.columns.3.x
+    let y: Float = localTransformComponent.space.columns.3.y
+    let z: Float = localTransformComponent.space.columns.3.z
 
     return simd_float3(x, y, z)
 }
 
-public func getOrientation(entityId: EntityID) -> simd_float3x3 {
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+//public func getWorldPosition(entityId: EntityID) -> simd_float3 {
+//    
+//}
+
+public func getLocalOrientation(entityId: EntityID) -> simd_float3x3 {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return simd_float3x3()
     }
 
-    return matrix3x3_upper_left(transformComponent.localSpace)
+    return matrix3x3_upper_left(localTransformComponent.space)
 }
 
+//public func getWorldOrientation(entityId: EntityID) -> simd_float3x3 {
+//    
+//}
 
 public func getForwardAxisVector(entityId: EntityID) -> simd_float3 {
     // get the transform for the entity
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     var forward = simd_float3(
-        transformComponent.localSpace.columns.2.x,
-        transformComponent.localSpace.columns.2.z,
-        -transformComponent.localSpace.columns.2.y
+        localTransformComponent.space.columns.2.x,
+        localTransformComponent.space.columns.2.z,
+        -localTransformComponent.space.columns.2.y
     )
 
     forward = normalize(forward)
@@ -52,15 +59,15 @@ public func getForwardAxisVector(entityId: EntityID) -> simd_float3 {
 
 public func getRightAxisVector(entityId: EntityID) -> simd_float3 {
     // get the transform for the entity
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     var right = simd_float3(
-        transformComponent.localSpace.columns.0.x,
-        transformComponent.localSpace.columns.0.z,
-        -transformComponent.localSpace.columns.0.y
+        localTransformComponent.space.columns.0.x,
+        localTransformComponent.space.columns.0.z,
+        -localTransformComponent.space.columns.0.y
     )
 
     right = normalize(right)
@@ -70,15 +77,15 @@ public func getRightAxisVector(entityId: EntityID) -> simd_float3 {
 
 public func getUpAxisVector(entityId: EntityID) -> simd_float3 {
     // get the transform for the entity
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return simd_float3(0.0, 0.0, 0.0)
     }
 
     var up = simd_float3(
-        transformComponent.localSpace.columns.1.x,
-        transformComponent.localSpace.columns.1.z,
-        -transformComponent.localSpace.columns.1.y
+        localTransformComponent.space.columns.1.x,
+        localTransformComponent.space.columns.1.z,
+        -localTransformComponent.space.columns.1.y
     )
 
     up = normalize(up)
@@ -87,7 +94,7 @@ public func getUpAxisVector(entityId: EntityID) -> simd_float3 {
 }
 
 public func translateTo(entityId: EntityID, position: simd_float3) {
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return
     }
@@ -97,11 +104,11 @@ public func translateTo(entityId: EntityID, position: simd_float3) {
         return
     }
     
-    transformComponent.localSpace.columns.3 = simd_float4(position, 1.0)
+    localTransformComponent.space.columns.3 = simd_float4(position, 1.0)
 }
 
 public func translateBy(entityId: EntityID, position: simd_float3) {
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return
     }
@@ -111,14 +118,14 @@ public func translateBy(entityId: EntityID, position: simd_float3) {
         return
     }
     
-    transformComponent.localSpace.columns.3.x += position.x
-    transformComponent.localSpace.columns.3.y += position.y
-    transformComponent.localSpace.columns.3.z += position.z
+    localTransformComponent.space.columns.3.x += position.x
+    localTransformComponent.space.columns.3.y += position.y
+    localTransformComponent.space.columns.3.z += position.z
 }
 
 
 public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return
     }
@@ -135,19 +142,19 @@ public func rotateTo(entityId: EntityID, angle: Float, axis: simd_float3) {
     
     let m: simd_float4x4 = matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis)
 
-    transformComponent.localSpace.columns.0 = m.columns.0
-    transformComponent.localSpace.columns.1 = m.columns.1
-    transformComponent.localSpace.columns.2 = m.columns.2
+    localTransformComponent.space.columns.0 = m.columns.0
+    localTransformComponent.space.columns.1 = m.columns.1
+    localTransformComponent.space.columns.2 = m.columns.2
     
-    if transformComponent.flipCoord == true{
-        transformComponent.localSpace.columns.2 = m.columns.1
-        transformComponent.localSpace.columns.1 = m.columns.2
+    if localTransformComponent.flipCoord == true{
+        localTransformComponent.space.columns.2 = m.columns.1
+        localTransformComponent.space.columns.1 = m.columns.2
     }
     
 }
 
 public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return
     }
@@ -167,28 +174,28 @@ public func rotateBy(entityId: EntityID, angle: Float, axis: simd_float3) {
         matrix4x4Rotation(radians: degreesToRadians(degrees: angle), axis: axis))
 
     // previous matrix
-    let p = matrix3x3_upper_left(transformComponent.localSpace)
+    let p = matrix3x3_upper_left(localTransformComponent.space)
 
     m = matrix_multiply(m, p)
 
-    transformComponent.localSpace.columns.0 = simd_float4(m.columns.0, transformComponent.localSpace.columns.0.w)
-    transformComponent.localSpace.columns.1 = simd_float4(m.columns.1, transformComponent.localSpace.columns.1.w)
-    transformComponent.localSpace.columns.2 = simd_float4(m.columns.2, transformComponent.localSpace.columns.2.w)
+    localTransformComponent.space.columns.0 = simd_float4(m.columns.0, localTransformComponent.space.columns.0.w)
+    localTransformComponent.space.columns.1 = simd_float4(m.columns.1, localTransformComponent.space.columns.1.w)
+    localTransformComponent.space.columns.2 = simd_float4(m.columns.2, localTransformComponent.space.columns.2.w)
 }
 
 public func rotateTo(entityId: EntityID, rotation: simd_float4x4) {
-    guard let transformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
+    guard let localTransformComponent = scene.get(component: LocalTransformComponent.self, for: entityId) else {
         handleError(.noTransformComponent, entityId)
         return
     }
 
-    transformComponent.localSpace.columns.0 = rotation.columns.0
-    transformComponent.localSpace.columns.1 = rotation.columns.1
-    transformComponent.localSpace.columns.2 = rotation.columns.2
+    localTransformComponent.space.columns.0 = rotation.columns.0
+    localTransformComponent.space.columns.1 = rotation.columns.1
+    localTransformComponent.space.columns.2 = rotation.columns.2
 }
 
 //public func combineRotations(entityId: EntityID) {
-//    guard let t = scene.get(component: TransformComponent.self, for: entityId) else {
+//    guard let t = scene.get(component: localTransformComponent.self, for: entityId) else {
 //        handleError(.noTransformComponent, entityId)
 //        return
 //    }

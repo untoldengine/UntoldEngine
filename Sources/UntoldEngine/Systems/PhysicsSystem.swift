@@ -182,8 +182,8 @@ private func eulerIntegration(deltaTime: Float) {
         var position = getPosition(entityId: entity)
         position += physics.velocity * deltaTime
 
-        transform.localSpace.columns.3.x = position.x
-        transform.localSpace.columns.3.y = position.y
-        transform.localSpace.columns.3.z = position.z
+        transform.space.columns.3.x = position.x
+        transform.space.columns.3.y = position.y
+        transform.space.columns.3.z = position.z
     }
 }

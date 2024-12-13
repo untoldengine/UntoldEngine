@@ -241,7 +241,7 @@ enum RenderPasses {
                 // update uniforms
                 var modelUniforms = Uniforms()
                 
-                var modelMatrix = simd_mul(transformComponent.localSpace, mesh.localSpace)
+                var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
                 
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
                 
@@ -471,7 +471,7 @@ enum RenderPasses {
                 // update uniforms
                 var modelUniforms = Uniforms()
                 
-                var modelMatrix = simd_mul(transformComponent.localSpace, mesh.localSpace)
+                var modelMatrix = simd_mul(transformComponent.space, mesh.localSpace)
                 
                 // modelMatrix=simd_mul(usdRotation, modelMatrix)
                 

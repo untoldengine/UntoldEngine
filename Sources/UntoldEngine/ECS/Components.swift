@@ -13,11 +13,20 @@ import simd
 
 public class LocalTransformComponent: Component {
     
-    var localSpace: simd_float4x4 = .identity
+    var space: simd_float4x4 = .identity
     
     var boundingBox: (min: simd_float3, max: simd_float3)!
     
     var flipCoord: Bool = false
+    
+    public required init() {
+       
+    }
+}
+
+public class WorldTransformComponent: Component {
+    
+    var worldSpace: simd_float4x4 = .identity
     
     public required init() {
        
